@@ -357,4 +357,13 @@ struct BudgetFormulasExtendedTests {
         )
         #expect(result == .tight)
     }
+
+    /// Same fixture as the line above plus a rollover: it counts as available,
+    /// so it pulls the same budget back out of tight.
+    @Test func emotionState_static_rolloverWidensAvailable_returnsComfortable() {
+        let result = BudgetFormulas.emotionState(
+            remaining: 100, totalIncome: 1000, totalExpenses: 900, rollover: 200
+        )
+        #expect(result == .comfortable)
+    }
 }

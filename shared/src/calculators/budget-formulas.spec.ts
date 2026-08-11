@@ -1779,4 +1779,52 @@ describe('BudgetFormulas', () => {
       expect(metrics.rollover).toBe(0);
     });
   });
+
+  // Mêmes fixtures que `BudgetFormulasExtendedTests.swift` : une divergence
+  // entre les deux implémentations doit faire échouer un test, pas se lire.
+  describe('emotionState', () => {
+    function metricsFor(expense: number) {
+      return BudgetFormulas.calculateAllMetrics([
+        { id: '1', kind: 'income', amount: 1000 },
+        { id: '2', kind: 'expense', amount: expense },
+      ]);
+    }
+
+    it.each([
+      ['79% usage', 790, 'comfortable'],
+      ['exactly 80% usage', 800, 'tight'],
+      ['90% usage', 900, 'tight'],
+      ['exactly 100% usage', 1000, 'tight'],
+      ['120% usage', 1200, 'deficit'],
+    ])('reads %s as %s', (_label, expense, expected) => {
+      expect(BudgetFormulas.emotionState(metricsFor(expense as number))).toBe(
+        expected,
+      );
+    });
+
+    it('reads a budget with nothing in it as comfortable', () => {
+      const metrics = BudgetFormulas.calculateAllMetrics([]);
+
+      expect(BudgetFormulas.emotionState(metrics)).toBe('comfortable');
+    });
+
+    it('reads an unknown remaining as comfortable rather than guessing', () => {
+      expect(
+        BudgetFormulas.emotionState({
+          remaining: null,
+          totalIncome: 1000,
+          totalExpenses: 900,
+        }),
+      ).toBe('comfortable');
+    });
+
+    it('counts the rollover as available, so it can pull a budget out of tight', () => {
+      const tight = { remaining: 100, totalIncome: 1000, totalExpenses: 900 };
+
+      expect(BudgetFormulas.emotionState(tight)).toBe('tight');
+      expect(BudgetFormulas.emotionState({ ...tight, rollover: 200 })).toBe(
+        'comfortable',
+      );
+    });
+  });
 });

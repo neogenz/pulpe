@@ -60,6 +60,14 @@ export function isOutflowKind(kind: TransactionKind): boolean {
 }
 
 /**
+ * Zone émotionnelle d'un budget (DA §3.1), qui pilote la teinte du hero.
+ */
+export type EmotionState = 'comfortable' | 'tight' | 'deficit';
+
+/** Seuil DA §3.1 séparant "confortable" de "serré". */
+export const TIGHT_BUDGET_THRESHOLD_PERCENT = 80;
+
+/**
  * Classe contenant toutes les formules métier selon SPECS
  * Toutes les méthodes sont statiques et pures (pas d'effets de bord)
  */
@@ -358,6 +366,36 @@ export class BudgetFormulas {
       remaining,
       rollover,
     };
+  }
+
+  /**
+   * Zone émotionnelle à partir des valeurs brutes (DA §3.1) : confortable en
+   * dessous de 80 % d'utilisation, serré de 80 à 100 %, déficit au-delà.
+   *
+   * Vit ici plutôt que côté serveur parce que l'onboarding la recalcule pendant
+   * que l'utilisateur saisit ses montants, avant qu'aucun budget n'existe.
+   */
+  static emotionState({
+    remaining,
+    totalIncome,
+    totalExpenses,
+    rollover,
+  }: {
+    remaining?: number | null;
+    totalIncome?: number | null;
+    totalExpenses?: number | null;
+    rollover?: number | null;
+  }): EmotionState {
+    if (remaining === null || remaining === undefined) return 'comfortable';
+    if (remaining < 0) return 'deficit';
+
+    const available = (totalIncome ?? 0) + (rollover ?? 0);
+    if (available <= 0) return 'comfortable';
+
+    const usagePercentage = ((totalExpenses ?? 0) / available) * 100;
+    return usagePercentage >= TIGHT_BUDGET_THRESHOLD_PERCENT
+      ? 'tight'
+      : 'comfortable';
   }
 
   /**

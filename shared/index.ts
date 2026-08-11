@@ -222,7 +222,11 @@ export {
 } from './src/api-response.js';
 
 // Export calculators
-export { BudgetFormulas } from './src/calculators/index.js';
+export {
+  BudgetFormulas,
+  TIGHT_BUDGET_THRESHOLD_PERCENT,
+  type EmotionState,
+} from './src/calculators/index.js';
 export { splitTotalPreserving } from './src/calculators/index.js';
 export {
   PACE_TOLERANCE_PERCENT,

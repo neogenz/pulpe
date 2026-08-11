@@ -9,7 +9,12 @@
  * Voir shared/README.md section "Résolution des Modules ESM" pour plus de détails.
  */
 
-export { BudgetFormulas } from './budget-formulas.js';
+export {
+  BudgetFormulas,
+  isOutflowKind,
+  TIGHT_BUDGET_THRESHOLD_PERCENT,
+  type EmotionState,
+} from './budget-formulas.js';
 export { splitTotalPreserving } from './spread-split.js';
 export {
   PACE_TOLERANCE_PERCENT,
