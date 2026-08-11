@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
+import { fr, registerTranslation } from "react-native-paper-dates";
 
 import { observeSession, useSessionStore } from "@/core/auth/session-store";
 import { startSupabaseAutoRefresh } from "@/core/auth/supabase";
@@ -20,6 +21,10 @@ import {
 import { RecoveryKeyNotice } from "@/ui/recovery-key-notice";
 
 void SplashScreen.preventAutoHideAsync();
+
+// The date picker reads its labels from a global registry, so this has to run
+// before any calendar mounts — the app is French whatever the device is set to.
+registerTranslation("fr", fr);
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();

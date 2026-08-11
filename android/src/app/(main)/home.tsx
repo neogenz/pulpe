@@ -4,6 +4,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
+  FAB,
   Snackbar,
   Text,
   useTheme,
@@ -15,6 +16,7 @@ import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
 import { ActivityCard } from "@/features/current-month/components/activity-card";
+import { AddTransactionSheet } from "@/features/current-month/components/add-transaction-sheet";
 import { DriftCard } from "@/features/current-month/components/drift-card";
 import { HomeHeroCard } from "@/features/current-month/components/home-hero-card";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
@@ -29,7 +31,9 @@ export default function HomeScreen() {
   const currentMonth = useCurrentMonth();
   const signOut = useSessionStore((state) => state.signOut);
   const [isRealizedVisible, setRealizedVisible] = useState(false);
+  const [isAddVisible, setAddVisible] = useState(false);
   const [hasToggleFailed, setToggleFailed] = useState(false);
+  const [hasTransactionAdded, setTransactionAdded] = useState(false);
   // A rolled-back row reappearing is not an explanation, so the failure is said
   // out loud. The success needs no toast: the row leaving the card is the reply.
   const toggle = useToggleCheck(currentMonth.budgetId);
@@ -156,12 +160,31 @@ export default function HomeScreen() {
         </Button>
       </ScrollView>
 
+      {/* Hidden while a sheet is up: the FAB floats above the Portal's scrim
+          and would otherwise sit on top of the form it just opened. */}
+      {!isAddVisible && !isRealizedVisible && (
+        <FAB
+          icon="plus"
+          label="Ajouter"
+          style={styles.fab}
+          onPress={() => setAddVisible(true)}
+          accessibilityLabel="Ajouter une opération"
+        />
+      )}
+
       <Snackbar
         visible={hasToggleFailed}
         onDismiss={() => setToggleFailed(false)}
         action={{ label: "Fermer", onPress: () => setToggleFailed(false) }}
       >
         Le pointage n&apos;a pas été enregistré. Réessaie.
+      </Snackbar>
+
+      <Snackbar
+        visible={hasTransactionAdded}
+        onDismiss={() => setTransactionAdded(false)}
+      >
+        Opération ajoutée
       </Snackbar>
 
       <RealizedBalanceSheet
@@ -171,6 +194,19 @@ export default function HomeScreen() {
         realized={viewModel.realized}
         currency={currency}
       />
+
+      {currentMonth.budgetId !== null && (
+        <AddTransactionSheet
+          isVisible={isAddVisible}
+          onDismiss={() => setAddVisible(false)}
+          budgetId={currentMonth.budgetId}
+          currency={currency}
+          onAdded={() => {
+            setAddVisible(false);
+            setTransactionAdded(true);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -178,7 +214,8 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: SPACING.md, gap: SPACING.md },
+  content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
   title: { textTransform: "capitalize" },
   dailyBudget: { paddingHorizontal: SPACING.xs },
+  fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

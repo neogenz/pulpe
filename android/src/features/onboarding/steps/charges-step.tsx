@@ -4,7 +4,7 @@ import { Button, Text } from "react-native-paper";
 
 import { SPACING } from "@/core/ui/theme";
 
-import { AmountField } from "../components/amount-field";
+import { AmountField } from "@/core/ui/amount-field";
 import { RunningTotal } from "../components/running-total";
 import { StepScaffold } from "../components/step-scaffold";
 import { SuggestionGrid } from "../components/suggestion-grid";

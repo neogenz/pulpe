@@ -2,7 +2,7 @@ import { CURRENCY_METADATA, type SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { TextInput } from "react-native-paper";
 
-import { parseAmount, seedAmountText } from "../money";
+import { parseAmount, seedAmountText } from "./money";
 
 /**
  * An amount, typed.

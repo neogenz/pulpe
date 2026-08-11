@@ -9,7 +9,7 @@ import {
   createCustomTransaction,
   type OnboardingTransaction,
 } from "../onboarding-transaction";
-import { AmountField } from "./amount-field";
+import { AmountField } from "@/core/ui/amount-field";
 
 const NAME_MAX_LENGTH = 100;
 
