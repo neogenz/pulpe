@@ -13,6 +13,7 @@ import {
   fetchSavingsGoalProgress,
   fetchSavingsGoals,
   fetchSavingsGoalWithdrawals,
+  stopSavingsGoalGeneration,
   updateSavingsGoal,
 } from "./goals-api";
 
@@ -141,4 +142,8 @@ export function useUpdateSavingsGoal() {
 
 export function useDeleteSavingsGoal() {
   return useGoalMutation(deleteSavingsGoal);
+}
+
+export function useStopSavingsGoalGeneration() {
+  return useGoalMutation(stopSavingsGoalGeneration);
 }

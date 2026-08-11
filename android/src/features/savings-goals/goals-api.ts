@@ -10,6 +10,9 @@ import {
   savingsGoalDeletionImpactResponseSchema,
   type SavingsGoalFutureLine,
   savingsGoalFutureLinesResponseSchema,
+  type SavingsGoalGenerationStop,
+  savingsGoalGenerationStopSchema,
+  savingsGoalGenerationStopResponseSchema,
   savingsGoalListResponseSchema,
   type SavingsGoalProgress,
   savingsGoalProgressResponseSchema,
@@ -139,4 +142,21 @@ export function deleteSavingsGoal(input: {
     input.command,
     savingsGoalDeletionCommandSchema,
   );
+}
+
+/**
+ * The explicit decision on forecasts a stopped goal still holds on future
+ * months: keep them, unlinked, or take them out. Never applied automatically —
+ * the money is reserved on budgets the user may still be counting on.
+ */
+export function stopSavingsGoalGeneration(input: {
+  goalId: string;
+  decision: SavingsGoalGenerationStop;
+}): Promise<number> {
+  return api
+    .post<
+      { data: { affectedCount: number } },
+      SavingsGoalGenerationStop
+    >(ENDPOINTS.savingsGoalGenerationStop(input.goalId), input.decision, savingsGoalGenerationStopResponseSchema, savingsGoalGenerationStopSchema)
+    .then((response) => response.data.affectedCount);
 }

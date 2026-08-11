@@ -2,7 +2,13 @@ import { router, useLocalSearchParams } from "expo-router";
 import type { SupportedCurrency } from "pulpe-shared";
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet } from "react-native";
-import { ActivityIndicator, Appbar, Text, useTheme } from "react-native-paper";
+import {
+  ActivityIndicator,
+  Appbar,
+  Menu,
+  Text,
+  useTheme,
+} from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { formatIsoDate } from "@/core/ui/date-format";
@@ -10,16 +16,21 @@ import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { GoalContributions } from "@/features/savings-goals/components/goal-contributions";
+import { GoalDeletionSheet } from "@/features/savings-goals/components/goal-deletion-sheet";
 import { GoalFormSheet } from "@/features/savings-goals/components/goal-form-sheet";
+import { GoalGenerationStopSheet } from "@/features/savings-goals/components/goal-generation-stop-sheet";
 import { GoalPlanTimeline } from "@/features/savings-goals/components/goal-plan-timeline";
 import { GoalProgressCard } from "@/features/savings-goals/components/goal-progress-card";
 import { GoalProjectionChart } from "@/features/savings-goals/components/goal-projection-chart";
+import { GoalStateCards } from "@/features/savings-goals/components/goal-state-cards";
 import { GoalWithdrawals } from "@/features/savings-goals/components/goal-withdrawals";
 import {
   useSavingsGoal,
   useSavingsGoalContributions,
+  useSavingsGoalFutureLines,
   useSavingsGoalProgress,
   useSavingsGoalWithdrawals,
+  useUpdateSavingsGoal,
 } from "@/features/savings-goals/goals-queries";
 import { projectionSeries } from "@/features/savings-goals/projection-series";
 
@@ -38,7 +49,12 @@ export default function GoalDetailScreen() {
   const progress = useSavingsGoalProgress(id);
   const contributions = useSavingsGoalContributions(id);
   const withdrawals = useSavingsGoalWithdrawals(id);
+  const futureLines = useSavingsGoalFutureLines(id);
+  const update = useUpdateSavingsGoal();
   const [isEditVisible, setEditVisible] = useState(false);
+  const [isMenuVisible, setMenuVisible] = useState(false);
+  const [isDeleteVisible, setDeleteVisible] = useState(false);
+  const [isStopVisible, setStopVisible] = useState(false);
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
@@ -68,6 +84,20 @@ export default function GoalDetailScreen() {
     );
   }
 
+  const lines = futureLines.data ?? [];
+
+  /**
+   * Stopping a goal is one decision; what happens to the forecasts it still
+   * holds on months to come is another. Completing only asks the second
+   * question when there is something left to decide.
+   */
+  function complete() {
+    update.mutate(
+      { goalId: id, changes: { status: "COMPLETED" } },
+      { onSuccess: () => setStopVisible(lines.length > 0) },
+    );
+  }
+
   return (
     <SafeAreaView
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
@@ -80,6 +110,26 @@ export default function GoalDetailScreen() {
           onPress={() => setEditVisible(true)}
           accessibilityLabel="Modifier l'objectif"
         />
+        <Menu
+          visible={isMenuVisible}
+          onDismiss={() => setMenuVisible(false)}
+          anchor={
+            <Appbar.Action
+              icon="dots-vertical"
+              onPress={() => setMenuVisible(true)}
+              accessibilityLabel="Plus d'options"
+            />
+          }
+        >
+          <Menu.Item
+            leadingIcon="delete-outline"
+            title="Supprimer l'objectif"
+            onPress={() => {
+              setMenuVisible(false);
+              setDeleteVisible(true);
+            }}
+          />
+        </Menu>
       </Appbar.Header>
 
       <ScrollView
@@ -102,6 +152,21 @@ export default function GoalDetailScreen() {
 
         {progress.data !== undefined && (
           <GoalProgressCard progress={progress.data} currency={currency} />
+        )}
+
+        {progress.data !== undefined && (
+          <GoalStateCards
+            progress={progress.data}
+            status={goal.data.status}
+            futureLineCount={lines.length}
+            isMutating={update.isPending}
+            onEdit={() => setEditVisible(true)}
+            onComplete={complete}
+            onReopen={() =>
+              update.mutate({ goalId: id, changes: { status: "ACTIVE" } })
+            }
+            onManageFutureLines={() => setStopVisible(true)}
+          />
         )}
 
         {/* The trajectory needs a month behind it to be a trajectory. Before
@@ -143,6 +208,27 @@ export default function GoalDetailScreen() {
         payDayOfMonth={payDayOfMonth}
         goal={goal.data}
         onSaved={() => setEditVisible(false)}
+      />
+
+      <GoalGenerationStopSheet
+        isVisible={isStopVisible}
+        onDismiss={() => setStopVisible(false)}
+        goalId={id}
+        status={goal.data.status}
+        lines={lines}
+        currency={currency}
+        onApplied={() => setStopVisible(false)}
+      />
+
+      <GoalDeletionSheet
+        isVisible={isDeleteVisible}
+        onDismiss={() => setDeleteVisible(false)}
+        goal={goal.data}
+        currency={currency}
+        onDeleted={() => {
+          setDeleteVisible(false);
+          router.back();
+        }}
       />
     </SafeAreaView>
   );
