@@ -78,7 +78,12 @@ export default function SignInScreen() {
           </Text>
         </View>
 
+        {/* testIDs, here and on the submit below, exist for the Maestro
+            journeys: "Mot de passe" matches both this field and the "oublié ?"
+            button, and a login test that taps the wrong one is worse than no
+            login test. */}
         <TextInput
+          testID="sign-in-email"
           mode="outlined"
           label="E-mail"
           placeholder="Adresse e-mail"
@@ -90,6 +95,7 @@ export default function SignInScreen() {
           disabled={isBusy}
         />
         <TextInput
+          testID="sign-in-password"
           mode="outlined"
           label="Mot de passe"
           placeholder="Ton mot de passe"
@@ -114,6 +120,7 @@ export default function SignInScreen() {
         )}
 
         <Button
+          testID="sign-in-submit"
           mode="contained"
           loading={pending === "password"}
           disabled={isBusy || !isFormValid}

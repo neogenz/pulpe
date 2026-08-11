@@ -1,0 +1,51 @@
+# Journey 2 — sign in, unlock the vault, land on the month.
+#
+# The one that must never break: the vault is the only screen in Pulpe with no
+# way around it, so a user who cannot get past the PIN has no app at all.
+#
+# Credentials come from the environment; the defaults are the local seed
+# account (`backend-nest/supabase/seed.sql`), which exists nowhere else.
+#   maestro test -e EMAIL=… -e PASSWORD=… -e PIN=1234 maestro/login-vault.yaml
+appId: app.pulpe.android
+env:
+  EMAIL: demo@pulpe.test
+  PASSWORD: local-demo-only
+  PIN: "1234"
+---
+- launchApp:
+    clearState: true
+
+# A device that has never onboarded gets the pitch before the form.
+- runFlow:
+    when:
+      visible: "J'ai déjà un compte"
+    commands:
+      - tapOn: "J'ai déjà un compte"
+
+- assertVisible: "Content de te revoir"
+
+- tapOn:
+    id: "sign-in-email"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "sign-in-password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "sign-in-submit"
+
+# The vault status comes from the server, so this is the slow step.
+- extendedWaitUntil:
+    visible: "Ton code"
+    timeout: 30000
+
+# One tap per digit — the pad has no submit, the fourth digit validates.
+- tapOn: ${PIN.charAt(0)}
+- tapOn: ${PIN.charAt(1)}
+- tapOn: ${PIN.charAt(2)}
+- tapOn: ${PIN.charAt(3)}
+
+# The FAB is on the month screen and nowhere before it.
+- extendedWaitUntil:
+    visible: "Ajouter"
+    timeout: 30000

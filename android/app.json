@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "scheme": "pulpe",
     "userInterfaceStyle": "automatic",
+    "runtimeVersion": { "policy": "appVersion" },
     "icon": "./assets/images/icon.png",
     "android": {
       "package": "app.pulpe.android",
