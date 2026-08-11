@@ -58,15 +58,9 @@ struct CurrentMonthHeroCard: View {
         .buttonStyle(.plain)
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
         .shadow(DesignTokens.Shadow.subtle)
-        .overlay {
-            // `.subtle`'s 5% black renders as nothing on `appBackground`'s dark tone (same
-            // dead-shadow math as the budget line card) — the hairline border takes over.
-            // `pulpeRowCard()` doesn't fit here: this is a hero card (`CornerRadius.xl`,
-            // 32pt); the shared modifier is reserved for row cards (`CornerRadius.card`,
-            // 18pt) — different card kind, not just a different number.
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl, style: .continuous)
-                .strokeBorder(Color.rowCardBorder, lineWidth: DesignTokens.BorderWidth.hairline)
-        }
+        // A hero card at 32pt, not a row card at 18pt: it takes the border alone
+        // rather than `pulpeRowCard()`, which would impose the row radius.
+        .pulpeRowCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
         .sensoryFeedback(.impact(weight: .medium), trigger: tapTrigger)
         .accessibilityLabel(
             "\(monthName), mois actuel, "
@@ -125,11 +119,7 @@ struct BudgetMonthCard: View {
         .buttonStyle(.plain)
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
         .shadow(DesignTokens.Shadow.subtle)
-        .overlay {
-            // Same dead-shadow fix as `CurrentMonthHeroCard` above — see its comment.
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl, style: .continuous)
-                .strokeBorder(Color.rowCardBorder, lineWidth: DesignTokens.BorderWidth.hairline)
-        }
+        .pulpeRowCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
         .sensoryFeedback(.selection, trigger: tapTrigger)
         .accessibilityLabel(
             "\(monthName), "

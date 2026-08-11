@@ -188,13 +188,8 @@ struct BudgetDetailsSkeletonView: View {
         .padding(.trailing, DesignTokens.Spacing.md)
         .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
-        .overlay {
-            // No `.shadow` here unlike its loaded-state neighbors: a skeleton is placeholder
-            // chrome, not a real row, so it never had one to begin with — only the dark-mode
-            // border, which `pulpeRowCard()` can't provide alone without also adding a light
-            // mode shadow this view never had.
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl, style: .continuous)
-                .strokeBorder(Color.rowCardBorder, lineWidth: DesignTokens.BorderWidth.hairline)
-        }
+        // No `.shadow` here unlike its loaded-state neighbors: a skeleton is placeholder
+        // chrome, not a real row, so it never had one to begin with.
+        .pulpeRowCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
     }
 }
