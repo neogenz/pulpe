@@ -68,6 +68,7 @@ export default function MainTabsLayout() {
       <Tabs.Screen name="budget/[id]" options={{ href: null }} />
       <Tabs.Screen name="budget/[id]/line/[lineId]" options={{ href: null }} />
       <Tabs.Screen name="goal/[id]" options={{ href: null }} />
+      <Tabs.Screen name="template/[id]" options={{ href: null }} />
       <Tabs.Screen
         name="templates"
         options={{
