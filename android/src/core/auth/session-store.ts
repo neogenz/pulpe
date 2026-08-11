@@ -5,7 +5,7 @@ import { clearAllKeys } from "@/core/crypto/client-key-manager";
 import { queryClient } from "@/core/query/query-client";
 import { resetVault } from "@/core/vault/vault-store";
 
-import { signOutThisDevice, supabase } from "./supabase";
+import { signOutEverywhere, signOutThisDevice, supabase } from "./supabase";
 
 /**
  * `locked` — the vault state — deliberately does not exist yet. Nothing sets
@@ -40,6 +40,17 @@ export const useSessionStore = create<SessionState>((set) => ({
     set(applySession(null));
   },
 }));
+
+/**
+ * Ends a password-recovery session. The purge is awaited here rather than left
+ * to the `SIGNED_OUT` listener, because the caller navigates as soon as this
+ * resolves and would otherwise race the vault reset.
+ */
+export async function endRecoverySession(): Promise<void> {
+  await signOutEverywhere();
+  await purgeLocalAccountData();
+  useSessionStore.setState(applySession(null));
+}
 
 /**
  * Everything the departing account left behind. Idempotent, because it runs

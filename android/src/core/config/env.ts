@@ -12,6 +12,7 @@ const RAW_ENV = {
   API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL,
   SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
   SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
 } as const;
 
 const APP_ENVIRONMENTS = ["local", "preview", "production"] as const;
@@ -44,6 +45,9 @@ export const ENV = {
   apiBaseUrl: requiredValue("API_BASE_URL"),
   supabaseUrl: requiredValue("SUPABASE_URL"),
   supabaseAnonKey: requiredValue("SUPABASE_ANON_KEY"),
+  // Optional, unlike the rest: sign-in by e-mail has to keep working on a
+  // build where Google is not wired up yet. The button hides instead.
+  googleWebClientId: RAW_ENV.GOOGLE_WEB_CLIENT_ID ?? null,
 } as const;
 
 export const isProduction = ENV.environment === "production";

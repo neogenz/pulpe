@@ -5,6 +5,15 @@ import { ENV } from "@/core/config/env";
 
 import { chunkedSecureStore } from "./chunked-secure-store";
 
+/**
+ * Where the reset e-mail sends the user back. Same URL as iOS and the webapp,
+ * on purpose: it is an App Link here, a Universal Link there, and an ordinary
+ * page in a browser — one address, whichever surface the user opens it on.
+ * It must also be listed in the Supabase project's allowed redirect URLs.
+ */
+export const PASSWORD_RESET_REDIRECT_URL =
+  "https://app.pulpe.app/reset-password";
+
 export const supabase = createClient(ENV.supabaseUrl, ENV.supabaseAnonKey, {
   auth: {
     storage: chunkedSecureStore,
@@ -56,4 +65,14 @@ export async function getAccessToken(): Promise<string | null> {
  */
 export async function signOutThisDevice(): Promise<void> {
   await supabase.auth.signOut({ scope: "local" });
+}
+
+/**
+ * The one place a global sign-out is correct: the password just changed, or a
+ * recovery session is being abandoned. Revoking every refresh token of the
+ * account is the point — a password reset that left the old sessions alive
+ * would not be a reset. Mirrors `cancelPasswordResetFlow` on iOS.
+ */
+export async function signOutEverywhere(): Promise<void> {
+  await supabase.auth.signOut({ scope: "global" });
 }
