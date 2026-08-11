@@ -277,8 +277,7 @@ struct BudgetDetailsView: View {
                         onTap: { line in
                             router.push(.lineDetail(lineId: line.id))
                         },
-                        onTogglePointed: { line in handlePointGesture(on: line) },
-                        tip: section.kind == screenState.firstSectionKind ? ProductTips.gestures : nil
+                        onTogglePointed: { line in handlePointGesture(on: line) }
                     )
                 }
 

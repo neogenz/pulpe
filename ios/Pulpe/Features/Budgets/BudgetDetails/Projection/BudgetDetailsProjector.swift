@@ -175,7 +175,6 @@ final class BudgetDetailsProjector {
             isShowingOnlyUnchecked: ctx.filtersStore.isShowingOnlyUnchecked,
             canPostpone: ctx.dataStore.hasNextMonthBudget,
             nextMonthLabel: ctx.dataStore.nextMonthLabel,
-            firstSectionKind: ctx.sections.first?.kind,
             canShowEmptyChecked: makeCanShowEmptyChecked(
                 dataStore: ctx.dataStore,
                 filtersStore: ctx.filtersStore,

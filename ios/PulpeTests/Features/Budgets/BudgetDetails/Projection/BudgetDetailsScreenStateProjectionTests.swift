@@ -64,7 +64,6 @@ struct BudgetDetailsScreenStateProjectionTests {
         #expect(state.sections.isEmpty)
         #expect(state.free.isEmpty)
         #expect(state.kindCounts.all == 0)
-        #expect(state.firstSectionKind == nil)
         #expect(state.consumptionByLineId.isEmpty)
         #expect(state.transactionsByLineId.isEmpty)
     }
@@ -85,7 +84,6 @@ struct BudgetDetailsScreenStateProjectionTests {
 
         let kinds = state.sections.map(\.kind)
         #expect(kinds == [.income, .saving, .expense])
-        #expect(state.firstSectionKind == .income)
     }
 
     // MARK: - Filters

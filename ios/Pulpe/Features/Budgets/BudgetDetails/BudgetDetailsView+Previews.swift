@@ -1,5 +1,4 @@
 import SwiftUI
-import TipKit
 
 // MARK: - Previews
 
@@ -15,17 +14,4 @@ import TipKit
     .environment(CurrentMonthStore())
     .environment(SavingsGoalStore())
     .environment(TagStore())
-}
-
-#Preview("Gestures Tip") {
-    List {
-        Section("Dépenses") {
-            TipView(ProductTips.gestures)
-            Text("Courses alimentaires")
-        }
-    }
-    .listStyle(.insetGrouped)
-    .scrollContentBackground(.hidden)
-    .pulpeBackground()
-    .task { try? Tips.resetDatastore() }
 }
