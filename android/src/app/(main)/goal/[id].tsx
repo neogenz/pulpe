@@ -24,6 +24,7 @@ import { GoalProgressCard } from "@/features/savings-goals/components/goal-progr
 import { GoalProjectionChart } from "@/features/savings-goals/components/goal-projection-chart";
 import { GoalStateCards } from "@/features/savings-goals/components/goal-state-cards";
 import { GoalWithdrawals } from "@/features/savings-goals/components/goal-withdrawals";
+import { GoalPlanSimulatorSheet } from "@/features/savings-goals/components/simulator/goal-plan-simulator-sheet";
 import {
   useSavingsGoal,
   useSavingsGoalContributions,
@@ -55,6 +56,7 @@ export default function GoalDetailScreen() {
   const [isMenuVisible, setMenuVisible] = useState(false);
   const [isDeleteVisible, setDeleteVisible] = useState(false);
   const [isStopVisible, setStopVisible] = useState(false);
+  const [isSimulatorVisible, setSimulatorVisible] = useState(false);
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
@@ -180,7 +182,15 @@ export default function GoalDetailScreen() {
         )}
 
         {progress.data !== undefined && (
-          <GoalPlanTimeline months={progress.data.months} currency={currency} />
+          <GoalPlanTimeline
+            months={progress.data.months}
+            currency={currency}
+            onAdjust={
+              goal.data.status === "ACTIVE"
+                ? () => setSimulatorVisible(true)
+                : undefined
+            }
+          />
         )}
 
         {withdrawals.data !== undefined && (
@@ -209,6 +219,17 @@ export default function GoalDetailScreen() {
         goal={goal.data}
         onSaved={() => setEditVisible(false)}
       />
+
+      {progress.data !== undefined && (
+        <GoalPlanSimulatorSheet
+          isVisible={isSimulatorVisible}
+          onDismiss={() => setSimulatorVisible(false)}
+          goalId={id}
+          progress={progress.data}
+          currency={currency}
+          onApplied={() => setSimulatorVisible(false)}
+        />
+      )}
 
       <GoalGenerationStopSheet
         isVisible={isStopVisible}

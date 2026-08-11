@@ -14,6 +14,10 @@ import {
   savingsGoalGenerationStopSchema,
   savingsGoalGenerationStopResponseSchema,
   savingsGoalListResponseSchema,
+  type SavingsGoalPlanApply,
+  savingsGoalPlanApplyResponseSchema,
+  type SavingsGoalPlanApplyResponse,
+  savingsGoalPlanApplySchema,
   type SavingsGoalProgress,
   savingsGoalProgressResponseSchema,
   savingsGoalResponseSchema,
@@ -142,6 +146,22 @@ export function deleteSavingsGoal(input: {
     input.command,
     savingsGoalDeletionCommandSchema,
   );
+}
+
+/**
+ * Applying a simulated plan. The server recomputes the progression afterwards —
+ * the client's simulation is a preview, never the authority.
+ */
+export function applySavingsGoalPlan(input: {
+  goalId: string;
+  plan: SavingsGoalPlanApply;
+}): Promise<void> {
+  return api
+    .post<
+      SavingsGoalPlanApplyResponse,
+      SavingsGoalPlanApply
+    >(ENDPOINTS.savingsGoalPlan(input.goalId), input.plan, savingsGoalPlanApplyResponseSchema, savingsGoalPlanApplySchema)
+    .then(() => undefined);
 }
 
 /**

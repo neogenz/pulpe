@@ -4,6 +4,7 @@ import { useVaultStore } from "@/core/vault/vault-store";
 import { budgetKeys } from "@/features/budgets/budget-queries";
 
 import {
+  applySavingsGoalPlan,
   createSavingsGoal,
   deleteSavingsGoal,
   fetchSavingsGoal,
@@ -146,4 +147,8 @@ export function useDeleteSavingsGoal() {
 
 export function useStopSavingsGoalGeneration() {
   return useGoalMutation(stopSavingsGoalGeneration);
+}
+
+export function useApplySavingsGoalPlan() {
+  return useGoalMutation(applySavingsGoalPlan);
 }
