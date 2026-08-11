@@ -99,6 +99,7 @@ import { ThemeService } from '@core/theme';
               [realizedExpenses]="3600"
               [realizedPercentage]="90"
               [elapsedDayOfPeriod]="27"
+              [paceStatus]="'tight'"
               [periodDates]="mockPeriodDates"
             />
           </div>
