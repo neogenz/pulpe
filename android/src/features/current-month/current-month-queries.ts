@@ -6,7 +6,7 @@ import type { BudgetDetails } from "@/features/budgets/budget-api";
 import {
   invalidateBudgetData,
   useBudgetDetails,
-  useBudgetPeriods,
+  useBudgetList,
 } from "@/features/budgets/budget-queries";
 
 import {
@@ -38,7 +38,7 @@ export function useCurrentMonth(): CurrentMonthQuery {
   const settings = useUserSettings();
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
 
-  const periods = useBudgetPeriods();
+  const periods = useBudgetList();
   const budgetId = useMemo(
     () =>
       periods.data

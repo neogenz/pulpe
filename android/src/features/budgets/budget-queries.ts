@@ -3,21 +3,21 @@ import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/core/query/query-client";
 import { useVaultStore } from "@/core/vault/vault-store";
 
-import { fetchBudgetDetails, fetchBudgetPeriods } from "./budget-api";
+import { fetchBudgetDetails, fetchBudgetList } from "./budget-api";
 
 export const budgetKeys = {
   all: ["budgets"] as const,
-  periods: () => [...budgetKeys.all, "periods"] as const,
+  list: () => [...budgetKeys.all, "list"] as const,
   detail: (budgetId: string) =>
     [...budgetKeys.all, "detail", budgetId] as const,
 };
 
-export function useBudgetPeriods() {
+export function useBudgetList() {
   const isVaultUnlocked = useVaultStore((state) => state.status === "unlocked");
 
   return useQuery({
-    queryKey: budgetKeys.periods(),
-    queryFn: fetchBudgetPeriods,
+    queryKey: budgetKeys.list(),
+    queryFn: fetchBudgetList,
     enabled: isVaultUnlocked,
   });
 }

@@ -10,18 +10,24 @@ import { ENDPOINTS } from "@/core/api/endpoints";
 
 export type BudgetDetails = BudgetDetailsResponse["data"];
 
+/** The same fieldset as `BudgetService.defaultSparseFields`. */
+const SPARSE_FIELDS =
+  "month,year,totalIncome,totalExpenses,totalSavings,rollover,remaining";
+
 /**
- * Sparse fieldset: the caller only needs to know which period each budget
- * covers, and the full list carries every aggregate for every month.
+ * Every budget, as periods plus aggregates — enough for the budgets list and
+ * for the dashboard to resolve which period it is living in, off one cache
+ * entry rather than two requests asking the same endpoint for overlapping
+ * columns.
  *
  * Deliberately unbounded, unlike the iOS `limit: 13` — the list comes back
  * newest period first, so a limit silently drops the current month as soon as
  * the user has more future budgets than the limit leaves room for.
  */
-export function fetchBudgetPeriods(): Promise<BudgetSparse[]> {
+export function fetchBudgetList(): Promise<BudgetSparse[]> {
   return api
     .get(ENDPOINTS.budgets, budgetSparseListResponseSchema, {
-      fields: "month,year",
+      fields: SPARSE_FIELDS,
     })
     .then((response) => response.data);
 }

@@ -16,7 +16,7 @@ import { useReminderPriming } from "@/core/notifications/use-reminder-priming";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
-import { useBudgetPeriods } from "@/features/budgets/budget-queries";
+import { useBudgetList } from "@/features/budgets/budget-queries";
 import { nextAvailableMonth } from "@/features/budgets/next-available-month";
 import { ActivityCard } from "@/features/current-month/components/activity-card";
 import { AddTransactionSheet } from "@/features/current-month/components/add-transaction-sheet";
@@ -44,10 +44,10 @@ export default function HomeScreen() {
   const reminders = useReminderPriming();
   // Same cached query the current month resolves against, so this costs nothing
   // extra — it only asks a different question of it.
-  const periods = useBudgetPeriods();
+  const budgets = useBudgetList();
   const hasMonthToPrepare =
-    periods.data !== undefined &&
-    nextAvailableMonth(periods.data, new Date()) !== null;
+    budgets.data !== undefined &&
+    nextAvailableMonth(budgets.data, new Date()) !== null;
 
   if (currentMonth.status === "loading") {
     return (

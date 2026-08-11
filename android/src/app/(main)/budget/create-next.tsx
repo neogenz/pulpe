@@ -19,27 +19,27 @@ import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 import { useCreateBudget } from "@/features/budgets/create-budget-mutation";
 import { nextAvailableMonth } from "@/features/budgets/next-available-month";
-import { useBudgetPeriods } from "@/features/budgets/budget-queries";
+import { useBudgetList } from "@/features/budgets/budget-queries";
 import { useTemplates } from "@/features/templates/template-queries";
 
 export default function CreateNextBudgetScreen() {
   const theme = useTheme();
-  const periods = useBudgetPeriods();
+  const budgets = useBudgetList();
   const templates = useTemplates();
   const create = useCreateBudget();
   const [chosenTemplateId, setChosenTemplateId] = useState<string | null>(null);
 
   const period =
-    periods.data === undefined
+    budgets.data === undefined
       ? null
-      : nextAvailableMonth(periods.data, new Date());
+      : nextAvailableMonth(budgets.data, new Date());
   // Derived rather than synced from an effect: the list arrives after the first
   // render, and a default written into state then would overwrite a choice the
   // user had already made in between.
   const selectedTemplateId =
     chosenTemplateId ?? defaultTemplateId(templates.data ?? []);
 
-  if (periods.isPending || templates.isPending) {
+  if (budgets.isPending || templates.isPending) {
     return (
       <SafeAreaView
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
