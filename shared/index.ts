@@ -227,6 +227,12 @@ export {
   TIGHT_BUDGET_THRESHOLD_PERCENT,
   type EmotionState,
 } from './src/calculators/index.js';
+export {
+  calculateBalanceTrajectory,
+  type BalanceTrajectory,
+  type BalanceTrajectoryInput,
+  type BalanceTrajectoryPoint,
+} from './src/calculators/index.js';
 export { splitTotalPreserving } from './src/calculators/index.js';
 export {
   PACE_TOLERANCE_PERCENT,

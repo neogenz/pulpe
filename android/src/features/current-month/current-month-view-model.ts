@@ -1,9 +1,11 @@
 import {
+  type BalanceTrajectory,
   type Budget,
   type BudgetLine,
   type BudgetPeriod,
   type BudgetSparse,
   BudgetFormulas,
+  calculateBalanceTrajectory,
   type EmotionState,
   getBudgetPeriodDates,
   type Transaction,
@@ -71,6 +73,8 @@ export interface CurrentMonthViewModel {
   uncheckedItems: CheckableItem[];
   savings: SavingsSummary;
   periodProgress: PeriodProgress;
+  /** Absent while the user is looking at a budget outside its own period. */
+  trajectory: BalanceTrajectory | null;
 }
 
 export interface CurrentMonthContext {
@@ -173,6 +177,13 @@ export function buildCurrentMonthViewModel(
     uncheckedItems: selectUncheckedItems(budgetLines, transactions),
     savings: summarizeSavings(budgetLines, transactions),
     periodProgress: measurePeriodProgress(budget, now, payDayOfMonth),
+    trajectory: calculateBalanceTrajectory({
+      budgetLines,
+      transactions,
+      budget,
+      payDayOfMonth,
+      referenceDate: now,
+    }),
   };
 }
 

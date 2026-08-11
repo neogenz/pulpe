@@ -260,6 +260,28 @@ describe("unchecked", () => {
   });
 });
 
+describe("trajectory", () => {
+  // The full arithmetic is asserted in `shared/src/calculators/`; what matters
+  // here is that the chart and the hero read the same number.
+  it("lands on the figure the hero prints", () => {
+    const model = viewModelOf(
+      [
+        line({ id: "salary", kind: "income", amount: 5000 }),
+        line({ id: "food", amount: 500 }),
+      ],
+      [
+        transaction({
+          budgetLineId: "food",
+          amount: 800,
+          transactionDate: "2026-08-05T12:00:00.000Z",
+        }),
+      ],
+    );
+
+    expect(model.trajectory?.estimatedBalance).toBe(model.metrics.remaining);
+  });
+});
+
 describe("savings", () => {
   it("reports the month complete once every planned transfer is pointed", () => {
     const model = viewModelOf([
