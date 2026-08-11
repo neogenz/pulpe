@@ -42,6 +42,13 @@ import { BudgetLineRow } from "@/features/budget-details/components/budget-line-
 import { BudgetLineSheet } from "@/features/budget-details/components/budget-line-sheet";
 import { DetailsFilterBar } from "@/features/budget-details/components/details-filter-bar";
 import { MonthPager } from "@/features/budget-details/components/month-pager";
+import { SavingsWithdrawalSheet } from "@/features/budget-details/savings-withdrawal/components/savings-withdrawal-sheet";
+import { TightMonthCard } from "@/features/budget-details/savings-withdrawal/components/tight-month-card";
+import {
+  dismissWithdrawal,
+  isWithdrawalDismissed,
+  shouldOfferWithdrawal,
+} from "@/features/budget-details/savings-withdrawal/withdrawal-gate";
 import { TransactionRow } from "@/features/budget-details/components/transaction-row";
 import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
 import { useTransactionRemoval } from "@/features/transactions/use-transaction-removal";
@@ -72,6 +79,10 @@ export default function BudgetDetailScreen() {
   const [isTransactionSheetVisible, setTransactionSheetVisible] =
     useState(false);
   const [edited, setEdited] = useState<Transaction | null>(null);
+  const [isWithdrawalVisible, setWithdrawalVisible] = useState(false);
+  const [isCardDismissed, setCardDismissed] = useState(() =>
+    isWithdrawalDismissed(id),
+  );
   const removal = useTransactionRemoval();
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
@@ -152,6 +163,12 @@ export default function BudgetDetailScreen() {
     budgets.data ?? [],
   );
   const isEmpty = sections.length === 0 && free.length === 0;
+  const isTight = shouldOfferWithdrawal({
+    available: metrics.remaining,
+    viewedPeriod: { year: budget.year, month: budget.month },
+    payDayOfMonth,
+    isDismissed: isCardDismissed,
+  });
   const months = budgetsInPeriodOrder(budgets.data ?? []);
 
   return (
@@ -202,6 +219,16 @@ export default function BudgetDetailScreen() {
                 () => router.push(`/budget/${budget.previousBudgetId}`)
           }
         />
+
+        {isTight && (
+          <TightMonthCard
+            onWithdraw={() => setWithdrawalVisible(true)}
+            onDismiss={() => {
+              dismissWithdrawal(id);
+              setCardDismissed(true);
+            }}
+          />
+        )}
 
         <DetailsFilterBar
           filters={filters}
@@ -369,6 +396,19 @@ export default function BudgetDetailScreen() {
       <Snackbar visible={removal.hasFailed} onDismiss={removal.dismissFailure}>
         L&apos;opération n&apos;a pas pu être supprimée. Réessaie.
       </Snackbar>
+
+      <SavingsWithdrawalSheet
+        isVisible={isWithdrawalVisible}
+        onDismiss={() => setWithdrawalVisible(false)}
+        budgetId={id}
+        viewedPeriod={{ year: budget.year, month: budget.month }}
+        missingAmount={Math.max(0, -metrics.remaining)}
+        currency={currency}
+        onWithdrawn={() => {
+          setWithdrawalVisible(false);
+          setSavedMessage("C'est en place");
+        }}
+      />
 
       {viewModel !== null && (
         <RealizedBalanceSheet

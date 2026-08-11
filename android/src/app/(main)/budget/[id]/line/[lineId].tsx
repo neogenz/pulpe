@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTags } from "@/core/tags/tag-queries";
 import { tagSummary } from "@/core/tags/tag-selection";
 import { formatCurrency } from "@/core/ui/amount-format";
+import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
@@ -32,6 +33,8 @@ import {
 import { BudgetLineSheet } from "@/features/budget-details/components/budget-line-sheet";
 import { SpreadExistingSheet } from "@/features/budget-details/spread/components/spread-existing-sheet";
 import { SpreadOccurrencesSheet } from "@/features/budget-details/spread/components/spread-occurrences-sheet";
+import { useDeleteSavingsWithdrawal } from "@/features/budget-details/savings-withdrawal/withdrawal-mutations";
+import { repaymentPeriod } from "@/features/budget-details/savings-withdrawal/withdrawal-gate";
 import { TransactionRow } from "@/features/budget-details/components/transaction-row";
 import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
 import { useTransactionRemoval } from "@/features/transactions/use-transaction-removal";
@@ -64,6 +67,7 @@ export default function BudgetLineDetailScreen() {
   const tags = useTags();
   const toggle = useToggleCheck(id);
   const remove = useDeleteBudgetLine();
+  const removePair = useDeleteSavingsWithdrawal();
   const postpone = usePostponeBudgetLine();
   const [hasToggleFailed, setToggleFailed] = useState(false);
   const [isMenuOpen, setMenuOpen] = useState(false);
@@ -106,6 +110,20 @@ export default function BudgetLineDetailScreen() {
     (transaction) => transaction.budgetLineId === lineId,
   );
   const consumption = lineConsumption(line, transactions);
+  // The pair spans two months and the open budget shows one of them: an income
+  // half sits on month M, a repayment half on M+1.
+  const incomePeriod =
+    line.kind === "income"
+      ? { year: budget.year, month: budget.month }
+      : previousPeriod({ year: budget.year, month: budget.month });
+  const incomeMonthName = formatMonthName(
+    incomePeriod.month,
+    incomePeriod.year,
+  ).toLocaleLowerCase();
+  const repaymentMonthName = formatMonthName(
+    repaymentPeriod(incomePeriod).month,
+    repaymentPeriod(incomePeriod).year,
+  ).toLocaleLowerCase();
   const accent =
     line.kind === "expense" && consumption.available < 0
       ? FINANCIAL_COLORS[scheme].overBudget
@@ -363,46 +381,115 @@ export default function BudgetLineDetailScreen() {
       )}
 
       <Portal>
-        <Dialog
-          visible={isDeleteVisible}
-          onDismiss={() => setDeleteVisible(false)}
-        >
-          <Dialog.Title>Supprimer cette prévision ?</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium">
-              {transactions.length === 0
-                ? "Elle disparaîtra de ce mois-ci."
-                : `Les ${transactions.length} opérations rattachées resteront, mais sans prévision.`}
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setDeleteVisible(false)}>Annuler</Button>
-            <Button
-              loading={remove.isPending}
-              disabled={remove.isPending}
-              onPress={() =>
-                remove.mutate(line.id, {
-                  onSuccess: () => router.back(),
-                  onError: () => {
-                    setDeleteVisible(false);
-                    setFailure(
-                      "La prévision n'a pas pu être supprimée. Réessaie.",
-                    );
-                  },
-                })
-              }
-            >
-              Supprimer
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
+        {/* A line taken from savings is half of a pair, and deleting it alone
+            would leave the other half owing nothing to anyone. The choice is
+            explicit rather than defaulted: cancelling both, or keeping the
+            money taken and dropping the giving back. */}
+        {line.savingsWithdrawalGroupId != null ? (
+          <Dialog
+            visible={isDeleteVisible}
+            onDismiss={() => setDeleteVisible(false)}
+          >
+            <Dialog.Title>Ces deux lignes sont liées</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium">
+                {`+${formatCurrency(line.amount, currency)} sur ${incomeMonthName} est lié à -${formatCurrency(line.amount, currency)} sur ${repaymentMonthName}.`}
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions style={styles.pairActions}>
+              <Button onPress={() => setDeleteVisible(false)}>Annuler</Button>
+              <Button
+                disabled={removePair.isPending}
+                onPress={() =>
+                  removePair.mutate(
+                    {
+                      groupId: line.savingsWithdrawalGroupId as string,
+                      scope: "repayment",
+                    },
+                    {
+                      onSuccess: () => router.back(),
+                      onError: () => {
+                        setDeleteVisible(false);
+                        setFailure("La suppression a échoué. Réessaie.");
+                      },
+                    },
+                  )
+                }
+              >
+                {`Garder le revenu de ${incomeMonthName}`}
+              </Button>
+              <Button
+                loading={removePair.isPending}
+                disabled={removePair.isPending}
+                onPress={() =>
+                  removePair.mutate(
+                    {
+                      groupId: line.savingsWithdrawalGroupId as string,
+                      scope: "pair",
+                    },
+                    {
+                      onSuccess: () => router.back(),
+                      onError: () => {
+                        setDeleteVisible(false);
+                        setFailure("La suppression a échoué. Réessaie.");
+                      },
+                    },
+                  )
+                }
+              >
+                Tout annuler
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        ) : (
+          <Dialog
+            visible={isDeleteVisible}
+            onDismiss={() => setDeleteVisible(false)}
+          >
+            <Dialog.Title>Supprimer cette prévision ?</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium">
+                {transactions.length === 0
+                  ? "Elle disparaîtra de ce mois-ci."
+                  : `Les ${transactions.length} opérations rattachées resteront, mais sans prévision.`}
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setDeleteVisible(false)}>Annuler</Button>
+              <Button
+                loading={remove.isPending}
+                disabled={remove.isPending}
+                onPress={() =>
+                  remove.mutate(line.id, {
+                    onSuccess: () => router.back(),
+                    onError: () => {
+                      setDeleteVisible(false);
+                      setFailure(
+                        "La prévision n'a pas pu être supprimée. Réessaie.",
+                      );
+                    },
+                  })
+                }
+              >
+                Supprimer
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        )}
       </Portal>
     </SafeAreaView>
   );
 }
 
+function previousPeriod(period: { year: number; month: number }) {
+  return period.month === 1
+    ? { year: period.year - 1, month: 12 }
+    : { year: period.year, month: period.month - 1 };
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  pairActions: { flexWrap: "wrap" },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
   hero: { gap: SPACING.xs },
