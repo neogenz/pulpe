@@ -8,42 +8,53 @@ import {
 } from "./transaction-mutations";
 
 /**
- * Deleting an operation without a confirmation dialog, and offering the way
- * back instead. The row is gone the moment it is asked for, which is what the
- * user meant; the snapshot stays in hand until the snackbar closes, and putting
- * it back restores the same id — so a mistake costs one tap rather than
- * retyping an amount and a date.
+ * Deleting operations without a confirmation dialog, offering the way back
+ * instead. The row goes the moment it is asked for, which is what the user
+ * meant; the snapshot stays in hand until the snackbar closes, and putting it
+ * back restores the same id — so a mistake costs one tap rather than retyping
+ * an amount and a date.
  *
- * Only one deletion is held at a time: the snackbar can only offer one undo,
- * and a queue of them would let a second delete quietly bury the first.
+ * The stack is why deleting three rows in a row is safe: undo takes them back
+ * latest-first, and no deletion is buried by the next one.
+ *
+ * iOS holds the DELETE itself until its toast expires. That saves a round trip
+ * on undo and costs a class of races the deferred call has to be defended
+ * against — a reload landing inside the window, the screen dying with the call
+ * still pending, a month change mid-toast. Sending it straight away and
+ * re-creating the same row on undo has neither problem, because the create
+ * schema takes a client-chosen id.
  */
 export function useTransactionRemoval() {
   const remove = useDeleteTransaction();
   const restore = useRestoreTransaction();
-  const [undoable, setUndoable] = useState<Transaction | null>(null);
+  const [undoable, setUndoable] = useState<Transaction[]>([]);
   const [hasFailed, setFailed] = useState(false);
 
+  const last = undoable.at(-1) ?? null;
+
   return {
-    /** The operation whose deletion can still be taken back, if any. */
+    /** The operations whose deletion can still be taken back, latest last. */
     undoable,
+    /** What the snackbar names, and what the next undo would bring back. */
+    last,
     hasFailed,
     isPending: remove.isPending || restore.isPending,
     remove: (transaction: Transaction, onRemoved?: () => void) =>
       remove.mutate(transaction.id, {
         onSuccess: () => {
-          setUndoable(transaction);
+          setUndoable((current) => [...current, transaction]);
           onRemoved?.();
         },
         onError: () => setFailed(true),
       }),
     undo: () => {
-      if (undoable === null) return;
-      restore.mutate(buildTransactionRestore(undoable), {
+      if (last === null) return;
+      restore.mutate(buildTransactionRestore(last), {
         onError: () => setFailed(true),
       });
-      setUndoable(null);
+      setUndoable((current) => current.slice(0, -1));
     },
-    forget: () => setUndoable(null),
+    forget: () => setUndoable([]),
     dismissFailure: () => setFailed(false),
   };
 }

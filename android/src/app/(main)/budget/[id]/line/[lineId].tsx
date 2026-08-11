@@ -273,11 +273,13 @@ export default function BudgetLineDetailScreen() {
       />
 
       <Snackbar
-        visible={removal.undoable !== null}
+        visible={removal.last !== null}
         onDismiss={removal.forget}
         action={{ label: "Annuler", onPress: removal.undo }}
       >
-        Opération supprimée
+        {removal.undoable.length === 1
+          ? `« ${removal.last?.name} » supprimée`
+          : `${removal.undoable.length} opérations supprimées`}
       </Snackbar>
 
       <Snackbar visible={removal.hasFailed} onDismiss={removal.dismissFailure}>
