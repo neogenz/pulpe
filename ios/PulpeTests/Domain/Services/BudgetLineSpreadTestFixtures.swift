@@ -6,16 +6,16 @@ import Foundation
 /// that decodes the outgoing body. Used by `BudgetLineSpreadRequestTests` (what goes
 /// out) and `BudgetLineSpreadResponseTests` (what comes back).
 ///
-/// An `enum` of `static func`s, not bare top-level functions: the test target already
+/// An `enum` of `static` members, not bare top-level ones: the test target already
 /// has several `private func makeAPIClient()` (and a `private static func
 /// budgetJSON(id:month:)` in `SavingsWithdrawalTests`) with this exact signature.
-/// `private` shadows them today, but a bare top-level function of the same name is a
+/// `private` shadows them today, but a bare top-level symbol of the same name is a
 /// silent trap the day one of those private copies is deleted — the call then binds to
 /// this one instead, building a different `APIClient` without the caller ever knowing.
-let fixtureGroupId =
-    UUID(uuidString: "11111111-2222-3333-4444-555555555555") ?? UUID()
-
 enum BudgetLineSpreadFixtures {
+    static let groupId =
+        UUID(uuidString: "11111111-2222-3333-4444-555555555555") ?? UUID()
+
     static func makeAPIClient() -> APIClient {
         let baseURL = URL(string: "https://pulpe.test") ?? URL(fileURLWithPath: "/")
         let configuration = URLSessionConfiguration.ephemeral
@@ -36,7 +36,7 @@ enum BudgetLineSpreadFixtures {
         {
           "success": true,
           "data": {
-            "spreadGroupId": "\(fixtureGroupId.uuidString)",
+            "spreadGroupId": "\(groupId.uuidString)",
             "lines": [
               \(lineJSON(id: "line-jun", budgetId: "budget-jun")),
               \(lineJSON(id: "line-jul", budgetId: "budget-jul"))
@@ -57,7 +57,7 @@ enum BudgetLineSpreadFixtures {
         {
           "success": true,
           "data": {
-            "spreadGroupId": "\(fixtureGroupId.uuidString)",
+            "spreadGroupId": "\(groupId.uuidString)",
             "lines": [ \(lineJSON(id: "line-jun", budgetId: "budget-jun")) ],
             "createdBudgets": [],
             "skippedMonths": []
@@ -82,7 +82,7 @@ enum BudgetLineSpreadFixtures {
           "checkedAt": null,
           "createdAt": "2026-06-01T00:00:00Z",
           "updatedAt": "2026-06-01T00:00:00Z",
-          "spreadGroupId": "\(fixtureGroupId.uuidString)"
+          "spreadGroupId": "\(groupId.uuidString)"
         }
         """
     }

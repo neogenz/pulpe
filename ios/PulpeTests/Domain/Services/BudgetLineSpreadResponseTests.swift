@@ -28,9 +28,9 @@ struct BudgetLineSpreadResponseTests {
             .budgetLinesSpread, body: body, method: .post
         )
 
-        #expect(response.spreadGroupId == fixtureGroupId)
+        #expect(response.spreadGroupId == BudgetLineSpreadFixtures.groupId)
         #expect(response.lines.count == 2)
-        #expect(response.lines.allSatisfy { $0.spreadGroupId == fixtureGroupId })
+        #expect(response.lines.allSatisfy { $0.spreadGroupId == BudgetLineSpreadFixtures.groupId })
         #expect(response.createdBudgets.count == 1)
         #expect(response.createdBudgets.first?.id == "budget-jul")
         #expect(response.skippedMonths == [SpreadSkippedMonth(month: 8, year: 2026)])

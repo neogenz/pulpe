@@ -10,7 +10,7 @@ import Testing
 /// `.serialized` for the same reason as its sibling: the stores read `UserDefaults`
 /// filter prefs and pre-populate from the shared `BudgetDetailCache.shared` singleton,
 /// reset via `ProjectionTestStack` before each test.
-@Suite(.serialized)
+@Suite("BudgetDetailsProjector — checked projection", .serialized)
 @MainActor
 struct BudgetDetailsCheckedProjectionTests {
     // MARK: - Checked tick hash
