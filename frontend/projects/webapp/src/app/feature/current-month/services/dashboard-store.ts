@@ -43,15 +43,11 @@ const HISTORY_MONTHS_LIMIT = 6;
 const UPCOMING_MONTHS_LIMIT = 12;
 const MS_PER_DAY = 86_400_000;
 // How far ahead of the clock a month's spending may run before the card says
-// anything. The band is widest on the first day and closes to the floor on the
-// last, because a household's outflow is front-loaded — rent, insurance and the
-// subscriptions all land in the first days — so against a linear clock a single
-// debit on the 3rd outruns the month by definition. A flat band inverted its own
-// meaning across the month: 5 points is unreachable on day 2, where the clock
-// has elapsed 3%, and generous on day 25. Widening it early is not indulgence,
-// it is the sample size: a verdict drawn from three days of evidence is noise,
-// and printing it in amber charges the user for recording, which is the one
-// behaviour this product cannot afford to discourage.
+// anything. Widest on the first day, closing to the floor on the last: a
+// household's outflow is front-loaded, so against a linear clock a single debit
+// on the 3rd outruns the month by definition. Early width is sample size, not
+// indulgence — a verdict drawn from three days of evidence is noise, and
+// printing it charges the user for recording, which this product cannot afford.
 const PACE_TOLERANCE_FLOOR_PERCENT = 5;
 const PACE_TOLERANCE_START_PERCENT = 25;
 
@@ -140,17 +136,15 @@ export class DashboardStore {
     cache: this.#budgetApi.cache,
     cacheKey: (params) => ['budget', 'dashboard', params.month, params.year],
     params: () => {
-      // "Pas encore prête" plutôt qu'une supposition. Sans jour de paie la
-      // période retombe sur le mois calendaire : le 28 janvier avec une paie au
-      // 27, la page demandait, cachait et pouvait afficher janvier alors que
-      // l'utilisateur est en février — sans spinner.
+      // "Pas encore prête" plutôt qu'une supposition : sans jour de paie la
+      // période retombe sur le mois calendaire, et la page cacherait un mois
+      // faux sans même afficher de spinner.
       //
-      // C'est la ressource qui dit si les réglages sont connus, pas la valeur :
-      // `payDayOfMonth` vaut légitimement `null` pour qui suit le calendrier,
-      // et `isLoading` est un `isInitialLoading` qui retombe à `false` dès que
-      // la requête ÉCHOUE. Interroger l'un ou l'autre laissait donc la page
-      // deviner un mois précisément quand les réglages n'étaient pas arrivés.
-      // Un échec ne repart pas d'ici : il remonte dans `error`.
+      // C'est la ressource qui dit si les réglages sont connus, jamais la
+      // valeur : `payDayOfMonth` vaut légitimement `null` pour qui suit le
+      // calendrier, et `isLoading` est un `isInitialLoading` qui retombe à
+      // `false` dès que la requête ÉCHOUE. Un échec ne repart pas d'ici : il
+      // remonte dans `error`.
       if (this.#userSettingsStore.settings() === undefined) return undefined;
       const period = this.currentBudgetPeriod();
       return {
@@ -196,34 +190,25 @@ export class DashboardStore {
     this.#userSettingsStore.isLoading(),
   );
 
-  // Les figures de la page, pas tout ce qui vole. L'historique n'alimente que
-  // les blocs repliés par défaut, et il désactivait « Actualiser » : le seul
-  // bouton visible restait gris à cause d'une requête servant des cartes hors
-  // écran, sans rien pour l'expliquer. Son échec a déjà sa propre lecture,
-  // `historyError`, et chaque graphique son propre état.
+  // Les figures de la page, pas tout ce qui vole : l'historique n'alimente que
+  // des blocs repliés, il a sa propre lecture d'échec et chaque graphique son
+  // propre état.
   readonly isLoading = computed(
     () => this.#dashboardResource.isLoading() || this.#isSettingsLoading(),
   );
-  // Deliberately not part of `isLoading` — see above. It is readable on its own
-  // for the one caller that has to wait for history: the refresh confirmation,
-  // which would otherwise judge the outcome before the slower half answered.
+  // Readable on its own for the one caller that has to wait for history: the
+  // refresh confirmation, which would otherwise judge the outcome before the
+  // slower half answered.
   readonly isHistoryLoading = computed(() => this.#historyResource.isLoading());
-  // The page renders this as a full-screen "could not load" card, so it says one
-  // thing only: the dashboard could not be fetched. A refused mutation travels
-  // back through its own return value — see `addTransaction`.
-  //
-  // A settings failure counts, and has to: the request above will not fire
-  // without them, so leaving it out left the page on a spinner that no longer
-  // had a request behind it.
+  // Rendered as a full-screen "could not load" card, so it says one thing only:
+  // the dashboard could not be fetched. Settings count, since the request above
+  // never fires without them. A refused mutation returns its own reason.
   readonly error = computed(
     () => this.#dashboardResource.error() ?? this.#userSettingsStore.error(),
   );
-  // One card renders every way that fetch can fail, and it used to say the same
-  // sentence each time: a 403, a rate limit and a payload this client can no
-  // longer parse all blamed the user's wifi and offered a retry that could not
-  // help. Only a transport failure — no HTTP status and no code — is actually a
-  // connection problem; every other failure arrives carrying a reason, and the
-  // localizer that names it for the mutations works just as well here.
+  // One card renders every way a fetch can fail. Only a transport failure — no
+  // HTTP status and no code — is a connection problem; every other failure
+  // arrives carrying a reason the mutation localizer already knows how to name.
   readonly loadErrorMessage = computed(() => {
     const error = this.error();
     if (!error) return '';
@@ -233,12 +218,9 @@ export class DashboardStore {
       ? this.#transloco.translate('currentMonth.loadErrorMessage')
       : this.#apiErrorLocalizer.localizeApiError(error);
   });
-  // Separate from `error` on purpose: history feeds two charts and nothing else,
-  // so its failure must not blank a page whose main figures loaded fine. It has
-  // to be readable somewhere, though — `historyData()` and `upcomingBudgetsData()`
-  // both collapse a failed fetch to `[]`, and both charts read `[]` as "you have
-  // no budgets yet". Three months of history became a tidy sentence saying the
-  // user had none.
+  // Separate from `error`: history feeds two charts, so its failure must not
+  // blank a page whose figures loaded. Readable here because both charts
+  // collapse a failed fetch to `[]`, which they render as "no budgets yet".
   readonly historyError = computed(() => this.#historyResource.error());
   readonly status = computed(() => {
     const resourceStatus = this.#dashboardResource.status();
@@ -268,21 +250,18 @@ export class DashboardStore {
     const end = dates.endDate.getTime();
     const now = this.#currentDate().getTime();
     const elapsed = now - start;
-    // Les deux bornes sont des minuits inclusifs, donc une période de 31 jours
-    // ne mesure que 30 jours d'écart entre elles. Le dénominateur amputé faisait
-    // lire « 100 % écoulé » au matin du dernier jour, alors qu'il en restait un
-    // entier, et desserrait la tolérance de rythme un jour trop tôt.
+    // Les deux bornes sont des minuits inclusifs : une période de 31 jours ne
+    // mesure que 30 jours d'écart entre elles, d'où le jour ajouté. Sans lui le
+    // dernier jour est annoncé écoulé dès son matin.
     const total = end - start + MS_PER_DAY;
     if (total <= 0) return 100;
     const percentage = (elapsed / total) * 100;
     return Math.round(Math.min(Math.max(0, percentage), 100));
   });
 
-  // Which day of the period today is, counted from calendar days rather than
-  // from elapsed milliseconds: the period bounds are local midnights, so a
-  // duration divided by 24h drifts by an hour across a DST change and lands on
-  // the wrong day for part of one day a year. Both ends inclusive, so the first
-  // day of the period is day 1.
+  // Which day of the period today is, counted in calendar days rather than in
+  // elapsed milliseconds: the bounds are local midnights, so dividing a duration
+  // by 24h drifts across a DST change. Both ends inclusive, first day is day 1.
   readonly elapsedDayOfPeriod = computed(() => {
     const dates = this.periodDates();
     if (!dates) return 0;
@@ -308,22 +287,11 @@ export class DashboardStore {
     return Math.round(Math.min(Math.max(0, percentage), 100));
   });
 
-  // `totalExpenses` applies envelope logic — `max(line.amount, consumed)` — so it
-  // is mostly the PLAN: rent counts in full from the 1st. Comparing it to elapsed
-  // time says nothing about behaviour. This is what has actually gone out, and
-  // the only figure the pace verdict may be built on.
-  //
-  // The dashboard used to sum outflow transactions and stop there, which made
-  // pointing a prévision worth nothing: a month with 17 of 18 lines pointed read
-  // "Dépensé 554" — the one free transaction — against "Engagé 3'947", under a
-  // legend defining engagé as what the plan reserves "et que tu n'as pas encore
-  // dépensé". The user had just said, seventeen times, that it had been spent.
-  // `calculateRealizedExpenses` is the formula the budget-detail page has always
-  // used: a pointed outflow line counts at `max(line.amount, consumed)`, an
-  // unpointed one counts only its pointed allocated transactions, free pointed
-  // transactions add on top, and `isOutflowKind` covers savings — everything
-  // that lowers what is left. Two surfaces, one definition, no new formula and
-  // so nothing to mirror to iOS.
+  // What has actually gone out, as opposed to `totalExpenses`, which is envelope
+  // logic and therefore mostly the plan. Counts a pointed outflow line at
+  // `max(line.amount, consumed)`, an unpointed one at its pointed allocated
+  // transactions only, free pointed transactions on top, savings included.
+  // Shared with the budget-detail page, so there is no formula to mirror to iOS.
   readonly realizedExpenses = computed<number>(() =>
     BudgetFormulas.calculateRealizedExpenses(
       this.budgetLines(),
@@ -339,17 +307,10 @@ export class DashboardStore {
     return Math.round(Math.min(Math.max(0, percentage), 100));
   });
 
-  // L'épargne pointée qui n'est rattachée à aucune ligne.
-  // `calculateRealizedSavings` l'ignore délibérément — une épargne non reliée
-  // fausserait le total confirmé d'un objectif — et ses deux lecteurs ici la
-  // veulent : le total d'épargne réalisée du mois, et la répartition sur les
-  // objectifs en retard.
-  //
-  // Elle ne touche pas au verdict de rythme, quoi qu'en disaient les deux
-  // commentaires précédents : `paceStatus` lit `#unplannedSpending`, qui écarte
-  // tout ce qui n'est pas `expense` et ne voit donc jamais un franc d'épargne.
-  // Le garde-fou décrit ici avait été déplacé dans cette formule sans que le
-  // texte suive, et laissait au prochain lecteur une carte fausse.
+  // L'épargne pointée rattachée à aucune ligne. `calculateRealizedSavings`
+  // l'écarte délibérément — elle fausserait le total confirmé d'un objectif — et
+  // les deux lecteurs d'ici la veulent. Hors du verdict de rythme, qui n'admet
+  // que des `expense`.
   readonly #freeSavingsRealized = computed<number>(() =>
     this.transactions()
       .filter(
@@ -360,18 +321,10 @@ export class DashboardStore {
   );
 
   // What the plan did not know about: money spent outside every envelope, plus
-  // the part of an envelope spent beyond what it reserved.
-  //
-  // Realized outflow was the wrong numerator, whatever was subtracted from it.
-  // A pointed prévision counts at its full amount the day it lands, so a 1'500
-  // rent pointed on the 2nd scored 30% of the budget against 3% of elapsed
-  // month and turned the card amber — for performing the gesture the list
-  // beside it asks for "dès qu'elle passe sur ton compte". The verdict charged
-  // the user for recording, which is the one behaviour this product cannot
-  // discourage, and it did so on the plan rather than on behaviour.
-  //
-  // Savings are absent by the same rule as everywhere else on this card: money
-  // set aside is not money spent.
+  // the part of an envelope spent beyond what it reserved. Realized outflow
+  // cannot serve here — a pointed prévision counts in full the day it lands, so
+  // the verdict would follow the plan rather than the behaviour. Savings are
+  // out: money set aside is not money spent.
   readonly #unplannedSpending = computed<number>(() => {
     const consumedByLine = new Map<string, number>();
     let freeSpending = 0;
@@ -411,8 +364,8 @@ export class DashboardStore {
 
   readonly paceStatus = computed<'on-track' | 'tight' | 'within-plan'>(() => {
     // Nothing beyond the plan is not an absence of evidence — it is the good
-    // answer, and it is the common one for most of a month. It gets said out
-    // loud rather than folded into a "cannot tell yet".
+    // answer, and the common one. Said out loud, never folded into a
+    // "cannot tell yet".
     const unplanned = this.#unplannedSpending();
     if (unplanned === 0) return 'within-plan';
     const margin = this.#plannedMargin();
@@ -427,19 +380,16 @@ export class DashboardStore {
     return share <= elapsed + tolerance ? 'on-track' : 'tight';
   });
 
-  // A month can pass its ceiling two ways, and they are not the same news. The
-  // plan asking for more than the month brings is a planning problem: nothing
-  // has gone wrong yet and the fix is in the budget. An affordable plan pushed
-  // past the ceiling by what actually happened is the other one, and the only
-  // one where something has really overspent.
+  // A month passes its ceiling two ways, and they are not the same news: a plan
+  // asking for more than the month brings is a planning problem with nothing
+  // gone wrong yet, and only the other one is real overspending.
   readonly isPlanBeyondAvailable = computed<boolean>(
     () => this.#plannedMargin() < 0,
   );
 
-  // Whether the month has anything in its ledger at all. Realized outflow was
-  // the wrong question: an income transaction, or an expense recorded but not
-  // yet pointed, is something the user saisi — and a card answering "rien de
-  // saisi ce mois" above a Transactions card listing it calls them a liar.
+  // Whether the month has anything in its ledger at all — not whether anything
+  // has gone out. An income, or an expense recorded but not yet pointed, is
+  // something the user saisi, and the card beside this one lists it.
   readonly hasRecordedActivity = computed<boolean>(
     () =>
       this.transactions().length > 0 ||
@@ -467,11 +417,10 @@ export class DashboardStore {
   readonly remaining = computed<number>(() => this.#metrics().remaining);
 
   // A forecast funded by a savings goal is realized by recording the real
-  // income, never by checking it: `toggleBudgetLineCheck` refuses exactly this
-  // shape — `sourceSavingsGoalId` set and `checkedAt` still null — with a 422.
-  // Listing it under "à pointer" handed the user a button that could not
-  // succeed, so the list stops claiming it. Deleting the goal nulls the column
-  // (`ON DELETE SET NULL`) and the line becomes pointable again, deliberately.
+  // income, never by checking it: `toggleBudgetLineCheck` refuses that shape
+  // with a 422, so listing it under "à pointer" would offer a button that
+  // cannot succeed. Deleting the goal nulls the column (`ON DELETE SET NULL`)
+  // and the line becomes pointable again, deliberately.
   readonly #pointableForecasts = computed<BudgetLine[]>(() =>
     this.budgetLines().filter(
       (line) =>
@@ -480,23 +429,11 @@ export class DashboardStore {
     ),
   );
 
-  // Sorted, because the card shows five of them and used to pick those five by
-  // whatever order the API happened to return: a month with seventeen open
-  // forecasts hid twelve on no stated rule, so the reader could not tell
-  // whether the rent was among them.
-  //
-  // Amount alone was not the rule either. It put "Salaire net" and "13ème
-  // salaire" in the top two rows — the card sits under a hero that partitions
-  // spending, and its first screenful was money coming in. Outflow leads, and
-  // inside each direction the largest amounts come first, which keeps what the
-  // truncation swallows the least consequential part of the list.
-  //
-  // Sorted on what the row prints, not on what the line planned. Those diverge
-  // the moment a transaction is allocated against a forecast: a 1'500 rent with
-  // 1'400 already recorded renders "100" and used to sort above a 600 grocery
-  // envelope rendering "600". The reader saw a descending column of amounts
-  // that did not descend, and the cap at five hid lines by a size no longer on
-  // screen — the one thing the hidden count exists to keep honest.
+  // Sorted, because the card shows five: the truncation has to swallow the
+  // least consequential part of the list, which API order cannot promise.
+  // Outflow leads — the card sits under a hero that partitions spending — then
+  // the largest amounts. Sorted on what the row prints, never on what the line
+  // planned: allocation makes those diverge, and the reader only sees the first.
   readonly uncheckedForecasts = computed<BudgetLine[]>(() => {
     const consumptions = this.consumptions();
     const remainingOf = (line: BudgetLine): number =>
@@ -510,9 +447,8 @@ export class DashboardStore {
       );
   });
 
-  // The denominator the block's subtitle needs: "10" alone said how much work
-  // was left without saying how much there was, so it read as a backlog with no
-  // end rather than a month two thirds done.
+  // The denominator the block's subtitle needs: "10" alone reads as a backlog
+  // with no end, "10 sur 30" as a month two thirds done.
   readonly forecastsTotalCount = computed(
     () => this.#pointableForecasts().length,
   );
@@ -522,14 +458,10 @@ export class DashboardStore {
   );
 
   // The chart draws "Dépenses" and "Épargne" as two bars of one month, so they
-  // have to be two disjoint quantities. `totalExpenses` is not: the formula
-  // counts every outflow line, savings included, because it exists to answer
-  // `available - totalExpenses`. Handed to the chart raw, 5 000 de revenu /
-  // 3 000 de dépenses / 1 000 d'épargne drew 5 000, 4 000 and 1 000 — the
-  // savings bar was also inside the one beside it, and a reader adding the two
-  // outflows got the whole income back and saw a month that broke even, with
-  // 1 000 actually left. Subtracting them here rather than in the chart keeps
-  // one answer for the tooltip, the axis and the aria sentence.
+  // have to be disjoint. `totalExpenses` is not: it counts every outflow line,
+  // savings included, because it answers `available - totalExpenses`. Subtracted
+  // here rather than in the chart, so the tooltip, the axis and the aria
+  // sentence cannot disagree.
   readonly historyData = computed<HistoryDataPoint[]>(() => {
     const all = this.#historyResource.value() ?? [];
     const current = this.currentBudgetPeriod();
@@ -580,20 +512,11 @@ export class DashboardStore {
     BudgetFormulas.calculateTotalSavings(this.budgetLines(), []),
   );
 
-  // Same correction as `realizedExpenses`, and the same reason: this summed
-  // checked saving lines and never looked at a transaction, so recording the
-  // 500 transfer for a 500 saving line put "Dépensé 500" in the hero legend and
-  // "Tu as mis de côté 0 CHF sur 500 prévus" three blocks below it, on one
-  // screen. `calculateRealizedSavings` is the savings twin of the formula the
-  // hero now uses — same envelope reading, filtered strictly to `saving`.
-  // Goal progress plus the savings this page's own FAB records. A transfer
-  // added here carries no budgetLineId, and `calculateRealizedSavings` skips
-  // free transactions on purpose so an unlinked saving cannot contaminate a
-  // goal's confirmed total — correct for a goal, wrong for a card titled
-  // "Épargne du mois" whose sentence is "Tu as mis de côté". Without the second
-  // term the card answered 0 for money the user had just put aside on this very
-  // screen. The pace verdict does not read this sum — it goes through
-  // `#unplannedSpending`, which admits expenses and nothing else.
+  // Goal progress, plus the transfers this page's own FAB records. The formula
+  // is the savings twin of `realizedExpenses` and skips free transactions on
+  // purpose, so an unlinked saving cannot contaminate a goal's confirmed total
+  // — right for a goal, wrong for a card that says "Tu as mis de côté", hence
+  // the second term.
   readonly totalSavingsRealized = computed<number>(
     () =>
       BudgetFormulas.calculateRealizedSavings(
@@ -602,12 +525,9 @@ export class DashboardStore {
       ) + this.#freeSavingsRealized(),
   );
 
-  // Counted the way the amount beside it is counted. This filtered on
-  // `line.checkedAt` alone while `calculateRealizedSavings` also credits an
-  // unpointed line's checked transactions, so one card printed "0 sur 1 mises
-  // de côté" directly above "Tu as mis de côté 400 CHF sur 1'000 prévus". A
-  // line has met its plan when it is pointed or when what it consumed covers
-  // it — the same two branches the formula uses.
+  // Counted the way the amount beside it is counted, or the card contradicts
+  // itself: a line has met its plan when it is pointed, or when what it
+  // consumed covers it — the two branches `calculateRealizedSavings` uses.
   readonly savingsCheckedCount = computed<number>(() => {
     const consumedByLine = new Map<string, number>();
     for (const tx of this.transactions()) {
@@ -630,13 +550,11 @@ export class DashboardStore {
       }
       shortfalls.push(line.amount - consumed);
     }
-    // An unallocated transfer already counts in the amount printed beside this
-    // tally, and the quick-add form on this very page cannot attach one to a
-    // line — so every transfer recorded here landed in the amount and in the
-    // bar and never in the count: "0 sur 1 mise de côté" above "500 sur 500
-    // prévus", over a bar at 100%. It covers the cheapest shortfalls first,
-    // since nothing on screen says which prévision the money was meant for and
-    // that order credits the user with the most of what they did put aside.
+    // An unallocated transfer counts in the amount printed beside this tally,
+    // and the quick-add form here cannot attach one to a line — ignoring it
+    // would keep every transfer recorded on this screen out of the count. It
+    // covers the cheapest shortfalls first: nothing says which prévision the
+    // money was meant for, and that order credits the most of what was set aside.
     let unallocated = this.#freeSavingsRealized();
     for (const shortfall of shortfalls.sort((a, b) => a - b)) {
       if (unallocated < shortfall) break;
@@ -646,10 +564,9 @@ export class DashboardStore {
     return met;
   });
 
-  // The count above says "mise de côté", and money answers that. "C'est fait
-  // pour ce mois" says something stricter — that nothing is left to do — and
-  // only pointing answers it: a line its transactions already cover still sits
-  // in the list beside this card, waiting to be pointed.
+  // The count above says "mise de côté", which money answers. "C'est fait pour
+  // ce mois" is stricter — nothing left to do — and only pointing answers it: a
+  // line its transactions cover still waits in the list beside this card.
   readonly areSavingsFullyPointed = computed<boolean>(() =>
     this.budgetLines()
       .filter((line) => line.kind === 'saving')
@@ -705,13 +622,12 @@ export class DashboardStore {
     });
 
   refreshData(): void {
-    // Ré-horodater avant de recharger : sans cela « Actualiser » redemandait au
-    // serveur exactement le mois périmé qu'il affichait déjà.
+    // Ré-horodater avant de recharger : sans cela « Actualiser » redemande au
+    // serveur exactement le mois périmé qu'il affiche déjà.
     this.#currentDate.set(this.#clock());
     // Les réglages d'abord, parce qu'ils commandent la requête suivante : leur
-    // échec est désormais une des façons dont cette page tombe en erreur, et le
-    // bouton de la carte d'erreur arrive ici. Sans cette ligne il réessayait
-    // tout sauf ce qui avait cassé.
+    // échec est une des façons dont cette page tombe en erreur, et le bouton de
+    // la carte d'erreur arrive ici.
     this.#userSettingsStore.reload();
     this.#dashboardResource.reload();
     this.#historyResource.reload();
@@ -736,9 +652,8 @@ export class DashboardStore {
   }
 
   // The reversal behind the confirmation toast, on the same terms as
-  // `uncheckBudgetLine`: the caller has just promised the user an undo, so a
-  // transaction that is no longer here answers with a reason rather than the
-  // silent success a repeated no-op deserves.
+  // `uncheckBudgetLine`: the caller has just promised an undo, so a transaction
+  // that is no longer here answers with a reason, never a silent success.
   /** Returns the localized reason on refusal, or `null` when it went through. */
   async deleteTransaction(transactionId: string): Promise<string | null> {
     const deleteFailed = () =>
@@ -790,9 +705,9 @@ export class DashboardStore {
 
   // The reversal behind the confirmation toast. Same endpoint — the route is a
   // toggle — with the guards mirrored, but a no-op answers with a reason rather
-  // than the `null` above: the caller has just promised the user an undo, so
-  // "there was nothing left to undo" is an outcome to surface, not a silent
-  // success the way a double tap on the check is.
+  // than the `null` above: the caller has just promised an undo, so "there was
+  // nothing left to undo" is an outcome to surface, not the silent success a
+  // double tap on the check deserves.
   async uncheckBudgetLine(budgetLineId: string): Promise<string | null> {
     const undoFailed = () =>
       this.#transloco.translate('currentMonth.undoError');
@@ -809,10 +724,9 @@ export class DashboardStore {
   }
 
   // ── 6. Private utils ──
-  // The server refuses some toggles on business grounds and says why. Reporting
-  // "vérifie ta connexion" over a considered refusal sends the user to look at
-  // their wifi for a rule the response already spelled out; the generic line is
-  // the fallback for the failures that really are transport.
+  // The server refuses some toggles on business grounds and says why: reporting
+  // "vérifie ta connexion" over a considered refusal sends the user to their
+  // wifi for a rule the response spelled out. The generic line is the fallback.
   async #sendCheckToggle(
     budgetLineId: string,
     optimisticCheckedAt: string | null,
