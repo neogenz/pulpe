@@ -7,7 +7,7 @@ import SwiftUI
 /// - Hero amount: Manrope ExtraBold, `Color.textPrimary`
 /// - Rollover disclosure (when non-zero): ties the reported balance to the amount above
 /// - Inline progress bar (green) + percent flush right
-/// - Horizontal scroll of pills: Revenus · Épargne · Dépenses
+/// - Horizontal scroll of pills: Revenus · Dépenses · dont Épargne
 ///
 /// No surface, no border, no shadow, no gradient. Sits flush on `Color.appBackground`.
 /// Used **only** in `BudgetDetailsView`. The dashboard + previous-budget sheet keep
@@ -84,7 +84,8 @@ struct BudgetDetailHero: View {
         \(contextLabelForVoiceOver) \(abs(metrics.remaining).asCurrency(currency)). \
         \(Int(metrics.usagePercentage))% utilisé. \
         Revenus \(metrics.totalIncome.asCurrency(currency)). \
-        Épargne \(metrics.totalSavings.asCurrency(currency))
+        Dépenses \(metrics.totalExpenses.asCurrency(currency)), \
+        dont \(metrics.totalSavings.asCurrency(currency)) d'épargne
         """
         if hasRollover, let rolloverAmount {
             let label = rolloverAmount >= 0 ? "Excédent reporté" : "Déficit reporté"
@@ -199,8 +200,8 @@ struct BudgetDetailHero: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: DesignTokens.Spacing.tightGap) {
                 incomePill
-                savingsPill
                 expensesPill
+                savingsPill
             }
         }
         .contentMargins(.horizontal, DesignTokens.Spacing.lg, for: .scrollContent)
@@ -254,46 +255,50 @@ struct BudgetDetailHero: View {
 
     private var incomePill: some View {
         tintedPill(
-            iconName: TransactionKind.income.icon,
             amount: metrics.totalIncome,
             label: "revenus",
             tint: .financialIncome
         )
     }
 
-    private var savingsPill: some View {
-        tintedPill(
-            iconName: TransactionKind.saving.icon,
-            amount: metrics.totalSavings,
-            label: "épargne",
-            tint: .financialSavings
-        )
-    }
-
+    /// Every outflow, savings included — this is the figure the hero amount
+    /// subtracts from `revenus`, so it sits next to it.
     private var expensesPill: some View {
         tintedPill(
-            iconName: TransactionKind.expense.icon,
             amount: metrics.totalExpenses,
             label: "dépenses",
             tint: .financialExpense
         )
     }
 
+    /// Prefixed "dont" because the metrics calculator adds a saving line to
+    /// *both* totals (`case .saving`). Without the word the three pills read as
+    /// disjoint buckets and the arithmetic looks broken.
+    private var savingsPill: some View {
+        tintedPill(
+            prefix: "dont",
+            amount: metrics.totalSavings,
+            label: "épargne",
+            tint: .financialSavings
+        )
+    }
+
     /// Pale-tinted pill with colored ink text — pale category-tint background,
     /// dark category text. Matches DM2.1.b.c5 maquette (incomeSoft/incomeInk pattern).
-    /// Icon is an SF Symbol from `TransactionKind.icon` so all three pills stay
-    /// visually consistent with the kind icons used in `TransactionRow` and
-    /// `BudgetLineMixedRow`.
+    /// No leading icon: the label word already names the kind and the tint already
+    /// encodes it, so the glyph only ate rail width the third pill needed.
     private func tintedPill(
-        iconName: String,
+        prefix: String? = nil,
         amount: Decimal,
         label: String,
         tint: Color
     ) -> some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
-            Image(systemName: iconName)
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(tint)
+            if let prefix {
+                Text(prefix)
+                    .font(PulpeTypography.metricLabelBold)
+                    .foregroundStyle(tint)
+            }
 
             Text(amount.asAmount(for: userSettingsStore.currency))
                 .font(PulpeTypography.metricLabelBold)
@@ -311,6 +316,5 @@ struct BudgetDetailHero: View {
             Capsule()
                 .fill(tint.opacity(DesignTokens.Opacity.accent))
         }
-        .contentShape(Capsule())
     }
 }
