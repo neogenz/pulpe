@@ -1,6 +1,9 @@
 import type { BudgetSparse } from "pulpe-shared";
 
-import { budgetYearSections } from "./budget-list-selectors";
+import {
+  budgetsInPeriodOrder,
+  budgetYearSections,
+} from "./budget-list-selectors";
 
 function budget(month: number, year: number): BudgetSparse {
   return { id: `budget-${year}-${month}`, month, year };
@@ -44,5 +47,29 @@ describe("budgetYearSections", () => {
 
   it("returns nothing for an empty list", () => {
     expect(budgetYearSections([])).toEqual([]);
+  });
+});
+
+describe("budgetsInPeriodOrder", () => {
+  it("runs oldest first, across years", () => {
+    const ordered = budgetsInPeriodOrder([
+      budget(1, 2027),
+      budget(11, 2026),
+      budget(2, 2026),
+    ]);
+
+    expect(ordered.map((row) => row.id)).toEqual([
+      "budget-2026-2",
+      "budget-2026-11",
+      "budget-2027-1",
+    ]);
+  });
+
+  it("drops a budget that names no period", () => {
+    expect(
+      budgetsInPeriodOrder([{ id: "orphan" }, budget(8, 2026)]).map(
+        (row) => row.id,
+      ),
+    ).toEqual(["budget-2026-8"]);
   });
 });

@@ -18,6 +18,7 @@ import { SPACING } from "@/core/ui/theme";
 import { tagSummary } from "@/core/tags/tag-selection";
 import { useTags } from "@/core/tags/tag-queries";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { budgetsInPeriodOrder } from "@/features/budgets/budget-list-selectors";
 import {
   invalidateBudgetData,
   useBudgetDetails,
@@ -34,6 +35,7 @@ import {
 import { BudgetDetailHero } from "@/features/budget-details/components/budget-detail-hero";
 import { BudgetLineRow } from "@/features/budget-details/components/budget-line-row";
 import { DetailsFilterBar } from "@/features/budget-details/components/details-filter-bar";
+import { MonthPager } from "@/features/budget-details/components/month-pager";
 import { TransactionRow } from "@/features/budget-details/components/transaction-row";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { buildCurrentMonthViewModel } from "@/features/current-month/current-month-view-model";
@@ -135,6 +137,7 @@ export default function BudgetDetailScreen() {
     budgets.data ?? [],
   );
   const isEmpty = sections.length === 0 && free.length === 0;
+  const months = budgetsInPeriodOrder(budgets.data ?? []);
 
   return (
     <SafeAreaView
@@ -147,6 +150,18 @@ export default function BudgetDetailScreen() {
           titleStyle={styles.title}
         />
       </Appbar.Header>
+
+      {months.length > 1 && (
+        <View style={styles.pager}>
+          <MonthPager
+            months={months}
+            currentBudgetId={id}
+            // Replace rather than push: the rail is one screen the user moves
+            // sideways in, not a stack of months to back out of one by one.
+            onSelect={(budgetId) => router.replace(`/budget/${budgetId}`)}
+          />
+        </View>
+      )}
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -277,6 +292,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
   title: { textTransform: "capitalize" },
+  pager: { paddingHorizontal: SPACING.md },
   section: { gap: SPACING.sm },
   empty: { paddingVertical: SPACING.lg, textAlign: "center" },
 });

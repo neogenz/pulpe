@@ -36,3 +36,17 @@ export function budgetYearSections(
       budgets: [...rows].sort((a, b) => (b.month ?? 0) - (a.month ?? 0)),
     }));
 }
+
+/**
+ * The same budgets read the other way round — oldest first, across years. The
+ * month pager runs left to right like a calendar, where the list reads newest
+ * first like a feed.
+ */
+export function budgetsInPeriodOrder(budgets: BudgetSparse[]): BudgetSparse[] {
+  return budgets
+    .filter((budget) => budget.month !== undefined && budget.year !== undefined)
+    .sort(
+      (a, b) =>
+        (a.year ?? 0) - (b.year ?? 0) || (a.month ?? 0) - (b.month ?? 0),
+    );
+}
