@@ -218,7 +218,7 @@ struct NextMonthPlaceholder: View {
         .buttonStyle(.plain)
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
         .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl, style: .continuous)
                 .strokeBorder(
                     adjustmentColor,
                     style: StrokeStyle(
