@@ -1,0 +1,24 @@
+import { useQuery } from "@tanstack/react-query";
+
+import { useVaultStore } from "@/core/vault/vault-store";
+
+import { fetchUserSettings } from "./user-settings-api";
+
+export const userSettingsKeys = {
+  all: ["user-settings"] as const,
+};
+
+/**
+ * The pay day here decides which budget counts as "the current one", so every
+ * screen that resolves a period reads it from this single query rather than
+ * carrying its own copy.
+ */
+export function useUserSettings() {
+  const isVaultUnlocked = useVaultStore((state) => state.status === "unlocked");
+
+  return useQuery({
+    queryKey: userSettingsKeys.all,
+    queryFn: fetchUserSettings,
+    enabled: isVaultUnlocked,
+  });
+}
