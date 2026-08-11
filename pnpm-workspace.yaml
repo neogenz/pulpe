@@ -7,6 +7,9 @@ packages:
 
 onlyBuiltDependencies:
   - '@nestjs/core'
+  # Its postinstall downloads the prebuilt libskia.a per ABI. Without it the
+  # Android CMake configure fails outright — there is nothing to link against.
+  - '@shopify/react-native-skia'
   - '@parcel/watcher'
   - '@scarf/scarf'
   - '@tailwindcss/oxide'

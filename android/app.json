@@ -7,14 +7,32 @@
     "scheme": "pulpe",
     "android": {
       "package": "app.pulpe.android",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.pulpe.app",
+              "pathPrefix": "/reset-password"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
       "expo-font",
       "expo-splash-screen",
-      "expo-localization"
+      "expo-localization",
+      "expo-web-browser",
+      "expo-notifications",
+      "@react-native-google-signin/google-signin",
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true,
