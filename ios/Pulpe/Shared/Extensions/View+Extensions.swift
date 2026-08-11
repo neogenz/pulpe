@@ -323,14 +323,15 @@ extension View {
     }
 
     /// The dark-mode boundary of a card, and nothing else — no fill, no shadow.
-    /// Separate from `pulpeRowCard()` because the cards that need it disagree on
-    /// everything but the trait: hero cards run at `CornerRadius.xl`, a skeleton
-    /// carries no shadow at all. `Color.rowCardBorder` holds why it exists.
+    /// Named for the card and not for the row: its callers are two hero cards at
+    /// `CornerRadius.xl` and a skeleton that carries no shadow, so `pulpeRowCard()`
+    /// would impose on all three what only one of them wants.
+    /// `Color.rowCardBorder` holds why the trait exists at all.
     ///
     /// The radius has no default: every call site knows its own, and two of them
     /// contradict the row card's. `strokeBorder` and not `stroke`, so the trait
     /// insets inward and `pulpeCardBackground`'s `clipShape` can't halve it.
-    func pulpeRowCardBorder(cornerRadius: CGFloat) -> some View {
+    func pulpeCardBorder(cornerRadius: CGFloat) -> some View {
         overlay {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .strokeBorder(Color.rowCardBorder, lineWidth: DesignTokens.BorderWidth.hairline)
@@ -345,7 +346,7 @@ extension View {
     func pulpeRowCard(cornerRadius: CGFloat = DesignTokens.CornerRadius.card) -> some View {
         pulpeCardBackground(cornerRadius: cornerRadius)
             .shadow(DesignTokens.Shadow.subtle)
-            .pulpeRowCardBorder(cornerRadius: cornerRadius)
+            .pulpeCardBorder(cornerRadius: cornerRadius)
     }
 
     /// Glass effect for floating navigation elements (toasts, overlays)

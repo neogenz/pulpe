@@ -60,7 +60,7 @@ struct CurrentMonthHeroCard: View {
         .shadow(DesignTokens.Shadow.subtle)
         // A hero card at 32pt, not a row card at 18pt: it takes the border alone
         // rather than `pulpeRowCard()`, which would impose the row radius.
-        .pulpeRowCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
+        .pulpeCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
         .sensoryFeedback(.impact(weight: .medium), trigger: tapTrigger)
         .accessibilityLabel(
             "\(monthName), mois actuel, "
@@ -119,7 +119,7 @@ struct BudgetMonthCard: View {
         .buttonStyle(.plain)
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
         .shadow(DesignTokens.Shadow.subtle)
-        .pulpeRowCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
+        .pulpeCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
         .sensoryFeedback(.selection, trigger: tapTrigger)
         .accessibilityLabel(
             "\(monthName), "

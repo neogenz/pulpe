@@ -190,6 +190,6 @@ struct BudgetDetailsSkeletonView: View {
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
         // No `.shadow` here unlike its loaded-state neighbors: a skeleton is placeholder
         // chrome, not a real row, so it never had one to begin with.
-        .pulpeRowCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
+        .pulpeCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
     }
 }
