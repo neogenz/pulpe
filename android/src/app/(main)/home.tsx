@@ -12,6 +12,10 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import {
+  consumeAddExpenseRequest,
+  useDeepLinkStore,
+} from "@/core/linking/deep-links";
 import { useReminderPriming } from "@/core/notifications/use-reminder-priming";
 import { dismissTip } from "@/core/tips/tips-store";
 import { Tooltip } from "@/core/tips/tooltip";
@@ -40,7 +44,13 @@ export default function HomeScreen() {
   const theme = useTheme();
   const currentMonth = useCurrentMonth();
   const [isRealizedVisible, setRealizedVisible] = useState(false);
-  const [isAddVisible, setAddVisible] = useState(false);
+  const [isAddOpen, setAddOpen] = useState(false);
+  // `pulpe://add-expense` lands here rather than on a route of its own: the
+  // sheet is the add-expense surface, and it belongs to this screen.
+  const isAddRequested = useDeepLinkStore(
+    (state) => state.isAddExpenseRequested,
+  );
+  const isAddVisible = isAddOpen || isAddRequested;
   const [hasToggleFailed, setToggleFailed] = useState(false);
   const [hasTransactionAdded, setTransactionAdded] = useState(false);
   // A rolled-back row reappearing is not an explanation, so the failure is said
@@ -97,6 +107,12 @@ export default function HomeScreen() {
     fallbackPlannedBalance: viewModel.metrics.endingBalance,
     trajectory: viewModel.trajectory,
   });
+  // Closing has to answer both openers, or a deep-linked sheet reopens itself.
+  function closeAdd() {
+    setAddOpen(false);
+    consumeAddExpenseRequest();
+  }
+
   const monthName = formatMonthName(
     currentMonth.details?.budget.month ?? new Date().getMonth() + 1,
     currentMonth.details?.budget.year ?? new Date().getFullYear(),
@@ -223,7 +239,7 @@ export default function HomeScreen() {
           icon="plus"
           label="Ajouter"
           style={styles.fab}
-          onPress={() => setAddVisible(true)}
+          onPress={() => setAddOpen(true)}
           accessibilityLabel="Ajouter une opération"
         />
       )}
@@ -260,11 +276,11 @@ export default function HomeScreen() {
       {currentMonth.budgetId !== null && (
         <TransactionSheet
           isVisible={isAddVisible}
-          onDismiss={() => setAddVisible(false)}
+          onDismiss={closeAdd}
           budgetId={currentMonth.budgetId}
           currency={currency}
           onSaved={() => {
-            setAddVisible(false);
+            closeAdd();
             setTransactionAdded(true);
           }}
         />

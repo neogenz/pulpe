@@ -11,6 +11,7 @@ import { fr, registerTranslation } from "react-native-paper-dates";
 
 import { observeSession, useSessionStore } from "@/core/auth/session-store";
 import { startSupabaseAutoRefresh } from "@/core/auth/supabase";
+import { DeepLinkRouter } from "@/core/linking/deep-link-router";
 import { queryClient } from "@/core/query/query-client";
 import { ForegroundRefresh } from "@/core/system/foreground-refresh";
 import { armPrivacyShield } from "@/core/system/privacy-shield";
@@ -107,6 +108,9 @@ export default function RootLayout() {
               that minted it, which unmounts the moment the vault unlocks. */}
           <RecoveryKeyNotice />
           <ForegroundRefresh />
+          {/* Inside the navigator: it navigates, so it needs the router
+              mounted — and it holds a link until the vault opens one. */}
+          <DeepLinkRouter />
           {/* Last, so it covers every route and every dialog above them. */}
           <SystemGateScreen />
         </QueryClientProvider>
