@@ -325,9 +325,15 @@ extension View {
     /// The surface a ledger row sits on: the flat card, plus the lift that detaches it
     /// from the page. Paired here because a card with no lift and a lift with no card
     /// are each half a boundary, and the call sites shouldn't have to remember both.
+    /// The shadow carries the separation in light mode; it renders on nothing over
+    /// `appBackground`'s dark tone, so the overlay border takes over there instead.
     func pulpeRowCard() -> some View {
         pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
             .shadow(DesignTokens.Shadow.subtle)
+            .overlay {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
+                    .strokeBorder(Color.rowCardBorder, lineWidth: DesignTokens.BorderWidth.hairline)
+            }
     }
 
     /// Glass effect for floating navigation elements (toasts, overlays)
