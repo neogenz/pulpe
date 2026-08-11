@@ -16,6 +16,7 @@ import { queryClient } from "@/core/query/query-client";
 import { ForegroundRefresh } from "@/core/system/foreground-refresh";
 import { armPrivacyShield } from "@/core/system/privacy-shield";
 import { SystemGateScreen } from "@/core/system/system-gate-screen";
+import { WhatsNewSheet } from "@/core/system/whats-new-sheet";
 import { pulpeDarkTheme, pulpeLightTheme } from "@/core/ui/theme";
 import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
 import {
@@ -111,6 +112,7 @@ export default function RootLayout() {
           {/* Inside the navigator: it navigates, so it needs the router
               mounted — and it holds a link until the vault opens one. */}
           <DeepLinkRouter />
+          <WhatsNewSheet />
           {/* Last, so it covers every route and every dialog above them. */}
           <SystemGateScreen />
         </QueryClientProvider>
