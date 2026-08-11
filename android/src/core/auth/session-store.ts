@@ -3,6 +3,7 @@ import { create } from "zustand";
 
 import { clearAllKeys } from "@/core/crypto/client-key-manager";
 import { queryClient } from "@/core/query/query-client";
+import { resetVault } from "@/core/vault/vault-store";
 
 import { signOutThisDevice, supabase } from "./supabase";
 
@@ -49,6 +50,7 @@ export const useSessionStore = create<SessionState>((set) => ({
 async function purgeLocalAccountData(): Promise<void> {
   // Cached budget data belongs to the account that just left the device.
   queryClient.clear();
+  resetVault();
   await clearAllKeys();
 }
 
