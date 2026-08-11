@@ -1,0 +1,201 @@
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import type { SupportedCurrency, Transaction } from "pulpe-shared";
+import { useState } from "react";
+import { StyleSheet, useColorScheme, View } from "react-native";
+import { Chip, Divider, Text, useTheme } from "react-native-paper";
+
+import {
+  formatCompactCurrency,
+  formatSignedCompactCurrency,
+} from "@/core/ui/amount-format";
+import {
+  FINANCIAL_COLORS,
+  RADIUS,
+  SPACING,
+  TABULAR_DIGITS,
+} from "@/core/ui/theme";
+
+import { summarizeActivity, type ActivityWindow } from "../activity-window";
+
+const ICON_SIZE = 20;
+const ICON_DIAMETER = 36;
+const ICON_TINT_OPACITY = "26";
+
+const WINDOWS: { value: ActivityWindow; label: string }[] = [
+  { value: "week", label: "7 jours" },
+  { value: "month", label: "Ce mois" },
+];
+
+const EMPTY_TITLES: Record<ActivityWindow, string> = {
+  week: "Rien sur ces 7 jours",
+  month: "Rien ce mois-ci",
+};
+
+const KIND_ICONS = {
+  income: "arrow-down",
+  expense: "arrow-up",
+  saving: "piggy-bank-outline",
+} as const satisfies Record<Transaction["kind"], string>;
+
+const KIND_ACCENTS = {
+  income: "income",
+  expense: "expense",
+  saving: "savings",
+} as const satisfies Record<
+  Transaction["kind"],
+  keyof typeof FINANCIAL_COLORS.light
+>;
+
+interface ActivityCardProps {
+  transactions: Transaction[];
+  currency: SupportedCurrency;
+}
+
+/**
+ * What actually happened, newest first, under the one selector that maps to how
+ * the month is read: the last week, or the whole of it.
+ */
+export function ActivityCard({ transactions, currency }: ActivityCardProps) {
+  const theme = useTheme();
+  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const [window, setWindow] = useState<ActivityWindow>("week");
+  const { days, net } = summarizeActivity(transactions, window, new Date());
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.heading}>
+        <Text variant="titleSmall">Activité</Text>
+        <Text variant="bodySmall" style={TABULAR_DIGITS}>
+          {formatSignedCompactCurrency(net, currency)}
+        </Text>
+      </View>
+
+      <View style={styles.windows}>
+        {WINDOWS.map((option) => (
+          <Chip
+            key={option.value}
+            selected={window === option.value}
+            showSelectedCheck={false}
+            onPress={() => setWindow(option.value)}
+            accessibilityLabel={`Activité sur ${option.label}`}
+          >
+            {option.label}
+          </Chip>
+        ))}
+      </View>
+
+      {days.length === 0 ? (
+        <View
+          style={[
+            styles.rows,
+            { backgroundColor: theme.colors.surfaceVariant },
+          ]}
+        >
+          <View style={styles.row}>
+            <View
+              style={[
+                styles.icon,
+                { backgroundColor: theme.colors.outlineVariant },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="tray"
+                size={ICON_SIZE}
+                color={theme.colors.onSurfaceVariant}
+              />
+            </View>
+            <View style={styles.labels}>
+              <Text variant="bodyLarge">{EMPTY_TITLES[window]}</Text>
+              <Text
+                variant="labelMedium"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                Tes opérations s&apos;afficheront ici
+              </Text>
+            </View>
+          </View>
+        </View>
+      ) : (
+        days.map((day) => (
+          <View key={day.date.toISOString()} style={styles.day}>
+            <Text
+              variant="labelMedium"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {day.label}
+            </Text>
+            <View
+              style={[
+                styles.rows,
+                { backgroundColor: theme.colors.surfaceVariant },
+              ]}
+            >
+              {day.transactions.map((transaction, index) => {
+                const accent =
+                  FINANCIAL_COLORS[scheme][KIND_ACCENTS[transaction.kind]];
+                return (
+                  <View key={transaction.id}>
+                    {index > 0 && <Divider />}
+                    <View style={styles.row}>
+                      <View
+                        style={[
+                          styles.icon,
+                          { backgroundColor: `${accent}${ICON_TINT_OPACITY}` },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={KIND_ICONS[transaction.kind]}
+                          size={ICON_SIZE}
+                          color={accent}
+                        />
+                      </View>
+                      <View style={styles.labels}>
+                        <Text variant="bodyLarge" numberOfLines={1}>
+                          {transaction.name}
+                        </Text>
+                      </View>
+                      <Text
+                        variant="bodyMedium"
+                        style={TABULAR_DIGITS}
+                        numberOfLines={1}
+                      >
+                        {formatCompactCurrency(transaction.amount, currency)}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        ))
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: { gap: SPACING.sm },
+  heading: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: SPACING.sm,
+  },
+  windows: { flexDirection: "row", gap: SPACING.sm },
+  day: { gap: SPACING.xs },
+  rows: { borderRadius: RADIUS.card, paddingHorizontal: SPACING.md },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
+    paddingVertical: SPACING.md,
+  },
+  icon: {
+    width: ICON_DIAMETER,
+    height: ICON_DIAMETER,
+    borderRadius: RADIUS.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  labels: { flex: 1, gap: SPACING.xxs },
+});

@@ -14,6 +14,7 @@ import { useSessionStore } from "@/core/auth/session-store";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
+import { ActivityCard } from "@/features/current-month/components/activity-card";
 import { DriftCard } from "@/features/current-month/components/drift-card";
 import { HomeHeroCard } from "@/features/current-month/components/home-hero-card";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
@@ -131,6 +132,11 @@ export default function HomeScreen() {
             }
           />
         )}
+
+        <ActivityCard
+          transactions={currentMonth.details?.transactions ?? []}
+          currency={currency}
+        />
 
         <View style={styles.dailyBudget}>
           <Text
