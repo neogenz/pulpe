@@ -1,6 +1,8 @@
 import {
   clearAllKeys,
   clearSessionKey,
+  disableBiometricUnlock,
+  enableBiometricUnlock,
   hasBiometricKey,
   resolveViaBiometric,
   restoreClientKey,
@@ -9,6 +11,7 @@ import {
 import { deriveClientKey } from "@/core/crypto/pbkdf2";
 
 import {
+  changePin,
   fetchSalt,
   fetchVaultStatus,
   recoverVault,
@@ -18,6 +21,7 @@ import {
 } from "./vault-api";
 import {
   bootstrapVault,
+  changeVaultPin,
   recoverVaultWithKey,
   setupVaultPin,
   unlockVaultWithBiometrics,
@@ -39,6 +43,8 @@ jest.mock("./vault-api", () => ({
   validateClientKey: jest.fn(),
   recoverVault: jest.fn(),
   regenerateRecoveryKey: jest.fn(),
+  changePin: jest.fn(),
+  verifyRecoveryKey: jest.fn(),
 }));
 jest.mock("@/core/crypto/pbkdf2", () => ({ deriveClientKey: jest.fn() }));
 jest.mock("@/core/crypto/client-key-manager");
@@ -63,6 +69,9 @@ const mocked = {
   restoreClientKey: jest.mocked(restoreClientKey),
   resolveViaBiometric: jest.mocked(resolveViaBiometric),
   hasBiometricKey: jest.mocked(hasBiometricKey),
+  changePin: jest.mocked(changePin),
+  enableBiometricUnlock: jest.mocked(enableBiometricUnlock),
+  disableBiometricUnlock: jest.mocked(disableBiometricUnlock),
 };
 
 function vaultStatus(pinCodeConfigured: boolean) {
@@ -253,5 +262,73 @@ describe("recoverVaultWithKey", () => {
       status: "unlocked",
       pendingRecoveryNotice: { kind: "mintFailed" },
     });
+  });
+});
+
+describe("changeVaultPin", () => {
+  const NEW_CLIENT_KEY =
+    "1f9f3b0d5e2a4c6b8d0f2a4c6e8a0c2e4a6c8e0a2c4e6a8c0e2a4c6e8a0c2e4a";
+
+  beforeEach(() => {
+    mocked.changePin.mockResolvedValue({
+      keyCheck: "check",
+      recoveryKey: "EEEE-FFFF",
+    });
+    // The two derivations differ, so the call the server sees can be asserted
+    // rather than inferred from a single value standing in for both PINs.
+    mocked.deriveClientKey.mockImplementation((pin: string) =>
+      Promise.resolve(pin === "1234" ? CLIENT_KEY : NEW_CLIENT_KEY),
+    );
+  });
+
+  it("should send both keys and keep the device slot on the new one", async () => {
+    await changeVaultPin("1234", "4321");
+
+    expect(mocked.changePin).toHaveBeenCalledWith(CLIENT_KEY, NEW_CLIENT_KEY);
+    expect(mocked.storeClientKey).toHaveBeenCalledWith(NEW_CLIENT_KEY, {
+      enableBiometric: false,
+    });
+  });
+
+  it("should show the recovery key the change just minted", async () => {
+    // The endpoint spends the old one, so dropping this would leave the user
+    // holding a key that opens nothing.
+    await changeVaultPin("1234", "4321");
+
+    expect(useVaultStore.getState().pendingRecoveryNotice).toEqual({
+      kind: "minted",
+      recoveryKey: "EEEE-FFFF",
+    });
+  });
+
+  it("should leave biometrics alone when none was armed", async () => {
+    mocked.hasBiometricKey.mockResolvedValue(false);
+
+    await changeVaultPin("1234", "4321");
+
+    expect(mocked.disableBiometricUnlock).not.toHaveBeenCalled();
+    expect(mocked.enableBiometricUnlock).not.toHaveBeenCalled();
+  });
+
+  it("should re-arm biometrics from the new key", async () => {
+    mocked.hasBiometricKey.mockResolvedValue(true);
+    mocked.enableBiometricUnlock.mockResolvedValue(true);
+
+    await changeVaultPin("1234", "4321");
+
+    expect(mocked.disableBiometricUnlock).toHaveBeenCalled();
+    expect(useVaultStore.getState().isBiometricAvailable).toBe(true);
+  });
+
+  it("should stop offering biometrics when re-arming fails", async () => {
+    // Otherwise the unlock screen keeps a button whose slot no longer holds a
+    // key the vault would accept.
+    useVaultStore.setState({ isBiometricAvailable: true });
+    mocked.hasBiometricKey.mockResolvedValue(true);
+    mocked.enableBiometricUnlock.mockResolvedValue(false);
+
+    await changeVaultPin("1234", "4321");
+
+    expect(useVaultStore.getState().isBiometricAvailable).toBe(false);
   });
 });

@@ -69,6 +69,14 @@ export default function MainTabsLayout() {
       <Tabs.Screen name="budget/[id]/line/[lineId]" options={{ href: null }} />
       <Tabs.Screen name="goal/[id]" options={{ href: null }} />
       <Tabs.Screen name="template/[id]" options={{ href: null }} />
+      {/* The account lives behind the avatar, not in the bar: it is where you
+          go once in a while, and a fifth tab would cost every other screen. */}
+      <Tabs.Screen name="settings/index" options={{ href: null }} />
+      <Tabs.Screen name="settings/security" options={{ href: null }} />
+      <Tabs.Screen name="settings/change-pin" options={{ href: null }} />
+      <Tabs.Screen name="settings/preferences" options={{ href: null }} />
+      <Tabs.Screen name="settings/pay-day" options={{ href: null }} />
+      <Tabs.Screen name="settings/tags" options={{ href: null }} />
       <Tabs.Screen
         name="templates"
         options={{

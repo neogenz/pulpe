@@ -4,6 +4,8 @@ import { normalizeApiError } from "@/core/api/api-error";
 import {
   clearAllKeys,
   clearSessionKey,
+  disableBiometricUnlock,
+  enableBiometricUnlock,
   hasBiometricKey,
   resolveViaBiometric,
   restoreClientKey,
@@ -13,12 +15,14 @@ import { deriveClientKey } from "@/core/crypto/pbkdf2";
 import { queryClient } from "@/core/query/query-client";
 
 import {
+  changePin,
   fetchSalt,
   fetchVaultStatus,
   recoverVault,
   regenerateRecoveryKey,
   setupRecoveryKey,
   validateClientKey,
+  verifyRecoveryKey,
 } from "./vault-api";
 
 /**
@@ -178,6 +182,66 @@ export async function recoverVaultWithKey(
   }
 
   setState({ status: "unlocked", pendingRecoveryNotice: notice });
+}
+
+/**
+ * Changes the PIN while the vault is open.
+ *
+ * The server rewraps under the new key, so the device slot has to follow in the
+ * same breath: a stored key that no longer matches the vault would fail the
+ * next validation and send the user to recovery for a change they just made.
+ * A biometric slot is re-armed from the new key, or dropped if it cannot be.
+ *
+ * The endpoint also mints a replacement recovery key — the old one stops
+ * working here — so it goes through the same show-once notice as setup. Losing
+ * it silently would leave the user holding a key that no longer opens anything.
+ */
+export async function changeVaultPin(
+  oldPin: string,
+  newPin: string,
+): Promise<void> {
+  const { salt, kdfIterations } = await fetchSalt();
+  const [oldClientKeyHex, newClientKeyHex] = await Promise.all([
+    deriveClientKey(oldPin, salt, kdfIterations),
+    deriveClientKey(newPin, salt, kdfIterations),
+  ]);
+
+  const hadBiometric = await hasBiometricKey();
+  const { recoveryKey } = await changePin(oldClientKeyHex, newClientKeyHex);
+  await storeClientKey(newClientKeyHex, { enableBiometric: false });
+
+  if (hadBiometric) {
+    await disableBiometricUnlock();
+    setState({ isBiometricAvailable: await enableBiometricUnlock() });
+  }
+
+  setState({ pendingRecoveryNotice: { kind: "minted", recoveryKey } });
+}
+
+/**
+ * Mints a replacement recovery key. The old one stops working the moment this
+ * returns, so the new one goes through the same show-once notice as setup.
+ */
+export async function renewRecoveryKey(): Promise<void> {
+  const { recoveryKey } = await regenerateRecoveryKey();
+  setState({ pendingRecoveryNotice: { kind: "minted", recoveryKey } });
+}
+
+/** Checks a written-down key against the vault without spending it. */
+export async function checkRecoveryKey(recoveryKey: string): Promise<void> {
+  await verifyRecoveryKey(recoveryKey);
+}
+
+/** Arms unlock-by-biometrics from the key already held for this session. */
+export async function enableVaultBiometrics(): Promise<boolean> {
+  const isEnabled = await enableBiometricUnlock();
+  setState({ isBiometricAvailable: isEnabled });
+  return isEnabled;
+}
+
+export async function disableVaultBiometrics(): Promise<void> {
+  await disableBiometricUnlock();
+  setState({ isBiometricAvailable: false });
 }
 
 /** The user says they have written the key down; it is unrecoverable after this. */

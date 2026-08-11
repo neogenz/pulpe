@@ -5,13 +5,13 @@ import {
   ActivityIndicator,
   Button,
   FAB,
+  IconButton,
   Snackbar,
   Text,
   useTheme,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useSessionStore } from "@/core/auth/session-store";
 import { useReminderPriming } from "@/core/notifications/use-reminder-priming";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
@@ -33,7 +33,6 @@ import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
 export default function HomeScreen() {
   const theme = useTheme();
   const currentMonth = useCurrentMonth();
-  const signOut = useSessionStore((state) => state.signOut);
   const [isRealizedVisible, setRealizedVisible] = useState(false);
   const [isAddVisible, setAddVisible] = useState(false);
   const [hasToggleFailed, setToggleFailed] = useState(false);
@@ -110,9 +109,16 @@ export default function HomeScreen() {
           />
         }
       >
-        <Text variant="headlineSmall" style={styles.title}>
-          {monthName}
-        </Text>
+        <View style={styles.header}>
+          <Text variant="headlineSmall" style={styles.title}>
+            {monthName}
+          </Text>
+          <IconButton
+            icon="account-circle-outline"
+            onPress={() => router.push("/settings")}
+            accessibilityLabel="Mon compte"
+          />
+        </View>
 
         <HomeHeroCard
           presentation={presentation}
@@ -192,12 +198,6 @@ export default function HomeScreen() {
             Préparer le mois suivant
           </Button>
         )}
-
-        {/* Stands in for the account sheet the toolbar will carry, so the app
-            still has a way out while the rest of the dashboard is built. */}
-        <Button mode="text" onPress={() => void signOut()}>
-          Se déconnecter
-        </Button>
       </ScrollView>
 
       {/* Hidden while a sheet is up: the FAB floats above the Portal's scrim
@@ -261,6 +261,11 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   title: { textTransform: "capitalize" },
   dailyBudget: { paddingHorizontal: SPACING.xs },
   fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },

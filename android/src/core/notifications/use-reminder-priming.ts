@@ -2,7 +2,11 @@ import { useState } from "react";
 
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 
-import { readRemindersPrimed, writeRemindersPrimed } from "./reminder-flags";
+import {
+  readRemindersPrimed,
+  writeRemindersEnabled,
+  writeRemindersPrimed,
+} from "./reminder-flags";
 import {
   isReminderPermissionUndecided,
   requestReminderPermission,
@@ -45,6 +49,9 @@ export function useReminderPriming(): ReminderPriming {
     setVisible(false);
     void requestReminderPermission().then((isGranted) => {
       if (!isGranted) return;
+      // Recorded here too, so the preferences toggle opens on what the user
+      // actually chose rather than claiming reminders are off.
+      writeRemindersEnabled(true);
       return scheduleMonthlyReminder(settings.data?.payDayOfMonth ?? null);
     });
   }

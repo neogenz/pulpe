@@ -99,14 +99,23 @@ export async function storeClientKey(
   }
 }
 
+/**
+ * Fails closed: writing an authenticated slot throws when the user dismisses
+ * the prompt or the device has nothing enrolled, and a caller told the slot
+ * exists when it does not would offer an unlock that can never work.
+ */
 export async function enableBiometricUnlock(): Promise<boolean> {
   if (cachedClientKeyHex === null) return false;
 
-  await SecureStore.setItemAsync(BIOMETRIC_KEY_SLOT, cachedClientKeyHex, {
-    requireAuthentication: true,
-    authenticationPrompt: BIOMETRIC_PROMPT,
-  });
-  return true;
+  try {
+    await SecureStore.setItemAsync(BIOMETRIC_KEY_SLOT, cachedClientKeyHex, {
+      requireAuthentication: true,
+      authenticationPrompt: BIOMETRIC_PROMPT,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function disableBiometricUnlock(): Promise<void> {

@@ -58,6 +58,25 @@ export async function getAccessToken(): Promise<string | null> {
 }
 
 /**
+ * Re-authenticates the account holder before a change only they should be able
+ * to make — a new password, a fresh recovery key. Signing in again is what
+ * Supabase offers to check a password, and it returns the same user, so the
+ * session it hands back replaces an equivalent one.
+ */
+export async function verifyPassword(
+  email: string,
+  password: string,
+): Promise<void> {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+}
+
+export async function updatePassword(newPassword: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
+/**
  * Signing out is deliberately scoped to this device. The default `global`
  * scope revokes every refresh token of the account, which would sign the user
  * out of iOS and the webapp at the same time — the webapp already caused that

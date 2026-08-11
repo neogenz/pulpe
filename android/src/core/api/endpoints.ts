@@ -10,10 +10,12 @@ export const ENDPOINTS = {
   validateSession: "/auth/validate",
 
   userProfile: "/users/me",
+  userProfileUpdate: "/users/profile",
   userAccount: "/users/account",
   userSettings: "/users/settings",
 
   tags: "/tags",
+  tag: (id: string) => `/tags/${id}`,
 
   budgets: "/budgets",
   budgetsGenerate: "/budgets/generate",
