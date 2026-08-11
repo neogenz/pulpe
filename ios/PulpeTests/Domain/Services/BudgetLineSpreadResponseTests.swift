@@ -11,7 +11,7 @@ struct BudgetLineSpreadResponseTests {
     @Test
     func createSpread_decodesSpreadResponse() async throws {
         InterceptingURLProtocol.requestHandler = { request in
-            (makeHTTPResponse(for: request, statusCode: 200), successResponseData())
+            (makeHTTPResponse(for: request, statusCode: 200), BudgetLineSpreadFixtures.successResponseData())
         }
         defer { InterceptingURLProtocol.requestHandler = nil }
 
@@ -23,7 +23,7 @@ struct BudgetLineSpreadResponseTests {
             perMonthAmount: 80
         )
 
-        let apiClient = makeAPIClient()
+        let apiClient = BudgetLineSpreadFixtures.makeAPIClient()
         let response: BudgetLineSpreadResponse = try await apiClient.request(
             .budgetLinesSpread, body: body, method: .post
         )
@@ -39,7 +39,7 @@ struct BudgetLineSpreadResponseTests {
     @Test
     func createSpread_decodesEmptySkippedMonths() async throws {
         InterceptingURLProtocol.requestHandler = { request in
-            (makeHTTPResponse(for: request, statusCode: 200), responseDataNoSkips())
+            (makeHTTPResponse(for: request, statusCode: 200), BudgetLineSpreadFixtures.responseDataNoSkips())
         }
         defer { InterceptingURLProtocol.requestHandler = nil }
 
@@ -51,7 +51,7 @@ struct BudgetLineSpreadResponseTests {
             perMonthAmount: 80
         )
 
-        let apiClient = makeAPIClient()
+        let apiClient = BudgetLineSpreadFixtures.makeAPIClient()
         let response: BudgetLineSpreadResponse = try await apiClient.request(
             .budgetLinesSpread, body: body, method: .post
         )

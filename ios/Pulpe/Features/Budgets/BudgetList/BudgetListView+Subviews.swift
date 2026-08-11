@@ -56,8 +56,7 @@ struct CurrentMonthHeroCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(Color.surfaceContainerLowest)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
         .shadow(DesignTokens.Shadow.subtle)
         .overlay {
             // `.subtle`'s 5% black renders as nothing on `appBackground`'s dark tone (same
@@ -65,7 +64,7 @@ struct CurrentMonthHeroCard: View {
             // `pulpeRowCard()` doesn't fit here: this is a hero card (`CornerRadius.xl`,
             // 32pt); the shared modifier is reserved for row cards (`CornerRadius.card`,
             // 18pt) — different card kind, not just a different number.
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl, style: .continuous)
                 .strokeBorder(Color.rowCardBorder, lineWidth: DesignTokens.BorderWidth.hairline)
         }
         .sensoryFeedback(.impact(weight: .medium), trigger: tapTrigger)
@@ -124,12 +123,11 @@ struct BudgetMonthCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(Color.surfaceContainerLowest)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
         .shadow(DesignTokens.Shadow.subtle)
         .overlay {
             // Same dead-shadow fix as `CurrentMonthHeroCard` above — see its comment.
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl, style: .continuous)
                 .strokeBorder(Color.rowCardBorder, lineWidth: DesignTokens.BorderWidth.hairline)
         }
         .sensoryFeedback(.selection, trigger: tapTrigger)
@@ -218,8 +216,7 @@ struct NextMonthPlaceholder: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(Color.surfaceContainerLowest)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
         .overlay {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
                 .strokeBorder(

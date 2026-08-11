@@ -5,98 +5,106 @@ import Foundation
 /// wired to `InterceptingURLProtocol`, canned JSON payloads, and a request recorder
 /// that decodes the outgoing body. Used by `BudgetLineSpreadRequestTests` (what goes
 /// out) and `BudgetLineSpreadResponseTests` (what comes back).
-
-func makeAPIClient() -> APIClient {
-    let baseURL = URL(string: "https://pulpe.test") ?? URL(fileURLWithPath: "/")
-    let configuration = URLSessionConfiguration.ephemeral
-    configuration.protocolClasses = [InterceptingURLProtocol.self]
-    let session = URLSession(configuration: configuration)
-
-    return APIClient(
-        session: session,
-        baseURL: baseURL,
-        authTokenProvider: { "test-token" },
-        clientKeyProvider: { nil }
-    )
-}
-
+///
+/// An `enum` of `static func`s, not bare top-level functions: the test target already
+/// has several `private func makeAPIClient()` (and a `private static func
+/// budgetJSON(id:month:)` in `SavingsWithdrawalTests`) with this exact signature.
+/// `private` shadows them today, but a bare top-level function of the same name is a
+/// silent trap the day one of those private copies is deleted — the call then binds to
+/// this one instead, building a different `APIClient` without the caller ever knowing.
 let fixtureGroupId =
     UUID(uuidString: "11111111-2222-3333-4444-555555555555") ?? UUID()
 
-/// A `{ spreadGroupId, lines[2], createdBudgets[1], skippedMonths[1] }` payload.
-func successResponseData() -> Data {
-    let json = """
-    {
-      "success": true,
-      "data": {
-        "spreadGroupId": "\(fixtureGroupId.uuidString)",
-        "lines": [
-          \(lineJSON(id: "line-jun", budgetId: "budget-jun")),
-          \(lineJSON(id: "line-jul", budgetId: "budget-jul"))
-        ],
-        "createdBudgets": [
-          \(budgetJSON(id: "budget-jul", month: 7))
-        ],
-        "skippedMonths": [{ "month": 8, "year": 2026 }]
-      }
-    }
-    """
-    return Data(json.utf8)
-}
+enum BudgetLineSpreadFixtures {
+    static func makeAPIClient() -> APIClient {
+        let baseURL = URL(string: "https://pulpe.test") ?? URL(fileURLWithPath: "/")
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [InterceptingURLProtocol.self]
+        let session = URLSession(configuration: configuration)
 
-/// A `{ spreadGroupId, lines[1], createdBudgets[], skippedMonths[] }` payload.
-func responseDataNoSkips() -> Data {
-    let json = """
-    {
-      "success": true,
-      "data": {
-        "spreadGroupId": "\(fixtureGroupId.uuidString)",
-        "lines": [ \(lineJSON(id: "line-jun", budgetId: "budget-jun")) ],
-        "createdBudgets": [],
-        "skippedMonths": []
-      }
+        return APIClient(
+            session: session,
+            baseURL: baseURL,
+            authTokenProvider: { "test-token" },
+            clientKeyProvider: { nil }
+        )
     }
-    """
-    return Data(json.utf8)
-}
 
-func lineJSON(id: String, budgetId: String) -> String {
-    """
-    {
-      "id": "\(id)",
-      "budgetId": "\(budgetId)",
-      "templateLineId": null,
-      "savingsGoalId": null,
-      "name": "Impôts",
-      "amount": 80,
-      "kind": "expense",
-      "recurrence": "one_off",
-      "isManuallyAdjusted": false,
-      "checkedAt": null,
-      "createdAt": "2026-06-01T00:00:00Z",
-      "updatedAt": "2026-06-01T00:00:00Z",
-      "spreadGroupId": "\(fixtureGroupId.uuidString)"
+    /// A `{ spreadGroupId, lines[2], createdBudgets[1], skippedMonths[1] }` payload.
+    static func successResponseData() -> Data {
+        let json = """
+        {
+          "success": true,
+          "data": {
+            "spreadGroupId": "\(fixtureGroupId.uuidString)",
+            "lines": [
+              \(lineJSON(id: "line-jun", budgetId: "budget-jun")),
+              \(lineJSON(id: "line-jul", budgetId: "budget-jul"))
+            ],
+            "createdBudgets": [
+              \(budgetJSON(id: "budget-jul", month: 7))
+            ],
+            "skippedMonths": [{ "month": 8, "year": 2026 }]
+          }
+        }
+        """
+        return Data(json.utf8)
     }
-    """
-}
 
-func budgetJSON(id: String, month: Int) -> String {
-    """
-    {
-      "id": "\(id)",
-      "month": \(month),
-      "year": 2026,
-      "description": "Budget",
-      "userId": "user-1",
-      "templateId": "template-1",
-      "endingBalance": null,
-      "rollover": null,
-      "remaining": null,
-      "previousBudgetId": null,
-      "createdAt": "2026-06-01T00:00:00Z",
-      "updatedAt": "2026-06-01T00:00:00Z"
+    /// A `{ spreadGroupId, lines[1], createdBudgets[], skippedMonths[] }` payload.
+    static func responseDataNoSkips() -> Data {
+        let json = """
+        {
+          "success": true,
+          "data": {
+            "spreadGroupId": "\(fixtureGroupId.uuidString)",
+            "lines": [ \(lineJSON(id: "line-jun", budgetId: "budget-jun")) ],
+            "createdBudgets": [],
+            "skippedMonths": []
+          }
+        }
+        """
+        return Data(json.utf8)
     }
-    """
+
+    static func lineJSON(id: String, budgetId: String) -> String {
+        """
+        {
+          "id": "\(id)",
+          "budgetId": "\(budgetId)",
+          "templateLineId": null,
+          "savingsGoalId": null,
+          "name": "Impôts",
+          "amount": 80,
+          "kind": "expense",
+          "recurrence": "one_off",
+          "isManuallyAdjusted": false,
+          "checkedAt": null,
+          "createdAt": "2026-06-01T00:00:00Z",
+          "updatedAt": "2026-06-01T00:00:00Z",
+          "spreadGroupId": "\(fixtureGroupId.uuidString)"
+        }
+        """
+    }
+
+    static func budgetJSON(id: String, month: Int) -> String {
+        """
+        {
+          "id": "\(id)",
+          "month": \(month),
+          "year": 2026,
+          "description": "Budget",
+          "userId": "user-1",
+          "templateId": "template-1",
+          "endingBalance": null,
+          "rollover": null,
+          "remaining": null,
+          "previousBudgetId": null,
+          "createdAt": "2026-06-01T00:00:00Z",
+          "updatedAt": "2026-06-01T00:00:00Z"
+        }
+        """
+    }
 }
 
 /// Decoded mirror of the outgoing `BudgetLineSpreadCreate` JSON. Decoding the

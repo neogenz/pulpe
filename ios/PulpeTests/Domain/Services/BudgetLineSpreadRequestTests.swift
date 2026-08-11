@@ -14,8 +14,8 @@ import Testing
 ///     whole spread; FX keys are absent for a same-currency spread.
 ///
 /// Response decoding lives in `BudgetLineSpreadResponseTests`; shared fixtures
-/// (`makeAPIClient()`, canned JSON, `SpreadRequestRecorder`) live in
-/// `BudgetLineSpreadTestFixtures`.
+/// (`BudgetLineSpreadFixtures.makeAPIClient()`, canned JSON, `SpreadRequestRecorder`)
+/// live in `BudgetLineSpreadTestFixtures`.
 @Suite("BudgetLineService.createSpread contract", .serialized)
 struct BudgetLineSpreadRequestTests {
     // MARK: - Request body: per-month amount + one month ref per selected month
@@ -25,7 +25,7 @@ struct BudgetLineSpreadRequestTests {
         let recorder = SpreadRequestRecorder()
         InterceptingURLProtocol.requestHandler = { request in
             recorder.record(request)
-            return (makeHTTPResponse(for: request, statusCode: 200), successResponseData())
+            return (makeHTTPResponse(for: request, statusCode: 200), BudgetLineSpreadFixtures.successResponseData())
         }
         defer { InterceptingURLProtocol.requestHandler = nil }
 
@@ -38,7 +38,7 @@ struct BudgetLineSpreadRequestTests {
             name: "Impôts", kind: .expense, mode: .perMonth, months: months, perMonthAmount: 80
         )
 
-        let apiClient = makeAPIClient()
+        let apiClient = BudgetLineSpreadFixtures.makeAPIClient()
         let _: BudgetLineSpreadResponse = try await apiClient.request(
             .budgetLinesSpread, body: body, method: .post
         )
@@ -68,7 +68,7 @@ struct BudgetLineSpreadRequestTests {
         let recorder = SpreadRequestRecorder()
         InterceptingURLProtocol.requestHandler = { request in
             recorder.record(request)
-            return (makeHTTPResponse(for: request, statusCode: 200), successResponseData())
+            return (makeHTTPResponse(for: request, statusCode: 200), BudgetLineSpreadFixtures.successResponseData())
         }
         defer { InterceptingURLProtocol.requestHandler = nil }
 
@@ -80,7 +80,7 @@ struct BudgetLineSpreadRequestTests {
             perMonthAmount: 200
         )
 
-        let apiClient = makeAPIClient()
+        let apiClient = BudgetLineSpreadFixtures.makeAPIClient()
         let _: BudgetLineSpreadResponse = try await apiClient.request(
             .budgetLinesSpread, body: body, method: .post
         )
@@ -96,7 +96,7 @@ struct BudgetLineSpreadRequestTests {
         let recorder = SpreadRequestRecorder()
         InterceptingURLProtocol.requestHandler = { request in
             recorder.record(request)
-            return (makeHTTPResponse(for: request, statusCode: 200), successResponseData())
+            return (makeHTTPResponse(for: request, statusCode: 200), BudgetLineSpreadFixtures.successResponseData())
         }
         defer { InterceptingURLProtocol.requestHandler = nil }
 
@@ -119,7 +119,7 @@ struct BudgetLineSpreadRequestTests {
             exchangeRate: Decimal(string: "0.93")
         )
 
-        let apiClient = makeAPIClient()
+        let apiClient = BudgetLineSpreadFixtures.makeAPIClient()
         let _: BudgetLineSpreadResponse = try await apiClient.request(
             .budgetLinesSpread, body: body, method: .post
         )
@@ -141,7 +141,7 @@ struct BudgetLineSpreadRequestTests {
         let recorder = SpreadRequestRecorder()
         InterceptingURLProtocol.requestHandler = { request in
             recorder.record(request)
-            return (makeHTTPResponse(for: request, statusCode: 200), successResponseData())
+            return (makeHTTPResponse(for: request, statusCode: 200), BudgetLineSpreadFixtures.successResponseData())
         }
         defer { InterceptingURLProtocol.requestHandler = nil }
 
@@ -157,7 +157,7 @@ struct BudgetLineSpreadRequestTests {
             totalAmount: 90
         )
 
-        let apiClient = makeAPIClient()
+        let apiClient = BudgetLineSpreadFixtures.makeAPIClient()
         let _: BudgetLineSpreadResponse = try await apiClient.request(
             .budgetLinesSpread, body: body, method: .post
         )
@@ -180,7 +180,7 @@ struct BudgetLineSpreadRequestTests {
         let recorder = SpreadRequestRecorder()
         InterceptingURLProtocol.requestHandler = { request in
             recorder.record(request)
-            return (makeHTTPResponse(for: request, statusCode: 200), successResponseData())
+            return (makeHTTPResponse(for: request, statusCode: 200), BudgetLineSpreadFixtures.successResponseData())
         }
         defer { InterceptingURLProtocol.requestHandler = nil }
 
@@ -192,7 +192,7 @@ struct BudgetLineSpreadRequestTests {
             perMonthAmount: 500
         )
 
-        let apiClient = makeAPIClient()
+        let apiClient = BudgetLineSpreadFixtures.makeAPIClient()
         let _: BudgetLineSpreadResponse = try await apiClient.request(
             .budgetLinesSpread, body: body, method: .post
         )
@@ -213,7 +213,7 @@ struct BudgetLineSpreadRequestTests {
         let recorder = SpreadRequestRecorder()
         InterceptingURLProtocol.requestHandler = { request in
             recorder.record(request)
-            return (makeHTTPResponse(for: request, statusCode: 200), successResponseData())
+            return (makeHTTPResponse(for: request, statusCode: 200), BudgetLineSpreadFixtures.successResponseData())
         }
         defer { InterceptingURLProtocol.requestHandler = nil }
 
@@ -227,7 +227,7 @@ struct BudgetLineSpreadRequestTests {
             spreadGroupId: groupId
         )
 
-        let apiClient = makeAPIClient()
+        let apiClient = BudgetLineSpreadFixtures.makeAPIClient()
         let _: BudgetLineSpreadResponse = try await apiClient.request(
             .budgetLinesSpread, body: body, method: .post
         )
