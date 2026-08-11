@@ -19,7 +19,7 @@ import { SPACING } from "@/core/ui/theme";
 import { useBudgetList } from "@/features/budgets/budget-queries";
 import { hasAvailableMonth } from "@/features/budgets/available-months";
 import { ActivityCard } from "@/features/current-month/components/activity-card";
-import { AddTransactionSheet } from "@/features/current-month/components/add-transaction-sheet";
+import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
 import { DriftCard } from "@/features/current-month/components/drift-card";
 import { HomeHeroCard } from "@/features/current-month/components/home-hero-card";
 import { NotificationPrimeSheet } from "@/features/current-month/components/notification-prime-sheet";
@@ -242,12 +242,12 @@ export default function HomeScreen() {
       />
 
       {currentMonth.budgetId !== null && (
-        <AddTransactionSheet
+        <TransactionSheet
           isVisible={isAddVisible}
           onDismiss={() => setAddVisible(false)}
           budgetId={currentMonth.budgetId}
           currency={currency}
-          onAdded={() => {
+          onSaved={() => {
             setAddVisible(false);
             setTransactionAdded(true);
           }}

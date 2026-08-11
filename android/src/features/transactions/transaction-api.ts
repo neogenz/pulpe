@@ -3,6 +3,8 @@ import {
   type TransactionCreate,
   transactionCreateSchema,
   transactionResponseSchema,
+  type TransactionUpdate,
+  transactionUpdateSchema,
 } from "pulpe-shared";
 
 import { api } from "@/core/api/api";
@@ -22,4 +24,20 @@ export function createTransaction(
       TransactionCreate
     >(ENDPOINTS.transactions, payload, transactionResponseSchema, transactionCreateSchema)
     .then((response) => response.data);
+}
+
+export function updateTransaction(input: {
+  id: string;
+  changes: TransactionUpdate;
+}): Promise<Transaction> {
+  return api
+    .patch<
+      { data: Transaction },
+      TransactionUpdate
+    >(ENDPOINTS.transaction(input.id), input.changes, transactionResponseSchema, transactionUpdateSchema)
+    .then((response) => response.data);
+}
+
+export function deleteTransaction(transactionId: string): Promise<void> {
+  return api.deleteVoid(ENDPOINTS.transaction(transactionId));
 }

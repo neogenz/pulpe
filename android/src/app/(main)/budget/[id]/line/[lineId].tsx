@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import type { SupportedCurrency } from "pulpe-shared";
+import type { SupportedCurrency, Transaction } from "pulpe-shared";
 import { useState } from "react";
 import { ScrollView, StyleSheet, useColorScheme, View } from "react-native";
 import {
@@ -31,6 +31,8 @@ import {
 } from "@/features/budget-details/budget-line-mutations";
 import { BudgetLineSheet } from "@/features/budget-details/components/budget-line-sheet";
 import { TransactionRow } from "@/features/budget-details/components/transaction-row";
+import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
+import { useTransactionRemoval } from "@/features/transactions/use-transaction-removal";
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 const PERCENT = 100;
@@ -66,6 +68,9 @@ export default function BudgetLineDetailScreen() {
   const [isEditVisible, setEditVisible] = useState(false);
   const [isDeleteVisible, setDeleteVisible] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  const [isAddVisible, setAddVisible] = useState(false);
+  const [edited, setEdited] = useState<Transaction | null>(null);
+  const removal = useTransactionRemoval();
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
 
@@ -220,6 +225,7 @@ export default function BudgetLineDetailScreen() {
                 toggle.variables?.sourceId === transaction.id
               }
               tagSummary={tagSummary(transaction.tagIds ?? [], tags.data ?? [])}
+              onPress={() => setEdited(transaction)}
               onToggle={() =>
                 toggle.mutate(
                   { source: "transaction", sourceId: transaction.id },
@@ -229,6 +235,17 @@ export default function BudgetLineDetailScreen() {
             />
           ))
         )}
+
+        {/* Allocating happens here and only here: the envelope being filled is
+            on screen, so nothing has to be picked from a list of them. */}
+        <Button
+          mode="outlined"
+          icon="plus"
+          onPress={() => setAddVisible(true)}
+          style={styles.add}
+        >
+          Ajouter une opération
+        </Button>
       </ScrollView>
 
       <Snackbar
@@ -254,6 +271,40 @@ export default function BudgetLineDetailScreen() {
         line={line}
         onSaved={() => setEditVisible(false)}
       />
+
+      <Snackbar
+        visible={removal.undoable !== null}
+        onDismiss={removal.forget}
+        action={{ label: "Annuler", onPress: removal.undo }}
+      >
+        Opération supprimée
+      </Snackbar>
+
+      <Snackbar visible={removal.hasFailed} onDismiss={removal.dismissFailure}>
+        L&apos;opération n&apos;a pas pu être supprimée. Réessaie.
+      </Snackbar>
+
+      <TransactionSheet
+        isVisible={isAddVisible}
+        onDismiss={() => setAddVisible(false)}
+        budgetId={id}
+        currency={currency}
+        envelope={{ id: line.id, name: line.name, kind: line.kind }}
+        onSaved={() => setAddVisible(false)}
+      />
+
+      {edited !== null && (
+        <TransactionSheet
+          key={edited.id}
+          isVisible
+          onDismiss={() => setEdited(null)}
+          budgetId={id}
+          currency={currency}
+          transaction={edited}
+          onSaved={() => setEdited(null)}
+          onDelete={() => removal.remove(edited, () => setEdited(null))}
+        />
+      )}
 
       <Portal>
         <Dialog
@@ -300,4 +351,5 @@ const styles = StyleSheet.create({
   content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
   hero: { gap: SPACING.xs },
   progress: { height: SPACING.sm, borderRadius: SPACING.xs },
+  add: { marginTop: SPACING.sm },
 });

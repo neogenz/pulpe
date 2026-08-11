@@ -1,5 +1,5 @@
 import type { SupportedCurrency, Transaction } from "pulpe-shared";
-import { StyleSheet, useColorScheme, View } from "react-native";
+import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
 import { formatCurrency } from "@/core/ui/amount-format";
@@ -27,6 +27,8 @@ interface TransactionRowProps {
   isSyncing: boolean;
   tagSummary: string | null;
   onToggle: () => void;
+  /** Opens the operation for correction; absent where it cannot be edited. */
+  onPress?: () => void;
 }
 
 /** A spend that answers to no envelope: date, name, amount, and its ring. */
@@ -36,6 +38,7 @@ export function TransactionRow({
   isSyncing,
   tagSummary,
   onToggle,
+  onPress,
 }: TransactionRowProps) {
   const theme = useTheme();
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
@@ -58,7 +61,15 @@ export function TransactionRow({
         onToggle={onToggle}
       />
 
-      <View style={styles.labels}>
+      <Pressable
+        style={styles.labels}
+        onPress={onPress}
+        disabled={onPress === undefined}
+        accessibilityRole={onPress === undefined ? undefined : "button"}
+        accessibilityLabel={
+          onPress === undefined ? undefined : `Modifier ${transaction.name}`
+        }
+      >
         <Text
           variant="bodyLarge"
           numberOfLines={1}
@@ -74,7 +85,7 @@ export function TransactionRow({
             ? formatDayMonth(new Date(transaction.transactionDate))
             : `${formatDayMonth(new Date(transaction.transactionDate))} · ${tagSummary}`}
         </Text>
-      </View>
+      </Pressable>
 
       <Text
         variant="titleMedium"

@@ -1,5 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { BudgetFormulas, type SupportedCurrency } from "pulpe-shared";
+import {
+  BudgetFormulas,
+  type SupportedCurrency,
+  type Transaction,
+} from "pulpe-shared";
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -39,7 +43,8 @@ import { BudgetLineSheet } from "@/features/budget-details/components/budget-lin
 import { DetailsFilterBar } from "@/features/budget-details/components/details-filter-bar";
 import { MonthPager } from "@/features/budget-details/components/month-pager";
 import { TransactionRow } from "@/features/budget-details/components/transaction-row";
-import { AddTransactionSheet } from "@/features/current-month/components/add-transaction-sheet";
+import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
+import { useTransactionRemoval } from "@/features/transactions/use-transaction-removal";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { buildCurrentMonthViewModel } from "@/features/current-month/current-month-view-model";
 
@@ -66,6 +71,8 @@ export default function BudgetDetailScreen() {
   const [isLineSheetVisible, setLineSheetVisible] = useState(false);
   const [isTransactionSheetVisible, setTransactionSheetVisible] =
     useState(false);
+  const [edited, setEdited] = useState<Transaction | null>(null);
+  const removal = useTransactionRemoval();
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
@@ -237,6 +244,7 @@ export default function BudgetDetailScreen() {
                   transaction.tagIds ?? [],
                   tags.data ?? [],
                 )}
+                onPress={() => setEdited(transaction)}
                 onToggle={() =>
                   toggle.mutate(
                     { source: "transaction", sourceId: transaction.id },
@@ -264,7 +272,9 @@ export default function BudgetDetailScreen() {
           forecast plans, an operation records. One FAB, two answers. */}
       <FAB.Group
         open={isFabOpen}
-        visible={!isLineSheetVisible && !isTransactionSheetVisible}
+        visible={
+          !isLineSheetVisible && !isTransactionSheetVisible && edited === null
+        }
         icon={isFabOpen ? "close" : "plus"}
         onStateChange={({ open }) => setFabOpen(open)}
         actions={[
@@ -308,16 +318,46 @@ export default function BudgetDetailScreen() {
         }}
       />
 
-      <AddTransactionSheet
+      <TransactionSheet
         isVisible={isTransactionSheetVisible}
         onDismiss={() => setTransactionSheetVisible(false)}
         budgetId={id}
         currency={currency}
-        onAdded={() => {
+        onSaved={() => {
           setTransactionSheetVisible(false);
           setSavedMessage("Opération ajoutée");
         }}
       />
+
+      {edited !== null && (
+        <TransactionSheet
+          // Keyed on the operation so opening a second one starts from its own
+          // values rather than from the first one's.
+          key={edited.id}
+          isVisible
+          onDismiss={() => setEdited(null)}
+          budgetId={id}
+          currency={currency}
+          transaction={edited}
+          onSaved={() => {
+            setEdited(null);
+            setSavedMessage("Opération modifiée");
+          }}
+          onDelete={() => removal.remove(edited, () => setEdited(null))}
+        />
+      )}
+
+      <Snackbar
+        visible={removal.undoable !== null}
+        onDismiss={removal.forget}
+        action={{ label: "Annuler", onPress: removal.undo }}
+      >
+        Opération supprimée
+      </Snackbar>
+
+      <Snackbar visible={removal.hasFailed} onDismiss={removal.dismissFailure}>
+        L&apos;opération n&apos;a pas pu être supprimée. Réessaie.
+      </Snackbar>
 
       {viewModel !== null && (
         <RealizedBalanceSheet
