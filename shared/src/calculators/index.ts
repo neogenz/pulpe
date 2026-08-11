@@ -15,6 +15,12 @@ export {
   TIGHT_BUDGET_THRESHOLD_PERCENT,
   type EmotionState,
 } from './budget-formulas.js';
+export {
+  calculateBalanceTrajectory,
+  type BalanceTrajectory,
+  type BalanceTrajectoryInput,
+  type BalanceTrajectoryPoint,
+} from './balance-trajectory.js';
 export { splitTotalPreserving } from './spread-split.js';
 export {
   PACE_TOLERANCE_PERCENT,
