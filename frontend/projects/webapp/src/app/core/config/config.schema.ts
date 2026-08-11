@@ -6,6 +6,54 @@ import { z } from 'zod';
  */
 const POSTHOG_KEY_PATTERN = /^phc_[A-Za-z0-9_-]+$/;
 
+function parseHttpUrl(value: string): URL | null {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+function isDomainOrSubdomain(hostname: string, domain: string): boolean {
+  return hostname === domain || hostname.endsWith(`.${domain}`);
+}
+
+function isAllowedSupabaseUrl(value: string): boolean {
+  const url = parseHttpUrl(value);
+  if (!url) return false;
+
+  return (
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    /^192\.168\.\d{1,3}\.\d{1,3}$/.test(url.hostname) ||
+    isDomainOrSubdomain(url.hostname, 'supabase.co') ||
+    isDomainOrSubdomain(url.hostname, 'supabase.in')
+  );
+}
+
+function isAllowedBackendUrl(value: string): boolean {
+  const url = parseHttpUrl(value);
+  return (
+    url !== null &&
+    (url.pathname === '/api' || url.pathname.startsWith('/api/'))
+  );
+}
+
+function isAllowedPostHogHost(value: string): boolean {
+  if (value.startsWith('/') && value[1] !== '/' && value[1] !== '\\') {
+    return true;
+  }
+
+  const url = parseHttpUrl(value);
+  return (
+    url !== null &&
+    (url.hostname === 'localhost' ||
+      isDomainOrSubdomain(url.hostname, 'posthog.com') ||
+      isDomainOrSubdomain(url.hostname, 'posthog.dev'))
+  );
+}
+
 /**
  * Configuration Schema for Pulpe Application
  * ==========================================
@@ -56,24 +104,10 @@ export const EnvSchema = z.object({
   ),
   PUBLIC_SUPABASE_URL: z
     .url({ error: 'Supabase URL must be a valid URL' })
-    .refine(
-      (url) => {
-        // Allow localhost and LAN IPs for development
-        if (
-          url.includes('localhost') ||
-          url.includes('127.0.0.1') ||
-          /^https?:\/\/192\.168\.\d+\.\d+/.test(url)
-        ) {
-          return true;
-        }
-        // For production, ensure it's a Supabase URL
-        return url.includes('supabase.co') || url.includes('supabase.in');
-      },
-      {
-        error:
-          'URL must be a valid Supabase URL or localhost/LAN IP for development',
-      },
-    ),
+    .refine(isAllowedSupabaseUrl, {
+      error:
+        'URL must be a valid Supabase URL or localhost/LAN IP for development',
+    }),
   PUBLIC_SUPABASE_ANON_KEY: z
     .string()
     .min(1, { error: 'Supabase anon key is required' })
@@ -91,34 +125,16 @@ export const EnvSchema = z.object({
     ),
   PUBLIC_BACKEND_API_URL: z
     .url({ error: 'Backend API URL must be a valid URL' })
-    .refine(
-      (url) => {
-        // Ensure it ends with /api/v1 or similar API path
-        return url.includes('/api/') || url.includes('localhost');
-      },
-      {
-        error: 'Backend API URL should contain an API path',
-      },
-    ),
+    .refine(isAllowedBackendUrl, {
+      error: 'Backend API URL should contain an API path',
+    }),
   PUBLIC_POSTHOG_API_KEY: z.string().regex(POSTHOG_KEY_PATTERN, {
     error: 'PostHog API key must match format phc_[A-Za-z0-9_-]+',
   }),
-  PUBLIC_POSTHOG_HOST: z.string().refine(
-    (val) => {
-      // Allow relative proxy path (e.g., /ph via Vercel reverse proxy)
-      if (val.startsWith('/')) return true;
-      // Allow common PostHog hosts
-      return (
-        val.includes('posthog.com') ||
-        val.includes('posthog.dev') ||
-        val.includes('localhost')
-      );
-    },
-    {
-      error:
-        'PostHog host must be a PostHog URL or a relative proxy path (e.g., /ph)',
-    },
-  ),
+  PUBLIC_POSTHOG_HOST: z.string().refine(isAllowedPostHogHost, {
+    error:
+      'PostHog host must be a PostHog URL or a relative proxy path (e.g., /ph)',
+  }),
   PUBLIC_POSTHOG_ENABLED: z
     .string()
     .refine((val) => val === 'true' || val === 'false', {
@@ -250,24 +266,12 @@ export function envToConfig(env: EnvironmentVariables): ApplicationConfig {
  */
 export const ConfigSchema = z.object({
   supabase: z.object({
-    url: z.url({ error: 'Supabase URL must be a valid URL' }).refine(
-      (url) => {
-        // Allow localhost and LAN IPs for development
-        if (
-          url.includes('localhost') ||
-          url.includes('127.0.0.1') ||
-          /^https?:\/\/192\.168\.\d+\.\d+/.test(url)
-        ) {
-          return true;
-        }
-        // For production, ensure it's a Supabase URL
-        return url.includes('supabase.co') || url.includes('supabase.in');
-      },
-      {
+    url: z
+      .url({ error: 'Supabase URL must be a valid URL' })
+      .refine(isAllowedSupabaseUrl, {
         error:
           'URL must be a valid Supabase URL or localhost/LAN IP for development',
-      },
-    ),
+      }),
     anonKey: z
       .string()
       .min(1, { error: 'Supabase anon key is required' })
@@ -285,15 +289,11 @@ export const ConfigSchema = z.object({
       ),
   }),
   backend: z.object({
-    apiUrl: z.url({ error: 'Backend API URL must be a valid URL' }).refine(
-      (url) => {
-        // Ensure it ends with /api/v1 or similar API path
-        return url.includes('/api/') || url.includes('localhost');
-      },
-      {
+    apiUrl: z
+      .url({ error: 'Backend API URL must be a valid URL' })
+      .refine(isAllowedBackendUrl, {
         error: 'Backend API URL should contain an API path',
-      },
-    ),
+      }),
   }),
   postHog: z
     .object({
@@ -315,22 +315,10 @@ export const ConfigSchema = z.object({
         ),
       host: z
         .string()
-        .refine(
-          (val) => {
-            // Allow relative proxy path (e.g., /ph via Vercel reverse proxy)
-            if (val.startsWith('/')) return true;
-            // Allow common PostHog hosts
-            return (
-              val.includes('posthog.com') ||
-              val.includes('posthog.dev') ||
-              val.includes('localhost')
-            );
-          },
-          {
-            error:
-              'PostHog host must be a PostHog URL or a relative proxy path (e.g., /ph)',
-          },
-        )
+        .refine(isAllowedPostHogHost, {
+          error:
+            'PostHog host must be a PostHog URL or a relative proxy path (e.g., /ph)',
+        })
         .default('https://eu.i.posthog.com'),
       enabled: z.boolean().default(true),
       capturePageviews: z.boolean().default(true),
