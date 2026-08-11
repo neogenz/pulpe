@@ -1,19 +1,17 @@
 import { getAccessToken } from "@/core/auth/supabase";
 import { ENV } from "@/core/config/env";
+import { getCachedClientKey } from "@/core/crypto/client-key-manager";
 
 import { ApiClient } from "./api-client";
 
 /**
- * The vault client key arrives in phase 3. Until then every request goes out
- * without it, which the backend accepts for the endpoints that carry no
- * encrypted column.
+ * Requests made before the vault is unlocked go out without `X-Client-Key`.
+ * That is correct for the endpoints that carry no encrypted column — the vault
+ * and version checks — and wrong for everything else, which is why data queries
+ * stay disabled until the unlock (see `docs-android/DATA_LAYER.md`).
  */
-function getClientKey(): string | null {
-  return null;
-}
-
 export const api = new ApiClient({
   baseUrl: ENV.apiBaseUrl,
   getAccessToken,
-  getClientKey,
+  getClientKey: getCachedClientKey,
 });

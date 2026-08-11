@@ -1,6 +1,7 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { create } from "zustand";
 
+import { clearAllKeys } from "@/core/crypto/client-key-manager";
 import { queryClient } from "@/core/query/query-client";
 
 import { signOutThisDevice, supabase } from "./supabase";
@@ -34,11 +35,22 @@ export const useSessionStore = create<SessionState>((set) => ({
 
   signOut: async () => {
     await signOutThisDevice();
-    // Cached budget data belongs to the account that just left the device.
-    queryClient.clear();
+    await purgeLocalAccountData();
     set(applySession(null));
   },
 }));
+
+/**
+ * Everything the departing account left behind. Idempotent, because it runs
+ * both from the explicit sign-out — where the caller awaits it before the UI
+ * moves on — and from the `SIGNED_OUT` listener, which also fires when the
+ * server revokes the session under us.
+ */
+async function purgeLocalAccountData(): Promise<void> {
+  // Cached budget data belongs to the account that just left the device.
+  queryClient.clear();
+  await clearAllKeys();
+}
 
 /**
  * Restores the persisted session, then keeps the store in step with
@@ -51,7 +63,7 @@ export function observeSession(): () => void {
     .then(({ data }) => useSessionStore.setState(applySession(data.session)));
 
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
-    if (event === "SIGNED_OUT") queryClient.clear();
+    if (event === "SIGNED_OUT") void purgeLocalAccountData();
     useSessionStore.setState(applySession(session));
   });
 
