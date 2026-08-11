@@ -12,6 +12,9 @@ import { fr, registerTranslation } from "react-native-paper-dates";
 import { observeSession, useSessionStore } from "@/core/auth/session-store";
 import { startSupabaseAutoRefresh } from "@/core/auth/supabase";
 import { queryClient } from "@/core/query/query-client";
+import { ForegroundRefresh } from "@/core/system/foreground-refresh";
+import { armPrivacyShield } from "@/core/system/privacy-shield";
+import { SystemGateScreen } from "@/core/system/system-gate-screen";
 import { pulpeDarkTheme, pulpeLightTheme } from "@/core/ui/theme";
 import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
 import {
@@ -37,6 +40,7 @@ export default function RootLayout() {
 
   useEffect(() => observeSession(), []);
   useEffect(() => startSupabaseAutoRefresh(), []);
+  useEffect(() => armPrivacyShield(), []);
   // Synchronous, and before the first route decision: an unfinished run has to
   // be known by the time the guards below are evaluated.
   useEffect(() => restoreOnboardingDraft(), []);
@@ -102,6 +106,9 @@ export default function RootLayout() {
           {/* Above the navigator: the key it announces outlives the screen
               that minted it, which unmounts the moment the vault unlocks. */}
           <RecoveryKeyNotice />
+          <ForegroundRefresh />
+          {/* Last, so it covers every route and every dialog above them. */}
+          <SystemGateScreen />
         </QueryClientProvider>
       </PaperProvider>
     </GestureHandlerRootView>
