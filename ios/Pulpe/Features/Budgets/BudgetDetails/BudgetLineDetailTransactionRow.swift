@@ -38,7 +38,20 @@ struct BudgetLineDetailTransactionRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
         .accessibilityHint("Touche pour modifier")
+    }
+
+    /// Mirrors `BudgetLineMixedRow.accessibilityLabel`. The synthesized label
+    /// SwiftUI builds from the subviews carries the name, the date and the
+    /// amount but nothing about the pointed state — that only exists visually,
+    /// as a strikethrough. Pointing is the whole signal on this screen, so the
+    /// row has to say it out loud.
+    private var accessibilityLabel: String {
+        let status = transaction.isChecked ? "Pointé" : "À pointer"
+        let amount = transaction.amount.asCurrency(displayCurrency)
+        let tags = tagNames.isEmpty ? "" : " · Tags : \(tagNames.joined(separator: ", "))"
+        return "\(transaction.name) · \(transaction.transactionDate.relativeFormatted) · \(amount) · \(status)\(tags)"
     }
 
     private var amountColumn: some View {
