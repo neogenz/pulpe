@@ -1,0 +1,27 @@
+# Expo
+.expo/
+dist/
+expo-env.d.ts
+
+# Generated native projects (continuous native generation — never committed)
+/android
+/ios
+
+# Native secrets
+*.jks
+*.p8
+*.p12
+*.key
+*.keystore
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# Misc
+*.orig.*
+.kotlin/
+
+# Local secrets
+.env
+.env.local

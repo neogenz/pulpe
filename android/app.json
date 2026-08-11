@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Pulpe",
+    "slug": "pulpe",
+    "version": "0.43.0",
+    "orientation": "portrait",
+    "scheme": "pulpe",
+    "android": {
+      "package": "app.pulpe.android",
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      "expo-splash-screen",
+      "expo-localization"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

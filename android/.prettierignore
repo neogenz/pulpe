@@ -1,0 +1,5 @@
+# Projets natifs générés par `expo prebuild` (jamais commités, jamais formatés)
+/android
+/ios
+/dist
+/.expo

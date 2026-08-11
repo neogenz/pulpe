@@ -3,6 +3,7 @@ packages:
   - shared
   - backend-nest
   - landing
+  - android
 
 onlyBuiltDependencies:
   - '@nestjs/core'

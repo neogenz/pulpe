@@ -1,6 +1,6 @@
 # Pulpe Workspace
 
-pnpm + Turborepo monorepo: `frontend/` (Angular 22, Signals, Material 22, Tailwind v4), `backend-nest/` (NestJS 11, Bun, Supabase), `ios/` (SwiftUI, outside pnpm), `landing/` (Next.js), `shared/` (Zod, builds before the others), `.claude/rules/` (rules loaded on demand).
+pnpm + Turborepo monorepo: `frontend/` (Angular 22, Signals, Material 22, Tailwind v4), `backend-nest/` (NestJS 11, Bun, Supabase), `ios/` (SwiftUI, outside pnpm), `android/` (Expo SDK 57, React Native, Expo Router), `landing/` (Next.js), `shared/` (Zod, builds before the others), `.claude/rules/` (rules loaded on demand).
 
 ## Commands
 
@@ -8,6 +8,7 @@ pnpm + Turborepo monorepo: `frontend/` (Angular 22, Signals, Material 22, Tailwi
 pnpm dev                      # Full stack via Turbo
 pnpm build:shared             # shared alone (the others depend on it)
 pnpm dev:frontend             # frontend + shared    (same for dev:backend)
+pnpm dev:android              # Expo on a device — needs JAVA_HOME=jdk17 + ANDROID_HOME (see android/README.md)
 pnpm test                     # Unit tests           (pnpm test:e2e → Playwright)
 
 # Quality — root only (no package defines `quality` except backend-nest)
@@ -28,7 +29,7 @@ cd backend-nest && supabase start
 - **NEVER** destructive Supabase cmds (`db reset`, `db push --force`)
 - **AFTER** DB schema change: `bun run generate-types:local` in backend
 - **ALWAYS** encrypt financial amounts (`amount`, `target_amount`, `ending_balance`) via `ENCRYPTION_PORT` before DB write. Columns `text` holding AES-256-GCM ciphertexts. (see `docs/ENCRYPTION.md`)
-- **ALWAYS** mirror a formula change across both sides: `shared/src/calculators/` ↔ `ios/Pulpe/Domain/Formulas/`, tests included, same commit. Nothing fails the build when they diverge — web and iOS just show two different amounts. (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`)
+- **ALWAYS** mirror a formula change across both sides: `shared/src/calculators/` ↔ `ios/Pulpe/Domain/Formulas/`, tests included, same commit. Nothing fails the build when they diverge — web and iOS just show two different amounts. Android is not a third side: it imports `shared/src/calculators/` directly. (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`)
 
 ## Vocabulary
 
