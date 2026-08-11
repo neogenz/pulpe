@@ -1,59 +1,147 @@
-import { StyleSheet, View } from "react-native";
+import { router } from "expo-router";
+import { useState } from "react";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Button, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Button, Text, useTheme } from "react-native-paper";
 
 import { useSessionStore } from "@/core/auth/session-store";
-import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
-import { runSharedSmoke } from "@/smoke/shared-smoke";
+import { formatMonthName } from "@/core/ui/date-format";
+import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
+import { SPACING } from "@/core/ui/theme";
+import { DriftCard } from "@/features/current-month/components/drift-card";
+import { HomeHeroCard } from "@/features/current-month/components/home-hero-card";
+import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
+import { SavingsDoneCard } from "@/features/current-month/components/savings-done-card";
+import { useCurrentMonth } from "@/features/current-month/current-month-queries";
+import { heroPresentation } from "@/features/current-month/home-hero-presentation";
 
 export default function HomeScreen() {
   const theme = useTheme();
+  const currentMonth = useCurrentMonth();
   const signOut = useSessionStore((state) => state.signOut);
-  const email = useSessionStore((state) => state.user?.email);
-  const smoke = runSharedSmoke();
+  const [isRealizedVisible, setRealizedVisible] = useState(false);
+
+  if (currentMonth.status === "loading") {
+    return (
+      <SafeAreaView
+        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      >
+        <ActivityIndicator />
+      </SafeAreaView>
+    );
+  }
+
+  if (currentMonth.status === "failed") {
+    return (
+      <PlaceholderScreen
+        title="On n'a pas pu charger ton mois"
+        hint="Vérifie ta connexion, puis réessaie."
+        action={{
+          label: "Réessayer",
+          onPress: () => void currentMonth.refresh(),
+        }}
+      />
+    );
+  }
+
+  if (currentMonth.status === "empty" || currentMonth.viewModel === null) {
+    return (
+      <PlaceholderScreen
+        title="Pas encore de budget ce mois-ci"
+        hint="Crée-le pour voir ton tableau de bord."
+      />
+    );
+  }
+
+  const { viewModel, currency } = currentMonth;
+  // One verdict for the whole screen: the hero states it, the drift card reads
+  // it to say whether the overrun was covered elsewhere.
+  const presentation = heroPresentation({
+    estimatedBalance: viewModel.metrics.remaining,
+    fallbackPlannedBalance: viewModel.metrics.endingBalance,
+    trajectory: viewModel.trajectory,
+  });
+  const monthName = formatMonthName(
+    currentMonth.details?.budget.month ?? new Date().getMonth() + 1,
+    currentMonth.details?.budget.year ?? new Date().getFullYear(),
+  );
 
   return (
     <SafeAreaView
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <View style={styles.block}>
-        <Text
-          variant="labelLarge"
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
-          {smoke.period}
-        </Text>
-        <Text
-          variant="bodyMedium"
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
-          Disponible à dépenser
-        </Text>
-        <Text variant="displaySmall" style={TABULAR_DIGITS}>
-          {smoke.available}
-        </Text>
-      </View>
-
-      <Text
-        variant="bodySmall"
-        style={{ color: theme.colors.onSurfaceVariant }}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={currentMonth.isRefreshing}
+            onRefresh={() => void currentMonth.refresh()}
+          />
+        }
       >
-        {email ?? "Session sans e-mail"}
-      </Text>
+        <Text variant="headlineSmall" style={styles.title}>
+          {monthName}
+        </Text>
 
-      <Button mode="outlined" onPress={() => void signOut()}>
-        Se déconnecter
-      </Button>
+        <HomeHeroCard
+          presentation={presentation}
+          trajectory={viewModel.trajectory}
+          monthName={monthName}
+          uncheckedCount={viewModel.uncheckedCount}
+          currency={currency}
+          onPressMetrics={() => setRealizedVisible(true)}
+        />
+
+        {viewModel.driftLines.length > 0 ? (
+          <DriftCard
+            drifts={viewModel.driftLines}
+            totalOver={viewModel.driftTotal}
+            absorbsOverrun={presentation.absorbsEnvelopeOverrun}
+            currency={currency}
+          />
+        ) : (
+          viewModel.savings.isComplete && (
+            <SavingsDoneCard
+              amount={viewModel.savings.totalRealized}
+              currency={currency}
+              onPress={() => router.push("/goals")}
+            />
+          )
+        )}
+
+        <View style={styles.dailyBudget}>
+          <Text
+            variant="bodyMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {viewModel.daysRemaining === 1
+              ? "Dernier jour de la période"
+              : `${viewModel.daysRemaining} jours avant la prochaine paie`}
+          </Text>
+        </View>
+
+        {/* Stands in for the account sheet the toolbar will carry, so the app
+            still has a way out while the rest of the dashboard is built. */}
+        <Button mode="text" onPress={() => void signOut()}>
+          Se déconnecter
+        </Button>
+      </ScrollView>
+
+      <RealizedBalanceSheet
+        isVisible={isRealizedVisible}
+        onDismiss={() => setRealizedVisible(false)}
+        metrics={viewModel.metrics}
+        realized={viewModel.realized}
+        currency={currency}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    justifyContent: "center",
-    padding: SPACING.lg,
-    gap: SPACING.lg,
-  },
-  block: { gap: SPACING.xs },
+  screen: { flex: 1 },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+  content: { padding: SPACING.md, gap: SPACING.md },
+  title: { textTransform: "capitalize" },
+  dailyBudget: { paddingHorizontal: SPACING.xs },
 });

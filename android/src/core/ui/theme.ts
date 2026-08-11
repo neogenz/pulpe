@@ -119,6 +119,33 @@ export const FINANCIAL_COLORS = {
   },
 } as const;
 
+/**
+ * The home dashboard's mint hero card, from `Color+Pulpe.swift`. Its surface is
+ * the same in every emotion state — the brand stays calm and the verdict is
+ * carried by the ink on it, not by the card turning colour underneath.
+ *
+ * `drift` is the deficit accent, set against this mint rather than against the
+ * app background, which is where it has to clear 4.5:1.
+ */
+export const HOME_HERO_COLORS = {
+  light: {
+    surface: "#CFE8D6",
+    surfaceTop: "#DCEFE2",
+    ink: "#0E3A1C",
+    support: "#2C5136",
+    overlay: "#F3F9F5",
+    drift: "#AA4522",
+  },
+  dark: {
+    surface: "#1D3A28",
+    surfaceTop: "#244A34",
+    ink: "#D5ECDC",
+    support: "#9FC3AA",
+    overlay: "#2C4A37",
+    drift: "#E8825A",
+  },
+} as const;
+
 /** Hero gradient tints, keyed to financial state. The only red-adjacent surface. */
 export const HERO_TINTS = {
   comfortable: "#14AD45",

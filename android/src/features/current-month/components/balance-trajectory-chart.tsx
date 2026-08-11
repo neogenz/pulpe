@@ -49,6 +49,11 @@ export function BalanceTrajectoryChart({
         xKey="day"
         yKeys={["landed", "projected"]}
         domain={{ x: [0, trajectory.totalDays], y: domain }}
+        // No axes and no grid. The only reference this plot needs is the plan,
+        // and that is the dashed rule below — a lattice of unlabelled lines
+        // behind it would only compete with the one line that means something.
+        xAxis={{ lineWidth: 0 }}
+        yAxis={[{ lineWidth: 0 }]}
       >
         {({ points, chartBounds, xScale, yScale }) => {
           const planY = yScale(trajectory.plannedBalance);
