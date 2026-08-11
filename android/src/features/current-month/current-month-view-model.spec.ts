@@ -324,3 +324,55 @@ describe("savings", () => {
     expect(model.savings.isComplete).toBe(false);
   });
 });
+
+describe("realized", () => {
+  it("counts the carry-over once, through its own line", () => {
+    const model = viewModelOf(
+      [
+        line({
+          id: "salary",
+          kind: "income",
+          amount: 5000,
+          checkedAt: "2026-08-01T00:00:00.000Z",
+        }),
+      ],
+      [],
+      { rollover: 500 },
+    );
+
+    expect(model.realized.realizedIncome).toBe(5500);
+    expect(model.realized.realizedBalance).toBe(5500);
+  });
+
+  it("keeps savings transfers out of what was spent", () => {
+    const model = viewModelOf([
+      line({
+        id: "rent",
+        amount: 1200,
+        checkedAt: "2026-08-05T00:00:00.000Z",
+      }),
+      line({
+        id: "savings",
+        kind: "saving",
+        amount: 300,
+        checkedAt: "2026-08-05T00:00:00.000Z",
+      }),
+    ]);
+
+    expect(model.realized.realizedExpenses).toBe(1500);
+    expect(model.realized.realizedSpending).toBe(1200);
+    expect(model.realized.realizedSavings).toBe(300);
+  });
+
+  it("tallies the pointing over everything the lists show", () => {
+    const model = viewModelOf(
+      [line({ id: "rent", checkedAt: "2026-08-05T00:00:00.000Z" })],
+      [transaction()],
+      { rollover: 500 },
+    );
+
+    // Rent, the free transaction, and the always-checked carry-over row.
+    expect(model.realized.totalItemsCount).toBe(3);
+    expect(model.realized.checkedItemsCount).toBe(2);
+  });
+});

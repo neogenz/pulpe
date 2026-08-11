@@ -62,6 +62,19 @@ export interface PeriodProgress {
   totalDays: number;
 }
 
+/** What has actually been pointed, as against what the month planned. */
+export interface RealizedMetrics {
+  realizedIncome: number;
+  /** Every checked outflow, savings transfers included. */
+  realizedExpenses: number;
+  /** Checked outflows that are really *dépense* — the planned side's twin. */
+  realizedSpending: number;
+  realizedSavings: number;
+  realizedBalance: number;
+  checkedItemsCount: number;
+  totalItemsCount: number;
+}
+
 export interface CurrentMonthViewModel {
   metrics: ReturnType<typeof BudgetFormulas.calculateAllMetrics>;
   emotion: EmotionState;
@@ -72,6 +85,7 @@ export interface CurrentMonthViewModel {
   uncheckedCount: number;
   uncheckedItems: CheckableItem[];
   savings: SavingsSummary;
+  realized: RealizedMetrics;
   periodProgress: PeriodProgress;
   /** Absent while the user is looking at a budget outside its own period. */
   trajectory: BalanceTrajectory | null;
@@ -176,6 +190,10 @@ export function buildCurrentMonthViewModel(
     uncheckedCount: countUnchecked(budgetLines, transactions),
     uncheckedItems: selectUncheckedItems(budgetLines, transactions),
     savings: summarizeSavings(budgetLines, transactions),
+    realized: summarizeRealized(
+      withRolloverLine(budget, budgetLines),
+      transactions,
+    ),
     periodProgress: measurePeriodProgress(budget, now, payDayOfMonth),
     trajectory: calculateBalanceTrajectory({
       budgetLines,
@@ -184,6 +202,42 @@ export function buildCurrentMonthViewModel(
       payDayOfMonth,
       referenceDate: now,
     }),
+  };
+}
+
+/**
+ * Takes the rollover through the virtual line and nowhere else. Its Swift twin
+ * passes `displayBudgetLines` — which already carries that always-checked line —
+ * *and* the rollover as a scalar on top, so a month opening on a carry-over
+ * reports a realized balance that is one carry-over too high.
+ */
+function summarizeRealized(
+  displayLines: BudgetLine[],
+  transactions: Transaction[],
+): RealizedMetrics {
+  const realizedIncome = BudgetFormulas.calculateRealizedIncome(
+    displayLines,
+    transactions,
+  );
+  const realizedExpenses = BudgetFormulas.calculateRealizedExpenses(
+    displayLines,
+    transactions,
+  );
+  const realizedSavings = BudgetFormulas.calculateRealizedSavings(
+    displayLines,
+    transactions,
+  );
+
+  return {
+    realizedIncome,
+    realizedExpenses,
+    realizedSpending: realizedExpenses - realizedSavings,
+    realizedSavings,
+    realizedBalance: realizedIncome - realizedExpenses,
+    checkedItemsCount:
+      displayLines.filter((line) => !isUnchecked(line)).length +
+      transactions.filter((transaction) => !isUnchecked(transaction)).length,
+    totalItemsCount: displayLines.length + transactions.length,
   };
 }
 
