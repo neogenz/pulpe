@@ -9,8 +9,11 @@ import {
   resetOnboarding,
   useOnboardingStore,
 } from "@/features/onboarding/onboarding-store";
+import { ChargesStep } from "@/features/onboarding/steps/charges-step";
 import { FirstNameStep } from "@/features/onboarding/steps/first-name-step";
+import { IncomeStep } from "@/features/onboarding/steps/income-step";
 import { RegistrationStep } from "@/features/onboarding/steps/registration-step";
+import { SavingsStep } from "@/features/onboarding/steps/savings-step";
 import { WelcomeStep } from "@/features/onboarding/steps/welcome-step";
 
 /**
@@ -69,11 +72,17 @@ export default function OnboardingRoute() {
       return <FirstNameStep onExit={confirmExit} />;
     case "registration":
       return <RegistrationStep onExit={confirmExit} />;
-    default:
+    case "income":
+      return <IncomeStep onExit={confirmExit} />;
+    case "charges":
+      return <ChargesStep onExit={confirmExit} />;
+    case "savings":
+      return <SavingsStep onExit={confirmExit} />;
+    case "budgetPreview":
       return (
         <PlaceholderScreen
           title="Bientôt disponible"
-          hint="Les étapes revenus, dépenses et aperçu arrivent."
+          hint="L'aperçu de ton budget arrive."
         />
       );
   }
