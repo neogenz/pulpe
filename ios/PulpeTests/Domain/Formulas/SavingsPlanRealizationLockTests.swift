@@ -90,8 +90,17 @@ struct SavingsPlanRealizationLockTests {
             timeline: exactTimeline,
             targetAmount: 3000
         )
+        let simulation = try SavingsPlanCalculator.simulate(
+            timeline: timeline,
+            targetAmount: 3000
+        )
+        let exactSimulation = try SavingsPlanCalculator.simulate(
+            timeline: exactTimeline,
+            targetAmount: 3000
+        )
 
         #expect(result.remainingEffort == exactResult.remainingEffort)
+        #expect(simulation.simulatedFinal == exactSimulation.simulatedFinal)
     }
 
     /// A realization started on ONE month freezes that month, not the whole plan:

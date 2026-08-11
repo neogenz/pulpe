@@ -449,6 +449,10 @@ function managedPlanWithdrawalAmount(month: SavingsPlanTimelineMonth): number {
   );
 }
 
+function normalizedWithdrawalRemainder(amount: number): number {
+  return amount > WITHDRAWAL_BALANCE_TOLERANCE ? amount : 0;
+}
+
 /** Mouvement réellement affiché avant édition : retrait géré, sinon contribution. */
 export function currentPlanMovement(month: SavingsPlanTimelineMonth): number {
   const withdrawal = managedPlanWithdrawalAmount(month);
@@ -540,8 +544,7 @@ export function simulateSavingsPlan(input: {
     // annoncé le suit : il porte déjà sa propre fenêtre, posée à la construction.
     simulatedCumulative -=
       (month.withdrawnAmount ?? 0) +
-      Math.max(
-        0,
+      normalizedWithdrawalRemainder(
         (month.remainingPlannedWithdrawalAmount ?? 0) -
           (replacesExistingPlanWithdrawal
             ? (month.planOnlyWithdrawalAmount ?? 0) +
@@ -657,8 +660,7 @@ export function redistributeRemainingEffort(input: {
     return (
       sum +
       (month.withdrawnAmount ?? 0) +
-      Math.max(
-        0,
+      normalizedWithdrawalRemainder(
         (month.remainingPlannedWithdrawalAmount ?? 0) -
           (replacesExistingPlanWithdrawal
             ? (month.planOnlyWithdrawalAmount ?? 0) +
