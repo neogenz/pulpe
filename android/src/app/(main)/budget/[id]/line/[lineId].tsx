@@ -22,7 +22,7 @@ import { useTags } from "@/core/tags/tag-queries";
 import { tagSummary } from "@/core/tags/tag-selection";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCurrency } from "@/core/ui/amount-format";
-import { formatMonthName } from "@/core/ui/date-format";
+import { formatMonthName, ofMonth } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
@@ -424,7 +424,7 @@ export default function BudgetLineDetailScreen() {
                   )
                 }
               >
-                {`Garder le revenu de ${incomeMonthName}`}
+                {`Garder le revenu ${ofMonth(incomeMonthName)}`}
               </Button>
               <Button
                 loading={removePair.isPending}

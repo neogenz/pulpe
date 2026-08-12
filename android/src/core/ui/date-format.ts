@@ -31,6 +31,18 @@ export function formatMonthLabel(month: number, year: number): string {
   return `${name.slice(0, 1).toLocaleUpperCase(DATE_LOCALE)}${name.slice(1)} ${year}`;
 }
 
+/**
+ * `de janvier`, but `d'octobre` — French elides the article before a vowel, and
+ * three of the twelve months start with one. Written out because a label that
+ * says "Report de octobre" reads as machine output, which is the one thing the
+ * copy is not allowed to read as.
+ */
+export function ofMonth(monthName: string): string {
+  return /^[aeiouâàéèêîôû]/i.test(monthName)
+    ? `d'${monthName}`
+    : `de ${monthName}`;
+}
+
 /** `5 juillet`, and `1er juillet` on the one day French does not say "1". */
 export function formatDayMonth(date: Date): string {
   if (date.getDate() !== 1) return dayMonthFormatter.format(date);

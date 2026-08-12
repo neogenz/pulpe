@@ -9,6 +9,7 @@ import {
   formatCurrency,
   formatSignedCompactCurrency,
 } from "@/core/ui/amount-format";
+import { ofMonth } from "@/core/ui/date-format";
 import { FadingRail } from "@/core/ui/fading-rail";
 import {
   FINANCIAL_COLORS,
@@ -108,7 +109,7 @@ export function BudgetDetailHero({
             <Text variant="labelMedium" style={{ color: theme.colors.outline }}>
               {previousMonthName === null
                 ? "Report du mois précédent inclus"
-                : `Report de ${previousMonthName} inclus`}
+                : `Report ${ofMonth(previousMonthName)} inclus`}
             </Text>
             <Text
               variant="labelMedium"

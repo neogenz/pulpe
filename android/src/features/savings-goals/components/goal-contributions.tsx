@@ -8,7 +8,11 @@ import { StyleSheet, useColorScheme, View } from "react-native";
 import { Card, Divider, Text, useTheme } from "react-native-paper";
 
 import { formatCurrency } from "@/core/ui/amount-format";
-import { formatIsoDate, formatMonthLabel } from "@/core/ui/date-format";
+import {
+  formatIsoDate,
+  formatMonthLabel,
+  ofMonth,
+} from "@/core/ui/date-format";
 import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 interface GoalContributionsProps {
@@ -70,7 +74,9 @@ function ContributionCard({
           : () => router.push(`/budget/${budgetId}`)
       }
       accessibilityLabel={
-        budgetId === undefined ? undefined : `Ouvrir le budget de ${period}`
+        budgetId === undefined
+          ? undefined
+          : `Ouvrir le budget ${ofMonth(period)}`
       }
     >
       <Card.Content style={styles.card}>
