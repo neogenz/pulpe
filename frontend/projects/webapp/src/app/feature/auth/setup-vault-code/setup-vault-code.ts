@@ -61,6 +61,60 @@ import { ANALYTICS_EVENTS, API_ERROR_CODES } from 'pulpe-shared';
       class="pulpe-entry-card w-full max-w-md"
       data-testid="setup-vault-code-page"
     >
+      <ol
+        class="mb-6 flex items-center justify-center gap-2 text-label-small"
+        role="list"
+        data-testid="onboarding-journey"
+        [attr.aria-label]="
+          'auth.onboarding.progressAriaLabel' | transloco: { current: 2 }
+        "
+      >
+        <li
+          class="inline-flex shrink-0 items-center gap-1.5 font-medium text-primary"
+        >
+          <span
+            class="flex size-5 items-center justify-center rounded-full bg-primary-container text-on-primary-container"
+            aria-hidden="true"
+          >
+            ✓
+          </span>
+          {{ 'auth.onboarding.accountStep' | transloco }}
+        </li>
+        <li class="h-px min-w-2 flex-1 bg-primary/50" aria-hidden="true"></li>
+        <li
+          class="inline-flex shrink-0 items-center gap-1.5 font-semibold text-primary"
+          aria-current="step"
+        >
+          <span
+            class="flex size-5 items-center justify-center rounded-full bg-primary text-on-primary tabular-nums"
+            aria-hidden="true"
+          >
+            2
+          </span>
+          {{ 'auth.onboarding.securityStep' | transloco }}
+        </li>
+        <li
+          class="h-px min-w-2 flex-1 bg-outline-variant"
+          aria-hidden="true"
+        ></li>
+        <li
+          class="inline-flex shrink-0 items-center gap-1.5 text-on-surface-variant"
+        >
+          <span
+            class="flex size-5 items-center justify-center rounded-full bg-surface-container-high tabular-nums"
+            aria-hidden="true"
+          >
+            3
+          </span>
+          <span class="sm:hidden">{{
+            'auth.onboarding.budgetStepShort' | transloco
+          }}</span>
+          <span class="hidden sm:inline">{{
+            'auth.onboarding.budgetStep' | transloco
+          }}</span>
+        </li>
+      </ol>
+
       <div class="text-center mb-8">
         <mat-icon class="text-6xl! w-auto! h-auto! text-primary">lock</mat-icon>
         <h1

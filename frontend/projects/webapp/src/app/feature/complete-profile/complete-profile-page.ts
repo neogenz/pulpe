@@ -100,43 +100,50 @@ import {
         </div>
       } @else {
         <div class="relative">
-          <!-- Stepper: two labelled pills with a connector -->
-          <div
-            class="flex items-center justify-center gap-3 mb-10"
-            role="group"
-            [attr.aria-label]="
-              'completeProfile.stepperAriaLabel'
-                | transloco: { current: currentStep(), total: 2 }
-            "
-          >
-            @for (step of stepperSteps; track step.number; let i = $index) {
-              @if (i > 0) {
+          <!-- A single global journey cue, followed by the two local budget steps. -->
+          <div class="flex flex-col items-center gap-3 mb-10">
+            <p class="text-label-medium font-medium text-on-surface-variant">
+              {{ 'completeProfile.journeyStage' | transloco }}
+            </p>
+            <div
+              class="flex items-center justify-center gap-3"
+              role="group"
+              [attr.aria-label]="
+                'completeProfile.stepperAriaLabel'
+                  | transloco: { current: currentStep(), total: 2 }
+              "
+            >
+              @for (step of stepperSteps; track step.number; let i = $index) {
+                @if (i > 0) {
+                  <div
+                    class="h-px w-10 bg-outline-variant/60"
+                    aria-hidden="true"
+                  ></div>
+                }
                 <div
-                  class="h-px w-10 bg-outline-variant/60"
-                  aria-hidden="true"
-                ></div>
-              }
-              <div
-                class="stepper-pill inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-all duration-500"
-                [class.bg-primary]="currentStep() === step.number"
-                [class.text-on-primary]="currentStep() === step.number"
-                [class.bg-surface-container]="currentStep() !== step.number"
-                [class.text-on-surface-variant]="currentStep() !== step.number"
-                [attr.aria-current]="
-                  currentStep() === step.number ? 'step' : null
-                "
-              >
-                <span
-                  class="text-label-small font-semibold tabular-nums opacity-80"
-                  aria-hidden="true"
+                  class="stepper-pill inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-all duration-500"
+                  [class.bg-primary]="currentStep() === step.number"
+                  [class.text-on-primary]="currentStep() === step.number"
+                  [class.bg-surface-container]="currentStep() !== step.number"
+                  [class.text-on-surface-variant]="
+                    currentStep() !== step.number
+                  "
+                  [attr.aria-current]="
+                    currentStep() === step.number ? 'step' : null
+                  "
                 >
-                  {{ step.number }}
-                </span>
-                <span class="text-label-medium font-medium">
-                  {{ step.labelKey | transloco }}
-                </span>
-              </div>
-            }
+                  <span
+                    class="text-label-small font-semibold tabular-nums opacity-80"
+                    aria-hidden="true"
+                  >
+                    {{ step.number }}
+                  </span>
+                  <span class="text-label-medium font-medium">
+                    {{ step.labelKey | transloco }}
+                  </span>
+                </div>
+              }
+            </div>
           </div>
 
           <!-- Step 1: split layout with live preview -->
@@ -174,16 +181,12 @@ import {
                     >
                       {{ 'completeProfile.currencyLabel' | transloco }}
                     </legend>
-                    <div class="grid grid-cols-2 gap-3" role="radiogroup">
+                    <div class="grid grid-cols-2 gap-3">
                       @for (currency of currencies; track currency) {
                         @let meta = currencyMetadata[currency];
                         @let isSelected = selectedCurrency() === currency;
-                        <button
-                          type="button"
-                          role="radio"
-                          [attr.aria-checked]="isSelected"
-                          (click)="onCurrencyChange(currency)"
-                          class="currency-tile group flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-left transition-all duration-300 ease-emphasized focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        <label
+                          class="currency-tile group flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-left transition-all duration-300 ease-emphasized focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary"
                           [class.border-primary]="isSelected"
                           [class.bg-primary-container]="isSelected"
                           [class.text-on-primary-container]="isSelected"
@@ -192,6 +195,14 @@ import {
                           [class.hover:border-outline]="!isSelected"
                           [attr.data-testid]="'currency-tile-' + currency"
                         >
+                          <input
+                            class="sr-only"
+                            type="radio"
+                            name="onboarding-currency"
+                            [value]="currency"
+                            [checked]="isSelected"
+                            (change)="onCurrencyChange(currency)"
+                          />
                           <span
                             class="text-2xl leading-none"
                             aria-hidden="true"
@@ -213,7 +224,7 @@ import {
                             aria-hidden="true"
                             >check_circle</mat-icon
                           >
-                        </button>
+                        </label>
                       }
                     </div>
                     <p class="text-label-small text-on-surface-variant/80 mt-1">
@@ -233,6 +244,7 @@ import {
                       'completeProfile.firstName' | transloco
                     }}</mat-label>
                     <input
+                      #firstNameModel="ngModel"
                       matInput
                       type="text"
                       [ngModel]="store.firstName()"
@@ -241,8 +253,25 @@ import {
                         'completeProfile.firstNamePlaceholder' | transloco
                       "
                       autocomplete="given-name"
+                      required
+                      maxlength="50"
                       data-testid="first-name-input"
                     />
+                    @if (
+                      firstNameModel.touched &&
+                      firstNameModel.hasError('required')
+                    ) {
+                      <mat-error>{{
+                        'completeProfile.firstNameRequired' | transloco
+                      }}</mat-error>
+                    } @else if (
+                      firstNameModel.touched &&
+                      firstNameModel.hasError('maxlength')
+                    ) {
+                      <mat-error>{{
+                        'completeProfile.firstNameTooLong' | transloco
+                      }}</mat-error>
+                    }
                   </mat-form-field>
 
                   <pulpe-currency-input
@@ -250,6 +279,9 @@ import {
                     [value]="store.monthlyIncome()"
                     (valueChange)="store.updateMonthlyIncome($event)"
                     [required]="true"
+                    [requiredError]="
+                      'completeProfile.monthlyIncomeRequired' | transloco
+                    "
                     icon="payments"
                     testId="monthly-income-input"
                     [autoFocus]="false"
@@ -270,6 +302,9 @@ import {
                     <mat-label>{{
                       'completeProfile.payDay' | transloco
                     }}</mat-label>
+                    <mat-hint>{{
+                      'completeProfile.optional' | transloco
+                    }}</mat-hint>
                     <mat-select
                       [ngModel]="store.payDayOfMonth()"
                       (ngModelChange)="store.updatePayDayOfMonth($event)"
@@ -360,6 +395,15 @@ import {
                   >
                     {{ 'completeProfile.step2Subtitle' | transloco }}
                   </p>
+                  <button
+                    matButton
+                    class="mt-2 h-11 rounded-2xl"
+                    [disabled]="store.isLoading()"
+                    (click)="onSubmit()"
+                    data-testid="skip-charges-button"
+                  >
+                    {{ 'completeProfile.skipCharges' | transloco }}
+                  </button>
                 </div>
 
                 @let summary = store.budgetSummary();
@@ -369,7 +413,7 @@ import {
                 <div
                   class="lg:hidden grid grid-cols-3 gap-2 px-4 py-4 rounded-2xl mb-4 transition-colors"
                   [class.bg-surface-container]="isSurplus"
-                  [class.bg-error-container]="!isSurplus"
+                  [class.bg-surface-container-high]="!isSurplus"
                 >
                   <div class="flex flex-col">
                     <span class="text-label-small text-on-surface-variant">
@@ -404,7 +448,7 @@ import {
                     <span
                       class="text-title-medium font-bold ph-no-capture"
                       [class.text-primary]="isSurplus"
-                      [class.text-error]="!isSurplus"
+                      [class.text-on-surface]="!isSurplus"
                     >
                       {{
                         summary.available
@@ -459,261 +503,295 @@ import {
                     />
                   </section>
 
-                  <!-- Assurance & Abonnements -->
-                  <section class="border-t border-outline-variant/30 pt-8">
-                    <div class="flex items-center gap-2.5 mb-4">
-                      <mat-icon class="!text-xl text-on-surface-variant"
-                        >health_and_safety</mat-icon
-                      >
-                      <h2
-                        class="text-title-small font-semibold text-on-surface"
-                      >
-                        {{
-                          'completeProfile.chargeGroups.insuranceSubscriptions'
-                            | transloco
-                        }}
-                      </h2>
-                    </div>
-                    <div class="space-y-3">
-                      <!-- Health insurance is a Swiss budget line (LAMal, paid
+                  <button
+                    matButton="outlined"
+                    type="button"
+                    class="w-full h-12 rounded-2xl"
+                    [attr.aria-expanded]="showOptionalCharges()"
+                    aria-controls="optional-charge-sections"
+                    (click)="toggleOptionalCharges()"
+                    data-testid="toggle-optional-charges"
+                  >
+                    <span class="flex items-center justify-center gap-2">
+                      <mat-icon>{{
+                        showOptionalCharges() ? 'expand_less' : 'add'
+                      }}</mat-icon>
+                      {{
+                        (showOptionalCharges()
+                          ? 'completeProfile.hideOptionalCharges'
+                          : 'completeProfile.showOptionalCharges'
+                        ) | transloco
+                      }}
+                    </span>
+                  </button>
+
+                  <div
+                    id="optional-charge-sections"
+                    class="space-y-8"
+                    [class.hidden]="!showOptionalCharges()"
+                    data-testid="optional-charge-sections"
+                  >
+                    <!-- Assurance & Abonnements -->
+                    <section class="border-t border-outline-variant/30 pt-8">
+                      <div class="flex items-center gap-2.5 mb-4">
+                        <mat-icon class="!text-xl text-on-surface-variant"
+                          >health_and_safety</mat-icon
+                        >
+                        <h2
+                          class="text-title-small font-semibold text-on-surface"
+                        >
+                          {{
+                            'completeProfile.chargeGroups.insuranceSubscriptions'
+                              | transloco
+                          }}
+                        </h2>
+                      </div>
+                      <div class="space-y-3">
+                        <!-- Health insurance is a Swiss budget line (LAMal, paid
                            out of pocket). In France base coverage is deducted at
                            source, so the field is hidden for EUR users. -->
-                      @if (showHealthInsurance()) {
+                        @if (showHealthInsurance()) {
+                          <pulpe-currency-input
+                            [label]="'completeProfile.health' | transloco"
+                            [value]="store.healthInsurance()"
+                            (valueChange)="store.updateHealthInsurance($event)"
+                            placeholder="0"
+                            testId="health-insurance-input"
+                            [autoFocus]="false"
+                            [currency]="selectedCurrency()"
+                            [showCurrencySelector]="showCurrencySelector()"
+                            (currencyChange)="onCurrencyChange($event)"
+                          />
+                        }
                         <pulpe-currency-input
-                          [label]="'completeProfile.health' | transloco"
-                          [value]="store.healthInsurance()"
-                          (valueChange)="store.updateHealthInsurance($event)"
+                          [label]="'completeProfile.phone' | transloco"
+                          [value]="store.phonePlan()"
+                          (valueChange)="store.updatePhonePlan($event)"
                           placeholder="0"
-                          testId="health-insurance-input"
+                          testId="phone-plan-input"
                           [autoFocus]="false"
                           [currency]="selectedCurrency()"
                           [showCurrencySelector]="showCurrencySelector()"
                           (currencyChange)="onCurrencyChange($event)"
                         />
-                      }
-                      <pulpe-currency-input
-                        [label]="'completeProfile.phone' | transloco"
-                        [value]="store.phonePlan()"
-                        (valueChange)="store.updatePhonePlan($event)"
-                        placeholder="0"
-                        testId="phone-plan-input"
-                        [autoFocus]="false"
-                        [currency]="selectedCurrency()"
-                        [showCurrencySelector]="showCurrencySelector()"
-                        (currencyChange)="onCurrencyChange($event)"
-                      />
-                      <pulpe-currency-input
-                        [label]="'completeProfile.internet' | transloco"
-                        [value]="store.internetPlan()"
-                        (valueChange)="store.updateInternetPlan($event)"
-                        placeholder="0"
-                        testId="internet-plan-input"
-                        [autoFocus]="false"
-                        [currency]="selectedCurrency()"
-                        [showCurrencySelector]="showCurrencySelector()"
-                        (currencyChange)="onCurrencyChange($event)"
-                      />
-                    </div>
-                  </section>
-
-                  <!-- Mobilité & Crédit -->
-                  <section class="border-t border-outline-variant/30 pt-8">
-                    <div class="flex items-center gap-2.5 mb-4">
-                      <mat-icon class="!text-xl text-on-surface-variant"
-                        >directions_car</mat-icon
-                      >
-                      <h2
-                        class="text-title-small font-semibold text-on-surface"
-                      >
-                        {{
-                          'completeProfile.chargeGroups.mobilityCredit'
-                            | transloco
-                        }}
-                      </h2>
-                    </div>
-                    <div class="space-y-3">
-                      <pulpe-currency-input
-                        [label]="'completeProfile.transport' | transloco"
-                        [value]="store.transportCosts()"
-                        (valueChange)="store.updateTransportCosts($event)"
-                        placeholder="0"
-                        testId="transport-costs-input"
-                        [autoFocus]="false"
-                        [currency]="selectedCurrency()"
-                        [showCurrencySelector]="showCurrencySelector()"
-                        (currencyChange)="onCurrencyChange($event)"
-                      />
-                      <pulpe-currency-input
-                        [label]="'completeProfile.leasing' | transloco"
-                        [value]="store.leasingCredit()"
-                        (valueChange)="store.updateLeasingCredit($event)"
-                        placeholder="0"
-                        testId="leasing-credit-input"
-                        [autoFocus]="false"
-                        [currency]="selectedCurrency()"
-                        [showCurrencySelector]="showCurrencySelector()"
-                        (currencyChange)="onCurrencyChange($event)"
-                      />
-                    </div>
-                  </section>
-
-                  <!-- Personnaliser ton budget -->
-                  <section class="border-t border-outline-variant/30 pt-8">
-                    <div class="flex items-center gap-2.5 mb-4">
-                      <mat-icon class="!text-xl text-on-surface-variant"
-                        >tune</mat-icon
-                      >
-                      <h2
-                        class="text-title-small font-semibold text-on-surface"
-                      >
-                        {{
-                          'completeProfile.customize.sectionTitle' | transloco
-                        }}
-                      </h2>
-                    </div>
-
-                    <!-- Quick-add suggestions -->
-                    <p class="text-body-small text-on-surface-variant mb-2">
-                      {{
-                        'completeProfile.suggestions.sectionTitle' | transloco
-                      }}
-                    </p>
-                    <div
-                      class="flex flex-wrap gap-2 mb-5"
-                      data-testid="suggestion-chips"
-                    >
-                      @for (suggestion of suggestions(); track suggestion.id) {
-                        @let isSelected =
-                          store.selectedSuggestionIds().has(suggestion.id);
-                        @let isChipDisabled =
-                          !isSelected && store.customTransactionsLimitReached();
-                        <button
-                          type="button"
-                          class="inline-flex items-center gap-1.5 px-4 min-h-11 rounded-full text-label-large transition-colors border disabled:opacity-50 disabled:cursor-not-allowed"
-                          [class.bg-primary-container]="isSelected"
-                          [class.text-on-primary-container]="isSelected"
-                          [class.border-primary]="isSelected"
-                          [class.bg-surface-container]="!isSelected"
-                          [class.text-on-surface-variant]="!isSelected"
-                          [class.border-transparent]="!isSelected"
-                          [attr.aria-pressed]="isSelected"
-                          [disabled]="isChipDisabled"
-                          (click)="store.toggleSuggestion(suggestion)"
-                          [attr.data-testid]="
-                            'suggestion-chip-' + suggestion.name
-                          "
-                        >
-                          <span
-                            class="w-1.5 h-1.5 rounded-full shrink-0"
-                            [class.bg-financial-expense]="
-                              suggestion.type === 'expense'
-                            "
-                            [class.bg-primary]="suggestion.type === 'saving'"
-                          ></span>
-                          {{ suggestion.name }}
-                          ·
-                          <span class="ph-no-capture">{{
-                            suggestion.amount
-                              | appCurrency: selectedCurrency() : '1.0-2'
-                          }}</span>
-                        </button>
-                      }
-                    </div>
-
-                    <!-- Custom transactions list -->
-                    @if (store.customTransactions().length > 0) {
-                      <div class="space-y-2 mb-4">
-                        @for (
-                          tx of store.customTransactions();
-                          track $index;
-                          let i = $index
-                        ) {
-                          <div
-                            class="flex items-center justify-between px-4 py-3 rounded-xl border border-outline-variant/30"
-                          >
-                            <div class="flex flex-col min-w-0">
-                              <span
-                                class="text-body-medium text-on-surface ph-no-capture truncate"
-                                >{{ tx.name }}</span
-                              >
-                              <span
-                                class="text-label-small"
-                                [pulpeFinancialKind]="tx.type"
-                                >{{
-                                  labelKeyForType(tx.type) | transloco
-                                }}</span
-                              >
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0">
-                              <input
-                                type="number"
-                                inputmode="decimal"
-                                class="w-20 text-right text-body-medium text-on-surface bg-surface-container rounded-xl px-2 py-1.5 border border-outline-variant/30 focus:border-primary focus:outline-none transition-colors"
-                                [value]="tx.amount"
-                                (change)="onAmountChange(i, $event)"
-                                [attr.aria-label]="
-                                  'completeProfile.customExpense.amountAriaLabel'
-                                    | transloco: { name: tx.name }
-                                "
-                                data-testid="custom-expense-amount"
-                              />
-                              <span
-                                class="text-body-small text-on-surface-variant"
-                                aria-hidden="true"
-                                >{{ currencySymbol() }}</span
-                              >
-                              <button
-                                matIconButton
-                                [attr.aria-label]="
-                                  'completeProfile.customExpense.removeAriaLabel'
-                                    | transloco: { name: tx.name }
-                                "
-                                (click)="removeTransaction(i)"
-                                data-testid="remove-custom-expense"
-                              >
-                                <mat-icon class="text-on-surface-variant"
-                                  >close</mat-icon
-                                >
-                              </button>
-                            </div>
-                          </div>
-                        }
+                        <pulpe-currency-input
+                          [label]="'completeProfile.internet' | transloco"
+                          [value]="store.internetPlan()"
+                          (valueChange)="store.updateInternetPlan($event)"
+                          placeholder="0"
+                          testId="internet-plan-input"
+                          [autoFocus]="false"
+                          [currency]="selectedCurrency()"
+                          [showCurrencySelector]="showCurrencySelector()"
+                          (currencyChange)="onCurrencyChange($event)"
+                        />
                       </div>
-                    }
+                    </section>
 
-                    <!-- Add custom (dialog) -->
-                    <button
-                      matButton="outlined"
-                      class="w-full h-12 rounded-2xl"
-                      [disabled]="store.customTransactionsLimitReached()"
-                      (click)="openAddCustomDialog()"
-                      data-testid="add-custom-expense-button"
-                    >
-                      <span class="flex items-center justify-center gap-2">
-                        <mat-icon>add</mat-icon>
+                    <!-- Mobilité & Crédit -->
+                    <section class="border-t border-outline-variant/30 pt-8">
+                      <div class="flex items-center gap-2.5 mb-4">
+                        <mat-icon class="!text-xl text-on-surface-variant"
+                          >directions_car</mat-icon
+                        >
+                        <h2
+                          class="text-title-small font-semibold text-on-surface"
+                        >
+                          {{
+                            'completeProfile.chargeGroups.mobilityCredit'
+                              | transloco
+                          }}
+                        </h2>
+                      </div>
+                      <div class="space-y-3">
+                        <pulpe-currency-input
+                          [label]="'completeProfile.transport' | transloco"
+                          [value]="store.transportCosts()"
+                          (valueChange)="store.updateTransportCosts($event)"
+                          placeholder="0"
+                          testId="transport-costs-input"
+                          [autoFocus]="false"
+                          [currency]="selectedCurrency()"
+                          [showCurrencySelector]="showCurrencySelector()"
+                          (currencyChange)="onCurrencyChange($event)"
+                        />
+                        <pulpe-currency-input
+                          [label]="'completeProfile.leasing' | transloco"
+                          [value]="store.leasingCredit()"
+                          (valueChange)="store.updateLeasingCredit($event)"
+                          placeholder="0"
+                          testId="leasing-credit-input"
+                          [autoFocus]="false"
+                          [currency]="selectedCurrency()"
+                          [showCurrencySelector]="showCurrencySelector()"
+                          (currencyChange)="onCurrencyChange($event)"
+                        />
+                      </div>
+                    </section>
+
+                    <!-- Personnaliser ton budget -->
+                    <section class="border-t border-outline-variant/30 pt-8">
+                      <div class="flex items-center gap-2.5 mb-4">
+                        <mat-icon class="!text-xl text-on-surface-variant"
+                          >tune</mat-icon
+                        >
+                        <h2
+                          class="text-title-small font-semibold text-on-surface"
+                        >
+                          {{
+                            'completeProfile.customize.sectionTitle' | transloco
+                          }}
+                        </h2>
+                      </div>
+
+                      <!-- Quick-add suggestions -->
+                      <p class="text-body-small text-on-surface-variant mb-2">
                         {{
-                          'completeProfile.customExpense.addButton' | transloco
-                        }}
-                      </span>
-                    </button>
-                    @if (store.customTransactionsLimitReached()) {
-                      <p
-                        class="mt-2 text-body-small text-on-surface-variant"
-                        role="status"
-                        data-testid="custom-expense-limit-message"
-                      >
-                        {{
-                          'completeProfile.customExpense.limitReached'
-                            | transloco: { max: maxCustomTransactions }
+                          'completeProfile.suggestions.sectionTitle' | transloco
                         }}
                       </p>
-                    }
-                  </section>
+                      <div
+                        class="flex flex-wrap gap-2 mb-5"
+                        data-testid="suggestion-chips"
+                      >
+                        @for (
+                          suggestion of suggestions();
+                          track suggestion.id
+                        ) {
+                          @let isSelected =
+                            store.selectedSuggestionIds().has(suggestion.id);
+                          @let isChipDisabled =
+                            !isSelected &&
+                            store.customTransactionsLimitReached();
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-1.5 px-4 min-h-11 rounded-full text-label-large transition-colors border disabled:opacity-50 disabled:cursor-not-allowed"
+                            [class.bg-primary-container]="isSelected"
+                            [class.text-on-primary-container]="isSelected"
+                            [class.border-primary]="isSelected"
+                            [class.bg-surface-container]="!isSelected"
+                            [class.text-on-surface-variant]="!isSelected"
+                            [class.border-transparent]="!isSelected"
+                            [attr.aria-pressed]="isSelected"
+                            [disabled]="isChipDisabled"
+                            (click)="store.toggleSuggestion(suggestion)"
+                            [attr.data-testid]="
+                              'suggestion-chip-' + suggestion.name
+                            "
+                          >
+                            <span
+                              class="w-1.5 h-1.5 rounded-full shrink-0"
+                              [class.bg-financial-expense]="
+                                suggestion.type === 'expense'
+                              "
+                              [class.bg-primary]="suggestion.type === 'saving'"
+                            ></span>
+                            {{ suggestion.name }}
+                            ·
+                            <span class="ph-no-capture">{{
+                              suggestion.amount
+                                | appCurrency: selectedCurrency() : '1.0-2'
+                            }}</span>
+                          </button>
+                        }
+                      </div>
+
+                      <!-- Custom transactions list -->
+                      @if (store.customTransactions().length > 0) {
+                        <div class="space-y-2 mb-4">
+                          @for (
+                            tx of store.customTransactions();
+                            track $index;
+                            let i = $index
+                          ) {
+                            <div
+                              class="flex items-center justify-between px-4 py-3 rounded-xl border border-outline-variant/30"
+                            >
+                              <div class="flex flex-col min-w-0">
+                                <span
+                                  class="text-body-medium text-on-surface ph-no-capture truncate"
+                                  >{{ tx.name }}</span
+                                >
+                                <span
+                                  class="text-label-small"
+                                  [pulpeFinancialKind]="tx.type"
+                                  >{{
+                                    labelKeyForType(tx.type) | transloco
+                                  }}</span
+                                >
+                              </div>
+                              <div class="flex items-center gap-2 shrink-0">
+                                <input
+                                  type="number"
+                                  inputmode="decimal"
+                                  class="w-20 text-right text-body-medium text-on-surface bg-surface-container rounded-xl px-2 py-1.5 border border-outline-variant/30 focus:border-primary focus:outline-none transition-colors"
+                                  [value]="tx.amount"
+                                  (change)="onAmountChange(i, $event)"
+                                  [attr.aria-label]="
+                                    'completeProfile.customExpense.amountAriaLabel'
+                                      | transloco: { name: tx.name }
+                                  "
+                                  data-testid="custom-expense-amount"
+                                />
+                                <span
+                                  class="text-body-small text-on-surface-variant"
+                                  aria-hidden="true"
+                                  >{{ currencySymbol() }}</span
+                                >
+                                <button
+                                  matIconButton
+                                  [attr.aria-label]="
+                                    'completeProfile.customExpense.removeAriaLabel'
+                                      | transloco: { name: tx.name }
+                                  "
+                                  (click)="removeTransaction(i)"
+                                  data-testid="remove-custom-expense"
+                                >
+                                  <mat-icon class="text-on-surface-variant"
+                                    >close</mat-icon
+                                  >
+                                </button>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      <!-- Add custom (dialog) -->
+                      <button
+                        matButton="outlined"
+                        class="w-full h-12 rounded-2xl"
+                        [disabled]="store.customTransactionsLimitReached()"
+                        (click)="openAddCustomDialog()"
+                        data-testid="add-custom-expense-button"
+                      >
+                        <span class="flex items-center justify-center gap-2">
+                          <mat-icon>add</mat-icon>
+                          {{
+                            'completeProfile.customExpense.addButton'
+                              | transloco
+                          }}
+                        </span>
+                      </button>
+                      @if (store.customTransactionsLimitReached()) {
+                        <p
+                          class="mt-2 text-body-small text-on-surface-variant"
+                          role="status"
+                          data-testid="custom-expense-limit-message"
+                        >
+                          {{
+                            'completeProfile.customExpense.limitReached'
+                              | transloco: { max: maxCustomTransactions }
+                          }}
+                        </p>
+                      }
+                    </section>
+                  </div>
                 </div>
 
                 <pulpe-error-alert [message]="store.error()" class="mt-6" />
 
-                <div class="h-16 lg:h-36" aria-hidden="true"></div>
+                <div class="h-8 lg:h-12" aria-hidden="true"></div>
 
                 <!-- Sticky CTA: lg -2rem mirrors the desktop md:p-8 page-content padding. -->
                 <div
@@ -762,8 +840,8 @@ import {
                 <div
                   class="onboarding-summary-desktop relative p-6 rounded-2xl border transition-colors duration-500 ease-emphasized"
                   [class.border-outline-variant]="isSurplus"
-                  [class.bg-error-container]="!isSurplus"
-                  [class.border-error]="!isSurplus"
+                  [class.bg-surface-container-high]="!isSurplus"
+                  [class.border-outline]="!isSurplus"
                 >
                   <div class="flex items-center justify-between mb-4">
                     <span
@@ -787,7 +865,7 @@ import {
                     <span
                       class="text-display-small font-bold tracking-tight tabular-nums ph-no-capture leading-none"
                       [class.text-primary]="isSurplus"
-                      [class.text-error]="!isSurplus"
+                      [class.text-on-surface]="!isSurplus"
                     >
                       {{
                         summary.available
@@ -804,7 +882,7 @@ import {
                     <div
                       class="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ease-emphasized"
                       [class.bg-primary]="isSurplus"
-                      [class.bg-error]="!isSurplus"
+                      [class.bg-on-surface-variant]="!isSurplus"
                       [style.width.%]="committedPercent()"
                     ></div>
                   </div>
@@ -909,14 +987,20 @@ export default class CompleteProfilePage {
   protected readonly showCurrencySelector = computed(() =>
     this.#userSettings.showCurrencySelector(),
   );
-  protected readonly selectedCurrency = signal<SupportedCurrency>(
-    this.#userSettings.currency(),
-  );
+  protected readonly selectedCurrency = this.store.currency;
   // Health insurance is a CHF-only onboarding line — see the template note.
   protected readonly showHealthInsurance = computed(
     () => this.selectedCurrency() === 'CHF',
   );
-  protected readonly currentStep = signal<1 | 2>(1);
+  protected readonly currentStep = this.store.currentStep;
+  protected readonly showOptionalCharges = signal(
+    this.store.healthInsurance() !== null ||
+      this.store.phonePlan() !== null ||
+      this.store.internetPlan() !== null ||
+      this.store.transportCosts() !== null ||
+      this.store.leasingCredit() !== null ||
+      this.store.customTransactions().length > 0,
+  );
 
   protected readonly availableDays = Array.from(
     { length: PAY_DAY_MAX },
@@ -966,7 +1050,7 @@ export default class CompleteProfilePage {
   }
 
   protected onCurrencyChange(value: SupportedCurrency): void {
-    this.selectedCurrency.set(value);
+    this.store.updateCurrency(value);
     // Drop any health-insurance amount when switching to EUR so a value typed
     // in CHF can't silently leak into a French budget where the field is hidden.
     if (value !== 'CHF') {
@@ -980,12 +1064,16 @@ export default class CompleteProfilePage {
         ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED,
         { step: 'profile' },
       );
-      this.currentStep.set(2);
+      this.store.updateCurrentStep(2);
     }
   }
 
   protected goToStep(step: 1 | 2): void {
-    this.currentStep.set(step);
+    this.store.updateCurrentStep(step);
+  }
+
+  protected toggleOptionalCharges(): void {
+    this.showOptionalCharges.update((visible) => !visible);
   }
 
   // Bound to (change), not (input), so the live budget preview only recomputes
@@ -1025,18 +1113,7 @@ export default class CompleteProfilePage {
     const success = await this.store.submitProfile();
 
     if (success) {
-      await this.#saveCurrency();
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
-    }
-  }
-
-  async #saveCurrency(): Promise<void> {
-    try {
-      await this.#userSettings.updateSettings({
-        currency: this.selectedCurrency(),
-      });
-    } catch {
-      // Non-blocking — budget was created successfully
     }
   }
 
@@ -1047,7 +1124,8 @@ export default class CompleteProfilePage {
       this.store.phonePlan() !== null ||
       this.store.internetPlan() !== null ||
       this.store.transportCosts() !== null ||
-      this.store.leasingCredit() !== null;
+      this.store.leasingCredit() !== null ||
+      this.store.customTransactions().length > 0;
 
     this.#postHogService.captureEvent(
       ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED,

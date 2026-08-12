@@ -23,17 +23,25 @@ describe('CompleteProfilePage', () => {
   function createPage(
     initialCurrency: SupportedCurrency,
     hasAnyCharge = false,
+    hasOptionalCharge = false,
   ): CompleteProfilePage {
     updateHealthInsurance = vi.fn();
     captureEvent = vi.fn();
+    const currency = signal(initialCurrency);
+    const currentStep = signal<1 | 2>(1);
     const mockStore = {
+      currency,
+      currentStep,
       housingCosts: signal<number | null>(hasAnyCharge ? 100 : null),
       healthInsurance: signal<number | null>(null),
-      phonePlan: signal<number | null>(null),
+      phonePlan: signal<number | null>(hasOptionalCharge ? 40 : null),
       internetPlan: signal<number | null>(null),
       transportCosts: signal<number | null>(null),
       leasingCredit: signal<number | null>(null),
+      customTransactions: signal([]),
       updateHealthInsurance,
+      updateCurrency: vi.fn((value: SupportedCurrency) => currency.set(value)),
+      updateCurrentStep: vi.fn((value: 1 | 2) => currentStep.set(value)),
       isStep1Valid: vi.fn().mockReturnValue(true),
       submitProfile: vi.fn().mockResolvedValue(false),
       // Awaited by the constructor's #initPage — resolve so it never rejects.
@@ -104,6 +112,21 @@ describe('CompleteProfilePage', () => {
     expect(updateHealthInsurance).not.toHaveBeenCalled();
   });
 
+  it('uses the restored step and currency from the store', () => {
+    const page = createPage('EUR') as unknown as {
+      currentStep: () => 1 | 2;
+      selectedCurrency: () => SupportedCurrency;
+      goToStep: (step: 1 | 2) => void;
+    };
+
+    expect(page.selectedCurrency()).toBe('EUR');
+    expect(page.currentStep()).toBe(1);
+
+    page.goToStep(2);
+
+    expect(page.currentStep()).toBe(2);
+  });
+
   it('maps the profile step to onboarding_step_completed', async () => {
     const page = createPage('CHF') as unknown as { nextStep: () => void };
     await vi.waitFor(() =>
@@ -145,4 +168,25 @@ describe('CompleteProfilePage', () => {
       );
     },
   );
+
+  it('reveals optional charges only when requested', () => {
+    const page = createPage('CHF') as unknown as {
+      showOptionalCharges: () => boolean;
+      toggleOptionalCharges: () => void;
+    };
+
+    expect(page.showOptionalCharges()).toBe(false);
+
+    page.toggleOptionalCharges();
+
+    expect(page.showOptionalCharges()).toBe(true);
+  });
+
+  it('reveals restored optional charges immediately', () => {
+    const page = createPage('CHF', false, true) as unknown as {
+      showOptionalCharges: () => boolean;
+    };
+
+    expect(page.showOptionalCharges()).toBe(true);
+  });
 });

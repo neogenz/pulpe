@@ -9,6 +9,11 @@ import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsStore } from '@core/user-settings';
 import { AuthOAuthService } from '@core/auth/auth-oauth.service';
+import {
+  STORAGE_KEYS,
+  StorageService,
+  type CompleteProfileDraft,
+} from '@core/storage';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoService } from '@jsverse/transloco';
 import { ANALYTICS_EVENTS, type SupportedCurrency } from 'pulpe-shared';
@@ -106,6 +111,8 @@ function stripSuggestionTag(
 }
 
 interface CompleteProfileState {
+  currentStep: 1 | 2;
+  currency: SupportedCurrency;
   firstName: string;
   monthlyIncome: number | null;
   housingCosts: number | null;
@@ -121,8 +128,10 @@ interface CompleteProfileState {
   error: string | null;
 }
 
-function createInitialState(): CompleteProfileState {
+function createInitialState(currency: SupportedCurrency): CompleteProfileState {
   return {
+    currentStep: 1,
+    currency,
     firstName: '',
     monthlyIncome: null,
     housingCosts: null,
@@ -145,12 +154,15 @@ export class CompleteProfileStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #authOAuth = inject(AuthOAuthService);
+  readonly #storage = inject(StorageService);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
   readonly #transloco = inject(TranslocoService);
 
-  readonly #state = signal<CompleteProfileState>(createInitialState());
+  readonly #state = signal<CompleteProfileState>(this.#restoreDraft());
 
+  readonly currentStep = computed(() => this.#state().currentStep);
+  readonly currency = computed(() => this.#state().currency);
   readonly firstName = computed(() => this.#state().firstName);
   readonly monthlyIncome = computed(() => this.#state().monthlyIncome);
   readonly housingCosts = computed(() => this.#state().housingCosts);
@@ -218,41 +230,50 @@ export class CompleteProfileStore {
     const state = this.#state();
     return (
       state.firstName.trim().length > 0 &&
+      state.firstName.length <= 50 &&
       state.monthlyIncome !== null &&
       state.monthlyIncome > 0
     );
   });
 
+  updateCurrentStep(value: 1 | 2): void {
+    this.#patchState({ currentStep: value });
+  }
+
+  updateCurrency(value: SupportedCurrency): void {
+    this.#patchState({ currency: value });
+  }
+
   updateFirstName(value: string): void {
-    this.#patchState({ firstName: value });
+    this.#patchState({ firstName: value.slice(0, 50) });
   }
 
   updateMonthlyIncome(value: number | null): void {
-    this.#patchState({ monthlyIncome: value });
+    this.#patchState({ monthlyIncome: this.#validAmount(value) });
   }
 
   updateHousingCosts(value: number | null): void {
-    this.#patchState({ housingCosts: value });
+    this.#patchState({ housingCosts: this.#validAmount(value) });
   }
 
   updateHealthInsurance(value: number | null): void {
-    this.#patchState({ healthInsurance: value });
+    this.#patchState({ healthInsurance: this.#validAmount(value) });
   }
 
   updatePhonePlan(value: number | null): void {
-    this.#patchState({ phonePlan: value });
+    this.#patchState({ phonePlan: this.#validAmount(value) });
   }
 
   updateInternetPlan(value: number | null): void {
-    this.#patchState({ internetPlan: value });
+    this.#patchState({ internetPlan: this.#validAmount(value) });
   }
 
   updateTransportCosts(value: number | null): void {
-    this.#patchState({ transportCosts: value });
+    this.#patchState({ transportCosts: this.#validAmount(value) });
   }
 
   updateLeasingCredit(value: number | null): void {
-    this.#patchState({ leasingCredit: value });
+    this.#patchState({ leasingCredit: this.#validAmount(value) });
   }
 
   updatePayDayOfMonth(value: number | null): void {
@@ -359,6 +380,11 @@ export class CompleteProfileStore {
   }
 
   prefillFromOAuthMetadata(): void {
+    // A resumed draft belongs to the user and must win over provider metadata.
+    if (this.#state().firstName.trim()) {
+      return;
+    }
+
     const metadata = this.#authOAuth.getOAuthUserMetadata();
     if (!metadata) {
       return;
@@ -384,6 +410,7 @@ export class CompleteProfileStore {
       this.#patchState({ isCheckingExistingBudget: false });
 
       if (hasExisting) {
+        this.#clearDraft();
         this.#logger.info(
           'User already has budgets, should redirect to dashboard',
         );
@@ -433,6 +460,12 @@ export class CompleteProfileStore {
     };
 
     try {
+      await this.#userSettingsStore.updateSettings({
+        currency: state.currency,
+        ...(state.payDayOfMonth !== null && {
+          payDayOfMonth: state.payDayOfMonth,
+        }),
+      });
       const result =
         await this.#profileSetupService.createInitialBudget(profileData);
 
@@ -446,25 +479,6 @@ export class CompleteProfileStore {
         return false;
       }
 
-      // Save pay day setting if user configured it
-      if (state.payDayOfMonth !== null) {
-        try {
-          await this.#userSettingsStore.updateSettings({
-            payDayOfMonth: state.payDayOfMonth,
-          });
-          this.#logger.info('Pay day setting saved', {
-            payDayOfMonth: state.payDayOfMonth,
-          });
-        } catch (settingsError) {
-          // Log but don't fail - budget was created successfully
-          this.#logger.warn('Failed to save pay day setting', settingsError);
-          this.#postHogService.captureException(settingsError, {
-            context: 'complete-profile',
-            action: 'savePayDaySetting',
-          });
-        }
-      }
-
       this.#postHogService.captureEvent(ANALYTICS_EVENTS.FIRST_BUDGET_CREATED, {
         signup_method: this.#determineSignupMethod(),
         has_pay_day: state.payDayOfMonth !== null,
@@ -474,6 +488,7 @@ export class CompleteProfileStore {
 
       this.#logger.info('Profile setup completed successfully');
       this.#patchState({ isLoading: false });
+      this.#clearDraft();
       return true;
     } catch (error) {
       this.#logger.error('Error submitting profile:', error);
@@ -485,8 +500,57 @@ export class CompleteProfileStore {
     }
   }
 
+  #validAmount(value: number | null): number | null {
+    return value !== null && Number.isFinite(value) && value >= 0
+      ? value
+      : null;
+  }
+
   #patchState(partial: Partial<CompleteProfileState>): void {
     this.#state.update((s) => ({ ...s, ...partial }));
+    this.#persistDraft();
+  }
+
+  #restoreDraft(): CompleteProfileState {
+    const fallback = createInitialState(this.#userSettingsStore.currency());
+    const stored = this.#storage.get<CompleteProfileDraft>(
+      STORAGE_KEYS.COMPLETE_PROFILE_DRAFT,
+      'session',
+    );
+
+    if (!stored) {
+      // Also clears malformed JSON: StorageService returns null for it.
+      this.#clearDraft();
+      return fallback;
+    }
+
+    const { version, ...draft } = stored;
+    void version;
+    return { ...fallback, ...draft };
+  }
+
+  #persistDraft(): void {
+    const state = this.#state();
+    const draft: CompleteProfileDraft = {
+      version: 1,
+      currentStep: state.currentStep,
+      currency: state.currency,
+      firstName: state.firstName,
+      monthlyIncome: state.monthlyIncome,
+      housingCosts: state.housingCosts,
+      healthInsurance: state.healthInsurance,
+      phonePlan: state.phonePlan,
+      internetPlan: state.internetPlan,
+      transportCosts: state.transportCosts,
+      leasingCredit: state.leasingCredit,
+      payDayOfMonth: state.payDayOfMonth,
+      customTransactions: state.customTransactions,
+    };
+    this.#storage.set(STORAGE_KEYS.COMPLETE_PROFILE_DRAFT, draft, 'session');
+  }
+
+  #clearDraft(): void {
+    this.#storage.remove(STORAGE_KEYS.COMPLETE_PROFILE_DRAFT, 'session');
   }
 
   #determineSignupMethod(): 'oauth' | 'email' {

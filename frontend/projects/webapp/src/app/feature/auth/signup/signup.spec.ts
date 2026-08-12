@@ -1,5 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -13,10 +13,12 @@ import Signup from './signup';
 
 describe('Signup', () => {
   let component: Signup;
+  let fixture: ComponentFixture<Signup>;
   let mockAuthCredentials: { signUpWithEmail: ReturnType<typeof vi.fn> };
   let mockLogger: {
     error: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
+    debug: ReturnType<typeof vi.fn>;
   };
   let mockPostHogService: {
     captureEvent: ReturnType<typeof vi.fn>;
@@ -33,6 +35,7 @@ describe('Signup', () => {
     mockLogger = {
       error: vi.fn(),
       warn: vi.fn(),
+      debug: vi.fn(),
     };
 
     mockPostHogService = {
@@ -54,7 +57,8 @@ describe('Signup', () => {
       ],
     }).compileComponents();
 
-    component = TestBed.createComponent(Signup).componentInstance;
+    fixture = TestBed.createComponent(Signup);
+    component = fixture.componentInstance;
 
     const router = TestBed.inject(Router);
     navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
@@ -85,6 +89,30 @@ describe('Signup', () => {
       expect(component['signupForm'].get('email')).toBeDefined();
       expect(component['signupForm'].get('password')).toBeDefined();
       expect(component['signupForm'].get('confirmPassword')).toBeDefined();
+    });
+
+    it('should disclose the three onboarding stages with account active', () => {
+      fixture.detectChanges();
+
+      const journey = fixture.nativeElement.querySelector(
+        '[data-testid="onboarding-journey"]',
+      ) as HTMLElement;
+
+      expect(journey.textContent).toContain('Compte');
+      expect(journey.textContent).toContain('Sécurité');
+      expect(journey.textContent).toContain('Premier budget');
+      expect(journey.getAttribute('aria-label')).toBe(
+        'Création de ton espace : étape 1 sur 3',
+      );
+      expect(
+        journey.querySelector('[aria-current="step"]')?.textContent,
+      ).toContain('Compte');
+    });
+
+    it('should make no unsupported time promise', () => {
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).not.toContain('2 minutes');
     });
   });
 

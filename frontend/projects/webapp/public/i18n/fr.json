@@ -133,6 +133,13 @@
     "oauthLoading": "Connexion en cours...",
     "continueWithGoogle": "Continuer avec Google",
     "continueWithApple": "Continuer avec Apple",
+    "onboarding": {
+      "progressAriaLabel": "Création de ton espace : étape {{ current }} sur 3",
+      "accountStep": "Compte",
+      "securityStep": "Sécurité",
+      "budgetStepShort": "Budget",
+      "budgetStep": "Premier budget"
+    },
     "login": {
       "title": "Content de te revoir",
       "subtitle": "Retrouve ton budget là où tu l'as laissé",
@@ -146,8 +153,8 @@
     },
     "scheduledDeletion": "Ton compte est programmé pour suppression le {{ date }}. Si c'est une erreur, contacte le support.",
     "signup": {
-      "title": "Prêt en 2 minutes",
-      "subtitle": "Crée ton espace et vois clair dans tes finances",
+      "title": "Crée ton espace",
+      "subtitle": "Commence par ton compte. On protégera ensuite tes données avant de préparer ton premier budget.",
       "submit": "Créer mon compte",
       "submitting": "Création en cours...",
       "alreadyAccount": "Déjà un compte ?",
@@ -1315,11 +1322,17 @@
     "step1Subtitle": "On va personnaliser ton espace ensemble en deux petites étapes.",
     "firstName": "Ton prénom",
     "firstNamePlaceholder": "Comment t'appeler ?",
+    "firstNameRequired": "Indique ton prénom",
     "monthlyIncome": "Revenus mensuels",
+    "monthlyIncomeRequired": "Indique un revenu mensuel supérieur à 0",
+    "optional": "Facultatif",
     "next": "Suivant",
     "privateData": "Tes données restent privées et sécurisées",
     "step2Title": "Presque terminé",
-    "step2Subtitle": "Quelques infos pour affiner — ou passe directement.",
+    "step2Subtitle": "Ajoute uniquement les charges que tu connais déjà.",
+    "skipCharges": "Passer pour l'instant",
+    "showOptionalCharges": "Ajouter d'autres charges",
+    "hideOptionalCharges": "Masquer les charges facultatives",
     "payDay": "Quand reçois-tu ton salaire ?",
     "payDayPlaceholder": "Choisis ton jour",
     "payDayOption": "Le {{ day }}",
@@ -1342,6 +1355,7 @@
     "budgetCreateError": "Erreur lors de la création de ton budget initial.",
     "createBudgetError": "Erreur lors de la création du budget",
     "unexpectedError": "Quelque chose n'a pas fonctionné — réessaie",
+    "firstNameTooLong": "50 caractères maximum",
     "budgetGenerateError": "La génération de tes budgets a échoué — réessaie",
     "chargeGroups": {
       "housing": "Logement",
@@ -1360,6 +1374,7 @@
       "liveDeficitAnnouncement": "Déficit de {{ amount }} {{ currency }} à équilibrer"
     },
     "stepperAriaLabel": "Étape {{ current }} sur {{ total }}",
+    "journeyStage": "3 · Premier budget",
     "stepYou": "Toi",
     "stepYourExpenses": "Tes charges",
     "stepIndicator": "Étape {{ current }} / {{ total }}",
@@ -1624,6 +1639,7 @@
     "description": "Cette clé est ton filet de sécurité. Si tu oublies ton code PIN, elle sera le seul moyen de retrouver tes données. Copie-la dans un endroit sûr : personne d'autre n'y a accès, et on ne pourra pas la retrouver pour toi.",
     "copied": "Copié !",
     "copyKey": "Copier la clé",
+    "copyFailed": "La copie a échoué. Sélectionne la clé ci-dessus et copie-la manuellement.",
     "confirmLabel": "Copie ou colle ta clé ici pour confirmer",
     "confirmed": "C'est enregistré en lieu sûr"
   },

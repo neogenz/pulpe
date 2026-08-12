@@ -149,6 +149,24 @@ describe('SetupVaultCode', () => {
         'Si tu coches cette case, ta clé de déchiffrement sera stockée sur cet appareil. À éviter sur un ordinateur partagé.',
       );
     });
+
+    it('should show account as completed and security as the active stage', () => {
+      fixture.detectChanges();
+
+      const journey = fixture.nativeElement.querySelector(
+        '[data-testid="onboarding-journey"]',
+      ) as HTMLElement;
+
+      expect(journey.textContent).toContain('Compte');
+      expect(journey.textContent).toContain('Sécurité');
+      expect(journey.textContent).toContain('Premier budget');
+      expect(journey.getAttribute('aria-label')).toBe(
+        'Création de ton espace : étape 2 sur 3',
+      );
+      expect(
+        journey.querySelector('[aria-current="step"]')?.textContent,
+      ).toContain('Sécurité');
+    });
   });
 
   describe('Form Validation', () => {

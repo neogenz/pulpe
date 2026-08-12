@@ -28,6 +28,9 @@ export const STORAGE_KEYS = {
   // Currency snapshot — read at bootstrap to pick the formatting locale (fr-CH / fr-FR)
   SETTINGS_CURRENCY: 'pulpe-settings-currency',
 
+  // Onboarding draft — user-scoped and cleared once the first budget exists
+  COMPLETE_PROFILE_DRAFT: 'pulpe-complete-profile-draft',
+
   // Vault/Client key - stores encrypted client key for vault access
   VAULT_CLIENT_KEY_SESSION: 'pulpe-vault-client-key-session',
   VAULT_CLIENT_KEY_LOCAL: 'pulpe-vault-client-key-local',

@@ -77,7 +77,64 @@ function containsPattern(pattern: RegExp, errorKey: string) {
         <span>{{ 'auth.signup.backToHome' | transloco }}</span>
       </button>
 
-      <div class="text-center mb-8 mt-4">
+      <ol
+        class="mt-4 mb-6 flex items-center justify-center gap-2 text-label-small"
+        role="list"
+        data-testid="onboarding-journey"
+        [attr.aria-label]="
+          'auth.onboarding.progressAriaLabel' | transloco: { current: 1 }
+        "
+      >
+        <li
+          class="inline-flex shrink-0 items-center gap-1.5 font-semibold text-primary"
+          aria-current="step"
+        >
+          <span
+            class="flex size-5 items-center justify-center rounded-full bg-primary text-on-primary tabular-nums"
+            aria-hidden="true"
+          >
+            1
+          </span>
+          {{ 'auth.onboarding.accountStep' | transloco }}
+        </li>
+        <li
+          class="h-px min-w-2 flex-1 bg-outline-variant"
+          aria-hidden="true"
+        ></li>
+        <li
+          class="inline-flex shrink-0 items-center gap-1.5 text-on-surface-variant"
+        >
+          <span
+            class="flex size-5 items-center justify-center rounded-full bg-surface-container-high tabular-nums"
+            aria-hidden="true"
+          >
+            2
+          </span>
+          {{ 'auth.onboarding.securityStep' | transloco }}
+        </li>
+        <li
+          class="h-px min-w-2 flex-1 bg-outline-variant"
+          aria-hidden="true"
+        ></li>
+        <li
+          class="inline-flex shrink-0 items-center gap-1.5 text-on-surface-variant"
+        >
+          <span
+            class="flex size-5 items-center justify-center rounded-full bg-surface-container-high tabular-nums"
+            aria-hidden="true"
+          >
+            3
+          </span>
+          <span class="sm:hidden">{{
+            'auth.onboarding.budgetStepShort' | transloco
+          }}</span>
+          <span class="hidden sm:inline">{{
+            'auth.onboarding.budgetStep' | transloco
+          }}</span>
+        </li>
+      </ol>
+
+      <div class="text-center mb-8">
         <h1
           class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
         >

@@ -41,6 +41,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
       }
       <mat-label class="ph-no-capture">{{ label() }}</mat-label>
       <input
+        #amountModel="ngModel"
         matInput
         type="number"
         inputmode="decimal"
@@ -48,10 +49,13 @@ import { TranslocoPipe } from '@jsverse/transloco';
         [(ngModel)]="value"
         [placeholder]="placeholder()"
         [attr.aria-describedby]="describedBy()"
-        [attr.aria-invalid]="errorId() ? 'true' : null"
-        [attr.aria-label]="label() + ' in ' + currency()"
+        [attr.aria-invalid]="
+          errorId() || (amountModel.touched && amountModel.invalid)
+            ? 'true'
+            : null
+        "
         [required]="required()"
-        [attr.min]="required() ? '0' : null"
+        [min]="required() ? 0.01 : 0"
         step="0.01"
         [attr.data-testid]="testId()"
       />
@@ -80,6 +84,13 @@ import { TranslocoPipe } from '@jsverse/transloco';
           {{ 'currency.inputHint' | transloco: { currency: currency() } }}
         </mat-hint>
       }
+      @if (
+        requiredError() &&
+        amountModel.touched &&
+        (amountModel.hasError('required') || amountModel.hasError('min'))
+      ) {
+        <mat-error>{{ requiredError() }}</mat-error>
+      }
     </mat-form-field>
   `,
 })
@@ -96,6 +107,9 @@ export class CurrencyInput {
    *  the error is on screen. */
   readonly errorId = input<string>();
   readonly required = input<boolean>(false);
+  /** Localized error shown after a required amount has been visited but left
+   * empty or non-positive. */
+  readonly requiredError = input<string>();
   readonly testId = input<string>('currency-input');
   readonly currency = input<string>('CHF');
   readonly showCurrencySelector = input<boolean>(false);
