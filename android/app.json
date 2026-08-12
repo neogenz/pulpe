@@ -60,7 +60,8 @@
       ],
       "@react-native-google-signin/google-signin",
       "@sentry/react-native",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "./plugins/with-brand-colors"
     ],
     "experiments": {
       "typedRoutes": true,
