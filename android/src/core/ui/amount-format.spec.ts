@@ -1,3 +1,5 @@
+import { readFileSync, sourceFiles } from "@/core/testing/source-files";
+
 import {
   formatCompactAmount,
   formatCompactCurrency,
@@ -40,5 +42,24 @@ describe("amount formatting", () => {
     toggleAmountVisibility();
 
     expect(formatCompactCurrency(120, "CHF")).toBe("120 CHF");
+  });
+});
+
+/**
+ * `getCurrencyFormatter` is the shared web formatter, and on CHF it groups with
+ * an ASCII quote where every Pulpe screen groups with the typographic one — so
+ * a screen reaching for it prints `3'500.00` beside another printing
+ * `3’500.00`. The onboarding flow did exactly that, on five files, until this.
+ * It also formats around the mask above, which is the worse half.
+ */
+describe("the amount formatters", () => {
+  it("should be the only ones the app formats money with", () => {
+    const bypassing = sourceFiles("src")
+      .filter((path) => !path.endsWith("amount-format.ts"))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("getCurrencyFormatter"),
+      );
+
+    expect(bypassing).toEqual([]);
   });
 });

@@ -1,7 +1,7 @@
-import { getCurrencyFormatter } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 
+import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { HERO_TINTS, RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 import { FlowBars } from "../components/flow-bars";
@@ -41,7 +41,6 @@ export function BudgetPreviewStep({ onExit }: { onExit: () => void }) {
 
   const available = availableToSpend(state);
   const emotion = emotionState(state);
-  const formatter = getCurrencyFormatter(state.currency);
 
   // The PIN ceremony is the next step until it has been done; after that the
   // CTA is the submission itself.
@@ -70,7 +69,9 @@ export function BudgetPreviewStep({ onExit }: { onExit: () => void }) {
           Disponible à dépenser
         </Text>
         <Text variant="displaySmall" style={TABULAR_DIGITS}>
-          {formatter.format(available)}
+          {/* Compact, like the home hero this becomes one screen later: the
+              same figure, printed two ways, reads as two figures. */}
+          {formatCompactCurrency(available, state.currency)}
         </Text>
         <Text
           variant="bodySmall"

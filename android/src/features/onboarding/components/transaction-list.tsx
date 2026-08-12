@@ -1,8 +1,9 @@
-import { getCurrencyFormatter, type SupportedCurrency } from "pulpe-shared";
+import { type SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
 import { IconButton, Text, useTheme } from "react-native-paper";
 
-import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { formatCurrency } from "@/core/ui/amount-format";
+import { ROW_ACTION_ICON_SIZE, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 import { removeCustomTransaction } from "../onboarding-store";
 import type { OnboardingTransaction } from "../onboarding-transaction";
@@ -24,7 +25,6 @@ export function TransactionList({
   onEdit: (transaction: OnboardingTransaction) => void;
 }) {
   const theme = useTheme();
-  const formatter = getCurrencyFormatter(currency);
 
   if (transactions.length === 0) return null;
 
@@ -39,16 +39,20 @@ export function TransactionList({
               variant="bodySmall"
               style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
             >
-              {formatter.format(transaction.amount)}
+              {formatCurrency(transaction.amount, currency)}
             </Text>
           </View>
           <IconButton
             icon="pencil"
+            size={ROW_ACTION_ICON_SIZE}
+            style={styles.action}
             onPress={() => onEdit(transaction)}
             accessibilityLabel={`Modifier ${transaction.name}`}
           />
           <IconButton
             icon="close"
+            size={ROW_ACTION_ICON_SIZE}
+            style={styles.action}
             onPress={() => removeCustomTransaction(transaction.id)}
             accessibilityLabel={`Supprimer ${transaction.name}`}
           />
@@ -60,6 +64,7 @@ export function TransactionList({
 
 const styles = StyleSheet.create({
   section: { gap: SPACING.xs },
-  row: { flexDirection: "row", alignItems: "center" },
+  row: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
   labels: { flex: 1, gap: SPACING.xxs },
+  action: { margin: 0 },
 });

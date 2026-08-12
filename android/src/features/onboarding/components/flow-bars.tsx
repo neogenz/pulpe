@@ -1,7 +1,8 @@
-import { getCurrencyFormatter, type SupportedCurrency } from "pulpe-shared";
+import { type SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, useColorScheme, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
+import { formatCompactCurrency } from "@/core/ui/amount-format";
 import {
   FINANCIAL_COLORS,
   RADIUS,
@@ -34,7 +35,6 @@ export function FlowBars({
   const theme = useTheme();
   const scheme = useColorScheme();
   const palette = FINANCIAL_COLORS[scheme === "dark" ? "dark" : "light"];
-  const formatter = getCurrencyFormatter(currency);
   const largest = Math.max(...flows.map((flow) => flow.amount));
 
   return (
@@ -44,7 +44,7 @@ export function FlowBars({
           <View style={styles.labels}>
             <Text variant="bodyMedium">{flow.label}</Text>
             <Text variant="bodyMedium" style={TABULAR_DIGITS}>
-              {formatter.format(flow.amount)}
+              {formatCompactCurrency(flow.amount, currency)}
             </Text>
           </View>
           <View

@@ -1,8 +1,9 @@
 import * as Haptics from "expo-haptics";
-import { getCurrencyFormatter, type SupportedCurrency } from "pulpe-shared";
+import { type SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
 import { Chip, Text, useTheme } from "react-native-paper";
 
+import { formatCurrency } from "@/core/ui/amount-format";
 import { SPACING } from "@/core/ui/theme";
 
 import {
@@ -26,7 +27,6 @@ export function SuggestionGrid({
 }) {
   const theme = useTheme();
   const state = useOnboardingStore();
-  const formatter = getCurrencyFormatter(currency);
 
   return (
     <View style={styles.section}>
@@ -44,7 +44,7 @@ export function SuggestionGrid({
                 void Haptics.selectionAsync();
                 toggleSuggestion(suggestion);
               }}
-              accessibilityLabel={`${suggestion.name}, ${formatter.format(suggestion.amount)}`}
+              accessibilityLabel={`${suggestion.name}, ${formatCurrency(suggestion.amount, currency)}`}
             >
               {suggestion.name}
             </Chip>

@@ -26,17 +26,10 @@ import {
   useRenameTag,
   useTags,
 } from "@/core/tags/tag-queries";
-import { SPACING } from "@/core/ui/theme";
+import { ROW_ACTION_ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 /** `tagCreateSchema` caps a name at 30 characters. */
 const NAME_MAX_LENGTH = 30;
-
-/**
- * Paper sizes an `IconButton` at 1.5× its icon and hangs six points of margin
- * off every side, which two of them side by side turn into a row half again as
- * tall as the name it belongs to — twenty tags became a screen of white.
- */
-const ACTION_ICON_SIZE = 20;
 
 /**
  * Personal tags, editable here rather than read-only as on iOS: this is the
@@ -143,14 +136,14 @@ export default function TagsSettingsScreen() {
                   <View style={styles.actions}>
                     <IconButton
                       icon="pencil-outline"
-                      size={ACTION_ICON_SIZE}
+                      size={ROW_ACTION_ICON_SIZE}
                       style={styles.action}
                       onPress={() => startRename(tag)}
                       accessibilityLabel={`Renommer ${tag.name}`}
                     />
                     <IconButton
                       icon="delete-outline"
-                      size={ACTION_ICON_SIZE}
+                      size={ROW_ACTION_ICON_SIZE}
                       style={styles.action}
                       onPress={() => setDeletedTag(tag)}
                       accessibilityLabel={`Supprimer ${tag.name}`}

@@ -179,6 +179,16 @@ export const SCREEN_PADDING = SPACING.md;
  */
 export const FAB_CLEARANCE = 96;
 
+/**
+ * The icon size an `IconButton` takes when it sits at the end of a list row.
+ * Paper's default sizes the button at 1.5× its icon and hangs six points of
+ * margin off every side, so a pencil and a bin together cost a hundred of the
+ * three hundred and sixty a row has to give — enough to truncate the name while
+ * the amount column is still half empty, and to make the row half again as tall
+ * as the text in it. Pair it with `margin: 0` on the button's own style.
+ */
+export const ROW_ACTION_ICON_SIZE = 20;
+
 /** Mirrors `DesignTokens.CornerRadius` on iOS. */
 export const RADIUS = {
   xs: 4,

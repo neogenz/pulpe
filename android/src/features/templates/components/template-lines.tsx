@@ -3,7 +3,12 @@ import { StyleSheet, useColorScheme, View } from "react-native";
 import { Card, Divider, IconButton, Text, useTheme } from "react-native-paper";
 
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
-import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import {
+  FINANCIAL_COLORS,
+  ROW_ACTION_ICON_SIZE,
+  SPACING,
+  TABULAR_DIGITS,
+} from "@/core/ui/theme";
 
 import { KIND_SECTION_LABELS, templateLineSections } from "../template-vm";
 
@@ -11,14 +16,6 @@ const RECURRENCE_LABELS = {
   fixed: "Récurrent",
   one_off: "Prévu",
 } as const;
-
-/**
- * Paper's default `IconButton` is forty points wide with six of margin either
- * side, so the pencil and the bin together took a hundred out of a row that has
- * three hundred and sixty to give — enough that "Assurance habitation"
- * truncated with the amount column still half empty.
- */
-const ACTION_ICON_SIZE = 20;
 
 interface TemplateLinesProps {
   lines: TemplateLine[];
@@ -126,14 +123,14 @@ function LineRow({
 
       <IconButton
         icon="pencil-outline"
-        size={ACTION_ICON_SIZE}
+        size={ROW_ACTION_ICON_SIZE}
         style={styles.action}
         onPress={onEdit}
         accessibilityLabel={`Modifier ${line.name}`}
       />
       <IconButton
         icon="trash-can-outline"
-        size={ACTION_ICON_SIZE}
+        size={ROW_ACTION_ICON_SIZE}
         style={styles.action}
         onPress={onDelete}
         disabled={isDeleting}

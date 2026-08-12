@@ -1,7 +1,8 @@
-import { getCurrencyFormatter, type SupportedCurrency } from "pulpe-shared";
+import { type SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, View, useColorScheme } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
+import { formatCurrency } from "@/core/ui/amount-format";
 import {
   FINANCIAL_COLORS,
   RADIUS,
@@ -40,7 +41,10 @@ export function RunningTotal({
     >
       <Text variant="labelLarge">{label}</Text>
       <Text variant="titleMedium" style={[TABULAR_DIGITS, { color }]}>
-        {getCurrencyFormatter(currency).format(amount)}
+        {/* Decimals, not the compact form the summary screens use: this
+            restates amounts the user is entering on this very step, and a
+            total that rounds what they typed reads as a mistyped entry. */}
+        {formatCurrency(amount, currency)}
       </Text>
     </View>
   );
