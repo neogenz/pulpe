@@ -1,18 +1,4 @@
-const { readdirSync, readFileSync } = jest.requireActual<{
-  readdirSync(
-    path: string,
-    options: { withFileTypes: true },
-  ): { name: string; isDirectory(): boolean }[];
-  readFileSync(path: string, encoding: "utf8"): string;
-}>("node:fs");
-
-function sourceFiles(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const path = `${directory}/${entry.name}`;
-    if (entry.isDirectory()) return sourceFiles(path);
-    return entry.name.endsWith(".tsx") ? [path] : [];
-  });
-}
+import { readFileSync, sourceFiles } from "@/core/testing/source-files";
 
 /**
  * The one panel that may hold a raw `Modal`: three centred elements, no scroll,

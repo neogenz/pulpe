@@ -17,7 +17,7 @@ import { Tooltip } from "@/core/tips/tooltip";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import { SPACING } from "@/core/ui/theme";
+import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { TemplateFormSheet } from "@/features/templates/components/template-form-sheet";
 import { useTemplates } from "@/features/templates/template-queries";
 import {
@@ -182,7 +182,11 @@ function TemplateCard({ template }: { template: BudgetTemplate }) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
+  content: {
+    padding: SPACING.md,
+    gap: SPACING.md,
+    paddingBottom: FAB_CLEARANCE,
+  },
   header: {
     flexDirection: "row",
     alignItems: "baseline",

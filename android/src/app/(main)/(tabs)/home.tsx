@@ -22,7 +22,7 @@ import { Tooltip } from "@/core/tips/tooltip";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import { SPACING } from "@/core/ui/theme";
+import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { useBudgetList } from "@/features/budgets/budget-queries";
 import { hasAvailableMonth } from "@/features/budgets/available-months";
 import { ActivityCard } from "@/features/current-month/components/activity-card";
@@ -294,7 +294,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
+  content: {
+    padding: SPACING.md,
+    gap: SPACING.md,
+    paddingBottom: FAB_CLEARANCE,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",

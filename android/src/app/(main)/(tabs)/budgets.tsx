@@ -20,7 +20,7 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatSignedCompactCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { FAB_CLEARANCE, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 import {
   type BudgetTiming,
   budgetTiming,
@@ -231,7 +231,11 @@ function periodLabel(
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
+  content: {
+    padding: SPACING.md,
+    gap: SPACING.md,
+    paddingBottom: FAB_CLEARANCE,
+  },
   section: { gap: SPACING.sm },
   row: {
     flexDirection: "row",

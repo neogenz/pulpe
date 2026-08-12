@@ -20,7 +20,7 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { FAB_CLEARANCE, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { GoalFormSheet } from "@/features/savings-goals/components/goal-form-sheet";
 import { GoalsIntro } from "@/features/savings-goals/components/goals-intro";
@@ -194,7 +194,11 @@ function periodLabel(goal: SavingsGoal): string | null {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
+  content: {
+    padding: SPACING.md,
+    gap: SPACING.md,
+    paddingBottom: FAB_CLEARANCE,
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
