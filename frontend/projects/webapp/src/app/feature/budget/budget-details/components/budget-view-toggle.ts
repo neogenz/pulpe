@@ -1,38 +1,28 @@
 import { ChangeDetectionStrategy, Component, model } from '@angular/core';
-import {
-  type MatChipSelectionChange,
-  MatChipsModule,
-} from '@angular/material/chips';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { BudgetViewMode } from '../view-models/budget-view-mode';
 
 @Component({
   selector: 'pulpe-budget-view-toggle',
-  imports: [MatChipsModule, MatIconModule, TranslocoPipe],
+  imports: [MatButtonToggleModule, MatIconModule, TranslocoPipe],
   template: `
-    <mat-chip-listbox
-      class="view-toggle-chips"
+    <mat-button-toggle-group
       aria-label="Mode d'affichage"
+      [value]="viewMode()"
+      (change)="viewMode.set($event.value)"
       [hideSingleSelectionIndicator]="true"
     >
-      <mat-chip-option
-        [selected]="viewMode() === 'envelopes'"
-        (selectionChange)="onViewModeChange('envelopes', $event)"
-        data-testid="grid-mode-chip"
-      >
-        <mat-icon matChipAvatar>grid_view</mat-icon>
+      <mat-button-toggle value="envelopes" data-testid="grid-mode-chip">
+        <mat-icon>grid_view</mat-icon>
         {{ 'budget.viewGrid' | transloco }}
-      </mat-chip-option>
-      <mat-chip-option
-        [selected]="viewMode() === 'table'"
-        (selectionChange)="onViewModeChange('table', $event)"
-        data-testid="table-mode-chip"
-      >
-        <mat-icon matChipAvatar>table_rows</mat-icon>
+      </mat-button-toggle>
+      <mat-button-toggle value="table" data-testid="table-mode-chip">
+        <mat-icon>table_rows</mat-icon>
         {{ 'budget.viewTable' | transloco }}
-      </mat-chip-option>
-    </mat-chip-listbox>
+      </mat-button-toggle>
+    </mat-button-toggle-group>
   `,
   styles: `
     :host {
@@ -43,11 +33,4 @@ import type { BudgetViewMode } from '../view-models/budget-view-mode';
 })
 export class BudgetViewToggle {
   viewMode = model<BudgetViewMode>('envelopes');
-
-  onViewModeChange(mode: BudgetViewMode, event: MatChipSelectionChange): void {
-    if (!event.isUserInput || !event.selected) {
-      return;
-    }
-    this.viewMode.set(mode);
-  }
 }

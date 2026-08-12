@@ -117,4 +117,47 @@ describe('BudgetFinancialOverview', () => {
       expect(classesFor(DEFICIT_TOTALS)).toContain('text-on-error-container');
     });
   });
+
+  describe('deficit recovery action', () => {
+    beforeEach(() => {
+      setTestInput(fixture.componentInstance.totals, DEFICIT_TOTALS);
+      setTestInput(fixture.componentInstance.showSavingsAction, true);
+      fixture.detectChanges();
+    });
+
+    it('should keep the deficit amount centred with concise recovery copy', () => {
+      const hero: HTMLElement =
+        fixture.nativeElement.querySelector('.overview-hero');
+
+      expect(hero.className).toContain('text-center');
+      expect(hero.textContent).not.toContain('selon tes prévisions');
+      expect(hero.textContent).toContain(
+        'Couvre ce déficit avec ton épargne, puis reconstitue-la le mois prochain.',
+      );
+    });
+
+    it('should keep the savings action functional', () => {
+      const cover = vi.spyOn(
+        fixture.componentInstance.coverWithSavings,
+        'emit',
+      );
+
+      fixture.nativeElement
+        .querySelector('[data-testid="financial-overview-cover-with-savings"]')
+        .click();
+
+      expect(cover).toHaveBeenCalledOnce();
+    });
+
+    it('should hide the savings action when the page gate is closed', () => {
+      setTestInput(fixture.componentInstance.showSavingsAction, false);
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="financial-overview-cover-with-savings"]',
+        ),
+      ).toBeNull();
+    });
+  });
 });

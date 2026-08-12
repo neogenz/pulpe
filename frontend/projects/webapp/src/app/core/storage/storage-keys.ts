@@ -25,9 +25,6 @@ export const STORAGE_KEYS = {
   // page defines inline ("Engagé", "Pointer") no longer need their glossaries
   DASHBOARD_POINTING_LEARNED: 'pulpe-dashboard-pointing-learned',
 
-  // Savings-withdrawal card dismissal, keyed per budget id (PUL-292)
-  SAVINGS_WITHDRAWAL_CARD_DISMISSED: 'pulpe-savings-withdrawal-card-dismissed',
-
   // Currency snapshot — read at bootstrap to pick the formatting locale (fr-CH / fr-FR)
   SETTINGS_CURRENCY: 'pulpe-settings-currency',
 

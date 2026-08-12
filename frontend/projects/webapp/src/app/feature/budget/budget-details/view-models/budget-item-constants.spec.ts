@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   calculatePercentage,
+  consumptionProgressMessage,
   getBudgetConsumptionState,
   NEAR_LIMIT_THRESHOLD,
 } from './budget-item-constants';
@@ -36,6 +37,29 @@ describe('calculatePercentage', () => {
 
   it('returns > 100 when over-consumed', () => {
     expect(calculatePercentage(100, 150)).toBe(150);
+  });
+});
+
+describe('consumptionProgressMessage', () => {
+  it('keeps the percentage through exactly 100%', () => {
+    expect(consumptionProgressMessage(100, 100, 100)).toEqual({
+      key: 'budgetLine.usedPercent',
+      params: { percent: 100 },
+    });
+  });
+
+  it('replaces an overflow percentage with the exceeded amount', () => {
+    expect(consumptionProgressMessage(39, 343, 879)).toEqual({
+      key: 'budgetLine.exceededBy',
+      params: { amount: 304 },
+    });
+  });
+
+  it('detects an overflow hidden by a rounded percentage', () => {
+    expect(consumptionProgressMessage(1000, 1001, 100)).toEqual({
+      key: 'budgetLine.exceededBy',
+      params: { amount: 1 },
+    });
   });
 });
 

@@ -226,26 +226,11 @@ export class BudgetDetailsStore {
   readonly #searchText = signal('');
   readonly searchText = this.#searchText.asReadonly();
 
-  // PUL-292 — budget ids whose "mois un peu juste" card the user dismissed
-  // ("Plus tard"). Persisted so the nudge stays hidden per month across refresh.
-  readonly #dismissedSavingsWithdrawalCardBudgetIds = signal<string[]>(
-    this.#storage.get<string[]>(
-      STORAGE_KEYS.SAVINGS_WITHDRAWAL_CARD_DISMISSED,
-    ) ?? [],
-  );
-
   constructor() {
     effect(() => {
       this.#storage.set(
         STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED,
         this.#isShowingOnlyUnchecked(),
-      );
-    });
-
-    effect(() => {
-      this.#storage.set(
-        STORAGE_KEYS.SAVINGS_WITHDRAWAL_CARD_DISMISSED,
-        this.#dismissedSavingsWithdrawalCardBudgetIds(),
       );
     });
 
@@ -517,20 +502,15 @@ export class BudgetDetailsStore {
     return compareBudgetPeriods(reference, this.#spreadLivePeriod()) >= 0;
   });
 
-  // PUL-292 (CA1) — the "mois un peu juste" card shows whenever the viewed
-  // current/future month runs a deficit worth acting on and wasn't dismissed —
-  // an existing pioche does NOT hide it: a month can dip back into deficit
-  // after a first withdrawal. Gated on the rounded deficit rather than on raw
+  // The recovery action shows whenever the viewed current/future month runs a
+  // deficit worth acting on. An existing pioche does not hide it: a month can
+  // dip back into deficit after a first withdrawal. Gated on the rounded deficit rather than on raw
   // `remaining`: a month balanced to the cent leaves float dust (-9e-13) that
   // would nudge the user towards a dialog with nothing to pre-fill.
-  readonly shouldShowSavingsWithdrawalCard = computed<boolean>(() => {
-    const details = this.budgetDetails();
-    if (!details) return false;
+  readonly shouldShowSavingsWithdrawalAction = computed<boolean>(() => {
+    if (!this.budgetDetails()) return false;
     if (this.savingsWithdrawalDeficit() <= 0) return false;
-    if (!this.#isViewedMonthCurrentOrFuture()) return false;
-    return !this.#dismissedSavingsWithdrawalCardBudgetIds().includes(
-      details.id,
-    );
+    return this.#isViewedMonthCurrentOrFuture();
   });
 
   // The deficit to pre-fill the withdrawal amount chip (positive magnitude, 0
@@ -558,12 +538,6 @@ export class BudgetDetailsStore {
       new Date(origin.year, origin.month - 1, 1),
     );
   });
-
-  dismissSavingsWithdrawalCard(budgetId: string): void {
-    this.#dismissedSavingsWithdrawalCardBudgetIds.update((ids) =>
-      ids.includes(budgetId) ? ids : [...ids, budgetId],
-    );
-  }
 
   #aggregatePlannedByKind(
     lines: BudgetLine[],

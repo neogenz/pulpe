@@ -33,6 +33,7 @@ const TAG_NAMES = new Map([
 async function setup(
   tagIds: string[],
   budgetLineOverrides: Partial<BudgetLine> = {},
+  metadataOverrides: Partial<BudgetLineTableItem['metadata']> = {},
 ): Promise<ComponentFixture<BudgetDetailPanel>> {
   const budgetLine = createMockBudgetLine({
     id: 'line-1',
@@ -55,11 +56,19 @@ async function setup(
       kindIcon: 'payments',
       allocationLabel: 'Ajouter une dépense',
       displayName: budgetLine.name,
+      ...metadataOverrides,
     },
   };
   const data: BudgetDetailPanelData = {
     item,
     onAddTransaction: vi.fn(),
+    onEditBudgetLine: vi.fn(),
+    onDeleteBudgetLine: vi.fn(),
+    onSpreadBudgetLine: vi.fn(),
+    onResetBudgetLine: vi.fn(),
+    onPostponeBudgetLine: vi.fn(),
+    onToggleBudgetLineCheck: vi.fn(),
+    onRealizeWithdrawal: vi.fn(),
     onDeleteTransaction: vi.fn(),
     onToggleTransactionCheck: vi.fn(),
     onEditTransaction: vi.fn(),
@@ -117,6 +126,81 @@ async function setup(
   return fixture;
 }
 
+describe('BudgetDetailPanel forecast actions', () => {
+  it('should expose edit and delete for the forecast itself', async () => {
+    const fixture = await setup([]);
+    const data = TestBed.inject(MAT_DIALOG_DATA) as BudgetDetailPanelData;
+
+    const editButton: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="edit-line-1"]',
+    );
+    const deleteButton: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="delete-line-1"]',
+    );
+    const moreButton: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="detail-more-actions-line-1"]',
+    );
+
+    expect(editButton).not.toBeNull();
+    expect(deleteButton).not.toBeNull();
+    expect(moreButton).not.toBeNull();
+
+    editButton.click();
+    await fixture.whenStable();
+    expect(data.onEditBudgetLine).toHaveBeenCalledWith(data.item);
+
+    deleteButton.click();
+    await fixture.whenStable();
+    expect(data.onDeleteBudgetLine).toHaveBeenCalledWith('line-1');
+  });
+
+  it('should expose withdrawal realization with the forecast actions', async () => {
+    const fixture = await setup(
+      [],
+      { kind: 'income', sourceSavingsGoalId: 'goal-1' },
+      { sourceWithdrawalCtaKey: 'budgetLine.realizeWithdrawalBalance' },
+    );
+    const data = TestBed.inject(MAT_DIALOG_DATA) as BudgetDetailPanelData;
+    const forecastToolbar: HTMLElement = fixture.nativeElement.querySelector(
+      '[data-testid="detail-forecast-toolbar"]',
+    );
+    const movementsHeader: HTMLElement = fixture.nativeElement.querySelector(
+      '[data-testid="detail-movements-header"]',
+    );
+    const realizationButton: HTMLButtonElement = forecastToolbar.querySelector(
+      '[data-testid="detail-realize-withdrawal-line-1"]',
+    )!;
+
+    expect(realizationButton).not.toBeNull();
+    expect(
+      movementsHeader.querySelector('[data-testid^="detail-realize"]'),
+    ).toBeNull();
+    expect(
+      forecastToolbar.querySelector('[data-testid^="detail-more-actions-"]'),
+    ).toBeNull();
+    expect(
+      forecastToolbar.querySelector('[data-testid="delete-line-1"]'),
+    ).not.toBeNull();
+    realizationButton.click();
+    await fixture.whenStable();
+    expect(data.onRealizeWithdrawal).toHaveBeenCalledWith('line-1');
+  });
+
+  it('should expose the forecast pointing control separately from movements', async () => {
+    const fixture = await setup([]);
+    const data = TestBed.inject(MAT_DIALOG_DATA) as BudgetDetailPanelData;
+    const toggle: HTMLElement = fixture.nativeElement.querySelector(
+      '[data-testid="detail-toggle-check-line-1"]',
+    );
+
+    expect(toggle).not.toBeNull();
+    toggle.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+
+    expect(data.onToggleBudgetLineCheck).toHaveBeenCalledWith('line-1');
+  });
+});
+
 describe('BudgetDetailPanel transaction tags', () => {
   it('should resolve allocated transaction tags for its compact indicator', async () => {
     const fixture = await setup(['tag-assurance', 'tag-bureau']);
@@ -169,6 +253,34 @@ describe('BudgetDetailPanel transaction tags', () => {
       indicator.nativeElement.querySelector('span[aria-label]'),
     ).toBeNull();
     expect(indicator.nativeElement.querySelector('mat-icon')).toBeNull();
+  });
+});
+
+describe('BudgetDetailPanel forecast tags', () => {
+  it('should show the forecast tag indicator in the detail header', async () => {
+    const fixture = await setup([], {
+      tagIds: ['tag-assurance', 'tag-bureau'],
+    });
+    const indicator = fixture.debugElement.query(
+      By.css('[data-testid="detail-forecast-tags"]'),
+    );
+    const resolvedTagNames = fixture.componentInstance['tagNamesFor']([
+      'tag-assurance',
+      'tag-bureau',
+    ]);
+
+    expect(indicator).not.toBeNull();
+    setTestInput(
+      indicator.injector.get(TagIndicator).tagNames,
+      resolvedTagNames,
+    );
+    fixture.detectChanges();
+
+    const pill: HTMLSpanElement | null =
+      indicator.nativeElement.querySelector('span[aria-label]');
+    expect(pill?.textContent ?? '').toContain('2');
+    expect(pill?.getAttribute('aria-label') ?? '').toContain('Assurance');
+    expect(pill?.getAttribute('aria-label') ?? '').toContain('Bureau');
   });
 });
 

@@ -91,37 +91,85 @@ import {
   providers: [BudgetItemDataProvider],
   template: `
     <div class="flex flex-col gap-4">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <div>
+      <!-- Header and monthly checking status -->
+      <div
+        class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+      >
+        <div class="min-w-0 flex-1">
           <h2 class="text-title-large font-medium">
             {{ 'budget.envelopes' | transloco }}
           </h2>
-          <p class="text-body-medium text-on-surface-variant">
-            {{
-              'budget.forecastsThisMonth'
-                | transloco: { count: store.totalBudgetLinesCount() }
-            }}
-          </p>
-        </div>
-        <div class="flex shrink-0 items-center gap-1">
-          @if (allUserTags().length > 0) {
-            <button
-              matButton
-              (click)="openTagHistoryDialog()"
-              [attr.aria-label]="'tagHistory.openAriaLabel' | transloco"
-              data-testid="tag-history-open"
+
+          @if (store.checkedItemsCount() > 0) {
+            <p
+              class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-body-medium text-on-surface-variant"
+              data-testid="budget-items-checking-summary"
+              role="status"
+              aria-live="polite"
             >
-              <mat-icon>insights</mat-icon>
-              <span class="hidden sm:inline">{{
-                'tagHistory.open' | transloco
-              }}</span>
-            </button>
-          }
-          @if (!isMobile()) {
-            <pulpe-budget-view-toggle [(viewMode)]="viewMode" />
+              <span>
+                {{
+                  'budget.forecastsThisMonth'
+                    | transloco: { count: store.totalBudgetLinesCount() }
+                }}
+              </span>
+              <span aria-hidden="true">·</span>
+              @if (isAllChecked()) {
+                <span class="font-medium text-primary">
+                  {{ 'budget.allChecked' | transloco }}
+                </span>
+              } @else {
+                <span class="tabular-nums">
+                  {{
+                    'budget.checkedSummary'
+                      | transloco
+                        : {
+                            checked: store.checkedItemsCount(),
+                            total: store.totalItemsCount(),
+                          }
+                  }}
+                </span>
+              }
+              <span aria-hidden="true">·</span>
+              <span class="inline-flex items-center gap-1">
+                {{ 'budget.accountBalanceLabel' | transloco }}
+                <strong
+                  class="ph-no-capture font-medium tabular-nums text-on-surface"
+                >
+                  {{
+                    'budget.accountBalance'
+                      | transloco
+                        : {
+                            amount:
+                              (store.realizedBalance()
+                              | appCurrency: currency() : '1.0-0'),
+                          }
+                  }}
+                </strong>
+                <mat-icon
+                  [matTooltip]="'budget.estimatedBalanceTooltip' | transloco"
+                  matTooltipPosition="above"
+                  matTooltipTouchGestures="auto"
+                  [attr.aria-label]="'budget.estimatedBalanceInfo' | transloco"
+                  role="img"
+                  tabindex="0"
+                  class="mat-icon-sm shrink-0 cursor-help text-on-surface-variant/60"
+                  >info</mat-icon
+                >
+              </span>
+            </p>
+          } @else {
+            <p class="mt-1 text-body-medium text-on-surface-variant">
+              {{
+                'budget.forecastsThisMonth'
+                  | transloco: { count: store.totalBudgetLinesCount() }
+              }}
+            </p>
           }
         </div>
+        @if (!isMobile()) {
+          <pulpe-budget-view-toggle class="shrink-0" [(viewMode)]="viewMode" />
+        }
       </div>
 
       <!-- Search -->
@@ -131,140 +179,118 @@ import {
         (valueChange)="store.setSearchText($event)"
       />
 
-      <!-- Filter -->
-      <pulpe-budget-table-checked-filter
-        [isShowingOnlyUnchecked]="store.isShowingOnlyUnchecked()"
-        (isShowingOnlyUncheckedChange)="store.setIsShowingOnlyUnchecked($event)"
-      />
+      <!-- Filters and their related history action -->
+      <div
+        class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <pulpe-budget-table-checked-filter
+            [isShowingOnlyUnchecked]="store.isShowingOnlyUnchecked()"
+            (isShowingOnlyUncheckedChange)="
+              store.setIsShowingOnlyUnchecked($event)
+            "
+          />
 
-      <!-- Tag filter (PUL-18) — hidden when the budget has no tagged items -->
-      @if (availableTags().length > 0) {
-        <pulpe-budget-tag-filter
-          [tags]="availableTags()"
-          [selectedTagIds]="selectedTagIds()"
-          (selectedTagIdsChange)="selectedTagIds.set($event)"
-        />
-      }
-
-      <!-- Checking summary — progressive disclosure -->
-      @if (store.checkedItemsCount() > 0) {
-        <p
-          class="text-body-medium text-on-surface-variant flex items-center gap-1.5 -mt-1"
-          data-testid="budget-items-checking-summary"
-        >
-          @if (isAllChecked()) {
-            <mat-icon aria-hidden="true" class="text-primary text-base!"
-              >check_circle</mat-icon
-            >
-            <span>{{ 'budget.allChecked' | transloco }}</span>
-          } @else {
-            <span>{{
-              'budget.checkedSummary'
-                | transloco
-                  : {
-                      checked: store.checkedItemsCount(),
-                      total: store.totalItemsCount(),
-                    }
-            }}</span>
+          <!-- PUL-18 — hidden when the budget has no tagged items -->
+          @if (availableTags().length > 0) {
+            <pulpe-budget-tag-filter
+              [tags]="availableTags()"
+              [isMobile]="isMobile()"
+              [selectedTagIds]="selectedTagIds()"
+              (selectedTagIdsChange)="selectedTagIds.set($event)"
+            />
           }
-          <span class="text-on-surface-variant/50">·</span>
-          <span class="ph-no-capture">
-            {{
-              'budget.accountBalance'
-                | transloco
-                  : {
-                      amount:
-                        (store.realizedBalance()
-                        | appCurrency: currency() : '1.0-0'),
-                    }
-            }}
-          </span>
-          <mat-icon
-            [matTooltip]="'budget.estimatedBalanceTooltip' | transloco"
-            matTooltipPosition="above"
-            matTooltipTouchGestures="auto"
-            [attr.aria-label]="'budget.estimatedBalanceInfo' | transloco"
-            role="img"
-            tabindex="0"
-            class="text-on-surface-variant/50 text-base! cursor-help"
-            >info</mat-icon
-          >
-        </p>
-      }
+        </div>
 
-      <!-- Content -->
-      @if (budgetTableData().length === 0 && store.searchText()) {
-        <div
-          class="flex flex-col items-center gap-2 py-8 text-on-surface-variant"
-        >
-          <mat-icon class="!text-5xl !w-12 !h-12">search_off</mat-icon>
-          <p class="text-body-large">
-            {{ 'budget.noForecastFound' | transloco }}
-          </p>
-        </div>
-      } @else if (
-        budgetTableData().length === 0 &&
-        store.isShowingOnlyUnchecked() &&
-        store.totalBudgetLinesCount() > 0
-      ) {
-        <div class="text-center py-12 px-4">
-          <div
-            class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-container/30 flex items-center justify-center"
+        @if (allUserTags().length > 0) {
+          <button
+            matButton
+            class="self-start sm:self-auto"
+            (click)="openTagHistoryDialog()"
+            [attr.aria-label]="'tagHistory.openAriaLabel' | transloco"
+            data-testid="tag-history-open"
           >
-            <mat-icon class="text-primary shrink-0">check_circle</mat-icon>
+            <mat-icon>insights</mat-icon>
+            {{ 'tagHistory.open' | transloco }}
+          </button>
+        }
+      </div>
+
+      <div class="budget-items-view-transition">
+        <!-- Content -->
+        @if (budgetTableData().length === 0 && store.searchText()) {
+          <div
+            class="flex flex-col items-center gap-2 py-8 text-on-surface-variant"
+          >
+            <mat-icon class="!text-5xl !w-12 !h-12">search_off</mat-icon>
+            <p class="text-body-large">
+              {{ 'budget.noForecastFound' | transloco }}
+            </p>
           </div>
-          <p class="text-body-large text-on-surface mb-2">
-            {{ 'budget.allCheckedFilterEmpty' | transloco }}
-          </p>
-          <p class="text-body-medium text-on-surface-variant">
-            {{ 'budget.allCheckedFilterDescription' | transloco }}
-          </p>
-        </div>
-      } @else if (isMobile() || viewMode() === 'envelopes') {
-        <pulpe-budget-grid
-          [currency]="currency()"
-          [budgetLineItems]="budgetLineItems()"
-          [savingsGoalNameById]="store.savingsGoalNameById()"
-          [transactionItems]="transactionItems()"
-          [transactions]="store.filteredTransactions()"
-          [isMobile]="isMobile()"
-          [hasNextMonthBudget]="store.hasNextMonthBudget()"
-          [nextMonthLabel]="store.nextMonthLabel()"
-          (edit)="startEditBudgetLine($event)"
-          (delete)="handleDeleteItem($event)"
-          (deleteTransaction)="handleDeleteItem($event)"
-          (editTransaction)="handleEditAllocatedTransaction($event)"
-          (add)="openAddBudgetLineDialog()"
-          (addTransaction)="openCreateAllocatedTransactionDialog($event)"
-          (viewTransactions)="onViewTransactions($event)"
-          (spread)="handleSpreadBudgetLine($event)"
-          (spreadTransaction)="handleSpreadTransaction($event)"
-          (resetFromTemplate)="onResetFromTemplateClick($event)"
-          (postpone)="handlePostponeBudgetLine($event)"
-          (postponeTransaction)="handlePostponeTransaction($event)"
-          (toggleCheck)="handleToggleCheck($event)"
-          (realizeWithdrawal)="handleRealizeWithdrawal($event)"
-          (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
-        />
-      } @else {
-        <pulpe-budget-table
-          [tableData]="budgetTableData()"
-          [savingsGoalNameById]="store.savingsGoalNameById()"
-          [budgetPeriod]="budgetPeriod()"
-          (update)="handleUpdateBudgetLine($event)"
-          (delete)="handleDeleteItem($event)"
-          (add)="openAddBudgetLineDialog()"
-          (addTransaction)="openCreateAllocatedTransactionDialog($event)"
-          (viewTransactions)="onViewTransactions($event)"
-          (spread)="handleSpreadBudgetLine($event)"
-          (spreadTransaction)="handleSpreadTransaction($event)"
-          (resetFromTemplate)="handleResetFromTemplate($event)"
-          (postpone)="handlePostponeItem($event)"
-          (toggleCheck)="handleToggleCheck($event)"
-          (realizeWithdrawal)="handleRealizeWithdrawal($event)"
-          (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
-        />
-      }
+        } @else if (
+          budgetTableData().length === 0 &&
+          store.isShowingOnlyUnchecked() &&
+          store.totalBudgetLinesCount() > 0
+        ) {
+          <div class="text-center py-12 px-4">
+            <div
+              class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-container/30 flex items-center justify-center"
+            >
+              <mat-icon class="text-primary shrink-0">check_circle</mat-icon>
+            </div>
+            <p class="text-body-large text-on-surface mb-2">
+              {{ 'budget.allCheckedFilterEmpty' | transloco }}
+            </p>
+            <p class="text-body-medium text-on-surface-variant">
+              {{ 'budget.allCheckedFilterDescription' | transloco }}
+            </p>
+          </div>
+        } @else if (isMobile() || viewMode() === 'envelopes') {
+          <pulpe-budget-grid
+            [currency]="currency()"
+            [budgetLineItems]="budgetLineItems()"
+            [savingsGoalNameById]="store.savingsGoalNameById()"
+            [transactionItems]="transactionItems()"
+            [transactions]="store.filteredTransactions()"
+            [isMobile]="isMobile()"
+            [hasNextMonthBudget]="store.hasNextMonthBudget()"
+            [nextMonthLabel]="store.nextMonthLabel()"
+            (edit)="startEditBudgetLine($event)"
+            (delete)="handleDeleteItem($event)"
+            (deleteTransaction)="handleDeleteItem($event)"
+            (editTransaction)="handleEditAllocatedTransaction($event)"
+            (add)="openAddBudgetLineDialog()"
+            (addTransaction)="openCreateAllocatedTransactionDialog($event)"
+            (viewTransactions)="onViewTransactions($event)"
+            (spread)="handleSpreadBudgetLine($event)"
+            (spreadTransaction)="handleSpreadTransaction($event)"
+            (resetFromTemplate)="onResetFromTemplateClick($event)"
+            (postpone)="handlePostponeBudgetLine($event)"
+            (postponeTransaction)="handlePostponeTransaction($event)"
+            (toggleCheck)="handleToggleCheck($event)"
+            (realizeWithdrawal)="handleRealizeWithdrawal($event)"
+            (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
+          />
+        } @else {
+          <pulpe-budget-table
+            [tableData]="budgetTableData()"
+            [savingsGoalNameById]="store.savingsGoalNameById()"
+            [budgetPeriod]="budgetPeriod()"
+            (update)="handleUpdateBudgetLine($event)"
+            (delete)="handleDeleteItem($event)"
+            (add)="openAddBudgetLineDialog()"
+            (addTransaction)="openCreateAllocatedTransactionDialog($event)"
+            (viewTransactions)="onViewTransactions($event)"
+            (spread)="handleSpreadBudgetLine($event)"
+            (spreadTransaction)="handleSpreadTransaction($event)"
+            (resetFromTemplate)="handleResetFromTemplate($event)"
+            (postpone)="handlePostponeItem($event)"
+            (toggleCheck)="handleToggleCheck($event)"
+            (realizeWithdrawal)="handleRealizeWithdrawal($event)"
+            (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
+          />
+        }
+      </div>
 
       <!-- Footer -->
       @if (budgetTableData().length > 0) {
@@ -286,6 +312,24 @@ import {
   styles: `
     :host {
       display: block;
+    }
+
+    .budget-items-view-transition > pulpe-budget-grid,
+    .budget-items-view-transition > pulpe-budget-table {
+      animation: budget-view-reveal 120ms ease-out;
+    }
+
+    @keyframes budget-view-reveal {
+      from {
+        opacity: 0.82;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .budget-items-view-transition > pulpe-budget-grid,
+      .budget-items-view-transition > pulpe-budget-table {
+        animation: none;
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -986,27 +1030,27 @@ export class BudgetItemsContainer {
     const incomeLabel = this.#formatMonthName(incomeMonth);
     const savingLabel = this.#formatMonthName(savingMonth);
     const amount =
-      this.#currencyPipe.transform(line.amount, this.currency(), '1.2-2') ?? '';
+      this.#currencyPipe.transform(line.amount, this.currency(), '1.0-2') ?? '';
 
     const scope = await this.#dialogService.openLinkedDeleteChoice({
       title: this.#transloco.translate('budget.savingsWithdrawal.deleteTitle'),
       message: this.#transloco.translate(
         'budget.savingsWithdrawal.deleteMessage',
         {
-          plus: `+${amount}`,
-          minus: `−${amount}`,
+          amount,
           incomeMonth: incomeLabel,
           savingMonth: savingLabel,
         },
       ),
-      keepIncomeLabel: this.#transloco.translate(
-        'budget.savingsWithdrawal.deleteKeepIncome',
-        { month: incomeLabel },
+      deleteRepaymentLabel: this.#transloco.translate(
+        'budget.savingsWithdrawal.deleteRepayment',
       ),
-      deleteAllLabel: this.#transloco.translate(
-        'budget.savingsWithdrawal.deleteAll',
+      deletePairLabel: this.#transloco.translate(
+        'budget.savingsWithdrawal.deletePair',
       ),
-      cancelLabel: this.#transloco.translate('common.cancel'),
+      cancelLabel: this.#transloco.translate(
+        'budget.savingsWithdrawal.deleteCancel',
+      ),
     });
     if (!scope) return;
 

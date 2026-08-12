@@ -11,9 +11,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
-import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
+import type { SupportedCurrency } from 'pulpe-shared';
 import { CURRENCY_CONFIG } from '@core/currency';
 import type { BudgetLineTableItem } from '../view-models/table-items.view-model';
+import { BudgetLineActionList } from './budget-line-action-list';
 
 const BALANCE_FORMATTERS = new Map<string, Intl.NumberFormat>();
 
@@ -48,6 +49,7 @@ function getBalanceFormatter(
     MatTooltipModule,
     MatDividerModule,
     TranslocoPipe,
+    BudgetLineActionList,
   ],
   template: `
     <button
@@ -77,110 +79,15 @@ function getBalanceFormatter(
         </div>
       }
       <mat-divider />
-      @if (!item().data.sourceSavingsGoalId) {
-        <button
-          mat-menu-item
-          (click)="addTransaction.emit(item().data)"
-          [attr.data-testid]="'add-transaction-' + item().data.id"
-        >
-          <mat-icon matMenuItemIcon>add</mat-icon>
-          <span>{{ item().metadata.allocationLabel }}</span>
-        </button>
-      }
-      <button
-        mat-menu-item
-        (click)="edit.emit(item())"
-        [attr.data-testid]="'edit-' + item().data.id"
-      >
-        <mat-icon matMenuItemIcon>edit</mat-icon>
-        <span>{{ 'budget.modify' | transloco }}</span>
-      </button>
-      @if (item().metadata.canSpread) {
-        <button
-          mat-menu-item
-          (click)="spread.emit(item())"
-          [attr.data-testid]="'spread-' + item().data.id"
-        >
-          <mat-icon matMenuItemIcon>calendar_month</mat-icon>
-          <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
-        </button>
-      } @else if (showSpreadUnavailable()) {
-        <!-- Wrapper span carries the tooltip: a disabled button emits no pointer
-             events, so the tooltip must live on a non-disabled ancestor. -->
-        <span
-          class="block"
-          [matTooltip]="
-            'budgetLine.spread.spreadUnavailableRecurrent' | transloco
-          "
-          matTooltipPosition="above"
-        >
-          <button
-            mat-menu-item
-            disabled
-            [attr.data-testid]="'spread-disabled-' + item().data.id"
-          >
-            <mat-icon matMenuItemIcon>calendar_month</mat-icon>
-            <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
-          </button>
-        </span>
-      }
-      @if (item().metadata.canResetFromTemplate) {
-        <button
-          mat-menu-item
-          (click)="resetFromTemplate.emit(item())"
-          [attr.data-testid]="'reset-from-template-' + item().data.id"
-        >
-          <mat-icon matMenuItemIcon>refresh</mat-icon>
-          <span>{{ 'budget.reset' | transloco }}</span>
-        </button>
-      }
-      @if (item().metadata.showPostpone) {
-        <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons -->
-        <span
-          class="block w-full"
-          [matTooltip]="
-            item().metadata.postponeDisabledReason
-              ? (item().metadata.postponeDisabledReason
-                | transloco: { month: item().metadata.postponeTargetLabel })
-              : ''
-          "
-        >
-          <button
-            mat-menu-item
-            [disabled]="item().metadata.isPostponeDisabled"
-            (click)="postpone.emit(item().data.id)"
-            [attr.data-testid]="'postpone-' + item().data.id"
-          >
-            <mat-icon matMenuItemIcon>event_upcoming</mat-icon>
-            <span>{{ 'budget.postpone' | transloco }}</span>
-          </button>
-        </span>
-      } @else if (showPostponeUnavailableRecurrent()) {
-        <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons -->
-        <span
-          class="block w-full"
-          [matTooltip]="'budget.postponeUnavailableRecurrent' | transloco"
-          matTooltipPosition="above"
-        >
-          <button
-            mat-menu-item
-            disabled
-            [attr.data-testid]="'postpone-disabled-' + item().data.id"
-          >
-            <mat-icon matMenuItemIcon>event_upcoming</mat-icon>
-            <span>{{ 'budget.postpone' | transloco }}</span>
-          </button>
-        </span>
-      }
-      <button
-        mat-menu-item
-        (click)="delete.emit(item().data.id)"
-        [attr.data-testid]="'delete-' + item().data.id"
-        class="text-error"
-      >
-        <mat-icon matMenuItemIcon class="text-error">delete</mat-icon>
-        <span>{{ 'common.delete' | transloco }}</span>
-      </button>
+      <pulpe-budget-line-action-list
+        [item]="item()"
+        (edit)="edit.emit($event)"
+        (delete)="delete.emit($event)"
+        (addTransaction)="addTransaction.emit($event)"
+        (spread)="spread.emit($event)"
+        (resetFromTemplate)="resetFromTemplate.emit($event)"
+        (postpone)="postpone.emit($event)"
+      />
     </mat-menu>
   `,
   styles: `
@@ -199,34 +106,10 @@ export class BudgetActionMenu {
 
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
-  readonly addTransaction = output<BudgetLine>();
+  readonly addTransaction = output<BudgetLineTableItem['data']>();
   readonly spread = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();
-
-  // A recurrent (`fixed`) expense/saving is already laid down every month, so
-  // smoothing it would double-count. Rather than silently hiding the action and
-  // leaving the user wondering, we surface it disabled with an explanation.
-  // Income / already-spread / zero-amount lines stay hidden — "Lisser" there is
-  // noise, not a teachable absence.
-  protected readonly showSpreadUnavailable = computed(() => {
-    const { data, metadata } = this.item();
-    if (metadata.canSpread) return false;
-    return data.recurrence === 'fixed' && data.kind !== 'income';
-  });
-
-  // A recurrent (`fixed`) line is regenerated every month by its template, so
-  // postponing a single occurrence doesn't apply — but hiding the action
-  // outright leaves the user wondering where it went (same rationale as
-  // showSpreadUnavailable above). Income stays hidden too: the tooltip copy
-  // is expense-specific and recurring income has no "report" mental model.
-  // Other hidden cases (already has a transaction, spread occurrence) stay
-  // hidden — not a teachable absence.
-  protected readonly showPostponeUnavailableRecurrent = computed(() => {
-    const { data, metadata } = this.item();
-    if (metadata.showPostpone) return false;
-    return data.recurrence === 'fixed' && data.kind !== 'income';
-  });
 
   protected readonly formattedBalance = computed(() => {
     const balance = this.item().metadata.cumulativeBalance;

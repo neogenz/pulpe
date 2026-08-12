@@ -11,7 +11,7 @@ import {
 import { TranslocoPipe } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, type MatDialogConfig } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
@@ -20,6 +20,7 @@ import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { OriginalAmountLine } from '@ui/original-amount-line';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
+import { CheckRewardDirective } from '@ui/check-reward';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLine, Transaction, SupportedCurrency } from 'pulpe-shared';
 import type { TransactionViewModel } from '../../view-models/transaction.view-model';
@@ -63,6 +64,42 @@ export function groupByKind<T extends { data: { kind: string } }>(
   ];
 }
 
+type BudgetDetailPanelLayout = Pick<
+  MatDialogConfig,
+  | 'panelClass'
+  | 'position'
+  | 'height'
+  | 'width'
+  | 'minHeight'
+  | 'minWidth'
+  | 'maxHeight'
+  | 'maxWidth'
+>;
+
+export function budgetDetailPanelLayout(
+  isMobile: boolean,
+): BudgetDetailPanelLayout {
+  if (isMobile) {
+    return {
+      panelClass: 'full-screen-dialog',
+      height: '100dvh',
+      width: '100dvw',
+      minHeight: '100dvh',
+      minWidth: '100dvw',
+      maxHeight: '100dvh',
+      maxWidth: '100dvw',
+    };
+  }
+
+  return {
+    panelClass: 'side-sheet-panel',
+    position: { right: '0', top: '0' },
+    height: '100vh',
+    width: '480px',
+    maxWidth: '90vw',
+  };
+}
+
 /**
  * Grid view component displaying budget lines as cards.
  * Handles both desktop grid layout and mobile card list.
@@ -80,6 +117,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
     TranslocoPipe,
     BudgetGridCard,
     BudgetGridMobileCard,
+    CheckRewardDirective,
     BudgetGridSection,
     FinancialKindIndicator,
     FinancialKindDirective,
@@ -103,7 +141,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
             (edit)="edit.emit($event)"
             (delete)="delete.emit($event)"
             (addTransaction)="addTransaction.emit($event)"
-            (viewTransactions)="viewTransactions.emit($event)"
+            (viewTransactions)="openDetailPanel($event)"
             (spread)="spread.emit($event)"
             (resetFromTemplate)="resetFromTemplate.emit($event)"
             (postpone)="postpone.emit($event)"
@@ -239,7 +277,6 @@ export function groupByKind<T extends { data: { kind: string } }>(
             <pulpe-transaction-action-menu
               [transaction]="item.data"
               menuIcon="more_horiz"
-              buttonClass="!-mr-2 !-mt-1"
               [hasNextMonthBudget]="hasNextMonthBudget()"
               [nextMonthLabel]="nextMonthLabel()"
               (edit)="editTransaction.emit($event)"
@@ -293,6 +330,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
             </span>
             <mat-slide-toggle
               [checked]="!!item.data.checkedAt"
+              [pulpeCheckReward]="!!item.data.checkedAt"
               (change)="toggleTransactionCheck.emit(item.data.id)"
               (click)="$event.stopPropagation()"
               [attr.data-testid]="'toggle-check-tx-' + item.data.id"
@@ -301,7 +339,14 @@ export function groupByKind<T extends { data: { kind: string } }>(
                   ? ('budgetLine.removeCheck' | transloco)
                   : ('budgetLine.addCheck' | transloco)
               "
-            />
+            >
+              {{
+                (item.data.checkedAt
+                  ? 'budgetLine.checkedStatus'
+                  : 'budgetLine.uncheckedStatus'
+                ) | transloco
+              }}
+            </mat-slide-toggle>
           </div>
         </mat-card-content>
       </mat-card>
@@ -326,7 +371,6 @@ export function groupByKind<T extends { data: { kind: string } }>(
           </div>
           <pulpe-transaction-action-menu
             [transaction]="item.data"
-            buttonClass="!-mr-2 !-mt-1"
             [hasNextMonthBudget]="hasNextMonthBudget()"
             [nextMonthLabel]="nextMonthLabel()"
             (edit)="editTransaction.emit($event)"
@@ -379,6 +423,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
           </div>
           <mat-slide-toggle
             [checked]="!!item.data.checkedAt"
+            [pulpeCheckReward]="!!item.data.checkedAt"
             (change)="toggleTransactionCheck.emit(item.data.id)"
             (click)="$event.stopPropagation()"
             [attr.data-testid]="'toggle-check-tx-' + item.data.id"
@@ -387,7 +432,14 @@ export function groupByKind<T extends { data: { kind: string } }>(
                 ? ('budgetLine.removeCheck' | transloco)
                 : ('budgetLine.addCheck' | transloco)
             "
-          />
+          >
+            {{
+              (item.data.checkedAt
+                ? 'budgetLine.checkedStatus'
+                : 'budgetLine.uncheckedStatus'
+              ) | transloco
+            }}
+          </mat-slide-toggle>
         </div>
       </div>
     </ng-template>
@@ -453,6 +505,13 @@ export class BudgetGrid {
     const dialogData: BudgetDetailPanelData = {
       item,
       onAddTransaction: (budgetLine) => this.addTransaction.emit(budgetLine),
+      onEditBudgetLine: (line) => this.edit.emit(line),
+      onDeleteBudgetLine: (id) => this.delete.emit(id),
+      onSpreadBudgetLine: (line) => this.spread.emit(line),
+      onResetBudgetLine: (line) => this.resetFromTemplate.emit(line),
+      onPostponeBudgetLine: (id) => this.postpone.emit(id),
+      onToggleBudgetLineCheck: (id) => this.toggleCheck.emit(id),
+      onRealizeWithdrawal: (id) => this.realizeWithdrawal.emit(id),
       onDeleteTransaction: (id) => this.deleteTransaction.emit(id),
       onToggleTransactionCheck: (id) => this.toggleTransactionCheck.emit(id),
       onEditTransaction: (tx) => this.editTransaction.emit(tx),
@@ -461,11 +520,8 @@ export class BudgetGrid {
     this.#dialog.open(BudgetDetailPanel, {
       data: dialogData,
       viewContainerRef: this.#viewContainerRef,
-      panelClass: 'side-sheet-panel',
-      position: { right: '0', top: '0' },
-      height: '100vh',
-      width: '480px',
-      maxWidth: '90vw',
+      ...budgetDetailPanelLayout(this.isMobile()),
+      ariaLabelledBy: 'budget-detail-title',
       autoFocus: false,
       closeOnNavigation: true,
     });

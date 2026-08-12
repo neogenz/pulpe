@@ -251,13 +251,13 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
     });
   });
 
-  describe('shouldShowSavingsWithdrawalCard', () => {
-    it('shows the card on a current/future month in deficit', () => {
+  describe('shouldShowSavingsWithdrawalAction', () => {
+    it('shows the action on a current/future month in deficit', () => {
       expect(store.savingsWithdrawalDeficit()).toBe(1000);
-      expect(store.shouldShowSavingsWithdrawalCard()).toBe(true);
+      expect(store.shouldShowSavingsWithdrawalAction()).toBe(true);
     });
 
-    it('shows the card again when a pioche exists and the month is back in deficit', async () => {
+    it('shows the action again when a pioche exists and the month is back in deficit', async () => {
       const detailsWithExistingWithdrawal = createMockBudgetDetailsResponse({
         budget: { id: mockBudgetId, month: 6, year: 2099 },
         budgetLines: [
@@ -283,21 +283,15 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
       await reloadWith(detailsWithExistingWithdrawal);
 
       expect(store.savingsWithdrawalDeficit()).toBe(500);
-      expect(store.shouldShowSavingsWithdrawalCard()).toBe(true);
+      expect(store.shouldShowSavingsWithdrawalAction()).toBe(true);
     });
 
-    it('hides the card when the deficit rounds away to nothing to pre-fill', async () => {
+    it('hides the action when the deficit rounds away to nothing to pre-fill', async () => {
       // remaining = -0.2999999999999545 — a month balanced to the cent
       await reloadWith(detailsWithDeficitFrom(1000, 1000.3));
 
       expect(store.savingsWithdrawalDeficit()).toBe(0);
-      expect(store.shouldShowSavingsWithdrawalCard()).toBe(false);
-    });
-
-    it('hides the card once dismissed for that budget', () => {
-      store.dismissSavingsWithdrawalCard(mockBudgetId);
-
-      expect(store.shouldShowSavingsWithdrawalCard()).toBe(false);
+      expect(store.shouldShowSavingsWithdrawalAction()).toBe(false);
     });
   });
 });

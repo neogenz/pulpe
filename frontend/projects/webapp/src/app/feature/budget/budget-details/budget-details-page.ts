@@ -21,7 +21,6 @@ import { formatDate } from 'date-fns';
 import { dateFnsLocaleFor } from '@core/locale';
 import { BaseLoading } from '@ui/loading';
 import { BudgetFinancialOverview } from '@ui/budget-financial-overview/budget-financial-overview';
-import { SavingsWithdrawalCard } from '@ui/savings-withdrawal-card';
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetItemsContainer } from './components/budget-items-container';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
@@ -45,7 +44,6 @@ import { CURRENCY_CONFIG } from '@core/currency';
     TranslocoPipe,
     BudgetItemsContainer,
     BudgetFinancialOverview,
-    SavingsWithdrawalCard,
     BaseLoading,
   ],
   providers: [BudgetDetailsStore, BudgetDetailsDialogService],
@@ -237,12 +235,6 @@ export default class BudgetDetailsPage {
     const budget = this.store.budgetDetails();
     if (!budget) return;
     await this.#openSavingsWithdrawalFlow(budget);
-  }
-
-  protected dismissSavingsWithdrawalCard(): void {
-    const budget = this.store.budgetDetails();
-    if (!budget) return;
-    this.store.dismissSavingsWithdrawalCard(budget.id);
   }
 
   async #openSavingsWithdrawalFlow(

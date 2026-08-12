@@ -13,6 +13,7 @@ import {
 } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -34,15 +35,24 @@ import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
 import { TagIndicator } from '@ui/tag-indicator';
+import { CheckRewardDirective } from '@ui/check-reward';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { createBudgetLineConsumptionDisplay } from '../../view-models/budget-item-data-builder';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
 import { BudgetDetailsStore } from '../../store/budget-details-store';
+import { BudgetLineActionList } from '../budget-line-action-list';
 
 export interface BudgetDetailPanelData {
   item: BudgetLineTableItem;
   onAddTransaction: (budgetLine: BudgetLine) => void;
+  onEditBudgetLine: (item: BudgetLineTableItem) => void;
+  onDeleteBudgetLine: (id: string) => void;
+  onSpreadBudgetLine: (item: BudgetLineTableItem) => void;
+  onResetBudgetLine: (item: BudgetLineTableItem) => void;
+  onPostponeBudgetLine: (id: string) => void;
+  onToggleBudgetLineCheck: (id: string) => void;
+  onRealizeWithdrawal: (id: string) => void;
   onDeleteTransaction: (id: string) => void;
   onToggleTransactionCheck: (id: string) => void;
   onEditTransaction: (transaction: Transaction) => void;
@@ -51,7 +61,8 @@ export interface BudgetDetailPanelData {
 const DETAIL_SEGMENT_COUNT = 12;
 
 /**
- * Side panel showing envelope details and allocated transactions
+ * Responsive dialog showing forecast details and allocated transactions.
+ * It is a side sheet on desktop and a full-screen dialog on mobile.
  *
  * Visual structure:
  * ┌────────────────────────────────────┐
@@ -75,6 +86,7 @@ const DETAIL_SEGMENT_COUNT = 12;
     MatDialogModule,
     MatIconModule,
     MatDividerModule,
+    MatMenuModule,
     MatProgressSpinnerModule,
     MatSlideToggleModule,
     MatTooltipModule,
@@ -90,22 +102,33 @@ const DETAIL_SEGMENT_COUNT = 12;
     SpreadOccurrencesList,
     TagIndicator,
     SavingsGoalSourceLine,
+    BudgetLineActionList,
+    CheckRewardDirective,
   ],
   template: `
     @let envelope = envelopeItem();
-    <div class="h-full flex flex-col bg-surface">
+    <div class="budget-detail-shell h-full flex flex-col bg-surface">
       <!-- Header -->
-      <div class="p-5 border-b border-outline-variant">
+      <div class="p-4 border-b border-outline-variant sm:p-5">
         <div class="flex items-start justify-between">
           <div class="flex items-center gap-3 min-w-0 flex-1">
             <pulpe-financial-kind-indicator [kind]="envelope.data.kind" />
             <div class="min-w-0">
-              <h2 class="text-title-large font-semibold truncate ph-no-capture">
+              <h2
+                id="budget-detail-title"
+                class="text-title-large font-semibold truncate ph-no-capture"
+              >
                 {{ envelope.data.name }}
               </h2>
-              <span class="text-label-medium text-on-surface-variant">
-                {{ envelope.data.kind | transactionLabel }}
-              </span>
+              <div class="mt-0.5 flex items-center gap-2">
+                <span class="text-label-medium text-on-surface-variant">
+                  {{ envelope.data.kind | transactionLabel }}
+                </span>
+                <pulpe-tag-indicator
+                  [tagNames]="tagNamesFor(envelope.data.tagIds)"
+                  data-testid="detail-forecast-tags"
+                />
+              </div>
               @if (linkedGoal(); as goal) {
                 <div class="mt-1">
                   <button
@@ -148,6 +171,98 @@ const DETAIL_SEGMENT_COUNT = 12;
           >
             <mat-icon>close</mat-icon>
           </button>
+        </div>
+
+        <div
+          class="detail-forecast-toolbar mt-3"
+          data-testid="detail-forecast-toolbar"
+        >
+          @if (envelope.metadata.sourceWithdrawalCtaKey; as ctaKey) {
+            <button
+              matButton="filled"
+              class="w-full min-w-0 sm:w-auto"
+              (click)="onRealizeWithdrawal()"
+              [attr.data-testid]="
+                'detail-realize-withdrawal-' + envelope.data.id
+              "
+            >
+              <mat-icon>add</mat-icon>
+              <span class="truncate">{{ ctaKey | transloco }}</span>
+            </button>
+          } @else if (!envelope.data.sourceSavingsGoalId) {
+            <mat-slide-toggle
+              class="detail-pointing-toggle"
+              labelPosition="before"
+              [checked]="!!envelope.data.checkedAt"
+              [pulpeCheckReward]="!!envelope.data.checkedAt"
+              (change)="onToggleBudgetLineCheck()"
+              [attr.data-testid]="'detail-toggle-check-' + envelope.data.id"
+              [attr.aria-label]="
+                envelope.data.checkedAt
+                  ? ('budgetLine.uncheckLabel'
+                    | transloco: { name: envelope.data.name })
+                  : ('budgetLine.checkLabel'
+                    | transloco: { name: envelope.data.name })
+              "
+            >
+              <span class="text-label-large font-medium">
+                {{
+                  (envelope.data.checkedAt
+                    ? 'budgetLine.checkedStatus'
+                    : 'budgetLine.uncheckedStatus'
+                  ) | transloco
+                }}
+              </span>
+            </mat-slide-toggle>
+          }
+
+          <div class="detail-forecast-actions">
+            <button
+              matButton
+              (click)="onEditBudgetLine(envelope)"
+              [attr.data-testid]="'edit-' + envelope.data.id"
+            >
+              <mat-icon>edit</mat-icon>
+              {{ 'budget.modify' | transloco }}
+            </button>
+
+            <button
+              matIconButton
+              class="shrink-0 text-financial-critical"
+              (click)="onDeleteBudgetLine(envelope.data.id)"
+              [matTooltip]="'common.delete' | transloco"
+              [attr.aria-label]="
+                'budgetLine.deleteAriaLabel'
+                  | transloco: { name: envelope.data.name }
+              "
+              [attr.data-testid]="'delete-' + envelope.data.id"
+            >
+              <mat-icon class="text-financial-critical">delete</mat-icon>
+            </button>
+
+            @if (hasMoreBudgetLineActions()) {
+              <button
+                matIconButton
+                class="shrink-0"
+                [matMenuTriggerFor]="forecastMoreMenu"
+                [attr.aria-label]="'common.more' | transloco"
+                [attr.data-testid]="'detail-more-actions-' + envelope.data.id"
+              >
+                <mat-icon>more_horiz</mat-icon>
+              </button>
+              <mat-menu #forecastMoreMenu="matMenu" xPosition="before">
+                <pulpe-budget-line-action-list
+                  [item]="envelope"
+                  [showAddTransaction]="false"
+                  [showEdit]="false"
+                  [showDelete]="false"
+                  (spread)="onSpreadBudgetLine($event)"
+                  (resetFromTemplate)="onResetBudgetLine($event)"
+                  (postpone)="onPostponeBudgetLine($event)"
+                />
+              </mat-menu>
+            }
+          </div>
         </div>
       </div>
 
@@ -246,7 +361,10 @@ const DETAIL_SEGMENT_COUNT = 12;
       <!-- Transactions Section -->
       <div class="flex-1 overflow-y-auto">
         <div class="p-5">
-          <div class="flex items-center justify-between mb-4">
+          <div
+            class="flex items-center justify-between mb-4"
+            data-testid="detail-movements-header"
+          >
             <h3 class="text-title-medium font-semibold">
               {{ 'budget.transactions' | transloco }}
               @if (allocatedTransactions().length > 0) {
@@ -255,17 +373,19 @@ const DETAIL_SEGMENT_COUNT = 12;
                 </span>
               }
             </h3>
-            <button
-              matButton
-              (click)="onAddTransaction()"
-              class="!rounded-full"
-              [attr.aria-label]="
-                'budgetLine.addTransactionAriaLabel' | transloco
-              "
-            >
-              <mat-icon>add</mat-icon>
-              {{ 'common.add' | transloco }}
-            </button>
+            @if (!envelope.data.sourceSavingsGoalId) {
+              <button
+                matButton
+                (click)="onAddTransaction()"
+                class="!rounded-full"
+                [attr.aria-label]="
+                  'budgetLine.addTransactionAriaLabel' | transloco
+                "
+              >
+                <mat-icon>add</mat-icon>
+                {{ 'common.add' | transloco }}
+              </button>
+            }
           </div>
 
           @if (allocatedTransactions().length === 0) {
@@ -321,6 +441,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                   <div class="flex items-center gap-1">
                     <mat-slide-toggle
                       [checked]="!!tx.checkedAt"
+                      [pulpeCheckReward]="!!tx.checkedAt"
                       (change)="onToggleCheck(tx.id)"
                       (click)="$event.stopPropagation()"
                       [attr.data-testid]="'toggle-tx-check-' + tx.id"
@@ -405,6 +526,43 @@ const DETAIL_SEGMENT_COUNT = 12;
       display: block;
       height: 100%;
     }
+
+    .detail-forecast-toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .detail-pointing-toggle {
+      justify-self: start;
+    }
+
+    .detail-forecast-actions {
+      display: flex;
+      grid-column: 2;
+      align-items: center;
+      gap: 0.25rem;
+      justify-self: end;
+    }
+
+    @media (max-width: 359px) {
+      .detail-forecast-toolbar {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .detail-forecast-actions {
+        grid-column: 1;
+        justify-self: start;
+      }
+    }
+
+    @media (max-width: 639px) {
+      .budget-detail-shell {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -457,6 +615,16 @@ export class BudgetDetailPanel {
     };
   });
 
+  protected readonly hasMoreBudgetLineActions = computed(() => {
+    const { data, metadata } = this.envelopeItem();
+    return !!(
+      metadata.canSpread ||
+      metadata.canResetFromTemplate ||
+      metadata.showPostpone ||
+      (data.recurrence === 'fixed' && data.kind !== 'income')
+    );
+  });
+
   /**
    * Computed signal that reactively filters transactions for the current budget line.
    * Updates automatically when the store's transactions change (e.g., after adding a transaction).
@@ -502,8 +670,45 @@ export class BudgetDetailPanel {
     this.#router.navigate(['/', ROUTES.SAVINGS_GOALS, goalId]);
   }
 
-  protected onAddTransaction(): void {
-    this.data.onAddTransaction(this.data.item.data);
+  protected onAddTransaction(
+    budgetLine: BudgetLine = this.envelopeItem().data,
+  ): void {
+    this.#dialogRef.close();
+    this.data.onAddTransaction(budgetLine);
+  }
+
+  protected onEditBudgetLine(item: BudgetLineTableItem): void {
+    this.#dialogRef.close();
+    this.data.onEditBudgetLine(item);
+  }
+
+  protected onDeleteBudgetLine(id: string): void {
+    this.#dialogRef.close();
+    this.data.onDeleteBudgetLine(id);
+  }
+
+  protected onSpreadBudgetLine(item: BudgetLineTableItem): void {
+    this.#dialogRef.close();
+    this.data.onSpreadBudgetLine(item);
+  }
+
+  protected onResetBudgetLine(item: BudgetLineTableItem): void {
+    this.#dialogRef.close();
+    this.data.onResetBudgetLine(item);
+  }
+
+  protected onPostponeBudgetLine(id: string): void {
+    this.#dialogRef.close();
+    this.data.onPostponeBudgetLine(id);
+  }
+
+  protected onToggleBudgetLineCheck(): void {
+    this.data.onToggleBudgetLineCheck(this.envelopeItem().data.id);
+  }
+
+  protected onRealizeWithdrawal(): void {
+    this.#dialogRef.close();
+    this.data.onRealizeWithdrawal(this.envelopeItem().data.id);
   }
 
   protected onDeleteTransaction(id: string): void {

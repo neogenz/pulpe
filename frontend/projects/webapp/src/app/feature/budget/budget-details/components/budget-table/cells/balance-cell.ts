@@ -17,7 +17,7 @@ import type {
   selector: 'pulpe-balance-cell',
   imports: [AppCurrencyPipe, MatIconModule],
   template: `
-    <div class="inline-flex items-center gap-1">
+    <div class="inline-flex h-8 items-center gap-1">
       <mat-icon
         class="text-sm! w-4! h-4!"
         [class.text-financial-income]="line().data.kind === 'income'"
