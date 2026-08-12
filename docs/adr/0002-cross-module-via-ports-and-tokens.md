@@ -14,7 +14,7 @@ We also want DI to be the only mechanism that wires modules — so test setups, 
 
 Modules expose Symbol tokens + TypeScript interface (a "port") in their `domain/ports/` folder. Consuming modules import only the token + interface and inject through `@Inject(TOKEN)`. Direct imports of another module's `*.service.ts` or `*.repository.ts` from outside that module are forbidden by `dependency-cruiser` (warn level, will tighten).
 
-Active ports:
+Ports present when this ADR was accepted:
 
 | Token | Owner module |
 |-------|--------------|

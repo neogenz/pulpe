@@ -1,6 +1,6 @@
 # Backend Architecture
 
-The backend follows a 3-layer Clean Architecture per module: `domain`, `application`, `infrastructure`. The dependency rule flows in one direction only: `infrastructure -> application -> domain`. The why behind every decision lives in [ADRs](./adr/README.md).
+The backend follows a 3-layer Clean Architecture per module: `domain`, `application`, `infrastructure`. The dependency rule flows in one direction only: `infrastructure -> application -> domain`. The why behind every decision lives in [ADRs](../../docs/adr/README.md).
 
 ## Layers at a glance
 
@@ -26,7 +26,7 @@ The backend follows a 3-layer Clean Architecture per module: `domain`, `applicat
 └──────────────────────────────────────────────────────────┘
 ```
 
-Cross-module: modules talk to each other only through ports + Symbol tokens, never via direct service imports. See [ADR-0002](./adr/0002-cross-module-via-ports-and-tokens.md).
+Cross-module: modules talk to each other only through ports + Symbol tokens, never via direct service imports. See [ADR-0002](../../docs/adr/0002-cross-module-via-ports-and-tokens.md).
 
 ## Folder layout per module
 
@@ -63,13 +63,13 @@ backend-nest/src/modules/<domain>/
 | `application/` | Use cases | `domain/`, `src/common/`, ports of OTHER modules | own `infrastructure/`, other modules' `infrastructure/` |
 | `infrastructure/` | Controllers, repositories, mappers, RPC Zod schemas | All layers + frameworks | n/a |
 
-The single permanent exception: `encryption/application/*` may import `encryption/infrastructure/crypto/*`. Reason: the encryption module IS the crypto layer; primitives are intentionally not on the public `ENCRYPTION_PORT`. See [ADR-0008](./adr/0008-encryption-service-decomposition.md).
+The single permanent exception: `encryption/application/*` may import `encryption/infrastructure/crypto/*`. Reason: the encryption module IS the crypto layer; primitives are intentionally not on the public `ENCRYPTION_PORT`. See [ADR-0008](../../docs/adr/0008-encryption-service-decomposition.md).
 
-Enforcement is double: ESLint `boundaries` (fast, IDE) and `dependency-cruiser` (transitive, CI). See [ADR-0009](./adr/0009-dependency-cruiser-and-eslint-boundaries.md).
+Enforcement is double: ESLint `boundaries` (fast, IDE) and `dependency-cruiser` (transitive, CI). See [ADR-0009](../../docs/adr/0009-dependency-cruiser-and-eslint-boundaries.md).
 
 ## Use case pattern
 
-One `@Injectable` class per file, with a single `execute()` method. See [ADR-0003](./adr/0003-use-case-single-execute-method.md).
+One `@Injectable` class per file, with a single `execute()` method. See [ADR-0003](../../docs/adr/0003-use-case-single-execute-method.md).
 
 ```typescript
 @Injectable()
@@ -93,7 +93,7 @@ export class CreateBudgetLineUseCase {
 }
 ```
 
-Use cases work with plain numbers; repositories own the encryption boundary. See [ADR-0004](./adr/0004-repos-return-decrypted-entities.md).
+Use cases work with plain numbers; repositories own the encryption boundary. See [ADR-0004](../../docs/adr/0004-repos-return-decrypted-entities.md).
 
 ## Port + token pattern
 
@@ -130,7 +130,7 @@ Every class using `@InjectInfoLogger` MUST have a matching `createInfoLoggerProv
 export class BudgetLineModule {}
 ```
 
-The authenticated Supabase client is read lazily from CLS by `AuthenticatedSupabaseProvider` (set by `AuthGuard`). Use cases never inject the client. See [ADR-0006](./adr/0006-cls-authenticated-supabase-provider.md).
+The authenticated Supabase client is read lazily from CLS by `AuthenticatedSupabaseProvider` (set by `AuthGuard`). Use cases never inject the client. See [ADR-0006](../../docs/adr/0006-cls-authenticated-supabase-provider.md).
 
 ## How to add a new module
 
@@ -138,9 +138,9 @@ The authenticated Supabase client is read lazily from CLS by `AuthenticatedSupab
 2. Define entities + invariants in `domain/` (pure TS, no framework imports).
 3. Define repository port + Symbol token in `domain/ports/`.
 4. Implement the repository in `infrastructure/persistence/`. If it touches encrypted columns, inject `ENCRYPTION_PORT` and decrypt before returning entities.
-5. Write use cases in `application/` (one verb per file, single `execute()`). Throw `BusinessException` with `ERROR_DEFINITIONS` on invariant failures. See [ADR-0005](./adr/0005-error-handling-business-exception.md).
+5. Write use cases in `application/` (one verb per file, single `execute()`). Throw `BusinessException` with `ERROR_DEFINITIONS` on invariant failures. See [ADR-0005](../../docs/adr/0005-error-handling-business-exception.md).
 6. Add controller(s) in `infrastructure/http/`. Use `createZodDto()` from shared schemas for request DTOs. Map entities to API DTOs with mappers in `infrastructure/mappers/`.
-7. If a controller calls an RPC with JSONB ciphertexts, add a strict Zod schema in `infrastructure/persistence/schemas/`. See [ADR-0007](./adr/0007-zod-rpc-payload-schemas.md).
+7. If a controller calls an RPC with JSONB ciphertexts, add a strict Zod schema in `infrastructure/persistence/schemas/`. See [ADR-0007](../../docs/adr/0007-zod-rpc-payload-schemas.md).
 8. Wire the module: import `ClsModule`, register use cases, repository binding, `createInfoLoggerProvider` for every `@InjectInfoLogger` consumer, export ports that other modules need.
 9. Run `bun run quality` and `bun run lint:arch`. Both must pass.
 
@@ -160,4 +160,4 @@ backend-nest/src/common/
 
 ## ADR index
 
-Decisions and trade-offs live in [`backend-nest/docs/adr/`](./adr/README.md). Read those when changing architecture, not the rules.
+Decisions and trade-offs live in [`docs/adr/`](../../docs/adr/README.md). Read those when changing architecture, not the rules.

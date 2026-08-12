@@ -58,4 +58,5 @@ Do not extend the doctrine. A **new** formula belongs server-side unless it must
 ## Reference
 
 - Business source of truth: `docs/SAVINGS.md`, `docs/SPREAD.md`
+- Decision rationale: `docs/adr/0016-mirror-interactive-formulas-typescript-swift.md`
 - Header comments naming each pair: the four Swift files above

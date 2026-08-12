@@ -37,6 +37,9 @@ const NoopIntersectionObserver = class {
 globalThis.IntersectionObserver = NoopIntersectionObserver;
 window.IntersectionObserver = NoopIntersectionObserver;
 
+// jsdom does not implement scrolling; focus-management specs only need the call to succeed.
+HTMLElement.prototype.scrollIntoView = () => undefined;
+
 // Provide stable in-memory Storage for tests (Vitest/JSDOM storage can be flaky and
 // some tests may monkeypatch methods).
 function createMemoryStorage(): Storage {

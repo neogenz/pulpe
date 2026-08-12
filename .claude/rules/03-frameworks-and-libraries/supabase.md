@@ -115,28 +115,19 @@ bun run supabase:reset                     # LOCAL ONLY — reset + re-encrypt t
 6. Test locally with `bun run supabase:reset` (never bare `supabase db reset` — it leaves a plaintext seed, every amount reads 0)
 7. Regenerate types: `bun run generate-types:local`
 
-## Database Tables
+## Database Schema
 
-| Table | Purpose | RLS |
-|-------|---------|-----|
-| `auth.users` | Managed by Supabase Auth | N/A |
-| `monthly_budget` | User budgets by month/year | user_id isolation |
-| `transaction` | Financial transactions | user_id isolation |
-| `template` | User-owned budget templates | user_id isolation |
-| `template_line` | Template items | parent template access |
-| `user_encryption_key` | Encryption salt + wrapped DEK | service_role only |
+`backend-nest/src/types/database.types.ts` is the canonical table and RPC inventory. Read
+`backend-nest/docs/DATABASE.md` for access patterns and privileged repository exceptions; do not
+copy table lists into rules.
 
 ## SECURITY DEFINER Functions
 
-For atomic ops crossing RLS boundaries:
-
-```sql
-CREATE OR REPLACE FUNCTION create_budget_with_transactions(...)
-RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER
-SET search_path TO 'public'
-AS $$ ... $$;
-```
+Prefer invoker rights plus RLS. When an atomic operation requires a privileged boundary, use
+`SECURITY DEFINER` with explicit authorization checks, an empty `search_path`, schema-qualified
+objects, and least-privilege grants. Follow ADR-0013 and a current hardened migration such as
+`backend-nest/supabase/migrations/20260808170000_harden_savings_goal_plan_concurrency_and_rekey.sql`;
+do not copy privileged function bodies from prose examples.
 
 Call from NestJS: `await supabase.rpc('function_name', { ...params })`
 

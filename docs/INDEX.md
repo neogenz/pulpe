@@ -24,7 +24,7 @@ vivent dans `aidd_docs/tasks/`.
 ## Architecture
 
 - [Architecture backend](../backend-nest/docs/ARCHITECTURE.md) et
-  [ADRs](../backend-nest/docs/adr/README.md).
+  [ADRs](adr/README.md).
 - [Base de données](../backend-nest/docs/DATABASE.md).
 - [Logging backend](../backend-nest/docs/LOGGING.md).
 - [Cache SWR Angular](angular-cache-swr-pattern.md).

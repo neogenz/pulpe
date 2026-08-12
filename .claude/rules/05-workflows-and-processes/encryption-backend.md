@@ -39,6 +39,7 @@ DEK is never stored — recalculated per request (with 5-min memory cache).
 | `template_line` | `amount`, `original_amount` |
 | `savings_goal` | `target_amount`, `initial_amount`, `original_target_amount` |
 | `monthly_budget` | `ending_balance` |
+| `savings_goal_plan_withdrawal` | `amount` |
 
 `original_amount` / `original_target_amount` hold the multi-currency source amount; `exchange_rate`
 sits next to them as plaintext `NUMERIC(18,8)`, so the two ciphertexts are mathematically linked.
@@ -67,11 +68,11 @@ base64(IV[12 bytes] || authTag[16 bytes] || ciphertext)
 | `encryption/application/*.use-case.ts` | 8 use cases per high-level flow (validate-user-key, setup-recovery-key, regenerate-recovery-key, verify-recovery-key, recover-with-recovery-key, change-pin, get-vault-status, get-user-salt) |
 | `client-key-cleanup.interceptor.ts` | Wipes clientKey from memory after request (`buffer.fill(0)`) |
 
-See [ADR-0008](../../../backend-nest/docs/adr/0008-encryption-service-decomposition.md) for the decomposition rationale.
+See [ADR-0008](../../../docs/adr/0008-encryption-service-decomposition.md) for the decomposition rationale.
 
 ## Patterns
 
-Repositories own the encryption boundary post-Tier-3. Use cases work with plain numbers and never inject `ENCRYPTION_PORT` for read paths. See [ADR-0004](../../../backend-nest/docs/adr/0004-repos-return-decrypted-entities.md).
+Repositories own the encryption boundary post-Tier-3. Use cases work with plain numbers and never inject `ENCRYPTION_PORT` for read paths. See [ADR-0004](../../../docs/adr/0004-repos-return-decrypted-entities.md).
 
 ### Reading encrypted data (inside the repository)
 
@@ -124,5 +125,5 @@ async execute(input: BudgetLineCreate, user: AuthenticatedUser): Promise<BudgetL
 - **Never** store DEK — always derive from clientKey + masterKey + salt
 - **Always** use `{ cause: error }` when catching encryption errors
 - **Always** wipe clientKey from memory after use (`buffer.fill(0)`)
-- `user_encryption_key` table: `anon` fully revoked. Since migration `20260212100000`, RLS lets an owner SELECT/UPDATE their **own row** — what keeps `salt` and `wrapped_dek` service_role-only is the column-level GRANT: `authenticated` holds SELECT on `user_id` and UPDATE on `key_check`/`updated_at`, nothing else. INSERT is service_role only, and no DELETE policy exists
+- `user_encryption_key` table: `authenticated` and `anon` are fully revoked. Since migration `20260804130000`, all table access and rekey entry points use the explicit `service_role` repository path. Never restore grants to unblock a flow; see `docs/ENCRYPTION.md`
 - Rate limiting: `/validate-key` (5/min), `/recover` (5/hour)

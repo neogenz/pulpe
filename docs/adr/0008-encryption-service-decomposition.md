@@ -45,5 +45,5 @@ A permanent single carve-out exists in `.dependency-cruiser.cjs`: the encryption
 - `backend-nest/src/modules/encryption/application/` — 8 use cases
 - `backend-nest/src/modules/encryption/domain/ports/encryption.port.ts`
 - `backend-nest/.dependency-cruiser.cjs` — permanent carve-out
-- `backend-nest/docs/ENCRYPTION.md` — full crypto architecture
+- `docs/ENCRYPTION.md` — full crypto architecture
 - ADR-0001, ADR-0009

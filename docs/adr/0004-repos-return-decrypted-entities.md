@@ -44,7 +44,7 @@ Use cases inject only the repository port; they no longer inject `ENCRYPTION_POR
 
 - Keep encryption in use cases: rejected — that's the smell we removed.
 - A separate "decryption service" called by use cases: rejected — same scattering, different name.
-- Database-level encryption (pgsodium, Supabase Vault): not viable for this product. The DEK is derived from a user-supplied PIN that the server never holds in cleartext storage. See `backend-nest/docs/ENCRYPTION.md` and ADR-0008.
+- Database-level encryption (pgsodium, Supabase Vault): not viable for this product. The DEK is derived from a user-supplied PIN that the server never holds in cleartext storage. See `docs/ENCRYPTION.md` and ADR-0008.
 
 ## References
 

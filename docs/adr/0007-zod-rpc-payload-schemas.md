@@ -21,7 +21,7 @@ Every RPC whose payload includes JSONB containing ciphertexts MUST validate the 
 
 Use cases never import these schemas. They are an internal repository concern: the repo validates outbound payload, calls the RPC, returns the result.
 
-Active uses:
+Uses present when this ADR was accepted:
 
 - `create_template_with_lines` (`backend-nest/src/modules/budget-template/infrastructure/persistence/schemas/`)
 - `apply_template_line_operations` (same location)

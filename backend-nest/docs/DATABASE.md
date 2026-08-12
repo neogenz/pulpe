@@ -18,12 +18,14 @@ that introduced the field.
 
 - RLS isolates user-owned rows. Parent-owned tables such as join tables use relational
   ownership checks.
-- Multi-row writes and invariants use PostgreSQL functions when they must be atomic.
+- Multi-row writes and invariants use PostgreSQL functions when they must be atomic. See
+  [ADR-0013](../../docs/adr/0013-postgresql-rpcs-for-atomic-writes.md).
 - HTTP wire schemas live in `pulpe-shared`; persistence-only RPC payload schemas stay next
   to their repositories.
 - User-data repositories use the authenticated Supabase provider from CLS by default.
   Encryption-key and account-deletion infrastructure use the service-role client for explicit
-  privileged operations; the user repository uses both where its contract requires it.
+  privileged operations; the user repository uses both where its contract requires it. See
+  [ADR-0014](../../docs/adr/0014-service-role-encryption-key-boundary.md).
 
 Templates are user-owned. Historical migrations mention public templates, but current
 application reads and budget-generation RPCs require the requesting owner because ciphertext

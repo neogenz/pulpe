@@ -63,5 +63,5 @@ README.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Base de données](docs/DATABASE.md)
 - [Logging](docs/LOGGING.md)
-- [ADRs](docs/adr/README.md)
+- [ADRs](../docs/adr/README.md)
 - [Chiffrement](../docs/ENCRYPTION.md)

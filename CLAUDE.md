@@ -50,6 +50,7 @@ Product-facing copy is French. Code and docs are English.
 | Encryption (AES-256-GCM)    | `docs/ENCRYPTION.md`                       |
 | Spreading an expense        | `docs/SPREAD.md`                           |
 | Savings goals               | `docs/SAVINGS.md`                          |
+| Architecture decisions      | `docs/adr/README.md`                       |
 | Backend Clean Architecture  | `backend-nest/docs/ARCHITECTURE.md`        |
 | DB types                    | `backend-nest/src/types/database.types.ts` |
 | Shared schemas              | `shared/schemas.ts`                        |

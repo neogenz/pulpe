@@ -1,10 +1,10 @@
 # Review: Nettoyage final du contexte projet
 
-- **Verdict**: changes-requested
+- **Verdict**: approve
 - **Diff**: `25e7b17b1...WORKTREE`
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_08_12
-- **Findings**: 0 critical, 4 warning, 2 minor
+- **Findings**: 0 critical, 0 warning, 0 minor
 
 ## Phases
 
@@ -35,9 +35,9 @@
 - [x] Aucun exemple examiné n'appelle `logger.error`, `freshTime` ou `gcTime`. `.claude/rules/05-workflows-and-processes/logging.md:1`
 - [x] Les mentions restantes de `BudgetDetailsViewModel` sont des gardes de non-réintroduction, pas une API recommandée. `.claude/rules/00-architecture/budget-details-feature-architecture.md:35`
 - [x] Les seuils conservés renvoient aux gates qui les appliquent. `.claude/rules/01-standards/clean-code.md:1`
-- [ ] La règle de chiffrement décrit encore l'ancien accès RLS `authenticated` à `user_encryption_key`. `fix`
+- [x] La règle de chiffrement décrit l'accès `service_role` exclusif introduit par la migration de verrouillage. `.claude/rules/05-workflows-and-processes/encryption-backend.md:128`
 - [x] Les appels iOS 26 sont gardés et les APIs citées ont des ancres dans les sources installées. `.claude/rules/03-frameworks-and-libraries/swiftui.md:1`
-- [ ] La liste des colonnes chiffrées omet `savings_goal_plan_withdrawal.amount`. `fix`
+- [x] La liste des colonnes chiffrées inclut `savings_goal_plan_withdrawal.amount`. `.claude/rules/05-workflows-and-processes/encryption-backend.md:42`
 - [x] Les liens Markdown locaux et les globs de règles ne contiennent aucune cible morte. `.claude/rules/:1`
 
 ### Phase 4: CLAUDE.md de package, agents et commandes
@@ -66,24 +66,17 @@
 - [x] Les coupes importantes retirent des conventions standard ou des inventaires remplaçables par une source canonique. `.claude/rules/01-standards/clean-code.md:1`
 - [x] Les règles gardées citent les configurations qui appliquent les contraintes automatisées. `.claude/rules/00-architecture/layer-feature.md:1`
 - [x] Frontmatter, globs et liens locaux passent les trois scans statiques. `.claude/rules/:1`
-- [ ] Le seuil de 4 000 lignes était déclaré hors d'atteinte dans la phase; le corpus actuel compte 4 758 lignes. `not-applicable`
+- [ ] Le seuil indicatif de 4 000 lignes était déclaré hors d'atteinte dans la phase et n'est pas un critère bloquant. `not-applicable`
 
 ## Findings
 
-| Sev | Kind       | Phase | Location                                                                          | Issue                                                                                                                                                                                                                                                                         | Fix                                                                                                                         |
-| --- | ---------- | ----- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 🟡  | functional | 3     | `.claude/rules/05-workflows-and-processes/encryption-backend.md:127`              | La règle affirme que `authenticated` peut encore lire et mettre à jour sa ligne de clé. Depuis la migration `20260804130000`, seuls les accès `service_role` sont autorisés. La règle contredit `docs/ENCRYPTION.md:258` et la règle Supabase chargée sur les mêmes fichiers. | Remplacer cette puce par le modèle `service_role` actuel et citer la migration de verrouillage.                             |
-| 🟡  | functional | 3     | `.claude/rules/05-workflows-and-processes/encryption-backend.md:35`               | L'inventaire chiffré oublie `savings_goal_plan_withdrawal.amount`, pourtant présent dans `docs/ENCRYPTION.md:49` et les types générés.                                                                                                                                        | Ajouter la table et sa colonne à l'inventaire.                                                                              |
-| 🟡  | rot        | 3     | `.claude/rules/00-architecture/nestjs-architecture.md:66`                         | La liste de 14 ports actifs est déjà incomplète face aux 23 symboles exportés. Un agent peut recréer un port existant.                                                                                                                                                        | Supprimer l'inventaire et renvoyer vers `domain/ports`, ou le présenter explicitement comme quelques exemples.              |
-| 🟡  | rot        | 3     | `.claude/rules/03-frameworks-and-libraries/supabase.md:118`                       | La section "Database Tables" ressemble à un inventaire mais omet la moitié des 12 tables publiques, dont `budget_line`, `savings_goal` et les tags.                                                                                                                           | Remplacer la table par un lien vers `database.types.ts` et `backend-nest/docs/DATABASE.md`, comme dans le contexte backend. |
-| 🟢  | rot        | 5     | `.claude/agent-memory/ios-developer/reference_ios_build_test_env.md (deleted):10` | La suppression retire avec les détails machine une signature de corruption DerivedData observée et son diagnostic, qui ne se déduisent pas du code.                                                                                                                           | Garder uniquement la note générique sur les deux erreurs fantômes et la purge ciblée de DerivedData.                        |
-| 🟢  | conform    | 3     | `.claude/rules/02-programming-languages/typescript.md:24`                         | La règle TypeScript s'applique aussi au backend mais renvoie seulement vers la règle d'erreurs PostHog frontend.                                                                                                                                                              | Qualifier le renvoi frontend et ajouter `error-handling-backend.md` pour NestJS.                                            |
+None.
 
 ## Verification
 
 | Metric        | Value                                                                                                                                                                                                                                                          |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Verified      | 94% des critères applicables (30/32); 10 critères hors dépôt                                                                                                                                                                                                   |
-| Files checked | 249 fichiers modifiés, 43 règles, 8 fichiers de travail actuels, 346 fichiers Markdown suivis                                                                                                                                                                  |
-| Unchecked     | Phase 3 RLS `user_encryption_key`: `fix`; phase 3 inventaire chiffré: `fix`; phases 1, 4, 5 et 6 hors diff ou écarts explicitement acceptés: `not-applicable`                                                                                                  |
+| Verified      | 100% des critères applicables (32/32); 10 critères hors dépôt                                                                                                                                                                                                  |
+| Files checked | Périmètre du diff indiqué ci-dessus, corpus de règles et graphe des liens Markdown locaux au moment de la revue                                                                                                                                                |
+| Unchecked     | Phases 1, 4, 5 et 6 hors diff ou écarts explicitement acceptés: `not-applicable`; aucun critère `fix` ouvert                                                                                                                                                   |
 | Unplanned     | Publication AIDD et Impeccable, durcissement de la surface publique, restauration des badges README, suppression du job performance sans tests, corrections documentaires et nettoyages backend ponctuels; tous rattachés aux demandes ultérieures et vérifiés |

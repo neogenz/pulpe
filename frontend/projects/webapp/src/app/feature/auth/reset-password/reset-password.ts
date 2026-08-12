@@ -125,7 +125,6 @@ import { resetPasswordFormSchema } from './reset-password-form.schema';
               data-testid="new-password-input"
               (input)="clearError()"
               [placeholder]="'form.newPasswordPlaceholder' | transloco"
-              [disabled]="isSubmitting()"
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -164,7 +163,6 @@ import { resetPasswordFormSchema } from './reset-password-form.schema';
               data-testid="confirm-password-input"
               (input)="clearError()"
               [placeholder]="'form.confirmPasswordPlaceholder' | transloco"
-              [disabled]="isSubmitting()"
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -290,6 +288,7 @@ export default class ResetPassword {
     }
 
     this.isSubmitting.set(true);
+    this.form.disable();
     this.clearError();
 
     const { newPassword } = parsed.data;
@@ -312,6 +311,7 @@ export default class ResetPassword {
         this.#transloco.translate('common.somethingWentWrong'),
       );
     } finally {
+      this.form.enable();
       this.isSubmitting.set(false);
     }
   }

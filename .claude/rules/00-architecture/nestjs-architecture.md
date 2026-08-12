@@ -63,13 +63,12 @@ Use ports (symbols + interfaces), never direct Service→Service imports.
 private readonly recalculate: BudgetRecalculationPort,
 ```
 
-Active ports: `BUDGET_REPOSITORY`, `BUDGET_RECALCULATION_PORT`, `BUDGET_PROVISIONING_PORT`, `BUDGET_LINE_REPOSITORY`,
-`BUDGET_LINE_SPREAD_PORT`, `TRANSACTION_REPOSITORY`, `BUDGET_TEMPLATE_REPOSITORY`, `ENCRYPTION_PORT`, `ENCRYPTION_KEY_REPOSITORY`,
-`USER_REPOSITORY`, `ACCOUNT_DELETION_REPOSITORY`, `POSTHOG_PERSON_DELETION_PORT`, `DEMO_CREDENTIALS_PORT`, `DEMO_REPOSITORY`.
+Ports live under each module's `domain/ports/`. Search those directories before adding one;
+do not maintain a duplicate inventory in documentation.
 
 ## Use Case Pattern
 
-Use cases work with plain numbers — repositories own the encryption boundary (decrypt on read, encrypt on write). Use cases never inject `ENCRYPTION_PORT` for read paths. See [ADR-0004](../../../backend-nest/docs/adr/0004-repos-return-decrypted-entities.md).
+Use cases work with plain numbers — repositories own the encryption boundary (decrypt on read, encrypt on write). Use cases never inject `ENCRYPTION_PORT` for read paths. See [ADR-0004](../../../docs/adr/0004-repos-return-decrypted-entities.md).
 
 ```typescript
 @Injectable()
@@ -118,9 +117,9 @@ export class BudgetLineModule {}
 ## Rules
 
 - Domain layer: pure TypeScript, zero framework imports
-- Application layer: use cases only, no infrastructure imports — single permanent exception: `encryption/application/*` may import `encryption/infrastructure/crypto/*` (see [ADR-0008](../../../backend-nest/docs/adr/0008-encryption-service-decomposition.md))
+- Application layer: use cases only, no infrastructure imports — single permanent exception: `encryption/application/*` may import `encryption/infrastructure/crypto/*` (see [ADR-0008](../../../docs/adr/0008-encryption-service-decomposition.md))
 - Mappers live in `infrastructure/mappers/` — called by **controllers** (entity → API DTO conversion at the HTTP boundary), never by use cases
 - All endpoints protected by `AuthGuard` by default
 - Encryption columns (`amount`, `target_amount`, `ending_balance`) are stored as ciphertext text. Repositories decrypt on read and encrypt on write internally via `ENCRYPTION_PORT`. Use cases see plain numbers only.
 - RPC calls with JSONB params containing ciphertexts: strict Zod schema in `infrastructure/persistence/schemas/`, consumed by the repository (not by use cases)
-- Full architecture overview: [`backend-nest/docs/ARCHITECTURE.md`](../../../backend-nest/docs/ARCHITECTURE.md). Decisions and trade-offs: [`backend-nest/docs/adr/`](../../../backend-nest/docs/adr/README.md)
+- Full architecture overview: [`backend-nest/docs/ARCHITECTURE.md`](../../../backend-nest/docs/ARCHITECTURE.md). Decisions and trade-offs: [`docs/adr/`](../../../docs/adr/README.md)
