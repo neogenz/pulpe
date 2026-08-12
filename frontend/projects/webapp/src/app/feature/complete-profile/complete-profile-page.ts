@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { trigger, transition, style, animate } from '@angular/animations';
+import { ViewportScroller } from '@angular/common';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
@@ -507,24 +508,34 @@ import {
                   </section>
 
                   <button
-                    matButton="outlined"
+                    matButton
                     type="button"
-                    class="w-full h-12 rounded-2xl"
+                    class="h-11 max-w-full !px-2"
                     [attr.aria-expanded]="showOptionalCharges()"
                     aria-controls="optional-charge-sections"
                     (click)="toggleOptionalCharges()"
                     data-testid="toggle-optional-charges"
                   >
-                    <span class="flex items-center justify-center gap-2">
+                    <span class="flex items-center gap-2 whitespace-nowrap">
                       <mat-icon>{{
                         showOptionalCharges() ? 'expand_less' : 'add'
                       }}</mat-icon>
-                      {{
-                        (showOptionalCharges()
-                          ? 'completeProfile.hideOptionalCharges'
-                          : 'completeProfile.showOptionalCharges'
-                        ) | transloco
-                      }}
+                      <span class="sm:hidden">
+                        {{
+                          (showOptionalCharges()
+                            ? 'completeProfile.hideOptionalChargesCompact'
+                            : 'completeProfile.showOptionalChargesCompact'
+                          ) | transloco
+                        }}
+                      </span>
+                      <span class="hidden sm:inline">
+                        {{
+                          (showOptionalCharges()
+                            ? 'completeProfile.hideOptionalCharges'
+                            : 'completeProfile.showOptionalCharges'
+                          ) | transloco
+                        }}
+                      </span>
                     </span>
                   </button>
 
@@ -800,6 +811,11 @@ import {
                 <div
                   class="sticky bottom-0 lg:bottom-[-2rem] z-10 -mx-4 sm:mx-0 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))] lg:pb-5 border-t border-outline-variant/15 bg-surface"
                 >
+                  <div
+                    aria-hidden="true"
+                    class="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-[linear-gradient(to_bottom,transparent,var(--mat-sys-surface))]"
+                  ></div>
+
                   <pulpe-loading-button
                     [loading]="store.isLoading()"
                     [loadingText]="'completeProfile.loadingSubmit' | transloco"
@@ -935,6 +951,7 @@ import {
 export default class CompleteProfilePage {
   protected readonly store = inject(CompleteProfileStore);
   readonly #router = inject(Router);
+  readonly #viewportScroller = inject(ViewportScroller);
   readonly #dialog = inject(MatDialog);
   readonly #postHogService = inject(PostHogService);
   readonly #transloco = inject(TranslocoService);
@@ -1067,12 +1084,13 @@ export default class CompleteProfilePage {
         ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED,
         { step: 'profile' },
       );
-      this.store.updateCurrentStep(2);
+      this.goToStep(2);
     }
   }
 
   protected goToStep(step: 1 | 2): void {
     this.store.updateCurrentStep(step);
+    this.#viewportScroller.scrollToPosition([0, 0]);
   }
 
   protected toggleOptionalCharges(): void {

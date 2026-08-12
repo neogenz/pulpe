@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
+import { ViewportScroller } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { ANALYTICS_EVENTS, type SupportedCurrency } from 'pulpe-shared';
 import CompleteProfilePage from './complete-profile-page';
@@ -19,6 +20,7 @@ import { provideTranslocoForTest } from '../../testing/transloco-testing';
 describe('CompleteProfilePage', () => {
   let updateHealthInsurance: ReturnType<typeof vi.fn>;
   let captureEvent: ReturnType<typeof vi.fn>;
+  let scrollToPosition: ReturnType<typeof vi.fn>;
 
   function createPage(
     initialCurrency: SupportedCurrency,
@@ -27,6 +29,7 @@ describe('CompleteProfilePage', () => {
   ): CompleteProfilePage {
     updateHealthInsurance = vi.fn();
     captureEvent = vi.fn();
+    scrollToPosition = vi.fn();
     const currency = signal(initialCurrency);
     const currentStep = signal<1 | 2>(1);
     const mockStore = {
@@ -55,6 +58,7 @@ describe('CompleteProfilePage', () => {
         ...provideTranslocoForTest(),
         { provide: CompleteProfileStore, useValue: mockStore },
         { provide: Router, useValue: {} },
+        { provide: ViewportScroller, useValue: { scrollToPosition } },
         { provide: MatDialog, useValue: {} },
         { provide: PostHogService, useValue: { captureEvent } },
         {
@@ -125,6 +129,7 @@ describe('CompleteProfilePage', () => {
     page.goToStep(2);
 
     expect(page.currentStep()).toBe(2);
+    expect(scrollToPosition).toHaveBeenCalledWith([0, 0]);
   });
 
   it('maps the profile step to onboarding_step_completed', async () => {
@@ -142,6 +147,7 @@ describe('CompleteProfilePage', () => {
       ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED,
       { step: 'profile' },
     );
+    expect(scrollToPosition).toHaveBeenCalledWith([0, 0]);
   });
 
   it.each([

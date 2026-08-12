@@ -1334,6 +1334,8 @@
     "skipCharges": "Passer pour l'instant",
     "showOptionalCharges": "Ajouter d'autres charges",
     "hideOptionalCharges": "Masquer les charges facultatives",
+    "showOptionalChargesCompact": "Ajouter des charges",
+    "hideOptionalChargesCompact": "Masquer les options",
     "payDay": "Quand reçois-tu ton salaire ?",
     "payDayPlaceholder": "Choisis ton jour",
     "payDayOption": "Le {{ day }}",
