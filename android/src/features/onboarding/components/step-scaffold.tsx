@@ -2,12 +2,6 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as Haptics from "expo-haptics";
 import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import Animated, {
-  FadeIn,
-  SlideInLeft,
-  SlideInRight,
-  useReducedMotion,
-} from "react-native-reanimated";
 import { Button, IconButton, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -52,7 +46,6 @@ export function StepScaffold({
 }) {
   const theme = useTheme();
   const state = useOnboardingStore();
-  const isReducedMotion = useReducedMotion();
 
   const step = state.currentStep;
   const copy = STEP_COPY[step];
@@ -70,14 +63,6 @@ export function StepScaffold({
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onContinue();
   }
-
-  // A step entering from the side says which way the flow moved; with reduced
-  // motion on, it fades in instead of travelling.
-  const entering = isReducedMotion
-    ? FadeIn
-    : state.isMovingForward
-      ? SlideInRight
-      : SlideInLeft;
 
   return (
     <SafeAreaView
@@ -104,7 +89,14 @@ export function StepScaffold({
         <View style={styles.headerSpacer} />
       </View>
 
-      <Animated.View key={step} entering={entering} style={styles.body}>
+      {/* A plain view, deliberately. Wrapping this in an entering
+          `Animated.View` — a step sliding in from the side to say which way the
+          flow moved — left it absolutely positioned over the whole safe area,
+          so every step drew its title across the back arrow and its last field
+          behind the CTA. Moving the animation inside the scroll instead
+          collapsed the content height and the steps stopped scrolling at all.
+          The frame is worth more than the flourish. */}
+      <View style={styles.body}>
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
@@ -121,7 +113,7 @@ export function StepScaffold({
 
           {children}
         </ScrollView>
-      </Animated.View>
+      </View>
 
       <View style={styles.actions}>
         {footer}
