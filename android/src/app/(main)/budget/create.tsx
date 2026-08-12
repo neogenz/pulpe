@@ -7,6 +7,7 @@ import {
   Appbar,
   Button,
   Chip,
+  Divider,
   HelperText,
   RadioButton,
   Text,
@@ -172,7 +173,13 @@ export default function CreateBudgetScreen() {
         >
           Le budget sera créé avec les prévisions du modèle sélectionné.
         </Text>
+      </ScrollView>
 
+      {/* Pinned, not scrolled: an account with half a dozen models pushes its
+          own create button below the fold, on the one screen whose whole
+          purpose is to press it. */}
+      <Divider />
+      <View style={styles.footer}>
         {create.isError && (
           <HelperText type="error" visible>
             Le budget n&apos;a pas pu être créé. Réessaie.
@@ -187,7 +194,7 @@ export default function CreateBudgetScreen() {
         >
           Créer le budget
         </Button>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -207,6 +214,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACING.md, gap: SPACING.md },
+  footer: { padding: SPACING.md, gap: SPACING.sm },
   periods: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   period: { textTransform: "capitalize" },
   templates: { gap: SPACING.sm },
