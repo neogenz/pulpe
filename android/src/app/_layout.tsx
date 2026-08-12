@@ -69,10 +69,15 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider
-        theme={colorScheme === "dark" ? pulpeDarkTheme : pulpeLightTheme}
-      >
-        <QueryClientProvider client={queryClient}>
+      {/* Query above Paper, and not the other way round: a Paper `Portal` is
+          not a React portal — it re-renders its children under the `Portal.Host`
+          that `PaperProvider` mounts, so they see the context of *that* spot in
+          the tree, not of where they were written. With Paper on the outside,
+          every sheet calling a query hook threw "No QueryClient set". */}
+      <QueryClientProvider client={queryClient}>
+        <PaperProvider
+          theme={colorScheme === "dark" ? pulpeDarkTheme : pulpeLightTheme}
+        >
           <StatusBar style="auto" />
           <Stack screenOptions={{ headerShown: false }}>
             {/* A run in progress outranks the session gates: the user turns
@@ -115,8 +120,8 @@ export default function RootLayout() {
           <WhatsNewSheet />
           {/* Last, so it covers every route and every dialog above them. */}
           <SystemGateScreen />
-        </QueryClientProvider>
-      </PaperProvider>
+        </PaperProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>
   );
 }
