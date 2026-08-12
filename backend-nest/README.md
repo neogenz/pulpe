@@ -50,6 +50,14 @@ persistance et de chiffrement.
 Swagger est l'inventaire des endpoints ; ne maintenir aucun catalogue parallèle dans ce
 README.
 
+## Repères
+
+- [Bootstrap NestJS](src/main.ts)
+- [Module racine](src/app.module.ts)
+- [Modules métier](src/modules/)
+- [Projet Supabase](supabase/)
+- [Contrats partagés](../shared/README.md)
+
 ## Références
 
 - [Architecture](docs/ARCHITECTURE.md)

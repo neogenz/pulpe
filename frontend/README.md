@@ -5,13 +5,13 @@ Application Angular 22 basée sur Signals, Angular Material 22, Tailwind CSS v4 
 
 ## Architecture
 
-Le code applicatif vit dans `projects/webapp/src/app/` :
+Le code applicatif vit dans [`projects/webapp/src/app/`](projects/webapp/src/app/) :
 
-- `core/` : infrastructure et services singleton ;
-- `layout/` : shell et navigation ;
-- `feature/` : fonctionnalités lazy-loaded et isolées ;
-- `pattern/` : composants métier réutilisables ;
-- `ui/` : présentation générique sans logique métier.
+- [`core/`](projects/webapp/src/app/core/) : infrastructure et services singleton ;
+- [`layout/`](projects/webapp/src/app/layout/) : shell et navigation ;
+- [`feature/`](projects/webapp/src/app/feature/) : fonctionnalités lazy-loaded et isolées ;
+- [`pattern/`](projects/webapp/src/app/pattern/) : composants métier réutilisables ;
+- [`ui/`](projects/webapp/src/app/ui/) : présentation générique sans logique métier.
 
 `eslint-plugin-boundaries` applique les dépendances entre couches. Les détails utiles à
 l'édition sont chargés depuis `.claude/rules/00-architecture/layer-*.md`.

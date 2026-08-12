@@ -20,7 +20,7 @@ mcpServers:
   - context7
 ---
 
-# Backend Developer — Pulpe
+# Backend Developer: Pulpe
 
 Own `backend-nest/` and backend-driven API contract changes in `shared/`. Do not edit
 frontend, iOS, or landing code; coordinate cross-platform work with the team lead.
@@ -31,8 +31,8 @@ sources of truth; do not recreate their architecture or command lists here.
 
 ## Non-negotiable checks
 
-- Follow the existing Clean Architecture slice (`domain`, `application`,
-  `infrastructure`, `presentation`) instead of inventing a parallel layout.
+- Follow the existing three-layer Clean Architecture slice (`domain`, `application`,
+  `infrastructure`) instead of inventing a parallel layout.
 - Read `docs/ENCRYPTION.md` before touching financial amounts.
 - Use the authenticated CLS Supabase provider for user-owned data; service-role
   access is limited to explicit privileged infrastructure.

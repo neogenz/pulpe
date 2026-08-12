@@ -18,14 +18,14 @@ du projet Xcode et des dépendances Swift Package Manager.
 
 ## Structure
 
-- `Pulpe/App/` : entrée, état global et navigation ;
-- `Pulpe/Core/` : réseau, auth, analytics et infrastructure ;
-- `Pulpe/Domain/` : modèles et formules pures ;
-- `Pulpe/Features/` : fonctionnalités SwiftUI ;
-- `Pulpe/Shared/` : composants, design tokens et extensions ;
-- `PulpeWidget/` : extension WidgetKit ;
-- `PulpeTests/` : Swift Testing ;
-- `PulpeUITests/` : XCUITest.
+- [`Pulpe/App/`](Pulpe/App/) : entrée, état global et navigation ;
+- [`Pulpe/Core/`](Pulpe/Core/) : réseau, auth, analytics et infrastructure ;
+- [`Pulpe/Domain/`](Pulpe/Domain/) : modèles et formules pures ;
+- [`Pulpe/Features/`](Pulpe/Features/) : fonctionnalités SwiftUI ;
+- [`Pulpe/Shared/`](Pulpe/Shared/) : composants, design tokens et extensions ;
+- [`PulpeWidget/`](PulpeWidget/) : extension WidgetKit ;
+- [`PulpeTests/`](PulpeTests/) : Swift Testing ;
+- [`PulpeUITests/`](PulpeUITests/) : XCUITest.
 
 ## Configuration
 
