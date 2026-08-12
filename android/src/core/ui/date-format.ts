@@ -16,6 +16,10 @@ const fullDateFormatter = new Intl.DateTimeFormat(DATE_LOCALE, {
   month: "short",
   year: "numeric",
 });
+const monthYearShortFormatter = new Intl.DateTimeFormat(DATE_LOCALE, {
+  month: "short",
+  year: "numeric",
+});
 
 /** `juillet` — the month a budget covers, named from its 1-12 index. */
 export function formatMonthName(month: number, year: number): string {
@@ -41,6 +45,16 @@ export function ofMonth(monthName: string): string {
   return /^[aeiouâàéèêîôû]/i.test(monthName)
     ? `d'${monthName}`
     : `de ${monthName}`;
+}
+
+/**
+ * `janv. 2026`, and `août 2026` — a chart axis, where the full name would not
+ * fit. French abbreviates seven of the twelve months and leaves the short ones
+ * whole, which no rule about a fixed number of letters reproduces: cutting to
+ * four and adding a period gives "déce.", "octo." and "mars.".
+ */
+export function formatMonthYearShort(month: number, year: number): string {
+  return monthYearShortFormatter.format(new Date(year, month - 1, 1));
 }
 
 /** `5 juillet`, and `1er juillet` on the one day French does not say "1". */

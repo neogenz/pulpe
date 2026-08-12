@@ -2,7 +2,7 @@ import type { SavingsGoalProgress, SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, useColorScheme, View } from "react-native";
 import { Card, Icon, ProgressBar, Text, useTheme } from "react-native-paper";
 
-import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
+import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate } from "@/core/ui/date-format";
 import {
   FINANCIAL_COLORS,
@@ -74,7 +74,7 @@ export function GoalProgressCard({
               variant="labelMedium"
               style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
             >
-              sur {formatCurrency(progress.targetAmount, currency)}
+              sur {formatCompactCurrency(progress.targetAmount, currency)}
             </Text>
           )}
         </View>
@@ -133,8 +133,9 @@ export function GoalProgressCard({
                   { color: theme.colors.onSurfaceVariant },
                 ]}
               >
-                Ton plan est prêt — {formatCurrency(currentPlanned, currency)} à
-                mettre de côté ce mois.
+                Ton plan est prêt —{" "}
+                {formatCompactCurrency(currentPlanned, currency)} à mettre de
+                côté ce mois.
               </Text>
             </View>
           )}

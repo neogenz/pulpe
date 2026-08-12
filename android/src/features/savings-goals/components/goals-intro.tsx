@@ -4,7 +4,7 @@ import { StyleSheet, View } from "react-native";
 import { Button, Card, ProgressBar, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { formatCurrency } from "@/core/ui/amount-format";
+import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 /** What the preview pretends the user already saved, in their own currency. */
@@ -120,8 +120,10 @@ function GoalPreview({ currency }: { currency: SupportedCurrency }) {
     <Card mode="contained" style={styles.preview}>
       <Card.Content style={styles.previewContent}>
         <Text variant="titleMedium">Voyage Japon</Text>
+        {/* Compact like the real progress card this previews — a sample that
+            prints centimes promises a card that never does. */}
         <Text variant="headlineMedium" style={TABULAR_DIGITS}>
-          {formatCurrency(SAMPLE_SAVED, currency)}
+          {formatCompactCurrency(SAMPLE_SAVED, currency)}
         </Text>
         <ProgressBar
           progress={SAMPLE_SAVED / SAMPLE_TARGET}
@@ -131,7 +133,8 @@ function GoalPreview({ currency }: { currency: SupportedCurrency }) {
           variant="labelMedium"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          sur {formatCurrency(SAMPLE_TARGET, currency)} · échéance nov. 2027
+          sur {formatCompactCurrency(SAMPLE_TARGET, currency)} · échéance nov.
+          2027
         </Text>
       </Card.Content>
     </Card>

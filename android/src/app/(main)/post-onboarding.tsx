@@ -30,32 +30,34 @@ export default function PostOnboardingScreen() {
       {/* A handoff, not a destination: it has one CTA and no way back. */}
       <Stack.Screen options={{ gestureEnabled: false }} />
 
-      <View style={styles.intro}>
-        <Text variant="headlineMedium">Ton budget est prêt</Text>
-        <Text
-          variant="bodyMedium"
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
-          Il reste une habitude à prendre, et elle tient en un geste.
-        </Text>
-      </View>
+      <View style={styles.body}>
+        <View style={styles.intro}>
+          <Text variant="headlineMedium">Ton budget est prêt</Text>
+          <Text
+            variant="bodyMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            Il reste une habitude à prendre, et elle tient en un geste.
+          </Text>
+        </View>
 
-      <View style={styles.steps}>
-        <RitualStep
-          icon="checkbox-marked-circle-outline"
-          title="Pointe ce qui est arrivé"
-          description="Un loyer payé, une course faite : tu le pointes, et le montant disponible se met à jour."
-        />
-        <RitualStep
-          icon="eye-outline"
-          title="Regarde une fois par semaine"
-          description="Deux minutes suffisent. Le reste du temps, Pulpe attend."
-        />
-        <RitualStep
-          icon="calendar-month-outline"
-          title="Les mois suivants existent déjà"
-          description="Tes treize prochains budgets sont créés — tu peux ajuster n'importe lequel à l'avance."
-        />
+        <View style={styles.steps}>
+          <RitualStep
+            icon="checkbox-marked-circle-outline"
+            title="Pointe ce qui est arrivé"
+            description="Un loyer payé, une course faite : tu le pointes, et le montant disponible se met à jour."
+          />
+          <RitualStep
+            icon="eye-outline"
+            title="Regarde une fois par semaine"
+            description="Deux minutes suffisent. Le reste du temps, Pulpe attend."
+          />
+          <RitualStep
+            icon="calendar-month-outline"
+            title="Les mois suivants existent déjà"
+            description="Tes treize prochains budgets sont créés — tu peux ajuster n'importe lequel à l'avance."
+          />
+        </View>
       </View>
 
       <Button mode="contained" onPress={enterApp}>
@@ -104,12 +106,12 @@ function RitualStep({
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    justifyContent: "center",
-    padding: SPACING.lg,
-    gap: SPACING.xl,
-  },
+  screen: { flex: 1, padding: SPACING.lg, gap: SPACING.xl },
+  /**
+   * The slack belongs above the button, not below it: centring the whole screen
+   * left "Commencer" floating a third of the way up with nothing under it.
+   */
+  body: { flex: 1, justifyContent: "center", gap: SPACING.xl },
   intro: { gap: SPACING.xs },
   steps: { gap: SPACING.lg },
   step: { flexDirection: "row", alignItems: "center", gap: SPACING.md },

@@ -9,7 +9,7 @@ import { Text, useTheme } from "react-native-paper";
 import { Area, CartesianChart, Line } from "victory-native";
 
 import { formatCompactCurrency } from "@/core/ui/amount-format";
-import { formatMonthName } from "@/core/ui/date-format";
+import { formatMonthYearShort } from "@/core/ui/date-format";
 import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 import { projectionYDomain, type ProjectionSeries } from "../projection-series";
@@ -111,7 +111,7 @@ export function GoalProjectionChart({
             variant="labelSmall"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            {formatMonthName(tick.month, tick.year).slice(0, 4)}. {tick.year}
+            {formatMonthYearShort(tick.month, tick.year)}
           </Text>
         ))}
       </View>

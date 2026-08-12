@@ -155,12 +155,9 @@ export default function PayDayScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: SPACING.sm,
-    justifyContent: "center",
-  },
+  // Left-aligned so the last row continues the columns: centred, 29-30-31
+  // drifted under 24-25-26 and read as a different set of days.
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   cell: {
     width: CELL_SIZE,
     height: CELL_SIZE,
