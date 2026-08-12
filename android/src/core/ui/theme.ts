@@ -165,6 +165,20 @@ export const SPACING = {
   xxl: 40,
 } as const;
 
+/**
+ * The gutter every screen keeps between its content and the display edge.
+ * A horizontal rail is the exception: it runs edge to edge and applies this to
+ * its *content* instead, so the first and last item can scroll past the gutter
+ * rather than being clipped by it.
+ */
+export const SCREEN_PADDING = SPACING.md;
+
+/**
+ * What a list must leave under its last row so a floating action button does
+ * not sit on top of it: 56 for the button, 16 for its margin, 24 to read past.
+ */
+export const FAB_CLEARANCE = 96;
+
 /** Mirrors `DesignTokens.CornerRadius` on iOS. */
 export const RADIUS = {
   xs: 4,

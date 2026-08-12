@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { Chip } from "react-native-paper";
 
 import { formatMonthName } from "@/core/ui/date-format";
-import { SPACING } from "@/core/ui/theme";
+import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 
 /** Roughly one chip; enough to leave the selected one near the middle. */
 const CHIP_WIDTH = 96;
@@ -77,6 +77,13 @@ function chipLabel(
 }
 
 const styles = StyleSheet.create({
-  rail: { flexDirection: "row", gap: SPACING.sm, paddingVertical: SPACING.xs },
+  rail: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    // The rail itself spans the display; the gutter lives here so the first and
+    // last month scroll past it instead of being cut in half by it.
+    paddingHorizontal: SCREEN_PADDING,
+  },
   label: { textTransform: "capitalize" },
 });

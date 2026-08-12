@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Chip, SegmentedButtons, Searchbar } from "react-native-paper";
 
-import { SPACING } from "@/core/ui/theme";
+import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 
 import type {
   CheckedFilter,
@@ -31,6 +31,8 @@ interface DetailsFilterBarProps {
   filters: DetailsFilters;
   counts: KindCounts;
   onChange: (filters: DetailsFilters) => void;
+  /** Raised from the app bar's magnifier, the way Android hides a search. */
+  isSearchVisible: boolean;
 }
 
 /**
@@ -43,25 +45,34 @@ export function DetailsFilterBar({
   filters,
   counts,
   onChange,
+  isSearchVisible,
 }: DetailsFilterBarProps) {
   return (
     <View style={styles.bar}>
-      <Searchbar
-        placeholder="Rechercher"
-        value={filters.search}
-        onChangeText={(search) => onChange({ ...filters, search })}
-        mode="view"
-        style={styles.search}
-      />
+      {/* A permanent search field cost a full row on a screen whose first line
+          of data already sat two thirds of the way down. It comes out of the
+          app bar now, and only when asked for. */}
+      {isSearchVisible && (
+        <Searchbar
+          placeholder="Rechercher"
+          value={filters.search}
+          onChangeText={(search) => onChange({ ...filters, search })}
+          mode="view"
+          autoFocus
+          style={[styles.search, styles.gutter]}
+        />
+      )}
 
-      <SegmentedButtons
-        value={filters.checked}
-        onValueChange={(checked) =>
-          onChange({ ...filters, checked: checked as CheckedFilter })
-        }
-        buttons={CHECKED_OPTIONS}
-        density="small"
-      />
+      <View style={styles.gutter}>
+        <SegmentedButtons
+          value={filters.checked}
+          onValueChange={(checked) =>
+            onChange({ ...filters, checked: checked as CheckedFilter })
+          }
+          buttons={CHECKED_OPTIONS}
+          density="small"
+        />
+      </View>
 
       <ScrollView
         horizontal
@@ -87,5 +98,12 @@ export function DetailsFilterBar({
 const styles = StyleSheet.create({
   bar: { gap: SPACING.sm },
   search: { borderRadius: SPACING.sm },
-  chips: { flexDirection: "row", gap: SPACING.sm },
+  gutter: { paddingHorizontal: SCREEN_PADDING },
+  // The rail runs edge to edge and carries the gutter as content padding, so
+  // the first and last chip scroll past it rather than being clipped by it.
+  chips: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+    paddingHorizontal: SCREEN_PADDING,
+  },
 });

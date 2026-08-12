@@ -22,7 +22,7 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import { SPACING } from "@/core/ui/theme";
+import { FAB_CLEARANCE, SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 import { tagSummary } from "@/core/tags/tag-selection";
 import { useTags } from "@/core/tags/tag-queries";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
@@ -93,6 +93,7 @@ export default function BudgetDetailScreen() {
   const tags = useTags();
   const toggle = useToggleCheck(id);
   const [filters, setFilters] = useState<DetailsFilters>(DEFAULT_FILTERS);
+  const [isSearchVisible, setSearchVisible] = useState(false);
   const [isRealizedVisible, setRealizedVisible] = useState(false);
   const [hasToggleFailed, setToggleFailed] = useState(false);
   const [isFabOpen, setFabOpen] = useState(false);
@@ -203,10 +204,22 @@ export default function BudgetDetailScreen() {
           title={formatMonthName(budget.month, budget.year)}
           titleStyle={styles.title}
         />
+        <Appbar.Action
+          icon={isSearchVisible ? "close" : "magnify"}
+          accessibilityLabel={
+            isSearchVisible ? "Fermer la recherche" : "Rechercher"
+          }
+          onPress={() => {
+            // Clearing on the way out, or the list stays filtered by a term the
+            // user can no longer see.
+            if (isSearchVisible) setFilters({ ...filters, search: "" });
+            setSearchVisible(!isSearchVisible);
+          }}
+        />
       </Appbar.Header>
 
       {months.length > 1 && (
-        <View style={styles.pager}>
+        <View>
           <MonthPager
             months={months}
             currentBudgetId={id}
@@ -226,55 +239,64 @@ export default function BudgetDetailScreen() {
           />
         }
       >
-        <BudgetDetailHero
-          metrics={metrics}
-          currency={currency}
-          rollover={budget.rollover ?? 0}
-          previousMonthName={previousMonthName}
-          onPressMetrics={() => setRealizedVisible(true)}
-          onPressRollover={
-            budget.previousBudgetId == null
-              ? undefined
-              : // Push, not replace: reading where the carry-over came from is
-                // a step back in time the user expects to return from, unlike
-                // the pager's sideways moves.
-                () => router.push(`/budget/${budget.previousBudgetId}`)
-          }
-        />
+        <View style={styles.gutter}>
+          <BudgetDetailHero
+            metrics={metrics}
+            currency={currency}
+            rollover={budget.rollover ?? 0}
+            previousMonthName={previousMonthName}
+            onPressMetrics={() => setRealizedVisible(true)}
+            onPressRollover={
+              budget.previousBudgetId == null
+                ? undefined
+                : // Push, not replace: reading where the carry-over came from is
+                  // a step back in time the user expects to return from, unlike
+                  // the pager's sideways moves.
+                  () => router.push(`/budget/${budget.previousBudgetId}`)
+            }
+          />
+        </View>
 
         {/* Only after the user has actually pointed an envelope for less than
             it planned — before that it answers a question nobody asked. */}
         {isPessimisticTipArmed && (
-          <Tooltip
-            id="pessimistic-check"
-            icon="shield-check-outline"
-            title="Budget protégé"
-            message="Quand tu dépenses moins que prévu, Pulpe garde le montant prévu pour protéger ton budget."
-          />
+          <View style={styles.gutter}>
+            <Tooltip
+              id="pessimistic-check"
+              icon="shield-check-outline"
+              title="Budget protégé"
+              message="Quand tu dépenses moins que prévu, Pulpe garde le montant prévu pour protéger ton budget."
+            />
+          </View>
         )}
 
         {isTight && (
-          <TightMonthCard
-            onWithdraw={() => setWithdrawalVisible(true)}
-            onDismiss={() => {
-              dismissWithdrawal(id);
-              setCardDismissed(true);
-            }}
-          />
+          <View style={styles.gutter}>
+            <TightMonthCard
+              onWithdraw={() => setWithdrawalVisible(true)}
+              onDismiss={() => {
+                dismissWithdrawal(id);
+                setCardDismissed(true);
+              }}
+            />
+          </View>
         )}
 
         <DetailsFilterBar
           filters={filters}
           counts={counts}
           onChange={setFilters}
+          isSearchVisible={isSearchVisible}
         />
 
-        <Tooltip
-          id="gestures"
-          icon="gesture-tap"
-          title="Deux gestes par ligne"
-          message="Touche le rond pour pointer · Touche la ligne pour la modifier"
-        />
+        <View style={styles.gutter}>
+          <Tooltip
+            id="gestures"
+            icon="gesture-tap"
+            title="Deux gestes par ligne"
+            message="Touche le rond pour pointer · Touche la ligne pour la modifier"
+          />
+        </View>
 
         {sections.map((section) => (
           <View key={section.kind} style={styles.section}>
@@ -337,7 +359,11 @@ export default function BudgetDetailScreen() {
         {isEmpty && (
           <Text
             variant="bodyMedium"
-            style={[styles.empty, { color: theme.colors.onSurfaceVariant }]}
+            style={[
+              styles.empty,
+              styles.gutter,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
           >
             {filters.checked === "unchecked" && filters.search === ""
               ? "Tout est pointé pour ce mois."
@@ -483,9 +509,15 @@ function namePreviousMonth(
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
+  // No horizontal padding here: the gutter belongs to each block, so that the
+  // chip rails inside them can still run the full width of the display.
+  content: {
+    paddingVertical: SPACING.md,
+    gap: SPACING.md,
+    paddingBottom: FAB_CLEARANCE,
+  },
+  gutter: { paddingHorizontal: SCREEN_PADDING },
   title: { textTransform: "capitalize" },
-  pager: { paddingHorizontal: SPACING.md },
-  section: { gap: SPACING.sm },
+  section: { gap: SPACING.sm, paddingHorizontal: SCREEN_PADDING },
   empty: { paddingVertical: SPACING.lg, textAlign: "center" },
 });

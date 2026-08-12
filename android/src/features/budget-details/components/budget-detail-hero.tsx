@@ -1,13 +1,7 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { BudgetFormulas, SupportedCurrency } from "pulpe-shared";
 import { CURRENCY_METADATA } from "pulpe-shared";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  useColorScheme,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
 import { ProgressBar, Text, useTheme } from "react-native-paper";
 
 import {
@@ -141,11 +135,10 @@ export function BudgetDetailHero({
         </Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.pills}
-      >
+      {/* Wrapping, not scrolling: the three of them are a hair too wide for a
+          phone, and a rail inside a pressable card both clipped the last one
+          and fought the card for the same horizontal gesture. */}
+      <View style={styles.pills}>
         <Pill
           icon="arrow-down"
           amount={metrics.totalIncome}
@@ -167,7 +160,7 @@ export function BudgetDetailHero({
           tint={FINANCIAL_COLORS[scheme].expense}
           currency={currency}
         />
-      </ScrollView>
+      </View>
     </Pressable>
   );
 }
@@ -215,7 +208,12 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   progress: { flex: 1, height: SPACING.sm, borderRadius: RADIUS.full },
-  pills: { flexDirection: "row", gap: SPACING.sm, paddingTop: SPACING.sm },
+  pills: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: SPACING.sm,
+    paddingTop: SPACING.sm,
+  },
   pill: {
     flexDirection: "row",
     alignItems: "center",

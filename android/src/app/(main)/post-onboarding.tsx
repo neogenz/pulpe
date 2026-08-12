@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -27,6 +27,9 @@ export default function PostOnboardingScreen() {
     <SafeAreaView
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
+      {/* A handoff, not a destination: it has one CTA and no way back. */}
+      <Stack.Screen options={{ gestureEnabled: false }} />
+
       <View style={styles.intro}>
         <Text variant="headlineMedium">Ton budget est prêt</Text>
         <Text
