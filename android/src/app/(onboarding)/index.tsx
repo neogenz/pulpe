@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
-import { useCallback, useEffect } from "react";
-import { Alert, BackHandler } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { BackHandler } from "react-native";
+import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
 
 import { SubmissionOverlay } from "@/features/onboarding/components/submission-overlay";
 import { wouldExitOnBack } from "@/features/onboarding/onboarding-selectors";
@@ -30,26 +31,21 @@ import { WelcomeStep } from "@/features/onboarding/steps/welcome-step";
  */
 export default function OnboardingRoute() {
   const router = useRouter();
+  const theme = useTheme();
   const currentStep = useOnboardingStore((state) => state.currentStep);
   const isSubmitting = useSubmissionStore((state) => state.status !== "idle");
+  const [isExitConfirmed, setExitConfirmed] = useState(false);
 
-  const confirmExit = useCallback(() => {
-    Alert.alert(
-      "Quitter la création de ton budget ?",
-      "Ce que tu as saisi sera effacé.",
-      [
-        { text: "Continuer", style: "cancel" },
-        {
-          text: "Quitter",
-          style: "destructive",
-          onPress: () => {
-            resetOnboarding();
-            router.replace("/sign-in");
-          },
-        },
-      ],
-    );
-  }, [router]);
+  // Paper's dialog rather than `Alert.alert`, which is the platform's own and
+  // came out in the platform's colours with shouted button labels — the one
+  // confirmation in the app that did not look like the app.
+  const confirmExit = useCallback(() => setExitConfirmed(true), []);
+
+  function leaveFlow() {
+    setExitConfirmed(false);
+    resetOnboarding();
+    router.replace("/sign-in");
+  }
 
   // The hardware back button has to answer the same way the on-screen one
   // does; left to itself it would pop the flow off the stack mid-step.
@@ -78,6 +74,24 @@ export default function OnboardingRoute() {
     <>
       <CurrentStep step={currentStep} onExit={confirmExit} />
       {isSubmitting && <SubmissionOverlay />}
+
+      <Portal>
+        <Dialog
+          visible={isExitConfirmed}
+          onDismiss={() => setExitConfirmed(false)}
+        >
+          <Dialog.Title>Quitter la création de ton budget ?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">Ce que tu as saisi sera effacé.</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setExitConfirmed(false)}>Continuer</Button>
+            <Button textColor={theme.colors.error} onPress={leaveFlow}>
+              Quitter
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </>
   );
 }
