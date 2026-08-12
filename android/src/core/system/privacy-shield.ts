@@ -12,7 +12,13 @@ import * as ScreenCapture from "expo-screen-capture";
  * The cost is that screenshots are blocked outright rather than only while
  * backgrounded. For an app whose every screen is someone's salary, that is the
  * side to err on, and it is what banking apps do on this platform.
+ *
+ * Not in development, where the only screens are seeded ones and the flag buys
+ * nothing: it blackens `adb screencap` and every screenshot attached to a bug
+ * report, so the one thing it protects on a debug build is the app from being
+ * looked at.
  */
 export function armPrivacyShield(): void {
+  if (__DEV__) return;
   void ScreenCapture.preventScreenCaptureAsync();
 }
