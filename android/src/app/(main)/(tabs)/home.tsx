@@ -66,6 +66,7 @@ export default function HomeScreen() {
   if (currentMonth.status === "loading") {
     return (
       <SafeAreaView
+        edges={["top"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
         <ActivityIndicator />
@@ -120,6 +121,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView
+      edges={["top"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <ScrollView

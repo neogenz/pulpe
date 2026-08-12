@@ -97,6 +97,7 @@ export default function PreferencesScreen() {
 
   return (
     <SafeAreaView
+      edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <Appbar.Header mode="small" elevated={false}>

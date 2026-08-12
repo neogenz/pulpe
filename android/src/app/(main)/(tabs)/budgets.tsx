@@ -21,7 +21,11 @@ import { formatSignedCompactCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
-import { budgetYearSections } from "@/features/budgets/budget-list-selectors";
+import {
+  type BudgetTiming,
+  budgetTiming,
+  budgetYearSections,
+} from "@/features/budgets/budget-list-selectors";
 import {
   invalidateBudgetData,
   useBudgetList,
@@ -47,6 +51,7 @@ export default function BudgetsScreen() {
   if (budgets.isPending || settings.isPending) {
     return (
       <SafeAreaView
+        edges={["top"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
         <ActivityIndicator />
@@ -86,6 +91,7 @@ export default function BudgetsScreen() {
 
   return (
     <SafeAreaView
+      edges={["top"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <ScrollView
@@ -113,10 +119,7 @@ export default function BudgetsScreen() {
                 budget={budget}
                 currency={currency}
                 payDayOfMonth={payDayOfMonth}
-                isCurrent={
-                  budget.month === currentPeriod.month &&
-                  budget.year === currentPeriod.year
-                }
+                timing={budgetTiming(budget, currentPeriod)}
               />
             ))}
           </View>
@@ -142,25 +145,40 @@ function BudgetRow({
   budget,
   currency,
   payDayOfMonth,
-  isCurrent,
+  timing,
 }: {
   budget: BudgetSparse;
   currency: SupportedCurrency;
   payDayOfMonth: number | null;
-  isCurrent: boolean;
+  timing: BudgetTiming;
 }) {
   const theme = useTheme();
   const month = budget.month ?? 1;
   const year = budget.year ?? new Date().getFullYear();
   const remaining = budget.remaining ?? 0;
   const isPositive = remaining >= 0;
+  const isCurrent = timing === "current";
+  const isPast = timing === "past";
 
   return (
-    <Card mode="contained" onPress={() => router.push(`/budget/${budget.id}`)}>
+    <Card
+      // Three weights for three meanings: the month being lived in is raised
+      // and tinted, a plan is only outlined, and a month that is over keeps the
+      // flat surface but steps back in contrast.
+      mode={isCurrent ? "elevated" : isPast ? "contained" : "outlined"}
+      style={[
+        isCurrent && { backgroundColor: theme.colors.primaryContainer },
+        isPast && styles.past,
+      ]}
+      onPress={() => router.push(`/budget/${budget.id}`)}
+    >
       <Card.Content style={styles.row}>
         <View style={styles.rowLabels}>
           {isCurrent && (
-            <Text variant="labelSmall" style={{ color: theme.colors.primary }}>
+            <Text
+              variant="labelSmall"
+              style={{ color: theme.colors.onPrimaryContainer }}
+            >
               Mois actuel
             </Text>
           )}
@@ -183,7 +201,9 @@ function BudgetRow({
             variant="labelSmall"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            {isPositive ? "Potentiel" : "Ajustement"}
+            {/* A month that is over settled at this figure; the two other
+                tenses are still describing something that has not happened. */}
+            {isPast ? "Résultat" : isPositive ? "Potentiel" : "Ajustement"}
           </Text>
         </View>
       </Card.Content>
@@ -221,6 +241,8 @@ const styles = StyleSheet.create({
   },
   rowLabels: { flex: 1, gap: SPACING.xxs },
   month: { textTransform: "capitalize" },
+  /** A settled month is still readable, but stops competing with the live one. */
+  past: { opacity: 0.72 },
   amount: { alignItems: "flex-end", gap: SPACING.xxs },
   fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

@@ -68,6 +68,7 @@ export default function TemplateDetailScreen() {
   if (template.isPending || lines.isPending) {
     return (
       <SafeAreaView
+        edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
         <ActivityIndicator />
@@ -94,6 +95,7 @@ export default function TemplateDetailScreen() {
 
   return (
     <SafeAreaView
+      edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <Appbar.Header mode="small" elevated={false}>
@@ -191,16 +193,27 @@ export default function TemplateDetailScreen() {
 
         {usage.data !== undefined && usage.data.budgets.length > 0 && (
           <View style={styles.usage}>
-            <Text variant="titleSmall">Budgets créés depuis ce modèle</Text>
-            <Card mode="contained">
-              <Card.Content style={styles.usageCard}>
-                {usage.data.budgets.map((budget) => (
-                  <Text key={budget.id} variant="bodyMedium">
-                    {formatMonthLabel(budget.month, budget.year)}
-                  </Text>
-                ))}
-              </Card.Content>
-            </Card>
+            <Text variant="titleSmall">
+              {`${usage.data.budgets.length} budgets créés depuis ce modèle`}
+            </Text>
+            {/* A scrolling row of destinations, not a column of read-only text:
+                twenty-five months printed one per line filled the screen with
+                something nothing could be done with. Each one opens now. */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.usageMonths}
+            >
+              {usage.data.budgets.map((budget) => (
+                <Chip
+                  key={budget.id}
+                  compact
+                  onPress={() => router.push(`/budget/${budget.id}`)}
+                >
+                  {formatMonthLabel(budget.month, budget.year)}
+                </Chip>
+              ))}
+            </ScrollView>
             <Text
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
@@ -355,5 +368,9 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   usage: { gap: SPACING.sm },
-  usageCard: { gap: SPACING.xxs },
+  usageMonths: {
+    flexDirection: "row",
+    gap: SPACING.xs,
+    paddingRight: SPACING.md,
+  },
 });

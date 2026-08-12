@@ -90,6 +90,7 @@ export default function BudgetLineDetailScreen() {
   if (details.isPending) {
     return (
       <SafeAreaView
+        edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
         <ActivityIndicator />
@@ -141,6 +142,7 @@ export default function BudgetLineDetailScreen() {
 
   return (
     <SafeAreaView
+      edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <Appbar.Header>

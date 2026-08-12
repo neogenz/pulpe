@@ -4,17 +4,27 @@ import {
   type SupportedCurrency,
   type Transaction,
 } from "pulpe-shared";
-import { useMemo, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import {
+  BackHandler,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import {
   ActivityIndicator,
   Appbar,
   FAB,
+  Searchbar,
   Snackbar,
   Text,
   useTheme,
 } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { armTip, dismissTip, useIsTipArmed } from "@/core/tips/tips-store";
 import { Tooltip } from "@/core/tips/tooltip";
@@ -87,6 +97,9 @@ export default function BudgetDetailScreen() {
   useAmountMasking();
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  // The search bar replaces the app bar, and unlike the app bar it does not
+  // inset itself against the status bar.
+  const insets = useSafeAreaInsets();
   const settings = useUserSettings();
   const details = useBudgetDetails(id);
   const budgets = useBudgetList();
@@ -108,6 +121,22 @@ export default function BudgetDetailScreen() {
   const removal = useTransactionRemoval();
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const isPessimisticTipArmed = useIsTipArmed("pessimistic-check");
+
+  // Back closes the search before it leaves the screen — on Android that is
+  // what the button means while any overlay is open, and losing the whole
+  // screen because you wanted to stop filtering is a bad trade.
+  useEffect(() => {
+    if (!isSearchVisible) return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        setFilters((current) => ({ ...current, search: "" }));
+        setSearchVisible(false);
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [isSearchVisible]);
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
@@ -158,6 +187,7 @@ export default function BudgetDetailScreen() {
   if (details.isPending || settings.isPending) {
     return (
       <SafeAreaView
+        edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
         <ActivityIndicator />
@@ -194,29 +224,50 @@ export default function BudgetDetailScreen() {
   });
   const months = budgetsInPeriodOrder(budgets.data ?? []);
 
+  // Leaving the search puts the whole list back: a term left behind would keep
+  // filtering it from a field the user can no longer see.
+  function closeSearch() {
+    setFilters({ ...filters, search: "" });
+    setSearchVisible(false);
+  }
+
   return (
     <SafeAreaView
+      edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <Appbar.Header>
-        <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content
-          title={formatMonthName(budget.month, budget.year)}
-          titleStyle={styles.title}
-        />
-        <Appbar.Action
-          icon={isSearchVisible ? "close" : "magnify"}
-          accessibilityLabel={
-            isSearchVisible ? "Fermer la recherche" : "Rechercher"
-          }
-          onPress={() => {
-            // Clearing on the way out, or the list stays filtered by a term the
-            // user can no longer see.
-            if (isSearchVisible) setFilters({ ...filters, search: "" });
-            setSearchVisible(!isSearchVisible);
-          }}
-        />
-      </Appbar.Header>
+      {/* Searching takes over the app bar rather than adding a row under it:
+          that is where Android has always put it, and the row version pushed
+          the first line of data off the bottom of the screen. */}
+      {isSearchVisible ? (
+        <View style={{ paddingTop: insets.top }}>
+          <Searchbar
+            mode="view"
+            autoFocus
+            placeholder="Rechercher"
+            value={filters.search}
+            onChangeText={(search) => setFilters({ ...filters, search })}
+            icon="arrow-left"
+            onIconPress={closeSearch}
+            // Clearing the field is not leaving the search — only the arrow is,
+            // and it is the one that puts the full list back.
+            onClearIconPress={() => setFilters({ ...filters, search: "" })}
+          />
+        </View>
+      ) : (
+        <Appbar.Header>
+          <Appbar.BackAction onPress={() => router.back()} />
+          <Appbar.Content
+            title={formatMonthName(budget.month, budget.year)}
+            titleStyle={styles.title}
+          />
+          <Appbar.Action
+            icon="magnify"
+            accessibilityLabel="Rechercher"
+            onPress={() => setSearchVisible(true)}
+          />
+        </Appbar.Header>
+      )}
 
       {months.length > 1 && (
         <View>
@@ -286,7 +337,6 @@ export default function BudgetDetailScreen() {
           filters={filters}
           counts={counts}
           onChange={setFilters}
-          isSearchVisible={isSearchVisible}
         />
 
         <View style={styles.gutter}>

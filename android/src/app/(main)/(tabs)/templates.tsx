@@ -41,6 +41,7 @@ export default function TemplatesScreen() {
   if (templates.isPending) {
     return (
       <SafeAreaView
+        edges={["top"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
         <ActivityIndicator />
@@ -63,6 +64,7 @@ export default function TemplatesScreen() {
 
   return (
     <SafeAreaView
+      edges={["top"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       {list.length === 0 ? (

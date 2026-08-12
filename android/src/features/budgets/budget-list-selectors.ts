@@ -37,6 +37,32 @@ export function budgetYearSections(
     }));
 }
 
+/** Where a budget sits relative to the month being lived in. */
+export type BudgetTiming = "past" | "current" | "future";
+
+export interface Period {
+  year: number;
+  month: number;
+}
+
+/**
+ * Which of the three a month is. The list mixes all three in one scroll, and
+ * they are not read the same way: the current month is the one being acted on,
+ * a future one is a plan, a past one is a record. Without this they were
+ * twenty identical grey cards and the user had to read the dates to find today.
+ */
+export function budgetTiming(
+  budget: Pick<BudgetSparse, "month" | "year">,
+  current: Period,
+): BudgetTiming {
+  const year = budget.year ?? current.year;
+  const month = budget.month ?? current.month;
+  if (year === current.year && month === current.month) return "current";
+  return year < current.year || (year === current.year && month < current.month)
+    ? "past"
+    : "future";
+}
+
 /**
  * The same budgets read the other way round — oldest first, across years. The
  * month pager runs left to right like a calendar, where the list reads newest

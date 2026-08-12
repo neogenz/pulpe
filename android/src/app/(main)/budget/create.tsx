@@ -62,6 +62,7 @@ export default function CreateBudgetScreen() {
   if (budgets.isPending || templates.isPending) {
     return (
       <SafeAreaView
+        edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
         <ActivityIndicator />
@@ -107,6 +108,7 @@ export default function CreateBudgetScreen() {
 
   return (
     <SafeAreaView
+      edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <Appbar.Header>

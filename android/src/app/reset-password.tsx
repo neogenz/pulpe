@@ -98,6 +98,7 @@ export default function ResetPasswordScreen() {
 
   return (
     <SafeAreaView
+      edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <Appbar.Header>
