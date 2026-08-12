@@ -1,12 +1,10 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as Haptics from "expo-haptics";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   Button,
   HelperText,
-  Modal,
-  Portal,
   Text,
   TextInput,
   useTheme,
@@ -17,7 +15,8 @@ import {
   PASSWORD_CRITERIA,
 } from "@/core/auth/password-rules";
 import { updatePassword, verifyPassword } from "@/core/auth/supabase";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
+import { SPACING } from "@/core/ui/theme";
 
 const CRITERION_ICON_SIZE = 16;
 
@@ -69,85 +68,13 @@ export function ChangePasswordSheet({
   }
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text variant="titleMedium">Changer le mot de passe</Text>
-          <Text
-            variant="bodyMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            Confirme ton identité pour modifier ton accès.
-          </Text>
-
-          <TextInput
-            mode="outlined"
-            label="Mot de passe actuel"
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="current-password"
-          />
-
-          <TextInput
-            mode="outlined"
-            label="Nouveau mot de passe"
-            value={newPassword}
-            onChangeText={setNewPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="new-password"
-          />
-
-          <View style={styles.criteria}>
-            {PASSWORD_CRITERIA.map((criterion) => {
-              const isMet = criterion.isMet(newPassword);
-              const color = isMet
-                ? theme.colors.primary
-                : theme.colors.onSurfaceVariant;
-
-              return (
-                <View key={criterion.label} style={styles.criterion}>
-                  <MaterialCommunityIcons
-                    name={isMet ? "check-circle" : "circle-outline"}
-                    size={CRITERION_ICON_SIZE}
-                    color={color}
-                  />
-                  <Text variant="labelMedium" style={{ color }}>
-                    {criterion.label}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-
-          <TextInput
-            mode="outlined"
-            label="Confirme le nouveau mot de passe"
-            value={confirmation}
-            onChangeText={setConfirmation}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="new-password"
-            error={confirmation.length > 0 && !isConfirmed}
-          />
-          {confirmation.length > 0 && !isConfirmed && (
-            <HelperText type="error" visible>
-              Les mots de passe ne correspondent pas.
-            </HelperText>
-          )}
-
+    <Sheet
+      isVisible={isVisible}
+      onDismiss={onDismiss}
+      title="Changer le mot de passe"
+      subtitle="Confirme ton identité pour modifier ton accès."
+      footer={
+        <>
           {errorMessage !== null && (
             <HelperText type="error" visible>
               {errorMessage}
@@ -165,9 +92,67 @@ export function ChangePasswordSheet({
           <Button mode="text" onPress={onDismiss} disabled={isSubmitting}>
             Annuler
           </Button>
-        </ScrollView>
-      </Modal>
-    </Portal>
+        </>
+      }
+    >
+      <TextInput
+        mode="outlined"
+        label="Mot de passe actuel"
+        value={currentPassword}
+        onChangeText={setCurrentPassword}
+        secureTextEntry
+        autoCapitalize="none"
+        autoComplete="current-password"
+      />
+
+      <TextInput
+        mode="outlined"
+        label="Nouveau mot de passe"
+        value={newPassword}
+        onChangeText={setNewPassword}
+        secureTextEntry
+        autoCapitalize="none"
+        autoComplete="new-password"
+      />
+
+      <View style={styles.criteria}>
+        {PASSWORD_CRITERIA.map((criterion) => {
+          const isMet = criterion.isMet(newPassword);
+          const color = isMet
+            ? theme.colors.primary
+            : theme.colors.onSurfaceVariant;
+
+          return (
+            <View key={criterion.label} style={styles.criterion}>
+              <MaterialCommunityIcons
+                name={isMet ? "check-circle" : "circle-outline"}
+                size={CRITERION_ICON_SIZE}
+                color={color}
+              />
+              <Text variant="labelMedium" style={{ color }}>
+                {criterion.label}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+
+      <TextInput
+        mode="outlined"
+        label="Confirme le nouveau mot de passe"
+        value={confirmation}
+        onChangeText={setConfirmation}
+        secureTextEntry
+        autoCapitalize="none"
+        autoComplete="new-password"
+        error={confirmation.length > 0 && !isConfirmed}
+      />
+      {confirmation.length > 0 && !isConfirmed && (
+        <HelperText type="error" visible>
+          Les mots de passe ne correspondent pas.
+        </HelperText>
+      )}
+    </Sheet>
   );
 }
 
@@ -183,12 +168,6 @@ function describeFailure(error: unknown): string {
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
   criteria: { gap: SPACING.xxs },
   criterion: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
 });

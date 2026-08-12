@@ -1,18 +1,10 @@
 import * as Haptics from "expo-haptics";
 import type { BudgetLine, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
-import {
-  Button,
-  HelperText,
-  Modal,
-  Portal,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Button, HelperText, Text, useTheme } from "react-native-paper";
 
 import { formatCurrency } from "@/core/ui/amount-format";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
 
 import { useSpreadExistingLine } from "../spread-queries";
 import {
@@ -74,45 +66,14 @@ export function SpreadExistingSheet({
   }
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text variant="titleMedium">Lisser « {line.name} »</Text>
-
-          <Text
-            variant="bodyMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {formatCurrency(line.amount, currency)} seront répartis sur les mois
-            choisis. Cette prévision-ci disparaît au profit d&apos;eux.
-          </Text>
-
-          <SpreadFormSection
-            cells={cells}
-            mode="total"
-            amount={line.amount}
-            currency={currency}
-            minimumMonths={MINIMUM_MONTHS}
-            onChangeLength={setLength}
-            onToggleMonth={(key) =>
-              setDeselected((current) =>
-                current.includes(key)
-                  ? current.filter((other) => other !== key)
-                  : [...current, key],
-              )
-            }
-          />
-
+    <Sheet
+      isVisible={isVisible}
+      onDismiss={onDismiss}
+      title={`Lisser « ${line.name} »`}
+      // The month grid is a dozen rows on a long spread, and the button that
+      // dissolves this forecast into them sits below it.
+      footer={
+        <>
           {spread.isError && (
             <HelperText type="error" visible>
               Le lissage n&apos;a pas pu être fait. Réessaie.
@@ -127,17 +88,32 @@ export function SpreadExistingSheet({
           >
             Lisser
           </Button>
-        </ScrollView>
-      </Modal>
-    </Portal>
+        </>
+      }
+    >
+      <Text
+        variant="bodyMedium"
+        style={{ color: theme.colors.onSurfaceVariant }}
+      >
+        {formatCurrency(line.amount, currency)} seront répartis sur les mois
+        choisis. Cette prévision-ci disparaît au profit d&apos;eux.
+      </Text>
+
+      <SpreadFormSection
+        cells={cells}
+        mode="total"
+        amount={line.amount}
+        currency={currency}
+        minimumMonths={MINIMUM_MONTHS}
+        onChangeLength={setLength}
+        onToggleMonth={(key) =>
+          setDeselected((current) =>
+            current.includes(key)
+              ? current.filter((other) => other !== key)
+              : [...current, key],
+          )
+        }
+      />
+    </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
-});

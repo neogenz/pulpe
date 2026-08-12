@@ -1,17 +1,8 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
-import {
-  Button,
-  HelperText,
-  Modal,
-  Portal,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { Button, HelperText, TextInput } from "react-native-paper";
 
 import { verifyPassword } from "@/core/auth/supabase";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
 
 /**
  * Stands between an unlocked session and an act only the account holder should
@@ -34,7 +25,6 @@ export function ConfirmPasswordSheet({
   /** Runs once the password checks out; its failure is shown here. */
   onConfirmed: () => Promise<void>;
 }) {
-  const theme = useTheme();
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
@@ -60,38 +50,13 @@ export function ConfirmPasswordSheet({
   }
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text variant="titleMedium">{title}</Text>
-          <Text
-            variant="bodyMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {message}
-          </Text>
-
-          <TextInput
-            mode="outlined"
-            label="Ton mot de passe"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="current-password"
-            autoFocus
-          />
-
+    <Sheet
+      isVisible={isVisible}
+      onDismiss={onDismiss}
+      title={title}
+      subtitle={message}
+      footer={
+        <>
           {errorMessage !== null && (
             <HelperText type="error" visible>
               {errorMessage}
@@ -109,17 +74,19 @@ export function ConfirmPasswordSheet({
           <Button mode="text" onPress={onDismiss} disabled={isSubmitting}>
             Annuler
           </Button>
-        </ScrollView>
-      </Modal>
-    </Portal>
+        </>
+      }
+    >
+      <TextInput
+        mode="outlined"
+        label="Ton mot de passe"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        autoCapitalize="none"
+        autoComplete="current-password"
+        autoFocus
+      />
+    </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
-});

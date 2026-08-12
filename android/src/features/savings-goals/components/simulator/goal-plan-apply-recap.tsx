@@ -3,21 +3,20 @@ import type {
   SupportedCurrency,
 } from "pulpe-shared";
 import { currentPlanMovement } from "pulpe-shared";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   Button,
   Card,
   HelperText,
   Icon,
-  Modal,
-  Portal,
   Text,
   useTheme,
 } from "react-native-paper";
 
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
-import { RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
+import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 const ARROW_SIZE = 16;
 
@@ -48,66 +47,14 @@ export function GoalPlanApplyRecap({
   const theme = useTheme();
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text variant="titleMedium">Appliquer ce plan</Text>
-          <Text
-            variant="bodyMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {changes.length} mois {changes.length > 1 ? "vont" : "va"} changer.
-            Les montants déjà pointés ne bougent pas.
-          </Text>
-
-          <Card mode="contained">
-            <Card.Content style={styles.card}>
-              {changes.map((month) => (
-                <View key={`${month.year}-${month.month}`} style={styles.row}>
-                  <View style={styles.label}>
-                    <Text variant="bodyLarge">
-                      {formatMonthLabel(month.month, month.year)}
-                    </Text>
-                    {month.isProvisionable === true && (
-                      <Text
-                        variant="labelSmall"
-                        style={{ color: theme.colors.onSurfaceVariant }}
-                      >
-                        Prévision à créer
-                      </Text>
-                    )}
-                  </View>
-                  <View style={styles.amounts}>
-                    <Text
-                      variant="labelLarge"
-                      style={[
-                        TABULAR_DIGITS,
-                        { color: theme.colors.onSurfaceVariant },
-                      ]}
-                    >
-                      {formatCurrency(currentPlanMovement(month), currency)}
-                    </Text>
-                    <Icon
-                      source="arrow-right"
-                      size={ARROW_SIZE}
-                      color={theme.colors.onSurfaceVariant}
-                    />
-                    <Text variant="labelLarge" style={TABULAR_DIGITS}>
-                      {formatCurrency(month.simulatedAmount, currency)}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </Card.Content>
-          </Card>
-
+    <Sheet
+      isVisible={isVisible}
+      onDismiss={onDismiss}
+      title="Appliquer ce plan"
+      // The month-by-month list is the whole point of the recap and runs long,
+      // so the button that commits the write stays out of it.
+      footer={
+        <>
           {hasFailed && (
             <HelperText type="error" visible>
               Le plan n&apos;a pas pu être appliqué. Rien n&apos;a changé —
@@ -126,19 +73,62 @@ export function GoalPlanApplyRecap({
           <Button mode="text" onPress={onDismiss} disabled={isApplying}>
             Revenir au simulateur
           </Button>
-        </ScrollView>
-      </Modal>
-    </Portal>
+        </>
+      }
+    >
+      <Text
+        variant="bodyMedium"
+        style={{ color: theme.colors.onSurfaceVariant }}
+      >
+        {changes.length} mois {changes.length > 1 ? "vont" : "va"} changer. Les
+        montants déjà pointés ne bougent pas.
+      </Text>
+
+      <Card mode="contained">
+        <Card.Content style={styles.card}>
+          {changes.map((month) => (
+            <View key={`${month.year}-${month.month}`} style={styles.row}>
+              <View style={styles.label}>
+                <Text variant="bodyLarge">
+                  {formatMonthLabel(month.month, month.year)}
+                </Text>
+                {month.isProvisionable === true && (
+                  <Text
+                    variant="labelSmall"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    Prévision à créer
+                  </Text>
+                )}
+              </View>
+              <View style={styles.amounts}>
+                <Text
+                  variant="labelLarge"
+                  style={[
+                    TABULAR_DIGITS,
+                    { color: theme.colors.onSurfaceVariant },
+                  ]}
+                >
+                  {formatCurrency(currentPlanMovement(month), currency)}
+                </Text>
+                <Icon
+                  source="arrow-right"
+                  size={ARROW_SIZE}
+                  color={theme.colors.onSurfaceVariant}
+                />
+                <Text variant="labelLarge" style={TABULAR_DIGITS}>
+                  {formatCurrency(month.simulatedAmount, currency)}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </Card.Content>
+      </Card>
+    </Sheet>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
   card: { gap: SPACING.xxs },
   row: {
     flexDirection: "row",

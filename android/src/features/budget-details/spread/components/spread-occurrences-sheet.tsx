@@ -4,11 +4,9 @@ import {
   type SupportedCurrency,
 } from "pulpe-shared";
 import { useMemo } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
-  Modal,
-  Portal,
   ProgressBar,
   Text,
   useTheme,
@@ -16,6 +14,7 @@ import {
 
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
+import { Sheet } from "@/core/ui/sheet";
 import { RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 import {
@@ -72,73 +71,57 @@ export function SpreadOccurrencesSheet({
     livePeriod.year === viewedPeriod.year;
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text variant="titleMedium">Dépense lissée</Text>
+    <Sheet isVisible={isVisible} onDismiss={onDismiss} title="Dépense lissée">
+      {occurrences.isPending && <ActivityIndicator />}
 
-          {occurrences.isPending && <ActivityIndicator />}
+      {occurrences.isError && (
+        <Text variant="bodyMedium" style={{ color: theme.colors.error }}>
+          On n&apos;a pas pu charger les mois de cette dépense.
+        </Text>
+      )}
 
-          {occurrences.isError && (
-            <Text variant="bodyMedium" style={{ color: theme.colors.error }}>
-              On n&apos;a pas pu charger les mois de cette dépense.
+      {tracker !== null && (
+        <View style={styles.tracker}>
+          <View style={styles.trackerRow}>
+            <Text variant="titleSmall">
+              Mois {tracker.currentIndex} sur {tracker.count}
             </Text>
-          )}
+            <Text
+              variant="labelLarge"
+              style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
+            >
+              {formatCurrency(tracker.cumulatedAmount, currency)} /{" "}
+              {formatCurrency(tracker.totalAmount, currency)}
+            </Text>
+          </View>
 
-          {tracker !== null && (
-            <View style={styles.tracker}>
-              <View style={styles.trackerRow}>
-                <Text variant="titleSmall">
-                  Mois {tracker.currentIndex} sur {tracker.count}
-                </Text>
-                <Text
-                  variant="labelLarge"
-                  style={[
-                    TABULAR_DIGITS,
-                    { color: theme.colors.onSurfaceVariant },
-                  ]}
-                >
-                  {formatCurrency(tracker.cumulatedAmount, currency)} /{" "}
-                  {formatCurrency(tracker.totalAmount, currency)}
-                </Text>
-              </View>
+          <ProgressBar
+            progress={tracker.progressPercent / PERCENT}
+            style={styles.progress}
+          />
 
-              <ProgressBar
-                progress={tracker.progressPercent / PERCENT}
-                style={styles.progress}
-              />
+          <Text
+            variant="labelMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {tracker.remainingToProvision <= 0
+              ? "Objectif atteint"
+              : tracker.perRemainingMonth === null
+                ? `Il manque ${formatCurrency(tracker.remainingToProvision, currency)}`
+                : `Reste ${formatCurrency(tracker.remainingToProvision, currency)} · ${formatCurrency(tracker.perRemainingMonth, currency)} par mois restant`}
+          </Text>
+        </View>
+      )}
 
-              <Text
-                variant="labelMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                {tracker.remainingToProvision <= 0
-                  ? "Objectif atteint"
-                  : tracker.perRemainingMonth === null
-                    ? `Il manque ${formatCurrency(tracker.remainingToProvision, currency)}`
-                    : `Reste ${formatCurrency(tracker.remainingToProvision, currency)} · ${formatCurrency(tracker.perRemainingMonth, currency)} par mois restant`}
-              </Text>
-            </View>
-          )}
-
-          {items.map((item) => (
-            <OccurrenceRow
-              key={item.occurrence.budgetLineId}
-              item={item}
-              currency={currency}
-              isLivePeriodViewed={isLivePeriodViewed}
-            />
-          ))}
-        </ScrollView>
-      </Modal>
-    </Portal>
+      {items.map((item) => (
+        <OccurrenceRow
+          key={item.occurrence.budgetLineId}
+          item={item}
+          currency={currency}
+          isLivePeriodViewed={isLivePeriodViewed}
+        />
+      ))}
+    </Sheet>
   );
 }
 
@@ -195,12 +178,6 @@ function OccurrenceRow({
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
   tracker: { gap: SPACING.xs },
   trackerRow: {
     flexDirection: "row",

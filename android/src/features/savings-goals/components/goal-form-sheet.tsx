@@ -5,12 +5,10 @@ import type {
   SupportedCurrency,
 } from "pulpe-shared";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   Button,
   HelperText,
-  Modal,
-  Portal,
   SegmentedButtons,
   Switch,
   Text,
@@ -22,7 +20,8 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate, parseIsoDate, toIsoDate } from "@/core/ui/date-format";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
+import { SPACING } from "@/core/ui/theme";
 
 import {
   buildSavingsGoalCreate,
@@ -135,170 +134,162 @@ export function GoalFormSheet({
   }
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
+    <>
+      <Sheet
+        isVisible={isVisible}
         onDismiss={dismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text variant="titleMedium">
-            {isEditing ? "Modifier l'objectif" : "Nouvel objectif"}
-          </Text>
+        title={isEditing ? "Modifier l'objectif" : "Nouvel objectif"}
+        // The longest form in the app — name, two amounts, two dates, a toggle
+        // and a monthly amount. Scrolled with the body, its own button would sit
+        // a screen and a half below the first field.
+        footer={
+          <>
+            {mutation.isError && (
+              <HelperText type="error" visible>
+                L&apos;objectif n&apos;a pas pu être enregistré. Réessaie.
+              </HelperText>
+            )}
 
-          <TextInput
-            mode="outlined"
-            label="Nom de l'objectif"
-            placeholder="Voyage, appart, coussin de sécurité…"
-            value={draft.name}
-            onChangeText={(name) => change({ name })}
-            maxLength={NAME_MAX_LENGTH}
-          />
+            <Button
+              mode="contained"
+              onPress={submit}
+              disabled={
+                !isSavingsGoalDraftSubmittable(draft) || mutation.isPending
+              }
+              loading={mutation.isPending}
+            >
+              {isEditing ? "Enregistrer" : "Créer mon objectif"}
+            </Button>
 
-          <AmountField
-            key={`target-${generation}`}
-            label="Cible (optionnelle)"
-            amount={draft.targetAmount}
-            currency={currency}
-            onChange={(targetAmount) => change({ targetAmount })}
-          />
-
-          <AmountField
-            key={`initial-${generation}`}
-            label="Montant de départ (optionnel)"
-            amount={draft.initialAmount}
-            currency={currency}
-            onChange={(initialAmount) => change({ initialAmount })}
-          />
-
-          <DateRow
-            label="Début"
-            value={draft.startDate}
-            emptyHint="À partir de ce mois-ci"
-            onPress={() => setPickingDate("startDate")}
-            onClear={() => change({ startDate: null })}
-          />
-
-          <DateRow
-            label="Échéance"
-            value={draft.targetDate}
-            emptyHint="Sans date limite"
-            onPress={() => setPickingDate("targetDate")}
-            onClear={() => change({ targetDate: null })}
-          />
-
-          {isDecomposable && (
-            <>
-              <View style={styles.toggleRow}>
-                <View style={styles.toggleLabels}>
-                  <Text variant="bodyLarge">Décomposer en mensualités</Text>
-                  <Text
-                    variant="labelMedium"
-                    style={{ color: theme.colors.onSurfaceVariant }}
-                  >
-                    Une épargne prévue sur chacun de tes budgets, jusqu&apos;à
-                    l&apos;échéance
-                  </Text>
-                </View>
-                <Switch
-                  value={draft.isDecomposed}
-                  onValueChange={(isDecomposed) => change({ isDecomposed })}
-                  accessibilityLabel="Décomposer en mensualités"
-                />
-              </View>
-
-              {draft.isDecomposed && (
-                <>
-                  <AmountField
-                    key={`monthly-${generation}-${suggestion}`}
-                    label="Épargne mensuelle"
-                    amount={draft.monthlyOverride ?? suggestion}
-                    currency={currency}
-                    onChange={(monthlyOverride) =>
-                      change({
-                        monthlyOverride:
-                          monthlyOverride === suggestion
-                            ? null
-                            : monthlyOverride,
-                      })
-                    }
-                  />
-                  <Text
-                    variant="labelMedium"
-                    style={{ color: theme.colors.onSurfaceVariant }}
-                  >
-                    {suggestion === null
-                      ? "Ce montant sera prévu chaque mois."
-                      : `Pré-rempli avec ${formatCurrency(suggestion, currency)} — cible ÷ mois restants.`}
-                  </Text>
-                </>
-              )}
-            </>
-          )}
-
-          {isManual && (
-            <>
-              <AmountField
-                key={`manual-${generation}`}
-                label="Épargne mensuelle (optionnelle)"
-                amount={draft.monthlyOverride}
-                currency={currency}
-                onChange={(monthlyOverride) => change({ monthlyOverride })}
-              />
+            {hint !== null && (
               <Text
                 variant="labelMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
+                style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}
               >
-                {draft.targetDate === null
-                  ? "Ce montant alimentera ton pot chaque mois, sans échéance imposée."
-                  : "Ce montant sera prévu chaque mois, jusqu'à l'échéance."}
+                {hint}
               </Text>
-            </>
-          )}
+            )}
+          </>
+        }
+      >
+        <TextInput
+          mode="outlined"
+          label="Nom de l'objectif"
+          placeholder="Voyage, appart, coussin de sécurité…"
+          value={draft.name}
+          onChangeText={(name) => change({ name })}
+          maxLength={NAME_MAX_LENGTH}
+        />
 
-          {isEditing && (
-            <SegmentedButtons
-              value={draft.status}
-              onValueChange={(status) =>
-                change({ status: status as SavingsGoalStatus })
-              }
-              buttons={STATUS_BUTTONS}
+        <AmountField
+          key={`target-${generation}`}
+          label="Cible (optionnelle)"
+          amount={draft.targetAmount}
+          currency={currency}
+          onChange={(targetAmount) => change({ targetAmount })}
+        />
+
+        <AmountField
+          key={`initial-${generation}`}
+          label="Montant de départ (optionnel)"
+          amount={draft.initialAmount}
+          currency={currency}
+          onChange={(initialAmount) => change({ initialAmount })}
+        />
+
+        <DateRow
+          label="Début"
+          value={draft.startDate}
+          emptyHint="À partir de ce mois-ci"
+          onPress={() => setPickingDate("startDate")}
+          onClear={() => change({ startDate: null })}
+        />
+
+        <DateRow
+          label="Échéance"
+          value={draft.targetDate}
+          emptyHint="Sans date limite"
+          onPress={() => setPickingDate("targetDate")}
+          onClear={() => change({ targetDate: null })}
+        />
+
+        {isDecomposable && (
+          <>
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleLabels}>
+                <Text variant="bodyLarge">Décomposer en mensualités</Text>
+                <Text
+                  variant="labelMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  Une épargne prévue sur chacun de tes budgets, jusqu&apos;à
+                  l&apos;échéance
+                </Text>
+              </View>
+              <Switch
+                value={draft.isDecomposed}
+                onValueChange={(isDecomposed) => change({ isDecomposed })}
+                accessibilityLabel="Décomposer en mensualités"
+              />
+            </View>
+
+            {draft.isDecomposed && (
+              <>
+                <AmountField
+                  key={`monthly-${generation}-${suggestion}`}
+                  label="Épargne mensuelle"
+                  amount={draft.monthlyOverride ?? suggestion}
+                  currency={currency}
+                  onChange={(monthlyOverride) =>
+                    change({
+                      monthlyOverride:
+                        monthlyOverride === suggestion ? null : monthlyOverride,
+                    })
+                  }
+                />
+                <Text
+                  variant="labelMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {suggestion === null
+                    ? "Ce montant sera prévu chaque mois."
+                    : `Pré-rempli avec ${formatCurrency(suggestion, currency)} — cible ÷ mois restants.`}
+                </Text>
+              </>
+            )}
+          </>
+        )}
+
+        {isManual && (
+          <>
+            <AmountField
+              key={`manual-${generation}`}
+              label="Épargne mensuelle (optionnelle)"
+              amount={draft.monthlyOverride}
+              currency={currency}
+              onChange={(monthlyOverride) => change({ monthlyOverride })}
             />
-          )}
-
-          {mutation.isError && (
-            <HelperText type="error" visible>
-              L&apos;objectif n&apos;a pas pu être enregistré. Réessaie.
-            </HelperText>
-          )}
-
-          <Button
-            mode="contained"
-            onPress={submit}
-            disabled={
-              !isSavingsGoalDraftSubmittable(draft) || mutation.isPending
-            }
-            loading={mutation.isPending}
-          >
-            {isEditing ? "Enregistrer" : "Créer mon objectif"}
-          </Button>
-
-          {hint !== null && (
             <Text
               variant="labelMedium"
-              style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}
+              style={{ color: theme.colors.onSurfaceVariant }}
             >
-              {hint}
+              {draft.targetDate === null
+                ? "Ce montant alimentera ton pot chaque mois, sans échéance imposée."
+                : "Ce montant sera prévu chaque mois, jusqu'à l'échéance."}
             </Text>
-          )}
-        </ScrollView>
-      </Modal>
+          </>
+        )}
+
+        {isEditing && (
+          <SegmentedButtons
+            value={draft.status}
+            onValueChange={(status) =>
+              change({ status: status as SavingsGoalStatus })
+            }
+            buttons={STATUS_BUTTONS}
+          />
+        )}
+      </Sheet>
 
       {/* Android's own dialog, not a full-page calendar: mounting this renders
           nothing and asks the platform to present its picker. */}
@@ -318,7 +309,7 @@ export function GoalFormSheet({
           }}
         />
       )}
-    </Portal>
+    </>
   );
 }
 
@@ -363,12 +354,6 @@ function DateRow({
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
   toggleRow: {
     flexDirection: "row",
     alignItems: "center",

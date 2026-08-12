@@ -1,18 +1,9 @@
 import * as Haptics from "expo-haptics";
 import { useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
-import {
-  Button,
-  HelperText,
-  Modal,
-  Portal,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { Button, HelperText, TextInput } from "react-native-paper";
 
 import { normalizeApiError } from "@/core/api/api-error";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
 import {
   formatRecoveryKey,
   hasInvalidRecoveryKeyCharacters,
@@ -35,7 +26,6 @@ export function VerifyRecoveryKeySheet({
   onDismiss: () => void;
   onVerified: () => void;
 }) {
-  const theme = useTheme();
   const [value, setValue] = useState("");
   const [hasInvalidCharacters, setHasInvalidCharacters] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -64,44 +54,13 @@ export function VerifyRecoveryKeySheet({
   }
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text variant="titleMedium">Vérifier ma clé de récupération</Text>
-          <Text
-            variant="bodyMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            Saisis la clé que tu as notée. Elle reste valable après la
-            vérification.
-          </Text>
-
-          <TextInput
-            mode="outlined"
-            label="Clé de récupération"
-            value={value}
-            onChangeText={update}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            multiline
-            autoFocus
-          />
-          {hasInvalidCharacters && (
-            <HelperText type="error" visible>
-              Une clé ne contient que des lettres et les chiffres 2 à 7.
-            </HelperText>
-          )}
-
+    <Sheet
+      isVisible={isVisible}
+      onDismiss={onDismiss}
+      title="Vérifier ma clé de récupération"
+      subtitle="Saisis la clé que tu as notée. Elle reste valable après la vérification."
+      footer={
+        <>
           {errorMessage !== null && (
             <HelperText type="error" visible>
               {errorMessage}
@@ -119,17 +78,24 @@ export function VerifyRecoveryKeySheet({
           <Button mode="text" onPress={onDismiss} disabled={isSubmitting}>
             Fermer
           </Button>
-        </ScrollView>
-      </Modal>
-    </Portal>
+        </>
+      }
+    >
+      <TextInput
+        mode="outlined"
+        label="Clé de récupération"
+        value={value}
+        onChangeText={update}
+        autoCapitalize="characters"
+        autoCorrect={false}
+        multiline
+        autoFocus
+      />
+      {hasInvalidCharacters && (
+        <HelperText type="error" visible>
+          Une clé ne contient que des lettres et les chiffres 2 à 7.
+        </HelperText>
+      )}
+    </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
-});

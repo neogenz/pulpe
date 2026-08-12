@@ -5,14 +5,12 @@ import type {
   SupportedCurrency,
 } from "pulpe-shared";
 import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   Button,
   Card,
   Chip,
   Divider,
-  Modal,
-  Portal,
   Text,
   useTheme,
 } from "react-native-paper";
@@ -20,7 +18,8 @@ import {
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
-import { RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
+import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 import { useApplySavingsGoalPlan } from "../../goals-queries";
 import {
@@ -124,96 +123,94 @@ export function GoalPlanSimulatorSheet({
   }
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible && !isRecapVisible}
+    <>
+      <Sheet
+        isVisible={isVisible && !isRecapVisible}
         onDismiss={dismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
+        title="Simuler ton plan"
+        // One amount field per editable month: a year-long plan is twelve of
+        // them, and the count on the button is the feedback the user is typing
+        // against — both have to stay in sight.
+        footer={
+          <>
+            <Button
+              mode="contained"
+              onPress={() => setRecapVisible(true)}
+              disabled={changes.length === 0}
+            >
+              Appliquer ({changes.length} mois)
+            </Button>
+            <Button mode="text" onPress={dismiss}>
+              Annuler
+            </Button>
+          </>
+        }
       >
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text variant="titleMedium">Simuler ton plan</Text>
-
-          <Card mode="contained">
-            <Card.Content style={styles.verdict}>
-              <Text variant="bodyLarge">
-                {planVerdict(
-                  simulation,
-                  (amount) => formatCompactCurrency(amount, currency),
-                  (period) => formatMonthLabel(period.month, period.year),
-                )}
-              </Text>
-              <Text
-                variant="labelMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                Total simulé{" "}
-                {formatCurrency(simulation.simulatedFinal, currency)}
-              </Text>
-            </Card.Content>
-          </Card>
-
-          {editableMonths.length === 0 ? (
+        <Card mode="contained">
+          <Card.Content style={styles.verdict}>
+            <Text variant="bodyLarge">
+              {planVerdict(
+                simulation,
+                (amount) => formatCompactCurrency(amount, currency),
+                (period) => formatMonthLabel(period.month, period.year),
+              )}
+            </Text>
             <Text
-              variant="bodyMedium"
+              variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              Aucun mois de ce plan n&apos;est encore modifiable.
+              Total simulé {formatCurrency(simulation.simulatedFinal, currency)}
             </Text>
-          ) : (
-            <>
-              <AmountField
-                key={`uniform-${generation}`}
-                label="Même montant chaque mois"
-                amount={null}
-                currency={currency}
-                onChange={setUniformAmount}
-              />
+          </Card.Content>
+        </Card>
 
-              <View style={styles.actions}>
-                <Button mode="outlined" onPress={redistribute} compact>
-                  Réajuster la suite
-                </Button>
-                {changes.length > 0 && (
-                  <Button mode="text" onPress={() => rewrite({})} compact>
-                    Repartir du plan actuel
-                  </Button>
-                )}
-              </View>
-
-              <Divider />
-
-              {simulation.months.map((month) => (
-                <MonthRow
-                  key={`${monthKey(month)}-${generation}`}
-                  month={month}
-                  currency={currency}
-                  onChange={(amount) => {
-                    if (amount === null) return;
-                    setOverrides((current) => ({
-                      ...current,
-                      [monthKey(month)]: amount,
-                    }));
-                  }}
-                />
-              ))}
-            </>
-          )}
-
-          <Button
-            mode="contained"
-            onPress={() => setRecapVisible(true)}
-            disabled={changes.length === 0}
+        {editableMonths.length === 0 ? (
+          <Text
+            variant="bodyMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Appliquer ({changes.length} mois)
-          </Button>
-          <Button mode="text" onPress={dismiss}>
-            Annuler
-          </Button>
-        </ScrollView>
-      </Modal>
+            Aucun mois de ce plan n&apos;est encore modifiable.
+          </Text>
+        ) : (
+          <>
+            <AmountField
+              key={`uniform-${generation}`}
+              label="Même montant chaque mois"
+              amount={null}
+              currency={currency}
+              onChange={setUniformAmount}
+            />
+
+            <View style={styles.actions}>
+              <Button mode="outlined" onPress={redistribute} compact>
+                Réajuster la suite
+              </Button>
+              {changes.length > 0 && (
+                <Button mode="text" onPress={() => rewrite({})} compact>
+                  Repartir du plan actuel
+                </Button>
+              )}
+            </View>
+
+            <Divider />
+
+            {simulation.months.map((month) => (
+              <MonthRow
+                key={`${monthKey(month)}-${generation}`}
+                month={month}
+                currency={currency}
+                onChange={(amount) => {
+                  if (amount === null) return;
+                  setOverrides((current) => ({
+                    ...current,
+                    [monthKey(month)]: amount,
+                  }));
+                }}
+              />
+            ))}
+          </>
+        )}
+      </Sheet>
 
       <GoalPlanApplyRecap
         isVisible={isVisible && isRecapVisible}
@@ -224,7 +221,7 @@ export function GoalPlanSimulatorSheet({
         hasFailed={apply.isError}
         onConfirm={confirm}
       />
-    </Portal>
+    </>
   );
 }
 
@@ -283,12 +280,6 @@ function MonthRow({
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
   verdict: { gap: SPACING.xxs },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   editRow: { gap: SPACING.xs },

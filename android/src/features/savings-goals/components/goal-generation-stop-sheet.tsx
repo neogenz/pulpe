@@ -4,26 +4,20 @@ import type {
   SavingsGoalStatus,
   SupportedCurrency,
 } from "pulpe-shared";
-import { ScrollView, StyleSheet, useColorScheme, View } from "react-native";
+import { StyleSheet, useColorScheme, View } from "react-native";
 import {
   Button,
   Card,
   Divider,
   HelperText,
-  Modal,
-  Portal,
   Text,
   useTheme,
 } from "react-native-paper";
 
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
-import {
-  FINANCIAL_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
+import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 import { useStopSavingsGoalGeneration } from "../goals-queries";
 
@@ -88,55 +82,15 @@ export function GoalGenerationStopSheet({
   }
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={dismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text variant="titleMedium">
-            {status === "PAUSED" ? "Objectif en pause" : "Objectif atteint"}
-          </Text>
-
-          <Text
-            variant="bodyMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {lines.length} prévision(s) Épargne restent liées à cet objectif sur
-            tes mois futurs. Que veux-tu en faire ?
-          </Text>
-
-          <Card mode="contained">
-            <Card.Content style={styles.card}>
-              {lines.map((line) => (
-                <View key={line.budgetLineId} style={styles.row}>
-                  <Text
-                    variant="bodyMedium"
-                    style={{ color: theme.colors.onSurfaceVariant }}
-                  >
-                    {formatMonthLabel(line.month, line.year)}
-                  </Text>
-                  <Text variant="labelLarge" style={TABULAR_DIGITS}>
-                    {formatCurrency(line.amount, currency)}
-                  </Text>
-                </View>
-              ))}
-
-              <Divider />
-
-              <View style={styles.row}>
-                <Text variant="labelLarge">Total</Text>
-                <Text variant="labelLarge" style={TABULAR_DIGITS}>
-                  {formatCompactCurrency(total, currency)}
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
-
+    <Sheet
+      isVisible={isVisible}
+      onDismiss={dismiss}
+      title={status === "PAUSED" ? "Objectif en pause" : "Objectif atteint"}
+      // The two decisions are the point of the sheet, so they stay put while
+      // the months they apply to scroll behind them — a goal paused in January
+      // lists eleven of them.
+      footer={
+        <>
           {stop.isError && (
             <HelperText type="error" visible>
               La décision n&apos;a pas pu être appliquée. Recharge et réessaie.
@@ -183,19 +137,48 @@ export function GoalGenerationStopSheet({
           <Button mode="text" onPress={dismiss} disabled={stop.isPending}>
             Ne rien changer
           </Button>
-        </ScrollView>
-      </Modal>
-    </Portal>
+        </>
+      }
+    >
+      <Text
+        variant="bodyMedium"
+        style={{ color: theme.colors.onSurfaceVariant }}
+      >
+        {lines.length} prévision(s) Épargne restent liées à cet objectif sur tes
+        mois futurs. Que veux-tu en faire ?
+      </Text>
+
+      <Card mode="contained">
+        <Card.Content style={styles.card}>
+          {lines.map((line) => (
+            <View key={line.budgetLineId} style={styles.row}>
+              <Text
+                variant="bodyMedium"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {formatMonthLabel(line.month, line.year)}
+              </Text>
+              <Text variant="labelLarge" style={TABULAR_DIGITS}>
+                {formatCurrency(line.amount, currency)}
+              </Text>
+            </View>
+          ))}
+
+          <Divider />
+
+          <View style={styles.row}>
+            <Text variant="labelLarge">Total</Text>
+            <Text variant="labelLarge" style={TABULAR_DIGITS}>
+              {formatCompactCurrency(total, currency)}
+            </Text>
+          </View>
+        </Card.Content>
+      </Card>
+    </Sheet>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
   card: { gap: SPACING.xs },
   row: {
     flexDirection: "row",

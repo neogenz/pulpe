@@ -6,13 +6,12 @@ import type {
   TransactionRecurrence,
 } from "pulpe-shared";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   Button,
   Chip,
   Dialog,
   HelperText,
-  Modal,
   Portal,
   SegmentedButtons,
   Text,
@@ -21,7 +20,8 @@ import {
 } from "react-native-paper";
 
 import { AmountField } from "@/core/ui/amount-field";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
+import { SPACING } from "@/core/ui/theme";
 import { useSavingsGoals } from "@/features/savings-goals/goals-queries";
 
 import {
@@ -183,139 +183,126 @@ export function TemplateLineSheet({
   }
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible && !isPropagationVisible}
+    <>
+      <Sheet
+        isVisible={isVisible && !isPropagationVisible}
         onDismiss={dismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
+        title={isEditing ? "Modifier la prévision" : "Nouvelle prévision"}
+        footer={
+          <>
+            {mutation.isError && (
+              <HelperText type="error" visible>
+                La prévision n&apos;a pas pu être enregistrée. Réessaie.
+              </HelperText>
+            )}
+
+            <Button
+              mode="contained"
+              onPress={submit}
+              disabled={!isSubmittable}
+              loading={mutation.isPending}
+            >
+              {isEditing ? "Enregistrer" : "Ajouter"}
+            </Button>
+            <Button mode="text" onPress={dismiss} disabled={mutation.isPending}>
+              Annuler
+            </Button>
+          </>
+        }
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text variant="titleMedium">
-            {isEditing ? "Modifier la prévision" : "Nouvelle prévision"}
-          </Text>
+        <SegmentedButtons
+          value={kind}
+          onValueChange={(next) => setKind(next as TransactionKind)}
+          buttons={KIND_BUTTONS}
+        />
 
-          <SegmentedButtons
-            value={kind}
-            onValueChange={(next) => setKind(next as TransactionKind)}
-            buttons={KIND_BUTTONS}
-          />
+        <AmountField
+          label="Montant prévu"
+          amount={amount}
+          currency={currency}
+          onChange={setAmount}
+        />
 
-          <AmountField
-            label="Montant prévu"
-            amount={amount}
-            currency={currency}
-            onChange={setAmount}
-          />
+        <TextInput
+          mode="outlined"
+          label="Nom"
+          value={name}
+          onChangeText={setName}
+          maxLength={NAME_MAX_LENGTH}
+        />
 
-          <TextInput
-            mode="outlined"
-            label="Nom"
-            value={name}
-            onChangeText={setName}
-            maxLength={NAME_MAX_LENGTH}
-          />
+        <SegmentedButtons
+          value={recurrence}
+          onValueChange={(next) => setRecurrence(next as TransactionRecurrence)}
+          buttons={RECURRENCE_BUTTONS}
+        />
 
-          <SegmentedButtons
-            value={recurrence}
-            onValueChange={(next) =>
-              setRecurrence(next as TransactionRecurrence)
-            }
-            buttons={RECURRENCE_BUTTONS}
-          />
-
-          {kind === "saving" && (goals.data ?? []).length > 0 && (
-            <View style={styles.goals}>
-              <Text
-                variant="labelMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
+        {kind === "saving" && (goals.data ?? []).length > 0 && (
+          <View style={styles.goals}>
+            <Text
+              variant="labelMedium"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              Rattacher à un objectif
+            </Text>
+            <View style={styles.chips}>
+              <Chip
+                selected={savingsGoalId === null}
+                onPress={() => setSavingsGoalId(null)}
               >
-                Rattacher à un objectif
-              </Text>
-              <View style={styles.chips}>
+                Aucun
+              </Chip>
+              {(goals.data ?? []).map((goal) => (
                 <Chip
-                  selected={savingsGoalId === null}
-                  onPress={() => setSavingsGoalId(null)}
+                  key={goal.id}
+                  selected={savingsGoalId === goal.id}
+                  onPress={() => setSavingsGoalId(goal.id)}
                 >
-                  Aucun
+                  {goal.name}
                 </Chip>
-                {(goals.data ?? []).map((goal) => (
-                  <Chip
-                    key={goal.id}
-                    selected={savingsGoalId === goal.id}
-                    onPress={() => setSavingsGoalId(goal.id)}
-                  >
-                    {goal.name}
-                  </Chip>
-                ))}
-              </View>
+              ))}
             </View>
-          )}
+          </View>
+        )}
+      </Sheet>
 
-          {mutation.isError && (
-            <HelperText type="error" visible>
-              La prévision n&apos;a pas pu être enregistrée. Réessaie.
-            </HelperText>
-          )}
-
-          <Button
-            mode="contained"
-            onPress={submit}
-            disabled={!isSubmittable}
-            loading={mutation.isPending}
-          >
-            {isEditing ? "Enregistrer" : "Ajouter"}
-          </Button>
-          <Button mode="text" onPress={dismiss} disabled={mutation.isPending}>
-            Annuler
-          </Button>
-        </ScrollView>
-      </Modal>
-
-      <Dialog
-        visible={isVisible && isPropagationVisible}
-        onDismiss={() => setPropagationVisible(false)}
-      >
-        <Dialog.Title>Appliquer aux mois suivants ?</Dialog.Title>
-        <Dialog.Content>
-          <Text variant="bodyMedium">
-            Ce modèle est utilisé par {propagationCount}{" "}
-            {propagationCount === 1 ? "budget" : "budgets"}. « Appliquer »
-            mettra à jour les budgets en cours et futurs. Les prévisions
-            modifiées à la main ne seront pas touchées.
-          </Text>
-        </Dialog.Content>
-        <Dialog.Actions style={styles.dialogActions}>
-          <Button onPress={() => setPropagationVisible(false)}>Annuler</Button>
-          <Button onPress={saveTemplateOnly} disabled={mutation.isPending}>
-            Modèle uniquement
-          </Button>
-          <Button
-            mode="contained"
-            onPress={saveAndPropagate}
-            disabled={mutation.isPending}
-            loading={bulk.isPending}
-          >
-            Appliquer
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+      <Portal>
+        <Dialog
+          visible={isVisible && isPropagationVisible}
+          onDismiss={() => setPropagationVisible(false)}
+        >
+          <Dialog.Title>Appliquer aux mois suivants ?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              Ce modèle est utilisé par {propagationCount}{" "}
+              {propagationCount === 1 ? "budget" : "budgets"}. « Appliquer »
+              mettra à jour les budgets en cours et futurs. Les prévisions
+              modifiées à la main ne seront pas touchées.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button onPress={() => setPropagationVisible(false)}>
+              Annuler
+            </Button>
+            <Button onPress={saveTemplateOnly} disabled={mutation.isPending}>
+              Modèle uniquement
+            </Button>
+            <Button
+              mode="contained"
+              onPress={saveAndPropagate}
+              disabled={mutation.isPending}
+              loading={bulk.isPending}
+            >
+              Appliquer
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
   goals: { gap: SPACING.xs },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.xs },
   dialogActions: { flexWrap: "wrap", gap: SPACING.xs },

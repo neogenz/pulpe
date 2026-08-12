@@ -1,19 +1,18 @@
 import * as Haptics from "expo-haptics";
 import type { BudgetTemplate } from "pulpe-shared";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   Button,
   HelperText,
-  Modal,
-  Portal,
   Switch,
   Text,
   TextInput,
   useTheme,
 } from "react-native-paper";
 
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
+import { SPACING } from "@/core/ui/theme";
 
 import { useCreateTemplate, useUpdateTemplate } from "../template-queries";
 
@@ -94,59 +93,12 @@ export function TemplateFormSheet({
   }
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={dismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text variant="titleMedium">
-            {isEditing ? "Modifier le modèle" : "Nouveau modèle"}
-          </Text>
-
-          <TextInput
-            mode="outlined"
-            label="Nom"
-            placeholder="Mois standard, mois d'été…"
-            value={name}
-            onChangeText={setName}
-            maxLength={NAME_MAX_LENGTH}
-            autoFocus={!isEditing}
-          />
-
-          <TextInput
-            mode="outlined"
-            label="Description (facultatif)"
-            value={description}
-            onChangeText={setDescription}
-            maxLength={DESCRIPTION_MAX_LENGTH}
-            multiline
-          />
-
-          <View style={styles.switchRow}>
-            <View style={styles.switchLabels}>
-              <Text variant="bodyLarge">Modèle par défaut</Text>
-              <Text
-                variant="labelMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                Tes prochains mois seront créés à partir de celui-ci.
-              </Text>
-            </View>
-            <Switch
-              value={isDefault}
-              onValueChange={setDefault}
-              accessibilityLabel="Modèle par défaut"
-            />
-          </View>
-
+    <Sheet
+      isVisible={isVisible}
+      onDismiss={dismiss}
+      title={isEditing ? "Modifier le modèle" : "Nouveau modèle"}
+      footer={
+        <>
           {mutation.isError && (
             <HelperText type="error" visible>
               Le modèle n&apos;a pas pu être enregistré. Réessaie.
@@ -164,19 +116,49 @@ export function TemplateFormSheet({
           <Button mode="text" onPress={dismiss} disabled={mutation.isPending}>
             Annuler
           </Button>
-        </ScrollView>
-      </Modal>
-    </Portal>
+        </>
+      }
+    >
+      <TextInput
+        mode="outlined"
+        label="Nom"
+        placeholder="Mois standard, mois d'été…"
+        value={name}
+        onChangeText={setName}
+        maxLength={NAME_MAX_LENGTH}
+        autoFocus={!isEditing}
+      />
+
+      <TextInput
+        mode="outlined"
+        label="Description (facultatif)"
+        value={description}
+        onChangeText={setDescription}
+        maxLength={DESCRIPTION_MAX_LENGTH}
+        multiline
+      />
+
+      <View style={styles.switchRow}>
+        <View style={styles.switchLabels}>
+          <Text variant="bodyLarge">Modèle par défaut</Text>
+          <Text
+            variant="labelMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            Tes prochains mois seront créés à partir de celui-ci.
+          </Text>
+        </View>
+        <Switch
+          value={isDefault}
+          onValueChange={setDefault}
+          accessibilityLabel="Modèle par défaut"
+        />
+      </View>
+    </Sheet>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",

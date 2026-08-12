@@ -2,13 +2,11 @@ import * as Haptics from "expo-haptics";
 import type { BudgetPeriod, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { randomUUID } from "react-native-quick-crypto";
-import { ScrollView, StyleSheet, useColorScheme, View } from "react-native";
+import { StyleSheet, useColorScheme, View } from "react-native";
 import {
   Button,
   Chip,
   HelperText,
-  Modal,
-  Portal,
   Text,
   TextInput,
   useTheme,
@@ -17,7 +15,8 @@ import {
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
-import { FINANCIAL_COLORS, RADIUS, SPACING } from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
+import { FINANCIAL_COLORS, SPACING } from "@/core/ui/theme";
 
 import { useCreateSavingsWithdrawal } from "../withdrawal-mutations";
 import { repaymentPeriod } from "../withdrawal-gate";
@@ -110,123 +109,118 @@ export function SavingsWithdrawalSheet({
   }
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={dismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          {isPreviewing ? (
-            <>
-              <Text variant="titleMedium">
-                Voici ce qu&apos;on met en place
-              </Text>
+    <Sheet
+      isVisible={isVisible}
+      onDismiss={dismiss}
+      title={
+        isPreviewing
+          ? "Voici ce qu'on met en place"
+          : "Combien te manque-t-il ?"
+      }
+      // The preview runs to two month blocks and a paragraph, so the step that
+      // actually writes to two budgets must not be something you scroll to find.
+      footer={
+        isPreviewing ? (
+          <>
+            {withdraw.isError && (
+              <HelperText type="error" visible>
+                On n&apos;a pas pu mettre ça en place. Réessaie.
+              </HelperText>
+            )}
 
-              <MonthBlock
-                monthLabel={`${monthName} · le mois choisi`}
-                kindLabel="REVENU"
-                amount={amount ?? 0}
-                sign="+"
-                note="arrivent sur ton budget"
-                footnote="↪ pris sur ton épargne"
-                accent={FINANCIAL_COLORS[scheme].income}
-                currency={currency}
-              />
+            <Button
+              mode="contained"
+              onPress={submit}
+              disabled={withdraw.isPending}
+              loading={withdraw.isPending}
+            >
+              Confirmer
+            </Button>
+            <Button
+              mode="text"
+              onPress={() => setPreviewing(false)}
+              disabled={withdraw.isPending}
+            >
+              Modifier
+            </Button>
+          </>
+        ) : (
+          <Button
+            mode="contained"
+            onPress={() => setPreviewing(true)}
+            disabled={!canContinue}
+          >
+            Continuer
+          </Button>
+        )
+      }
+    >
+      {isPreviewing ? (
+        <>
+          <MonthBlock
+            monthLabel={`${monthName} · le mois choisi`}
+            kindLabel="REVENU"
+            amount={amount ?? 0}
+            sign="+"
+            note="arrivent sur ton budget"
+            footnote="↪ pris sur ton épargne"
+            accent={FINANCIAL_COLORS[scheme].income}
+            currency={currency}
+          />
 
-              <MonthBlock
-                monthLabel={`${repaymentName} · le mois suivant`}
-                kindLabel="ÉPARGNE"
-                amount={amount ?? 0}
-                sign="-"
-                note="mis de côté pour remettre l'argent sur ton épargne"
-                accent={FINANCIAL_COLORS[scheme].savings}
-                currency={currency}
-              />
+          <MonthBlock
+            monthLabel={`${repaymentName} · le mois suivant`}
+            kindLabel="ÉPARGNE"
+            amount={amount ?? 0}
+            sign="-"
+            note="mis de côté pour remettre l'argent sur ton épargne"
+            accent={FINANCIAL_COLORS[scheme].savings}
+            currency={currency}
+          />
 
-              <Text
-                variant="bodyMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
+          <Text
+            variant="bodyMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            Tu tiens {monthName}. Ton épargne est reconstituée en{" "}
+            {repaymentName}.
+          </Text>
+        </>
+      ) : (
+        <>
+          <AmountField
+            key={generation}
+            label="Montant"
+            amount={amount}
+            currency={currency}
+            onChange={setAmount}
+          />
+
+          {missingAmount > 0 && (
+            <View style={styles.quickFill}>
+              <Chip
+                icon="target"
+                onPress={() => {
+                  setAmount(missingAmount);
+                  setGeneration((current) => current + 1);
+                }}
               >
-                Tu tiens {monthName}. Ton épargne est reconstituée en{" "}
-                {repaymentName}.
-              </Text>
-
-              {withdraw.isError && (
-                <HelperText type="error" visible>
-                  On n&apos;a pas pu mettre ça en place. Réessaie.
-                </HelperText>
-              )}
-
-              <Button
-                mode="contained"
-                onPress={submit}
-                disabled={withdraw.isPending}
-                loading={withdraw.isPending}
-              >
-                Confirmer
-              </Button>
-              <Button
-                mode="text"
-                onPress={() => setPreviewing(false)}
-                disabled={withdraw.isPending}
-              >
-                Modifier
-              </Button>
-            </>
-          ) : (
-            <>
-              <Text variant="titleMedium">Combien te manque-t-il ?</Text>
-
-              <AmountField
-                key={generation}
-                label="Montant"
-                amount={amount}
-                currency={currency}
-                onChange={setAmount}
-              />
-
-              {missingAmount > 0 && (
-                <View style={styles.quickFill}>
-                  <Chip
-                    icon="target"
-                    onPress={() => {
-                      setAmount(missingAmount);
-                      setGeneration((current) => current + 1);
-                    }}
-                  >
-                    {formatCurrency(missingAmount, currency)} manquants
-                  </Chip>
-                </View>
-              )}
-
-              <TextInput
-                mode="outlined"
-                label="D'où vient l'argent ? (optionnel)"
-                placeholder={DEFAULT_SOURCE}
-                value={source}
-                onChangeText={setSource}
-                maxLength={NAME_MAX_LENGTH}
-              />
-
-              <Button
-                mode="contained"
-                onPress={() => setPreviewing(true)}
-                disabled={!canContinue}
-              >
-                Continuer
-              </Button>
-            </>
+                {formatCurrency(missingAmount, currency)} manquants
+              </Chip>
+            </View>
           )}
-        </ScrollView>
-      </Modal>
-    </Portal>
+
+          <TextInput
+            mode="outlined"
+            label="D'où vient l'argent ? (optionnel)"
+            placeholder={DEFAULT_SOURCE}
+            value={source}
+            onChangeText={setSource}
+            maxLength={NAME_MAX_LENGTH}
+          />
+        </>
+      )}
+    </Sheet>
   );
 }
 
@@ -279,12 +273,6 @@ function MonthBlock({
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
   quickFill: { flexDirection: "row" },
   block: { gap: SPACING.xxs },
 });

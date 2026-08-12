@@ -1,11 +1,12 @@
 import type { SupportedCurrency } from "pulpe-shared";
-import { ScrollView, StyleSheet, useColorScheme, View } from "react-native";
-import { Divider, Modal, Portal, Text, useTheme } from "react-native-paper";
+import { StyleSheet, useColorScheme, View } from "react-native";
+import { Divider, Text, useTheme } from "react-native-paper";
 
 import {
   formatCompactCurrency,
   formatSignedCompactCurrency,
 } from "@/core/ui/amount-format";
+import { Sheet } from "@/core/ui/sheet";
 import {
   FINANCIAL_COLORS,
   RADIUS,
@@ -51,109 +52,90 @@ export function RealizedBalanceSheet({
   const statusColor = isPositive ? financial.savings : financial.overBudget;
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
+    <Sheet isVisible={isVisible} onDismiss={onDismiss} title="Suivi du budget">
+      <View style={styles.balanceBlock}>
+        <Text
+          variant="bodyMedium"
+          style={{ color: theme.colors.onSurfaceVariant }}
+        >
+          Solde à date
+        </Text>
+        <Text
+          variant="displaySmall"
+          style={[
+            TABULAR_DIGITS,
+            { color: isPositive ? theme.colors.onSurface : statusColor },
+          ]}
+        >
+          {formatSignedCompactCurrency(realized.realizedBalance, currency)}
+        </Text>
+        <Text variant="bodySmall" style={{ color: statusColor }}>
+          {isPositive
+            ? "Tout va bien"
+            : "Solde négatif — on y remédie ensemble ?"}
+        </Text>
+      </View>
+
+      <View
+        style={[styles.card, { backgroundColor: theme.colors.surfaceVariant }]}
       >
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text variant="titleMedium">Suivi du budget</Text>
-
-          <View style={styles.balanceBlock}>
-            <Text
-              variant="bodyMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              Solde à date
-            </Text>
-            <Text
-              variant="displaySmall"
-              style={[
-                TABULAR_DIGITS,
-                { color: isPositive ? theme.colors.onSurface : statusColor },
-              ]}
-            >
-              {formatSignedCompactCurrency(realized.realizedBalance, currency)}
-            </Text>
-            <Text variant="bodySmall" style={{ color: statusColor }}>
-              {isPositive
-                ? "Tout va bien"
-                : "Solde négatif — on y remédie ensemble ?"}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: theme.colors.surfaceVariant },
-            ]}
-          >
-            <View style={styles.row}>
-              <Text variant="labelLarge">Pointage</Text>
-              <Text
-                variant="labelLarge"
-                style={[TABULAR_DIGITS, { color: statusColor }]}
-              >
-                {`${realized.checkedItemsCount} / ${realized.totalItemsCount}`}
-              </Text>
-            </View>
-            <CompletionBar
-              checked={realized.checkedItemsCount}
-              total={realized.totalItemsCount}
-              color={statusColor}
-              trackColor={theme.colors.outlineVariant}
-            />
-          </View>
-
-          <Text variant="titleSmall">Prévu vs réalisé</Text>
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: theme.colors.surfaceVariant },
-            ]}
-          >
-            <CategoryRow
-              label="Revenu"
-              realized={realized.realizedIncome}
-              planned={metrics.totalIncome}
-              color={financial.income}
-              trackColor={theme.colors.outlineVariant}
-              currency={currency}
-            />
-            <Divider />
-            <CategoryRow
-              label="Dépense"
-              realized={realized.realizedSpending}
-              planned={metrics.totalExpenses - metrics.totalSavings}
-              color={financial.expense}
-              trackColor={theme.colors.outlineVariant}
-              currency={currency}
-            />
-            <Divider />
-            <CategoryRow
-              label="Épargne"
-              realized={realized.realizedSavings}
-              planned={metrics.totalSavings}
-              color={financial.savings}
-              trackColor={theme.colors.outlineVariant}
-              currency={currency}
-            />
-          </View>
-
+        <View style={styles.row}>
+          <Text variant="labelLarge">Pointage</Text>
           <Text
-            variant="bodySmall"
-            style={{ color: theme.colors.onSurfaceVariant }}
+            variant="labelLarge"
+            style={[TABULAR_DIGITS, { color: statusColor }]}
           >
-            Compare ce solde avec ton compte bancaire. S&apos;il y a un écart,
-            vérifie que toutes tes dépenses sont bien pointées.
+            {`${realized.checkedItemsCount} / ${realized.totalItemsCount}`}
           </Text>
-        </ScrollView>
-      </Modal>
-    </Portal>
+        </View>
+        <CompletionBar
+          checked={realized.checkedItemsCount}
+          total={realized.totalItemsCount}
+          color={statusColor}
+          trackColor={theme.colors.outlineVariant}
+        />
+      </View>
+
+      <Text variant="titleSmall">Prévu vs réalisé</Text>
+      <View
+        style={[styles.card, { backgroundColor: theme.colors.surfaceVariant }]}
+      >
+        <CategoryRow
+          label="Revenu"
+          realized={realized.realizedIncome}
+          planned={metrics.totalIncome}
+          color={financial.income}
+          trackColor={theme.colors.outlineVariant}
+          currency={currency}
+        />
+        <Divider />
+        <CategoryRow
+          label="Dépense"
+          realized={realized.realizedSpending}
+          planned={metrics.totalExpenses - metrics.totalSavings}
+          color={financial.expense}
+          trackColor={theme.colors.outlineVariant}
+          currency={currency}
+        />
+        <Divider />
+        <CategoryRow
+          label="Épargne"
+          realized={realized.realizedSavings}
+          planned={metrics.totalSavings}
+          color={financial.savings}
+          trackColor={theme.colors.outlineVariant}
+          currency={currency}
+        />
+      </View>
+
+      <Text
+        variant="bodySmall"
+        style={{ color: theme.colors.onSurfaceVariant }}
+      >
+        Compare ce solde avec ton compte bancaire. S&apos;il y a un écart,
+        vérifie que toutes tes dépenses sont bien pointées.
+      </Text>
+    </Sheet>
   );
 }
 
@@ -233,12 +215,6 @@ function CategoryRow({
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "85%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.lg },
   balanceBlock: { alignItems: "center", gap: SPACING.xs },
   card: { borderRadius: RADIUS.card, padding: SPACING.md, gap: SPACING.md },
   row: {

@@ -6,7 +6,7 @@ import type {
   SupportedCurrency,
 } from "pulpe-shared";
 import { useState } from "react";
-import { ScrollView, StyleSheet, useColorScheme, View } from "react-native";
+import { StyleSheet, useColorScheme, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -14,20 +14,14 @@ import {
   Checkbox,
   Divider,
   HelperText,
-  Modal,
-  Portal,
   Text,
   useTheme,
 } from "react-native-paper";
 
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
-import {
-  FINANCIAL_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
+import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 import {
   useDeleteSavingsGoal,
@@ -100,112 +94,108 @@ export function GoalDeletionSheet({
   }
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={dismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text variant="titleMedium">Supprimer l&apos;objectif</Text>
-
-          {impact.isPending && (
-            <View style={styles.centered}>
-              <ActivityIndicator accessibilityLabel="Calcul de l'impact de la suppression" />
-              <Text
-                variant="bodyMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                Calcul de l&apos;impact…
-              </Text>
-            </View>
-          )}
-
-          {impact.isError && (
-            <>
-              <Text variant="bodyMedium">
-                Impossible de calculer l&apos;impact. Rien n&apos;a été
-                supprimé.
-              </Text>
-              <Button mode="outlined" onPress={() => void impact.refetch()}>
-                Réessayer
-              </Button>
-            </>
+    <Sheet
+      isVisible={isVisible}
+      onDismiss={dismiss}
+      title="Supprimer l'objectif"
+      // The impact list runs to a screenful on a goal with a year of forecasts,
+      // and this is the one button in the app that must never be reached by
+      // accident or missed by scrolling.
+      footer={
+        <>
+          {remove.isError && (
+            <HelperText type="error" visible>
+              La suppression a échoué. Rien n&apos;a été supprimé.
+            </HelperText>
           )}
 
           {impact.data !== undefined && (
-            <>
-              <Text
-                variant="bodyMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                Vérifie tout ce qui est rattaché à « {goal.name} » avant de
-                choisir.
-              </Text>
-
-              <ImpactSummary impact={impact.data} currency={currency} />
-
-              <Text variant="titleSmall">Que veux-tu supprimer ?</Text>
-
-              <Checkbox.Item
-                label="Supprimer aussi toutes les prévisions rattachées"
-                position="leading"
-                status={deletesForecasts ? "checked" : "unchecked"}
-                onPress={() =>
-                  setDeletesForecasts((current) => {
-                    // Transactions cannot outlive the choice that carries them.
-                    if (current) setDeletesTransactions(false);
-                    return !current;
-                  })
-                }
-              />
-
-              {deletesForecasts ? (
-                <Checkbox.Item
-                  label="Supprimer aussi les transactions rattachées"
-                  position="leading"
-                  status={deletesTransactions ? "checked" : "unchecked"}
-                  onPress={() => setDeletesTransactions((current) => !current)}
-                />
-              ) : (
-                <Text
-                  variant="labelMedium"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  Seul l&apos;objectif sera supprimé. Tout le reste sera
-                  conservé.
-                </Text>
-              )}
-
-              <ImpactDetails impact={impact.data} currency={currency} />
-
-              {remove.isError && (
-                <HelperText type="error" visible>
-                  La suppression a échoué. Rien n&apos;a été supprimé.
-                </HelperText>
-              )}
-
-              <Button
-                mode="contained"
-                buttonColor={FINANCIAL_COLORS[scheme].destructive}
-                onPress={submit}
-                disabled={remove.isPending}
-                loading={remove.isPending}
-              >
-                {remove.isPending ? "Suppression…" : CONFIRMATION_LABELS[mode]}
-              </Button>
-            </>
+            <Button
+              mode="contained"
+              buttonColor={FINANCIAL_COLORS[scheme].destructive}
+              onPress={submit}
+              disabled={remove.isPending}
+              loading={remove.isPending}
+            >
+              {remove.isPending ? "Suppression…" : CONFIRMATION_LABELS[mode]}
+            </Button>
           )}
 
           <Button mode="text" onPress={dismiss} disabled={remove.isPending}>
             Annuler
           </Button>
-        </ScrollView>
-      </Modal>
-    </Portal>
+        </>
+      }
+    >
+      {impact.isPending && (
+        <View style={styles.centered}>
+          <ActivityIndicator accessibilityLabel="Calcul de l'impact de la suppression" />
+          <Text
+            variant="bodyMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            Calcul de l&apos;impact…
+          </Text>
+        </View>
+      )}
+
+      {impact.isError && (
+        <>
+          <Text variant="bodyMedium">
+            Impossible de calculer l&apos;impact. Rien n&apos;a été supprimé.
+          </Text>
+          <Button mode="outlined" onPress={() => void impact.refetch()}>
+            Réessayer
+          </Button>
+        </>
+      )}
+
+      {impact.data !== undefined && (
+        <>
+          <Text
+            variant="bodyMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            Vérifie tout ce qui est rattaché à « {goal.name} » avant de choisir.
+          </Text>
+
+          <ImpactSummary impact={impact.data} currency={currency} />
+
+          <Text variant="titleSmall">Que veux-tu supprimer ?</Text>
+
+          <Checkbox.Item
+            label="Supprimer aussi toutes les prévisions rattachées"
+            position="leading"
+            status={deletesForecasts ? "checked" : "unchecked"}
+            onPress={() =>
+              setDeletesForecasts((current) => {
+                // Transactions cannot outlive the choice that carries them.
+                if (current) setDeletesTransactions(false);
+                return !current;
+              })
+            }
+          />
+
+          {deletesForecasts ? (
+            <Checkbox.Item
+              label="Supprimer aussi les transactions rattachées"
+              position="leading"
+              status={deletesTransactions ? "checked" : "unchecked"}
+              onPress={() => setDeletesTransactions((current) => !current)}
+            />
+          ) : (
+            <Text
+              variant="labelMedium"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              Seul l&apos;objectif sera supprimé. Tout le reste sera conservé.
+            </Text>
+          )}
+
+          <ImpactDetails impact={impact.data} currency={currency} />
+        </>
+      )}
+    </Sheet>
   );
 }
 
@@ -432,12 +422,6 @@ function ImpactRow({
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
   centered: { alignItems: "center", gap: SPACING.sm, padding: SPACING.lg },
   summary: { flexDirection: "row", gap: SPACING.sm },
   summaryCard: { flex: 1 },
