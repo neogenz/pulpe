@@ -7,12 +7,10 @@ import type {
 } from "pulpe-shared";
 import { useState } from "react";
 import { randomUUID } from "react-native-quick-crypto";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   Button,
   HelperText,
-  Modal,
-  Portal,
   SegmentedButtons,
   Switch,
   Text,
@@ -21,7 +19,8 @@ import {
 } from "react-native-paper";
 
 import { AmountField } from "@/core/ui/amount-field";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
+import { SPACING } from "@/core/ui/theme";
 
 import {
   budgetLineDraftFrom,
@@ -181,115 +180,12 @@ export function BudgetLineSheet({
   const hint = budgetLineDraftHint(draft);
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={dismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text variant="titleMedium">
-            {isEditing ? "Modifier la prévision" : "Nouvelle prévision"}
-          </Text>
-
-          {line !== undefined && (
-            <SavingsGoalLinks line={line} onNavigate={dismiss} />
-          )}
-
-          <SegmentedButtons
-            value={draft.kind}
-            onValueChange={(kind) => change({ kind: kind as TransactionKind })}
-            buttons={KIND_BUTTONS}
-          />
-
-          <AmountField
-            key={generation}
-            label={
-              isSpreading && spreadMode === "total"
-                ? "Montant total"
-                : isSpreading
-                  ? "Montant par mois"
-                  : "Montant prévu"
-            }
-            amount={draft.amount}
-            currency={currency}
-            onChange={(amount) => change({ amount })}
-          />
-
-          <TextInput
-            mode="outlined"
-            label="Nom"
-            placeholder={NAME_PLACEHOLDERS[draft.kind]}
-            value={draft.name}
-            onChangeText={(name) => change({ name })}
-            maxLength={NAME_MAX_LENGTH}
-          />
-
-          {!isSpreading && (
-            <>
-              <SegmentedButtons
-                value={draft.recurrence}
-                onValueChange={(recurrence) =>
-                  change({ recurrence: recurrence as TransactionRecurrence })
-                }
-                buttons={RECURRENCE_BUTTONS}
-              />
-
-              <Text
-                variant="labelMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                {draft.recurrence === "fixed"
-                  ? "Revient chaque mois dans tes budgets suivants."
-                  : "N'existe que dans ce mois-ci."}
-              </Text>
-            </>
-          )}
-
-          {canSpread && (
-            <View style={styles.spreadRow}>
-              <View style={styles.spreadLabels}>
-                <Text variant="bodyLarge">Lisser sur plusieurs mois</Text>
-                <Text
-                  variant="labelMedium"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  Une grosse dépense qui ne déforme pas un seul mois
-                </Text>
-              </View>
-              <Switch
-                value={isSpread}
-                onValueChange={setSpread}
-                accessibilityLabel="Lisser sur plusieurs mois"
-              />
-            </View>
-          )}
-
-          {isSpreading && (
-            <SpreadFormSection
-              cells={cells}
-              mode={spreadMode}
-              amount={draft.amount}
-              currency={currency}
-              minimumMonths={1}
-              onChangeMode={setSpreadMode}
-              onChangeLength={setSpreadLength}
-              onToggleMonth={(key) =>
-                setDeselected((current) =>
-                  current.includes(key)
-                    ? current.filter((other) => other !== key)
-                    : [...current, key],
-                )
-              }
-            />
-          )}
-
+    <Sheet
+      isVisible={isVisible}
+      onDismiss={dismiss}
+      title={isEditing ? "Modifier la prévision" : "Nouvelle prévision"}
+      footer={
+        <>
           {mutation.isError && (
             <HelperText type="error" visible>
               La prévision n&apos;a pas pu être enregistrée. Réessaie.
@@ -315,19 +211,105 @@ export function BudgetLineSheet({
               {hint}
             </Text>
           )}
-        </ScrollView>
-      </Modal>
-    </Portal>
+        </>
+      }
+    >
+      {line !== undefined && (
+        <SavingsGoalLinks line={line} onNavigate={dismiss} />
+      )}
+
+      <SegmentedButtons
+        value={draft.kind}
+        onValueChange={(kind) => change({ kind: kind as TransactionKind })}
+        buttons={KIND_BUTTONS}
+      />
+
+      <AmountField
+        key={generation}
+        label={
+          isSpreading && spreadMode === "total"
+            ? "Montant total"
+            : isSpreading
+              ? "Montant par mois"
+              : "Montant prévu"
+        }
+        amount={draft.amount}
+        currency={currency}
+        onChange={(amount) => change({ amount })}
+      />
+
+      <TextInput
+        mode="outlined"
+        label="Nom"
+        placeholder={NAME_PLACEHOLDERS[draft.kind]}
+        value={draft.name}
+        onChangeText={(name) => change({ name })}
+        maxLength={NAME_MAX_LENGTH}
+      />
+
+      {!isSpreading && (
+        <>
+          <SegmentedButtons
+            value={draft.recurrence}
+            onValueChange={(recurrence) =>
+              change({ recurrence: recurrence as TransactionRecurrence })
+            }
+            buttons={RECURRENCE_BUTTONS}
+          />
+
+          <Text
+            variant="labelMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {draft.recurrence === "fixed"
+              ? "Revient chaque mois dans tes budgets suivants."
+              : "N'existe que dans ce mois-ci."}
+          </Text>
+        </>
+      )}
+
+      {canSpread && (
+        <View style={styles.spreadRow}>
+          <View style={styles.spreadLabels}>
+            <Text variant="bodyLarge">Lisser sur plusieurs mois</Text>
+            <Text
+              variant="labelMedium"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              Une grosse dépense qui ne déforme pas un seul mois
+            </Text>
+          </View>
+          <Switch
+            value={isSpread}
+            onValueChange={setSpread}
+            accessibilityLabel="Lisser sur plusieurs mois"
+          />
+        </View>
+      )}
+
+      {isSpreading && (
+        <SpreadFormSection
+          cells={cells}
+          mode={spreadMode}
+          amount={draft.amount}
+          currency={currency}
+          minimumMonths={1}
+          onChangeMode={setSpreadMode}
+          onChangeLength={setSpreadLength}
+          onToggleMonth={(key) =>
+            setDeselected((current) =>
+              current.includes(key)
+                ? current.filter((other) => other !== key)
+                : [...current, key],
+            )
+          }
+        />
+      )}
+    </Sheet>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
   spreadRow: {
     flexDirection: "row",
     alignItems: "center",
