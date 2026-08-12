@@ -6,7 +6,9 @@
     "orientation": "portrait",
     "scheme": "pulpe",
     "userInterfaceStyle": "automatic",
-    "runtimeVersion": { "policy": "appVersion" },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "icon": "./assets/images/icon.png",
     "android": {
       "package": "app.pulpe.android",
@@ -42,7 +44,9 @@
           "imageWidth": 240,
           "resizeMode": "contain",
           "backgroundColor": "#F7F6F3",
-          "dark": { "backgroundColor": "#141210" }
+          "dark": {
+            "backgroundColor": "#141210"
+          }
         }
       ],
       "expo-localization",
@@ -55,7 +59,8 @@
         }
       ],
       "@react-native-google-signin/google-signin",
-      "@sentry/react-native"
+      "@sentry/react-native",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

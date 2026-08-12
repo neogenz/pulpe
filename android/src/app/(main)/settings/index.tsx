@@ -13,6 +13,8 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ScreenAppBar } from "@/core/ui/screen-app-bar";
+
 import { useSessionStore } from "@/core/auth/session-store";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { SPACING } from "@/core/ui/theme";
@@ -52,10 +54,10 @@ export default function SettingsScreen() {
       edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <Appbar.Header mode="small" elevated={false}>
+      <ScreenAppBar>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title="Compte" />
-      </Appbar.Header>
+      </ScreenAppBar>
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.profile}>

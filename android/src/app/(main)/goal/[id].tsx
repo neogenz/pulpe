@@ -11,6 +11,8 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ScreenAppBar } from "@/core/ui/screen-app-bar";
+
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatIsoDate } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
@@ -110,7 +112,7 @@ export default function GoalDetailScreen() {
       edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <Appbar.Header mode="small" elevated={false}>
+      <ScreenAppBar>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title={goal.data.name} />
         <Appbar.Action
@@ -138,7 +140,7 @@ export default function GoalDetailScreen() {
             }}
           />
         </Menu>
-      </Appbar.Header>
+      </ScreenAppBar>
 
       <ScrollView
         contentContainerStyle={styles.content}

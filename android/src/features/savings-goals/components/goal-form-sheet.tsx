@@ -17,7 +17,7 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
-import { DatePickerModal } from "react-native-paper-dates";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCurrency } from "@/core/ui/amount-format";
@@ -39,7 +39,6 @@ import {
 import { useCreateSavingsGoal, useUpdateSavingsGoal } from "../goals-queries";
 
 const NAME_MAX_LENGTH = 100;
-const DATE_LOCALE = "fr";
 
 const STATUS_BUTTONS: { value: SavingsGoalStatus; label: string }[] = [
   { value: "ACTIVE", label: "En cours" },
@@ -301,23 +300,24 @@ export function GoalFormSheet({
         </ScrollView>
       </Modal>
 
-      <DatePickerModal
-        locale={DATE_LOCALE}
-        mode="single"
-        visible={pickingDate !== null}
-        onDismiss={() => setPickingDate(null)}
-        date={
-          pickingDate !== null && draft[pickingDate] !== null
-            ? parseIsoDate(draft[pickingDate])
-            : new Date()
-        }
-        onConfirm={({ date }) => {
-          const field = pickingDate;
-          setPickingDate(null);
-          if (field === null || date === undefined) return;
-          change({ [field]: toIsoDate(date) });
-        }}
-      />
+      {/* Android's own dialog, not a full-page calendar: mounting this renders
+          nothing and asks the platform to present its picker. */}
+      {pickingDate !== null && (
+        <DateTimePicker
+          value={
+            draft[pickingDate] !== null
+              ? parseIsoDate(draft[pickingDate])
+              : new Date()
+          }
+          mode="date"
+          onChange={(event, date) => {
+            const field = pickingDate;
+            setPickingDate(null);
+            if (event.type !== "set" || date === undefined) return;
+            change({ [field]: toIsoDate(date) });
+          }}
+        />
+      )}
     </Portal>
   );
 }

@@ -26,6 +26,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { armTip, dismissTip, useIsTipArmed } from "@/core/tips/tips-store";
 import { Tooltip } from "@/core/tips/tooltip";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
@@ -255,7 +256,7 @@ export default function BudgetDetailScreen() {
           />
         </View>
       ) : (
-        <Appbar.Header>
+        <ScreenAppBar>
           <Appbar.BackAction onPress={() => router.back()} />
           <Appbar.Content
             title={formatMonthName(budget.month, budget.year)}
@@ -266,7 +267,7 @@ export default function BudgetDetailScreen() {
             accessibilityLabel="Rechercher"
             onPress={() => setSearchVisible(true)}
           />
-        </Appbar.Header>
+        </ScreenAppBar>
       )}
 
       {months.length > 1 && (

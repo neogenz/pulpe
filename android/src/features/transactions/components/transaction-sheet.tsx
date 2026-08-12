@@ -15,7 +15,7 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
-import { DatePickerModal } from "react-native-paper-dates";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { TagPicker } from "@/core/tags/tag-picker";
 import { AmountField } from "@/core/ui/amount-field";
@@ -37,7 +37,6 @@ import {
 } from "../transaction-mutations";
 
 const NAME_MAX_LENGTH = 100;
-const DATE_LOCALE = "fr";
 
 const KIND_BUTTONS: { value: TransactionKind; label: string; icon: string }[] =
   [
@@ -270,19 +269,19 @@ export function TransactionSheet({
         />
       </Sheet>
 
-      <DatePickerModal
-        locale={DATE_LOCALE}
-        mode="single"
-        visible={isDatePickerVisible}
-        onDismiss={() => setDatePickerVisible(false)}
-        date={draft.day}
-        onConfirm={({ date }) => {
-          setDatePickerVisible(false);
-          if (date !== undefined) change({ day: date });
-        }}
-        label="Date de l'opération"
-        saveLabel="Valider"
-      />
+      {/* Android's own dialog, not a full-page calendar: mounting this renders
+          nothing and asks the platform to present its picker. */}
+      {isDatePickerVisible && (
+        <DateTimePicker
+          value={draft.day}
+          mode="date"
+          onChange={(event, date) => {
+            setDatePickerVisible(false);
+            if (event.type !== "set" || date === undefined) return;
+            change({ day: date });
+          }}
+        />
+      )}
     </>
   );
 }

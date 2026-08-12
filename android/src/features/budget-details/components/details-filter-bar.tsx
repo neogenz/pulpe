@@ -1,6 +1,7 @@
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Chip, SegmentedButtons } from "react-native-paper";
 
+import { FadingRail } from "@/core/ui/fading-rail";
 import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 
 import type {
@@ -61,11 +62,7 @@ export function DetailsFilterBar({
         />
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chips}
-      >
+      <FadingRail>
         {KIND_CHIPS.map((chip) => (
           <Chip
             key={chip.key}
@@ -77,20 +74,12 @@ export function DetailsFilterBar({
             {`${chip.label} ${counts[chip.count]}`}
           </Chip>
         ))}
-      </ScrollView>
+      </FadingRail>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   bar: { gap: SPACING.sm },
-
   gutter: { paddingHorizontal: SCREEN_PADDING },
-  // The rail runs edge to edge and carries the gutter as content padding, so
-  // the first and last chip scroll past it rather than being clipped by it.
-  chips: {
-    flexDirection: "row",
-    gap: SPACING.sm,
-    paddingHorizontal: SCREEN_PADDING,
-  },
 });

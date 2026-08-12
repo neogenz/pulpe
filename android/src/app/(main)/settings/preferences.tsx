@@ -16,6 +16,8 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ScreenAppBar } from "@/core/ui/screen-app-bar";
+
 import {
   cancelMonthlyReminder,
   requestReminderPermission,
@@ -100,10 +102,10 @@ export default function PreferencesScreen() {
       edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <Appbar.Header mode="small" elevated={false}>
+      <ScreenAppBar>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title="Préférences" />
-      </Appbar.Header>
+      </ScreenAppBar>
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.section}>

@@ -13,6 +13,8 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ScreenAppBar } from "@/core/ui/screen-app-bar";
+
 import {
   beginPasswordRecovery,
   parseRecoveryTokens,
@@ -101,14 +103,14 @@ export default function ResetPasswordScreen() {
       edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <Appbar.Header>
+      <ScreenAppBar>
         <Appbar.Content title="Réinitialiser le mot de passe" />
         <Appbar.Action
           icon="close"
           accessibilityLabel="Fermer"
           onPress={() => void leave()}
         />
-      </Appbar.Header>
+      </ScreenAppBar>
 
       <ScrollView
         contentContainerStyle={styles.content}

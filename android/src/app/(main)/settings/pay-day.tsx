@@ -12,6 +12,8 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ScreenAppBar } from "@/core/ui/screen-app-bar";
+
 import { scheduleMonthlyReminder } from "@/core/notifications/scheduler";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { RADIUS, SPACING } from "@/core/ui/theme";
@@ -61,10 +63,10 @@ export default function PayDayScreen() {
       edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <Appbar.Header mode="small" elevated={false}>
+      <ScreenAppBar>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title="Jour de paie" />
-      </Appbar.Header>
+      </ScreenAppBar>
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text variant="titleMedium">Le mois commencera un…</Text>

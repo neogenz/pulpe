@@ -16,6 +16,8 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ScreenAppBar } from "@/core/ui/screen-app-bar";
+
 import { useTags } from "@/core/tags/tag-queries";
 import { tagSummary } from "@/core/tags/tag-selection";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
@@ -145,7 +147,7 @@ export default function BudgetLineDetailScreen() {
       edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <Appbar.Header>
+      <ScreenAppBar>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title={line.name} />
         <Menu
@@ -216,7 +218,7 @@ export default function BudgetLineDetailScreen() {
             }}
           />
         </Menu>
-      </Appbar.Header>
+      </ScreenAppBar>
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>

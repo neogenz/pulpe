@@ -1,10 +1,11 @@
 import type { BudgetSparse } from "pulpe-shared";
 import { useEffect, useRef } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import type { ScrollView } from "react-native";
+import { StyleSheet } from "react-native";
 import { Chip } from "react-native-paper";
 
 import { formatMonthName } from "@/core/ui/date-format";
-import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
+import { FadingRail } from "@/core/ui/fading-rail";
 
 /** Roughly one chip; enough to leave the selected one near the middle. */
 const CHIP_WIDTH = 96;
@@ -40,27 +41,20 @@ export function MonthPager({
   const anchorYear = months[index]?.year;
 
   return (
-    <View accessibilityLabel="Sélecteur de mois">
-      <ScrollView
-        ref={rail}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.rail}
-      >
-        {months.map((month) => (
-          <Chip
-            key={month.id}
-            selected={month.id === currentBudgetId}
-            showSelectedCheck={false}
-            onPress={() => onSelect(month.id)}
-            compact
-            textStyle={styles.label}
-          >
-            {chipLabel(month, anchorYear)}
-          </Chip>
-        ))}
-      </ScrollView>
-    </View>
+    <FadingRail scrollRef={rail} accessibilityLabel="Sélecteur de mois">
+      {months.map((month) => (
+        <Chip
+          key={month.id}
+          selected={month.id === currentBudgetId}
+          showSelectedCheck={false}
+          onPress={() => onSelect(month.id)}
+          compact
+          textStyle={styles.label}
+        >
+          {chipLabel(month, anchorYear)}
+        </Chip>
+      ))}
+    </FadingRail>
   );
 }
 
@@ -77,13 +71,5 @@ function chipLabel(
 }
 
 const styles = StyleSheet.create({
-  rail: {
-    flexDirection: "row",
-    gap: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    // The rail itself spans the display; the gutter lives here so the first and
-    // last month scroll past it instead of being cut in half by it.
-    paddingHorizontal: SCREEN_PADDING,
-  },
   label: { textTransform: "capitalize" },
 });

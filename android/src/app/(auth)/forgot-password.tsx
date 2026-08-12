@@ -10,6 +10,8 @@ import {
   useTheme,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { z } from "zod";
 
 import { PASSWORD_RESET_REDIRECT_URL, supabase } from "@/core/auth/supabase";
@@ -47,14 +49,14 @@ export default function ForgotPasswordScreen() {
       edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <Appbar.Header>
+      <ScreenAppBar>
         <Appbar.Content title="Mot de passe oublié" />
         <Appbar.Action
           icon="close"
           accessibilityLabel="Fermer"
           onPress={() => router.back()}
         />
-      </Appbar.Header>
+      </ScreenAppBar>
 
       <ScrollView
         contentContainerStyle={styles.content}

@@ -14,6 +14,8 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ScreenAppBar } from "@/core/ui/screen-app-bar";
+
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
@@ -111,10 +113,10 @@ export default function CreateBudgetScreen() {
       edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <Appbar.Header>
+      <ScreenAppBar>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title="Nouveau budget" />
-      </Appbar.Header>
+      </ScreenAppBar>
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text variant="titleSmall">Quel mois</Text>

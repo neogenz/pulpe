@@ -24,7 +24,7 @@ function declaredEdges(source: string): string[] | null {
 /**
  * Window insets are paid by whoever is closest to the edge, and exactly once.
  *
- * `Appbar.Header` insets itself against the status bar and the tab bar insets
+ * `ScreenAppBar` insets itself against the status bar and the tab bar insets
  * itself against the gesture bar, so a `SafeAreaView` that also claims those
  * edges adds a second copy of each: a dead band under the clock, and a dead
  * strip above the tabs. It showed up on every screen at once, and nothing in
@@ -39,10 +39,23 @@ describe("screen insets", () => {
     expect(files.length).toBeGreaterThan(10);
   });
 
+  it("keeps every app bar behind the one component that insets itself", () => {
+    // The check below keys on `<ScreenAppBar`, so a screen that reaches past it
+    // for a raw Paper header is not just off-palette — it drops out of the
+    // inset guard entirely.
+    const raw = screenFiles("src").filter(
+      (path) =>
+        readFileSync(path, "utf8").includes("<Appbar.Header") &&
+        !path.endsWith("screen-app-bar.tsx"),
+    );
+
+    expect(raw).toEqual([]);
+  });
+
   it("never pays the top inset a screen's own app bar already pays", () => {
     const doubled = files.filter((path) => {
       const source = readFileSync(path, "utf8");
-      if (!source.includes("Appbar.Header")) return false;
+      if (!source.includes("<ScreenAppBar")) return false;
       const edges = declaredEdges(source);
       return edges === null || edges.includes("top");
     });

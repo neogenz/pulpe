@@ -16,9 +16,12 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ScreenAppBar } from "@/core/ui/screen-app-bar";
+
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
+import { FadingRail } from "@/core/ui/fading-rail";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
@@ -98,7 +101,7 @@ export default function TemplateDetailScreen() {
       edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <Appbar.Header mode="small" elevated={false}>
+      <ScreenAppBar>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title={template.data.name} />
         <Menu
@@ -129,7 +132,7 @@ export default function TemplateDetailScreen() {
             }}
           />
         </Menu>
-      </Appbar.Header>
+      </ScreenAppBar>
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -199,21 +202,19 @@ export default function TemplateDetailScreen() {
             {/* A scrolling row of destinations, not a column of read-only text:
                 twenty-five months printed one per line filled the screen with
                 something nothing could be done with. Each one opens now. */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.usageMonths}
-            >
-              {usage.data.budgets.map((budget) => (
-                <Chip
-                  key={budget.id}
-                  compact
-                  onPress={() => router.push(`/budget/${budget.id}`)}
-                >
-                  {formatMonthLabel(budget.month, budget.year)}
-                </Chip>
-              ))}
-            </ScrollView>
+            <View style={styles.usageMonths}>
+              <FadingRail>
+                {usage.data.budgets.map((budget) => (
+                  <Chip
+                    key={budget.id}
+                    compact
+                    onPress={() => router.push(`/budget/${budget.id}`)}
+                  >
+                    {formatMonthLabel(budget.month, budget.year)}
+                  </Chip>
+                ))}
+              </FadingRail>
+            </View>
             <Text
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
@@ -368,9 +369,7 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   usage: { gap: SPACING.sm },
-  usageMonths: {
-    flexDirection: "row",
-    gap: SPACING.xs,
-    paddingRight: SPACING.md,
-  },
+  // The rail reaches the display edges from inside a gutter-padded scroll view,
+  // then restores that gutter as its own content padding.
+  usageMonths: { marginHorizontal: -SPACING.md },
 });
