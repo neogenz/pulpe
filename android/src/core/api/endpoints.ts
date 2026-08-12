@@ -22,7 +22,6 @@ export const ENDPOINTS = {
   budget: (id: string) => `/budgets/${id}`,
   budgetDetails: (id: string) => `/budgets/${id}/details`,
   budgetsExport: "/budgets/export",
-  budgetLinesOfBudget: (budgetId: string) => `/budgets/${budgetId}/lines`,
 
   budgetLines: "/budget-lines",
   budgetLine: (id: string) => `/budget-lines/${id}`,
