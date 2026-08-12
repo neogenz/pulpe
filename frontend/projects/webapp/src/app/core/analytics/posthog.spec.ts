@@ -145,6 +145,87 @@ describe('PostHogService', () => {
     );
   });
 
+  it('applies the configured session replay sample rate', async () => {
+    postHogSignal.set({
+      ...defaultConfig,
+      sessionRecording: {
+        ...defaultConfig.sessionRecording,
+        sampleRate: 0.1,
+      },
+    });
+
+    await service.initialize();
+
+    expect(initializationOptions).toEqual(
+      expect.objectContaining({
+        session_recording: expect.objectContaining({
+          sampleRate: 0.1,
+        }),
+      }),
+    );
+  });
+
+  it('defaults session replay sampling to ten percent when omitted', async () => {
+    const configWithoutSampleRate = {
+      ...defaultConfig,
+      sessionRecording: {
+        enabled: true,
+        maskInputs: true,
+      },
+    } as typeof defaultConfig;
+    postHogSignal.set(configWithoutSampleRate);
+
+    await service.initialize();
+
+    expect(initializationOptions).toEqual(
+      expect.objectContaining({
+        session_recording: expect.objectContaining({
+          sampleRate: 0.1,
+        }),
+      }),
+    );
+  });
+
+  it('keeps session replay request bodies and headers disabled', async () => {
+    await service.initialize();
+
+    expect(initializationOptions).toEqual(
+      expect.objectContaining({
+        session_recording: expect.objectContaining({
+          recordBody: false,
+          recordHeaders: false,
+        }),
+      }),
+    );
+  });
+
+  it('sanitizes replay URLs and drops payload fields defensively', async () => {
+    await service.initialize();
+
+    const sessionRecording = initializationOptions?.[
+      'session_recording'
+    ] as Record<string, unknown>;
+    const sanitizeCapturedUrl = sessionRecording[
+      'maskCapturedNetworkRequestFn'
+    ] as (request: Record<string, unknown>) => Record<string, unknown>;
+
+    const sanitized = sanitizeCapturedUrl({
+      name: 'https://app.local/budgets/123?token=private&safe=1#access_token=private',
+      requestHeaders: { authorization: 'private' },
+      responseHeaders: { 'set-cookie': 'private' },
+      requestBody: 'private request',
+      responseBody: 'private response',
+      status: 200,
+    });
+
+    expect(sanitized['name']).toBe('https://app.local/budget/[id]?safe=1');
+    expect(sanitized['status']).toBe(200);
+    expect(sanitized).not.toHaveProperty('requestHeaders');
+    expect(sanitized).not.toHaveProperty('responseHeaders');
+    expect(sanitized).not.toHaveProperty('requestBody');
+    expect(sanitized).not.toHaveProperty('responseBody');
+  });
+
   it('isolates app persistence and removes the legacy shared identity before init', async () => {
     document.cookie =
       'ph_test-api-key_posthog=legacy-identity; Path=/; SameSite=Lax';

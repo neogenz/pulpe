@@ -173,7 +173,8 @@ const isSensitiveProperty = (normalizedKey: string): boolean => {
 const isUrlKey = (normalizedKey: string): boolean =>
   normalizedKey.includes('url') ||
   normalizedKey.includes('href') ||
-  normalizedKey.includes('link');
+  normalizedKey.includes('link') ||
+  normalizedKey === '$pathname';
 
 const applyDynamicSegmentMasks = (pathname: string): string =>
   DYNAMIC_SEGMENT_MASKS.reduce(

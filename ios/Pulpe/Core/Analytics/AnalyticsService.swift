@@ -15,6 +15,43 @@ struct AuthSessionDiagnosticSnapshot: Sendable {
     let isExpectedUserAction: Bool?
 }
 
+struct ScreenViewDeduplicator {
+    private static let targetScreenName = "SavingsGoalsList"
+    private let minimumInterval: TimeInterval
+    private var lastScreenName: String?
+    private var lastCapturedAt: TimeInterval?
+
+    init(minimumInterval: TimeInterval = 1) {
+        self.minimumInterval = minimumInterval
+    }
+
+    mutating func shouldCapture(
+        _ name: String,
+        hasProperties: Bool,
+        at timestamp: TimeInterval = ProcessInfo.processInfo.systemUptime
+    ) -> Bool {
+        guard name == Self.targetScreenName, !hasProperties else {
+            reset()
+            return true
+        }
+
+        if lastScreenName == name,
+           let lastCapturedAt,
+           timestamp - lastCapturedAt < minimumInterval {
+            return false
+        }
+
+        lastScreenName = name
+        lastCapturedAt = timestamp
+        return true
+    }
+
+    mutating func reset() {
+        lastScreenName = nil
+        lastCapturedAt = nil
+    }
+}
+
 /// Central analytics service wrapping PostHog iOS SDK.
 /// All callers are @MainActor (SwiftUI views, stores), so MainActor isolation
 /// ensures thread-safe access to `isInitialized` without requiring actor hops.
@@ -50,6 +87,7 @@ final class AnalyticsService {
     private let isConfiguredEnabled: Bool
     private var cachedIdentity: (userId: String, properties: [String: Any])?
     private(set) var currentPersonProperties: [String: Any] = [:]
+    private var screenViewDeduplicator = ScreenViewDeduplicator()
 
     init(isConfiguredEnabled: Bool = AppConfiguration.isPostHogEnabled) {
         self.isConfiguredEnabled = isConfiguredEnabled
@@ -202,14 +240,6 @@ final class AnalyticsService {
         )
     }
 
-    // MARK: - Screen Tracking
-
-    func screen(_ name: String, properties: [String: Any] = [:]) {
-        guard isEventCapturingEnabled else { return }
-        let sanitized = Self.sanitizeProperties(properties)
-        PostHogSDK.shared.screen(name, properties: sanitized)
-    }
-
     // MARK: - User Identity
 
     func identify(userId: String, properties: [String: Any] = [:]) {
@@ -256,6 +286,7 @@ final class AnalyticsService {
         cachedIdentity = nil
         currentPersonProperties = [:]
         isIdentified = false
+        screenViewDeduplicator.reset()
     }
 
     func setDiagnosticSharingEnabled(_ enabled: Bool) {
@@ -279,6 +310,7 @@ final class AnalyticsService {
             isDiagnosticSharingEnabled = false
             isEventCapturingEnabled = false
             isIdentified = false
+            screenViewDeduplicator.reset()
         }
     }
 
@@ -383,5 +415,18 @@ final class AnalyticsService {
             }
         }
         return sanitized
+    }
+}
+
+extension AnalyticsService {
+    func screen(_ name: String, properties: [String: Any] = [:]) {
+        guard isEventCapturingEnabled,
+              screenViewDeduplicator.shouldCapture(
+                  name,
+                  hasProperties: !properties.isEmpty
+              )
+        else { return }
+        let sanitized = Self.sanitizeProperties(properties)
+        PostHogSDK.shared.screen(name, properties: sanitized)
     }
 }

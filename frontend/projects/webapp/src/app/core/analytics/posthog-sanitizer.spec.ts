@@ -263,6 +263,34 @@ describe('posthog-sanitizer', () => {
       );
     });
 
+    it('masks dynamic resource IDs in the $pathname system property', () => {
+      const event = {
+        event: '$pageview',
+        properties: {
+          $pathname: '/budgets/example-budget-id',
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+
+      expect(sanitized?.properties?.['$pathname']).toBe('/budget/[id]');
+    });
+
+    it('preserves business properties that merely contain pathname in their key', () => {
+      const event = {
+        event: 'navigation_diagnostic',
+        properties: {
+          pathname_strategy: 'history based',
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+
+      expect(sanitized?.properties?.['pathname_strategy']).toBe(
+        'history based',
+      );
+    });
+
     it('handles null or missing properties gracefully', () => {
       const event = {
         event: 'test_event',

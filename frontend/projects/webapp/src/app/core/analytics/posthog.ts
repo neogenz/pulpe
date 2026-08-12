@@ -7,7 +7,7 @@ import { Logger } from '../logging/logger';
 import { StorageService } from '../storage/storage.service';
 import { STORAGE_KEYS } from '../storage/storage-keys';
 import { buildInfo } from '@env/build-info';
-import { sanitizeEventPayload } from './posthog-sanitizer';
+import { sanitizeEventPayload, sanitizeUrl } from './posthog-sanitizer';
 
 const POSTHOG_PERSISTENCE_NAME = 'pulpe_app';
 
@@ -109,6 +109,24 @@ export class PostHogService {
         session_recording: {
           maskAllInputs: true,
           recordCrossOriginIframes: false,
+          recordBody: false,
+          recordHeaders: false,
+          // posthog-js hashes the session ID, so the sampling decision remains
+          // stable across page reloads for the whole session.
+          sampleRate: config.sessionRecording?.sampleRate ?? 0.1,
+          // PostHog also applies this callback to the page URL stored in replay
+          // snapshots, not only to captured network requests.
+          maskCapturedNetworkRequestFn: (request) => {
+            const sanitizedRequest = { ...request };
+            delete sanitizedRequest.requestHeaders;
+            delete sanitizedRequest.responseHeaders;
+            delete sanitizedRequest.requestBody;
+            delete sanitizedRequest.responseBody;
+            if (sanitizedRequest.name) {
+              sanitizedRequest.name = sanitizeUrl(sanitizedRequest.name);
+            }
+            return sanitizedRequest;
+          },
         },
         disable_session_recording: !this.#sessionReplayEnabled,
 

@@ -299,3 +299,74 @@ struct AnalyticsServiceTests {
         #expect(sut.isEventCapturingEnabled == false)
     }
 }
+
+@Suite
+struct ScreenViewDeduplicatorTests {
+    @Test func suppressesOnlySavingsGoalsBursts() {
+        let start: TimeInterval = 1_000
+        var deduplicator = ScreenViewDeduplicator(minimumInterval: 1)
+
+        #expect(deduplicator.shouldCapture(
+            "SavingsGoalsList",
+            hasProperties: false,
+            at: start
+        ))
+        #expect(!deduplicator.shouldCapture(
+            "SavingsGoalsList",
+            hasProperties: false,
+            at: start + 0.05
+        ))
+        #expect(deduplicator.shouldCapture(
+            "BudgetDetails",
+            hasProperties: false,
+            at: start + 0.06
+        ))
+        #expect(deduplicator.shouldCapture(
+            "SavingsGoalsList",
+            hasProperties: false,
+            at: start + 0.07
+        ))
+    }
+
+    @Test func rejectionsDoNotExtendTheWindow() {
+        let start: TimeInterval = 1_000
+        var deduplicator = ScreenViewDeduplicator(minimumInterval: 1)
+
+        #expect(deduplicator.shouldCapture(
+            "SavingsGoalsList",
+            hasProperties: false,
+            at: start
+        ))
+        #expect(!deduplicator.shouldCapture(
+            "SavingsGoalsList",
+            hasProperties: false,
+            at: start + 0.9
+        ))
+        #expect(deduplicator.shouldCapture(
+            "SavingsGoalsList",
+            hasProperties: false,
+            at: start + 1.01
+        ))
+    }
+
+    @Test func preservesNonTargetAndEnrichedViews() {
+        let start: TimeInterval = 1_000
+        var deduplicator = ScreenViewDeduplicator(minimumInterval: 1)
+
+        #expect(deduplicator.shouldCapture(
+            "BudgetDetails",
+            hasProperties: false,
+            at: start
+        ))
+        #expect(deduplicator.shouldCapture(
+            "BudgetDetails",
+            hasProperties: false,
+            at: start + 0.01
+        ))
+        #expect(deduplicator.shouldCapture(
+            "SavingsGoalsList",
+            hasProperties: true,
+            at: start + 0.02
+        ))
+    }
+}
