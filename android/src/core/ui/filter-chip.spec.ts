@@ -3,9 +3,9 @@ import { readFileSync, sourceFiles } from "@/core/testing/source-files";
 /**
  * A Paper chip that hides its check without saying anything else about being
  * selected is invisible when it is: the flat fill is the same either way. The
- * two that legitimately hide it say so another way — the tag picker swaps its
- * icon, the currency picker is outlined throughout — so the rule is that a chip
- * either routes through `FilterChip` or carries its own signal.
+ * one place that still hides it — the currency picker — is outlined throughout
+ * and reads as a pair of choices rather than a filter, so the rule is that a
+ * chip either routes through `FilterChip` or is outlined in both states.
  */
 describe("chips that hide their selected check", () => {
   it("say they are selected some other way", () => {
@@ -14,7 +14,7 @@ describe("chips that hide their selected check", () => {
       .filter((path) => {
         const source = readFileSync(path, "utf8");
         if (!source.includes("showSelectedCheck={false}")) return false;
-        return !/icon=|mode="outlined"/.test(source);
+        return !source.includes('mode="outlined"');
       });
 
     expect(silent).toEqual([]);

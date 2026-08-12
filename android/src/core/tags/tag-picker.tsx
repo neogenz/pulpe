@@ -12,6 +12,7 @@ import {
 } from "react-native-paper";
 
 import { FadingRail } from "@/core/ui/fading-rail";
+import { FilterChip } from "@/core/ui/filter-chip";
 import { SPACING } from "@/core/ui/theme";
 
 import { useCreateTag, useTags } from "./tag-queries";
@@ -86,10 +87,9 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
             {ordered.map((tag) => {
               const isSelected = selectedIds.includes(tag.id);
               return (
-                <Chip
+                <FilterChip
                   key={tag.id}
                   selected={isSelected}
-                  showSelectedCheck={false}
                   icon={isSelected ? "check" : "tag-outline"}
                   disabled={
                     !isSelected &&
@@ -99,7 +99,7 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
                   accessibilityState={{ selected: isSelected }}
                 >
                   {tag.name}
-                </Chip>
+                </FilterChip>
               );
             })}
 
