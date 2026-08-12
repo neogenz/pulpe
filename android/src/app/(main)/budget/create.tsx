@@ -18,7 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useAmountMasking } from "@/core/ui/amount-visibility";
-import { formatMonthName } from "@/core/ui/date-format";
+import { formatMonthLabel, formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 import {
@@ -128,9 +128,11 @@ export default function CreateBudgetScreen() {
               selected={periodKey(candidate) === periodKey(period)}
               showSelectedCheck={false}
               onPress={() => setChosenPeriodKey(periodKey(candidate))}
-              textStyle={styles.period}
             >
-              {formatMonthName(candidate.month, candidate.year)}
+              {/* Year included: an account already booked to January is offered
+                  February, March and April of the *next* year, and three bare
+                  month names give no hint of that. */}
+              {formatMonthLabel(candidate.month, candidate.year)}
             </Chip>
           ))}
         </View>
@@ -152,6 +154,9 @@ export default function CreateBudgetScreen() {
                     : template.name
                 }
                 position="leading"
+                // Paper right-aligns the label of a leading radio, which leaves
+                // the name floating a screen away from the button that picks it.
+                labelStyle={styles.templateLabel}
                 style={[
                   styles.template,
                   {
@@ -216,7 +221,7 @@ const styles = StyleSheet.create({
   content: { padding: SPACING.md, gap: SPACING.md },
   footer: { padding: SPACING.md, gap: SPACING.sm },
   periods: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
-  period: { textTransform: "capitalize" },
   templates: { gap: SPACING.sm },
+  templateLabel: { textAlign: "left" },
   template: { borderRadius: RADIUS.card, borderWidth: 1 },
 });
