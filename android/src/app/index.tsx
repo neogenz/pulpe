@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { ActivityIndicator, Button, Text, useTheme } from "react-native-paper";
 
 import { useSessionStore } from "@/core/auth/session-store";
+import { landingRoute } from "@/core/navigation/route-gates";
 import { SPACING } from "@/core/ui/theme";
 import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
 import { useOnboardingStore } from "@/features/onboarding/onboarding-store";
@@ -13,48 +14,34 @@ import { useOnboardingStore } from "@/features/onboarding/onboarding-store";
  * redirecting away from it, so if `/` belonged to the protected group, signing
  * out would leave the router pointing at a route that no longer exists — a
  * blank screen, which is exactly what happened.
+ *
+ * Where it sends the user lives in `landingRoute`, next to the predicates that
+ * say which groups exist, so the two cannot disagree unnoticed.
  */
 export default function IndexRoute() {
   const status = useSessionStore((state) => state.status);
   const vaultStatus = useVaultStore((state) => state.status);
   const bootstrapError = useVaultStore((state) => state.bootstrapError);
   const isOnboarding = useOnboardingStore((state) => state.isFlowActive);
-  const hasOnboarded = useOnboardingStore(
+  const hasCompletedOnboarding = useOnboardingStore(
     (state) => state.hasCompletedOnboarding,
   );
   const hasSeenHandoff = useOnboardingStore((state) => state.hasSeenHandoff);
 
-  if (status === "loading") return null;
-  // An unfinished run decides for itself which step to show, signed in or not.
-  if (isOnboarding) return <Redirect href="/(onboarding)" />;
-  if (status === "unauthenticated") {
-    // A device that has never been through the flow gets the pitch; one that
-    // has gets the sign-in form it is coming back to.
-    return hasOnboarded ? (
-      <Redirect href="/sign-in" />
-    ) : (
-      <Redirect href="/(onboarding)" />
-    );
-  }
+  const route = landingRoute({
+    status,
+    vaultStatus,
+    isOnboarding,
+    hasCompletedOnboarding,
+    hasSeenHandoff,
+  });
 
-  switch (vaultStatus) {
-    case "setupRequired":
-      return <Redirect href="/vault-setup" />;
-    case "locked":
-      return <Redirect href="/vault-unlock" />;
-    case "unlocked":
-      // The handoff is the first thing a freshly onboarded user sees, and the
-      // only thing that ever explains the pointing ritual from scratch.
-      return hasSeenHandoff ? (
-        <Redirect href="/home" />
-      ) : (
-        <Redirect href="/post-onboarding" />
-      );
-    case "unknown":
-      // Signed in, but the vault has not answered yet. Everything past this
-      // point reads encrypted amounts, so there is nothing to show meanwhile.
-      return <VaultBootstrapScreen errorMessage={bootstrapError} />;
-  }
+  if (route !== null) return <Redirect href={route} />;
+  // Nothing to route to yet: either the session is still resolving, or the user
+  // is signed in and the vault has not answered. Everything past this point
+  // reads encrypted amounts, so a spinner is all there is to show.
+  if (status === "loading") return null;
+  return <VaultBootstrapScreen errorMessage={bootstrapError} />;
 }
 
 function VaultBootstrapScreen({

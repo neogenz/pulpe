@@ -12,6 +12,7 @@ import { fr, registerTranslation } from "react-native-paper-dates";
 import { observeSession, useSessionStore } from "@/core/auth/session-store";
 import { startSupabaseAutoRefresh } from "@/core/auth/supabase";
 import { DeepLinkRouter } from "@/core/linking/deep-link-router";
+import { openGroups } from "@/core/navigation/route-gates";
 import { queryClient } from "@/core/query/query-client";
 import { ForegroundRefresh } from "@/core/system/foreground-refresh";
 import { armPrivacyShield } from "@/core/system/privacy-shield";
@@ -36,8 +37,19 @@ export default function RootLayout() {
   const status = useSessionStore((state) => state.status);
   const vaultStatus = useVaultStore((state) => state.status);
   const isOnboarding = useOnboardingStore((state) => state.isFlowActive);
+  const hasCompletedOnboarding = useOnboardingStore(
+    (state) => state.hasCompletedOnboarding,
+  );
+  const hasSeenHandoff = useOnboardingStore((state) => state.hasSeenHandoff);
   const [areFontsLoaded, fontError] = useFonts({
     Manrope: require("../../assets/fonts/Manrope.ttf"),
+  });
+  const groups = openGroups({
+    status,
+    vaultStatus,
+    isOnboarding,
+    hasCompletedOnboarding,
+    hasSeenHandoff,
   });
 
   useEffect(() => observeSession(), []);
@@ -82,31 +94,18 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             {/* A run in progress outranks the session gates: the user turns
                 authenticated at the registration step and would otherwise be
-                pulled out of the flow into the vault setup, four steps early. */}
-            <Stack.Protected guard={isOnboarding}>
+                pulled out of the flow into the vault setup, four steps early.
+                Which groups these are, and why, lives in `openGroups`. */}
+            <Stack.Protected guard={groups.includes("(onboarding)")}>
               <Stack.Screen name="(onboarding)" />
             </Stack.Protected>
-            <Stack.Protected
-              guard={
-                !isOnboarding &&
-                status === "authenticated" &&
-                vaultStatus === "unlocked"
-              }
-            >
+            <Stack.Protected guard={groups.includes("(main)")}>
               <Stack.Screen name="(main)" />
             </Stack.Protected>
-            <Stack.Protected
-              guard={
-                !isOnboarding &&
-                status === "authenticated" &&
-                (vaultStatus === "setupRequired" || vaultStatus === "locked")
-              }
-            >
+            <Stack.Protected guard={groups.includes("(vault)")}>
               <Stack.Screen name="(vault)" />
             </Stack.Protected>
-            <Stack.Protected
-              guard={!isOnboarding && status === "unauthenticated"}
-            >
+            <Stack.Protected guard={groups.includes("(auth)")}>
               <Stack.Screen name="(auth)" />
             </Stack.Protected>
           </Stack>
