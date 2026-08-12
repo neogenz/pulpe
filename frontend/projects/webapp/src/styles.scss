@@ -156,6 +156,12 @@ body {
   }
 }
 
+.pulpe-entry-shell > router-outlet + * {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .pulpe-entry-card {
   width: 100%;
   border: none;
