@@ -21,7 +21,7 @@ export const budgetTemplatesRoutes: Routes = [
       {
         path: 'details/:templateId',
         title: PAGE_TITLES.TEMPLATE_DETAIL,
-        data: { breadcrumb: 'pageTitle.templateDetail', icon: 'visibility' },
+        data: { breadcrumb: 'pageTitle.templateDetail', icon: 'view_quilt' },
         loadComponent: () => import('./details/template-detail'),
       },
     ],
