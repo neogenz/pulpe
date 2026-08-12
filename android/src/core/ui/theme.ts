@@ -216,17 +216,61 @@ function pulpeFonts(base: MD3Theme["fonts"]): MD3Theme["fonts"] {
   return fonts;
 }
 
+/** How much of the tint M3 lays over the surface, at levels 1 through 5. */
+const ELEVATION_TINT_OPACITIES = [0.05, 0.08, 0.11, 0.12, 0.14] as const;
+const HEX_CHANNEL_STARTS = [1, 3, 5] as const;
+const HEX_RADIX = 16;
+const HEX_CHANNEL_LENGTH = 2;
+
+/**
+ * MD3's elevation ladder is its baseline purple mixed into its baseline
+ * surface, and overriding `colors` leaves that ladder untouched — which is how
+ * a `Searchbar`, whose view mode sits on level 3, opened lilac in a green app.
+ * Every elevated Paper surface reads from it: menus, dialogs, snackbars.
+ *
+ * Rebuilt from the palette's own surface and primary, in M3's proportions.
+ */
+export function elevationLadder(
+  surface: string,
+  tint: string,
+): MD3Theme["colors"]["elevation"] {
+  const [level1, level2, level3, level4, level5] = ELEVATION_TINT_OPACITIES.map(
+    (opacity) => mixHex(surface, tint, opacity),
+  );
+
+  // Level 0 is the absence of elevation, not a colour of its own.
+  return { level0: "transparent", level1, level2, level3, level4, level5 };
+}
+
+function mixHex(base: string, overlay: string, ratio: number): string {
+  const channels = HEX_CHANNEL_STARTS.map((start) => {
+    const read = (hex: string) =>
+      parseInt(hex.slice(start, start + HEX_CHANNEL_LENGTH), HEX_RADIX);
+    return Math.round(read(base) * (1 - ratio) + read(overlay) * ratio);
+  });
+
+  return `#${channels.map((value) => value.toString(HEX_RADIX).padStart(HEX_CHANNEL_LENGTH, "0")).join("")}`;
+}
+
 export const pulpeLightTheme: MD3Theme = {
   ...MD3LightTheme,
   roundness: RADIUS.sm,
-  colors: { ...MD3LightTheme.colors, ...PALETTE.light },
+  colors: {
+    ...MD3LightTheme.colors,
+    ...PALETTE.light,
+    elevation: elevationLadder(PALETTE.light.surface, PALETTE.light.primary),
+  },
   fonts: configureFonts({ config: pulpeFonts(MD3LightTheme.fonts) }),
 };
 
 export const pulpeDarkTheme: MD3Theme = {
   ...MD3DarkTheme,
   roundness: RADIUS.sm,
-  colors: { ...MD3DarkTheme.colors, ...PALETTE.dark },
+  colors: {
+    ...MD3DarkTheme.colors,
+    ...PALETTE.dark,
+    elevation: elevationLadder(PALETTE.dark.surface, PALETTE.dark.primary),
+  },
   fonts: configureFonts({ config: pulpeFonts(MD3DarkTheme.fonts) }),
 };
 
