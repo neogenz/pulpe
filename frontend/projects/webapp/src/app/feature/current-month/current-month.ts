@@ -186,7 +186,7 @@ type UndoableAction =
                behind a read-out and left the mobile reading order disagreeing
                with the tab order. -->
           <div
-            class="grid grid-cols-1 lg:grid-cols-2 gap-6"
+            class="dashboard-action-lists grid grid-cols-1 lg:grid-cols-2 gap-6"
             data-tour="dashboard-lists"
           >
             <pulpe-dashboard-unchecked-forecasts
@@ -393,6 +393,14 @@ type UndoableAction =
       display: block;
       position: relative;
       padding-bottom: 100px;
+    }
+
+    /* The hero closes the monthly summary; the lists below begin the work still
+       waiting for the user. A tonal rule and one medium section step make that
+       change of purpose visible without wrapping either block in another card. */
+    .dashboard-action-lists {
+      padding-top: var(--pulpe-section-gap-md);
+      border-top: var(--pulpe-surface-border-subtle);
     }
 
     /* The break between what the month asks of you and what it reports back.
