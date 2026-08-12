@@ -6,7 +6,7 @@ import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { of, throwError } from 'rxjs';
 
-import { AuthSessionService } from '@core/auth';
+import { AuthSessionService, AuthStore } from '@core/auth';
 import { ApiError } from '@core/api/api-error';
 import { PostHogService } from '@core/analytics/posthog';
 import {
@@ -103,6 +103,10 @@ describe('SetupVaultCode', () => {
         ...provideTranslocoForTest(),
         { provide: DERIVE_CLIENT_KEY, useValue: deriveClientKeySpy },
         { provide: AuthSessionService, useValue: mockAuthSessionService },
+        {
+          provide: AuthStore,
+          useValue: { user: () => ({ email: 'test@pulpe.ch' }) },
+        },
         { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: EncryptionApi, useValue: mockEncryptionApi },
         { provide: MatDialog, useValue: mockDialog },
@@ -166,6 +170,19 @@ describe('SetupVaultCode', () => {
       expect(
         journey.querySelector('[aria-current="step"]')?.textContent,
       ).toContain('Sécurité');
+      expect(
+        journey.querySelector('[data-state="completed"]')?.textContent,
+      ).toContain('Compte');
+    });
+
+    it('should show which account is configuring its PIN', () => {
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement
+          .querySelector('[data-testid="authenticated-email-label"]')
+          ?.textContent.trim(),
+      ).toBe('Connecté avec test@pulpe.ch');
     });
   });
 

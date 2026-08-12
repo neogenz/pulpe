@@ -21,6 +21,7 @@ import { AppCurrencyPipe, CURRENCY_CONFIG } from '@core/currency';
 import { CurrencyInput } from '@ui/currency-input';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
+import { OnboardingProgress } from '@ui/onboarding-progress';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { PostHogService } from '@core/analytics/posthog';
@@ -56,6 +57,7 @@ import {
     CurrencyInput,
     ErrorAlert,
     LoadingButton,
+    OnboardingProgress,
     OnboardingLivePreview,
   ],
   providers: [CompleteProfileStore],
@@ -100,11 +102,12 @@ import {
         </div>
       } @else {
         <div class="relative">
-          <!-- A single global journey cue, followed by the two local budget steps. -->
-          <div class="flex flex-col items-center gap-3 mb-10">
-            <p class="text-label-medium font-medium text-on-surface-variant">
-              {{ 'completeProfile.journeyStage' | transloco }}
-            </p>
+          <!-- Global account journey, followed by the two local budget steps. -->
+          <div class="flex flex-col items-center gap-5 mb-10">
+            <pulpe-onboarding-progress
+              class="block w-full max-w-md"
+              [currentStep]="3"
+            />
             <div
               class="flex items-center justify-center gap-3"
               role="group"

@@ -138,7 +138,8 @@
       "accountStep": "Compte",
       "securityStep": "Sécurité",
       "budgetStepShort": "Budget",
-      "budgetStep": "Premier budget"
+      "budgetStep": "Premier budget",
+      "signedInAs": "Connecté avec {{ email }}"
     },
     "login": {
       "title": "Content de te revoir",
@@ -1374,7 +1375,6 @@
       "liveDeficitAnnouncement": "Déficit de {{ amount }} {{ currency }} à équilibrer"
     },
     "stepperAriaLabel": "Étape {{ current }} sur {{ total }}",
-    "journeyStage": "3 · Premier budget",
     "stepYou": "Toi",
     "stepYourExpenses": "Tes charges",
     "stepIndicator": "Étape {{ current }} / {{ total }}",
