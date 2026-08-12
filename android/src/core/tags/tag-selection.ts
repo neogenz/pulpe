@@ -19,6 +19,20 @@ export function toggledTagIds(
     : [...selection, tagId];
 }
 
+/**
+ * The chosen tags first, everything else in its own order behind them.
+ *
+ * The picker is one scrolling row, so on a long list the two tags the user just
+ * chose can end up several swipes off to the right — the selection would be
+ * invisible on the very screen that sets it. Order is otherwise preserved, so
+ * the list does not reshuffle under the finger as tags are toggled.
+ */
+export function tagsSelectedFirst(tags: Tag[], selection: string[]): Tag[] {
+  const selected = tags.filter((tag) => selection.includes(tag.id));
+  const rest = tags.filter((tag) => !selection.includes(tag.id));
+  return [...selected, ...rest];
+}
+
 /** Case-insensitive, because the backend treats "Courses" and "courses" alike. */
 export function findTagByName(name: string, tags: Tag[]): Tag | undefined {
   const normalized = name.trim().toLocaleLowerCase();

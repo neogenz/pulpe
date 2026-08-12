@@ -4,6 +4,7 @@ import {
   canCreateTag,
   findTagByName,
   tagNameIssue,
+  tagsSelectedFirst,
   tagSummary,
   toggledTagIds,
 } from "./tag-selection";
@@ -47,6 +48,26 @@ describe("toggledTagIds", () => {
     expect(toggledTagIds("tag-0", full)).toHaveLength(
       MAX_TAGS_PER_TRANSACTION - 1,
     );
+  });
+});
+
+describe("tagsSelectedFirst", () => {
+  it("brings a selected tag to the head of the row", () => {
+    expect(tagsSelectedFirst(TAGS, ["tag-2"]).map((found) => found.id)).toEqual(
+      ["tag-2", "tag-1"],
+    );
+  });
+
+  it("keeps the given order among tags that share a state", () => {
+    const many = [...TAGS, tag("tag-3", "Santé"), tag("tag-4", "Transport")];
+
+    expect(
+      tagsSelectedFirst(many, ["tag-4", "tag-1"]).map((found) => found.id),
+    ).toEqual(["tag-1", "tag-4", "tag-2", "tag-3"]);
+  });
+
+  it("leaves an empty selection untouched", () => {
+    expect(tagsSelectedFirst(TAGS, [])).toEqual(TAGS);
   });
 });
 

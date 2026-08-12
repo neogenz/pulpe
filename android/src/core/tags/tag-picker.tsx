@@ -1,6 +1,6 @@
 import { MAX_TAGS_PER_TRANSACTION } from "pulpe-shared";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Chip,
@@ -11,10 +11,19 @@ import {
   useTheme,
 } from "react-native-paper";
 
+import { FadingRail } from "@/core/ui/fading-rail";
 import { SPACING } from "@/core/ui/theme";
 
 import { useCreateTag, useTags } from "./tag-queries";
-import { canCreateTag, tagNameIssue, toggledTagIds } from "./tag-selection";
+import {
+  canCreateTag,
+  tagNameIssue,
+  tagsSelectedFirst,
+  toggledTagIds,
+} from "./tag-selection";
+
+/** The gutter `core/ui/sheet` keeps, and so the one the rail has to give back. */
+const SHEET_PADDING = SPACING.lg;
 
 interface TagPickerProps {
   selectedIds: string[];
@@ -34,6 +43,7 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
   const [isCreating, setCreating] = useState(false);
 
   const available = tags.data ?? [];
+  const ordered = tagsSelectedFirst(available, selectedIds);
   const issue = tagNameIssue(name, available, selectedIds.length);
   const isCreatable =
     canCreateTag(name, available, selectedIds.length) && !createTag.isPending;
@@ -62,43 +72,46 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
 
       {/* One scrolling row, not a wrapping wall: sixteen tags stacked into six
           rows pushed the rest of the form — the submit button included — off
-          the bottom of the sheet. */}
+          the bottom of the sheet. It runs to the sheet's own edges so a chip
+          scrolls past the gutter instead of being clipped by it. */}
       {tags.isPending ? (
         <ActivityIndicator />
       ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.chips}
-        >
-          {available.map((tag) => {
-            const isSelected = selectedIds.includes(tag.id);
-            return (
-              <Chip
-                key={tag.id}
-                selected={isSelected}
-                showSelectedCheck={false}
-                icon={isSelected ? "check" : "tag-outline"}
-                disabled={
-                  !isSelected && selectedIds.length >= MAX_TAGS_PER_TRANSACTION
-                }
-                onPress={() => onChange(toggledTagIds(tag.id, selectedIds))}
-                accessibilityState={{ selected: isSelected }}
-              >
-                {tag.name}
-              </Chip>
-            );
-          })}
+        <View style={styles.rail}>
+          <FadingRail
+            inset={SHEET_PADDING}
+            background={theme.colors.surface}
+            accessibilityLabel="Tags disponibles"
+          >
+            {ordered.map((tag) => {
+              const isSelected = selectedIds.includes(tag.id);
+              return (
+                <Chip
+                  key={tag.id}
+                  selected={isSelected}
+                  showSelectedCheck={false}
+                  icon={isSelected ? "check" : "tag-outline"}
+                  disabled={
+                    !isSelected &&
+                    selectedIds.length >= MAX_TAGS_PER_TRANSACTION
+                  }
+                  onPress={() => onChange(toggledTagIds(tag.id, selectedIds))}
+                  accessibilityState={{ selected: isSelected }}
+                >
+                  {tag.name}
+                </Chip>
+              );
+            })}
 
-          {/* Creating a tag is the rare act, so it costs a tap rather than a
-              permanent field sitting under every list. */}
-          {!isCreating && (
-            <Chip icon="plus" onPress={() => setCreating(true)}>
-              Nouveau
-            </Chip>
-          )}
-        </ScrollView>
+            {/* Creating a tag is the rare act, so it costs a tap rather than a
+                permanent field sitting under every list. */}
+            {!isCreating && (
+              <Chip icon="plus" onPress={() => setCreating(true)}>
+                Nouveau
+              </Chip>
+            )}
+          </FadingRail>
+        </View>
       )}
 
       {isCreating && (
@@ -149,7 +162,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  chips: { flexDirection: "row", gap: SPACING.xs, paddingRight: SPACING.md },
+  rail: { marginHorizontal: -SHEET_PADDING },
   create: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
   nameField: { flex: 1 },
   creating: { marginHorizontal: SPACING.md },

@@ -9,9 +9,11 @@ import {
   formatCurrency,
   formatSignedCompactCurrency,
 } from "@/core/ui/amount-format";
+import { FadingRail } from "@/core/ui/fading-rail";
 import {
   FINANCIAL_COLORS,
   RADIUS,
+  SCREEN_PADDING,
   SPACING,
   TABULAR_DIGITS,
 } from "@/core/ui/theme";
@@ -63,82 +65,89 @@ export function BudgetDetailHero({
   const hasRollover = Math.round(rollover * CENTIMES_PER_UNIT) !== 0;
 
   return (
-    <Pressable
-      onPress={onPressMetrics}
-      style={styles.hero}
-      accessibilityRole="button"
-      accessibilityLabel={`${isDeficit ? "Déficit" : "Disponible"} ${formatCurrency(Math.abs(metrics.remaining), currency)}, ${Math.round(usagePercentage)} % utilisé`}
-    >
-      <Text
-        variant="labelLarge"
-        style={[styles.eyebrow, { color: theme.colors.onSurfaceVariant }]}
+    <View style={styles.hero}>
+      <Pressable
+        onPress={onPressMetrics}
+        style={styles.summary}
+        accessibilityRole="button"
+        accessibilityLabel={`${isDeficit ? "Déficit" : "Disponible"} ${formatCurrency(Math.abs(metrics.remaining), currency)}, ${Math.round(usagePercentage)} % utilisé`}
       >
-        {isDeficit ? "Déficit" : "Disponible"} ·{" "}
-        {CURRENCY_METADATA[currency].symbol}
-      </Text>
-
-      <Text variant="displaySmall" style={TABULAR_DIGITS} numberOfLines={1}>
-        {signedAmount(metrics.remaining, currency)}
-      </Text>
-
-      {hasRollover && (
-        // The carry-over names a month, so the disclosure is also the way to go
-        // read it — the same question iOS answers with a read-only sheet.
-        <Pressable
-          style={styles.rollover}
-          onPress={onPressRollover}
-          disabled={onPressRollover === undefined}
-          accessibilityRole={onPressRollover === undefined ? undefined : "link"}
-          accessibilityLabel={
-            onPressRollover === undefined
-              ? undefined
-              : `Voir ${previousMonthName ?? "le mois précédent"}`
-          }
+        <Text
+          variant="labelLarge"
+          style={[styles.eyebrow, { color: theme.colors.onSurfaceVariant }]}
         >
-          <MaterialCommunityIcons
-            name="autorenew"
-            size={ROLLOVER_ICON_SIZE}
-            color={theme.colors.outline}
-          />
-          <Text variant="labelMedium" style={{ color: theme.colors.outline }}>
-            {previousMonthName === null
-              ? "Report du mois précédent inclus"
-              : `Report de ${previousMonthName} inclus`}
-          </Text>
-          <Text
-            variant="labelMedium"
-            style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
+          {isDeficit ? "Déficit" : "Disponible"} ·{" "}
+          {CURRENCY_METADATA[currency].symbol}
+        </Text>
+
+        <Text variant="displaySmall" style={TABULAR_DIGITS} numberOfLines={1}>
+          {signedAmount(metrics.remaining, currency)}
+        </Text>
+
+        {hasRollover && (
+          // The carry-over names a month, so the disclosure is also the way to go
+          // read it — the same question iOS answers with a read-only sheet.
+          <Pressable
+            style={styles.rollover}
+            onPress={onPressRollover}
+            disabled={onPressRollover === undefined}
+            accessibilityRole={
+              onPressRollover === undefined ? undefined : "link"
+            }
+            accessibilityLabel={
+              onPressRollover === undefined
+                ? undefined
+                : `Voir ${previousMonthName ?? "le mois précédent"}`
+            }
           >
-            {formatSignedCompactCurrency(rollover, currency)}
-          </Text>
-          {onPressRollover !== undefined && (
             <MaterialCommunityIcons
-              name="chevron-right"
+              name="autorenew"
               size={ROLLOVER_ICON_SIZE}
               color={theme.colors.outline}
             />
-          )}
-        </Pressable>
-      )}
+            <Text variant="labelMedium" style={{ color: theme.colors.outline }}>
+              {previousMonthName === null
+                ? "Report du mois précédent inclus"
+                : `Report de ${previousMonthName} inclus`}
+            </Text>
+            <Text
+              variant="labelMedium"
+              style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
+            >
+              {formatSignedCompactCurrency(rollover, currency)}
+            </Text>
+            {onPressRollover !== undefined && (
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={ROLLOVER_ICON_SIZE}
+                color={theme.colors.outline}
+              />
+            )}
+          </Pressable>
+        )}
 
-      <View style={styles.progressRow}>
-        <ProgressBar
-          progress={usage / PERCENT}
-          color={FINANCIAL_COLORS[scheme].savings}
-          style={styles.progress}
-        />
-        <Text
-          variant="labelLarge"
-          style={[TABULAR_DIGITS, { color: FINANCIAL_COLORS[scheme].savings }]}
-        >
-          {Math.round(usagePercentage)}%
-        </Text>
-      </View>
+        <View style={styles.progressRow}>
+          <ProgressBar
+            progress={usage / PERCENT}
+            color={FINANCIAL_COLORS[scheme].savings}
+            style={styles.progress}
+          />
+          <Text
+            variant="labelLarge"
+            style={[
+              TABULAR_DIGITS,
+              { color: FINANCIAL_COLORS[scheme].savings },
+            ]}
+          >
+            {Math.round(usagePercentage)}%
+          </Text>
+        </View>
+      </Pressable>
 
-      {/* Wrapping, not scrolling: the three of them are a hair too wide for a
-          phone, and a rail inside a pressable card both clipped the last one
-          and fought the card for the same horizontal gesture. */}
-      <View style={styles.pills}>
+      {/* Outside the pressable, and running edge to edge: the three of them are
+          a hair too wide for a phone, so they scroll — and a rail that owns a
+          horizontal gesture must not also be a button. */}
+      <FadingRail accessibilityLabel="Répartition du mois">
         <Pill
           icon="arrow-down"
           amount={metrics.totalIncome}
@@ -160,8 +169,8 @@ export function BudgetDetailHero({
           tint={FINANCIAL_COLORS[scheme].expense}
           currency={currency}
         />
-      </View>
-    </Pressable>
+      </FadingRail>
+    </View>
   );
 }
 
@@ -199,6 +208,9 @@ function signedAmount(value: number, currency: SupportedCurrency): string {
 
 const styles = StyleSheet.create({
   hero: { gap: SPACING.xs, paddingVertical: SPACING.sm },
+  // The hero pays its own gutter so the pill rail underneath does not have to —
+  // it reaches the screen edges, which is where its fades belong.
+  summary: { gap: SPACING.xs, paddingHorizontal: SCREEN_PADDING },
   eyebrow: { textTransform: "uppercase", letterSpacing: 1 },
   rollover: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
   progressRow: {
@@ -208,12 +220,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   progress: { flex: 1, height: SPACING.sm, borderRadius: RADIUS.full },
-  pills: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: SPACING.sm,
-    paddingTop: SPACING.sm,
-  },
   pill: {
     flexDirection: "row",
     alignItems: "center",

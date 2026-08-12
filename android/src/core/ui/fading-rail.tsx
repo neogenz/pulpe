@@ -20,6 +20,10 @@ interface FadingRailProps {
   children: ReactNode;
   /** The pager scrolls itself to the selected month; nothing else needs this. */
   scrollRef?: Ref<ScrollView>;
+  /** The gutter to keep around the content. Wider inside a sheet than a page. */
+  inset?: number;
+  /** What the rail sits on, and so what it fades into: a sheet is not the page. */
+  background?: string;
   accessibilityLabel?: string;
 }
 
@@ -40,6 +44,8 @@ interface FadingRailProps {
 export function FadingRail({
   children,
   scrollRef,
+  inset = SCREEN_PADDING,
+  background,
   accessibilityLabel,
 }: FadingRailProps) {
   const theme = useTheme();
@@ -51,7 +57,7 @@ export function FadingRail({
   const hasLeading = offset > 1;
   const hasTrailing = offset < overflow - 1;
 
-  const opaque = theme.colors.background;
+  const opaque = background ?? theme.colors.background;
   const clear = `${opaque}00`;
 
   return (
@@ -65,7 +71,8 @@ export function FadingRail({
         ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}
         scrollEventThrottle={16}
         onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) =>
           setOffset(event.nativeEvent.contentOffset.x)
@@ -102,7 +109,6 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: "row",
     gap: SPACING.sm,
-    paddingHorizontal: SCREEN_PADDING,
     // Chips carry their own shadow on Android and sit flush against whatever
     // is above and below them without this.
     paddingVertical: SPACING.xs,
