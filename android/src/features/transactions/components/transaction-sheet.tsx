@@ -5,12 +5,10 @@ import type {
   TransactionKind,
 } from "pulpe-shared";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   Button,
   HelperText,
-  Modal,
-  Portal,
   SegmentedButtons,
   Switch,
   Text,
@@ -22,7 +20,8 @@ import { DatePickerModal } from "react-native-paper-dates";
 import { TagPicker } from "@/core/tags/tag-picker";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatRelativeDay } from "@/core/ui/date-format";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { Sheet } from "@/core/ui/sheet";
+import { SPACING } from "@/core/ui/theme";
 
 import {
   buildTransactionPayload,
@@ -163,128 +162,113 @@ export function TransactionSheet({
   const hint = draftHint(draft);
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
+    <>
+      <Sheet
+        isVisible={isVisible}
         onDismiss={dismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text variant="titleMedium">
-            {isEditing ? "Modifier l'opération" : "Ajouter une opération"}
-          </Text>
+        title={isEditing ? "Modifier l'opération" : "Ajouter une opération"}
+        subtitle={
+          envelope === undefined
+            ? undefined
+            : `Comptée dans « ${envelope.name} »`
+        }
+        footer={
+          <>
+            {mutation.isError && (
+              <HelperText type="error" visible>
+                L&apos;opération n&apos;a pas pu être enregistrée. Réessaie.
+              </HelperText>
+            )}
 
-          {envelope !== undefined && (
-            <Text
-              variant="labelMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              Comptée dans « {envelope.name} »
-            </Text>
-          )}
-
-          {!isKindLocked && (
-            <SegmentedButtons
-              value={draft.kind}
-              onValueChange={(kind) =>
-                change({ kind: kind as TransactionKind })
-              }
-              buttons={KIND_BUTTONS}
-            />
-          )}
-
-          <AmountField
-            key={generation}
-            label="Montant"
-            amount={draft.amount}
-            currency={currency}
-            onChange={(amount) => change({ amount })}
-          />
-
-          <TextInput
-            mode="outlined"
-            label="Description"
-            placeholder={NAME_PLACEHOLDERS[draft.kind]}
-            value={draft.name}
-            onChangeText={(name) => change({ name })}
-            maxLength={NAME_MAX_LENGTH}
-          />
-
-          <Button
-            mode="outlined"
-            icon="calendar"
-            onPress={() => setDatePickerVisible(true)}
-            accessibilityLabel="Date de l'opération"
-          >
-            {formatRelativeDay(draft.day, new Date())}
-          </Button>
-
-          {!isEditing && (
-            <View style={styles.checkedRow}>
-              <View style={styles.checkedLabels}>
-                <Text variant="bodyLarge">Déjà pointée</Text>
-                <Text
-                  variant="labelMedium"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  Compte dans ton solde à date
-                </Text>
-              </View>
-              <Switch
-                value={draft.isChecked}
-                onValueChange={(isChecked) => change({ isChecked })}
-                accessibilityLabel="Opération déjà pointée"
-              />
-            </View>
-          )}
-
-          <TagPicker
-            selectedIds={draft.tagIds}
-            onChange={(tagIds) => change({ tagIds })}
-          />
-
-          {mutation.isError && (
-            <HelperText type="error" visible>
-              L&apos;opération n&apos;a pas pu être enregistrée. Réessaie.
-            </HelperText>
-          )}
-
-          <Button
-            mode="contained"
-            onPress={submit}
-            disabled={!isDraftSubmittable(draft) || mutation.isPending}
-            loading={mutation.isPending}
-          >
-            {isEditing ? "Enregistrer" : "Ajouter"}
-          </Button>
-
-          {hint !== null && (
-            <Text
-              variant="labelMedium"
-              style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}
-            >
-              {hint}
-            </Text>
-          )}
-
-          {onDelete !== undefined && isEditing && (
             <Button
-              mode="text"
-              icon="trash-can-outline"
-              textColor={theme.colors.error}
-              onPress={onDelete}
+              mode="contained"
+              onPress={submit}
+              disabled={!isDraftSubmittable(draft) || mutation.isPending}
+              loading={mutation.isPending}
             >
-              Supprimer
+              {isEditing ? "Enregistrer" : "Ajouter"}
             </Button>
-          )}
-        </ScrollView>
-      </Modal>
+
+            {hint !== null && (
+              <Text
+                variant="labelMedium"
+                style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}
+              >
+                {hint}
+              </Text>
+            )}
+
+            {onDelete !== undefined && isEditing && (
+              <Button
+                mode="text"
+                icon="trash-can-outline"
+                textColor={theme.colors.error}
+                onPress={onDelete}
+              >
+                Supprimer
+              </Button>
+            )}
+          </>
+        }
+      >
+        {!isKindLocked && (
+          <SegmentedButtons
+            value={draft.kind}
+            onValueChange={(kind) => change({ kind: kind as TransactionKind })}
+            buttons={KIND_BUTTONS}
+          />
+        )}
+
+        <AmountField
+          key={generation}
+          label="Montant"
+          amount={draft.amount}
+          currency={currency}
+          onChange={(amount) => change({ amount })}
+        />
+
+        <TextInput
+          mode="outlined"
+          label="Description"
+          placeholder={NAME_PLACEHOLDERS[draft.kind]}
+          value={draft.name}
+          onChangeText={(name) => change({ name })}
+          maxLength={NAME_MAX_LENGTH}
+        />
+
+        <Button
+          mode="outlined"
+          icon="calendar"
+          onPress={() => setDatePickerVisible(true)}
+          accessibilityLabel="Date de l'opération"
+        >
+          {formatRelativeDay(draft.day, new Date())}
+        </Button>
+
+        {!isEditing && (
+          <View style={styles.checkedRow}>
+            <View style={styles.checkedLabels}>
+              <Text variant="bodyLarge">Déjà pointée</Text>
+              <Text
+                variant="labelMedium"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                Compte dans ton solde à date
+              </Text>
+            </View>
+            <Switch
+              value={draft.isChecked}
+              onValueChange={(isChecked) => change({ isChecked })}
+              accessibilityLabel="Opération déjà pointée"
+            />
+          </View>
+        )}
+
+        <TagPicker
+          selectedIds={draft.tagIds}
+          onChange={(tagIds) => change({ tagIds })}
+        />
+      </Sheet>
 
       <DatePickerModal
         locale={DATE_LOCALE}
@@ -299,7 +283,7 @@ export function TransactionSheet({
         label="Date de l'opération"
         saveLabel="Valider"
       />
-    </Portal>
+    </>
   );
 }
 
@@ -327,12 +311,6 @@ function initialForm(
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
-    maxHeight: "88%",
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
   checkedRow: {
     flexDirection: "row",
     alignItems: "center",

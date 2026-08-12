@@ -1,6 +1,6 @@
 import { MAX_TAGS_PER_TRANSACTION } from "pulpe-shared";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Chip,
@@ -31,6 +31,7 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
   const tags = useTags();
   const createTag = useCreateTag();
   const [name, setName] = useState("");
+  const [isCreating, setCreating] = useState(false);
 
   const available = tags.data ?? [];
   const issue = tagNameIssue(name, available, selectedIds.length);
@@ -59,10 +60,18 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
         </Text>
       </View>
 
+      {/* One scrolling row, not a wrapping wall: sixteen tags stacked into six
+          rows pushed the rest of the form — the submit button included — off
+          the bottom of the sheet. */}
       {tags.isPending ? (
         <ActivityIndicator />
       ) : (
-        <View style={styles.chips}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.chips}
+        >
           {available.map((tag) => {
             const isSelected = selectedIds.includes(tag.id);
             return (
@@ -81,32 +90,43 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
               </Chip>
             );
           })}
-        </View>
+
+          {/* Creating a tag is the rare act, so it costs a tap rather than a
+              permanent field sitting under every list. */}
+          {!isCreating && (
+            <Chip icon="plus" onPress={() => setCreating(true)}>
+              Nouveau
+            </Chip>
+          )}
+        </ScrollView>
       )}
 
-      <View style={styles.create}>
-        <TextInput
-          mode="outlined"
-          dense
-          label="Nouveau tag"
-          value={name}
-          onChangeText={setName}
-          onSubmitEditing={create}
-          returnKeyType="done"
-          style={styles.nameField}
-        />
-        {createTag.isPending ? (
-          <ActivityIndicator style={styles.creating} />
-        ) : (
-          <IconButton
-            icon="plus"
-            mode="contained-tonal"
-            disabled={!isCreatable}
-            onPress={create}
-            accessibilityLabel="Créer et sélectionner ce tag"
+      {isCreating && (
+        <View style={styles.create}>
+          <TextInput
+            mode="outlined"
+            dense
+            autoFocus
+            label="Nouveau tag"
+            value={name}
+            onChangeText={setName}
+            onSubmitEditing={create}
+            returnKeyType="done"
+            style={styles.nameField}
           />
-        )}
-      </View>
+          {createTag.isPending ? (
+            <ActivityIndicator style={styles.creating} />
+          ) : (
+            <IconButton
+              icon="plus"
+              mode="contained-tonal"
+              disabled={!isCreatable}
+              onPress={create}
+              accessibilityLabel="Créer et sélectionner ce tag"
+            />
+          )}
+        </View>
+      )}
 
       {issue !== null && (
         <HelperText type="error" visible>
@@ -129,7 +149,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.xs },
+  chips: { flexDirection: "row", gap: SPACING.xs, paddingRight: SPACING.md },
   create: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
   nameField: { flex: 1 },
   creating: { marginHorizontal: SPACING.md },
