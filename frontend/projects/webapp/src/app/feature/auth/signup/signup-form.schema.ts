@@ -10,30 +10,13 @@ import {
 
 export { PASSWORD_HAS_LETTER, PASSWORD_HAS_NUMBER };
 
-export interface SignupSubmit {
-  readonly email: string;
-  readonly password: string;
-}
-
-export const signupFormSchema = z
-  .object({
-    email: z.email(),
-    password: z
-      .string()
-      .min(PASSWORD_MIN_LENGTH)
-      .regex(PASSWORD_HAS_NUMBER)
-      .regex(PASSWORD_HAS_LETTER),
-    confirmPassword: z.string(),
-  })
-  .refine((input) => input.password === input.confirmPassword, {
-    message: 'passwords do not match',
-    path: ['confirmPassword'],
-  })
-  .transform(
-    (input): SignupSubmit => ({
-      email: input.email,
-      password: input.password,
-    }),
-  );
+export const signupFormSchema = z.object({
+  email: z.email(),
+  password: z
+    .string()
+    .min(PASSWORD_MIN_LENGTH)
+    .regex(PASSWORD_HAS_NUMBER)
+    .regex(PASSWORD_HAS_LETTER),
+});
 
 export type SignupFormValue = z.input<typeof signupFormSchema>;
