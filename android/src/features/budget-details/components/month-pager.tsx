@@ -2,10 +2,10 @@ import type { BudgetSparse } from "pulpe-shared";
 import { useEffect, useRef } from "react";
 import type { ScrollView } from "react-native";
 import { StyleSheet } from "react-native";
-import { Chip } from "react-native-paper";
 
 import { formatMonthName } from "@/core/ui/date-format";
 import { FadingRail } from "@/core/ui/fading-rail";
+import { FilterChip } from "@/core/ui/filter-chip";
 
 /** Roughly one chip; enough to leave the selected one near the middle. */
 const CHIP_WIDTH = 96;
@@ -43,16 +43,15 @@ export function MonthPager({
   return (
     <FadingRail scrollRef={rail} accessibilityLabel="Sélecteur de mois">
       {months.map((month) => (
-        <Chip
+        <FilterChip
           key={month.id}
           selected={month.id === currentBudgetId}
-          showSelectedCheck={false}
           onPress={() => onSelect(month.id)}
           compact
           textStyle={styles.label}
         >
           {chipLabel(month, anchorYear)}
-        </Chip>
+        </FilterChip>
       ))}
     </FadingRail>
   );

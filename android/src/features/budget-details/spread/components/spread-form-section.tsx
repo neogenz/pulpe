@@ -1,7 +1,6 @@
 import type { SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
 import {
-  Chip,
   HelperText,
   IconButton,
   SegmentedButtons,
@@ -11,6 +10,7 @@ import {
 
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
+import { FilterChip } from "@/core/ui/filter-chip";
 import { SPACING } from "@/core/ui/theme";
 
 import {
@@ -94,15 +94,14 @@ export function SpreadFormSection({
 
       <View style={styles.months}>
         {cells.map((cell) => (
-          <Chip
+          <FilterChip
             key={cell.key}
             selected={cell.isSelected}
-            showSelectedCheck={false}
             onPress={() => onToggleMonth(cell.key)}
             textStyle={styles.month}
           >
             {formatMonthName(cell.month, cell.year)}
-          </Chip>
+          </FilterChip>
         ))}
       </View>
 

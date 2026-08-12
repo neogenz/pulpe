@@ -2,7 +2,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { SupportedCurrency, Transaction } from "pulpe-shared";
 import { useState } from "react";
 import { StyleSheet, useColorScheme, View } from "react-native";
-import { Button, Chip, Divider, Text, useTheme } from "react-native-paper";
+import { Button, Divider, Text, useTheme } from "react-native-paper";
 
 import { useTags } from "@/core/tags/tag-queries";
 import { tagSummary } from "@/core/tags/tag-selection";
@@ -10,6 +10,7 @@ import {
   formatCompactCurrency,
   formatSignedCompactCurrency,
 } from "@/core/ui/amount-format";
+import { FilterChip } from "@/core/ui/filter-chip";
 import {
   FINANCIAL_COLORS,
   RADIUS,
@@ -82,15 +83,14 @@ export function ActivityCard({
 
       <View style={styles.windows}>
         {WINDOWS.map((option) => (
-          <Chip
+          <FilterChip
             key={option.value}
             selected={window === option.value}
-            showSelectedCheck={false}
             onPress={() => setWindow(option.value)}
             accessibilityLabel={`Activité sur ${option.label}`}
           >
             {option.label}
-          </Chip>
+          </FilterChip>
         ))}
         {onPressAll !== undefined && (
           <Button mode="text" compact onPress={onPressAll}>

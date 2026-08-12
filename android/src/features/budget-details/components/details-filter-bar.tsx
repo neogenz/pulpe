@@ -1,7 +1,8 @@
 import { StyleSheet, View } from "react-native";
-import { Chip, SegmentedButtons } from "react-native-paper";
+import { SegmentedButtons } from "react-native-paper";
 
 import { FadingRail } from "@/core/ui/fading-rail";
+import { FilterChip } from "@/core/ui/filter-chip";
 import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 
 import type {
@@ -64,15 +65,14 @@ export function DetailsFilterBar({
 
       <FadingRail>
         {KIND_CHIPS.map((chip) => (
-          <Chip
+          <FilterChip
             key={chip.key}
             selected={filters.kind === chip.key}
-            showSelectedCheck={false}
             onPress={() => onChange({ ...filters, kind: chip.key })}
             compact
           >
             {`${chip.label} ${counts[chip.count]}`}
-          </Chip>
+          </FilterChip>
         ))}
       </FadingRail>
     </View>

@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Appbar,
   Button,
-  Chip,
   Divider,
   HelperText,
   RadioButton,
@@ -19,6 +18,7 @@ import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatMonthLabel, formatMonthName } from "@/core/ui/date-format";
+import { FilterChip } from "@/core/ui/filter-chip";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 import {
@@ -123,17 +123,16 @@ export default function CreateBudgetScreen() {
         <Text variant="titleSmall">Quel mois</Text>
         <View style={styles.periods}>
           {periods.map((candidate) => (
-            <Chip
+            <FilterChip
               key={periodKey(candidate)}
               selected={periodKey(candidate) === periodKey(period)}
-              showSelectedCheck={false}
               onPress={() => setChosenPeriodKey(periodKey(candidate))}
             >
               {/* Year included: an account already booked to January is offered
                   February, March and April of the *next* year, and three bare
                   month names give no hint of that. */}
               {formatMonthLabel(candidate.month, candidate.year)}
-            </Chip>
+            </FilterChip>
           ))}
         </View>
 
