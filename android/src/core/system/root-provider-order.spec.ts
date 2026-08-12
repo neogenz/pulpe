@@ -1,3 +1,8 @@
+// Lives here and not next to `_layout.tsx`: expo-router builds its routes from
+// a `require.context` over `src/app`, which sweeps up every file it finds. A
+// spec placed there is bundled as a route and evaluated in the app, where
+// `jest` does not exist — it crashes the running app, not the test run.
+//
 // `jest.requireActual` rather than an import: `@types/node` is deliberately not
 // installed, so that Node globals cannot typecheck their way into app code.
 const { readFileSync } = jest.requireActual<{
