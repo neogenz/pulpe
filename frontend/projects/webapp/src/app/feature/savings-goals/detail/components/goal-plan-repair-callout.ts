@@ -30,7 +30,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
           <mat-icon
             class="mt-0.5 shrink-0 text-financial-savings"
             aria-hidden="true"
-            >savings</mat-icon
+            >playlist_add</mat-icon
           >
           <div class="flex flex-col gap-1">
             <h3 class="text-title-medium font-semibold">

@@ -22,12 +22,16 @@ registerLocaleData(localeDeCh, 'de-CH');
 
 // Mirrors ng2-charts' third-party selector so the component template stays unchanged.
 // eslint-disable-next-line @angular-eslint/directive-selector
-@Directive({ selector: 'canvas[baseChart]' })
+@Directive({ selector: 'canvas[baseChart]', exportAs: 'base-chart' })
 class StubBaseChartDirective {
   @Input() data: unknown;
   @Input() options: unknown;
   @Input() plugins: unknown;
   @Input() type: unknown;
+
+  hideDataset(): void {
+    return;
+  }
 }
 
 const months: SavingsGoalPlanMonth[] = [
@@ -113,18 +117,18 @@ describe('GoalProjectionChart', () => {
     return fixture;
   }
 
-  it('renders target, confirmed savings and deadline projection as a semantic summary', () => {
+  it('renders target, confirmed savings and projection as compact chart controls', () => {
     const fixture = render();
     const summary = fixture.nativeElement.querySelector(
       '[data-testid="goal-projection-summary"]',
     );
-    const rows = summary?.querySelectorAll('div');
 
-    expect(summary?.tagName).toBe('DL');
-    expect(rows).toHaveLength(3);
+    expect(summary?.querySelectorAll('button')).toHaveLength(3);
     expect(summary?.textContent).toContain('Cible');
     expect(summary?.textContent).toContain('Épargné');
-    expect(summary?.textContent).toContain("Projection à l'échéance");
+    expect(summary?.textContent).toContain('Projection');
+    expect(summary?.textContent).not.toMatch(/180|300|360|CHF/);
+    expect(summary?.getAttribute('aria-label')).toBe('Courbes affichées');
     expect(
       fixture.nativeElement.querySelector(
         '[data-testid="goal-projection-target-legend"]',
@@ -132,15 +136,10 @@ describe('GoalProjectionChart', () => {
     ).toContain('bg-financial-expense');
     expect(
       fixture.nativeElement.querySelector(
-        '[data-testid="goal-projection-summary-projection"]',
-      )?.textContent,
-    ).toContain('360');
-    expect(
-      fixture.nativeElement.querySelector(
         '[data-testid="goal-projection-aria"]',
       )?.textContent,
     ).toMatch(
-      /cible 300(?:\.00)? CHF.+épargné 180(?:\.00)? CHF.+projection à l'échéance 360(?:\.00)? CHF/i,
+      /cible 300(?:\.00)? CHF.+épargné 180(?:\.00)? CHF.+estimation à la date prévue 360(?:\.00)? CHF/i,
     );
     expect(
       fixture.nativeElement.querySelector(
@@ -149,31 +148,44 @@ describe('GoalProjectionChart', () => {
     ).toContain('ph-no-capture');
   });
 
-  it('uses the simulated endpoint in the summary', () => {
+  it('lets the user hide and restore a chart series from the accessible legend', () => {
+    const fixture = render();
+    const confirmed = fixture.nativeElement.querySelector(
+      '[data-testid="goal-projection-toggle-confirmed"]',
+    ) as HTMLButtonElement;
+
+    expect(confirmed.getAttribute('aria-pressed')).toBe('true');
+    expect(confirmed.getAttribute('aria-label')).toContain('Masquer');
+
+    confirmed.click();
+    fixture.detectChanges();
+    expect(confirmed.getAttribute('aria-pressed')).toBe('false');
+    expect(confirmed.getAttribute('aria-label')).toContain('Afficher');
+
+    confirmed.click();
+    fixture.detectChanges();
+    expect(confirmed.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('uses the simulated endpoint in the accessible chart description', () => {
     const fixture = render(draft);
 
     expect(
       fixture.nativeElement.querySelector(
-        '[data-testid="goal-projection-summary-projection"]',
+        '[data-testid="goal-projection-aria"]',
       )?.textContent,
     ).toContain('420');
   });
 
-  it('hides visual and accessible amounts together', () => {
+  it('hides amounts in the accessible chart description', () => {
     const fixture = render();
     TestBed.inject(AmountsVisibilityService).toggle();
     fixture.detectChanges();
 
-    const values = [
-      ...fixture.nativeElement.querySelectorAll(
-        '[data-testid^="goal-projection-summary-"]',
-      ),
-    ].map((element: Element) => element.textContent?.trim());
     const aria = fixture.nativeElement.querySelector(
       '[data-testid="goal-projection-aria"]',
     )?.textContent;
 
-    expect(values).toEqual(['•••••', '•••••', '•••••']);
     expect(aria).toContain('montants sont masqués');
     expect(aria).not.toMatch(/180|300|360|CHF/);
   });

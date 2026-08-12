@@ -443,7 +443,7 @@ describe('SavingsGoalDetailPage', () => {
     // initial amount with the checked lines, so « Pointé » would overclaim.
     expect(fixture.nativeElement.textContent).toContain('Épargné');
     expect(fixture.nativeElement.textContent).toContain(
-      'Versements prévus à date',
+      'Versements prévus jusqu’à maintenant',
     );
   });
 
@@ -1018,11 +1018,15 @@ describe('SavingsGoalDetailPage', () => {
     expect(query('savings-goal-pace-chip')).toBeFalsy();
   });
 
-  it('renders a neutral pace chip when behind (never red/amber)', () => {
+  it('renders a neutral plan status with its projected amount when behind', () => {
     progressSig.set(makeProgress({ paceStatus: 'behind' }));
     fixture.detectChanges();
     const chip = query('savings-goal-pace-chip');
     expect(chip).toBeTruthy();
+    expect(chip.nativeElement.textContent).toContain('En dessous de la cible');
+    expect(
+      query('stat-projected').nativeElement.contains(chip.nativeElement),
+    ).toBe(true);
     const className = chip.nativeElement.className as string;
     expect(className).not.toContain('error');
     expect(className).not.toContain('amber');
