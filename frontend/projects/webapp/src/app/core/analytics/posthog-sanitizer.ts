@@ -238,8 +238,8 @@ const AUTOCAPTURE_ALLOWED_PROPERTY_NAMES = new Set([
   'app_commit',
   'platform',
 ]);
-const AUTOCAPTURE_TAG_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
-const MAX_AUTOCAPTURE_ELEMENTS = 64;
+export const AUTOCAPTURE_TAG_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
+export const MAX_AUTOCAPTURE_ELEMENTS = 64;
 
 // Alternative PostHog integrations can duplicate exception messages and
 // fingerprints outside `$exception_list`. The strict exception schema below

@@ -33,6 +33,7 @@ struct ScreenViewDeduplicator {
         hasProperties: Bool,
         at timestamp: ContinuousClock.Instant = .now
     ) -> Bool {
+        // Any other screen, or an enriched target event, starts a new deduplication sequence.
         guard name == AnalyticsScreen.savingsGoalsList, !hasProperties else {
             reset()
             return true

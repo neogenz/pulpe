@@ -15,6 +15,8 @@ import { StorageService } from '../storage/storage.service';
 import { STORAGE_KEYS } from '../storage/storage-keys';
 import { buildInfo } from '@env/build-info';
 import {
+  AUTOCAPTURE_TAG_PATTERN,
+  MAX_AUTOCAPTURE_ELEMENTS,
   sanitizeEventPayload,
   sanitizePersonProperties,
   sanitizeRecord,
@@ -22,8 +24,6 @@ import {
 } from './posthog-sanitizer';
 
 const POSTHOG_PERSISTENCE_NAME = 'pulpe_app';
-const AUTOCAPTURE_MAX_ELEMENTS = 64;
-const AUTOCAPTURE_TAG_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
 const REPLAY_URL_ATTRIBUTE_BLOCK_SELECTOR = [
   '[href]',
   '[src]',
@@ -329,7 +329,7 @@ export class PostHogService implements OnDestroy {
       while (
         current &&
         current !== document.body &&
-        elements.length < AUTOCAPTURE_MAX_ELEMENTS
+        elements.length < MAX_AUTOCAPTURE_ELEMENTS
       ) {
         if (current.classList.contains('ph-no-capture')) return;
         const tagName = current.localName.toLowerCase();
