@@ -237,53 +237,53 @@ export class CompleteProfileStore {
   });
 
   updateCurrentStep(value: 1 | 2): void {
-    this.#patchState({ currentStep: value });
+    this.#patchDraftState({ currentStep: value });
   }
 
   updateCurrency(value: SupportedCurrency): void {
-    this.#patchState({ currency: value });
+    this.#patchDraftState({ currency: value });
   }
 
   updateFirstName(value: string): void {
-    this.#patchState({ firstName: value.slice(0, 50) });
+    this.#patchDraftState({ firstName: value.slice(0, 50) });
   }
 
   updateMonthlyIncome(value: number | null): void {
-    this.#patchState({ monthlyIncome: this.#validAmount(value) });
+    this.#patchDraftState({ monthlyIncome: this.#validAmount(value) });
   }
 
   updateHousingCosts(value: number | null): void {
-    this.#patchState({ housingCosts: this.#validAmount(value) });
+    this.#patchDraftState({ housingCosts: this.#validAmount(value) });
   }
 
   updateHealthInsurance(value: number | null): void {
-    this.#patchState({ healthInsurance: this.#validAmount(value) });
+    this.#patchDraftState({ healthInsurance: this.#validAmount(value) });
   }
 
   updatePhonePlan(value: number | null): void {
-    this.#patchState({ phonePlan: this.#validAmount(value) });
+    this.#patchDraftState({ phonePlan: this.#validAmount(value) });
   }
 
   updateInternetPlan(value: number | null): void {
-    this.#patchState({ internetPlan: this.#validAmount(value) });
+    this.#patchDraftState({ internetPlan: this.#validAmount(value) });
   }
 
   updateTransportCosts(value: number | null): void {
-    this.#patchState({ transportCosts: this.#validAmount(value) });
+    this.#patchDraftState({ transportCosts: this.#validAmount(value) });
   }
 
   updateLeasingCredit(value: number | null): void {
-    this.#patchState({ leasingCredit: this.#validAmount(value) });
+    this.#patchDraftState({ leasingCredit: this.#validAmount(value) });
   }
 
   updatePayDayOfMonth(value: number | null): void {
-    this.#patchState({ payDayOfMonth: value });
+    this.#patchDraftState({ payDayOfMonth: value });
   }
 
   addCustomTransaction(tx: OnboardingTransaction): void {
     if (this.#state().customTransactions.length >= MAX_CUSTOM_TRANSACTIONS)
       return;
-    this.#patchState({
+    this.#patchDraftState({
       customTransactions: [...this.#state().customTransactions, { ...tx }],
     });
     this.#trackCustomTransactionEvent(
@@ -297,7 +297,7 @@ export class CompleteProfileStore {
     const current = this.#state().customTransactions;
     const removed = current[index];
     if (!removed) return;
-    this.#patchState({
+    this.#patchDraftState({
       customTransactions: current.filter((_, i) => i !== index),
     });
     this.#trackCustomTransactionEvent(
@@ -308,7 +308,7 @@ export class CompleteProfileStore {
   }
 
   updateCustomTransactionAmount(index: number, amount: number): void {
-    this.#patchState({
+    this.#patchDraftState({
       customTransactions: this.#state().customTransactions.map((tx, i) =>
         i === index ? { ...tx, amount } : tx,
       ),
@@ -331,7 +331,7 @@ export class CompleteProfileStore {
         ...suggestion,
         __suggestionId: suggestionId,
       };
-      this.#patchState({ customTransactions: [...current, tagged] });
+      this.#patchDraftState({ customTransactions: [...current, tagged] });
       this.#trackSuggestionToggled(suggestion, true);
       return;
     }
@@ -341,7 +341,7 @@ export class CompleteProfileStore {
     // tapping a chip previously deleted a colliding user-typed row.
     const next = current.slice();
     next.splice(matchIndex, 1);
-    this.#patchState({ customTransactions: next });
+    this.#patchDraftState({ customTransactions: next });
     this.#trackSuggestionToggled(suggestion, false);
   }
 
@@ -522,6 +522,10 @@ export class CompleteProfileStore {
 
   #patchState(partial: Partial<CompleteProfileState>): void {
     this.#state.update((s) => ({ ...s, ...partial }));
+  }
+
+  #patchDraftState(partial: Partial<CompleteProfileState>): void {
+    this.#patchState(partial);
     this.#persistDraft();
   }
 

@@ -683,12 +683,13 @@ export class BudgetDetailPanel {
   );
 
   protected readonly hasMoreBudgetLineActions = computed(() => {
-    const { data, metadata } = this.envelopeItem();
+    const { metadata } = this.envelopeItem();
     return !!(
       metadata.canSpread ||
       metadata.canResetFromTemplate ||
       metadata.showPostpone ||
-      (data.recurrence === 'fixed' && data.kind !== 'income')
+      this.showSpreadUnavailable() ||
+      this.showPostponeUnavailable()
     );
   });
 

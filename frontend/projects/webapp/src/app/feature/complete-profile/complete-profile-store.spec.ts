@@ -192,6 +192,15 @@ describe('CompleteProfileStore', () => {
       expect(sessionStorage.getItem(draftKey)).toBeNull();
     });
 
+    it('does not persist transient request state', async () => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+      await store.checkExistingBudgets();
+
+      expect(setItemSpy).not.toHaveBeenCalled();
+      setItemSpy.mockRestore();
+    });
+
     it('keeps the valid draft fields when one stored field is invalid', () => {
       sessionStorage.setItem(
         draftKey,
