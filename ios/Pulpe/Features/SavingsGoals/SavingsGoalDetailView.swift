@@ -306,17 +306,17 @@ struct SavingsGoalDetailView: View {
 
             if let start = progress.startDateValue, let end = progress.targetDateValue {
                 Text(
-                    "\(start.formatted(date: .abbreviated, time: .omitted))"
-                        + " → \(end.formatted(date: .abbreviated, time: .omitted))"
+                    "\(start.abbreviatedDateFormatted)"
+                        + " → \(end.abbreviatedDateFormatted)"
                 )
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(Color.textTertiary)
             } else if let date = progress.targetDateValue {
-                Text("Échéance \(date.formatted(date: .abbreviated, time: .omitted))")
+                Text("Échéance \(date.abbreviatedDateFormatted)")
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.textTertiary)
             } else if let date = progress.startDateValue {
-                Text("Depuis \(date.formatted(date: .abbreviated, time: .omitted))")
+                Text("Depuis \(date.abbreviatedDateFormatted)")
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.textTertiary)
             }

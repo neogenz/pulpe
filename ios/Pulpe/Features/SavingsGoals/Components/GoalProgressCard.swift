@@ -120,7 +120,7 @@ struct GoalProgressCard: View {
 
     private func deadlineReconciliation(required: Decimal) -> some View {
         let deadlinePart = progress.targetDateValue
-            .map { "pour finir le \($0.formatted(date: .abbreviated, time: .omitted))" }
+            .map { "pour finir le \($0.abbreviatedDateFormatted)" }
             ?? "pour tenir ton échéance"
         let plannedPart = "Ton rythme prévu : \(progress.pace.asCompactCurrency(currency))/mois"
         return Text(

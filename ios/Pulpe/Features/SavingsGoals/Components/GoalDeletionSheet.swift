@@ -369,7 +369,7 @@ private extension GoalDeletionSheet {
             ForEach(presentation.withdrawals) { withdrawal in
                 impactRow(
                     title: withdrawal.name,
-                    subtitle: withdrawal.transactionDate.formatted(date: .abbreviated, time: .omitted),
+                    subtitle: withdrawal.transactionDate.abbreviatedDateFormatted,
                     amount: -withdrawal.amount
                 )
             }

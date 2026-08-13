@@ -334,7 +334,7 @@ struct GoalWithdrawalsSection: View {
     }
 
     private func realizedStatus(_ withdrawal: SavingsGoalWithdrawal) -> String {
-        "\(withdrawal.transactionDate.formatted(date: .abbreviated, time: .omitted)) · "
+        "\(withdrawal.transactionDate.abbreviatedDateFormatted) · "
             + (withdrawal.checkedAt == nil ? "À pointer" : "Pointé")
     }
 

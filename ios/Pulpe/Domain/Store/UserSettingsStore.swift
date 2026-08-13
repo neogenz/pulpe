@@ -7,6 +7,10 @@ final class UserSettingsStore: StoreProtocol {
     private(set) var payDayOfMonth: Int?
     private(set) var currency: SupportedCurrency = .chf
     private(set) var showCurrencySelector = false
+
+    /// Seeded from the persisted snapshot so the first frame paints in the user's language,
+    /// before the settings request answers.
+    private(set) var locale: SupportedLocale = AppLocale.current
     private(set) var isLoading = false
     private(set) var error: APIError?
 
@@ -62,6 +66,7 @@ final class UserSettingsStore: StoreProtocol {
                 payDayOfMonth = settings.payDayOfMonth
                 currency = settings.currency ?? .chf
                 showCurrencySelector = settings.showCurrencySelector ?? false
+                applyLocale(settings.locale ?? .fallback)
                 lastLoadTime = Date()
             } catch is CancellationError {
                 // Task was cancelled, don't update error state
@@ -89,6 +94,10 @@ final class UserSettingsStore: StoreProtocol {
         payDayOfMonth = nil
         currency = .chf
         showCurrencySelector = false
+        // Clear rather than default: the next account must not inherit this one's language
+        // for the seconds between launch and the first settings response.
+        AppLocale.clearPersisted()
+        locale = .fallback
         lastLoadTime = nil
         error = nil
     }
@@ -115,6 +124,36 @@ final class UserSettingsStore: StoreProtocol {
             currency = previousValue
             self.error = .networkError(error)
         }
+    }
+
+    func updateLocale(_ newLocale: SupportedLocale) async {
+        let previousValue = locale
+        error = nil
+
+        // Optimistic update — the interface switches on this line, not on the response.
+        applyLocale(newLocale)
+
+        do {
+            let updated = try await service.updateSettings(UpdateUserSettings(locale: newLocale))
+            // Backend may return a partial settings payload without `locale`; keep the value we
+            // just persisted instead of falling back to French and snapping the UI back.
+            applyLocale(updated.locale ?? newLocale)
+            lastLoadTime = Date()
+        } catch let apiError as APIError {
+            applyLocale(previousValue)
+            self.error = apiError
+        } catch {
+            applyLocale(previousValue)
+            self.error = .networkError(error)
+        }
+    }
+
+    /// Publishing and persisting are one act: `AppLocale.current` backs every formatter and
+    /// every out-of-tree lookup, so a published value it has not caught up with renders half
+    /// the screen in the old language.
+    private func applyLocale(_ newLocale: SupportedLocale) {
+        locale = newLocale
+        AppLocale.persist(newLocale)
     }
 
     func updateShowCurrencySelector(_ newValue: Bool) async {

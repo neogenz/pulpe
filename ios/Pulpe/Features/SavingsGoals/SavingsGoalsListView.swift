@@ -186,14 +186,14 @@ private struct SavingsGoalRow: View {
 
     private var periodLabel: String? {
         if let start = goal.startDateValue, let end = goal.targetDateValue {
-            return "\(start.formatted(date: .abbreviated, time: .omitted))"
-                + " → \(end.formatted(date: .abbreviated, time: .omitted))"
+            return "\(start.abbreviatedDateFormatted)"
+                + " → \(end.abbreviatedDateFormatted)"
         }
         if let date = goal.targetDateValue {
-            return "Échéance \(date.formatted(date: .abbreviated, time: .omitted))"
+            return "Échéance \(date.abbreviatedDateFormatted)"
         }
         if let date = goal.startDateValue {
-            return "Depuis \(date.formatted(date: .abbreviated, time: .omitted))"
+            return "Depuis \(date.abbreviatedDateFormatted)"
         }
         return nil
     }

@@ -186,8 +186,7 @@ struct PayDayPickerSheet: View {
         let exampleMonth = calendar.component(.month, from: now)
         let exampleYear = calendar.component(.year, from: now)
         guard let period = BudgetPeriodCalculator.formatPeriod(
-            month: exampleMonth, year: exampleYear, payDayOfMonth: day,
-            currency: userSettingsStore.currency
+            month: exampleMonth, year: exampleYear, payDayOfMonth: day
         ) else {
             return "Le budget suit le calendrier mensuel standard."
         }

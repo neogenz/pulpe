@@ -26,7 +26,7 @@ extension View {
                 } label: {
                     Image(systemName: "chevron.up")
                 }
-                .accessibilityLabel(String(localized: "Champ précédent"))
+                .accessibilityLabel(AppLocale.string("Champ précédent"))
                 .disabled(currentIndex == nil || currentIndex == 0)
 
                 Button {
@@ -35,7 +35,7 @@ extension View {
                 } label: {
                     Image(systemName: "chevron.down")
                 }
-                .accessibilityLabel(String(localized: "Champ suivant"))
+                .accessibilityLabel(AppLocale.string("Champ suivant"))
                 .disabled(currentIndex == nil || currentIndex == order.count - 1)
 
                 Spacer()
@@ -47,7 +47,7 @@ extension View {
                         // Standard Apple icon for dismissing the keyboard
                         Image(systemName: "keyboard.chevron.compact.down")
                     }
-                    .accessibilityLabel(String(localized: "Fermer le clavier"))
+                    .accessibilityLabel(AppLocale.string("Fermer le clavier"))
                 }
             }
         }

@@ -94,7 +94,7 @@ struct GoalContributionsSection: View {
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 statusSubtitle(
-                    base: transaction.transactionDate.formatted(date: .abbreviated, time: .omitted),
+                    base: transaction.transactionDate.abbreviatedDateFormatted,
                     isChecked: transaction.isChecked
                 )
             }

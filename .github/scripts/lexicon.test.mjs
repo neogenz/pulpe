@@ -94,9 +94,11 @@ test("aucune chaîne affichée par la webapp ne vouvoie", () => {
   );
 });
 
-// iOS n'a pas de catalogue de chaînes : la copie vit en dur dans les vues, et
-// aucun compilateur ne signalera un oubli. Ce garde lit les sources comme du
-// texte, ce qui lui suffit pour tenir les deux clients sur le même mot.
+// Le catalogue iOS prend le littéral français pour clé : le français vit donc
+// toujours dans les sources, et aucun compilateur ne signalera un oubli. Ce
+// garde lit les sources comme du texte, ce qui lui suffit pour tenir les deux
+// clients sur le même mot. Les traductions, elles, vivent dans le catalogue et
+// sont lues plus bas.
 //
 // Aucun fichier n'en est exempté. Une note de version déjà publiée est le seul
 // texte que le garde ne doit pas régenter, et elle ne vit pas dans une vue :
@@ -230,5 +232,61 @@ test("aucune chaîne affichée par l'app iOS ne dit « transaction »", () => {
     offenders.length,
     0,
     `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${SWIFT_ROOT}/ :\n${offenders.join("\n")}`,
+  );
+});
+
+const IOS_CATALOG = "ios/Pulpe/Resources/Localizable.xcstrings";
+
+/**
+ * Toute valeur rendue par une localisation, quelle que soit sa profondeur.
+ *
+ * Une entrée porte soit un `stringUnit`, soit des `variations` — pluriel,
+ * genre — imbriquées à profondeur libre. Ne lire que le premier cas rendrait le
+ * garde muet sur les formes plurielles, sans le dire.
+ */
+const stringUnitValues = (node) => {
+  if (node === null || typeof node !== "object") return [];
+  if (typeof node.stringUnit?.value === "string")
+    return [node.stringUnit.value];
+  return Object.values(node).flatMap(stringUnitValues);
+};
+
+const iosTranslations = () =>
+  Object.entries(JSON.parse(read(IOS_CATALOG)).strings).flatMap(
+    ([key, entry]) =>
+      Object.entries(entry.localizations ?? {}).flatMap(([lang, node]) =>
+        stringUnitValues(node).map((value) => ({ key, lang, value })),
+      ),
+  );
+
+test("aucune traduction du catalogue iOS ne dit « transaction »", () => {
+  const translations = iosTranslations();
+  assert.notEqual(
+    translations.length,
+    0,
+    `Aucune traduction lue dans ${IOS_CATALOG}. Le garde ne prouverait rien.`,
+  );
+
+  const offenders = translations
+    .filter(({ lang, value }) => BANNED_WORD_BY_LANG[lang]?.test(value))
+    .map(({ key, lang, value }) => `  ${lang} → ${key} = ${value}`);
+
+  assert.equal(
+    offenders.length,
+    0,
+    `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${IOS_CATALOG} :\n${offenders.join("\n")}`,
+  );
+});
+
+test("aucune traduction du catalogue iOS ne vouvoie", () => {
+  const offenders = iosTranslations()
+    .filter(({ lang, value }) => FORMAL_ADDRESS_BY_LANG[lang]?.test(value))
+    .map(({ key, lang, value }) => `  ${lang} → ${key} = ${value}`);
+
+  assert.equal(
+    offenders.length,
+    0,
+    "Pulpe tutoie dans les quatre langues (docs/I18N.md).\n" +
+      `Dans ${IOS_CATALOG} :\n${offenders.join("\n")}`,
   );
 });

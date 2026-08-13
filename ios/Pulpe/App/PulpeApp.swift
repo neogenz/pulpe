@@ -114,6 +114,11 @@ struct PulpeApp: App {
                     .environment(tagStore)
                     .environment(appVersionStore)
                     .environment(whatsNewStore)
+                    // The whole interface language, in one line. Body text, plural variants,
+                    // toolbar items and alerts re-resolve against it with no restart;
+                    // `.navigationTitle` is the one exception and goes through
+                    // `.localizedNavigationTitle`.
+                    .environment(\.locale, AppLocale.uiLocale(for: userSettingsStore.locale))
                     .overlay(alignment: .topLeading) {
                         ToastOverlayWindowHost(toastManager: appState.toastManager)
                     }
@@ -125,6 +130,11 @@ struct PulpeApp: App {
                             Task { await appVersionStore.check() }
                             Task { await rescheduleRemindersIfEnabled() }
                         }
+                    }
+                    .onChange(of: userSettingsStore.locale) { _, _ in
+                        // The monthly reminder's copy is frozen at scheduling time, so
+                        // without this the user reads a French nudge months after switching.
+                        Task { await rescheduleRemindersIfEnabled() }
                     }
                     .onOpenURL { url in
                         handleDeepLink(url)

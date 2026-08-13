@@ -27,6 +27,7 @@ final class AnalyticsService {
     nonisolated static let earlyAdopterProperty = "early_adopter"
     nonisolated static let currencyProperty = "currency"
     nonisolated static let showCurrencySelectorProperty = "show_currency_selector"
+    nonisolated static let localeProperty = "locale"
     nonisolated static let emailProperty = "email"
     nonisolated static let nameProperty = "name"
     nonisolated static let supabaseUserIdProperty = "supabase_user_id"
@@ -104,12 +105,14 @@ final class AnalyticsService {
         )
     }
 
+    /// `error_kind` only, deliberately. The localized message used to ride along, and it
+    /// would now fragment the dimension across four languages — every existing triage
+    /// query would break, and the message adds nothing `kind` does not already say.
     func captureAuthError(_ event: AnalyticsEvent, error: Error, method: String) {
         let kind = AuthErrorLocalizer.classify(error)
         capture(event, properties: [
             "method": method,
-            "error_kind": String(describing: kind),
-            "error_message": AuthErrorLocalizer.localize(error)
+            "error_kind": String(describing: kind)
         ])
     }
 

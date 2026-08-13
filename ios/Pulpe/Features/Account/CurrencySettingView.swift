@@ -49,10 +49,10 @@ struct CurrencySettingView: View {
             Button("Annuler", role: .cancel) {}
             Button("Changer") { applyCurrencyChange(to: currency) }
         } message: { currency in
-            Text(
-                "Tes montants existants ne sont pas convertis — 100 restera 100, "
-                    + "affiché en \(currency.symbol). Seule la devise d'affichage change."
-            )
+            Text("""
+                Tes montants existants ne sont pas convertis — 100 restera 100, affiché en \
+                \(currency.symbol). Seule la devise d'affichage change.
+                """)
         }
         .onChange(of: userSettingsStore.currency) { _, newValue in
             viewModel.syncCurrency(newValue)
@@ -284,7 +284,7 @@ extension CurrencySettingView {
         converterValueRow(
             ConverterValueRowModel(
                 title: "Vers",
-                caption: String(localized: "Calcul automatique"),
+                caption: AppLocale.string("Calcul automatique"),
                 currency: viewModel.targetCurrency,
                 isOutput: true,
                 inputAccessibilityLabel: nil
@@ -394,9 +394,9 @@ private struct ConverterRowAccessibilityModifier: ViewModifier {
         if isOutput {
             content
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(String(localized: "Équivalent \(outputCurrencyName)"))
+                .accessibilityLabel(AppLocale.string("Équivalent \(outputCurrencyName)"))
                 .accessibilityValue(amountDescription ?? "—")
-                .accessibilityHint(String(localized: "Montant calculé automatiquement, non modifiable."))
+                .accessibilityHint(AppLocale.string("Montant calculé automatiquement, non modifiable."))
         } else {
             content
                 .accessibilityElement(children: .combine)

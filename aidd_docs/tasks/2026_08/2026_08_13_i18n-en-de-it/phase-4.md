@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 ---
 
 # Instruction: iOS — socle de localisation
@@ -197,6 +197,56 @@ journey
 4. `CurrencyGateArchitectureTests` asserte des chemins de fichiers en dur. Tout déplacement pendant les lots 5 à 9 le casse : le vérifier à chaque lot
 5. `lexicon.test.mjs` scanne le source Swift. Comme la clé reste le littéral français, ce scan **continue de fonctionner** pour le français — mais il ne voit pas les traductions. Lui faire lire aussi les valeurs `en`/`de`/`it` de `Localizable.xcstrings`, avec la même liste par langue que les catalogues web
 6. Vérifier le compte de tests **exécutés** et pas le statut de sortie : un `-only-testing:` sur une suite Swift Testing peut sélectionner zéro test et afficher `TEST SUCCEEDED`
+
+## Résultat
+
+Mesuré : `xcodebuild test` rend **2108 tests en 220 suites, tous verts** ; `pnpm test:lexicon`
+rend 5 tests verts, et échoue bien quand on pose `Transaktion` ou `Lei` dans une traduction du
+catalogue — vérifié en plantant les deux, puis en les retirant.
+
+Sept écarts avec la projection ci-dessus, chacun pour une raison mesurée.
+
+1. **`AppLocale` et `LocalizedText` vivent dans `Shared/Localization/`, pas `Core/`.**
+   `Formatters` en dépend, et le widget compile `Shared/` — jamais `Core/`. Les y poser aurait
+   cassé le build du widget, et fait dépendre `Shared/` de `Core/`, que les règles n'autorisent
+   pas.
+2. **Widget** : le **même fichier** `Localizable.xcstrings` est compilé dans les deux bundles
+   (`project.yml`), et les deux vues d'entrée reçoivent `.environment(\.locale, …)` depuis
+   l'instantané du groupe d'app. Un second catalogue aurait dérivé au premier mot reformulé
+   d'un seul côté.
+3. **`getSettingsWithDefaults` rafraîchit l'instantané au lieu d'élargir son tuple.** Ses trois
+   appelants sont des pipelines de synchronisation en tâche de fond : aucun n'affiche la langue,
+   c'est le **processus du widget** qui lit l'instantané. La rendre aurait donné trois liaisons
+   à ignorer et un endroit de plus où oublier.
+4. **`BudgetPeriodCalculator.formatPeriod` passe de `currency:` à `language:`.** Le jumeau
+   TypeScript `formatBudgetPeriod` prend une **locale** en quatrième paramètre depuis toujours ;
+   c'est le Swift qui divergeait. Un jour et un mois abrégé sont de la langue.
+5. **`Text("a" + "b")` ne localise rien.** La concaténation produit une `String`, donc SwiftUI
+   choisit sa surcharge non localisante et la copie n'atteint jamais le catalogue. Trois
+   chaînes longues étaient dans ce cas ; elles deviennent un littéral unique continué par `\`.
+   Piège à surveiller dans les lots 5 à 9 : c'est la forme naturelle qu'on écrit pour tenir la
+   limite de 120 colonnes.
+6. **Les six `DateFormatter` deviennent un cache unique clé sur gabarit + langue**, alimenté par
+   `setLocalizedDateFormatFromTemplate`. Un motif figé aurait rendu quatre ordres de mots
+   français : `dMMMM` donne « 5 août », « 5. August », « 5 agosto » et « August 5 ». Le point
+   ordinal allemand vient du gabarit ; seuls le français et l'italien gardent un cas particulier
+   au 1er du mois.
+7. **`BudgetDetailsCoordinatorTests` n'a pas besoin d'injection de locale.** Vérifié : le préfixe
+   « Pointé · » est un littéral Swift `String`, pas une recherche de catalogue — seul le montant
+   dépend d'un locale, et celui-là suit la **devise**. Le troisième axe qu'annonçait la tâche
+   `5.3` n'existe pas encore. Il apparaîtra au lot B, quand la chaîne passera au catalogue.
+
+Deux points de mécanique à connaître avant les lots suivants.
+
+- **`xcodebuild` ne réécrit pas le catalogue.** Seul Xcode le fait à chaque build. En ligne de
+  commande il faut `SWIFT_EMIT_LOC_STRINGS=YES` puis `xcstringstool sync <catalogue>
+--stringsdata …` sur les `.stringsdata` d'un build **propre** — un build incrémental n'en
+  produit que pour les fichiers recompilés, et la synchronisation retirerait tout le reste.
+- L'extraction rend **624 clés**, dont 64 traduites ici (l'écran Préférences complet, le
+  convertisseur de devise, le rappel mensuel, les 24 sous-titres de mois et les libellés
+  d'accessibilité hors arbre SwiftUI). Une vingtaine de clés extraites sont de la ponctuation
+  (`"·"`, `"%@"`, `"/"`) : ce sont des `Text` qui devraient être `verbatim`. À corriger dans le
+  lot qui possède chaque fichier, pas d'un coup ici.
 
 ## Test acceptance criteria
 

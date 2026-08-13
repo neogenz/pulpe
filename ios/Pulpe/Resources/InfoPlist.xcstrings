@@ -1,0 +1,36 @@
+{
+  "sourceLanguage" : "fr",
+  "strings" : {
+    "NSFaceIDUsageDescription" : {
+      "comment" : "Resolved by the SYSTEM at prompt time, so it follows the device language or the per-app language in iOS Settings — never the in-app selector. Nothing can change that, and it is why Préférences links out to iOS Settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melde dich mit Face ID schnell und sicher an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Face ID to sign in quickly and securely."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisez Face ID pour vous connecter rapidement et en toute sécurité."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa Face ID per accedere in modo rapido e sicuro."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

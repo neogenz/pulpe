@@ -42,6 +42,19 @@ extension Date {
         "Le \(Calendar.current.component(.day, from: self))"
     }
 
+    /// Format as "15 janv. 2026".
+    ///
+    /// Use instead of the `Date.FormatStyle` default, which resolves against
+    /// `Locale.autoupdatingCurrent` — the *device* language, not the one chosen in the app.
+    /// The gap is invisible while everything is French and shows up as one screen in two
+    /// languages the day someone switches.
+    var abbreviatedDateFormatted: String {
+        formatted(
+            Date.FormatStyle(date: .abbreviated, time: .omitted)
+                .locale(AppLocale.currentUILocale)
+        )
+    }
+
     /// Create a date from month and year
     static func from(month: Int, year: Int) -> Date? {
         var components = DateComponents()

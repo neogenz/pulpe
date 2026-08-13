@@ -320,8 +320,7 @@ private extension BudgetListView {
     func periodLabel(for budget: BudgetSparse) -> String? {
         guard let month = budget.month, let year = budget.year else { return nil }
         return BudgetPeriodCalculator.formatPeriod(
-            month: month, year: year, payDayOfMonth: userSettingsStore.payDayOfMonth,
-            currency: userSettingsStore.currency
+            month: month, year: year, payDayOfMonth: userSettingsStore.payDayOfMonth
         )
     }
 }

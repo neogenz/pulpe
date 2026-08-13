@@ -83,7 +83,7 @@ struct GoalGenerationStopSheet: View {
                 + "Que veux-tu en faire ?"
         case .deadline(let targetDate):
             let label = SavingsGoalDateFormatter.parse(targetDate)?
-                .formatted(date: .abbreviated, time: .omitted) ?? targetDate
+                .abbreviatedDateFormatted ?? targetDate
             return "\(lines.count) prévision(s) dépassent la nouvelle échéance du \(label). "
                 + "Que veux-tu en faire ?"
         }
