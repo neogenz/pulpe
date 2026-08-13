@@ -430,7 +430,10 @@ export class SavingsGoalPickerField {
   protected readonly goalOptions = computed(() => {
     const period = this.budgetPeriod();
     const payDay = this.#settings.payDayOfMonth();
-    const locale = dateFnsLocaleFor(this.#settings.currency());
+    const locale = dateFnsLocaleFor(
+      this.#settings.locale(),
+      this.#settings.currency(),
+    );
 
     return this.goals().map((goal) => {
       if (!period || !goal.targetDate) {

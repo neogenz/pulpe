@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { supportedCurrencySchema } from 'pulpe-shared';
+import { supportedCurrencySchema, supportedLocaleSchema } from 'pulpe-shared';
 import { isValidClientKeyHex } from '../encryption/crypto.utils';
 import { STORAGE_KEYS } from './storage-keys';
 import type { StorageSchemaConfig } from './storage.types';
@@ -58,6 +58,15 @@ export const STORAGE_SCHEMAS = {
   [STORAGE_KEYS.SETTINGS_CURRENCY]: {
     version: 1,
     schema: supportedCurrencySchema,
+    scope: 'app',
+  },
+
+  // Language snapshot. Scope 'app' is load-bearing: under 'user' the key would
+  // be purged on logout and the sign-in screen would fall back to French right
+  // after someone chose another language.
+  [STORAGE_KEYS.SETTINGS_LANGUAGE]: {
+    version: 1,
+    schema: supportedLocaleSchema,
     scope: 'app',
   },
 

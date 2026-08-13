@@ -37,6 +37,8 @@ import {
   RecoveryKeyDialog,
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
+import { LanguageSelector } from '@ui/language-selector';
+import { LanguageService } from '@core/i18n/language.service';
 import { CurrencyConverterWidget } from '@pattern/currency-converter-widget';
 import {
   ANALYTICS_EVENTS,
@@ -44,6 +46,7 @@ import {
   CURRENCY_METADATA,
   PAY_DAY_MAX,
   type SupportedCurrency,
+  type SupportedLocale,
 } from 'pulpe-shared';
 import { AnalyticsService } from '@core/analytics';
 import { ChangePasswordDialog } from './components/change-password-dialog';
@@ -69,6 +72,7 @@ import { SettingsDialogService } from './settings-dialog.service';
     MatSelectModule,
     MatSlideToggleModule,
     MatSnackBarModule,
+    LanguageSelector,
     TranslocoPipe,
   ],
   template: `
@@ -141,6 +145,18 @@ import { SettingsDialogService } from './settings-dialog.service';
                   </span>
                 </mat-button-toggle>
               </mat-button-toggle-group>
+            </div>
+
+            <!-- Language -->
+            <div class="flex flex-col gap-1">
+              <pulpe-language-selector
+                [locale]="currentLocale()"
+                [disabled]="isChangingLanguage()"
+                (localeChange)="onLanguageChange($event)"
+              />
+              <p class="text-body-small text-on-surface-variant">
+                {{ 'settings.languageReloadHint' | transloco }}
+              </p>
             </div>
 
             <!-- Currency Selector Toggle -->
@@ -453,6 +469,7 @@ export default class SettingsPage {
   readonly #transloco = inject(TranslocoService);
   readonly #analytics = inject(AnalyticsService);
   readonly #settingsDialog = inject(SettingsDialogService);
+  readonly #language = inject(LanguageService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
   readonly diagnosticSharingEnabled = this.#analytics.diagnosticSharingEnabled;
@@ -476,6 +493,14 @@ export default class SettingsPage {
   readonly selectedShowCurrencySelector = linkedSignal(() =>
     this.#userSettingsStore.showCurrencySelector(),
   );
+
+  // Language is written straight away rather than joining the draft the save
+  // button commits: the change ends in a page reload, so there is nothing left
+  // to save alongside it.
+  protected readonly currentLocale = computed(() =>
+    this.#userSettingsStore.locale(),
+  );
+  protected readonly isChangingLanguage = signal(false);
 
   readonly initialPayDay = computed(() =>
     this.#userSettingsStore.payDayOfMonth(),
@@ -511,6 +536,12 @@ export default class SettingsPage {
 
   onCurrencyChange(value: SupportedCurrency): void {
     this.selectedCurrency.set(value);
+  }
+
+  async onLanguageChange(value: SupportedLocale): Promise<void> {
+    if (this.isChangingLanguage()) return;
+    this.isChangingLanguage.set(true);
+    await this.#language.change(value, 'settings');
   }
 
   openTagCatalog(): void {

@@ -339,6 +339,7 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
         currency: 'EUR',
         show_currency_selector: true,
+        locale: 'fr',
       });
       expect(mockPostHogService.setPersonProperties).toHaveBeenCalledTimes(1);
     });
@@ -376,6 +377,7 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
         currency: 'EUR',
         show_currency_selector: true,
+        locale: 'fr',
       });
     });
     it('should not push person properties while user settings are still null', () => {
@@ -432,6 +434,7 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
         currency: 'EUR',
         show_currency_selector: false,
+        locale: 'fr',
       });
     });
   });
@@ -620,6 +623,8 @@ describe('captureEvent', () => {
     expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
       ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED,
       properties,
+      // Third argument: the pass-through capture options, absent here.
+      undefined,
     );
   });
 

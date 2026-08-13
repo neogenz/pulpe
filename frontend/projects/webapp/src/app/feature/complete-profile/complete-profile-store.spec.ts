@@ -6,6 +6,10 @@ import {
   MAX_CUSTOM_TRANSACTIONS,
   getOnboardingSuggestions,
 } from './complete-profile-store';
+
+// Les noms des chips sont écrits en base, donc traduits. Ici la clé suffit :
+// la phrase française est gardée par le contrôle de parité des catalogues.
+const echoKey = (key: string) => key;
 import { ProfileSetupService } from '@core/complete-profile';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
@@ -653,24 +657,28 @@ describe('CompleteProfileStore', () => {
   });
 
   describe('suggestions', () => {
-    const suggestion = getOnboardingSuggestions('EUR')[0];
+    const suggestion = getOnboardingSuggestions('EUR', echoKey)[0];
 
     describe('getOnboardingSuggestions', () => {
-      it('should label the retirement-savings chip "3ème pilier" for CHF users', () => {
-        const retirementChip = getOnboardingSuggestions('CHF')[4];
+      it('should name the retirement-savings chip after the Swiss third pillar for CHF users', () => {
+        const retirementChip = getOnboardingSuggestions('CHF', echoKey)[4];
 
-        expect(retirementChip.name).toBe('3ème pilier');
+        expect(retirementChip.name).toBe(
+          'completeProfile.suggestions.retirementSwiss',
+        );
       });
 
-      it('should label the retirement-savings chip "Épargne retraite" for EUR users', () => {
-        const retirementChip = getOnboardingSuggestions('EUR')[4];
+      it('should name the retirement-savings chip generically for EUR users', () => {
+        const retirementChip = getOnboardingSuggestions('EUR', echoKey)[4];
 
-        expect(retirementChip.name).toBe('Épargne retraite');
+        expect(retirementChip.name).toBe(
+          'completeProfile.suggestions.retirement',
+        );
       });
 
       it('should give the retirement chip a currency-invariant id across CHF and EUR', () => {
-        const chfRetirement = getOnboardingSuggestions('CHF')[4];
-        const eurRetirement = getOnboardingSuggestions('EUR')[4];
+        const chfRetirement = getOnboardingSuggestions('CHF', echoKey)[4];
+        const eurRetirement = getOnboardingSuggestions('EUR', echoKey)[4];
 
         expect(chfRetirement.id).toBe(eurRetirement.id);
       });
@@ -747,8 +755,8 @@ describe('CompleteProfileStore', () => {
         // With a name-based id, step 3 saw a mismatched key, rendered the chip
         // deselected, and APPENDED a duplicate row. With the stable `id`, both
         // currency variants share id 'retirement', so step 3 removes the entry.
-        const eurRetirement = getOnboardingSuggestions('EUR')[4];
-        const chfRetirement = getOnboardingSuggestions('CHF')[4];
+        const eurRetirement = getOnboardingSuggestions('EUR', echoKey)[4];
+        const chfRetirement = getOnboardingSuggestions('CHF', echoKey)[4];
         expect(eurRetirement.id).toBe(chfRetirement.id);
 
         store.toggleSuggestion(eurRetirement);
@@ -830,7 +838,7 @@ describe('CompleteProfileStore', () => {
         // After the M1 fix, identity is carried by the __suggestionId tag,
         // which survives amount edits. Chip stays selected after edit and
         // re-tap removes (not duplicates) the entry.
-        const suggestion = getOnboardingSuggestions('EUR')[0]; // Courses / alimentation, 600
+        const suggestion = getOnboardingSuggestions('EUR', echoKey)[0]; // Courses / alimentation, 600
 
         store.toggleSuggestion(suggestion);
         expect(store.customTransactions()).toHaveLength(1);
@@ -847,7 +855,7 @@ describe('CompleteProfileStore', () => {
       });
 
       it('should remove the edited entry on re-toggle, regardless of amount drift', () => {
-        const suggestion = getOnboardingSuggestions('EUR')[3]; // Épargne, 500
+        const suggestion = getOnboardingSuggestions('EUR', echoKey)[3]; // Épargne, 500
         store.toggleSuggestion(suggestion);
         store.updateCustomTransactionAmount(0, 1234);
 

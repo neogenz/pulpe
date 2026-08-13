@@ -4,6 +4,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TurnstileService } from './turnstile.service';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 describe('TurnstileService', () => {
   let service: TurnstileService;
@@ -36,6 +37,7 @@ describe('TurnstileService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         TurnstileService,
         { provide: ApplicationConfiguration, useValue: mockConfig },
         { provide: Logger, useValue: mockLogger },

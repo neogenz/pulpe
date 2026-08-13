@@ -1,6 +1,11 @@
 import { Service, PLATFORM_ID, inject, signal, computed } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import type { PostHog, Properties, CaptureResult } from 'posthog-js';
+import type {
+  CaptureOptions,
+  CaptureResult,
+  PostHog,
+  Properties,
+} from 'posthog-js';
 import { ANALYTICS_EVENTS, type AnalyticsEventName } from 'pulpe-shared';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
@@ -246,12 +251,20 @@ export class PostHogService {
 
   /**
    * Capture event - PostHog handles data sanitization automatically
+   *
+   * `options` reaches posthog-js untouched. The one that matters here is
+   * `send_instantly`, for an event fired right before the page goes away: the
+   * batched queue would never get its turn.
    */
-  captureEvent(event: AnalyticsEventName, properties?: Properties): void {
+  captureEvent(
+    event: AnalyticsEventName,
+    properties?: Properties,
+    options?: CaptureOptions,
+  ): void {
     if (!this.#canCapture()) return;
 
     try {
-      this.#posthog?.capture(event, properties);
+      this.#posthog?.capture(event, properties, options);
       this.#logger.debug('PostHog event captured', { event });
     } catch (error) {
       this.#logger.error('Failed to capture event', error);

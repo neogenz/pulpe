@@ -31,6 +31,10 @@ export const STORAGE_KEYS = {
   // Currency snapshot — read at bootstrap to pick the formatting locale (fr-CH / fr-FR)
   SETTINGS_CURRENCY: 'pulpe-settings-currency',
 
+  // Language snapshot — read at bootstrap to load the right catalog before the
+  // first paint, and to keep the signed-out screens in the chosen language
+  SETTINGS_LANGUAGE: 'pulpe-settings-language',
+
   // Vault/Client key - stores encrypted client key for vault access
   VAULT_CLIENT_KEY_SESSION: 'pulpe-vault-client-key-session',
   VAULT_CLIENT_KEY_LOCAL: 'pulpe-vault-client-key-local',

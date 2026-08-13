@@ -13,7 +13,11 @@ import { CurrencyConverterService } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
-import type { SupportedCurrency, Transaction } from 'pulpe-shared';
+import type {
+  SupportedCurrency,
+  SupportedLocale,
+  Transaction,
+} from 'pulpe-shared';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
@@ -436,6 +440,7 @@ describe('EditTransactionForm', () => {
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
   showCurrencySelector: ReturnType<typeof signal<boolean>>;
+  locale: ReturnType<typeof signal<SupportedLocale>>;
 }
 interface ConverterMock {
   convertWithMetadata: ReturnType<typeof vi.fn>;
@@ -462,6 +467,7 @@ function configureForm({ userCurrency }: { userCurrency: SupportedCurrency }) {
   const settings: SettingsMock = {
     currency: signal<SupportedCurrency>(userCurrency),
     showCurrencySelector: signal(true),
+    locale: signal<SupportedLocale>('fr'),
   };
   const converter: ConverterMock = {
     convertWithMetadata: vi.fn().mockResolvedValue({

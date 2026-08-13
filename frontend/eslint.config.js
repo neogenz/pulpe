@@ -343,7 +343,10 @@ module.exports = tseslint.config(
             },
             {
               from: { type: "test-config" },
-              allow: [{ to: { type: "lib-api" } }],
+              // `testing` for the stubs the suite needs installed before any
+              // spec runs — the pinned browser language, whose only other home
+              // would be a copy of itself inside test-setup.ts.
+              allow: [{ to: { type: ["lib-api", "testing"] } }],
             },
             {
               from: { type: "e2e-config" },

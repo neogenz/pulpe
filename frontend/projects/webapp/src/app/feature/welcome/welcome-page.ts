@@ -19,9 +19,12 @@ import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing';
 import { TurnstileService } from '@core/turnstile';
 import { ErrorAlert } from '@ui/error-alert';
+import { LanguageSelector } from '@ui/language-selector';
 import { LoadingButton } from '@ui/loading-button';
+import { LanguageService } from '@core/i18n/language.service';
+import { UserSettingsStore } from '@core/user-settings';
 import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
-import { ANALYTICS_EVENTS } from 'pulpe-shared';
+import { ANALYTICS_EVENTS, type SupportedLocale } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-welcome-page',
@@ -33,6 +36,7 @@ import { ANALYTICS_EVENTS } from 'pulpe-shared';
     TranslocoPipe,
     OAuthProviderButton,
     ErrorAlert,
+    LanguageSelector,
     LoadingButton,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -204,6 +208,16 @@ import { ANALYTICS_EVENTS } from 'pulpe-shared';
           >{{ 'welcome.privacyPolicy' | transloco }}</a
         >
       </p>
+
+      <!-- Une détection de langue ratée doit pouvoir se rattraper avant même
+           qu'il y ait un compte où l'enregistrer. -->
+      <div class="mt-8 w-full max-w-56" data-testid="welcome-language">
+        <pulpe-language-selector
+          [locale]="currentLocale()"
+          [disabled]="isChangingLanguage()"
+          (localeChange)="onLanguageChange($event)"
+        />
+      </div>
     </section>
   `,
 })
@@ -212,6 +226,8 @@ export default class WelcomePage {
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
   readonly #transloco = inject(TranslocoService);
+  readonly #language = inject(LanguageService);
+  readonly #userSettings = inject(UserSettingsStore);
   protected readonly turnstileService = inject(TurnstileService);
   protected readonly ROUTES = ROUTES;
   protected readonly BENEFITS = [
@@ -224,6 +240,17 @@ export default class WelcomePage {
     afterNextRender(() => {
       this.#postHogService.captureEvent(ANALYTICS_EVENTS.WELCOME_VIEWED);
     });
+  }
+
+  protected readonly currentLocale = computed(() =>
+    this.#userSettings.locale(),
+  );
+  protected readonly isChangingLanguage = signal(false);
+
+  protected async onLanguageChange(value: SupportedLocale): Promise<void> {
+    if (this.isChangingLanguage()) return;
+    this.isChangingLanguage.set(true);
+    await this.#language.change(value, 'welcome');
   }
 
   protected readonly errorMessage = signal('');

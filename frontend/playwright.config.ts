@@ -22,6 +22,11 @@ export default defineConfig({
     : [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:4200',
+    // The app resolves its language from the browser when nothing is stored.
+    // 109 assertions across 35 spec files read literal French copy, so a runner
+    // whose Chromium defaults to English would drop all of them at once — as
+    // opaque locator timeouts, never as "wrong language".
+    locale: 'fr-FR',
     trace: 'retain-on-failure', // Capture trace for all failures, not just retries
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

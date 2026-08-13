@@ -342,6 +342,8 @@
     "payDayHintStandard": "Ton budget commence le {{ day }} de chaque mois",
     "payDayHintDefault": "Ton budget suit le calendrier standard",
     "currencyLabel": "Devise",
+    "languageLabel": "Langue",
+    "languageReloadHint": "Changer de langue recharge la page.",
     "currencySelectorLabel": "Sélecteur de devise",
     "currencySelectorDescription": "Afficher un sélecteur de devise sur les champs montant",
     "currencyChangeTitle": "Changer la devise d'affichage ?",
@@ -1324,7 +1326,13 @@
       "mobilityCredit": "Mobilité & Crédit"
     },
     "suggestions": {
-      "sectionTitle": "Ajouter en un clic"
+      "sectionTitle": "Ajouter en un clic",
+      "groceries": "Courses / alimentation",
+      "diningOut": "Restaurants & sorties",
+      "leisureSport": "Loisirs & sport",
+      "saving": "Épargne",
+      "retirement": "Épargne retraite",
+      "retirementSwiss": "3ème pilier"
     },
     "summary": {
       "income": "Revenu",
@@ -1450,6 +1458,22 @@
     "amountRequired": "Indique un montant",
     "amountTooLow": "Le montant doit être supérieur à 0"
   },
+  "export": {
+    "budgetTitle": "BUDGET",
+    "rollover": "Report",
+    "remaining": "Reste",
+    "endingBalance": "Solde final",
+    "budgetLinesTitle": "PRÉVISIONS",
+    "budgetLinesTotal": "Total prévisions",
+    "transactionsTitle": "MOUVEMENTS",
+    "transactionsTotal": "Total mouvements",
+    "name": "Nom",
+    "amount": "Montant",
+    "type": "Type",
+    "recurrence": "Récurrence",
+    "date": "Date",
+    "tags": "Tags"
+  },
   "errors": {
     "generic": "Quelque chose n'a pas fonctionné — réessaie",
     "network": "Erreur réseau — vérifie ta connexion",
@@ -1458,11 +1482,19 @@
     "signupFailed": "La création du compte a échoué — réessaie",
     "emailAlreadyUsed": "Email déjà utilisé",
     "passwordUpdateFailed": "La mise à jour du mot de passe a échoué — réessaie",
-    "sendFailed": "L'envoi a échoué — réessaie dans quelques instants"
+    "sendFailed": "L'envoi a échoué — réessaie dans quelques instants",
+    "securityCheckFailed": "La vérification de sécurité a échoué — réessaie",
+    "serverUnreachable": "Impossible de contacter le serveur — vérifie ta connexion internet",
+    "serverProblem": "Le serveur rencontre un problème — réessaie dans quelques instants",
+    "tooManyAttempts": "Trop de tentatives — patiente avant de réessayer"
   },
   "maintenance": {
     "title": "Maintenance en cours",
-    "message": "Le service est temporairement indisponible. Réessaie dans quelques instants."
+    "message": "On améliore Pulpe pour toi — tes données sont bien au chaud, pas d'inquiétude. Réessaie dans quelques instants.",
+    "retry": "Réessayer",
+    "retryLoading": "Vérification...",
+    "stillDown": "Toujours en maintenance — réessaie dans un instant",
+    "checkFailed": "Connexion difficile — réessaie dans un instant"
   },
   "forceUpdate": {
     "title": "Mise à jour requise",

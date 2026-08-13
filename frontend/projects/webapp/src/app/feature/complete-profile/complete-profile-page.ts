@@ -860,10 +860,13 @@ export default class CompleteProfilePage {
   readonly #userSettings = inject(UserSettingsStore);
 
   readonly #locale = inject(LOCALE_ID);
-  // Currency-dependent: CHF → "3ème pilier", EUR → "Épargne retraite".
+  // Currency-dependent: the retirement chip names the Swiss third pillar under
+  // CHF and generic retirement savings under EUR.
   // computed() is lazy, so reading `selectedCurrency` (declared later) is safe.
   protected readonly suggestions = computed(() =>
-    getOnboardingSuggestions(this.selectedCurrency()),
+    getOnboardingSuggestions(this.selectedCurrency(), (key) =>
+      this.#transloco.translate(key),
+    ),
   );
   protected readonly maxCustomTransactions = MAX_CUSTOM_TRANSACTIONS;
   protected readonly currencies = SUPPORTED_CURRENCIES;

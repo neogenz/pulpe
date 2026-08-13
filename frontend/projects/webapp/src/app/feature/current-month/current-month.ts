@@ -531,6 +531,7 @@ type UndoableAction =
 export default class Dashboard {
   protected readonly store = inject(DashboardStore);
   protected readonly currency = inject(UserSettingsStore).currency;
+  protected readonly locale = inject(UserSettingsStore).locale;
   protected readonly currencyLocale = computed(
     () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );
@@ -610,7 +611,7 @@ export default class Dashboard {
   protected readonly budgetPeriodDisplayName = computed(() => {
     const period = this.store.currentBudgetPeriod();
     return format(new Date(period.year, period.month - 1, 1), 'MMMM yyyy', {
-      locale: dateFnsLocaleFor(this.currency()),
+      locale: dateFnsLocaleFor(this.locale(), this.currency()),
     });
   });
 

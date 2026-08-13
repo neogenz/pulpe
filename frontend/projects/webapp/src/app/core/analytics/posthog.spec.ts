@@ -247,6 +247,8 @@ describe('PostHogService', () => {
       {
         feature: 'budget',
       },
+      // Third argument: the pass-through capture options, absent here.
+      undefined,
     );
   });
 

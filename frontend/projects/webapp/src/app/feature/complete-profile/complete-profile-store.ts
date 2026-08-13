@@ -25,20 +25,24 @@ export interface OnboardingSuggestion extends OnboardingTransaction {
 
 /**
  * Onboarding suggestion chips. All amounts/types/order are identical regardless
- * of currency — only the retirement-savings label is localized per market:
- * CHF users (Swiss) see "3ème pilier", EUR users (French) see "Épargne retraite".
- * The `id` is currency-invariant (notably identical across CHF/EUR for the
+ * of currency — only the retirement-savings label is localized per market: CHF
+ * users (Swiss) see the third-pillar wording, EUR users the generic one. The
+ * `id` is currency-invariant (notably identical across CHF/EUR for the
  * retirement chip) so chip selection survives a currency relabel.
+ *
+ * These names are **written to the database** as budget-line names, not merely
+ * displayed: a German-speaking new account must get German ones. `translate` is
+ * passed in rather than injected so the function stays pure and testable.
  */
 export function getOnboardingSuggestions(
   currency: SupportedCurrency,
+  translate: (key: string) => string,
 ): readonly OnboardingSuggestion[] {
-  const retirementSavingsName =
-    currency === 'CHF' ? '3ème pilier' : 'Épargne retraite';
+  const t = (key: string) => translate(`completeProfile.suggestions.${key}`);
   return [
     {
       id: 'groceries',
-      name: 'Courses / alimentation',
+      name: t('groceries'),
       amount: 600,
       type: 'expense',
       expenseType: 'fixed',
@@ -46,7 +50,7 @@ export function getOnboardingSuggestions(
     },
     {
       id: 'dining-out',
-      name: 'Restaurants & sorties',
+      name: t('diningOut'),
       amount: 150,
       type: 'expense',
       expenseType: 'fixed',
@@ -54,7 +58,7 @@ export function getOnboardingSuggestions(
     },
     {
       id: 'leisure-sport',
-      name: 'Loisirs & sport',
+      name: t('leisureSport'),
       amount: 100,
       type: 'expense',
       expenseType: 'fixed',
@@ -62,7 +66,7 @@ export function getOnboardingSuggestions(
     },
     {
       id: 'saving',
-      name: 'Épargne',
+      name: t('saving'),
       amount: 500,
       type: 'saving',
       expenseType: 'fixed',
@@ -70,7 +74,7 @@ export function getOnboardingSuggestions(
     },
     {
       id: 'retirement',
-      name: retirementSavingsName,
+      name: t(currency === 'CHF' ? 'retirementSwiss' : 'retirement'),
       amount: 587,
       type: 'saving',
       expenseType: 'fixed',
