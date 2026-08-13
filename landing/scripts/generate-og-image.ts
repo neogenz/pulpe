@@ -23,12 +23,18 @@ import {
   HERO_SPENT,
   HERO_SPENT_PERCENT,
 } from "@/lib/heroMock";
-import fr from "@/content/dictionaries/fr";
+import { getDictionary, type Dictionary } from "@/content/dictionary";
+import { LOCALES, type Locale } from "@/lib/i18n";
+import { socialPreviewFile } from "@/lib/metadata";
 
 // L'aperçu social est un PNG figé, servi identique à tous les visiteurs : il ne
 // peut pas suivre la devise du navigateur comme la page, donc il assume le
 // franc. Ce qu'il ne peut pas faire, en revanche, c'est écrire ses montants
 // autrement qu'elle — d'où le passage par les mêmes formateurs.
+//
+// La devise ne suit pas la langue : elle suit le pays du visiteur, et une carte
+// sociale n'en sait rien. Les quatre cartes affichent donc des francs, comme la
+// page avant hydratation.
 const OG_CURRENCY: LandingCurrency = "CHF";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -38,10 +44,6 @@ const OG_IMAGE = {
   WIDTH: 1200,
   HEIGHT: 630,
 } as const;
-
-const SOCIAL_PREVIEW_FILE = "pulpe-social-preview.png";
-const HERO_HEADLINE = "Tu sais des mois à l’avance";
-const HERO_MARKER = "combien il te restera.";
 
 // Brand colors from globals.css
 const colors = {
@@ -200,8 +202,8 @@ function forecastRow(label: string, amount: string, checked: boolean) {
   };
 }
 
-async function generateOgImage() {
-  console.log("Generating OG image with Satori...");
+async function generateOgImage(locale: Locale, dict: Dictionary) {
+  console.log(`Generating OG image for ${locale}...`);
 
   const fonts = loadFonts();
 
@@ -307,7 +309,7 @@ async function generateOgImage() {
                     fontSize: 16,
                     fontWeight: 600,
                   },
-                  children: "Gratuit · Sans connexion bancaire",
+                  children: dict.site.socialCard.badge,
                 },
               },
             ],
@@ -335,7 +337,7 @@ async function generateOgImage() {
                     letterSpacing: "-0.04em",
                     lineHeight: 1.08,
                   },
-                  children: HERO_HEADLINE,
+                  children: dict.home.hero.headlineLead.trim(),
                 },
               },
               {
@@ -376,7 +378,7 @@ async function generateOgImage() {
                           lineHeight: 1.08,
                           position: "relative",
                         },
-                        children: HERO_MARKER,
+                        children: dict.home.hero.headlineHighlight,
                       },
                     },
                   ],
@@ -391,8 +393,7 @@ async function generateOgImage() {
                     fontSize: 19,
                     fontWeight: 500,
                   },
-                  children:
-                    "Planifie ton année. Vois combien il te restera chaque mois.",
+                  children: dict.site.socialCard.subhead,
                 },
               },
             ],
@@ -440,7 +441,7 @@ async function generateOgImage() {
                           fontSize: 14,
                           fontWeight: 600,
                         },
-                        children: "Tableau de bord",
+                        children: dict.home.dashboard.title,
                       },
                     },
                     {
@@ -452,7 +453,7 @@ async function generateOgImage() {
                           fontSize: 12,
                           fontWeight: 500,
                         },
-                        children: "Vue annuelle",
+                        children: dict.home.dashboard.scope,
                       },
                     },
                   ],
@@ -519,7 +520,7 @@ async function generateOgImage() {
                                 color: "rgba(255,255,255,0.78)",
                                 fontSize: 12,
                               },
-                              children: "Disponible ce mois",
+                              children: dict.home.dashboard.available,
                             },
                           },
                           {
@@ -580,13 +581,13 @@ async function generateOgImage() {
                                 {
                                   type: "div",
                                   props: {
-                                    children: `Dépensé ${formatMoney(HERO_SPENT, OG_CURRENCY)}`,
+                                    children: `${dict.home.dashboard.spent} ${formatMoney(HERO_SPENT, OG_CURRENCY)}`,
                                   },
                                 },
                                 {
                                   type: "div",
                                   props: {
-                                    children: `sur ${formatMoney(HERO_BUDGET, OG_CURRENCY)}`,
+                                    children: `${dict.home.dashboard.outOf} ${formatMoney(HERO_BUDGET, OG_CURRENCY)}`,
                                   },
                                 },
                               ],
@@ -662,12 +663,15 @@ async function generateOgImage() {
                                       fontSize: 10,
                                       fontWeight: 600,
                                     },
-                                    children: "Prévisions du mois",
+                                    children:
+                                      dict.home.dashboard.previsionsTitle,
                                   },
                                 },
                                 ...HERO_PREVISIONS.map((prevision) =>
                                   forecastRow(
-                                    fr.home.dashboard.previsions[prevision.id],
+                                    dict.home.dashboard.previsions[
+                                      prevision.id
+                                    ],
                                     formatMoney(prevision.amount, OG_CURRENCY),
                                     prevision.state !== "unchecked",
                                   ),
@@ -704,7 +708,8 @@ async function generateOgImage() {
                                             fontSize: 10,
                                             fontWeight: 600,
                                           },
-                                          children: "Projection du solde",
+                                          children:
+                                            dict.home.dashboard.projectionTitle,
                                         },
                                       },
                                       {
@@ -715,7 +720,8 @@ async function generateOgImage() {
                                             fontSize: 11,
                                             fontWeight: 600,
                                           },
-                                          children: "Tu vois venir",
+                                          children:
+                                            dict.home.dashboard.projectionHint,
                                         },
                                       },
                                     ],
@@ -787,15 +793,24 @@ async function generateOgImage() {
   const pngData = resvg.render();
   const pngBuffer = pngData.asPng();
 
-  const outputPath = join(publicDir, SOCIAL_PREVIEW_FILE);
+  const outputPath = join(publicDir, socialPreviewFile(locale));
   writeFileSync(outputPath, pngBuffer);
   console.log(`PNG saved to: ${outputPath}`);
   console.log(`Dimensions: ${OG_IMAGE.WIDTH}x${OG_IMAGE.HEIGHT}`);
   console.log(`File size: ${(pngBuffer.length / 1024).toFixed(1)} KB`);
+}
+
+// Une carte par langue. Les quatre sont régénérées ensemble : ne rejouer que
+// celle qu'on vient de retoucher laisse les trois autres sur un visuel plus
+// ancien, ce qui ne se voit que dans un partage.
+async function generateAllOgImages() {
+  for (const locale of LOCALES) {
+    await generateOgImage(locale, await getDictionary(locale));
+  }
   console.log("Done!");
 }
 
-generateOgImage().catch((error) => {
+generateAllOgImages().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });

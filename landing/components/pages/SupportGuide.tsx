@@ -1,59 +1,12 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { LanguageBanner } from "@/components/LanguageBanner";
 import { Container, Section } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
-import { getDictionary } from "@/content/dictionary";
+import type { Dictionary } from "@/content/dictionary";
 import { CONTACT_EMAIL } from "@/lib/config";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
-
-const GUIDE_PATH = "/support/modeles-et-budgets";
-const SOCIAL_PREVIEW_IMAGE = "/pulpe-social-preview.png?v=2";
-
-export async function generateMetadata(): Promise<Metadata> {
-  const { guide, site } = await getDictionary(DEFAULT_LOCALE);
-  const socialTitle = `${guide.metaTitle} | Pulpe`;
-
-  return {
-    title: guide.metaTitle,
-    description: guide.metaDescription,
-    alternates: {
-      canonical: GUIDE_PATH,
-    },
-    openGraph: {
-      title: socialTitle,
-      description: guide.metaDescription,
-      siteName: "Pulpe",
-      type: "article",
-      url: GUIDE_PATH,
-      locale: "fr_CH",
-      alternateLocale: ["fr_FR"],
-      images: [
-        {
-          url: SOCIAL_PREVIEW_IMAGE,
-          width: 1200,
-          height: 630,
-          alt: site.socialImageAlt,
-          type: "image/png",
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: socialTitle,
-      description: guide.metaDescription,
-      images: [
-        {
-          url: SOCIAL_PREVIEW_IMAGE,
-          alt: site.socialImageAlt,
-          type: "image/png",
-          width: 1200,
-          height: 630,
-        },
-      ],
-    },
-  };
-}
+import type { Locale } from "@/lib/i18n";
+import { GUIDE_ROUTE, localizedPath } from "@/lib/routes";
 
 function Steps({ items }: { items: readonly string[] }) {
   return (
@@ -73,12 +26,19 @@ function Steps({ items }: { items: readonly string[] }) {
   );
 }
 
-export default async function ModelsAndBudgetsGuidePage() {
-  const dict = await getDictionary(DEFAULT_LOCALE);
+export function SupportGuide({
+  dict,
+  locale,
+}: {
+  dict: Dictionary;
+  locale: Locale;
+}) {
   const { guide } = dict;
 
   return (
     <>
+      <LanguageBanner locale={locale} route={GUIDE_ROUTE} />
+
       <a
         href="#main-content"
         className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[60] focus-visible:rounded-lg focus-visible:bg-primary focus-visible:px-4 focus-visible:py-2 focus-visible:text-white"
@@ -86,14 +46,14 @@ export default async function ModelsAndBudgetsGuidePage() {
         {dict.common.skipToContent}
       </a>
 
-      <Header dict={dict.header} />
+      <Header dict={dict.header} locale={locale} />
 
       <main id="main-content" tabIndex={-1}>
         <section className="hero-mesh relative overflow-hidden pb-10 pt-[calc(8.5rem+env(safe-area-inset-top))] md:pb-16 md:pt-[calc(10rem+env(safe-area-inset-top))]">
           <Container>
             <div className="mx-auto max-w-4xl">
               <Link
-                href="/support"
+                href={localizedPath(locale, "/support")}
                 className="inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-semibold text-primary transition-colors hover:text-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <ArrowLeft aria-hidden="true" size={17} />
@@ -253,7 +213,12 @@ export default async function ModelsAndBudgetsGuidePage() {
         </Section>
       </main>
 
-      <Footer dict={dict.footer} />
+      <Footer
+        dict={dict.footer}
+        language={dict.language}
+        locale={locale}
+        route={GUIDE_ROUTE}
+      />
     </>
   );
 }

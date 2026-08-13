@@ -1,10 +1,10 @@
 // Catalogue source. Les trois autres langues sont typées contre celui-ci.
 //
 // Ce fichier porte deux espaces invisibles, reprises telles quelles du markup
-// d'origine : une insécable fine U+202F devant les `?` des questions de la page
+// d’origine : une insécable fine U+202F devant les `?` des questions de la page
 // support, et une insécable pleine U+00A0 dans les titres qui portaient un
 // `&nbsp;`. Elles ne se voient pas dans un diff, donc un test les compte.
-// Aucune des trois autres langues n'en met.
+// Aucune des trois autres langues n’en met.
 
 interface Testimonial {
   lead: string;
@@ -52,6 +52,12 @@ const fr = {
     // Repris dans les deux nœuds du graphe JSON-LD.
     graphDescription:
       "Pulpe calcule ton disponible mois après mois à partir de tes revenus, de tes dépenses et de ton épargne, sans connexion bancaire.",
+    // Les deux lignes propres à la carte sociale, plus courtes que celles de la
+    // page : à 1200×630 une phrase de plus déborde du cadre.
+    socialCard: {
+      subhead: "Planifie ton année. Vois combien il te restera chaque mois.",
+      badge: "Gratuit · Sans connexion bancaire",
+    },
   },
 
   common: {
@@ -89,10 +95,10 @@ const fr = {
   home: {
     hero: {
       // Le surligneur porte la fin de la promesse, jamais la phrase entière.
-      headlineLead: "Tu sais des mois à l'avance ",
+      headlineLead: "Tu sais des mois à l’avance ",
       headlineHighlight: "combien il te restera.",
       subheadLead: "Planifie ton budget ",
-      subheadEmphasis: "sur l'année",
+      subheadEmphasis: "sur l’année",
       subheadTail:
         ". Tu vois combien il te restera chaque mois pour préparer tes projets plus sereinement.",
       cta: "Créer mon budget gratuitement",
@@ -116,14 +122,14 @@ const fr = {
       },
       projectionTitle: "Projection du solde",
       projectionHint: "Tu vois venir",
-      projectionAriaLabel: "Projection du solde en hausse sur l'année",
+      projectionAriaLabel: "Projection du solde en hausse sur l’année",
     },
 
     painPoints: {
       heading:
         "Les impôts tombent en juillet. Tu sais déjà combien il te restera en août.",
       intro:
-        "Une grosse dépense tombe un mois, mais son effet se fait sentir bien après. Avec un tableur, tu dois recalculer la suite. Une app de suivi ne la montre qu'une fois payée.",
+        "Une grosse dépense tombe un mois, mais son effet se fait sentir bien après. Avec un tableur, tu dois recalculer la suite. Une app de suivi ne la montre qu’une fois payée.",
       spreadsheet: {
         title: "Avec un tableur, tu dois tout tenir à jour.",
         text: "Au moindre changement, tu modifies les lignes, les mois et parfois les formules. Si ton fichier n’est plus à jour, ta projection ne l’est plus non plus.",
@@ -135,14 +141,14 @@ const fr = {
     },
 
     solution: {
-      headingLead: "Pars d'un mois type. ",
+      headingLead: "Pars d’un mois type. ",
       headingHighlight: "Pulpe projette la suite.",
       intro:
-        "Tu pars d'un mois habituel. Pulpe s'en sert pour préparer les suivants. Ensuite, tu places les impôts, les vacances et les gros achats dans les mois concernés.",
+        "Tu pars d’un mois habituel. Pulpe s’en sert pour préparer les suivants. Ensuite, tu places les impôts, les vacances et les gros achats dans les mois concernés.",
     },
 
     howItWorks: {
-      // Chaque légende est coupée autour de l'unité monétaire, qui suit le
+      // Chaque légende est coupée autour de l’unité monétaire, qui suit le
       // visiteur et non la langue de la page.
       steps: {
         template: {
@@ -182,7 +188,7 @@ const fr = {
         templatePayoff: "Disponible à dépenser, chaque mois",
         monthPayoff: "Il te restera en juillet",
         yearLegend: "Juillet, impôts · Août, vacances · Décembre, gros achat",
-        // Une initiale par mois, de janvier à décembre, dans l'ordre.
+        // Une initiale par mois, de janvier à décembre, dans l’ordre.
         monthInitials: [
           "J",
           "F",
@@ -202,8 +208,8 @@ const fr = {
 
     testimonials: {
       heading: "Pourquoi ils utilisent Pulpe.",
-      // Les prénoms ne se traduisent pas ; le rôle et l'ancienneté oui, et
-      // l'ancienneté s'accorde au genre en français.
+      // Les prénoms ne se traduisent pas ; le rôle et l’ancienneté oui, et
+      // l’ancienneté s’accorde au genre en français.
       items: testimonials,
     },
 
@@ -229,7 +235,7 @@ const fr = {
     },
 
     platforms: {
-      heading: "Ton budget te suit. Pas l'inverse.",
+      heading: "Ton budget te suit. Pas l’inverse.",
       intro:
         "Sur iPhone ou dans ton navigateur, tu retrouves la même année et les mêmes chiffres.",
       ios: {
@@ -242,22 +248,22 @@ const fr = {
       web: {
         title: "Dans ton navigateur",
         text: "Ouvre Pulpe dans ton navigateur, sur ordinateur ou mobile. Rien à installer.",
-        cta: "Ouvrir l'app web",
+        cta: "Ouvrir l’app web",
       },
       android: {
         title: "Android",
         badge: "Bientôt",
-        text: "L'app native est en cours. La version Web fonctionne déjà sur mobile Android.",
+        text: "L’app native est en cours. La version Web fonctionne déjà sur mobile Android.",
       },
     },
 
     whyFree: {
       portraitAlt: "Maxime, créateur de Pulpe",
       eyebrow: "Une note du créateur",
-      heading: "J'avais besoin d'un budget qui regarde devant.",
+      heading: "J’avais besoin d’un budget qui regarde devant.",
       paragraphs: [
-        "J'ai créé Pulpe après avoir passé trop de temps à tenir mes tableurs à jour. Je voulais savoir ce qu'une décision changerait dans les mois suivants, pas seulement comprendre où mon argent était parti.",
-        "Le projet est gratuit aujourd'hui, sans publicité ni abonnement. Son code reste public pour que tu puisses vérifier son fonctionnement.",
+        "J’ai créé Pulpe après avoir passé trop de temps à tenir mes tableurs à jour. Je voulais savoir ce qu’une décision changerait dans les mois suivants, pas seulement comprendre où mon argent était parti.",
+        "Le projet est gratuit aujourd’hui, sans publicité ni abonnement. Son code reste public pour que tu puisses vérifier son fonctionnement.",
       ],
       signature: "Maxime, créateur de Pulpe",
       sourceLink: "Voir le code source",
@@ -278,8 +284,8 @@ const fr = {
     },
 
     faq: {
-      heading: "Les questions qu'on me pose le plus.",
-      // `isOpen` reste dans le composant : c'est une décision de mise en page,
+      heading: "Les questions qu’on me pose le plus.",
+      // `isOpen` reste dans le composant : c’est une décision de mise en page,
       // pas de la copie, et elle vaut pour les quatre langues.
       items: [
         {
@@ -329,7 +335,7 @@ const fr = {
     metaTitle: "Aide et questions fréquentes",
     metaDescription:
       "Guides et réponses pour utiliser Pulpe : comprendre les modèles et budgets, protéger ses montants et gérer son compte.",
-    heading: "Comment puis-je t'aider ?",
+    heading: "Comment puis-je t’aider ?",
     intro:
       "Des guides courts pour utiliser Pulpe, puis les réponses aux questions fréquentes. Si la tienne manque, écris-moi.",
     guidesHeading: "Guides pour utiliser Pulpe.",
@@ -338,24 +344,24 @@ const fr = {
       title: "Modèle ou budget : que faut-il modifier ?",
       text: "Choisis le bon endroit selon que ton changement concerne un seul mois ou tes mois habituels.",
     },
-    faqHeading: "Les questions qu'on me pose le plus.",
-    // `plainAnswer` n'est plus écrit à la main : il est dérivé du texte
+    faqHeading: "Les questions qu’on me pose le plus.",
+    // `plainAnswer` n’est plus écrit à la main : il est dérivé du texte
     // ci-dessous pour le JSON-LD, donc les deux ne peuvent plus diverger.
     faq: {
       purpose: {
         question: "À quoi sert Pulpe, concrètement ?",
         answer:
-          "Tu poses ton année une fois, puis tu ajustes au fur et à mesure. Si tu déplaces une dépense, rediriges de l'épargne ou décales un projet, tu vois ce que ça change sur les mois suivants sans repartir de zéro.",
+          "Tu poses ton année une fois, puis tu ajustes au fur et à mesure. Si tu déplaces une dépense, rediriges de l’épargne ou décales un projet, tu vois ce que ça change sur les mois suivants sans repartir de zéro.",
       },
       excel: {
-        question: "Pourquoi Pulpe plutôt qu'Excel ?",
+        question: "Pourquoi Pulpe plutôt qu’Excel ?",
         answer:
-          "Excel fait le job, mais les formules deviennent vite fragiles dès que tu bouges une ligne. Et sur mobile, c'est pénible. Pulpe garde la vue d'ensemble et recalcule la suite quand tu ajustes ton budget.",
+          "Excel fait le job, mais les formules deviennent vite fragiles dès que tu bouges une ligne. Et sur mobile, c’est pénible. Pulpe garde la vue d’ensemble et recalcule la suite quand tu ajustes ton budget.",
       },
       bank: {
         question: "Pourquoi Pulpe ne se connecte pas à ma banque ?",
         answer:
-          "J'aurais aimé proposer une synchronisation bancaire. Pour le faire correctement en Suisse et en France, il faut passer par des prestataires externes et gérer des contraintes réglementaires. Pour un projet que je développe seul, le soir après le boulot, le coût est trop élevé. Donc, pour l'instant, la saisie reste manuelle.",
+          "J’aurais aimé proposer une synchronisation bancaire. Pour le faire correctement en Suisse et en France, il faut passer par des prestataires externes et gérer des contraintes réglementaires. Pour un projet que je développe seul, le soir après le boulot, le coût est trop élevé. Donc, pour l’instant, la saisie reste manuelle.",
       },
       trust: {
         question: "Pourquoi confier mes chiffres à Pulpe ?",
@@ -373,9 +379,9 @@ const fr = {
           " te laisse utiliser Pulpe sans compte et sans saisir tes propres chiffres.",
       },
       free: {
-        question: "C'est vraiment gratuit ?",
+        question: "C’est vraiment gratuit ?",
         answerBefore:
-          "Oui. Pulpe est gratuit, sans publicité ni abonnement. C'est un projet solo et son ",
+          "Oui. Pulpe est gratuit, sans publicité ni abonnement. C’est un projet solo et son ",
         answerLink: "code source est public",
         answerAfter: ".",
       },
@@ -385,7 +391,7 @@ const fr = {
           "Oui. Pulpe fonctionne avec les francs suisses et les euros, sur le web et sur iPhone.",
       },
       sync: {
-        question: "Comment retrouver mes budgets entre le web et l'iPhone ?",
+        question: "Comment retrouver mes budgets entre le web et l’iPhone ?",
         answer:
           "Connecte-toi au même compte sur les deux. Tes budgets et tes modifications sont synchronisés automatiquement.",
       },
@@ -394,10 +400,10 @@ const fr = {
         answerBefore: "Tu peux demander la suppression depuis les ",
         answerLink: "paramètres",
         answerAfter:
-          ". Le compte et tes données sont alors programmés pour être supprimés dans trois jours, ce qui te laisse ce délai pour changer d'avis. Passé ce délai, ils sont supprimés des systèmes actifs. Des copies peuvent subsister temporairement dans les sauvegardes techniques, puis expirent selon la politique de rétention du fournisseur d'hébergement.",
+          ". Le compte et tes données sont alors programmés pour être supprimés dans trois jours, ce qui te laisse ce délai pour changer d’avis. Passé ce délai, ils sont supprimés des systèmes actifs. Des copies peuvent subsister temporairement dans les sauvegardes techniques, puis expirent selon la politique de rétention du fournisseur d’hébergement.",
       },
     },
-    contactHeading: "Ta question n'est pas là ?",
+    contactHeading: "Ta question n’est pas là ?",
     contactText:
       "Écris-moi directement. Je développe Pulpe seul et je réponds moi-même.",
     contactGithub: "Bug ou suggestion sur GitHub",
@@ -471,7 +477,7 @@ const fr = {
   changelog: {
     metaTitle: "Nouveautés",
     metaDescription:
-      "Toutes les nouveautés et corrections de Pulpe. Suivez les mises à jour de l'app web, iOS et Android.",
+      "Toutes les nouveautés et corrections de Pulpe. Suivez les mises à jour de l’app web, iOS et Android.",
     heading: "Nouveautés",
     intro: "Les dernières mises à jour de Pulpe.",
     // Le corps des notes de version reste en français dans les quatre langues :
@@ -485,14 +491,14 @@ const fr = {
   },
 
   notFound: {
-    title: "Cette page n'existe pas",
-    text: "L'application Pulpe a déménagé. Tu peux y accéder directement sur son nouveau domaine.",
-    appCta: "Accéder à l'app",
-    homeCta: "Retour à l'accueil",
+    title: "Cette page n’existe pas",
+    text: "L’application Pulpe a déménagé. Tu peux y accéder directement sur son nouveau domaine.",
+    appCta: "Accéder à l’app",
+    homeCta: "Retour à l’accueil",
   },
 
   // Le libellé du sélecteur est le seul texte de langue qui suive la page ; le
-  // bandeau, lui, parle celle qu'il propose et vit donc dans `lib/i18n.ts`.
+  // bandeau, lui, parle celle qu’il propose et vit donc dans `lib/i18n.ts`.
   language: {
     switcherLabel: "Langue",
   },

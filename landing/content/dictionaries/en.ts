@@ -5,14 +5,18 @@ import type { Dictionary } from "../dictionary";
 // typography only. Product terms follow the arrested lexicon in `docs/I18N.md`.
 const en: Dictionary = {
   site: {
-    titleDefault: "Pulpe | Know months ahead what you'll have left",
+    titleDefault: "Pulpe | Know months ahead what you’ll have left",
     titleTemplate: "%s | Pulpe",
     description:
-      "Plan your income, your expenses and your savings. Pulpe shows you what you'll have left each month, with no bank connection.",
+      "Plan your income, your expenses and your savings. Pulpe shows you what you’ll have left each month, with no bank connection.",
     socialImageAlt:
-      "Pulpe projects your budget across the year and shows what you'll have left",
+      "Pulpe projects your budget across the year and shows what you’ll have left",
     graphDescription:
       "Pulpe works out what you have available month after month from your income, your expenses and your savings, with no bank connection.",
+    socialCard: {
+      subhead: "Plan your year. See what you have left every month.",
+      badge: "Free · No bank connection",
+    },
   },
 
   common: {
@@ -30,7 +34,7 @@ const en: Dictionary = {
       howItWorks: "How it works",
       platforms: "Apps",
       support: "Help",
-      whyFree: "Why it's free",
+      whyFree: "Why it’s free",
     },
   },
 
@@ -41,7 +45,7 @@ const en: Dictionary = {
       source: "Source code",
       terms: "Terms",
       privacy: "Privacy",
-      changelog: "What's new",
+      changelog: "What’s new",
       support: "Help",
       contact: "Contact",
     },
@@ -50,11 +54,11 @@ const en: Dictionary = {
   home: {
     hero: {
       headlineLead: "You know months ahead ",
-      headlineHighlight: "what you'll have left.",
+      headlineHighlight: "what you’ll have left.",
       subheadLead: "Plan your budget ",
       subheadEmphasis: "across the year",
       subheadTail:
-        ". You see what you'll have left each month, so you can prepare your plans with a clearer head.",
+        ". You see what you’ll have left each month, so you can prepare your plans with a clearer head.",
       cta: "Create my budget for free",
       reassurance: "Free · Encrypted amounts · No bank connection",
     },
@@ -81,9 +85,9 @@ const en: Dictionary = {
 
     painPoints: {
       heading:
-        "Taxes land in July. You already know what you'll have left in August.",
+        "Taxes land in July. You already know what you’ll have left in August.",
       intro:
-        "A big expense lands in one month, but you feel it well beyond. With a spreadsheet, you have to recalculate what follows. A tracking app only shows it once it's paid.",
+        "A big expense lands in one month, but you feel it well beyond. With a spreadsheet, you have to recalculate what follows. A tracking app only shows it once it’s paid.",
       spreadsheet: {
         title: "With a spreadsheet, you have to keep everything up to date.",
         text: "At the slightest change you edit the rows, the months and sometimes the formulas. If your file is out of date, so is your projection.",
@@ -120,9 +124,9 @@ const en: Dictionary = {
             " available, except July at 500 for taxes, August at 700 for holidays and December at 200 for a big purchase",
         },
         month: {
-          title: "See what you'll have left",
+          title: "See what you’ll have left",
           description:
-            "Open a month ahead to see what's available, then adjust your budget if you need to.",
+            "Open a month ahead to see what’s available, then adjust your budget if you need to.",
           captionLead: "July: out of 3,500 ",
           captionTail:
             " of income, 1,600 recurring, 500 of savings and 900 of taxes leave 500 available",
@@ -138,7 +142,7 @@ const en: Dictionary = {
         tax: "Taxes",
         available: "Available",
         templatePayoff: "Available to spend, every month",
-        monthPayoff: "You'll have left in July",
+        monthPayoff: "You’ll have left in July",
         yearLegend: "July, taxes · August, holidays · December, big purchase",
         monthInitials: [
           "J",
@@ -171,7 +175,7 @@ const en: Dictionary = {
         {
           lead: "I can see straight away ",
           highlight: "where my budget stands",
-          tail: ". It's handy, clear and far simpler to keep up with.",
+          tail: ". It’s handy, clear and far simpler to keep up with.",
           name: "Sylvie G.",
           since: "User since May 2026",
         },
@@ -191,9 +195,9 @@ const en: Dictionary = {
       headingHighlight: "Pulpe recalculates the rest.",
       spread: {
         title: "Spread a big expense over several months.",
-        bodyEmphasis: "The total doesn't change.",
+        bodyEmphasis: "The total doesn’t change.",
         bodyTail:
-          " You choose the months, Pulpe works out each share and shows you what's left to set aside.",
+          " You choose the months, Pulpe works out each share and shows you what’s left to set aside.",
         mockLabel: "Annual insurance",
         mockMonths: ["May", "Jun", "Jul", "Aug"],
       },
@@ -247,7 +251,7 @@ const en: Dictionary = {
         },
         analytics: {
           title: "Usage measurement in Europe",
-          text: "The usage data that helps improve Pulpe is processed on PostHog's European servers.",
+          text: "The usage data that helps improve Pulpe is processed on PostHog’s European servers.",
         },
         openSource: {
           title: "Open code",
@@ -262,7 +266,7 @@ const en: Dictionary = {
         {
           question: "Why Pulpe rather than Excel?",
           answer:
-            "Excel does the job, but the formulas turn fragile as soon as you move a row. And on mobile it's painful. Pulpe keeps the whole picture and recalculates what follows when you adjust your budget.",
+            "Excel does the job, but the formulas turn fragile as soon as you move a row. And on mobile it’s painful. Pulpe keeps the whole picture and recalculates what follows when you adjust your budget.",
         },
         {
           question: "Is it really free?",
@@ -293,7 +297,7 @@ const en: Dictionary = {
     },
 
     finalCta: {
-      heading: "Prepare your year. See what you'll have left each month.",
+      heading: "Prepare your year. See what you’ll have left each month.",
       body: "Start for free, without connecting your bank accounts. Your amounts are encrypted in the database, and are never sold.",
       cta: "Create my budget for free",
       arrowNote: "Ready to breathe?",
@@ -325,10 +329,10 @@ const en: Dictionary = {
       excel: {
         question: "Why Pulpe rather than Excel?",
         answer:
-          "Excel does the job, but the formulas turn fragile as soon as you move a row. And on mobile it's painful. Pulpe keeps the whole picture and recalculates what follows when you adjust your budget.",
+          "Excel does the job, but the formulas turn fragile as soon as you move a row. And on mobile it’s painful. Pulpe keeps the whole picture and recalculates what follows when you adjust your budget.",
       },
       bank: {
-        question: "Why doesn't Pulpe connect to my bank?",
+        question: "Why doesn’t Pulpe connect to my bank?",
         answer:
           "I would have liked to offer bank synchronisation. Doing it properly in Switzerland and France means going through external providers and handling regulatory constraints. For a project I build alone, in the evening after work, the cost is too high. So for now, entry stays manual.",
       },
@@ -350,7 +354,7 @@ const en: Dictionary = {
       free: {
         question: "Is it really free?",
         answerBefore:
-          "Yes. Pulpe is free, with no ads and no subscription. It's a solo project and its ",
+          "Yes. Pulpe is free, with no ads and no subscription. It’s a solo project and its ",
         answerLink: "source code is public",
         answerAfter: ".",
       },
@@ -369,10 +373,10 @@ const en: Dictionary = {
         answerBefore: "You can request deletion from your ",
         answerLink: "settings",
         answerAfter:
-          ". The account and your data are then scheduled for deletion in three days, which gives you that window to change your mind. After it, they are removed from the active systems. Copies may remain temporarily in technical backups, then expire under the hosting provider's retention policy.",
+          ". The account and your data are then scheduled for deletion in three days, which gives you that window to change your mind. After it, they are removed from the active systems. Copies may remain temporarily in technical backups, then expire under the hosting provider’s retention policy.",
       },
     },
-    contactHeading: "Your question isn't here?",
+    contactHeading: "Your question isn’t here?",
     contactText:
       "Write to me directly. I build Pulpe alone and I answer myself.",
     contactGithub: "Bug or suggestion on GitHub",
@@ -391,7 +395,7 @@ const en: Dictionary = {
     template: {
       eyebrow: "The template",
       title: "Your starting point",
-      text: "It holds your usual income, expenses and savings. It's what prepares your monthly budgets without retyping everything.",
+      text: "It holds your usual income, expenses and savings. It’s what prepares your monthly budgets without retyping everything.",
     },
     budget: {
       eyebrow: "The budget",
@@ -400,7 +404,7 @@ const en: Dictionary = {
     },
     choiceHeading: "Choose according to what you want to change.",
     choices: [
-      { intent: "Change this month only", destination: "The month's budget" },
+      { intent: "Change this month only", destination: "The month’s budget" },
       { intent: "Change my ordinary months", destination: "The template" },
       { intent: "Create next month", destination: "A new budget" },
       {
@@ -415,7 +419,7 @@ const en: Dictionary = {
       title: "Edit a monthly budget",
       steps: [
         "Open the “Budgets” tab.",
-        "Tap + to create next month's budget, or open an existing month.",
+        "Tap + to create next month’s budget, or open an existing month.",
         "Inside the budget, tap + to add a planned item.",
         "Tap an existing planned item to edit or delete it.",
       ],
@@ -437,14 +441,14 @@ const en: Dictionary = {
     ],
     contactHeading: "Still stuck?",
     contactText:
-      "Write to me and say which screen you're on. I'll answer you directly.",
+      "Write to me and say which screen you’re on. I’ll answer you directly.",
   },
 
   changelog: {
-    metaTitle: "What's new",
+    metaTitle: "What’s new",
     metaDescription:
       "Every new feature and fix in Pulpe. Follow the updates to the web, iOS and Android apps.",
-    heading: "What's new",
+    heading: "What’s new",
     intro: "The latest updates to Pulpe.",
     sections: {
       features: "New",
@@ -455,7 +459,7 @@ const en: Dictionary = {
   },
 
   notFound: {
-    title: "This page doesn't exist",
+    title: "This page doesn’t exist",
     text: "The Pulpe app has moved. You can reach it directly on its new domain.",
     appCta: "Go to the app",
     homeCta: "Back to home",

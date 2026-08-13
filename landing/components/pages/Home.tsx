@@ -1,3 +1,4 @@
+import { LanguageBanner } from "@/components/LanguageBanner";
 import { MarkerDraw, StickyCTA } from "@/components/ui";
 import {
   Header,
@@ -12,15 +13,16 @@ import {
   FinalCTA,
   Footer,
 } from "@/components/sections";
-import { getDictionary } from "@/content/dictionary";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
+import type { Dictionary } from "@/content/dictionary";
+import type { Locale } from "@/lib/i18n";
 
-export default async function LandingPage() {
-  const dict = await getDictionary(DEFAULT_LOCALE);
+export function Home({ dict, locale }: { dict: Dictionary; locale: Locale }) {
   const home = dict.home;
 
   return (
     <>
+      <LanguageBanner locale={locale} route="/" />
+
       <a
         href="#main-content"
         className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-4 focus-visible:left-4 focus-visible:z-[60] focus-visible:bg-primary focus-visible:text-white focus-visible:px-4 focus-visible:py-2 focus-visible:rounded-lg"
@@ -28,7 +30,7 @@ export default async function LandingPage() {
         {dict.common.skipToContent}
       </a>
 
-      <Header dict={dict.header} />
+      <Header dict={dict.header} locale={locale} />
 
       {/* pb reserves the StickyCTA's own height so the bar never lands on the
           last readable line; dropped at lg, where the bar does not render.
@@ -51,7 +53,12 @@ export default async function LandingPage() {
         <FinalCTA dict={home.finalCta} />
       </main>
 
-      <Footer dict={dict.footer} />
+      <Footer
+        dict={dict.footer}
+        language={dict.language}
+        locale={locale}
+        route="/"
+      />
       <MarkerDraw />
       <StickyCTA label={home.stickyCta} />
     </>

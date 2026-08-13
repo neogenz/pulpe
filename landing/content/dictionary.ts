@@ -8,6 +8,9 @@ import type { Locale } from "@/lib/i18n";
  */
 export type Dictionary = typeof import("./dictionaries/fr").default;
 
+// Pas de `import "server-only"` ici : `scripts/generate-og-image.ts` appelle
+// `getDictionary` depuis Node, hors de Next, et le garde y jetterait.
+//
 // Un import dynamique par langue, et non un baril : l'export statique rend les
 // quatre langues au build, mais rien ne doit obliger un seul rendu à charger
 // les quatre catalogues.

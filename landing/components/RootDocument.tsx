@@ -1,15 +1,14 @@
-import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
 import { Poppins } from "next/font/google";
-import { PostHogProvider } from "../components/PostHogProvider";
-import { getDictionary } from "../content/dictionary";
+import { PostHogProvider } from "./PostHogProvider";
 import {
   DESKTOP_BREAKPOINT_PX,
   MOBILE_NAV_ID,
   MOBILE_NAV_PANEL_ID,
   SCROLL_SENTINEL_ID,
-} from "../lib/config";
-import { DEFAULT_LOCALE } from "../lib/i18n";
-import "./globals.css";
+} from "@/lib/config";
+import type { Locale } from "@/lib/i18n";
+import { OPEN_GRAPH_LOCALE, SITE_URL } from "@/lib/routes";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -18,73 +17,6 @@ const poppins = Poppins({
   display: "swap",
   variable: "--font-poppins",
 });
-
-const SOCIAL_PREVIEW_IMAGE = "/pulpe-social-preview.png?v=2";
-
-export async function generateMetadata(): Promise<Metadata> {
-  const { site } = await getDictionary(DEFAULT_LOCALE);
-
-  return {
-    metadataBase: new URL("https://pulpe.app"),
-    title: {
-      template: site.titleTemplate,
-      default: site.titleDefault,
-    },
-    description: site.description,
-    applicationName: "Pulpe",
-    verification: {
-      google: "20-QgsBLcccy2f1lY275s0mayKmxWZZWo9Rg8aGxTQ0",
-    },
-    robots: {
-      index: true,
-      follow: true,
-    },
-    alternates: {
-      canonical: "/",
-    },
-    openGraph: {
-      title: site.titleDefault,
-      description: site.description,
-      siteName: "Pulpe",
-      type: "website",
-      url: "/",
-      locale: "fr_CH",
-      alternateLocale: ["fr_FR"],
-      images: [
-        {
-          url: SOCIAL_PREVIEW_IMAGE,
-          width: 1200,
-          height: 630,
-          alt: site.socialImageAlt,
-          type: "image/png",
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: site.titleDefault,
-      description: site.description,
-      images: [
-        {
-          url: SOCIAL_PREVIEW_IMAGE,
-          alt: site.socialImageAlt,
-          type: "image/png",
-          width: 1200,
-          height: 630,
-        },
-      ],
-    },
-    icons: {
-      icon: "/icon-192.png",
-      apple: "/apple-touch-icon.png",
-    },
-  };
-}
-
-export const viewport: Viewport = {
-  themeColor: "#eaf6e6",
-  viewportFit: "cover",
-};
 
 // L'en-tête vit hors de React : le bundle applicatif arrive plusieurs secondes
 // après la peinture sur mobile, et un `useEffect` laisserait la navbar
@@ -140,22 +72,22 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 else start();
 })();`;
 
-function buildJsonLd(description: string) {
+function buildJsonLd(locale: Locale, description: string) {
   return {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "WebSite",
-        "@id": "https://pulpe.app/#website",
-        url: "https://pulpe.app",
+        "@id": `${SITE_URL}/#website`,
+        url: SITE_URL,
         name: "Pulpe",
         alternateName: ["pulpe", "Pulpe app", "pulpe.app"],
         description,
-        inLanguage: "fr-CH",
+        inLanguage: OPEN_GRAPH_LOCALE[locale].replace("_", "-"),
       },
       {
         "@type": "SoftwareApplication",
-        "@id": "https://pulpe.app/#app",
+        "@id": `${SITE_URL}/#app`,
         name: "Pulpe",
         description,
         applicationCategory: "FinanceApplication",
@@ -170,16 +102,34 @@ function buildJsonLd(description: string) {
   };
 }
 
-export default async function RootLayout({
+/**
+ * Le document complet, partagé par les deux root layouts.
+ *
+ * `app/(fr)/layout.tsx` et `app/[lang]/layout.tsx` sont deux racines
+ * indépendantes : sous `output: 'export'` il n'existe ni middleware ni rewrite,
+ * et c'est la seule forme qui garde le français à `/`. Chacune doit donc monter
+ * pour son compte tout ce qui est global — la police, `globals.css`, le script
+ * d'en-tête, `PostHogProvider`. Un fournisseur monté d'un seul côté échouerait
+ * en silence pour les trois autres langues ; ce composant est ce qui empêche
+ * les deux racines de diverger.
+ */
+export function RootDocument({
+  locale,
+  graphDescription,
   children,
 }: {
-  children: React.ReactNode;
+  locale: Locale;
+  graphDescription: string;
+  children: ReactNode;
 }) {
-  const { site } = await getDictionary(DEFAULT_LOCALE);
-  const jsonLd = buildJsonLd(site.graphDescription);
+  const jsonLd = buildJsonLd(locale, graphDescription);
 
   return (
-    <html lang="fr" className={poppins.variable} suppressHydrationWarning>
+    <html lang={locale} className={poppins.variable} suppressHydrationWarning>
+      {/* Ce document est un root layout : `<head>` y est la bonne balise. La
+          règle ne reconnaît l'App Router qu'au chemin du fichier, et celui-ci
+          vit dans `components/`. */}
+      {/* eslint-disable-next-line @next/next/no-head-element */}
       <head>
         <script dangerouslySetInnerHTML={{ __html: headerScript }} />
         <script

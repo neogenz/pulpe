@@ -1,6 +1,6 @@
 import type { Dictionary } from "../dictionary";
 
-// L'italiano dà del tu, mai del Lei. Nessuno spazio prima di `?`: quella è
+// L’italiano dà del tu, mai del Lei. Nessuno spazio prima di `?`: quella è
 // tipografia francese. I termini di prodotto seguono il lessico fissato in
 // `docs/I18N.md`.
 const it: Dictionary = {
@@ -10,9 +10,13 @@ const it: Dictionary = {
     description:
       "Pianifica le tue entrate, le tue spese e il tuo risparmio. Pulpe ti mostra quanto ti resterà ogni mese, senza collegamento bancario.",
     socialImageAlt:
-      "Pulpe proietta il tuo budget sull'anno e mostra quanto ti resterà",
+      "Pulpe proietta il tuo budget sull’anno e mostra quanto ti resterà",
     graphDescription:
       "Pulpe calcola mese dopo mese quanto hai a disposizione a partire dalle tue entrate, dalle tue spese e dal tuo risparmio, senza collegamento bancario.",
+    socialCard: {
+      subhead: "Pianifica il tuo anno. Vedi ogni mese quanto ti resta.",
+      badge: "Gratis · Senza collegamento bancario",
+    },
   },
 
   common: {
@@ -52,7 +56,7 @@ const it: Dictionary = {
       headlineLead: "Sai con mesi di anticipo ",
       headlineHighlight: "quanto ti resterà.",
       subheadLead: "Pianifica il tuo budget ",
-      subheadEmphasis: "sull'anno intero",
+      subheadEmphasis: "sull’anno intero",
       subheadTail:
         ". Vedi quanto ti resterà ogni mese e prepari i tuoi progetti con più serenità.",
       cta: "Crea il mio budget gratis",
@@ -76,21 +80,21 @@ const it: Dictionary = {
       },
       projectionTitle: "Proiezione del saldo",
       projectionHint: "Lo vedi arrivare",
-      projectionAriaLabel: "Proiezione del saldo in crescita sull'anno",
+      projectionAriaLabel: "Proiezione del saldo in crescita sull’anno",
     },
 
     painPoints: {
       heading:
         "Le tasse arrivano a luglio. Sai già quanto ti resterà ad agosto.",
       intro:
-        "Una spesa grossa cade in un mese, ma il suo effetto si sente ben oltre. Con un foglio di calcolo devi ricalcolare il resto. Un'app di monitoraggio te la mostra solo una volta pagata.",
+        "Una spesa grossa cade in un mese, ma il suo effetto si sente ben oltre. Con un foglio di calcolo devi ricalcolare il resto. Un’app di monitoraggio te la mostra solo una volta pagata.",
       spreadsheet: {
         title: "Con un foglio di calcolo devi tenere tutto aggiornato.",
         text: "Al minimo cambiamento modifichi le righe, i mesi e a volte le formule. Se il tuo file non è più aggiornato, non lo è più nemmeno la tua proiezione.",
       },
       tracking: {
         title: "Il monitoraggio comincia a soldi già spesi.",
-        text: "Un'app di monitoraggio ti spiega dove sono finiti i tuoi soldi. Ti aiuta meno a sapere se una spesa prevista a settembre rientra ancora nel tuo budget.",
+        text: "Un’app di monitoraggio ti spiega dove sono finiti i tuoi soldi. Ti aiuta meno a sapere se una spesa prevista a settembre rientra ancora nel tuo budget.",
       },
     },
 
@@ -162,7 +166,7 @@ const it: Dictionary = {
       heading: "Perché usano Pulpe.",
       items: [
         {
-          lead: "Sono meno stressato. Ho una visione d'insieme, e ",
+          lead: "Sono meno stressato. Ho una visione d’insieme, e ",
           highlight: "le spese che non vedevo arrivare",
           tail: ", adesso le vedo arrivare.",
           name: "Ismaël S.",
@@ -178,7 +182,7 @@ const it: Dictionary = {
         },
         {
           lead: "Posso ",
-          highlight: "pianificare le nostre vacanze sull'anno",
+          highlight: "pianificare le nostre vacanze sull’anno",
           tail: " e vedere subito se rientrano nel nostro budget. Mi tranquillizza.",
           name: "Julie D.",
           role: "Impiegata di commercio",
@@ -215,19 +219,19 @@ const it: Dictionary = {
       ios: {
         badge: "Disponibile",
         title: "Pulpe per iPhone",
-        text: "Un'app nativa con notifiche, widget e Face ID, pensata per consultare e aggiornare il tuo budget ovunque.",
-        storeAriaLabel: "Scarica Pulpe sull'App Store",
-        storeBadgeAlt: "Scarica sull'App Store",
+        text: "Un’app nativa con notifiche, widget e Face ID, pensata per consultare e aggiornare il tuo budget ovunque.",
+        storeAriaLabel: "Scarica Pulpe sull’App Store",
+        storeBadgeAlt: "Scarica sull’App Store",
       },
       web: {
         title: "Nel tuo browser",
         text: "Apri Pulpe nel browser, su computer o cellulare. Niente da installare.",
-        cta: "Apri l'app web",
+        cta: "Apri l’app web",
       },
       android: {
         title: "Android",
         badge: "Presto",
-        text: "L'app nativa è in lavorazione. La versione Web funziona già sui cellulari Android.",
+        text: "L’app nativa è in lavorazione. La versione Web funziona già sui cellulari Android.",
       },
     },
 
@@ -247,8 +251,8 @@ const it: Dictionary = {
           text: "I tuoi importi non sono conservati in chiaro. Sono cifrati con AES-256-GCM grazie a due chiavi conservate separatamente.",
         },
         analytics: {
-          title: "Misurazione d'uso in Europa",
-          text: "I dati d'uso che servono a migliorare Pulpe sono trattati sui server europei di PostHog.",
+          title: "Misurazione d’uso in Europa",
+          text: "I dati d’uso che servono a migliorare Pulpe sono trattati sui server europei di PostHog.",
         },
         openSource: {
           title: "Codice aperto",
@@ -263,7 +267,7 @@ const it: Dictionary = {
         {
           question: "Perché Pulpe invece di Excel?",
           answer:
-            "Excel fa il suo lavoro, ma le formule diventano fragili appena sposti una riga. E su cellulare è scomodo. Pulpe mantiene la visione d'insieme e ricalcola il resto quando correggi il budget.",
+            "Excel fa il suo lavoro, ma le formule diventano fragili appena sposti una riga. E su cellulare è scomodo. Pulpe mantiene la visione d’insieme e ricalcola il resto quando correggi il budget.",
         },
         {
           question: "È davvero gratis?",
@@ -273,7 +277,7 @@ const it: Dictionary = {
         {
           question: "Recupero i miei dati se smetto?",
           answer:
-            "Sì. Puoi esportare i tuoi budget dall'app. I tuoi dati non sono chiusi dentro Pulpe.",
+            "Sì. Puoi esportare i tuoi budget dall’app. I tuoi dati non sono chiusi dentro Pulpe.",
         },
         {
           question: "I miei importi sono protetti?",
@@ -283,7 +287,7 @@ const it: Dictionary = {
         {
           question: "Perché nessun collegamento con la mia banca?",
           answer:
-            "Mi sarebbe piaciuto offrire una sincronizzazione bancaria. Per farlo bene in Svizzera e in Francia servono fornitori esterni e vincoli normativi. Per un progetto che sviluppo da solo, la sera dopo il lavoro, il costo è troppo alto. Quindi, per ora, l'inserimento resta manuale.",
+            "Mi sarebbe piaciuto offrire una sincronizzazione bancaria. Per farlo bene in Svizzera e in Francia servono fornitori esterni e vincoli normativi. Per un progetto che sviluppo da solo, la sera dopo il lavoro, il costo è troppo alto. Quindi, per ora, l’inserimento resta manuale.",
         },
         {
           question: "Quanto tempo serve per cominciare?",
@@ -326,12 +330,12 @@ const it: Dictionary = {
       excel: {
         question: "Perché Pulpe invece di Excel?",
         answer:
-          "Excel fa il suo lavoro, ma le formule diventano fragili appena sposti una riga. E su cellulare è scomodo. Pulpe mantiene la visione d'insieme e ricalcola il resto quando correggi il budget.",
+          "Excel fa il suo lavoro, ma le formule diventano fragili appena sposti una riga. E su cellulare è scomodo. Pulpe mantiene la visione d’insieme e ricalcola il resto quando correggi il budget.",
       },
       bank: {
         question: "Perché Pulpe non si collega alla mia banca?",
         answer:
-          "Mi sarebbe piaciuto offrire una sincronizzazione bancaria. Per farlo bene in Svizzera e in Francia servono fornitori esterni e vincoli normativi. Per un progetto che sviluppo da solo, la sera dopo il lavoro, il costo è troppo alto. Quindi, per ora, l'inserimento resta manuale.",
+          "Mi sarebbe piaciuto offrire una sincronizzazione bancaria. Per farlo bene in Svizzera e in Francia servono fornitori esterni e vincoli normativi. Per un progetto che sviluppo da solo, la sera dopo il lavoro, il costo è troppo alto. Quindi, per ora, l’inserimento resta manuale.",
       },
       trust: {
         question: "Perché affidare le mie cifre a Pulpe?",
@@ -361,7 +365,7 @@ const it: Dictionary = {
           "Sì. Pulpe funziona con i franchi svizzeri e gli euro, sul web e su iPhone.",
       },
       sync: {
-        question: "Come ritrovo i miei budget tra il web e l'iPhone?",
+        question: "Come ritrovo i miei budget tra il web e l’iPhone?",
         answer:
           "Accedi con lo stesso account su entrambi. I tuoi budget e le tue modifiche sono sincronizzati automaticamente.",
       },
@@ -370,10 +374,10 @@ const it: Dictionary = {
         answerBefore: "Puoi chiedere la cancellazione dalle ",
         answerLink: "impostazioni",
         answerAfter:
-          ". L'account e i tuoi dati sono allora programmati per essere cancellati entro tre giorni, il che ti lascia questo margine per cambiare idea. Passato quel termine, sono rimossi dai sistemi attivi. Delle copie possono restare temporaneamente nei backup tecnici, poi scadono secondo la politica di conservazione del fornitore di hosting.",
+          ". L’account e i tuoi dati sono allora programmati per essere cancellati entro tre giorni, il che ti lascia questo margine per cambiare idea. Passato quel termine, sono rimossi dai sistemi attivi. Delle copie possono restare temporaneamente nei backup tecnici, poi scadono secondo la politica di conservazione del fornitore di hosting.",
       },
     },
-    contactHeading: "La tua domanda non c'è?",
+    contactHeading: "La tua domanda non c’è?",
     contactText:
       "Scrivimi direttamente. Sviluppo Pulpe da solo e rispondo di persona.",
     contactGithub: "Bug o suggerimento su GitHub",
@@ -408,7 +412,7 @@ const it: Dictionary = {
       { intent: "Cambiare i miei mesi abituali", destination: "Il modello" },
       { intent: "Creare il mese prossimo", destination: "Un nuovo budget" },
       {
-        intent: "Creare un'altra base riutilizzabile",
+        intent: "Creare un’altra base riutilizzabile",
         destination: "Un nuovo modello",
       },
     ],
@@ -447,7 +451,7 @@ const it: Dictionary = {
   changelog: {
     metaTitle: "Novità",
     metaDescription:
-      "Tutte le novità e le correzioni di Pulpe. Segui gli aggiornamenti dell'app web, iOS e Android.",
+      "Tutte le novità e le correzioni di Pulpe. Segui gli aggiornamenti dell’app web, iOS e Android.",
     heading: "Novità",
     intro: "Gli ultimi aggiornamenti di Pulpe.",
     sections: {
@@ -460,8 +464,8 @@ const it: Dictionary = {
 
   notFound: {
     title: "Questa pagina non esiste",
-    text: "L'app Pulpe ha traslocato. Puoi raggiungerla direttamente sul suo nuovo dominio.",
-    appCta: "Vai all'app",
+    text: "L’app Pulpe ha traslocato. Puoi raggiungerla direttamente sul suo nuovo dominio.",
+    appCta: "Vai all’app",
     homeCta: "Torna alla pagina iniziale",
   },
 

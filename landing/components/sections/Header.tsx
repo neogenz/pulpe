@@ -9,6 +9,8 @@ import {
   SCROLL_SENTINEL_ID,
   angularUrl,
 } from "@/lib/config";
+import type { Locale } from "@/lib/i18n";
+import { localizedPath } from "@/lib/routes";
 
 // La destination est structurelle et reste ici ; seul le libellé change de
 // langue. L'ordre du tableau est l'ordre affiché.
@@ -25,11 +27,18 @@ const NAV_ITEMS = [
 
 const SCROLL_THRESHOLD_PX = 20;
 
-export function Header({ dict }: { dict: Dictionary["header"] }) {
+export function Header({
+  dict,
+  locale,
+}: {
+  dict: Dictionary["header"];
+  locale: Locale;
+}) {
   const navLinks = NAV_ITEMS.map((item) => ({
-    href: item.href,
+    href: localizedPath(locale, item.href),
     label: dict.nav[item.id],
   }));
+  const homeHref = localizedPath(locale, "/");
 
   return (
     <>
@@ -52,7 +61,7 @@ export function Header({ dict }: { dict: Dictionary["header"] }) {
           aria-label={dict.navAriaLabel}
         >
           <Link
-            href="/"
+            href={homeHref}
             className="relative z-10 flex min-h-11 items-center gap-2 font-bold text-lg text-text"
             aria-label={dict.homeAriaLabel}
           >

@@ -2,7 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/ui";
 import type { Dictionary } from "@/content/dictionary";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ANGULAR_APP_URL, CONTACT_EMAIL, GITHUB_URL } from "@/lib/config";
+import type { Locale } from "@/lib/i18n";
+import { localizedPath, type Route } from "@/lib/routes";
 
 // Destination et nature du lien restent ici, seul le libellé change de langue.
 // L'ordre du tableau est l'ordre affiché.
@@ -20,7 +23,17 @@ const FOOTER_LINKS = [
   internal?: boolean;
 }[];
 
-export function Footer({ dict }: { dict: Dictionary["footer"] }) {
+export function Footer({
+  dict,
+  language,
+  locale,
+  route,
+}: {
+  dict: Dictionary["footer"];
+  language: Dictionary["language"];
+  locale: Locale;
+  route: Route;
+}) {
   return (
     <footer className="border-t border-text/10 bg-transparent py-10">
       <Container>
@@ -50,7 +63,11 @@ export function Footer({ dict }: { dict: Dictionary["footer"] }) {
 
               if ("internal" in link && link.internal) {
                 return (
-                  <Link key={link.id} href={link.href} className={className}>
+                  <Link
+                    key={link.id}
+                    href={localizedPath(locale, link.href)}
+                    className={className}
+                  >
                     {label}
                   </Link>
                 );
@@ -75,6 +92,12 @@ export function Footer({ dict }: { dict: Dictionary["footer"] }) {
               );
             })}
           </nav>
+        </div>
+
+        {/* Groupe distinct des liens utiles : ces ancres ne mènent pas ailleurs
+            dans le site, elles mènent à la même page dans une autre langue. */}
+        <div className="mt-6 border-t border-text/10 pt-4">
+          <LanguageSwitcher dict={language} locale={locale} route={route} />
         </div>
       </Container>
     </footer>

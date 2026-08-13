@@ -23,6 +23,11 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react"],
+    // Sans ce drapeau, `app/global-not-found.tsx` n'est pas rendu et l'export
+    // livre le 404 intégré de Next, sans attribut `lang`. Un `not-found.tsx`
+    // ne peut pas le remplacer : avec deux root layouts, il n'atteint jamais
+    // `404.html`, en silence.
+    globalNotFound: true,
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",

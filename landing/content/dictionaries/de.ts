@@ -14,6 +14,10 @@ const de: Dictionary = {
       "Pulpe projiziert dein Budget über das Jahr und zeigt, was dir bleibt",
     graphDescription:
       "Pulpe berechnet Monat für Monat, was dir zur Verfügung steht — aus deinen Einnahmen, deinen Ausgaben und deinem Sparen, ohne Bankverbindung.",
+    socialCard: {
+      subhead: "Plane dein Jahr. Sieh jeden Monat, was dir bleibt.",
+      badge: "Kostenlos · Ohne Bankverbindung",
+    },
   },
 
   common: {

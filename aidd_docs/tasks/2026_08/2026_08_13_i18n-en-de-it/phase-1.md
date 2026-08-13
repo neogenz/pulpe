@@ -1,8 +1,19 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Landing EN/DE/IT
+
+> Écart assumé au critère 2. Le HTML français n'est pas identique caractère pour
+> caractère : 35 apostrophes droites U+0027, héritées des `&apos;` du JSX,
+> deviennent U+2019 comme les 108 autres du même texte. La carte sociale
+> française régénérée redevient identique à celle de `HEAD`, ce qui montre que
+> U+2019 était le glyphe voulu et l'entité un contournement de lint. Le reste du
+> HTML français est inchangé, U+202F et U+00A0 compris.
+>
+> Deux placements diffèrent de la projection : les catalogues et les corps de
+> page vivent en `content/` et `components/pages/` plutôt que sous `app/_content/`.
+> Même isolation, emplacement plus courant dans le dépôt.
 
 Le français reste servi à la racine sans préfixe ; `en`, `de` et `it` sont servis sous un segment. Sous `output: 'export'` il n'existe ni middleware ni rewrite : la seule forme qui garde le français à `/` est **deux root layouts** — `app/(fr)/` et `app/[lang]/` — et donc l'absence de `app/layout.tsx`. Cette forme a été construite et buildée contre le Next 16.2.11 du dépôt avant d'être retenue.
 

@@ -1,24 +1,13 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
+import { LanguageBanner } from "@/components/LanguageBanner";
 import { AccordionItem, Container, Section } from "@/components/ui";
 import { FinalCTA, Footer, Header } from "@/components/sections";
-import { getDictionary, type Dictionary } from "@/content/dictionary";
+import type { Dictionary } from "@/content/dictionary";
 import { angularUrl, CONTACT_EMAIL, GITHUB_URL } from "@/lib/config";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
-
-export async function generateMetadata(): Promise<Metadata> {
-  const { support } = await getDictionary(DEFAULT_LOCALE);
-
-  return {
-    title: support.metaTitle,
-    description: support.metaDescription,
-    alternates: {
-      canonical: "/support",
-    },
-  };
-}
+import type { Locale } from "@/lib/i18n";
+import { localizedPath } from "@/lib/routes";
 
 const linkClass =
   "rounded-sm font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
@@ -93,8 +82,13 @@ function buildFaqs(faq: SupportFaq): FaqItem[] {
   ];
 }
 
-export default async function SupportPage() {
-  const dict = await getDictionary(DEFAULT_LOCALE);
+export function Support({
+  dict,
+  locale,
+}: {
+  dict: Dictionary;
+  locale: Locale;
+}) {
   const { support } = dict;
   const faqs = buildFaqs(support.faq);
 
@@ -120,6 +114,8 @@ export default async function SupportPage() {
         }}
       />
 
+      <LanguageBanner locale={locale} route="/support" />
+
       <a
         href="#main-content"
         className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[60] focus-visible:rounded-lg focus-visible:bg-primary focus-visible:px-4 focus-visible:py-2 focus-visible:text-white"
@@ -127,7 +123,7 @@ export default async function SupportPage() {
         {dict.common.skipToContent}
       </a>
 
-      <Header dict={dict.header} />
+      <Header dict={dict.header} locale={locale} />
 
       <main id="main-content" tabIndex={-1}>
         <section className="hero-mesh relative overflow-hidden pb-10 pt-[calc(9rem+env(safe-area-inset-top))] md:pb-16 md:pt-[calc(10rem+env(safe-area-inset-top))]">
@@ -153,7 +149,7 @@ export default async function SupportPage() {
             </h2>
 
             <Link
-              href="/support/modeles-et-budgets"
+              href={localizedPath(locale, "/support/modeles-et-budgets")}
               className="group mt-10 block rounded-[var(--radius-large)] border border-text/10 bg-surface p-6 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transform-none motion-reduce:transition-none sm:p-8"
             >
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
@@ -232,7 +228,12 @@ export default async function SupportPage() {
         <FinalCTA dict={dict.home.finalCta} />
       </main>
 
-      <Footer dict={dict.footer} />
+      <Footer
+        dict={dict.footer}
+        language={dict.language}
+        locale={locale}
+        route="/support"
+      />
     </>
   );
 }

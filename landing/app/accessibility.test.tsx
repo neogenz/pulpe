@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { LOCALES } from "../lib/i18n";
+import { socialPreviewFile } from "../lib/metadata";
 import type { PostHog } from "posthog-js/dist/module.slim";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -76,10 +78,16 @@ const componentSources = {
     new URL("../components/sections/Hero.tsx", import.meta.url),
     "utf8",
   ),
-  page: readFileSync(new URL("./page.tsx", import.meta.url), "utf8"),
-  support: readFileSync(new URL("./support/page.tsx", import.meta.url), "utf8"),
+  page: readFileSync(
+    new URL("../components/pages/Home.tsx", import.meta.url),
+    "utf8",
+  ),
+  support: readFileSync(
+    new URL("../components/pages/Support.tsx", import.meta.url),
+    "utf8",
+  ),
   supportGuide: readFileSync(
-    new URL("./support/modeles-et-budgets/page.tsx", import.meta.url),
+    new URL("../components/pages/SupportGuide.tsx", import.meta.url),
     "utf8",
   ),
   painPoints: readFileSync(
@@ -154,7 +162,19 @@ const componentSources = {
     new URL("../components/sections/Footer.tsx", import.meta.url),
     "utf8",
   ),
-  layout: readFileSync(new URL("./layout.tsx", import.meta.url), "utf8"),
+  // Le document racine partagé par les deux layouts, français et préfixé.
+  layout: readFileSync(
+    new URL("../components/RootDocument.tsx", import.meta.url),
+    "utf8",
+  ),
+  metadata: readFileSync(
+    new URL("../lib/metadata.ts", import.meta.url),
+    "utf8",
+  ),
+  pageMetadata: readFileSync(
+    new URL("../components/pages/metadata.ts", import.meta.url),
+    "utf8",
+  ),
   ogGenerator: readFileSync(
     new URL("../scripts/generate-og-image.ts", import.meta.url),
     "utf8",
@@ -162,6 +182,20 @@ const componentSources = {
   posthog: readFileSync(new URL("../lib/posthog.ts", import.meta.url), "utf8"),
   posthogProvider: readFileSync(
     new URL("../components/PostHogProvider.tsx", import.meta.url),
+    "utf8",
+  ),
+};
+
+// Les trois documents qui portent leur propre `<html>` : la racine française,
+// la racine préfixée et le 404 global.
+const rootDocuments = {
+  french: readFileSync(new URL("./(fr)/layout.tsx", import.meta.url), "utf8"),
+  prefixed: readFileSync(
+    new URL("./[lang]/layout.tsx", import.meta.url),
+    "utf8",
+  ),
+  notFound: readFileSync(
+    new URL("./global-not-found.tsx", import.meta.url),
     "utf8",
   ),
 };
@@ -327,7 +361,7 @@ describe("landing accessibility contracts", () => {
       /\{dict\.subheadLead\}[\s\S]*<strong className="font-semibold text-text">\s*\{dict\.subheadEmphasis\}\s*<\/strong>\s*\{dict\.subheadTail\}/,
     );
     assert.match(frDict.home.hero.subheadLead, /^Planifie ton budget /);
-    assert.equal(frDict.home.hero.subheadEmphasis, "sur l'année");
+    assert.equal(frDict.home.hero.subheadEmphasis, "sur l’année");
     assert.match(
       frDict.home.hero.subheadTail,
       /préparer tes projets plus sereinement/,
@@ -366,9 +400,14 @@ describe("landing accessibility contracts", () => {
 
   it("extends the landing into the iOS safe area without hiding the header", () => {
     assert.match(
-      componentSources.layout,
-      /export const viewport: Viewport = \{[\s\S]*themeColor: "#eaf6e6"[\s\S]*viewportFit: "cover"/,
+      componentSources.metadata,
+      /export const rootViewport: Viewport = \{[\s\S]*themeColor: "#eaf6e6"[\s\S]*viewportFit: "cover"/,
     );
+    // Les trois documents racines partagent la même fenêtre. Celui qui
+    // l'oublierait ne se trahirait que sur un appareil à encoche.
+    for (const [name, source] of Object.entries(rootDocuments)) {
+      assert.match(source, /export const viewport = rootViewport;/, name);
+    }
     assert.match(
       getDeclarations("html"),
       /background-color:\s*var\(--color-surface-alt\)/,
@@ -1193,34 +1232,42 @@ describe("landing accessibility contracts", () => {
 
   it("ships a fresh large social preview for Open Graph and X", () => {
     assert.match(
-      componentSources.layout,
-      /const SOCIAL_PREVIEW_IMAGE = "\/pulpe-social-preview\.png\?v=2";/,
-    );
-    assert.equal(
-      componentSources.layout.match(/url: SOCIAL_PREVIEW_IMAGE/g)?.length,
-      2,
+      componentSources.metadata,
+      /card: "summary_large_image"[\s\S]*images: socialImages\(locale, site\.socialImageAlt\)/,
     );
     assert.match(
-      componentSources.layout,
-      /twitter:[\s\S]*card: "summary_large_image"[\s\S]*images: \[[\s\S]*url: SOCIAL_PREVIEW_IMAGE,[\s\S]*alt: site\.socialImageAlt,[\s\S]*width: 1200,[\s\S]*height: 630/,
+      componentSources.metadata,
+      /url: socialPreviewImage\(locale\),\s*width: 1200,\s*height: 630,\s*alt,/,
     );
-    // L'image est rendue une fois, en français, et sa description reste la même
-    // dans les quatre langues : traduire l'`alt` sans régénérer le PNG ferait
-    // annoncer aux lecteurs d'écran un visuel qui n'existe pas.
-    for (const catalog of Object.values(CATALOGS)) {
-      assert.ok(catalog.site.socialImageAlt.trim().length > 0);
+    // Le français garde le nom d'origine : cette URL circule déjà dans des
+    // partages, et la renommer y remplacerait la vignette par un carré vide.
+    assert.equal(socialPreviewFile("fr"), "pulpe-social-preview.png");
+    // Chaque langue a sa carte, écrite dans sa langue et présente sur le disque.
+    for (const locale of LOCALES) {
+      assert.ok(
+        existsSync(
+          new URL(`../public/${socialPreviewFile(locale)}`, import.meta.url),
+        ),
+        `carte sociale manquante pour ${locale}`,
+      );
+      assert.ok(CATALOGS[locale].site.socialCard.subhead.trim().length > 0);
+      assert.ok(CATALOGS[locale].site.socialImageAlt.trim().length > 0);
     }
+    // Le générateur lit le catalogue : plus une phrase française en dur, sinon
+    // les trois autres cartes reviendraient au français sans rien casser.
     assert.match(
       componentSources.ogGenerator,
-      /const HERO_HEADLINE = "Tu sais des mois à l’avance";/,
+      /for \(const locale of LOCALES\)/,
     );
     assert.match(
       componentSources.ogGenerator,
-      /const HERO_MARKER = "combien il te restera\.";/,
+      /children: dict\.site\.socialCard\.subhead/,
     );
-    assert.match(componentSources.ogGenerator, /Tableau de bord/);
-    assert.match(componentSources.ogGenerator, /Disponible ce mois/);
-    assert.match(componentSources.ogGenerator, /Vue annuelle/);
+    assert.match(
+      componentSources.ogGenerator,
+      /children: dict\.home\.dashboard\.title/,
+    );
+    assert.doesNotMatch(componentSources.ogGenerator, /Tableau de bord/);
     assert.match(
       componentSources.ogGenerator,
       /children: formatAmount\(\s*HERO_AVAILABLE,\s*OG_CURRENCY,?\s*\)/,
@@ -1229,7 +1276,7 @@ describe("landing accessibility contracts", () => {
       componentSources.ogGenerator,
       /PRODUCT_SCREENSHOT|social-preview-screenshot/,
     );
-    assert.match(componentSources.ogGenerator, /pulpe-social-preview\.png/);
+    assert.match(componentSources.ogGenerator, /socialPreviewFile\(locale\)/);
     assert.match(componentSources.ogGenerator, /process\.exitCode = 1/);
   });
 
@@ -1407,10 +1454,18 @@ describe("landing accessibility contracts", () => {
   });
 
   it("owns the guide social metadata instead of inheriting the homepage", () => {
-    assert.match(componentSources.supportGuide, /const GUIDE_PATH/);
-    assert.match(componentSources.supportGuide, /openGraph:\s*\{/);
-    assert.match(componentSources.supportGuide, /url: GUIDE_PATH/);
-    assert.match(componentSources.supportGuide, /twitter:\s*\{/);
+    assert.match(
+      componentSources.pageMetadata,
+      /supportGuideMetadata[\s\S]*articleSocialMetadata\(\{[\s\S]*path: alternates\.canonical/,
+    );
+    assert.match(
+      componentSources.metadata,
+      /openGraph:\s*\{[\s\S]*type: "article"/,
+    );
+    assert.match(
+      componentSources.metadata,
+      /twitter:\s*\{[\s\S]*card: "summary_large_image"/,
+    );
   });
 
   it("links the first help journey from support and navigation", () => {

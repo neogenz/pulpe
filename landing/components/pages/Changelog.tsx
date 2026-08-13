@@ -1,22 +1,11 @@
-import type { Metadata } from "next";
 import { ExternalLink } from "lucide-react";
+import { LanguageBanner } from "@/components/LanguageBanner";
 import { Container } from "@/components/ui";
 import { Header, Footer } from "@/components/sections";
 import releases from "@/data/releases.json";
-import { getDictionary } from "@/content/dictionary";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
-
-export async function generateMetadata(): Promise<Metadata> {
-  const { changelog } = await getDictionary(DEFAULT_LOCALE);
-
-  return {
-    title: changelog.metaTitle,
-    description: changelog.metaDescription,
-    alternates: {
-      canonical: "/changelog",
-    },
-  };
-}
+import type { Dictionary } from "@/content/dictionary";
+import type { Locale } from "@/lib/i18n";
+import { OPEN_GRAPH_LOCALE } from "@/lib/routes";
 
 const PLATFORM_STYLES: Record<string, { label: string; className: string }> = {
   web: { label: "Web", className: "bg-accent/10 text-accent" },
@@ -26,21 +15,34 @@ const PLATFORM_STYLES: Record<string, { label: string; className: string }> = {
 
 const SECTION_KEYS = ["features", "fixes", "technical"] as const;
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("fr-CH", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+// Rendu au build, jamais dans le navigateur : ce composant est un composant
+// serveur, donc l'ICU de Node est le seul en jeu et il n'y a pas d'écart
+// possible avec l'hydratation.
+function formatDate(dateStr: string, locale: Locale): string {
+  return new Date(dateStr).toLocaleDateString(
+    OPEN_GRAPH_LOCALE[locale].replace("_", "-"),
+    {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    },
+  );
 }
 
-export default async function ChangelogPage() {
-  const dict = await getDictionary(DEFAULT_LOCALE);
+export function Changelog({
+  dict,
+  locale,
+}: {
+  dict: Dictionary;
+  locale: Locale;
+}) {
   const { changelog } = dict;
 
   return (
     <>
-      <Header dict={dict.header} />
+      <LanguageBanner locale={locale} route="/changelog" />
+
+      <Header dict={dict.header} locale={locale} />
 
       <main className="pt-32 pb-16 md:pb-24">
         <Container>
@@ -72,7 +74,7 @@ export default async function ChangelogPage() {
                       dateTime={release.date}
                       className="block text-sm text-text-secondary mt-1"
                     >
-                      {formatDate(release.date)}
+                      {formatDate(release.date, locale)}
                     </time>
                     <div className="flex flex-wrap gap-1.5 mt-3">
                       {release.platforms.map((platform) => {
@@ -145,7 +147,12 @@ export default async function ChangelogPage() {
         </Container>
       </main>
 
-      <Footer dict={dict.footer} />
+      <Footer
+        dict={dict.footer}
+        language={dict.language}
+        locale={locale}
+        route="/changelog"
+      />
     </>
   );
 }
