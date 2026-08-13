@@ -265,13 +265,6 @@
       "skillPath": "SKILL.md",
       "computedHash": "de97c90ce514c5f730915e042aea0c0990e203dacc5a980e605458f0b48daeb6"
     },
-    "likec4-dsl": {
-      "source": "likec4.dev",
-      "sourceUrl": "https://likec4.dev",
-      "sourceType": "well-known",
-      "computedHash": "1dab86672d4d24625446abe145a3b5ec607f68f8a556c311107699437ace0d23",
-      "wellKnownDigest": "sha256:bb4c8e439a95f70ced963fe4055446104e76fe13c5d49e3194a4e0f10f380d92"
-    },
     "mastering-typescript": {
       "source": "spillwavesolutions/mastering-typescript-skill",
       "sourceType": "github",
