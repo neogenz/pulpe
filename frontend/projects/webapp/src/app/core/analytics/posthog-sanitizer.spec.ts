@@ -9,41 +9,158 @@ import type { CaptureResult } from 'posthog-js';
 
 describe('posthog-sanitizer', () => {
   describe('sanitizeUrl', () => {
-    it('removes protected parameters and masks dynamic segments for absolute URLs', () => {
+    it('drops every query parameter and hash fragment by default', () => {
+      const sanitized = sanitizeUrl(
+        '/budgets/example-budget-id?email=private%40example.test&unknown=private#details',
+      );
+
+      expect(sanitized).toBe('/budgets/[id]');
+    });
+
+    it.each([
+      ['/savings-goals/example-goal-id', '/savings-goals/[id]'],
+      [
+        '/budget-templates/details/example-template-id',
+        '/budget-templates/details/[id]',
+      ],
+      ['/api/v1/savings-goals/example-goal-id', '/api/v1/savings-goals/[id]'],
+      [
+        '/api/v1/transactions/budget/example-budget-id',
+        '/api/v1/transactions/budget/[id]',
+      ],
+      [
+        '/api/v1/budget-lines/example-line-id/toggle-check',
+        '/api/v1/budget-lines/[id]/toggle-check',
+      ],
+      [
+        '/api/v1/budget-lines/spread/example-group-id',
+        '/api/v1/budget-lines/spread/[id]',
+      ],
+      [
+        '/api/v1/budget-lines/savings-withdrawal/example-group-id',
+        '/api/v1/budget-lines/savings-withdrawal/[id]',
+      ],
+      [
+        '/api/v1/budget-templates/example-template-id/lines/example-line-id',
+        '/api/v1/budget-templates/[id]/lines/[id]',
+      ],
+      [
+        '/api/v1/budget-templates/example-template-id/lines/bulk-operations',
+        '/api/v1/budget-templates/[id]/lines/bulk-operations',
+      ],
+      ['/api/v1/budgets/example-budget-id', '/api/v1/budgets/[id]'],
+      [
+        '/api/v1/transactions/example-transaction-id',
+        '/api/v1/transactions/[id]',
+      ],
+      ['/budget/example-budget-id', '/budget/[id]'],
+      [
+        '/api/v1/debug/test-error/example-type',
+        '/api/v1/debug/test-error/[id]',
+      ],
+      ['/api/v1/tags/example-tag-id/history', '/api/v1/tags/[id]/history'],
+    ])(
+      'masks identifiers across web and API resource routes',
+      (url, expected) => {
+        expect(sanitizeUrl(url)).toBe(expected);
+      },
+    );
+
+    it.each([
+      '/budgets/generate',
+      '/budgets/export',
+      '/budgets/exists',
+      '/transactions/search',
+      '/budget-lines/spread',
+      '/budget-lines/savings-withdrawal',
+      '/budget-templates/from-onboarding',
+      '/budget-templates/create',
+      '/savings-goals/withdrawal-options',
+    ])('preserves static collection routes such as %s', (url) => {
+      expect(sanitizeUrl(url)).toBe(url);
+    });
+
+    it.each([
+      'data:text/plain,private',
+      'javascript:private',
+      '\njavascript:private',
+      '\tdata:text/plain,private',
+      'java\nscript:private',
+      'java\tscript:private',
+      '\u0000javascript:private',
+    ])('fails closed for unsupported URL schemes', (url) => {
+      expect(sanitizeUrl(url)).toBe('');
+    });
+
+    it.each(['', '$direct'])(
+      'preserves the non-sensitive PostHog referrer sentinel %j',
+      (value) => {
+        expect(sanitizeUrl(value)).toBe(value);
+      },
+    );
+
+    it('drops query and fragment while masking absolute URLs', () => {
       const sanitized = sanitizeUrl(
         'https://app.local/budgets/123?token=abc&keep=1#details',
       );
 
-      expect(sanitized).toBe('https://app.local/budget/[id]?keep=1#details');
+      expect(sanitized).toBe('https://app.local/budgets/[id]');
     });
 
     it('preserves protocol-relative URLs while stripping protected parameters', () => {
       const sanitized = sanitizeUrl('//cdn.example.com/assets?token=abc');
 
-      expect(sanitized).toBe('//cdn.example.com/assets');
+      expect(sanitized).toBe('//cdn.example.com');
+    });
+
+    it.each([
+      [
+        'https://external.example/private-user-value?source=private#details',
+        'https://external.example',
+      ],
+      ['/future/private-user-value?source=private', '/'],
+      [
+        '//cdn.example.com/private-user-value?source=private',
+        '//cdn.example.com',
+      ],
+      ['/private-prefix/budgets/private-budget-id', '/'],
+    ])('fails closed for unrecognized path shapes', (url, expected) => {
+      expect(sanitizeUrl(url)).toBe(expected);
+    });
+
+    it.each([
+      '/welcome',
+      '/login',
+      '/dashboard',
+      '/settings',
+      '/settings/tags',
+      '/legal/cgu',
+      '/maintenance',
+    ])('preserves known static application paths', (url) => {
+      expect(sanitizeUrl(url)).toBe(url);
     });
 
     it('sanitizes relative URLs using the dynamic segment masks', () => {
       const sanitized = sanitizeUrl('/transactions/456?transactionId=789');
 
-      expect(sanitized).toBe('/transaction/[id]');
+      expect(sanitized).toBe('/transactions/[id]');
     });
 
     it.each([
       [
         'https://app.local/budgets/123?access_token=a&refresh_token=b&password=c&recovery_key=d&keep=1',
-        'https://app.local/budget/[id]?keep=1',
+        'https://app.local/budgets/[id]',
       ],
       [
         '//cdn.example.com/assets?access_token=a&refresh_token=b&password=c&recovery_key=d&keep=1',
-        '//cdn.example.com/assets?keep=1',
+        '//cdn.example.com',
       ],
       [
         '/transactions/456?access_token=a&refresh_token=b&password=c&recovery_key=d&keep=1',
-        '/transaction/[id]?keep=1',
+        '/transactions/[id]',
       ],
     ])(
-      'strips sensitive parameters while preserving the URL format',
+      'drops all parameters while preserving the URL format',
       (url, expected) => {
         expect(sanitizeUrl(url)).toBe(expected);
       },
@@ -65,7 +182,7 @@ describe('posthog-sanitizer', () => {
 
       expect(sanitized).toEqual({
         journeyKey: 'stay-visible',
-        profileUrl: '/budget/[id]',
+        profileUrl: '/budgets/[id]',
       });
     });
 
@@ -120,10 +237,7 @@ describe('posthog-sanitizer', () => {
         description: 'Personal budget label',
       });
 
-      expect(sanitized).toEqual({
-        budgetid: 'bud-123',
-        templateid: 'tpl-789',
-      });
+      expect(sanitized).toEqual({});
     });
 
     it('preserves the request_id correlation id (snake_case and camelCase)', () => {
@@ -138,6 +252,46 @@ describe('posthog-sanitizer', () => {
         request_id: requestId,
         requestId,
         source: 'http_interceptor',
+      });
+    });
+
+    it('preserves the PostHog technical and request correlation identifiers', () => {
+      const identifiers = {
+        distinct_id: 'technical-distinct-id',
+        $device_id: 'technical-device-id',
+        $session_id: 'technical-session-id',
+        $window_id: 'technical-window-id',
+        $user_id: 'technical-user-id',
+        $anon_distinct_id: 'technical-anonymous-id',
+        $pageview_id: 'technical-pageview-id',
+        $insert_id: 'technical-insert-id',
+        request_id: 'technical-request-id',
+        requestId: 'technical-request-id',
+      };
+
+      expect(sanitizeRecord(identifiers)).toEqual(identifiers);
+    });
+
+    it('removes singular, plural, UUID and identifier-shaped business keys', () => {
+      const sanitized = sanitizeRecord({
+        id: 'private-id',
+        ids: ['private-id'],
+        budget_ids: ['private-budget-id'],
+        goalIds: ['private-goal-id'],
+        templateUUID: 'private-template-uuid',
+        resource_uuid: 'private-resource-uuid',
+        identifier: 'private-identifier',
+        externalIdentifiers: ['private-external-identifier'],
+        $budget_id: 'private-prefixed-budget-id',
+        valid: true,
+        grid: 'month',
+        paid: false,
+      });
+
+      expect(sanitized).toEqual({
+        valid: true,
+        grid: 'month',
+        paid: false,
       });
     });
 
@@ -156,9 +310,7 @@ describe('posthog-sanitizer', () => {
       });
 
       expect(sanitized).toEqual({
-        budget: {
-          id: 'bud-123',
-        },
+        budget: {},
         metadata: {
           created: '2026-02-01',
           safe_info: 'keep',
@@ -174,9 +326,33 @@ describe('posthog-sanitizer', () => {
         ],
       });
 
-      expect(sanitized).toEqual({
-        transactions: [{ id: 'tx-1' }, { id: 'tx-2' }],
-      });
+      expect(sanitized).toEqual({ transactions: [{}, {}] });
+    });
+
+    it('drops cyclic branches without throwing or losing safe siblings', () => {
+      const cyclic: Record<string, unknown> = {
+        safe_state: 'completed',
+      };
+      cyclic['loop'] = cyclic;
+
+      expect(() => sanitizeRecord(cyclic)).not.toThrow();
+      expect(sanitizeRecord(cyclic)).toEqual({ safe_state: 'completed' });
+    });
+
+    it('drops branches beyond the generic traversal depth budget', () => {
+      const root: Record<string, unknown> = {};
+      let current = root;
+      for (let depth = 0; depth < 100; depth++) {
+        const next: Record<string, unknown> = {};
+        current['child'] = next;
+        current = next;
+      }
+      current['private_sentinel'] = 'must-not-survive';
+
+      const sanitized = sanitizeRecord({ safe_state: 'completed', root });
+
+      expect(sanitized['safe_state']).toBe('completed');
+      expect(JSON.stringify(sanitized)).not.toContain('must-not-survive');
     });
 
     it('sanitizes URLs in record properties', () => {
@@ -188,8 +364,8 @@ describe('posthog-sanitizer', () => {
       });
 
       expect(sanitized).toEqual({
-        budget_url: '/budget/[id]',
-        profile_link: '/transaction/[id]',
+        budget_url: '/budgets/[id]',
+        profile_link: '/transactions/[id]',
         homepage: 'https://example.com/path',
         safe_property: 'keep',
       });
@@ -209,16 +385,18 @@ describe('posthog-sanitizer', () => {
 
       const sanitized = sanitizeEventPayload(event);
 
-      expect(sanitized?.properties).toEqual({
-        budget_id: 'bud-123',
-      });
+      expect(sanitized?.properties).toEqual({});
     });
 
-    it('sanitizes $set properties', () => {
+    it('sanitizes $set properties while keeping intentional person metadata', () => {
       const event = {
         event: 'user_updated',
         $set: {
           user_id: 'user-123',
+          email: 'user@example.test',
+          name: 'First name',
+          supabase_user_id: 'technical-user-id',
+          currency: 'CHF',
           balance: 5000,
           monthly_income: 6000,
         },
@@ -227,7 +405,10 @@ describe('posthog-sanitizer', () => {
       const sanitized = sanitizeEventPayload(event);
 
       expect(sanitized?.$set).toEqual({
-        user_id: 'user-123',
+        email: 'user@example.test',
+        name: 'First name',
+        supabase_user_id: 'technical-user-id',
+        currency: 'CHF',
       });
     });
 
@@ -243,9 +424,7 @@ describe('posthog-sanitizer', () => {
 
       const sanitized = sanitizeEventPayload(event);
 
-      expect(sanitized?.$set_once).toEqual({
-        user_id: 'user-456',
-      });
+      expect(sanitized?.$set_once).toEqual({});
     });
 
     it('sanitizes $current_url system property', () => {
@@ -259,7 +438,7 @@ describe('posthog-sanitizer', () => {
       const sanitized = sanitizeEventPayload(event);
 
       expect(sanitized?.properties?.['$current_url']).toBe(
-        'https://app.local/budget/[id]?safe=1',
+        'https://app.local/budgets/[id]',
       );
     });
 
@@ -273,7 +452,535 @@ describe('posthog-sanitizer', () => {
 
       const sanitized = sanitizeEventPayload(event);
 
-      expect(sanitized?.properties?.['$pathname']).toBe('/budget/[id]');
+      expect(sanitized?.properties?.['$pathname']).toBe('/budgets/[id]');
+    });
+
+    it.each(['$prev_pageview_pathname', '$initial_pathname'])(
+      'masks dynamic resource IDs in the %s system property',
+      (property) => {
+        const event = {
+          event: '$pageview',
+          properties: {
+            [property]:
+              '/budget-templates/example-template-id/lines/example-line-id',
+          },
+        } as unknown as CaptureResult;
+
+        const sanitized = sanitizeEventPayload(event);
+
+        expect(sanitized?.properties?.[property]).toBe(
+          '/budget-templates/[id]/lines/[id]',
+        );
+      },
+    );
+
+    it.each([
+      '$referrer',
+      '$initial_referrer',
+      '$session_entry_referrer',
+      '$session_entry_url',
+    ])('sanitizes the %s system URL property', (property) => {
+      const event = {
+        event: '$pageview',
+        properties: {
+          [property]:
+            'https://app.local/savings-goals/example-goal-id?email=private%40example.test#details',
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+
+      expect(sanitized?.properties?.[property]).toBe(
+        'https://app.local/savings-goals/[id]',
+      );
+    });
+
+    it('drops query-derived campaign and search values from authenticated app events', () => {
+      const event = {
+        event: '$pageview',
+        properties: {
+          utm_source: 'private-source-value',
+          gclid: 'private-click-value',
+          ph_keyword: 'private-search-value',
+          $initial_utm_campaign: 'private-campaign-value',
+          $session_entry_utm_source: 'private-session-source-value',
+          $session_entry_gclid: 'private-session-click-value',
+          $session_entry_ph_keyword: 'private-session-search-value',
+          environment: 'production',
+          platform: 'web',
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+
+      expect(sanitized?.properties).toEqual({
+        environment: 'production',
+        platform: 'web',
+      });
+    });
+
+    it('rebuilds useful autocapture structure without DOM text or attributes', () => {
+      const privateSentinels = [
+        'example-budget-id',
+        'private-token',
+        'Private budget label',
+        'private-css-class',
+        'private-selector',
+      ];
+      const event = {
+        event: '$autocapture',
+        properties: {
+          $event_type: 'click',
+          $ce_version: 1,
+          $elements_chain:
+            'a.private-css-class:nth-child="2"nth-of-type="1"attr__href="/budgets/example-budget-id?token=private-token"',
+          $elements: [
+            {
+              tag_name: 'a',
+              classes: ['private-css-class'],
+              nth_child: 2,
+              nth_of_type: 1,
+              attr__id: 'example-budget-id',
+              attr__href: '/budgets/example-budget-id?token=private-token',
+              $el_text: 'Private budget label',
+            },
+            {
+              tag_name: 'nav',
+              classes: ['private-css-class'],
+              nth_child: 1,
+              nth_of_type: 1,
+            },
+          ],
+          $element_selectors: ['#private-selector'],
+          $el_text: 'Private budget label',
+          $external_click_url:
+            'https://app.local/budgets/example-budget-id?token=private-token',
+          private_context: 'Private budget label',
+          environment: 'production',
+          platform: 'web',
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+      const serialized = JSON.stringify(sanitized);
+
+      expect(sanitized?.properties).toEqual({
+        $event_type: 'click',
+        $ce_version: 1,
+        $elements: [
+          { tag_name: 'a', nth_child: 2, nth_of_type: 1 },
+          { tag_name: 'nav', nth_child: 1, nth_of_type: 1 },
+        ],
+        $elements_chain:
+          'a:nth-child="2"nth-of-type="1";nav:nth-child="1"nth-of-type="1"',
+        environment: 'production',
+        platform: 'web',
+      });
+      for (const sentinel of privateSentinels) {
+        expect(serialized).not.toContain(sentinel);
+      }
+    });
+
+    it.each(['change', 'submit', 'copy', 'cut'])(
+      'drops unsupported %s autocapture events',
+      (eventType) => {
+        const event = {
+          event: '$autocapture',
+          properties: {
+            $event_type: eventType,
+            $ce_version: 1,
+            $elements: [{ tag_name: 'input', nth_child: 1, nth_of_type: 1 }],
+            environment: 'production',
+          },
+        } as unknown as CaptureResult;
+
+        expect(sanitizeEventPayload(event)).toBeNull();
+      },
+    );
+
+    it('drops malformed autocapture element structures', () => {
+      const event = {
+        event: '$autocapture',
+        properties: {
+          $event_type: 'click',
+          $ce_version: 1,
+          $elements: [
+            {
+              tag_name: 'button',
+              nth_child: 'private-position',
+              nth_of_type: 1,
+            },
+          ],
+        },
+      } as unknown as CaptureResult;
+
+      expect(sanitizeEventPayload(event)).toBeNull();
+    });
+
+    it('drops autocapture events with missing properties', () => {
+      const event = {
+        event: '$autocapture',
+        properties: null,
+      } as unknown as CaptureResult;
+
+      expect(sanitizeEventPayload(event)).toBeNull();
+    });
+
+    it('sanitizes uncompressed rrweb snapshots before they leave the browser', () => {
+      const privateSentinels = [
+        'example-budget-id',
+        'private-query-value',
+        'Private budget label',
+        'private-style-value',
+        'private-config-value',
+      ];
+      const event = {
+        event: '$snapshot',
+        properties: {
+          $snapshot_bytes: 9999,
+          $snapshot_data: [
+            {
+              type: 4,
+              data: {
+                href: 'https://app.local/budgets/example-budget-id?token=private-query-value#details',
+                width: 1280,
+                height: 720,
+              },
+              timestamp: 1,
+            },
+            {
+              type: 2,
+              data: {
+                node: {
+                  type: 0,
+                  id: 1,
+                  childNodes: [
+                    {
+                      type: 1,
+                      id: 4,
+                      name: 'html',
+                      publicId: 'private-doctype-public-id',
+                      systemId: 'private-doctype-system-id',
+                    },
+                    {
+                      type: 2,
+                      id: 2,
+                      tagName: 'a',
+                      isShadowHost: true,
+                      attributes: {
+                        id: 'budget-example-budget-id',
+                        'data-testid': 'budget-example-budget-id',
+                        'aria-label': 'Private budget label',
+                        href: '/budgets/example-budget-id?token=private-query-value',
+                        class: 'budget-card active',
+                        style:
+                          'background-image:url(https://private-style-value.test/image)',
+                      },
+                      childNodes: [
+                        {
+                          type: 3,
+                          id: 3,
+                          textContent: 'Private budget label',
+                        },
+                      ],
+                    },
+                  ],
+                },
+                initialOffset: { top: 0, left: 0 },
+              },
+              timestamp: 2,
+            },
+            {
+              type: 3,
+              data: {
+                source: 0,
+                texts: [{ id: 3, value: 'Private budget label' }],
+                attributes: [
+                  {
+                    id: 2,
+                    attributes: {
+                      'data-testid': 'budget-example-budget-id',
+                      href: '/budgets/example-budget-id?token=private-query-value',
+                      style: 'background:url(https://private-style-value.test)',
+                    },
+                  },
+                ],
+                removes: [],
+                adds: [],
+              },
+              timestamp: 3,
+            },
+            {
+              type: 3,
+              data: {
+                source: 5,
+                id: 5,
+                text: 'Private input value',
+                isChecked: false,
+              },
+              timestamp: 3.5,
+            },
+            {
+              type: 3,
+              data: {
+                source: 8,
+                adds: [
+                  {
+                    rule: 'body{background:url(https://private-style-value.test)}',
+                  },
+                ],
+              },
+              timestamp: 4,
+            },
+            {
+              type: 5,
+              data: {
+                tag: '$posthog_config',
+                payload: { token: 'private-config-value' },
+              },
+              timestamp: 5,
+            },
+          ],
+          environment: 'production',
+          platform: 'web',
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+      const serialized = JSON.stringify(
+        sanitized?.properties?.['$snapshot_data'],
+      );
+
+      expect(sanitized).not.toBeNull();
+      expect(serialized).toContain('/budgets/[id]');
+      expect(serialized).not.toContain('budget-card active');
+      expect(serialized).toContain('******* ****** *****');
+      expect(serialized).toContain('"name":"html"');
+      expect(serialized).toContain('"text":"******* ***** *****"');
+      expect(serialized).toContain('"isShadowHost":true');
+      expect(serialized).not.toContain('private-doctype');
+      for (const sentinel of privateSentinels) {
+        expect(serialized).not.toContain(sentinel);
+      }
+      expect(sanitized?.properties?.['$snapshot_data']).toHaveLength(4);
+      expect(sanitized?.properties?.['$snapshot_bytes']).not.toBe(9999);
+      const sanitizedEvents = sanitized?.properties?.[
+        '$snapshot_data'
+      ] as Record<string, unknown>[];
+      expect(sanitized?.properties?.['$snapshot_bytes']).toBe(
+        sanitizedEvents.reduce<number>(
+          (total, replayEvent) => total + JSON.stringify(replayEvent).length,
+          0,
+        ),
+      );
+      expect(sanitized?.properties?.['environment']).toBe('production');
+      expect(sanitized?.properties?.['platform']).toBe('web');
+    });
+
+    it('keeps valid rrweb attribute shapes without retaining their free-form values', () => {
+      const event = {
+        event: '$snapshot',
+        properties: {
+          $snapshot_data: [
+            {
+              type: 2,
+              timestamp: 1,
+              data: {
+                initialOffset: { top: 0, left: 0 },
+                node: {
+                  type: 0,
+                  id: 1,
+                  childNodes: [
+                    {
+                      type: 2,
+                      id: 2,
+                      tagName: 'input',
+                      attributes: {
+                        type: 'hidden',
+                        disabled: 'disabled',
+                      },
+                      childNodes: [],
+                    },
+                    {
+                      type: 2,
+                      id: 3,
+                      tagName: 'object',
+                      attributes: {
+                        type: 'application/private-value',
+                      },
+                      childNodes: [],
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+      const serialized = JSON.stringify(sanitized);
+
+      expect(sanitized).not.toBeNull();
+      expect(serialized).toContain('"type":"hidden"');
+      expect(serialized).toContain('"disabled":""');
+      expect(serialized).not.toContain('private-value');
+    });
+
+    it.each(['color', 'datetime-local', 'file', 'image', 'month', 'week'])(
+      'preserves the safe structural input type %s',
+      (inputType) => {
+        const event = {
+          event: '$snapshot',
+          properties: {
+            $snapshot_data: [
+              {
+                type: 2,
+                timestamp: 1,
+                data: {
+                  initialOffset: { top: 0, left: 0 },
+                  node: {
+                    type: 0,
+                    id: 1,
+                    childNodes: [
+                      {
+                        type: 2,
+                        id: 2,
+                        tagName: 'input',
+                        attributes: { type: inputType },
+                        childNodes: [],
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        } as unknown as CaptureResult;
+
+        expect(
+          JSON.stringify(
+            sanitizeEventPayload(event)?.properties?.['$snapshot_data'],
+          ),
+        ).toContain(`"type":"${inputType}"`);
+      },
+    );
+
+    it.each(['$pageview', '$url_changed'])(
+      'preserves the %s replay marker with only a sanitized href',
+      (tag) => {
+        const event = {
+          event: '$snapshot',
+          properties: {
+            $snapshot_data: [
+              {
+                type: 5,
+                timestamp: 1,
+                data: {
+                  tag,
+                  payload: {
+                    href: 'https://app.local/budgets/example-budget-id?token=private#details',
+                    private_context: 'private-value',
+                  },
+                },
+              },
+            ],
+          },
+        } as unknown as CaptureResult;
+
+        const sanitized = sanitizeEventPayload(event);
+
+        expect(sanitized?.properties?.['$snapshot_data']).toEqual([
+          {
+            type: 5,
+            timestamp: 1,
+            data: {
+              tag,
+              payload: {
+                href: 'https://app.local/budgets/[id]',
+              },
+            },
+          },
+        ]);
+        expect(JSON.stringify(sanitized)).not.toContain('private-value');
+      },
+    );
+
+    it('drops compressed or malformed replay payloads fail closed', () => {
+      const event = {
+        event: '$snapshot',
+        properties: {
+          $snapshot_data: [
+            {
+              type: 2,
+              cv: '2024-10',
+              data: 'opaque-private-compressed-payload',
+              timestamp: 1,
+            },
+          ],
+        },
+      } as unknown as CaptureResult;
+
+      expect(sanitizeEventPayload(event)).toBeNull();
+    });
+
+    it('drops cyclic replay payloads without throwing', () => {
+      const node: Record<string, unknown> = {
+        type: 0,
+        id: 1,
+        childNodes: [],
+      };
+      (node['childNodes'] as unknown[]).push(node);
+      const event = {
+        event: '$snapshot',
+        properties: {
+          $snapshot_data: [
+            {
+              type: 2,
+              timestamp: 1,
+              data: { node, initialOffset: { top: 0, left: 0 } },
+            },
+          ],
+        },
+      } as unknown as CaptureResult;
+
+      expect(() => sanitizeEventPayload(event)).not.toThrow();
+      expect(sanitizeEventPayload(event)).toBeNull();
+    });
+
+    it('drops replay payloads beyond the traversal depth budget', () => {
+      const root: Record<string, unknown> = {
+        type: 0,
+        id: 1,
+        childNodes: [],
+      };
+      let current = root;
+      for (let depth = 0; depth < 100; depth++) {
+        const child: Record<string, unknown> = {
+          type: 2,
+          id: depth + 2,
+          tagName: 'div',
+          attributes: {},
+          childNodes: [],
+        };
+        (current['childNodes'] as unknown[]).push(child);
+        current = child;
+      }
+      const event = {
+        event: '$snapshot',
+        properties: {
+          $snapshot_data: [
+            {
+              type: 2,
+              timestamp: 1,
+              data: { node: root, initialOffset: { top: 0, left: 0 } },
+            },
+          ],
+        },
+      } as unknown as CaptureResult;
+
+      expect(() => sanitizeEventPayload(event)).not.toThrow();
+      expect(sanitizeEventPayload(event)).toBeNull();
     });
 
     it('preserves business properties that merely contain pathname in their key', () => {
@@ -330,6 +1037,11 @@ describe('posthog-sanitizer', () => {
       const event = {
         event: '$exception',
         properties: {
+          $exception_message: sentinel,
+          $exception_values: [sentinel],
+          $exception_types: [sentinel],
+          $exception_fingerprint: sentinel,
+          $exception_level: 'error',
           $exception_list: [
             {
               type: 'TypeError',
@@ -366,6 +1078,11 @@ describe('posthog-sanitizer', () => {
       )[0];
 
       expect(output).not.toContain(sentinel);
+      expect(sanitized?.properties?.['$exception_message']).toBeUndefined();
+      expect(sanitized?.properties?.['$exception_values']).toBeUndefined();
+      expect(sanitized?.properties?.['$exception_types']).toBeUndefined();
+      expect(sanitized?.properties?.['$exception_fingerprint']).toBeUndefined();
+      expect(sanitized?.properties?.['$exception_level']).toBe('error');
       expect(exception).not.toHaveProperty('value');
       expect(exception).toMatchObject({
         type: 'TypeError',
@@ -375,6 +1092,7 @@ describe('posthog-sanitizer', () => {
             {
               platform: 'web:javascript',
               filename: '/main.js',
+              function: 'loadBudget',
               lineno: 12,
               colno: 4,
             },
@@ -471,10 +1189,8 @@ describe('posthog-sanitizer', () => {
       const sanitized = sanitizeEventPayload(event);
 
       expect(sanitized?.properties).toEqual({
-        budget_id: 'bud-001',
         month: '2026-02',
         has_savings_goal: true,
-        template_id: 'tpl-123',
         charges_count: 5,
       });
     });
@@ -497,7 +1213,6 @@ describe('posthog-sanitizer', () => {
 
       expect(sanitized?.properties).toEqual({
         kind: 'expense',
-        budget_id: 'bud-456',
       });
     });
 
@@ -546,12 +1261,8 @@ describe('posthog-sanitizer', () => {
       const sanitized = sanitizeEventPayload(event);
 
       expect(sanitized?.properties).toEqual({
-        budget: {
-          id: 'bud-123',
-          lines: [{ id: 'line-1' }, { id: 'line-2' }],
-        },
+        budget: { lines: [{}, {}] },
         export_format: 'csv',
-        user_id: 'usr-456',
       });
     });
 
@@ -575,7 +1286,6 @@ describe('posthog-sanitizer', () => {
       const sanitized = sanitizeEventPayload(event);
 
       expect(sanitized?.properties).toEqual({
-        goal_id: 'sg-001',
         status: 'ACTIVE',
       });
     });
@@ -600,8 +1310,7 @@ describe('posthog-sanitizer', () => {
       const sanitized = sanitizeEventPayload(event);
 
       expect(sanitized?.properties).toEqual({
-        budget_id: 'bud-123',
-        transactions: [{ id: 'tx-1' }, { id: 'tx-2' }],
+        transactions: [{}, {}],
         view_duration_seconds: 45,
         has_savings: true,
       });

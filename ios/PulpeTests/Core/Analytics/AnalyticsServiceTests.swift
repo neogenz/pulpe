@@ -302,29 +302,29 @@ struct AnalyticsServiceTests {
 
 @Suite
 struct ScreenViewDeduplicatorTests {
-    @Test func suppressesOnlySavingsGoalsBursts() {
-        let start: TimeInterval = 1_000
-        var deduplicator = ScreenViewDeduplicator(minimumInterval: 1)
+    @Test func shouldCapture_repeatedTargetScreen_suppressesOnlyConsecutiveDuplicate() {
+        let start = ContinuousClock.now
+        var deduplicator = ScreenViewDeduplicator(minimumInterval: .seconds(1))
 
         let initialCapture = deduplicator.shouldCapture(
-            "SavingsGoalsList",
+            AnalyticsScreen.savingsGoalsList,
             hasProperties: false,
             at: start
         )
         let duplicateCapture = deduplicator.shouldCapture(
-            "SavingsGoalsList",
+            AnalyticsScreen.savingsGoalsList,
             hasProperties: false,
-            at: start + 0.05
+            at: start.advanced(by: .milliseconds(50))
         )
         let otherScreenCapture = deduplicator.shouldCapture(
             "BudgetDetails",
             hasProperties: false,
-            at: start + 0.06
+            at: start.advanced(by: .milliseconds(60))
         )
         let rearmedCapture = deduplicator.shouldCapture(
-            "SavingsGoalsList",
+            AnalyticsScreen.savingsGoalsList,
             hasProperties: false,
-            at: start + 0.07
+            at: start.advanced(by: .milliseconds(70))
         )
 
         #expect(initialCapture)
@@ -333,24 +333,24 @@ struct ScreenViewDeduplicatorTests {
         #expect(rearmedCapture)
     }
 
-    @Test func rejectionsDoNotExtendTheWindow() {
-        let start: TimeInterval = 1_000
-        var deduplicator = ScreenViewDeduplicator(minimumInterval: 1)
+    @Test func shouldCapture_rejectedDuplicate_doesNotExtendWindow() {
+        let start = ContinuousClock.now
+        var deduplicator = ScreenViewDeduplicator(minimumInterval: .seconds(1))
 
         let initialCapture = deduplicator.shouldCapture(
-            "SavingsGoalsList",
+            AnalyticsScreen.savingsGoalsList,
             hasProperties: false,
             at: start
         )
         let duplicateCapture = deduplicator.shouldCapture(
-            "SavingsGoalsList",
+            AnalyticsScreen.savingsGoalsList,
             hasProperties: false,
-            at: start + 0.9
+            at: start.advanced(by: .milliseconds(900))
         )
         let captureAfterWindow = deduplicator.shouldCapture(
-            "SavingsGoalsList",
+            AnalyticsScreen.savingsGoalsList,
             hasProperties: false,
-            at: start + 1.01
+            at: start.advanced(by: .milliseconds(1_010))
         )
 
         #expect(initialCapture)
@@ -358,9 +358,9 @@ struct ScreenViewDeduplicatorTests {
         #expect(captureAfterWindow)
     }
 
-    @Test func preservesNonTargetAndEnrichedViews() {
-        let start: TimeInterval = 1_000
-        var deduplicator = ScreenViewDeduplicator(minimumInterval: 1)
+    @Test func shouldCapture_nonTargetOrEnrichedTarget_preservesView() {
+        let start = ContinuousClock.now
+        var deduplicator = ScreenViewDeduplicator(minimumInterval: .seconds(1))
 
         let firstNonTargetCapture = deduplicator.shouldCapture(
             "BudgetDetails",
@@ -370,12 +370,12 @@ struct ScreenViewDeduplicatorTests {
         let repeatedNonTargetCapture = deduplicator.shouldCapture(
             "BudgetDetails",
             hasProperties: false,
-            at: start + 0.01
+            at: start.advanced(by: .milliseconds(10))
         )
         let enrichedTargetCapture = deduplicator.shouldCapture(
-            "SavingsGoalsList",
+            AnalyticsScreen.savingsGoalsList,
             hasProperties: true,
-            at: start + 0.02
+            at: start.advanced(by: .milliseconds(20))
         )
 
         #expect(firstNonTargetCapture)

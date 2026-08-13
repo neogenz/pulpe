@@ -170,7 +170,7 @@ describe('httpErrorInterceptor', () => {
       httpStatus: 500,
       backendErrorCode: 'ERR_SEARCH_FAILED',
       request_id: requestId,
-      httpUrl: 'http://localhost:3000/api/test?year=2026',
+      httpUrl: 'http://localhost:3000/',
     });
     const exception = (
       sanitized?.properties?.['$exception_list'] as Record<string, unknown>[]

@@ -1,5 +1,5 @@
 ---
-description: PostHog recording privacy — hide financial amounts from session replays
+description: PostHog recording privacy — defence in depth for authenticated replays
 paths:
   - "frontend/**/*.{ts,html,scss}"
 ---
@@ -8,17 +8,19 @@ paths:
 
 ## Rule
 
-**ALWAYS** add `ph-no-capture` CSS class to elements displaying sensitive financial amounts.
+**ALWAYS** add `ph-no-capture` CSS class to elements displaying sensitive financial amounts or user-entered business text.
 
 The class does **two** jobs, and the second one is the reason it must never be renamed.
 
 1. **Blur on demand.** `AmountsVisibilityService` toggles "hide amounts" (screen-sharing mode); the global rule in `styles.scss` applies `filter: blur()` + `pointer-events: none` to `.ph-no-capture` elements when `body.amounts-hidden` is active.
-2. **Exclusion from session replay.** posthog-js hardcodes `ph-no-capture` as rrweb's `blockClass`. Blocked elements are never serialized into a recording — they are replaced by an empty placeholder of the same size. This is stronger than text masking, and it applies **unconditionally**, whatever the blur toggle is set to.
+2. **Defence-in-depth replay exclusion.** posthog-js hardcodes `ph-no-capture` as rrweb's `blockClass`. Blocked elements are replaced by an empty placeholder of the same size before the local replay sanitizer runs.
 
 Consequences:
 
 - Never bind the class conditionally (`[class.ph-no-capture]="…"`) on an element that renders an amount: the replay stops being blocked whenever the expression is false.
-- Never rename the class to match the blur feature. `session_recording` in `core/analytics/posthog.ts` carries no `maskTextSelector`, so this class is the only thing keeping rendered amounts out of replays. Form field values are covered separately by `maskAllInputs: true`.
+- Never rename the class to match the blur feature. `session_recording` in `core/analytics/posthog.ts` masks every text node and input, blocks URL-bearing DOM nodes, and rebuilds uncompressed rrweb events through a fail-closed schema before sending. `ph-no-capture` remains an earlier, independent barrier for rendered amounts and business text.
+- Never weaken `maskTextSelector: '*'`, `maskAllInputs: true`, the replay block selector, `compress_events: false`, or the strict `$snapshot` sanitizer without a privacy review against the exact installed `posthog-js` version.
+- Keep native `posthog-js` `autocapture` disabled. Pulpe's authenticated click tracking uses the structure-only listener in `core/analytics/posthog.ts`, which emits `$autocapture` with tag names and numeric sibling positions only. It must never read or forward DOM text, input values, classes, IDs, selectors, URLs, attributes, or `data-ph-capture-attribute-*`; `before_send` rebuilds the same allowlisted structure as a second barrier.
 
 ## What to mark
 

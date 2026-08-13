@@ -15,22 +15,25 @@ struct AuthSessionDiagnosticSnapshot: Sendable {
     let isExpectedUserAction: Bool?
 }
 
-struct ScreenViewDeduplicator {
-    private static let targetScreenName = "SavingsGoalsList"
-    private let minimumInterval: TimeInterval
-    private var lastScreenName: String?
-    private var lastCapturedAt: TimeInterval?
+enum AnalyticsScreen {
+    static let savingsGoalsList = "SavingsGoalsList"
+}
 
-    init(minimumInterval: TimeInterval = 1) {
+struct ScreenViewDeduplicator {
+    private let minimumInterval: Duration
+    private var lastScreenName: String?
+    private var lastCapturedAt: ContinuousClock.Instant?
+
+    init(minimumInterval: Duration = .seconds(1)) {
         self.minimumInterval = minimumInterval
     }
 
     mutating func shouldCapture(
         _ name: String,
         hasProperties: Bool,
-        at timestamp: TimeInterval = ProcessInfo.processInfo.systemUptime
+        at timestamp: ContinuousClock.Instant = .now
     ) -> Bool {
-        guard name == Self.targetScreenName, !hasProperties else {
+        guard name == AnalyticsScreen.savingsGoalsList, !hasProperties else {
             reset()
             return true
         }
