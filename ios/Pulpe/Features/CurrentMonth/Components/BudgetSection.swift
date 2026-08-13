@@ -266,7 +266,7 @@ struct BudgetLineRow: View {
     ) -> String {
         let spent = consumption.allocated.asCurrency(currency)
         if consumption.available < 0 {
-            return "\(spent) dépensés · Dépassé de \((-consumption.available).asCurrency(currency))"
+            return "\(spent) dépensés · Dépassé de \((-consumption.available).asCompactCurrency(currency))"
         }
         return "\(spent) dépensés · \(Int(consumption.percentage.rounded()))% utilisé"
     }
