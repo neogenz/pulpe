@@ -26,21 +26,6 @@ import {
 } from './posthog-sanitizer';
 
 const POSTHOG_PERSISTENCE_NAME = 'pulpe_app';
-const REPLAY_URL_ATTRIBUTE_BLOCK_SELECTOR = [
-  '[href]',
-  '[src]',
-  '[srcset]',
-  '[action]',
-  '[formaction]',
-  '[poster]',
-  '[data]',
-  '[background]',
-  '[xlink\\:href]',
-  '[style]',
-  'style',
-  'link',
-  'base',
-].join(',');
 
 function expireLegacySharedCookie(apiKey: string): void {
   const expiredCookie = `ph_${apiKey}_posthog=; Max-Age=0; Path=/; SameSite=Lax`;
@@ -139,29 +124,26 @@ export class PostHogService implements OnDestroy {
         capture_heatmaps: false,
         capture_dead_clicks: false,
         enable_recording_console_log: false,
+        disable_surveys: true,
+        disable_product_tours: true,
+        disable_conversations: true,
+        strict_script_versioning: true,
         save_campaign_params: false,
         save_referrer: false,
 
-        // Replay is fail-closed locally: all text/inputs are masked; URL-bearing
-        // DOM nodes, styles, canvas, cross-origin frames, bodies, headers and
-        // console logs are excluded. Client masking takes precedence over the
-        // remote replay config in posthog-js. `ph-no-capture` remains an extra
-        // load-bearing guard for rendered amounts. See `.claude/rules/
-        // 05-workflows-and-processes/posthog-privacy.md` before renaming it.
+        // Keep product copy and layout visible for support. Inputs are masked,
+        // sensitive DOM subtrees use PostHog's native `ph-no-capture` block,
+        // and replay URLs are sanitized before leaving the browser. See
+        // `.claude/rules/05-workflows-and-processes/posthog-privacy.md`.
         session_recording: {
           maskAllInputs: true,
-          maskTextSelector: '*',
-          blockSelector: REPLAY_URL_ATTRIBUTE_BLOCK_SELECTOR,
-          inlineStylesheet: false,
+          inlineStylesheet: true,
           collectFonts: false,
           slimDOMOptions: 'all',
           captureCanvas: { recordCanvas: false },
           recordCrossOriginIframes: false,
           recordBody: false,
           recordHeaders: false,
-          // Keep rrweb fields inspectable by before_send. Transport compression
-          // remains enabled by PostHog when the sanitized event is sent.
-          compress_events: false,
           // posthog-js hashes the session ID, so the sampling decision remains
           // stable across page reloads for the whole session.
           sampleRate: config.sessionRecording.sampleRate,
@@ -187,7 +169,7 @@ export class PostHogService implements OnDestroy {
         persistence_name: POSTHOG_PERSISTENCE_NAME,
         cross_subdomain_cookie: false,
 
-        // Sanitize financial data before sending
+        // Sanitize application events; PostHog replay internals stay opaque.
         before_send: this.#sanitizeEvent.bind(this),
 
         loaded: () => {
@@ -608,9 +590,7 @@ export class PostHogService implements OnDestroy {
     this.#stopNavigationTracking();
   }
 
-  /**
-   * Sanitize events to protect financial data
-   */
+  /** Sanitize application events while preserving PostHog internals. */
   #sanitizeEvent(event: CaptureResult | null): CaptureResult | null {
     if (!event) return null;
 

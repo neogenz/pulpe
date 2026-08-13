@@ -155,6 +155,10 @@ describe('PostHogService', () => {
         capture_heatmaps: false,
         capture_dead_clicks: false,
         enable_recording_console_log: false,
+        disable_surveys: true,
+        disable_product_tours: true,
+        disable_conversations: true,
+        strict_script_versioning: true,
         save_campaign_params: false,
         save_referrer: false,
       }),
@@ -201,28 +205,19 @@ describe('PostHogService', () => {
     );
   });
 
-  it('blocks URL-bearing DOM nodes and styles from session replay', async () => {
+  it('keeps replay useful while relying on selective native masking', async () => {
     await service.initialize();
 
     const sessionRecording = initializationOptions?.[
       'session_recording'
     ] as Record<string, unknown>;
-    const blockSelector = sessionRecording['blockSelector'];
 
-    expect(blockSelector).toEqual(expect.any(String));
-    expect(blockSelector).toContain('[href]');
-    expect(blockSelector).toContain('[src]');
-    expect(blockSelector).toContain('[srcset]');
-    expect(blockSelector).toContain('[action]');
-    expect(blockSelector).toContain('[style]');
-    expect(blockSelector).toContain('style');
-    expect(blockSelector).toContain('link');
-    expect(sessionRecording['maskTextSelector']).toBe('*');
-    expect(sessionRecording['inlineStylesheet']).toBe(false);
-    expect(sessionRecording['compress_events']).toBe(false);
-    expect(() =>
-      document.querySelectorAll(blockSelector as string),
-    ).not.toThrow();
+    expect(sessionRecording['maskAllInputs']).toBe(true);
+    expect(sessionRecording).not.toHaveProperty('maskTextSelector');
+    expect(sessionRecording).not.toHaveProperty('blockSelector');
+    expect(sessionRecording['inlineStylesheet']).toBe(true);
+    expect(sessionRecording['collectFonts']).toBe(false);
+    expect(sessionRecording).not.toHaveProperty('compress_events');
   });
 
   it('sanitizes replay URLs and drops payload fields defensively', async () => {
