@@ -11,6 +11,7 @@ const FOOTER_LINKS = [
     href: `${ANGULAR_APP_URL}/legal/confidentialite`,
   },
   { label: "Nouveautés", href: "/changelog", internal: true },
+  { label: "Guides", href: "/guides", internal: true },
   { label: "Aide", href: "/support", internal: true },
   { label: "Contact", href: `mailto:${CONTACT_EMAIL}` },
 ] as const;

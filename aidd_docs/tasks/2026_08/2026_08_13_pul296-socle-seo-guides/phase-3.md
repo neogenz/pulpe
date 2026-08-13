@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Découvrabilité — sitemap dynamique, entité Organization, maillage
