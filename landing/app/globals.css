@@ -554,3 +554,97 @@ h3,
     transition: none;
   }
 }
+
+/* Typographie des articles /guides : Poppins seul, mesure 65–75ch, aucune
+   animation de contenu. Les titres restent en encre végétale, le corps en
+   encre secondaire, comme le reste de la landing. */
+.guide-prose {
+  max-width: 70ch;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--color-text-secondary);
+}
+
+.guide-prose > * + * {
+  margin-top: 1.25em;
+}
+
+.guide-prose h2 {
+  margin-top: 2.25em;
+  font-size: 1.625rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  color: var(--color-text);
+}
+
+.guide-prose h3 {
+  margin-top: 1.75em;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.guide-prose strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.guide-prose a {
+  color: var(--color-primary);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Le preflight Tailwind retire puces et retraits. */
+.guide-prose ul {
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+
+.guide-prose ol {
+  padding-left: 1.5rem;
+  list-style: decimal;
+}
+
+.guide-prose li {
+  padding-left: 0.25rem;
+}
+
+.guide-prose li + li {
+  margin-top: 0.5em;
+}
+
+.guide-prose blockquote {
+  padding-left: 1.25rem;
+  border-left: 3px solid var(--color-primary);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+/* Un tableau large défile dans son conteneur, jamais la page. */
+.guide-prose .table-scroll {
+  overflow-x: auto;
+}
+
+.guide-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.guide-prose th,
+.guide-prose td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid rgba(26, 28, 25, 0.1);
+  text-align: left;
+}
+
+.guide-prose th {
+  font-weight: 600;
+  color: var(--color-text);
+}

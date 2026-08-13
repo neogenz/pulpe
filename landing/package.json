@@ -15,7 +15,7 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test app/accessibility.test.tsx lib/amount.test.ts lib/visitorCurrency.test.ts lib/bodyScrollLock.test.ts scripts/create-release.test.js",
+    "test": "tsx --test --experimental-test-module-mocks app/accessibility.test.tsx components/guides/ArticleLayout.test.tsx lib/amount.test.ts lib/visitorCurrency.test.ts lib/bodyScrollLock.test.ts scripts/create-release.test.js",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "generate:og": "npx tsx scripts/generate-og-image.ts",
