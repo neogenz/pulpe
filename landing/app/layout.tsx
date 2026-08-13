@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import { PostHogProvider } from "../components/PostHogProvider";
+import { getDictionary } from "../content/dictionary";
 import {
   DESKTOP_BREAKPOINT_PX,
   MOBILE_NAV_ID,
   MOBILE_NAV_PANEL_ID,
   SCROLL_SENTINEL_ID,
 } from "../lib/config";
+import { DEFAULT_LOCALE } from "../lib/i18n";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -18,66 +20,66 @@ const poppins = Poppins({
 });
 
 const SOCIAL_PREVIEW_IMAGE = "/pulpe-social-preview.png?v=2";
-const SOCIAL_PREVIEW_ALT =
-  "Pulpe projette ton budget sur l’année et montre combien il te restera";
-const SOCIAL_DESCRIPTION =
-  "Planifie tes revenus, tes dépenses et ton épargne. Pulpe te montre combien il te restera chaque mois, sans connexion bancaire.";
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://pulpe.app"),
-  title: {
-    template: "%s | Pulpe",
-    default: "Pulpe | Tu sais des mois d’avance combien il te restera",
-  },
-  description: SOCIAL_DESCRIPTION,
-  applicationName: "Pulpe",
-  verification: {
-    google: "20-QgsBLcccy2f1lY275s0mayKmxWZZWo9Rg8aGxTQ0",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    title: "Pulpe | Tu sais des mois d’avance combien il te restera",
-    description: SOCIAL_DESCRIPTION,
-    siteName: "Pulpe",
-    type: "website",
-    url: "/",
-    locale: "fr_CH",
-    alternateLocale: ["fr_FR"],
-    images: [
-      {
-        url: SOCIAL_PREVIEW_IMAGE,
-        width: 1200,
-        height: 630,
-        alt: SOCIAL_PREVIEW_ALT,
-        type: "image/png",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Pulpe | Tu sais des mois d’avance combien il te restera",
-    description: SOCIAL_DESCRIPTION,
-    images: [
-      {
-        url: SOCIAL_PREVIEW_IMAGE,
-        alt: SOCIAL_PREVIEW_ALT,
-        type: "image/png",
-        width: 1200,
-        height: 630,
-      },
-    ],
-  },
-  icons: {
-    icon: "/icon-192.png",
-    apple: "/apple-touch-icon.png",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { site } = await getDictionary(DEFAULT_LOCALE);
+
+  return {
+    metadataBase: new URL("https://pulpe.app"),
+    title: {
+      template: site.titleTemplate,
+      default: site.titleDefault,
+    },
+    description: site.description,
+    applicationName: "Pulpe",
+    verification: {
+      google: "20-QgsBLcccy2f1lY275s0mayKmxWZZWo9Rg8aGxTQ0",
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+    alternates: {
+      canonical: "/",
+    },
+    openGraph: {
+      title: site.titleDefault,
+      description: site.description,
+      siteName: "Pulpe",
+      type: "website",
+      url: "/",
+      locale: "fr_CH",
+      alternateLocale: ["fr_FR"],
+      images: [
+        {
+          url: SOCIAL_PREVIEW_IMAGE,
+          width: 1200,
+          height: 630,
+          alt: site.socialImageAlt,
+          type: "image/png",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: site.titleDefault,
+      description: site.description,
+      images: [
+        {
+          url: SOCIAL_PREVIEW_IMAGE,
+          alt: site.socialImageAlt,
+          type: "image/png",
+          width: 1200,
+          height: 630,
+        },
+      ],
+    },
+    icons: {
+      icon: "/icon-192.png",
+      apple: "/apple-touch-icon.png",
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#eaf6e6",
@@ -138,41 +140,44 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 else start();
 })();`;
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "WebSite",
-      "@id": "https://pulpe.app/#website",
-      url: "https://pulpe.app",
-      name: "Pulpe",
-      alternateName: ["pulpe", "Pulpe app", "pulpe.app"],
-      description:
-        "Pulpe calcule ton disponible mois après mois à partir de tes revenus, de tes dépenses et de ton épargne, sans connexion bancaire.",
-      inLanguage: "fr-CH",
-    },
-    {
-      "@type": "SoftwareApplication",
-      "@id": "https://pulpe.app/#app",
-      name: "Pulpe",
-      description:
-        "Pulpe calcule ton disponible mois après mois à partir de tes revenus, de tes dépenses et de ton épargne, sans connexion bancaire.",
-      applicationCategory: "FinanceApplication",
-      operatingSystem: "Web, iOS",
-      offers: {
-        "@type": "Offer",
-        price: "0",
-        priceCurrency: "CHF",
+function buildJsonLd(description: string) {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://pulpe.app/#website",
+        url: "https://pulpe.app",
+        name: "Pulpe",
+        alternateName: ["pulpe", "Pulpe app", "pulpe.app"],
+        description,
+        inLanguage: "fr-CH",
       },
-    },
-  ],
-};
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://pulpe.app/#app",
+        name: "Pulpe",
+        description,
+        applicationCategory: "FinanceApplication",
+        operatingSystem: "Web, iOS",
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "CHF",
+        },
+      },
+    ],
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { site } = await getDictionary(DEFAULT_LOCALE);
+  const jsonLd = buildJsonLd(site.graphDescription);
+
   return (
     <html lang="fr" className={poppins.variable} suppressHydrationWarning>
       <head>

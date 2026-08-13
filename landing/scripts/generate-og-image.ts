@@ -23,6 +23,7 @@ import {
   HERO_SPENT,
   HERO_SPENT_PERCENT,
 } from "@/lib/heroMock";
+import fr from "@/content/dictionaries/fr";
 
 // L'aperçu social est un PNG figé, servi identique à tous les visiteurs : il ne
 // peut pas suivre la devise du navigateur comme la page, donc il assume le
@@ -666,7 +667,7 @@ async function generateOgImage() {
                                 },
                                 ...HERO_PREVISIONS.map((prevision) =>
                                   forecastRow(
-                                    prevision.label,
+                                    fr.home.dashboard.previsions[prevision.id],
                                     formatMoney(prevision.amount, OG_CURRENCY),
                                     prevision.state !== "unchecked",
                                   ),

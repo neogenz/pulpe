@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import { CurrencyUnit } from "@/components/ui";
+import type { Dictionary } from "@/content/dictionary";
 import {
   MonthAvailableVisual,
   MonthTemplateVisual,
@@ -17,63 +19,54 @@ import {
 // under 4px. Cropping only traded that for amputated cards and dimmed past
 // months, because the captures were framed for a different purpose. Drawn
 // instead, they stay sharp at any density and carry one consistent arithmetic.
-const STEPS = [
-  {
-    number: "1",
-    title: "Renseigne un mois habituel",
-    description:
-      "Ajoute tes revenus, tes dépenses récurrentes et ce que tu veux mettre de côté.",
-    image: {
-      caption: (
-        <>
-          Ton mois type : sur 3 500 <CurrencyUnit /> de revenu, 1 600 de
-          dépenses récurrentes et 500 d’épargne laissent 1 400 disponibles
-          chaque mois
-        </>
-      ),
-      content: <MonthTemplateVisual />,
-    },
-  },
-  {
-    number: "2",
-    title: "Place ce qui change",
-    description:
-      "Ajoute les impôts, les vacances et les gros achats dans les mois où ils auront lieu.",
-    image: {
-      caption: (
-        <>
-          Ton année : douze mois à 1 400 <CurrencyUnit /> disponibles, sauf
-          juillet à 500 pour les impôts, août à 700 pour les vacances et
-          décembre à 200 pour un gros achat
-        </>
-      ),
-      content: <YearSpreadVisual />,
-    },
-  },
-  {
-    number: "3",
-    title: "Vois combien il te restera",
-    description:
-      "Ouvre un mois à venir pour voir ton disponible, puis ajuste ton budget si besoin.",
-    image: {
-      caption: (
-        <>
-          Juillet : sur 3 500 <CurrencyUnit /> de revenu, 1 600 de récurrent,
-          500 d’épargne et 900 d’impôts laissent 500 disponibles
-        </>
-      ),
-      content: <MonthAvailableVisual />,
-    },
-  },
-];
+// L'ordre des étapes, leur numéro et le visuel de chacune sont structurels et
+// restent ici. Seuls le titre, la phrase et la légende changent de langue.
+const STEP_IDS = ["template", "year", "month"] as const;
 
-export function HowItWorks() {
+const STEP_VISUALS = {
+  template: MonthTemplateVisual,
+  year: YearSpreadVisual,
+  month: MonthAvailableVisual,
+} as const;
+
+interface Step {
+  number: string;
+  title: string;
+  description: string;
+  caption: ReactNode;
+  visual: ReactNode;
+}
+
+export function HowItWorks({
+  dict,
+}: {
+  dict: Dictionary["home"]["howItWorks"];
+}) {
+  const steps: Step[] = STEP_IDS.map((id, index) => {
+    const Visual = STEP_VISUALS[id];
+    return {
+      number: String(index + 1),
+      title: dict.steps[id].title,
+      description: dict.steps[id].description,
+      // L'unité monétaire suit le visiteur, pas la langue de la page : la
+      // légende est donc coupée autour d'elle plutôt qu'écrite d'un bloc.
+      caption: (
+        <>
+          {dict.steps[id].captionLead}
+          <CurrencyUnit />
+          {dict.steps[id].captionTail}
+        </>
+      ),
+      visual: <Visual dict={dict.visuals} />,
+    };
+  });
+
   // Desktop runs on three shared rows: visual, title, paragraph. Each li is a
   // subgrid of those rows, so a title that wraps to two lines at 834px pushes
   // all three paragraphs down together instead of only its own column's.
   return (
     <ol className="mx-auto mt-12 grid max-w-6xl gap-y-12 sm:mt-16 md:grid-cols-3 md:grid-rows-[auto_auto_auto] md:gap-x-6 md:gap-y-0 lg:gap-x-8">
-      {STEPS.map((step) => (
+      {steps.map((step) => (
         <li
           key={step.number}
           className="flex min-w-0 flex-col md:row-span-3 md:grid md:grid-rows-subgrid"
@@ -87,8 +80,8 @@ export function HowItWorks() {
             className="mb-5 md:order-2 md:mb-0 md:mt-5 md:row-span-2 md:grid md:grid-rows-subgrid md:text-center"
           />
           <figure className="mx-auto w-full max-w-sm md:order-1 md:h-full md:max-w-none">
-            <figcaption className="sr-only">{step.image.caption}</figcaption>
-            {step.image.content}
+            <figcaption className="sr-only">{step.caption}</figcaption>
+            {step.visual}
           </figure>
         </li>
       ))}
@@ -100,7 +93,7 @@ function StepCopy({
   step,
   className = "",
 }: {
-  step: (typeof STEPS)[number];
+  step: Step;
   className?: string;
 }) {
   return (

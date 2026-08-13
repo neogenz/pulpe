@@ -3,89 +3,57 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Container, Section } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
+import { getDictionary } from "@/content/dictionary";
 import { CONTACT_EMAIL } from "@/lib/config";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
 
 const GUIDE_PATH = "/support/modeles-et-budgets";
-const GUIDE_TITLE = "Modèle ou budget : que faut-il modifier ?";
-const GUIDE_DESCRIPTION =
-  "Comprendre la différence entre un modèle et un budget mensuel dans Pulpe, puis savoir lequel modifier sur iPhone.";
-const SOCIAL_TITLE = `${GUIDE_TITLE} | Pulpe`;
 const SOCIAL_PREVIEW_IMAGE = "/pulpe-social-preview.png?v=2";
-const SOCIAL_PREVIEW_ALT =
-  "Pulpe projette ton budget sur l’année et montre combien il te restera";
 
-export const metadata: Metadata = {
-  title: GUIDE_TITLE,
-  description: GUIDE_DESCRIPTION,
-  alternates: {
-    canonical: GUIDE_PATH,
-  },
-  openGraph: {
-    title: SOCIAL_TITLE,
-    description: GUIDE_DESCRIPTION,
-    siteName: "Pulpe",
-    type: "article",
-    url: GUIDE_PATH,
-    locale: "fr_CH",
-    alternateLocale: ["fr_FR"],
-    images: [
-      {
-        url: SOCIAL_PREVIEW_IMAGE,
-        width: 1200,
-        height: 630,
-        alt: SOCIAL_PREVIEW_ALT,
-        type: "image/png",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: SOCIAL_TITLE,
-    description: GUIDE_DESCRIPTION,
-    images: [
-      {
-        url: SOCIAL_PREVIEW_IMAGE,
-        alt: SOCIAL_PREVIEW_ALT,
-        type: "image/png",
-        width: 1200,
-        height: 630,
-      },
-    ],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { guide, site } = await getDictionary(DEFAULT_LOCALE);
+  const socialTitle = `${guide.metaTitle} | Pulpe`;
 
-const choices = [
-  {
-    intent: "Changer uniquement ce mois-ci",
-    destination: "Le budget du mois",
-  },
-  {
-    intent: "Changer mes mois habituels",
-    destination: "Le modèle",
-  },
-  {
-    intent: "Créer le prochain mois",
-    destination: "Un nouveau budget",
-  },
-  {
-    intent: "Créer une autre base réutilisable",
-    destination: "Un nouveau modèle",
-  },
-] as const;
-
-const budgetSteps = [
-  "Ouvre l’onglet « Budgets ».",
-  "Touche + pour créer le budget du prochain mois, ou ouvre un mois existant.",
-  "Dans le budget, touche + pour ajouter une prévision.",
-  "Touche une prévision existante pour la modifier ou la supprimer.",
-] as const;
-
-const modelSteps = [
-  "Ouvre l’onglet « Modèles ».",
-  "Touche + pour créer une nouvelle base, ou ouvre un modèle existant.",
-  "Touche une prévision existante pour la modifier.",
-  "Choisis « Appliquer » pour reporter la modification sur les budgets en cours et futurs.",
-] as const;
+  return {
+    title: guide.metaTitle,
+    description: guide.metaDescription,
+    alternates: {
+      canonical: GUIDE_PATH,
+    },
+    openGraph: {
+      title: socialTitle,
+      description: guide.metaDescription,
+      siteName: "Pulpe",
+      type: "article",
+      url: GUIDE_PATH,
+      locale: "fr_CH",
+      alternateLocale: ["fr_FR"],
+      images: [
+        {
+          url: SOCIAL_PREVIEW_IMAGE,
+          width: 1200,
+          height: 630,
+          alt: site.socialImageAlt,
+          type: "image/png",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: socialTitle,
+      description: guide.metaDescription,
+      images: [
+        {
+          url: SOCIAL_PREVIEW_IMAGE,
+          alt: site.socialImageAlt,
+          type: "image/png",
+          width: 1200,
+          height: 630,
+        },
+      ],
+    },
+  };
+}
 
 function Steps({ items }: { items: readonly string[] }) {
   return (
@@ -105,17 +73,20 @@ function Steps({ items }: { items: readonly string[] }) {
   );
 }
 
-export default function ModelsAndBudgetsGuidePage() {
+export default async function ModelsAndBudgetsGuidePage() {
+  const dict = await getDictionary(DEFAULT_LOCALE);
+  const { guide } = dict;
+
   return (
     <>
       <a
         href="#main-content"
         className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[60] focus-visible:rounded-lg focus-visible:bg-primary focus-visible:px-4 focus-visible:py-2 focus-visible:text-white"
       >
-        Aller au contenu
+        {dict.common.skipToContent}
       </a>
 
-      <Header />
+      <Header dict={dict.header} />
 
       <main id="main-content" tabIndex={-1}>
         <section className="hero-mesh relative overflow-hidden pb-10 pt-[calc(8.5rem+env(safe-area-inset-top))] md:pb-16 md:pt-[calc(10rem+env(safe-area-inset-top))]">
@@ -126,17 +97,16 @@ export default function ModelsAndBudgetsGuidePage() {
                 className="inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-semibold text-primary transition-colors hover:text-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <ArrowLeft aria-hidden="true" size={17} />
-                Aide
+                {guide.backToSupport}
               </Link>
               <p className="mt-8 text-sm font-semibold uppercase tracking-[0.16em] text-primary">
-                Modèles et budgets
+                {guide.eyebrow}
               </p>
               <h1 className="balance mt-4 max-w-4xl text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-text sm:text-5xl lg:text-6xl">
-                Modèle ou budget&nbsp;: que faut-il modifier&nbsp;?
+                {guide.heading}
               </h1>
               <p className="pretty mt-6 max-w-3xl text-lg leading-relaxed text-text-secondary sm:text-xl">
-                Le modèle prépare tes mois habituels. Un budget représente un
-                mois précis.
+                {guide.intro}
               </p>
             </div>
           </Container>
@@ -148,33 +118,31 @@ export default function ModelsAndBudgetsGuidePage() {
               id="difference-heading"
               className="max-w-3xl text-3xl font-bold leading-tight tracking-[-0.03em] text-text sm:text-4xl"
             >
-              La différence en une phrase.
+              {guide.differenceHeading}
             </h2>
 
             <div className="mt-10 grid overflow-hidden rounded-[var(--radius-large)] border border-text/10 bg-surface md:grid-cols-2">
               <article className="p-6 sm:p-8 md:border-r md:border-text/10">
                 <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
-                  Le modèle
+                  {guide.template.eyebrow}
                 </p>
                 <h3 className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-text">
-                  Ta base de départ
+                  {guide.template.title}
                 </h3>
                 <p className="mt-4 leading-relaxed text-text-secondary">
-                  Il contient tes revenus, dépenses et épargnes habituels. Il
-                  sert à préparer tes budgets mensuels sans tout ressaisir.
+                  {guide.template.text}
                 </p>
               </article>
 
               <article className="border-t border-text/10 p-6 sm:p-8 md:border-t-0">
                 <p className="text-sm font-semibold uppercase tracking-[0.14em] text-accent">
-                  Le budget
+                  {guide.budget.eyebrow}
                 </p>
                 <h3 className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-text">
-                  Un mois précis
+                  {guide.budget.title}
                 </h3>
                 <p className="mt-4 leading-relaxed text-text-secondary">
-                  Il correspond par exemple à août 2026. Tu peux l’ajuster pour
-                  ce mois sans changer ta base habituelle.
+                  {guide.budget.text}
                 </p>
               </article>
             </div>
@@ -187,11 +155,11 @@ export default function ModelsAndBudgetsGuidePage() {
               id="choice-heading"
               className="max-w-3xl text-3xl font-bold leading-tight tracking-[-0.03em] text-text sm:text-4xl"
             >
-              Choisis selon ce que tu veux changer.
+              {guide.choiceHeading}
             </h2>
 
             <dl className="mt-10 divide-y divide-text/10 border-y border-text/10">
-              {choices.map((choice) => (
+              {guide.choices.map((choice) => (
                 <div
                   key={choice.intent}
                   className="grid gap-2 py-5 sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-6"
@@ -215,52 +183,50 @@ export default function ModelsAndBudgetsGuidePage() {
           <div className="mx-auto max-w-4xl">
             <header className="max-w-3xl">
               <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">
-                Sur iPhone
+                {guide.iphoneEyebrow}
               </p>
               <h2
                 id="iphone-heading"
                 className="mt-3 text-3xl font-bold leading-tight tracking-[-0.03em] text-text sm:text-4xl"
               >
-                Les deux parcours, étape par étape.
+                {guide.iphoneHeading}
               </h2>
             </header>
 
             <div className="mt-12 grid gap-12 lg:grid-cols-2 lg:gap-16">
               <article>
                 <p className="text-sm font-semibold text-accent">
-                  Un seul mois
+                  {guide.budgetSteps.eyebrow}
                 </p>
                 <h3 className="mt-2 text-2xl font-semibold tracking-[-0.025em] text-text">
-                  Modifier un budget mensuel
+                  {guide.budgetSteps.title}
                 </h3>
-                <Steps items={budgetSteps} />
+                <Steps items={guide.budgetSteps.steps} />
               </article>
 
               <article className="border-t border-text/10 pt-10 lg:border-l lg:border-t-0 lg:pl-16 lg:pt-0">
                 <p className="text-sm font-semibold text-primary">
-                  Tes mois habituels
+                  {guide.modelSteps.eyebrow}
                 </p>
                 <h3 className="mt-2 text-2xl font-semibold tracking-[-0.025em] text-text">
-                  Modifier le modèle
+                  {guide.modelSteps.title}
                 </h3>
-                <Steps items={modelSteps} />
+                <Steps items={guide.modelSteps.steps} />
               </article>
             </div>
 
             <aside className="mt-12 rounded-[var(--radius-large)] border border-primary/15 bg-primary/6 p-6 sm:p-8">
               <h3 className="text-lg font-semibold text-text">
-                Tes ajustements restent protégés
+                {guide.protectedTitle}
               </h3>
-              <p className="mt-3 leading-relaxed text-text-secondary">
-                Quand tu choisis « Appliquer », Pulpe met à jour les budgets en
-                cours et futurs. Une prévision déjà modifiée manuellement dans
-                un budget n’est pas remplacée.
-              </p>
-              <p className="mt-4 leading-relaxed text-text-secondary">
-                Sur iPhone, tu peux créer un modèle et modifier ses prévisions.
-                Pour ajouter ou supprimer une prévision dans un modèle déjà
-                créé, utilise actuellement la version web.
-              </p>
+              {guide.protectedParagraphs.map((paragraph, index) => (
+                <p
+                  key={paragraph}
+                  className={`${index === 0 ? "mt-3" : "mt-4"} leading-relaxed text-text-secondary`}
+                >
+                  {paragraph}
+                </p>
+              ))}
             </aside>
           </div>
         </Section>
@@ -271,11 +237,10 @@ export default function ModelsAndBudgetsGuidePage() {
               id="contact-heading"
               className="text-3xl font-bold leading-tight tracking-[-0.025em] text-text"
             >
-              Toujours bloqué&nbsp;?
+              {guide.contactHeading}
             </h2>
             <p className="mt-4 max-w-2xl leading-relaxed text-text-secondary">
-              Écris-moi en précisant l’écran où tu te trouves. Je te répondrai
-              directement.
+              {guide.contactText}
             </p>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
@@ -288,7 +253,7 @@ export default function ModelsAndBudgetsGuidePage() {
         </Section>
       </main>
 
-      <Footer />
+      <Footer dict={dict.footer} />
     </>
   );
 }

@@ -1,13 +1,14 @@
 import { ArrowNote, Button, Container } from "@/components/ui";
+import type { Dictionary } from "@/content/dictionary";
 import { angularUrl } from "@/lib/config";
 
-export function FinalCTA() {
+export function FinalCTA({ dict }: { dict: Dictionary["home"]["finalCta"] }) {
   return (
     <section id="final-cta" className="py-24 sm:py-28 lg:py-36">
       <Container>
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-[clamp(2.75rem,7vw,6rem)] font-bold leading-[1.12] tracking-[-0.04em] text-text">
-            Prépare ton année. Vois combien il te restera chaque mois.
+            {dict.heading}
           </h2>
           {/* La promesse de sécurité était la seule des trois à rester une
               affirmation nue, et sa version détaillée dormait repliée dans la
@@ -15,22 +16,23 @@ export function FinalCTA() {
               ce qu'elle interdit : c'est le moment où on décide de confier son
               salaire au projet du soir de quelqu'un d'autre. */}
           <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-text/80 sm:text-xl">
-            Commence gratuitement, sans connecter tes comptes bancaires. Tes
-            montants sont chiffrés en base de données, et ne sont jamais
-            revendus.
+            {dict.body}
           </p>
           <div className="relative mt-32 inline-block md:mt-28">
             {/* The chevron's vertex sits 10px above its own box, so a positive
                 gap here left it pointing at empty canvas: the negative margin
                 is what lands it on the button's top edge. */}
-            <ArrowNote className="absolute bottom-full left-1/2 -mb-2.5 -translate-x-1/2 md:-mb-10 md:left-auto md:right-0 md:translate-x-38" />
+            <ArrowNote
+              label={dict.arrowNote}
+              className="absolute bottom-full left-1/2 -mb-2.5 -translate-x-1/2 md:-mb-10 md:left-auto md:right-0 md:translate-x-38"
+            />
             <Button
               href={angularUrl("/signup", "final_cta_commencer")}
               data-cta-name="commencer_gratuitement"
               data-cta-location="final_cta"
               data-cta-destination="/signup"
             >
-              Créer mon budget gratuitement
+              {dict.cta}
             </Button>
           </div>
         </div>

@@ -4,176 +4,140 @@ import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { AccordionItem, Container, Section } from "@/components/ui";
 import { FinalCTA, Footer, Header } from "@/components/sections";
+import { getDictionary, type Dictionary } from "@/content/dictionary";
 import { angularUrl, CONTACT_EMAIL, GITHUB_URL } from "@/lib/config";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
 
-export const metadata: Metadata = {
-  title: "Aide et questions fréquentes",
-  description:
-    "Guides et réponses pour utiliser Pulpe : comprendre les modèles et budgets, protéger ses montants et gérer son compte.",
-  alternates: {
-    canonical: "/support",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { support } = await getDictionary(DEFAULT_LOCALE);
+
+  return {
+    title: support.metaTitle,
+    description: support.metaDescription,
+    alternates: {
+      canonical: "/support",
+    },
+  };
+}
 
 const linkClass =
   "rounded-sm font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 const DEMO_URL = angularUrl("/welcome", "faq_demo");
 const SETTINGS_URL = angularUrl("/settings", "faq_delete_account");
 
+type SupportFaq = Dictionary["support"]["faq"];
+
 interface FaqItem {
   question: string;
-  answer?: ReactNode;
+  answer: ReactNode;
+  /** Le texte nu que reprend le JSON-LD, toujours dérivé de la réponse rendue. */
   plainAnswer: string;
 }
 
-const faqs: FaqItem[] = [
-  {
-    question: "À quoi sert Pulpe, concrètement ?",
-    plainAnswer:
-      "Tu poses ton année une fois, puis tu ajustes au fur et à mesure. Si tu déplaces une dépense, rediriges de l'épargne ou décales un projet, tu vois ce que ça change sur les mois suivants sans repartir de zéro.",
+/** Une réponse d'un seul tenant. */
+function plainFaq(entry: { question: string; answer: string }): FaqItem {
+  return {
+    question: entry.question,
+    answer: entry.answer,
+    plainAnswer: entry.answer,
+  };
+}
+
+/**
+ * Une réponse qui porte un lien en ligne. Le texte nu se recompose des trois
+ * morceaux plutôt que d'être écrit une seconde fois : la version rendue et
+ * celle du JSON-LD ne peuvent plus diverger sans que personne ne le voie.
+ */
+function linkedFaq(
+  entry: {
+    question: string;
+    answerBefore: string;
+    answerLink: string;
+    answerAfter: string;
   },
-  {
-    question: "Pourquoi Pulpe plutôt qu'Excel ?",
-    plainAnswer:
-      "Excel fait le job, mais les formules deviennent vite fragiles dès que tu bouges une ligne. Et sur mobile, c'est pénible. Pulpe garde la vue d'ensemble et recalcule la suite quand tu ajustes ton budget.",
-  },
-  {
-    question: "Pourquoi Pulpe ne se connecte pas à ma banque ?",
-    plainAnswer:
-      "J'aurais aimé proposer une synchronisation bancaire. Pour le faire correctement en Suisse et en France, il faut passer par des prestataires externes et gérer des contraintes réglementaires. Pour un projet que je développe seul, le soir après le boulot, le coût est trop élevé. Donc, pour l'instant, la saisie reste manuelle.",
-  },
-  {
-    question: "Pourquoi confier mes chiffres à Pulpe ?",
+  link: { href: string; external?: boolean },
+): FaqItem {
+  return {
+    question: entry.question,
     answer: (
       <>
-        Tes montants ne sont jamais stockés en clair. Ils sont chiffrés en base
-        avec AES-256-GCM. Ils sont déchiffrés côté serveur pendant tes requêtes
-        authentifiées grâce à deux clés conservées séparément, dont une dérivée
-        de ton code PIN. Une fuite de la base seule ne suffit donc pas à les
-        lire. Tes montants et libellés financiers ne sont ni transmis à des fins
-        publicitaires ni revendus. Le{" "}
+        {entry.answerBefore}
         <a
-          href={GITHUB_URL}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={link.href}
+          target={link.external ? "_blank" : undefined}
+          rel={link.external ? "noopener noreferrer" : undefined}
           className={linkClass}
         >
-          code source est public
+          {entry.answerLink}
         </a>
-        , tu peux vérifier son fonctionnement au lieu de me croire sur parole.
+        {entry.answerAfter}
       </>
     ),
-    plainAnswer:
-      "Tes montants ne sont jamais stockés en clair. Ils sont chiffrés en base avec AES-256-GCM. Ils sont déchiffrés côté serveur pendant tes requêtes authentifiées grâce à deux clés conservées séparément, dont une dérivée de ton code PIN. Une fuite de la base seule ne suffit donc pas à les lire. Tes montants et libellés financiers ne sont ni transmis à des fins publicitaires ni revendus. Le code source est public, tu peux vérifier son fonctionnement au lieu de me croire sur parole.",
-  },
-  {
-    question: "Est-ce que je peux essayer sans créer de compte ?",
-    answer: (
-      <>
-        Oui. Le{" "}
-        <a href={DEMO_URL} className={linkClass}>
-          mode démo
-        </a>{" "}
-        te laisse utiliser Pulpe sans compte et sans saisir tes propres
-        chiffres.
-      </>
-    ),
-    plainAnswer:
-      "Oui. Le mode démo te laisse utiliser Pulpe sans compte et sans saisir tes propres chiffres.",
-  },
-  {
-    question: "C'est vraiment gratuit ?",
-    answer: (
-      <>
-        Oui. Pulpe est gratuit, sans publicité ni abonnement. C'est un projet
-        solo et son{" "}
-        <a
-          href={GITHUB_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={linkClass}
-        >
-          code source est public
-        </a>
-        .
-      </>
-    ),
-    plainAnswer:
-      "Oui. Pulpe est gratuit, sans publicité ni abonnement. C'est un projet solo et son code source est public.",
-  },
-  {
-    question: "Ça marche en Suisse et en France ?",
-    plainAnswer:
-      "Oui. Pulpe fonctionne avec les francs suisses et les euros, sur le web et sur iPhone.",
-  },
-  {
-    question: "Comment retrouver mes budgets entre le web et l'iPhone ?",
-    plainAnswer:
-      "Connecte-toi au même compte sur les deux. Tes budgets et tes modifications sont synchronisés automatiquement.",
-  },
-  {
-    question: "Comment supprimer mon compte et mes données ?",
-    answer: (
-      <>
-        Tu peux demander la suppression depuis les{" "}
-        <a href={SETTINGS_URL} className={linkClass}>
-          paramètres
-        </a>
-        . Le compte et tes données sont alors programmés pour être supprimés
-        dans trois jours, ce qui te laisse ce délai pour changer d&apos;avis.
-        Passé ce délai, ils sont supprimés des systèmes actifs. Des copies
-        peuvent subsister temporairement dans les sauvegardes techniques, puis
-        expirent selon la politique de rétention du fournisseur
-        d&apos;hébergement.
-      </>
-    ),
-    plainAnswer:
-      "Tu peux demander la suppression depuis les paramètres. Le compte et tes données sont alors programmés pour être supprimés dans trois jours, ce qui te laisse ce délai pour changer d'avis. Passé ce délai, ils sont supprimés des systèmes actifs. Des copies peuvent subsister temporairement dans les sauvegardes techniques, puis expirent selon la politique de rétention du fournisseur d'hébergement.",
-  },
-];
+    plainAnswer: `${entry.answerBefore}${entry.answerLink}${entry.answerAfter}`,
+  };
+}
 
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: faqs.map((faq) => ({
-    "@type": "Question",
-    name: faq.question,
-    acceptedAnswer: {
-      "@type": "Answer",
-      text: faq.plainAnswer,
-    },
-  })),
-};
+// L'ordre d'affichage vit ici, avec la destination de chaque lien ; seul le
+// texte vient du catalogue.
+function buildFaqs(faq: SupportFaq): FaqItem[] {
+  return [
+    plainFaq(faq.purpose),
+    plainFaq(faq.excel),
+    plainFaq(faq.bank),
+    linkedFaq(faq.trust, { href: GITHUB_URL, external: true }),
+    linkedFaq(faq.demo, { href: DEMO_URL }),
+    linkedFaq(faq.free, { href: GITHUB_URL, external: true }),
+    plainFaq(faq.countries),
+    plainFaq(faq.sync),
+    linkedFaq(faq.deletion, { href: SETTINGS_URL }),
+  ];
+}
 
-const faqJsonLdString = JSON.stringify(faqJsonLd).replace(/</g, "\\u003c");
+export default async function SupportPage() {
+  const dict = await getDictionary(DEFAULT_LOCALE);
+  const { support } = dict;
+  const faqs = buildFaqs(support.faq);
 
-export default function SupportPage() {
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.plainAnswer,
+      },
+    })),
+  };
+
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: faqJsonLdString }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c"),
+        }}
       />
 
       <a
         href="#main-content"
         className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[60] focus-visible:rounded-lg focus-visible:bg-primary focus-visible:px-4 focus-visible:py-2 focus-visible:text-white"
       >
-        Aller au contenu
+        {dict.common.skipToContent}
       </a>
 
-      <Header />
+      <Header dict={dict.header} />
 
       <main id="main-content" tabIndex={-1}>
         <section className="hero-mesh relative overflow-hidden pb-10 pt-[calc(9rem+env(safe-area-inset-top))] md:pb-16 md:pt-[calc(10rem+env(safe-area-inset-top))]">
           <Container>
             <div className="mx-auto max-w-3xl">
               <h1 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-text sm:text-5xl lg:text-6xl">
-                Comment puis-je t&apos;aider&nbsp;?
+                {support.heading}
               </h1>
               <p className="pretty mt-6 max-w-2xl text-lg leading-relaxed text-text-secondary sm:text-xl">
-                Des guides courts pour utiliser Pulpe, puis les réponses aux
-                questions fréquentes. Si la tienne manque, écris-moi.
+                {support.intro}
               </p>
             </div>
           </Container>
@@ -185,7 +149,7 @@ export default function SupportPage() {
               id="guides-heading"
               className="max-w-2xl text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-text sm:text-5xl"
             >
-              Guides pour utiliser Pulpe.
+              {support.guidesHeading}
             </h2>
 
             <Link
@@ -193,16 +157,15 @@ export default function SupportPage() {
               className="group mt-10 block rounded-[var(--radius-large)] border border-text/10 bg-surface p-6 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transform-none motion-reduce:transition-none sm:p-8"
             >
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
-                Bien démarrer
+                {support.guideCard.eyebrow}
               </p>
               <div className="mt-4 flex items-start justify-between gap-6">
                 <div>
                   <h3 className="text-2xl font-semibold leading-tight tracking-[-0.025em] text-text">
-                    Modèle ou budget&nbsp;: que faut-il modifier&nbsp;?
+                    {support.guideCard.title}
                   </h3>
                   <p className="mt-3 max-w-2xl leading-relaxed text-text-secondary">
-                    Choisis le bon endroit selon que ton changement concerne un
-                    seul mois ou tes mois habituels.
+                    {support.guideCard.text}
                   </p>
                 </div>
                 <ArrowRight
@@ -221,7 +184,7 @@ export default function SupportPage() {
               id="faq-heading"
               className="max-w-2xl text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-text sm:text-5xl"
             >
-              Les questions qu&apos;on me pose le plus.
+              {support.faqHeading}
             </h2>
 
             <div className="mt-10 space-y-3">
@@ -229,7 +192,7 @@ export default function SupportPage() {
                 <AccordionItem
                   key={faq.question}
                   question={faq.question}
-                  answer={faq.answer ?? faq.plainAnswer}
+                  answer={faq.answer}
                 />
               ))}
             </div>
@@ -242,11 +205,10 @@ export default function SupportPage() {
               id="contact-heading"
               className="text-3xl font-bold leading-tight tracking-[-0.025em] text-text"
             >
-              Ta question n&apos;est pas là ?
+              {support.contactHeading}
             </h2>
             <p className="mt-4 max-w-2xl leading-relaxed text-text-secondary">
-              Écris-moi directement. Je développe Pulpe seul et je réponds
-              moi-même.
+              {support.contactText}
             </p>
             <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-text-secondary">
               <a
@@ -261,16 +223,16 @@ export default function SupportPage() {
                 rel="noopener noreferrer"
                 className={`${linkClass} inline-flex min-h-11 items-center`}
               >
-                Bug ou suggestion sur GitHub
+                {support.contactGithub}
               </a>
             </div>
           </div>
         </Section>
 
-        <FinalCTA />
+        <FinalCTA dict={dict.home.finalCta} />
       </main>
 
-      <Footer />
+      <Footer dict={dict.footer} />
     </>
   );
 }

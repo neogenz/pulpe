@@ -14,7 +14,7 @@ import { angularUrl } from "@/lib/config";
  * `#platforms`, whose card is `bg-primary`, and a bare green button on green
  * loses its boundary entirely.
  */
-export function StickyCTA() {
+export function StickyCTA({ label }: { label: string }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export function StickyCTA() {
           data-cta-destination="/signup"
           tabIndex={visible ? undefined : -1}
         >
-          Créer mon budget gratuitement
+          {label}
         </Button>
       </div>
     </div>
