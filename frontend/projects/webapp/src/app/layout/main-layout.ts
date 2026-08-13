@@ -283,7 +283,7 @@ interface NavigationItem {
               <button
                 matIconButton
                 (click)="drawer.toggle()"
-                aria-label="Toggle navigation"
+                [attr.aria-label]="'layout.toggleNavigation' | transloco"
                 data-testid="menu-toggle"
                 data-tour="navigation"
               >

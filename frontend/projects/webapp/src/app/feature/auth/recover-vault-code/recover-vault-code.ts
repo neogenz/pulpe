@@ -75,7 +75,7 @@ export const SUPPORT_URL = 'https://pulpe.app/support';
           <mat-progress-spinner
             mode="indeterminate"
             [diameter]="40"
-            aria-label="Redirection en cours"
+            [attr.aria-label]="'auth.recoverVaultCode.redirecting' | transloco"
           />
           <p class="text-body-large text-on-surface-variant animate-pulse">
             {{ 'auth.recoverVaultCode.redirecting' | transloco }}

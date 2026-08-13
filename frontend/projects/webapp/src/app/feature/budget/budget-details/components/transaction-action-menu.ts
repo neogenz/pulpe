@@ -34,7 +34,7 @@ import type { Transaction } from 'pulpe-shared';
       [matMenuTriggerFor]="actionMenu"
       (click)="$event.stopPropagation()"
       [attr.data-testid]="'tx-menu-' + transaction().id"
-      aria-label="Actions de la transaction"
+      [attr.aria-label]="'budget.transactionActions' | transloco"
       class="shrink-0"
       [class]="buttonClass()"
     >

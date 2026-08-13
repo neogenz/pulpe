@@ -13,7 +13,7 @@ import type { BudgetViewMode } from '../view-models/budget-view-mode';
   template: `
     <mat-chip-listbox
       class="view-toggle-chips"
-      aria-label="Mode d'affichage"
+      [attr.aria-label]="'budget.viewModeLabel' | transloco"
       [hideSingleSelectionIndicator]="true"
     >
       <mat-chip-option

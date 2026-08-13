@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { CURRENT_APP_VERSION } from '@core/app-version/current-app-version';
@@ -13,7 +14,7 @@ import { LATEST_RELEASE } from './whats-new-releases';
 
 @Component({
   selector: 'pulpe-whats-new-toast',
-  imports: [MatButtonModule, MatIconModule],
+  imports: [MatButtonModule, MatIconModule, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isVisible()) {
@@ -22,13 +23,13 @@ import { LATEST_RELEASE } from './whats-new-releases';
           <mat-icon class="text-primary shrink-0 mt-0.5">auto_awesome</mat-icon>
           <div class="flex-1 min-w-0">
             <div class="flex items-center justify-between gap-2">
-              <span class="text-title-small font-medium text-on-surface"
-                >Nouveautés v{{ version }}</span
-              >
+              <span class="text-title-small font-medium text-on-surface">{{
+                'layout.whatsNewTitle' | transloco: { version: version }
+              }}</span>
               <button
                 mat-icon-button
                 class="shrink-0 -mr-2 -mt-2"
-                aria-label="Fermer"
+                [attr.aria-label]="'common.close' | transloco"
                 data-testid="whats-new-dismiss-button"
                 (click)="dismiss()"
               >
@@ -52,7 +53,7 @@ import { LATEST_RELEASE } from './whats-new-releases';
               class="inline-flex items-center gap-1 mt-3 text-label-medium text-primary hover:underline"
               data-testid="whats-new-changelog-link"
             >
-              Voir les nouveautés
+              {{ 'layout.whatsNewSeeAll' | transloco }}
               <mat-icon class="text-base!">open_in_new</mat-icon>
             </a>
           </div>

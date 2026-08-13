@@ -36,7 +36,8 @@
       "income": "Einnahmen",
       "expenses": "Ausgaben",
       "savings": "Sparen"
-    }
+    },
+    "clearSearch": "Suche löschen"
   },
   "navigation": {
     "dashboard": "Übersicht",
@@ -48,7 +49,7 @@
     "savingsGoalsShort": "Ziele",
     "settings": "Einstellungen",
     "about": "Über",
-    "newFeatures": "Neues",
+    "newFeatures": "Neuigkeiten",
     "discoverPage": "Hilfe zu dieser Seite",
     "dashboardTooltip": "Dein Überblick über den Monat",
     "budgetsTooltip": "Plan all deine Monate",
@@ -91,7 +92,7 @@
       },
       "create": {
         "title": "Einen neuen Monat vorbereiten",
-        "description": "<p>Wähl einen Monat und, wenn du magst, eine Vorlage. Ihre Planposten werden ins neue Budget kopiert.</p>"
+        "description": "<p>Wähl einen Monat und, wenn du magst, eine Vorlage. Die Planposten der Vorlage werden ins neue Budget kopiert.</p>"
       }
     },
     "budgetDetails": {
@@ -282,7 +283,10 @@
     "logoutAction": "Abmelden",
     "previousMonth": "Vorheriger Monat",
     "nextMonth": "Nächster Monat",
-    "earlyAdopter": "VIP"
+    "earlyAdopter": "VIP",
+    "toggleNavigation": "Menü öffnen",
+    "whatsNewTitle": "Neuigkeiten in v{{ version }}",
+    "whatsNewSeeAll": "Alle Neuigkeiten ansehen"
   },
   "earlyAdopter": {
     "title": "Danke, dass du von Anfang an dabei bist ✨",
@@ -694,7 +698,9 @@
       "deletedRepayment": "Das Sparen im Folgemonat wurde gelöscht. Die Einnahme bleibt.",
       "success": "Für diesen Monat ist es geregelt.",
       "error": "Die Entnahme hat nicht geklappt — nichts hat sich geändert, du kannst es nochmal versuchen."
-    }
+    },
+    "viewModeLabel": "Anzeigemodus",
+    "transactionActions": "Aktionen"
   },
   "budgetLine": {
     "checkLabel": "{{ name }} abhaken",
@@ -702,7 +708,7 @@
     "realizeWithdrawal": "Diese Entnahme ausführen",
     "realizeWithdrawalBalance": "Restbetrag entnehmen",
     "withdrawalRealized": "Erfolgt",
-    "realizationPointed": "Dieser Tatsächlich-Eintrag wird abgehakt angelegt.",
+    "realizationPointed": "Diese tatsächliche Bewegung wird gleich abgehakt angelegt.",
     "remainingPlannedWithdrawal": "Noch geplanter Betrag",
     "checked": "Schon abgehakt",
     "savings": "Sparen",
@@ -942,7 +948,7 @@
     "historyEmptyTitle": "Noch kein Verlauf",
     "historyEmptyMessage": "Der Verlauf entsteht mit deinen nächsten Budgets.",
     "historyErrorTitle": "Verlauf nicht verfügbar",
-    "historyErrorMessage": "Deine früheren Monate konnten nicht geladen werden. Sie sind noch da.",
+    "historyErrorMessage": "Deine früheren Monate konnten nicht geladen werden — sie sind aber noch da.",
     "historyIncomeLabel": "Einnahmen",
     "historyExpensesLabel": "Ausgaben",
     "historySavingsLabel": "Sparen",
@@ -1092,7 +1098,7 @@
       "confirmForecasts": "Sparziel und Planposten löschen",
       "confirmAll": "Alles löschen",
       "withdrawalsSection": "Entnahmen in deine Budgets",
-      "withdrawalsKept": "Diese Einnahmen bleiben in ihren Budgets, egal wie du dich entscheidest. Sie behalten den Namen des Sparziels, aber ihr Link führt nirgendwo mehr hin.",
+      "withdrawalsKept": "Diese Einnahmen bleiben in ihren Budgets, egal wie du dich entscheidest. Den Namen des Sparziels behalten sie, aber die Verknüpfung führt ins Leere.",
       "withdrawalsTotal": "Insgesamt entnommen"
     },
     "targetDate": "Frist",
@@ -1273,7 +1279,7 @@
       "withdrawalGoalOnlyTitle": "Nur das Sparziel aktualisieren",
       "withdrawalGoalOnlyDetail": "Empfohlen · Die Prognose sinkt. In deinem Budget ändert sich nichts.",
       "withdrawalLinkedTitle": "Auch eine Einnahme im Budget anlegen",
-      "withdrawalLinkedDetail": "Die Entnahme erscheint in diesem Budget als verknüpfter Einnahme-Planposten. Führ ihn aus: der erzeugte Tatsächlich-Eintrag wird automatisch abgehakt.",
+      "withdrawalLinkedDetail": "Die Entnahme erscheint in diesem Budget als verknüpfter Einnahme-Planposten. Führ ihn aus: die erzeugte Bewegung wird automatisch abgehakt.",
       "withdrawalConvertToGoalOnly": "Der verknüpfte Einnahme-Planposten wird mit der Plan-Aktualisierung gelöscht.",
       "withdrawalConvertToLinked": "Mit der Plan-Aktualisierung wird ein verknüpfter Einnahme-Planposten angelegt.",
       "withdrawalNoBudget": "Für diesen Monat gibt es kein Budget. Die Entnahme bleibt ausserhalb des Budgets und ändert nur die Prognose des Sparziels.",
@@ -1640,9 +1646,9 @@
     "saving": "Sparen"
   },
   "transactionKindIndefinite": {
-    "income": "eine Einnahme",
-    "expense": "eine Ausgabe",
-    "saving": "ein Sparen"
+    "income": "Eine Einnahme",
+    "expense": "Eine Ausgabe",
+    "saving": "Sparen"
   },
   "recurrence": {
     "fixed": "Wiederkehrend",

@@ -36,7 +36,8 @@
       "income": "Revenus",
       "expenses": "Dépenses",
       "savings": "Épargne"
-    }
+    },
+    "clearSearch": "Effacer la recherche"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -282,7 +283,10 @@
     "logoutAction": "Se déconnecter",
     "previousMonth": "Mois précédent",
     "nextMonth": "Mois suivant",
-    "earlyAdopter": "VIP"
+    "earlyAdopter": "VIP",
+    "toggleNavigation": "Ouvrir le menu",
+    "whatsNewTitle": "Nouveautés v{{ version }}",
+    "whatsNewSeeAll": "Voir les nouveautés"
   },
   "earlyAdopter": {
     "title": "Merci d'être là depuis le début ✨",
@@ -694,7 +698,9 @@
       "deletedRepayment": "L'épargne du mois suivant a été supprimée. Le revenu reste.",
       "success": "C'est réglé pour ce mois.",
       "error": "La pioche n'a pas marché — rien n'a changé, tu peux réessayer."
-    }
+    },
+    "viewModeLabel": "Mode d'affichage",
+    "transactionActions": "Actions"
   },
   "budgetLine": {
     "checkLabel": "Pointer {{ name }}",

@@ -65,6 +65,35 @@ test("aucune chaîne affichée par la webapp ne dit « transaction »", () => {
   );
 });
 
+// Le vouvoiement se réintroduit par reformulation, exactement comme le mot
+// interdit : rien ne casse, et il faut lire la langue pour le voir. En allemand
+// la forme de politesse ne se distingue du pronom « ils » que par la majuscule,
+// donc c'est la majuscule qu'on interdit — une phrase qui commence par `Sie`
+// reste ambiguë même quand l'auteur voulait « ils », et la lever demande de
+// déplacer le pronom vers le milieu de la phrase.
+const FORMAL_ADDRESS_BY_LANG = {
+  de: /(?<![A-Za-zÄÖÜäöüß])(Sie|Ihre?[mnrs]?|Ihnen)(?![a-zäöüß])/,
+  it: /(?<![A-Za-zÀ-ÿ])(Lei|Suoi?|Sua|Sue|Vostr[aeio])(?![a-zà-ÿ])/,
+};
+
+test("aucune chaîne affichée par la webapp ne vouvoie", () => {
+  const offenders = catalogs().flatMap(({ file, lang }) => {
+    const formal = FORMAL_ADDRESS_BY_LANG[lang];
+    if (!formal) return [];
+
+    return flatten(JSON.parse(read(`${I18N_ROOT}/${file}`)))
+      .filter(([, value]) => formal.test(value))
+      .map(([path, value]) => `  ${file} → ${path} = ${value}`);
+  });
+
+  assert.equal(
+    offenders.length,
+    0,
+    "Pulpe tutoie dans les quatre langues (docs/I18N.md).\n" +
+      `Dans ${I18N_ROOT}/ :\n${offenders.join("\n")}`,
+  );
+});
+
 // iOS n'a pas de catalogue de chaînes : la copie vit en dur dans les vues, et
 // aucun compilateur ne signalera un oubli. Ce garde lit les sources comme du
 // texte, ce qui lui suffit pour tenir les deux clients sur le même mot.

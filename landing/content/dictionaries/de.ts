@@ -249,7 +249,7 @@ const de: Dictionary = {
       guarantees: {
         encryption: {
           title: "Geschützte Beträge",
-          text: "Deine Beträge werden nicht im Klartext gespeichert. Sie sind mit AES-256-GCM verschlüsselt, mit zwei getrennt aufbewahrten Schlüsseln.",
+          text: "Deine Beträge werden nicht im Klartext gespeichert, sondern mit AES-256-GCM verschlüsselt, mit zwei getrennt aufbewahrten Schlüsseln.",
         },
         analytics: {
           title: "Nutzungsmessung in Europa",
@@ -283,7 +283,7 @@ const de: Dictionary = {
         {
           question: "Sind meine Beträge geschützt?",
           answer:
-            "Ja. Deine Beträge werden nie im Klartext gespeichert. Sie sind in der Datenbank mit AES-256-GCM verschlüsselt. Sie werden serverseitig während deiner authentifizierten Anfragen entschlüsselt, mit zwei getrennt aufbewahrten Schlüsseln, von denen einer aus deinem PIN abgeleitet ist. Ein Leck der Datenbank allein genügt also nicht, um sie zu lesen. Deine finanziellen Beträge und Bezeichnungen werden weder für Werbung weitergegeben noch verkauft. Der Quellcode ist öffentlich.",
+            "Ja. Deine Beträge werden nie im Klartext gespeichert: In der Datenbank sind sie mit AES-256-GCM verschlüsselt. Entschlüsselt werden sie serverseitig während deiner authentifizierten Anfragen, mit zwei getrennt aufbewahrten Schlüsseln, von denen einer aus deinem PIN abgeleitet ist. Ein Leck der Datenbank allein genügt also nicht, um sie zu lesen. Deine finanziellen Beträge und Bezeichnungen werden weder für Werbung weitergegeben noch verkauft. Der Quellcode ist öffentlich.",
         },
         {
           question: "Warum keine Verbindung zu meiner Bank?",
@@ -341,7 +341,7 @@ const de: Dictionary = {
       trust: {
         question: "Warum sollte ich Pulpe meine Zahlen anvertrauen?",
         answerBefore:
-          "Deine Beträge werden nie im Klartext gespeichert. Sie sind in der Datenbank mit AES-256-GCM verschlüsselt. Sie werden serverseitig während deiner authentifizierten Anfragen entschlüsselt, mit zwei getrennt aufbewahrten Schlüsseln, von denen einer aus deinem PIN abgeleitet ist. Ein Leck der Datenbank allein genügt also nicht, um sie zu lesen. Deine finanziellen Beträge und Bezeichnungen werden weder für Werbung weitergegeben noch verkauft. Der ",
+          "Deine Beträge werden nie im Klartext gespeichert: In der Datenbank sind sie mit AES-256-GCM verschlüsselt. Entschlüsselt werden sie serverseitig während deiner authentifizierten Anfragen, mit zwei getrennt aufbewahrten Schlüsseln, von denen einer aus deinem PIN abgeleitet ist. Ein Leck der Datenbank allein genügt also nicht, um sie zu lesen. Deine finanziellen Beträge und Bezeichnungen werden weder für Werbung weitergegeben noch verkauft. Der ",
         answerLink: "Quellcode ist öffentlich",
         answerAfter:
           ", du kannst nachprüfen, wie er arbeitet, statt mir aufs Wort zu glauben.",
@@ -398,7 +398,7 @@ const de: Dictionary = {
     template: {
       eyebrow: "Die Vorlage",
       title: "Dein Ausgangspunkt",
-      text: "Sie enthält deine gewöhnlichen Einnahmen, Ausgaben und dein Sparen. Sie bereitet deine Monatsbudgets vor, ohne dass du alles neu erfassen musst.",
+      text: "Darin stehen deine gewöhnlichen Einnahmen, Ausgaben und dein Sparen. So bereitet sie deine Monatsbudgets vor, ohne dass du alles neu erfassen musst.",
     },
     budget: {
       eyebrow: "Das Budget",

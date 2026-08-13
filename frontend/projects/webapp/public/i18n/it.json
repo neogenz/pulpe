@@ -36,7 +36,8 @@
       "income": "Entrate",
       "expenses": "Spese",
       "savings": "Risparmio"
-    }
+    },
+    "clearSearch": "Cancella la ricerca"
   },
   "navigation": {
     "dashboard": "Cruscotto",
@@ -282,7 +283,10 @@
     "logoutAction": "Esci",
     "previousMonth": "Mese precedente",
     "nextMonth": "Mese successivo",
-    "earlyAdopter": "VIP"
+    "earlyAdopter": "VIP",
+    "toggleNavigation": "Apri il menu",
+    "whatsNewTitle": "Novità della v{{ version }}",
+    "whatsNewSeeAll": "Vedi le novità"
   },
   "earlyAdopter": {
     "title": "Grazie di esserci dall'inizio ✨",
@@ -564,7 +568,7 @@
     "forecastNamePlaceholder": "Es. Stipendio, Affitto, Risparmio...",
     "forecastNameRequired": "Il nome è obbligatorio",
     "forecastNameMinLength": "Il nome deve avere almeno 2 caratteri",
-    "forecastTypeLabel": "Natura",
+    "forecastTypeLabel": "Tipo",
     "forecastAmountRequired": "L'importo è obbligatorio",
     "forecastTypeRequired": "Il tipo è obbligatorio",
     "newTransactionTitle": "Segna un importo su {{ name }}",
@@ -631,7 +635,7 @@
     "spreadErrorNoMonths": "Scegli almeno un mese.",
     "spreadErrorTooManyMonths": "Massimo 36 mesi.",
     "spreadSuccess": "Spesa ripartita su {{ count }} mesi",
-    "spreadCreatedBudgetsSuffix": " · {{ count }} budget creati",
+    "spreadCreatedBudgetsSuffix": " · {{ count }} budget creato/i",
     "spreadSkippedMonthsSuffix": " · {{ count }} mese/i saltato/i (nessun modello)",
     "overview": {
       "remainingThisMonth": "Quello che ti resta questo mese",
@@ -694,7 +698,9 @@
       "deletedRepayment": "Il risparmio del mese dopo è stato eliminato. L'entrata resta.",
       "success": "Per questo mese è sistemato.",
       "error": "Il prelievo non ha funzionato — non è cambiato niente, puoi riprovare."
-    }
+    },
+    "viewModeLabel": "Modalità di visualizzazione",
+    "transactionActions": "Azioni"
   },
   "budgetLine": {
     "checkLabel": "Spunta {{ name }}",
@@ -985,7 +991,7 @@
     "addTransactionDescriptionPlaceholder": "Es. Spesa alla Migros",
     "addTransactionDescriptionRequired": "La descrizione è obbligatoria",
     "addTransactionDescriptionMin": "La descrizione deve avere almeno 2 caratteri",
-    "addTransactionType": "Natura",
+    "addTransactionType": "Tipo",
     "addTransactionToday": "Oggi",
     "addTransactionFromSavingsGoal": "Questa entrata arriva da un obiettivo di risparmio",
     "addTransactionFromSavingsGoalHint": "L'importo verrà prelevato dall'obiettivo che scegli.",
@@ -1148,9 +1154,9 @@
       "notFoundTitle": "Obiettivo non trovato",
       "notFoundMessage": "Questo obiettivo non esiste più — torna alla tua lista.",
       "target": "Obiettivo",
-      "achievement": "{{ percent }} % raggiunto",
-      "progressAriaLabel": "Progresso: {{ percent }} % dell'obiettivo raggiunto (risparmiato)",
-      "progressAriaValue": "{{ confirmed }} % risparmiato, proiezione pianificata al {{ projected }} % dell'obiettivo",
+      "achievement": "{{ percent }}% raggiunto",
+      "progressAriaLabel": "Progresso: {{ percent }}% dell'obiettivo raggiunto (risparmiato)",
+      "progressAriaValue": "{{ confirmed }}% risparmiato, proiezione pianificata al {{ projected }}% dell'obiettivo",
       "lockedAmountAria": "{{ amount }}, spuntato, bloccato",
       "confirmed": "Risparmiato",
       "initialAmount": "Importo di partenza",
@@ -1656,7 +1662,7 @@
     "nameMaxLength": "Il nome non può superare i 100 caratteri",
     "amountLabel": "Importo",
     "amountRequired": "L'importo è obbligatorio",
-    "typeLabel": "Natura",
+    "typeLabel": "Tipo",
     "dateLabel": "Data",
     "datePlaceholder": "gg{{separator}}mm{{separator}}aaaa",
     "dateHintBudget": "Deve cadere nel periodo del budget",

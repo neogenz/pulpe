@@ -36,7 +36,8 @@
       "income": "Income",
       "expenses": "Expenses",
       "savings": "Savings"
-    }
+    },
+    "clearSearch": "Clear search"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -282,7 +283,10 @@
     "logoutAction": "Sign out",
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
-    "earlyAdopter": "VIP"
+    "earlyAdopter": "VIP",
+    "toggleNavigation": "Open menu",
+    "whatsNewTitle": "What's new in v{{ version }}",
+    "whatsNewSeeAll": "See what's new"
   },
   "earlyAdopter": {
     "title": "Thank you for being here from the start ✨",
@@ -337,7 +341,7 @@
     "howItWorksDetail": "If you're paid on the 27th, your January budget covers 27 December to 26 January. That way you plan your spending on your real financial rhythm.",
     "payDay": "Pay day",
     "firstOfMonth": "1st of the month",
-    "the": "The",
+    "the": "Day",
     "payDayHintCustom": "Your budget starts on the {{ day }}. If the month is shorter, it starts on the last day available.",
     "payDayHintStandard": "Your budget starts on the {{ day }} every month",
     "payDayHintDefault": "Your budget follows the standard calendar",
@@ -564,7 +568,7 @@
     "forecastNamePlaceholder": "E.g. Salary, Rent, Savings...",
     "forecastNameRequired": "The name is required",
     "forecastNameMinLength": "The name needs at least 2 characters",
-    "forecastTypeLabel": "Nature",
+    "forecastTypeLabel": "Type",
     "forecastAmountRequired": "The amount is required",
     "forecastTypeRequired": "The type is required",
     "newTransactionTitle": "Note an amount on {{ name }}",
@@ -694,7 +698,9 @@
       "deletedRepayment": "Next month's savings were deleted. The income stays.",
       "success": "That's sorted for this month.",
       "error": "The withdrawal didn't go through — nothing changed, you can try again."
-    }
+    },
+    "viewModeLabel": "Display mode",
+    "transactionActions": "Actions"
   },
   "budgetLine": {
     "checkLabel": "Check {{ name }}",
@@ -702,7 +708,7 @@
     "realizeWithdrawal": "Make this withdrawal",
     "realizeWithdrawalBalance": "Take the balance",
     "withdrawalRealized": "Made",
-    "realizationPointed": "This Actual will be created checked.",
+    "realizationPointed": "This actual entry will be created already checked.",
     "remainingPlannedWithdrawal": "Amount still planned",
     "checked": "Already checked",
     "savings": "Savings",
@@ -985,7 +991,7 @@
     "addTransactionDescriptionPlaceholder": "E.g. Groceries at Migros",
     "addTransactionDescriptionRequired": "The description is required",
     "addTransactionDescriptionMin": "The description needs at least 2 characters",
-    "addTransactionType": "Nature",
+    "addTransactionType": "Type",
     "addTransactionToday": "Today",
     "addTransactionFromSavingsGoal": "This income comes from a savings goal",
     "addTransactionFromSavingsGoalHint": "The amount will be taken out of the goal you pick.",
@@ -1273,7 +1279,7 @@
       "withdrawalGoalOnlyTitle": "Update the goal only",
       "withdrawalGoalOnlyDetail": "Recommended · The projection drops. Nothing changes in your budget.",
       "withdrawalLinkedTitle": "Create an income in the budget too",
-      "withdrawalLinkedDetail": "The withdrawal will show up as a linked Income planned item in that budget. Carry it out: the Actual created will be checked automatically.",
+      "withdrawalLinkedDetail": "The withdrawal will show up as a linked Income planned item in that budget. Carry it out: the actual entry created will be checked automatically.",
       "withdrawalConvertToGoalOnly": "The linked Income planned item will be deleted when the plan is updated.",
       "withdrawalConvertToLinked": "A linked Income planned item will be created when the plan is updated.",
       "withdrawalNoBudget": "No budget for that month. The withdrawal will stay outside the budget and only move the goal's projection.",
@@ -1286,7 +1292,7 @@
     }
   },
   "completeProfile": {
-    "loading": "Getting your free space ready...",
+    "loading": "Getting your breathing room ready...",
     "greetingWithName": "Hi {{ name }} 👋",
     "greetingNoName": "Hi 👋",
     "step1Subtitle": "We'll set your space up together in two short steps.",
@@ -1299,7 +1305,7 @@
     "step2Subtitle": "A few details to fine-tune — or skip straight ahead.",
     "payDay": "When are you paid?",
     "payDayPlaceholder": "Pick your day",
-    "payDayOption": "The {{ day }}",
+    "payDayOption": "Day {{ day }}",
     "charges": "Monthly bills",
     "chargesOptional": "Optional — you can adjust later",
     "housing": "Rent / Mortgage",
@@ -1642,7 +1648,7 @@
   "transactionKindIndefinite": {
     "income": "an income",
     "expense": "an expense",
-    "saving": "a saving"
+    "saving": "savings"
   },
   "recurrence": {
     "fixed": "Recurring",
@@ -1656,7 +1662,7 @@
     "nameMaxLength": "The name can't go over 100 characters",
     "amountLabel": "Amount",
     "amountRequired": "The amount is required",
-    "typeLabel": "Nature",
+    "typeLabel": "Type",
     "dateLabel": "Date",
     "datePlaceholder": "dd{{separator}}mm{{separator}}yyyy",
     "dateHintBudget": "Has to fall inside the budget period",

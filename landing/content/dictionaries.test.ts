@@ -86,6 +86,52 @@ describe("landing dictionaries", () => {
     }
   });
 
+  it("keeps the banned word and the formal address out of every language", () => {
+    // Deux règles produit que le typage ne voit pas, et qui se cassent de la
+    // même façon : une reformulation les réintroduit sans rien casser d'autre.
+    //
+    //   · « transaction » promettrait un lien bancaire que Pulpe n'a pas. La
+    //     règle vaut par langue, pas en français : `transaction` est le mot
+    //     anglais juste, `Transaktion` et `transazione` sont les mots interdits.
+    //   · le vouvoiement contredit le tutoiement de `docs/I18N.md`. En
+    //     allemand la forme de politesse ne se distingue du pronom « ils » que
+    //     par la majuscule, donc c'est elle qu'on interdit : une phrase qui
+    //     commence par `Sie` est ambiguë même quand l'auteur voulait « ils »,
+    //     et la lever demande de déplacer le pronom, pas de le laisser.
+    const BANNED_BY_LANG: Record<string, RegExp> = {
+      fr: /transaction/i,
+      en: /transaction/i,
+      de: /transaktion/i,
+      it: /transazione/i,
+    };
+    const FORMAL_BY_LANG: Record<string, RegExp> = {
+      de: /(?<![A-Za-zÄÖÜäöüß])(Sie|Ihre?[mnrs]?|Ihnen)(?![a-zäöüß])/,
+      it: /(?<![A-Za-zÀ-ÿ])(Lei|Suoi?|Sua|Sue|Vostr[aeio])(?![a-zà-ÿ])/,
+    };
+
+    for (const [code, catalog] of Object.entries({
+      fr: frDict,
+      ...TRANSLATIONS,
+    })) {
+      for (const [path, value] of leaves(catalog)) {
+        assert.doesNotMatch(
+          value,
+          BANNED_BY_LANG[code],
+          `${code} : « ${path} » dit le mot interdit — écris le mouvement, ` +
+            "l'action ou l'agrégat (voir docs/I18N.md)",
+        );
+        const formal = FORMAL_BY_LANG[code];
+        if (formal) {
+          assert.doesNotMatch(
+            value,
+            formal,
+            `${code} : « ${path} » vouvoie — Pulpe tutoie dans les quatre langues`,
+          );
+        }
+      }
+    }
+  });
+
   it("holds text, not markup", () => {
     // Le catalogue est rendu comme du texte : une entité HTML héritée du
     // balisage d'origine s'afficherait telle quelle, `&apos;` compris.

@@ -6,11 +6,12 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
   selector: 'pulpe-default-warning-panel',
 
-  imports: [MatButtonModule, MatIconModule],
+  imports: [MatButtonModule, MatIconModule, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -35,7 +36,7 @@ import { MatIconModule } from '@angular/material/icon';
           type="button"
           matIconButton
           (click)="onDismiss()"
-          aria-label="Fermer l'information"
+          [attr.aria-label]="'common.close' | transloco"
           class="shrink-0"
           data-testid="dismiss-warning-button"
         >

@@ -5,6 +5,7 @@ import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { WhatsNewToast } from './whats-new-toast';
 import { CURRENT_APP_VERSION } from '@core/app-version/current-app-version';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { LATEST_RELEASE } from './whats-new-releases';
 
 describe('WhatsNewToast', () => {
@@ -30,6 +31,7 @@ describe('WhatsNewToast', () => {
       imports: [WhatsNewToast],
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         { provide: StorageService, useValue: mockStorageService },
         { provide: CURRENT_APP_VERSION, useValue: runningVersion },
       ],
