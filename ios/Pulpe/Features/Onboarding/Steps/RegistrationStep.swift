@@ -114,11 +114,11 @@ extension RegistrationStep {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private static let consentMarkdown = AppURLs.legalDisclosure(
-        prefix: "En créant ton compte, tu acceptes nos",
-        connector: "notre",
-        suffix: "."
-    )
+    /// Computed, not `static let`: a stored constant would freeze the language the app
+    /// happened to be in when the type was first touched.
+    private static var consentMarkdown: AttributedString {
+        AppURLs.legalDisclosure(for: .registration)
+    }
 
     private func submitRegistration() async {
         // Defense-in-depth: if we're already authenticated (cold-start resume landed

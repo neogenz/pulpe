@@ -102,7 +102,7 @@ struct SavingsGoalStoreTests {
             Issue.record("Expected the partial failure to be rethrown")
         } catch let error as APIError {
             #expect(
-                error.errorDescription ==
+                error.message(in: AppLocale.uiLocale(for: .fr)) ==
                     "L'objectif et sa prévision mensuelle ont bien été créés, mais les soldes "
                     + "n'ont pas pu être actualisés — recharge la page sans recréer l'objectif"
             )
@@ -413,7 +413,7 @@ struct SavingsGoalStoreTests {
             Issue.record("Expected the partial failure to be rethrown")
         } catch let error as APIError {
             #expect(
-                error.errorDescription ==
+                error.message(in: AppLocale.uiLocale(for: .fr)) ==
                     "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — "
                     + "recharge la page sans réessayer"
             )

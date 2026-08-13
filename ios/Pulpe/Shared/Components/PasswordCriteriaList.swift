@@ -7,9 +7,9 @@ struct PasswordCriteriaList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            PasswordCriteriaRow(met: validator.hasMinLength, text: "8 caractères minimum")
-            PasswordCriteriaRow(met: validator.hasNumber, text: "Au moins un chiffre")
-            PasswordCriteriaRow(met: validator.hasLetter, text: "Au moins une lettre")
+            PasswordCriteriaRow(met: validator.hasMinLength, text: AppLocale.string("8 caractères minimum"))
+            PasswordCriteriaRow(met: validator.hasNumber, text: AppLocale.string("Au moins un chiffre"))
+            PasswordCriteriaRow(met: validator.hasLetter, text: AppLocale.string("Au moins une lettre"))
         }
     }
 }

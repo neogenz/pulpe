@@ -123,8 +123,8 @@ struct CurrencyField: View {
     /// Tell VoiceOver users the field is required; sighted users get the `*`
     /// in the visible label, but accessibility needs the explicit word.
     private var accessibilityFieldLabel: String {
-        let base = label ?? "Montant en \(currency.rawValue)"
-        return isRequired ? "\(base), requis" : base
+        let base = label ?? AppLocale.string("Montant en \(currency.rawValue)")
+        return isRequired ? AppLocale.string("\(base), requis") : base
     }
 
     private var asteriskColor: Color {

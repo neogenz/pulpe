@@ -55,7 +55,8 @@ struct AuthErrorLocalizerTests {
     @Test func localizeWithNetworkErrorReturnsLocalizedNetworkMessage() {
         // When
         let message = AuthErrorLocalizer.localize(
-            APIError.networkError(URLError(.notConnectedToInternet))
+            APIError.networkError(URLError(.notConnectedToInternet)),
+            in: AppLocale.uiLocale(for: .fr)
         )
 
         // Then
@@ -70,7 +71,7 @@ struct AuthErrorLocalizerTests {
     }
 
     @Test func localizeAuthServiceErrorSessionExpiredReturnsSessionExpiredMessage() {
-        let message = AuthErrorLocalizer.localize(AuthServiceError.sessionExpired)
+        let message = AuthErrorLocalizer.localize(AuthServiceError.sessionExpired, in: AppLocale.uiLocale(for: .fr))
         #expect(message == "Ta session a expiré — reconnecte-toi")
     }
 

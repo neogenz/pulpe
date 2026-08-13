@@ -43,7 +43,7 @@ struct AddBudgetLineSpreadSavingsGoalTests {
         // The same code now reaches a single line as well as a spread, so the
         // copy must read correctly for both — no "raccourcis le lissage".
         #expect(
-            error.errorDescription ==
+            error.message(in: AppLocale.uiLocale(for: .fr)) ==
                 "Cette épargne tombe après l'échéance de ton objectif — "
                 + "repousse l'échéance ou choisis un autre objectif"
         )

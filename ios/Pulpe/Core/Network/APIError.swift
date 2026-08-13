@@ -49,6 +49,33 @@ enum APIError: LocalizedError {
     case tagAlreadyExists
 
     var errorDescription: String? {
+        message(in: AppLocale.currentUILocale)
+    }
+
+    /// The user-facing message in an explicit language.
+    ///
+    /// `errorDescription` reads the language chosen in the app, which is global state — a
+    /// test asserting a French message would then depend on no other suite having switched
+    /// language meanwhile. Tests call this with a pinned locale instead.
+    func message(in locale: Locale) -> String {
+        // Server-authored text passes through untouched: the backend already answers in the
+        // account language, and we have no key for a message we did not write.
+        switch self {
+        case .conflict(let message):
+            return message
+        case .validationError(let details):
+            return details.joined(separator: "\n")
+        case .serverError(let message):
+            return message
+        case .unknown(let code):
+            return AppLocale.string("Quelque chose n'a pas fonctionné (code: \(code))", locale: locale)
+        default:
+            return AppLocale.string(catalogKey, locale: locale)
+        }
+    }
+
+    /// Split from `message(in:)` so neither half trips the cyclomatic-complexity budget.
+    private var catalogKey: String.LocalizationValue {
         switch self {
         case .invalidURL:
             return "L'adresse n'est pas valide — vérifie le lien"
@@ -60,18 +87,10 @@ enum APIError: LocalizedError {
             return "Tu n'as pas accès à cette ressource"
         case .notFound:
             return "Ressource introuvable — réessaie ou mets l'app à jour"
-        case .conflict(let message):
-            return message
-        case .validationError(let details):
-            return details.joined(separator: "\n")
-        case .serverError(let message):
-            return message
         case .networkError:
             return "Connexion impossible — vérifie ta connexion internet"
         case .decodingError:
             return "Les données reçues sont illisibles — réessaie"
-        case .unknown(let code):
-            return "Quelque chose n'a pas fonctionné (code: \(code))"
 
         // Known error codes
         case .budgetAlreadyExists:
@@ -107,14 +126,20 @@ enum APIError: LocalizedError {
         case .savingsWithdrawalConflict:
             return "Une pioche est déjà en place pour ce mois"
         case .savingsWithdrawalRecalculationFailed:
-            return "La pioche a bien été créée, mais les soldes n'ont pas pu être actualisés — "
-                + "recharge la page sans relancer la pioche"
+            return """
+                La pioche a bien été créée, mais les soldes n'ont pas pu être actualisés — \
+                recharge la page sans relancer la pioche
+                """
         case .savingsGoalBaselineRecalculationFailed:
-            return "L'objectif et sa prévision mensuelle ont bien été créés, mais les soldes "
-                + "n'ont pas pu être actualisés — recharge la page sans recréer l'objectif"
+            return """
+                L'objectif et sa prévision mensuelle ont bien été créés, mais les soldes \
+                n'ont pas pu être actualisés — recharge la page sans recréer l'objectif
+                """
         case .savingsGoalGenerationStopRecalculationFailed:
-            return "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — "
-                + "recharge la page sans réessayer"
+            return """
+                La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — \
+                recharge la page sans réessayer
+                """
         case .savingsGoalReconciliationRequired:
             return "Les prévisions liées ont changé — choisis à nouveau comment les traiter"
         case .savingsGoalReconciliationConflict:
@@ -122,21 +147,29 @@ enum APIError: LocalizedError {
         case .savingsGoalReconciliationFailed:
             return "Impossible de modifier l'échéance et ses prévisions — réessaie"
         case .savingsGoalReconciliationRecalculationFailed:
-            return "L'échéance a bien été modifiée, mais les soldes n'ont pas pu être actualisés — "
-                + "recharge sans réessayer"
+            return """
+                L'échéance a bien été modifiée, mais les soldes n'ont pas pu être actualisés — \
+                recharge sans réessayer
+                """
         case .savingsGoalPlanConflict:
             return "Ton plan a changé entre-temps — vérifie les données actualisées et relance la simulation"
         case .savingsGoalNotFound:
             return "Cet objectif n'existe plus"
         case .savingsGoalLineOutsideHorizon:
-            return "Cette épargne tombe après l'échéance de ton objectif — "
-                + "repousse l'échéance ou choisis un autre objectif"
+            return """
+                Cette épargne tombe après l'échéance de ton objectif — \
+                repousse l'échéance ou choisis un autre objectif
+                """
         case .savingsGoalDeletionImpactChanged:
-            return "Les éléments rattachés ont changé entre-temps — "
-                + "vérifie le nouvel impact avant de confirmer"
+            return """
+                Les éléments rattachés ont changé entre-temps — \
+                vérifie le nouvel impact avant de confirmer
+                """
         case .savingsGoalDeletionRecalculationFailed:
-            return "L'objectif et les éléments choisis ont bien été supprimés, mais les soldes "
-                + "n'ont pas pu être actualisés — recharge les budgets sans relancer la suppression"
+            return """
+                L'objectif et les éléments choisis ont bien été supprimés, mais les soldes \
+                n'ont pas pu être actualisés — recharge les budgets sans relancer la suppression
+                """
 
         // Savings-goal withdrawals (PUL-329) — copy aligned with the webapp fr.json.
         case .savingsGoalWithdrawalInsufficientBalance:
@@ -147,6 +180,11 @@ enum APIError: LocalizedError {
             return "Un revenu venant d'un objectif reste un revenu : son type et son origine ne peuvent pas changer"
         case .tagAlreadyExists:
             return "Un tag porte déjà ce nom — choisis-en un autre"
+
+        // Answered by `message(in:)` before it reaches this table. Listed one by one rather
+        // than under a `default` so a new case has to state which half it belongs to.
+        case .conflict, .validationError, .serverError, .unknown:
+            return "Quelque chose n'a pas fonctionné"
         }
     }
 
@@ -197,7 +235,7 @@ enum APIError: LocalizedError {
     /// Create APIError from server error code
     static func from(code: String?, message: String?, statusCode: Int? = nil) -> APIError {
         guard let code else {
-            return .serverError(message: message ?? "Quelque chose n'a pas fonctionné")
+            return .serverError(message: message ?? AppLocale.string("Quelque chose n'a pas fonctionné"))
         }
 
         if code == "ERR_SAVINGS_GOAL_PLAN_CONFLICT" {

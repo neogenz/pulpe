@@ -48,7 +48,7 @@ struct TransactionAmountView: View {
         guard let secondary = secondaryText(for: transaction, in: displayCurrency) else {
             return ""
         }
-        return ", saisi en \(secondary)"
+        return AppLocale.string(", saisi en \(secondary)")
     }
 
     /// Returns `true` when the primary amount should render in the muted

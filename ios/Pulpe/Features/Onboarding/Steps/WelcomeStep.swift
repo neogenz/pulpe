@@ -7,11 +7,11 @@ struct WelcomeStep: View {
     @State private var isBreathing = false
     @Bindable var state: OnboardingState
 
-    private static let consentMarkdown = AppURLs.legalDisclosure(
-        prefix: "En continuant, tu acceptes nos",
-        connector: "notre",
-        suffix: "."
-    )
+    /// Computed, not `static let`: a stored constant would freeze the language the app
+    /// happened to be in when the type was first touched.
+    private static var consentMarkdown: AttributedString {
+        AppURLs.legalDisclosure(for: .welcome)
+    }
 
     var body: some View {
         ZStack {

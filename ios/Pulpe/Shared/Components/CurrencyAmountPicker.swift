@@ -10,7 +10,7 @@ struct CurrencyAmountPicker: View {
         if isReadOnly {
             readOnlyCapsule
         } else {
-            CapsulePicker(selection: $selectedCurrency, title: "Devise") { currency, _ in
+            CapsulePicker(selection: $selectedCurrency, title: AppLocale.string("Devise")) { currency, _ in
                 HStack(spacing: DesignTokens.Spacing.xs) {
                     Text(currency.flag)
                     Text(currency.rawValue)

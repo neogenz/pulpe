@@ -10,8 +10,8 @@ extension SupportedCurrency {
 
     var nativeName: String {
         switch self {
-        case .chf: "Franc suisse"
-        case .eur: "Euro"
+        case .chf: AppLocale.string("Franc suisse")
+        case .eur: AppLocale.string("Euro")
         }
     }
 

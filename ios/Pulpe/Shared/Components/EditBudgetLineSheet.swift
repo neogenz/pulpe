@@ -121,8 +121,8 @@ struct EditBudgetLineSheet: View {
         FormTextField(
             hint: kind.descriptionPlaceholder,
             text: $name,
-            label: "Description",
-            accessibilityLabel: "Description de la prévision",
+            label: AppLocale.string("Description"),
+            accessibilityLabel: AppLocale.string("Description de la prévision"),
             focusBinding: $focusedField,
             field: .description
         )
@@ -175,7 +175,7 @@ struct EditBudgetLineSheet: View {
             let updatedLine = try await dependencies.updateBudgetLine(budgetLine.id, data)
             submitSuccessTrigger.toggle()
             onUpdate(updatedLine)
-            toastManager.show("Prévision modifiée")
+            toastManager.show(AppLocale.string("Prévision modifiée"))
             dismiss()
         } catch {
             self.error = error

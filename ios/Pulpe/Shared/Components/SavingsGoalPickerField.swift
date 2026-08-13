@@ -218,7 +218,7 @@ struct SavingsGoalPickerField: View {
 
     private var menuContent: some View {
         Menu {
-            savingsGoalPickerButton(title: "Aucun objectif", isSelected: selection == nil) {
+            savingsGoalPickerButton(title: AppLocale.string("Aucun objectif"), isSelected: selection == nil) {
                 pickedHere = true
                 selection = nil
             }
@@ -227,7 +227,9 @@ struct SavingsGoalPickerField: View {
                 if let deadline = exceededDeadline(for: goal) {
                     savingsGoalPickerButton(
                         title: goal.name,
-                        subtitle: "Échéance dépassée · \(Formatters.monthName(for: deadline.month)) \(deadline.year)",
+                        subtitle: AppLocale.string(
+                            "Échéance dépassée · \(Formatters.monthName(for: deadline.month)) \(deadline.year)"
+                        ),
                         isSelected: goal.id == selection
                     ) {}
                     .disabled(true)
@@ -240,7 +242,7 @@ struct SavingsGoalPickerField: View {
             }
         } label: {
             savingsGoalFieldSurface {
-                Text(selectedGoal?.name ?? "Aucun objectif")
+                Text(selectedGoal?.name ?? AppLocale.string("Aucun objectif"))
                     .foregroundStyle(selectedGoal == nil ? Color.onSurfaceVariant : Color.textPrimary)
                 Spacer()
                 Image(systemName: "chevron.up.chevron.down")
@@ -249,7 +251,7 @@ struct SavingsGoalPickerField: View {
             }
         }
         .accessibilityLabel("Objectif d'épargne")
-        .accessibilityValue(selectedGoal?.name ?? "Aucun objectif")
+        .accessibilityValue(selectedGoal?.name ?? AppLocale.string("Aucun objectif"))
     }
 }
 
@@ -323,7 +325,7 @@ private struct SavingsGoalWithdrawalPicker: View {
             }
         } label: {
             savingsGoalFieldSurface {
-                Text(state.selectedOption?.name ?? "Choisis un objectif")
+                Text(state.selectedOption?.name ?? AppLocale.string("Choisis un objectif"))
                     .foregroundStyle(state.selectedOption == nil ? Color.onSurfaceVariant : Color.textPrimary)
                 Spacer()
                 Image(systemName: "chevron.up.chevron.down")
@@ -332,7 +334,7 @@ private struct SavingsGoalWithdrawalPicker: View {
             }
         }
         .accessibilityLabel("Objectif utilisé")
-        .accessibilityValue(state.selectedOption?.name ?? "Aucun objectif choisi")
+        .accessibilityValue(state.selectedOption?.name ?? AppLocale.string("Aucun objectif choisi"))
     }
 
     @ViewBuilder

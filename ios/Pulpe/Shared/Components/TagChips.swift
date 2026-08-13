@@ -15,7 +15,7 @@ struct TagChips: View {
     var followsText = false
 
     var accessibilityLabel: String {
-        "Tags : \(names.joined(separator: ", "))"
+        AppLocale.string("Tags : \(names.joined(separator: ", "))")
     }
 
     var countLabel: String {
