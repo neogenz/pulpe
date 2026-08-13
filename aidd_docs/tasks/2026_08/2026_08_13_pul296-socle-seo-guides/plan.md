@@ -1,6 +1,6 @@
 ---
 objective: "La landing sert des guides budget suisses depuis /guides : ajouter un guide au registre le publie dans l'index, le sitemap et les données structurées, dans une forme optimisée pour Google ET les moteurs de réponse IA (ChatGPT, Perplexity, AI Overviews)."
-status: in-progress
+status: implemented
 ---
 
 # Plan: PUL-296 — Socle SEO/GEO `/guides` sur la landing

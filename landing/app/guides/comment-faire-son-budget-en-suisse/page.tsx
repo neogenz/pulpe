@@ -82,16 +82,16 @@ export default function BudgetSuisseGuidePage() {
       <p>
         Pour faire ton budget en Suisse, pars de ton revenu net mensuel, liste
         tes prévisions (loyer, assurance maladie, impôts, abonnements), choisis
-        le montant que tu mets de côté en épargne, et regarde ce qui reste :
-        ton disponible à dépenser pour le quotidien. Refais ensuite le même
-        exercice pour chaque mois de l&apos;année, parce que les impôts, les
-        primes ou les vacances ne tombent pas partout de la même façon.
+        le montant que tu mets de côté en épargne, et regarde ce qui reste : ton
+        disponible à dépenser pour le quotidien. Refais ensuite le même exercice
+        pour chaque mois de l&apos;année, parce que les impôts, les primes ou
+        les vacances ne tombent pas partout de la même façon.
       </p>
       <p>
-        Ce guide détaille la méthode en quatre étapes, avec les chiffres
-        suisses qui servent de repères et un exemple complet. Elle fonctionne
-        sur papier, dans un tableur ou dans une app : ce qui compte, c&apos;est
-        de la suivre chaque mois.
+        Ce guide détaille la méthode en quatre étapes, avec les chiffres suisses
+        qui servent de repères et un exemple complet. Elle fonctionne sur
+        papier, dans un tableur ou dans une app : ce qui compte, c&apos;est de
+        la suivre chaque mois.
       </p>
 
       <h2>Les quatre étapes pour poser ton budget</h2>
@@ -112,8 +112,8 @@ export default function BudgetSuisseGuidePage() {
         </li>
         <li>
           <strong>Choisis ton épargne.</strong> Décide d&apos;un montant avant
-          de dépenser, pas avec ce qui traîne en fin de mois. Vire-le dès que
-          le salaire arrive, sur un compte séparé que tu ne touches pas au
+          de dépenser, pas avec ce qui traîne en fin de mois. Vire-le dès que le
+          salaire arrive, sur un compte séparé que tu ne touches pas au
           quotidien.
         </li>
         <li>
@@ -159,12 +159,12 @@ export default function BudgetSuisseGuidePage() {
         radio-TV, les frais médicaux qui restent à ta charge en dessous de la
         franchise, la prime d&apos;assurance ménage, ou l&apos;impôt qui varie
         fortement d&apos;un canton à l&apos;autre. Aucune n&apos;est énorme
-        seule ; ensemble, elles expliquent pourquoi un budget « de tête »
-        finit toujours plus serré que prévu.
+        seule ; ensemble, elles expliquent pourquoi un budget « de tête » finit
+        toujours plus serré que prévu.
       </p>
       <p>
-        Voici à quoi ces étapes ressemblent pour un revenu net de CHF
-        5&apos;000 par mois :
+        Voici à quoi ces étapes ressemblent pour un revenu net de CHF 5&apos;000
+        par mois :
       </p>
       <div className="table-scroll">
         <table>
@@ -221,18 +221,17 @@ export default function BudgetSuisseGuidePage() {
       <p>
         Un repère simple : vise 10 à 20 % de ton revenu net. Commence par un
         fonds de secours qui couvre trois mois de dépenses, puis épargne par
-        objectif : les vacances, le permis, un déménagement. Si 10 % est hors
-        de portée ce mois-ci, mets moins, mais mets quelque chose.
-        L&apos;important n&apos;est pas le pourcentage parfait, c&apos;est la
-        régularité : un montant décidé d&apos;avance, chaque mois, même
-        modeste.
+        objectif : les vacances, le permis, un déménagement. Si 10 % est hors de
+        portée ce mois-ci, mets moins, mais mets quelque chose. L&apos;important
+        n&apos;est pas le pourcentage parfait, c&apos;est la régularité : un
+        montant décidé d&apos;avance, chaque mois, même modeste.
       </p>
       <p>
-        En Suisse, le pilier 3a est souvent la première marche : les
-        versements se déduisent de ton revenu imposable, ce qui fait d&apos;une
-        partie de ton épargne une économie d&apos;impôts. Mais garde ton fonds
-        de secours sur un compte accessible : le 3a est bloqué jusqu&apos;à la
-        retraite, sauf exceptions.
+        En Suisse, le pilier 3a est souvent la première marche : les versements
+        se déduisent de ton revenu imposable, ce qui fait d&apos;une partie de
+        ton épargne une économie d&apos;impôts. Mais garde ton fonds de secours
+        sur un compte accessible : le 3a est bloqué jusqu&apos;à la retraite,
+        sauf exceptions.
       </p>
 
       <h2>Comment tenir ton budget au fil du mois ?</h2>
@@ -260,8 +259,7 @@ export default function BudgetSuisseGuidePage() {
         chacune ressemble à un imprévu. Sur une vue annuelle, ce sont juste des
         mois différents. Le 13e salaire fonctionne pareil, dans l&apos;autre
         sens : ce n&apos;est pas un bonus tombé du ciel, c&apos;est un mois
-        différent que tu peux affecter d&apos;avance aux impôts ou aux
-        vacances.
+        différent que tu peux affecter d&apos;avance aux impôts ou aux vacances.
       </p>
       <blockquote>
         Un budget n&apos;est pas là pour t&apos;empêcher de dépenser. Il est là
@@ -270,9 +268,9 @@ export default function BudgetSuisseGuidePage() {
       </blockquote>
       <p>
         C&apos;est exactement ce que fait Pulpe : tu poses ton mois type une
-        fois, tu ajustes les mois qui changent, et tu vois combien il te
-        restera en juillet ou en décembre, des mois d&apos;avance. Sans
-        connexion bancaire, et tes montants sont chiffrés en base de données.
+        fois, tu ajustes les mois qui changent, et tu vois combien il te restera
+        en juillet ou en décembre, des mois d&apos;avance. Sans connexion
+        bancaire, et tes montants sont chiffrés en base de données.
       </p>
     </ArticleLayout>
   );

@@ -37,8 +37,8 @@ export default function GuidesPage() {
                 Guides
               </h1>
               <p className="pretty mt-4 max-w-2xl text-lg leading-relaxed text-text-secondary">
-                Des méthodes concrètes pour gérer ton budget en Suisse et
-                savoir combien il te restera chaque mois.
+                Des méthodes concrètes pour gérer ton budget en Suisse et savoir
+                combien il te restera chaque mois.
               </p>
             </header>
 
