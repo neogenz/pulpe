@@ -22,6 +22,17 @@ Consequences:
 - Never weaken `maskTextSelector: '*'`, `maskAllInputs: true`, the replay block selector, `compress_events: false`, or the strict `$snapshot` sanitizer without a privacy review against the exact installed `posthog-js` version.
 - Keep native `posthog-js` `autocapture` disabled. Pulpe's authenticated click tracking uses the structure-only listener in `core/analytics/posthog.ts`, which emits `$autocapture` with tag names and numeric sibling positions only. It must never read or forward DOM text, input values, classes, IDs, selectors, URLs, attributes, or `data-ph-capture-attribute-*`; `before_send` rebuilds the same allowlisted structure as a second barrier.
 
+## Email identity contract
+
+Plain-text email is intentionally retained only as a PostHog person property
+through `identify` / `$set`, so PostHog people can be reconciled with Supabase
+users. `sanitizePersonProperties` restores this explicitly allowlisted scalar.
+
+Every other email occurrence is accidental PII duplication. `email` therefore
+remains in `SENSITIVE_EXACT_KEYS` and must be removed from ordinary event
+properties, `$set_once`, and exception context. Never pass an email through a
+`captureEvent` payload expecting it to survive.
+
 ## What to mark
 
 Any element that renders a monetary value or sensitive user-entered text:

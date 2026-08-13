@@ -412,6 +412,24 @@ describe('posthog-sanitizer', () => {
       });
     });
 
+    it('drops email from ordinary event properties while keeping it as a person property', () => {
+      const event = {
+        event: 'signup_completed',
+        properties: {
+          method: 'email',
+          email: 'private@example.test',
+        },
+        $set: {
+          email: 'private@example.test',
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+
+      expect(sanitized?.properties).toEqual({ method: 'email' });
+      expect(sanitized?.$set).toEqual({ email: 'private@example.test' });
+    });
+
     it('sanitizes $set_once properties', () => {
       const event = {
         event: 'user_created',
@@ -795,6 +813,66 @@ describe('posthog-sanitizer', () => {
       );
       expect(sanitized?.properties?.['environment']).toBe('production');
       expect(sanitized?.properties?.['platform']).toBe('web');
+    });
+
+    it('masks text nodes added by an rrweb mutation while keeping the add structure', () => {
+      const event = {
+        event: '$snapshot',
+        properties: {
+          $snapshot_data: [
+            {
+              type: 3,
+              data: {
+                source: 0,
+                texts: [],
+                attributes: [],
+                removes: [],
+                adds: [
+                  {
+                    parentId: 2,
+                    nextId: null,
+                    node: {
+                      type: 3,
+                      id: 7,
+                      textContent: 'PRIVATE_ADDED_TEXT_NODE',
+                    },
+                  },
+                ],
+              },
+              timestamp: 1,
+            },
+          ],
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+
+      expect(sanitized?.properties?.['$snapshot_data']).toEqual([
+        {
+          type: 3,
+          timestamp: 1,
+          data: {
+            source: 0,
+            texts: [],
+            attributes: [],
+            removes: [],
+            adds: [
+              {
+                parentId: 2,
+                nextId: null,
+                node: {
+                  type: 3,
+                  id: 7,
+                  textContent: '***********************',
+                },
+              },
+            ],
+          },
+        },
+      ]);
+      expect(JSON.stringify(sanitized)).not.toContain(
+        'PRIVATE_ADDED_TEXT_NODE',
+      );
     });
 
     it('keeps valid rrweb attribute shapes without retaining their free-form values', () => {

@@ -133,6 +133,7 @@ const SENSITIVE_KEYWORDS = [
 const SENSITIVE_EXACT_KEYS = new Set([
   'apikey', // Generic API key fields - note: PostHog uses 'api_key' and 'token' which are different
   'token',
+  'email', // Person property only: `sanitizePersonProperties` restores it for `$set`/identify
   'description',
   'label',
   'name',
@@ -1637,7 +1638,10 @@ export const sanitizeEventPayload = (
         event.properties['$exception_list'] = sanitizedExceptionList;
       }
 
-      // PostHog SDK injects 'token' into properties — preserve it through sanitization.
+      // posthog-js injects its project routing token after the application
+      // wrappers have already sanitized caller-provided properties. Preserve
+      // only that SDK-added value across generic sanitization; `token` remains
+      // sensitive so application tokens are dropped before they reach the SDK.
       const sdkToken = event.properties['token'];
 
       // Never send the raw rrweb tree through the generic recursive walker. It has
