@@ -37,11 +37,14 @@ import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
 import { TagIndicator } from '@ui/tag-indicator';
 import { CheckRewardDirective } from '@ui/check-reward';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
-import { createBudgetLineConsumptionDisplay } from '../../view-models/budget-item-data-builder';
+import { createBudgetLineTableItem } from '../../view-models/budget-item-data-builder';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
 import { BudgetDetailsStore } from '../../store/budget-details-store';
-import { BudgetLineActionList } from '../budget-line-action-list';
+import {
+  isPostponeUnavailableForRecurringLine,
+  isSpreadUnavailableForRecurringLine,
+} from '../budget-line-action-list';
 
 export interface BudgetDetailPanelData {
   item: BudgetLineTableItem;
@@ -102,7 +105,6 @@ const DETAIL_SEGMENT_COUNT = 12;
     SpreadOccurrencesList,
     TagIndicator,
     SavingsGoalSourceLine,
-    BudgetLineActionList,
     CheckRewardDirective,
   ],
   template: `
@@ -251,15 +253,71 @@ const DETAIL_SEGMENT_COUNT = 12;
                 <mat-icon>more_horiz</mat-icon>
               </button>
               <mat-menu #forecastMoreMenu="matMenu" xPosition="before">
-                <pulpe-budget-line-action-list
-                  [item]="envelope"
-                  [showAddTransaction]="false"
-                  [showEdit]="false"
-                  [showDelete]="false"
-                  (spread)="onSpreadBudgetLine($event)"
-                  (resetFromTemplate)="onResetBudgetLine($event)"
-                  (postpone)="onPostponeBudgetLine($event)"
-                />
+                @if (envelope.metadata.canSpread) {
+                  <button mat-menu-item (click)="onSpreadBudgetLine(envelope)">
+                    <mat-icon matMenuItemIcon>calendar_month</mat-icon>
+                    <span>{{
+                      'budgetLine.spread.spreadAction' | transloco
+                    }}</span>
+                  </button>
+                } @else if (showSpreadUnavailable()) {
+                  <span
+                    class="block"
+                    [matTooltip]="
+                      'budgetLine.spread.spreadUnavailableRecurrent' | transloco
+                    "
+                    matTooltipPosition="above"
+                  >
+                    <button mat-menu-item disabled>
+                      <mat-icon matMenuItemIcon>calendar_month</mat-icon>
+                      <span>{{
+                        'budgetLine.spread.spreadAction' | transloco
+                      }}</span>
+                    </button>
+                  </span>
+                }
+                @if (envelope.metadata.canResetFromTemplate) {
+                  <button mat-menu-item (click)="onResetBudgetLine(envelope)">
+                    <mat-icon matMenuItemIcon>refresh</mat-icon>
+                    <span>{{ 'budget.reset' | transloco }}</span>
+                  </button>
+                }
+                @if (envelope.metadata.showPostpone) {
+                  <span
+                    class="block w-full"
+                    [matTooltip]="
+                      envelope.metadata.postponeDisabledReason
+                        ? (envelope.metadata.postponeDisabledReason
+                          | transloco
+                            : {
+                                month: envelope.metadata.postponeTargetLabel,
+                              })
+                        : ''
+                    "
+                  >
+                    <button
+                      mat-menu-item
+                      [disabled]="envelope.metadata.isPostponeDisabled"
+                      (click)="onPostponeBudgetLine(envelope.data.id)"
+                    >
+                      <mat-icon matMenuItemIcon>event_upcoming</mat-icon>
+                      <span>{{ 'budget.postpone' | transloco }}</span>
+                    </button>
+                  </span>
+                } @else if (showPostponeUnavailable()) {
+                  <span
+                    class="block w-full"
+                    [matTooltip]="
+                      'budget.postponeUnavailableRecurrent' | transloco
+                    "
+                    matTooltipPosition="above"
+                  >
+                    <button mat-menu-item disabled>
+                      <mat-icon matMenuItemIcon>event_upcoming</mat-icon>
+                      <span>{{ 'budget.postpone' | transloco }}</span>
+                    </button>
+                  </span>
+                }
               </mat-menu>
             }
           </div>
@@ -605,15 +663,24 @@ export class BudgetDetailPanel {
     );
     if (!budgetLine) return this.data.item;
 
-    return {
-      ...this.data.item,
-      data: budgetLine,
-      consumption: createBudgetLineConsumptionDisplay(
-        budgetLine,
-        details.transactions ?? [],
-      ),
-    };
+    return createBudgetLineTableItem({
+      budgetLine,
+      transactions: details.transactions ?? [],
+      postpone: {
+        hasNextMonthBudget: this.#store.hasNextMonthBudget(),
+        nextMonthLabel: this.#store.nextMonthLabel(),
+      },
+      savingsWithdrawalOriginLabel: this.#store.savingsWithdrawalOriginLabel(),
+    });
   });
+
+  protected readonly showSpreadUnavailable = computed(() =>
+    isSpreadUnavailableForRecurringLine(this.envelopeItem()),
+  );
+
+  protected readonly showPostponeUnavailable = computed(() =>
+    isPostponeUnavailableForRecurringLine(this.envelopeItem()),
+  );
 
   protected readonly hasMoreBudgetLineActions = computed(() => {
     const { data, metadata } = this.envelopeItem();

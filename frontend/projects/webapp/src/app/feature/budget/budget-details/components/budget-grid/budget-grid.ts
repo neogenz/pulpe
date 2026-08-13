@@ -484,7 +484,6 @@ export class BudgetGrid {
   readonly spreadTransaction = output<Transaction>();
   readonly add = output<void>();
   readonly addTransaction = output<BudgetLine>();
-  readonly viewTransactions = output<BudgetLineTableItem>();
   readonly spread = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();

@@ -462,9 +462,6 @@ export class CompleteProfileStore {
     try {
       await this.#userSettingsStore.updateSettings({
         currency: state.currency,
-        ...(state.payDayOfMonth !== null && {
-          payDayOfMonth: state.payDayOfMonth,
-        }),
       });
       const result =
         await this.#profileSetupService.createInitialBudget(profileData);
@@ -477,6 +474,23 @@ export class CompleteProfileStore {
             this.#transloco.translate('completeProfile.createBudgetError'),
         });
         return false;
+      }
+
+      if (state.payDayOfMonth !== null) {
+        try {
+          await this.#userSettingsStore.updateSettings({
+            payDayOfMonth: state.payDayOfMonth,
+          });
+        } catch (error) {
+          this.#logger.warn(
+            'Budget created, but saving the pay day failed:',
+            error,
+          );
+          this.#postHogService.captureException(error, {
+            context: 'complete-profile',
+            action: 'savePayDay',
+          });
+        }
       }
 
       this.#postHogService.captureEvent(ANALYTICS_EVENTS.FIRST_BUDGET_CREATED, {

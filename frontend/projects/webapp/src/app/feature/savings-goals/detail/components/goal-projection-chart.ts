@@ -8,7 +8,6 @@ import {
   input,
   LOCALE_ID,
   signal,
-  viewChild,
 } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
 import type { Plugin } from 'chart.js';
@@ -148,7 +147,6 @@ export class GoalProjectionChart {
   readonly #theme = signal<ChartThemeColors | null>(null);
   readonly #reducedMotion = signal(false);
   readonly #hiddenSeries = signal<ReadonlySet<GoalProjectionSeries>>(new Set());
-  private readonly chart = viewChild<BaseChartDirective>('chart');
 
   readonly chartType = 'line' as const;
   protected readonly seriesGroupLabel = this.#transloco.translate(
@@ -184,8 +182,8 @@ export class GoalProjectionChart {
     ),
   );
 
-  readonly chartData = computed(() =>
-    buildGoalProjectionChartData({
+  readonly chartData = computed(() => {
+    const chartData = buildGoalProjectionChartData({
       months: this.months(),
       draft: this.draft(),
       targetAmount: this.targetAmount(),
@@ -194,8 +192,20 @@ export class GoalProjectionChart {
       theme: this.#theme(),
       locale: this.#locale,
       labels: this.#labels,
-    }),
-  );
+    });
+    const hiddenSeries = this.#hiddenSeries();
+    return {
+      ...chartData,
+      datasets: chartData.datasets.map((dataset) => {
+        const series = (
+          Object.keys(this.#labels) as GoalProjectionSeries[]
+        ).find((candidate) => this.#labels[candidate] === dataset.label);
+        return series && hiddenSeries.has(series)
+          ? { ...dataset, hidden: true }
+          : dataset;
+      }),
+    };
+  });
 
   readonly chartPlugins = computed<Plugin[]>(() => {
     const theme = this.#theme();
@@ -247,10 +257,10 @@ export class GoalProjectionChart {
   }
 
   protected toggleSeries(series: GoalProjectionSeries): void {
-    const datasetIndex = this.chartData().datasets.findIndex(
+    const hasDataset = this.chartData().datasets.some(
       (dataset) => dataset.label === this.#labels[series],
     );
-    if (datasetIndex < 0) return;
+    if (!hasDataset) return;
 
     const hidden = !this.isSeriesHidden(series);
     const next = new Set(this.#hiddenSeries());
@@ -260,7 +270,6 @@ export class GoalProjectionChart {
       next.delete(series);
     }
     this.#hiddenSeries.set(next);
-    this.chart()?.hideDataset(datasetIndex, hidden);
   }
 
   protected readonly ariaSentence = computed(() => {

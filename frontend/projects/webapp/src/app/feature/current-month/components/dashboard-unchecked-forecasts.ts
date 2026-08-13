@@ -274,12 +274,12 @@ interface AnimatingForecast {
                        so "100 sur 1'500.50" read as a rent almost entirely
                        unpaid rather than almost entirely covered, the exact
                        inversion, on the row the user is about to point. -->
-                  <span
-                    class="min-h-4 whitespace-nowrap text-label-small text-on-surface-variant font-medium tabular-nums ph-no-capture"
-                    [id]="'forecast-planned-' + forecast.id"
-                    data-testid="dashboard-forecasts-planned"
-                  >
-                    @if (isPartlyConsumed) {
+                  @if (isPartlyConsumed) {
+                    <span
+                      class="whitespace-nowrap text-label-small text-on-surface-variant font-medium tabular-nums ph-no-capture"
+                      [id]="'forecast-planned-' + forecast.id"
+                      data-testid="dashboard-forecasts-planned"
+                    >
                       {{
                         'currentMonth.uncheckedForecasts.ofPlanned' | transloco
                       }}
@@ -288,8 +288,8 @@ interface AnimatingForecast {
                            row claimed the household owed a franc it did not.
                            The figure beside it stays an aggregation. -->
                       {{ forecast.amount | appCurrency: currency() : '1.2-2' }}
-                    }
-                  </span>
+                    </span>
+                  }
                 </span>
               </div>
             }

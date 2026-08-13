@@ -1,11 +1,15 @@
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  type WritableSignal,
+} from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { By } from '@angular/platform-browser';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { describe, expect, it, vi } from 'vitest';
-import { type BudgetLine } from 'pulpe-shared';
+import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { TagStore } from '@core/tag';
 import { UserSettingsStore } from '@core/user-settings';
 import { FinancialKindDirective } from '@ui/financial-kind';
@@ -24,6 +28,11 @@ import {
   BudgetDetailPanel,
   type BudgetDetailPanelData,
 } from './budget-detail-panel';
+
+let budgetDetailsSignal: WritableSignal<{
+  budgetLines: BudgetLine[];
+  transactions: Transaction[];
+}>;
 
 const TAG_NAMES = new Map([
   ['tag-assurance', 'Assurance'],
@@ -73,6 +82,10 @@ async function setup(
     onToggleTransactionCheck: vi.fn(),
     onEditTransaction: vi.fn(),
   };
+  budgetDetailsSignal = signal({
+    budgetLines: [],
+    transactions: [transaction],
+  });
 
   await TestBed.configureTestingModule({
     imports: [BudgetDetailPanel],
@@ -100,10 +113,10 @@ async function setup(
       {
         provide: BudgetDetailsStore,
         useValue: {
-          budgetDetails: signal({
-            budgetLines: [],
-            transactions: [transaction],
-          }),
+          budgetDetails: budgetDetailsSignal,
+          hasNextMonthBudget: signal(false),
+          nextMonthLabel: signal('septembre 2026'),
+          savingsWithdrawalOriginLabel: signal('juillet 2026'),
           savingsGoalNameById: signal(new Map()),
           spreadOccurrenceViewModels: signal([]),
           spreadTracker: signal(null),
@@ -198,6 +211,42 @@ describe('BudgetDetailPanel forecast actions', () => {
     await fixture.whenStable();
 
     expect(data.onToggleBudgetLineCheck).toHaveBeenCalledWith('line-1');
+  });
+
+  it('should refresh action metadata when the last allocated movement is removed', async () => {
+    const fixture = await setup([], {
+      kind: 'income',
+      recurrence: 'one_off',
+    });
+    const data = TestBed.inject(MAT_DIALOG_DATA) as BudgetDetailPanelData;
+    const allocatedTransaction = createMockTransaction({
+      id: 'allocated-income',
+      kind: 'income',
+      budgetLineId: data.item.data.id,
+      amount: 10,
+    });
+    budgetDetailsSignal.set({
+      budgetLines: [data.item.data],
+      transactions: [allocatedTransaction],
+    });
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="detail-more-actions-line-1"]',
+      ),
+    ).toBeNull();
+
+    budgetDetailsSignal.set({
+      budgetLines: [data.item.data],
+      transactions: [],
+    });
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="detail-more-actions-line-1"]',
+      ),
+    ).not.toBeNull();
   });
 });
 

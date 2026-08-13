@@ -161,6 +161,19 @@ describe('GoalProjectionChart', () => {
     fixture.detectChanges();
     expect(confirmed.getAttribute('aria-pressed')).toBe('false');
     expect(confirmed.getAttribute('aria-label')).toContain('Afficher');
+    expect(
+      fixture.componentInstance
+        .chartData()
+        .datasets.find((dataset) => dataset.label === 'Épargné')?.hidden,
+    ).toBe(true);
+
+    setTestInput(fixture.componentInstance.targetAmount, null);
+    fixture.detectChanges();
+    expect(
+      fixture.componentInstance
+        .chartData()
+        .datasets.find((dataset) => dataset.label === 'Épargné')?.hidden,
+    ).toBe(true);
 
     confirmed.click();
     fixture.detectChanges();

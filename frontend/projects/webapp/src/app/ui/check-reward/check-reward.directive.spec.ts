@@ -6,7 +6,7 @@ import {
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CheckRewardDirective } from './check-reward.directive';
 
 @Component({
@@ -27,6 +27,8 @@ describe('CheckRewardDirective', () => {
       providers: [provideZonelessChangeDetection()],
     });
   });
+
+  afterEach(() => vi.unstubAllGlobals());
 
   it('rewards only the transition to checked and settles after the animation', () => {
     const fixture = TestBed.createComponent(HostComponent);
@@ -56,5 +58,19 @@ describe('CheckRewardDirective', () => {
     fixture.componentInstance.checked.set(true);
     fixture.detectChanges();
     expect(toggle.classList.contains('pulpe-check-reward')).toBe(true);
+  });
+
+  it('does not start the reward when reduced motion is requested', () => {
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true }));
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+    const toggle = fixture.nativeElement.querySelector(
+      '[data-testid="toggle"]',
+    ) as HTMLElement;
+
+    fixture.componentInstance.checked.set(true);
+    fixture.detectChanges();
+
+    expect(toggle.classList.contains('pulpe-check-reward')).toBe(false);
   });
 });

@@ -145,7 +145,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
             class="ph-no-capture text-headline-medium font-bold"
             [pulpeFinancialKind]="item().data.kind"
           >
-            {{ item().data.amount | appCurrency: currency() : '1.0-2' }}
+            {{ item().data.amount | appCurrency: currency() : '1.2-2' }}
           </div>
           <span class="text-label-small text-on-surface-variant">{{
             'budgetLine.planned' | transloco
@@ -246,7 +246,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
                         : {
                             amount:
                               (progressMessage.params.amount
-                              | appCurrency: currency() : '1.0-2'),
+                              | appCurrency: currency() : '1.0-0'),
                           }
                   }}</span>
                 } @else if (

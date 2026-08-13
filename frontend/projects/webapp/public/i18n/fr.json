@@ -653,16 +653,11 @@
     "spreadSkippedMonthsSuffix": " · {{ count }} mois ignoré(s) (aucun modèle)",
     "overview": {
       "remainingThisMonth": "Ce qu'il te reste ce mois",
-      "perForecast": "selon tes prévisions",
       "rolloverIncluded": "Report du mois précédent inclus",
       "rolloverIncludedSurplusAria": "Report positif du mois précédent inclus : {{ amount }} {{ currency }}",
       "rolloverIncludedDeficitAria": "Report négatif du mois précédent inclus : {{ amount }} {{ currency }}",
       "deficitThisMonth": "Déficit ce mois",
-      "uncoveredOverrun": "dépassement non couvert",
-      "niceMargin": "Belle marge ce mois",
-      "youManageWell": "Tu gères bien",
-      "justBalanced": "Pile à l'équilibre",
-      "tightMonth": "Ce mois sera serré — mais tu le sais"
+      "uncoveredOverrun": "dépassement non couvert"
     },
     "incomeOrigin": {
       "label": "Origine du revenu",

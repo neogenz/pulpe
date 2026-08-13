@@ -505,10 +505,39 @@ describe('CompleteProfileStore', () => {
       const result = await store.submitProfile();
 
       expect(result).toBe(true);
-      expect(mockUserSettingsStore.updateSettings).toHaveBeenCalledWith({
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenNthCalledWith(1, {
         currency: 'CHF',
+      });
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenNthCalledWith(2, {
         payDayOfMonth: 27,
       });
+    });
+
+    it('should finish onboarding when saving payDayOfMonth fails after budget creation', async () => {
+      mockUserSettingsStore.updateSettings
+        .mockResolvedValueOnce({ payDayOfMonth: null })
+        .mockRejectedValueOnce(new Error('Pay day API Error'));
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+      store.updatePayDayOfMonth(27);
+
+      const result = await store.submitProfile();
+
+      expect(result).toBe(true);
+      expect(
+        mockProfileSetupService.createInitialBudget,
+      ).toHaveBeenCalledOnce();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Budget created, but saving the pay day failed:',
+        expect.any(Error),
+      );
+      expect(mockPostHogService.captureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        { context: 'complete-profile', action: 'savePayDay' },
+      );
     });
 
     it('should only save currency when payDayOfMonth is null', async () => {

@@ -1,4 +1,5 @@
-import { Directive, effect, input, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { Directive, effect, inject, input, signal } from '@angular/core';
 
 /** Plays the shared confirmation motion only after an unchecked item becomes checked. */
 @Directive({
@@ -9,6 +10,7 @@ import { Directive, effect, input, signal } from '@angular/core';
   },
 })
 export class CheckRewardDirective {
+  readonly #document = inject(DOCUMENT);
   readonly checked = input(false, { alias: 'pulpeCheckReward' });
   protected readonly rewarding = signal(false);
   #wasChecked: boolean | undefined;
@@ -16,7 +18,13 @@ export class CheckRewardDirective {
   constructor() {
     effect(() => {
       const checked = this.checked();
-      if (checked && this.#wasChecked === false) this.rewarding.set(true);
+      const prefersReducedMotion =
+        this.#document.defaultView?.matchMedia?.(
+          '(prefers-reduced-motion: reduce)',
+        ).matches ?? false;
+      if (checked && this.#wasChecked === false && !prefersReducedMotion) {
+        this.rewarding.set(true);
+      }
       if (!checked) this.rewarding.set(false);
       this.#wasChecked = checked;
     });

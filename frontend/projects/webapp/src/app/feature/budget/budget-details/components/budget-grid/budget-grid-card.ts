@@ -190,7 +190,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
                   : {
                       amount:
                         (progressMessage.params.amount
-                        | appCurrency: currency() : '1.0-2'),
+                        | appCurrency: currency() : '1.0-0'),
                     }
             }}
           } @else {

@@ -390,15 +390,14 @@ describe('DashboardUncheckedForecasts', () => {
     }
   });
 
-  it('should not restate the plan on an untouched forecast', () => {
+  it('should keep an untouched forecast amount on a single centered line', () => {
     setTestInput(component.forecasts, mockForecasts);
     fixture.detectChanges();
 
     const reservedLine = fixture.debugElement.query(
       By.css('[data-testid="dashboard-forecasts-planned"]'),
     );
-    expect(reservedLine).not.toBeNull();
-    expect(reservedLine.nativeElement.textContent.trim()).toBe('');
+    expect(reservedLine).toBeNull();
   });
 
   // A month funded entirely from savings goals has nothing pointable, and the

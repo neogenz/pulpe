@@ -12,7 +12,6 @@ import type { BudgetViewMode } from '../view-models/budget-view-mode';
       aria-label="Mode d'affichage"
       [value]="viewMode()"
       (change)="viewMode.set($event.value)"
-      [hideSingleSelectionIndicator]="true"
     >
       <mat-button-toggle value="envelopes" data-testid="grid-mode-chip">
         <mat-icon>grid_view</mat-icon>

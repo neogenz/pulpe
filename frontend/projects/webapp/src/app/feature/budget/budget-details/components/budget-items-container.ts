@@ -261,7 +261,6 @@ import {
             (editTransaction)="handleEditAllocatedTransaction($event)"
             (add)="openAddBudgetLineDialog()"
             (addTransaction)="openCreateAllocatedTransactionDialog($event)"
-            (viewTransactions)="onViewTransactions($event)"
             (spread)="handleSpreadBudgetLine($event)"
             (spreadTransaction)="handleSpreadTransaction($event)"
             (resetFromTemplate)="onResetFromTemplateClick($event)"
@@ -1030,7 +1029,7 @@ export class BudgetItemsContainer {
     const incomeLabel = this.#formatMonthName(incomeMonth);
     const savingLabel = this.#formatMonthName(savingMonth);
     const amount =
-      this.#currencyPipe.transform(line.amount, this.currency(), '1.0-2') ?? '';
+      this.#currencyPipe.transform(line.amount, this.currency(), '1.2-2') ?? '';
 
     const scope = await this.#dialogService.openLinkedDeleteChoice({
       title: this.#transloco.translate('budget.savingsWithdrawal.deleteTitle'),
