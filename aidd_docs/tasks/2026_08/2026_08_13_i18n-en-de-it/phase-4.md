@@ -1,5 +1,5 @@
 ---
-status: pending
+status: in-progress
 ---
 
 # Instruction: iOS — socle de localisation
@@ -125,13 +125,36 @@ journey
 4. Résultat négatif ⇒ arrêter et remonter : la seule voie restante est la langue par app dans les Réglages iOS, avec redémarrage, et le sélecteur in-app devient un simple renvoi. Les lots 5 à 9 restent valables tels quels — seule la bascule change
 5. Vérifier au passage que les variantes de pluriel et l'accord grammatical automatique se résolvent bien sur le locale d'environnement : ce point n'est documenté nulle part
 
+> **Résultat du spike** — mesuré sur le simulateur `Pulpe Tests`, iOS 26.5, une
+> app jetable avec un `Localizable.xcstrings` `fr`/`de` et un bouton qui bascule
+> `.environment(\.locale, …)`. Aucun redémarrage.
+>
+> | Surface                                                   | Suit le locale d'environnement |
+> | --------------------------------------------------------- | ------------------------------ |
+> | `Text("littéral")`                                        | oui                            |
+> | Variante de pluriel (`Text("\(3) budgets")`)              | oui                            |
+> | Élément de `.toolbar`                                     | oui                            |
+> | Titre d'`.alert`                                          | oui                            |
+> | `.navigationTitle("littéral")`                            | **non**                        |
+> | `.navigationTitle(Text("littéral"))`                      | **non**                        |
+> | `.navigationTitle(Text(verbatim: résolu))`                | oui                            |
+> | `LocalizedStringResource` + `.locale`, hors arbre SwiftUI | oui                            |
+> | `String(localized:)`, avec ou sans interpolation          | **non**                        |
+>
+> La conception tient. FB16124687 est confirmé, et le contournement annoncé au
+> point 3 ci-dessus est faux : passer un `Text` explicite ne suffit pas. Le seul
+> qui marche est de résoudre le titre à la main puis de le rendre en
+> `Text(verbatim:)` — c'est-à-dire le helper de la tâche `4.1`, qui devient donc
+> une dépendance de tous les écrans à titre, pas seulement des surfaces hors
+> arbre SwiftUI.
+
 ### `1)` Catalogue
 
 1. `Localizable.xcstrings` dans `Pulpe/Resources/`, ajouté au target. `project.yml` déclare déjà `- path: Pulpe` comme source de dossier : rien à modifier pour que le catalogue soit embarqué
 2. `options.developmentLanguage: fr` est déjà posé, donc XcodeGen dérive `developmentRegion = fr` et `knownRegions = (Base, fr)` — vérifié en générant le pbxproj. Ajouter `en`, `de`, `it` depuis la barre latérale du catalogue
 3. Clé = littéral français, pour le gros du volume. C'est ce que l'extraction SwiftUI donne gratuitement : `Text("Bonjour")` est extrait automatiquement et la clé est `Bonjour`
 4. Clé symbolique explicite (`String(localized: "KEY", defaultValue: "…")`) réservée à trois cas : la copie qu'on prévoit de reformuler, les homographes français qui doivent diverger selon la langue — « Prévu » comme puce de type et « Prévu » comme agrégat — et les chaînes appelées hors SwiftUI
-5. **Avant toute extraction**, réparer les deux `String(localized:)` qui interpolent une valeur dans la clé (`CurrencySettingView.swift:397`, `CurrencyConversionBadge.swift:52`). L'extraction produirait des clés ingérables et le catalogue naîtrait cassé
+5. ~~**Avant toute extraction**, réparer les deux `String(localized:)` qui interpolent une valeur dans la clé (`CurrencySettingView.swift:397`, `CurrencyConversionBadge.swift:52`). L'extraction produirait des clés ingérables et le catalogue naîtrait cassé~~ **Mesuré au spike : faux.** Une interpolation dans un `String.LocalizationValue` produit `%@` dans la clé, pas la valeur — `String(localized: "Équivalent \(nom)")` cherche bien `Équivalent %@`, et l'entrée allemande du catalogue répond. Il n'y a rien à réparer avant l'extraction. Le vrai défaut de ces sites est ailleurs et touche les **huit** `String(localized:)` du projet, pas deux : mesuré au même spike, `String(localized:)` ne suit **jamais** le locale d'application — il reste sur la langue du bundle, avant comme après la bascule. Les huit sites passent donc par le helper de la tâche `4.1`
 6. `InfoPlist.xcstrings` remplace `fr.lproj/InfoPlist.strings`. Ces chaînes sont résolues par le **système** au moment de l'invite : elles suivront la langue de l'appareil ou la langue par app, jamais le sélecteur in-app. L'accepter et le documenter
 7. Le widget est un target séparé qui ne liste pas `Pulpe/Resources` dans ses sources. Trancher explicitement : rendre le catalogue atteignable depuis le widget, ou en accepter un second — auquel cas la copie dérivera, exactement comme le miroir analytics
 
@@ -177,11 +200,11 @@ journey
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria                                                                                                                                                                          |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Task | Acceptance criteria                                                                                                                                                                                                                                             |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0    | Le spike rend un `Text`, un `.navigationTitle`, une alerte, un élément de toolbar et un pluriel en allemand après bascule de `.environment(\.locale)`, sans redémarrage — ou le rapport dit lequel échoue et la conception est révisée avant tout autre travail |
-| 1    | `Localizable.xcstrings` et `InfoPlist.xcstrings` sont embarqués ; le build peuple le catalogue automatiquement ; aucun `String(localized:)` n'a plus de valeur interpolée dans sa clé ; la décision sur le widget est écrite |
-| 2    | Interface en italien, devise CHF : un montant de `1234.5` rend `1'234.50` ; les dates du même écran sont en italien ; aucun formateur ne rend une langue périmée après deux bascules successives ; le 1er du mois s'écrit correctement dans les quatre langues |
-| 3    | Changer de langue dans Préférences bascule l'écran immédiatement, survit à un redémarrage à froid, et la webapp connectée au même compte affiche la même langue ; un serveur renvoyant une langue non embarquée fait rendre en français sans plantage |
-| 4    | Après un changement de langue, le rappel mensuel arrive dans la nouvelle langue ; `error_message` n'est plus envoyé à PostHog ; la person property `locale` survit à un cycle opt-out / opt-in |
-| 5    | `xcodebuild test` passe avec un compte de tests exécutés non nul ; `pnpm test:lexicon` échoue si le mot interdit est posé dans la traduction allemande du catalogue                            |
+| 1    | `Localizable.xcstrings` et `InfoPlist.xcstrings` sont embarqués ; le build peuple le catalogue automatiquement ; aucun `String(localized:)` n'a plus de valeur interpolée dans sa clé ; la décision sur le widget est écrite                                    |
+| 2    | Interface en italien, devise CHF : un montant de `1234.5` rend `1'234.50` ; les dates du même écran sont en italien ; aucun formateur ne rend une langue périmée après deux bascules successives ; le 1er du mois s'écrit correctement dans les quatre langues  |
+| 3    | Changer de langue dans Préférences bascule l'écran immédiatement, survit à un redémarrage à froid, et la webapp connectée au même compte affiche la même langue ; un serveur renvoyant une langue non embarquée fait rendre en français sans plantage           |
+| 4    | Après un changement de langue, le rappel mensuel arrive dans la nouvelle langue ; `error_message` n'est plus envoyé à PostHog ; la person property `locale` survit à un cycle opt-out / opt-in                                                                  |
+| 5    | `xcodebuild test` passe avec un compte de tests exécutés non nul ; `pnpm test:lexicon` échoue si le mot interdit est posé dans la traduction allemande du catalogue                                                                                             |
