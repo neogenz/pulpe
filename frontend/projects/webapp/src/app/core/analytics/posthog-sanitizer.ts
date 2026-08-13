@@ -802,6 +802,10 @@ const REPLAY_INCREMENTAL_SOURCE = {
   CUSTOM_ELEMENT: 16,
 } as const;
 
+const REPLAY_MOUSE_INTERACTION = { MIN: 0, MAX: 10 } as const;
+const REPLAY_POINTER_TYPE = { MIN: 0, MAX: 2 } as const;
+const REPLAY_MEDIA_INTERACTION = { MIN: 0, MAX: 4 } as const;
+
 const REPLAY_DROPPED_EVENT = Symbol('replay-dropped-event');
 type ReplayEventResult =
   | Record<string, unknown>
@@ -904,6 +908,16 @@ const REPLAY_DIMENSION_PATTERN = /^-?\d+(?:\.\d+)?(?:px|%)?$/;
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
+
+const isSafeIntegerInRange = (
+  value: unknown,
+  minimum: number,
+  maximum: number,
+): value is number =>
+  typeof value === 'number' &&
+  Number.isSafeInteger(value) &&
+  value >= minimum &&
+  value <= maximum;
 
 const isReplayNodeId = (value: unknown): value is number =>
   Number.isSafeInteger(value);
@@ -1216,7 +1230,20 @@ const sanitizeReplayIncrementalData = (
   }
 
   if (source === REPLAY_INCREMENTAL_SOURCE.MOUSE_INTERACTION) {
-    if (!isReplayNodeId(data['id']) || !Number.isSafeInteger(data['type'])) {
+    if (
+      !isReplayNodeId(data['id']) ||
+      !isSafeIntegerInRange(
+        data['type'],
+        REPLAY_MOUSE_INTERACTION.MIN,
+        REPLAY_MOUSE_INTERACTION.MAX,
+      ) ||
+      (data['pointerType'] !== undefined &&
+        !isSafeIntegerInRange(
+          data['pointerType'],
+          REPLAY_POINTER_TYPE.MIN,
+          REPLAY_POINTER_TYPE.MAX,
+        ))
+    ) {
       return null;
     }
     const result: Record<string, unknown> = {
@@ -1224,8 +1251,11 @@ const sanitizeReplayIncrementalData = (
       id: data['id'],
       type: data['type'],
     };
-    for (const key of ['x', 'y', 'pointerType']) {
+    for (const key of ['x', 'y']) {
       if (!copyReplayNumber(data, result, key, false)) return null;
+    }
+    if (data['pointerType'] !== undefined) {
+      result['pointerType'] = data['pointerType'];
     }
     return result;
   }
@@ -1269,7 +1299,14 @@ const sanitizeReplayIncrementalData = (
   }
 
   if (source === REPLAY_INCREMENTAL_SOURCE.MEDIA_INTERACTION) {
-    if (!isReplayNodeId(data['id']) || !Number.isSafeInteger(data['type'])) {
+    if (
+      !isReplayNodeId(data['id']) ||
+      !isSafeIntegerInRange(
+        data['type'],
+        REPLAY_MEDIA_INTERACTION.MIN,
+        REPLAY_MEDIA_INTERACTION.MAX,
+      )
+    ) {
       return null;
     }
     const result: Record<string, unknown> = {
@@ -1311,6 +1348,57 @@ const sanitizeReplayIncrementalData = (
   }
 
   return null;
+};
+
+const REPLAY_SESSION_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const REPLAY_MARKER_TAGS = new Set([
+  '$posthog_config',
+  '$recording_started',
+  '$remote_config_received',
+  '$session_id_change',
+  '$session_options',
+  'browser offline',
+  'browser online',
+  'recording paused',
+  'recording resumed',
+  'samplingDecisionMade',
+  'sessionIdle',
+  'sessionNoLongerIdle',
+  'window hidden',
+  'window visible',
+]);
+
+const sanitizeReplayCustomData = (
+  data: Record<string, unknown>,
+): Record<string, unknown> | typeof REPLAY_DROPPED_EVENT => {
+  const tag = data['tag'];
+  const payload = data['payload'];
+  if (typeof tag !== 'string' || !isRecord(payload)) {
+    return REPLAY_DROPPED_EVENT;
+  }
+
+  if (tag === '$pageview' || tag === '$url_changed') {
+    if (typeof payload['href'] !== 'string') return REPLAY_DROPPED_EVENT;
+    const href = sanitizeUrl(payload['href']);
+    return href ? { tag, payload: { href } } : REPLAY_DROPPED_EVENT;
+  }
+
+  if (tag === '$session_starting' || tag === '$session_ending') {
+    const sessionIdKey =
+      tag === '$session_starting' ? 'previousSessionId' : 'nextSessionId';
+    const sessionId = payload[sessionIdKey];
+    return typeof sessionId === 'string' &&
+      REPLAY_SESSION_ID_PATTERN.test(sessionId)
+      ? { tag, payload: { [sessionIdKey]: sessionId } }
+      : REPLAY_DROPPED_EVENT;
+  }
+
+  if (REPLAY_MARKER_TAGS.has(tag)) {
+    return { tag, payload: {} };
+  }
+
+  return REPLAY_DROPPED_EVENT;
 };
 
 const sanitizeReplayEvent = (value: unknown): ReplayEventResult => {
@@ -1377,18 +1465,10 @@ const sanitizeReplayEvent = (value: unknown): ReplayEventResult => {
 
   if (value['type'] === REPLAY_EVENT_TYPE.CUSTOM) {
     if (!isRecord(value['data'])) return REPLAY_DROPPED_EVENT;
-    const tag = value['data']['tag'];
-    if (tag !== '$pageview' && tag !== '$url_changed') {
-      return REPLAY_DROPPED_EVENT;
-    }
-    const payload = value['data']['payload'];
-    if (!isRecord(payload) || typeof payload['href'] !== 'string') {
-      return REPLAY_DROPPED_EVENT;
-    }
-    const href = sanitizeUrl(payload['href']);
-    return href
-      ? { ...base, data: { tag, payload: { href } } }
-      : REPLAY_DROPPED_EVENT;
+    const data = sanitizeReplayCustomData(value['data']);
+    return data === REPLAY_DROPPED_EVENT
+      ? REPLAY_DROPPED_EVENT
+      : { ...base, data };
   }
 
   if (value['type'] === REPLAY_EVENT_TYPE.PLUGIN) {

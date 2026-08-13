@@ -442,6 +442,24 @@ describe('posthog-sanitizer', () => {
       );
     });
 
+    it('drops the visible document title added by PostHog pageviews', () => {
+      const event = {
+        event: '$pageview',
+        properties: {
+          title: 'PRIVATE_VISIBLE_PAGE_TITLE',
+          $pathname: '/budgets/example-budget-id',
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+
+      expect(sanitized?.properties?.['title']).toBeUndefined();
+      expect(sanitized?.properties?.['$pathname']).toBe('/budgets/[id]');
+      expect(JSON.stringify(sanitized)).not.toContain(
+        'PRIVATE_VISIBLE_PAGE_TITLE',
+      );
+    });
+
     it('masks dynamic resource IDs in the $pathname system property', () => {
       const event = {
         event: '$pageview',
@@ -762,7 +780,9 @@ describe('posthog-sanitizer', () => {
       for (const sentinel of privateSentinels) {
         expect(serialized).not.toContain(sentinel);
       }
-      expect(sanitized?.properties?.['$snapshot_data']).toHaveLength(4);
+      expect(sanitized?.properties?.['$snapshot_data']).toHaveLength(5);
+      expect(serialized).toContain('"tag":"$posthog_config"');
+      expect(serialized).toContain('"payload":{}');
       expect(sanitized?.properties?.['$snapshot_bytes']).not.toBe(9999);
       const sanitizedEvents = sanitized?.properties?.[
         '$snapshot_data'
@@ -905,6 +925,157 @@ describe('posthog-sanitizer', () => {
         expect(JSON.stringify(sanitized)).not.toContain('private-value');
       },
     );
+
+    it('preserves privacy-safe replay lifecycle markers in marker-only batches', () => {
+      const privateSentinel = 'PRIVATE_REPLAY_MARKER_SENTINEL';
+      const previousSessionId = '018f779c-b3c0-7f4e-8f1a-1234567890ab';
+      const nextSessionId = '018f779d-c4d1-7a5f-9e2b-abcdef123456';
+      const event = {
+        event: '$snapshot',
+        properties: {
+          $snapshot_data: [
+            {
+              type: 5,
+              timestamp: 1,
+              data: {
+                tag: '$session_starting',
+                payload: {
+                  previousSessionId,
+                  nextSessionId,
+                  previousWindowId: '018f779c-b3c0-7f4e-8f1a-aaaaaaaaaaaa',
+                  private_context: privateSentinel,
+                },
+              },
+            },
+            {
+              type: 5,
+              timestamp: 2,
+              data: {
+                tag: '$session_ending',
+                payload: {
+                  previousSessionId,
+                  nextSessionId,
+                  nextWindowId: '018f779d-c4d1-7a5f-9e2b-bbbbbbbbbbbb',
+                  private_context: privateSentinel,
+                },
+              },
+            },
+            {
+              type: 5,
+              timestamp: 3,
+              data: {
+                tag: '$recording_started',
+                payload: {
+                  reason: 'recording_initialized',
+                  matchedUrl: privateSentinel,
+                },
+              },
+            },
+            {
+              type: 5,
+              timestamp: 4,
+              data: {
+                tag: 'samplingDecisionMade',
+                payload: {
+                  sampleRate: 0.1,
+                  isSampled: true,
+                  private_context: privateSentinel,
+                },
+              },
+            },
+            {
+              type: 5,
+              timestamp: 5,
+              data: {
+                tag: '$posthog_config',
+                payload: { token: privateSentinel },
+              },
+            },
+          ],
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+
+      expect(sanitized?.properties?.['$snapshot_data']).toEqual([
+        {
+          type: 5,
+          timestamp: 1,
+          data: {
+            tag: '$session_starting',
+            payload: { previousSessionId },
+          },
+        },
+        {
+          type: 5,
+          timestamp: 2,
+          data: {
+            tag: '$session_ending',
+            payload: { nextSessionId },
+          },
+        },
+        {
+          type: 5,
+          timestamp: 3,
+          data: {
+            tag: '$recording_started',
+            payload: {},
+          },
+        },
+        {
+          type: 5,
+          timestamp: 4,
+          data: {
+            tag: 'samplingDecisionMade',
+            payload: {},
+          },
+        },
+        {
+          type: 5,
+          timestamp: 5,
+          data: { tag: '$posthog_config', payload: {} },
+        },
+      ]);
+      expect(JSON.stringify(sanitized)).not.toContain(privateSentinel);
+    });
+
+    it('drops a replay session-link marker with a non-UUIDv7 session ID', () => {
+      const event = {
+        event: '$snapshot',
+        properties: {
+          $snapshot_data: [
+            {
+              type: 5,
+              timestamp: 1,
+              data: {
+                tag: '$session_starting',
+                payload: { previousSessionId: 'private-free-form-value' },
+              },
+            },
+          ],
+        },
+      } as unknown as CaptureResult;
+
+      expect(sanitizeEventPayload(event)).toBeNull();
+    });
+
+    it.each([
+      ['mouse interaction type', { source: 2, id: 1, type: 11, x: 0, y: 0 }],
+      [
+        'mouse pointer type',
+        { source: 2, id: 1, type: 2, pointerType: 3, x: 0, y: 0 },
+      ],
+      ['media interaction type', { source: 7, id: 1, type: 5, currentTime: 0 }],
+    ])('rejects an out-of-range rrweb %s', (_label, data) => {
+      const event = {
+        event: '$snapshot',
+        properties: {
+          $snapshot_data: [{ type: 3, timestamp: 1, data }],
+        },
+      } as unknown as CaptureResult;
+
+      expect(sanitizeEventPayload(event)).toBeNull();
+    });
 
     it('drops compressed or malformed replay payloads fail closed', () => {
       const event = {

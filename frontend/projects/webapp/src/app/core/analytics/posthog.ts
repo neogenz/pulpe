@@ -7,6 +7,8 @@ import {
   type OnDestroy,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { NavigationEnd, Router } from '@angular/router';
+import type { Subscription } from 'rxjs';
 import type { PostHog, Properties, CaptureResult } from 'posthog-js';
 import { ANALYTICS_EVENTS, type AnalyticsEventName } from 'pulpe-shared';
 import { ApplicationConfiguration } from '../config/application-configuration';
@@ -61,14 +63,17 @@ export class PostHogService implements OnDestroy {
   readonly #logger = inject(Logger);
   readonly #platformId = inject(PLATFORM_ID);
   readonly #storageService = inject(StorageService);
+  readonly #router = inject(Router);
 
   #posthog: PostHog | null = null;
   readonly #isInitialized = signal<boolean>(false);
   readonly #flagsVersion = signal<number>(0);
   readonly #diagnosticSharingEnabled = signal(true);
   #isTrackingEnabled = false;
+  #resumeTrackingAfterOptIn = false;
   #sessionReplayEnabled = false;
   #autocaptureClickListener?: (event: MouseEvent) => void;
+  #navigationSubscription?: Subscription;
 
   constructor() {
     const overrides = this.#readFlagOverrides();
@@ -238,8 +243,13 @@ export class PostHogService implements OnDestroy {
         if (this.#sessionReplayEnabled) {
           this.#posthog?.startSessionRecording();
         }
+        if (this.#resumeTrackingAfterOptIn) {
+          this.enableTracking();
+        }
       } else {
+        this.#resumeTrackingAfterOptIn = this.#isTrackingEnabled;
         this.#stopSanitizedAutocapture();
+        this.#stopNavigationTracking();
         this.#posthog?.stopSessionRecording();
         this.#posthog?.set_config({
           capture_pageview: false,
@@ -290,24 +300,41 @@ export class PostHogService implements OnDestroy {
    * Enable tracking after user consent
    */
   enableTracking(): void {
-    if (!this.#canCapture() || this.#isTrackingEnabled) return;
+    if (this.#isTrackingEnabled) return;
+    if (!this.#canCapture()) {
+      if (
+        this.#isInitialized() &&
+        this.isEnabled() &&
+        !this.#diagnosticSharingEnabled()
+      ) {
+        this.#resumeTrackingAfterOptIn = true;
+      }
+      return;
+    }
 
     try {
-      // Enable SPA navigation, page leaves and click-only autocapture after the
-      // authenticated lifecycle starts. PostHog masks text and attributes at
-      // collection time; before_send then rebuilds the element chain from tags
-      // and numeric positions only.
+      // Keep SDK pageview capture disabled: posthog-js 1.364.4 does not install
+      // HistoryAutocapture when this option is enabled after initialization.
+      // Pulpe owns Angular NavigationEnd tracking after authentication instead.
       this.#posthog?.set_config({
-        capture_pageview: 'history_change',
-        capture_pageleave: 'if_capture_pageview',
+        capture_pageview: false,
+        // The unload listener is installed during SDK initialization and reads
+        // this flag dynamically, independently from HistoryAutocapture.
+        capture_pageleave:
+          this.#applicationConfiguration.postHogConfig()?.capturePageleaves ===
+          true,
         // Native autocapture reads special DOM attributes before before_send.
         // Pulpe emits the same event from a structure-only listener instead.
         autocapture: false,
       });
       this.#startSanitizedAutocapture();
+      this.#startNavigationTracking();
 
-      // Capture the initial pageview (subsequent navigations are auto-tracked)
-      this.#posthog?.capture('$pageview');
+      // Catch up only when Angular already completed a navigation. During cold
+      // bootstrap, the first NavigationEnd below is the authoritative pageview.
+      if (this.#router.navigated) {
+        this.#posthog?.capture('$pageview');
+      }
       this.#isTrackingEnabled = true;
       this.#logger.info('PostHog tracking enabled with SPA navigation support');
     } catch (error) {
@@ -379,6 +406,21 @@ export class PostHogService implements OnDestroy {
     this.#autocaptureClickListener = undefined;
   }
 
+  #startNavigationTracking(): void {
+    if (this.#navigationSubscription) return;
+
+    this.#navigationSubscription = this.#router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd && this.#canCapture()) {
+        this.#posthog?.capture('$pageview');
+      }
+    });
+  }
+
+  #stopNavigationTracking(): void {
+    this.#navigationSubscription?.unsubscribe();
+    this.#navigationSubscription = undefined;
+  }
+
   /**
    * Capture an explicitly designed business event. Sanitize before invoking
    * PostHog because `$set` fields mutate feature-flag person state before the
@@ -410,8 +452,13 @@ export class PostHogService implements OnDestroy {
     if (!this.#canCapture()) return;
 
     try {
+      const sanitizedContext = context
+        ? sanitizeRecord(context as Record<string, unknown>)
+        : {};
+      delete sanitizedContext['$set'];
+      delete sanitizedContext['$set_once'];
       this.#posthog?.captureException(error, {
-        ...context,
+        ...sanitizedContext,
         release: buildInfo.version,
         commit: buildInfo.shortCommitHash,
       });
@@ -514,8 +561,10 @@ export class PostHogService implements OnDestroy {
 
     try {
       this.#stopSanitizedAutocapture();
+      this.#stopNavigationTracking();
       this.#posthog?.reset();
       this.#isTrackingEnabled = false;
+      this.#resumeTrackingAfterOptIn = false;
       this.#registerGlobalProperties();
       this.#logger.debug('PostHog state reset');
     } catch (error) {
@@ -556,6 +605,7 @@ export class PostHogService implements OnDestroy {
 
   ngOnDestroy(): void {
     this.#stopSanitizedAutocapture();
+    this.#stopNavigationTracking();
   }
 
   /**
