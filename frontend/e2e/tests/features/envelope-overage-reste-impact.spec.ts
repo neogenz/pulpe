@@ -193,7 +193,7 @@ test.describe('Envelope Overage Reste Impact', () => {
     await expect(envelopeCard).toContainText('250 CHF');
 
     // Overage indicator
-    await expect(envelopeCard).toContainText(/d[ée]pass[ée]/);
+    await expect(envelopeCard).toContainText(/dépassé/i);
 
     // Reste = 5000 - 250 = 4750 (excess 50 reduces Reste)
     const heroSection = authenticatedPage.locator(
@@ -253,6 +253,6 @@ test.describe('Envelope Overage Reste Impact', () => {
     await expect(progressBar).toBeVisible();
 
     // 250/200 = 125% — component shows "dépassé" instead of percentage when > 100%
-    await expect(envelopeCard).toContainText(/d[ée]pass[ée]/);
+    await expect(envelopeCard).toContainText(/dépassé/i);
   });
 });

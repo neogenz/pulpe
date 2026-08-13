@@ -88,7 +88,7 @@ test.describe('Local Search in Budget Details', () => {
     await budgetDetailsPage.goto(budgetId);
 
     const searchInput = authenticatedPage.getByRole('textbox', {
-      name: 'Rechercher une prévision...',
+      name: 'Rechercher par nom...',
     });
     await searchInput.fill('Courses');
 
@@ -114,7 +114,7 @@ test.describe('Local Search in Budget Details', () => {
     await budgetDetailsPage.goto(budgetId);
 
     const searchInput = authenticatedPage.getByRole('textbox', {
-      name: 'Rechercher une prévision...',
+      name: 'Rechercher par nom...',
     });
     await searchInput.fill('500');
 
@@ -137,7 +137,7 @@ test.describe('Local Search in Budget Details', () => {
     await budgetDetailsPage.goto(budgetId);
 
     const searchInput = authenticatedPage.getByRole('textbox', {
-      name: 'Rechercher une prévision...',
+      name: 'Rechercher par nom...',
     });
     await searchInput.fill('epargne');
 
@@ -160,7 +160,7 @@ test.describe('Local Search in Budget Details', () => {
     await budgetDetailsPage.goto(budgetId);
 
     const searchInput = authenticatedPage.getByRole('textbox', {
-      name: 'Rechercher une prévision...',
+      name: 'Rechercher par nom...',
     });
     await searchInput.fill('Courses');
 
@@ -201,7 +201,7 @@ test.describe('Local Search in Budget Details', () => {
 
     // Search for "Salaire"
     const searchInput = authenticatedPage.getByRole('textbox', {
-      name: 'Rechercher une prévision...',
+      name: 'Rechercher par nom...',
     });
     await searchInput.fill('Salaire');
 
@@ -229,7 +229,7 @@ test.describe('Local Search in Budget Details', () => {
     await budgetDetailsPage.goto(budgetId);
 
     const searchInput = authenticatedPage.getByRole('textbox', {
-      name: 'Rechercher une prévision...',
+      name: 'Rechercher par nom...',
     });
     // Search for the allocated transaction name
     await searchInput.fill('Supermarché');
