@@ -120,7 +120,7 @@ export class PostHogService implements OnDestroy {
       expireLegacySharedCookie(config.apiKey);
       const posthog = (await import('posthog-js')).default;
       this.#posthog = posthog;
-      this.#sessionReplayEnabled = config.sessionRecording?.enabled === true;
+      this.#sessionReplayEnabled = config.sessionRecording.enabled;
 
       posthog.init(config.apiKey, {
         api_host: config.host,
