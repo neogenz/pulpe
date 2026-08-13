@@ -1,4 +1,4 @@
-import type { SupportedCurrency } from 'pulpe-shared';
+import type { SupportedCurrency, SupportedLocale } from 'pulpe-shared';
 
 /**
  * Domain entity representing the public-facing profile derived from
@@ -19,6 +19,8 @@ export interface UserSettings {
   payDayOfMonth: number | null;
   currency: SupportedCurrency;
   showCurrencySelector: boolean;
+  /** Interface language. Independent of `currency`, which drives amount formatting. */
+  locale: SupportedLocale;
 }
 
 /**
@@ -38,6 +40,7 @@ export interface UpdateUserSettingsInput {
   payDayOfMonth?: number | null;
   currency?: SupportedCurrency;
   showCurrencySelector?: boolean;
+  locale?: SupportedLocale;
 }
 
 /**

@@ -22,6 +22,7 @@ describe('UserSettingsStore', () => {
     payDayOfMonth: 25,
     currency: 'CHF',
     showCurrencySelector: false,
+    locale: 'fr',
   };
 
   beforeEach(() => {
@@ -109,6 +110,7 @@ describe('UserSettingsStore', () => {
         payDayOfMonth: 15,
         currency: 'CHF',
         showCurrencySelector: false,
+        locale: 'fr',
       };
       mockApi.updateSettings$ = vi
         .fn()
@@ -127,6 +129,7 @@ describe('UserSettingsStore', () => {
         payDayOfMonth: 15,
         currency: 'CHF',
         showCurrencySelector: false,
+        locale: 'fr',
       };
       mockApi.updateSettings$ = vi
         .fn()
@@ -160,6 +163,7 @@ describe('UserSettingsStore', () => {
         payDayOfMonth: 25,
         currency: 'EUR',
         showCurrencySelector: false,
+        locale: 'fr',
       };
       mockApi.getSettings$ = vi
         .fn()
@@ -189,6 +193,7 @@ describe('UserSettingsStore', () => {
         payDayOfMonth: 10,
         currency: 'CHF',
         showCurrencySelector: false,
+        locale: 'fr',
       };
       mockApi.getSettings$ = vi
         .fn()
@@ -320,6 +325,7 @@ describe('UserSettingsStore — loading conditions', () => {
       payDayOfMonth: 25,
       currency: 'CHF',
       showCurrencySelector: false,
+      locale: 'fr',
     };
 
     TestBed.configureTestingModule({

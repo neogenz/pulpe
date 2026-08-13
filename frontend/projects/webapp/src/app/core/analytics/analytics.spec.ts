@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   payDayOfMonth: null,
   currency: 'CHF',
   showCurrencySelector: false,
+  locale: 'fr',
 };
 
 function createMockUserSettingsStore(
@@ -299,6 +300,7 @@ describe('User consent and tracking behavior', () => {
         payDayOfMonth: 25,
         currency: 'EUR',
         showCurrencySelector: true,
+        locale: 'fr',
       });
       TestBed.runInInjectionContext(() => {
         analyticsService.initializeAnalyticsTracking();
@@ -349,6 +351,7 @@ describe('User consent and tracking behavior', () => {
         payDayOfMonth: 25,
         currency: 'EUR',
         showCurrencySelector: true,
+        locale: 'fr',
       });
 
       TestBed.runInInjectionContext(() => {
@@ -421,6 +424,7 @@ describe('User consent and tracking behavior', () => {
         payDayOfMonth: 1,
         currency: 'EUR',
         showCurrencySelector: false,
+        locale: 'fr',
       });
       TestBed.tick();
 

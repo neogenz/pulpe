@@ -5,9 +5,11 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import {
+  DEFAULT_LOCALE,
   type SupportedCurrency,
   payDayOfMonthSchema,
   supportedCurrencySchema,
+  supportedLocaleSchema,
 } from 'pulpe-shared';
 import type {
   UpdateUserProfileInput,
@@ -25,6 +27,7 @@ interface SupabaseUserMetadata {
   payDayOfMonth?: number | null;
   currency?: string;
   showCurrencySelector?: boolean;
+  locale?: string;
 }
 
 interface SupabaseUserShape {
@@ -109,6 +112,7 @@ export class SupabaseUserRepository implements UserRepositoryPort {
       ...(patch.showCurrencySelector !== undefined && {
         showCurrencySelector: patch.showCurrencySelector,
       }),
+      ...(patch.locale !== undefined && { locale: patch.locale }),
     };
 
     const serviceClient = this.supabaseService.getServiceRoleClient();
@@ -238,10 +242,25 @@ export class SupabaseUserRepository implements UserRepositoryPort {
       );
     }
 
+    // `userSettingsSchema` defaults `locale` to 'fr', but a Zod default only
+    // fires on `undefined` — a junk string persisted in the metadata blob
+    // would flow straight through. Parse it here like the currency.
+    const rawLocale = metadata?.locale;
+    const parsedLocale = supportedLocaleSchema.safeParse(rawLocale);
+    const locale = parsedLocale.success ? parsedLocale.data : DEFAULT_LOCALE;
+
+    if (!parsedLocale.success && rawLocale !== undefined) {
+      this.logger.warn(
+        { rawLocale },
+        'Invalid locale in user_metadata, falling back to default',
+      );
+    }
+
     return {
       payDayOfMonth,
       currency,
       showCurrencySelector: metadata?.showCurrencySelector === true,
+      locale,
     };
   }
 }

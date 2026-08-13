@@ -11,6 +11,7 @@ interface MockUserMetadata {
   payDayOfMonth?: number | null;
   currency?: string;
   showCurrencySelector?: boolean;
+  locale?: string;
   scheduledDeletionAt?: string;
 }
 
@@ -184,6 +185,7 @@ describe('SupabaseUserRepository', () => {
         payDayOfMonth: 15,
         currency: 'EUR',
         showCurrencySelector: true,
+        locale: 'de',
       });
       Object.defineProperty(authenticatedProvider, 'client', {
         get: () => client,
@@ -195,6 +197,7 @@ describe('SupabaseUserRepository', () => {
         payDayOfMonth: 15,
         currency: 'EUR',
         showCurrencySelector: true,
+        locale: 'de',
       });
     });
 
@@ -210,6 +213,18 @@ describe('SupabaseUserRepository', () => {
       expect(mockLogger.warn).toHaveBeenCalled();
     });
 
+    it('falls back to fr when the persisted locale is not supported', async () => {
+      const client = buildAuthenticatedClient({ locale: 'es' });
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => client,
+      });
+
+      const result = await repo.findSettings();
+
+      expect(result.locale).toBe('fr');
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
     it('returns null payDayOfMonth and default currency when metadata is missing', async () => {
       const client = buildAuthenticatedClient({});
       Object.defineProperty(authenticatedProvider, 'client', {
@@ -222,7 +237,9 @@ describe('SupabaseUserRepository', () => {
         payDayOfMonth: null,
         currency: 'CHF',
         showCurrencySelector: false,
+        locale: 'fr',
       });
+      expect(mockLogger.warn).not.toHaveBeenCalled();
     });
   });
 
@@ -250,6 +267,50 @@ describe('SupabaseUserRepository', () => {
       expect(sentMetadata?.payDayOfMonth).toBe(15);
       expect(sentMetadata?.currency).toBe('EUR');
       expect(sentMetadata?.firstName).toBe('Jane');
+    });
+
+    it('preserves an existing locale when patch omits it', async () => {
+      const authClient = buildAuthenticatedClient({
+        payDayOfMonth: 15,
+        locale: 'de',
+      });
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => authClient,
+      });
+      const serviceRole = buildServiceRoleClient();
+      (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
+        () => serviceRole,
+      );
+
+      const result = await repo.updateSettings('user-1', { payDayOfMonth: 5 });
+
+      const sentMetadata =
+        serviceRole.updateUserById.mock.calls[0]?.[1]?.user_metadata;
+      expect(sentMetadata?.locale).toBe('de');
+      expect(result.locale).toBe('de');
+    });
+
+    it('writes the locale when patch carries only that field', async () => {
+      const authClient = buildAuthenticatedClient({
+        payDayOfMonth: 15,
+        currency: 'EUR',
+      });
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => authClient,
+      });
+      const serviceRole = buildServiceRoleClient();
+      (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
+        () => serviceRole,
+      );
+
+      const result = await repo.updateSettings('user-1', { locale: 'it' });
+
+      const sentMetadata =
+        serviceRole.updateUserById.mock.calls[0]?.[1]?.user_metadata;
+      expect(sentMetadata?.locale).toBe('it');
+      expect(sentMetadata?.payDayOfMonth).toBe(15);
+      expect(sentMetadata?.currency).toBe('EUR');
+      expect(result.locale).toBe('it');
     });
 
     it('clears payDayOfMonth when patch sends null explicitly', async () => {

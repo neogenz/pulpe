@@ -54,6 +54,7 @@ struct AnalyticsServiceTests {
             "currency_changed",
             "currency_selector_toggled",
             "currency_persist_failed",
+            "language_changed",
             "savings_goals_intro_viewed",
             "savings_goals_intro_completed",
             "savings_goals_intro_skipped"

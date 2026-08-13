@@ -5,8 +5,19 @@ import test from "node:test";
 const read = (path) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
-const FR_JSON = "frontend/projects/webapp/public/i18n/fr.json";
+const I18N_ROOT = "frontend/projects/webapp/public/i18n";
 const SWIFT_ROOT = "ios/Pulpe";
+
+// Le mot est banni parce que Pulpe n'a aucun lien bancaire — c'est une règle
+// produit, pas une règle de français. Chaque langue doit donc déclarer le sien :
+// une liste unique ferait échouer en.json dès le premier jour, puisque
+// « transaction » y est le mot anglais juste.
+const BANNED_WORD_BY_LANG = {
+  fr: /transaction/i,
+  en: /transaction/i,
+  de: /transaktion/i,
+  it: /transazione/i,
+};
 
 const flatten = (node, prefix = "") =>
   Object.entries(node).flatMap(([key, value]) => {
@@ -18,20 +29,39 @@ const HOW_TO_WRITE_IT_INSTEAD = [
   "« transaction » nomme la table, pas ce que l'utilisateur lit. Écris plutôt :",
   "  · action ou titre  → un verbe          « Noter une dépense », « Modifier »",
   "  · message d'erreur → perds le sujet    « L'ajout a échoué — réessaie »",
-  "  · collection       → au pluriel        « Mouvements »",
-  "  · total face à Prévu → l'agrégat       « Réel »",
+  "  · collection       → au pluriel        « Mouvements », Activity, Bewegungen, Movimenti",
+  "  · total face à Prévu → l'agrégat       « Réel », Actual, Tatsächlich, Effettivo",
   "Les clés, elles, gardent le nom du domaine : seule la valeur affichée change.",
+  "La traduction arrêtée de chaque terme vit dans docs/I18N.md.",
 ].join("\n");
 
+const catalogs = () =>
+  readdirSync(new URL(`../../${I18N_ROOT}`, import.meta.url))
+    .filter((file) => file.endsWith(".json"))
+    .sort()
+    .map((file) => ({ file, lang: file.replace(/\.json$/, "") }));
+
 test("aucune chaîne affichée par la webapp ne dit « transaction »", () => {
-  const offenders = flatten(JSON.parse(read(FR_JSON)))
-    .filter(([, value]) => /transaction/i.test(value))
-    .map(([path, value]) => `  ${path} = ${value}`);
+  const found = catalogs();
+  assert.notEqual(found.length, 0, `Aucun catalogue lu dans ${I18N_ROOT}/.`);
+
+  const offenders = found.flatMap(({ file, lang }) => {
+    const banned = BANNED_WORD_BY_LANG[lang];
+    assert.ok(
+      banned,
+      `${I18N_ROOT}/${file} : aucun mot interdit déclaré pour « ${lang} ». ` +
+        "Ajoute-le à BANNED_WORD_BY_LANG, sinon ce garde reste vert sans rien prouver.",
+    );
+
+    return flatten(JSON.parse(read(`${I18N_ROOT}/${file}`)))
+      .filter(([, value]) => banned.test(value))
+      .map(([path, value]) => `  ${file} → ${path} = ${value}`);
+  });
 
   assert.equal(
     offenders.length,
     0,
-    `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${FR_JSON} :\n${offenders.join("\n")}`,
+    `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${I18N_ROOT}/ :\n${offenders.join("\n")}`,
   );
 });
 

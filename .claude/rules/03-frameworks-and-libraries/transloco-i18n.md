@@ -8,8 +8,12 @@ paths:
 
 ## Overview
 
-All French strings in the webapp are centralized in `frontend/projects/webapp/public/i18n/fr.json`.
+Webapp strings live in `frontend/projects/webapp/public/i18n/`, one catalog per language.
+`fr.json` is the source: French is the default language and the fallback for any missing key.
 The library is `@jsverse/transloco` v8+.
+
+The arrested translation of each product term — and the register each language uses — lives in
+`docs/I18N.md`. Do not restate it here or in a component.
 
 ## Key Naming
 
@@ -95,9 +99,10 @@ TestBed.configureTestingModule({
 
 ## Rules
 
-- **NEVER** hardcode French strings in templates or TS files — always use transloco keys
-- **ALWAYS** add new strings to `fr.json` before referencing the key
-- Single translation file: all translations in `public/i18n/fr.json`
+- **NEVER** hardcode strings in templates or TS files — always use transloco keys
+- **ALWAYS** add a new key to all four catalogs, `fr.json` first — a key present only in
+  `fr.json` renders the French text inside the German app, in production, silently
+- Four catalogs (`fr`, `en`, `de`, `it`); `fr.json` is the source and the fallback
 - Keys must be camelCase and descriptive
 - Group by domain, not by component
 - Use parameter interpolation `{{ param }}` for dynamic values
