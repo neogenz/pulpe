@@ -230,7 +230,6 @@ export class CompleteProfileStore {
     const state = this.#state();
     return (
       state.firstName.trim().length > 0 &&
-      state.firstName.length <= 50 &&
       state.monthlyIncome !== null &&
       state.monthlyIncome > 0
     );
