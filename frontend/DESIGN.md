@@ -174,6 +174,8 @@ La palette combine les graines communes de Pulpe avec une rampe Material 3 réel
 
 Le shell adapte son propriétaire de défilement aux breakpoints CDK : défilement du document sur mobile, contenu interne sur desktop. La navigation devient un tiroir complet sur handset et un rail Material compact sur écran large. Le contenu principal repose sur une surface distincte, arrondie sur desktop et bord à bord sur mobile.
 
+Le shell d'entrée centre une seule carte responsive dans la hauteur disponible, avec des gouttières progressives et sans imposer de largeur au composant routé. Les longs formulaires d'onboarding conservent une action primaire sticky ; un fondu supérieur discret révèle qu'il reste du contenu à faire défiler sans masquer les champs.
+
 Les gouttières suivent `16px / 24px / 32px` entre mobile, tablette et desktop. Les espacements de section utilisent la même progression, afin que l'interface gagne en respiration sans changer de rythme. Les pages privilégient une action primaire, placée dans l'en-tête ou dans un FAB lorsque le contexte l'exige.
 
 Les listes financières restent scannables : libellé à gauche, montant aligné à droite, groupes ordonnés et filtres horizontaux défilables sur petits écrans. Les side sheets glissent depuis la droite sur desktop ; les dialogues peuvent devenir plein écran sous `40rem`.
@@ -183,6 +185,10 @@ Les listes financières restent scannables : libellé à gauche, montant aligné
 **The Responsive Ownership Rule.** Le breakpoint Angular et le propriétaire du scroll doivent toujours basculer ensemble ; aucun composant ne recrée sa propre définition du handset.
 
 **The One Primary Action Rule.** Une page présente une seule action remplie dominante. Les actions concurrentes passent en tonal, outlined, texte ou menu.
+
+**The Entry Centering Rule.** Le shell d'entrée centre le composant routé sur les deux axes et lui donne toute la largeur disponible ; la carte enfant fixe seule sa largeur maximale.
+
+**The Scroll Continuity Rule.** Un changement d'étape replace le propriétaire réel du scroll au début du contenu. Une action sticky de formulaire long conserve les safe areas et utilise un fondu supérieur léger comme indice de continuité.
 
 ## Elevation & Depth
 
@@ -218,6 +224,7 @@ Les bordures sont fines, continues et sémantiques. Les bandes latérales décor
 - Les formulaires structurés utilisent `mat-form-field` outlined, label flottant, aide et erreur dans le même flux.
 - La recherche rapide est une capsule de `56px` sur `surface-container-high`, avec effacement accessible.
 - Les champs de montant composent valeur, devise et aperçu de conversion sans casser le contrôle du formulaire.
+- La création de compte demande le mot de passe une seule fois, avec visibilité, autocomplétion et critères immédiats. La création du PIN conserve une confirmation distincte et rappelle l'identité connectée.
 
 ### Chips and Financial Pills
 
@@ -241,6 +248,16 @@ Les bordures sont fines, continues et sémantiques. Les bandes latérales décor
 
 Le héros est la signature opérationnelle : gradient piloté par l'état financier, montant dominant, progression temporelle et texte explicite. L'ensemble est focusable et activable au clavier ; le déficit n'est jamais transmis par la couleur seule.
 
+### Entry and Onboarding
+
+La carte d'entrée reste centrée et stable entre inscription, sécurité et premier budget. Une progression ordonnée à trois étapes distingue clairement terminé, actif et à venir ; ses marqueurs et connecteurs restent centrés, son dernier libellé se raccourcit sur mobile et ses micro-animations disparaissent avec `prefers-reduced-motion`.
+
+Le parcours évite la confirmation mécanique : le mot de passe de compte n'est saisi qu'une fois, tandis que le PIN de chiffrement est confirmé. Sur les étapes longues, le passage à l'étape suivante remonte au début et l'action primaire sticky laisse voir la continuité du contenu.
+
+### Dashboard Check-off Row
+
+Une prévision à pointer reste une ligne de lecture, pas une fausse carte cliquable. Seul le contrôle circulaire de `44px` réagit au survol et au ripple Material ; son vert primaire indique l'action disponible, puis un check confirme localement la réussite. Le montant et son type restent alignés à droite, tandis que l'aide détaillée cède la place à un compteur après le premier pointage.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -250,6 +267,8 @@ Le héros est la signature opérationnelle : gradient piloté par l'état financ
 - **Do** utiliser les mixins `mat.*-overrides()` pour adapter Material.
 - **Do** respecter `prefers-reduced-motion` et conserver le contenu final visible sans animation.
 - **Do** aligner les montants avec des chiffres tabulaires et des unités discrètes.
+- **Do** garder les cartes d'entrée centrées et les marqueurs d'étapes alignés à toutes les largeurs.
+- **Do** limiter le feedback interactif du dashboard au contrôle qui déclenche réellement l'action.
 
 ### Don't:
 
@@ -258,3 +277,5 @@ Le héros est la signature opérationnelle : gradient piloté par l'état financ
 - **Don't** appliquer du rouge à une dépense ou un dépassement local.
 - **Don't** ajouter une ombre à une surface qui peut être hiérarchisée par son ton.
 - **Don't** recréer un chip, un état vide ou un bouton de chargement déjà présent dans `app/ui` ou `app/pattern`.
+- **Don't** donner un hover de carte à une ligne de dashboard qui n'est pas elle-même cliquable.
+- **Don't** dupliquer le champ de mot de passe du compte ; la confirmation reste réservée au PIN de chiffrement.
