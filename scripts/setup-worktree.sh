@@ -11,11 +11,7 @@ set -u
 
 input="$(/bin/cat)"
 
-jq_bin=/opt/homebrew/bin/jq
-[[ -x "$jq_bin" ]] || jq_bin=/usr/local/bin/jq
-[[ -x "$jq_bin" ]] || exit 0
-
-cwd="$("$jq_bin" -er '.cwd | select(type == "string" and length > 0)' <<<"$input" 2>/dev/null)" || exit 0
+cwd="$(jq -er '.cwd | select(type == "string" and length > 0)' <<<"$input" 2>/dev/null)" || exit 0
 root="$(/usr/bin/git -C "$cwd" rev-parse --path-format=absolute --show-toplevel 2>/dev/null)" || exit 0
 
 # Linked worktrees only. The main checkout has a .git directory, not a .git file.
