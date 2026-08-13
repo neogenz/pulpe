@@ -1,5 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -13,10 +13,12 @@ import Signup from './signup';
 
 describe('Signup', () => {
   let component: Signup;
+  let fixture: ComponentFixture<Signup>;
   let mockAuthCredentials: { signUpWithEmail: ReturnType<typeof vi.fn> };
   let mockLogger: {
     error: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
+    debug: ReturnType<typeof vi.fn>;
   };
   let mockPostHogService: {
     captureEvent: ReturnType<typeof vi.fn>;
@@ -33,6 +35,7 @@ describe('Signup', () => {
     mockLogger = {
       error: vi.fn(),
       warn: vi.fn(),
+      debug: vi.fn(),
     };
 
     mockPostHogService = {
@@ -54,7 +57,8 @@ describe('Signup', () => {
       ],
     }).compileComponents();
 
-    component = TestBed.createComponent(Signup).componentInstance;
+    fixture = TestBed.createComponent(Signup);
+    component = fixture.componentInstance;
 
     const router = TestBed.inject(Router);
     navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
@@ -64,7 +68,6 @@ describe('Signup', () => {
     component['signupForm'].patchValue({
       email: 'test@example.com',
       password: 'password123',
-      confirmPassword: 'password123',
     });
   }
 
@@ -75,7 +78,6 @@ describe('Signup', () => {
 
     it('should have signal properties defined', () => {
       expect(component['isPasswordHidden']).toBeDefined();
-      expect(component['isConfirmPasswordHidden']).toBeDefined();
       expect(component['isSubmitting']).toBeDefined();
       expect(component['errorMessage']).toBeDefined();
     });
@@ -84,17 +86,37 @@ describe('Signup', () => {
       expect(component['signupForm']).toBeDefined();
       expect(component['signupForm'].get('email')).toBeDefined();
       expect(component['signupForm'].get('password')).toBeDefined();
-      expect(component['signupForm'].get('confirmPassword')).toBeDefined();
+      expect(component['signupForm'].get('confirmPassword')).toBeNull();
+    });
+
+    it('should disclose the three onboarding stages with account active', () => {
+      fixture.detectChanges();
+
+      const journey = fixture.nativeElement.querySelector(
+        '[data-testid="onboarding-journey"]',
+      ) as HTMLElement;
+
+      expect(journey.textContent).toContain('Compte');
+      expect(journey.textContent).toContain('Sécurité');
+      expect(journey.textContent).toContain('Premier budget');
+      expect(journey.getAttribute('aria-label')).toBe(
+        'Création de ton espace : étape 1 sur 3',
+      );
+      expect(
+        journey.querySelector('[aria-current="step"]')?.textContent,
+      ).toContain('Compte');
+    });
+
+    it('should make no unsupported time promise', () => {
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).not.toContain('2 minutes');
     });
   });
 
   describe('Default Values', () => {
     it('should have isPasswordHidden true by default', () => {
       expect(component['isPasswordHidden']()).toBe(true);
-    });
-
-    it('should have isConfirmPasswordHidden true by default', () => {
-      expect(component['isConfirmPasswordHidden']()).toBe(true);
     });
 
     it('should have isSubmitting false by default', () => {
@@ -149,13 +171,6 @@ describe('Signup', () => {
       expect(passwordControl?.hasError('minlength')).toBe(false);
     });
 
-    it('should require confirmPassword', () => {
-      const confirmPasswordControl =
-        component['signupForm'].get('confirmPassword');
-      confirmPasswordControl?.setValue('');
-      expect(confirmPasswordControl?.hasError('required')).toBe(true);
-    });
-
     it('should require at least one digit in the password (iOS parity)', () => {
       const passwordControl = component['signupForm'].get('password');
       passwordControl?.setValue('onlyLettersHere');
@@ -175,40 +190,6 @@ describe('Signup', () => {
     });
   });
 
-  describe('passwordsMatchValidator', () => {
-    it('should return null when both fields are empty', () => {
-      component['signupForm'].get('password')?.setValue('');
-      component['signupForm'].get('confirmPassword')?.setValue('');
-      expect(component['signupForm'].hasError('passwordsMismatch')).toBe(false);
-    });
-
-    it('should return null when passwords match', () => {
-      component['signupForm'].get('password')?.setValue('password123');
-      component['signupForm'].get('confirmPassword')?.setValue('password123');
-      expect(component['signupForm'].hasError('passwordsMismatch')).toBe(false);
-    });
-
-    it('should return error when passwords do not match', () => {
-      component['signupForm'].get('password')?.setValue('password123');
-      component['signupForm']
-        .get('confirmPassword')
-        ?.setValue('differentpassword');
-      expect(component['signupForm'].hasError('passwordsMismatch')).toBe(true);
-    });
-
-    it('should set passwordsMismatch error on confirmPassword control', () => {
-      component['signupForm'].get('password')?.setValue('password123');
-      component['signupForm']
-        .get('confirmPassword')
-        ?.setValue('differentpassword');
-      expect(
-        component['signupForm']
-          .get('confirmPassword')
-          ?.hasError('passwordsMismatch'),
-      ).toBe(true);
-    });
-  });
-
   describe('togglePasswordVisibility', () => {
     it('should toggle isPasswordHidden from true to false', () => {
       expect(component['isPasswordHidden']()).toBe(true);
@@ -220,20 +201,6 @@ describe('Signup', () => {
       component['isPasswordHidden'].set(false);
       component['togglePasswordVisibility']();
       expect(component['isPasswordHidden']()).toBe(true);
-    });
-  });
-
-  describe('toggleConfirmPasswordVisibility', () => {
-    it('should toggle isConfirmPasswordHidden from true to false', () => {
-      expect(component['isConfirmPasswordHidden']()).toBe(true);
-      component['toggleConfirmPasswordVisibility']();
-      expect(component['isConfirmPasswordHidden']()).toBe(false);
-    });
-
-    it('should toggle isConfirmPasswordHidden from false to true', () => {
-      component['isConfirmPasswordHidden'].set(false);
-      component['toggleConfirmPasswordVisibility']();
-      expect(component['isConfirmPasswordHidden']()).toBe(true);
     });
   });
 
@@ -275,7 +242,6 @@ describe('Signup', () => {
       component['signupForm'].patchValue({
         email: 'foo@bar.c',
         password: 'password123',
-        confirmPassword: 'password123',
       });
 
       await component['signUp']();

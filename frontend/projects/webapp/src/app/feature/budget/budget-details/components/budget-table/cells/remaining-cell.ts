@@ -18,7 +18,7 @@ import type { BudgetLineTableItem } from '../../../view-models/table-items.view-
     @if (line().consumption?.hasTransactions) {
       @let remaining = line().data.amount - line().consumption!.consumed;
 
-      <div class="flex flex-col items-end gap-1">
+      <div class="flex min-h-8 flex-col items-end justify-center gap-1">
         <div class="flex flex-col items-center">
           <span
             class="ph-no-capture text-body-medium font-semibold"

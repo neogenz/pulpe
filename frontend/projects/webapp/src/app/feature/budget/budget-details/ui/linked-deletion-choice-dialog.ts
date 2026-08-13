@@ -13,10 +13,8 @@ export type LinkedDeletionChoice =
 export interface LinkedDeletionChoiceDialogData {
   title: string;
   message: string;
-  /** e.g. "Garder le revenu de juin" — the repayment-only scope. */
-  keepIncomeLabel: string;
-  /** e.g. "Tout annuler" — the destructive pair scope. */
-  deleteAllLabel: string;
+  deleteRepaymentLabel: string;
+  deletePairLabel: string;
   cancelLabel: string;
 }
 
@@ -34,27 +32,30 @@ export interface LinkedDeletionChoiceDialogData {
     <h2 mat-dialog-title>{{ data.title }}</h2>
 
     <mat-dialog-content>
-      <p class="text-body-large text-on-surface">{{ data.message }}</p>
+      <p class="whitespace-pre-line text-body-large text-on-surface">
+        {{ data.message }}
+      </p>
     </mat-dialog-content>
 
-    <mat-dialog-actions align="end" class="flex-wrap gap-2">
-      <button matButton (click)="cancel()" data-testid="linked-deletion-cancel">
-        {{ data.cancelLabel }}
-      </button>
+    <mat-dialog-actions class="choices gap-2">
       <button
         matButton="outlined"
+        class="w-full"
         (click)="chooseRepayment()"
-        data-testid="linked-deletion-keep-income"
+        data-testid="linked-deletion-delete-repayment"
       >
-        {{ data.keepIncomeLabel }}
+        {{ data.deleteRepaymentLabel }}
       </button>
       <button
         matButton="filled"
-        class="delete-all"
+        class="delete-pair w-full"
         (click)="choosePair()"
-        data-testid="linked-deletion-delete-all"
+        data-testid="linked-deletion-delete-pair"
       >
-        {{ data.deleteAllLabel }}
+        {{ data.deletePairLabel }}
+      </button>
+      <button matButton (click)="cancel()" data-testid="linked-deletion-cancel">
+        {{ data.cancelLabel }}
       </button>
     </mat-dialog-actions>
   `,
@@ -63,9 +64,14 @@ export interface LinkedDeletionChoiceDialogData {
       display: block;
     }
 
-    .delete-all {
-      --mdc-filled-button-container-color: var(--mat-sys-error);
-      --mdc-filled-button-label-text-color: var(--mat-sys-on-error);
+    .choices {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .delete-pair {
+      --mat-button-filled-container-color: var(--mat-sys-error);
+      --mat-button-filled-label-text-color: var(--mat-sys-on-error);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

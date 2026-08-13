@@ -1,11 +1,7 @@
 import type { Transaction, BudgetLine, TransactionKind } from 'pulpe-shared';
-import {
-  calculateAllConsumptions,
-  calculateBudgetLineConsumption,
-} from '@core/budget/budget-line-consumption';
+import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
 import {
   isDataRow,
-  type BudgetLineConsumptionDisplay,
   type BudgetLineTableItem,
   type GroupHeaderTableItem,
   type TableRowItem,
@@ -311,6 +307,27 @@ function createBudgetLineViewModel(
   };
 }
 
+/** Rebuilds one budget-line item with the same metadata rules as the list view. */
+export function createBudgetLineTableItem(params: {
+  budgetLine: BudgetLine;
+  transactions: Transaction[];
+  postpone?: PostponeContext;
+  savingsWithdrawalOriginLabel?: string;
+}): BudgetLineTableItem {
+  const {
+    budgetLine,
+    transactions,
+    postpone = NO_POSTPONE_CONTEXT,
+    savingsWithdrawalOriginLabel = '',
+  } = params;
+  return createBudgetLineViewModel(
+    budgetLine,
+    calculateAllConsumptions([budgetLine], transactions),
+    postpone,
+    savingsWithdrawalOriginLabel,
+  );
+}
+
 function createTransactionViewModel(
   transaction: Transaction,
   postpone: PostponeContext,
@@ -364,39 +381,6 @@ function mapToTableItems(
     }
     return createTransactionViewModel(item.item, postpone);
   });
-}
-
-/**
- * Build consumption display data for a single budget line.
- * Centralizes the calculatePercentage + getBudgetConsumptionState + getTransactionCountLabel
- * orchestration so callers don't have to coordinate these functions manually.
- */
-export function createBudgetLineConsumptionDisplay(
-  budgetLine: BudgetLine,
-  transactions: Transaction[],
-): BudgetLineConsumptionDisplay {
-  const { consumed, transactionCount } = calculateBudgetLineConsumption(
-    budgetLine,
-    transactions,
-  );
-  const percentage = calculatePercentage(budgetLine.amount, consumed);
-  const hasTransactions = transactionCount > 0;
-
-  return {
-    consumed,
-    transactionCount,
-    percentage,
-    transactionCountLabel: getTransactionCountLabel(
-      budgetLine.kind,
-      transactionCount,
-    ),
-    hasTransactions,
-    consumptionState: getBudgetConsumptionState(
-      percentage,
-      hasTransactions,
-      budgetLine.kind,
-    ),
-  };
 }
 
 export function buildViewData(params: {

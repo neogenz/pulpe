@@ -43,15 +43,16 @@ typography:
 >
 > This file owns what is **shared**. Each platform doc owns its **specifics** and inherits everything below. When a rule applies everywhere, it lives here. When it depends on the rendering surface (SwiftUI vs Angular vs Next.js), it lives in the platform doc.
 
-## 1. Overview: The Warm Naturalist
+## Overview
 
 **Creative North Star: "Un grand bol d'air frais après avoir fermé Excel."**
 
-Pulpe is calm naturalism for personal budgeting. The interface is the visceral shift from *subir* to *maîtriser* — fog lifts, cognitive load drops, the user breathes. Every surface is a warm neutral, every accent is a deliberate financial signal, every motion is a soft spring. Green is the brand color, not a celebration; red is reserved for one rare context where it earns its keep.
+Pulpe is calm naturalism for personal budgeting. The interface is the visceral shift from _subir_ to _maîtriser_ — fog lifts, cognitive load drops, the user breathes. Every surface is a warm neutral, every accent is a deliberate financial signal, every motion is a soft spring. Green is the brand color, not a celebration; red is reserved for one rare context where it earns its keep.
 
 This system explicitly rejects: cold corporate banking apps with navy and aggressive charts; anxious finance apps that drench the UI in red; dense accounting software that intimidates with jargon-heavy chrome; Revolut's crunchy gradients on content cards; generic AI-tool sterile minimalism. Pulpe is warm. Pulpe is grounded. Pulpe is a companion, not a coach.
 
 **Key Characteristics (cross-platform):**
+
 - Warm neutral canvas (`#F7F6F3` family), never cold gray, never green-tinted
 - Color carries meaning: green = savings/positive, amber = expense, blue = income, red = global deficit only
 - Soft springs (response 0.4–0.6s, damping 0.65–0.85), zero bounce except on the landing page
@@ -59,31 +60,37 @@ This system explicitly rejects: cold corporate banking apps with navy and aggres
 - WCAG AA contrast, accessibility primary citizen on every surface
 - Tutoiement always; microcopy disarms anxiety
 
-## 2. Colors: The Warm Naturalist Palette
+## Colors
 
 A neutral warm canvas with three semantic accents, one cautionary amber, and one rare red. No decorative color, anywhere. **Misusing color is lying.**
 
 ### Primary
+
 - **Pulpe Forest** (`#006E25`, dark forest green): The brand color. Used for the primary CTA, the savings amount, the savings progress fill, brand glyphs. Carries `Soulagement`.
 
 ### Secondary
+
 - **Sage** (`#406741`, muted secondary green): Discrete labels, secondary container fills. Never a CTA fill — it stays on the periphery.
 
 ### Tertiary
+
 - **Lake** (`#0061A6`, calm corporate blue): Income amounts, info chips, links, edit actions. The "neutral information" hue. Never used for warnings.
 
 ### Financial Accents (semantic, not decorative)
+
 - **Income / Lake** (`#0061A6`): All income surfaces.
 - **Savings / Forest Bright** (`#157038`): All savings surfaces. A slightly brighter green than Pulpe Forest, tuned for ink contrast on warm surfaces.
 - **Expense / Amber** (`#B35800`): All expense surfaces, moderate over-budget warnings. Warm amber, never red.
-- **Over-Budget / Burnt Amber** (`#A86800`): Envelopes that have actually overrun. Still amber — the overshoot is *factual*, not punitive.
+- **Over-Budget / Burnt Amber** (`#A86800`): Envelopes that have actually overrun. Still amber — the overshoot is _factual_, not punitive.
 - **Hero Deficit / Sunset Coral** (`#C45028`, gradient mid-stop): The single legitimate red-adjacent surface. Reserved for the dashboard hero when total spending exceeds available (>100%). Never appears on a content row.
 
 ### Neutral
+
 - **App Background** (`#F7F6F3`): The neutral warm canvas. Every screen sits on this. Dark mode is `#141210` — warm near-black, not pure `#000`.
 - **Text Primary** (`#1A1C19`): Body text. Never pure `#000`.
 
 ### Destructive (Irreversible Only)
+
 - **True Red** (`#C62828`): Account deletion, danger zone confirmations. **Never** used for over-budget feedback. Reserved for actions that cannot be undone.
 
 > **Per-platform tuning:** the values above are the canonical seeds. Each platform may tune surface containers, dark-mode counterparts, or material-specific variants — see the per-platform DESIGN.md for resolved hex tables.
@@ -92,15 +99,16 @@ A neutral warm canvas with three semantic accents, one cautionary amber, and one
 
 **The Color Means Something Rule.** Every hue maps to a financial concept or a state. Green = positive / savings / actions. Blue = income / information / links. Amber = expense / moderate warning / over-budget. Red = hero deficit only. There is no decorative color in Pulpe. If a color doesn't map to a meaning, it doesn't ship.
 
-**The Anxiety Red Rule.** Red is forbidden everywhere except the dashboard hero card when financial state is Deficit (>100% of available spent). Lines, rows, transactions, pills, and labels for expenses use **amber**, never red. *Le rouge n'est pas punitif* — quoting our own design doctrine.
+**The Anxiety Red Rule.** Red is forbidden everywhere except the dashboard hero card when financial state is Deficit (>100% of available spent). Lines, rows, transactions, pills, and labels for expenses use **amber**, never red. _Le rouge n'est pas punitif_ — quoting our own design doctrine.
 
 **The Two-Zone Rule (cross-platform conceptual).** Every screen with a hero is split. The **emotion zone** at the top carries feeling — color-keyed to financial state. The **content zone** below is neutral warm and ruthlessly readable. Implementation differs per platform (gradient stops, fixed heights, transition values) but the conceptual split is universal. See platform docs for hex stops and pixel values.
 
-## 3. Typography
+## Typography
 
 **Display (every platform):** Manrope, bold and extrabold weights only. Carries the brand. Used for hero amounts, brand titles, headline numbers, and the Kind Tag inline label.
 
 **Body / UI:** platform-specific.
+
 - **iOS:** SF Pro (system) — Dynamic Type respected.
 - **Web (Angular):** DM Sans — `--plain-family`.
 - **Landing (Next.js):** Poppins (only Poppins, no display/body split — landing is poster-flat).
@@ -109,17 +117,17 @@ A neutral warm canvas with three semantic accents, one cautionary amber, and one
 
 **Character.** Manrope is friendly-modern with a bit of warmth in its terminals — it carries the brand without being decorative. The platform body font carries clarity and accessibility. Two families per platform, never three. No serifs. No geometric tech fonts (Inter, Roboto, Geist). No mono fonts in chrome (mono is reserved for recovery keys and codes).
 
-> **Per-platform scale:** the size scale, line heights, and tracking values live in the platform-specific docs (`ios/DESIGN.md`, `frontend/DESIGN.md`, `landing/DESIGN.md`). The font *family* commitments above are universal.
+> **Per-platform scale:** the size scale, line heights, and tracking values live in the platform-specific docs (`ios/DESIGN.md`, `frontend/DESIGN.md`, `landing/DESIGN.md`). The font _family_ commitments above are universal.
 
 ### Named Rules
 
-**The Tutoiement Rule.** Always "tu", never "vous". This is brand voice, not preference. Errors explain what happened and suggest a next step — never blame the user. Empty states guide. Microcopy disarms anxiety: *"Ça arrive"*, *"Tu le sais, et c'est déjà ça."*
+**The Tutoiement Rule.** Always "tu", never "vous". This is brand voice, not preference. Errors explain what happened and suggest a next step — never blame the user. Empty states guide. Microcopy disarms anxiety: _"Ça arrive"_, _"Tu le sais, et c'est déjà ça."_
 
 **The Tabular Digits Rule.** Every numeric amount uses tabular figures. Digits don't wobble between updates. Non-negotiable on hero amounts, row amounts, pill counts.
 
 **The Two-Family Rule.** Two font families per platform, max. Display + body. No third family. No mono in chrome. The landing page uses one family (Poppins) — single-family is allowed when the surface is simple enough.
 
-## 4. Elevation
+## Elevation & Depth
 
 **Pulpe is flat by default with restrained tonal layering.** Shadows exist but they are diffuse and warm-tinted; they never define structure, only state. Depth comes from surface tone (warm hierarchy: app-background → surface containers → card surface), not from cast shadows. The hero card is gradient-filled; everything else is flat surface or hairline-bordered.
 
@@ -129,7 +137,7 @@ A neutral warm canvas with three semantic accents, one cautionary amber, and one
 
 **The Flat-By-Default Rule.** Surfaces are flat at rest. Tonal layering carries the hierarchy. Shadows appear only as a response to state (elevation, focus) or to lift the hero card. A flat list row is the default; a shadowed row is a deliberate signal.
 
-## 5. Components
+## Components
 
 > **Every component lives in its platform doc.** This file does not declare button shapes, chip vocabularies, sheet patterns, or input styles — those depend on the rendering stack. Read:
 >
@@ -137,7 +145,7 @@ A neutral warm canvas with three semantic accents, one cautionary amber, and one
 > - **Web components:** [frontend/DESIGN.md](./frontend/DESIGN.md) §5
 > - **Landing components:** [landing/DESIGN.md](./landing/DESIGN.md) §5
 
-What's universal is the **vocabulary**: every platform has a Primary Button, Secondary Button, Destructive Button, Filter Pill, Stat Pill, Kind Tag, Form Input, Hero Card, Per-Row Card, and Sheet Form Container. The *names* travel; the *implementations* are platform-specific.
+What's universal is the **vocabulary**: every platform has a Primary Button, Secondary Button, Destructive Button, Filter Pill, Stat Pill, Kind Tag, Form Input, Hero Card, Per-Row Card, and Sheet Form Container. The _names_ travel; the _implementations_ are platform-specific.
 
 ### Named Rules
 
@@ -145,18 +153,23 @@ What's universal is the **vocabulary**: every platform has a Primary Button, Sec
 
 **The Chip Composition Rule (cross-platform).** Chips and pills are **never** composed ad-hoc from raw shape primitives + padding + text in feature code. Each platform has a chip atom (`PulpeChip` on iOS, equivalent shared component on web/landing). Feature code consumes the atom, never reinvents the capsule.
 
-## 6. Do's and Don'ts
+**The Consequence-Matched Confirmation Rule.** A recoverable account password is entered once, with visibility control and immediate requirements. A local encryption PIN is confirmed because a typo can make encrypted data inaccessible. Confirmation friction follows the consequence, not a generic form convention.
+
+## Do's and Don'ts
 
 ### Do:
+
 - **Do** map every color to a financial concept or state — savings green, income blue, expense amber, deficit red.
 - **Do** address every user with "tu", everywhere, on every platform.
 - **Do** use Manrope for display and amounts on every platform; pair with the platform body font (SF Pro / DM Sans / Poppins).
 - **Do** keep the emotion zone at the top (gradient, financial-state-keyed) and the content zone below (neutral warm) wherever a screen has a hero.
 - **Do** use tabular digits (`monospacedDigit()` / `tabular-nums`) on every numeric amount.
 - **Do** route every chip / pill through the platform's chip atom — never reinvent the capsule + padding + count badge in feature code.
+- **Do** confirm an unrecoverable local encryption PIN and show the signed-in identity before it is created.
 - **Do** consult [PRODUCT.md](./PRODUCT.md) before adding a new pattern — the strategic intent is upstream of every visual decision.
 
 ### Don't:
+
 - **Don't** use Revolut's crunchy gradients on content cards. Gradients live in the hero zone and nowhere else.
 - **Don't** ship cold banking apps with navy + aggressive charts — that's the explicit anti-reference.
 - **Don't** use anxiety red anywhere except the dashboard hero deficit (>100% spent). Lines, rows, transactions, pills, kind tags for expenses use **amber**, never red.
@@ -166,4 +179,5 @@ What's universal is the **vocabulary**: every platform has a Primary Button, Sec
 - **Don't** ship side-stripe borders (a >1px colored accent on the left or right edge of a card). Pulpe uses **full borders** + tints, never decorative side stripes.
 - **Don't** mix three font families on any single platform. Two max — display + body. Landing uses one (Poppins).
 - **Don't** invent a new chip name for an existing affordance, and don't reuse an existing chip name for a new affordance.
+- **Don't** ask for a recoverable account password twice; allow visibility, paste, autofill, and immediate requirement feedback instead.
 - **Don't** edit this file when the rule is platform-specific — push it down to `ios/DESIGN.md`, `frontend/DESIGN.md`, or `landing/DESIGN.md` instead. This file is for what is **shared**.

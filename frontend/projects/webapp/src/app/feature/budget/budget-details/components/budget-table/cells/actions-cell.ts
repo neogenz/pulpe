@@ -12,6 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { CheckRewardDirective } from '@ui/check-reward';
 import type { Transaction } from 'pulpe-shared';
 import type { BudgetLine } from 'pulpe-shared';
 import type {
@@ -29,9 +30,10 @@ import type {
     MatDividerModule,
     MatTooltipModule,
     TranslocoPipe,
+    CheckRewardDirective,
   ],
   template: `
-    <div class="flex gap-1 justify-end items-center">
+    <div class="flex h-8 items-center justify-end gap-1">
       @if (line().metadata.itemType === 'budget_line') {
         <!-- Un retrait annoncé se réalise par une action distincte du pointage. -->
         @if (line().metadata.sourceWithdrawalCtaKey; as ctaKey) {
@@ -52,21 +54,38 @@ import type {
         } @else {
           <mat-slide-toggle
             [checked]="!!line().data.checkedAt"
+            [pulpeCheckReward]="!!line().data.checkedAt"
             (change)="toggleCheck.emit(line().data.id)"
             (click)="$event.stopPropagation()"
             [attr.data-testid]="'toggle-check-' + line().data.id"
-          />
+          >
+            {{
+              (line().data.checkedAt
+                ? 'budgetLine.checkedStatus'
+                : 'budgetLine.uncheckedStatus'
+              ) | transloco
+            }}
+          </mat-slide-toggle>
         }
       } @else if (line().metadata.itemType === 'transaction') {
         <mat-slide-toggle
           [checked]="!!line().data.checkedAt"
+          [pulpeCheckReward]="!!line().data.checkedAt"
           (change)="toggleTransactionCheck.emit(line().data.id)"
           (click)="$event.stopPropagation()"
           [attr.data-testid]="'toggle-check-tx-' + line().data.id"
-        />
+        >
+          {{
+            (line().data.checkedAt
+              ? 'budgetLine.checkedStatus'
+              : 'budgetLine.uncheckedStatus'
+            ) | transloco
+          }}
+        </mat-slide-toggle>
       }
       <button
         matIconButton
+        class="h-8! w-8! p-1!"
         [matMenuTriggerFor]="rowActionMenu"
         [attr.data-testid]="'actions-menu-' + line().data.id"
         [disabled]="line().metadata.isLoading"

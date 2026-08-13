@@ -18,7 +18,6 @@ import {
   type SupportedCurrency,
 } from 'pulpe-shared';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
-import { AppCurrencyPipe } from '@core/currency';
 import {
   type ChartThemeColors,
   formatCurrency,
@@ -28,7 +27,6 @@ import {
 import {
   buildGoalProjectionChartData,
   buildGoalProjectionChartOptions,
-  MASKED_VALUE,
 } from './goal-projection-chart.config';
 import {
   buildGoalProjectionGuidePlugin,
@@ -44,7 +42,7 @@ import {
  */
 @Component({
   selector: 'pulpe-goal-projection-chart',
-  imports: [AppCurrencyPipe, BaseChartDirective],
+  imports: [BaseChartDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -52,67 +50,58 @@ import {
       data-testid="goal-projection-panel"
     >
       <div
-        class="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-4"
+        class="mb-1 grid min-w-0 grid-cols-3 gap-1 px-1"
+        role="group"
+        [attr.aria-label]="seriesGroupLabel"
+        data-testid="goal-projection-summary"
       >
-        <div class="relative h-[220px] min-w-0 w-full sm:h-[260px]">
-          <canvas
-            baseChart
-            aria-hidden="true"
-            [data]="chartData()"
-            [options]="chartOptions()"
-            [plugins]="chartPlugins()"
-            [type]="chartType"
-          ></canvas>
-        </div>
+        @for (item of summaryItems(); track item.series) {
+          <button
+            type="button"
+            class="inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-lg px-1 text-body-medium text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+            [class.opacity-50]="isSeriesHidden(item.series)"
+            [class.line-through]="isSeriesHidden(item.series)"
+            [attr.aria-pressed]="!isSeriesHidden(item.series)"
+            [attr.aria-label]="seriesToggleLabel(item)"
+            (click)="toggleSeries(item.series)"
+            [attr.data-testid]="'goal-projection-toggle-' + item.series"
+          >
+            @switch (item.series) {
+              @case ('target') {
+                <span
+                  class="h-px w-5 shrink-0 bg-financial-expense"
+                  aria-hidden="true"
+                  data-testid="goal-projection-target-legend"
+                ></span>
+              }
+              @case ('confirmed') {
+                <span
+                  class="h-0.5 w-5 shrink-0 rounded-full bg-financial-savings"
+                  aria-hidden="true"
+                ></span>
+              }
+              @case ('projection') {
+                <span
+                  class="w-5 shrink-0 border-t-2 border-dashed border-tertiary"
+                  aria-hidden="true"
+                ></span>
+              }
+            }
+            <span class="truncate">{{ item.label }}</span>
+          </button>
+        }
+      </div>
 
-        <dl
-          class="min-w-0 border-t border-outline-variant/50 lg:border-t-0 lg:border-l"
-          data-testid="goal-projection-summary"
-        >
-          @for (item of summaryItems(); track item.series) {
-            <div
-              class="flex min-w-0 items-center gap-3 border-t border-outline-variant/50 py-3 first:border-t-0 lg:px-4"
-            >
-              <dt
-                class="flex min-w-0 items-center gap-2 text-body-medium text-on-surface-variant"
-              >
-                @switch (item.series) {
-                  @case ('target') {
-                    <span
-                      class="h-px w-5 shrink-0 bg-financial-expense"
-                      aria-hidden="true"
-                      data-testid="goal-projection-target-legend"
-                    ></span>
-                  }
-                  @case ('confirmed') {
-                    <span
-                      class="h-0.5 w-5 shrink-0 rounded-full bg-financial-savings"
-                      aria-hidden="true"
-                    ></span>
-                  }
-                  @case ('projection') {
-                    <span
-                      class="w-5 shrink-0 border-t-2 border-dashed border-tertiary"
-                      aria-hidden="true"
-                    ></span>
-                  }
-                }
-                <span class="truncate">{{ item.label }}</span>
-              </dt>
-              <dd
-                class="ph-no-capture ml-auto shrink-0 text-body-medium font-semibold tabular-nums"
-                [class.amounts-visible]="amountsHidden()"
-                [attr.data-testid]="'goal-projection-summary-' + item.series"
-              >
-                @if (amountsHidden()) {
-                  {{ maskedValue }}
-                } @else {
-                  {{ item.amount | appCurrency: currency() : '1.0-0' }}
-                }
-              </dd>
-            </div>
-          }
-        </dl>
+      <div class="relative h-[220px] min-w-0 w-full sm:h-[260px]">
+        <canvas
+          #chart="base-chart"
+          baseChart
+          aria-hidden="true"
+          [data]="chartData()"
+          [options]="chartOptions()"
+          [plugins]="chartPlugins()"
+          [type]="chartType"
+        ></canvas>
       </div>
 
       <p
@@ -157,20 +146,17 @@ export class GoalProjectionChart {
 
   readonly #theme = signal<ChartThemeColors | null>(null);
   readonly #reducedMotion = signal(false);
+  readonly #hiddenSeries = signal<ReadonlySet<GoalProjectionSeries>>(new Set());
 
   readonly chartType = 'line' as const;
-  protected readonly amountsHidden = this.#amountsVisibility.amountsHidden;
-  protected readonly maskedValue = MASKED_VALUE;
+  protected readonly seriesGroupLabel = this.#transloco.translate(
+    'savingsGoals.plan.chartSeriesLabel',
+  );
 
   readonly #labels = {
     target: this.#transloco.translate('savingsGoals.plan.chartTarget'),
     confirmed: this.#transloco.translate('savingsGoals.plan.chartConfirmed'),
     projection: this.#transloco.translate('savingsGoals.plan.chartProjection'),
-  };
-  readonly #summaryLabels = {
-    target: this.#labels.target,
-    confirmed: this.#labels.confirmed,
-    projection: this.#transloco.translate('savingsGoals.detail.projected'),
   };
   readonly #currentPeriodLabel = this.#transloco.translate(
     'savingsGoals.plan.chartCurrentPeriod',
@@ -196,8 +182,8 @@ export class GoalProjectionChart {
     ),
   );
 
-  readonly chartData = computed(() =>
-    buildGoalProjectionChartData({
+  readonly chartData = computed(() => {
+    const chartData = buildGoalProjectionChartData({
       months: this.months(),
       draft: this.draft(),
       targetAmount: this.targetAmount(),
@@ -206,8 +192,20 @@ export class GoalProjectionChart {
       theme: this.#theme(),
       locale: this.#locale,
       labels: this.#labels,
-    }),
-  );
+    });
+    const hiddenSeries = this.#hiddenSeries();
+    return {
+      ...chartData,
+      datasets: chartData.datasets.map((dataset) => {
+        const series = (
+          Object.keys(this.#labels) as GoalProjectionSeries[]
+        ).find((candidate) => this.#labels[candidate] === dataset.label);
+        return series && hiddenSeries.has(series)
+          ? { ...dataset, hidden: true }
+          : dataset;
+      }),
+    };
+  });
 
   readonly chartPlugins = computed<Plugin[]>(() => {
     const theme = this.#theme();
@@ -226,13 +224,11 @@ export class GoalProjectionChart {
     const items = [
       {
         series: 'confirmed' as const,
-        label: this.#summaryLabels.confirmed,
-        amount: this.confirmed(),
+        label: this.#labels.confirmed,
       },
       {
         series: 'projection' as const,
-        label: this.#summaryLabels.projection,
-        amount: this.draft()?.simulatedFinal ?? this.projected(),
+        label: this.#labels.projection,
       },
     ];
     const targetAmount = this.targetAmount();
@@ -241,12 +237,40 @@ export class GoalProjectionChart {
       : [
           {
             series: 'target' as const,
-            label: this.#summaryLabels.target,
-            amount: targetAmount,
+            label: this.#labels.target,
           },
           ...items,
         ];
   });
+
+  protected isSeriesHidden(series: GoalProjectionSeries): boolean {
+    return this.#hiddenSeries().has(series);
+  }
+
+  protected seriesToggleLabel(item: GoalProjectionSummaryItem): string {
+    return this.#transloco.translate(
+      this.isSeriesHidden(item.series)
+        ? 'savingsGoals.plan.chartShowSeries'
+        : 'savingsGoals.plan.chartHideSeries',
+      { series: item.label },
+    );
+  }
+
+  protected toggleSeries(series: GoalProjectionSeries): void {
+    const hasDataset = this.chartData().datasets.some(
+      (dataset) => dataset.label === this.#labels[series],
+    );
+    if (!hasDataset) return;
+
+    const hidden = !this.isSeriesHidden(series);
+    const next = new Set(this.#hiddenSeries());
+    if (hidden) {
+      next.add(series);
+    } else {
+      next.delete(series);
+    }
+    this.#hiddenSeries.set(next);
+  }
 
   protected readonly ariaSentence = computed(() => {
     const months = this.months();
@@ -271,4 +295,10 @@ export class GoalProjectionChart {
         : { target: formatCurrency(targetAmount, currency) }),
     });
   });
+}
+
+type GoalProjectionSeries = 'target' | 'confirmed' | 'projection';
+interface GoalProjectionSummaryItem {
+  series: GoalProjectionSeries;
+  label: string;
 }

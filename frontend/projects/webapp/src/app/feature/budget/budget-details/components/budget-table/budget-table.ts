@@ -87,12 +87,14 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
             {{ 'budget.tablePlanned' | transloco }}
           </th>
           <td mat-cell *matCellDef="let line" class="text-right">
-            <span
-              class="text-body-medium font-bold ph-no-capture"
-              [pulpeFinancialKind]="line.data.kind"
-            >
-              {{ line.data.amount | appCurrency: currency() : '1.2-2' }}
-            </span>
+            <div class="flex h-8 items-center justify-end">
+              <span
+                class="text-body-medium font-bold ph-no-capture"
+                [pulpeFinancialKind]="line.data.kind"
+              >
+                {{ line.data.amount | appCurrency: currency() : '1.2-2' }}
+              </span>
+            </div>
           </td>
         </ng-container>
 
@@ -153,15 +155,31 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
             {{ 'budget.tableFrequency' | transloco }}
           </th>
           <td mat-cell *matCellDef="let line">
-            <mat-chip
-              class="bg-secondary-container chip-on-secondary-container"
-            >
-              @if ('recurrence' in line.data) {
-                {{ line.data.recurrence | recurrenceLabel }}
-              } @else {
-                {{ 'budget.oneTimeTransaction' | transloco }}
-              }
-            </mat-chip>
+            @if ('recurrence' in line.data) {
+              <div class="flex min-h-8 flex-col items-start gap-0.5">
+                <mat-chip
+                  class="bg-secondary-container chip-on-secondary-container"
+                >
+                  {{ line.data.recurrence | recurrenceLabel }}
+                </mat-chip>
+                <span class="text-label-small text-on-surface-variant">
+                  {{
+                    (line.metadata.isTemplateLinked
+                      ? 'recurrence.fromTemplate'
+                      : 'recurrence.fromBudget'
+                    ) | transloco
+                  }}
+                </span>
+              </div>
+            } @else {
+              <div class="flex h-8 items-center">
+                <mat-chip
+                  class="bg-secondary-container chip-on-secondary-container"
+                >
+                  {{ 'budget.oneTimeTransaction' | transloco }}
+                </mat-chip>
+              </div>
+            }
           </td>
         </ng-container>
 
@@ -269,7 +287,12 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
     }
 
     .mat-mdc-row:not(.group-header-row) {
-      height: 60px;
+      height: auto;
+    }
+
+    .mat-mdc-row:not(.group-header-row) .mat-mdc-cell {
+      padding-block: 0.75rem;
+      vertical-align: top;
     }
 
     .chip-on-secondary-container {

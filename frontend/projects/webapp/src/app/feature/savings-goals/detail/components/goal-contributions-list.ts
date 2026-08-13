@@ -67,7 +67,7 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
           data-testid="goal-contribution-next"
         >
           <mat-icon class="shrink-0 text-financial-savings" aria-hidden="true"
-            >radio_button_unchecked</mat-icon
+            >event_upcoming</mat-icon
           >
           <div class="flex min-w-0 flex-1 flex-col">
             <span class="text-label-small font-medium text-financial-savings">
@@ -112,9 +112,7 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
                       : 'savingsGoals.detail.contributionUnchecked'
                     ) | transloco
                   "
-                  >{{
-                    c.checkedAt ? 'check_circle' : 'radio_button_unchecked'
-                  }}</mat-icon
+                  >{{ c.checkedAt ? 'check_circle' : 'schedule' }}</mat-icon
                 >
                 <div class="flex min-w-0 flex-1 flex-col">
                   <span class="text-body-large truncate ph-no-capture">{{
@@ -159,9 +157,7 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
                             ) | transloco
                           "
                           >{{
-                            tx.checkedAt
-                              ? 'check_circle'
-                              : 'radio_button_unchecked'
+                            tx.checkedAt ? 'check_circle' : 'schedule'
                           }}</mat-icon
                         >
                         <div class="flex min-w-0 flex-1 flex-col">

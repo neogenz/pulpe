@@ -64,6 +64,9 @@ describe('GoalContributionsList', () => {
     const next = query('goal-contribution-next');
     expect(next).toBeTruthy();
     expect(next.nativeElement.textContent).toContain('500.00');
+    expect(
+      next.nativeElement.querySelector('mat-icon').textContent.trim(),
+    ).toBe('event_upcoming');
   });
 
   it('collapses future months to activity + a next callout with a positive headline, then expands', () => {
@@ -99,6 +102,9 @@ describe('GoalContributionsList', () => {
     query('goal-contributions-see-all').nativeElement.click();
     fixture.detectChanges();
     expect(rows()).toHaveLength(5);
+    expect(
+      rows()[1].nativeElement.querySelector('mat-icon').textContent.trim(),
+    ).toBe('schedule');
   });
 
   it('nests the allocated transactions under their contribution', () => {

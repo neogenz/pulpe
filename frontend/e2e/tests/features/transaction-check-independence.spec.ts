@@ -158,9 +158,9 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
     await toggleTx1.click();
     await toggleTx1Promise;
 
-    // Verify pointés count: 1/5
+    // Verify pointés count: 1 sur 5
     await expect(summary).toBeVisible();
-    await expect(summary).toContainText('1/5 pointés');
+    await expect(summary).toContainText('1 sur 5 pointés');
 
     // Check transaction 2
     const toggleTx2Promise = authenticatedPage.waitForRequest(
@@ -177,8 +177,8 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
     await toggleTx2.click();
     await toggleTx2Promise;
 
-    // Verify pointés count: 2/5
-    await expect(summary).toContainText('2/5 pointés');
+    // Verify pointés count: 2 sur 5
+    await expect(summary).toContainText('2 sur 5 pointés');
 
     // Check transaction 3
     const toggleTx3Promise = authenticatedPage.waitForRequest(
@@ -195,8 +195,8 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
     await toggleTx3.click();
     await toggleTx3Promise;
 
-    // Verify pointés count: 3/5 (all 3 transactions checked, but envelope + income still unchecked)
-    await expect(summary).toContainText('3/5 pointés');
+    // Verify pointés count: 3 sur 5 (all 3 transactions checked, but envelope + income still unchecked)
+    await expect(summary).toContainText('3 sur 5 pointés');
 
     // Close the detail panel to verify the envelope toggle state
     await authenticatedPage.keyboard.press('Escape');

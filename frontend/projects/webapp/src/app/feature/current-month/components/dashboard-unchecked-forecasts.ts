@@ -154,7 +154,7 @@ interface AnimatingForecast {
            legend, not a fourth key inside it. -->
       @if (showsPointerHint()) {
         <p
-          class="text-body-small text-on-surface-variant font-medium mb-4 px-1"
+          class="text-body-medium text-on-surface-variant font-medium leading-relaxed max-w-[65ch] mb-4 px-1"
           data-testid="dashboard-forecasts-pointer-hint"
         >
           {{ 'currentMonth.uncheckedForecasts.pointerHint' | transloco }}
@@ -198,7 +198,7 @@ interface AnimatingForecast {
                      the very elements the replay already refuses to record. -->
                 <button
                   #forecastToggle
-                  class="shrink-0 flex items-center justify-center w-11 h-11 -m-2 rounded-full cursor-pointer"
+                  class="shrink-0 flex items-center justify-center w-11 h-11 -m-2 rounded-full cursor-pointer text-primary hover:bg-primary-container/50"
                   matRipple
                   [matRippleCentered]="true"
                   (click)="toggleForecast(forecast.id)"
@@ -223,11 +223,7 @@ interface AnimatingForecast {
                        The worry that a column of rings reads as "choose one"
                        is real but cheap — it costs one tap to disprove, and
                        these rings carry a name and an amount, not a choice. -->
-                  <mat-icon
-                    [class.text-primary]="isChecking"
-                    [class.icon-filled]="isChecking"
-                    aria-hidden="true"
-                  >
+                  <mat-icon [class.icon-filled]="isChecking" aria-hidden="true">
                     {{ isChecking ? 'check_circle' : 'radio_button_unchecked' }}
                   </mat-icon>
                 </button>
@@ -239,25 +235,29 @@ interface AnimatingForecast {
                   {{ forecast.name }}
                 </span>
                 <span
-                  class="flex items-center gap-1.5 whitespace-nowrap"
-                  [pulpeFinancialKind]="forecast.kind"
+                  class="grid min-w-28 shrink-0 justify-items-end leading-tight"
                 >
-                  <!-- The tint alone said whether this was money to pay or to
-                       collect. The glyph carries it for sighted users, the
-                       hidden label for everyone else — mat-icon forces
-                       aria-hidden on itself, so it can never be the name. -->
-                  <mat-icon class="mat-icon-sm shrink-0" aria-hidden="true">
-                    {{ forecast.kind | transactionIcon }}
-                  </mat-icon>
-                  <span class="sr-only">
-                    {{ forecast.kind | transactionLabel }}
-                  </span>
                   <span
-                    class="text-label-large font-semibold tabular-nums ph-no-capture"
-                    [id]="'forecast-amount-' + forecast.id"
-                    data-testid="dashboard-forecasts-amount"
+                    class="flex items-center gap-1.5 whitespace-nowrap"
+                    [pulpeFinancialKind]="forecast.kind"
                   >
-                    {{ displayAmount | appCurrency: currency() : '1.0-0' }}
+                    <!-- The tint alone said whether this was money to pay or to
+                         collect. The glyph carries it for sighted users, the
+                         hidden label for everyone else — mat-icon forces
+                         aria-hidden on itself, so it can never be the name. -->
+                    <mat-icon class="mat-icon-sm shrink-0" aria-hidden="true">
+                      {{ forecast.kind | transactionIcon }}
+                    </mat-icon>
+                    <span class="sr-only">
+                      {{ forecast.kind | transactionLabel }}
+                    </span>
+                    <span
+                      class="text-label-large font-semibold tabular-nums ph-no-capture"
+                      [id]="'forecast-amount-' + forecast.id"
+                      data-testid="dashboard-forecasts-amount"
+                    >
+                      {{ displayAmount | appCurrency: currency() : '1.0-0' }}
+                    </span>
                   </span>
                   <!-- What the row prints is what the envelope still expects,
                        so a 1'500 rent with 1'400 already allocated read
@@ -276,7 +276,7 @@ interface AnimatingForecast {
                        inversion, on the row the user is about to point. -->
                   @if (isPartlyConsumed) {
                     <span
-                      class="text-label-small text-on-surface-variant font-medium tabular-nums ph-no-capture"
+                      class="whitespace-nowrap text-label-small text-on-surface-variant font-medium tabular-nums ph-no-capture"
                       [id]="'forecast-planned-' + forecast.id"
                       data-testid="dashboard-forecasts-planned"
                     >

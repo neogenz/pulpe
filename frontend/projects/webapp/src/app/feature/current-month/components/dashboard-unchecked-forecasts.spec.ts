@@ -210,6 +210,7 @@ describe('DashboardUncheckedForecasts', () => {
     expect(icon.nativeElement.textContent.trim()).toBe(
       'radio_button_unchecked',
     );
+    expect(toggle.nativeElement.classList.contains('text-primary')).toBe(true);
   });
 
   it('should show check_circle filled icon while a forecast row is exiting after a click', () => {
@@ -224,7 +225,9 @@ describe('DashboardUncheckedForecasts', () => {
 
     const icon = radioButton.query(By.css('mat-icon'));
     expect(icon.nativeElement.textContent.trim()).toBe('check_circle');
-    expect(icon.nativeElement.classList.contains('text-primary')).toBe(true);
+    expect(radioButton.nativeElement.classList.contains('text-primary')).toBe(
+      true,
+    );
     expect(icon.nativeElement.classList.contains('icon-filled')).toBe(true);
   });
 
@@ -387,15 +390,14 @@ describe('DashboardUncheckedForecasts', () => {
     }
   });
 
-  it('should not restate the plan on an untouched forecast', () => {
+  it('should keep an untouched forecast amount on a single centered line', () => {
     setTestInput(component.forecasts, mockForecasts);
     fixture.detectChanges();
 
-    expect(
-      fixture.debugElement.query(
-        By.css('[data-testid="dashboard-forecasts-planned"]'),
-      ),
-    ).toBeNull();
+    const reservedLine = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-planned"]'),
+    );
+    expect(reservedLine).toBeNull();
   });
 
   // A month funded entirely from savings goals has nothing pointable, and the

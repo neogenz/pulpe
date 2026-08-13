@@ -95,16 +95,10 @@
     [rollover]="store.previousMonthRollover()"
     [currency]="userSettingsStore.currency()"
     [locale]="currencyLocale()"
+    [showSavingsAction]="store.shouldShowSavingsWithdrawalAction()"
+    (coverWithSavings)="openSavingsWithdrawalFromCard()"
     data-tour="financial-overview"
   />
-
-  <!-- Savings-withdrawal nudge (PUL-292): only on a current/future month in deficit -->
-  @if (store.shouldShowSavingsWithdrawalCard()) {
-  <pulpe-savings-withdrawal-card
-    (withdraw)="openSavingsWithdrawalFromCard()"
-    (dismiss)="dismissSavingsWithdrawalCard()"
-  />
-  }
 
   <!-- Budget Items -->
   <pulpe-budget-items data-tour="budget-table" />

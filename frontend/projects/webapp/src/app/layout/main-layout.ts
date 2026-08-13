@@ -304,7 +304,7 @@ interface NavigationItem {
             <div class="flex items-center gap-2">
               @if (isEarlyAdopter() && !isFocusMode()) {
                 <span
-                  class="early-adopter-badge cursor-pointer"
+                  class="early-adopter-badge cursor-pointer text-label-small font-semibold"
                   role="button"
                   tabindex="0"
                   (click)="openEarlyAdopterDialog()"
@@ -314,7 +314,6 @@ interface NavigationItem {
                   <span class="badge-text">{{
                     'layout.earlyAdopter' | transloco
                   }}</span>
-                  <span class="early-adopter-shimmer" aria-hidden="true"></span>
                 </span>
               }
               @if (isFocusMode()) {
@@ -368,11 +367,35 @@ interface NavigationItem {
                   data-testid="user-menu-trigger"
                   class="inline-flex items-center"
                 >
-                  <mat-icon>person</mat-icon>
-                  <span
-                    class="ph-no-capture amounts-visible max-w-64 truncate"
-                    >{{ userEmail() }}</span
-                  >
+                  <span class="inline-flex min-w-0 items-center gap-2">
+                    @if (userAvatarUrl(); as avatarUrl) {
+                      <img
+                        [src]="avatarUrl"
+                        width="28"
+                        height="28"
+                        alt=""
+                        referrerpolicy="no-referrer"
+                        class="size-7 shrink-0 rounded-full object-cover bg-surface-container"
+                        data-testid="user-avatar-image"
+                        (error)="avatarLoadFailed.set(true)"
+                      />
+                    } @else {
+                      <span
+                        class="inline-grid size-7 shrink-0 place-items-center rounded-full
+                               bg-surface-container text-label-medium leading-none font-semibold
+                               text-on-surface-variant"
+                        aria-hidden="true"
+                        data-testid="user-avatar-fallback"
+                      >
+                        {{ userInitial() }}
+                      </span>
+                    }
+                    <span
+                      class="ph-no-capture amounts-visible max-w-64 truncate"
+                    >
+                      {{ userEmail() }}
+                    </span>
+                  </span>
                 </button>
               }
             </div>
@@ -666,9 +689,6 @@ interface NavigationItem {
         gap: 6px;
         padding: 4px 12px 4px 8px;
         border-radius: 100px;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
         text-transform: uppercase;
         white-space: nowrap;
         flex-shrink: 0;
@@ -676,16 +696,9 @@ interface NavigationItem {
         position: relative;
         overflow: hidden;
 
-        /* Premium Gold styling */
-        color: #795500;
-        background: linear-gradient(
-          135deg,
-          #fff8e1 0%,
-          #ffecb3 50%,
-          #ffe082 100%
-        );
-        border: 1px solid #ffd54f;
-        box-shadow: 0 2px 10px -2px rgba(255, 193, 7, 0.3);
+        color: var(--mat-sys-on-tertiary-container);
+        background: var(--mat-sys-tertiary-container);
+        border: 1px solid var(--mat-sys-outline-variant);
       }
 
       .early-adopter-badge mat-icon {
@@ -693,63 +706,11 @@ interface NavigationItem {
         width: 16px;
         height: 16px;
         line-height: 16px;
-        color: #f57f17;
+        color: inherit;
       }
 
       .early-adopter-badge .badge-text {
         padding-top: 1px;
-      }
-
-      /* Shimmer effect */
-      .early-adopter-shimmer {
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 50%;
-        height: 100%;
-        background: linear-gradient(
-          to right,
-          transparent 0%,
-          rgba(255, 255, 255, 0.8) 50%,
-          transparent 100%
-        );
-        transform: skewX(-20deg);
-        animation: vip-shimmer 3s infinite;
-        pointer-events: none;
-      }
-
-      @keyframes vip-shimmer {
-        0%,
-        20% {
-          left: -100%;
-        }
-        100% {
-          left: 200%;
-        }
-      }
-
-      /* Dark mode support */
-      :host-context(.dark-theme) .early-adopter-badge {
-        color: #ffd54f;
-        background: linear-gradient(
-          135deg,
-          #2e2200 0%,
-          #3d2e00 50%,
-          #4a3800 100%
-        );
-        border-color: rgba(255, 193, 7, 0.4);
-        box-shadow: 0 2px 10px -2px rgba(255, 193, 7, 0.2);
-      }
-      :host-context(.dark-theme) .early-adopter-badge mat-icon {
-        color: #ffb300;
-      }
-      :host-context(.dark-theme) .early-adopter-shimmer {
-        background: linear-gradient(
-          to right,
-          transparent 0%,
-          rgba(255, 193, 7, 0.2) 50%,
-          transparent 100%
-        );
       }
 
       @media (max-width: 599.98px) {
@@ -818,6 +779,19 @@ export default class MainLayout {
     }
     return this.#authStore.user()?.email;
   });
+  protected readonly avatarLoadFailed = signal(false);
+  protected readonly userAvatarUrl = computed(() => {
+    if (this.isDemoMode() || this.avatarLoadFailed()) return undefined;
+
+    const metadata = this.#authStore.user()?.user_metadata;
+    const avatarUrl = metadata?.['avatar_url'] ?? metadata?.['picture'];
+    return typeof avatarUrl === 'string' && avatarUrl.startsWith('https://')
+      ? avatarUrl
+      : undefined;
+  });
+  protected readonly userInitial = computed(
+    () => this.userEmail()?.trim().charAt(0).toLocaleUpperCase() || '?',
+  );
 
   protected readonly isEarlyAdopter = this.#authStore.isEarlyAdopter;
 
@@ -841,7 +815,7 @@ export default class MainLayout {
     {
       route: ROUTES.BUDGET_TEMPLATES,
       labelKey: 'navigation.templatesShort',
-      icon: 'description',
+      icon: 'view_quilt',
       tooltipKey: 'navigation.templatesTooltip',
     },
     {
