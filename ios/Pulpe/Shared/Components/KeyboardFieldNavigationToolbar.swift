@@ -48,6 +48,7 @@ extension View {
                         Image(systemName: "keyboard.chevron.compact.down")
                     }
                     .accessibilityLabel(AppLocale.string("Fermer le clavier"))
+                    .accessibilityIdentifier("keyboardDismissButton")
                 }
             }
         }

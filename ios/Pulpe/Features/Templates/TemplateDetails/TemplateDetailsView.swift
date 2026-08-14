@@ -244,6 +244,7 @@ struct TemplateLineRow: View {
                             style: .semantic(.financialSavings)
                         )
                         .lineLimit(1)
+                        .accessibilityIdentifier("templateLineGoalChip-\(line.id)")
                     }
 
                     HStack(spacing: DesignTokens.Spacing.sm) {

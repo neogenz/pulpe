@@ -186,7 +186,7 @@ extension HomeHeroCard {
         for trajectory: BudgetFormulas.BalanceTrajectory,
         currency: SupportedCurrency
     ) -> String {
-        guard showsGapLabel(for: trajectory) else { return "Aujourd’hui" }
+        guard showsGapLabel(for: trajectory) else { return AppLocale.string("Aujourd’hui") }
         return trajectory.drift.asArithmeticSignedCompactCurrency(currency)
     }
 
@@ -199,18 +199,25 @@ extension HomeHeroCard {
         amountsHidden: Bool
     ) -> String {
         guard !amountsHidden else {
-            return "Trajectoire d’atterrissage de la période, montants masqués."
+            return AppLocale.string("Trajectoire d’atterrissage de la période, montants masqués.")
         }
-        let plan = "Prévu \(trajectory.plannedBalance.asCompactCurrency(currency))."
-        let estimate = "Atterrissage estimé \(trajectory.estimatedBalance.asCompactCurrency(currency))."
+        // Three self-contained sentences joined by a space, never one template: each is
+        // translated whole, and only the order they are spoken in is fixed here.
+        let plan = AppLocale.string("Prévu \(trajectory.plannedBalance.asCompactCurrency(currency)).")
+        let estimate = AppLocale.string(
+            "Atterrissage estimé \(trajectory.estimatedBalance.asCompactCurrency(currency))."
+        )
         guard trajectory.drift != 0 else {
-            return "\(plan) \(estimate) Aucun écart au plan."
+            return "\(plan) \(estimate) " + AppLocale.string("Aucun écart au plan.")
         }
-        let gap = "Écart \(trajectory.drift.asArithmeticSignedCompactCurrency(currency))"
+        let drift = trajectory.drift.asArithmeticSignedCompactCurrency(currency)
         // A gap with no date is a period whose drift predates its own first reading — the
         // figure still holds, so the sentence drops the clause rather than the fact.
-        guard let since = trajectory.driftDate else { return "\(plan) \(estimate) \(gap)." }
-        return "\(plan) \(estimate) \(gap) depuis le \(Formatters.dayMonthLabel(for: since))."
+        guard let since = trajectory.driftDate else {
+            return "\(plan) \(estimate) " + AppLocale.string("Écart \(drift).")
+        }
+        let day = Formatters.dayMonthLabel(for: since)
+        return "\(plan) \(estimate) " + AppLocale.string("Écart \(drift) depuis le \(day).")
     }
 
     /// How much vertical room the drawing claims. A month that held its plan moves by a few

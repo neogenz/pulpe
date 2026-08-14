@@ -6,21 +6,30 @@ enum GoalGenerationStopContext: Equatable {
 
     var title: String {
         switch self {
-        case .status(.paused): "Objectif en pause"
-        case .status: "Objectif atteint"
-        case .deadline: "Échéance avancée"
+        case .status(.paused): AppLocale.string("Objectif en pause")
+        case .status: AppLocale.string("Objectif atteint")
+        case .deadline: AppLocale.string("Échéance avancée")
         }
     }
 
     var removeLabel: String {
         switch self {
-        case .status: "Retirer des mois futurs"
-        case .deadline: "Supprimer les prévisions"
+        case .status: AppLocale.string("Retirer des mois futurs")
+        case .deadline: AppLocale.string("Supprimer les prévisions")
         }
     }
 
     var isRemovalDestructive: Bool {
         if case .deadline = self { true } else { false }
+    }
+
+    /// Distinguishes the two entry paths for UI tests, which the localized
+    /// `title` can no longer do.
+    var rootIdentifier: String {
+        switch self {
+        case .status: "goalGenerationStopStatusRoot"
+        case .deadline: "goalGenerationStopDeadlineRoot"
+        }
     }
 }
 
@@ -65,12 +74,14 @@ struct GoalGenerationStopSheet: View {
             }
             .scrollContentBackground(.hidden)
             .pulpeBackground()
+            .accessibilityIdentifier(context.rootIdentifier)
             .navigationTitle(context.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Ne rien changer") { dismiss() }
                         .disabled(isApplying)
+                        .accessibilityIdentifier("goalGenerationStopCancelButton")
                 }
             }
         }
@@ -79,13 +90,17 @@ struct GoalGenerationStopSheet: View {
     private var introduction: String {
         switch context {
         case .status:
-            return "\(lines.count) prévision(s) Épargne restent liées à cet objectif sur tes mois futurs. "
-                + "Que veux-tu en faire ?"
+            return AppLocale.string("""
+                \(lines.count) prévision(s) Épargne restent liées à cet objectif sur tes mois futurs. \
+                Que veux-tu en faire ?
+                """)
         case .deadline(let targetDate):
             let label = SavingsGoalDateFormatter.parse(targetDate)?
                 .abbreviatedDateFormatted ?? targetDate
-            return "\(lines.count) prévision(s) dépassent la nouvelle échéance du \(label). "
-                + "Que veux-tu en faire ?"
+            return AppLocale.string("""
+                \(lines.count) prévision(s) dépassent la nouvelle échéance du \(label). \
+                Que veux-tu en faire ?
+                """)
         }
     }
 
@@ -131,6 +146,7 @@ struct GoalGenerationStopSheet: View {
             }
             .primaryButtonStyle(isEnabled: !isApplying)
             .disabled(isApplying)
+            .accessibilityIdentifier("goalGenerationStopFreezeButton")
 
             Text("Les prévisions restent dans tes budgets, simplement déliées de l'objectif.")
                 .font(PulpeTypography.caption)
@@ -145,6 +161,7 @@ struct GoalGenerationStopSheet: View {
             .secondaryButtonStyle()
             .disabled(isApplying)
             .accessibilityHint("Supprime les prévisions affichées et libère leur montant")
+            .accessibilityIdentifier("goalGenerationStopRemoveButton")
 
             Text("Les prévisions sont supprimées : le montant redevient disponible chaque mois.")
                 .font(PulpeTypography.caption)

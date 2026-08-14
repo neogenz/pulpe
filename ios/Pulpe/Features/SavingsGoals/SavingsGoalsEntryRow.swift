@@ -14,7 +14,7 @@ struct SavingsGoalsEntryRow: View {
                 .foregroundStyle(Color.pulpePrimary)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(hasSavings ? "Voir mes objectifs" : "Fixe ton premier objectif")
+                (hasSavings ? Text("Voir mes objectifs") : Text("Fixe ton premier objectif"))
                     .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(Color.textPrimary)
                 if !hasSavings {

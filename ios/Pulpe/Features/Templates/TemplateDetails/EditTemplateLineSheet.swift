@@ -135,7 +135,7 @@ struct EditTemplateLineSheet: View {
             Text("""
                 \(intro)\n\n\
                 « Appliquer » mettra à jour les budgets en cours et futurs. \
-                Les catégories modifiées manuellement ne seront pas affectées.
+                Les prévisions modifiées manuellement ne seront pas affectées.
                 """)
         }
     }

@@ -66,8 +66,8 @@ struct UncheckedOperationsCard: View {
             // The count lives on the hero metric; this heading names the section only,
             // so the number is announced once per screen.
             HomeSectionHeader(
-                title: "Opérations à pointer",
-                link: (label: "Tout voir", action: onViewAll)
+                title: AppLocale.string("Opérations à pointer"),
+                link: (label: AppLocale.string("Tout voir"), action: onViewAll)
             )
 
             // The card is the stable frame and the operations swap inside it: it clips
@@ -231,7 +231,7 @@ struct UncheckedOperationsCard: View {
             // two actions below be measured by one ruler instead of two.
             PulpeChip(
                 icon: isConfirming ? "checkmark.circle.fill" : "checkmark",
-                label: isConfirming ? "Pointé" : "C'est passé",
+                label: isConfirming ? AppLocale.string("Pointé") : AppLocale.string("C'est passé"),
                 style: isConfirming
                     ? .tinted(surface: .pulpePrimary, foreground: .textOnPrimary)
                     : .semantic(.pulpePrimary)
@@ -262,7 +262,7 @@ struct UncheckedOperationsCard: View {
             // draws a hairline meant for `appBackground`, which a card of the same
             // `surfaceContainerLowest` tone swallows at 1,00:1.
             PulpeChip(
-                label: "Plus tard",
+                label: AppLocale.string("Plus tard"),
                 style: .muted,
                 // During the "Pointé" beat the guard already ignores taps; without the
                 // visual disable the button looks live and silently does nothing.

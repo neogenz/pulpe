@@ -86,7 +86,7 @@ struct GoalPlanSimulatorSheet: View {
             .scrollContentBackground(.hidden)
             .accessibilityIdentifier("goalPlanSimulatorRoot")
             .background(Color.sheetBackground)
-            .navigationTitle("Ajuster mon plan")
+            .localizedNavigationTitle("Ajuster mon plan")
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) { applyFooter }
             .toolbar {
@@ -180,7 +180,7 @@ struct GoalPlanSimulatorSheet: View {
                 .accessibilityLabel("Montant mensuel pour chaque mois ouvert")
                 .accessibilityValue(
                     viewModel.hasVariableMonthlyAmounts
-                        ? "Montants variables"
+                        ? AppLocale.string("Montants variables")
                         : Decimal(viewModel.sliderValue).asCurrency(currency)
                 )
         }
@@ -446,18 +446,20 @@ final class GoalPlanSimulatorViewModel {
 
     var verdictText: String {
         guard targetAmount != nil else {
-            return "Avec ce plan, tu auras prévu \(draft.simulatedFinal.asCompactCurrency(currency))."
+            return AppLocale.string(
+                "Avec ce plan, tu auras prévu \(draft.simulatedFinal.asCompactCurrency(currency))."
+            )
         }
         guard let attained = draft.attainedPeriod else {
             let gap = draft.gapToTarget ?? 0
-            return "Avec ce plan, il te manque \(gap.asCompactCurrency(currency)) pour ta cible."
+            return AppLocale.string("Avec ce plan, il te manque \(gap.asCompactCurrency(currency)) pour ta cible.")
         }
         let label = "\(Formatters.monthName(for: attained.month)) \(attained.year)"
         if let deadlinePeriod,
            BudgetPeriodCalculator.comparePeriods(attained, deadlinePeriod) < 0 {
-            return "Avec ce plan, tu atteins ta cible dès \(label), en avance."
+            return AppLocale.string("Avec ce plan, tu atteins ta cible dès \(label), en avance.")
         }
-        return "Avec ce plan, tu atteins ta cible en \(label)."
+        return AppLocale.string("Avec ce plan, tu atteins ta cible en \(label).")
     }
 
     func simulatedAmount(forKey key: Int) -> Decimal { draft.months.first { $0.id == key }?.simulatedAmount ?? 0 }

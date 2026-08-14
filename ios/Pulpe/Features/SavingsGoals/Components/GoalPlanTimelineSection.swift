@@ -37,10 +37,10 @@ struct GoalPlanTimelinePresentation {
     }
 
     var repairMessage: String {
-        let count = repairableMonths.count
-        return count == 1
-            ? "1 prévision Épargne peut maintenant être ajoutée automatiquement."
-            : "\(count) prévisions Épargne peuvent maintenant être ajoutées automatiquement."
+        AppLocale.string("""
+            \(repairableMonths.count) prévisions Épargne peuvent maintenant \
+            être ajoutées automatiquement.
+            """)
     }
 
     /// A realised plan withdrawal is editable from the budget line that the
@@ -102,13 +102,14 @@ struct GoalPlanTimelineSection: View {
                     .frame(minHeight: DesignTokens.TapTarget.minimum)
                     .textLinkButtonStyle()
                     .accessibilityLabel("Ajuster le plan")
+                    .accessibilityIdentifier("savingsGoalAdjustPlanButton")
                 }
             }
 
             if canRepair {
                 GoalInfoCard(
                     icon: "calendar.badge.plus",
-                    title: "Tes nouveaux budgets sont prêts",
+                    title: AppLocale.string("Tes nouveaux budgets sont prêts"),
                     message: presentation.repairMessage
                 ) {
                     Button("Prévisualiser", action: onRepair)
@@ -124,7 +125,11 @@ struct GoalPlanTimelineSection: View {
                     withAnimation(DesignTokens.Animation.gentleSpring) { isExpanded.toggle() }
                 } label: {
                     HStack(spacing: DesignTokens.Spacing.sm) {
-                        Text(isExpanded ? "Voir moins" : "Voir tout le plan (\(months.count) mois)")
+                        if isExpanded {
+                            Text("Voir moins")
+                        } else {
+                            Text("Voir tout le plan (\(months.count) mois)")
+                        }
                         Spacer()
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .accessibilityHidden(true)
@@ -137,7 +142,11 @@ struct GoalPlanTimelineSection: View {
                 )
                 .contentShape(Rectangle())
                 .textLinkButtonStyle()
-                .accessibilityHint(isExpanded ? "Réduit la liste des mois" : "Affiche tous les mois")
+                .accessibilityHint(
+                    isExpanded
+                        ? AppLocale.string("Réduit la liste des mois")
+                        : AppLocale.string("Affiche tous les mois")
+                )
             }
 
             if presentation.remainingUnlinkedMonthCount > 0 {

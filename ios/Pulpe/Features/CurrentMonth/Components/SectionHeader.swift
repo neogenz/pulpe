@@ -18,7 +18,7 @@ struct SectionHeader: View {
                 .lineLimit(1)
 
             // Count badge
-            Text("\(count)")
+            Text(verbatim: "\(count)")
                 .font(PulpeTypography.inputHelper)
                 .foregroundStyle(Color.textOnPrimary)
                 .padding(.horizontal, DesignTokens.Spacing.sm)

@@ -83,7 +83,7 @@ struct GoalDeletionSheet: View {
                 }
             }
             .background(Color.sheetBackground)
-            .navigationTitle("Supprimer l'objectif")
+            .localizedNavigationTitle("Supprimer l'objectif")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -156,7 +156,7 @@ private extension GoalDeletionSheet {
             Button {
                 Task { await applyDeletion() }
             } label: {
-                Text(isApplying ? "Suppression…" : confirmationLabel)
+                isApplying ? Text("Suppression…") : Text(confirmationLabel)
             }
             .destructiveButtonStyle()
             .disabled(isApplying || presentation.command == nil)
@@ -208,17 +208,17 @@ private extension GoalDeletionSheet {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 summaryCard(
-                    label: "Mois Type",
+                    label: AppLocale.string("Mois Type"),
                     count: String(summary.templateLineCount),
                     amount: summary.templateLineTotal
                 )
                 summaryCard(
-                    label: "\(summary.budgetLineCount) prévision(s)",
-                    count: "\(summary.budgetCount) budget(s)",
+                    label: AppLocale.string("\(summary.budgetLineCount) prévision(s)"),
+                    count: AppLocale.string("\(summary.budgetCount) budget(s)"),
                     amount: summary.budgetLineTotal
                 )
                 summaryCard(
-                    label: "Mouvements",
+                    label: AppLocale.string("Mouvements"),
                     count: String(summary.transactionCount),
                     amount: summary.transactionTotal
                 )
@@ -226,17 +226,17 @@ private extension GoalDeletionSheet {
 
             VStack(spacing: DesignTokens.Spacing.sm) {
                 summaryCard(
-                    label: "Mois Type",
+                    label: AppLocale.string("Mois Type"),
                     count: String(summary.templateLineCount),
                     amount: summary.templateLineTotal
                 )
                 summaryCard(
-                    label: "\(summary.budgetLineCount) prévision(s)",
-                    count: "\(summary.budgetCount) budget(s)",
+                    label: AppLocale.string("\(summary.budgetLineCount) prévision(s)"),
+                    count: AppLocale.string("\(summary.budgetCount) budget(s)"),
                     amount: summary.budgetLineTotal
                 )
                 summaryCard(
-                    label: "Mouvements",
+                    label: AppLocale.string("Mouvements"),
                     count: String(summary.transactionCount),
                     amount: summary.transactionTotal
                 )
@@ -336,7 +336,7 @@ private extension GoalDeletionSheet {
                     ForEach(line.transactions) { transaction in
                         impactRow(
                             title: transaction.name,
-                            subtitle: "Réel",
+                            subtitle: AppLocale.string("Réel"),
                             amount: transaction.amount,
                             isNested: true
                         )
@@ -358,10 +358,10 @@ private extension GoalDeletionSheet {
                 .font(PulpeTypography.cardTitle)
                 .foregroundStyle(Color.textPrimary)
 
-            Text(
-                "Ces revenus restent dans leurs budgets, quel que soit ton choix."
-                    + " Ils garderont le nom de l'objectif, mais leur lien ne mènera plus nulle part."
-            )
+            Text("""
+                Ces revenus restent dans leurs budgets, quel que soit ton choix. \
+                Ils garderont le nom de l'objectif, mais leur lien ne mènera plus nulle part.
+                """)
             .font(PulpeTypography.listRowSubtitle)
             .foregroundStyle(Color.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -424,11 +424,11 @@ private extension GoalDeletionSheet {
     private var confirmationLabel: String {
         switch presentation.mode {
         case .goalOnly:
-            "Supprimer seulement l'objectif"
+            AppLocale.string("Supprimer seulement l'objectif")
         case .goalAndForecasts:
-            "Supprimer l'objectif et les prévisions"
+            AppLocale.string("Supprimer l'objectif et les prévisions")
         case .goalForecastsAndTransactions:
-            "Tout supprimer"
+            AppLocale.string("Tout supprimer")
         }
     }
 

@@ -39,8 +39,11 @@ struct GoalEmptyGuidanceCard: View {
     var body: some View {
         GoalInfoCard(
             icon: "link",
-            title: "Aucune prévision rattachée",
-            message: "Rattache une prévision Épargne depuis ton Mois Type ou un budget pour suivre cet objectif ici."
+            title: AppLocale.string("Aucune prévision rattachée"),
+            message: AppLocale.string("""
+                Rattache une prévision Épargne depuis ton Mois Type ou un budget \
+                pour suivre cet objectif ici.
+                """)
         ) {
             EmptyView()
         }
@@ -67,8 +70,8 @@ struct GoalDerivedStateCards: View {
         if status == .active, progress.isOverdue {
             GoalInfoCard(
                 icon: "calendar",
-                title: "Échéance dépassée",
-                message: "Ton échéance est passée. Tu peux la repousser pour continuer à ton rythme."
+                title: AppLocale.string("Échéance dépassée"),
+                message: AppLocale.string("Ton échéance est passée. Tu peux la repousser pour continuer à ton rythme.")
             ) {
                 Button("Repousser la date", action: onEdit)
                     .secondaryButtonStyle()
@@ -78,20 +81,22 @@ struct GoalDerivedStateCards: View {
         if status == .active, progress.suggestCompletion == true {
             GoalInfoCard(
                 icon: "checkmark.seal.fill",
-                title: "Objectif atteint",
-                message: "Tu as mis de côté l'équivalent de ta cible. On le marque comme atteint ?"
+                title: AppLocale.string("Objectif atteint"),
+                message: AppLocale.string("Tu as mis de côté l'équivalent de ta cible. On le marque comme atteint ?")
             ) {
                 Button("Marquer comme atteint", action: onComplete)
                     .primaryButtonStyle(isEnabled: !isMutatingStatus)
                     .disabled(isMutatingStatus)
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("savingsGoalCompletionSuggestionCard")
         }
 
         if status == .completed {
             GoalInfoCard(
                 icon: "flag.checkered",
-                title: "Objectif atteint",
-                message: "Tu peux le ré-ouvrir si tu veux continuer à épargner dessus."
+                title: AppLocale.string("Objectif atteint"),
+                message: AppLocale.string("Tu peux le ré-ouvrir si tu veux continuer à épargner dessus.")
             ) {
                 Button("Ré-ouvrir", action: onReopen)
                     .secondaryButtonStyle()
@@ -102,9 +107,11 @@ struct GoalDerivedStateCards: View {
         if status != .active, futureLinesCount > 0 {
             GoalInfoCard(
                 icon: "calendar.badge.clock",
-                title: "Prévisions liées sur tes mois futurs",
-                message: "Cet objectif est arrêté, mais \(futureLinesCount) prévision(s) Épargne"
-                    + " lui restent réservées sur les mois à venir."
+                title: AppLocale.string("Prévisions liées sur tes mois futurs"),
+                message: AppLocale.string("""
+                    Cet objectif est arrêté, mais \(futureLinesCount) prévision(s) Épargne \
+                    lui restent réservées sur les mois à venir.
+                    """)
             ) {
                 Button("Gérer ces prévisions", action: onManageFutureLines)
                     .secondaryButtonStyle()

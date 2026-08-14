@@ -28,9 +28,9 @@ struct AddTransactionSheet: View {
         /// the picker cannot see is that it was never handed an amount to judge.
         var blockingReason: String? {
             guard isActive else { return nil }
-            if goalId == nil { return "Choisis l'objectif utilisé" }
+            if goalId == nil { return AppLocale.string("Choisis l'objectif utilisé") }
             if hasConversionFailed {
-                return "Le taux de change est indisponible, réessaie dans un instant."
+                return AppLocale.string("Le taux de change est indisponible, réessaie dans un instant.")
             }
             return nil
         }
@@ -103,8 +103,10 @@ struct AddTransactionSheet: View {
 
     private var validationHint: String? {
         guard !canSubmit, !isLoading, hasStartedFilling else { return nil }
-        if (amount ?? 0) <= 0 { return "Ajoute un montant" }
-        if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Ajoute une description" }
+        if (amount ?? 0) <= 0 { return AppLocale.string("Ajoute un montant") }
+        if name.trimmingCharacters(in: .whitespaces).isEmpty {
+            return AppLocale.string("Ajoute une description")
+        }
         return savingsGoalOrigin.blockingReason
     }
 
@@ -129,7 +131,7 @@ struct AddTransactionSheet: View {
                 amountText: $amountText,
                 focus: $focusedField,
                 field: .amount,
-                hint: "Quel montant ?",
+                hint: AppLocale.string("Quel montant ?"),
                 currency: inputCurrency,
                 accentColor: kind.color
             )
@@ -181,7 +183,7 @@ struct AddTransactionSheet: View {
         FormTextField(
             hint: kind.descriptionPlaceholder,
             text: $name,
-            label: "Description",
+            label: AppLocale.string("Description"),
             focusBinding: $focusedField,
             field: .description
         )
@@ -304,7 +306,7 @@ struct AddTransactionSheet: View {
             AnalyticsService.shared.capture(.transactionCreated, properties: ["type": kind.rawValue])
             submitSuccessTrigger.toggle()
             onAdd(transaction)
-            toastManager.show("Enregistré")
+            toastManager.show(AppLocale.string("Enregistré"))
             dismiss()
         } catch {
             self.error = error
@@ -359,7 +361,7 @@ struct DeepLinkAddExpenseSheet: View {
                 NavigationStack {
                     Group {
                         if viewModel.isLoading {
-                            LoadingView(message: "Chargement...")
+                            LoadingView(message: AppLocale.string("Chargement..."))
                         } else if let error = viewModel.error {
                             ContentUnavailableView {
                                 Label("Erreur de connexion", systemImage: "wifi.exclamationmark")

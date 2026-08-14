@@ -25,7 +25,7 @@ struct GoalContributionsSection: View {
             } else if let error, contributions.isEmpty {
                 GoalInfoCard(
                     icon: "arrow.clockwise",
-                    title: "Suivi indisponible",
+                    title: AppLocale.string("Suivi indisponible"),
                     message: DomainErrorLocalizer.localize(error)
                 ) {
                     Button("Réessayer", action: onRetry)
@@ -114,11 +114,13 @@ struct GoalContributionsSection: View {
     /// pointage vit dans la ligne de métadonnées ; seul « Pointé » prend la
     /// couleur épargne pour signaler le comptabilisé d'un coup d'œil.
     private func statusSubtitle(base: String, isChecked: Bool) -> some View {
-        (
-            Text("\(base) · ")
+        let status = isChecked
+            ? Text("Pointé").foregroundStyle(Color.financialSavings)
+            : Text("À pointer").foregroundStyle(Color.textTertiary)
+        return (
+            Text(verbatim: "\(base) · ")
                 .foregroundStyle(Color.textTertiary)
-            + Text(isChecked ? "Pointé" : "À pointer")
-                .foregroundStyle(isChecked ? Color.financialSavings : Color.textTertiary)
+            + status
         )
         .font(PulpeTypography.listRowSubtitle)
     }
