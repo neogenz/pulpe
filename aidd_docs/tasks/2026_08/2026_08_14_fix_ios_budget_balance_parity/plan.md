@@ -1,6 +1,6 @@
 ---
 objective: "Après une propagation du Mois Type vers les budgets, la liste annuelle iOS et le détail d’un mois affichent immédiatement le même solde calculé."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Aligner les soldes de la liste annuelle et du détail iOS
