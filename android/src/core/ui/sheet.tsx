@@ -6,11 +6,10 @@ import {
   View,
 } from "react-native";
 import { Divider, Modal, Portal, Text, useTheme } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { sheetBox, useKeyboardHeight } from "./keyboard-inset";
 import { RADIUS, SPACING } from "./theme";
-
-/** How much of the display a sheet may take before its body starts scrolling. */
-const MAX_HEIGHT_RATIO = 0.88;
 
 interface SheetProps {
   isVisible: boolean;
@@ -31,9 +30,11 @@ interface SheetProps {
  * The one shape every sheet in the app takes: a capped card, a scrolling body,
  * and actions that stay put.
  *
- * The cap is read from `useWindowDimensions`, which on Android shrinks when the
- * soft keyboard opens — so a sheet gets out of the keyboard's way by measuring
- * the window it actually has, with no keyboard listener of its own.
+ * Getting out of the keyboard's way is this component's job alone, which is why
+ * no call site owns a `KeyboardAvoidingView`: eleven of the seventeen sheets
+ * hold both a text field and a pinned footer, and a submit button under the
+ * keys is the one place it must never be. `sheetBox` says how, and why the
+ * window's own height cannot be asked.
  */
 export function Sheet({
   isVisible,
@@ -45,6 +46,13 @@ export function Sheet({
 }: SheetProps) {
   const theme = useTheme();
   const { height } = useWindowDimensions();
+  const keyboardHeight = useKeyboardHeight();
+  const { bottom } = useSafeAreaInsets();
+  const box = sheetBox({
+    windowHeight: height,
+    keyboardHeight,
+    safeBottom: bottom,
+  });
 
   return (
     <Portal>
@@ -53,10 +61,8 @@ export function Sheet({
         onDismiss={onDismiss}
         contentContainerStyle={[
           styles.sheet,
-          {
-            backgroundColor: theme.colors.surface,
-            maxHeight: height * MAX_HEIGHT_RATIO,
-          },
+          { backgroundColor: theme.colors.surface },
+          box,
         ]}
       >
         <View style={styles.header}>

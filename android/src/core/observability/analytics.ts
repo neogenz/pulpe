@@ -21,9 +21,13 @@ let client: PostHog | null = null;
  */
 export function startAnalytics(): () => void {
   const config = ENV.posthog;
-  if (config === null || client !== null) return () => undefined;
+  if (config === null) return () => undefined;
 
-  client = new PostHog(config.apiKey, {
+  // The client is built once and kept; the subscription is not. Bailing out
+  // early on both together left a remount — which is every Fast Refresh of the
+  // root layout — with a live client nothing was watching, so a consent
+  // withdrawn after it never reached PostHog.
+  client ??= new PostHog(config.apiKey, {
     host: config.host,
     // Read before the SDK captures anything of its own, so a refusal made on a
     // previous run holds from the very first lifecycle event rather than from

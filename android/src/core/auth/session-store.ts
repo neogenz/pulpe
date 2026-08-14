@@ -8,9 +8,10 @@ import { resetVault } from "@/core/vault/vault-store";
 import { signOutEverywhere, signOutThisDevice, supabase } from "./supabase";
 
 /**
- * `locked` — the vault state — deliberately does not exist yet. Nothing sets
- * it and nothing reads it before the encryption work of phase 3, and an
- * unreachable state reads as reachable to whoever branches on it next.
+ * A signed-in session says nothing about the vault, so `locked` is deliberately
+ * not one of these: it belongs to `VaultStatus`, which the router reads
+ * alongside this one. Two states in one enum would let a caller branch on a
+ * combination that cannot happen.
  */
 export type SessionStatus = "loading" | "unauthenticated" | "authenticated";
 

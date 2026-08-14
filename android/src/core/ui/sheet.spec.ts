@@ -10,11 +10,12 @@ const ALLOWED = [
 ];
 
 /**
- * Sixteen sheets each capped themselves at `maxHeight: "88%"`, and a percentage
- * of the window does not shrink when the soft keyboard opens: the keyboard took
- * the bottom third of a sheet that still believed it was full height, and the
- * submit button went under it. `Sheet` measures the window it actually has and
- * pins its actions, so the fix has to hold for the next sheet too.
+ * Sixteen sheets each capped themselves at `maxHeight: "88%"`, and the keyboard
+ * took the bottom third of a sheet that still believed it was full height:
+ * the submit button went under it. Neither a percentage nor `useWindowDimensions`
+ * shrinks for the keyboard — only the IME inset does, which is what
+ * `keyboard-inset.ts` reads. `Sheet` owns that measurement and pins its
+ * actions, so the fix has to hold for the next sheet too.
  */
 describe("sheets", () => {
   it("never re-implements the modal a sheet is made of", () => {
@@ -33,5 +34,17 @@ describe("sheets", () => {
     );
 
     expect(capped).toEqual([]);
+  });
+
+  it("never measures the window without also asking for the keyboard", () => {
+    const blind = sourceFiles("src").filter((path) => {
+      const source = readFileSync(path, "utf8");
+      return (
+        source.includes("useWindowDimensions") &&
+        !source.includes("useKeyboardHeight")
+      );
+    });
+
+    expect(blind).toEqual([]);
   });
 });

@@ -27,7 +27,12 @@ export function useBudgetDetails(budgetId: string | null) {
 
   return useQuery({
     queryKey: budgetKeys.detail(budgetId ?? ""),
-    queryFn: () => fetchBudgetDetails(budgetId as string),
+    // Narrowed rather than asserted: `enabled` already keeps this from running
+    // without an id, and a cast would go on compiling if that guard moved.
+    queryFn: () =>
+      budgetId === null
+        ? Promise.reject(new Error("No budget to load"))
+        : fetchBudgetDetails(budgetId),
     enabled: isVaultUnlocked && budgetId !== null,
   });
 }

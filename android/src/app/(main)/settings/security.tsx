@@ -22,9 +22,11 @@ import { useSessionStore } from "@/core/auth/session-store";
 import { describeBiometrics } from "@/core/crypto/biometrics";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
+import { AUTO_LOCK_DELAY_MINUTES } from "@/core/vault/auto-lock";
 import {
   disableVaultBiometrics,
   enableVaultBiometrics,
+  lockVault,
   renewRecoveryKey,
   useVaultStore,
 } from "@/core/vault/vault-store";
@@ -118,6 +120,15 @@ export default function SecuritySettingsScreen() {
             description="Ton mot de passe de connexion"
             isDisabled={email.length === 0}
             onPress={() => setSheet("password")}
+          />
+          {/* The vault closes on its own after a spell in the background; this
+              is for the moment the user knows they are handing the phone over
+              and does not want to wait it out. */}
+          <SettingsRow
+            icon="lock-clock"
+            title="Verrouiller maintenant"
+            description={`Sinon, après ${AUTO_LOCK_DELAY_MINUTES} minutes en arrière-plan`}
+            onPress={() => void lockVault()}
           />
         </SettingsSection>
 

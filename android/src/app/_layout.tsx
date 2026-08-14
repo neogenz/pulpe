@@ -24,6 +24,7 @@ import { armPrivacyShield } from "@/core/system/privacy-shield";
 import { SystemGateScreen } from "@/core/system/system-gate-screen";
 import { WhatsNewSheet } from "@/core/system/whats-new-sheet";
 import { pulpeDarkTheme, pulpeLightTheme } from "@/core/ui/theme";
+import { armAutoLock } from "@/core/vault/auto-lock";
 import { observeVaultKeyRejection } from "@/core/vault/key-invalidation";
 import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
 import {
@@ -36,9 +37,6 @@ void SplashScreen.preventAutoHideAsync();
 // Before the first render rather than in an effect: a crash on the way up is
 // exactly the one worth reporting.
 const isSentryArmed = startSentry();
-
-// The date picker reads its labels from a global registry, so this has to run
-// before any calendar mounts — the app is French whatever the device is set to.
 
 function RootLayout() {
   const colorScheme = useColorScheme();
@@ -64,6 +62,7 @@ function RootLayout() {
   useEffect(() => startSupabaseAutoRefresh(), []);
   useEffect(() => armPrivacyShield(), []);
   useEffect(() => observeVaultKeyRejection(), []);
+  useEffect(() => armAutoLock(), []);
   useEffect(() => startAnalytics(), []);
   useScreenTracking();
   // Synchronous, and before the first route decision: an unfinished run has to

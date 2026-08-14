@@ -118,10 +118,15 @@ export async function enableBiometricUnlock(): Promise<boolean> {
   }
 }
 
+/**
+ * No `requireAuthentication` here, and none in `clearAllKeys` either: on
+ * Android `deleteItemImpl` never reads that option — it removes three
+ * `SharedPreferences` entries and returns. Passing it made these two reads as
+ * though dropping a slot were gated behind a prompt, which it is not, and the
+ * next person to trust that reading would have built on it.
+ */
 export async function disableBiometricUnlock(): Promise<void> {
-  await SecureStore.deleteItemAsync(BIOMETRIC_KEY_SLOT, {
-    requireAuthentication: true,
-  });
+  await SecureStore.deleteItemAsync(BIOMETRIC_KEY_SLOT);
 }
 
 /** Locks the vault, keeping biometric unlock available. */
@@ -134,7 +139,5 @@ export async function clearSessionKey(): Promise<void> {
 export async function clearAllKeys(): Promise<void> {
   cachedClientKeyHex = null;
   await SecureStore.deleteItemAsync(STANDARD_KEY_SLOT);
-  await SecureStore.deleteItemAsync(BIOMETRIC_KEY_SLOT, {
-    requireAuthentication: true,
-  });
+  await SecureStore.deleteItemAsync(BIOMETRIC_KEY_SLOT);
 }
