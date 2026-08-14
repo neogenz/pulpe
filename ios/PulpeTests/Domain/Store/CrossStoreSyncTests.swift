@@ -153,7 +153,9 @@ struct BudgetListStoreCacheInvalidationTests {
         let store = BudgetListStore(budgetService: mockService)
         let staleLoad = Task { await store.forceRefresh() }
 
-        while !mockService.didEnterSparse { await Task.yield() }
+        await waitForCondition(timeout: .seconds(1), "sparse fetch must enter gate") {
+            mockService.didEnterSparse
+        }
         store.invalidateCache()
         mockService.stubbedSparse = [fresh]
         mockService.releaseSparse()
