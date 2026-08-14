@@ -1,6 +1,6 @@
 ---
 objective: "Après une propagation du Mois Type vers les budgets, la liste annuelle iOS et le détail d’un mois affichent immédiatement le même solde calculé."
-status: implemented
+status: in-progress
 ---
 
 # Plan: Aligner les soldes de la liste annuelle et du détail iOS
@@ -17,3 +17,4 @@ status: implemented
 | #   | Phase | File |
 | --- | ----- | ---- |
 | 1   | Propager l’invalidation des soldes iOS | [`phase-1.md`](./phase-1.md) |
+| 2   | Verrouiller le seam et les caches dérivés | [`phase-2.md`](./phase-2.md) |

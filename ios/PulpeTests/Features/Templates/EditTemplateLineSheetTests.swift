@@ -2,9 +2,35 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-@Suite("EditTemplateLineSheet Tests")
+@Suite("EditTemplateLineSheet Tests", .serialized)
 @MainActor
 struct EditTemplateLineSheetTests {
+    private static let parityBudgetId = "september-2026"
+
+    private struct BalanceFixture {
+        let budgetId: String
+        let staleBalance: Decimal
+        let expectedBalance: Decimal
+        let budget: Budget
+        let staleLines: [BudgetLine]
+        let refreshedDetails: BudgetDetails
+        let refreshedSparse: [BudgetSparse]
+        let updatedLine: TemplateLine
+    }
+
+    @MainActor
+    private final class CallbackSpy {
+        var count = 0
+    }
+
+    private struct PropagationContext {
+        let budgetService: MockBudgetService
+        let budgetListStore: BudgetListStore
+        let savingsGoalStore: SavingsGoalStore
+        let projectionStores: TemplateBudgetProjectionStores
+        let callbackSpy: CallbackSpy
+    }
+
     // MARK: - Helpers
 
     private static func makeLine(
@@ -30,6 +56,151 @@ struct EditTemplateLineSheetTests {
             targetCurrency: targetCurrency,
             exchangeRate: exchangeRate
         )
+    }
+
+    private static func makeBalanceFixture() throws -> BalanceFixture {
+        let totalIncome = try #require(Decimal(string: "11475"))
+        let totalExpenses = try #require(Decimal(string: "12962.02"))
+        let rollover = try #require(Decimal(string: "-284.78"))
+        let staleBalance = try #require(Decimal(string: "-6078"))
+        let staleExpenses = try #require(Decimal(string: "17268.22"))
+        let expectedBalance = try #require(Decimal(string: "-1771.80"))
+        let budget = TestDataFactory.createBudget(id: parityBudgetId, month: 9, year: 2026, rollover: rollover)
+        let incomeLine = TestDataFactory.createBudgetLine(
+            id: "income",
+            budgetId: parityBudgetId,
+            amount: totalIncome,
+            kind: .income
+        )
+        let staleLines = [
+            incomeLine,
+            TestDataFactory.createBudgetLine(
+                id: "stale-expense",
+                budgetId: parityBudgetId,
+                amount: staleExpenses,
+                kind: .expense
+            ),
+        ]
+        let refreshedLines = [
+            incomeLine,
+            TestDataFactory.createBudgetLine(
+                id: "expense",
+                budgetId: parityBudgetId,
+                amount: totalExpenses,
+                kind: .expense
+            ),
+        ]
+        let sparse = TestDataFactory.createBudgetSparse(
+            id: parityBudgetId,
+            month: 9,
+            year: 2026,
+            totalExpenses: totalExpenses,
+            totalIncome: totalIncome,
+            remaining: expectedBalance,
+            rollover: rollover
+        )
+        return BalanceFixture(
+            budgetId: parityBudgetId,
+            staleBalance: staleBalance,
+            expectedBalance: expectedBalance,
+            budget: budget,
+            staleLines: staleLines,
+            refreshedDetails: BudgetDetails(budget: budget, transactions: [], budgetLines: refreshedLines),
+            refreshedSparse: [sparse],
+            updatedLine: makeLine(id: "template-line", amount: totalExpenses)
+        )
+    }
+
+    private static func seedStaleProjections(_ fixture: BalanceFixture) async -> PropagationContext {
+        let cache = BudgetDetailCache.shared
+        cache.store(
+            budgetId: fixture.budgetId,
+            budget: fixture.budget,
+            budgetLines: fixture.staleLines,
+            transactions: []
+        )
+        #expect(BudgetDataStore(budgetId: fixture.budgetId).metrics.remaining == fixture.staleBalance)
+
+        let budgetService = MockBudgetService()
+        budgetService.stubbedSparse = [
+            TestDataFactory.createBudgetSparse(
+                id: fixture.budgetId,
+                month: 9,
+                year: 2026,
+                remaining: fixture.staleBalance
+            ),
+        ]
+        let budgetListStore = BudgetListStore(budgetService: budgetService)
+        await budgetListStore.forceRefresh()
+        #expect(budgetListStore.budgets(forYear: 2026).first?.remaining == fixture.staleBalance)
+
+        let savingsGoalStore = SavingsGoalStore(service: MockSavingsGoalService())
+        return PropagationContext(
+            budgetService: budgetService,
+            budgetListStore: budgetListStore,
+            savingsGoalStore: savingsGoalStore,
+            projectionStores: TemplateBudgetProjectionStores(
+                budgetList: budgetListStore,
+                dashboard: DashboardStore(budgetService: MockBudgetService()),
+                currentMonth: CurrentMonthStore(),
+                savingsGoal: savingsGoalStore
+            ),
+            callbackSpy: CallbackSpy()
+        )
+    }
+
+    private static func handle(
+        _ result: Result<(TemplateLine, EditTemplateLineSaveImpact), any Error>,
+        in context: PropagationContext
+    ) {
+        TemplateDetailsView.handleTemplateLineSave(
+            result: result,
+            updateTemplateLine: { _ in context.callbackSpy.count += 1 },
+            projectionStores: context.projectionStores
+        )
+    }
+
+    private static func verifyRefresh(_ fixture: BalanceFixture, context: PropagationContext) async {
+        context.budgetService.stubbedSparse = fixture.refreshedSparse
+        handle(.success((fixture.updatedLine, .budgetsChanged)), in: context)
+
+        #expect(context.callbackSpy.count == 1)
+        #expect(BudgetDetailCache.shared.get(budgetId: fixture.budgetId) == nil)
+        #expect(context.savingsGoalStore.budgetMutationVersion == 1)
+
+        await context.budgetListStore.loadIfNeeded()
+        let detailService = MockBudgetService()
+        detailService.stubbedDetails = fixture.refreshedDetails
+        detailService.stubbedSparse = fixture.refreshedSparse
+        let coordinator = BudgetDetailsCoordinator(budgetId: fixture.budgetId, budgetService: detailService)
+        await coordinator.dispatch(.loadDetails(force: false))
+
+        let refreshedBudgets = context.budgetListStore.budgets(forYear: 2026)
+        #expect(context.budgetService.getBudgetsSparseCallCount == 2)
+        #expect(refreshedBudgets.first?.remaining == fixture.expectedBalance)
+        #expect(coordinator.dataStore.metrics.remaining == fixture.expectedBalance)
+        #expect(BudgetFormulas.yearClosingBalance(refreshedBudgets) == fixture.expectedBalance)
+        #expect(BudgetDetailCache.shared.get(budgetId: fixture.budgetId) != nil)
+    }
+
+    private static func verifyNoBudgetChangePaths(_ fixture: BalanceFixture, context: PropagationContext) async {
+        let impacts: [EditTemplateLineSaveImpact] = [
+            .templateOnly,
+            .propagation(affectedBudgetsCount: 0),
+        ]
+        for impact in impacts {
+            handle(.success((fixture.updatedLine, impact)), in: context)
+        }
+        let failedSave: Result<(TemplateLine, EditTemplateLineSaveImpact), any Error> = .failure(
+            NSError(domain: "TemplatePropagation", code: 1)
+        )
+        handle(failedSave, in: context)
+        await context.budgetListStore.loadIfNeeded()
+
+        #expect(context.callbackSpy.count == 3)
+        #expect(context.budgetService.getBudgetsSparseCallCount == 2)
+        #expect(BudgetDetailCache.shared.get(budgetId: fixture.budgetId) != nil)
+        #expect(context.savingsGoalStore.budgetMutationVersion == 1)
     }
 
     // MARK: - shouldShowAlternateCurrency
@@ -145,6 +316,17 @@ struct EditTemplateLineSheetTests {
     func propagationImpact_distinguishesBudgetChanges() {
         #expect(EditTemplateLineSaveImpact.propagation(affectedBudgetsCount: 1) == .budgetsChanged)
         #expect(EditTemplateLineSaveImpact.propagation(affectedBudgetsCount: 0) == .templateOnly)
+    }
+
+    @Test("Template propagation refreshes stale annual and detail balances through the production handler")
+    func templatePropagation_refetchesAnnualBalanceToMatchDetail() async throws {
+        BudgetDetailCache.shared.invalidateAll()
+        defer { BudgetDetailCache.shared.invalidateAll() }
+
+        let fixture = try Self.makeBalanceFixture()
+        let context = await Self.seedStaleProjections(fixture)
+        await Self.verifyRefresh(fixture, context: context)
+        await Self.verifyNoBudgetChangePaths(fixture, context: context)
     }
 
     // MARK: - Case 7: pure helper snapshot stability

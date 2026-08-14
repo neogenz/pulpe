@@ -142,59 +142,6 @@ struct BudgetListStoreCacheInvalidationTests {
         await store.loadIfNeeded()
         #expect(mockService.getBudgetsSparseCallCount == 2, "After invalidation, loadIfNeeded should re-fetch")
     }
-
-    @Test
-    func templatePropagation_refetchesAnnualBalanceToMatchDetail() async throws {
-        let totalIncome = try #require(Decimal(string: "11475"))
-        let totalExpenses = try #require(Decimal(string: "12962.02"))
-        let rollover = try #require(Decimal(string: "-284.78"))
-        let expectedDetailBalance = try #require(Decimal(string: "-1771.80"))
-        let detailBalance = BudgetFormulas.calculateRemaining(
-            available: BudgetFormulas.calculateAvailable(totalIncome: totalIncome, rollover: rollover),
-            totalExpenses: totalExpenses
-        )
-        #expect(detailBalance == expectedDetailBalance)
-
-        let budgetService = MockBudgetService()
-        budgetService.stubbedSparse = [
-            TestDataFactory.createBudgetSparse(
-                id: "september-2026",
-                month: 9,
-                year: 2026,
-                remaining: Decimal(-6078)
-            )
-        ]
-        let budgetListStore = BudgetListStore(budgetService: budgetService)
-        await budgetListStore.forceRefresh()
-
-        budgetService.stubbedSparse = [
-            TestDataFactory.createBudgetSparse(
-                id: "september-2026",
-                month: 9,
-                year: 2026,
-                totalExpenses: totalExpenses,
-                totalIncome: totalIncome,
-                remaining: detailBalance,
-                rollover: rollover
-            )
-        ]
-        let dashboardStore = DashboardStore(budgetService: MockBudgetService())
-        let currentMonthStore = CurrentMonthStore()
-        let savingsGoalStore = SavingsGoalStore(service: MockSavingsGoalService())
-
-        TemplateDetailsView.invalidateBudgetProjectionCaches(
-            budgetListStore: budgetListStore,
-            dashboardStore: dashboardStore,
-            currentMonthStore: currentMonthStore,
-            savingsGoalStore: savingsGoalStore
-        )
-        await budgetListStore.loadIfNeeded()
-
-        let refreshedBudgets = budgetListStore.budgets(forYear: 2026)
-        #expect(budgetService.getBudgetsSparseCallCount == 2)
-        #expect(refreshedBudgets.first?.remaining == detailBalance)
-        #expect(BudgetFormulas.yearClosingBalance(refreshedBudgets) == detailBalance)
-    }
 }
 
 // MARK: - CurrentMonthStore Mutation Seam (PUL-270)

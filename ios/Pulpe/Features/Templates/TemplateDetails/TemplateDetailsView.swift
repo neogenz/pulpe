@@ -48,29 +48,34 @@ struct TemplateDetailsView: View {
                 templateLine: line,
                 userCurrency: userSettingsStore.currency
             ) { updatedLine, impact in
-                Task { await viewModel.updateTemplateLine(updatedLine) }
-                guard impact == .budgetsChanged else { return }
-                Self.invalidateBudgetProjectionCaches(
-                    budgetListStore: budgetListStore,
-                    dashboardStore: dashboardStore,
-                    currentMonthStore: currentMonthStore,
-                    savingsGoalStore: savingsGoalStore
+                Self.handleTemplateLineSave(
+                    result: .success((updatedLine, impact)),
+                    updateTemplateLine: { line in
+                        Task { await viewModel.updateTemplateLine(line) }
+                    },
+                    projectionStores: TemplateBudgetProjectionStores(
+                        budgetList: budgetListStore,
+                        dashboard: dashboardStore,
+                        currentMonth: currentMonthStore,
+                        savingsGoal: savingsGoalStore
+                    )
                 )
             }
         }
     }
 
     @MainActor
-    static func invalidateBudgetProjectionCaches(
-        budgetListStore: BudgetListStore,
-        dashboardStore: DashboardStore,
-        currentMonthStore: CurrentMonthStore,
-        savingsGoalStore: SavingsGoalStore
+    static func handleTemplateLineSave(
+        result: Result<(TemplateLine, EditTemplateLineSaveImpact), any Error>,
+        updateTemplateLine: (TemplateLine) -> Void,
+        projectionStores: TemplateBudgetProjectionStores
     ) {
-        budgetListStore.invalidateCache()
-        dashboardStore.invalidateCache()
-        currentMonthStore.invalidateCache()
-        savingsGoalStore.invalidateCache()
+        guard case .success(let (updatedLine, impact)) = result else { return }
+
+        updateTemplateLine(updatedLine)
+        guard impact == .budgetsChanged else { return }
+
+        projectionStores.invalidate()
     }
 
     private var referencedTagIds: Set<String> {
@@ -480,6 +485,9 @@ private struct TemplateDetailsSkeletonView: View {
         TemplateDetailsView(templateId: "test")
     }
     .environment(UserSettingsStore())
+    .environment(BudgetListStore())
+    .environment(DashboardStore())
+    .environment(CurrentMonthStore())
     .environment(SavingsGoalStore())
     .environment(TagStore())
 }
