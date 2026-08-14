@@ -172,14 +172,16 @@ struct EditTemplateLineSheetTests {
             .templateOnly,
             .propagation(affectedBudgetsCount: 0),
         ]
+        let callCountBefore = context.budgetService.getBudgetsSparseCallCount
+        let versionBefore = context.savingsGoalStore.budgetMutationVersion
         for impact in impacts {
             context.viewModel.announceBudgetDataMutation(for: impact)
         }
         await context.budgetListStore.loadIfNeeded()
 
-        #expect(context.budgetService.getBudgetsSparseCallCount == 2)
+        #expect(context.budgetService.getBudgetsSparseCallCount == callCountBefore)
         #expect(BudgetDetailCache.shared.get(budgetId: fixture.budgetId) != nil)
-        #expect(context.savingsGoalStore.budgetMutationVersion == 1)
+        #expect(context.savingsGoalStore.budgetMutationVersion == versionBefore)
     }
 
     // MARK: - shouldShowAlternateCurrency
