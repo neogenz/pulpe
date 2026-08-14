@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-// Source unique de vérité des guides : l'index /guides, le sitemap et les
-// métadonnées d'article lisent tous ce registre. Publier un guide = une entrée
-// ici + une page sous app/guides/<slug>/.
+// Source unique de vérité des guides : l'index /conseils-budget, le sitemap et
+// les métadonnées d'article lisent tous ce registre. Publier un guide = une
+// entrée ici + une page sous app/conseils-budget/<slug>/.
 export interface Guide {
   slug: string;
   title: string;
@@ -43,7 +43,7 @@ export function getGuide(slug: string): Guide {
 
 // Métadonnées partagées : une page d'article se réduit à `guideMetadata(guide)`.
 export function guideMetadata(guide: Guide): Metadata {
-  const path = `/guides/${guide.slug}`;
+  const path = `/conseils-budget/${guide.slug}`;
   const socialTitle = `${guide.title} | Pulpe`;
   return {
     title: guide.title,

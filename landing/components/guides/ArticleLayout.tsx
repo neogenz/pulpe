@@ -31,7 +31,7 @@ function formatDate(iso: string): string {
 }
 
 export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
-  const articleUrl = `${SITE_URL}/guides/${guide.slug}`;
+  const articleUrl = `${SITE_URL}/conseils-budget/${guide.slug}`;
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -93,11 +93,11 @@ export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
         <Container>
           <article className="mx-auto max-w-3xl">
             <Link
-              href="/guides"
+              href="/conseils-budget"
               className="inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-semibold text-primary transition-colors hover:text-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ArrowLeft aria-hidden="true" size={17} />
-              Guides
+              Conseils budget
             </Link>
             <header className="mt-8">
               <h1 className="text-4xl font-bold leading-[1.12] tracking-[-0.035em] text-text sm:text-5xl">

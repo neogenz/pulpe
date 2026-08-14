@@ -34,12 +34,12 @@ const componentSources = {
     "utf8",
   ),
   guidesIndex: readFileSync(
-    new URL("./guides/page.tsx", import.meta.url),
+    new URL("./conseils-budget/page.tsx", import.meta.url),
     "utf8",
   ),
   guideArticle: readFileSync(
     new URL(
-      "./guides/comment-faire-son-budget-en-suisse/page.tsx",
+      "./conseils-budget/comment-faire-son-budget-en-suisse/page.tsx",
       import.meta.url,
     ),
     "utf8",
@@ -1305,9 +1305,11 @@ describe("landing accessibility contracts", () => {
   });
 
   it("links the first help journey from support and navigation", () => {
-    // « Guides » est réservé à /guides : la section support parle de tutoriels.
+    // « Guides » et « Aide » sont synonymes pour un visiteur : le contenu
+    // éditorial s'appelle « Conseils budget », le support parle de tutoriels.
     assert.match(componentSources.support, /Bien démarrer avec Pulpe/);
     assert.doesNotMatch(componentSources.support, /Guides pour utiliser/);
+    assert.match(componentSources.footer, /label: "Conseils budget"/);
     assert.match(componentSources.support, /\/support\/modeles-et-budgets/);
     assert.match(componentSources.header, /href: "\/support", label: "Aide"/);
     assert.match(componentSources.footer, /label: "Aide", href: "\/support"/);

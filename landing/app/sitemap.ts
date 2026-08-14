@@ -10,14 +10,14 @@ const STATIC_PAGES = [
   "/changelog",
   "/support",
   "/support/modeles-et-budgets",
-  "/guides",
+  "/conseils-budget",
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     ...STATIC_PAGES.map((path) => ({ url: `${SITE_URL}${path}` })),
     ...GUIDES.map((guide) => ({
-      url: `${SITE_URL}/guides/${guide.slug}`,
+      url: `${SITE_URL}/conseils-budget/${guide.slug}`,
       lastModified: guide.updatedAt,
     })),
   ];

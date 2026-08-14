@@ -5,11 +5,11 @@ import { Footer, Header } from "@/components/sections";
 import { GUIDES } from "@/components/guides/guides";
 
 export const metadata: Metadata = {
-  title: "Guides",
+  title: "Conseils budget",
   description:
-    "Des guides concrets pour gérer ton budget en Suisse : méthode, chiffres et exemples pour savoir combien il te restera chaque mois.",
+    "Des conseils concrets pour gérer ton budget en Suisse : méthode, chiffres et exemples pour savoir combien il te restera chaque mois.",
   alternates: {
-    canonical: "/guides",
+    canonical: "/conseils-budget",
   },
 };
 
@@ -34,7 +34,7 @@ export default function GuidesPage() {
           <div className="mx-auto max-w-3xl">
             <header>
               <h1 className="text-4xl font-bold leading-[1.12] tracking-[-0.035em] text-text sm:text-5xl">
-                Guides
+                Conseils budget
               </h1>
               <p className="pretty mt-4 max-w-2xl text-lg leading-relaxed text-text-secondary">
                 Des méthodes concrètes pour gérer ton budget en Suisse et savoir
@@ -46,7 +46,7 @@ export default function GuidesPage() {
               {guides.map((guide) => (
                 <Link
                   key={guide.slug}
-                  href={`/guides/${guide.slug}`}
+                  href={`/conseils-budget/${guide.slug}`}
                   className="block rounded-[var(--radius-large)] border border-text/10 bg-surface p-6 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transform-none motion-reduce:transition-none sm:p-8"
                 >
                   <h2 className="text-2xl font-semibold leading-tight tracking-[-0.025em] text-text">

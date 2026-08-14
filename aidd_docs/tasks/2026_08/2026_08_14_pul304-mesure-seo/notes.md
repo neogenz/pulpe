@@ -22,8 +22,9 @@ internes exclus :
 | SEO · Referrers — organique vs direct (30 j) | `$pageview` total, breakdown `$referring_domain` | [8WNZNB6S](https://eu.posthog.com/project/87621/insights/8WNZNB6S) |
 | SEO · Visiteurs organiques par mois (KPI) | visiteurs uniques mensuels, referrer moteur | [WalJF76O](https://eu.posthog.com/project/87621/insights/WalJF76O) |
 
-`/guides/*` et `/calculateur-budget` apparaîtront d'eux-mêmes dans les breakdowns
-`$pathname` dès leurs premiers pageviews — aucun tracking additionnel côté landing.
+`/conseils-budget/*` (ex-`/guides`, renommé avant tout déploiement) et
+`/calculateur-budget` apparaîtront d'eux-mêmes dans les breakdowns `$pathname`
+dès leurs premiers pageviews — aucun tracking additionnel côté landing.
 
 ## Funnels de conversion (même dashboard)
 
@@ -31,12 +32,13 @@ Deux funnels ordonnés, fenêtre 14 j, 30 derniers jours, comptes internes exclu
 
 | Funnel | Étapes | Lien |
 | --- | --- | --- |
-| SEO · Guide → Premier budget | `$pageview` (`$pathname` ∋ `/guides`) → `cta_clicked` (`cta_location = guide_article`) → `signup_started` → `signup_completed` → `first_budget_created` | [A6SztlQr](https://eu.posthog.com/project/87621/insights/A6SztlQr) |
+| SEO · Guide → Premier budget | `$pageview` (`$pathname` ∋ `/conseils-budget`) → `cta_clicked` (`cta_location = guide_article`) → `signup_started` → `signup_completed` → `first_budget_created` | [A6SztlQr](https://eu.posthog.com/project/87621/insights/A6SztlQr) |
 | SEO · Visite organique → Signup | `$pageview` (referrer organique) → `cta_clicked` → `signup_completed` | [9gWciHT0](https://eu.posthog.com/project/87621/insights/9gWciHT0) |
 
-Le premier reste vide tant que `/guides` n'est pas déployé (PUL-296) ; `guide_article`
-correspond au `data-cta-location` du CTA d'article. Le second tourne déjà : baseline
-7 visiteurs organiques → 5 CTA → 2 signups sur les 30 jours précédant la création.
+Le premier reste vide tant que `/conseils-budget` n'est pas déployé (PUL-296) ;
+`guide_article` correspond au `data-cta-location` du CTA d'article. Le second tourne
+déjà : baseline 7 visiteurs organiques → 5 CTA → 2 signups sur les 30 jours précédant
+la création.
 
 ## CA2 — KPI absolu et baseline
 

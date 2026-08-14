@@ -16,7 +16,7 @@ mock.module("next/image", {
 });
 const { ArticleLayout } = await import("./ArticleLayout");
 const { default: BudgetSuisseGuidePage } =
-  await import("../../app/guides/comment-faire-son-budget-en-suisse/page");
+  await import("../../app/conseils-budget/comment-faire-son-budget-en-suisse/page");
 
 const guide: Guide = {
   slug: "guide-de-test",
@@ -76,7 +76,10 @@ describe("guide article layout contract", () => {
       "@id": "https://pulpe.app/#org",
       name: "Pulpe",
     });
-    assert.equal(article.url, `https://pulpe.app/guides/${guide.slug}`);
+    assert.equal(
+      article.url,
+      `https://pulpe.app/conseils-budget/${guide.slug}`,
+    );
   });
 
   it("keeps the FAQPage schema identical to the visible FAQ", () => {
@@ -141,9 +144,12 @@ describe("guide article layout contract", () => {
     for (const entry of GUIDES) {
       assert.ok(
         existsSync(
-          new URL(`../../app/guides/${entry.slug}/page.tsx`, import.meta.url),
+          new URL(
+            `../../app/conseils-budget/${entry.slug}/page.tsx`,
+            import.meta.url,
+          ),
         ),
-        `app/guides/${entry.slug}/page.tsx est absent : la carte de l'index et le sitemap pointeraient sur un 404`,
+        `app/conseils-budget/${entry.slug}/page.tsx est absent : la carte de l'index et le sitemap pointeraient sur un 404`,
       );
     }
   });

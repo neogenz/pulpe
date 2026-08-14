@@ -146,7 +146,7 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
     {
-      // Entité unique : les articles /guides la référencent par @id comme
+      // Entité unique : les articles /conseils-budget la référencent par @id comme
       // publisher au lieu de la redéfinir.
       "@type": "Organization",
       "@id": ORGANIZATION_ID,

@@ -1,4 +1,4 @@
-# Review: PUL-296 — Socle SEO/GEO `/guides`
+# Review: PUL-296 — Socle SEO/GEO `/conseils-budget`
 
 - **Verdict**: approve
 - **Diff**: `origin/preview...maximedesogus/pul-296-creer-le-socle-seo-guides-sur-la-landing`
@@ -17,15 +17,15 @@
 
 ### Phase 2 — Index `/guides` + article seed GEO-structuré
 
-- [x] `/guides` liste depuis le registre, une entrée suffit pour une carte ; toute entrée sans page casse le test (garde anti-404 index/sitemap) — `landing/app/guides/page.tsx:17-62`, `ArticleLayout.test.tsx:136-145`
-- [x] Article en build prod : H1 unique (grep dist = 1, re-testé sur la vraie page), réponse 40–80 mots en tête, chiffres OFS/OFSP/Budget-conseil sourcés en liens, FAQ visible ≡ FAQPage (parse dist), un seul CTA — `landing/app/guides/comment-faire-son-budget-en-suisse/page.tsx`, `ArticleLayout.test.tsx:128-134`
+- [x] `/conseils-budget` (ex-`/guides`) liste depuis le registre, une entrée suffit pour une carte ; toute entrée sans page casse le test (garde anti-404 index/sitemap) — `landing/app/conseils-budget/page.tsx`, `ArticleLayout.test.tsx:143-155`
+- [x] Article en build prod : H1 unique (grep dist = 1, re-testé sur la vraie page), réponse 40–80 mots en tête, chiffres OFS/OFSP/Budget-conseil sourcés en liens, FAQ visible ≡ FAQPage (parse dist), un seul CTA — `landing/app/conseils-budget/comment-faire-son-budget-en-suisse/page.tsx`, `ArticleLayout.test.tsx:135-141`
 - [x] title/description/canonical corrects dans `dist/` (via `guideMetadata`), contenu entier dans le HTML serveur — `landing/components/guides/guides.ts:44-90`
 
 ### Phase 3 — Découvrabilité : sitemap dynamique, Organization, maillage
 
 - [x] `dist/sitemap.xml` : 5 pages statiques + article avec `lastmod` = `updatedAt` (2026-08-13) ; `public/sitemap.xml` supprimé — `landing/app/sitemap.ts`
 - [x] JSON-LD racine : `Organization` + `sameAs` (GitHub, App Store), référencée par `publisher` de l'article via la constante partagée `ORGANIZATION_ID` (parse dist : le `@id` résout) — `landing/lib/config.ts:12-15`, `landing/app/layout.tsx:148-157`
-- [x] Footer de toutes les pages : lien interne « Guides » (grep dist : 4/4 pages) — `landing/components/sections/Footer.tsx:14`
+- [x] Footer de toutes les pages : lien interne « Conseils budget » (grep dist : 4/4 pages) — `landing/components/sections/Footer.tsx:14`
 
 ## Findings
 
@@ -33,7 +33,7 @@
 | --- | ---- | ----- | -------- | ----- | --- |
 | 🟢 | rot | 2 | `landing/components/guides/guides.ts:33-37` | `SOCIAL_PREVIEW_IMAGE`/`ALT` restent copiés dans layout.tsx, modeles-et-budgets et ici : bump `?v=3` = 3 sites à toucher. Copie assumée : le test a11y (l.1102) exige la déclaration DANS layout.tsx | Accepté en l'état ; centraliser si le contrat a11y évolue |
 | 🟢 | frontend | 2 | `landing/app/globals.css:648` | `.table-scroll` ne défile jamais avec le tableau actuel (2 colonnes étroites) et n'a pas de `tabIndex` clavier | Gardé : conteneur exigé par le plan (phase 1) ; ajouter `tabIndex={0}` + label le jour où un tableau déborde réellement |
-| 🟢 | fit | 3 | `landing/components/sections/Footer.tsx:14` | « Guides » (→ /guides) coexistait avec la section « Guides pour utiliser Pulpe » de /support : deux sens du mot dans le même parcours | Corrigé (validé par Maxime) : /support dit désormais « Bien démarrer avec Pulpe » / « Tutoriels », le mot « Guides » ne désigne plus que /guides |
+| 🟢 | fit | 3 | `landing/components/sections/Footer.tsx:14` | « Guides » (nav) coexistait avec « Guides pour utiliser Pulpe » (/support) et restait synonyme de « Aide » pour un visiteur | Corrigé (validé par Maxime) : contenu éditorial renommé « Conseils budget », route `/conseils-budget` (renommée avant tout déploiement, zéro redirection), /support dit « Bien démarrer avec Pulpe » / « Tutoriel » |
 
 ## Verification
 
