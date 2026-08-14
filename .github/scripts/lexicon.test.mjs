@@ -290,3 +290,65 @@ test("aucune traduction du catalogue iOS ne vouvoie", () => {
       `Dans ${IOS_CATALOG} :\n${offenders.join("\n")}`,
   );
 });
+
+/**
+ * Les deux gardes qui suivent lisent les deux clients d'un coup, parce que la
+ * règle qu'ils tiennent est la même des deux côtés et qu'un mot ne se corrige
+ * jamais sur une seule plateforme. La source est nommée dans la ligne fautive.
+ */
+const everyTranslation = () => [
+  ...catalogs().flatMap(({ file, lang }) =>
+    flatten(JSON.parse(read(`${I18N_ROOT}/${file}`))).map(([key, value]) => ({
+      source: `${I18N_ROOT}/${file}`,
+      lang,
+      key,
+      value,
+    })),
+  ),
+  ...iosTranslations().map(({ key, lang, value }) => ({
+    source: IOS_CATALOG,
+    lang,
+    key,
+    value,
+  })),
+];
+
+// Pointer est un geste de l'utilisateur, pas un règlement bancaire : Pulpe ne
+// voit jamais passer l'argent. Un verbe de banque promettrait donc un fait que
+// l'app ne constate pas — c'est la divergence n°2 de docs/I18N.md, et elle se
+// perd à la première traduction faite au fil du texte.
+const BANKING_VERB_BY_LANG = {
+  fr: /\b(débit[ée]e?s?|rapproch[ée]e?s?)\b/i,
+  en: /\b(cleared|reconciled|debited)\b/i,
+  de: /\b(gebucht|abgebucht)\b/i,
+  it: /\b(addebitat[oaie]|riconciliat[oaie])\b/i,
+};
+
+test("aucune traduction ne pointe avec un verbe bancaire", () => {
+  const offenders = everyTranslation()
+    .filter(({ lang, value }) => BANKING_VERB_BY_LANG[lang]?.test(value))
+    .map(
+      ({ source, lang, key, value }) =>
+        `  ${source} → ${lang}.${key} = ${value}`,
+    );
+
+  assert.equal(
+    offenders.length,
+    0,
+    "Pulpe n'a aucun lien bancaire : « Pointé » ne se traduit ni par cleared,\n" +
+      "reconciled, gebucht ni addebitato (docs/I18N.md, divergence n°2).\n" +
+      `${offenders.join("\n")}`,
+  );
+});
+
+test("l'allemand de Pulpe n'écrit jamais ß", () => {
+  const offenders = everyTranslation()
+    .filter(({ lang, value }) => lang === "de" && value.includes("ß"))
+    .map(({ source, key, value }) => `  ${source} → de.${key} = ${value}`);
+
+  assert.equal(
+    offenders.length,
+    0,
+    "L'allemand de Pulpe est suisse : ß s'écrit ss.\n" + offenders.join("\n"),
+  );
+});

@@ -27,16 +27,58 @@ function leaves(node: unknown, prefix = '', out = new Map<string, string>()) {
  * `{{ date }}`; the spacing carries nothing, the name carries everything.
  * Comparing raw would flag a translation that merely picked the other spacing.
  */
-function tokens(value: string): string[] {
+function tokens(value: string): string {
   return [...value.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)]
     .map(([, name]) => name)
-    .sort();
+    .sort()
+    .join('|');
+}
+
+/**
+ * Markup as a multiset, never a sequence. Word order moves between languages —
+ * German legitimately puts a `<strong>` where French does not — so only the
+ * opened and closed tags have to match. Attributes are dropped: none of these
+ * strings carries one, and a translator has no business adding one.
+ */
+function markup(value: string): string {
+  return [...value.matchAll(/<(\/?)([a-z]+)[^>]*>/gi)]
+    .map(([, slash, name]) => `${slash}${name.toLowerCase()}`)
+    .sort()
+    .join('|');
+}
+
+/**
+ * The whitespace that carries meaning: the line breaks a sentence is built
+ * around, and the edges a caller concatenates against. Inner spacing is the
+ * translator's business and stays free.
+ */
+function whitespaceShape(value: string): string {
+  const lineBreaks = (value.match(/\n/g) ?? []).length;
+  const leading = value.length - value.trimStart().length;
+  const trailing = value.length - value.trimEnd().length;
+  return `${lineBreaks}|${leading}|${trailing}`;
 }
 
 const source = leaves(CATALOGS[DEFAULT_LOCALE]);
 const translations = SUPPORTED_LOCALES.filter(
   (lang) => lang !== DEFAULT_LOCALE,
 );
+
+/**
+ * The keys whose translation no longer has the French shape. A key missing from
+ * the translation is not drift — the key-set assertion above owns that case and
+ * reporting it twice would double every failure.
+ */
+function driftedKeys(lang: string, shapeOf: (value: string) => string) {
+  const translated = leaves(CATALOGS[lang]);
+
+  return [...source.entries()]
+    .filter(([key, french]) => {
+      const other = translated.get(key);
+      return other !== undefined && shapeOf(french) !== shapeOf(other);
+    })
+    .map(([key]) => key);
+}
 
 describe('i18n catalogs', () => {
   it('holds a non-trivial French source', () => {
@@ -55,19 +97,15 @@ describe('i18n catalogs', () => {
   });
 
   it.each(translations)('keeps every %s interpolation token', (lang) => {
-    const translated = leaves(CATALOGS[lang]);
+    expect(driftedKeys(lang, tokens)).toEqual([]);
+  });
 
-    const drifted = [...source.entries()]
-      .filter(([key, french]) => {
-        const other = translated.get(key);
-        return (
-          other !== undefined &&
-          tokens(french).join('|') !== tokens(other).join('|')
-        );
-      })
-      .map(([key]) => key);
+  it.each(translations)('keeps every %s markup tag', (lang) => {
+    expect(driftedKeys(lang, markup)).toEqual([]);
+  });
 
-    expect(drifted).toEqual([]);
+  it.each(translations)('keeps the %s line breaks and edge spacing', (lang) => {
+    expect(driftedKeys(lang, whitespaceShape)).toEqual([]);
   });
 
   it.each(SUPPORTED_LOCALES)('leaves no empty string in %s', (lang) => {
