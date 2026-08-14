@@ -37,7 +37,7 @@ struct CurrencySettingView: View {
             Text("DEVISE")
                 .font(PulpeTypography.labelLarge)
         }
-        .listRowBackground(Color.surfaceContainerHigh)
+        .listRowBackground(Color.surfaceContainerLowest)
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         // PUL-205: alert (not action sheet) confirming the flip before it
         // persists — the copy makes explicit that amounts are not converted.

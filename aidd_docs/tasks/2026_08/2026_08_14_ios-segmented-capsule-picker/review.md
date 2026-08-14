@@ -1,7 +1,7 @@
 # Review: ios-segmented-capsule-picker
 
 - **Verdict**: approve
-- **Diff**: `preview...feat/ios-segmented-capsule-picker` (fab80f209)
+- **Diff**: `preview...feat/ios-segmented-capsule-picker` (settings-contrast fix included)
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_08_14
 - **Findings**: 0 critical, 0 warning, 1 minor
@@ -20,6 +20,13 @@
 - [x] A11y : l'arbre expose désormais de vrais `SegmentedControl` nommés (« Nature », « Mode de création »); labels/valeurs des wrappers conservés
 - [x] Gates verts : build EXIT 0, SwiftLint strict 0 sur les fichiers touchés, 2091 tests / 218 suites passés
 - [x] Vérif visuelle sur simulateur : Devise (2 segments) et pile Nature / Lisser / Total (light) capturées et validées
+
+### Phase 2 — Contraste des cartes réglages (demande Maxime en cours de branche)
+
+- [x] Cause : `.listRowBackground(Color.surfaceContainerHigh)` (`#F0EDE9`) sur le canvas `appBackground` (`#EFF3EE`) ≈ 1.04:1 — violation de la règle DESIGN.md:346 (« never on the bare appBackground »)
+- [x] Fix : famille réglages entière sur `Color.surfaceContainerLowest` (blanc / brun chaud `#1E1C1A`), même token que les cartes de lignes — `PreferencesView` ×3, `CurrencySettingView`, `TagsSettingsView` (remplacements) + `AccountView` ×4 et `SecuritySettingsView` ×2 (épinglés, remplaçant le blanc natif `secondarySystemGroupedBackground` pour une seule mécanique light+dark); la zone danger garde `destructiveBackground`, avatar et footer version gardent `.clear`
+- [x] Les éléments blancs (thumb du segment natif, toggles) restent lisibles sur carte blanche : leur contraste vient de leurs tracks systemFill, pas de la carte — vérifié sur captures light + dark
+- [x] Gates verts : build EXIT 0, SwiftLint strict 0 sur fichiers touchés, 2091 tests / 218 suites passés; captures light + dark validées sur simulateur
 
 ## Findings
 

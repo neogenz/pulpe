@@ -105,6 +105,7 @@ extension AccountView {
         } header: {
             Text("PARAMÈTRES DE L'APPLICATION")
         }
+        .listRowBackground(Color.surfaceContainerLowest)
     }
 
     private var supportSection: some View {
@@ -127,6 +128,7 @@ extension AccountView {
         } header: {
             Text("SUPPORT")
         }
+        .listRowBackground(Color.surfaceContainerLowest)
     }
 
     private var logoutSection: some View {
@@ -139,6 +141,7 @@ extension AccountView {
             }
             .plainPressedButtonStyle()
         }
+        .listRowBackground(Color.surfaceContainerLowest)
     }
 
     private var legalSection: some View {
@@ -161,6 +164,7 @@ extension AccountView {
         } header: {
             Text("LÉGAL")
         }
+        .listRowBackground(Color.surfaceContainerLowest)
     }
 
     private var versionFooterSection: some View {
