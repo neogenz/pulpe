@@ -1,6 +1,6 @@
 ---
 objective: "Pulpe s'affiche en anglais, allemand et italien sur la landing, la webapp et iOS, le français restant la langue par défaut et le fallback de toute clé manquante."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Support multilingue EN / DE / IT
