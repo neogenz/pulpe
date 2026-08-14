@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE } from 'pulpe-shared';
 
@@ -80,6 +81,33 @@ function driftedKeys(lang: string, shapeOf: (value: string) => string) {
     .map(([key]) => key);
 }
 
+/**
+ * Every file that can name a key, concatenated. The tests run with `frontend/` as
+ * the working directory, and `e2e/` is in scope because a Playwright spec reads
+ * copy off the screen through the same catalog.
+ *
+ * A blank read cannot pass unnoticed: with no source text, every key looks
+ * orphaned and the assertion below reports all 1578 of them.
+ */
+function webappSources(): string {
+  return ['projects/webapp/src', 'e2e']
+    .flatMap((root) =>
+      readdirSync(root, { recursive: true, encoding: 'utf8' })
+        .filter((path) => path.endsWith('.ts') || path.endsWith('.html'))
+        .map((path) => readFileSync(`${root}/${path}`, 'utf8')),
+    )
+    .join('\n');
+}
+
+/**
+ * A key assembled at runtime never appears whole in the source — the component
+ * writes the family and appends the variant, as `'budgetLine.spent.' + kind` or
+ * `` `export.${key}` ``. Those prefixes are read off the code rather than listed
+ * here: a hand-kept list is a second source of truth, and it goes stale in
+ * silence the day a seventh family appears.
+ */
+const DYNAMIC_PREFIX = /[`'"]([a-zA-Z][\w.]*\.)(?:\$\{|['"]\s*\+)/g;
+
 describe('i18n catalogs', () => {
   it('holds a non-trivial French source', () => {
     // Guards the guard: an empty or unresolved import would make every
@@ -106,6 +134,21 @@ describe('i18n catalogs', () => {
 
   it.each(translations)('keeps the %s line breaks and edge spacing', (lang) => {
     expect(driftedKeys(lang, whitespaceShape)).toEqual([]);
+  });
+
+  it('leaves no key without a consumer', () => {
+    const sources = webappSources();
+    const prefixes = [...sources.matchAll(DYNAMIC_PREFIX)].map(([, p]) => p);
+
+    const orphans = [...source.keys()].filter(
+      (key) =>
+        !sources.includes(key) &&
+        !prefixes.some((prefix) => key.startsWith(prefix)),
+    );
+
+    // A key costs four translations, and an unused one costs them for nothing.
+    // So the catalog follows the code: write the key in the commit that reads it.
+    expect(orphans).toEqual([]);
   });
 
   it.each(SUPPORTED_LOCALES)('leaves no empty string in %s', (lang) => {
