@@ -114,7 +114,7 @@ BEGIN
     FROM pg_proc p
     WHERE p.oid = to_regprocedure(v_signature)
       AND p.prosecdef
-      AND p.proconfig = ARRAY['search_path=""'];
+      AND 'search_path=""' = ANY(p.proconfig);
 
     IF v_definition IS NULL THEN
       RAISE EXCEPTION 'FAIL: privileged wrapper % is not hardened', v_signature;
@@ -131,7 +131,7 @@ BEGIN
     'public.reconcile_savings_goal_target_date(uuid,text,uuid[],date,jsonb)'
   )
     AND p.prosecdef
-    AND p.proconfig = ARRAY['search_path=""'];
+    AND 'search_path=""' = ANY(p.proconfig);
 
   IF v_definition IS NULL
     OR position('auth.uid()' in v_definition) = 0
