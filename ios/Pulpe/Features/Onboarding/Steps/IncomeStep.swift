@@ -35,7 +35,7 @@ struct IncomeStep: View {
                                     set: { state.selectCurrency($0) }
                                 ),
                                 title: nil
-                            ) { currency, isSelected in
+                            ) { currency, _ in
                                 HStack(spacing: DesignTokens.Spacing.xs) {
                                     Text(currency.flag)
                                     VStack(alignment: .leading, spacing: 0) {
@@ -43,11 +43,7 @@ struct IncomeStep: View {
                                             .font(PulpeTypography.labelLarge)
                                         Text(currency.nativeName)
                                             .font(PulpeTypography.caption2)
-                                            .foregroundStyle(
-                                                isSelected
-                                                    ? Color.textOnPrimaryMuted
-                                                    : Color.textSecondaryOnboarding
-                                            )
+                                            .foregroundStyle(Color.textSecondaryOnboarding)
                                     }
                                 }
                             }
