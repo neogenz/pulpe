@@ -1,6 +1,6 @@
 ---
 objective: "Le contenu du contrôle de compte est centré verticalement dans sa capsule d'état sur la webapp responsive, sans régression de troncature ni d'accessibilité."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Recentrer le contrôle de compte responsive
