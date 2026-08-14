@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Basculer les RPC atomiques de modèles et d'étalement vers RLS

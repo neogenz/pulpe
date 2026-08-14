@@ -38,7 +38,10 @@ DECLARE
     'public.update_savings_goal_withdrawal(uuid,bigint,jsonb,uuid[])'
   ];
   v_invoker_signatures constant text[] := ARRAY[
+    'public.apply_template_line_operations(uuid,uuid[],uuid[],jsonb,jsonb)',
     'public.check_unchecked_transactions(uuid)',
+    'public.create_budget_lines_spread(uuid,jsonb,uuid,uuid)',
+    'public.create_template_with_lines(uuid,text,text,boolean,jsonb)',
     'public.get_savings_goal_deletion_impact(uuid)',
     'public.toggle_budget_line_check(uuid)',
     'public.toggle_transaction_check(uuid)'
