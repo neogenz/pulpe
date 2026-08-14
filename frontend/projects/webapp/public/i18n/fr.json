@@ -1675,5 +1675,9 @@
     "create": "Créer",
     "availableSuffixAriaLabel": "disponible",
     "createBudgetAriaLabel": "créer un budget"
+  },
+  "yearCalendar": {
+    "budgetCountOne": "{{ count }} budget",
+    "budgetCountMany": "{{ count }} budgets"
   }
 }
