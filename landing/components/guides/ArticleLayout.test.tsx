@@ -232,6 +232,20 @@ describe("guide article layout contract", () => {
     assert.equal(article.match(/data-cta-name=/g)?.length, 1);
   });
 
+  it("labels the budget table and keeps its borders on legacy Safari", () => {
+    const pageHtml = renderToStaticMarkup(<BudgetSuisseGuidePage />);
+    assert.match(
+      pageHtml,
+      /<caption class="sr-only">Exemple de budget pour un revenu net de 5’000[^<]+CHF par mois<\/caption>/,
+    );
+    const tableCellStyles = sources.globals.match(
+      /\.guide-prose th,\s*\.guide-prose td\s*\{[^}]*\}/,
+    );
+    assert.ok(tableCellStyles, "guide table cell styles are missing");
+    assert.match(tableCellStyles[0], /rgba\(26, 28, 25, 0\.1\)/);
+    assert.match(tableCellStyles[0], /color-mix\(/);
+  });
+
   it("has a page for every registry entry", () => {
     for (const entry of GUIDES) {
       assert.ok(

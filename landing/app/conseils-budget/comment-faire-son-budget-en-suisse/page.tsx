@@ -129,6 +129,9 @@ export default function BudgetSuisseGuidePage() {
       </p>
       <div className="table-scroll">
         <table>
+          <caption className="sr-only">
+            Exemple de budget pour un revenu net de 5’000&nbsp;CHF par mois
+          </caption>
           <thead>
             <tr>
               <th scope="col">Poste</th>

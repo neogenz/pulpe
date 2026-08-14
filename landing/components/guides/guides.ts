@@ -15,7 +15,7 @@ export interface Guide {
   readingMinutes: number;
 }
 
-export const GUIDES: Guide[] = [
+export const GUIDES: readonly Guide[] = [
   {
     slug: "comment-faire-son-budget-en-suisse",
     title: "Comment faire son budget en Suisse",
