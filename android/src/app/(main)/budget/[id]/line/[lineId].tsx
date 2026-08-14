@@ -26,7 +26,10 @@ import { formatMonthName, ofMonth } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
-import { useBudgetDetails } from "@/features/budgets/budget-queries";
+import {
+  useBudgetDetails,
+  useBudgetList,
+} from "@/features/budgets/budget-queries";
 import { lineConsumption } from "@/features/budgets/line-consumption";
 import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
 import {
@@ -34,6 +37,11 @@ import {
   usePostponeBudgetLine,
 } from "@/features/budget-details/budget-line-mutations";
 import { BudgetLineSheet } from "@/features/budget-details/components/budget-line-sheet";
+import {
+  hasBudgetForPeriod,
+  isPostponeEligible,
+  postponeTargetPeriod,
+} from "@/features/budget-details/postpone-gate";
 import { SpreadExistingSheet } from "@/features/budget-details/spread/components/spread-existing-sheet";
 import { SpreadOccurrencesSheet } from "@/features/budget-details/spread/components/spread-occurrences-sheet";
 import { useDeleteSavingsWithdrawal } from "@/features/budget-details/savings-withdrawal/withdrawal-mutations";
@@ -70,6 +78,7 @@ export default function BudgetLineDetailScreen() {
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const settings = useUserSettings();
   const details = useBudgetDetails(id);
+  const budgets = useBudgetList();
   const tags = useTags();
   const toggle = useToggleCheck(id);
   const remove = useDeleteBudgetLine();
@@ -117,6 +126,14 @@ export default function BudgetLineDetailScreen() {
     (transaction) => transaction.budgetLineId === lineId,
   );
   const consumption = lineConsumption(line, transactions);
+  const postponeTarget = postponeTargetPeriod({
+    year: budget.year,
+    month: budget.month,
+  });
+  // Only claim the month is missing once the list has actually answered:
+  // pending, the entry stays live and a real failure still speaks for itself.
+  const isPostponeTargetMissing =
+    budgets.isSuccess && !hasBudgetForPeriod(budgets.data, postponeTarget);
   // The pair spans two months and the open budget shows one of them: an income
   // half sits on month M, a repayment half on M+1.
   const incomePeriod =
@@ -194,21 +211,38 @@ export default function BudgetLineDetailScreen() {
                 }}
               />
             )}
-          <Menu.Item
-            leadingIcon="calendar-arrow-right"
-            title="Reporter au mois suivant"
-            disabled={postpone.isPending}
-            onPress={() => {
-              setMenuOpen(false);
-              postpone.mutate(line.id, {
-                // The line has left this month, so the page it was opened from
-                // no longer has anything to show.
-                onSuccess: () => router.back(),
-                onError: () =>
-                  setFailure("Le report n'a pas pu être fait. Réessaie."),
-              });
-            }}
-          />
+          {/* The endpoint refuses six shapes of line outright, and no amount of
+              retrying changes any of them — so the entry is simply not there.
+              The seventh refusal, a next month that was never created, is the
+              user's to lift: it stays on screen and says how. */}
+          {isPostponeEligible(line, transactions.length) && (
+            <Menu.Item
+              leadingIcon={
+                isPostponeTargetMissing
+                  ? "calendar-alert"
+                  : "calendar-arrow-right"
+              }
+              title={
+                isPostponeTargetMissing
+                  ? `Crée d'abord le budget de ${formatMonthName(
+                      postponeTarget.month,
+                      postponeTarget.year,
+                    ).toLocaleLowerCase()}`
+                  : "Reporter au mois suivant"
+              }
+              disabled={isPostponeTargetMissing || postpone.isPending}
+              onPress={() => {
+                setMenuOpen(false);
+                postpone.mutate(line.id, {
+                  // The line has left this month, so the page it was opened from
+                  // no longer has anything to show.
+                  onSuccess: () => router.back(),
+                  onError: () =>
+                    setFailure("Le report n'a pas pu être fait. Réessaie."),
+                });
+              }}
+            />
+          )}
           <Menu.Item
             leadingIcon="trash-can-outline"
             title="Supprimer"
@@ -340,8 +374,11 @@ export default function BudgetLineDetailScreen() {
           : `${removal.undoable.length} opérations supprimées`}
       </Snackbar>
 
-      <Snackbar visible={removal.hasFailed} onDismiss={removal.dismissFailure}>
-        L&apos;opération n&apos;a pas pu être supprimée. Réessaie.
+      <Snackbar
+        visible={removal.failureMessage !== null}
+        onDismiss={removal.dismissFailure}
+      >
+        {removal.failureMessage}
       </Snackbar>
 
       <TransactionSheet

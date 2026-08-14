@@ -23,6 +23,8 @@ import {
   savingsGoalResponseSchema,
   type SavingsGoalUpdate,
   savingsGoalUpdateSchema,
+  type SavingsGoalWithdrawalOption,
+  savingsGoalWithdrawalOptionsResponseSchema,
   type SavingsGoalWithdrawalsResponse,
   savingsGoalWithdrawalsResponseSchema,
 } from "pulpe-shared";
@@ -81,6 +83,22 @@ export function fetchSavingsGoalWithdrawals(
     ENDPOINTS.savingsGoalWithdrawals(goalId),
     savingsGoalWithdrawalsResponseSchema,
   );
+}
+
+/**
+ * The goals that have something to give, with what they hold. Its own endpoint
+ * rather than the goals list: only this one carries balances, and the server
+ * has already dropped the empty ones.
+ */
+export function fetchSavingsGoalWithdrawalOptions(): Promise<
+  SavingsGoalWithdrawalOption[]
+> {
+  return api
+    .get(
+      ENDPOINTS.savingsGoalWithdrawalOptions,
+      savingsGoalWithdrawalOptionsResponseSchema,
+    )
+    .then((response) => response.data);
 }
 
 export function fetchSavingsGoalFutureLines(

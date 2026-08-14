@@ -18,6 +18,7 @@ import { armPrivacyShield } from "@/core/system/privacy-shield";
 import { SystemGateScreen } from "@/core/system/system-gate-screen";
 import { WhatsNewSheet } from "@/core/system/whats-new-sheet";
 import { pulpeDarkTheme, pulpeLightTheme } from "@/core/ui/theme";
+import { observeVaultKeyRejection } from "@/core/vault/key-invalidation";
 import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
 import {
   restoreOnboardingDraft,
@@ -53,6 +54,7 @@ export default function RootLayout() {
   useEffect(() => observeSession(), []);
   useEffect(() => startSupabaseAutoRefresh(), []);
   useEffect(() => armPrivacyShield(), []);
+  useEffect(() => observeVaultKeyRejection(), []);
   // Synchronous, and before the first route decision: an unfinished run has to
   // be known by the time the guards below are evaluated.
   useEffect(() => restoreOnboardingDraft(), []);

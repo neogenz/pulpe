@@ -513,8 +513,11 @@ export default function BudgetDetailScreen() {
           : `${removal.undoable.length} opérations supprimées`}
       </Snackbar>
 
-      <Snackbar visible={removal.hasFailed} onDismiss={removal.dismissFailure}>
-        L&apos;opération n&apos;a pas pu être supprimée. Réessaie.
+      <Snackbar
+        visible={removal.failureMessage !== null}
+        onDismiss={removal.dismissFailure}
+      >
+        {removal.failureMessage}
       </Snackbar>
 
       <SavingsWithdrawalSheet

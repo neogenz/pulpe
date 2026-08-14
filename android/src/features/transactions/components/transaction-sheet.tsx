@@ -7,6 +7,7 @@ import type {
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
+  ActivityIndicator,
   Button,
   HelperText,
   SegmentedButtons,
@@ -19,9 +20,13 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { TagPicker } from "@/core/tags/tag-picker";
 import { AmountField } from "@/core/ui/amount-field";
+import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatRelativeDay } from "@/core/ui/date-format";
+import { FadingRail } from "@/core/ui/fading-rail";
+import { FilterChip } from "@/core/ui/filter-chip";
 import { Sheet } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
+import { useSavingsGoalWithdrawalOptions } from "@/features/savings-goals/goals-queries";
 
 import {
   buildTransactionPayload,
@@ -37,6 +42,9 @@ import {
 } from "../transaction-mutations";
 
 const NAME_MAX_LENGTH = 100;
+
+/** The gutter `core/ui/sheet` keeps, and so the one the rail has to give back. */
+const SHEET_PADDING = SPACING.lg;
 
 const KIND_BUTTONS: { value: TransactionKind; label: string; icon: string }[] =
   [
@@ -75,10 +83,11 @@ interface TransactionSheetProps {
  * Writing an operation and correcting one, in a single form: they ask for the
  * same amount, the same name, the same day and the same tags.
  *
- * Two of the fields are creation-only, and not by choice of layout — the update
- * endpoint takes neither. Pointing has its own ring on the row, and the
- * envelope an operation answers to is settled when it is written, because
- * moving it would move two consumptions at once.
+ * Three of the fields are creation-only, and not by choice of layout — the
+ * update endpoint takes none of them. Pointing has its own ring on the row, the
+ * envelope an operation answers to is settled when it is written because moving
+ * it would move two consumptions at once, and the goal an income came out of is
+ * an origin, not an attribute to be edited afterwards.
  */
 export function TransactionSheet({
   isVisible,
@@ -100,6 +109,9 @@ export function TransactionSheet({
     initialForm(transaction, envelope),
   );
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  // Held apart from the chosen goal: "yes, from a goal" and "which one" are two
+  // answers, and the block has to stay open between them.
+  const [isFromSavingsGoal, setFromSavingsGoal] = useState(false);
   // Bumped on every reset. The amount field holds its own text so a decimal
   // separator survives typing, which means clearing the number behind it is not
   // enough to clear what is on screen — only a remount is.
@@ -111,13 +123,43 @@ export function TransactionSheet({
   // the mismatch, and the envelope is the reason the user opened this form.
   const isKindLocked =
     envelope !== undefined || (transaction?.budgetLineId ?? null) !== null;
+  // Only a free income can name its origin, and only at creation: the update
+  // endpoint does not take the field, and an allocated one is answered for by
+  // the forecast it fills.
+  const isOriginOffered =
+    !isEditing && envelope === undefined && draft.kind === "income";
+  const options = useSavingsGoalWithdrawalOptions(
+    isOriginOffered && isFromSavingsGoal,
+  );
+  const chosenOption =
+    options.data?.find(
+      (option) => option.goalId === draft.sourceSavingsGoalId,
+    ) ?? null;
+  const remainingAfterWithdrawal =
+    chosenOption === null || draft.amount === null
+      ? null
+      : chosenOption.availableAmount - draft.amount;
+  const originProblem = originProblemOf({
+    isActive: isOriginOffered && isFromSavingsGoal,
+    hasChosenGoal: draft.sourceSavingsGoalId !== null,
+    remainingAfterWithdrawal,
+  });
 
   function change(changes: Partial<FormState>) {
     setForm((current) => ({ ...current, ...changes }));
   }
 
+  function changeKind(kind: TransactionKind) {
+    change({
+      kind,
+      ...(kind === "income" ? {} : { sourceSavingsGoalId: null }),
+    });
+    if (kind !== "income") setFromSavingsGoal(false);
+  }
+
   function reset() {
     setForm(initialForm(transaction, envelope));
+    setFromSavingsGoal(false);
     setGeneration((current) => current + 1);
   }
 
@@ -130,7 +172,7 @@ export function TransactionSheet({
   }
 
   function submit() {
-    if (!isDraftSubmittable(draft)) return;
+    if (!isDraftSubmittable(draft) || originProblem !== null) return;
 
     const onSuccess = () => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -158,7 +200,7 @@ export function TransactionSheet({
     );
   }
 
-  const hint = draftHint(draft);
+  const hint = draftHint(draft) ?? originProblem;
 
   return (
     <>
@@ -182,7 +224,11 @@ export function TransactionSheet({
             <Button
               mode="contained"
               onPress={submit}
-              disabled={!isDraftSubmittable(draft) || mutation.isPending}
+              disabled={
+                !isDraftSubmittable(draft) ||
+                originProblem !== null ||
+                mutation.isPending
+              }
               loading={mutation.isPending}
             >
               {isEditing ? "Enregistrer" : "Ajouter"}
@@ -213,7 +259,7 @@ export function TransactionSheet({
         {!isKindLocked && (
           <SegmentedButtons
             value={draft.kind}
-            onValueChange={(kind) => change({ kind: kind as TransactionKind })}
+            onValueChange={(kind) => changeKind(kind as TransactionKind)}
             buttons={KIND_BUTTONS}
           />
         )}
@@ -243,6 +289,94 @@ export function TransactionSheet({
         >
           {formatRelativeDay(draft.day, new Date())}
         </Button>
+
+        {/* An income can be money coming in, or money coming back out of a pot
+            the user already filled. Only the second empties a goal, and the
+            server needs to be told which one this is. */}
+        {isOriginOffered && (
+          <View style={styles.origin}>
+            <View style={styles.checkedRow}>
+              <View style={styles.checkedLabels}>
+                <Text variant="bodyLarge">
+                  Ce revenu vient d&apos;un objectif d&apos;épargne
+                </Text>
+                {isFromSavingsGoal && (
+                  <Text
+                    variant="labelMedium"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    Le montant sera retiré de l&apos;objectif choisi.
+                  </Text>
+                )}
+              </View>
+              <Switch
+                value={isFromSavingsGoal}
+                onValueChange={(isOn) => {
+                  setFromSavingsGoal(isOn);
+                  if (!isOn) change({ sourceSavingsGoalId: null });
+                }}
+                accessibilityLabel="Revenu venant d'un objectif d'épargne"
+              />
+            </View>
+
+            {isFromSavingsGoal &&
+              (options.isPending ? (
+                <ActivityIndicator />
+              ) : (options.data ?? []).length === 0 ? (
+                <Text
+                  variant="labelMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  Aucun objectif n&apos;a d&apos;argent disponible pour
+                  l&apos;instant.
+                </Text>
+              ) : (
+                <FadingRail
+                  inset={SHEET_PADDING}
+                  background={theme.colors.surface}
+                  accessibilityLabel="Objectifs disponibles"
+                >
+                  {(options.data ?? []).map((option) => (
+                    <FilterChip
+                      key={option.goalId}
+                      selected={option.goalId === draft.sourceSavingsGoalId}
+                      icon="piggy-bank-outline"
+                      onPress={() =>
+                        change({ sourceSavingsGoalId: option.goalId })
+                      }
+                      accessibilityState={{
+                        selected: option.goalId === draft.sourceSavingsGoalId,
+                      }}
+                    >
+                      {`${option.name} · ${formatCompactCurrency(
+                        option.availableAmount,
+                        option.currency,
+                      )}`}
+                    </FilterChip>
+                  ))}
+                </FadingRail>
+              ))}
+
+            {/* What the goal has left afterwards, which is the number the
+                choice is actually made on. */}
+            {isFromSavingsGoal &&
+              chosenOption !== null &&
+              remainingAfterWithdrawal !== null && (
+                <Text
+                  variant="labelMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {`${chosenOption.name} · ${formatCompactCurrency(
+                    chosenOption.availableAmount,
+                    chosenOption.currency,
+                  )} → ${formatCompactCurrency(
+                    remainingAfterWithdrawal,
+                    chosenOption.currency,
+                  )}`}
+                </Text>
+              )}
+          </View>
+        )}
 
         {!isEditing && (
           <View style={styles.checkedRow}>
@@ -288,6 +422,27 @@ export function TransactionSheet({
 
 type FormState = Omit<TransactionDraft, "budgetId">;
 
+/**
+ * The two ways an announced withdrawal is not ready to send, in the order the
+ * user meets them. Both are refusals the server would state itself, and neither
+ * is worth a round trip to hear.
+ */
+function originProblemOf(input: {
+  isActive: boolean;
+  hasChosenGoal: boolean;
+  remainingAfterWithdrawal: number | null;
+}): string | null {
+  if (!input.isActive) return null;
+  if (!input.hasChosenGoal) return "Choisis l'objectif utilisé";
+  if (
+    input.remainingAfterWithdrawal !== null &&
+    input.remainingAfterWithdrawal < 0
+  ) {
+    return "Ce montant dépasse ce que contient l'objectif.";
+  }
+  return null;
+}
+
 function initialForm(
   transaction: Transaction | undefined,
   envelope: EnvelopeTarget | undefined,
@@ -306,6 +461,7 @@ function initialForm(
     // arrives pointed; the toggle is there for the one they are anticipating.
     isChecked: true,
     tagIds: [],
+    sourceSavingsGoalId: null,
   };
 }
 
@@ -317,5 +473,6 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   checkedLabels: { flex: 1, gap: SPACING.xxs },
+  origin: { gap: SPACING.sm },
   hint: { textAlign: "center" },
 });

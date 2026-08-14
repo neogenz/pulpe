@@ -14,6 +14,12 @@ export interface TransactionDraft {
   day: Date;
   isChecked: boolean;
   tagIds: string[];
+  /**
+   * The goal an income is taken out of (PUL-329). Only a free income can carry
+   * one: allocated, the forecast it fills already names the origin, and the
+   * create schema refuses both declarations at once.
+   */
+  sourceSavingsGoalId: string | null;
 }
 
 /**
@@ -42,6 +48,9 @@ export function buildTransactionPayload(
     // An empty array would be a deliberate "no tags"; the field is simply not
     // part of the request when the user picked none.
     ...(draft.tagIds.length > 0 ? { tagIds: draft.tagIds } : {}),
+    ...(draft.kind === "income" && draft.sourceSavingsGoalId !== null
+      ? { sourceSavingsGoalId: draft.sourceSavingsGoalId }
+      : {}),
   };
 }
 
@@ -87,6 +96,7 @@ export function transactionDraftFrom(
     day: new Date(transaction.transactionDate),
     isChecked: transaction.checkedAt !== null,
     tagIds: transaction.tagIds ?? [],
+    sourceSavingsGoalId: transaction.sourceSavingsGoalId ?? null,
   };
 }
 
@@ -95,9 +105,9 @@ export function transactionDraftFrom(
  * fields back would overwrite another device's edit with what happened to be on
  * this screen.
  *
- * Two fields are deliberately unreachable here because the endpoint does not
- * take them — pointing has its own toggle, and the envelope a transaction
- * answers to is decided once, when it is written.
+ * Three fields are deliberately unreachable here because the endpoint does not
+ * take them — pointing has its own toggle, and both the envelope a transaction
+ * answers to and the goal it came out of are decided once, when it is written.
  */
 export function buildTransactionUpdate(
   draft: TransactionDraft,
@@ -137,13 +147,21 @@ function haveSameTags(chosen: string[], stored: string[]): boolean {
  * rather than a look-alike — anything already pointing at it still points at
  * it.
  *
- * The savings origin survives because a transaction can only carry one by
- * having been an unallocated income, which is precisely what the create schema
- * allows to declare a source.
+ * The savings origin is only ever *sent* for a free income. A realised planned
+ * withdrawal carries one too, but allocated to the forecast that empties the
+ * pot — and there the server reads the origin off that forecast. Declaring it
+ * again would be a second declaration of origin, which the create schema
+ * rejects (`transactionCreateSchema`, superRefine), taking the whole undo with
+ * it.
  */
 export function buildTransactionRestore(
   transaction: Transaction,
 ): TransactionCreate {
+  const declarableOrigin =
+    transaction.kind === "income" && transaction.budgetLineId === null
+      ? (transaction.sourceSavingsGoalId ?? undefined)
+      : undefined;
+
   return {
     id: transaction.id,
     budgetId: transaction.budgetId,
@@ -158,8 +176,8 @@ export function buildTransactionRestore(
     ...(transaction.tagIds !== undefined && transaction.tagIds.length > 0
       ? { tagIds: transaction.tagIds }
       : {}),
-    ...(transaction.sourceSavingsGoalId != null
-      ? { sourceSavingsGoalId: transaction.sourceSavingsGoalId }
+    ...(declarableOrigin !== undefined
+      ? { sourceSavingsGoalId: declarableOrigin }
       : {}),
     ...(transaction.originalAmount != null
       ? { originalAmount: transaction.originalAmount }

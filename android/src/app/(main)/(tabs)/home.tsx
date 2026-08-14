@@ -34,6 +34,7 @@ import { RealizedBalanceSheet } from "@/features/current-month/components/realiz
 import { SavingsDoneCard } from "@/features/current-month/components/savings-done-card";
 import { UncheckedOperationsCard } from "@/features/current-month/components/unchecked-operations-card";
 import { useCurrentMonth } from "@/features/current-month/current-month-queries";
+import type { CheckableItem } from "@/features/current-month/current-month-view-model";
 import { heroPresentation } from "@/features/current-month/home-hero-presentation";
 import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
 
@@ -51,10 +52,14 @@ export default function HomeScreen() {
     (state) => state.isAddExpenseRequested,
   );
   const isAddVisible = isAddOpen || isAddRequested;
-  const [hasToggleFailed, setToggleFailed] = useState(false);
+  // Names the step that failed: a pointing that never reached the server and an
+  // undo that did not go back are two different pieces of news.
+  const [toggleFailure, setToggleFailure] = useState<string | null>(null);
+  const [pointed, setPointed] = useState<CheckableItem | null>(null);
   const [hasTransactionAdded, setTransactionAdded] = useState(false);
   // A rolled-back row reappearing is not an explanation, so the failure is said
-  // out loud. The success needs no toast: the row leaving the card is the reply.
+  // out loud — and so is the success, because the row leaves the card either
+  // way and the way back has to be offered while it is still obvious.
   const toggle = useToggleCheck(currentMonth.budgetId);
   const reminders = useReminderPriming();
   // Same cached query the current month resolves against, so this costs nothing
@@ -191,11 +196,17 @@ export default function HomeScreen() {
                 // Doing it explains it better than the card ever could.
                 dismissTip("checking");
                 toggle.mutate(item, {
-                  onError: () => setToggleFailed(true),
+                  onError: () =>
+                    setToggleFailure(
+                      "Le pointage n'a pas été enregistré. Réessaie.",
+                    ),
                   // Offered here and nowhere else: a reminder to point is worth
                   // something only to someone who has just found out what
                   // pointing does.
-                  onSuccess: () => reminders.offer(),
+                  onSuccess: () => {
+                    setPointed(item);
+                    reminders.offer();
+                  },
                 });
               }}
             />
@@ -246,12 +257,35 @@ export default function HomeScreen() {
         />
       )}
 
+      {/* The server flips whatever state it holds, so taking the pointing back
+          is the very same call a second time. */}
       <Snackbar
-        visible={hasToggleFailed}
-        onDismiss={() => setToggleFailed(false)}
-        action={{ label: "Fermer", onPress: () => setToggleFailed(false) }}
+        visible={pointed !== null}
+        onDismiss={() => setPointed(null)}
+        action={{
+          label: "Annuler",
+          onPress: () => {
+            const item = pointed;
+            setPointed(null);
+            if (item === null) return;
+            toggle.mutate(item, {
+              onError: () =>
+                setToggleFailure(
+                  "Le pointage n'a pas pu être annulé. Reprends-le depuis le budget.",
+                ),
+            });
+          },
+        }}
       >
-        Le pointage n&apos;a pas été enregistré. Réessaie.
+        {pointed === null ? "" : `${pointed.name} pointé`}
+      </Snackbar>
+
+      <Snackbar
+        visible={toggleFailure !== null}
+        onDismiss={() => setToggleFailure(null)}
+        action={{ label: "Fermer", onPress: () => setToggleFailure(null) }}
+      >
+        {toggleFailure}
       </Snackbar>
 
       <Snackbar

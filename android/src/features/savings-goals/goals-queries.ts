@@ -13,6 +13,7 @@ import {
   fetchSavingsGoalFutureLines,
   fetchSavingsGoalProgress,
   fetchSavingsGoals,
+  fetchSavingsGoalWithdrawalOptions,
   fetchSavingsGoalWithdrawals,
   stopSavingsGoalGeneration,
   updateSavingsGoal,
@@ -27,6 +28,7 @@ export const goalKeys = {
     ["savings-goals", "contributions", goalId] as const,
   withdrawals: (goalId: string) =>
     ["savings-goals", "withdrawals", goalId] as const,
+  withdrawalOptions: () => ["savings-goals", "withdrawal-options"] as const,
   futureLines: (goalId: string) =>
     ["savings-goals", "future-lines", goalId] as const,
   deletionImpact: (goalId: string) =>
@@ -88,6 +90,22 @@ export function useSavingsGoalWithdrawals(goalId: string) {
     queryKey: goalKeys.withdrawals(goalId),
     queryFn: () => fetchSavingsGoalWithdrawals(goalId),
     enabled: isUnlocked,
+  });
+}
+
+/**
+ * Balances the user is about to spend against, so they are asked for only
+ * while the form that needs them is open — and never cached past it, since a
+ * refused withdrawal is proof the numbers on screen were stale.
+ */
+export function useSavingsGoalWithdrawalOptions(isEnabled: boolean) {
+  const isUnlocked = useUnlocked();
+
+  return useQuery({
+    queryKey: goalKeys.withdrawalOptions(),
+    queryFn: fetchSavingsGoalWithdrawalOptions,
+    enabled: isUnlocked && isEnabled,
+    staleTime: 0,
   });
 }
 

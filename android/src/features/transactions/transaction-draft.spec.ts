@@ -25,6 +25,7 @@ function draft(overrides: Partial<TransactionDraft> = {}): TransactionDraft {
     day: new Date(2026, 7, 9),
     isChecked: true,
     tagIds: [],
+    sourceSavingsGoalId: null,
     ...overrides,
   };
 }
@@ -73,6 +74,32 @@ describe("buildTransactionPayload", () => {
     const payload = buildTransactionPayload(draft({ tagIds }), NOW);
 
     expect(payload.tagIds).toEqual(tagIds);
+    expect(transactionCreateSchema.safeParse(payload).success).toBe(true);
+  });
+
+  it("declares the goal an income was taken out of", () => {
+    const goalId = "9d8e7f6a-5b4c-4d3e-8f9a-0b1c2d3e4f5a";
+    const payload = buildTransactionPayload(
+      draft({ kind: "income", sourceSavingsGoalId: goalId }),
+      NOW,
+    );
+
+    expect(payload.sourceSavingsGoalId).toBe(goalId);
+    expect(transactionCreateSchema.safeParse(payload).success).toBe(true);
+  });
+
+  // The schema takes an origin on an income and nothing else, so a stale
+  // choice left behind by a change of type must not travel with it.
+  it("drops an origin a spend could not carry", () => {
+    const payload = buildTransactionPayload(
+      draft({
+        kind: "expense",
+        sourceSavingsGoalId: "9d8e7f6a-5b4c-4d3e-8f9a-0b1c2d3e4f5a",
+      }),
+      NOW,
+    );
+
+    expect("sourceSavingsGoalId" in payload).toBe(false);
     expect(transactionCreateSchema.safeParse(payload).success).toBe(true);
   });
 
@@ -220,6 +247,24 @@ describe("buildTransactionRestore", () => {
     const payload = buildTransactionRestore(deleted);
 
     expect(payload.sourceSavingsGoalId).toBe(deleted.sourceSavingsGoalId);
+    expect(transactionCreateSchema.safeParse(payload).success).toBe(true);
+  });
+
+  // A realised planned withdrawal carries both ids. Sending them together is a
+  // second declaration of origin, and the schema rejects the whole payload —
+  // the undo used to be lost right here.
+  it("leaves the origin to the server on an allocated withdrawal", () => {
+    const deleted = transaction({
+      kind: "income",
+      budgetLineId: "2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d",
+      sourceSavingsGoalId: "9d8e7f6a-5b4c-4d3e-8f9a-0b1c2d3e4f5a",
+      sourceSavingsGoalName: "Vacances",
+    });
+
+    const payload = buildTransactionRestore(deleted);
+
+    expect(payload.budgetLineId).toBe(deleted.budgetLineId);
+    expect("sourceSavingsGoalId" in payload).toBe(false);
     expect(transactionCreateSchema.safeParse(payload).success).toBe(true);
   });
 

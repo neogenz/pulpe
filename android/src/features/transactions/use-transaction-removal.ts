@@ -28,7 +28,7 @@ export function useTransactionRemoval() {
   const remove = useDeleteTransaction();
   const restore = useRestoreTransaction();
   const [undoable, setUndoable] = useState<Transaction[]>([]);
-  const [hasFailed, setFailed] = useState(false);
+  const [failureMessage, setFailureMessage] = useState<string | null>(null);
 
   const last = undoable.at(-1) ?? null;
 
@@ -37,7 +37,8 @@ export function useTransactionRemoval() {
     undoable,
     /** What the snackbar names, and what the next undo would bring back. */
     last,
-    hasFailed,
+    /** Names the step that failed: a lost undo is not a failed deletion. */
+    failureMessage,
     isPending: remove.isPending || restore.isPending,
     remove: (transaction: Transaction, onRemoved?: () => void) =>
       remove.mutate(transaction.id, {
@@ -45,16 +46,21 @@ export function useTransactionRemoval() {
           setUndoable((current) => [...current, transaction]);
           onRemoved?.();
         },
-        onError: () => setFailed(true),
+        onError: () =>
+          setFailureMessage("L'opération n'a pas pu être supprimée. Réessaie."),
       }),
+    // The entry leaves the stack only once the server has the row back:
+    // dropping it first turned a failed restore into a deletion nobody could
+    // take back a second time.
     undo: () => {
-      if (last === null) return;
+      if (last === null || restore.isPending) return;
       restore.mutate(buildTransactionRestore(last), {
-        onError: () => setFailed(true),
+        onSuccess: () => setUndoable((current) => current.slice(0, -1)),
+        onError: () =>
+          setFailureMessage("L'annulation n'a pas abouti. Réessaie."),
       });
-      setUndoable((current) => current.slice(0, -1));
     },
     forget: () => setUndoable([]),
-    dismissFailure: () => setFailed(false),
+    dismissFailure: () => setFailureMessage(null),
   };
 }
