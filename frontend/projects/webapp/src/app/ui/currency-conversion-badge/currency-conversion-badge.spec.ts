@@ -1,5 +1,5 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { LOCALE_ID, provideZonelessChangeDetection } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { describe, it, expect, beforeEach } from 'vitest';
 
@@ -98,5 +98,49 @@ describe('CurrencyConversionBadge', () => {
     expect(pill).not.toBeNull();
     expect(pill.textContent).toContain('CHF');
     expect(pill.textContent).toContain('100');
+  });
+});
+
+describe('CurrencyConversionBadge fallback date', () => {
+  async function renderFallbackBadge(
+    locale: string,
+    isoDate: string,
+  ): Promise<HTMLElement | null> {
+    await TestBed.configureTestingModule({
+      imports: [CurrencyConversionBadge],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideAnimationsAsync(),
+        ...provideTranslocoForTest(),
+        { provide: LOCALE_ID, useValue: locale },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(CurrencyConversionBadge);
+    setTestInput(fixture.componentInstance.fallbackDate, isoDate);
+    TestBed.flushEffects();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    return fixture.nativeElement.querySelector(
+      '[data-testid="currency-conversion-badge-fallback"]',
+    );
+  }
+
+  // The sentence around the date comes from the catalog, the date itself from
+  // LOCALE_ID. Keeping the catalog French here is what isolates the second:
+  // a frozen locale renders a French date inside a German sentence.
+  it('should format the cached rate date in German for a German interface', async () => {
+    const badge = await renderFallbackBadge('de-CH', '2025-01-12');
+
+    expect(badge).not.toBeNull();
+    expect(badge?.textContent).toContain('12. Jan.');
+  });
+
+  it('should format the cached rate date in French for a French interface', async () => {
+    const badge = await renderFallbackBadge('fr-CH', '2025-01-12');
+
+    expect(badge).not.toBeNull();
+    expect(badge?.textContent).toContain('12 janv.');
   });
 });
