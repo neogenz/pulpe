@@ -44,13 +44,13 @@ export default function BudgetSuisseGuidePage() {
       <h2>Les quatre étapes pour poser ton budget</h2>
       <ol>
         <li>
-          <strong>Pose tes revenus.</strong> Ton salaire net, et tout ce qui
+          <strong>Pose tes revenus. </strong>Ton salaire net, et tout ce qui
           arrive en plus : 13e salaire, primes, revenus annexes. Si ton revenu
           varie, pars du montant le plus bas des derniers mois. Mieux vaut une
           bonne surprise que l&apos;inverse.
         </li>
         <li>
-          <strong>Liste tes prévisions.</strong> D&apos;abord les dépenses
+          <strong>Liste tes prévisions. </strong>D&apos;abord les dépenses
           récurrentes, celles qui reviennent chaque mois : loyer, assurance
           maladie, téléphone, transports. Puis les dépenses prévues propres à
           certains mois : impôts, vacances, cadeaux de fin d&apos;année.
@@ -58,13 +58,13 @@ export default function BudgetSuisseGuidePage() {
           sont connus d&apos;avance, ils méritent chacun une ligne.
         </li>
         <li>
-          <strong>Choisis ton épargne.</strong> Décide d&apos;un montant avant
+          <strong>Choisis ton épargne. </strong>Décide d&apos;un montant avant
           de dépenser, pas avec ce qui traîne en fin de mois. Vire-le dès que le
           salaire arrive, sur un compte séparé que tu ne touches pas au
           quotidien.
         </li>
         <li>
-          <strong>Regarde ton disponible à dépenser.</strong> Revenus, moins
+          <strong>Regarde ton disponible à dépenser. </strong>Revenus, moins
           prévisions, moins épargne : ce qui reste couvre les courses, les
           sorties et les imprévus. C&apos;est le seul chiffre à retenir au
           quotidien. Tant qu&apos;il est positif, ton mois tient.
@@ -76,7 +76,7 @@ export default function BudgetSuisseGuidePage() {
       <ul>
         <li>
           Le salaire médian suisse est de{" "}
-          <mark className="marker-highlight">7’024&nbsp;CHF brut</mark> par mois
+          <mark className="marker-highlight">7’024&nbsp;CHF brut </mark>par mois
           selon l&apos;
           <a
             href="https://www.bfs.admin.ch/bfs/fr/home/statistiques/travail-remuneration/salaires.html"
@@ -89,7 +89,7 @@ export default function BudgetSuisseGuidePage() {
         </li>
         <li>
           La prime moyenne de l&apos;assurance maladie obligatoire atteint{" "}
-          <mark className="marker-highlight">393.30&nbsp;CHF par mois</mark> en
+          <mark className="marker-highlight">393.30&nbsp;CHF par mois </mark>en
           2026, d&apos;après l&apos;
           <a
             href="https://www.bag.admin.ch/bag/fr/home/versicherungen/krankenversicherung/krankenversicherung-praemien.html"
@@ -203,12 +203,12 @@ export default function BudgetSuisseGuidePage() {
       <p>Deux règles pour que ça tienne :</p>
       <ul>
         <li>
-          <strong>Ne vise pas le centime près.</strong> Un ordre de grandeur
+          <strong>Ne vise pas le centime près. </strong>Un ordre de grandeur
           juste vaut mieux qu&apos;un suivi parfait abandonné au bout de trois
           semaines.
         </li>
         <li>
-          <strong>Ajuste quand ça change.</strong> Quand un montant prévu bouge,
+          <strong>Ajuste quand ça change. </strong>Quand un montant prévu bouge,
           corrige la prévision au lieu de faire comme si de rien n&apos;était.
           Un budget qui ne bouge jamais est un budget qu&apos;on a arrêté de
           regarder.
