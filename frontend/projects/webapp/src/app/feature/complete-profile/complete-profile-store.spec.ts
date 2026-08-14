@@ -28,6 +28,7 @@ describe('CompleteProfileStore', () => {
   };
   let mockUserSettingsStore: {
     updateSettings: ReturnType<typeof vi.fn>;
+    currency: ReturnType<typeof vi.fn>;
   };
   let mockAuthOAuth: {
     getOAuthUserMetadata: ReturnType<typeof vi.fn>;
@@ -43,6 +44,9 @@ describe('CompleteProfileStore', () => {
   };
 
   beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+
     mockProfileSetupService = {
       createInitialBudget: vi.fn(),
     };
@@ -53,6 +57,7 @@ describe('CompleteProfileStore', () => {
 
     mockUserSettingsStore = {
       updateSettings: vi.fn().mockResolvedValue({ payDayOfMonth: null }),
+      currency: vi.fn().mockReturnValue('CHF'),
     };
 
     mockAuthOAuth = {
@@ -70,6 +75,10 @@ describe('CompleteProfileStore', () => {
       captureEvent: vi.fn(),
     };
 
+    store = configureStore();
+  });
+
+  function configureStore(): CompleteProfileStore {
     TestBed.configureTestingModule({
       providers: [
         CompleteProfileStore,
@@ -83,8 +92,8 @@ describe('CompleteProfileStore', () => {
       ],
     });
 
-    store = TestBed.inject(CompleteProfileStore);
-  });
+    return TestBed.inject(CompleteProfileStore);
+  }
 
   describe('initial state', () => {
     it('should have empty firstName', () => {
@@ -121,6 +130,112 @@ describe('CompleteProfileStore', () => {
 
     it('should be invalid for step 1', () => {
       expect(store.isStep1Valid()).toBe(false);
+    });
+  });
+
+  describe('draft recovery', () => {
+    const draftKey = 'pulpe-complete-profile-draft';
+
+    it('should restore a valid versioned draft', () => {
+      store.updateCurrentStep(2);
+      store.updateCurrency('EUR');
+      store.updateFirstName('Jeanne');
+      store.updateMonthlyIncome(4200);
+      store.updateHousingCosts(1200);
+      store.updatePayDayOfMonth(25);
+      store.addCustomTransaction({
+        name: 'Mutuelle',
+        amount: 80,
+        type: 'expense',
+        expenseType: 'fixed',
+        isRecurring: true,
+      });
+
+      TestBed.resetTestingModule();
+      store = configureStore();
+
+      expect(store.currentStep()).toBe(2);
+      expect(store.currency()).toBe('EUR');
+      expect(store.firstName()).toBe('Jeanne');
+      expect(store.monthlyIncome()).toBe(4200);
+      expect(store.housingCosts()).toBe(1200);
+      expect(store.payDayOfMonth()).toBe(25);
+      expect(store.customTransactions()).toEqual([
+        {
+          name: 'Mutuelle',
+          amount: 80,
+          type: 'expense',
+          expenseType: 'fixed',
+          isRecurring: true,
+        },
+      ]);
+    });
+
+    it('should ignore and clear corrupted JSON', () => {
+      TestBed.resetTestingModule();
+      sessionStorage.setItem(draftKey, '{not-json');
+
+      store = configureStore();
+
+      expect(store.currentStep()).toBe(1);
+      expect(store.currency()).toBe('CHF');
+      expect(store.firstName()).toBe('');
+      expect(sessionStorage.getItem(draftKey)).toBeNull();
+    });
+
+    it('should clear the draft after successful profile creation', async () => {
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+      store.updateFirstName('Jeanne');
+      store.updateMonthlyIncome(4200);
+      expect(sessionStorage.getItem(draftKey)).not.toBeNull();
+
+      await store.submitProfile();
+
+      expect(sessionStorage.getItem(draftKey)).toBeNull();
+    });
+
+    it('does not persist transient request state', async () => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+      await store.checkExistingBudgets();
+
+      expect(setItemSpy).not.toHaveBeenCalled();
+      setItemSpy.mockRestore();
+    });
+
+    it('keeps the valid draft fields when one stored field is invalid', () => {
+      sessionStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          version: 1,
+          updatedAt: new Date().toISOString(),
+          data: {
+            version: 1,
+            currentStep: 2,
+            currency: 'EUR',
+            firstName: 'Jeanne',
+            monthlyIncome: 4200,
+            housingCosts: -1,
+            healthInsurance: null,
+            phonePlan: null,
+            internetPlan: null,
+            transportCosts: null,
+            leasingCredit: null,
+            payDayOfMonth: null,
+            customTransactions: [],
+          },
+        }),
+      );
+
+      TestBed.resetTestingModule();
+      store = configureStore();
+
+      expect(store.currentStep()).toBe(2);
+      expect(store.firstName()).toBe('Jeanne');
+      expect(store.monthlyIncome()).toBe(4200);
+      expect(store.housingCosts()).toBeNull();
     });
   });
 
@@ -343,6 +458,9 @@ describe('CompleteProfileStore', () => {
       const result = await store.submitProfile();
 
       expect(result).toBe(true);
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenCalledWith({
+        currency: 'CHF',
+      });
       expect(mockProfileSetupService.createInitialBudget).toHaveBeenCalledWith({
         firstName: 'John',
         monthlyIncome: 5000,
@@ -400,15 +518,42 @@ describe('CompleteProfileStore', () => {
       const result = await store.submitProfile();
 
       expect(result).toBe(true);
-      expect(mockUserSettingsStore.updateSettings).toHaveBeenCalledWith({
-        payDayOfMonth: 27,
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenNthCalledWith(1, {
+        currency: 'CHF',
       });
-      expect(mockLogger.info).toHaveBeenCalledWith('Pay day setting saved', {
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenNthCalledWith(2, {
         payDayOfMonth: 27,
       });
     });
 
-    it('should not save payDayOfMonth when null', async () => {
+    it('should finish onboarding when saving payDayOfMonth fails after budget creation', async () => {
+      mockUserSettingsStore.updateSettings
+        .mockResolvedValueOnce({ payDayOfMonth: null })
+        .mockRejectedValueOnce(new Error('Pay day API Error'));
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+      store.updatePayDayOfMonth(27);
+
+      const result = await store.submitProfile();
+
+      expect(result).toBe(true);
+      expect(
+        mockProfileSetupService.createInitialBudget,
+      ).toHaveBeenCalledOnce();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Budget created, but saving the pay day failed:',
+        expect.any(Error),
+      );
+      expect(mockPostHogService.captureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        { context: 'complete-profile', action: 'savePayDay' },
+      );
+    });
+
+    it('should only save currency when payDayOfMonth is null', async () => {
       mockProfileSetupService.createInitialBudget.mockResolvedValue({
         success: true,
       });
@@ -420,35 +565,30 @@ describe('CompleteProfileStore', () => {
       const result = await store.submitProfile();
 
       expect(result).toBe(true);
-      expect(mockUserSettingsStore.updateSettings).not.toHaveBeenCalled();
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenCalledTimes(1);
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenCalledWith({
+        currency: 'CHF',
+      });
     });
 
-    it('should succeed even if saving payDayOfMonth fails', async () => {
-      mockProfileSetupService.createInitialBudget.mockResolvedValue({
-        success: true,
-      });
+    it('should not create a budget or clear the draft when saving currency fails', async () => {
       mockUserSettingsStore.updateSettings.mockRejectedValue(
         new Error('Settings API Error'),
       );
-
-      store.updateFirstName('John');
-      store.updateMonthlyIncome(5000);
-      store.updatePayDayOfMonth(15);
+      store.updateCurrency('EUR');
+      store.updateFirstName('Jeanne');
+      store.updateMonthlyIncome(4200);
 
       const result = await store.submitProfile();
 
-      expect(result).toBe(true);
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Failed to save pay day setting',
-        expect.any(Error),
-      );
-      expect(mockPostHogService.captureException).toHaveBeenCalledWith(
-        expect.any(Error),
-        {
-          context: 'complete-profile',
-          action: 'savePayDaySetting',
-        },
-      );
+      expect(result).toBe(false);
+      expect(
+        mockProfileSetupService.createInitialBudget,
+      ).not.toHaveBeenCalled();
+      expect(
+        sessionStorage.getItem('pulpe-complete-profile-draft'),
+      ).not.toBeNull();
+      expect(store.error()).not.toBeNull();
     });
 
     it('should track first_budget_created event on success', async () => {

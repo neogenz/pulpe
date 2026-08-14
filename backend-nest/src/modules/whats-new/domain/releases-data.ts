@@ -36,6 +36,39 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.44.0',
+    iosVersion: '1.3.2',
+    date: '2026-08-14',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Trajectoire mensuelle',
+          description:
+            'L’accueil distingue ce qui est réalisé de ce qui reste prévu et estime le solde de fin de mois',
+        },
+        {
+          title: 'Retraits depuis un objectif',
+          description:
+            'Un retrait peut être ajouté comme revenu dans le budget immédiatement ou planifié pour un mois futur',
+        },
+        {
+          title: 'Épargne lissée liée aux objectifs',
+          description:
+            'Une épargne répartie sur plusieurs mois conserve l’objectif qu’elle alimente',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Plans d’épargne complétés',
+          description:
+            'Pulpe repère les versements absents des budgets déjà créés et permet de les ajouter après vérification',
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
     version: '0.40.0',
     iosVersion: '1.3.0',
     date: '2026-07-28',

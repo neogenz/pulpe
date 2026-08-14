@@ -551,15 +551,16 @@ let heroInstanceCount = 0;
         opacity: 0.8;
       }
 
-      /* Quiet on purpose: a definition is read once and then never again, so it
-         must not compete with the three amounts it explains. 0.72 keeps it at
-         4.6:1 on the lightest of the four hero states, above the 4.5:1 the size
-         asks for. */
+      /* Explanatory copy, not metadata: it stays quieter than the amounts while
+         remaining comfortable to read across the full-width hero. */
       .progress-legend-note {
         margin: 0.5rem 0 0;
-        font-size: var(--mat-sys-label-small-size);
-        line-height: var(--mat-sys-label-small-line-height);
-        opacity: 0.72;
+        max-inline-size: 68ch;
+        font-size: var(--mat-sys-body-medium-size);
+        line-height: var(--mat-sys-body-medium-line-height);
+        letter-spacing: var(--mat-sys-body-medium-tracking);
+        font-weight: 500;
+        opacity: 0.84;
         text-wrap: pretty;
       }
     `,

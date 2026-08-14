@@ -218,14 +218,15 @@ test.describe('Savings goal progression (PUL-8)', () => {
     const projectionSummary = page.getByTestId('goal-projection-summary');
     await expect(projectionPanel).toBeVisible();
     await expect(
-      page.getByTestId('goal-projection-summary-target'),
-    ).toContainText(/3[\s’']?000/);
+      page.getByTestId('goal-projection-toggle-target'),
+    ).toBeVisible();
     await expect(
-      page.getByTestId('goal-projection-summary-confirmed'),
-    ).toContainText('900');
+      page.getByTestId('goal-projection-toggle-confirmed'),
+    ).toBeVisible();
     await expect(
-      page.getByTestId('goal-projection-summary-projection'),
-    ).toContainText(/4[\s’']?500/);
+      page.getByTestId('goal-projection-toggle-projection'),
+    ).toBeVisible();
+    await expect(page.getByTestId('stat-confirmed')).toContainText('900');
     await expect(page.getByTestId('stat-projected')).toContainText(
       /4[\s’']?500/,
     );
@@ -239,8 +240,8 @@ test.describe('Savings goal progression (PUL-8)', () => {
     if (!desktopCanvas || !desktopSummary) {
       throw new Error('Desktop projection geometry is unavailable');
     }
-    expect(desktopSummary.x).toBeGreaterThan(
-      desktopCanvas.x + desktopCanvas.width,
+    expect(desktopSummary.y + desktopSummary.height).toBeLessThanOrEqual(
+      desktopCanvas.y,
     );
 
     for (const viewport of [
@@ -256,8 +257,7 @@ test.describe('Savings goal progression (PUL-8)', () => {
         )
         .toBeLessThanOrEqual(0);
       // Le canvas se remesure en asynchrone après le resize (ResizeObserver +
-      // rAF) : lire la géométrie une seule fois l'échantillonne parfois en
-      // plein relayout, le résumé encore de quelques pixels trop haut.
+      // rAF) : attendre que la légende reste au-dessus du graphique.
       await expect
         .poll(async () => {
           const [canvas, summary] = await Promise.all([
@@ -265,10 +265,10 @@ test.describe('Savings goal progression (PUL-8)', () => {
             projectionSummary.boundingBox(),
           ]);
           return canvas && summary
-            ? summary.y - (canvas.y + canvas.height)
+            ? canvas.y - (summary.y + summary.height)
             : null;
         })
-        .toBeGreaterThan(0);
+        .toBeGreaterThanOrEqual(0);
     }
   });
 

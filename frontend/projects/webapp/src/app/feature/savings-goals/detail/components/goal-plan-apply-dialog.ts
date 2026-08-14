@@ -68,7 +68,7 @@ const MAX_DIFF_ROWS = 5;
     <h2 mat-dialog-title>
       {{ titleKey() | transloco }}
     </h2>
-    <mat-dialog-content class="flex flex-col gap-4">
+    <mat-dialog-content class="flex! flex-col gap-4 py-4!">
       <p class="text-body-medium text-on-surface">
         {{ countKey() | transloco: { count: data.changes.length } }}
       </p>
@@ -217,7 +217,6 @@ const MAX_DIFF_ROWS = 5;
           }
         </ul>
       }
-
       @if (data.verdict) {
         <div
           class="flex items-start gap-2 rounded-xl bg-financial-savings/10 px-3 py-2.5"

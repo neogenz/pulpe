@@ -48,7 +48,7 @@ export interface RecoveryKeyDialogData {
 
       <button
         matButton
-        class="w-full mb-4"
+        class="w-full"
         (click)="copyToClipboard()"
         data-testid="copy-recovery-key-button"
       >
@@ -59,6 +59,18 @@ export interface RecoveryKeyDialogData {
             : ('recoveryKey.copyKey' | transloco)
         }}
       </button>
+
+      @if (copyFailed()) {
+        <p
+          class="mt-2 mb-4 text-body-small text-error"
+          role="alert"
+          data-testid="copy-recovery-key-error"
+        >
+          {{ 'recoveryKey.copyFailed' | transloco }}
+        </p>
+      } @else {
+        <div class="mb-4" aria-hidden="true"></div>
+      }
 
       <mat-form-field
         appearance="outline"
@@ -95,6 +107,7 @@ export class RecoveryKeyDialog {
   readonly data = inject<RecoveryKeyDialogData>(MAT_DIALOG_DATA);
 
   protected readonly isCopied = signal(false);
+  protected readonly copyFailed = signal(false);
   protected readonly confirmValue = signal('');
 
   protected readonly isConfirmed = computed(() => {
@@ -107,8 +120,15 @@ export class RecoveryKeyDialog {
   });
 
   async copyToClipboard(): Promise<void> {
-    await navigator.clipboard.writeText(this.data.recoveryKey);
-    this.isCopied.set(true);
+    this.copyFailed.set(false);
+
+    try {
+      await navigator.clipboard.writeText(this.data.recoveryKey);
+      this.isCopied.set(true);
+    } catch {
+      this.isCopied.set(false);
+      this.copyFailed.set(true);
+    }
   }
 
   onConfirm(): void {

@@ -67,42 +67,18 @@ test.describe('Authentication', () => {
     await expect(submitButton).toBeVisible();
   });
 
-  test('should keep password criteria clear of the confirmation label', async ({
+  test('should expose a single new-password field on signup', async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/signup');
 
-    const passwordInput = page.getByTestId('password-input');
-    const confirmPasswordInput = page.getByTestId('confirm-password-input');
-    const lastCriterion = page
-      .getByTestId('password-criteria')
-      .locator('li')
-      .last();
-    const confirmPasswordLabel = confirmPasswordInput
-      .locator('xpath=ancestor::mat-form-field')
-      .locator('.mat-mdc-floating-label');
+    const passwordInputs = page.locator('input[autocomplete="new-password"]');
 
-    const expectNoOverlap = async () => {
-      const [criterionBox, labelBox] = await Promise.all([
-        lastCriterion.boundingBox(),
-        confirmPasswordLabel.boundingBox(),
-      ]);
-
-      expect(criterionBox).not.toBeNull();
-      expect(labelBox).not.toBeNull();
-      expect(criterionBox!.y + criterionBox!.height).toBeLessThanOrEqual(
-        labelBox!.y,
-      );
-    };
-
-    await passwordInput.fill('abc');
-    await confirmPasswordInput.focus();
-    await expectNoOverlap();
-
-    await passwordInput.fill('Password1');
-    await confirmPasswordInput.fill('Password1');
-    await expectNoOverlap();
+    await expect(passwordInputs).toHaveCount(1);
+    await expect(page.getByTestId('password-input')).toHaveAttribute(
+      'autocomplete',
+      'new-password',
+    );
   });
 
   test('should keep compact password criterion icons unclipped', async ({

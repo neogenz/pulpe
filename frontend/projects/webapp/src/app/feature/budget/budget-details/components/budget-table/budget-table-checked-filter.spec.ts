@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import type { MatChipSelectionChange } from '@angular/material/chips';
+import type { MatButtonToggleChange } from '@angular/material/button-toggle';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { BudgetTableCheckedFilter } from './budget-table-checked-filter';
 
@@ -34,11 +34,7 @@ describe('BudgetTableCheckedFilter', () => {
     const emitSpy = vi.fn();
     component.isShowingOnlyUncheckedChange.subscribe(emitSpy);
 
-    const event = {
-      isUserInput: true,
-      selected: true,
-    } as MatChipSelectionChange;
-    component.onFilterChange(true, event);
+    component.onFilterChange({ value: true } as MatButtonToggleChange);
 
     expect(emitSpy).toHaveBeenCalledWith(true);
   });
@@ -48,49 +44,35 @@ describe('BudgetTableCheckedFilter', () => {
     const emitSpy = vi.fn();
     component.isShowingOnlyUncheckedChange.subscribe(emitSpy);
 
-    const event = {
-      isUserInput: true,
-      selected: true,
-    } as MatChipSelectionChange;
-    component.onFilterChange(false, event);
+    component.onFilterChange({ value: false } as MatButtonToggleChange);
 
     expect(emitSpy).toHaveBeenCalledWith(false);
   });
 
-  it('should not emit on programmatic selection (isUserInput=false)', () => {
-    fixture.detectChanges();
+  it('should keep the active filter selected when clicked again', async () => {
+    fixture.componentRef.setInput('isShowingOnlyUnchecked', true);
+    await fixture.whenStable();
     const emitSpy = vi.fn();
     component.isShowingOnlyUncheckedChange.subscribe(emitSpy);
+    const activeToggle: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="unchecked-filter-chip"] button',
+    );
 
-    const event = {
-      isUserInput: false,
-      selected: true,
-    } as MatChipSelectionChange;
-    component.onFilterChange(true, event);
+    activeToggle.click();
+    await fixture.whenStable();
 
+    expect(activeToggle.getAttribute('aria-checked')).toBe('true');
     expect(emitSpy).not.toHaveBeenCalled();
   });
 
-  it('should not emit when chip is deselected', () => {
-    fixture.detectChanges();
-    const emitSpy = vi.fn();
-    component.isShowingOnlyUncheckedChange.subscribe(emitSpy);
-
-    const event = {
-      isUserInput: true,
-      selected: false,
-    } as MatChipSelectionChange;
-    component.onFilterChange(true, event);
-
-    expect(emitSpy).not.toHaveBeenCalled();
-  });
-
-  it('should have correct aria-label on listbox', () => {
+  it('should have the correct aria-label on the toggle group', () => {
     fixture.detectChanges();
 
-    const listbox = fixture.nativeElement.querySelector('mat-chip-listbox');
+    const group = fixture.nativeElement.querySelector(
+      'mat-button-toggle-group',
+    );
 
-    expect(listbox.getAttribute('aria-label')).toBe('Filtrer les éléments');
+    expect(group.getAttribute('aria-label')).toBe('Filtrer les éléments');
   });
 
   it('should have aria-live region for screen readers', () => {

@@ -68,6 +68,18 @@ export function calculatePercentage(
   return Math.round((consumed / reserved) * 100);
 }
 
+export function consumptionProgressMessage(
+  planned: number,
+  consumed: number,
+  percentage: number,
+):
+  | { key: 'budgetLine.exceededBy'; params: { amount: number } }
+  | { key: 'budgetLine.usedPercent'; params: { percent: number } } {
+  return consumed > planned
+    ? { key: 'budgetLine.exceededBy', params: { amount: consumed - planned } }
+    : { key: 'budgetLine.usedPercent', params: { percent: percentage } };
+}
+
 export function getBudgetConsumptionState(
   percentage: number,
   hasTransactions: boolean,

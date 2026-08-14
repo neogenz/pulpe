@@ -304,12 +304,12 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    // Verify initial pointés count: 2/5 (Salaire + Supermarché checked)
+    // Verify initial pointés count: 2 sur 5 (Salaire + Supermarché checked)
     const summary = authenticatedPage.getByTestId(
       'budget-items-checking-summary',
     );
     await expect(summary).toBeVisible();
-    await expect(summary).toContainText('2/5 pointés');
+    await expect(summary).toContainText('2 sur 5 pointés');
 
     // Check the "Courses" envelope and wait for the full API round-trip
     const toggle = authenticatedPage.getByTestId(
@@ -326,8 +326,8 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
       toggle.click(),
     ]);
 
-    // Verify updated count: 3/5
-    await expect(summary).toContainText('3/5 pointés');
+    // Verify updated count: 3 sur 5
+    await expect(summary).toContainText('3 sur 5 pointés');
   });
 
   test('should show cascade confirmation when checking envelope with unchecked transactions', async ({

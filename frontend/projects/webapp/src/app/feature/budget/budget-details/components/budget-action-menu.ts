@@ -11,9 +11,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
-import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
+import type { SupportedCurrency } from 'pulpe-shared';
 import { CURRENCY_CONFIG } from '@core/currency';
 import type { BudgetLineTableItem } from '../view-models/table-items.view-model';
+import {
+  isPostponeUnavailableForRecurringLine,
+  isSpreadUnavailableForRecurringLine,
+} from './budget-line-action-list';
 
 const BALANCE_FORMATTERS = new Map<string, Intl.NumberFormat>();
 
@@ -105,8 +109,6 @@ function getBalanceFormatter(
           <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
         </button>
       } @else if (showSpreadUnavailable()) {
-        <!-- Wrapper span carries the tooltip: a disabled button emits no pointer
-             events, so the tooltip must live on a non-disabled ancestor. -->
         <span
           class="block"
           [matTooltip]="
@@ -135,7 +137,6 @@ function getBalanceFormatter(
         </button>
       }
       @if (item().metadata.showPostpone) {
-        <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons -->
         <span
           class="block w-full"
           [matTooltip]="
@@ -155,8 +156,7 @@ function getBalanceFormatter(
             <span>{{ 'budget.postpone' | transloco }}</span>
           </button>
         </span>
-      } @else if (showPostponeUnavailableRecurrent()) {
-        <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons -->
+      } @else if (showPostponeUnavailable()) {
         <span
           class="block w-full"
           [matTooltip]="'budget.postponeUnavailableRecurrent' | transloco"
@@ -199,34 +199,10 @@ export class BudgetActionMenu {
 
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
-  readonly addTransaction = output<BudgetLine>();
+  readonly addTransaction = output<BudgetLineTableItem['data']>();
   readonly spread = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();
-
-  // A recurrent (`fixed`) expense/saving is already laid down every month, so
-  // smoothing it would double-count. Rather than silently hiding the action and
-  // leaving the user wondering, we surface it disabled with an explanation.
-  // Income / already-spread / zero-amount lines stay hidden — "Lisser" there is
-  // noise, not a teachable absence.
-  protected readonly showSpreadUnavailable = computed(() => {
-    const { data, metadata } = this.item();
-    if (metadata.canSpread) return false;
-    return data.recurrence === 'fixed' && data.kind !== 'income';
-  });
-
-  // A recurrent (`fixed`) line is regenerated every month by its template, so
-  // postponing a single occurrence doesn't apply — but hiding the action
-  // outright leaves the user wondering where it went (same rationale as
-  // showSpreadUnavailable above). Income stays hidden too: the tooltip copy
-  // is expense-specific and recurring income has no "report" mental model.
-  // Other hidden cases (already has a transaction, spread occurrence) stay
-  // hidden — not a teachable absence.
-  protected readonly showPostponeUnavailableRecurrent = computed(() => {
-    const { data, metadata } = this.item();
-    if (metadata.showPostpone) return false;
-    return data.recurrence === 'fixed' && data.kind !== 'income';
-  });
 
   protected readonly formattedBalance = computed(() => {
     const balance = this.item().metadata.cumulativeBalance;
@@ -234,4 +210,12 @@ export class BudgetActionMenu {
     const config = CURRENCY_CONFIG[currency];
     return getBalanceFormatter(config.locale, currency).format(balance);
   });
+
+  protected readonly showSpreadUnavailable = computed(() =>
+    isSpreadUnavailableForRecurringLine(this.item()),
+  );
+
+  protected readonly showPostponeUnavailable = computed(() =>
+    isPostponeUnavailableForRecurringLine(this.item()),
+  );
 }

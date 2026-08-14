@@ -45,6 +45,7 @@ describe('CurrencyInput', () => {
       expect(component.placeholder).toBeDefined();
       expect(component.ariaDescribedBy).toBeDefined();
       expect(component.required).toBeDefined();
+      expect(component.requiredError).toBeDefined();
       expect(component.testId).toBeDefined();
       expect(component.currency).toBeDefined();
       expect(component.autoFocus).toBeDefined();
@@ -111,7 +112,7 @@ describe('CurrencyInput', () => {
       expect(suffix?.textContent?.trim()).toBe('EUR');
     });
 
-    it('should update aria-label with the current currency', async () => {
+    it('should use the localized Material label as its accessible name', async () => {
       setTestInput(component.label, 'Revenu');
       setTestInput(component.currency, 'EUR');
       TestBed.flushEffects();
@@ -119,7 +120,11 @@ describe('CurrencyInput', () => {
       await fixture.whenStable();
 
       const input = fixture.nativeElement.querySelector('input');
-      expect(input?.getAttribute('aria-label')).toBe('Revenu in EUR');
+      const floatingLabel = fixture.nativeElement.querySelector(
+        '.mat-mdc-floating-label',
+      );
+      expect(input?.hasAttribute('aria-label')).toBe(false);
+      expect(floatingLabel?.textContent).toContain('Revenu');
     });
 
     it('should update hint text with the current currency', async () => {
@@ -146,5 +151,51 @@ describe('CurrencyInput', () => {
       const hint = fixture.nativeElement.querySelector('mat-hint');
       expect(hint?.textContent?.trim()).toBe('Entre le montant en CHF');
     });
+  });
+
+  describe('Required amount', () => {
+    beforeEach(() => {
+      setTestInput(component.label, 'Revenu mensuel');
+      setTestInput(component.required, true);
+      setTestInput(component.requiredError, 'Indique un revenu supérieur à 0');
+      fixture.detectChanges();
+    });
+
+    it('announces a localized error after an empty field is visited', async () => {
+      const input: HTMLInputElement =
+        fixture.nativeElement.querySelector('input');
+      input.dispatchEvent(new Event('blur'));
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const error = fixture.nativeElement.querySelector('mat-error');
+      expect(error?.textContent?.trim()).toBe(
+        'Indique un revenu supérieur à 0',
+      );
+      expect(input.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('rejects zero for a required financial amount', async () => {
+      const input: HTMLInputElement =
+        fixture.nativeElement.querySelector('input');
+      input.value = '0';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('blur', { bubbles: true }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(fixture.nativeElement.querySelector('mat-error')).not.toBeNull();
+      expect(input.getAttribute('min')).toBe('0.01');
+    });
+  });
+
+  it('rejects negative optional amounts', async () => {
+    setTestInput(component.label, 'Loyer');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const input: HTMLInputElement =
+      fixture.nativeElement.querySelector('input');
+    expect(input.getAttribute('min')).toBe('0');
   });
 });

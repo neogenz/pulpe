@@ -119,7 +119,7 @@ export const routes: Routes = [
         path: ROUTES.BUDGET_TEMPLATES,
         title: PAGE_TITLES.BUDGET_TEMPLATES,
         canActivate: [hasBudgetGuard],
-        data: { breadcrumb: 'navigation.templates', icon: 'description' },
+        data: { breadcrumb: 'navigation.templates', icon: 'view_quilt' },
         loadChildren: () =>
           import('./feature/budget-templates/budget-templates.routes'),
       },

@@ -32,6 +32,7 @@ import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import { OriginalAmountLine } from '@ui/original-amount-line';
 import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
 import { TagIndicator } from '@ui/tag-indicator';
+import { CheckRewardDirective } from '@ui/check-reward';
 import { BudgetDetailsStore } from '../../store/budget-details-store';
 import type {
   AllocatedTransactionsDialogData,
@@ -54,6 +55,7 @@ import type {
     SpreadOccurrencesList,
     TagIndicator,
     TranslocoPipe,
+    CheckRewardDirective,
     DatePipe,
     DecimalPipe,
   ],
@@ -169,6 +171,7 @@ import type {
                 <div class="flex items-center gap-2">
                   <mat-slide-toggle
                     [checked]="!!tx.checkedAt"
+                    [pulpeCheckReward]="!!tx.checkedAt"
                     (change)="onToggleCheck(tx.id)"
                     (click)="$event.stopPropagation()"
                     [attr.data-testid]="'toggle-tx-check-' + tx.id"

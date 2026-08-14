@@ -1,8 +1,45 @@
 import { z } from 'zod';
-import { supportedCurrencySchema, supportedLocaleSchema } from 'pulpe-shared';
+import {
+  onboardingTransactionSchema,
+  PAY_DAY_MAX,
+  supportedCurrencySchema,
+  supportedLocaleSchema,
+} from 'pulpe-shared';
 import { isValidClientKeyHex } from '../encryption/crypto.utils';
 import { STORAGE_KEYS } from './storage-keys';
 import type { StorageSchemaConfig } from './storage.types';
+
+export const completeProfileDraftSchema = z.object({
+  version: z.literal(1),
+  currentStep: z.union([z.literal(1), z.literal(2)]),
+  currency: supportedCurrencySchema,
+  firstName: z.string().max(50).catch(''),
+  monthlyIncome: z.number().finite().nonnegative().nullable().catch(null),
+  housingCosts: z.number().finite().nonnegative().nullable().catch(null),
+  healthInsurance: z.number().finite().nonnegative().nullable().catch(null),
+  phonePlan: z.number().finite().nonnegative().nullable().catch(null),
+  internetPlan: z.number().finite().nonnegative().nullable().catch(null),
+  transportCosts: z.number().finite().nonnegative().nullable().catch(null),
+  leasingCredit: z.number().finite().nonnegative().nullable().catch(null),
+  payDayOfMonth: z
+    .number()
+    .int()
+    .min(1)
+    .max(PAY_DAY_MAX)
+    .nullable()
+    .catch(null),
+  customTransactions: z
+    .array(
+      onboardingTransactionSchema.extend({
+        __suggestionId: z.string().min(1).optional(),
+        id: z.string().min(1).optional(),
+      }),
+    )
+    .max(50)
+    .catch([]),
+});
+
+export type CompleteProfileDraft = z.infer<typeof completeProfileDraftSchema>;
 
 /**
  * Schema registry for all storage keys.
@@ -68,6 +105,15 @@ export const STORAGE_SCHEMAS = {
     version: 1,
     schema: supportedLocaleSchema,
     scope: 'app',
+  },
+
+  // Short-lived onboarding recovery. Financial drafts must never persist
+  // beyond the current browser session.
+  [STORAGE_KEYS.COMPLETE_PROFILE_DRAFT]: {
+    version: 1,
+    schema: completeProfileDraftSchema,
+    scope: 'user',
+    storageType: 'session',
   },
 
   // Vault client keys - hex string representing the AES-256 key

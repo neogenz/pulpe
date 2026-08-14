@@ -77,8 +77,7 @@ test.describe('Checking Summary (Solde estimé)', () => {
     );
     await expect(summary).toBeVisible();
 
-    // All items checked → "Tout pointé"
-    await expect(summary).toContainText('Tout pointé');
+    await expect(summary).toContainText('Tout est pointé');
     // Realized balance = 5000 - max(2000, 1000) = 3000
     await expect(summary).toContainText('3’000 CHF');
   });
@@ -143,8 +142,7 @@ test.describe('Checking Summary (Solde estimé)', () => {
     );
     await expect(summary).toBeVisible();
 
-    // All items checked → "Tout pointé"
-    await expect(summary).toContainText('Tout pointé');
+    await expect(summary).toContainText('Tout est pointé');
     // Realized balance = 5000 - max(2000, 3000) = 2000
     await expect(summary).toContainText('2’000 CHF');
   });
@@ -210,8 +208,7 @@ test.describe('Checking Summary (Solde estimé)', () => {
     );
     await expect(summary).toBeVisible();
 
-    // All items checked → "Tout pointé"
-    await expect(summary).toContainText('Tout pointé');
+    await expect(summary).toContainText('Tout est pointé');
     // Realized balance = 5000 - max(500, 450) = 4500
     await expect(summary).toContainText('4’500 CHF');
   });

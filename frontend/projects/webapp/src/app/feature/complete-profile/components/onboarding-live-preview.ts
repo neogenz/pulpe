@@ -42,7 +42,7 @@ const COUNTER_DURATION_MS = 600;
       transition(':enter', [
         style({ opacity: 0, transform: 'scale(0.85)' }),
         animate(
-          '400ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+          '320ms cubic-bezier(0.22, 1, 0.36, 1)',
           style({ opacity: 1, transform: 'scale(1)' }),
         ),
       ]),
@@ -58,6 +58,8 @@ const COUNTER_DURATION_MS = 600;
     <div
       class="onboarding-live-preview relative overflow-hidden p-8 rounded-3xl bg-surface-container border border-outline-variant/40"
       [class.is-ready]="isReady()"
+      [@.disabled]="prefersReducedMotion()"
+      role="region"
       [attr.aria-label]="'completeProfile.preview.ariaLabel' | transloco"
     >
       <div class="flex items-center justify-between mb-4">
@@ -101,7 +103,7 @@ const COUNTER_DURATION_MS = 600;
           </span>
           @if (hasIncome()) {
             <span
-              class="text-display-small font-bold text-on-surface ph-no-capture tabular-nums tracking-tight"
+              class="text-display-small font-bold text-on-surface ph-no-capture tabular-nums tracking-tight whitespace-nowrap"
             >
               {{ displayedAmount() | appCurrency: currencyCode() : '1.0-2' }}
             </span>
@@ -201,9 +203,9 @@ export class OnboardingLivePreview {
   readonly #destroyRef = inject(DestroyRef);
   readonly #displayedAmount = signal(0);
   readonly #isBrowser = signal(false);
-  readonly #prefersReducedMotion = signal(false);
 
   protected readonly displayedAmount = this.#displayedAmount.asReadonly();
+  protected readonly prefersReducedMotion = signal(false);
 
   protected readonly trimmedFirstName = computed(() => this.firstName().trim());
 
@@ -220,9 +222,9 @@ export class OnboardingLivePreview {
     afterNextRender(() => {
       this.#isBrowser.set(true);
       const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-      this.#prefersReducedMotion.set(mq.matches);
+      this.prefersReducedMotion.set(mq.matches);
       const listener = (event: MediaQueryListEvent): void =>
-        this.#prefersReducedMotion.set(event.matches);
+        this.prefersReducedMotion.set(event.matches);
       mq.addEventListener('change', listener);
       this.#destroyRef.onDestroy(() =>
         mq.removeEventListener('change', listener),
@@ -237,7 +239,7 @@ export class OnboardingLivePreview {
         return;
       }
 
-      if (!this.#isBrowser() || this.#prefersReducedMotion()) {
+      if (!this.#isBrowser() || this.prefersReducedMotion()) {
         this.#displayedAmount.set(target);
         return;
       }

@@ -211,8 +211,8 @@ test.describe('Allocated Transaction Lifecycle', () => {
     );
     await expect(envelopeCard).toBeVisible();
 
-    // Desktop card shows "depasse" text when percentage > 100
-    await expect(envelopeCard).toContainText(/d[ée]pass[ée]/);
+    // Desktop card shows "dépassé" text when percentage > 100
+    await expect(envelopeCard).toContainText(/dépassé/i);
   });
 
   test.describe('Mobile - Free Transactions', () => {

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { filterFreeTransactionItems, groupByKind } from './budget-grid';
+import {
+  budgetDetailPanelLayout,
+  filterFreeTransactionItems,
+  groupByKind,
+} from './budget-grid';
 import { createMockTransaction } from '../../../../../testing/mock-factories';
 import type { Transaction } from 'pulpe-shared';
 
@@ -24,6 +28,27 @@ function createTransactionItem(
 }
 
 describe('BudgetGrid', () => {
+  describe('detail panel layout', () => {
+    it('should use a full-screen dialog on mobile and a side sheet on desktop', () => {
+      expect(budgetDetailPanelLayout(true)).toEqual({
+        panelClass: 'full-screen-dialog',
+        height: '100dvh',
+        width: '100dvw',
+        minHeight: '100dvh',
+        minWidth: '100dvw',
+        maxHeight: '100dvh',
+        maxWidth: '100dvw',
+      });
+      expect(budgetDetailPanelLayout(false)).toEqual({
+        panelClass: 'side-sheet-panel',
+        position: { right: '0', top: '0' },
+        height: '100vh',
+        width: '480px',
+        maxWidth: '90vw',
+      });
+    });
+  });
+
   describe('freeTransactionItems — AC1: "Hors enveloppes" section visibility', () => {
     it('should return only transactions without budgetLineId', () => {
       const items: TransactionItem[] = [

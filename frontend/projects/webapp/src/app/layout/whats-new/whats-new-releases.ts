@@ -9,12 +9,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.40.0',
+  version: '0.44.0',
   features: [
-    'Des objectifs plus flexibles',
-    'Une suppression maîtrisée',
-    'Les objectifs visibles dans le budget',
-    'Des échéances cohérentes',
+    'Ajoute l’argent d’un objectif comme revenu ce mois ou plus tard',
+    'Vois ce qui est déjà passé sur ton compte et ce qu’il te reste pour le mois',
+    'Annule aussitôt ce que tu viens de pointer ou de noter',
+    'Ajoute aux budgets déjà créés les versements prévus pour ton objectif',
   ],
 };
 

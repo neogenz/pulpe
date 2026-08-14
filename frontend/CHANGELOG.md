@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.44.0
+
+### Minor Changes
+
+- Ajoute les retraits d’objectifs, améliore la lecture du mois et fiabilise les plans d’épargne.
+
+### Patch Changes
+
+- pulpe-shared@0.44.0
+
 ## 0.43.0
 
 ### Patch Changes

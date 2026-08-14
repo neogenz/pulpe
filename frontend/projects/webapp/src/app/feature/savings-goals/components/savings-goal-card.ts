@@ -7,7 +7,6 @@ import {
 } from '@angular/core';
 import { DatePipe, NgClass } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -23,7 +22,6 @@ import { UserSettingsStore } from '@core/user-settings';
     DatePipe,
     NgClass,
     MatCardModule,
-    MatChipsModule,
     MatIconModule,
     RouterLink,
     TranslocoPipe,
@@ -37,91 +35,101 @@ import { UserSettingsStore } from '@core/user-settings';
     >
       <mat-card
         appearance="outlined"
-        class="savings-goal-card cursor-pointer h-full transition-[box-shadow,transform] duration-150 ease-out motion-safe:active:scale-[0.98]"
+        class="savings-goal-card h-full cursor-pointer"
+        [class.savings-goal-card--completed]="isCompleted()"
       >
-        <mat-card-content class="flex flex-col gap-3 p-4!">
-          <div class="flex items-start justify-between gap-2">
+        <mat-card-content class="flex min-h-48 flex-col p-5!">
+          <div class="flex items-start justify-between gap-3">
             <div
-              class="flex justify-center items-center size-10 rounded-full bg-financial-savings/10 text-financial-savings shrink-0"
+              class="flex size-11 shrink-0 items-center justify-center rounded-corner-medium bg-financial-savings/10 text-financial-savings"
             >
               <mat-icon aria-hidden="true">savings</mat-icon>
             </div>
-            <!-- Chip only when the status carries a real signal: an « Actif » chip on
-                 every card is repetition, not information. COMPLETED reads positive
-                 (savings green, RG-002), PAUSED stays neutral. -->
             @if (!isActive()) {
-              <mat-chip
-                class="!h-6 !text-label-small"
+              <span
+                class="shrink-0 rounded-full px-2.5 py-1 text-label-small font-medium"
                 [ngClass]="
                   isCompleted()
-                    ? 'bg-financial-savings/10 text-financial-savings'
-                    : 'bg-surface-container'
+                    ? 'bg-primary text-on-primary'
+                    : 'bg-surface-container-high text-on-surface-variant'
                 "
                 data-testid="savings-goal-status"
               >
                 {{ statusLabelKey() | transloco }}
-              </mat-chip>
+              </span>
             }
           </div>
 
-          <h2 class="text-title-medium font-medium ph-no-capture line-clamp-2">
-            {{ goal().name }}
-          </h2>
+          <div class="mt-4 min-w-0">
+            <h2
+              class="ph-no-capture line-clamp-2 text-title-medium font-semibold text-on-surface"
+            >
+              {{ goal().name }}
+            </h2>
+          </div>
 
           @if (
             goal().targetAmount !== null ||
             goal().startDate ||
             goal().targetDate
           ) {
-            <div class="flex items-end justify-between gap-2 mt-auto">
+            <dl class="mt-5">
               @if (goal().targetAmount !== null) {
-                <span
-                  class="ph-no-capture text-headline-small font-bold text-financial-savings"
-                  data-testid="savings-goal-target-amount"
-                >
-                  {{ goal().targetAmount | appCurrency: currency() : '1.0-0' }}
-                </span>
+                <div>
+                  <dt class="text-label-small text-on-surface-variant">
+                    {{ 'savingsGoals.detail.target' | transloco }}
+                  </dt>
+                  <dd
+                    class="ph-no-capture mt-0.5 text-headline-small font-bold text-financial-savings"
+                    data-testid="savings-goal-target-amount"
+                  >
+                    {{
+                      goal().targetAmount | appCurrency: currency() : '1.0-0'
+                    }}
+                  </dd>
+                </div>
               }
-              <div class="ml-auto flex flex-col items-end gap-1">
-                @if (goal().startDate) {
-                  <span
-                    class="inline-flex items-center gap-1 text-body-small text-on-surface-variant"
-                    [attr.aria-label]="
-                      ('savingsGoals.startDate' | transloco) +
-                      ' : ' +
-                      (goal().startDate | date: shortDateFormat())
-                    "
-                    data-testid="savings-goal-start-date"
-                  >
-                    <mat-icon
-                      class="text-base! w-auto! h-auto! leading-none"
-                      aria-hidden="true"
-                      >play_circle</mat-icon
-                    >
-                    {{ goal().startDate | date: shortDateFormat() }}
-                  </span>
-                }
-                @if (goal().targetDate) {
-                  <span
-                    class="inline-flex items-center gap-1 text-body-small text-on-surface-variant"
-                    [attr.aria-label]="
-                      ('savingsGoals.targetDate' | transloco) +
-                      ' : ' +
-                      (goal().targetDate | date: shortDateFormat())
-                    "
-                    data-testid="savings-goal-target-date"
-                  >
-                    <mat-icon
-                      class="text-base! w-auto! h-auto! leading-none"
-                      aria-hidden="true"
-                      >event</mat-icon
-                    >
-                    {{ goal().targetDate | date: shortDateFormat() }}
-                  </span>
-                }
-              </div>
-            </div>
+              @if (goal().startDate || goal().targetDate) {
+                <div class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+                  @if (goal().startDate) {
+                    <div class="flex items-baseline gap-1.5">
+                      <dt class="text-label-small text-on-surface-variant">
+                        {{ 'savingsGoals.startDate' | transloco }}
+                      </dt>
+                      <dd
+                        class="text-body-medium text-on-surface"
+                        data-testid="savings-goal-start-date"
+                      >
+                        {{ goal().startDate | date: shortDateFormat() }}
+                      </dd>
+                    </div>
+                  }
+                  @if (goal().targetDate) {
+                    <div class="flex items-baseline gap-1.5">
+                      <dt class="text-label-small text-on-surface-variant">
+                        {{ 'savingsGoals.targetDate' | transloco }}
+                      </dt>
+                      <dd
+                        class="text-body-medium text-on-surface"
+                        data-testid="savings-goal-target-date"
+                      >
+                        {{ goal().targetDate | date: shortDateFormat() }}
+                      </dd>
+                    </div>
+                  }
+                </div>
+              }
+            </dl>
           }
+
+          <div
+            class="mt-auto flex items-center justify-between gap-3 pt-5 text-label-large text-primary"
+          >
+            <span>{{ 'savingsGoals.openGoal' | transloco }}</span>
+            <mat-icon aria-hidden="true" class="savings-goal-card__arrow"
+              >arrow_forward</mat-icon
+            >
+          </div>
         </mat-card-content>
       </mat-card>
     </a>
@@ -138,13 +146,57 @@ import { UserSettingsStore } from '@core/user-settings';
     }
 
     .savings-goal-link:focus-visible {
-      outline: 2px solid var(--mat-sys-primary);
-      outline-offset: 2px;
-      border-radius: var(--mat-sys-corner-medium);
+      outline: 3px solid var(--mat-sys-primary);
+      outline-offset: 3px;
+      border-radius: var(--mat-sys-corner-large);
     }
 
-    mat-card.savings-goal-card:hover {
-      box-shadow: var(--mat-sys-level1);
+    .savings-goal-card {
+      background: color-mix(
+        in srgb,
+        var(--mat-sys-surface-container-low) 18%,
+        var(--mat-sys-surface)
+      );
+      transition:
+        background-color var(--pulpe-motion-fast) var(--pulpe-ease-standard),
+        border-color var(--pulpe-motion-fast) var(--pulpe-ease-standard),
+        transform var(--pulpe-motion-fast) var(--pulpe-ease-standard);
+    }
+
+    .savings-goal-card--completed {
+      background: color-mix(
+        in srgb,
+        var(--mat-sys-primary-container) 22%,
+        var(--mat-sys-surface)
+      );
+    }
+
+    .savings-goal-link:hover .savings-goal-card {
+      background: var(--mat-sys-surface-container-low);
+      border-color: var(--mat-sys-outline);
+      transform: translateY(-1px);
+    }
+
+    .savings-goal-card__arrow {
+      transition: transform var(--pulpe-motion-fast) var(--pulpe-ease-standard);
+    }
+
+    .savings-goal-link:hover .savings-goal-card__arrow,
+    .savings-goal-link:focus-visible .savings-goal-card__arrow {
+      transform: translateX(4px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .savings-goal-card,
+      .savings-goal-card__arrow {
+        transition: none;
+      }
+
+      .savings-goal-link:hover .savings-goal-card,
+      .savings-goal-link:hover .savings-goal-card__arrow,
+      .savings-goal-link:focus-visible .savings-goal-card__arrow {
+        transform: none;
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
