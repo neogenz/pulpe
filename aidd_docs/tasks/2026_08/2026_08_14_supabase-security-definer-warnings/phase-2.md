@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Basculer les RPC de pointage et de lecture vers RLS

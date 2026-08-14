@@ -37,6 +37,12 @@ DECLARE
     'public.toggle_transaction_check(uuid)',
     'public.update_savings_goal_withdrawal(uuid,bigint,jsonb,uuid[])'
   ];
+  v_invoker_signatures constant text[] := ARRAY[
+    'public.check_unchecked_transactions(uuid)',
+    'public.get_savings_goal_deletion_impact(uuid)',
+    'public.toggle_budget_line_check(uuid)',
+    'public.toggle_transaction_check(uuid)'
+  ];
 BEGIN
   IF to_regprocedure(
     'public.bulk_update_template_lines(uuid,jsonb)'
@@ -54,8 +60,10 @@ BEGIN
     FROM pg_proc p
     WHERE p.oid = to_regprocedure(v_signature);
 
-    IF NOT v_is_definer THEN
-      RAISE EXCEPTION 'FAIL: % is not SECURITY DEFINER', v_signature;
+    IF v_is_definer IS DISTINCT FROM NOT (
+      v_signature = ANY(v_invoker_signatures)
+    ) THEN
+      RAISE EXCEPTION 'FAIL: % has the wrong security mode', v_signature;
     END IF;
 
     IF has_function_privilege('anon', v_signature, 'EXECUTE') THEN
