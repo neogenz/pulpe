@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
 import { Amount } from "@/core/ui/amount";
+import { hapticCommit } from "@/core/ui/haptics";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth } from "@/core/ui/date-format";
@@ -25,6 +26,11 @@ interface TransactionRowProps {
   onToggle: () => void;
   /** Opens the operation for correction; absent where it cannot be edited. */
   onPress?: () => void;
+  /**
+   * Where the finger was, so the menu opens under it rather than at a corner.
+   * Absent alongside `onPress`: a row that cannot be edited has no menu.
+   */
+  onLongPress?: (anchor: { x: number; y: number }) => void;
 }
 
 /** A spend that answers to no envelope: date, name, amount, and its ring. */
@@ -35,6 +41,7 @@ export function TransactionRow({
   tagSummary,
   onToggle,
   onPress,
+  onLongPress,
 }: TransactionRowProps) {
   const theme = useTheme();
   const ripple = useRipple();
@@ -55,11 +62,33 @@ export function TransactionRow({
       <Pressable
         style={styles.labels}
         onPress={onPress}
+        // A press-and-hold is the Android way to ask "what else can I do with
+        // this?", and the answer had been two taps and a scroll to the bottom
+        // of a form. `pageY` rather than `locationY`: the menu is positioned
+        // against the window, not against the row it came out of.
+        onLongPress={
+          onLongPress === undefined
+            ? undefined
+            : (event) => {
+                hapticCommit();
+                onLongPress({
+                  x: event.nativeEvent.pageX,
+                  y: event.nativeEvent.pageY,
+                });
+              }
+        }
         android_ripple={ripple}
         disabled={onPress === undefined}
         accessibilityRole={onPress === undefined ? undefined : "button"}
         accessibilityLabel={
           onPress === undefined ? undefined : `Modifier ${transaction.name}`
+        }
+        // TalkBack has no long press, so the menu's contents have to be
+        // reachable some other way — the sheet the tap opens still holds them.
+        accessibilityHint={
+          onLongPress === undefined
+            ? undefined
+            : "Appui long pour supprimer ou modifier"
         }
       >
         <Text

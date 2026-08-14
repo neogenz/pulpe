@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
   Appbar,
   FAB,
+  Menu,
   Searchbar,
   Snackbar,
   Text,
@@ -158,6 +159,11 @@ export default function BudgetDetailScreen() {
   const [isTransactionSheetVisible, setTransactionSheetVisible] =
     useState(false);
   const [edited, setEdited] = useState<Transaction | null>(null);
+  // The operation a long press asked about, and the point it was asked at.
+  const [contextual, setContextual] = useState<{
+    transaction: Transaction;
+    anchor: { x: number; y: number };
+  } | null>(null);
   const [isWithdrawalVisible, setWithdrawalVisible] = useState(false);
   const [isCardDismissed, setCardDismissed] = useState(() =>
     isWithdrawalDismissed(id),
@@ -373,6 +379,9 @@ export default function BudgetDetailScreen() {
                     tags.data ?? [],
                   )}
                   onPress={() => setEdited(row.transaction)}
+                  onLongPress={(anchor) =>
+                    setContextual({ transaction: row.transaction, anchor })
+                  }
                   onToggle={() =>
                     toggle.mutate(
                       { source: "transaction", sourceId: row.transaction.id },
@@ -572,6 +581,33 @@ export default function BudgetDetailScreen() {
           onDelete={() => removal.remove(edited, () => setEdited(null))}
         />
       )}
+
+      {/* Anchored to the finger. Deleting from here goes through the same
+          removal as the form's own button, so it lands in the same undo
+          snackbar rather than being a second, unrecoverable way out. */}
+      <Menu
+        visible={contextual !== null}
+        onDismiss={() => setContextual(null)}
+        anchor={contextual?.anchor ?? { x: 0, y: 0 }}
+      >
+        <Menu.Item
+          leadingIcon="pencil-outline"
+          title="Modifier"
+          onPress={() => {
+            setEdited(contextual?.transaction ?? null);
+            setContextual(null);
+          }}
+        />
+        <Menu.Item
+          leadingIcon="trash-can-outline"
+          title="Supprimer"
+          titleStyle={{ color: theme.colors.error }}
+          onPress={() => {
+            if (contextual !== null) removal.remove(contextual.transaction);
+            setContextual(null);
+          }}
+        />
+      </Menu>
 
       <Snackbar
         visible={removal.last !== null}
