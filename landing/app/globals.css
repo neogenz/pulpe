@@ -554,3 +554,115 @@ h3,
     transition: none;
   }
 }
+
+/* /conseils-budget article typography: Poppins only, a 65–75ch measure, and no
+   content animation. Headings use the plant ink and body copy uses the
+   secondary ink, like the rest of the landing. */
+.guide-prose {
+  max-width: 70ch;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--color-text-secondary);
+  /* Give every amount tabular figures without requiring a utility class. */
+  font-variant-numeric: tabular-nums;
+}
+
+.guide-prose > * + * {
+  margin-top: 1.25em;
+}
+
+.guide-prose p {
+  text-wrap: pretty;
+}
+
+.guide-prose h2 {
+  margin-top: 2.25em;
+  font-size: 1.625rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  color: var(--color-text);
+}
+
+.guide-prose h3 {
+  margin-top: 1.75em;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.guide-prose strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Article marker strokes are complete at load time: no MarkerDraw and no
+   content animation. */
+.guide-prose .marker-highlight {
+  background-size: 100% 0.92em;
+}
+
+.guide-prose a {
+  color: var(--color-primary);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  border-radius: 2px;
+}
+
+.guide-prose a:hover,
+.guide-prose a:focus-visible {
+  text-decoration-thickness: 2px;
+}
+
+/* Tailwind preflight removes list markers and indentation. */
+.guide-prose ul {
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+
+.guide-prose ol {
+  padding-left: 1.5rem;
+  list-style: decimal;
+}
+
+.guide-prose li {
+  padding-left: 0.25rem;
+}
+
+.guide-prose li + li {
+  margin-top: 0.5em;
+}
+
+.guide-prose .guide-pull-quote {
+  padding-left: 1.25rem;
+  border-left: 3px solid var(--color-primary);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+/* Wide tables scroll inside their container, never the page. */
+.guide-prose .table-scroll {
+  overflow-x: auto;
+}
+
+.guide-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.guide-prose th,
+.guide-prose td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid rgba(26, 28, 25, 0.1);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--color-text) 10%, transparent);
+  text-align: left;
+}
+
+.guide-prose th {
+  font-weight: 600;
+  color: var(--color-text);
+}
