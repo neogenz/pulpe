@@ -178,7 +178,7 @@ export function GoalDeletionSheet({
 
           {deletesForecasts ? (
             <Checkbox.Item
-              label="Supprimer aussi les transactions rattachées"
+              label="Supprimer aussi les mouvements rattachés à ces prévisions"
               position="leading"
               status={deletesTransactions ? "checked" : "unchecked"}
               onPress={() => setDeletesTransactions((current) => !current)}
@@ -227,7 +227,7 @@ function ImpactSummary({
         currency={currency}
       />
       <SummaryCard
-        label="Transactions"
+        label="Mouvements"
         count={`${summary.transactionCount}`}
         amount={summary.transactionTotal}
         currency={currency}
@@ -334,7 +334,7 @@ function ImpactDetails({
                     <ImpactRow
                       key={transaction.id}
                       title={transaction.name}
-                      subtitle="Transaction"
+                      subtitle="Réel"
                       amount={transaction.amount}
                       currency={currency}
                       isNested

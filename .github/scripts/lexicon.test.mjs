@@ -7,6 +7,7 @@ const read = (path) =>
 
 const FR_JSON = "frontend/projects/webapp/public/i18n/fr.json";
 const SWIFT_ROOT = "ios/Pulpe";
+const TSX_ROOT = "android/src";
 
 const flatten = (node, prefix = "") =>
   Object.entries(node).flatMap(([key, value]) => {
@@ -171,5 +172,62 @@ test("aucune chaîne affichée par l'app iOS ne dit « transaction »", () => {
     offenders.length,
     0,
     `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${SWIFT_ROOT}/ :\n${offenders.join("\n")}`,
+  );
+});
+
+// L'app Android n'a pas plus de catalogue que l'iOS : la copie vit en dur dans
+// les composants. Mais le mot y désigne aussi un type, une clé d'union
+// discriminée et une demi-douzaine de fonctions — `kind: "transaction"` et
+// `useCreateTransaction` sont du domaine, et les régenter rendrait le garde
+// inutilisable.
+//
+// Ce qui est lu est donc uniquement ce qui ne peut être que de l'affichage :
+//
+//   · un attribut JSX — `label="Mouvements"`, collé au `=`, ce qu'une
+//     affectation TypeScript (`const x = "transaction"`) n'est jamais ;
+//   · un nœud de texte JSX — `<Text>Mouvements</Text>`.
+//
+// Une valeur dans un objet, un argument de fonction ou un type n'est ni l'un ni
+// l'autre, et sort du périmètre sans avoir à être exemptée nommément.
+const JSX_ATTRIBUTE = /\b[a-zA-Z][a-zA-Z0-9]*="([^"]*)"/g;
+const JSX_TEXT_NODE = />\s*([^<>{}\n]+?)\s*</g;
+
+const tsxOffendersIn = (path, source) => {
+  const offenders = [];
+
+  source.split("\n").forEach((line, index) => {
+    if (isComment(line)) return;
+
+    const displayed = [
+      ...[...line.matchAll(JSX_ATTRIBUTE)].map(([, value]) => value),
+      ...[...line.matchAll(JSX_TEXT_NODE)].map(([, value]) => value),
+    ];
+
+    for (const text of displayed) {
+      if (/transaction/i.test(text) && isDisplayedProse(text)) {
+        offenders.push(`  ${path}:${index + 1} = ${text}`);
+      }
+    }
+  });
+
+  return offenders;
+};
+
+const tsxSources = () =>
+  readdirSync(new URL(`../../${TSX_ROOT}`, import.meta.url), {
+    recursive: true,
+  })
+    .filter((path) => path.endsWith(".tsx"))
+    .sort();
+
+test("aucune chaîne affichée par l'app Android ne dit « transaction »", () => {
+  const offenders = tsxSources().flatMap((path) =>
+    tsxOffendersIn(path, read(`${TSX_ROOT}/${path}`)),
+  );
+
+  assert.equal(
+    offenders.length,
+    0,
+    `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${TSX_ROOT}/ :\n${offenders.join("\n")}`,
   );
 });
