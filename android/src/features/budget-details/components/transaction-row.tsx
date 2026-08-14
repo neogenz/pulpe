@@ -4,6 +4,7 @@ import { Text, useTheme } from "react-native-paper";
 
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth } from "@/core/ui/date-format";
+import { useRipple } from "@/core/ui/ripple";
 import {
   FINANCIAL_COLORS,
   RADIUS,
@@ -12,8 +13,6 @@ import {
 } from "@/core/ui/theme";
 
 import { PointCircle } from "./point-circle";
-
-const POINTED_OPACITY = 0.55;
 
 const KIND_ACCENTS = {
   income: "income",
@@ -41,18 +40,13 @@ export function TransactionRow({
   onPress,
 }: TransactionRowProps) {
   const theme = useTheme();
+  const ripple = useRipple();
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const isChecked = transaction.checkedAt !== null;
   const accent = FINANCIAL_COLORS[scheme][KIND_ACCENTS[transaction.kind]];
 
   return (
-    <View
-      style={[
-        styles.row,
-        { backgroundColor: theme.colors.surface },
-        isChecked && styles.pointed,
-      ]}
-    >
+    <View style={[styles.row, { backgroundColor: theme.colors.surface }]}>
       <PointCircle
         isChecked={isChecked}
         color={accent}
@@ -64,6 +58,7 @@ export function TransactionRow({
       <Pressable
         style={styles.labels}
         onPress={onPress}
+        android_ripple={ripple}
         disabled={onPress === undefined}
         accessibilityRole={onPress === undefined ? undefined : "button"}
         accessibilityLabel={
@@ -106,7 +101,7 @@ const styles = StyleSheet.create({
     paddingRight: SPACING.md,
     borderRadius: RADIUS.card,
   },
-  pointed: { opacity: POINTED_OPACITY },
+  /** Struck through, never dimmed — see the note in `budget-line-row.tsx`. */
   struck: { textDecorationLine: "line-through" },
   labels: { flex: 1, gap: SPACING.xxs, paddingVertical: SPACING.sm },
 });

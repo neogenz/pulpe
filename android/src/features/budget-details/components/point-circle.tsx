@@ -3,11 +3,11 @@ import * as Haptics from "expo-haptics";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
 
-import { RADIUS } from "@/core/ui/theme";
+import { useRipple } from "@/core/ui/ripple";
+import { RADIUS, TOUCH_TARGET } from "@/core/ui/theme";
 
-/** 24pt ring inside a 44pt target — the Android and Apple floor alike. */
+/** A 24pt ring inside Material's 48dp target, which is not Apple's 44. */
 const RING_SIZE = 24;
-const TAP_TARGET = 44;
 const RING_WIDTH = 2;
 const CHECK_SIZE = 14;
 
@@ -33,6 +33,9 @@ export function PointCircle({
   onToggle,
 }: PointCircleProps) {
   const theme = useTheme();
+  // Borderless, so the acknowledgement is a disc around the ring rather than a
+  // square lighting up inside a rounded row.
+  const ripple = useRipple({ radius: TOUCH_TARGET / 2 });
 
   function handlePress() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -43,7 +46,7 @@ export function PointCircle({
     <Pressable
       onPress={handlePress}
       disabled={isSyncing}
-      hitSlop={0}
+      android_ripple={ripple}
       style={[styles.target, isSyncing && styles.syncing]}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: isChecked }}
@@ -72,8 +75,8 @@ export function PointCircle({
 
 const styles = StyleSheet.create({
   target: {
-    width: TAP_TARGET,
-    height: TAP_TARGET,
+    width: TOUCH_TARGET,
+    height: TOUCH_TARGET,
     alignItems: "center",
     justifyContent: "center",
   },

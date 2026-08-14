@@ -17,6 +17,12 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        // No `tabBarVariant: "material"` here, however much the bar looks like
+        // UIKit: that variant is the Material navigation *rail*, and asking for
+        // it at the bottom throws on render — "only supported when
+        // 'tabBarPosition' is set to 'left' or 'right'"
+        // (`BottomTabBar.js:122`). A Material 3 bottom bar with its active
+        // pill would have to be a `tabBar` of our own.
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarStyle: { backgroundColor: theme.colors.surface },

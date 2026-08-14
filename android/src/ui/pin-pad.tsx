@@ -4,6 +4,7 @@ import { memo, useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
+import { useRipple } from "@/core/ui/ripple";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 
 export const PIN_LENGTH = 4;
@@ -75,6 +76,7 @@ export function PinPad({
   accessory,
 }: PinPadProps) {
   const theme = useTheme();
+  const ripple = useRipple({ radius: KEY_SIZE / 2 });
   const hasError = errorMessage !== null;
 
   const press = useCallback(
@@ -121,6 +123,7 @@ export function PinPad({
               key={index}
               onPress={() => press(key)}
               disabled={isDisabled}
+              android_ripple={ripple}
               accessibilityRole="button"
               accessibilityLabel={isBackspace ? "Effacer" : key.digit}
               style={({ pressed }) => [

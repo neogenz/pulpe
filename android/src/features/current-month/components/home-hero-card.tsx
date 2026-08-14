@@ -8,12 +8,14 @@ import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
 import { Text } from "react-native-paper";
 
 import { formatCompactAmount } from "@/core/ui/amount-format";
+import { useRipple } from "@/core/ui/ripple";
 import {
   FINANCIAL_COLORS,
   HOME_HERO_COLORS,
   RADIUS,
   SPACING,
   TABULAR_DIGITS,
+  TOUCH_TARGET,
 } from "@/core/ui/theme";
 
 import {
@@ -60,6 +62,7 @@ export function HomeHeroCard({
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const hero = HOME_HERO_COLORS[scheme];
   const accent = accentColor(presentation, scheme);
+  const ripple = useRipple();
 
   function handlePressMetrics() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
@@ -87,6 +90,7 @@ export function HomeHeroCard({
 
       <Pressable
         onPress={handlePressMetrics}
+        android_ripple={ripple}
         accessibilityRole="button"
         accessibilityLabel={`${uncheckedCount} à pointer, ${varianceLabel(presentation, currency)} par rapport au prévu`}
         accessibilityHint="Ouvrir le suivi du réalisé"
@@ -122,6 +126,7 @@ export function HomeHeroCard({
       ) : (
         <Pressable
           onPress={onPressDetail}
+          android_ripple={ripple}
           accessibilityRole="button"
           accessibilityLabel="Voir le détail du budget"
           style={styles.verdict}
@@ -201,5 +206,5 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: SPACING.md,
   },
-  verdict: { minHeight: 44, justifyContent: "center" },
+  verdict: { minHeight: TOUCH_TARGET, justifyContent: "center" },
 });

@@ -16,12 +16,20 @@ import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { scheduleMonthlyReminder } from "@/core/notifications/scheduler";
 import { formatMonthLabel } from "@/core/ui/date-format";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { useRipple } from "@/core/ui/ripple";
+import { RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { useUpdateUserSettings } from "@/features/account/account-queries";
 
 const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
+/**
+ * The disc itself, kept at 44 so seven of them still fit across a phone — at 48
+ * the grid drops to six columns and stops reading as a month. `CELL_SLOP`
+ * carries the target to `TOUCH_TARGET` without widening anything: the gap
+ * between two discs is `SPACING.sm`, so the slops never overlap.
+ */
 const CELL_SIZE = 44;
+const CELL_SLOP = (TOUCH_TARGET - CELL_SIZE) / 2;
 
 /**
  * The day the budget month restarts. Stored as `null` for the 1st, which is
@@ -30,6 +38,7 @@ const CELL_SIZE = 44;
  */
 export default function PayDayScreen() {
   const theme = useTheme();
+  const ripple = useRipple({ radius: CELL_SIZE / 2 });
   const settings = useUserSettings();
   const update = useUpdateUserSettings();
   const [selectedDay, setSelectedDay] = useState(
@@ -86,6 +95,8 @@ export default function PayDayScreen() {
               <Pressable
                 key={day}
                 onPress={() => setSelectedDay(day)}
+                android_ripple={ripple}
+                hitSlop={CELL_SLOP}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSelected }}
                 accessibilityLabel={`Le ${day}`}

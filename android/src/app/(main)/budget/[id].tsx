@@ -7,8 +7,8 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import {
   BackHandler,
+  FlatList,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
@@ -77,6 +77,43 @@ const SECTION_TITLES = {
   saving: "Épargne",
   expense: "Dépenses",
 } as const;
+
+/**
+ * The month flattened into rows, because a budget grows without bound in two
+ * directions at once — envelopes and loose operations — and mounting all of
+ * both to show a screenful is what makes an old account open slowly.
+ */
+type DetailRow =
+  | { key: string; kind: "header"; title: string }
+  | { key: string; kind: "line"; item: LineItem }
+  | { key: string; kind: "transaction"; transaction: Transaction };
+
+function detailRows(
+  sections: ReturnType<typeof detailsSections>,
+  free: Transaction[],
+): DetailRow[] {
+  const rows: DetailRow[] = sections.flatMap((section) => [
+    {
+      key: `header-${section.kind}`,
+      kind: "header" as const,
+      title: SECTION_TITLES[section.kind],
+    },
+    ...section.items.map((item) => ({
+      key: item.line.id,
+      kind: "line" as const,
+      item,
+    })),
+  ]);
+
+  if (free.length > 0) {
+    rows.push({ key: "header-free", kind: "header", title: "Hors prévision" });
+    for (const transaction of free) {
+      rows.push({ key: transaction.id, kind: "transaction", transaction });
+    }
+  }
+
+  return rows;
+}
 
 /**
  * Pointing an outflow that absorbed less than it planned: the moment the
@@ -216,7 +253,7 @@ export default function BudgetDetailScreen() {
     budget.previousBudgetId ?? null,
     budgets.data ?? [],
   );
-  const isEmpty = sections.length === 0 && free.length === 0;
+  const rows = detailRows(sections, free);
   const isTight = shouldOfferWithdrawal({
     available: metrics.remaining,
     viewedPeriod: { year: budget.year, month: budget.month },
@@ -271,7 +308,13 @@ export default function BudgetDetailScreen() {
       )}
 
       {months.length > 1 && (
-        <View>
+        // Raised, so the list below reads as passing under it. Without the
+        // shadow the rail's own bottom edge is where the content is clipped,
+        // and a half-cut segmented control there looks like a rendering fault
+        // rather than like something that scrolled away.
+        <View
+          style={[styles.pager, { backgroundColor: theme.colors.background }]}
+        >
           <MonthPager
             months={months}
             currentBudgetId={id}
@@ -282,7 +325,9 @@ export default function BudgetDetailScreen() {
         </View>
       )}
 
-      <ScrollView
+      <FlatList
+        data={rows}
+        keyExtractor={(row) => row.key}
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
@@ -290,124 +335,69 @@ export default function BudgetDetailScreen() {
             onRefresh={() => void invalidateBudgetData()}
           />
         }
-      >
-        {/* No gutter here: the hero pays its own, so its pill rail can run edge
-            to edge. */}
-        <BudgetDetailHero
-          metrics={metrics}
-          currency={currency}
-          rollover={budget.rollover ?? 0}
-          previousMonthName={previousMonthName}
-          onPressMetrics={() => setRealizedVisible(true)}
-          onPressRollover={
-            budget.previousBudgetId == null
-              ? undefined
-              : // Push, not replace: reading where the carry-over came from is
-                // a step back in time the user expects to return from, unlike
-                // the pager's sideways moves.
-                () => router.push(`/budget/${budget.previousBudgetId}`)
+        renderItem={({ item: row }) => {
+          if (row.kind === "header") {
+            return (
+              <Text variant="titleSmall" style={styles.sectionTitle}>
+                {row.title}
+              </Text>
+            );
           }
-        />
-
-        {/* Only after the user has actually pointed an envelope for less than
-            it planned — before that it answers a question nobody asked. */}
-        {isPessimisticTipArmed && (
-          <View style={styles.gutter}>
-            <Tooltip
-              id="pessimistic-check"
-              icon="shield-check-outline"
-              title="Budget protégé"
-              message="Quand tu dépenses moins que prévu, Pulpe garde le montant prévu pour protéger ton budget."
-            />
-          </View>
-        )}
-
-        {isTight && (
-          <View style={styles.gutter}>
-            <TightMonthCard
-              onWithdraw={() => setWithdrawalVisible(true)}
-              onDismiss={() => {
-                dismissWithdrawal(id);
-                setCardDismissed(true);
-              }}
-            />
-          </View>
-        )}
-
-        <DetailsFilterBar
-          filters={filters}
-          counts={counts}
-          onChange={setFilters}
-        />
-
-        <View style={styles.gutter}>
-          <Tooltip
-            id="gestures"
-            icon="gesture-tap"
-            title="Deux gestes par ligne"
-            message="Touche le rond pour pointer · Touche la ligne pour la modifier"
-          />
-        </View>
-
-        {sections.map((section) => (
-          <View key={section.kind} style={styles.section}>
-            <Text variant="titleSmall">{SECTION_TITLES[section.kind]}</Text>
-            {section.items.map((item) => (
+          if (row.kind === "transaction") {
+            return (
+              <View style={styles.row}>
+                <TransactionRow
+                  transaction={row.transaction}
+                  currency={currency}
+                  isSyncing={
+                    toggle.isPending &&
+                    toggle.variables?.sourceId === row.transaction.id
+                  }
+                  tagSummary={tagSummary(
+                    row.transaction.tagIds ?? [],
+                    tags.data ?? [],
+                  )}
+                  onPress={() => setEdited(row.transaction)}
+                  onToggle={() =>
+                    toggle.mutate(
+                      { source: "transaction", sourceId: row.transaction.id },
+                      { onError: () => setToggleFailed(true) },
+                    )
+                  }
+                />
+              </View>
+            );
+          }
+          return (
+            <View style={styles.row}>
               <BudgetLineRow
-                key={item.line.id}
-                item={item}
+                item={row.item}
                 currency={currency}
                 isSyncing={
                   toggle.isPending &&
-                  toggle.variables?.sourceId === item.line.id
+                  toggle.variables?.sourceId === row.item.line.id
                 }
-                tagSummary={tagSummary(item.line.tagIds ?? [], tags.data ?? [])}
+                tagSummary={tagSummary(
+                  row.item.line.tagIds ?? [],
+                  tags.data ?? [],
+                )}
                 onPress={() => {
                   dismissTip("gestures");
-                  router.push(`/budget/${id}/line/${item.line.id}`);
+                  router.push(`/budget/${id}/line/${row.item.line.id}`);
                 }}
                 onToggle={() => {
                   dismissTip("gestures");
-                  if (isPessimistic(item)) armTip("pessimistic-check");
+                  if (isPessimistic(row.item)) armTip("pessimistic-check");
                   toggle.mutate(
-                    { source: "budgetLine", sourceId: item.line.id },
+                    { source: "budgetLine", sourceId: row.item.line.id },
                     { onError: () => setToggleFailed(true) },
                   );
                 }}
               />
-            ))}
-          </View>
-        ))}
-
-        {free.length > 0 && (
-          <View style={styles.section}>
-            <Text variant="titleSmall">Hors prévision</Text>
-            {free.map((transaction) => (
-              <TransactionRow
-                key={transaction.id}
-                transaction={transaction}
-                currency={currency}
-                isSyncing={
-                  toggle.isPending &&
-                  toggle.variables?.sourceId === transaction.id
-                }
-                tagSummary={tagSummary(
-                  transaction.tagIds ?? [],
-                  tags.data ?? [],
-                )}
-                onPress={() => setEdited(transaction)}
-                onToggle={() =>
-                  toggle.mutate(
-                    { source: "transaction", sourceId: transaction.id },
-                    { onError: () => setToggleFailed(true) },
-                  )
-                }
-              />
-            ))}
-          </View>
-        )}
-
-        {isEmpty && (
+            </View>
+          );
+        }}
+        ListEmptyComponent={
           <Text
             variant="bodyMedium"
             style={[
@@ -420,8 +410,70 @@ export default function BudgetDetailScreen() {
               ? "Tout est pointé pour ce mois."
               : "Rien ne correspond à ce filtre."}
           </Text>
-        )}
-      </ScrollView>
+        }
+        ListHeaderComponent={
+          <View style={styles.header}>
+            {/* No gutter here: the hero pays its own, so its pill rail can run
+                edge to edge. */}
+            <BudgetDetailHero
+              metrics={metrics}
+              currency={currency}
+              rollover={budget.rollover ?? 0}
+              previousMonthName={previousMonthName}
+              onPressMetrics={() => setRealizedVisible(true)}
+              onPressRollover={
+                budget.previousBudgetId == null
+                  ? undefined
+                  : // Push, not replace: reading where the carry-over came from
+                    // is a step back in time the user expects to return from,
+                    // unlike the pager's sideways moves.
+                    () => router.push(`/budget/${budget.previousBudgetId}`)
+              }
+            />
+
+            {/* Only after the user has actually pointed an envelope for less
+                than it planned — before that it answers a question nobody
+                asked. */}
+            {isPessimisticTipArmed && (
+              <View style={styles.gutter}>
+                <Tooltip
+                  id="pessimistic-check"
+                  icon="shield-check-outline"
+                  title="Budget protégé"
+                  message="Quand tu dépenses moins que prévu, Pulpe garde le montant prévu pour protéger ton budget."
+                />
+              </View>
+            )}
+
+            {isTight && (
+              <View style={styles.gutter}>
+                <TightMonthCard
+                  onWithdraw={() => setWithdrawalVisible(true)}
+                  onDismiss={() => {
+                    dismissWithdrawal(id);
+                    setCardDismissed(true);
+                  }}
+                />
+              </View>
+            )}
+
+            <DetailsFilterBar
+              filters={filters}
+              counts={counts}
+              onChange={setFilters}
+            />
+
+            <View style={styles.gutter}>
+              <Tooltip
+                id="gestures"
+                icon="gesture-tap"
+                title="Deux gestes par ligne"
+                message="Touche le rond pour pointer · Touche la ligne pour la modifier"
+              />
+            </View>
+          </View>
+        }
+      />
 
       {/* Two things can be added to a month and they are not the same act: a
           forecast plans, an operation records. One FAB, two answers. */}
@@ -565,13 +617,18 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   // No horizontal padding here: the gutter belongs to each block, so that the
   // chip rails inside them can still run the full width of the display.
-  content: {
-    paddingVertical: SPACING.md,
-    gap: SPACING.md,
-    paddingBottom: FAB_CLEARANCE,
-  },
+  // The rhythm is per row rather than a container `gap`, which a virtualised
+  // list has no single container to hold.
+  content: { paddingVertical: SPACING.md, paddingBottom: FAB_CLEARANCE },
+  pager: { elevation: 3, zIndex: 1 },
+  header: { gap: SPACING.md, paddingBottom: SPACING.md },
   gutter: { paddingHorizontal: SCREEN_PADDING },
+  row: { paddingHorizontal: SCREEN_PADDING, paddingBottom: SPACING.sm },
   title: { textTransform: "capitalize" },
-  section: { gap: SPACING.sm, paddingHorizontal: SCREEN_PADDING },
+  sectionTitle: {
+    paddingHorizontal: SCREEN_PADDING,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.sm,
+  },
   empty: { paddingVertical: SPACING.lg, textAlign: "center" },
 });

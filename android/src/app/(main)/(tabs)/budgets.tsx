@@ -5,7 +5,7 @@ import {
   type BudgetSparse,
   type SupportedCurrency,
 } from "pulpe-shared";
-import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { RefreshControl, SectionList, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Card,
@@ -94,37 +94,58 @@ export default function BudgetsScreen() {
       edges={["top"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <ScrollView
+      {/* Sectioned rather than flat: an account two years old is 24 months of
+          cards, and mounting all of them to show four is the frame drop the
+          list opens on. `SectionList` is the virtualiser that already speaks
+          year-then-months, so nothing has to be flattened by hand. */}
+      <SectionList
+        sections={sections.map((section) => ({
+          year: section.year,
+          data: section.budgets,
+        }))}
+        keyExtractor={(budget) => budget.id}
         contentContainerStyle={styles.content}
+        // Off by default on Android, on by default on iOS. A year is the one
+        // thing a month card never says, so scrolling into 2025 without it
+        // leaves twelve "Décembre" with nothing to date them.
+        stickySectionHeadersEnabled
         refreshControl={
           <RefreshControl
             refreshing={budgets.isRefetching}
             onRefresh={() => void invalidateBudgetData()}
           />
         }
-      >
-        <Text variant="headlineSmall">Budgets</Text>
-
-        {sections.map((section) => (
-          <View key={section.year} style={styles.section}>
-            <Text
-              variant="titleSmall"
-              style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
-            >
-              {section.year}
-            </Text>
-            {section.budgets.map((budget) => (
-              <BudgetRow
-                key={budget.id}
-                budget={budget}
-                currency={currency}
-                payDayOfMonth={payDayOfMonth}
-                timing={budgetTiming(budget, currentPeriod)}
-              />
-            ))}
+        ListHeaderComponent={
+          <Text variant="headlineSmall" style={styles.screenTitle}>
+            Budgets
+          </Text>
+        }
+        renderSectionHeader={({ section }) => (
+          <Text
+            variant="titleSmall"
+            style={[
+              TABULAR_DIGITS,
+              styles.year,
+              {
+                color: theme.colors.onSurfaceVariant,
+                backgroundColor: theme.colors.background,
+              },
+            ]}
+          >
+            {section.year}
+          </Text>
+        )}
+        renderItem={({ item: budget }) => (
+          <View style={styles.row}>
+            <BudgetRow
+              budget={budget}
+              currency={currency}
+              payDayOfMonth={payDayOfMonth}
+              timing={budgetTiming(budget, currentPeriod)}
+            />
           </View>
-        ))}
-      </ScrollView>
+        )}
+      />
 
       <FAB
         icon="plus"
@@ -163,16 +184,15 @@ function BudgetRow({
   return (
     <Card
       // Three weights for three meanings: the month being lived in is raised
-      // and tinted, a plan is only outlined, and a month that is over keeps the
-      // flat surface but steps back in contrast.
+      // and tinted, a plan is only outlined, and a month that is over is a flat
+      // filled surface. The surface carries it on its own — the 0.72 opacity
+      // that used to sit on top took "Résultat" down to 3.64:1, and a month
+      // already lived is exactly the one someone re-reads.
       mode={isCurrent ? "elevated" : isPast ? "contained" : "outlined"}
-      style={[
-        isCurrent && { backgroundColor: theme.colors.primaryContainer },
-        isPast && styles.past,
-      ]}
+      style={isCurrent && { backgroundColor: theme.colors.primaryContainer }}
       onPress={() => router.push(`/budget/${budget.id}`)}
     >
-      <Card.Content style={styles.row}>
+      <Card.Content style={styles.cardRow}>
         <View style={styles.rowLabels}>
           {isCurrent && (
             <Text
@@ -231,13 +251,14 @@ function periodLabel(
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: {
-    padding: SPACING.md,
-    gap: SPACING.md,
-    paddingBottom: FAB_CLEARANCE,
-  },
-  section: { gap: SPACING.sm },
-  row: {
+  // Rhythm per row, not a container `gap`: a virtualised list has no single
+  // container to hold one.
+  content: { padding: SPACING.md, paddingBottom: FAB_CLEARANCE },
+  screenTitle: { paddingBottom: SPACING.md },
+  // Opaque, because a sticky header scrolls over the cards underneath it.
+  year: { paddingTop: SPACING.sm, paddingBottom: SPACING.sm },
+  row: { paddingBottom: SPACING.sm },
+  cardRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -245,8 +266,6 @@ const styles = StyleSheet.create({
   },
   rowLabels: { flex: 1, gap: SPACING.xxs },
   month: { textTransform: "capitalize" },
-  /** A settled month is still readable, but stops competing with the live one. */
-  past: { opacity: 0.72 },
   amount: { alignItems: "flex-end", gap: SPACING.xxs },
   fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

@@ -109,6 +109,8 @@ export const FINANCIAL_COLORS = {
     overBudget: "#905800",
     /** Irreversible actions only — never over-budget feedback. */
     destructive: "#C62828",
+    /** The surface an irreversible action sits on, from `Color+Pulpe.swift`. */
+    destructiveContainer: "#FDECEA",
   },
   dark: {
     income: "#5AA8E0",
@@ -116,6 +118,7 @@ export const FINANCIAL_COLORS = {
     savings: "#50C882",
     overBudget: "#E5A33A",
     destructive: "#FF6B6B",
+    destructiveContainer: "#3A1818",
   },
 } as const;
 
@@ -166,6 +169,21 @@ export const SPACING = {
 } as const;
 
 /**
+ * Material's minimum touch target, which is 48 and not the 44 iOS asks for. The
+ * distinction matters on the controls both apps share: a ring sized to Apple's
+ * floor is four points short of Android's, and no amount of `hitSlop` was ever
+ * going to be added to a control that had already declared itself compliant.
+ */
+export const TOUCH_TARGET = 48;
+
+/**
+ * How much of an accent a surface takes when tinted by it, as a hex alpha
+ * suffix. `surface` is M3's own pressed-state opacity, which is also what a
+ * ripple lays over the thing it is acknowledging.
+ */
+export const TINT_ALPHA = { subtle: "14", surface: "1F" } as const;
+
+/**
  * The gutter every screen keeps between its content and the display edge.
  * A horizontal rail is the exception: it runs edge to edge and applies this to
  * its *content* instead, so the first and last item can scroll past the gutter
@@ -186,6 +204,11 @@ export const FAB_CLEARANCE = 96;
  * three hundred and sixty a row has to give — enough to truncate the name while
  * the amount column is still half empty, and to make the row half again as tall
  * as the text in it. Pair it with `margin: 0` on the button's own style.
+ *
+ * The 36dp this renders is the drawing, not the target: Paper's `IconButton`
+ * hands its `TouchableRipple` a 10dp `hitSlop` on Android, so the button answers
+ * across 56 and clears `TOUCH_TARGET` without being widened. Passing a `hitSlop`
+ * of your own here would replace that one and shrink the target.
  */
 export const ROW_ACTION_ICON_SIZE = 20;
 

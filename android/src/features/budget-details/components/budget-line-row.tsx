@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
 import { formatCurrency } from "@/core/ui/amount-format";
+import { useRipple } from "@/core/ui/ripple";
 import {
   FINANCIAL_COLORS,
   RADIUS,
@@ -17,8 +18,6 @@ import { PointCircle } from "./point-circle";
 
 const CHEVRON_SIZE = 18;
 const SPREAD_ICON_SIZE = 12;
-/** How much a pointed row steps back without disappearing. */
-const POINTED_OPACITY = 0.55;
 
 const RECURRENCE_LABELS = {
   fixed: "Récurrent",
@@ -48,6 +47,7 @@ export function BudgetLineRow({
   onToggle,
 }: BudgetLineRowProps) {
   const theme = useTheme();
+  const ripple = useRipple();
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const accent = accentColor(
     item.accent,
@@ -65,11 +65,8 @@ export function BudgetLineRow({
   return (
     <Pressable
       onPress={onPress}
-      style={[
-        styles.row,
-        { backgroundColor: theme.colors.surface },
-        item.isChecked && styles.pointed,
-      ]}
+      android_ripple={ripple}
+      style={[styles.row, { backgroundColor: theme.colors.surface }]}
       accessibilityRole="button"
       accessibilityHint="Ouvre le détail de la prévision"
     >
@@ -96,11 +93,11 @@ export function BudgetLineRow({
               <MaterialCommunityIcons
                 name="calendar-multiple"
                 size={SPREAD_ICON_SIZE}
-                color={theme.colors.outline}
+                color={theme.colors.onSurfaceVariant}
               />
               <Text
                 variant="labelSmall"
-                style={{ color: theme.colors.outline }}
+                style={{ color: theme.colors.onSurfaceVariant }}
               >
                 Lissé
               </Text>
@@ -111,11 +108,11 @@ export function BudgetLineRow({
               <MaterialCommunityIcons
                 name="target"
                 size={SPREAD_ICON_SIZE}
-                color={theme.colors.outline}
+                color={theme.colors.onSurfaceVariant}
               />
               <Text
                 variant="labelSmall"
-                style={{ color: theme.colors.outline }}
+                style={{ color: theme.colors.onSurfaceVariant }}
               >
                 Objectif
               </Text>
@@ -130,7 +127,10 @@ export function BudgetLineRow({
           {item.line.name}
         </Text>
         {tagSummary !== null && (
-          <Text variant="labelSmall" style={{ color: theme.colors.outline }}>
+          <Text
+            variant="labelSmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
             {tagSummary}
           </Text>
         )}
@@ -160,7 +160,7 @@ export function BudgetLineRow({
           <Text
             variant="labelSmall"
             numberOfLines={1}
-            style={[TABULAR_DIGITS, { color: theme.colors.outline }]}
+            style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
           >
             {item.amountSuffix}
           </Text>
@@ -170,7 +170,7 @@ export function BudgetLineRow({
       <MaterialCommunityIcons
         name="chevron-right"
         size={CHEVRON_SIZE}
-        color={theme.colors.outline}
+        color={theme.colors.onSurfaceVariant}
       />
     </Pressable>
   );
@@ -206,7 +206,9 @@ const styles = StyleSheet.create({
     paddingRight: SPACING.sm,
     borderRadius: RADIUS.card,
   },
-  pointed: { opacity: POINTED_OPACITY },
+  // A pointed row is struck through and nothing else. Dimming the whole row on
+  // top of that took its amounts to 2.25:1 — the half of a month someone
+  // re-reads to check what has already gone through is not decoration.
   struck: { textDecorationLine: "line-through" },
   labels: { flex: 1, gap: SPACING.xxs, paddingVertical: SPACING.sm },
   eyebrow: { flexDirection: "row", alignItems: "center", gap: SPACING.xxs },

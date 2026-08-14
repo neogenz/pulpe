@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, useColorScheme, View } from "react-native";
 import {
   Appbar,
   Button,
@@ -19,7 +19,7 @@ import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useSessionStore } from "@/core/auth/session-store";
 import { describeBiometrics } from "@/core/crypto/biometrics";
-import { SPACING } from "@/core/ui/theme";
+import { FINANCIAL_COLORS, SPACING } from "@/core/ui/theme";
 import {
   disableVaultBiometrics,
   enableVaultBiometrics,
@@ -46,6 +46,11 @@ type OpenSheet = "password" | "regenerate" | "verify" | null;
  */
 export default function SecuritySettingsScreen() {
   const theme = useTheme();
+  // `theme.colors.error` is the app's amber, deliberately: a form error is not a
+  // punishment. Deleting an account is the other thing, so it wears the red the
+  // palette keeps for what cannot be undone.
+  const danger =
+    FINANCIAL_COLORS[useColorScheme() === "dark" ? "dark" : "light"];
   const profile = useUserProfile();
   const sessionEmail = useSessionStore((state) => state.user?.email);
   const signOut = useSessionStore((state) => state.signOut);
@@ -156,24 +161,24 @@ export default function SecuritySettingsScreen() {
         )}
 
         <View style={styles.danger}>
-          <Text variant="labelLarge" style={{ color: theme.colors.error }}>
+          <Text variant="labelLarge" style={{ color: danger.destructive }}>
             ZONE DE DANGER
           </Text>
           <Card
             mode="contained"
-            style={{ backgroundColor: theme.colors.errorContainer }}
+            style={{ backgroundColor: danger.destructiveContainer }}
           >
             <Card.Content style={styles.dangerCard}>
               <Text
                 variant="bodyMedium"
-                style={{ color: theme.colors.onErrorContainer }}
+                style={{ color: theme.colors.onSurface }}
               >
                 Supprimer ton compte efface définitivement tes budgets, tes
                 objectifs et tes opérations après un délai de grâce.
               </Text>
               <Button
                 mode="contained"
-                buttonColor={theme.colors.error}
+                buttonColor={danger.destructive}
                 textColor={theme.colors.onError}
                 onPress={() => setDeletingAccount(true)}
               >
@@ -264,7 +269,7 @@ export default function SecuritySettingsScreen() {
           <Dialog.Actions>
             <Button onPress={() => setDeletingAccount(false)}>Annuler</Button>
             <Button
-              textColor={theme.colors.error}
+              textColor={danger.destructive}
               disabled={removeAccount.isPending}
               loading={removeAccount.isPending}
               onPress={() =>

@@ -6,6 +6,7 @@ import { Button, useTheme } from "react-native-paper";
 
 import { normalizeApiError } from "@/core/api/api-error";
 import { useSessionStore } from "@/core/auth/session-store";
+import { useRipple } from "@/core/ui/ripple";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 import {
   unlockVaultWithBiometrics,
@@ -20,6 +21,7 @@ const BIOMETRIC_ICON_SIZE = 32;
 
 export default function VaultUnlockScreen() {
   const theme = useTheme();
+  const ripple = useRipple();
   const isBiometricAvailable = useVaultStore(
     (state) => state.isBiometricAvailable,
   );
@@ -73,6 +75,7 @@ export default function VaultUnlockScreen() {
           isBiometricAvailable ? (
             <Pressable
               onPress={() => void promptBiometric()}
+              android_ripple={ripple}
               accessibilityRole="button"
               accessibilityLabel="Déverrouiller avec la biométrie"
               style={styles.biometric}

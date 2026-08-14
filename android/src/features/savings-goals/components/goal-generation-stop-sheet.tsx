@@ -4,7 +4,7 @@ import type {
   SavingsGoalStatus,
   SupportedCurrency,
 } from "pulpe-shared";
-import { StyleSheet, useColorScheme, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   Button,
   Card,
@@ -17,7 +17,7 @@ import {
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
-import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 import { useStopSavingsGoalGeneration } from "../goals-queries";
 
@@ -50,7 +50,6 @@ export function GoalGenerationStopSheet({
   onApplied,
 }: GoalGenerationStopSheetProps) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const stop = useStopSavingsGoalGeneration();
 
   const total = lines.reduce((sum, line) => sum + line.amount, 0);
@@ -118,7 +117,10 @@ export function GoalGenerationStopSheet({
           <View style={styles.decision}>
             <Button
               mode="outlined"
-              textColor={FINANCIAL_COLORS[scheme].destructive}
+              // Amber, not the destructive red: these forecasts can be planned
+              // again next month, and spending the irreversible colour here is
+              // what makes it stop meaning anything on the account deletion.
+              textColor={theme.colors.error}
               onPress={() => apply("remove")}
               disabled={stop.isPending}
               accessibilityHint="Supprime les prévisions affichées et libère leur montant"

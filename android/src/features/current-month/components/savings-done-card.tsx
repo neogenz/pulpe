@@ -4,6 +4,7 @@ import { Text, useTheme } from "react-native-paper";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { formatCompactCurrency } from "@/core/ui/amount-format";
+import { useRipple } from "@/core/ui/ripple";
 import {
   FINANCIAL_COLORS,
   RADIUS,
@@ -32,12 +33,14 @@ export function SavingsDoneCard({
   onPress,
 }: SavingsDoneCardProps) {
   const theme = useTheme();
+  const ripple = useRipple();
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const savingsColor = FINANCIAL_COLORS[scheme].savings;
 
   return (
     <Pressable
       onPress={onPress}
+      android_ripple={ripple}
       accessibilityRole="button"
       accessibilityLabel={`Épargne du mois versée, ${formatCompactCurrency(amount, currency)}`}
       accessibilityHint="Voir mes objectifs d'épargne"
