@@ -101,6 +101,9 @@ struct BudgetLineDetailPage: View {
         ) { target in
             postpone(target)
         }
+        // This composite (title + list + sticky CTA) splits into several AX elements;
+        // bare, the identifier stamps every one of them and clobbers the CTA's own.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("budgetLineDetailPageRoot")
     }
 
