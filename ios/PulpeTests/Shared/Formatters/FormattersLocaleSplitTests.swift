@@ -125,11 +125,15 @@ struct FormattersLocaleSplitTests {
 
     /// CLDR abbreviates thousands per language — and not at all in German, which spells
     /// the full number with the Swiss apostrophe when the currency is CHF.
+    ///
+    /// Italian carries no literal here on purpose: CLDR moved Italian thousands between
+    /// unabbreviated and "K" across ICU releases, so an expected string would assert the
+    /// runner's ICU version rather than Pulpe's behavior. `compactAxisLabel_rendersInEveryLanguage`
+    /// covers it with the property that does hold everywhere.
     @Test(arguments: [
         (SupportedLocale.fr, "15 k"),
         (.en, "15K"),
         (.de, "15’000"),
-        (.it, "15K"),
     ])
     func compactAxisLabel_abbreviationFollowsTheLanguage(language: SupportedLocale, expected: String) {
         // ICU separates "15" from "k" with a no-break space whose exact code point varies
@@ -139,6 +143,15 @@ struct FormattersLocaleSplitTests {
             .replacingOccurrences(of: "\u{00A0}", with: " ")
 
         #expect(rendered == expected)
+    }
+
+    /// Whatever CLDR decides to abbreviate per language, the label always carries the value.
+    @Test func compactAxisLabel_rendersInEveryLanguage() {
+        for language in SupportedLocale.allCases {
+            let rendered = Formatters.compactAxisLabel(15000, currency: .chf, language: language)
+
+            #expect(rendered.hasPrefix("15"))
+        }
     }
 
     /// EUR digits stay French-punctuated even when the language is English.
