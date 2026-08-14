@@ -61,7 +61,6 @@ export interface SavingsWithdrawalResult {
  */
 @Injectable()
 export class CreateSavingsWithdrawalUseCase {
-  // eslint-disable-next-line max-params
   constructor(
     @Inject(BUDGET_LINE_REPOSITORY)
     private readonly repo: BudgetLineRepositoryPort,

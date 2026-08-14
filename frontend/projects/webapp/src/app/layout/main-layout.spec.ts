@@ -4,6 +4,7 @@ import {
   provideZonelessChangeDetection,
   signal,
   type Signal,
+  type WritableSignal,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
@@ -102,7 +103,7 @@ class MockPulpeBreadcrumbComponent {
 interface MockAuthStore {
   signOut: ReturnType<typeof vi.fn>;
   authState: ReturnType<typeof vi.fn>;
-  user: Signal<unknown>;
+  user: WritableSignal<unknown>;
   session: Signal<null>;
   isLoading: Signal<boolean>;
   isAuthenticated: Signal<boolean>;
@@ -533,6 +534,28 @@ describe('MainLayout', () => {
 
       expect(toolbar).toBeTruthy();
       expect(userMenuButton).toBeTruthy();
+    });
+
+    it('renders the OAuth profile picture when Supabase provides one', () => {
+      mockAuthStore.user.set({
+        email: 'test@example.com',
+        user_metadata: { avatar_url: 'https://example.com/avatar.jpg' },
+      });
+      fixture.detectChanges();
+
+      const avatar = fixture.nativeElement.querySelector(
+        '[data-testid="user-avatar-image"]',
+      ) as HTMLImageElement;
+      expect(avatar.src).toBe('https://example.com/avatar.jpg');
+      expect(avatar.alt).toBe('');
+    });
+
+    it('falls back to the email initial when no profile picture is available', () => {
+      const fallback = fixture.nativeElement.querySelector(
+        '[data-testid="user-avatar-fallback"]',
+      ) as HTMLElement;
+
+      expect(fallback.textContent?.trim()).toBe('T');
     });
 
     it('should render logout button in menu', async () => {

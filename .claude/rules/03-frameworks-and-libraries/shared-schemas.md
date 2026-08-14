@@ -4,19 +4,21 @@ paths:
   - "shared/**/*.ts"
   - "backend-nest/**/dto/**/*.ts"
   - "frontend/**/api/**/*.ts"
+  - "frontend/**/*-api.ts"
 ---
 
 # Shared Schemas (pulpe-shared)
 
 ## Purpose
 
-`shared/` = single source of truth for API contracts between frontend and backend. All validation schemas + inferred TypeScript types live here.
+`shared/` is the single source of truth for HTTP contracts shared by clients and the backend.
+Persistence-only RPC schemas stay module-local in the backend.
 
 ## Stack
 
 - **Zod 4** (`^4.1.13`) — top-level validators
 - **ESM** with `moduleResolution: "NodeNext"`
-- Published as `pulpe-shared` workspace package
+- Consumed locally as the `pulpe-shared` workspace package; it is not published
 
 ## Zod 4 Syntax (CRITICAL)
 

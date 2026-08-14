@@ -68,10 +68,6 @@ struct BudgetDetailsScreenState: Equatable {
     /// confirmation / menu copy. Routed through the DTO for the same reason.
     let nextMonthLabel: String?
 
-    /// Kind of the first non-empty section after all filters. Drives the
-    /// "first section gets the gestures tip" rule.
-    let firstSectionKind: TransactionKind?
-
     /// True when the user has the "À pointer" filter active, search is empty,
     /// nothing is left to point AND there were items to begin with — i.e. the
     /// "Tout est pointé" empty state should render.
@@ -123,7 +119,6 @@ struct BudgetDetailsScreenState: Equatable {
         isShowingOnlyUnchecked: true,
         canPostpone: false,
         nextMonthLabel: nil,
-        firstSectionKind: nil,
         canShowEmptyChecked: false,
         consumptionByLineId: [:],
         lineById: [:],

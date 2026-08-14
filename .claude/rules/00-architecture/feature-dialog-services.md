@@ -1,6 +1,7 @@
 ---
 description: "When dialog methods belong in a feature-level service vs. opening MatDialog directly"
-paths: "frontend/**/feature/**/*.ts"
+paths:
+  - "frontend/**/feature/**/*.ts"
 ---
 
 # Feature Dialog Services

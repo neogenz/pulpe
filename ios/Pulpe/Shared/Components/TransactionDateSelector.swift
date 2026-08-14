@@ -19,7 +19,7 @@ struct TransactionDateSelector: View {
                 .labelsHidden()
                 .datePickerStyle(.compact)
                 .environment(\.locale, Formatters.locale(for: currency))
-                .accessibilityLabel("Date de la transaction")
+                .accessibilityLabel("Date")
         }
         .padding(DesignTokens.Spacing.lg)
         .background(Color.inputBackgroundSoft)

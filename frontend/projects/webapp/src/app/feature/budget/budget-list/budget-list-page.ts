@@ -57,7 +57,7 @@ import { UserSettingsStore } from '@core/user-settings';
     <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0 min-w-0">
       <header class="pulpe-page-header" data-testid="page-header">
         <h1
-          class="text-headline-medium md:text-display-small truncate min-w-0 shrink"
+          class="text-headline-medium md:text-display-small font-bold truncate min-w-0 shrink"
           data-testid="page-title"
         >
           {{ titleDisplay.currentTitle() }}

@@ -99,7 +99,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
           <mat-icon>arrow_back</mat-icon>
         </button>
         <h1
-          class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink ph-no-capture"
+          class="text-headline-medium md:text-display-small font-bold truncate min-w-0 flex-shrink ph-no-capture"
           data-testid="page-title"
         >
           {{ goal()?.name }}
@@ -277,40 +277,14 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               </div>
             }
 
-            @if (paceChip(); as chip) {
-              <div
-                class="flex items-center gap-1.5 rounded-full px-4 py-1.5 w-fit text-label-large"
-                [class]="chip.classes"
-                data-testid="savings-goal-pace-chip"
-              >
-                <mat-icon
-                  class="text-base! w-auto! h-auto! leading-none"
-                  aria-hidden="true"
-                  >{{ chip.icon }}</mat-icon
-                >
-                {{ chip.labelKey | transloco }}
-              </div>
-            }
-
             <!-- Stats -->
-            <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4">
-              @if (p.initialAmount > 0) {
-                <div
-                  class="flex flex-col gap-1"
-                  data-testid="stat-initial-amount"
-                >
-                  <span class="text-body-small text-on-surface-variant">
-                    {{ 'savingsGoals.detail.initialAmount' | transloco }}
-                  </span>
-                  <span
-                    class="text-title-large font-semibold tabular-nums ph-no-capture"
-                  >
-                    {{ p.initialAmount | appCurrency: currency() : '1.0-0' }}
-                  </span>
-                </div>
-              }
-              <!-- The colored dots double as the legend of the two bar layers. -->
-              <div class="flex flex-col gap-1" data-testid="stat-confirmed">
+            <div
+              class="mt-2 grid gap-5 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,2fr)] lg:items-stretch"
+            >
+              <div
+                class="flex flex-col justify-center rounded-2xl bg-financial-savings/10 px-5 py-4"
+                data-testid="stat-confirmed"
+              >
                 <span
                   class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
                 >
@@ -321,106 +295,139 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   {{ 'savingsGoals.detail.confirmed' | transloco }}
                 </span>
                 <span
-                  class="text-title-large font-bold text-financial-savings tabular-nums ph-no-capture"
+                  class="mt-1 text-headline-small font-bold text-financial-savings tabular-nums ph-no-capture"
                 >
                   {{ p.confirmed | appCurrency: currency() : '1.0-0' }}
                 </span>
-              </div>
-              <div class="flex flex-col gap-1" data-testid="stat-planned">
-                <span
-                  class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
-                >
+                @if (p.initialAmount > 0) {
                   <span
-                    class="inline-block size-2.5 rounded-full bg-financial-savings/35"
-                    aria-hidden="true"
-                  ></span>
-                  {{ 'savingsGoals.detail.plannedCumulative' | transloco }}
-                </span>
-                <span
-                  class="text-title-large font-semibold tabular-nums ph-no-capture"
-                >
-                  {{ p.plannedCumulative | appCurrency: currency() : '1.0-0' }}
-                </span>
+                    class="mt-2 text-body-small text-on-surface-variant"
+                    data-testid="stat-initial-amount"
+                  >
+                    {{ 'savingsGoals.detail.initialAmount' | transloco }} ·
+                    <span class="tabular-nums ph-no-capture">
+                      {{ p.initialAmount | appCurrency: currency() : '1.0-0' }}
+                    </span>
+                  </span>
+                }
               </div>
-              <div
-                class="flex flex-col gap-1"
-                data-testid="stat-planned-projection"
-              >
-                <span
-                  class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
-                >
-                  @if (p.projected === null) {
-                    <span
-                      class="inline-block size-2.5 rounded-full bg-tertiary"
-                      aria-hidden="true"
-                      data-testid="stat-planned-projection-legend"
-                    ></span>
-                  }
-                  {{ 'savingsGoals.detail.plannedProjection' | transloco }}
-                </span>
-                <span
-                  class="text-title-large font-semibold tabular-nums ph-no-capture"
-                >
-                  {{ p.plannedProjection | appCurrency: currency() : '1.0-0' }}
-                </span>
-              </div>
-              @if (p.required !== null) {
-                <div class="flex flex-col gap-1" data-testid="stat-required">
+
+              <div class="grid grid-cols-2 gap-x-5 gap-y-6 sm:gap-x-8">
+                <div class="flex flex-col gap-1" data-testid="stat-planned">
                   <span class="text-body-small text-on-surface-variant">
-                    {{ 'savingsGoals.detail.required' | transloco }}
+                    {{ 'savingsGoals.detail.plannedCumulative' | transloco }}
                   </span>
                   <span
-                    class="text-title-large font-semibold tabular-nums ph-no-capture"
+                    class="text-title-medium font-semibold tabular-nums ph-no-capture"
                   >
                     {{
-                      'savingsGoals.detail.requiredPerMonth'
-                        | transloco
-                          : {
-                              amount:
-                                p.required | appCurrency: currency() : '1.0-0',
-                            }
+                      p.plannedCumulative | appCurrency: currency() : '1.0-0'
                     }}
                   </span>
                 </div>
-              }
-              @if (p.projected !== null) {
-                <div class="flex flex-col gap-1" data-testid="stat-projected">
+                <div
+                  class="flex flex-col gap-1"
+                  data-testid="stat-planned-projection"
+                >
                   <span
                     class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
                   >
-                    <span
-                      class="inline-block size-2.5 rounded-full bg-tertiary"
-                      aria-hidden="true"
-                    ></span>
-                    {{ 'savingsGoals.detail.projected' | transloco }}
+                    @if (p.projected === null) {
+                      <span
+                        class="inline-block size-2.5 rounded-full bg-tertiary"
+                        aria-hidden="true"
+                        data-testid="stat-planned-projection-legend"
+                      ></span>
+                    }
+                    {{ 'savingsGoals.detail.plannedProjection' | transloco }}
                   </span>
                   <span
-                    class="text-title-large font-semibold tabular-nums ph-no-capture"
+                    class="text-title-medium font-semibold tabular-nums ph-no-capture"
                   >
                     {{
-                      displayedProjection() | appCurrency: currency() : '1.0-0'
+                      p.plannedProjection | appCurrency: currency() : '1.0-0'
                     }}
                   </span>
                 </div>
-              }
-              @if (
-                p.targetAmount !== null &&
-                  p.targetDate === null &&
-                  estimatedCompletionLabel();
-                as period
-              ) {
-                <div
-                  class="flex flex-col gap-1"
-                  data-testid="stat-estimated-completion"
-                >
-                  <span class="text-body-small text-on-surface-variant">
-                    {{ 'savingsGoals.detail.estimatedCompletion' | transloco }}
-                  </span>
-                  <span class="text-title-large font-semibold">
-                    {{ period }}
-                  </span>
-                </div>
-              }
+                @if (p.projected !== null) {
+                  <div class="flex flex-col gap-1" data-testid="stat-projected">
+                    <span
+                      class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
+                    >
+                      <span
+                        class="inline-block size-2.5 rounded-full bg-tertiary"
+                        aria-hidden="true"
+                      ></span>
+                      {{ 'savingsGoals.detail.projected' | transloco }}
+                    </span>
+                    <span
+                      class="text-title-medium font-semibold tabular-nums ph-no-capture"
+                    >
+                      {{
+                        displayedProjection()
+                          | appCurrency: currency() : '1.0-0'
+                      }}
+                    </span>
+                    @if (paceChip(); as chip) {
+                      <span
+                        class="mt-1 flex items-start gap-1.5 text-body-small"
+                        [class]="chip.classes"
+                        data-testid="savings-goal-pace-chip"
+                      >
+                        <mat-icon
+                          class="mt-0.5 text-sm! w-auto! h-auto! leading-none"
+                          aria-hidden="true"
+                          >{{ chip.icon }}</mat-icon
+                        >
+                        {{ chip.labelKey | transloco }}
+                      </span>
+                    }
+                  </div>
+                }
+                @if (p.required !== null) {
+                  <div class="flex flex-col gap-1" data-testid="stat-required">
+                    <span class="text-body-small text-on-surface-variant">
+                      {{ 'savingsGoals.detail.required' | transloco }}
+                    </span>
+                    <span
+                      class="text-title-medium font-semibold tabular-nums ph-no-capture"
+                    >
+                      {{
+                        'savingsGoals.detail.requiredPerMonth'
+                          | transloco
+                            : {
+                                amount:
+                                  p.required
+                                  | appCurrency: currency() : '1.0-0',
+                              }
+                      }}
+                    </span>
+                    <span class="text-body-small text-on-surface-variant">
+                      {{ 'savingsGoals.detail.requiredHint' | transloco }}
+                    </span>
+                  </div>
+                }
+                @if (
+                  p.targetAmount !== null &&
+                    p.targetDate === null &&
+                    estimatedCompletionLabel();
+                  as period
+                ) {
+                  <div
+                    class="flex flex-col gap-1"
+                    data-testid="stat-estimated-completion"
+                  >
+                    <span class="text-body-small text-on-surface-variant">
+                      {{
+                        'savingsGoals.detail.estimatedCompletion' | transloco
+                      }}
+                    </span>
+                    <span class="text-title-medium font-semibold">
+                      {{ period }}
+                    </span>
+                  </div>
+                }
+              </div>
             </div>
 
             <!-- D1 — deadline passed (stays ACTIVE, neutral, actionable) -->
@@ -1355,25 +1362,25 @@ export default class SavingsGoalDetailPage {
   }
 }
 
-// Pace chips stay neutral/primary — épargne is a goal to reach, never a risk to
-// flag (RG-002 / docs/SAVINGS.md §7). No amber, no red anywhere on this page.
+// Plan status stays neutral/primary — épargne is a goal to reach, never a risk
+// to flag (RG-002 / docs/SAVINGS.md §7). No amber, no red anywhere on this page.
 const PACE_CHIPS: Record<
   SavingsGoalPaceStatus,
   { labelKey: string; icon: string; classes: string }
 > = {
   behind: {
     labelKey: 'savingsGoals.detail.paceBehind',
-    icon: 'trending_flat',
-    classes: 'bg-surface-container text-on-surface-variant',
+    icon: 'info',
+    classes: 'text-on-surface-variant',
   },
   on_track: {
     labelKey: 'savingsGoals.detail.paceOnTrack',
-    icon: 'trending_up',
-    classes: 'bg-financial-savings/10 text-financial-savings',
+    icon: 'check_circle',
+    classes: 'text-financial-savings',
   },
   ahead: {
     labelKey: 'savingsGoals.detail.paceAhead',
-    icon: 'rocket_launch',
-    classes: 'bg-financial-savings/10 text-financial-savings',
+    icon: 'trending_up',
+    classes: 'text-financial-savings',
   },
 };

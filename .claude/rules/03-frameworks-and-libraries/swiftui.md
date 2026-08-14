@@ -1,6 +1,7 @@
 ---
 description: "SwiftUI view patterns, state management, and iOS 26 features"
-paths: "ios/**/*.swift"
+paths:
+  - "ios/**/*.swift"
 ---
 
 # SwiftUI

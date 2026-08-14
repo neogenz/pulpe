@@ -1,6 +1,7 @@
 ---
 description: "iOS app architecture - layers, stores, services, dependency flow"
-paths: "ios/**/*.swift"
+paths:
+  - "ios/**/*.swift"
 ---
 
 # iOS Architecture
@@ -49,15 +50,15 @@ Features/ ──────┬──▶ Domain/ (stores, models, formulas)
 Domain/  ───────┬──▶ Core/   (services use APIClient, Auth)
                 └──▶ Models are standalone (Sendable structs)
 
-Core/    ───────▶ (nothing - infrastructure foundation)
+Core/    ───────▶ Domain/ (shared models and app stores where the current code requires them)
 
-Shared/  ───────▶ (nothing - reusable utilities)
+Shared/  ───────▶ Domain/ (display components may consume domain models)
 ```
 
 **FORBIDDEN Dependencies**:
-- `Core/` → `Domain/` or `Features/` (lower level)
+- `Core/` → `Features/`
 - `Domain/` → `Features/` (never depend on UI)
-- `Shared/` → `Features/` or `Domain/` (generic utilities)
+- `Shared/` → `Features/`
 - `Features/X` → `Features/Y` (feature isolation)
 
 ## Store Pattern (Global State)

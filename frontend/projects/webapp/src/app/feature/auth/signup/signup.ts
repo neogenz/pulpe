@@ -36,8 +36,8 @@ import { ROUTES } from '@core/routing/routes-constants';
 import { OAuthProviderButton } from '@app/pattern/oauth-provider';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
+import { OnboardingProgress } from '@ui/onboarding-progress';
 import { PasswordCriteria } from '@ui/password-criteria';
-import { createFieldsMatchValidator } from '@core/validators';
 import {
   PASSWORD_HAS_LETTER,
   PASSWORD_HAS_NUMBER,
@@ -62,6 +62,7 @@ function containsPattern(pattern: RegExp, errorKey: string) {
     OAuthProviderButton,
     ErrorAlert,
     LoadingButton,
+    OnboardingProgress,
     PasswordCriteria,
     TranslocoPipe,
   ],
@@ -77,7 +78,9 @@ function containsPattern(pattern: RegExp, errorKey: string) {
         <span>{{ 'auth.signup.backToHome' | transloco }}</span>
       </button>
 
-      <div class="text-center mb-8 mt-4">
+      <pulpe-onboarding-progress class="mt-4 mb-7" [currentStep]="1" />
+
+      <div class="text-center mb-8">
         <h1
           class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
         >
@@ -190,47 +193,6 @@ function containsPattern(pattern: RegExp, errorKey: string) {
           [minLength]="PASSWORD_MIN_LENGTH"
         />
 
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>{{ 'form.confirmPasswordLabel' | transloco }}</mat-label>
-          <input
-            matInput
-            [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
-            autocomplete="new-password"
-            formControlName="confirmPassword"
-            data-testid="confirm-password-input"
-            (input)="clearMessages()"
-            [placeholder]="'form.confirmPasswordPlaceholder' | transloco"
-            [disabled]="isBusy()"
-          />
-          <mat-icon matPrefix>lock_reset</mat-icon>
-          <button
-            type="button"
-            matIconButton
-            matSuffix
-            (click)="toggleConfirmPasswordVisibility()"
-            [attr.aria-label]="'form.showPassword' | transloco"
-            [attr.aria-pressed]="!isConfirmPasswordHidden()"
-          >
-            <mat-icon>{{
-              isConfirmPasswordHidden() ? 'visibility_off' : 'visibility'
-            }}</mat-icon>
-          </button>
-          @if (
-            signupForm.get('confirmPassword')?.invalid &&
-            signupForm.get('confirmPassword')?.touched
-          ) {
-            <mat-error>
-              @if (signupForm.get('confirmPassword')?.hasError('required')) {
-                {{ 'form.confirmPasswordRequired' | transloco }}
-              } @else if (
-                signupForm.get('confirmPassword')?.hasError('passwordsMismatch')
-              ) {
-                {{ 'form.passwordsMismatch' | transloco }}
-              }
-            </mat-error>
-          }
-        </mat-form-field>
-
         <pulpe-error-alert [message]="errorMessage()" />
 
         <pulpe-loading-button
@@ -302,7 +264,6 @@ export default class Signup {
   protected readonly ROUTES = ROUTES;
 
   protected readonly isPasswordHidden = signal(true);
-  protected readonly isConfirmPasswordHidden = signal(true);
   protected readonly isSubmitting = signal(false);
   protected readonly isOAuthLoading = signal(false);
   protected readonly errorMessage = signal('');
@@ -324,28 +285,18 @@ export default class Signup {
 
   protected readonly PASSWORD_MIN_LENGTH = PASSWORD_MIN_LENGTH;
 
-  protected readonly signupForm = this.#formBuilder.nonNullable.group(
-    {
-      email: ['', [Validators.required, Validators.email]],
-      password: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(PASSWORD_MIN_LENGTH),
-          containsPattern(PASSWORD_HAS_NUMBER, 'hasNumber'),
-          containsPattern(PASSWORD_HAS_LETTER, 'hasLetter'),
-        ],
+  protected readonly signupForm = this.#formBuilder.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: [
+      '',
+      [
+        Validators.required,
+        Validators.minLength(PASSWORD_MIN_LENGTH),
+        containsPattern(PASSWORD_HAS_NUMBER, 'hasNumber'),
+        containsPattern(PASSWORD_HAS_LETTER, 'hasLetter'),
       ],
-      confirmPassword: ['', [Validators.required]],
-    },
-    {
-      validators: createFieldsMatchValidator(
-        'password',
-        'confirmPassword',
-        'passwordsMismatch',
-      ),
-    },
-  );
+    ],
+  });
 
   protected readonly passwordValue = toSignal(
     this.signupForm.controls.password.valueChanges,
@@ -380,10 +331,6 @@ export default class Signup {
 
   protected togglePasswordVisibility(): void {
     this.isPasswordHidden.set(!this.isPasswordHidden());
-  }
-
-  protected toggleConfirmPasswordVisibility(): void {
-    this.isConfirmPasswordHidden.set(!this.isConfirmPasswordHidden());
   }
 
   protected clearMessages(): void {

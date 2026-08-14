@@ -1,6 +1,7 @@
 ---
 description: "TypeScript class member conventions and patterns"
-paths: "**/*.ts"
+paths:
+  - "**/*.ts"
 ---
 
 # Coding Rules
@@ -67,12 +68,6 @@ export class ButtonComponent {
 
 ### Import Paths
 
-Use TypeScript path aliases for imports between architectural elements (not within the same directory or feature):
-
-```typescript
-// Good - using tspath alias
-import { UserService } from '@core/services';
-
-// Bad - relative paths crossing architectural boundaries
-import { UserService } from '../../../core/services';
-```
+Use path aliases between architectural layers and relative imports inside one feature or
+component folder. Barrels are pure re-exports; never import a folder's own barrel from a file
+inside that folder, because that creates a circular dependency.

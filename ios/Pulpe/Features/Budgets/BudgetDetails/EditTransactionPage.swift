@@ -109,7 +109,7 @@ struct EditTransactionPage: View {
         .scrollDismissesKeyboard(.interactively)
         .pulpeBackground()
         .pulpeStickyBottomCTA { saveButton(for: tx) }
-        .navigationTitle("Modifier la transaction")
+        .navigationTitle("Modifier")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -117,7 +117,7 @@ struct EditTransactionPage: View {
             }
         }
         .alert(
-            "Supprimer la transaction ?",
+            "Supprimer « \(tx.name) » ?",
             isPresented: $showDeleteConfirmation,
             presenting: tx
         ) { tx in
@@ -214,7 +214,6 @@ struct EditTransactionPage: View {
             hint: kind.descriptionPlaceholder,
             text: $name,
             label: "Description",
-            accessibilityLabel: "Description de la transaction",
             focusBinding: $focusedField,
             field: .description
         )
@@ -338,7 +337,7 @@ struct EditTransactionPage: View {
             _ = try await coordinator.updateTransaction(id: tx.id, data: data)
 
             submitSuccessTrigger.toggle()
-            toastManager.show("Transaction modifiée")
+            toastManager.show("Modifié")
             dismiss()
             Task { await coordinator.dispatch(.reloadCurrentBudget) }
         } catch {

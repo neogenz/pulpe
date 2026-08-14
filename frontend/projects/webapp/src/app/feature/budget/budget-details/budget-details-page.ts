@@ -21,7 +21,6 @@ import { formatDate } from 'date-fns';
 import { dateFnsLocaleFor } from '@core/locale';
 import { BaseLoading } from '@ui/loading';
 import { BudgetFinancialOverview } from '@ui/budget-financial-overview/budget-financial-overview';
-import { SavingsWithdrawalCard } from '@ui/savings-withdrawal-card';
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetItemsContainer } from './components/budget-items-container';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
@@ -45,7 +44,6 @@ import { CURRENCY_CONFIG } from '@core/currency';
     TranslocoPipe,
     BudgetItemsContainer,
     BudgetFinancialOverview,
-    SavingsWithdrawalCard,
     BaseLoading,
   ],
   providers: [BudgetDetailsStore, BudgetDetailsDialogService],
@@ -57,21 +55,17 @@ import { CURRENCY_CONFIG } from '@core/currency';
       padding-bottom: 100px;
     }
 
+    /* Material tient la géométrie de la variante étendue (hauteur 56,
+       corner-large), il n'y a donc rien à figer ici. Aplati comme sur la page
+       d'accueil : DESIGN.md réserve le dégradé au hero. */
     .fab-button {
       position: fixed;
       bottom: calc(24px + env(safe-area-inset-bottom));
       right: 24px;
       z-index: 100;
 
-      width: 56px;
-      height: 56px;
-      --mat-fab-container-shape: 50%;
-
-      background: linear-gradient(
-        145deg,
-        var(--mat-sys-primary) 0%,
-        color-mix(in srgb, var(--mat-sys-primary) 75%, black) 100%
-      );
+      --mat-fab-container-color: var(--mat-sys-primary);
+      background: var(--mat-sys-primary);
       color: var(--mat-sys-on-primary);
 
       box-shadow: var(--mat-sys-level3);
@@ -90,20 +84,9 @@ import { CURRENCY_CONFIG } from '@core/currency';
 
       &:active {
         transform: scale(0.95);
-        box-shadow: var(--mat-sys-level3);
+        box-shadow: var(--mat-sys-level1);
         transition-duration: 100ms;
       }
-
-      &:hover .fab-icon {
-        transform: rotate(90deg);
-      }
-    }
-
-    .fab-icon {
-      font-size: 28px;
-      width: 28px;
-      height: 28px;
-      transition: transform 300ms var(--pulpe-ease-emphasized);
     }
 
     @keyframes fab-scale-in {
@@ -124,10 +107,6 @@ import { CURRENCY_CONFIG } from '@core/currency';
     @media (prefers-reduced-motion: reduce) {
       .fab-button {
         animation: none;
-        transition: none;
-      }
-
-      .fab-icon {
         transition: none;
       }
     }
@@ -256,12 +235,6 @@ export default class BudgetDetailsPage {
     const budget = this.store.budgetDetails();
     if (!budget) return;
     await this.#openSavingsWithdrawalFlow(budget);
-  }
-
-  protected dismissSavingsWithdrawalCard(): void {
-    const budget = this.store.budgetDetails();
-    if (!budget) return;
-    this.store.dismissSavingsWithdrawalCard(budget.id);
   }
 
   async #openSavingsWithdrawalFlow(

@@ -39,25 +39,27 @@ import type {
     TransactionLabelPipe,
   ],
   template: `
-    <div class="flex items-center gap-2">
-      @if (line().metadata.isNestedUnderEnvelope) {
-        <mat-icon class="text-sm! text-outline shrink-0">
-          subdirectory_arrow_right
-        </mat-icon>
-      } @else {
-        <mat-icon
-          class="text-base! shrink-0"
-          [pulpeFinancialKind]="line().data.kind"
-          [matTooltip]="line().data.kind | transactionLabel"
-          matTooltipPosition="above"
-        >
-          {{ line().metadata.kindIcon }}
-        </mat-icon>
-      }
-      <span class="inline-flex items-center gap-2">
-        <div class="flex flex-col">
+    <div class="flex items-start gap-2">
+      <span class="flex h-8 shrink-0 items-center">
+        @if (line().metadata.isNestedUnderEnvelope) {
+          <mat-icon class="text-sm! text-outline shrink-0">
+            subdirectory_arrow_right
+          </mat-icon>
+        } @else {
+          <mat-icon
+            class="text-base! shrink-0"
+            [pulpeFinancialKind]="line().data.kind"
+            [matTooltip]="line().data.kind | transactionLabel"
+            matTooltipPosition="above"
+          >
+            {{ line().metadata.kindIcon }}
+          </mat-icon>
+        }
+      </span>
+      <div class="flex min-w-0 flex-1 items-start gap-3">
+        <div class="flex min-w-0 flex-1 flex-col">
           <span
-            class="ph-no-capture text-body-medium font-semibold flex items-center gap-1"
+            class="ph-no-capture flex min-h-8 items-center gap-1 text-body-medium font-semibold"
             [pulpeFinancialKind]="line().data.kind"
           >
             {{ line().metadata.displayName }}
@@ -132,11 +134,13 @@ import type {
           </span>
         </div>
         @if (line().data.checkedAt) {
-          <span class="text-body-small text-on-surface-variant ml-2">
+          <span
+            class="flex h-8 w-14 shrink-0 items-center justify-end text-right text-body-small text-on-surface-variant tabular-nums"
+          >
             {{ line().data.checkedAt | date: dayMonthFormat() }}
           </span>
         }
-      </span>
+      </div>
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

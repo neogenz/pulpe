@@ -18,11 +18,18 @@ export const STORAGE_KEYS = {
   BUDGET_DESKTOP_VIEW: 'pulpe-budget-desktop-view',
   BUDGET_SHOW_ONLY_UNCHECKED: 'pulpe-budget-show-only-unchecked',
 
-  // Savings-withdrawal card dismissal, keyed per budget id (PUL-292)
-  SAVINGS_WITHDRAWAL_CARD_DISMISSED: 'pulpe-savings-withdrawal-card-dismissed',
+  // Dashboard: whether the read-only outlook half is unfolded
+  DASHBOARD_OUTLOOK_EXPANDED: 'pulpe-dashboard-outlook-expanded',
+
+  // Dashboard: the user has pointed at least once, so the two house words the
+  // page defines inline ("Engagé", "Pointer") no longer need their glossaries
+  DASHBOARD_POINTING_LEARNED: 'pulpe-dashboard-pointing-learned',
 
   // Currency snapshot — read at bootstrap to pick the formatting locale (fr-CH / fr-FR)
   SETTINGS_CURRENCY: 'pulpe-settings-currency',
+
+  // Onboarding draft — user-scoped and cleared once the first budget exists
+  COMPLETE_PROFILE_DRAFT: 'pulpe-complete-profile-draft',
 
   // Vault/Client key - stores encrypted client key for vault access
   VAULT_CLIENT_KEY_SESSION: 'pulpe-vault-client-key-session',

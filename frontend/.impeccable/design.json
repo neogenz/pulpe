@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-06T17:05:36Z",
+  "generatedAt": "2026-08-13T08:15:41Z",
   "title": "Design System: Pulpe Webapp",
   "extensions": {
     "colorMeta": {
@@ -8,93 +8,234 @@
         "role": "primary",
         "displayName": "Forêt Pulpe",
         "canonical": "#006E25",
-        "tonalRamp": ["#002106", "#00390F", "#00531A", "#006E25", "#48A353", "#7EDB83", "#C7FFC4", "#F6FFF0"]
+        "tonalRamp": [
+          "#002106",
+          "#00390F",
+          "#00531A",
+          "#006E25",
+          "#48A353",
+          "#7EDB83",
+          "#C7FFC4",
+          "#F6FFF0"
+        ]
       },
       "primary-hover": {
         "role": "primary",
         "displayName": "Forêt vive",
         "canonical": "#2B883B",
-        "tonalRamp": ["#002106", "#00390F", "#00531A", "#006E25", "#2B883B", "#63BF6B", "#99F89D", "#EBFFE6"]
+        "tonalRamp": [
+          "#002106",
+          "#00390F",
+          "#00531A",
+          "#006E25",
+          "#2B883B",
+          "#63BF6B",
+          "#99F89D",
+          "#EBFFE6"
+        ]
       },
       "on-primary": {
         "role": "neutral",
         "displayName": "Blanc sur forêt",
         "canonical": "#FFFFFF",
-        "tonalRamp": ["#181D17", "#434841", "#737970", "#A7ADA4", "#C3C8BE", "#DFE4DA", "#F0F5EB", "#FFFFFF"]
+        "tonalRamp": [
+          "#181D17",
+          "#434841",
+          "#737970",
+          "#A7ADA4",
+          "#C3C8BE",
+          "#DFE4DA",
+          "#F0F5EB",
+          "#FFFFFF"
+        ]
       },
       "secondary": {
         "role": "secondary",
         "displayName": "Sauge structurante",
         "canonical": "#406741",
-        "tonalRamp": ["#002106", "#113817", "#294F2B", "#406741", "#729B70", "#A6D2A3", "#CFFDCB", "#F6FFF1"]
+        "tonalRamp": [
+          "#002106",
+          "#113817",
+          "#294F2B",
+          "#406741",
+          "#729B70",
+          "#A6D2A3",
+          "#CFFDCB",
+          "#F6FFF1"
+        ]
       },
       "tertiary": {
         "role": "tertiary",
         "displayName": "Lac informatif",
         "canonical": "#0061A6",
-        "tonalRamp": ["#001C37", "#003259", "#00497E", "#0061A6", "#5194DC", "#A0CAFF", "#EAF1FF", "#FDFCFF"]
+        "tonalRamp": [
+          "#001C37",
+          "#003259",
+          "#00497E",
+          "#0061A6",
+          "#5194DC",
+          "#A0CAFF",
+          "#EAF1FF",
+          "#FDFCFF"
+        ]
       },
       "expense": {
         "role": "secondary",
         "displayName": "Ambre dépense",
         "canonical": "#B35800",
-        "tonalRamp": ["#321400", "#572300", "#7C3900", "#B35800", "#D77B2E", "#F0A050", "#FFDCC2", "#FFF8F4"]
+        "tonalRamp": [
+          "#321400",
+          "#572300",
+          "#7C3900",
+          "#B35800",
+          "#D77B2E",
+          "#F0A050",
+          "#FFDCC2",
+          "#FFF8F4"
+        ]
       },
       "warning": {
         "role": "secondary",
         "displayName": "Or de vigilance",
         "canonical": "#B8860B",
-        "tonalRamp": ["#2E2100", "#4C3700", "#715300", "#936B00", "#B8860B", "#D4A017", "#F5D77A", "#FFF8DC"]
+        "tonalRamp": [
+          "#2E2100",
+          "#4C3700",
+          "#715300",
+          "#936B00",
+          "#B8860B",
+          "#D4A017",
+          "#F5D77A",
+          "#FFF8DC"
+        ]
       },
       "critical": {
         "role": "secondary",
         "displayName": "Rouge critique",
         "canonical": "#BA1A1A",
-        "tonalRamp": ["#410002", "#690004", "#930009", "#BA1A1A", "#DE372F", "#FF897D", "#FFDAD5", "#FFF8F7"]
+        "tonalRamp": [
+          "#410002",
+          "#690004",
+          "#930009",
+          "#BA1A1A",
+          "#DE372F",
+          "#FF897D",
+          "#FFDAD5",
+          "#FFF8F7"
+        ]
       },
       "warm-canvas": {
         "role": "neutral",
         "displayName": "Toile chaude",
         "canonical": "#F7F6F3",
-        "tonalRamp": ["#1A1917", "#353330", "#55524E", "#77736D", "#A09B94", "#CAC5BE", "#E9E5DF", "#F7F6F3"]
+        "tonalRamp": [
+          "#1A1917",
+          "#353330",
+          "#55524E",
+          "#77736D",
+          "#A09B94",
+          "#CAC5BE",
+          "#E9E5DF",
+          "#F7F6F3"
+        ]
       },
       "surface": {
         "role": "neutral",
         "displayName": "Brume sauge",
         "canonical": "#F6FBF1",
-        "tonalRamp": ["#181D17", "#2C322B", "#434841", "#737970", "#A7ADA4", "#DFE4DA", "#F0F5EB", "#F9FEF3"]
+        "tonalRamp": [
+          "#181D17",
+          "#2C322B",
+          "#434841",
+          "#737970",
+          "#A7ADA4",
+          "#DFE4DA",
+          "#F0F5EB",
+          "#F9FEF3"
+        ]
       },
       "surface-container": {
         "role": "neutral",
         "displayName": "Brume structurée",
         "canonical": "#EAF0E5",
-        "tonalRamp": ["#181D17", "#2C322B", "#434841", "#737970", "#A7ADA4", "#DFE4DA", "#EAF0E5", "#F9FEF3"]
+        "tonalRamp": [
+          "#181D17",
+          "#2C322B",
+          "#434841",
+          "#737970",
+          "#A7ADA4",
+          "#DFE4DA",
+          "#EAF0E5",
+          "#F9FEF3"
+        ]
       },
       "surface-container-high": {
         "role": "neutral",
         "displayName": "Brume dense",
         "canonical": "#E5EAE0",
-        "tonalRamp": ["#181D17", "#2C322B", "#434841", "#737970", "#A7ADA4", "#DFE4DA", "#E5EAE0", "#F9FEF3"]
+        "tonalRamp": [
+          "#181D17",
+          "#2C322B",
+          "#434841",
+          "#737970",
+          "#A7ADA4",
+          "#DFE4DA",
+          "#E5EAE0",
+          "#F9FEF3"
+        ]
       },
       "text": {
         "role": "neutral",
         "displayName": "Encre végétale",
         "canonical": "#181D17",
-        "tonalRamp": ["#0A0F0A", "#181D17", "#2C322B", "#434841", "#737970", "#A7ADA4", "#DFE4DA", "#F9FEF3"]
+        "tonalRamp": [
+          "#0A0F0A",
+          "#181D17",
+          "#2C322B",
+          "#434841",
+          "#737970",
+          "#A7ADA4",
+          "#DFE4DA",
+          "#F9FEF3"
+        ]
       },
       "text-secondary": {
         "role": "neutral",
         "displayName": "Encre secondaire",
         "canonical": "#434841",
-        "tonalRamp": ["#10150F", "#262B25", "#434841", "#5A6058", "#8D9289", "#C3C8BE", "#E5EAE0", "#F9FEF3"]
+        "tonalRamp": [
+          "#10150F",
+          "#262B25",
+          "#434841",
+          "#5A6058",
+          "#8D9289",
+          "#C3C8BE",
+          "#E5EAE0",
+          "#F9FEF3"
+        ]
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Montant dominant", "purpose": "Héros financiers et chiffres de premier niveau." },
-      "headline": { "displayName": "Titre de page", "purpose": "Hiérarchie de page et sections majeures." },
-      "title": { "displayName": "Titre fonctionnel", "purpose": "Cartes, dialogues et groupes." },
-      "body": { "displayName": "Lecture", "purpose": "Formulaires, explications et données secondaires." },
-      "label": { "displayName": "Action", "purpose": "Boutons, filtres et métadonnées." }
+      "display": {
+        "displayName": "Montant dominant",
+        "purpose": "Héros financiers et chiffres de premier niveau."
+      },
+      "headline": {
+        "displayName": "Titre de page",
+        "purpose": "Hiérarchie de page et sections majeures."
+      },
+      "title": {
+        "displayName": "Titre fonctionnel",
+        "purpose": "Cartes, dialogues et groupes."
+      },
+      "body": {
+        "displayName": "Lecture",
+        "purpose": "Formulaires, explications et données secondaires."
+      },
+      "label": {
+        "displayName": "Action",
+        "purpose": "Boutons, filtres et métadonnées."
+      }
     },
     "shadows": [
       {
@@ -114,10 +255,31 @@
       }
     ],
     "motion": [
-      { "name": "fast", "value": "150ms cubic-bezier(0.2, 0, 0, 1)", "purpose": "Réponse locale : couleur, sélection, presse." },
-      { "name": "base", "value": "220ms cubic-bezier(0.2, 0, 0, 1)", "purpose": "Transition standard des contrôles." },
-      { "name": "slow", "value": "320ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Entrée d'un panneau ou changement de composition." },
-      { "name": "reduced", "value": "prefers-reduced-motion: reduce", "purpose": "Supprime les déplacements et révèle immédiatement l'état final." }
+      {
+        "name": "fast",
+        "value": "150ms cubic-bezier(0.2, 0, 0, 1)",
+        "purpose": "Réponse locale : couleur, sélection, presse."
+      },
+      {
+        "name": "base",
+        "value": "220ms cubic-bezier(0.2, 0, 0, 1)",
+        "purpose": "Transition standard des contrôles."
+      },
+      {
+        "name": "slow",
+        "value": "320ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Entrée d'un panneau ou changement de composition."
+      },
+      {
+        "name": "onboarding-progress",
+        "value": "500ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Progression accomplie du parcours d'entrée, sans rebond."
+      },
+      {
+        "name": "reduced",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Supprime les déplacements et révèle immédiatement l'état final."
+      }
     ],
     "breakpoints": [
       { "name": "handset-portrait", "value": "600px" },
@@ -190,6 +352,22 @@
       "description": "État vide ou erreur guidé, centré sur une explication et une seule action.",
       "html": "<section class=\"ds-state\"><strong>Rien à pointer</strong><p>Tes prévisions sont à jour pour ce mois.</p><button>Voir le budget</button></section>",
       "css": ".ds-state{max-width:520px;padding:32px;border:1px solid var(--mat-sys-outline-variant,#bfcaba);border-radius:16px;background:var(--mat-sys-surface,#f6fbf1);color:var(--mat-sys-on-surface,#181d17);text-align:center;font-family:'DM Sans',sans-serif}.ds-state strong{font:600 22px/1.25 Manrope,sans-serif}.ds-state p{margin:10px 0 22px;color:var(--mat-sys-on-surface-variant,#434841)}.ds-state button{min-height:44px;padding:0 20px;border:0;border-radius:9999px;background:var(--mat-sys-secondary-container,#c1eebe);color:var(--mat-sys-on-secondary-container,#113817);font-weight:600}.ds-state button:hover{filter:brightness(.97)}.ds-state button:focus-visible{outline:3px solid var(--mat-sys-primary,#006e25);outline-offset:3px}"
+    },
+    {
+      "name": "Onboarding Progress",
+      "kind": "custom",
+      "refersTo": "financial-pill",
+      "description": "Progression centrée à trois étapes pour compte, sécurité et premier budget.",
+      "html": "<ol class=\"ds-journey\" aria-label=\"Création de ton espace : étape 2 sur 3\"><li class=\"done\"><span>✓</span><strong>Compte</strong></li><li class=\"current\"><span>2</span><strong>Sécurité</strong></li><li><span>3</span><strong>Budget</strong></li></ol>",
+      "css": ".ds-journey{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0;padding:0;list-style:none;font:600 12px/1.2 'DM Sans',sans-serif}.ds-journey li{position:relative;display:grid;justify-items:center;gap:8px;color:var(--mat-sys-on-surface-variant,#434841)}.ds-journey li:not(:last-child)::after{content:'';position:absolute;top:15px;left:calc(50% + 18px);right:calc(-50% + 18px);height:2px;background:var(--mat-sys-outline-variant,#bfcaba)}.ds-journey span{z-index:1;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:var(--mat-sys-surface-container-high,#e5eae0)}.ds-journey .done,.ds-journey .current{color:var(--mat-sys-primary,#006e25)}.ds-journey .done span{background:var(--mat-sys-primary-container,#99f89d)}.ds-journey .current span{background:var(--mat-sys-primary,#006e25);color:var(--mat-sys-on-primary,#fff)}.ds-journey .done::after{background:var(--mat-sys-primary,#006e25);transform-origin:left;animation:ds-progress 500ms cubic-bezier(.16,1,.3,1)}@keyframes ds-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}@media(prefers-reduced-motion:reduce){.ds-journey .done::after{animation:none}}"
+    },
+    {
+      "name": "Dashboard Check-off Row",
+      "kind": "custom",
+      "refersTo": "content-card",
+      "description": "Ligne non cliquable dont le contrôle primaire isolé confirme une prévision.",
+      "html": "<div class=\"ds-check-row\"><button aria-label=\"Pointer Loisirs\">○</button><strong>Loisirs</strong><span>↓ Dépense&nbsp;&nbsp;100 CHF</span></div>",
+      "css": ".ds-check-row{min-height:48px;display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:8px;padding:2px 12px;color:var(--mat-sys-on-surface,#181d17);font:500 14px/1.25 'DM Sans',sans-serif}.ds-check-row button{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:var(--mat-sys-primary,#006e25);font-size:27px;cursor:pointer}.ds-check-row button:hover{background:var(--mat-sys-primary-container,#99f89d)}.ds-check-row button:focus-visible{outline:3px solid color-mix(in srgb,var(--mat-sys-primary,#006e25) 35%,transparent)}.ds-check-row span{color:#b35800;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}"
     }
   ],
   "narrative": {
@@ -203,28 +381,74 @@
       "Mouvement court, doux et désactivable ; aucune animation nécessaire à la compréhension."
     ],
     "rules": [
-      { "name": "The Semantic Color Rule", "body": "Une fonctionnalité utilise `--pulpe-financial-*` ou une classe sémantique associée ; elle ne choisit jamais directement une teinte Material.", "section": "colors" },
-      { "name": "The Rare Red Rule", "body": "Le rouge signale un déficit global ou une erreur réelle. Une dépense ordinaire et un dépassement d'enveloppe restent ambre.", "section": "colors" },
-      { "name": "The Three-Layer Token Rule", "body": "`--mat-sys-*` fonde le thème, Tailwind compose, `--pulpe-*` exprime le domaine. Les fonctionnalités ne lisent pas directement la fondation Material lorsqu'un rôle Pulpe existe.", "section": "colors" },
-      { "name": "The Two-Family Rule", "body": "Manrope porte la hiérarchie de marque ; DM Sans porte l'interface. Aucune troisième famille n'entre dans le chrome.", "section": "typography" },
-      { "name": "The Stable Amount Rule", "body": "Tout montant utilise des chiffres tabulaires et conserve son unité à un niveau visuel secondaire.", "section": "typography" },
-      { "name": "The Responsive Ownership Rule", "body": "Le breakpoint Angular et le propriétaire du scroll doivent toujours basculer ensemble ; aucun composant ne recrée sa propre définition du handset.", "section": "layout" },
-      { "name": "The One Primary Action Rule", "body": "Une page présente une seule action remplie dominante. Les actions concurrentes passent en tonal, outlined, texte ou menu.", "section": "layout" },
-      { "name": "The Tonal-First Rule", "body": "Une différence de niveau commence par une surface Material ; une ombre n'est ajoutée que si l'élément flotte ou répond à une interaction.", "section": "elevation" }
+      {
+        "name": "The Semantic Color Rule",
+        "body": "Une fonctionnalité utilise `--pulpe-financial-*` ou une classe sémantique associée ; elle ne choisit jamais directement une teinte Material.",
+        "section": "colors"
+      },
+      {
+        "name": "The Rare Red Rule",
+        "body": "Le rouge signale un déficit global ou une erreur réelle. Une dépense ordinaire et un dépassement d'enveloppe restent ambre.",
+        "section": "colors"
+      },
+      {
+        "name": "The Three-Layer Token Rule",
+        "body": "`--mat-sys-*` fonde le thème, Tailwind compose, `--pulpe-*` exprime le domaine. Les fonctionnalités ne lisent pas directement la fondation Material lorsqu'un rôle Pulpe existe.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two-Family Rule",
+        "body": "Manrope porte la hiérarchie de marque ; DM Sans porte l'interface. Aucune troisième famille n'entre dans le chrome.",
+        "section": "typography"
+      },
+      {
+        "name": "The Stable Amount Rule",
+        "body": "Tout montant utilise des chiffres tabulaires et conserve son unité à un niveau visuel secondaire.",
+        "section": "typography"
+      },
+      {
+        "name": "The Responsive Ownership Rule",
+        "body": "Le breakpoint Angular et le propriétaire du scroll doivent toujours basculer ensemble ; aucun composant ne recrée sa propre définition du handset.",
+        "section": "layout"
+      },
+      {
+        "name": "The One Primary Action Rule",
+        "body": "Une page présente une seule action remplie dominante. Les actions concurrentes passent en tonal, outlined, texte ou menu.",
+        "section": "layout"
+      },
+      {
+        "name": "The Entry Centering Rule",
+        "body": "Le shell d'entrée centre le composant routé sur les deux axes et lui donne toute la largeur disponible ; la carte enfant fixe seule sa largeur maximale.",
+        "section": "layout"
+      },
+      {
+        "name": "The Scroll Continuity Rule",
+        "body": "Un changement d'étape replace le propriétaire réel du scroll au début du contenu. Une action sticky de formulaire long conserve les safe areas et utilise un fondu supérieur léger comme indice de continuité.",
+        "section": "layout"
+      },
+      {
+        "name": "The Tonal-First Rule",
+        "body": "Une différence de niveau commence par une surface Material ; une ombre n'est ajoutée que si l'élément flotte ou répond à une interaction.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do utiliser les tokens sémantiques Pulpe pour chaque état financier.",
       "Do conserver Manrope pour la hiérarchie et DM Sans pour l'interface.",
       "Do utiliser les mixins `mat.*-overrides()` pour adapter Material.",
       "Do respecter `prefers-reduced-motion` et conserver le contenu final visible sans animation.",
-      "Do aligner les montants avec des chiffres tabulaires et des unités discrètes."
+      "Do aligner les montants avec des chiffres tabulaires et des unités discrètes.",
+      "Do garder les cartes d'entrée centrées et les marqueurs d'étapes alignés à toutes les largeurs.",
+      "Do limiter le feedback interactif du dashboard au contrôle qui déclenche réellement l'action."
     ],
     "donts": [
       "Don't utiliser `::ng-deep`, les anciens attributs `mat-flat-button` ou une surcharge CSS globale improvisée.",
       "Don't lire directement `--mat-sys-*` depuis une fonctionnalité lorsqu'un token `--pulpe-*` décrit le besoin.",
       "Don't appliquer du rouge à une dépense ou un dépassement local.",
       "Don't ajouter une ombre à une surface qui peut être hiérarchisée par son ton.",
-      "Don't recréer un chip, un état vide ou un bouton de chargement déjà présent dans `app/ui` ou `app/pattern`."
+      "Don't recréer un chip, un état vide ou un bouton de chargement déjà présent dans `app/ui` ou `app/pattern`.",
+      "Don't donner un hover de carte à une ligne de dashboard qui n'est pas elle-même cliquable.",
+      "Don't dupliquer le champ de mot de passe du compte ; la confirmation reste réservée au PIN de chiffrement."
     ]
   }
 }

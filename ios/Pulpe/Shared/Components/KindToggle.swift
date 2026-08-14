@@ -40,7 +40,7 @@ struct KindToggle: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Type de transaction")
+        .accessibilityLabel("Nature")
         .accessibilityValue(selection.label)
         .sensoryFeedback(.selection, trigger: selection)
     }

@@ -61,7 +61,7 @@ La règle métier conserve une contribution positive lorsqu’un retrait est ajo
 
 **Correction minimale :** remplacer le mouvement signé par trois informations explicites au récapitulatif : « Épargne prévue conservée +200 », « Retrait planifié −500 », « Effet net du mois −300 ». Renommer le CTA en « Planifier le retrait » pour rappeler qu’aucun argent ne sort encore.
 
-**Preuves :** [SAVINGS.md](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/docs/SAVINGS.md:386), [calculateur partagé](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/shared/src/calculators/savings-goal-plan.ts:531), [récapitulatif web](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/frontend/projects/webapp/src/app/feature/savings-goals/detail/savings-goal-detail-page.ts:1217), [récapitulatif iOS](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/ios/Pulpe/Features/SavingsGoals/Simulator/GoalPlanApplyRecapSheet.swift:215).
+**Preuves :** [SAVINGS.md](../../docs/SAVINGS.md#L386), [calculateur partagé](../../shared/src/calculators/savings-goal-plan.ts#L531), [récapitulatif web](../../frontend/projects/webapp/src/app/feature/savings-goals/detail/savings-goal-detail-page.ts#L1217), [récapitulatif iOS](../../ios/Pulpe/Features/SavingsGoals/Simulator/GoalPlanApplyRecapSheet.swift#L215).
 
 ### P1 — La destination globale peut modifier silencieusement plusieurs mois
 
@@ -71,7 +71,7 @@ Web et iOS demandent une seule destination pour tous les retraits modifiés. Si 
 
 **Correction minimale :** conserver la destination existante par mois ; ne demander un choix que pour les nouveaux retraits. Si un choix global est gardé, afficher les mois qui seront convertis et demander une confirmation explicite. Nommer aussi les périodes sans budget au lieu de désactiver silencieusement tout le lot.
 
-**Preuves :** [dialogue web](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/frontend/projects/webapp/src/app/feature/savings-goals/detail/components/goal-plan-apply-dialog.ts:228), [application web](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/frontend/projects/webapp/src/app/feature/savings-goals/detail/services/goal-plan-simulator-store.ts:259), [récapitulatif iOS](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/ios/Pulpe/Features/SavingsGoals/Simulator/GoalPlanApplyRecapSheet.swift:45), [application iOS](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/ios/Pulpe/Features/SavingsGoals/Simulator/GoalPlanSimulatorSheet.swift:434).
+**Preuves :** [dialogue web](../../frontend/projects/webapp/src/app/feature/savings-goals/detail/components/goal-plan-apply-dialog.ts#L228), [application web](../../frontend/projects/webapp/src/app/feature/savings-goals/detail/services/goal-plan-simulator-store.ts#L259), [récapitulatif iOS](../../ios/Pulpe/Features/SavingsGoals/Simulator/GoalPlanApplyRecapSheet.swift#L45), [application iOS](../../ios/Pulpe/Features/SavingsGoals/Simulator/GoalPlanSimulatorSheet.swift#L434).
 
 ### P1 — Le conflit de plan n’a pas de chemin de reprise, et iOS ne le localise pas
 
@@ -81,7 +81,7 @@ Le web traduit le conflit mais conserve le brouillon obsolète ouvert avec une i
 
 **Correction minimale :** au 409, fermer le récapitulatif, relire le plan et afficher « Le plan a changé. Vérifie les montants actualisés avant de réappliquer. » Conserver les intentions compatibles si possible ; sinon repartir d’un plan frais. Ajouter les codes de plan au mapping iOS.
 
-**Preuves :** [gestion web](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/frontend/projects/webapp/src/app/feature/savings-goals/detail/savings-goal-detail-page.ts:1237), [mapping iOS](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/ios/Pulpe/Core/Network/APIError.swift:159), [gestion iOS](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/ios/Pulpe/Features/SavingsGoals/Simulator/GoalPlanSimulatorSheet.swift:479), [code backend](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/backend-nest/src/common/constants/error-definitions.ts:565).
+**Preuves :** [gestion web](../../frontend/projects/webapp/src/app/feature/savings-goals/detail/savings-goal-detail-page.ts#L1237), [mapping iOS](../../ios/Pulpe/Core/Network/APIError.swift#L159), [gestion iOS](../../ios/Pulpe/Features/SavingsGoals/Simulator/GoalPlanSimulatorSheet.swift#L479), [code backend](../../backend-nest/src/common/constants/error-definitions.ts#L565).
 
 ### P2 — Un retrait figé indique le budget sans y conduire
 
@@ -89,7 +89,7 @@ Dans le simulateur, un retrait partiellement ou totalement réalisé est verroui
 
 **Correction minimale :** ajouter une action « Ouvrir le budget de [mois] » directement dans l’état figé, ou au minimum un bouton de sortie qui repositionne la page sur le retrait lié.
 
-**Preuves :** [timeline web](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/frontend/projects/webapp/src/app/feature/savings-goals/detail/components/goal-plan-timeline.ts:155), [ligne iOS](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/ios/Pulpe/Features/SavingsGoals/Components/GoalPlanMonthRow.swift:156).
+**Preuves :** [timeline web](../../frontend/projects/webapp/src/app/feature/savings-goals/detail/components/goal-plan-timeline.ts#L155), [ligne iOS](../../ios/Pulpe/Features/SavingsGoals/Components/GoalPlanMonthRow.swift#L156).
 
 ### P2 — La lecture d’un retrait partiel ressemble encore à un double comptage
 
@@ -97,7 +97,7 @@ Une ligne planifiée partielle affiche le montant planifié complet comme valeur
 
 **Correction minimale :** pour un retrait partiel, afficher le **reliquat** comme montant principal (`−200 restant`) et l’original/réalisé comme contexte secondaire, ou regrouper les réalisations sous leur plan. Enrichir le nom accessible web avec mois, statut, reliquat et montant.
 
-**Preuves :** [liste web](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/frontend/projects/webapp/src/app/feature/savings-goals/detail/components/goal-withdrawals-list.ts:114), [section iOS](/Users/maximedesogus/.codex/worktrees/0bd1/pulpe-workspace/ios/Pulpe/Features/SavingsGoals/GoalWithdrawalsSection.swift:110).
+**Preuves :** [liste web](../../frontend/projects/webapp/src/app/feature/savings-goals/detail/components/goal-withdrawals-list.ts#L114), [section iOS](../../ios/Pulpe/Features/SavingsGoals/GoalWithdrawalsSection.swift#L110).
 
 ## Charge cognitive et parcours émotionnel
 

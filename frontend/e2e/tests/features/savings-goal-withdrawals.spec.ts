@@ -898,8 +898,8 @@ test.describe('Announcing a withdrawal, then realizing it', () => {
     const lastRealizedId = world.realized[world.realized.length - 1].id;
     await budgetDetailsPage.goto(CURRENT_BUDGET.id);
     // La prévision entièrement réalisée est effectivement pointée et donc
-    // masquée par le filtre par défaut. Elle reste disponible dans « Tout voir ».
-    await authenticatedPage.getByRole('option', { name: 'Tout voir' }).click();
+    // masquée par le filtre par défaut. Elle reste disponible dans « Tout afficher ».
+    await authenticatedPage.getByTestId('all-items-filter-chip').click();
     await budgetDetailsPage.openEnvelopePanel(PLANNED_LINE_NAME);
     // Le panneau est la surface de détail du desktop : il nomme l'objectif
     // source, jamais la prévision. L'assertion porte sur le texte rendu de bout

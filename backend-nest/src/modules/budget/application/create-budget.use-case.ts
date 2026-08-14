@@ -79,7 +79,6 @@ export class CreateBudgetUseCase {
         userId: user.id,
         budgetId: budget.id,
         templateId: dto.templateId,
-        templateName: rpcResult.template_name,
         period: `${dto.month}/${dto.year}`,
         linesCreated: rpcResult.budget_lines_created,
         duration: Date.now() - startTime,

@@ -1,6 +1,8 @@
 import type { CaptureResult } from 'posthog-js';
 
-type DynamicSegmentMask = readonly [RegExp, string];
+type RouteTemplate = readonly string[];
+
+const ROUTE_PARAMETER_PREFIX = ':';
 
 // Financial fields we want to remove for privacy
 const FINANCIAL_PROPERTY_NAMES = new Set(
@@ -85,19 +87,32 @@ const FINANCIAL_PROPERTY_NAMES = new Set(
   ].map((key) => key.toLowerCase()),
 );
 
-// Resource IDs that should not be sent to PostHog (they expose user's specific entities)
-// Note: We DO keep some IDs like budget_id, goal_id for analytics grouping/funnels
-// but remove IDs that would expose internal transaction/line details
-const SENSITIVE_ID_FIELDS = new Set(
-  [
-    'transaction_id',
-    'transactionid',
-    'line_id',
-    'lineid',
-    'budget_line_id',
-    'budgetlineid',
-  ].map((key) => key.toLowerCase()),
-);
+// PostHog needs these technical identifiers for identity, replay and session
+// grouping. `request_id` is intentionally retained for backend-error
+// correlation. Every other generic/resource identifier is removed.
+const ALLOWED_TECHNICAL_ID_FIELDS = new Set([
+  'distinct_id',
+  '$device_id',
+  '$session_id',
+  '$window_id',
+  '$user_id',
+  '$anon_distinct_id',
+  '$pageview_id',
+  '$insert_id',
+  'request_id',
+  'requestid',
+]);
+
+const COMPACT_RESOURCE_ID_FIELDS = new Set([
+  'budgetid',
+  'goalid',
+  'templateid',
+  'tagid',
+  'transactionid',
+  'lineid',
+  'budgetlineid',
+  'userid',
+]);
 
 // Specific sensitive keywords to filter
 const SENSITIVE_KEYWORDS = [
@@ -118,6 +133,7 @@ const SENSITIVE_KEYWORDS = [
 const SENSITIVE_EXACT_KEYS = new Set([
   'apikey', // Generic API key fields - note: PostHog uses 'api_key' and 'token' which are different
   'token',
+  'email', // Person property only: `sanitizePersonProperties` restores it for `$set`/identify
   'description',
   'label',
   'name',
@@ -133,31 +149,265 @@ const ALLOWED_PERSON_PROPERTIES = new Set([
   'supabase_user_id',
 ]);
 
-const PROTECTED_QUERY_PARAMETERS = new Set(
-  ['budgetId', 'transactionId', 'templateId', 'token', 'q'].map((param) =>
-    param.toLowerCase(),
-  ),
+// posthog-js derives these values from URL query parameters. The public
+// landing tracks acquisition separately; authenticated app events must not
+// forward query-derived values under standalone properties.
+const QUERY_DERIVED_PROPERTY_NAMES = new Set(
+  [
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_content',
+    'utm_term',
+    'gad_source',
+    'mc_cid',
+    'gclid',
+    'gclsrc',
+    'dclid',
+    'gbraid',
+    'wbraid',
+    'fbclid',
+    'msclkid',
+    'twclid',
+    'li_fat_id',
+    'igshid',
+    'ttclid',
+    'rdt_cid',
+    'epik',
+    'qclid',
+    'sccid',
+    'irclid',
+    '_kx',
+    'ph_keyword',
+  ].flatMap((key) => [key, `$initial_${key}`, `$session_entry_${key}`]),
 );
 
-const DYNAMIC_SEGMENT_MASKS: readonly DynamicSegmentMask[] = [
-  [/\/budgets?\/[a-zA-Z0-9-]+/gi, '/budget/[id]'],
-  [/\/transactions?\/(?!search(?:\/|$))[a-zA-Z0-9-]+/gi, '/transaction/[id]'],
-  [/\/templates?\/[a-zA-Z0-9-]+/gi, '/template/[id]'],
+// Autocapture can serialize arbitrary text, attributes, selectors and hrefs.
+// Those channels are never trusted. For click events only, `$elements` is
+// rebuilt below from tag names and numeric sibling positions, then a fresh
+// `$elements_chain` is generated from that safe structure.
+const OPAQUE_AUTOCAPTURE_PROPERTY_NAMES = new Set([
+  '$elements',
+  '$elements_chain',
+  '$element_selectors',
+  '$el_text',
+  '$external_click_url',
+  '$selected_content',
+  '$copy_type',
+]);
+const AUTOCAPTURE_ALLOWED_PROPERTY_NAMES = new Set([
+  '$event_type',
+  '$ce_version',
+  'token',
+  'distinct_id',
+  '$device_id',
+  '$session_id',
+  '$window_id',
+  '$user_id',
+  '$anon_distinct_id',
+  '$pageview_id',
+  '$insert_id',
+  '$lib',
+  '$lib_version',
+  '$config_defaults',
+  '$browser',
+  '$browser_version',
+  '$device_type',
+  '$os',
+  '$os_name',
+  '$os_version',
+  '$screen_height',
+  '$screen_width',
+  '$viewport_height',
+  '$viewport_width',
+  '$raw_user_agent',
+  '$host',
+  '$pathname',
+  '$current_url',
+  '$referrer',
+  '$referring_domain',
+  '$session_entry_url',
+  '$session_entry_pathname',
+  '$session_entry_referrer',
+  '$session_entry_referring_domain',
+  '$time',
+  '$sent_at',
+  '$timezone',
+  '$timezone_offset',
+  'environment',
+  'app_version',
+  'app_commit',
+  'platform',
+]);
+export const AUTOCAPTURE_TAG_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
+export const MAX_AUTOCAPTURE_ELEMENTS = 64;
+
+// Alternative PostHog integrations can duplicate exception messages and
+// fingerprints outside `$exception_list`. The strict exception schema below
+// preserves only safe grouping structure, so these free-form duplicates must
+// never survive independently.
+const OPAQUE_EXCEPTION_PROPERTY_NAMES = new Set([
+  '$exception_message',
+  '$exception_value',
+  '$exception_values',
+  '$exception_type',
+  '$exception_types',
+  '$exception_fingerprint',
+  '$exception_source',
+]);
+
+const WEB_ROUTE_TEMPLATES: readonly RouteTemplate[] = [
+  [],
+  ['welcome'],
+  ['login'],
+  ['signup'],
+  ['forgot-password'],
+  ['reset-password'],
+  ['setup-vault-code'],
+  ['enter-vault-code'],
+  ['recover-vault-code'],
+  ['maintenance'],
+  ['legal', 'cgu'],
+  ['legal', 'confidentialite'],
+  ['complete-profile'],
+  ['dashboard'],
+  ['budget'],
+  ['budget', ':id'],
+  ['budget-templates'],
+  ['budget-templates', 'create'],
+  ['budget-templates', 'details', ':templateId'],
+  ['savings-goals'],
+  ['savings-goals', ':id'],
+  ['settings'],
+  ['settings', 'tags'],
+  ['design-system'],
 ];
+
+// Exact NestJS v1 route shapes. API paths are accepted with their canonical
+// `/api/v1` prefix and without it because replay integrations can expose either
+// a full request pathname or a controller-relative pathname.
+const API_ROUTE_TEMPLATES: readonly RouteTemplate[] = [
+  ['health'],
+  ['maintenance', 'status'],
+  ['app', 'version'],
+  ['auth', 'validate'],
+  ['currency', 'rate'],
+  ['demo', 'session'],
+  ['demo', 'cleanup'],
+  ['encryption', 'vault-status'],
+  ['encryption', 'salt'],
+  ['encryption', 'validate-key'],
+  ['encryption', 'setup-recovery'],
+  ['encryption', 'regenerate-recovery'],
+  ['encryption', 'recover'],
+  ['encryption', 'verify-recovery-key'],
+  ['encryption', 'change-pin'],
+  ['users', 'me'],
+  ['users', 'profile'],
+  ['users', 'settings'],
+  ['users', 'account'],
+  ['whats-new', 'ios'],
+  ['debug', 'test-service-error'],
+  ['debug', 'test-log-levels'],
+  ['debug', 'test-error', ':type'],
+
+  // Static collection and action routes precede overlapping dynamic routes.
+  ['budget-templates'],
+  ['budget-templates', 'from-onboarding'],
+  ['budget-templates', ':templateId', 'lines', 'bulk-operations'],
+  ['budget-templates', ':templateId', 'lines', ':lineId'],
+  ['budget-templates', ':id', 'lines'],
+  ['budget-templates', ':id', 'usage'],
+  ['budget-templates', ':id'],
+  ['savings-goals'],
+  ['savings-goals', 'withdrawal-options'],
+  ['savings-goals', ':id', 'withdrawals'],
+  ['savings-goals', ':id', 'progress'],
+  ['savings-goals', ':id', 'contributions'],
+  ['savings-goals', ':id', 'plan'],
+  ['savings-goals', ':id', 'future-lines'],
+  ['savings-goals', ':id', 'generation-stop'],
+  ['savings-goals', ':id', 'deletion-impact'],
+  ['savings-goals', ':id', 'deletion'],
+  ['savings-goals', ':id'],
+  ['transactions'],
+  ['transactions', 'search'],
+  ['transactions', 'budget', ':budgetId'],
+  ['transactions', 'budget-line', ':budgetLineId'],
+  ['transactions', ':id', 'toggle-check'],
+  ['transactions', ':id', 'postpone'],
+  ['transactions', ':id', 'spread'],
+  ['transactions', ':id'],
+  ['budget-lines'],
+  ['budget-lines', 'savings-withdrawal'],
+  ['budget-lines', 'savings-withdrawal', ':groupId'],
+  ['budget-lines', 'spread'],
+  ['budget-lines', 'spread', ':spreadGroupId'],
+  ['budget-lines', 'budget', ':budgetId'],
+  ['budget-lines', ':id', 'reset-from-template'],
+  ['budget-lines', ':id', 'toggle-check'],
+  ['budget-lines', ':id', 'postpone'],
+  ['budget-lines', ':id', 'check-transactions'],
+  ['budget-lines', ':id', 'spread'],
+  ['budget-lines', ':id'],
+  ['budgets'],
+  ['budgets', 'generate'],
+  ['budgets', 'export'],
+  ['budgets', 'exists'],
+  ['budgets', ':id', 'details'],
+  ['budgets', ':id'],
+  ['tags'],
+  ['tags', ':id', 'history'],
+  ['tags', ':id'],
+];
+
+const URL_SYSTEM_PROPERTIES = new Set([
+  '$referrer',
+  '$initial_referrer',
+  '$session_entry_referrer',
+]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null &&
   typeof value === 'object' &&
   Object.prototype.toString.call(value) === '[object Object]';
 
-const isSensitiveProperty = (normalizedKey: string): boolean => {
+const isSensitiveIdProperty = (key: string, normalizedKey: string): boolean => {
+  if (ALLOWED_TECHNICAL_ID_FIELDS.has(normalizedKey)) return false;
+
+  return (
+    normalizedKey === 'id' ||
+    normalizedKey === 'ids' ||
+    normalizedKey === 'uuid' ||
+    normalizedKey === 'uuids' ||
+    normalizedKey === 'identifier' ||
+    normalizedKey === 'identifiers' ||
+    COMPACT_RESOURCE_ID_FIELDS.has(normalizedKey) ||
+    /(?:^|[_-])(?:id|ids|uuid|uuids|identifier|identifiers)$/i.test(key) ||
+    /(?:Id|Ids|ID|IDs|Uuid|Uuids|UUID|UUIDs|Identifier|Identifiers)$/.test(key)
+  );
+};
+
+const isSensitiveProperty = (key: string, normalizedKey: string): boolean => {
+  if (OPAQUE_AUTOCAPTURE_PROPERTY_NAMES.has(normalizedKey)) {
+    return true;
+  }
+
+  if (OPAQUE_EXCEPTION_PROPERTY_NAMES.has(normalizedKey)) {
+    return true;
+  }
+
+  if (QUERY_DERIVED_PROPERTY_NAMES.has(normalizedKey)) {
+    return true;
+  }
+
   // Check if it's a financial property
   if (FINANCIAL_PROPERTY_NAMES.has(normalizedKey)) {
     return true;
   }
 
   // Check if it's a sensitive ID field
-  if (SENSITIVE_ID_FIELDS.has(normalizedKey)) {
+  if (isSensitiveIdProperty(key, normalizedKey)) {
     return true;
   }
 
@@ -173,164 +423,355 @@ const isSensitiveProperty = (normalizedKey: string): boolean => {
 const isUrlKey = (normalizedKey: string): boolean =>
   normalizedKey.includes('url') ||
   normalizedKey.includes('href') ||
-  normalizedKey.includes('link');
+  normalizedKey.includes('link') ||
+  (normalizedKey.startsWith('$') && normalizedKey.endsWith('pathname')) ||
+  URL_SYSTEM_PROPERTIES.has(normalizedKey);
 
-const applyDynamicSegmentMasks = (pathname: string): string =>
-  DYNAMIC_SEGMENT_MASKS.reduce(
-    (result, [pattern, replacement]) => result.replace(pattern, replacement),
-    pathname,
+const isRouteParameter = (segment: string): boolean =>
+  segment.startsWith(ROUTE_PARAMETER_PREFIX);
+
+const matchesRouteTemplate = (
+  segments: readonly string[],
+  template: RouteTemplate,
+): boolean =>
+  segments.length === template.length &&
+  template.every(
+    (templateSegment, index) =>
+      isRouteParameter(templateSegment) || templateSegment === segments[index],
   );
+
+const routeSpecificity = (template: RouteTemplate): number =>
+  template.filter((segment) => !isRouteParameter(segment)).length;
+
+const findMatchingRoute = (
+  segments: readonly string[],
+): { prefix: readonly string[]; template: RouteTemplate } | undefined => {
+  const apiPrefix = segments[0] === 'api' && segments[1] === 'v1';
+  const candidate = apiPrefix ? segments.slice(2) : segments;
+  const templates = apiPrefix
+    ? API_ROUTE_TEMPLATES
+    : [...WEB_ROUTE_TEMPLATES, ...API_ROUTE_TEMPLATES];
+
+  const template = templates
+    .filter((item) => matchesRouteTemplate(candidate, item))
+    .sort((left, right) => routeSpecificity(right) - routeSpecificity(left))[0];
+
+  if (!template) return undefined;
+  return { prefix: apiPrefix ? ['api', 'v1'] : [], template };
+};
+
+const SAFE_TECHNICAL_ASSET_PATH_PATTERN =
+  /^\/(?:main(?:-[A-Za-z0-9_-]+)?|chunk-[A-Za-z0-9_-]+|runtime(?:-[A-Za-z0-9_-]+)?|polyfills(?:-[A-Za-z0-9_-]+)?)\.js$/;
+
+const applyDynamicSegmentMasks = (pathname: string): string | null => {
+  if (SAFE_TECHNICAL_ASSET_PATH_PATTERN.test(pathname)) return pathname;
+
+  const leadingSlash = pathname.startsWith('/');
+  const trailingSlash = pathname.length > 1 && pathname.endsWith('/');
+  const segments = pathname.split('/').filter(Boolean);
+  const match = findMatchingRoute(segments);
+
+  if (!match) return null;
+
+  const candidate = segments.slice(match.prefix.length);
+  const sanitizedSegments = match.template.map((templateSegment, index) =>
+    isRouteParameter(templateSegment) ? '[id]' : candidate[index],
+  );
+  const sanitizedPath = [...match.prefix, ...sanitizedSegments].join('/');
+  if (sanitizedPath === '') return '/';
+
+  return `${leadingSlash ? '/' : ''}${sanitizedPath}${trailingSlash ? '/' : ''}`;
+};
 
 const ABSOLUTE_URL_PATTERN = /^[a-zA-Z][\w+.-]*:/;
 const PROTOCOL_RELATIVE_PATTERN = /^\/\//;
 
-const sanitizeHashFragment = (hash: string): string => {
-  if (!hash) return '';
-
-  const trimmedHash = hash.startsWith('#') ? hash.slice(1) : hash;
-  if (!trimmedHash) return '';
-
-  // Treat hash fragments that look like query strings (e.g. auth responses)
-  if (trimmedHash.includes('=')) {
-    try {
-      const params = new URLSearchParams(trimmedHash);
-      for (const key of Array.from(params.keys())) {
-        const normalizedKey = key.toLowerCase();
-        if (
-          PROTECTED_QUERY_PARAMETERS.has(normalizedKey) ||
-          isSensitiveProperty(normalizedKey)
-        ) {
-          params.delete(key);
-        }
-      }
-
-      const sanitized = params.toString();
-      return sanitized ? `#${sanitized}` : '';
-    } catch {
-      return '';
-    }
-  }
-
-  const normalizedHash = trimmedHash.toLowerCase();
-  if (
-    isSensitiveProperty(normalizedHash) ||
-    PROTECTED_QUERY_PARAMETERS.has(normalizedHash)
-  ) {
-    return '';
-  }
-
-  if (trimmedHash.startsWith('/')) {
-    return `#${applyDynamicSegmentMasks(trimmedHash)}`;
-  }
-
-  return `#${trimmedHash}`;
-};
-
 /**
- * Supprime les paramètres sensibles et masque les segments dynamiques d'une URL.
+ * Supprime toute query/fragment et masque les segments dynamiques d'une URL.
  */
 export const sanitizeUrl = (url: string): string => {
   if (typeof url !== 'string') return url;
+  if (url === '' || url === '$direct') return url;
 
   try {
-    const isAbsolute = ABSOLUTE_URL_PATTERN.test(url);
+    const normalizedUrl = url.trimStart();
+    const isAbsolute = ABSOLUTE_URL_PATTERN.test(normalizedUrl);
     const isProtocolRelative =
-      !isAbsolute && PROTOCOL_RELATIVE_PATTERN.test(url);
+      !isAbsolute && PROTOCOL_RELATIVE_PATTERN.test(normalizedUrl);
 
     let parsed: URL;
     if (isAbsolute) {
-      parsed = new URL(url);
+      parsed = new URL(normalizedUrl);
+      if (!['http:', 'https:'].includes(parsed.protocol)) return '';
     } else if (isProtocolRelative) {
       const protocol =
         typeof window !== 'undefined' ? window.location.protocol : 'https:';
-      parsed = new URL(`${protocol}${url}`);
+      parsed = new URL(`${protocol}${normalizedUrl}`);
     } else {
       const base =
         typeof window !== 'undefined'
           ? window.location.origin
           : 'http://localhost';
-      parsed = new URL(url, base);
+      parsed = new URL(normalizedUrl, base);
     }
 
-    const sanitizedParams = new URLSearchParams(parsed.searchParams);
-    for (const key of Array.from(sanitizedParams.keys())) {
-      const normalizedKey = key.toLowerCase();
-      if (
-        PROTECTED_QUERY_PARAMETERS.has(normalizedKey) ||
-        isSensitiveProperty(normalizedKey)
-      ) {
-        sanitizedParams.delete(key);
-      }
-    }
+    if (!['http:', 'https:'].includes(parsed.protocol)) return '';
 
     const sanitizedPath = applyDynamicSegmentMasks(parsed.pathname);
-    const search = sanitizedParams.toString();
-    const hash = sanitizeHashFragment(parsed.hash);
-    const query = search ? `?${search}` : '';
+    const safePath = sanitizedPath ?? '';
 
     if (isAbsolute) {
-      return `${parsed.protocol}//${parsed.host}${sanitizedPath}${query}${hash}`;
+      return `${parsed.protocol}//${parsed.host}${safePath}`;
     }
 
     if (isProtocolRelative) {
-      return `//${parsed.host}${sanitizedPath}${query}${hash}`;
+      return `//${parsed.host}${safePath}`;
     }
 
-    return `${sanitizedPath}${query}${hash}`;
+    return sanitizedPath ?? '/';
   } catch {
     return '';
+  }
+};
+
+const SANITIZATION_DROPPED = Symbol('sanitization-dropped');
+const MAX_GENERIC_DEPTH = 32;
+const MAX_GENERIC_NODES = 2_048;
+const MAX_GENERIC_PROPERTIES = 4_096;
+const MAX_GENERIC_OUTPUT_CHARS = 256 * 1_024;
+const MAX_GENERIC_STRING_CHARS = 16 * 1_024;
+
+type GenericSanitizeResult = unknown | typeof SANITIZATION_DROPPED;
+
+interface GenericTraversalContext {
+  readonly active: WeakSet<object>;
+  nodes: number;
+  properties: number;
+  outputChars: number;
+}
+
+const reserveGenericOutput = (
+  context: GenericTraversalContext,
+  chars: number,
+): boolean => {
+  if (context.outputChars + chars > MAX_GENERIC_OUTPUT_CHARS) return false;
+  context.outputChars += chars;
+  return true;
+};
+
+const sanitizePrimitive = (
+  value: unknown,
+  context: GenericTraversalContext,
+): GenericSanitizeResult => {
+  if (value === null) {
+    return reserveGenericOutput(context, 4) ? null : SANITIZATION_DROPPED;
+  }
+  if (typeof value === 'string') {
+    if (value.length > MAX_GENERIC_STRING_CHARS) return SANITIZATION_DROPPED;
+    return reserveGenericOutput(context, JSON.stringify(value).length)
+      ? value
+      : SANITIZATION_DROPPED;
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return SANITIZATION_DROPPED;
+    return reserveGenericOutput(context, String(value).length)
+      ? value
+      : SANITIZATION_DROPPED;
+  }
+  if (typeof value === 'boolean') {
+    return reserveGenericOutput(context, value ? 4 : 5)
+      ? value
+      : SANITIZATION_DROPPED;
+  }
+  return SANITIZATION_DROPPED;
+};
+
+const enterGenericContainer = (
+  value: object,
+  context: GenericTraversalContext,
+  depth: number,
+): boolean => {
+  if (
+    depth > MAX_GENERIC_DEPTH ||
+    context.active.has(value) ||
+    context.nodes >= MAX_GENERIC_NODES ||
+    !reserveGenericOutput(context, 2)
+  ) {
+    return false;
+  }
+  context.nodes += 1;
+  context.active.add(value);
+  return true;
+};
+
+const sanitizeRecordInternal = (
+  obj: Record<string, unknown>,
+  context: GenericTraversalContext,
+  depth: number,
+): Record<string, unknown> | typeof SANITIZATION_DROPPED => {
+  if (!enterGenericContainer(obj, context, depth)) {
+    return SANITIZATION_DROPPED;
+  }
+
+  const result: Record<string, unknown> = {};
+  try {
+    for (const [key, rawValue] of Object.entries(obj)) {
+      context.properties += 1;
+      if (context.properties > MAX_GENERIC_PROPERTIES) {
+        return SANITIZATION_DROPPED;
+      }
+
+      const normalizedKey = key.toLowerCase();
+      if (isSensitiveProperty(key, normalizedKey)) continue;
+
+      if (!reserveGenericOutput(context, JSON.stringify(key).length + 2)) {
+        return SANITIZATION_DROPPED;
+      }
+
+      const sanitized =
+        isUrlKey(normalizedKey) && typeof rawValue === 'string'
+          ? sanitizePrimitive(sanitizeUrl(rawValue), context)
+          : sanitizeUnknown(rawValue, context, depth + 1);
+      if (sanitized !== SANITIZATION_DROPPED) {
+        result[key] = sanitized;
+      }
+    }
+    return result;
+  } finally {
+    context.active.delete(obj);
   }
 };
 
 export const sanitizeRecord = (
   obj: Record<string, unknown>,
 ): Record<string, unknown> => {
-  const result: Record<string, unknown> = {};
-
-  for (const [key, rawValue] of Object.entries(obj)) {
-    const normalizedKey = key.toLowerCase();
-
-    // Skip sensitive properties (financial data, passwords, etc.)
-    if (isSensitiveProperty(normalizedKey)) {
-      continue;
-    }
-
-    // Sanitize URLs to remove dynamic segments
-    if (isUrlKey(normalizedKey) && typeof rawValue === 'string') {
-      result[key] = sanitizeUrl(rawValue);
-      continue;
-    }
-
-    // Recursively sanitize nested objects and arrays
-    result[key] = sanitizeUnknown(rawValue);
+  try {
+    const sanitized = sanitizeRecordInternal(
+      obj,
+      {
+        active: new WeakSet<object>(),
+        nodes: 0,
+        properties: 0,
+        outputChars: 0,
+      },
+      0,
+    );
+    return sanitized === SANITIZATION_DROPPED ? {} : sanitized;
+  } catch {
+    return {};
   }
-
-  return result;
 };
 
-const sanitizePersonProperties = (
+export const sanitizePersonProperties = (
   properties: Record<string, unknown>,
 ): Record<string, unknown> => {
   const sanitized = sanitizeRecord(properties);
   for (const key of ALLOWED_PERSON_PROPERTIES) {
-    if (properties[key] !== undefined) {
-      sanitized[key] = properties[key];
+    delete sanitized[key];
+    const value = properties[key];
+    if (typeof value === 'string' && value.length <= MAX_GENERIC_STRING_CHARS) {
+      sanitized[key] = value;
     }
   }
   return sanitized;
 };
 
-function sanitizeUnknown(value: unknown): unknown {
+function sanitizeUnknown(
+  value: unknown,
+  context: GenericTraversalContext,
+  depth: number,
+): GenericSanitizeResult {
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeUnknown(item));
+    if (!enterGenericContainer(value, context, depth)) {
+      return SANITIZATION_DROPPED;
+    }
+    const result: unknown[] = [];
+    try {
+      for (const item of value) {
+        context.properties += 1;
+        if (
+          context.properties > MAX_GENERIC_PROPERTIES ||
+          !reserveGenericOutput(context, 1)
+        ) {
+          return SANITIZATION_DROPPED;
+        }
+        const sanitized = sanitizeUnknown(item, context, depth + 1);
+        if (sanitized !== SANITIZATION_DROPPED) result.push(sanitized);
+      }
+      return result;
+    } finally {
+      context.active.delete(value);
+    }
   }
 
   if (isRecord(value)) {
-    return sanitizeRecord(value);
+    return sanitizeRecordInternal(value, context, depth);
   }
 
-  return value;
+  return sanitizePrimitive(value, context);
 }
+
+interface SanitizedAutocapture {
+  readonly properties: Record<string, unknown>;
+  readonly elements: Record<string, unknown>[];
+  readonly elementsChain: string;
+}
+
+const sanitizeAutocaptureProperties = (
+  value: unknown,
+): SanitizedAutocapture | null => {
+  if (
+    !isRecord(value) ||
+    value['$event_type'] !== 'click' ||
+    value['$ce_version'] !== 1 ||
+    !Array.isArray(value['$elements']) ||
+    value['$elements'].length === 0 ||
+    value['$elements'].length > MAX_AUTOCAPTURE_ELEMENTS
+  ) {
+    return null;
+  }
+
+  const elements: Record<string, unknown>[] = [];
+  const chainSegments: string[] = [];
+  for (const rawElement of value['$elements']) {
+    if (!isRecord(rawElement) || typeof rawElement['tag_name'] !== 'string') {
+      return null;
+    }
+
+    const tagName = rawElement['tag_name'].toLowerCase();
+    const nthChild = rawElement['nth_child'];
+    const nthOfType = rawElement['nth_of_type'];
+    if (
+      !AUTOCAPTURE_TAG_PATTERN.test(tagName) ||
+      !Number.isSafeInteger(nthChild) ||
+      !Number.isSafeInteger(nthOfType) ||
+      (nthChild as number) < 1 ||
+      (nthOfType as number) < 1
+    ) {
+      return null;
+    }
+
+    elements.push({
+      tag_name: tagName,
+      nth_child: nthChild,
+      nth_of_type: nthOfType,
+    });
+    chainSegments.push(
+      `${tagName}:nth-child="${nthChild}"nth-of-type="${nthOfType}"`,
+    );
+  }
+
+  const properties: Record<string, unknown> = {};
+  for (const key of AUTOCAPTURE_ALLOWED_PROPERTY_NAMES) {
+    if (value[key] !== undefined) properties[key] = value[key];
+  }
+
+  return {
+    properties,
+    elements,
+    elementsChain: chainSegments.join(';'),
+  };
+};
 
 const ALLOWED_EXCEPTION_TYPES = new Set([
   'AggregateError',
@@ -345,6 +786,8 @@ const ALLOWED_EXCEPTION_TYPES = new Set([
 
 const HTTP_EXCEPTION_TYPE_PATTERN =
   /^HTTP:\d{1,3}(?::[A-Za-z][A-Za-z0-9_.:-]{0,127}){0,2}$/;
+const TECHNICAL_FUNCTION_PATTERN =
+  /^(?=.{1,256}$)(?=.*[a-z])(?:(?:async|new) )?(?:[A-Za-z_$][A-Za-z0-9_$]*|<anonymous>)(?:\.(?:[A-Za-z_$][A-Za-z0-9_$]*|<anonymous>))*$/;
 
 const isAllowedExceptionType = (value: unknown): value is string =>
   typeof value === 'string' &&
@@ -366,6 +809,12 @@ const sanitizeExceptionFrame = (
   }
   if (typeof value['in_app'] === 'boolean') {
     frame['in_app'] = value['in_app'];
+  }
+  if (typeof value['function'] === 'string') {
+    const functionName = value['function'];
+    if (TECHNICAL_FUNCTION_PATTERN.test(functionName)) {
+      frame['function'] = functionName;
+    }
   }
   for (const key of ['filename', 'abs_path']) {
     if (typeof value[key] === 'string') {
@@ -426,52 +875,66 @@ const sanitizeExceptionList = (value: unknown): unknown[] | null => {
 };
 
 /**
- * Nettoie un événement PostHog en retirant les données financières sensibles.
- * PostHog gère ses propres champs système, on ne touche qu'aux données métier.
+ * Nettoie les événements applicatifs avant envoi. Les snapshots replay sont
+ * protégés par la configuration native PostHog et restent opaques ici.
  */
 export const sanitizeEventPayload = (
   event: CaptureResult | null,
 ): CaptureResult | null => {
   if (!event) return null;
+  if (event.event === '$snapshot') return event;
+  if (event.event === '$autocapture' && !event.properties) return null;
 
-  if (event.properties) {
-    const exceptionList = event.properties['$exception_list'];
-    if (exceptionList !== undefined) {
-      const sanitizedExceptionList = sanitizeExceptionList(exceptionList);
-      if (!sanitizedExceptionList) return null;
-      event.properties['$exception_list'] = sanitizedExceptionList;
+  try {
+    if (event.properties) {
+      let autocapture: ReturnType<typeof sanitizeAutocaptureProperties> = null;
+      if (event.event === '$autocapture') {
+        autocapture = sanitizeAutocaptureProperties(event.properties);
+        if (!autocapture) return null;
+      }
+
+      const exceptionList = event.properties['$exception_list'];
+      if (exceptionList !== undefined) {
+        const sanitizedExceptionList = sanitizeExceptionList(exceptionList);
+        if (!sanitizedExceptionList) return null;
+        event.properties['$exception_list'] = sanitizedExceptionList;
+      }
+
+      // posthog-js injects its project routing token after the application
+      // wrappers have already sanitized caller-provided properties. Preserve
+      // only that SDK-added value across generic sanitization; `token` remains
+      // sensitive so application tokens are dropped before they reach the SDK.
+      const sdkToken = event.properties['token'];
+
+      const genericProperties = autocapture
+        ? { ...autocapture.properties }
+        : { ...(event.properties as Record<string, unknown>) };
+      event.properties = sanitizeRecord(genericProperties);
+
+      if (sdkToken !== undefined) {
+        event.properties['token'] = sdkToken;
+      }
+
+      if (autocapture) {
+        event.properties['$elements'] = autocapture.elements;
+        event.properties['$elements_chain'] = autocapture.elementsChain;
+      }
     }
 
-    // PostHog SDK injects 'token' into properties — preserve it through sanitization
-    const sdkToken = event.properties['token'];
-
-    // Sanitize the current URL if present
-    const currentUrl = event.properties['$current_url'];
-    if (typeof currentUrl === 'string') {
-      event.properties['$current_url'] = sanitizeUrl(currentUrl);
+    if (event.$set) {
+      event.$set = sanitizePersonProperties(
+        event.$set as Record<string, unknown>,
+      );
     }
-    // Clean sensitive properties from the event
-    event.properties = sanitizeRecord(
-      event.properties as Record<string, unknown>,
-    );
 
-    // Restore PostHog SDK field
-    if (sdkToken !== undefined) {
-      event.properties['token'] = sdkToken;
+    if (event.$set_once) {
+      event.$set_once = sanitizeRecord(
+        event.$set_once as Record<string, unknown>,
+      );
     }
-  }
 
-  if (event.$set) {
-    event.$set = sanitizePersonProperties(
-      event.$set as Record<string, unknown>,
-    );
+    return event;
+  } catch {
+    return null;
   }
-
-  if (event.$set_once) {
-    event.$set_once = sanitizeRecord(
-      event.$set_once as Record<string, unknown>,
-    );
-  }
-
-  return event;
 };

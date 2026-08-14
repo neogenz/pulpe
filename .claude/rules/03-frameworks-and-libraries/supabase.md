@@ -1,6 +1,8 @@
 ---
 description: Supabase integration patterns — RLS, Auth, type safety, migrations
-paths: "backend-nest/**/*.ts"
+paths:
+  - "backend-nest/**/*.ts"
+  - "backend-nest/supabase/**/*.sql"
 ---
 
 # Supabase Patterns
@@ -14,24 +16,12 @@ paths: "backend-nest/**/*.ts"
 
 ## Authenticated Client
 
-Each request get own Supabase client with user JWT — RLS enforce data isolation auto.
+`AuthGuard` validates the bearer token and stores the authenticated client in CLS.
+Repositories inject `AuthenticatedSupabaseProvider` and read `.client`; use cases do not receive
+or inject Supabase clients. `@SupabaseClient()` remains only in legacy controller paths.
 
-```typescript
-@Injectable()
-export class SupabaseService {
-  createAuthenticatedClient(accessToken: string): AuthenticatedSupabaseClient {
-    return createClient<Database>(this.supabaseUrl, this.supabaseAnonKey, {
-      global: {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      },
-    });
-  }
-}
-```
-
-- `@SupabaseClient()` decorator inject authenticated client in controllers
-- `AuthGuard` extract JWT from `Authorization: Bearer` header
-- Service role client (`getServiceRoleClient()`) bypass RLS — use with caution
+The service-role client bypasses RLS. Keep it limited to explicit administrative infrastructure
+such as encryption-key management and account deletion; never use it for ordinary user data.
 
 ## Type Safety
 
@@ -85,7 +75,7 @@ CREATE POLICY "users_select_template_line" ON "public"."template_line"
     EXISTS (
       SELECT 1 FROM "public"."template"
       WHERE template.id = template_line.template_id
-      AND ((SELECT auth.uid()) = template.user_id OR template.user_id IS NULL)
+      AND (SELECT auth.uid()) = template.user_id
     )
   );
 ```
@@ -99,7 +89,8 @@ CREATE POLICY "users_select_template_line" ON "public"."template_line"
 
 ### Anti-Patterns
 
-- NEVER use `supabase db reset` or `supabase db push --force` on production or linked project
+- NEVER use a destructive reset or forced push on a linked project
+- For local reset, use only `bun run supabase:reset`; bare `supabase db reset` leaves the seed amounts unencrypted
 - NEVER modify existing migrations — always create new ones
 - NEVER expose service role key in frontend or client code
 - NEVER create tables without enabling RLS and adding policies immediately
@@ -110,7 +101,7 @@ CREATE POLICY "users_select_template_line" ON "public"."template_line"
 ```bash
 # Both from backend-nest/ — the Supabase project and the scripts live there, not at the root.
 supabase migration new add_feature_table   # Create migration file
-pnpm supabase:reset                        # LOCAL ONLY — db reset + re-encrypts the seed amounts
+bun run supabase:reset                     # LOCAL ONLY — reset + re-encrypt the seed amounts
 ```
 
 ### Migration Checklist
@@ -121,31 +112,22 @@ pnpm supabase:reset                        # LOCAL ONLY — db reset + re-encryp
 3. Create policies for SELECT, INSERT, UPDATE, DELETE
 4. Add indexes on policy columns (`user_id`, foreign keys)
 5. Add foreign keys with `ON DELETE CASCADE` where appropriate
-6. Test locally with `pnpm supabase:reset` (never bare `supabase db reset` — it leaves a plaintext seed, every amount reads 0)
+6. Test locally with `bun run supabase:reset` (never bare `supabase db reset` — it leaves a plaintext seed, every amount reads 0)
 7. Regenerate types: `bun run generate-types:local`
 
-## Database Tables
+## Database Schema
 
-| Table | Purpose | RLS |
-|-------|---------|-----|
-| `auth.users` | Managed by Supabase Auth | N/A |
-| `monthly_budget` | User budgets by month/year | user_id isolation |
-| `transaction` | Financial transactions | user_id isolation |
-| `template` | Budget templates (public + private) | user_id OR NULL (public) |
-| `template_line` | Template items | parent template access |
-| `user_encryption_key` | Encryption salt + wrapped DEK | service_role only |
+`backend-nest/src/types/database.types.ts` is the canonical table and RPC inventory. Read
+`backend-nest/docs/DATABASE.md` for access patterns and privileged repository exceptions; do not
+copy table lists into rules.
 
 ## SECURITY DEFINER Functions
 
-For atomic ops crossing RLS boundaries:
-
-```sql
-CREATE OR REPLACE FUNCTION create_budget_with_transactions(...)
-RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER
-SET search_path TO 'public'
-AS $$ ... $$;
-```
+Prefer invoker rights plus RLS. When an atomic operation requires a privileged boundary, use
+`SECURITY DEFINER` with explicit authorization checks, an empty `search_path`, schema-qualified
+objects, and least-privilege grants. Follow ADR-0013 and a current hardened migration such as
+`backend-nest/supabase/migrations/20260808170000_harden_savings_goal_plan_concurrency_and_rekey.sql`;
+do not copy privileged function bodies from prose examples.
 
 Call from NestJS: `await supabase.rpc('function_name', { ...params })`
 
@@ -155,13 +137,10 @@ Supabase generate `Args` type of every RPC with `Json` (opaque, ≈ `any`) for J
 
 **Rule:** any RPC with JSONB param containing ciphertexts MUST have strict Zod schema validating shape before `supabase.rpc(...)`.
 
-- Schema location: `backend-nest/src/modules/<module>/schemas/rpc-payload.schemas.ts`
+- Schema location: `backend-nest/src/modules/<module>/infrastructure/persistence/schemas/rpc-payload.schemas.ts`
 - Each object schema MUST use `.strict()` to reject extra keys
 - Wrap `ZodError` in `BusinessException` with `{ cause }` so no leak to client as generic 500
 - Add companion `.spec.ts` covering: valid payload, null ciphertext if column nullable, `.strict()` reject extras, UUID validation
 
-RPC with only scalar params (`uuid`, `text`, `int`, `boolean`) covered by generated TS types — no Zod needed.
-
-Current implementations:
-- `budget-template/schemas/rpc-payload.schemas.ts` — `create_template_with_lines`, `apply_template_line_operations`
-- `encryption/schemas/rpc-payload.schemas.ts` — `rekey_user_encrypted_data`
+RPCs with only scalar params (`uuid`, `text`, `int`, `boolean`) are covered by generated
+TypeScript types and do not need a duplicate Zod schema.

@@ -52,6 +52,7 @@ describe('DashboardUncheckedForecasts', () => {
     fixture = TestBed.createComponent(DashboardUncheckedForecasts);
     component = fixture.componentInstance;
     setTestInput(component.forecasts, []);
+    setTestInput(component.totalCount, 0);
   });
 
   it('should create', () => {
@@ -59,7 +60,93 @@ describe('DashboardUncheckedForecasts', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should display the empty state message when there are no forecasts', () => {
+  it('should read the subtitle as progress against the month, not a bare backlog', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    setTestInput(component.totalCount, 12);
+    setTestInput(component.showPointerHint, false);
+    fixture.detectChanges();
+
+    const subtitle = fixture.debugElement.query(By.css('h2 + p'));
+    expect(subtitle.nativeElement.textContent.trim()).toBe(
+      `${12 - mockForecasts.length} sur 12 pointées`,
+    );
+  });
+
+  // The gate used to be this month's check count, so the definition returned
+  // every 1st of the month for the life of the account. It now keys on whether
+  // the user has ever pointed, which the page owns and persists.
+  it('should keep the count for a user who has already pointed, whatever the month', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    setTestInput(component.totalCount, mockForecasts.length);
+    setTestInput(component.showPointerHint, false);
+    fixture.detectChanges();
+
+    const subtitle = fixture.debugElement.query(By.css('h2 + p'));
+    // Matches both forms — this fixture holds a single forecast, and the
+    // count renders in the singular.
+    expect(subtitle.nativeElement.textContent).toContain('pointée');
+    expect(subtitle.nativeElement.textContent).not.toContain('Pointer :');
+  });
+
+  // No plural resolver is configured for transloco, so a count of one used to
+  // render "1 autres prévisions ce mois" — and one is exactly the count this
+  // line takes the first month a list of five overflows.
+  it('should say "1 autre prévision" when the list hides a single forecast', () => {
+    // Six outstanding forecasts against a cap of five — the first month a list
+    // overflows, and the only count this line can take then.
+    const sixForecasts = Array.from({ length: 6 }, (_, index) => ({
+      ...mockForecasts[0],
+      id: `forecast-${index}`,
+    }));
+    setTestInput(component.forecasts, sixForecasts);
+    setTestInput(component.totalCount, sixForecasts.length);
+    fixture.detectChanges();
+
+    const hidden = fixture.nativeElement.querySelector(
+      '[data-testid="dashboard-forecasts-hidden-count"]',
+    );
+    expect(hidden?.textContent?.trim()).toBe('1 autre à pointer');
+  });
+
+  // "Pointer" is the verb this card runs on and the one house word the page
+  // never defined — only the first-run tour did, months before anyone needs the
+  // answer. At zero the count restates the list right below it, so the
+  // definition takes its turn, until the first check proves it landed.
+  it('should define the verb until the first forecast is checked', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    setTestInput(component.totalCount, mockForecasts.length);
+    fixture.detectChanges();
+
+    const hint = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-pointer-hint"]'),
+    );
+    expect(hint.nativeElement.textContent.trim()).toContain(
+      'marquer une prévision comme réalisée',
+    );
+    expect(
+      fixture.debugElement.query(
+        By.css('[data-testid="dashboard-forecasts-subtitle"]'),
+      ),
+    ).toBeNull();
+  });
+
+  it('should not congratulate a month that had nothing to point', () => {
+    fixture.detectChanges();
+
+    const messageEl = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-empty-state"]'),
+    );
+    expect(messageEl).toBeTruthy();
+    expect(messageEl.nativeElement.textContent).toContain(
+      'Aucune prévision ce mois',
+    );
+    expect(messageEl.nativeElement.textContent).not.toContain(
+      'Tout est à jour !',
+    );
+  });
+
+  it('should display the reward once every forecast has been pointed', () => {
+    setTestInput(component.totalCount, 3);
     fixture.detectChanges();
 
     const messageEl = fixture.debugElement.query(
@@ -72,12 +159,6 @@ describe('DashboardUncheckedForecasts', () => {
   it('should display the list of forecasts when provided', () => {
     setTestInput(component.forecasts, mockForecasts);
     fixture.detectChanges();
-
-    // Check subtitle count
-    const subtitle = fixture.debugElement.query(
-      By.css('.text-body-small.text-on-surface-variant'),
-    );
-    expect(subtitle.nativeElement.textContent).toContain('(1)');
 
     // Check list item
     const itemNames = fixture.debugElement.queryAll(
@@ -96,7 +177,7 @@ describe('DashboardUncheckedForecasts', () => {
 
     // Click the radio button
     const radioButton = fixture.debugElement.query(
-      By.css('button[aria-label]'),
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     radioButton.nativeElement.click();
 
@@ -118,17 +199,18 @@ describe('DashboardUncheckedForecasts', () => {
     expect(emitted).toBe(false);
   });
 
-  it('should show radio_button_unchecked icon by default', () => {
+  it('should offer an independent check rather than a radio by default', () => {
     setTestInput(component.forecasts, mockForecasts);
     fixture.detectChanges();
 
-    const radioButton = fixture.debugElement.query(
-      By.css('button[aria-label]'),
+    const toggle = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
-    const icon = radioButton.query(By.css('mat-icon'));
+    const icon = toggle.query(By.css('mat-icon'));
     expect(icon.nativeElement.textContent.trim()).toBe(
       'radio_button_unchecked',
     );
+    expect(toggle.nativeElement.classList.contains('text-primary')).toBe(true);
   });
 
   it('should show check_circle filled icon while a forecast row is exiting after a click', () => {
@@ -136,14 +218,16 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     const radioButton = fixture.debugElement.query(
-      By.css('button[aria-label]'),
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     radioButton.nativeElement.click();
     fixture.detectChanges();
 
     const icon = radioButton.query(By.css('mat-icon'));
     expect(icon.nativeElement.textContent.trim()).toBe('check_circle');
-    expect(icon.nativeElement.classList.contains('text-primary')).toBe(true);
+    expect(radioButton.nativeElement.classList.contains('text-primary')).toBe(
+      true,
+    );
     expect(icon.nativeElement.classList.contains('icon-filled')).toBe(true);
   });
 
@@ -154,7 +238,7 @@ describe('DashboardUncheckedForecasts', () => {
     // Click the radio — emit fires; in real flow the parent removes the
     // forecast from the input. Simulate that here.
     const radioButton = fixture.debugElement.query(
-      By.css('button[aria-label]'),
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     radioButton.nativeElement.click();
 
@@ -182,7 +266,7 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     const radioButton = fixture.debugElement.query(
-      By.css('button[aria-label]'),
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     radioButton.nativeElement.click();
 
@@ -206,7 +290,7 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     const radioButton = fixture.debugElement.query(
-      By.css('button[aria-label]'),
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     radioButton.nativeElement.click();
 
@@ -217,7 +301,7 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     const icon = fixture.debugElement
-      .query(By.css('button[aria-label]'))
+      .query(By.css('[data-testid="dashboard-forecasts-toggle"]'))
       .query(By.css('mat-icon'));
     expect(icon.nativeElement.textContent.trim()).toBe(
       'radio_button_unchecked',
@@ -263,6 +347,105 @@ describe('DashboardUncheckedForecasts', () => {
     expect(amountEl.nativeElement.textContent).not.toMatch(/[.,]00\b/);
   });
 
+  // The row prints what the envelope still expects, so a partly consumed line
+  // was indistinguishable from an untouched one of the same size: a 1'500 rent
+  // with 1'400 allocated read "Loyer 100", in the same weight and place as an
+  // untouched 100. The largest commitment in the household could appear as the
+  // smallest row on the card that asks what is still to come.
+  it('should name the plan behind a partly consumed envelope', () => {
+    setTestInput(component.forecasts, mockForecasts);
+
+    const consumptionsMap = new Map<string, BudgetLineConsumption>([
+      [
+        '1',
+        {
+          budgetLine: mockForecasts[0],
+          consumed: 90,
+          remaining: 10,
+          allocatedTransactions: [],
+          transactionCount: 1,
+        },
+      ],
+    ]);
+    setTestInput(component.consumptions, consumptionsMap);
+    fixture.detectChanges();
+
+    const plannedEl = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-planned"]'),
+    );
+    expect(plannedEl).not.toBeNull();
+    expect(plannedEl.nativeElement.textContent).toContain('100');
+
+    // The toggle is named by the row's own elements, never by an attribute
+    // carrying their values: an attribute is serialized whole into a session
+    // replay, and these are exactly the strings ph-no-capture withholds.
+    const toggle = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
+    ).nativeElement as HTMLElement;
+    expect(toggle.getAttribute('aria-label')).toBeNull();
+    const labelledBy = toggle.getAttribute('aria-labelledby') ?? '';
+    expect(labelledBy).toContain(plannedEl.nativeElement.id);
+    for (const id of labelledBy.split(' ')) {
+      expect(fixture.nativeElement.querySelector(`#${id}`)).not.toBeNull();
+    }
+  });
+
+  it('should keep an untouched forecast amount on a single centered line', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    fixture.detectChanges();
+
+    const reservedLine = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-planned"]'),
+    );
+    expect(reservedLine).toBeNull();
+  });
+
+  // A month funded entirely from savings goals has nothing pointable, and the
+  // subtitle fell through to the count: "0 sur 0 pointées", sitting above "Tout
+  // est à jour", congratulating the user for work that never existed.
+  it('should say nothing about progress when the month holds nothing pointable', () => {
+    setTestInput(component.forecasts, []);
+    setTestInput(component.totalCount, 0);
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.query(
+        By.css('[data-testid="dashboard-forecasts-subtitle"]'),
+      ),
+    ).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('0 sur 0');
+  });
+
+  // `consumption.remaining` is `amount - consumed` with nothing clamping it, so
+  // an over-allocated envelope rendered "−50 CHF" in expense amber and had the
+  // toggle announce "Pointer Courses — -50 CHF". A negative expense is not a
+  // quantity a reader of this list expects; zero says the true thing.
+  it('should floor an over-consumed envelope at zero rather than show a negative', () => {
+    setTestInput(component.forecasts, mockForecasts);
+
+    const consumptionsMap = new Map<string, BudgetLineConsumption>([
+      [
+        '1',
+        {
+          budgetLine: mockForecasts[0],
+          consumed: 650,
+          remaining: -50,
+          allocatedTransactions: [],
+          transactionCount: 2,
+        },
+      ],
+    ]);
+    setTestInput(component.consumptions, consumptionsMap);
+    fixture.detectChanges();
+
+    const amountEl = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-amount"]'),
+    );
+    expect(amountEl.nativeElement.textContent).toContain('0');
+    expect(amountEl.nativeElement.textContent).not.toContain('-50');
+    expect(amountEl.nativeElement.textContent).not.toContain('−50');
+  });
+
   it('should clamp ghost insertion when the forecast list shrinks below the ghost originalIndex', () => {
     const lines: BudgetLine[] = Array.from({ length: 5 }, (_, i) => ({
       ...mockForecasts[0],
@@ -272,7 +455,9 @@ describe('DashboardUncheckedForecasts', () => {
     setTestInput(component.forecasts, lines);
     fixture.detectChanges();
 
-    const buttons = fixture.debugElement.queryAll(By.css('button[aria-label]'));
+    const buttons = fixture.debugElement.queryAll(
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
+    );
     buttons[4].nativeElement.click();
 
     setTestInput(component.forecasts, [lines[0]]);
@@ -292,7 +477,7 @@ describe('DashboardUncheckedForecasts', () => {
       fixture.detectChanges();
 
       const radioButton = fixture.debugElement.query(
-        By.css('button[aria-label]'),
+        By.css('[data-testid="dashboard-forecasts-toggle"]'),
       );
       radioButton.nativeElement.click();
 
@@ -323,7 +508,9 @@ describe('DashboardUncheckedForecasts', () => {
     setTestInput(component.forecasts, lines);
     fixture.detectChanges();
 
-    const buttons = fixture.debugElement.queryAll(By.css('button[aria-label]'));
+    const buttons = fixture.debugElement.queryAll(
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
+    );
     buttons[0].nativeElement.click();
     buttons[1].nativeElement.click();
     buttons[2].nativeElement.click();
@@ -339,5 +526,69 @@ describe('DashboardUncheckedForecasts', () => {
     expect(names[0]).toContain('Line 0');
     expect(names[1]).toContain('Line 1');
     expect(names[2]).toContain('Line 2');
+  });
+
+  it('should hand focus to the toggle that takes the checked row’s place', async () => {
+    const lines = Array.from({ length: 3 }, (_, i) => ({
+      ...mockForecasts[0],
+      id: `line-${i}`,
+      name: `Line ${i}`,
+    }));
+    setTestInput(component.forecasts, lines);
+    fixture.detectChanges();
+
+    fixture.debugElement
+      .queryAll(By.css('[data-testid="dashboard-forecasts-toggle"]'))[1]
+      .nativeElement.click();
+
+    setTestInput(
+      component.forecasts,
+      lines.filter((line) => line.id !== 'line-1'),
+    );
+    fixture.detectChanges();
+
+    (
+      fixture.debugElement.query(By.css('.checking'))
+        .nativeElement as HTMLElement
+    ).dispatchEvent(
+      Object.assign(new Event('animationend'), {
+        animationName: 'forecast-check-exit',
+      }),
+    );
+    await TestBed.tick();
+
+    const remaining = fixture.debugElement.queryAll(
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
+    );
+    expect(remaining.length).toBe(2);
+    expect(document.activeElement).toBe(remaining[1].nativeElement);
+  });
+
+  it('should hand focus to the empty state once the last row is checked', async () => {
+    setTestInput(component.forecasts, mockForecasts);
+    fixture.detectChanges();
+
+    fixture.debugElement
+      .query(By.css('[data-testid="dashboard-forecasts-toggle"]'))
+      .nativeElement.click();
+
+    setTestInput(component.forecasts, []);
+    fixture.detectChanges();
+
+    (
+      fixture.debugElement.query(By.css('.checking'))
+        .nativeElement as HTMLElement
+    ).dispatchEvent(
+      Object.assign(new Event('animationend'), {
+        animationName: 'forecast-check-exit',
+      }),
+    );
+    await TestBed.tick();
+
+    expect(document.activeElement).toBe(
+      fixture.debugElement.query(
+        By.css('[data-testid="dashboard-forecasts-empty-state"]'),
+      ).nativeElement,
+    );
   });
 });

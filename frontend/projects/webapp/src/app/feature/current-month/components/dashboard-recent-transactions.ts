@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   input,
   output,
@@ -12,14 +13,12 @@ import type { Transaction, TransactionKind } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import {
+  TransactionIconPipe,
+  TransactionLabelPipe,
+} from '@ui/transaction-display';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { TranslocoPipe } from '@jsverse/transloco';
-
-const KIND_ICONS: Record<TransactionKind, string> = {
-  income: 'arrow_upward',
-  expense: 'arrow_downward',
-  saving: 'savings',
-};
 
 @Component({
   selector: 'pulpe-dashboard-recent-transactions',
@@ -29,16 +28,30 @@ const KIND_ICONS: Record<TransactionKind, string> = {
     MatButtonModule,
     MatIconModule,
     FinancialKindDirective,
+    TransactionIconPipe,
+    TransactionLabelPipe,
     SavingsGoalSourceLine,
     TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
-      <div class="mb-4 px-1 flex items-center justify-between">
-        <div class="flex items-center gap-3">
+      <!-- Same recipe as the twin card and as dashboard-next-month: gap-3 on
+           the row, min-w-0 on the text so it can give, shrink-0 on the button
+           so it cannot.
+           Below 360px the row stops being a row. Giving the column somewhere to
+           shrink only moved the overflow: the column gave, the wrapper inside it
+           kept min-width:auto, and "Transactions" — one unbreakable 103px word —
+           ran 36px under its own button at 320px, which is the width WCAG 1.4.10
+           Reflow asks for (400% zoom on a 1280 screen). Truncating would have
+           cost the label; there is simply no arrangement where a 161px button
+           and a title share 288px, so below that the button takes its own line. -->
+      <div
+        class="mb-4 px-1 flex items-center justify-between gap-3 max-[360px]:flex-col max-[360px]:items-start"
+      >
+        <div class="flex items-center gap-3 min-w-0">
           <div
-            class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center shrink-0"
+            class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0"
           >
             <mat-icon aria-hidden="true">receipt_long</mat-icon>
           </div>
@@ -48,18 +61,42 @@ const KIND_ICONS: Record<TransactionKind, string> = {
             >
               {{ 'currentMonth.recentTransactionsTitle' | transloco }}
             </h2>
-            <p
-              class="text-body-small text-on-surface-variant font-medium mt-0.5"
-            >
-              {{
-                'currentMonth.recentTransactionsSubtitle'
-                  | transloco: { count: transactions().length }
-              }}
-            </p>
+            <!-- Suppressed on an empty month, the way the forecasts card next
+                 to it already is: "0 ce mois" restated, in smaller type, the
+                 "Rien de noté ce mois" panel twenty pixels below it, and two
+                 cards built from one recipe answered the same emptiness two
+                 different ways. -->
+            @if (totalCount() > 0) {
+              <p
+                class="text-body-small text-on-surface-variant font-medium mt-0.5"
+              >
+                <!-- The count of rows on screen used to lead this line, in the
+                     same "X sur Y" shape the two neighbouring cards use for
+                     progress — so "1 sur 1 ce mois" read as work finished
+                     rather than as a list of one. How many rows are drawn is
+                     something the reader can see; how many the month holds is
+                     not. -->
+                {{
+                  'currentMonth.recentTransactionsSubtitle'
+                    | transloco: { total: totalCount() }
+                }}
+              </p>
+            }
           </div>
         </div>
-        <button matButton (click)="viewBudget.emit()">
-          {{ 'common.viewAll' | transloco }}
+        <!-- shrink-0 for the reason spelled out on the twin card: this header
+             is the same recipe, and its title is only shorter today. The label
+             here is the longer of the two, so it is the one with least room to
+             lose before it wraps inside a fixed-height button. -->
+        <button
+          matButton
+          class="shrink-0"
+          [attr.aria-label]="
+            'currentMonth.viewTransactionsInBudget' | transloco
+          "
+          (click)="viewBudget.emit()"
+        >
+          {{ 'currentMonth.viewTransactions' | transloco }}
         </button>
       </div>
 
@@ -67,15 +104,16 @@ const KIND_ICONS: Record<TransactionKind, string> = {
         @if (transactions().length > 0) {
           <div class="flex flex-col gap-1">
             @for (tx of transactions(); track tx.id) {
-              <div
-                class="flex items-center gap-3 p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors"
-              >
+              <!-- No hover tint: nothing in this row is clickable at all, so
+                   the highlight was pure invitation to a click that goes
+                   nowhere. Same reason as the forecasts list beside it. -->
+              <div class="flex items-center gap-3 p-3 rounded-2xl">
                 <div
                   class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                   [class]="kindClasses(tx.kind)"
                 >
-                  <mat-icon class="text-[20px]" aria-hidden="true">
-                    {{ kindIcon(tx.kind) }}
+                  <mat-icon class="mat-icon-sm" aria-hidden="true">
+                    {{ tx.kind | transactionIcon }}
                   </mat-icon>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -106,17 +144,51 @@ const KIND_ICONS: Record<TransactionKind, string> = {
                   class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
                   [pulpeFinancialKind]="tx.kind"
                 >
+                  <!-- Revenu, dépense and épargne were told apart by the tint
+                       and by the arrow in the circle — and that circle is
+                       aria-hidden, so the accessibility tree read "Acompte
+                       notaire, 06 août, 300.00 CHF" and never which direction
+                       the money went. Same two lines as the forecasts list
+                       twenty pixels away, which already got this right. -->
+                  <span class="sr-only">{{ tx.kind | transactionLabel }}</span>
                   {{ tx.amount | appCurrency: currency() : '1.2-2' }}
                 </span>
               </div>
             }
           </div>
+          @if (hiddenCount() > 0) {
+            <!-- The twin card beside it says what its list is hiding; this one
+                 cut the month down to five and said nothing, so thirty entries
+                 under a subtitle reading "30 ce mois" looked like a subtitle
+                 that had miscounted. Two cards from one recipe, twenty pixels
+                 apart, get read as one thing and have to answer alike. -->
+            <p
+              class="text-body-small text-on-surface-variant font-medium text-center pt-3 pb-1"
+              data-testid="dashboard-transactions-hidden-count"
+            >
+              <!-- No plural resolver is configured for transloco, so the count
+                   renders literally — and one is the count this line takes the
+                   first month a list of five overflows: "1 autres
+                   transactions ce mois". -->
+              @if (hiddenCount() === 1) {
+                {{
+                  'currentMonth.recentTransactionsHiddenCountSingular'
+                    | transloco
+                }}
+              } @else {
+                {{
+                  'currentMonth.recentTransactionsHiddenCount'
+                    | transloco: { count: hiddenCount() }
+                }}
+              }
+            </p>
+          }
         } @else {
           <div
             class="p-8 flex flex-col items-center justify-center text-center h-full"
           >
             <div
-              class="w-16 h-16 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center mb-4"
+              class="w-16 h-16 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center mb-4"
             >
               <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
                 >receipt_long</mat-icon
@@ -125,9 +197,10 @@ const KIND_ICONS: Record<TransactionKind, string> = {
             <h3 class="text-title-medium font-medium text-on-surface-variant">
               {{ 'currentMonth.noTransaction' | transloco }}
             </h3>
-            <p class="text-body-medium text-on-surface-variant">
-              {{ 'currentMonth.noTransactionThisMonth' | transloco }}
-            </p>
+            <!-- The second line used to restate the heading word for word — the
+                 only empty state on
+                 the page whose subtitle restated its title rather than adding
+                 the next step. The button below is the next step. -->
             <button
               matButton="outlined"
               class="mt-4 !h-11"
@@ -152,12 +225,15 @@ export class DashboardRecentTransactions {
   readonly #userSettings = inject(UserSettingsStore);
   protected readonly currency = this.#userSettings.currency;
   readonly transactions = input.required<Transaction[]>();
+  // The block shows the five latest; the subtitle used to print that five as if
+  // it were the month's total, so a month with thirty entries read as "(5)".
+  readonly totalCount = input.required<number>();
   readonly viewBudget = output<void>();
   readonly addTransaction = output<void>();
 
-  protected kindIcon(kind: TransactionKind): string {
-    return KIND_ICONS[kind];
-  }
+  protected readonly hiddenCount = computed(() =>
+    Math.max(0, this.totalCount() - this.transactions().length),
+  );
 
   protected kindClasses(kind: TransactionKind): string {
     switch (kind) {
@@ -166,7 +242,10 @@ export class DashboardRecentTransactions {
       case 'saving':
         return 'bg-financial-savings/10 text-financial-savings';
       case 'expense':
-        return 'bg-surface-container-high text-on-surface-variant';
+        // Amber, like its two siblings and like the expense rows in the list
+        // twenty pixels to the left. Neutral grey made "dépense" the one kind
+        // of money on this page without a colour of its own.
+        return 'bg-financial-expense/10 text-financial-expense';
     }
   }
 }

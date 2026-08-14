@@ -4,6 +4,9 @@ Les montants utilisateurs (prévisions, réels, templates, épargne, soldes) son
 
 ## Architecture split-key
 
+La justification de ce modèle et de ses compromis est consignée dans
+[ADR-0012](adr/0012-split-key-financial-encryption.md).
+
 Le chiffrement repose sur une clé de données (DEK) dérivée de deux facteurs :
 
 ```
@@ -238,11 +241,11 @@ Portée réelle de l'attaque, avant d'envisager une correction :
 | **Ligne → ligne, même colonne** (`budget_line.amount` de A vers `budget_line.amount` de B, même utilisateur) | Non, et une AAD ne peut pas la bloquer ici : les RPC SQL propagent légitimement les ciphertexts `template_line.amount → budget_line.amount`, donc lier l'AAD à la table ou à l'identifiant de ligne casserait la provision d'un budget depuis un modèle |
 | **Champ → champ, même utilisateur** (`amount` vers `target_amount`)                                          | Non. C'est la seule variante qu'une AAD `{userId}:{champ}` fermerait                                                                                                                                                                                    |
 
-Une AAD par champ ne fermerait donc que la variante la moins probable, et son coût de mise en œuvre est disproportionné : le contexte `champ` devrait être passé aux **65 sites d'appel** de `encryptAmount`/`decryptAmount`/`tryDecryptAmount` répartis sur 9 fichiers, et le déchiffrement devrait porter en permanence une branche v1/v2 pour rester compatible avec l'existant.
+Une AAD par champ ne fermerait donc que la variante la moins probable, et son coût de mise en œuvre est disproportionné : le contexte `champ` devrait être propagé dans tous les chemins de chiffrement et de déchiffrement, et le déchiffrement devrait porter en permanence une branche v1/v2 pour rester compatible avec l'existant.
 
-Le facteur décisif est le mode de défaillance. Tous les chemins de lecture passent par `tryDecryptAmount`, qui **ne lève jamais** : un échec de déchiffrement retourne le repli (`0` ou `null`) et n'émet qu'un `warn`. Une seule étiquette de champ erronée parmi les 65 afficherait donc silencieusement `0 €` à la place du montant réel de vrais utilisateurs — exactement le préjudice que la mesure prétend empêcher, mais infligé à tout le monde plutôt qu'à la cible d'un attaquant qui possède déjà la base.
+Le facteur décisif est le mode de défaillance. Plusieurs chemins d'affichage passent par `tryDecryptAmount`, qui **ne lève jamais** : un échec de déchiffrement retourne le repli (`0` ou `null`) et n'émet qu'un `warn`. Les chemins sensibles de recalcul utilisent au contraire `decryptAmount` et échouent bruyamment. Une seule étiquette de champ erronée sur un chemin tolérant pourrait donc afficher silencieusement `0 €` à la place du montant réel — exactement le préjudice que la mesure prétend empêcher.
 
-Décision : pas d'AAD pour l'instant. Si elle est implémentée un jour, la conception retenue est fixée — préfixe `v2:`, AAD `{userId}:{champ sémantique}`, jamais la table ni l'identifiant de ligne (à cause de la propagation `template_line → budget_line`), déchiffrement rétrocompatible v1 et migration paresseuse à la prochaine écriture. Prérequis à traiter d'abord : faire échouer bruyamment les chemins de lecture au lieu du repli silencieux à 0.
+Décision : pas d'AAD pour l'instant. Si elle est implémentée un jour, la conception retenue est fixée — préfixe `v2:`, AAD `{userId}:{champ sémantique}`, jamais la table ni l'identifiant de ligne (à cause de la propagation `template_line → budget_line`), déchiffrement rétrocompatible v1 et migration paresseuse à la prochaine écriture. Prérequis à traiter d'abord : auditer les chemins tolérants et faire échouer bruyamment ceux où un repli à 0 masquerait une corruption. Voir [ADR-0015](adr/0015-defer-semantic-aad.md).
 
 ## Transport du client key via header HTTP (risque accepté)
 
@@ -256,6 +259,9 @@ Atténuations :
 - La clé client seule est insuffisante pour le déchiffrement (architecture split-key)
 
 ## Sécurité de la table `user_encryption_key`
+
+Cette frontière privilégiée est motivée dans
+[ADR-0014](adr/0014-service-role-encryption-key-boundary.md).
 
 - RLS activé : seul `service_role` peut lire/écrire
 - `REVOKE ALL` sur les rôles `authenticated` et `anon`

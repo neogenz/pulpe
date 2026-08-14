@@ -366,6 +366,9 @@ enum DesignTokens {
 
     enum Checkbox {
         static let size: CGFloat = 24
+        /// Pulls the sync badge back in from the circle's bounding-box corner so it
+        /// straddles the stroke instead of floating diagonally off it.
+        static let syncBadgeInset: CGFloat = 2
     }
 
     // MARK: - Amount Input

@@ -224,6 +224,7 @@ export {
 // Export calculators
 export {
   BudgetFormulas,
+  isOutflowKind,
   TIGHT_BUDGET_THRESHOLD_PERCENT,
   type Consumption,
   type EmotionState,

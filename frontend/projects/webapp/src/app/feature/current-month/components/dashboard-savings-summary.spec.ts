@@ -111,6 +111,7 @@ describe('DashboardSavingsSummary', () => {
       setTestInput(component.totalRealized, 150);
       setTestInput(component.checkedCount, 2);
       setTestInput(component.totalCount, 2);
+      setTestInput(component.allLinesPointed, true);
       fixture.detectChanges();
       expect(fixture.nativeElement.textContent).toContain(
         "C'est fait pour ce mois",
@@ -139,6 +140,72 @@ describe('DashboardSavingsSummary', () => {
       );
       expect(fixture.nativeElement.textContent).toContain('Tu as mis de côté');
     });
+
+    // A transfer recorded from the page's FAB carries no budget line, so with
+    // no saving prévision at all the store hands this card money against a
+    // plan of zero. It answered with an empty tally and a 0% bar over an
+    // amount it had just printed.
+    it('should not report a ratio against a plan that does not exist', () => {
+      setTestInput(component.totalPlanned, 0);
+      setTestInput(component.totalRealized, 300);
+      setTestInput(component.checkedCount, 0);
+      setTestInput(component.totalCount, 0);
+      fixture.detectChanges();
+
+      const text = fixture.nativeElement.textContent;
+      expect(text).toContain('Tu as mis de côté');
+      expect(text).not.toContain('0 sur 0');
+      expect(text).not.toContain('prévus');
+      expect(
+        fixture.nativeElement.querySelector('[role="progressbar"]'),
+      ).toBeNull();
+    });
+  });
+
+  // A transfer recorded from the page's FAB carries no budget line, so it can
+  // meet the planned total while the saving prévision it was meant to fulfil
+  // stays unpointed. This card announced "C'est fait pour ce mois" beside a
+  // card in the same grid row still offering that line to point.
+  it('should not report the month finished while a planned saving is unpointed', () => {
+    setTestInput(component.totalPlanned, 1000);
+    setTestInput(component.totalRealized, 1000);
+    setTestInput(component.checkedCount, 0);
+    setTestInput(component.totalCount, 1);
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).not.toContain("C'est fait pour ce mois");
+    expect(text).toContain('Tu as mis de côté');
+  });
+
+  // The count credits a line whose transactions already cover it, which is the
+  // right answer for "mise de côté" and the wrong one for "il ne reste rien à
+  // faire": that line is still in the list beside this card, waiting to be
+  // pointed. Reading completion off the count reopened the contradiction the
+  // test above closes.
+  it('should not report the month finished on a line that is covered but unpointed', () => {
+    setTestInput(component.totalPlanned, 500);
+    setTestInput(component.totalRealized, 500);
+    setTestInput(component.checkedCount, 1);
+    setTestInput(component.totalCount, 1);
+    setTestInput(component.allLinesPointed, false);
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).not.toContain("C'est fait pour ce mois");
+    expect(text).toContain('Tu as mis de côté');
+  });
+
+  it('should render the count in the singular against a plan of one', () => {
+    setTestInput(component.totalPlanned, 1000);
+    setTestInput(component.totalRealized, 400);
+    setTestInput(component.checkedCount, 0);
+    setTestInput(component.totalCount, 1);
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('0 sur 1 mise de côté');
+    expect(text).not.toContain('mises de côté');
   });
 
   describe('when all savings are complete (100%)', () => {
@@ -147,6 +214,7 @@ describe('DashboardSavingsSummary', () => {
       setTestInput(component.totalRealized, 500);
       setTestInput(component.checkedCount, 3);
       setTestInput(component.totalCount, 3);
+      setTestInput(component.allLinesPointed, true);
       fixture.detectChanges();
     });
 

@@ -21,7 +21,7 @@ import { StateCard } from '@ui/state-card/state-card';
       <header class="pulpe-page-header" data-testid="page-header">
         <div class="min-w-0">
           <h1
-            class="text-headline-medium md:text-display-small truncate"
+            class="text-headline-medium md:text-display-small font-bold truncate"
             data-testid="page-title"
           >
             {{ 'settings.tags.title' | transloco }}

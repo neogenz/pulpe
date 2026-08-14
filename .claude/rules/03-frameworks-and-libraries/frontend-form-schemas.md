@@ -1,6 +1,10 @@
 ---
 description: Frontend form schemas — when to create <form>.schema.ts, transforms, strict cascade, ApiClient requestSchema
-paths: "frontend/projects/webapp/**/*.{ts,spec.ts}"
+paths:
+  - "frontend/projects/webapp/src/app/feature/**/*.ts"
+  - "frontend/projects/webapp/src/app/pattern/**/*.ts"
+  - "frontend/**/*.schema.ts"
+  - "frontend/**/api-client.ts"
 ---
 
 # Frontend Form Schemas
@@ -77,7 +81,7 @@ onSubmit() {
 
 - `<form>.schema.ts` co-localisé avec form/dialog
 - Reusable fragments (ex: `conversionFormSchema`) dans `core/<domain>/`
-- Wire DTO dans `pulpe-shared/schemas.ts` uniquement
+- Wire DTO dans `shared/schemas.ts` uniquement
 
 ## Types
 

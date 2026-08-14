@@ -1,6 +1,7 @@
 ---
 description: "Layout layer - App shell, navigation, structural components"
-paths: "frontend/**/layout/**/*"
+paths:
+  - "frontend/**/layout/**/*"
 ---
 
 # Layout Layer

@@ -89,6 +89,17 @@ interface NavigationItem {
     ZifluxDevtoolsComponent,
   ],
   template: `
+    <!-- Five navigation links and the user menu stand between the start of the
+         document and the page itself, on every route and every visit. A mouse
+         user steps over them; a keyboard user paid all six, every time. -->
+    <a
+      class="skip-to-content"
+      href="#main-content"
+      (click)="focusMainContent($event)"
+    >
+      {{ 'layout.skipToContent' | transloco }}
+    </a>
+
     <mat-sidenav-container
       class="bg-surface-container!"
       [class.h-dvh]="!isHandset()"
@@ -207,11 +218,22 @@ interface NavigationItem {
           [class.pt-0]="!isHandset() && !isDemoMode()"
           [class.rounded-xl]="!isHandset()"
         >
+          <!-- The bar itself could never say this. It carried an aria-label, but
+               a progressbar's label is read when focus reaches it, and nothing
+               here takes focus — so every reload, every navigation and every
+               refresh was silent to a screen reader. The region below is in the
+               DOM at all times on purpose: a live region inserted at the same
+               moment as its own text is announced unreliably, because the
+               browser registers the region and then finds nothing new inside. -->
+          <div class="sr-only" role="status">
+            @if (loadingIndicator.isLoading() || isNavigating()) {
+              {{ 'layout.loading' | transloco }}
+            }
+          </div>
           @if (loadingIndicator.isLoading() || isNavigating()) {
-            <div class="absolute top-0 left-0 right-0">
+            <div class="absolute top-0 left-0 right-0" aria-hidden="true">
               <mat-progress-bar
                 mode="indeterminate"
-                [attr.aria-label]="'layout.loading' | transloco"
                 data-testid="loading-progress"
               />
             </div>
@@ -282,7 +304,7 @@ interface NavigationItem {
             <div class="flex items-center gap-2">
               @if (isEarlyAdopter() && !isFocusMode()) {
                 <span
-                  class="early-adopter-badge cursor-pointer"
+                  class="early-adopter-badge cursor-pointer text-label-small font-semibold"
                   role="button"
                   tabindex="0"
                   (click)="openEarlyAdopterDialog()"
@@ -292,7 +314,6 @@ interface NavigationItem {
                   <span class="badge-text">{{
                     'layout.earlyAdopter' | transloco
                   }}</span>
-                  <span class="early-adopter-shimmer" aria-hidden="true"></span>
                 </span>
               }
               @if (isFocusMode()) {
@@ -346,11 +367,35 @@ interface NavigationItem {
                   data-testid="user-menu-trigger"
                   class="inline-flex items-center"
                 >
-                  <mat-icon>person</mat-icon>
-                  <span
-                    class="ph-no-capture amounts-visible max-w-64 truncate"
-                    >{{ userEmail() }}</span
-                  >
+                  <span class="flex min-w-0 items-center gap-2">
+                    @if (userAvatarUrl(); as avatarUrl) {
+                      <img
+                        [src]="avatarUrl"
+                        width="28"
+                        height="28"
+                        alt=""
+                        referrerpolicy="no-referrer"
+                        class="size-7 shrink-0 rounded-full object-cover bg-surface-container"
+                        data-testid="user-avatar-image"
+                        (error)="avatarLoadFailed.set(true)"
+                      />
+                    } @else {
+                      <span
+                        class="inline-grid size-7 shrink-0 place-items-center rounded-full
+                               bg-surface-container text-label-medium leading-none font-semibold
+                               text-on-surface-variant"
+                        aria-hidden="true"
+                        data-testid="user-avatar-fallback"
+                      >
+                        {{ userInitial() }}
+                      </span>
+                    }
+                    <span
+                      class="ph-no-capture amounts-visible max-w-64 truncate"
+                    >
+                      {{ userEmail() }}
+                    </span>
+                  </span>
                 </button>
               }
             </div>
@@ -456,6 +501,9 @@ interface NavigationItem {
 
           <!-- Page Content - Scrollable Container -->
           <main
+            #mainContent
+            id="main-content"
+            tabindex="-1"
             class="flex-1 bg-surface text-on-surface pt-2! min-w-0"
             [class.overflow-y-auto]="!isHandset()"
             [class.overflow-x-hidden]="!isHandset()"
@@ -496,6 +544,34 @@ interface NavigationItem {
       :host {
         display: block;
         height: 100dvh;
+      }
+
+      /* Out of the layout until focused, not hidden from it: display:none or
+         visibility:hidden would take it out of the tab order too, which is the
+         one thing it exists to be in. */
+      .skip-to-content {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+        transform: translateY(-200%);
+        margin: 8px;
+        padding: 12px 20px;
+        border-radius: var(--pulpe-surface-radius-panel);
+        background: var(--mat-sys-primary);
+        color: var(--mat-sys-on-primary);
+        font: var(--mat-sys-label-large);
+        text-decoration: none;
+      }
+
+      .skip-to-content:focus-visible {
+        transform: translateY(0);
+      }
+
+      /* The skip link's whole job is to move focus here; the ring that lands
+         with it would outline the entire page. */
+      main:focus-visible {
+        outline: none;
       }
 
       /* Mobile range = CDK Breakpoints.Handset (portrait ≤600, landscape ≤960),
@@ -613,9 +689,6 @@ interface NavigationItem {
         gap: 6px;
         padding: 4px 12px 4px 8px;
         border-radius: 100px;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
         text-transform: uppercase;
         white-space: nowrap;
         flex-shrink: 0;
@@ -623,16 +696,9 @@ interface NavigationItem {
         position: relative;
         overflow: hidden;
 
-        /* Premium Gold styling */
-        color: #795500;
-        background: linear-gradient(
-          135deg,
-          #fff8e1 0%,
-          #ffecb3 50%,
-          #ffe082 100%
-        );
-        border: 1px solid #ffd54f;
-        box-shadow: 0 2px 10px -2px rgba(255, 193, 7, 0.3);
+        color: var(--mat-sys-on-tertiary-container);
+        background: var(--mat-sys-tertiary-container);
+        border: 1px solid var(--mat-sys-outline-variant);
       }
 
       .early-adopter-badge mat-icon {
@@ -640,63 +706,11 @@ interface NavigationItem {
         width: 16px;
         height: 16px;
         line-height: 16px;
-        color: #f57f17;
+        color: inherit;
       }
 
       .early-adopter-badge .badge-text {
         padding-top: 1px;
-      }
-
-      /* Shimmer effect */
-      .early-adopter-shimmer {
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 50%;
-        height: 100%;
-        background: linear-gradient(
-          to right,
-          transparent 0%,
-          rgba(255, 255, 255, 0.8) 50%,
-          transparent 100%
-        );
-        transform: skewX(-20deg);
-        animation: vip-shimmer 3s infinite;
-        pointer-events: none;
-      }
-
-      @keyframes vip-shimmer {
-        0%,
-        20% {
-          left: -100%;
-        }
-        100% {
-          left: 200%;
-        }
-      }
-
-      /* Dark mode support */
-      :host-context(.dark-theme) .early-adopter-badge {
-        color: #ffd54f;
-        background: linear-gradient(
-          135deg,
-          #2e2200 0%,
-          #3d2e00 50%,
-          #4a3800 100%
-        );
-        border-color: rgba(255, 193, 7, 0.4);
-        box-shadow: 0 2px 10px -2px rgba(255, 193, 7, 0.2);
-      }
-      :host-context(.dark-theme) .early-adopter-badge mat-icon {
-        color: #ffb300;
-      }
-      :host-context(.dark-theme) .early-adopter-shimmer {
-        background: linear-gradient(
-          to right,
-          transparent 0%,
-          rgba(255, 193, 7, 0.2) 50%,
-          transparent 100%
-        );
       }
 
       @media (max-width: 599.98px) {
@@ -751,6 +765,8 @@ export default class MainLayout {
   );
   private readonly scrollSentinel =
     viewChild<ElementRef<HTMLElement>>('scrollSentinel');
+  private readonly mainContent =
+    viewChild<ElementRef<HTMLElement>>('mainContent');
   readonly #destroyRef = inject(DestroyRef);
   readonly #logger = inject(Logger);
   readonly #dialog = inject(MatDialog);
@@ -763,6 +779,19 @@ export default class MainLayout {
     }
     return this.#authStore.user()?.email;
   });
+  protected readonly avatarLoadFailed = signal(false);
+  protected readonly userAvatarUrl = computed(() => {
+    if (this.isDemoMode() || this.avatarLoadFailed()) return undefined;
+
+    const metadata = this.#authStore.user()?.user_metadata;
+    const avatarUrl = metadata?.['avatar_url'] ?? metadata?.['picture'];
+    return typeof avatarUrl === 'string' && avatarUrl.startsWith('https://')
+      ? avatarUrl
+      : undefined;
+  });
+  protected readonly userInitial = computed(
+    () => this.userEmail()?.trim().charAt(0).toLocaleUpperCase() || '?',
+  );
 
   protected readonly isEarlyAdopter = this.#authStore.isEarlyAdopter;
 
@@ -786,7 +815,7 @@ export default class MainLayout {
     {
       route: ROUTES.BUDGET_TEMPLATES,
       labelKey: 'navigation.templatesShort',
-      icon: 'description',
+      icon: 'view_quilt',
       tooltipKey: 'navigation.templatesTooltip',
     },
     {
@@ -944,6 +973,14 @@ export default class MainLayout {
       width: 'auto',
       maxWidth: '90vw',
     });
+  }
+
+  // The href does the same thing on its own, but it also writes the fragment
+  // into the URL, and this app's routes are its state. Focus moves; the address
+  // bar stays out of it.
+  protected focusMainContent(event: Event): void {
+    event.preventDefault();
+    this.mainContent()?.nativeElement.focus();
   }
 
   #requestedPageTour: TourPageId | null = null;

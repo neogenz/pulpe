@@ -1,6 +1,7 @@
 ---
 description: "Swift language conventions, concurrency, types, and access control"
-paths: "ios/**/*.swift"
+paths:
+  - "ios/**/*.swift"
 ---
 
 # Swift

@@ -7,7 +7,6 @@ import {
   output,
 } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,10 +18,14 @@ import { SpreadBadge } from '@ui/spread-badge';
 import { SavingsWithdrawalBadge } from '@ui/savings-withdrawal-badge';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { TagIndicator } from '@ui/tag-indicator';
+import { CheckRewardDirective } from '@ui/check-reward';
 import { FinancialLineCard } from '@pattern/financial-line-card';
 import { OriginalAmountLine } from '@ui/original-amount-line';
 import { TagStore } from '@core/tag';
-import { formatMatchAnnotation } from '../../view-models/budget-item-constants';
+import {
+  consumptionProgressMessage,
+  formatMatchAnnotation,
+} from '../../view-models/budget-item-constants';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
 import { BudgetActionMenu } from '../budget-action-menu';
@@ -30,7 +33,6 @@ import { BudgetActionMenu } from '../budget-action-menu';
 @Component({
   selector: 'pulpe-budget-grid-mobile-card',
   imports: [
-    MatBadgeModule,
     MatSlideToggleModule,
     MatIconModule,
     MatButtonModule,
@@ -47,6 +49,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
     SavingsWithdrawalBadge,
     SavingsGoalSourceLine,
     TagIndicator,
+    CheckRewardDirective,
   ],
   template: `
     <pulpe-financial-line-card
@@ -107,7 +110,6 @@ import { BudgetActionMenu } from '../budget-action-menu';
           [item]="item()"
           [currency]="currency()"
           menuIcon="more_horiz"
-          buttonClass="!-mr-2 !-mt-1"
           [showBalance]="true"
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
@@ -123,9 +125,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
         <ng-container ngProjectAs="[amount]">
           <div
             class="ph-no-capture text-headline-medium font-bold"
-            [class.text-on-surface-variant]="
-              item().consumption!.consumptionState === 'healthy'
-            "
+            [pulpeFinancialKind]="item().data.kind"
             [class.text-financial-warning]="
               item().consumption!.consumptionState === 'near-limit'
             "
@@ -162,7 +162,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
       <ng-container ngProjectAs="[footer]">
         @if (linkedGoalName()) {
           <div
-            class="flex items-center gap-1 min-w-0 mb-3 text-on-surface-variant"
+            class="flex items-center gap-1 min-w-0 mb-2 text-on-surface-variant"
             [attr.data-testid]="'envelope-linked-goal-' + item().data.id"
           >
             <mat-icon
@@ -178,7 +178,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
 
         @if (item().data.sourceSavingsGoalName; as sourceName) {
           <pulpe-savings-goal-source-line
-            class="text-label-small mb-3 max-w-full"
+            class="text-label-small mb-2 max-w-full"
             [goalId]="item().data.sourceSavingsGoalId"
             [goalName]="sourceName"
             [attr.data-testid]="'envelope-source-goal-' + item().data.id"
@@ -187,7 +187,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
 
         @if (item().metadata.savingsWithdrawalOriginLabel; as originLabel) {
           <div
-            class="flex items-center gap-1 min-w-0 mb-3 text-on-surface-variant"
+            class="flex items-center gap-1 min-w-0 mb-2 text-on-surface-variant"
           >
             <mat-icon
               class="text-sm! shrink-0 h-auto! w-auto!"
@@ -203,7 +203,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
 
         @if (matchAnnotation()) {
           <div
-            class="-mt-2 mb-3 mx-auto flex items-center gap-1.5 text-body-small
+            class="-mt-1 mb-2 mx-auto flex items-center gap-1.5 text-body-small
                    bg-tertiary-container/50 text-on-tertiary-container
                    rounded-full px-2.5 py-1 w-fit max-w-full"
           >
@@ -215,7 +215,13 @@ import { BudgetActionMenu } from '../budget-action-menu';
         }
 
         @if (item().consumption?.hasTransactions) {
-          <div class="mb-4">
+          @let progressMessage =
+            consumptionProgressMessage(
+              item().data.amount,
+              item().consumption!.consumed,
+              item().consumption!.percentage
+            );
+          <div class="mb-3">
             <pulpe-segmented-budget-progress
               [percentage]="item().consumption!.percentage"
               [segmentCount]="10"
@@ -233,20 +239,26 @@ import { BudgetActionMenu } from '../budget-action-menu';
                 {{ 'budgetLine.spent.' + item().data.kind | transloco }}
               </span>
               <span class="text-body-small font-medium">
-                @if (item().consumption!.consumptionState === 'over-budget') {
+                @if (progressMessage.key === 'budgetLine.exceededBy') {
                   <span class="text-financial-over-budget">{{
-                    'budgetLine.exceeded' | transloco
+                    progressMessage.key
+                      | transloco
+                        : {
+                            amount:
+                              (progressMessage.params.amount
+                              | appCurrency: currency() : '1.0-0'),
+                          }
                   }}</span>
                 } @else if (
                   item().consumption!.consumptionState === 'near-limit'
                 ) {
-                  <span class="text-financial-warning"
-                    >{{ item().consumption!.percentage }}%</span
-                  >
+                  <span class="text-financial-warning">{{
+                    'budgetLine.usedPercent' | transloco: progressMessage.params
+                  }}</span>
                 } @else {
-                  <span class="text-on-surface-variant"
-                    >{{ item().consumption!.percentage }}%</span
-                  >
+                  <span class="text-on-surface-variant">{{
+                    'budgetLine.usedPercent' | transloco: progressMessage.params
+                  }}</span>
                 }
               </span>
             </div>
@@ -254,26 +266,18 @@ import { BudgetActionMenu } from '../budget-action-menu';
         }
       </ng-container>
 
+      <ng-container ngProjectAs="[recurrenceMeta]">
+        <span class="text-label-small text-on-surface-variant truncate">
+          {{
+            (item().metadata.isTemplateLinked
+              ? 'recurrence.fromTemplate'
+              : 'recurrence.fromBudget'
+            ) | transloco
+          }}
+        </span>
+      </ng-container>
+
       <ng-container ngProjectAs="[actions]">
-        @if (item().consumption?.hasTransactions) {
-          <button
-            matButton
-            class="text-body-small h-8! px-3!"
-            [matBadge]="item().consumption!.transactionCount"
-            matBadgeColor="primary"
-            (click)="viewTransactions.emit(item()); $event.stopPropagation()"
-            [matTooltip]="
-              'budget.viewTransactionsCount'
-                | transloco
-                  : { label: item().consumption!.transactionCountLabel }
-            "
-          >
-            <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
-            <span class="ph-no-capture">{{
-              item().consumption!.consumed | appCurrency: currency() : '1.0-0'
-            }}</span>
-          </button>
-        }
         @if (!item().data.sourceSavingsGoalId) {
           <button
             matIconButton
@@ -306,6 +310,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
         } @else {
           <mat-slide-toggle
             [checked]="!!item().data.checkedAt"
+            [pulpeCheckReward]="!!item().data.checkedAt"
             (change)="toggleCheck.emit(item().data.id)"
             (click)="$event.stopPropagation()"
             [attr.data-testid]="'toggle-check-' + item().data.id"
@@ -316,7 +321,14 @@ import { BudgetActionMenu } from '../budget-action-menu';
                 : ('budgetLine.checkLabel'
                   | transloco: { name: item().data.name })
             "
-          />
+          >
+            {{
+              (item().data.checkedAt
+                ? 'budgetLine.checkedStatus'
+                : 'budgetLine.uncheckedStatus'
+              ) | transloco
+            }}
+          </mat-slide-toggle>
         }
       </ng-container>
     </pulpe-financial-line-card>
@@ -329,6 +341,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetGridMobileCard {
+  protected readonly consumptionProgressMessage = consumptionProgressMessage;
   readonly #tagStore = inject(TagStore);
   readonly item = input.required<BudgetLineTableItem>();
 

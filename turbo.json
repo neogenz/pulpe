@@ -7,10 +7,7 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"],
       "passThroughEnv": ["DOTENV_CONFIG_PATH"],
-      "env": [
-        "PUBLIC_*",
-        "POSTHOG_*"
-      ]
+      "env": ["PUBLIC_*", "POSTHOG_*"]
     },
     "dev": {
       "cache": false,
@@ -64,15 +61,6 @@
       "cache": false,
       "persistent": true,
       "dependsOn": ["^build"]
-    },
-    "test:performance": {
-      "dependsOn": ["^build"],
-      "outputs": [],
-      "passThroughEnv": [
-        "SUPABASE_URL",
-        "SUPABASE_ANON_KEY",
-        "SUPABASE_SERVICE_ROLE_KEY"
-      ]
     },
     "test:e2e": {
       "dependsOn": ["^build", "build"],
@@ -138,14 +126,7 @@
       "outputs": []
     },
     "checks": {
-      "dependsOn": [
-        "build",
-        "quality:fix",
-        "quality",
-        "test",
-        "test:e2e",
-        "test:performance"
-      ],
+      "dependsOn": ["build", "quality:fix", "quality", "test", "test:e2e"],
       "cache": false
     }
   }

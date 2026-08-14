@@ -10,7 +10,6 @@ import * as passwordCriteriaSource from '@ui/password-criteria';
 const validFormValue: SignupFormValue = {
   email: 'user@example.com',
   password: 'superSecret1',
-  confirmPassword: 'superSecret1',
 };
 
 describe('signupFormSchema', () => {
@@ -26,31 +25,18 @@ describe('signupFormSchema', () => {
     );
   });
 
-  describe('transform', () => {
-    it('should omit confirmPassword from the output DTO', () => {
+  describe('output', () => {
+    it('should return the account credentials', () => {
       const result = signupFormSchema.parse(validFormValue);
 
       expect(result).toEqual({
         email: 'user@example.com',
         password: 'superSecret1',
       });
-      expect('confirmPassword' in result).toBe(false);
     });
   });
 
   describe('validation', () => {
-    it('should reject when password and confirmPassword do not match', () => {
-      const result = signupFormSchema.safeParse({
-        ...validFormValue,
-        confirmPassword: 'different1',
-      });
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0]?.path).toEqual(['confirmPassword']);
-      }
-    });
-
     it('should reject an invalid email', () => {
       const result = signupFormSchema.safeParse({
         ...validFormValue,
@@ -73,7 +59,6 @@ describe('signupFormSchema', () => {
       const result = signupFormSchema.safeParse({
         email: 'user@example.com',
         password: 'short',
-        confirmPassword: 'short',
       });
 
       expect(result.success).toBe(false);
@@ -83,7 +68,6 @@ describe('signupFormSchema', () => {
       const result = signupFormSchema.safeParse({
         email: 'user@example.com',
         password: 'onlyLettersHere',
-        confirmPassword: 'onlyLettersHere',
       });
 
       expect(result.success).toBe(false);
@@ -93,7 +77,6 @@ describe('signupFormSchema', () => {
       const result = signupFormSchema.safeParse({
         email: 'user@example.com',
         password: '1234567890',
-        confirmPassword: '1234567890',
       });
 
       expect(result.success).toBe(false);
@@ -103,7 +86,6 @@ describe('signupFormSchema', () => {
       const result = signupFormSchema.safeParse({
         email: 'user@example.com',
         password: 'événement42',
-        confirmPassword: 'événement42',
       });
 
       expect(result.success).toBe(true);

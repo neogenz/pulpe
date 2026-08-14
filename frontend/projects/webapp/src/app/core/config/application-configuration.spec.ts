@@ -117,6 +117,31 @@ describe('ApplicationConfiguration', () => {
       expect(service.environment()).toBe(mockValidConfig.environment);
     });
 
+    it('should normalize missing session recording configuration to safe defaults', async () => {
+      const promise = service.initialize();
+
+      const req = httpMock.expectOne('/config.json');
+      req.flush({
+        ...mockValidConfig,
+        postHog: {
+          apiKey: `phc_${'a'.repeat(40)}`,
+          host: 'https://eu.i.posthog.com',
+          enabled: true,
+          capturePageviews: false,
+          capturePageleaves: false,
+          debug: false,
+        },
+      });
+
+      await promise;
+
+      expect(service.postHogConfig()?.sessionRecording).toEqual({
+        enabled: false,
+        maskInputs: true,
+        sampleRate: 0.1,
+      });
+    });
+
     it('should set defaults and throw error on HTTP failure', async () => {
       const consoleSpy = vi.spyOn(console, 'error');
 

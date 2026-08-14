@@ -1,6 +1,7 @@
 ---
 description: Transloco i18n conventions for the Angular webapp
-paths: "frontend/**/*.ts"
+paths:
+  - "frontend/**/*.{ts,html,json}"
 ---
 
 # Transloco i18n

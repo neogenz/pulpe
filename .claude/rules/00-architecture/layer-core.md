@@ -1,6 +1,7 @@
 ---
 description: "Core layer - Singleton services, application-wide infrastructure"
-paths: "frontend/**/core/**/*"
+paths:
+  - "frontend/**/core/**/*"
 ---
 
 # Core Layer

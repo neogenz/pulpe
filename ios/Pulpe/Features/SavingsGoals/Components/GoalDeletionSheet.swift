@@ -179,7 +179,7 @@ private extension GoalDeletionSheet {
                 }
 
                 if impact.templateLines.isEmpty && impact.budgets.isEmpty {
-                    Text("Aucune prévision ni transaction n'est rattachée à cet objectif.")
+                    Text("Aucune prévision ni mouvement n'est rattaché à cet objectif.")
                         .font(PulpeTypography.listRowSubtitle)
                         .foregroundStyle(Color.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -218,7 +218,7 @@ private extension GoalDeletionSheet {
                     amount: summary.budgetLineTotal
                 )
                 summaryCard(
-                    label: "Transactions",
+                    label: "Mouvements",
                     count: String(summary.transactionCount),
                     amount: summary.transactionTotal
                 )
@@ -236,7 +236,7 @@ private extension GoalDeletionSheet {
                     amount: summary.budgetLineTotal
                 )
                 summaryCard(
-                    label: "Transactions",
+                    label: "Mouvements",
                     count: String(summary.transactionCount),
                     amount: summary.transactionTotal
                 )
@@ -290,7 +290,7 @@ private extension GoalDeletionSheet {
                     .foregroundStyle(Color.textSecondary)
             } else if impact.summary.transactionCount > 0 {
                 Toggle(
-                    "Supprimer aussi les transactions rattachées",
+                    "Supprimer aussi les mouvements rattachés à ces prévisions",
                     isOn: Binding(
                         get: { presentation.deletesTransactions },
                         set: { presentation.setDeletesTransactions($0) }
@@ -336,7 +336,7 @@ private extension GoalDeletionSheet {
                     ForEach(line.transactions) { transaction in
                         impactRow(
                             title: transaction.name,
-                            subtitle: "Transaction",
+                            subtitle: "Réel",
                             amount: transaction.amount,
                             isNested: true
                         )

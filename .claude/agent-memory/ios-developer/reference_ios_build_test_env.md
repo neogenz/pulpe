@@ -1,16 +1,20 @@
 ---
-name: ios-build-test-env
-description: iOS sim runtime is iOS 26.5 (not 26.2 as ios/CLAUDE.md examples say); xcodegen regen can corrupt DerivedData → nuke it to fix phantom build errors
+name: ios-build-cache-recovery
+description: Recognize stale Xcode build-graph failures after project regeneration and recover without deleting source or dependency checkouts
 metadata:
   type: reference
 ---
 
-**Simulator OS:** installed runtime is **iOS 26.5** (`xcrun simctl list runtimes` → "iOS 26.5 (23F77)"), also iOS 18.5. The `ios/CLAUDE.md` examples hardcode `OS=26.2` which FAILS with "Unable to find a device matching the provided destination specifier". Use `OS=26.5`, or omit OS for plain `build` (only `test` needs the OS in the destination here). Device: `iPhone 17 Pro Max`. Always run `xcrun simctl list runtimes` to confirm before trusting a hardcoded OS.
+# Xcode build cache recovery
 
-**xcodegen + DerivedData corruption:** after `xcodegen generate --use-cache` adds new files, the first `xcodebuild build` can fail with phantom errors that are NOT in your code:
-- `Build input file cannot be found: '.../posthog-ios/vendor/libwebp/yuv_sse41.c'` (the file exists on disk)
-- `failed to deserialize Info.plist task context: No such file or directory`
+After `xcodegen generate --use-cache` adds or removes files, the first build can fail with stale
+build-graph errors even though the referenced files exist. Two observed signatures are:
 
-These are stale build-graph artifacts. `xcodebuild clean` alone does NOT fix it. Fix: `trash ~/Library/Developer/Xcode/DerivedData/Pulpe-<hash>` then rebuild clean. Only build artifacts are lost; source + SPM checkouts in the repo are untouched. After nuke, build succeeded with zero real errors.
+- `Build input file cannot be found` for a dependency file that exists on disk;
+- `failed to deserialize Info.plist task context: No such file or directory`.
 
-**Harmless test-run noise:** `[auth][STARTUP] Maintenance network error ... Code=-1004 Connexion au serveur impossible` appears at sim startup during `xcodebuild test` — the sim can't reach a backend. Ignore it; it is not a test failure.
+Confirm that the referenced file exists and that no real compiler error precedes the message.
+`xcodebuild clean` may not clear this state. Resolve the exact
+`~/Library/Developer/Xcode/DerivedData/Pulpe-<hash>` directory, move only that directory to the
+Trash, then rebuild. Do not delete all DerivedData, repository sources, or Swift Package Manager
+checkouts.

@@ -189,7 +189,7 @@ test.describe('Mobile scroll behavior', () => {
       expect(sidenavContentHeight).toBeGreaterThanOrEqual(viewportHeight);
     });
 
-    test('menu should open correctly after scrolling', async ({
+    test('account control should stay centered and open its menu after scrolling', async ({
       authenticatedPage: page,
     }) => {
       // Ensure body is tall enough to scroll
@@ -204,7 +204,29 @@ test.describe('Mobile scroll behavior', () => {
       await page.waitForFunction(() => window.scrollY >= 300);
 
       const menuTrigger = page.locator('[data-testid="user-menu-trigger"]');
+      const avatar = page.locator('[data-testid="user-avatar-fallback"]');
+      const email = menuTrigger.getByText('e2e-test@pulpe.local', {
+        exact: true,
+      });
       await expect(menuTrigger).toBeVisible({ timeout: 5000 });
+
+      const [triggerBox, avatarBox, emailBox] = await Promise.all([
+        menuTrigger.boundingBox(),
+        avatar.boundingBox(),
+        email.boundingBox(),
+      ]);
+      expect(triggerBox).not.toBeNull();
+      expect(avatarBox).not.toBeNull();
+      expect(emailBox).not.toBeNull();
+
+      const triggerCenterY = triggerBox!.y + triggerBox!.height / 2;
+      const avatarCenterY = avatarBox!.y + avatarBox!.height / 2;
+      expect(Math.abs(triggerCenterY - avatarCenterY)).toBeLessThanOrEqual(1);
+      expect(emailBox!.x).toBeGreaterThanOrEqual(triggerBox!.x);
+      expect(emailBox!.x + emailBox!.width).toBeLessThanOrEqual(
+        triggerBox!.x + triggerBox!.width + 1,
+      );
+
       await menuTrigger.click();
 
       const menuPanel = page.locator('.mat-mdc-menu-panel');

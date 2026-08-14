@@ -3,7 +3,9 @@ export { STORAGE_KEYS } from './storage-keys';
 export {
   STORAGE_SCHEMAS,
   TOUR_SCHEMA_CONFIG,
+  completeProfileDraftSchema,
   getSchemaConfig,
+  type CompleteProfileDraft,
 } from './storage-schemas';
 export {
   STORAGE_MIGRATIONS,

@@ -30,7 +30,7 @@ import { SavingsGoalCard } from '../components/savings-goal-card';
       <header class="pulpe-page-header" data-testid="page-header">
         <div class="min-w-0">
           <h1
-            class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink"
+            class="text-headline-medium md:text-display-small font-bold truncate min-w-0 flex-shrink"
             data-testid="page-title"
           >
             {{ title.currentTitle() }}
@@ -81,7 +81,7 @@ import { SavingsGoalCard } from '../components/savings-goal-card';
             />
           } @else {
             <div
-              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3"
               data-testid="savings-goals-list"
               data-tour="savings-goals-list"
             >

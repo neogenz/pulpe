@@ -12,7 +12,7 @@ pnpm dev:android              # Expo on a device — needs JAVA_HOME=jdk17 + AND
 pnpm test                     # Unit tests           (pnpm test:e2e → Playwright)
 
 # Quality — run from the root (backend-nest and android define their own `quality`)
-pnpm quality                  # turbo quality + format:check:automation + test:ci-security + test:public-surface
+pnpm quality                  # turbo quality + format:check:automation + test:ci-security + test:public-surface + test:lexicon
                               # lefthook runs it pre-commit, but scoped `--filter="...[HEAD^]"` and SKIPPED on merge/rebase
                               # Angular templates (strictTemplates) are only checked by `ng build` → dedicated CI job
 
@@ -26,7 +26,8 @@ cd backend-nest && supabase start
 
 ## Critical Rules
 
-- **NEVER** destructive Supabase cmds (`db reset`, `db push --force`)
+- **NEVER** destructive Supabase commands on a linked database (`db reset`, `db push --force`).
+  Locally, use only `bun run supabase:reset`, which re-encrypts the seed after resetting it.
 - **AFTER** DB schema change: `bun run generate-types:local` in backend
 - **ALWAYS** encrypt financial amounts (`amount`, `target_amount`, `ending_balance`) via `ENCRYPTION_PORT` before DB write. Columns `text` holding AES-256-GCM ciphertexts. (see `docs/ENCRYPTION.md`)
 - **ALWAYS** mirror a formula change across both sides: `shared/src/calculators/` ↔ `ios/Pulpe/Domain/Formulas/`, tests included, same commit. Nothing fails the build when they diverge — web and iOS just show two different amounts. Android is not a third side: it imports `shared/src/calculators/` directly. (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`)
@@ -35,7 +36,8 @@ cd backend-nest && supabase start
 
 Product-facing copy is French. Code and docs are English.
 
-- `budget_line` (table; `budgetLines` on the wire) → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu" | `transaction` → "Réel"
+- `budget_line` (table; `budgetLines` on the wire) → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu"
+- `transaction` has no single word but three scopes: "Réel" for the aggregate facing "Prévu"; "Mouvements" for a collection; the nature ("dépense", "revenu", "épargne") or a verb for a single object. The word "transaction" itself never shows on screen — `pnpm test:lexicon` enforces it.
 - `income` → "Revenu" | `expense` → "Dépense" | `saving` → "Épargne"
 - `checked` → "Pointé" | `unchecked` → "À pointer"
 - Labels: "Disponible à dépenser", "Épargne prévue", "Fréquence"
@@ -49,6 +51,7 @@ Product-facing copy is French. Code and docs are English.
 | Encryption (AES-256-GCM)    | `docs/ENCRYPTION.md`                       |
 | Spreading an expense        | `docs/SPREAD.md`                           |
 | Savings goals               | `docs/SAVINGS.md`                          |
+| Architecture decisions      | `docs/adr/README.md`                       |
 | Backend Clean Architecture  | `backend-nest/docs/ARCHITECTURE.md`        |
 | DB types                    | `backend-nest/src/types/database.types.ts` |
 | Shared schemas              | `shared/schemas.ts`                        |

@@ -56,9 +56,11 @@ struct CurrentMonthHeroCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(Color.surfaceContainerLowest)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
         .shadow(DesignTokens.Shadow.subtle)
+        // A hero card at 32pt, not a row card at 18pt: it takes the border alone
+        // rather than `pulpeRowCard()`, which would impose the row radius.
+        .pulpeCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
         .sensoryFeedback(.impact(weight: .medium), trigger: tapTrigger)
         .accessibilityLabel(
             "\(monthName), mois actuel, "
@@ -115,9 +117,9 @@ struct BudgetMonthCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(Color.surfaceContainerLowest)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
         .shadow(DesignTokens.Shadow.subtle)
+        .pulpeCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
         .sensoryFeedback(.selection, trigger: tapTrigger)
         .accessibilityLabel(
             "\(monthName), "
@@ -204,10 +206,9 @@ struct NextMonthPlaceholder: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(Color.surfaceContainerLowest)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
         .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl, style: .continuous)
                 .strokeBorder(
                     adjustmentColor,
                     style: StrokeStyle(

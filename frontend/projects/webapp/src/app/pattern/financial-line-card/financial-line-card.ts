@@ -28,7 +28,7 @@ import { RecurrenceLabelPipe } from '@ui/transaction-display';
       [attr.data-testid]="dataTestId()"
     >
       <mat-card-content class="p-4">
-        <div class="flex items-start justify-between mb-4">
+        <div class="flex items-start justify-between mb-3">
           <div class="flex items-center gap-2.5 min-w-0 flex-1">
             <pulpe-financial-kind-indicator [kind]="kind()" />
             <ng-content select="[name]">
@@ -45,7 +45,7 @@ import { RecurrenceLabelPipe } from '@ui/transaction-display';
           <ng-content select="[menu]" />
         </div>
 
-        <div class="flex items-end justify-between mb-4">
+        <div class="flex items-end justify-between mb-3">
           <div>
             <ng-content select="[amount]">
               <div
@@ -63,12 +63,17 @@ import { RecurrenceLabelPipe } from '@ui/transaction-display';
 
         @if (recurrence(); as rec) {
           <div
-            class="flex items-center justify-between pt-3 border-t border-outline-variant/30"
+            class="financial-card-footer pt-2.5 border-t border-outline-variant/30"
           >
-            <mat-chip class="!h-6 !text-label-small bg-surface-container">
-              {{ rec | recurrenceLabel }}
-            </mat-chip>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <mat-chip
+                class="!h-6 !text-label-small bg-surface-container shrink-0"
+              >
+                {{ rec | recurrenceLabel }}
+              </mat-chip>
+              <ng-content select="[recurrenceMeta]" />
+            </div>
+            <div class="financial-card-actions flex items-center gap-2">
               <ng-content select="[actions]" />
             </div>
           </div>
@@ -79,6 +84,23 @@ import { RecurrenceLabelPipe } from '@ui/transaction-display';
   styles: `
     :host {
       display: block;
+    }
+
+    .financial-card-footer {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    @media (max-width: 420px) {
+      .financial-card-footer {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .financial-card-actions {
+        justify-self: end;
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

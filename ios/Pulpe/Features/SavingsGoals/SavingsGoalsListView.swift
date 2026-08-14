@@ -71,7 +71,7 @@ struct SavingsGoalsListView: View {
             }
         }
         .task { await store.loadIfNeeded() }
-        .trackScreen("SavingsGoalsList")
+        .trackScreen(AnalyticsScreen.savingsGoalsList)
     }
 
     // MARK: - Empty state

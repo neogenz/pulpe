@@ -1,6 +1,7 @@
 ---
 description: "TypeScript strict typing and conventions"
-paths: "**/*.ts"
+paths:
+  - "**/*.ts"
 ---
 
 # TypeScript
@@ -20,5 +21,6 @@ choices, where more than one convention would have been defensible.
 | Enumerations | String literal unions; plain `enum` if genuinely needed, never `const enum` |
 | Generics | Single letter when simple (`T`), descriptive when not (`TInput`, `TOutput`) |
 
-Error handling: see `error-handling.md`. API-facing shapes come from Zod schemas in
-`shared/` and are inferred, never hand-declared — see `shared-schemas.md`.
+Frontend error reporting lives in `error-handling.md`; NestJS exception conventions live in
+`error-handling-backend.md`. API-facing shapes come from Zod schemas in `shared/` and are
+inferred, never hand-declared — see `shared-schemas.md`.

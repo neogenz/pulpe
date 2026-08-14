@@ -1,6 +1,7 @@
 ---
 description: Logging standards and level guidelines for NestJS backend
-paths: "backend-nest/**/*.ts"
+paths:
+  - "backend-nest/**/*.ts"
 ---
 
 # Logging Standards

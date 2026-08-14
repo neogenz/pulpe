@@ -1,5 +1,64 @@
 [
   {
+    "version": "0.44.0",
+    "iosVersion": "1.3.2",
+    "date": "2026-08-14",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.44.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Retraits depuis un objectif",
+          "description": "Un retrait peut être ajouté comme revenu dans le budget immédiatement ou planifié pour un mois futur"
+        },
+        {
+          "title": "Trajectoire mensuelle",
+          "description": "L’accueil distingue ce qui est réalisé de ce qui reste prévu et estime le solde de fin de mois"
+        },
+        {
+          "title": "Pointages et ajouts annulables",
+          "description": "Depuis l’accueil, un pointage ou un mouvement ajouté peut être annulé pendant quelques secondes"
+        },
+        {
+          "title": "Épargne lissée liée aux objectifs",
+          "description": "Une épargne répartie sur plusieurs mois conserve l’objectif qu’elle alimente"
+        },
+        {
+          "title": "Guide modèles et budgets",
+          "description": "Le centre d’aide indique quoi modifier selon que le changement concerne un seul mois ou les mois habituels"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Plans d’épargne complétés",
+          "description": "Pulpe repère les versements absents des budgets déjà créés et permet de les ajouter après vérification"
+        },
+        {
+          "title": "Accueil aligné sur le réalisé",
+          "description": "Le bilan du mois tient compte des mouvements pointés sans compter l’épargne deux fois"
+        },
+        {
+          "title": "Budget conservé en cas d’erreur",
+          "description": "Si une action échoue, la page du budget reste ouverte et affiche le problème"
+        },
+        {
+          "title": "Inscription simplifiée",
+          "description": "Le mot de passe n’est plus demandé une seconde fois et le parcours reprend après une interruption"
+        },
+        {
+          "title": "Déconnexion limitée à l’appareil",
+          "description": "Se déconnecter de Pulpe n’interrompt plus les autres sessions ouvertes"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Diagnostics et accès aux données resserrés",
+          "description": "Les événements PostHog sont assainis et les fonctions sensibles de Supabase ont des droits plus stricts"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.43.0",
     "date": "2026-08-01",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.43.0",

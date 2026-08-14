@@ -1,6 +1,7 @@
 ---
 description: Backend error handling — BusinessException, cause chain, Log or Throw
-paths: "backend-nest/src/**/*.ts"
+paths:
+  - "backend-nest/src/**/*.ts"
 ---
 
 # Error Handling (Backend)

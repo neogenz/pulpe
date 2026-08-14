@@ -105,8 +105,7 @@ export class BudgetTemplateController {
   @Get()
   @ApiOperation({
     summary: 'List all budget templates',
-    description:
-      "Retrieves all budget templates accessible to the user (public templates + user's own templates)",
+    description: "Retrieves the authenticated user's budget templates",
   })
   @ApiResponse({
     status: 200,

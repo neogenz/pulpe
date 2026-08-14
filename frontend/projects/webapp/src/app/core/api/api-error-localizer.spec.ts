@@ -151,7 +151,7 @@ describe('ApiErrorLocalizer', () => {
       null,
     );
     expect(service.localizeApiError(error)).toBe(
-      'La modification de la transaction a échoué — réessaie',
+      'La modification a échoué — réessaie',
     );
   });
 

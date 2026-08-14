@@ -4,7 +4,7 @@
 -- This file populates the database with test data for development
 -- Local-only demo credentials: demo@pulpe.test / local-demo-only
 --
--- Use `pnpm supabase:reset` (chains reset + encryption automatically)
+-- From backend-nest/, use `bun run supabase:reset` (reset + encryption)
 -- Then login with PIN: 1234
 
 -- Ensure required extensions are available (already enabled on local Supabase,

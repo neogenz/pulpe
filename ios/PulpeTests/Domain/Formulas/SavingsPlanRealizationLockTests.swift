@@ -62,6 +62,47 @@ private let realizingMay = planMonth(
 
 @Suite("SavingsPlanCalculator.realization lock")
 struct SavingsPlanRealizationLockTests {
+    @Test("normalizes the same 10.05 = 0.01 + 10.04 residue as TypeScript")
+    func floatingResidue_weighsNothing() throws {
+        let residue = try #require(Decimal(string: "0.0000000000000017763568394002505"))
+        let timeline = [
+            planMonth(
+                month: 5,
+                year: 2026,
+                withdrawnAmount: 10.05,
+                plannedWithdrawalAmount: 10.05,
+                remainingPlannedWithdrawalAmount: residue
+            ),
+        ]
+        let exactTimeline = [
+            planMonth(
+                month: 5,
+                year: 2026,
+                withdrawnAmount: 10.05,
+                plannedWithdrawalAmount: 10.05
+            ),
+        ]
+        let result = SavingsPlanCalculator.redistributeRemainingEffort(
+            timeline: timeline,
+            targetAmount: 3000
+        )
+        let exactResult = SavingsPlanCalculator.redistributeRemainingEffort(
+            timeline: exactTimeline,
+            targetAmount: 3000
+        )
+        let simulation = try SavingsPlanCalculator.simulate(
+            timeline: timeline,
+            targetAmount: 3000
+        )
+        let exactSimulation = try SavingsPlanCalculator.simulate(
+            timeline: exactTimeline,
+            targetAmount: 3000
+        )
+
+        #expect(result.remainingEffort == exactResult.remainingEffort)
+        #expect(simulation.simulatedFinal == exactSimulation.simulatedFinal)
+    }
+
     /// A realization started on ONE month freezes that month, not the whole plan:
     /// mars, avril and juin stay valid redistribution targets.
     @Test("keeps redistributing the other months when one starts realizing")

@@ -95,10 +95,29 @@ export class CurrentMonthPage {
     return (await element.textContent()) ?? '';
   }
 
-  async getExpensesAmount(): Promise<string> {
-    const element = this.page.getByTestId('hero-expenses-amount');
-    await expect(element).toBeVisible();
-    return (await element.textContent()) ?? '';
+  // The hero no longer prints total expenses as one figure. Its legend splits
+  // the month into two disjoint shares — Dépensé (recorded) and Engagé (planned
+  // and not yet recorded) — and their sum is what "total expenses" means here.
+  // Reading either one alone silently compares against a part.
+  private async readTotalExpenses(): Promise<number> {
+    const parse = async (testId: string) => {
+      const element = this.page.getByTestId(testId);
+      await expect(element).toBeVisible();
+      const text = this.normalizeSwissNumber(
+        (await element.textContent()) ?? '',
+      );
+      return Number(text.replace(/[^\d-]/g, ''));
+    };
+    // « Dépensé » est toujours rendu, donc le lire en premier établit que le
+    // hero a peint — et rend concluante l'absence constatée juste après.
+    const spent = await parse('hero-spent-amount');
+    // « Engagé » quitte le DOM dès que sa part tombe à zéro, ce qui arrive
+    // précisément quand tout le mois est pointé — l'état où ces assertions
+    // travaillent. L'exiger visible faisait expirer le test sur une absence qui
+    // est le résultat attendu, et rien ne restait à ajouter à « Dépensé ».
+    const isEngagedShown =
+      (await this.page.getByTestId('hero-engaged-amount').count()) > 0;
+    return spent + (isEngagedShown ? await parse('hero-engaged-amount') : 0);
   }
 
   async expectRemainingAmount(expectedAmount: string) {
@@ -112,13 +131,10 @@ export class CurrentMonthPage {
   }
 
   async expectExpensesAmount(expectedAmount: string) {
-    const element = this.page.getByTestId('hero-expenses-amount');
-    const normalizedExpected = this.normalizeSwissNumber(expectedAmount);
-    await expect
-      .poll(async () =>
-        this.normalizeSwissNumber((await element.textContent()) ?? ''),
-      )
-      .toContain(normalizedExpected);
+    const expected = Number(
+      this.normalizeSwissNumber(expectedAmount).replace(/[^\d-]/g, ''),
+    );
+    await expect.poll(async () => this.readTotalExpenses()).toBe(expected);
   }
 
   private normalizeSwissNumber(text: string): string {

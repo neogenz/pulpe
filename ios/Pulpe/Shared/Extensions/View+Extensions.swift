@@ -322,12 +322,31 @@ extension View {
         modifier(CardBackgroundModifier(cornerRadius: cornerRadius))
     }
 
+    /// The dark-mode boundary of a card, and nothing else — no fill, no shadow.
+    /// Named for the card and not for the row: its callers are two hero cards at
+    /// `CornerRadius.xl` and a skeleton that carries no shadow, so `pulpeRowCard()`
+    /// would impose on all three what only one of them wants.
+    /// `Color.rowCardBorder` holds why the trait exists at all.
+    ///
+    /// The radius has no default: every call site knows its own, and two of them
+    /// contradict the row card's. `strokeBorder` and not `stroke`, so the trait
+    /// insets inward and `pulpeCardBackground`'s `clipShape` can't halve it.
+    func pulpeCardBorder(cornerRadius: CGFloat) -> some View {
+        overlay {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(Color.rowCardBorder, lineWidth: DesignTokens.BorderWidth.hairline)
+        }
+    }
+
     /// The surface a ledger row sits on: the flat card, plus the lift that detaches it
     /// from the page. Paired here because a card with no lift and a lift with no card
     /// are each half a boundary, and the call sites shouldn't have to remember both.
-    func pulpeRowCard() -> some View {
-        pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
+    /// The shadow carries the separation in light mode; it renders on nothing over
+    /// `appBackground`'s dark tone, so the border takes over there instead.
+    func pulpeRowCard(cornerRadius: CGFloat = DesignTokens.CornerRadius.card) -> some View {
+        pulpeCardBackground(cornerRadius: cornerRadius)
             .shadow(DesignTokens.Shadow.subtle)
+            .pulpeCardBorder(cornerRadius: cornerRadius)
     }
 
     /// Glass effect for floating navigation elements (toasts, overlays)

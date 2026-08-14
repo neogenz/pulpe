@@ -12,6 +12,7 @@ import { ApiError } from '@core/api/api-error';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { createMockDataCache } from '@core/testing';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { TranslocoService } from '@jsverse/transloco';
 import type { Budget, BudgetLine, Transaction } from 'pulpe-shared';
 import { API_ERROR_CODES, BudgetFormulas } from 'pulpe-shared';
 
@@ -100,6 +101,7 @@ function createMocks() {
       getHistoryData$: vi.fn().mockReturnValue(of([])),
       getBudgetById$: vi.fn().mockReturnValue(of(createMockBudget())),
       createTransaction$: vi.fn(),
+      deleteTransaction$: vi.fn(),
       toggleBudgetLineCheck$: vi.fn(),
       cache,
     },
@@ -113,8 +115,14 @@ function createMocks() {
       debug: vi.fn(),
     },
     userSettingsStore: {
+      // Resolved settings, because that is what unblocks the request: the
+      // store asks the resource whether they are known rather than reading the
+      // pay day, which is legitimately null for anyone on the calendar month.
+      settings: signal<unknown>({ payDayOfMonth: 1 }),
       payDayOfMonth: signal<number | null>(1),
       isLoading: signal(false),
+      error: signal<unknown>(undefined),
+      reload: vi.fn(),
     },
     postHogService: {
       captureEvent: vi.fn(),
@@ -134,7 +142,7 @@ function setup(mocks = createMocks(), now: Date = FIXED_DATE) {
       { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
       { provide: Logger, useValue: mocks.logger },
       { provide: PostHogService, useValue: mocks.postHogService },
-      { provide: DASHBOARD_NOW, useValue: now },
+      { provide: DASHBOARD_NOW, useValue: () => now },
     ],
   });
 
@@ -146,12 +154,13 @@ async function setupWithBudgetAndWait(
   budget = createMockBudget(),
   budgetLines: BudgetLine[] = [],
   transactions: Transaction[] = [],
+  now: Date = FIXED_DATE,
 ) {
   const mocks = createMocks();
   mocks.budgetApi.getDashboardData$.mockReturnValue(
     of({ budget, transactions, budgetLines }),
   );
-  const result = setup(mocks);
+  const result = setup(mocks, now);
 
   TestBed.tick();
   await vi.waitFor(() => {
@@ -328,7 +337,7 @@ describe('DashboardStore - Business Scenarios', () => {
       });
 
       // cachedMutation.mutate() never rejects — the reason comes back returned.
-      const reason = await store.addTransaction({
+      const outcome = await store.addTransaction({
         budgetId: 'budget-1',
         name: 'Fail',
         amount: 100,
@@ -338,7 +347,7 @@ describe('DashboardStore - Business Scenarios', () => {
       // Should rollback to original data (via onError)
       expect(store.transactions().length).toBe(1);
       expect(store.transactions()[0].id).toBe('tx-existing');
-      expect(reason).toBeTruthy();
+      expect(outcome).toEqual({ reason: expect.any(String) });
       expect(mocks.postHogService.captureEvent).not.toHaveBeenCalled();
     });
 
@@ -368,7 +377,7 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.dashboardData()).not.toBeNull();
       });
 
-      const reason = await store.addTransaction({
+      const outcome = await store.addTransaction({
         budgetId: 'budget-1',
         name: 'Retrait Maison',
         amount: 100,
@@ -377,8 +386,69 @@ describe('DashboardStore - Business Scenarios', () => {
       });
 
       const localizer = TestBed.inject(ApiErrorLocalizer);
-      expect(reason).toBe(localizer.localizeApiError(refusal));
+      expect(outcome).toEqual({ reason: localizer.localizeApiError(refusal) });
       expect(store.error()).toBeUndefined();
+    });
+
+    // What the confirmation toast promises. A transaction recorded by mistake
+    // was previously only removable from another page, so the id has to survive
+    // the create for the undo to have anything to delete.
+    it('should hand back the created id so the write can be undone', async () => {
+      const budget = createMockBudget();
+      const newTx = createMockTransaction({ id: 'tx-new', name: 'Courses' });
+
+      const mocks = createMocks();
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget, transactions: [], budgetLines: [] }),
+      );
+      mocks.budgetApi.createTransaction$.mockReturnValue(
+        of({ success: true, data: newTx }),
+      );
+      mocks.budgetApi.deleteTransaction$.mockReturnValue(of(undefined));
+      const { store } = setup(mocks);
+
+      TestBed.tick();
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).not.toBeNull();
+      });
+
+      const outcome = await store.addTransaction({
+        budgetId: 'budget-1',
+        name: 'Courses',
+        amount: 80,
+        kind: 'expense',
+      });
+      expect(outcome).toEqual({ transactionId: 'tx-new' });
+
+      const refusal = await store.deleteTransaction('tx-new');
+
+      expect(refusal).toBeNull();
+      expect(mocks.budgetApi.deleteTransaction$).toHaveBeenCalledWith('tx-new');
+      expect(store.transactions()).toEqual([]);
+    });
+
+    it('should put the transaction back when the undo fails', async () => {
+      const budget = createMockBudget();
+      const existingTx = createMockTransaction({ id: 'tx-existing' });
+
+      const mocks = createMocks();
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget, transactions: [existingTx], budgetLines: [] }),
+      );
+      mocks.budgetApi.deleteTransaction$.mockReturnValue(
+        throwError(() => new Error('API error')),
+      );
+      const { store } = setup(mocks);
+
+      TestBed.tick();
+      await vi.waitFor(() => {
+        expect(store.transactions().length).toBe(1);
+      });
+
+      const refusal = await store.deleteTransaction('tx-existing');
+
+      expect(refusal).toBeTruthy();
+      expect(store.transactions()).toEqual([existingTx]);
     });
   });
 
@@ -521,11 +591,12 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.budgetLines().length).toBe(1);
       });
 
-      const isSuccess = await store.checkBudgetLine('line-fail');
+      const refusal = await store.checkBudgetLine('line-fail');
 
-      // Says so to the caller, which is what raises the snackbar — the `error`
-      // signal would collapse the whole page into a "could not load" card.
-      expect(isSuccess).toBe(false);
+      // Hands the reason back to the caller, which is what raises the snackbar —
+      // the `error` signal would collapse the whole page into a "could not load"
+      // card.
+      expect(refusal).not.toBeNull();
       expect(store.error()).toBeUndefined();
       // Should rollback checkedAt to null
       expect(store.budgetLines()[0].checkedAt).toBeNull();
@@ -652,6 +723,73 @@ describe('DashboardStore - Business Scenarios', () => {
     });
   });
 
+  describe('User can undo a check', () => {
+    it('should clear checkedAt and put the line back in the unchecked list', async () => {
+      const budget = createMockBudget();
+      const line = createMockBudgetLine({
+        id: 'line-undo',
+        checkedAt: '2025-06-15T12:00:00Z',
+      });
+
+      const { store, budgetApi } = await setupWithBudgetAndWait(
+        budget,
+        [line],
+        [],
+      );
+      budgetApi.toggleBudgetLineCheck$.mockReturnValue(
+        of({ success: true, data: { ...line, checkedAt: null } }),
+      );
+
+      const refusal = await store.uncheckBudgetLine('line-undo');
+
+      expect(refusal).toBeNull();
+      expect(store.budgetLines()[0].checkedAt).toBeNull();
+      expect(store.uncheckedForecasts().length).toBe(1);
+    });
+
+    it('should restore the original timestamp when the undo is refused', async () => {
+      const budget = createMockBudget();
+      const line = createMockBudgetLine({
+        id: 'line-undo-fail',
+        checkedAt: '2025-06-15T12:00:00Z',
+      });
+
+      const { store, budgetApi } = await setupWithBudgetAndWait(
+        budget,
+        [line],
+        [],
+      );
+      budgetApi.toggleBudgetLineCheck$.mockReturnValue(
+        throwError(() => new Error('Toggle failed')),
+      );
+
+      const refusal = await store.uncheckBudgetLine('line-undo-fail');
+
+      expect(refusal).not.toBeNull();
+      expect(store.budgetLines()[0].checkedAt).toBe('2025-06-15T12:00:00Z');
+      expect(store.pendingChecks().size).toBe(0);
+    });
+
+    it('should report failure rather than silence when there is nothing to undo', async () => {
+      const budget = createMockBudget();
+      const line = createMockBudgetLine({
+        id: 'line-never-checked',
+        checkedAt: null,
+      });
+
+      const { store, budgetApi } = await setupWithBudgetAndWait(
+        budget,
+        [line],
+        [],
+      );
+
+      const refusal = await store.uncheckBudgetLine('line-never-checked');
+
+      expect(refusal).not.toBeNull();
+      expect(budgetApi.toggleBudgetLineCheck$).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Computed selectors', () => {
     it('should return recentTransactions sorted by date desc, limited to 5', async () => {
       const budget = createMockBudget();
@@ -700,7 +838,51 @@ describe('DashboardStore - Business Scenarios', () => {
       ]);
     });
 
-    it('should return on-track when consumed <= elapsed + 5', async () => {
+    it('should list outflow forecasts before income, largest first', async () => {
+      const budget = createMockBudget();
+      const lines = [
+        createMockBudgetLine({
+          id: 'salary',
+          kind: 'income',
+          amount: 3500,
+          checkedAt: null,
+        }),
+        createMockBudgetLine({
+          id: 'groceries',
+          kind: 'expense',
+          amount: 400,
+          checkedAt: null,
+        }),
+        createMockBudgetLine({
+          id: 'rent',
+          kind: 'expense',
+          amount: 1200,
+          checkedAt: null,
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(budget, lines, []);
+
+      // Sorting on amount alone put the salary first on a card that asks what
+      // has been spent — the biggest number, and the least relevant one.
+      expect(store.uncheckedForecasts().map((l) => l.id)).toEqual([
+        'rent',
+        'groceries',
+        'salary',
+      ]);
+    });
+
+    it('should report the month within plan when nothing has gone beyond it', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 1000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 900 }),
+      ];
+      const { store } = await setupWithBudgetAndWait(budget, lines, []);
+
+      expect(store.paceStatus()).toBe('within-plan');
+    });
+
+    it('should stay on-track when unplanned spending trails the elapsed month', async () => {
       const budget = createMockBudget({ rollover: 0 });
       const lines = [
         createMockBudgetLine({
@@ -711,16 +893,88 @@ describe('DashboardStore - Business Scenarios', () => {
         createMockBudgetLine({
           id: 'exp-1',
           kind: 'expense',
-          amount: 400,
+          amount: 500,
         }),
       ];
-      // consumed = 400/1000 = 40%, elapsed ~ 47-48%, 40 <= 48+5 → on-track
-      const { store } = await setupWithBudgetAndWait(budget, lines, []);
+      // The plan leaves 500 free. 100 of it has gone on something the plan did
+      // not name: 20% of the margin against ~47% elapsed → on-track.
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 100,
+          budgetLineId: null,
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
 
       expect(store.paceStatus()).toBe('on-track');
     });
 
-    it('should return tight when consumed > elapsed + 5', async () => {
+    // The decision this verdict now encodes: the card asks the user to point a
+    // prévision "dès qu'elle passe sur ton compte", and doing so on the 2nd
+    // used to score the rent's full amount against 3% of elapsed month and turn
+    // the hero amber. A pointed prévision is the plan being met, not a rhythm.
+    it('should stay calm when a large forecast is pointed early in the month', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({
+          id: 'rent',
+          kind: 'expense',
+          amount: 1500,
+          checkedAt: '2025-06-02T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        [],
+        new Date('2025-06-02T12:00:00Z'),
+      );
+
+      expect(store.realizedExpenses()).toBe(1500);
+      expect(store.paceStatus()).toBe('within-plan');
+    });
+
+    // Spending inside an envelope is spending the plan already reserved, so it
+    // moves the bar and the legend and leaves the verdict alone. Only the part
+    // that runs past what the envelope reserved is the plan being exceeded.
+    it('should count only the part of an envelope spent beyond its amount', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 2000 }),
+        createMockBudgetLine({
+          id: 'groceries',
+          kind: 'expense',
+          amount: 600,
+        }),
+      ];
+      const withinEnvelope = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 600,
+          budgetLineId: 'groceries',
+          checkedAt: '2025-06-03T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        withinEnvelope,
+        new Date('2025-06-03T12:00:00Z'),
+      );
+
+      expect(store.paceStatus()).toBe('within-plan');
+    });
+
+    it('should return tight when realized spending outruns the elapsed month past its tolerance', async () => {
       const budget = createMockBudget({ rollover: 0 });
       const lines = [
         createMockBudgetLine({
@@ -734,10 +988,371 @@ describe('DashboardStore - Business Scenarios', () => {
           amount: 900,
         }),
       ];
-      // consumed = 900/1000 = 90%, elapsed ~ 47-48%, 90 > 48+5 → tight
-      const { store } = await setupWithBudgetAndWait(budget, lines, []);
+      // The plan leaves 100 free and 900 has gone outside it entirely: the
+      // margin is spent nine times over against ~47% elapsed → tight.
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 900,
+          budgetLineId: null,
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
 
       expect(store.paceStatus()).toBe('tight');
+    });
+
+    // The band is widest on the first day and closes to 5 on the last, because
+    // household outflow is front-loaded: rent, insurance and the subscriptions
+    // land in the first days, so against a linear clock one debit outruns the
+    // month by definition. A flat 5 points made the card amber for doing the
+    // one thing the product needs — recording.
+    it('should not call the pace tight for one early-month debit', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 2000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 1000 }),
+      ];
+      // The plan leaves 1'000 free and 200 of it has gone outside any envelope:
+      // 20% of the margin against ~7% elapsed, over a flat 5-point band but
+      // inside the ~24 points the start of a month is worth.
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 200,
+          budgetLineId: null,
+          checkedAt: '2025-06-02T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+        new Date('2025-06-03T12:00:00Z'),
+      );
+
+      expect(store.paceStatus()).toBe('on-track');
+    });
+
+    // A transfer recorded from the page's own FAB carries no budgetLineId, and
+    // calculateRealizedSavings skips free transactions on purpose so an
+    // unlinked saving cannot contaminate a goal's confirmed total. Only
+    // calculateRealizedExpenses sees it, via isOutflowKind — so subtracting
+    // goal progress alone left the whole 1'500 in the numerator and the card
+    // said "tu dépenses plus vite que le mois ne passe" over money set aside.
+    it('should draw no pace verdict from savings recorded as a free transaction', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 3000 }),
+        createMockBudgetLine({ id: 'sav-1', kind: 'saving', amount: 1500 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'saving',
+          amount: 1500,
+          budgetLineId: null,
+          checkedAt: '2025-06-01T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+        new Date('2025-06-02T12:00:00Z'),
+      );
+
+      // The money is out, so it belongs in what has gone out — but the verdict
+      // speaks about spending, and money set aside is not money spent.
+      expect(store.realizedExpenses()).toBe(1500);
+      expect(store.totalSavingsRealized()).toBe(1500);
+      expect(store.paceStatus()).toBe('within-plan');
+    });
+
+    // The order the reader sees has to be the order of the numbers the reader
+    // sees. Sorting on the plan put a nearly-consumed 1'500 envelope rendering
+    // "100" above an untouched 600 one rendering "600", and the cap at five then
+    // hid rows by a size no longer printed anywhere.
+    it('should order the forecasts by what each row still expects', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'rent', kind: 'expense', amount: 1500 }),
+        createMockBudgetLine({ id: 'groceries', kind: 'expense', amount: 600 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 1400,
+          budgetLineId: 'rent',
+          checkedAt: '2025-06-02T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.uncheckedForecasts().map((line) => line.id)).toEqual([
+        'groceries',
+        'rent',
+      ]);
+    });
+
+    // What the user reported: 17 of 18 prévisions pointed, and the card said
+    // "Dépensé 554" — the single free transaction — while calling the other
+    // 3'947 "engagé", i.e. reserved and not yet spent. Pointing is the gesture
+    // that says it happened; it has to move this number.
+    it('should count a pointed forecast as spent, not as merely engaged', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({
+          id: 'rent',
+          kind: 'expense',
+          amount: 1200,
+          checkedAt: '2025-06-01T00:00:00Z',
+        }),
+        createMockBudgetLine({
+          id: 'savings',
+          kind: 'saving',
+          amount: 300,
+          checkedAt: '2025-06-01T00:00:00Z',
+        }),
+        createMockBudgetLine({ id: 'groceries', kind: 'expense', amount: 400 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-free',
+          kind: 'expense',
+          amount: 54,
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      // Rent 1200 + savings 300 — everything that lowers what is left — plus
+      // the free transaction. The unpointed 400 stays out.
+      expect(store.realizedExpenses()).toBe(1554);
+    });
+
+    // Savings leave the account, so they count in what has gone out and in the
+    // bar. They must not count in a verdict that says "tu dépenses plus vite
+    // que le mois ne passe": funding an objective on the 3rd is not spending,
+    // and the card turned amber for the one habit the product exists to build.
+    it('should not call the pace tight for savings funded early', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 2000 }),
+        createMockBudgetLine({
+          id: 'goal',
+          kind: 'saving',
+          amount: 1500,
+          checkedAt: '2025-06-03T00:00:00Z',
+        }),
+      ];
+      // 1500 of savings put aside, 500 spent outside any envelope against the
+      // 1500 the plan left free. Only the 500 reaches the verdict; with the
+      // savings in the numerator it was 40%.
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 500,
+          budgetLineId: null,
+          checkedAt: '2025-06-05T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+        new Date('2025-06-05T12:00:00Z'),
+      );
+
+      expect(store.realizedExpenses()).toBe(2000);
+      expect(store.paceStatus()).toBe('on-track');
+    });
+
+    // The savings card summed checked saving lines and never looked at a
+    // transaction, so recording the transfer without pointing the line put
+    // "Dépensé 500" in the hero legend and "Tu as mis de côté 0 CHF sur 500
+    // prévus" three blocks below it, on the same screen.
+    it('should credit a recorded transfer to the savings it realizes', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'goal', kind: 'saving', amount: 500 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-transfer',
+          kind: 'saving',
+          amount: 500,
+          budgetLineId: 'goal',
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.totalSavingsRealized()).toBe(500);
+      expect(store.realizedExpenses()).toBe(500);
+    });
+
+    // The hero's red state means "something went past its envelope", and that
+    // is only true when the plan itself fits. A plan already above the ceiling
+    // reaches the same deficit without anything having gone wrong, and the card
+    // has its own sentence for it.
+    it('should separate a plan above the ceiling from spending that went past it', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const overCommitted = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 3600 }),
+        createMockBudgetLine({ id: 'goal', kind: 'saving', amount: 1500 }),
+      ];
+      const { store } = await setupWithBudgetAndWait(budget, overCommitted, []);
+
+      expect(store.isPlanBeyondAvailable()).toBe(true);
+
+      const affordable = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 3000 }),
+      ];
+      const { store: affordableStore } = await setupWithBudgetAndWait(
+        budget,
+        affordable,
+        [],
+      );
+
+      expect(affordableStore.isPlanBeyondAvailable()).toBe(false);
+    });
+
+    // "Rien de saisi ce mois" keyed on realized outflow, which counts neither
+    // an income transaction nor an expense recorded and not yet pointed.
+    it('should count an unpointed transaction as something the user recorded', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 1000 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 80,
+          budgetLineId: null,
+          checkedAt: null,
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.realizedExpenses()).toBe(0);
+      expect(store.hasRecordedActivity()).toBe(true);
+    });
+
+    // The quick-add form on this page cannot attach a transfer to a line, so
+    // every transfer recorded from it moved the amount and the bar and never
+    // the count: "0 sur 1 mise de côté" above "500 sur 500 prévus", over a bar
+    // at 100%.
+    it('should credit an unallocated transfer to the tally beside its amount', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'goal', kind: 'saving', amount: 500 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-transfer',
+          kind: 'saving',
+          amount: 500,
+          budgetLineId: null,
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.totalSavingsRealized()).toBe(500);
+      expect(store.savingsCheckedCount()).toBe(1);
+      // The money is set aside; the prévision is still not pointed, and the
+      // list beside this card still offers it.
+      expect(store.areSavingsFullyPointed()).toBe(false);
+    });
+
+    it('should not credit a transfer that covers none of the plan', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'goal', kind: 'saving', amount: 500 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-transfer',
+          kind: 'saving',
+          amount: 200,
+          budgetLineId: null,
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.savingsCheckedCount()).toBe(0);
+    });
+
+    // The count credits a covered line, which is right for "mise de côté" and
+    // wrong for "c'est fait": that line still waits in the list beside it.
+    it('should not call the savings pointed when a covered line is unpointed', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'goal', kind: 'saving', amount: 500 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-transfer',
+          kind: 'saving',
+          amount: 500,
+          budgetLineId: 'goal',
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.savingsCheckedCount()).toBe(1);
+      expect(store.areSavingsFullyPointed()).toBe(false);
     });
 
     it('should clamp budgetConsumedPercentage to [0, 100]', async () => {
@@ -771,6 +1386,21 @@ describe('DashboardStore - Business Scenarios', () => {
       // June 1–30 with current date June 15: ~47-48%
       expect(elapsed).toBeGreaterThan(40);
       expect(elapsed).toBeLessThan(55);
+    });
+
+    it('should count today as the day of the period, both ends included', () => {
+      const { store } = setup();
+
+      expect(store.elapsedDayOfPeriod()).toBe(15);
+    });
+
+    it('should count the day from the pay day, not from the 1st', () => {
+      const mocks = createMocks();
+      mocks.userSettingsStore.payDayOfMonth.set(27);
+      const { store } = setup(mocks);
+
+      // Period runs 27 May – 26 June, so 15 June is its 20th day.
+      expect(store.elapsedDayOfPeriod()).toBe(20);
     });
   });
 
@@ -1102,6 +1732,24 @@ describe('DashboardStore - History Data', () => {
       expect(store.historyData()).toEqual([]);
     });
   });
+
+  it('should exclude savings from the expenses drawn beside them', async () => {
+    const { store } = await setupWithHistory([
+      {
+        id: 'h1',
+        month: 6,
+        year: 2025,
+        totalIncome: 5000,
+        totalExpenses: 4000, // savings included, as the API sends it
+        totalSavings: 1000,
+      },
+    ]);
+
+    await vi.waitFor(() => {
+      expect(store.historyData()[0].expenses).toBe(3000);
+      expect(store.historyData()[0].savings).toBe(1000);
+    });
+  });
 });
 
 describe('DashboardStore - Upcoming Budgets Data', () => {
@@ -1123,6 +1771,164 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
         expect.objectContaining({ month: 6, year: 2026 }),
       );
     });
+  });
+
+  it('should still fill twelve months when the history request fails', async () => {
+    const mocks = createMocks();
+    mocks.budgetApi.getHistoryData$.mockReturnValue(
+      throwError(() => new Error('history unreachable')),
+    );
+    const { store } = setup(mocks);
+
+    TestBed.tick();
+    await vi.waitFor(() => {
+      expect(store.historyError()).toBeDefined();
+    });
+
+    // The list is a calendar, not a result set: it is generated from the
+    // current period and stays full whatever came back. So its length can
+    // never tell a caller whether the fetch worked, and the "Mois prochain"
+    // block has to ask historyError() first — behind a length test, its error
+    // state is unreachable and a dead request renders as "no budget yet".
+    expect(store.upcomingBudgetsData().length).toBe(12);
+    expect(store.upcomingBudgetsData()[0].hasBudget).toBe(false);
+  });
+
+  it('should name a refused dashboard request instead of blaming the connection', async () => {
+    const mocks = createMocks();
+    const refusal = new ApiError(
+      'Unauthorized',
+      API_ERROR_CODES.AUTH_UNAUTHORIZED,
+      401,
+      undefined,
+    );
+    mocks.budgetApi.getDashboardData$.mockReturnValue(
+      throwError(() => refusal),
+    );
+    const { store } = setup(mocks);
+
+    TestBed.tick();
+    await vi.waitFor(() => {
+      expect(store.error()).toBeDefined();
+    });
+
+    const localizer = TestBed.inject(ApiErrorLocalizer);
+    const connectionCopy = TestBed.inject(TranslocoService).translate(
+      'currentMonth.loadErrorMessage',
+    );
+    expect(store.loadErrorMessage()).toBe(localizer.localizeApiError(refusal));
+    expect(store.loadErrorMessage()).not.toBe(connectionCopy);
+  });
+
+  it('should keep the connection wording when the request never reached the server', async () => {
+    const mocks = createMocks();
+    mocks.budgetApi.getDashboardData$.mockReturnValue(
+      throwError(() => new Error('Network request failed')),
+    );
+    const { store } = setup(mocks);
+
+    TestBed.tick();
+    await vi.waitFor(() => {
+      expect(store.error()).toBeDefined();
+    });
+
+    expect(store.loadErrorMessage()).toBe(
+      TestBed.inject(TranslocoService).translate(
+        'currentMonth.loadErrorMessage',
+      ),
+    );
+  });
+
+  it('should keep a day of the period left on its last morning', async () => {
+    // June 2025, payday 1, so the period runs 1–30. Both bounds are inclusive
+    // midnights: subtracting them gives 29 days for a 30-day month, and the
+    // month read as fully elapsed while a whole day was still to come.
+    const { store } = setup(createMocks(), new Date(2025, 5, 30));
+
+    expect(store.timeElapsedPercentage()).toBeLessThan(100);
+    expect(store.timeElapsedPercentage()).toBeGreaterThan(90);
+  });
+
+  it('should not fetch a budget period guessed before the payday is known', async () => {
+    const mocks = createMocks();
+    mocks.userSettingsStore.settings = signal<unknown>(undefined);
+    mocks.userSettingsStore.payDayOfMonth = signal<number | null>(null);
+    mocks.userSettingsStore.isLoading = signal(true);
+    const { store } = setup(mocks);
+
+    TestBed.tick();
+    await vi.waitFor(() => expect(store.isLoading()).toBe(true));
+    expect(mocks.budgetApi.getDashboardData$).not.toHaveBeenCalled();
+
+    mocks.userSettingsStore.settings.set({ payDayOfMonth: 27 });
+    mocks.userSettingsStore.payDayOfMonth.set(27);
+    mocks.userSettingsStore.isLoading.set(false);
+    TestBed.tick();
+    await vi.waitFor(() =>
+      expect(mocks.budgetApi.getDashboardData$).toHaveBeenCalledOnce(),
+    );
+    const period = store.currentBudgetPeriod();
+    expect(mocks.budgetApi.getDashboardData$).toHaveBeenCalledWith(
+      period.month.toString().padStart(2, '0'),
+      period.year.toString(),
+    );
+  });
+
+  // The gate used to ask whether the settings request was still running, and
+  // that request reports `isInitialLoading` — which goes false the moment it
+  // FAILS. A settings failure therefore left the pay day null with nothing
+  // saying so, the period fell back to the calendar month, and on 28 January
+  // with a payday of 27 the page fetched, cached and titled January while the
+  // user was in February. No spinner, no warning, last period's figures.
+  it('should not guess the period when the settings request failed', async () => {
+    const mocks = createMocks();
+    mocks.userSettingsStore.settings = signal<unknown>(undefined);
+    mocks.userSettingsStore.payDayOfMonth = signal<number | null>(null);
+    mocks.userSettingsStore.isLoading = signal(false);
+    mocks.userSettingsStore.error = signal<unknown>(new Error('settings down'));
+    const { store } = setup(mocks);
+
+    TestBed.tick();
+    await vi.waitFor(() => expect(store.error()).toBeTruthy());
+    expect(mocks.budgetApi.getDashboardData$).not.toHaveBeenCalled();
+  });
+
+  it('should retry the settings when the page asks for a refresh', async () => {
+    const { store, userSettingsStore } = await setupWithBudgetAndWait();
+
+    store.refreshData();
+
+    expect(userSettingsStore.reload).toHaveBeenCalled();
+  });
+
+  it('should re-read the clock when the data is refreshed', async () => {
+    const mocks = createMocks();
+    let now = new Date(2025, 5, 15);
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        DashboardStore,
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+        { provide: BudgetApi, useValue: mocks.budgetApi },
+        { provide: SavingsGoalApi, useValue: mocks.savingsGoalApi },
+        { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
+        { provide: Logger, useValue: mocks.logger },
+        { provide: PostHogService, useValue: mocks.postHogService },
+        { provide: DASHBOARD_NOW, useValue: () => now },
+      ],
+    });
+    const store = TestBed.inject(DashboardStore);
+
+    expect(store.currentBudgetPeriod()).toEqual({ month: 6, year: 2025 });
+
+    // The tab was left open across the payday boundary. Reloading the resource
+    // with the same stale parameters refetched the month the page had already
+    // outlived.
+    now = new Date(2025, 6, 2);
+    store.refreshData();
+
+    expect(store.currentBudgetPeriod()).toEqual({ month: 7, year: 2025 });
   });
 
   it('should map history data when matching month/year found', async () => {

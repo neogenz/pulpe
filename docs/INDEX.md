@@ -1,85 +1,50 @@
-# 📚 Documentation Pulpe - Navigation
+# Documentation Pulpe
 
-> **Point d'entrée unique** pour toute la documentation opérationnelle du projet Pulpe
+Le [README racine](../README.md) couvre l'installation et les commandes courantes.
+Cet index route vers les documents qui possèdent un sujet durable ; les plans d'exécution
+vivent dans `aidd_docs/tasks/`.
 
-## 🚨 Urgences & Actions Rapides
+## Produit et design
 
-| Situation | Action | Fichier |
-|-----------|--------|---------|
-| 🚀 **Déployer en production** | Processus release complet | → [DEPLOYMENT.md](./DEPLOYMENT.md) |
-| 🔥 **Problème en production** | Solutions problèmes courants | → [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) |
-| ⚡ **Setup rapide projet** | Commandes essentielles | → [QUICKSTART.md](./QUICKSTART.md) |
+- [PRODUCT.md](../PRODUCT.md) — stratégie, public et principes produit.
+- [DESIGN.md](../DESIGN.md) — règles visuelles communes.
+- [Design web](../frontend/DESIGN.md), [iOS](../ios/DESIGN.md) et
+  [landing](../landing/DESIGN.md) — extensions par plateforme.
+- [Principes UX/UI](ux-ui-principles.md) — recherche et heuristiques de conception.
 
-## 📋 Par Type de Tâche
+## Métier
 
-### 🏗️ Opérationnel (Usage quotidien)
-- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Modèle de branches + workflow PR (preview = intégration/QA, main = release)
-- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Comment déployer ? Processus de release
-- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Solutions aux problèmes fréquents
-- **[QUICKSTART.md](./QUICKSTART.md)** - Commandes essentielles + setup rapide
+- [Règles métier](BUSINESS_RULES.md) — index des invariants transverses.
+- [Workflow métier](BUSINESS_WORKFLOW.md) — cycle Mois Type, budget, Prévu et Réel.
+- [Scénarios](SCENARIOS.md) — scénarios fonctionnels web et iOS.
+- [Objectifs d'épargne](SAVINGS.md) — progression, plan et retraits.
+- [Lissage](SPREAD.md) — étalement et report d'une dépense.
+- [Consentement](CONSENT.md) — contrat de consentement à l'inscription.
 
-### ⚙️ Configuration (Setup & maintenance)
-- **[CI.md](./CI.md)** - Architecture CI GitHub Actions (jobs, cache, parallélisation)
-- **[FRONTEND_CONFIG.md](./FRONTEND_CONFIG.md)** - Configuration Angular + variables E2E + tests
-- **[VERCEL_ROUTING.md](./VERCEL_ROUTING.md)** - Routing Vercel (2 projets : landing Next.js + Angular SPA sur sous-domaines séparés)
-- **[MONITORING.md](./MONITORING.md)** - PostHog sourcemaps + error tracking complet
-- **[BACKEND_PRACTICES.md](./BACKEND_PRACTICES.md)** - Error handling + guidelines NestJS
-- **[VERSIONING.md](./VERSIONING.md)** - Versioning produit unifié (SemVer, tags, releases)
-- **[IOS_VERSIONING.md](./IOS_VERSIONING.md)** - Versioning iOS selon standards Apple
+## Architecture
 
+- [Architecture backend](../backend-nest/docs/ARCHITECTURE.md) et
+  [ADRs](adr/README.md).
+- [Base de données](../backend-nest/docs/DATABASE.md).
+- [Logging backend](../backend-nest/docs/LOGGING.md).
+- [Cache SWR Angular](angular-cache-swr-pattern.md).
+- [Machine d'état d'authentification iOS](../ios/docs/auth-state-machine.md) et
+  [guide d'extension](../ios/docs/auth-flow-extension-guide.md).
 
-### 🔒 Sécurité
-- **[ENCRYPTION.md](./ENCRYPTION.md)** - Chiffrement AES-256-GCM des montants financiers (split-key, stockage clientKey web + iOS)
-- **[CSP.md](./CSP.md)** - Content Security Policy : état actuel, dette `unsafe-inline`, plan de remédiation
-- **[SCENARIOS.md](./SCENARIOS.md)** - Scénarios métier Web App + iOS (auth, biométrie, grace period, widget)
-- **[CONSENT.md](./CONSENT.md)** - Consentement à l'inscription : sign-in wrap, formulation, limites et conditions de réexamen
+## Sécurité et exploitation
 
-### 💰 Métier
-- **[BUSINESS_RULES.md](./BUSINESS_RULES.md)** - Invariants transverses : Prévisions/Réels, report, propagation, lissage, chiffrement et FX
-- **[SAVINGS.md](./SAVINGS.md)** - Objectifs d'épargne, progression et simulateur de plan
-- **[Diagramme Objectifs d'épargne](./diagrams/savings-goals.c4)** - Workflows LikeC4 de la fonctionnalité
+- [Chiffrement](ENCRYPTION.md) — architecture split-key AES-256-GCM.
+- [CSP](CSP.md) — politiques web et dette `unsafe-inline`.
+- [CI](CI.md) — jobs et gates GitHub Actions.
+- [Déploiement](DEPLOYMENT.md) — preview, production et migrations.
+- [Troubleshooting](TROUBLESHOOTING.md).
+- [Routing Vercel](VERCEL_ROUTING.md).
+- [Configuration frontend](FRONTEND_CONFIG.md).
+- [Monitoring](MONITORING.md), [releases PostHog](POSTHOG_RELEASES.md) et
+  [upload des sourcemaps](../frontend/docs/sourcemaps-upload.md).
+- [Versioning produit](VERSIONING.md) et [versioning iOS](IOS_VERSIONING.md).
 
-## 🎯 Par Problème Spécifique
+## Contexte agents
 
-### Infrastructure & Déploiement
-- **Railway ne démarre pas** → [TROUBLESHOOTING.md#railway](./TROUBLESHOOTING.md#railway)
-- **Vercel build fail** → [TROUBLESHOOTING.md#vercel](./TROUBLESHOOTING.md#vercel)
-- **Vercel routing (2 projets, sous-domaines)** → [VERCEL_ROUTING.md](./VERCEL_ROUTING.md)
-- **Supabase migration** → [DEPLOYMENT.md#supabase](./DEPLOYMENT.md#supabase)
-
-### Configuration Frontend
-- **Variables E2E tests** → [FRONTEND_CONFIG.md#e2e-env](./FRONTEND_CONFIG.md#e2e-env)
-- **Config Angular dynamique** → [FRONTEND_CONFIG.md#config-generation](./FRONTEND_CONFIG.md#config-generation)
-- **Tests Playwright setup** → [FRONTEND_CONFIG.md#e2e-env](./FRONTEND_CONFIG.md#e2e-env)
-
-### Monitoring & Erreurs
-- **PostHog sourcemaps** → [MONITORING.md#sourcemaps](./MONITORING.md#sourcemaps)
-- **Error tracking setup** → [MONITORING.md#error-tracking](./MONITORING.md#error-tracking)
-- **Stack traces illisibles** → [MONITORING.md#troubleshooting](./MONITORING.md#troubleshooting)
-
-### Backend & API
-- **Error handling patterns** → [BACKEND_PRACTICES.md#error-patterns](./BACKEND_PRACTICES.md#error-patterns)
-- **Logging structured** → [BACKEND_PRACTICES.md#logging](./BACKEND_PRACTICES.md#logging)
-- **Auth & security** → [BACKEND_PRACTICES.md#auth](./BACKEND_PRACTICES.md#auth)
-
-## 🔗 Liens Externes Utiles
-
-- **[Mémoire projet AIDD](../aidd_docs/memory/README.md)** - Contexte concis chargé par les agents IA
-- **[CLAUDE.md (Projet)](../CLAUDE.md)** - Instructions générales projet
-- **[Frontend CLAUDE.md](../frontend/CLAUDE.md)** - Instructions spécifiques frontend
-- **[Backend CLAUDE.md](../backend-nest/CLAUDE.md)** - Instructions spécifiques backend
-- **[iOS CLAUDE.md](../ios/CLAUDE.md)** - Instructions spécifiques iOS
-
----
-
-## 📝 Convention de Navigation
-
-Chaque fichier suit la structure :
-```
-🚀 TLDR - Actions Rapides
-📋 Étapes Détaillées
-🔧 Troubleshooting
-📚 Références/Détails
-```
-
-**Règle d'or** : En 30 secondes, vous devez pouvoir trouver comment faire ce que vous cherchez.
+- [AGENTS.md](../AGENTS.md) — instructions partagées par les agents.
+- [Mémoire AIDD](../aidd_docs/memory/README.md) — état concis du projet.

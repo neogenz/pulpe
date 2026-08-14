@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AddTransactionBottomSheet } from '../components/add-transaction-bottom-sheet';
 import { AddTransactionDialog } from '../components/add-transaction-dialog';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { AddTransactionDialogService } from './add-transaction-dialog.service';
 
 describe('AddTransactionDialogService', () => {
@@ -14,6 +15,9 @@ describe('AddTransactionDialogService', () => {
   let breakpointObserver: { isMatched: ReturnType<typeof vi.fn> };
   let bottomSheet: { open: ReturnType<typeof vi.fn> };
   let dialog: { open: ReturnType<typeof vi.fn> };
+  // La coque reçoit de quoi enregistrer : c'est elle qui garde la saisie
+  // jusqu'à ce que l'écriture soit acceptée.
+  const persist = async (): Promise<string | null> => null;
 
   beforeEach(() => {
     breakpointObserver = { isMatched: vi.fn() };
@@ -23,6 +27,7 @@ describe('AddTransactionDialogService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         AddTransactionDialogService,
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: MatBottomSheet, useValue: bottomSheet },
@@ -40,14 +45,15 @@ describe('AddTransactionDialogService', () => {
       afterDismissed: () => of(transaction),
     });
 
-    await expect(service.open()).resolves.toBe(transaction);
+    await expect(service.open(persist)).resolves.toBe(transaction);
 
     expect(breakpointObserver.isMatched).toHaveBeenCalledWith(
       Breakpoints.Handset,
     );
     expect(bottomSheet.open).toHaveBeenCalledWith(AddTransactionBottomSheet, {
+      data: { persist, confirmDiscard: expect.any(Function) },
       autoFocus: '[inputmode="decimal"]',
-      disableClose: false,
+      disableClose: true,
     });
     expect(dialog.open).not.toHaveBeenCalled();
   });
@@ -56,15 +62,22 @@ describe('AddTransactionDialogService', () => {
     breakpointObserver.isMatched.mockReturnValue(false);
     dialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
 
-    await expect(service.open()).resolves.toBeUndefined();
+    await expect(service.open(persist)).resolves.toBeUndefined();
 
     expect(dialog.open).toHaveBeenCalledWith(AddTransactionDialog, {
+      data: { persist, confirmDiscard: expect.any(Function) },
       width: '720px',
       maxWidth: 'calc(100vw - 48px)',
       panelClass: 'add-transaction-dialog',
       autoFocus: '[inputmode="decimal"]',
-      disableClose: false,
+      disableClose: true,
     });
     expect(bottomSheet.open).not.toHaveBeenCalled();
+  });
+
+  it('should treat anything but an explicit yes as keeping the transaction', async () => {
+    dialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
+
+    await expect(service.confirmDiscard()).resolves.toBe(false);
   });
 });

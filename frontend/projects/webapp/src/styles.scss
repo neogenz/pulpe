@@ -91,6 +91,7 @@ body {
   --pulpe-section-gap-lg: 32px;
 
   /* Surfaces */
+  --pulpe-surface-radius-hero: 32px;
   --pulpe-surface-radius-card: 24px;
   --pulpe-surface-radius-panel: 16px;
   --pulpe-surface-border-subtle: 1px solid var(--mat-sys-outline-variant);
@@ -153,6 +154,12 @@ body {
   @media (min-width: 1280px) {
     padding: var(--pulpe-page-gutter-desktop);
   }
+}
+
+.pulpe-entry-shell > router-outlet + * {
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .pulpe-entry-card {
@@ -343,12 +350,144 @@ body {
   }
 }
 
+// Pointing reward — one orchestrated confirmation shared by cards, tables and
+// responsive dialogs. It starts only after the persisted checked state returns.
+mat-slide-toggle.pulpe-check-reward {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  animation: pulpe-check-reward-pop 520ms var(--pulpe-ease-emphasized);
+  transform-origin: center;
+  will-change: transform;
+}
+
+mat-slide-toggle.pulpe-check-reward::before,
+mat-slide-toggle.pulpe-check-reward::after {
+  position: absolute;
+  z-index: -1;
+  inset: -5px;
+  border-radius: 999px;
+  content: "";
+  pointer-events: none;
+}
+
+mat-slide-toggle.pulpe-check-reward::before {
+  background: color-mix(in srgb, var(--mat-sys-primary) 20%, transparent);
+  animation: pulpe-check-reward-bloom 520ms var(--pulpe-ease-emphasized);
+}
+
+mat-slide-toggle.pulpe-check-reward::after {
+  border: 2px solid var(--mat-sys-primary);
+  animation: pulpe-check-reward-ring 520ms var(--pulpe-ease-emphasized);
+}
+
+mat-slide-toggle.pulpe-check-reward .mdc-switch__icon--on {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pulpe-check-reward-mark 360ms 60ms var(--pulpe-ease-emphasized)
+    both;
+}
+
+@keyframes pulpe-check-reward-pop {
+  0% {
+    transform: scale(0.97);
+  }
+  28% {
+    transform: scale(1.075);
+  }
+  54% {
+    transform: scale(0.99);
+  }
+  76% {
+    transform: scale(1.015);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulpe-check-reward-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  18% {
+    opacity: 0.85;
+    transform: scale(0.86);
+  }
+  55% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+
+@keyframes pulpe-check-reward-ring {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  20% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes pulpe-check-reward-mark {
+  0% {
+    opacity: 0;
+    transform: rotate(-18deg) scale(0.45);
+  }
+  58% {
+    opacity: 1;
+    transform: rotate(3deg) scale(1.22);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  mat-slide-toggle.pulpe-check-reward,
+  mat-slide-toggle.pulpe-check-reward::before,
+  mat-slide-toggle.pulpe-check-reward::after,
+  mat-slide-toggle.pulpe-check-reward .mdc-switch__icon--on {
+    animation: none !important;
+  }
+}
+
 .pulpe-page-header {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: var(--pulpe-section-gap-sm);
+}
+
+// Nothing draws a focus ring in this app unless this rule does. Material only
+// paints one where mat.strong-focus-indicators() is included, and it never is,
+// so focusing one of its buttons changed nothing but a 12% ripple tint — 1.20:1
+// against the surface, where WCAG asks 3:1 of a focus indicator, which left the
+// dashboard's primary action with no visible focus at all. Links had it worse:
+// they fell through to Chrome's own hairline in rgb(229, 151, 0), the hue this
+// system reserves for "dépense", on controls that have nothing to do with
+// spending. One ring for every focusable, rather than one rule per component.
+// The doubled class is not a typo. Material ships
+// `.mat-mdc-fab-base:active, .mat-mdc-fab-base:focus { outline: none }` — a
+// reset that assumes the app opted into mat.strong-focus-indicators(), which
+// this one never did — and at (0,2,0) it outranks the selector above. Repeating
+// the class buys the one point of specificity that wins it back, which is
+// cheaper than an !important and cheaper than a rule per component.
+:is(button, a):focus-visible,
+.mat-mdc-fab-base.mat-mdc-fab-base:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
 }
 
 // Budget section group - Material expansion panel overrides

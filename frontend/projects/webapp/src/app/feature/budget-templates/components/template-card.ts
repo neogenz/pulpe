@@ -17,105 +17,132 @@ const LEADING_EMOJI_REGEX =
   selector: 'pulpe-template-card',
   imports: [RouterLink, MatCardModule, MatIconModule, TranslocoPipe],
   template: `
-    <mat-card
-      appearance="outlined"
-      class="template-card cursor-pointer"
+    <a
+      class="template-card-link block h-full"
       [routerLink]="['details', template().id]"
       [attr.data-testid]="'template-' + template().name"
+      [attr.aria-label]="
+        'template.openAriaLabel' | transloco: { name: displayName() }
+      "
     >
-      <mat-card-header>
-        <div mat-card-avatar class="template-card__avatar">
-          @if (emoji(); as leadingEmoji) {
-            <span
-              class="flex justify-center items-center size-11 text-2xl"
-              aria-hidden="true"
-              >{{ leadingEmoji }}</span
-            >
-          } @else {
-            <div
-              class="flex justify-center items-center size-11 bg-secondary-container rounded-full"
-            >
-              <mat-icon>description</mat-icon>
-            </div>
-          }
-        </div>
-        <mat-card-title class="ph-no-capture">{{
-          displayName()
-        }}</mat-card-title>
-        @if (template().isDefault) {
-          <mat-card-subtitle>{{
-            'template.isDefault' | transloco
-          }}</mat-card-subtitle>
-        } @else {
-          <mat-card-subtitle>{{
-            'template.defaultLabel' | transloco
-          }}</mat-card-subtitle>
-        }
-      </mat-card-header>
-      <mat-card-content class="p-4!">
-        @if (template().description) {
-          <p
-            class="text-body-medium text-on-surface-variant template-card__description ph-no-capture"
-          >
-            {{ template().description }}
-          </p>
-        }
-      </mat-card-content>
-      <mat-icon aria-hidden="true" class="template-card__chevron mat-icon-sm"
-        >chevron_right</mat-icon
+      <mat-card
+        appearance="outlined"
+        class="template-card h-full cursor-pointer"
+        [class.template-card--default]="template().isDefault"
       >
-    </mat-card>
+        <mat-card-content class="flex min-h-48 flex-col p-5!">
+          <div class="flex items-start justify-between gap-3">
+            <div
+              class="template-card__mark flex size-11 shrink-0 items-center justify-center rounded-corner-medium bg-secondary-container text-on-secondary-container"
+            >
+              @if (emoji(); as leadingEmoji) {
+                <span class="text-2xl" aria-hidden="true">{{
+                  leadingEmoji
+                }}</span>
+              } @else {
+                <mat-icon aria-hidden="true">view_quilt</mat-icon>
+              }
+            </div>
+
+            @if (template().isDefault) {
+              <span
+                class="shrink-0 rounded-full bg-primary px-2.5 py-1 text-label-small font-medium text-on-primary"
+              >
+                {{ 'template.defaultTag' | transloco }}
+              </span>
+            }
+          </div>
+
+          <div class="mt-4 min-w-0">
+            <h2
+              class="ph-no-capture text-title-medium font-semibold text-on-surface"
+            >
+              {{ displayName() }}
+            </h2>
+            @if (template().description) {
+              <p
+                class="ph-no-capture mt-1 line-clamp-2 text-body-medium text-on-surface-variant"
+              >
+                {{ template().description }}
+              </p>
+            }
+          </div>
+
+          <div
+            class="mt-auto flex items-center justify-between gap-3 pt-4 text-label-large text-primary"
+          >
+            <span>{{ 'template.open' | transloco }}</span>
+            <mat-icon aria-hidden="true" class="template-card__arrow"
+              >arrow_forward</mat-icon
+            >
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </a>
   `,
   styles: `
-    @use '@angular/material' as mat;
-
     :host {
       display: block;
+      height: 100%;
+    }
 
-      mat-card:hover {
-        box-shadow: var(--mat-sys-level1);
-      }
+    .template-card-link {
+      color: inherit;
+      text-decoration: none;
+    }
 
-      .template-card__chevron {
-        position: absolute;
-        top: 50%;
-        right: 0.5rem;
-        transform: translateY(-50%);
-        color: var(--mat-sys-on-surface-variant);
-        opacity: 0.5;
-        pointer-events: none;
-        transition:
-          opacity var(--pulpe-motion-base) var(--pulpe-ease-standard),
-          color var(--pulpe-motion-base) var(--pulpe-ease-standard),
-          transform var(--pulpe-motion-base) var(--pulpe-ease-standard);
-      }
+    .template-card-link:focus-visible {
+      outline: 3px solid var(--mat-sys-primary);
+      outline-offset: 3px;
+      border-radius: var(--mat-sys-corner-large);
+    }
 
-      .template-card:hover .template-card__chevron,
-      .template-card:focus-visible .template-card__chevron {
-        opacity: 1;
-        color: var(--mat-sys-primary);
-        transform: translateY(-50%) translateX(3px);
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .template-card__chevron,
-        .template-card:hover .template-card__chevron,
-        .template-card:focus-visible .template-card__chevron {
-          transition:
-            opacity var(--pulpe-motion-base) var(--pulpe-ease-standard),
-            color var(--pulpe-motion-base) var(--pulpe-ease-standard);
-          transform: translateY(-50%);
-        }
-      }
-
-      @include mat.card-overrides(
-        (
-          title-text-size: var(--mat-sys-title-medium-size),
-          title-text-weight: var(--mat-sys-title-medium-weight, 500),
-          subtitle-text-size: var(--mat-sys-body-small-size),
-          subtitle-text-color: var(--mat-sys-on-surface-variant),
-        )
+    .template-card {
+      background: color-mix(
+        in srgb,
+        var(--mat-sys-surface-container-low) 18%,
+        var(--mat-sys-surface)
       );
+      transition:
+        background-color var(--pulpe-motion-fast) var(--pulpe-ease-standard),
+        border-color var(--pulpe-motion-fast) var(--pulpe-ease-standard),
+        transform var(--pulpe-motion-fast) var(--pulpe-ease-standard);
+    }
+
+    .template-card--default {
+      background: color-mix(
+        in srgb,
+        var(--mat-sys-primary-container) 22%,
+        var(--mat-sys-surface)
+      );
+    }
+
+    .template-card-link:hover .template-card {
+      background: var(--mat-sys-surface-container-low);
+      border-color: var(--mat-sys-outline);
+      transform: translateY(-1px);
+    }
+
+    .template-card__arrow {
+      transition: transform var(--pulpe-motion-fast) var(--pulpe-ease-standard);
+    }
+
+    .template-card-link:hover .template-card__arrow,
+    .template-card-link:focus-visible .template-card__arrow {
+      transform: translateX(4px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .template-card,
+      .template-card__arrow {
+        transition: none;
+      }
+
+      .template-card-link:hover .template-card,
+      .template-card-link:hover .template-card__arrow,
+      .template-card-link:focus-visible .template-card__arrow {
+        transform: none;
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

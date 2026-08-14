@@ -5,7 +5,10 @@ import {
   computed,
   inject,
   input,
+  output,
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
 import { FinancialPills } from '../financial-pills/financial-pills';
@@ -19,59 +22,40 @@ export interface FinancialTotals {
 
 @Component({
   selector: 'pulpe-budget-financial-overview',
-  imports: [DecimalPipe, FinancialPills, TranslocoPipe],
+  imports: [
+    DecimalPipe,
+    FinancialPills,
+    MatButtonModule,
+    MatIconModule,
+    TranslocoPipe,
+  ],
   template: `
-    <div class="space-y-6">
-      <div
-        class="text-center py-8 px-6 rounded-3xl"
+    <div class="space-y-5">
+      <section
+        class="overview-hero rounded-3xl px-6 py-7 text-center sm:py-8"
         [class.bg-primary-container]="budgetState() === 'comfortable'"
         [class.hero-warning]="budgetState() === 'warning'"
         [class.bg-error-container]="budgetState() === 'deficit'"
+        [class.text-on-primary-container]="budgetState() === 'comfortable'"
+        [class.text-warning-on-container]="budgetState() === 'warning'"
+        [class.text-on-error-container]="budgetState() === 'deficit'"
       >
-        <p
-          class="text-body-large mb-3"
-          [class.text-on-primary-container]="budgetState() === 'comfortable'"
-          [class.text-warning-on-container]="budgetState() === 'warning'"
-          [class.text-on-error-container]="budgetState() === 'deficit'"
-        >
-          @switch (budgetState()) {
-            @case ('comfortable') {
-              {{ 'budget.overview.remainingThisMonth' | transloco }}
-              <span
-                class="text-body-small text-on-primary-container/90 block mt-0.5"
-                >{{ 'budget.overview.perForecast' | transloco }}</span
-              >
-            }
-            @case ('warning') {
-              {{ 'budget.overview.remainingThisMonth' | transloco }}
-              <span
-                class="text-body-small text-warning-on-container/90 block mt-0.5"
-                >{{ 'budget.overview.perForecast' | transloco }}</span
-              >
-            }
-            @case ('deficit') {
-              {{ 'budget.overview.deficitThisMonth' | transloco }}
-              <span
-                class="text-body-small text-on-error-container/90 block mt-0.5"
-                >{{ 'budget.overview.perForecast' | transloco }}</span
-              >
-            }
-          }
+        <p class="text-body-large font-medium">
+          {{ overviewTitleKey() | transloco }}
         </p>
+
         <div
-          class="text-display-medium sm:text-display-large font-bold tracking-tight ph-no-capture"
-          [class.text-on-primary-container]="budgetState() === 'comfortable'"
-          [class.text-warning]="budgetState() === 'warning'"
-          [class.text-on-error-container]="budgetState() === 'deficit'"
+          class="mt-2 text-display-medium font-bold tracking-tight tabular-nums ph-no-capture sm:text-display-large"
         >
           {{ remainingAbsolute() | number: '1.0-0' : locale() }}
           <span class="text-headline-small font-normal">{{
             currencySymbol()
           }}</span>
         </div>
+
         @if (hasRollover()) {
           <p
-            class="text-body-small mt-1.5"
+            class="mt-1.5 text-body-small"
             [class.text-on-primary-container]="budgetState() === 'comfortable'"
             [class.text-warning-on-container]="budgetState() === 'warning'"
             [class.text-on-error-container]="budgetState() === 'deficit'"
@@ -87,29 +71,24 @@ export interface FinancialTotals {
             </span>
           </p>
         }
-        <p
-          class="text-body-medium mt-3"
-          [class.text-on-primary-container]="budgetState() === 'comfortable'"
-          [class.text-warning-on-container]="budgetState() === 'warning'"
-          [class.text-on-error-container]="budgetState() === 'deficit'"
-        >
-          @switch (budgetState()) {
-            @case ('comfortable') {
-              {{ 'budget.overview.niceMargin' | transloco }}
-            }
-            @case ('warning') {
-              @if (totals().remaining > 0) {
-                {{ 'budget.overview.youManageWell' | transloco }}
-              } @else {
-                {{ 'budget.overview.justBalanced' | transloco }}
-              }
-            }
-            @case ('deficit') {
-              {{ 'budget.overview.tightMonth' | transloco }}
-            }
-          }
-        </p>
-      </div>
+
+        @if (budgetState() === 'deficit' && showSavingsAction()) {
+          <div class="overview-resolution">
+            <p class="mx-auto max-w-[42rem] text-body-medium">
+              {{ 'budget.savingsWithdrawal.overviewHelp' | transloco }}
+            </p>
+            <button
+              matButton="tonal"
+              class="overview-recovery-button mt-4"
+              (click)="coverWithSavings.emit()"
+              data-testid="financial-overview-cover-with-savings"
+            >
+              <mat-icon>savings</mat-icon>
+              {{ 'budget.savingsWithdrawal.overviewCta' | transloco }}
+            </button>
+          </div>
+        }
+      </section>
 
       <pulpe-financial-pills
         [totals]="{
@@ -128,11 +107,30 @@ export interface FinancialTotals {
     }
 
     .hero-warning {
-      background-color: var(--pulpe-amber-container);
+      background-color: color-mix(
+        in srgb,
+        var(--pulpe-amber-container) 55%,
+        var(--mat-sys-surface)
+      );
     }
 
-    .text-warning {
-      color: var(--pulpe-amber);
+    .overview-resolution {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+    }
+
+    .overview-recovery-button {
+      --mat-button-tonal-container-color: var(--mat-sys-surface);
+      --mat-button-tonal-label-text-color: var(--mat-sys-error);
+      --mat-button-tonal-state-layer-color: var(--mat-sys-error);
+      --mat-button-tonal-ripple-color: color-mix(
+        in srgb,
+        var(--mat-sys-error) 16%,
+        transparent
+      );
+      border: 1px solid
+        color-mix(in srgb, var(--mat-sys-error) 24%, transparent);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -145,6 +143,8 @@ export class BudgetFinancialOverview {
   readonly locale = input<string>('de-CH');
   readonly warningThreshold = input(90);
   readonly rollover = input(0);
+  readonly showSavingsAction = input(false);
+  readonly coverWithSavings = output<void>();
 
   protected readonly currencySymbol = computed(
     () => CURRENCY_METADATA[this.currency()].symbol,
@@ -164,6 +164,12 @@ export class BudgetFinancialOverview {
     if (!this.isComfortable()) return 'warning';
     return 'comfortable';
   });
+
+  protected readonly overviewTitleKey = computed(() =>
+    this.budgetState() === 'deficit'
+      ? 'budget.overview.deficitThisMonth'
+      : 'budget.overview.remainingThisMonth',
+  );
 
   readonly remainingAbsolute = computed(() =>
     Math.abs(this.totals().remaining),

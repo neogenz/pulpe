@@ -435,7 +435,10 @@ describe('authInterceptor', () => {
       expect(error.status).toBe(500);
     });
 
-    it('should not intercept 401 when user is not authenticated', async () => {
+    // A sibling tab signing out globally leaves this tab with no session, so a
+    // 401 arrives with nothing to refresh. Letting it through stranded the user
+    // on a feature's error card whose only action re-issued the same 401.
+    it('should redirect to login on 401 when user is not authenticated', async () => {
       mockAuthStore.isAuthenticated.mockReturnValue(false);
 
       const result = firstValueFrom(http.get(`${BACKEND_URL}/api/data`)).catch(
@@ -451,7 +454,10 @@ describe('authInterceptor', () => {
       const error = await result;
 
       expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
-      expect(mockRouter.navigate).not.toHaveBeenCalled();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/', 'login']);
+      // Signing out is global in this app, so it would revoke the phone's
+      // session on the way out of a tab that is already signed out.
+      expect(mockAuthSession.signOut).not.toHaveBeenCalled();
       expect(error.status).toBe(401);
     });
   });

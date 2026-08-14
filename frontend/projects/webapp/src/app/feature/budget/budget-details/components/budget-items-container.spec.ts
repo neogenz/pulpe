@@ -10,6 +10,7 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import {
@@ -27,7 +28,7 @@ import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { BudgetApi } from '@core/budget/budget-api';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 import {
   transactionUpdateSchema,
   type BudgetLine,
@@ -287,6 +288,52 @@ describe('BudgetItemsContainer — tag filter', () => {
     expect(tagName?.textContent).toContain(privacyTestTag.name);
   });
 
+  it('uses the dialog on mobile or with many tags and applies its selection', () => {
+    const selectedTagId = '55555555-5555-4555-8555-555555555555';
+    const dialog = {
+      open: vi.fn().mockReturnValue({ afterClosed: () => of([selectedTagId]) }),
+    };
+    TestBed.configureTestingModule({
+      imports: [BudgetTagFilter],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+        { provide: MatDialog, useValue: dialog },
+      ],
+    });
+    const fixture = TestBed.createComponent(BudgetTagFilter);
+    fixture.componentRef.setInput('tags', [
+      privacyTestTag,
+      { id: selectedTagId, name: 'Alimentation' },
+    ]);
+    fixture.componentRef.setInput('isMobile', true);
+    fixture.detectChanges();
+
+    const trigger: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="tag-filter-dialog-trigger"]',
+    );
+    trigger.click();
+
+    expect(dialog.open).toHaveBeenCalledOnce();
+    expect(fixture.componentInstance.selectedTagIds()).toEqual([selectedTagId]);
+    expect(fixture.nativeElement.querySelector('mat-chip-listbox')).toBeNull();
+
+    fixture.componentRef.setInput('isMobile', false);
+    fixture.componentRef.setInput(
+      'tags',
+      Array.from({ length: 6 }, (_, index) => ({
+        id: String(index),
+        name: `Tag ${index + 1}`,
+      })),
+    );
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="tag-filter-dialog-trigger"]',
+      ),
+    ).not.toBeNull();
+  });
+
   it('keeps an envelope when its allocated transaction carries the selected tag', () => {
     const customTagId = '44444444-4444-4444-8444-444444444444';
     const budgetLine = createMockBudgetLine({
@@ -448,7 +495,7 @@ describe('BudgetItemsContainer — a refused gesture speaks for itself', () => {
         component['handleDeleteTransaction'](
           createMockTransaction({ id: TX_ID }),
         ),
-      confirmation: 'Transaction supprimée',
+      confirmation: 'Supprimé',
     },
     {
       name: 'resetting a forecast from the template',
@@ -790,7 +837,7 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
 
     expect(mockStore.createAllocatedTransaction).toHaveBeenCalledWith(created);
     expect(mockSnackBar.open).toHaveBeenCalledWith(
-      'Transaction ajoutée',
+      'Enregistré',
       'Fermer',
       expect.objectContaining({ duration: 3000 }),
     );

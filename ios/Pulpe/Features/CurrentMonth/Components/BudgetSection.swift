@@ -260,8 +260,15 @@ struct BudgetLineRow: View {
             .sorted { $0.transactionDate > $1.transactionDate }
     }
 
-    private var consumptionPercentage: Int {
-        Int(min(consumption.percentage, 999))
+    static func consumptionSummary(
+        consumption: BudgetFormulas.Consumption,
+        currency: SupportedCurrency
+    ) -> String {
+        let spent = consumption.allocated.asCurrency(currency)
+        if consumption.available < 0 {
+            return "\(spent) dépensés · Dépassé de \((-consumption.available).asCompactCurrency(currency))"
+        }
+        return "\(spent) dépensés · \(Int(consumption.percentage.rounded()))% utilisé"
     }
 
     var body: some View {
@@ -280,8 +287,10 @@ struct BudgetLineRow: View {
 
                 // Consumption info or recurrence label
                 if hasConsumption {
-                    let spent = consumption.allocated.asCurrency(userSettingsStore.currency)
-                    Text("\(consumptionPercentage)% · \(spent) dépensé")
+                    Text(Self.consumptionSummary(
+                        consumption: consumption,
+                        currency: userSettingsStore.currency
+                    ))
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textSecondary)
                         .lineLimit(1)
@@ -341,8 +350,8 @@ struct BudgetLineRow: View {
                 .accessibilityHint(
                     hasConsumption
                         ? "Montant restant: \(consumption.available.asCurrency(userSettingsStore.currency)). " +
-                          "Touche pour ajouter une transaction, maintiens pour voir les transactions"
-                        : "Touche pour ajouter une transaction, maintiens pour voir les transactions"
+                          "Touche pour noter un montant, maintiens pour voir les mouvements"
+                        : "Touche pour noter un montant, maintiens pour voir les mouvements"
                 )
         }
     }

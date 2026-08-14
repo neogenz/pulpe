@@ -39,11 +39,11 @@ describe('GoalPlanRepairCallout', () => {
     const callout = query('goal-plan-repair-callout');
     expect(callout).toBeTruthy();
     expect(callout.nativeElement.textContent).toContain(
-      '1 prévision Épargne peut maintenant être ajoutée automatiquement.',
+      'Le versement prévu pour cet objectif manque dans un budget déjà créé.',
     );
     expect(
       query('goal-plan-repair-preview').nativeElement.textContent,
-    ).toContain('Prévisualiser');
+    ).toContain('Vérifier avant d’ajouter');
   });
 
   it('uses natural plural agreement for several repairable months', () => {
@@ -53,7 +53,7 @@ describe('GoalPlanRepairCallout', () => {
     expect(
       query('goal-plan-repair-callout').nativeElement.textContent,
     ).toContain(
-      '2 prévisions Épargne peuvent maintenant être ajoutées automatiquement.',
+      'Les versements prévus pour cet objectif manquent dans 2 budgets déjà créés.',
     );
   });
 

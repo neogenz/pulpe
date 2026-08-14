@@ -80,6 +80,9 @@ Automatisé via le skill `/release`.
 
 ## Force-update gate (rollout)
 
+Ce choix d'architecture et son comportement fail-open sont consignés dans
+[ADR-0017](adr/0017-server-driven-minimum-version-gate.md).
+
 Le backend expose `GET /api/v1/app/version` qui renvoie, par plateforme, la version minimale supportée et la dernière version publiée. Les clients (webapp + iOS) comparent leur version courante :
 
 - **< `minVersion`** → blocage dur, CTA vers le store

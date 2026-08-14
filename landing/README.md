@@ -1,153 +1,47 @@
-# Pulpe Landing Page
+# Pulpe Landing
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.3-black?logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.2-black?logo=nextdotjs)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=white)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.3-38B2AC?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.12-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](../LICENSE)
 [![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)](https://vercel.com)
 
-Modern, high-performance landing page built with Next.js and React 19. Statically exported and deployed alongside the Angular app on Vercel.
+Site marketing statique construit avec Next.js 16, React 19 et Tailwind CSS v4.
 
-## Tech Stack
+## Développement
 
-- **Next.js** 15.3.4 (App Router, Static Export)
-- **React** 19.2.0
-- **Tailwind CSS** 4.1
-- **TypeScript** ~5.9.3
-- **Lucide Icons** for iconography
-- **Poppins** font (Google Fonts)
-
-## Getting Started
+Depuis la racine :
 
 ```bash
-# Install dependencies
 pnpm install
+pnpm build:landing
+```
 
-# Start dev server (port 3001)
-pnpm dev
+Depuis `landing/` :
 
-# Type check
-pnpm type-check
-
-# Lint
+```bash
+pnpm dev        # http://localhost:3001
+pnpm build      # export statique dans dist/
+pnpm test
 pnpm lint
+pnpm type-check
 ```
 
-Visit [http://localhost:3001](http://localhost:3001)
+Copier `.env.example` vers `.env.local` pour les réglages PostHog locaux. Les valeurs de
+production sont injectées par Vercel.
 
-## Build
+## Structure
 
-```bash
-# Build static export
-pnpm build
+- [`app/`](app/) : pages, styles globaux et métadonnées ;
+- [`components/`](components/) : sections marketing et primitives UI ;
+- [`lib/`](lib/) : helpers de devise, montants et verrouillage du scroll ;
+- [`public/`](public/) : assets statiques ;
+- [`scripts/`](scripts/) : génération Open Graph et publication des releases PostHog.
 
-# Output: dist/ directory
-```
+`next.config.ts` active l'export statique. `vercel.json` déploie ce projet séparément et
+redirige `/app/*` vers `https://app.pulpe.app`.
 
-## Environment Variables
-
-Create `.env.local` for local overrides:
-
-```bash
-# Development (default in .env.development)
-NEXT_PUBLIC_ANGULAR_APP_URL=http://localhost:4200
-
-# Production (empty = same origin)
-NEXT_PUBLIC_ANGULAR_APP_URL=
-```
-
-## Project Structure
-
-```
-landing/
-├── app/
-│   ├── layout.tsx          # Root layout, metadata, fonts
-│   ├── page.tsx            # Home page with dynamic imports
-│   └── globals.css         # Tailwind + custom animations
-├── components/
-│   ├── sections/           # Page sections (Hero, Features, etc.)
-│   └── ui/                 # Reusable UI components
-├── lib/
-│   ├── config.ts           # Environment config
-│   └── cn.ts               # Tailwind class utility
-└── public/
-    └── *.png, *.webp       # Icons and assets
-```
-
-## Key Features
-
-### Performance Optimizations
-
-- **Code Splitting**: Dynamic imports for below-the-fold sections
-- **Image Optimization**: WebP with PNG fallback, responsive srcsets
-- **LCP Optimization**: Preload hero image, `fetchPriority="high"`
-- **Font Loading**: `next/font` with `display: 'swap'`
-- **Console Removal**: Production builds strip console logs
-
-### Accessibility
-
-- Skip-to-content link
-- Proper ARIA labels
-- Keyboard navigation support
-- `prefers-reduced-motion` respected
-
-### Components
-
-- **Memo'd Components**: Button, Section, Container, Badge, FadeIn, GrainOverlay, HeroDashboard
-- **HeroDashboard**: The dashboard mockup in the hero, animated after mount
-- **Money / Amount / CurrencyUnit**: The client islands inside the HowItWorks and Features mockups, so the visitor's currency reaches the amounts while the markup around them stays server-rendered
-
-## Deployment
-
-The landing page is merged with the Angular app at build time via the root `vercel.json`:
-
-```bash
-# Root monorepo command
-pnpm build:merge
-
-# Results in:
-# dist/
-# ├── landing/           # Landing page static files
-# ├── _next/             # Next.js assets
-# ├── index.html         # Landing page entry
-# └── _app.html          # Angular app entry
-```
-
-Vercel rewrites:
-- `/` → `/landing/index.html` (landing page)
-- `/:path*` → `/_app.html` (Angular app catch-all)
-
-### Auth Redirect
-
-Authenticated users visiting `/` are automatically redirected to `/dashboard` via Vercel Edge Middleware (see `middleware.ts` at project root). This prevents the landing page from flashing before the Angular app redirects.
-
-The middleware:
-1. Checks Supabase auth cookies
-2. If authenticated → HTTP 307 redirect to `/dashboard`
-3. If not authenticated → serves landing page normally
-
-See [VERCEL_ROUTING.md](../docs/VERCEL_ROUTING.md#middleware-auth-redirect) for details.
-
-## Development Notes
-
-- Port 3001 avoids conflict with Angular (4200) and backend (3000)
-- Static export mode (`output: 'export'`) for pure static hosting
-- No server-side rendering or API routes
-- Images unoptimized (`unoptimized: true`) due to static export
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start dev server |
-| `pnpm build` | Build static export |
-| `pnpm type-check` | Run TypeScript compiler |
-| `pnpm lint` | Run ESLint |
-
-## Links
-
-- [Main Repo README](../README.md)
-- [Vercel Config](../vercel.json)
-- [Next.js Static Export Docs](https://nextjs.org/docs/app/building-your-application/deploying/static-exports)
+Voir [DESIGN.md](DESIGN.md) pour les règles visuelles et
+[VERCEL_ROUTING.md](../docs/VERCEL_ROUTING.md) pour la topologie de déploiement.
