@@ -133,18 +133,14 @@ export const FINANCIAL_COLORS = {
 export const HOME_HERO_COLORS = {
   light: {
     surface: "#CFE8D6",
-    surfaceTop: "#DCEFE2",
     ink: "#0E3A1C",
     support: "#2C5136",
-    overlay: "#F3F9F5",
     drift: "#AA4522",
   },
   dark: {
     surface: "#1D3A28",
-    surfaceTop: "#244A34",
     ink: "#D5ECDC",
     support: "#9FC3AA",
-    overlay: "#2C4A37",
     drift: "#E8825A",
   },
 } as const;
@@ -184,6 +180,34 @@ export const TOUCH_TARGET = 48;
 export const TINT_ALPHA = { subtle: "14", surface: "1F" } as const;
 
 /**
+ * Every icon in the app is one of these five. The ladder is the Material one,
+ * and the sizes between its rungs — 13, 14, 18, 22, 28 — were each a judgement
+ * call made once, in one file, against nothing.
+ */
+export const ICON_SIZE = { xs: 12, sm: 16, md: 20, lg: 24, xl: 32 } as const;
+
+/**
+ * The only two opacities allowed to dim anything, and neither dims text that
+ * still has to be read: 0.72 laid over a whole card took its metadata to
+ * 3.64:1. `pending` is worn for the length of a request, `disabled` by a
+ * control with no contrast contract left to keep — M3's own value.
+ */
+export const EMPHASIS = { pending: 0.5, disabled: 0.38 } as const;
+
+/**
+ * The margin Paper hangs off every side of an `IconButton`. Subtract it from a
+ * gutter to line the icon's *glyph* up with the text below it, rather than its
+ * invisible box — otherwise the button sits six points proud of the column.
+ */
+export const ICON_BUTTON_INSET = 6;
+
+/**
+ * Letter-spacing for a label set in capitals. Capitals lose the word-shape the
+ * eye reads by, and without the extra tracking they close up into a block.
+ */
+export const UPPERCASE_TRACKING = 2;
+
+/**
  * The gutter every screen keeps between its content and the display edge.
  * A horizontal rail is the exception: it runs edge to edge and applies this to
  * its *content* instead, so the first and last item can scroll past the gutter
@@ -210,7 +234,7 @@ export const FAB_CLEARANCE = 96;
  * across 56 and clears `TOUCH_TARGET` without being widened. Passing a `hitSlop`
  * of your own here would replace that one and shrink the target.
  */
-export const ROW_ACTION_ICON_SIZE = 20;
+export const ROW_ACTION_ICON_SIZE = ICON_SIZE.md;
 
 /** Mirrors `DesignTokens.CornerRadius` on iOS. */
 export const RADIUS = {

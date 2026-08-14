@@ -1,25 +1,22 @@
 import { StyleSheet, View } from "react-native";
-import { Card, List, Text, useTheme } from "react-native-paper";
+import { List, Text, useTheme } from "react-native-paper";
 
+import { Card } from "@/core/ui/card";
+import { Eyebrow } from "@/core/ui/eyebrow";
 import { SPACING } from "@/core/ui/theme";
 
 export function SettingsSection({
+  /** Written in sentence case: `Eyebrow` sets the capitals, so a screen reader
+   *  is still handed a word rather than a run of letters. */
   title,
   children,
 }: {
   title: string;
   children: React.ReactNode;
 }) {
-  const theme = useTheme();
-
   return (
     <View style={styles.section}>
-      <Text
-        variant="labelLarge"
-        style={{ color: theme.colors.onSurfaceVariant }}
-      >
-        {title}
-      </Text>
+      <Eyebrow>{title}</Eyebrow>
       <Card mode="contained">
         <View style={styles.rows}>{children}</View>
       </Card>

@@ -1,11 +1,14 @@
 import type { SavingsGoalPlanMonth, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
-import { StyleSheet, useColorScheme, View } from "react-native";
-import { Button, Card, Divider, Text, useTheme } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { Button, Divider, Text, useTheme } from "react-native-paper";
 
+import { Card } from "@/core/ui/card";
+import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
-import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
+import { SPACING } from "@/core/ui/theme";
 
 import {
   AVAILABILITY_LABELS,
@@ -105,8 +108,8 @@ function MonthRow({
   currency: SupportedCurrency;
 }) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const savings = FINANCIAL_COLORS[scheme].savings;
+  const financial = useFinancialColors();
+  const savings = financial.savings;
 
   const isCurrent = month.state === "current";
   const isPast = month.state === "past";
@@ -149,18 +152,15 @@ function MonthRow({
         </View>
 
         {plannedWithdrawal > 0 && (
-          <Text
-            variant="labelSmall"
-            style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
-          >
+          <Amount size="meta" tone="muted">
             dont {formatCurrency(plannedWithdrawal, currency)} à sortir
-          </Text>
+          </Amount>
         )}
       </View>
 
-      <Text variant="bodyLarge" style={TABULAR_DIGITS}>
+      <Amount size="row">
         {formatCurrency(month.plannedAmount, currency)}
-      </Text>
+      </Amount>
     </View>
   );
 }

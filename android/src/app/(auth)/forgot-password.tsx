@@ -15,7 +15,7 @@ import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { z } from "zod";
 
 import { PASSWORD_RESET_REDIRECT_URL, supabase } from "@/core/auth/supabase";
-import { SPACING } from "@/core/ui/theme";
+import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 
 const emailSchema = z.email();
 
@@ -135,6 +135,6 @@ function SentConfirmation({ onClose }: { onClose: () => void }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: SPACING.lg, gap: SPACING.md },
+  content: { padding: SCREEN_PADDING, gap: SPACING.md },
   confirmation: { gap: SPACING.md },
 });

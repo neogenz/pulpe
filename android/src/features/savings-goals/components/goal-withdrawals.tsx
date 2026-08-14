@@ -5,12 +5,14 @@ import type {
   SavingsGoalWithdrawal,
   SupportedCurrency,
 } from "pulpe-shared";
-import { StyleSheet, useColorScheme, View } from "react-native";
-import { Card, Divider, Text, useTheme } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { Divider, Text, useTheme } from "react-native-paper";
 
+import { Card } from "@/core/ui/card";
+import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate, formatMonthLabel } from "@/core/ui/date-format";
-import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { SPACING } from "@/core/ui/theme";
 
 const PLANNED_STATUS_LABELS: Record<
   SavingsGoalPlannedWithdrawal["status"],
@@ -167,7 +169,6 @@ function WithdrawalRow({
   onPress?: () => void;
 }) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
 
   const row = (
     <View style={styles.row}>
@@ -181,12 +182,9 @@ function WithdrawalRow({
         </Text>
       </View>
 
-      <Text
-        variant="bodyLarge"
-        style={[TABULAR_DIGITS, { color: FINANCIAL_COLORS[scheme].expense }]}
-      >
+      <Amount size="row" tone="expense">
         −{formatCurrency(amount, currency)}
-      </Text>
+      </Amount>
     </View>
   );
 

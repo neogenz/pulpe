@@ -18,7 +18,7 @@ import {
 } from "@/core/auth/google-sign-in";
 import { supabase } from "@/core/auth/supabase";
 import { APP_URLS } from "@/core/ui/app-urls";
-import { SPACING } from "@/core/ui/theme";
+import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 
 type Pending = "password" | "google" | null;
 
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: SPACING.lg,
+    padding: SCREEN_PADDING,
     gap: SPACING.md,
   },
   header: { gap: SPACING.xs, alignItems: "center" },

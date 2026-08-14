@@ -15,13 +15,12 @@ import {
   isGoogleSignInAvailable,
   signInWithGoogle,
 } from "@/core/auth/google-sign-in";
-import { SPACING } from "@/core/ui/theme";
+import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 import { LegalConsent } from "../components/legal-consent";
 import { beginOnboarding, configureSocialUser } from "../onboarding-store";
 
 const BRAND_MARK_SIZE = 88;
-const BENEFIT_ICON_SIZE = 22;
 
 const BENEFITS = [
   { icon: "format-list-bulleted", text: "Un plan clair pour chaque mois" },
@@ -86,7 +85,7 @@ export function WelcomeStep() {
             <View key={benefit.text} style={styles.benefitRow}>
               <MaterialCommunityIcons
                 name={benefit.icon}
-                size={BENEFIT_ICON_SIZE}
+                size={ICON_SIZE.lg}
                 color={theme.colors.primary}
               />
               <Text

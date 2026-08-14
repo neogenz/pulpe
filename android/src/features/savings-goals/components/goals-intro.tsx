@@ -1,11 +1,13 @@
 import type { SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Button, Card, ProgressBar, Text, useTheme } from "react-native-paper";
+import { Button, ProgressBar, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Card } from "@/core/ui/card";
+import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
-import { RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { RADIUS, SPACING } from "@/core/ui/theme";
 
 /** What the preview pretends the user already saved, in their own currency. */
 const SAMPLE_TARGET = 6000;
@@ -122,9 +124,9 @@ function GoalPreview({ currency }: { currency: SupportedCurrency }) {
         <Text variant="titleMedium">Voyage Japon</Text>
         {/* Compact like the real progress card this previews — a sample that
             prints centimes promises a card that never does. */}
-        <Text variant="headlineMedium" style={TABULAR_DIGITS}>
+        <Amount size="hero">
           {formatCompactCurrency(SAMPLE_SAVED, currency)}
-        </Text>
+        </Amount>
         <ProgressBar
           progress={SAMPLE_SAVED / SAMPLE_TARGET}
           style={styles.progress}
@@ -155,9 +157,9 @@ function PlanPreview({ currency }: { currency: SupportedCurrency }) {
             >
               {month}
             </Text>
-            <Text variant="bodyLarge" style={TABULAR_DIGITS}>
+            <Amount size="row">
               {formatCurrency(SAMPLE_MONTHLY, currency)}
-            </Text>
+            </Amount>
             <Text
               variant="labelMedium"
               style={{

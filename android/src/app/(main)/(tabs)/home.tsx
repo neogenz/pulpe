@@ -82,6 +82,7 @@ export default function HomeScreen() {
   if (currentMonth.status === "failed") {
     return (
       <PlaceholderScreen
+        icon="cloud-off-outline"
         title="On n'a pas pu charger ton mois"
         hint="Réessaie — si ça persiste, vérifie ta connexion."
         action={{
@@ -95,6 +96,7 @@ export default function HomeScreen() {
   if (currentMonth.status === "empty" || currentMonth.viewModel === null) {
     return (
       <PlaceholderScreen
+        icon="calendar-blank-outline"
         title="Pas encore de budget ce mois-ci"
         hint="Crée-le pour voir ton tableau de bord."
         action={{

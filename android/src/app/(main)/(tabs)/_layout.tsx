@@ -2,7 +2,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Tabs } from "expo-router";
 import { useTheme } from "react-native-paper";
 
-const TAB_ICON_SIZE = 24;
+import { ICON_SIZE } from "@/core/ui/theme";
 
 /**
  * The four top-level destinations, and nothing else. Every other screen is a
@@ -36,7 +36,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="home-variant-outline"
-              size={TAB_ICON_SIZE}
+              size={ICON_SIZE.lg}
               color={color}
             />
           ),
@@ -49,7 +49,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="calendar-month-outline"
-              size={TAB_ICON_SIZE}
+              size={ICON_SIZE.lg}
               color={color}
             />
           ),
@@ -62,7 +62,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="target"
-              size={TAB_ICON_SIZE}
+              size={ICON_SIZE.lg}
               color={color}
             />
           ),
@@ -75,7 +75,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="file-document-outline"
-              size={TAB_ICON_SIZE}
+              size={ICON_SIZE.lg}
               color={color}
             />
           ),

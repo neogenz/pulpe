@@ -1,8 +1,12 @@
+import { CURRENCY_METADATA } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
-import { Button, Text, useTheme } from "react-native-paper";
+import { Text } from "react-native-paper";
 
-import { formatCompactCurrency } from "@/core/ui/amount-format";
-import { HERO_TINTS, RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { Amount } from "@/core/ui/amount";
+import { formatCompactAmount } from "@/core/ui/amount-format";
+import { Eyebrow } from "@/core/ui/eyebrow";
+import { useHeroColors } from "@/core/ui/scheme-colors";
+import { RADIUS, SPACING } from "@/core/ui/theme";
 
 import { FlowBars } from "../components/flow-bars";
 import { StepScaffold } from "../components/step-scaffold";
@@ -20,8 +24,6 @@ import {
 } from "../onboarding-store";
 import { submitOnboarding } from "../onboarding-submission";
 
-const HERO_TINT_OPACITY = "26";
-
 const EMOTION_CAPTION = {
   comfortable:
     "Tu as de la marge. C'est ce qu'il te reste après tout le reste.",
@@ -36,7 +38,7 @@ const EMOTION_CAPTION = {
  * row is a way back into the step that produced it.
  */
 export function BudgetPreviewStep({ onExit }: { onExit: () => void }) {
-  const theme = useTheme();
+  const hero = useHeroColors();
   const state = useOnboardingStore();
 
   const available = availableToSpend(state);
@@ -56,27 +58,21 @@ export function BudgetPreviewStep({ onExit }: { onExit: () => void }) {
       onContinue={handleContinue}
       onExit={onExit}
     >
-      <View
-        style={[
-          styles.hero,
-          { backgroundColor: `${HERO_TINTS[emotion]}${HERO_TINT_OPACITY}` },
-        ]}
-      >
-        <Text
-          variant="bodyMedium"
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
-          Disponible à dépenser
-        </Text>
-        <Text variant="displaySmall" style={TABULAR_DIGITS}>
+      {/* The mint the dashboard uses, in every emotion — `home-hero-card.tsx`
+          already made this choice and wrote down why: the verdict is in the ink
+          and the caption, so a card that also changed colour says it twice. It
+          mattered most here, where a coral card was the first red-adjacent
+          surface a new user met, at the moment they were promised relief. */}
+      <View style={[styles.hero, { backgroundColor: hero.surface }]}>
+        <Eyebrow style={{ color: hero.support }}>
+          {`Disponible à dépenser · ${CURRENCY_METADATA[state.currency].symbol}`}
+        </Eyebrow>
+        <Amount size="hero" style={{ color: hero.ink }}>
           {/* Compact, like the home hero this becomes one screen later: the
               same figure, printed two ways, reads as two figures. */}
-          {formatCompactCurrency(available, state.currency)}
-        </Text>
-        <Text
-          variant="bodySmall"
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
+          {formatCompactAmount(available, state.currency)}
+        </Amount>
+        <Text variant="bodySmall" style={{ color: hero.support }}>
           {EMOTION_CAPTION[emotion]}
         </Text>
       </View>
@@ -84,23 +80,26 @@ export function BudgetPreviewStep({ onExit }: { onExit: () => void }) {
       <FlowBars
         currency={state.currency}
         flows={[
-          { label: "Revenus", amount: totalIncome(state), accent: "income" },
-          { label: "Charges", amount: totalCharges(state), accent: "expense" },
-          { label: "Épargne", amount: totalSavings(state), accent: "savings" },
+          {
+            label: "Revenus",
+            amount: totalIncome(state),
+            accent: "income",
+            onPress: () => jumpToStepForEdit("income"),
+          },
+          {
+            label: "Charges",
+            amount: totalCharges(state),
+            accent: "expense",
+            onPress: () => jumpToStepForEdit("charges"),
+          },
+          {
+            label: "Épargne",
+            amount: totalSavings(state),
+            accent: "savings",
+            onPress: () => jumpToStepForEdit("savings"),
+          },
         ]}
       />
-
-      <View style={styles.edits}>
-        <Button icon="pencil" onPress={() => jumpToStepForEdit("income")}>
-          Modifier mes revenus
-        </Button>
-        <Button icon="pencil" onPress={() => jumpToStepForEdit("charges")}>
-          Modifier mes charges
-        </Button>
-        <Button icon="pencil" onPress={() => jumpToStepForEdit("savings")}>
-          Modifier mon épargne
-        </Button>
-      </View>
     </StepScaffold>
   );
 }
@@ -111,5 +110,4 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.card,
     gap: SPACING.xs,
   },
-  edits: { alignItems: "flex-start" },
 });

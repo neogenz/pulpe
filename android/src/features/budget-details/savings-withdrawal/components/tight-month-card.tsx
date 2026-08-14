@@ -1,6 +1,7 @@
 import { StyleSheet, View } from "react-native";
-import { Button, Card, Text, useTheme } from "react-native-paper";
+import { Button, Text, useTheme } from "react-native-paper";
 
+import { Card } from "@/core/ui/card";
 import { SPACING } from "@/core/ui/theme";
 
 interface TightMonthCardProps {

@@ -1,14 +1,12 @@
 import type { SupportedCurrency, TemplateLine } from "pulpe-shared";
-import { StyleSheet, useColorScheme, View } from "react-native";
-import { Card, Divider, IconButton, Text, useTheme } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { Divider, IconButton, Text, useTheme } from "react-native-paper";
 
+import { Card } from "@/core/ui/card";
+import { Amount } from "@/core/ui/amount";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
-import {
-  FINANCIAL_COLORS,
-  ROW_ACTION_ICON_SIZE,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { ROW_ACTION_ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 import { KIND_SECTION_LABELS, templateLineSections } from "../template-vm";
 
@@ -33,8 +31,6 @@ export function TemplateLines({
   onEdit,
   onDelete,
 }: TemplateLinesProps) {
-  const theme = useTheme();
-
   return (
     <>
       {templateLineSections(lines).map((section) => (
@@ -43,15 +39,12 @@ export function TemplateLines({
             <Text variant="titleSmall">
               {KIND_SECTION_LABELS[section.kind]}
             </Text>
-            <Text
-              variant="labelLarge"
-              style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
-            >
+            <Amount size="meta" tone="muted">
               {/* Compact: the section total restates the summary card above,
                   which rounds — printing centimes here made one number look
                   like two. The lines below keep theirs; they are edited. */}
               {formatCompactCurrency(section.total, currency)}
-            </Text>
+            </Amount>
           </View>
 
           <Card mode="contained">
@@ -90,7 +83,7 @@ function LineRow({
   onDelete: () => void;
 }) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const financial = useFinancialColors();
 
   return (
     <View style={styles.row}>
@@ -106,20 +99,15 @@ function LineRow({
         </Text>
       </View>
 
-      <Text
-        variant="labelLarge"
-        style={[
-          TABULAR_DIGITS,
-          {
-            color:
-              line.kind === "income"
-                ? FINANCIAL_COLORS[scheme].income
-                : theme.colors.onSurface,
-          },
-        ]}
+      <Amount
+        size="meta"
+        style={{
+          color:
+            line.kind === "income" ? financial.income : theme.colors.onSurface,
+        }}
       >
         {formatCurrency(line.amount, currency)}
-      </Text>
+      </Amount>
 
       <IconButton
         icon="pencil-outline"

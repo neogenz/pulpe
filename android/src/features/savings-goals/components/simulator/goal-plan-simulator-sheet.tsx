@@ -6,20 +6,15 @@ import type {
 } from "pulpe-shared";
 import { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import {
-  Button,
-  Card,
-  Chip,
-  Divider,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Button, Chip, Divider, Text, useTheme } from "react-native-paper";
 
+import { Card } from "@/core/ui/card";
+import { Amount } from "@/core/ui/amount";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
-import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { SPACING } from "@/core/ui/theme";
 
 import { useApplySavingsGoalPlan } from "../../goals-queries";
 import {
@@ -249,12 +244,9 @@ function MonthRow({
             {month.isLocked ? "Déjà joué" : "Non modifiable"}
           </Text>
         </View>
-        <Text
-          variant="labelLarge"
-          style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
-        >
+        <Amount size="meta" tone="muted">
           {formatCurrency(month.simulatedAmount, currency)}
-        </Text>
+        </Amount>
       </View>
     );
   }

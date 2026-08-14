@@ -4,16 +4,19 @@ import type {
   SupportedCurrency,
   Transaction,
 } from "pulpe-shared";
-import { StyleSheet, useColorScheme, View } from "react-native";
-import { Card, Divider, Text, useTheme } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { Divider, Text, useTheme } from "react-native-paper";
 
+import { Card } from "@/core/ui/card";
+import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
 import {
   formatIsoDate,
   formatMonthLabel,
   ofMonth,
 } from "@/core/ui/date-format";
-import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
+import { SPACING } from "@/core/ui/theme";
 
 interface GoalContributionsProps {
   contributions: SavingsGoalContribution[];
@@ -89,9 +92,9 @@ function ContributionCard({
             />
           </View>
 
-          <Text variant="titleMedium" style={TABULAR_DIGITS}>
+          <Amount size="row">
             {formatCurrency(contribution.amount, currency)}
-          </Text>
+          </Amount>
         </View>
 
         {contribution.transactions.length > 0 && (
@@ -135,9 +138,9 @@ function TransactionLine({
         />
       </View>
 
-      <Text variant="labelLarge" style={TABULAR_DIGITS}>
+      <Amount size="meta">
         {formatCurrency(transaction.amount, currency)}
-      </Text>
+      </Amount>
     </View>
   );
 }
@@ -149,7 +152,7 @@ function TransactionLine({
  */
 function StatusLine({ base, isChecked }: { base: string; isChecked: boolean }) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const financial = useFinancialColors();
 
   return (
     <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
@@ -157,9 +160,7 @@ function StatusLine({ base, isChecked }: { base: string; isChecked: boolean }) {
       <Text
         variant="labelSmall"
         style={{
-          color: isChecked
-            ? FINANCIAL_COLORS[scheme].savings
-            : theme.colors.onSurfaceVariant,
+          color: isChecked ? financial.savings : theme.colors.onSurfaceVariant,
         }}
       >
         {isChecked ? "Pointé" : "À pointer"}

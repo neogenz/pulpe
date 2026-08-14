@@ -8,12 +8,9 @@ import {
   useTheme,
 } from "react-native-paper";
 
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 
 import { dismissTip, type TipId, useTipsStore } from "./tips-store";
-
-const ICON_SIZE = 20;
-const CLOSE_ICON_SIZE = 18;
 
 interface TooltipAction {
   label: string;
@@ -52,7 +49,7 @@ export function Tooltip({ id, title, message, icon, action }: TooltipProps) {
       <View style={styles.header}>
         <MaterialCommunityIcons
           name={icon}
-          size={ICON_SIZE}
+          size={ICON_SIZE.md}
           color={theme.colors.onSecondaryContainer}
         />
         <Text
@@ -63,7 +60,7 @@ export function Tooltip({ id, title, message, icon, action }: TooltipProps) {
         </Text>
         <IconButton
           icon="close"
-          size={CLOSE_ICON_SIZE}
+          size={ICON_SIZE.md}
           onPress={() => dismissTip(id)}
           accessibilityLabel="Fermer le conseil"
           iconColor={theme.colors.onSecondaryContainer}

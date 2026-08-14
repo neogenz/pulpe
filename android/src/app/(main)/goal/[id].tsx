@@ -86,6 +86,7 @@ export default function GoalDetailScreen() {
   if (goal.data === undefined) {
     return (
       <PlaceholderScreen
+        icon="target-variant"
         title="Cet objectif n'existe plus"
         hint="Il a peut-être été supprimé depuis un autre appareil."
         action={{ label: "Revenir", onPress: () => router.back() }}

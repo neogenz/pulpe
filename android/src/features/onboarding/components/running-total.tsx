@@ -1,14 +1,11 @@
 import { type SupportedCurrency } from "pulpe-shared";
-import { StyleSheet, View, useColorScheme } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
+import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
-import {
-  FINANCIAL_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
+import { FINANCIAL_COLORS, RADIUS, SPACING } from "@/core/ui/theme";
 
 type Accent = keyof (typeof FINANCIAL_COLORS)["light"];
 
@@ -29,8 +26,7 @@ export function RunningTotal({
   currency: SupportedCurrency;
 }) {
   const theme = useTheme();
-  const scheme = useColorScheme();
-  const color = FINANCIAL_COLORS[scheme === "dark" ? "dark" : "light"][accent];
+  const color = useFinancialColors()[accent];
 
   if (amount <= 0) return null;
 
@@ -40,12 +36,12 @@ export function RunningTotal({
       accessibilityRole="summary"
     >
       <Text variant="labelLarge">{label}</Text>
-      <Text variant="titleMedium" style={[TABULAR_DIGITS, { color }]}>
+      <Amount size="row" style={{ color }}>
         {/* Decimals, not the compact form the summary screens use: this
             restates amounts the user is entering on this very step, and a
             total that rounds what they typed reads as a mistyped entry. */}
         {formatCurrency(amount, currency)}
-      </Text>
+      </Amount>
     </View>
   );
 }

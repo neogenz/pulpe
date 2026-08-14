@@ -1,16 +1,13 @@
 import type { SupportedCurrency, Transaction } from "pulpe-shared";
-import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
+import { Amount } from "@/core/ui/amount";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth } from "@/core/ui/date-format";
 import { useRipple } from "@/core/ui/ripple";
-import {
-  FINANCIAL_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { RADIUS, SPACING } from "@/core/ui/theme";
 
 import { PointCircle } from "./point-circle";
 
@@ -41,9 +38,9 @@ export function TransactionRow({
 }: TransactionRowProps) {
   const theme = useTheme();
   const ripple = useRipple();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const financial = useFinancialColors();
   const isChecked = transaction.checkedAt !== null;
-  const accent = FINANCIAL_COLORS[scheme][KIND_ACCENTS[transaction.kind]];
+  const accent = financial[KIND_ACCENTS[transaction.kind]];
 
   return (
     <View style={[styles.row, { backgroundColor: theme.colors.surface }]}>
@@ -82,13 +79,9 @@ export function TransactionRow({
         </Text>
       </Pressable>
 
-      <Text
-        variant="titleMedium"
-        numberOfLines={1}
-        style={[TABULAR_DIGITS, { color: accent }]}
-      >
+      <Amount size="row" style={{ color: accent }} numberOfLines={1}>
         {formatCurrency(transaction.amount, currency)}
-      </Text>
+      </Amount>
     </View>
   );
 }

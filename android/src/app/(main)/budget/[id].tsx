@@ -236,6 +236,7 @@ export default function BudgetDetailScreen() {
   if (details.isError || details.data === undefined) {
     return (
       <PlaceholderScreen
+        icon="cloud-off-outline"
         title="On n'a pas pu charger ce budget"
         hint="Vérifie ta connexion, puis réessaie."
         action={{ label: "Réessayer", onPress: () => void details.refetch() }}

@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Appbar,
   Button,
-  Card,
   Chip,
   Dialog,
   Menu,
@@ -20,6 +19,7 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Card } from "@/core/ui/card";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useAmountMasking } from "@/core/ui/amount-visibility";
@@ -27,7 +27,8 @@ import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { FadingRail } from "@/core/ui/fading-rail";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { Amount } from "@/core/ui/amount";
+import { SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { TemplateFormSheet } from "@/features/templates/components/template-form-sheet";
 import { TemplateLines } from "@/features/templates/components/template-lines";
@@ -83,6 +84,7 @@ export default function TemplateDetailScreen() {
   if (template.data === undefined) {
     return (
       <PlaceholderScreen
+        icon="file-remove-outline"
         title="Ce modèle n'existe plus"
         hint="Il a peut-être été supprimé depuis un autre appareil."
         action={{ label: "Revenir", onPress: () => router.back() }}
@@ -347,12 +349,9 @@ function TotalRow({
       >
         {label}
       </Text>
-      <Text
-        variant={isEmphasised ? "titleMedium" : "labelLarge"}
-        style={TABULAR_DIGITS}
-      >
+      <Amount size={isEmphasised ? "row" : "meta"}>
         {formatCompactCurrency(amount, currency)}
-      </Text>
+      </Amount>
     </View>
   );
 }

@@ -4,8 +4,8 @@ import {
   type SupportedCurrency,
 } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
-import { Chip } from "react-native-paper";
 
+import { FilterChip } from "@/core/ui/filter-chip";
 import { SPACING } from "@/core/ui/theme";
 
 /**
@@ -24,16 +24,14 @@ export function CurrencyPicker({
       {SUPPORTED_CURRENCIES.map((currency) => {
         const meta = CURRENCY_METADATA[currency];
         return (
-          <Chip
+          <FilterChip
             key={currency}
-            mode="outlined"
             selected={currency === selected}
-            showSelectedCheck={false}
             onPress={() => onSelect(currency)}
             accessibilityLabel={`${meta.nativeName} (${currency})`}
           >
             {`${meta.flag} ${currency}`}
-          </Chip>
+          </FilterChip>
         );
       })}
     </View>

@@ -1,11 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, useColorScheme, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
   Appbar,
   Button,
-  Card,
   Dialog,
   Portal,
   Snackbar,
@@ -15,11 +14,14 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Card } from "@/core/ui/card";
+import { Eyebrow } from "@/core/ui/eyebrow";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useSessionStore } from "@/core/auth/session-store";
 import { describeBiometrics } from "@/core/crypto/biometrics";
-import { FINANCIAL_COLORS, SPACING } from "@/core/ui/theme";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
+import { SPACING } from "@/core/ui/theme";
 import {
   disableVaultBiometrics,
   enableVaultBiometrics,
@@ -49,8 +51,7 @@ export default function SecuritySettingsScreen() {
   // `theme.colors.error` is the app's amber, deliberately: a form error is not a
   // punishment. Deleting an account is the other thing, so it wears the red the
   // palette keeps for what cannot be undone.
-  const danger =
-    FINANCIAL_COLORS[useColorScheme() === "dark" ? "dark" : "light"];
+  const danger = useFinancialColors();
   const profile = useUserProfile();
   const sessionEmail = useSessionStore((state) => state.user?.email);
   const signOut = useSessionStore((state) => state.signOut);
@@ -104,7 +105,7 @@ export default function SecuritySettingsScreen() {
       </ScreenAppBar>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <SettingsSection title="ACCÈS">
+        <SettingsSection title="Accès">
           <SettingsRow
             icon="dialpad"
             title="Code PIN"
@@ -120,7 +121,7 @@ export default function SecuritySettingsScreen() {
           />
         </SettingsSection>
 
-        <SettingsSection title="CLÉ DE RÉCUPÉRATION">
+        <SettingsSection title="Clé de récupération">
           <SettingsRow
             icon="key-outline"
             title="Vérifier ma clé"
@@ -137,7 +138,7 @@ export default function SecuritySettingsScreen() {
         </SettingsSection>
 
         {biometricLabel !== null && (
-          <SettingsSection title="BIOMÉTRIE">
+          <SettingsSection title="Biométrie">
             <View style={styles.switchRow}>
               <View style={styles.switchLabels}>
                 <Text variant="bodyLarge">{biometricLabel}</Text>
@@ -161,9 +162,9 @@ export default function SecuritySettingsScreen() {
         )}
 
         <View style={styles.danger}>
-          <Text variant="labelLarge" style={{ color: danger.destructive }}>
-            ZONE DE DANGER
-          </Text>
+          <Eyebrow style={{ color: danger.destructive }}>
+            Zone de danger
+          </Eyebrow>
           <Card
             mode="contained"
             style={{ backgroundColor: danger.destructiveContainer }}

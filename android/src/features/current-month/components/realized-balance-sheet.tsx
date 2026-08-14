@@ -1,18 +1,15 @@
 import type { SupportedCurrency } from "pulpe-shared";
-import { StyleSheet, useColorScheme, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Divider, Text, useTheme } from "react-native-paper";
 
 import {
   formatCompactCurrency,
   formatSignedCompactCurrency,
 } from "@/core/ui/amount-format";
+import { Amount } from "@/core/ui/amount";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { Sheet } from "@/core/ui/sheet";
-import {
-  FINANCIAL_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { RADIUS, SPACING } from "@/core/ui/theme";
 
 import type {
   CurrentMonthViewModel,
@@ -46,8 +43,7 @@ export function RealizedBalanceSheet({
   currency,
 }: RealizedBalanceSheetProps) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const financial = FINANCIAL_COLORS[scheme];
+  const financial = useFinancialColors();
   const isPositive = realized.realizedBalance >= 0;
   const statusColor = isPositive ? financial.savings : financial.overBudget;
 
@@ -60,15 +56,12 @@ export function RealizedBalanceSheet({
         >
           Solde à date
         </Text>
-        <Text
-          variant="displaySmall"
-          style={[
-            TABULAR_DIGITS,
-            { color: isPositive ? theme.colors.onSurface : statusColor },
-          ]}
+        <Amount
+          size="hero"
+          style={{ color: isPositive ? theme.colors.onSurface : statusColor }}
         >
           {formatSignedCompactCurrency(realized.realizedBalance, currency)}
-        </Text>
+        </Amount>
         <Text variant="bodySmall" style={{ color: statusColor }}>
           {isPositive
             ? "Tout va bien"
@@ -81,12 +74,9 @@ export function RealizedBalanceSheet({
       >
         <View style={styles.row}>
           <Text variant="labelLarge">Pointage</Text>
-          <Text
-            variant="labelLarge"
-            style={[TABULAR_DIGITS, { color: statusColor }]}
-          >
+          <Amount size="meta" style={{ color: statusColor }}>
             {`${realized.checkedItemsCount} / ${realized.totalItemsCount}`}
-          </Text>
+          </Amount>
         </View>
         <CompletionBar
           checked={realized.checkedItemsCount}
@@ -193,9 +183,9 @@ function CategoryRow({
     <View style={styles.category}>
       <View style={styles.row}>
         <Text variant="bodyMedium">{label}</Text>
-        <Text variant="bodySmall" style={TABULAR_DIGITS}>
+        <Amount size="meta">
           {`${formatCompactCurrency(realized, currency)} / ${formatCompactCurrency(planned, currency)}`}
-        </Text>
+        </Amount>
       </View>
       <View style={styles.row}>
         <View style={[styles.track, { backgroundColor: trackColor }]}>
@@ -206,9 +196,9 @@ function CategoryRow({
             ]}
           />
         </View>
-        <Text variant="labelSmall" style={[TABULAR_DIGITS, styles.percent]}>
+        <Amount size="meta" style={styles.percent}>
           {`${percent}%`}
-        </Text>
+        </Amount>
       </View>
     </View>
   );

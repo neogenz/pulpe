@@ -2,7 +2,7 @@ import * as Haptics from "expo-haptics";
 import type { BudgetPeriod, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { randomUUID } from "react-native-quick-crypto";
-import { StyleSheet, useColorScheme, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   Button,
   Chip,
@@ -16,7 +16,8 @@ import { AmountField } from "@/core/ui/amount-field";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
-import { FINANCIAL_COLORS, SPACING } from "@/core/ui/theme";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
+import { SPACING } from "@/core/ui/theme";
 
 import { useCreateSavingsWithdrawal } from "../withdrawal-mutations";
 import { repaymentPeriod } from "../withdrawal-gate";
@@ -56,7 +57,7 @@ export function SavingsWithdrawalSheet({
   onWithdrawn,
 }: SavingsWithdrawalSheetProps) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const financial = useFinancialColors();
   const withdraw = useCreateSavingsWithdrawal();
   const [amount, setAmount] = useState<number | null>(null);
   const [source, setSource] = useState("");
@@ -164,7 +165,7 @@ export function SavingsWithdrawalSheet({
             sign="+"
             note="arrivent sur ton budget"
             footnote="↪ pris sur ton épargne"
-            accent={FINANCIAL_COLORS[scheme].income}
+            accent={financial.income}
             currency={currency}
           />
 
@@ -174,7 +175,7 @@ export function SavingsWithdrawalSheet({
             amount={amount ?? 0}
             sign="-"
             note="mis de côté pour remettre l'argent sur ton épargne"
-            accent={FINANCIAL_COLORS[scheme].savings}
+            accent={financial.savings}
             currency={currency}
           />
 

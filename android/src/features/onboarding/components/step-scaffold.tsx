@@ -5,7 +5,12 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { Button, IconButton, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { SPACING } from "@/core/ui/theme";
+import {
+  ICON_BUTTON_INSET,
+  ICON_SIZE,
+  SCREEN_PADDING,
+  SPACING,
+} from "@/core/ui/theme";
 
 import {
   isStepInProgressBar,
@@ -15,8 +20,6 @@ import {
 import { STEP_COPY } from "../onboarding-step";
 import { goToPreviousStep, useOnboardingStore } from "../onboarding-store";
 import { ProgressDots } from "./progress-dots";
-
-const BACK_ICON_SIZE = 24;
 
 /**
  * The frame every step is drawn in: where the user is, what the step asks, and
@@ -73,7 +76,7 @@ export function StepScaffold({
           icon={() => (
             <MaterialCommunityIcons
               name="arrow-left"
-              size={BACK_ICON_SIZE}
+              size={ICON_SIZE.lg}
               color={theme.colors.onSurfaceVariant}
             />
           )}
@@ -140,19 +143,21 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: SPACING.sm,
+    // Paper hangs six points of margin off the back button, so the gutter has
+    // to give them back or the arrow sits proud of the title beneath it.
+    paddingHorizontal: SCREEN_PADDING - ICON_BUTTON_INSET,
   },
   progress: { flex: 1, alignItems: "center" },
   headerSpacer: { width: SPACING.xxl },
   body: { flex: 1 },
   content: {
     flexGrow: 1,
-    padding: SPACING.lg,
+    padding: SCREEN_PADDING,
     gap: SPACING.lg,
   },
   titles: { gap: SPACING.xs },
   actions: {
-    padding: SPACING.lg,
+    padding: SCREEN_PADDING,
     paddingTop: SPACING.sm,
     gap: SPACING.sm,
   },

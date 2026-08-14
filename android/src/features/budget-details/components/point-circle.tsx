@@ -4,12 +4,11 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
 
 import { useRipple } from "@/core/ui/ripple";
-import { RADIUS, TOUCH_TARGET } from "@/core/ui/theme";
+import { EMPHASIS, ICON_SIZE, RADIUS, TOUCH_TARGET } from "@/core/ui/theme";
 
 /** A 24pt ring inside Material's 48dp target, which is not Apple's 44. */
 const RING_SIZE = 24;
 const RING_WIDTH = 2;
-const CHECK_SIZE = 14;
 
 interface PointCircleProps {
   isChecked: boolean;
@@ -64,7 +63,7 @@ export function PointCircle({
         {isChecked && (
           <MaterialCommunityIcons
             name="check"
-            size={CHECK_SIZE}
+            size={ICON_SIZE.sm}
             color={theme.colors.onPrimary}
           />
         )}
@@ -80,7 +79,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  syncing: { opacity: 0.4 },
+  syncing: { opacity: EMPHASIS.pending },
   ring: {
     width: RING_SIZE,
     height: RING_SIZE,

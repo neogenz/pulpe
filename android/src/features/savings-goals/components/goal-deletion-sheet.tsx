@@ -6,11 +6,10 @@ import type {
   SupportedCurrency,
 } from "pulpe-shared";
 import { useState } from "react";
-import { StyleSheet, useColorScheme, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
-  Card,
   Checkbox,
   Divider,
   HelperText,
@@ -18,10 +17,13 @@ import {
   useTheme,
 } from "react-native-paper";
 
+import { Card } from "@/core/ui/card";
+import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
-import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
+import { SPACING } from "@/core/ui/theme";
 
 import {
   useDeleteSavingsGoal,
@@ -59,7 +61,7 @@ export function GoalDeletionSheet({
   onDeleted,
 }: GoalDeletionSheetProps) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const financial = useFinancialColors();
   const impact = useSavingsGoalDeletionImpact(isVisible ? goal.id : null);
   const remove = useDeleteSavingsGoal();
   const [deletesForecasts, setDeletesForecasts] = useState(false);
@@ -112,7 +114,7 @@ export function GoalDeletionSheet({
           {impact.data !== undefined && (
             <Button
               mode="contained"
-              buttonColor={FINANCIAL_COLORS[scheme].destructive}
+              buttonColor={financial.destructive}
               onPress={submit}
               disabled={remove.isPending}
               loading={remove.isPending}
@@ -258,12 +260,8 @@ function SummaryCard({
         >
           {label}
         </Text>
-        <Text variant="titleMedium" style={TABULAR_DIGITS}>
-          {count}
-        </Text>
-        <Text variant="labelMedium" style={TABULAR_DIGITS}>
-          {formatCompactCurrency(amount, currency)}
-        </Text>
+        <Amount size="row">{count}</Amount>
+        <Amount size="meta">{formatCompactCurrency(amount, currency)}</Amount>
       </Card.Content>
     </Card>
   );
@@ -414,9 +412,7 @@ function ImpactRow({
           </Text>
         )}
       </View>
-      <Text variant="labelLarge" style={TABULAR_DIGITS}>
-        {formatCurrency(amount, currency)}
-      </Text>
+      <Amount size="meta">{formatCurrency(amount, currency)}</Amount>
     </View>
   );
 }

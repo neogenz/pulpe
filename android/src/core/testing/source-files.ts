@@ -1,6 +1,8 @@
 /**
- * Every `.tsx` under a directory, for the guards that assert something about
- * the source itself rather than about what it renders.
+ * Every source file under a directory, for the guards that assert something
+ * about the source itself rather than about what it renders. `.ts` is in scope
+ * as well as `.tsx`: a hook holds colours and sizes without rendering anything,
+ * and a guard that only reads the components misses where the value was chosen.
  *
  * `requireActual`, because `jest.setup.js` mocks a good deal of the native side
  * and a guard that reads the tree has to read the real one.
@@ -20,6 +22,11 @@ export function sourceFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = `${directory}/${entry.name}`;
     if (entry.isDirectory()) return sourceFiles(path);
-    return entry.name.endsWith(".tsx") ? [path] : [];
+    if (entry.name.endsWith(".spec.ts") || entry.name.endsWith(".spec.tsx")) {
+      return [];
+    }
+    return entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")
+      ? [path]
+      : [];
   });
 }

@@ -1,10 +1,9 @@
 import type { SavingsGoalProgress, SavingsGoalStatus } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
-import { Button, Card, Icon, Text, useTheme } from "react-native-paper";
+import { Button, Icon, Text, useTheme } from "react-native-paper";
 
-import { SPACING } from "@/core/ui/theme";
-
-const ICON_SIZE = 24;
+import { Card } from "@/core/ui/card";
+import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 interface GoalStateCardsProps {
   progress: SavingsGoalProgress;
@@ -104,7 +103,11 @@ function StateCard({
     <Card mode="contained">
       <Card.Content style={styles.content}>
         <View style={styles.header}>
-          <Icon source={icon} size={ICON_SIZE} color={theme.colors.primary} />
+          <Icon
+            source={icon}
+            size={ICON_SIZE.lg}
+            color={theme.colors.primary}
+          />
           <View style={styles.labels}>
             <Text variant="titleSmall">{title}</Text>
             <Text

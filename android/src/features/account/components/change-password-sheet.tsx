@@ -16,9 +16,7 @@ import {
 } from "@/core/auth/password-rules";
 import { updatePassword, verifyPassword } from "@/core/auth/supabase";
 import { Sheet } from "@/core/ui/sheet";
-import { SPACING } from "@/core/ui/theme";
-
-const CRITERION_ICON_SIZE = 16;
+import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 /**
  * Changing the password asks for the current one first — Supabase would let an
@@ -126,7 +124,7 @@ export function ChangePasswordSheet({
             <View key={criterion.label} style={styles.criterion}>
               <MaterialCommunityIcons
                 name={isMet ? "check-circle" : "circle-outline"}
-                size={CRITERION_ICON_SIZE}
+                size={ICON_SIZE.sm}
                 color={color}
               />
               <Text variant="labelMedium" style={{ color }}>

@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { SupportedCurrency, Transaction } from "pulpe-shared";
 import { useState } from "react";
-import { StyleSheet, useColorScheme, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Button, Divider, Text, useTheme } from "react-native-paper";
 
 import { useTags } from "@/core/tags/tag-queries";
@@ -10,17 +10,13 @@ import {
   formatCompactCurrency,
   formatSignedCompactCurrency,
 } from "@/core/ui/amount-format";
+import { Amount } from "@/core/ui/amount";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { FilterChip } from "@/core/ui/filter-chip";
-import {
-  FINANCIAL_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { FINANCIAL_COLORS, ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 
 import { summarizeActivity, type ActivityWindow } from "../activity-window";
 
-const ICON_SIZE = 20;
 const ICON_DIAMETER = 36;
 const ICON_TINT_OPACITY = "26";
 
@@ -66,7 +62,7 @@ export function ActivityCard({
   onPressAll,
 }: ActivityCardProps) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const financial = useFinancialColors();
   const [window, setWindow] = useState<ActivityWindow>("week");
   const { days, net } = summarizeActivity(transactions, window, new Date());
   // Names live on their own endpoint — a transaction carries ids only.
@@ -76,9 +72,9 @@ export function ActivityCard({
     <View style={styles.card}>
       <View style={styles.heading}>
         <Text variant="titleSmall">Activité</Text>
-        <Text variant="bodySmall" style={TABULAR_DIGITS}>
+        <Amount size="meta">
           {formatSignedCompactCurrency(net, currency)}
-        </Text>
+        </Amount>
       </View>
 
       <View style={styles.windows}>
@@ -115,7 +111,7 @@ export function ActivityCard({
             >
               <MaterialCommunityIcons
                 name="tray"
-                size={ICON_SIZE}
+                size={ICON_SIZE.md}
                 color={theme.colors.onSurfaceVariant}
               />
             </View>
@@ -146,8 +142,7 @@ export function ActivityCard({
               ]}
             >
               {day.transactions.map((transaction, index) => {
-                const accent =
-                  FINANCIAL_COLORS[scheme][KIND_ACCENTS[transaction.kind]];
+                const accent = financial[KIND_ACCENTS[transaction.kind]];
                 const tagged = tagSummary(transaction.tagIds, tags.data ?? []);
                 return (
                   <View key={transaction.id}>
@@ -161,7 +156,7 @@ export function ActivityCard({
                       >
                         <MaterialCommunityIcons
                           name={KIND_ICONS[transaction.kind]}
-                          size={ICON_SIZE}
+                          size={ICON_SIZE.md}
                           color={accent}
                         />
                       </View>
@@ -179,13 +174,9 @@ export function ActivityCard({
                           </Text>
                         )}
                       </View>
-                      <Text
-                        variant="bodyMedium"
-                        style={TABULAR_DIGITS}
-                        numberOfLines={1}
-                      >
+                      <Amount size="row" numberOfLines={1}>
                         {formatCompactCurrency(transaction.amount, currency)}
-                      </Text>
+                      </Amount>
                     </View>
                   </View>
                 );

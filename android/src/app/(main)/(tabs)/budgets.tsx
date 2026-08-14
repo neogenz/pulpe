@@ -6,21 +6,17 @@ import {
   type SupportedCurrency,
 } from "pulpe-shared";
 import { RefreshControl, SectionList, StyleSheet, View } from "react-native";
-import {
-  ActivityIndicator,
-  Card,
-  FAB,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { ActivityIndicator, FAB, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { Card } from "@/core/ui/card";
+import { Amount } from "@/core/ui/amount";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatSignedCompactCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import { FAB_CLEARANCE, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import {
   type BudgetTiming,
   budgetTiming,
@@ -62,6 +58,7 @@ export default function BudgetsScreen() {
   if (budgets.isError) {
     return (
       <PlaceholderScreen
+        icon="cloud-off-outline"
         title="On n'a pas pu charger tes budgets"
         hint="Vérifie ta connexion, puis réessaie."
         action={{
@@ -77,6 +74,7 @@ export default function BudgetsScreen() {
   if (sections.length === 0) {
     return (
       <PlaceholderScreen
+        icon="calendar-blank-outline"
         title="Aucun budget pour l'instant"
         hint="Crée ton premier mois depuis un de tes modèles."
         action={{
@@ -124,7 +122,6 @@ export default function BudgetsScreen() {
           <Text
             variant="titleSmall"
             style={[
-              TABULAR_DIGITS,
               styles.year,
               {
                 color: theme.colors.onSurfaceVariant,
@@ -214,9 +211,9 @@ function BudgetRow({
         </View>
 
         <View style={styles.amount}>
-          <Text variant="titleMedium" style={TABULAR_DIGITS}>
+          <Amount size="row">
             {formatSignedCompactCurrency(remaining, currency)}
-          </Text>
+          </Amount>
           <Text
             variant="labelSmall"
             style={{ color: theme.colors.onSurfaceVariant }}

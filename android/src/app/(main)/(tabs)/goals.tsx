@@ -8,7 +8,6 @@ import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
-  Card,
   Chip,
   FAB,
   Text,
@@ -16,11 +15,13 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Card } from "@/core/ui/card";
+import { Amount } from "@/core/ui/amount";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import { FAB_CLEARANCE, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { GoalFormSheet } from "@/features/savings-goals/components/goal-form-sheet";
 import { GoalsIntro } from "@/features/savings-goals/components/goals-intro";
@@ -82,6 +83,7 @@ export default function GoalsScreen() {
   if (goals.isError) {
     return (
       <PlaceholderScreen
+        icon="cloud-off-outline"
         title="On n'a pas pu charger tes objectifs"
         hint="Vérifie ta connexion, puis réessaie."
         action={{ label: "Réessayer", onPress: () => void goals.refetch() }}
@@ -98,6 +100,7 @@ export default function GoalsScreen() {
     >
       {list.length === 0 ? (
         <PlaceholderScreen
+          icon="target"
           title="Fixe ton premier objectif"
           hint="Suis tes projets d'épargne long terme, sans recalculer à la main."
           action={{
@@ -172,9 +175,9 @@ function GoalRow({
         </View>
 
         {goal.targetAmount !== null && (
-          <Text variant="titleMedium" style={TABULAR_DIGITS}>
+          <Amount size="row">
             {formatCompactCurrency(goal.targetAmount, currency)}
-          </Text>
+          </Amount>
         )}
       </Card.Content>
     </Card>

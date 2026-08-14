@@ -1,9 +1,10 @@
 import { type SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
-import { IconButton, Text, useTheme } from "react-native-paper";
+import { IconButton, Text } from "react-native-paper";
 
+import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
-import { ROW_ACTION_ICON_SIZE, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { ROW_ACTION_ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 import { removeCustomTransaction } from "../onboarding-store";
 import type { OnboardingTransaction } from "../onboarding-transaction";
@@ -24,8 +25,6 @@ export function TransactionList({
   currency: SupportedCurrency;
   onEdit: (transaction: OnboardingTransaction) => void;
 }) {
-  const theme = useTheme();
-
   if (transactions.length === 0) return null;
 
   return (
@@ -35,12 +34,9 @@ export function TransactionList({
         <View key={transaction.id} style={styles.row}>
           <View style={styles.labels}>
             <Text variant="bodyLarge">{transaction.name}</Text>
-            <Text
-              variant="bodySmall"
-              style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
-            >
+            <Amount size="meta" tone="muted">
               {formatCurrency(transaction.amount, currency)}
-            </Text>
+            </Amount>
           </View>
           <IconButton
             icon="pencil"

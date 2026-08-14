@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { BudgetFormulas, SupportedCurrency } from "pulpe-shared";
 import { CURRENCY_METADATA } from "pulpe-shared";
-import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { ProgressBar, Text, useTheme } from "react-native-paper";
 
 import {
@@ -9,25 +9,20 @@ import {
   formatCurrency,
   formatSignedCompactCurrency,
 } from "@/core/ui/amount-format";
+import { Amount } from "@/core/ui/amount";
 import { ofMonth } from "@/core/ui/date-format";
+import { Eyebrow } from "@/core/ui/eyebrow";
 import { FadingRail } from "@/core/ui/fading-rail";
+import { Pill } from "@/core/ui/pill";
 import { useRipple } from "@/core/ui/ripple";
-import {
-  FINANCIAL_COLORS,
-  RADIUS,
-  SCREEN_PADDING,
-  SPACING,
-  TABULAR_DIGITS,
-  TINT_ALPHA,
-} from "@/core/ui/theme";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
+import { ICON_SIZE, RADIUS, SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 
 import { budgetUsagePercentage } from "../budget-details-selectors";
 
 const PERCENT = 100;
 /** Amounts are shown to the centime, so that is the precision that counts. */
 const CENTIMES_PER_UNIT = 100;
-const PILL_ICON_SIZE = 14;
-const ROLLOVER_ICON_SIZE = 13;
 
 type Metrics = ReturnType<typeof BudgetFormulas.calculateAllMetrics>;
 
@@ -58,7 +53,7 @@ export function BudgetDetailHero({
 }: BudgetDetailHeroProps) {
   const theme = useTheme();
   const ripple = useRipple();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const financial = useFinancialColors();
   const isDeficit = metrics.remaining < 0;
   const usagePercentage = budgetUsagePercentage(metrics);
   const usage = Math.min(Math.max(usagePercentage, 0), PERCENT);
@@ -75,17 +70,12 @@ export function BudgetDetailHero({
         accessibilityRole="button"
         accessibilityLabel={`${isDeficit ? "Déficit" : "Disponible"} ${formatCurrency(Math.abs(metrics.remaining), currency)}, ${Math.round(usagePercentage)} % utilisé`}
       >
-        <Text
-          variant="labelLarge"
-          style={[styles.eyebrow, { color: theme.colors.onSurfaceVariant }]}
-        >
+        <Eyebrow>
           {isDeficit ? "Déficit" : "Disponible"} ·{" "}
           {CURRENCY_METADATA[currency].symbol}
-        </Text>
+        </Eyebrow>
 
-        <Text variant="displaySmall" style={TABULAR_DIGITS} numberOfLines={1}>
-          {signedAmount(metrics.remaining, currency)}
-        </Text>
+        <Amount size="hero">{signedAmount(metrics.remaining, currency)}</Amount>
 
         {hasRollover && (
           // The carry-over names a month, so the disclosure is also the way to go
@@ -106,7 +96,7 @@ export function BudgetDetailHero({
           >
             <MaterialCommunityIcons
               name="autorenew"
-              size={ROLLOVER_ICON_SIZE}
+              size={ICON_SIZE.xs}
               color={theme.colors.onSurfaceVariant}
             />
             <Text
@@ -117,16 +107,13 @@ export function BudgetDetailHero({
                 ? "Report du mois précédent inclus"
                 : `Report ${ofMonth(previousMonthName)} inclus`}
             </Text>
-            <Text
-              variant="labelMedium"
-              style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
-            >
+            <Amount size="meta" tone="muted">
               {formatSignedCompactCurrency(rollover, currency)}
-            </Text>
+            </Amount>
             {onPressRollover !== undefined && (
               <MaterialCommunityIcons
                 name="chevron-right"
-                size={ROLLOVER_ICON_SIZE}
+                size={ICON_SIZE.xs}
                 color={theme.colors.onSurfaceVariant}
               />
             )}
@@ -136,18 +123,12 @@ export function BudgetDetailHero({
         <View style={styles.progressRow}>
           <ProgressBar
             progress={usage / PERCENT}
-            color={FINANCIAL_COLORS[scheme].savings}
+            color={financial.savings}
             style={styles.progress}
           />
-          <Text
-            variant="labelLarge"
-            style={[
-              TABULAR_DIGITS,
-              { color: FINANCIAL_COLORS[scheme].savings },
-            ]}
-          >
+          <Amount size="meta" tone="savings">
             {Math.round(usagePercentage)}%
-          </Text>
+          </Amount>
         </View>
       </Pressable>
 
@@ -157,57 +138,26 @@ export function BudgetDetailHero({
       <FadingRail accessibilityLabel="Répartition du mois">
         <Pill
           icon="arrow-down"
-          amount={metrics.totalIncome}
+          amount={formatCompactAmount(metrics.totalIncome, currency)}
           label="revenus"
-          tint={FINANCIAL_COLORS[scheme].income}
-          currency={currency}
+          tint={financial.income}
         />
         <Pill
           icon="piggy-bank-outline"
-          amount={metrics.totalSavings}
+          amount={formatCompactAmount(metrics.totalSavings, currency)}
           label="épargne"
-          tint={FINANCIAL_COLORS[scheme].savings}
-          currency={currency}
+          tint={financial.savings}
         />
         <Pill
           icon="arrow-up"
-          amount={metrics.totalExpenses}
+          amount={formatCompactAmount(metrics.totalExpenses, currency)}
           label="dépenses"
           // The darker amber, not the row one: expense ink on its own tint
           // measures 3.85:1, and `overBudget` is the value already tuned to
           // clear AA on a surface of this family (4.59:1).
-          tint={FINANCIAL_COLORS[scheme].overBudget}
-          currency={currency}
+          tint={financial.overBudget}
         />
       </FadingRail>
-    </View>
-  );
-}
-
-function Pill({
-  icon,
-  amount,
-  label,
-  tint,
-  currency,
-}: {
-  icon: "arrow-down" | "arrow-up" | "piggy-bank-outline";
-  amount: number;
-  label: string;
-  tint: string;
-  currency: SupportedCurrency;
-}) {
-  return (
-    <View
-      style={[styles.pill, { backgroundColor: `${tint}${TINT_ALPHA.surface}` }]}
-    >
-      <MaterialCommunityIcons name={icon} size={PILL_ICON_SIZE} color={tint} />
-      <Text variant="labelLarge" style={[TABULAR_DIGITS, { color: tint }]}>
-        {formatCompactAmount(amount, currency)}
-      </Text>
-      <Text variant="labelLarge" style={{ color: tint }}>
-        {label}
-      </Text>
     </View>
   );
 }
@@ -223,7 +173,6 @@ const styles = StyleSheet.create({
   // The hero pays its own gutter so the pill rail underneath does not have to —
   // it reaches the screen edges, which is where its fades belong.
   summary: { gap: SPACING.xs, paddingHorizontal: SCREEN_PADDING },
-  eyebrow: { textTransform: "uppercase", letterSpacing: 1 },
   rollover: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
   progressRow: {
     flexDirection: "row",
@@ -232,12 +181,4 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   progress: { flex: 1, height: SPACING.sm, borderRadius: RADIUS.full },
-  pill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.xs,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.full,
-  },
 });

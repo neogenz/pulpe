@@ -4,7 +4,8 @@ import { Button, Modal, Portal, Text, useTheme } from "react-native-paper";
 
 import { RADIUS, SPACING } from "@/core/ui/theme";
 
-const ICON_SIZE = 40;
+/** An illustration, not an icon — deliberately off the `ICON_SIZE` ladder. */
+const ILLUSTRATION_SIZE = 40;
 
 interface NotificationPrimeSheetProps {
   isVisible: boolean;
@@ -37,7 +38,7 @@ export function NotificationPrimeSheet({
         <View style={styles.content}>
           <MaterialCommunityIcons
             name="bell-badge-outline"
-            size={ICON_SIZE}
+            size={ILLUSTRATION_SIZE}
             color={theme.colors.primary}
           />
           <Text variant="headlineSmall" style={styles.centered}>

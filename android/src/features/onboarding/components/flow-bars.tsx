@@ -1,14 +1,13 @@
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { type SupportedCurrency } from "pulpe-shared";
-import { StyleSheet, useColorScheme, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
+import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
-import {
-  FINANCIAL_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { useRipple } from "@/core/ui/ripple";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
+import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 
 const BAR_HEIGHT = 8;
 const FULL_WIDTH_PERCENT = 100;
@@ -16,7 +15,9 @@ const FULL_WIDTH_PERCENT = 100;
 interface Flow {
   label: string;
   amount: number;
-  accent: keyof (typeof FINANCIAL_COLORS)["light"];
+  accent: "income" | "expense" | "savings";
+  /** Absent while the flows are only being shown, present when they lead back. */
+  onPress?: () => void;
 }
 
 /**
@@ -24,6 +25,11 @@ interface Flow {
  * proportion rather than three numbers they would have to divide themselves.
  * Widths are relative to the largest flow — against the income instead, the two
  * expense bars would be unreadable slivers for anyone who saves little.
+ *
+ * A row that leads somewhere is the row itself: the recap used to print the
+ * same three flows twice, once as bars and once as a stack of "Modifier mes
+ * revenus" buttons underneath, which is the screen telling you what it already
+ * showed you.
  */
 export function FlowBars({
   flows,
@@ -33,19 +39,40 @@ export function FlowBars({
   currency: SupportedCurrency;
 }) {
   const theme = useTheme();
-  const scheme = useColorScheme();
-  const palette = FINANCIAL_COLORS[scheme === "dark" ? "dark" : "light"];
+  const financial = useFinancialColors();
+  const ripple = useRipple();
   const largest = Math.max(...flows.map((flow) => flow.amount));
 
   return (
     <View style={styles.list}>
       {flows.map((flow) => (
-        <View key={flow.label} style={styles.row}>
+        <Pressable
+          key={flow.label}
+          style={styles.row}
+          onPress={flow.onPress}
+          android_ripple={ripple}
+          disabled={flow.onPress === undefined}
+          accessibilityRole={flow.onPress === undefined ? undefined : "button"}
+          accessibilityHint={
+            flow.onPress === undefined
+              ? undefined
+              : `Revenir à l'étape ${flow.label.toLowerCase()}`
+          }
+        >
           <View style={styles.labels}>
             <Text variant="bodyMedium">{flow.label}</Text>
-            <Text variant="bodyMedium" style={TABULAR_DIGITS}>
-              {formatCompactCurrency(flow.amount, currency)}
-            </Text>
+            <View style={styles.amount}>
+              <Amount size="row">
+                {formatCompactCurrency(flow.amount, currency)}
+              </Amount>
+              {flow.onPress !== undefined && (
+                <MaterialCommunityIcons
+                  name="pencil-outline"
+                  size={ICON_SIZE.sm}
+                  color={theme.colors.onSurfaceVariant}
+                />
+              )}
+            </View>
           </View>
           <View
             style={[
@@ -57,13 +84,13 @@ export function FlowBars({
               style={[
                 styles.fill,
                 {
-                  backgroundColor: palette[flow.accent],
+                  backgroundColor: financial[flow.accent],
                   width: `${largest > 0 ? (flow.amount / largest) * FULL_WIDTH_PERCENT : 0}%`,
                 },
               ]}
             />
           </View>
-        </View>
+        </Pressable>
       ))}
     </View>
   );
@@ -71,8 +98,9 @@ export function FlowBars({
 
 const styles = StyleSheet.create({
   list: { gap: SPACING.md },
-  row: { gap: SPACING.xs },
+  row: { gap: SPACING.xs, paddingVertical: SPACING.xs },
   labels: { flexDirection: "row", justifyContent: "space-between" },
+  amount: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
   track: {
     height: BAR_HEIGHT,
     borderRadius: RADIUS.full,

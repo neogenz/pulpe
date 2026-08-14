@@ -1,12 +1,12 @@
 import { router } from "expo-router";
 import type { BudgetLine } from "pulpe-shared";
-import { StyleSheet, useColorScheme, View } from "react-native";
-import { Card, Icon, Text, useTheme } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { Icon, Text, useTheme } from "react-native-paper";
 
-import { FINANCIAL_COLORS, SPACING } from "@/core/ui/theme";
+import { Card } from "@/core/ui/card";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
+import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 import { useSavingsGoals } from "@/features/savings-goals/goals-queries";
-
-const ICON_SIZE = 20;
 
 /**
  * The goal a forecast belongs to, in whichever direction it points.
@@ -82,16 +82,14 @@ function LinkRow({
   onPress?: () => void;
 }) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const financial = useFinancialColors();
   const tint =
-    onPress === undefined
-      ? theme.colors.onSurfaceVariant
-      : FINANCIAL_COLORS[scheme].savings;
+    onPress === undefined ? theme.colors.onSurfaceVariant : financial.savings;
 
   return (
     <Card mode="contained" onPress={onPress} accessibilityHint={hint}>
       <Card.Content style={styles.row}>
-        <Icon source={icon} size={ICON_SIZE} color={tint} />
+        <Icon source={icon} size={ICON_SIZE.md} color={tint} />
         <View style={styles.labels}>
           <Text variant="bodyMedium">{label}</Text>
           {detail !== undefined && (

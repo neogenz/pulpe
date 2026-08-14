@@ -1,23 +1,17 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { SupportedCurrency } from "pulpe-shared";
-import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
+import { Amount } from "@/core/ui/amount";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
-import {
-  FINANCIAL_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 
 import type { AmountAccent, LineItem } from "../budget-details-selectors";
 
 import { PointCircle } from "./point-circle";
-
-const CHEVRON_SIZE = 18;
-const SPREAD_ICON_SIZE = 12;
 
 const RECURRENCE_LABELS = {
   fixed: "Récurrent",
@@ -48,17 +42,17 @@ export function BudgetLineRow({
 }: BudgetLineRowProps) {
   const theme = useTheme();
   const ripple = useRipple();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const financial = useFinancialColors();
   const accent = accentColor(
     item.accent,
-    scheme,
+    financial,
     theme.colors.onSurfaceVariant,
   );
   const dotColor = accentColor(
     item.line.kind === "expense" && !item.isOverBudget
       ? "expense"
       : item.accent,
-    scheme,
+    financial,
     theme.colors.onSurfaceVariant,
   );
 
@@ -92,7 +86,7 @@ export function BudgetLineRow({
             <>
               <MaterialCommunityIcons
                 name="calendar-multiple"
-                size={SPREAD_ICON_SIZE}
+                size={ICON_SIZE.xs}
                 color={theme.colors.onSurfaceVariant}
               />
               <Text
@@ -107,7 +101,7 @@ export function BudgetLineRow({
             <>
               <MaterialCommunityIcons
                 name="target"
-                size={SPREAD_ICON_SIZE}
+                size={ICON_SIZE.xs}
                 color={theme.colors.onSurfaceVariant}
               />
               <Text
@@ -139,7 +133,7 @@ export function BudgetLineRow({
             variant="labelMedium"
             style={{
               color: item.isOverBudget
-                ? FINANCIAL_COLORS[scheme].overBudget
+                ? financial.overBudget
                 : theme.colors.onSurfaceVariant,
             }}
           >
@@ -149,27 +143,19 @@ export function BudgetLineRow({
       </View>
 
       <View style={styles.amounts}>
-        <Text
-          variant="titleMedium"
-          numberOfLines={1}
-          style={[TABULAR_DIGITS, { color: accent }]}
-        >
+        <Amount size="row" style={{ color: accent }} numberOfLines={1}>
           {formatCurrency(item.displayAmount, currency)}
-        </Text>
+        </Amount>
         {item.amountSuffix !== null && (
-          <Text
-            variant="labelSmall"
-            numberOfLines={1}
-            style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
-          >
+          <Amount size="meta" tone="muted" numberOfLines={1}>
             {item.amountSuffix}
-          </Text>
+          </Amount>
         )}
       </View>
 
       <MaterialCommunityIcons
         name="chevron-right"
-        size={CHEVRON_SIZE}
+        size={ICON_SIZE.md}
         color={theme.colors.onSurfaceVariant}
       />
     </Pressable>
@@ -178,10 +164,9 @@ export function BudgetLineRow({
 
 function accentColor(
   accent: AmountAccent | "expense",
-  scheme: "light" | "dark",
+  palette: ReturnType<typeof useFinancialColors>,
   neutral: string,
 ): string {
-  const palette = FINANCIAL_COLORS[scheme];
   switch (accent) {
     case "income":
       return palette.income;

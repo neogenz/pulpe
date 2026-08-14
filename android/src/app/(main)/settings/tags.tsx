@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Appbar,
   Button,
-  Card,
   Dialog,
   HelperText,
   IconButton,
@@ -18,6 +17,7 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Card } from "@/core/ui/card";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import {

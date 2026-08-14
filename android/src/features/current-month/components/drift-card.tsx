@@ -1,19 +1,16 @@
 import type { SupportedCurrency } from "pulpe-shared";
-import { StyleSheet, useColorScheme, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Divider, Text, useTheme } from "react-native-paper";
 
 import {
   formatCompactAmount,
   formatCompactCurrency,
 } from "@/core/ui/amount-format";
-import {
-  HOME_HERO_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { RADIUS, SPACING } from "@/core/ui/theme";
 
 import type { DriftLine } from "../current-month-view-model";
+import { Amount } from "@/core/ui/amount";
+import { useHeroColors } from "@/core/ui/scheme-colors";
 
 /**
  * Fixed rather than derived: this is a dashboard summary, not the full list, and
@@ -43,8 +40,8 @@ export function DriftCard({
   currency,
 }: DriftCardProps) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const driftColor = HOME_HERO_COLORS[scheme].drift;
+  const hero = useHeroColors();
+  const driftColor = hero.drift;
 
   const shown = drifts.slice(0, MAX_ROWS);
   const hidden = drifts.length - shown.length;
@@ -83,12 +80,9 @@ export function DriftCard({
                   <Text variant="bodyMedium" numberOfLines={1}>
                     {drift.line.name}
                   </Text>
-                  <Text
-                    variant="labelMedium"
-                    style={[TABULAR_DIGITS, { color: driftColor }]}
-                  >
+                  <Amount size="meta" style={{ color: driftColor }}>
                     {`+${formatCompactAmount(overBy, currency)} en trop`}
-                  </Text>
+                  </Amount>
                 </View>
                 <View
                   style={[

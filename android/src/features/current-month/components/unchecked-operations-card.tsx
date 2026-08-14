@@ -2,20 +2,16 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as Haptics from "expo-haptics";
 import type { SupportedCurrency, TransactionKind } from "pulpe-shared";
 import { useState } from "react";
-import { StyleSheet, useColorScheme, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Button, Divider, Text, useTheme } from "react-native-paper";
 
+import { Amount } from "@/core/ui/amount";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
-import {
-  FINANCIAL_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { EMPHASIS, ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 
 import type { CheckableItem } from "../current-month-view-model";
 
-const ICON_SIZE = 20;
 const ICON_DIAMETER = 36;
 const ICON_TINT_OPACITY = "26";
 
@@ -51,7 +47,7 @@ export function UncheckedOperationsCard({
   onToggle,
 }: UncheckedOperationsCardProps) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const financial = useFinancialColors();
   const [skippedIds, setSkippedIds] = useState<string[]>([]);
 
   // Pruned at render rather than in an effect: an operation that was deferred
@@ -67,7 +63,7 @@ export function UncheckedOperationsCard({
 
   if (current === undefined) return null;
 
-  const accent = FINANCIAL_COLORS[scheme][KIND_ACCENTS[current.kind]];
+  const accent = financial[KIND_ACCENTS[current.kind]];
 
   function handleConfirm() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -103,7 +99,7 @@ export function UncheckedOperationsCard({
           >
             <MaterialCommunityIcons
               name={KIND_ICONS[current.kind]}
-              size={ICON_SIZE}
+              size={ICON_SIZE.md}
               color={accent}
             />
           </View>
@@ -120,9 +116,9 @@ export function UncheckedOperationsCard({
             </Text>
           </View>
 
-          <Text variant="bodyMedium" style={TABULAR_DIGITS} numberOfLines={1}>
+          <Amount size="row" numberOfLines={1}>
             {formatCompactCurrency(current.amount, currency)}
-          </Text>
+          </Amount>
         </View>
 
         <Divider />
@@ -161,7 +157,7 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     gap: SPACING.md,
   },
-  syncing: { opacity: 0.5 },
+  syncing: { opacity: EMPHASIS.pending },
   operation: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
   icon: {
     width: ICON_DIAMETER,

@@ -4,19 +4,15 @@ import {
   type BalanceTrajectory,
   type SupportedCurrency,
 } from "pulpe-shared";
-import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 
+import { Amount } from "@/core/ui/amount";
+import { Eyebrow } from "@/core/ui/eyebrow";
+import { useFinancialColors, useHeroColors } from "@/core/ui/scheme-colors";
 import { formatCompactAmount } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
-import {
-  FINANCIAL_COLORS,
-  HOME_HERO_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-  TOUCH_TARGET,
-} from "@/core/ui/theme";
+import { RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 
 import {
   varianceLabel,
@@ -59,9 +55,8 @@ export function HomeHeroCard({
   onPressMetrics,
   onPressDetail,
 }: HomeHeroCardProps) {
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const hero = HOME_HERO_COLORS[scheme];
-  const accent = accentColor(presentation, scheme);
+  const hero = useHeroColors();
+  const accent = useAccentColor(presentation);
   const ripple = useRipple();
 
   function handlePressMetrics() {
@@ -71,21 +66,16 @@ export function HomeHeroCard({
 
   return (
     <View style={[styles.card, { backgroundColor: hero.surface }]}>
+      {/* Eyebrow, then the bare figure — the same grammar as the budget detail
+          hero, so the two do not read as two apps. The currency is named once,
+          up here, rather than trailing the number at a size of its own. */}
       <View style={styles.amountBlock}>
-        <Text
-          variant="displayMedium"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          style={[styles.amount, TABULAR_DIGITS, { color: hero.ink }]}
-        >
+        <Eyebrow style={{ color: hero.support }}>
+          {`Estimé fin ${monthName} · ${CURRENCY_METADATA[currency].symbol}`}
+        </Eyebrow>
+        <Amount size="hero" style={[styles.amount, { color: hero.ink }]}>
           {formatCompactAmount(presentation.estimatedBalance, currency)}
-          <Text variant="headlineSmall" style={{ color: hero.ink }}>
-            {` ${CURRENCY_METADATA[currency].symbol}`}
-          </Text>
-        </Text>
-        <Text variant="labelMedium" style={{ color: hero.support }}>
-          {`estimé fin ${monthName}`}
-        </Text>
+        </Amount>
       </View>
 
       <Pressable
@@ -157,13 +147,9 @@ function Metric({
   const align = alignEnd ? "flex-end" : "flex-start";
   return (
     <View style={{ alignItems: align, gap: SPACING.xxs }}>
-      <Text
-        variant="titleMedium"
-        numberOfLines={1}
-        style={[TABULAR_DIGITS, { color: tint }]}
-      >
+      <Amount size="row" style={{ color: tint }} numberOfLines={1}>
         {value}
-      </Text>
+      </Amount>
       <Text variant="labelMedium" style={{ color: supportColor }}>
         {label}
       </Text>
@@ -177,18 +163,18 @@ function Metric({
  * "better than planned", so spending it on "as planned" would leave nothing to
  * tell the two apart.
  */
-function accentColor(
-  presentation: HeroPresentation,
-  scheme: "light" | "dark",
-): string {
-  if (presentation.verdict === "onPlan") return HOME_HERO_COLORS[scheme].ink;
+function useAccentColor(presentation: HeroPresentation): string {
+  const hero = useHeroColors();
+  const financial = useFinancialColors();
+
+  if (presentation.verdict === "onPlan") return hero.ink;
   switch (presentation.tone) {
     case "favorable":
-      return FINANCIAL_COLORS[scheme].savings;
+      return financial.savings;
     case "caution":
-      return FINANCIAL_COLORS[scheme].overBudget;
+      return financial.overBudget;
     case "deficit":
-      return HOME_HERO_COLORS[scheme].drift;
+      return hero.drift;
   }
 }
 

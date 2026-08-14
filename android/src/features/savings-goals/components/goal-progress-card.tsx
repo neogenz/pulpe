@@ -1,15 +1,13 @@
 import type { SavingsGoalProgress, SupportedCurrency } from "pulpe-shared";
-import { StyleSheet, useColorScheme, View } from "react-native";
-import { Card, Icon, ProgressBar, Text, useTheme } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { Icon, ProgressBar, Text, useTheme } from "react-native-paper";
 
+import { Card } from "@/core/ui/card";
+import { Amount } from "@/core/ui/amount";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate } from "@/core/ui/date-format";
-import {
-  FINANCIAL_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 
 import {
   confirmedFraction,
@@ -20,8 +18,6 @@ import {
   plannedFraction,
   requiredMatchesPlannedPace,
 } from "../goals-vm";
-
-const ICON_SIZE = 18;
 
 interface GoalProgressCardProps {
   progress: SavingsGoalProgress;
@@ -42,8 +38,8 @@ export function GoalProgressCard({
   currency,
 }: GoalProgressCardProps) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const savings = FINANCIAL_COLORS[scheme].savings;
+  const financial = useFinancialColors();
+  const savings = financial.savings;
 
   const isJudgeable = hasClosedPlanMonth(progress.months);
   const currentPlanned = currentMonthPlannedAmount(progress.months);
@@ -61,21 +57,15 @@ export function GoalProgressCard({
             >
               Épargné
             </Text>
-            <Text
-              variant="headlineSmall"
-              style={[TABULAR_DIGITS, { color: savings }]}
-            >
+            <Amount size="hero" style={{ color: savings }}>
               {formatCompactCurrency(progress.confirmed, currency)}
-            </Text>
+            </Amount>
           </View>
 
           {progress.targetAmount !== null && (
-            <Text
-              variant="labelMedium"
-              style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
-            >
+            <Amount size="meta" tone="muted">
               sur {formatCompactCurrency(progress.targetAmount, currency)}
-            </Text>
+            </Amount>
           )}
         </View>
 
@@ -105,7 +95,7 @@ export function GoalProgressCard({
           <View style={styles.pace}>
             <Icon
               source={PACE_ICONS[progress.paceStatus]}
-              size={ICON_SIZE}
+              size={ICON_SIZE.md}
               color={theme.colors.onSurfaceVariant}
             />
             <Text
@@ -123,7 +113,7 @@ export function GoalProgressCard({
             <View style={styles.pace}>
               <Icon
                 source="check-circle-outline"
-                size={ICON_SIZE}
+                size={ICON_SIZE.md}
                 color={theme.colors.onSurfaceVariant}
               />
               <Text
@@ -164,20 +154,14 @@ export function GoalProgressCard({
                 value={`${formatCompactCurrency(progress.required, currency)} / mois`}
               />
             ) : (
-              <Text
-                variant="labelMedium"
-                style={[
-                  TABULAR_DIGITS,
-                  { color: theme.colors.onSurfaceVariant },
-                ]}
-              >
+              <Amount size="meta" tone="muted">
                 Ton rythme prévu :{" "}
                 {formatCompactCurrency(progress.pace, currency)}/mois ·{" "}
                 {progress.targetDate === null
                   ? "pour tenir ton échéance"
                   : `pour finir le ${formatIsoDate(progress.targetDate)}`}
                 , vise {formatCompactCurrency(progress.required, currency)}/mois
-              </Text>
+              </Amount>
             ))}
         </View>
       </Card.Content>
@@ -207,9 +191,7 @@ function StatRow({
       >
         {label}
       </Text>
-      <Text variant="labelLarge" style={TABULAR_DIGITS}>
-        {value}
-      </Text>
+      <Amount size="meta">{value}</Amount>
     </View>
   );
 }

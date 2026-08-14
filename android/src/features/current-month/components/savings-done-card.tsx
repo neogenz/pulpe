@@ -1,18 +1,14 @@
 import type { SupportedCurrency } from "pulpe-shared";
-import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
+import { Amount } from "@/core/ui/amount";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
-import {
-  FINANCIAL_COLORS,
-  RADIUS,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 
-const ICON_SIZE = 20;
 const ICON_DIAMETER = 36;
 const ICON_TINT_OPACITY = "26";
 
@@ -34,8 +30,8 @@ export function SavingsDoneCard({
 }: SavingsDoneCardProps) {
   const theme = useTheme();
   const ripple = useRipple();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const savingsColor = FINANCIAL_COLORS[scheme].savings;
+  const financial = useFinancialColors();
+  const savingsColor = financial.savings;
 
   return (
     <Pressable
@@ -54,24 +50,21 @@ export function SavingsDoneCard({
       >
         <MaterialCommunityIcons
           name="check"
-          size={ICON_SIZE}
+          size={ICON_SIZE.md}
           color={savingsColor}
         />
       </View>
 
       <View style={styles.text}>
         <Text variant="bodyLarge">Épargne du mois versée</Text>
-        <Text
-          variant="labelMedium"
-          style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
-        >
+        <Amount size="meta" tone="muted">
           {formatCompactCurrency(amount, currency)}
-        </Text>
+        </Amount>
       </View>
 
       <MaterialCommunityIcons
         name="chevron-right"
-        size={ICON_SIZE}
+        size={ICON_SIZE.md}
         color={theme.colors.onSurfaceVariant}
       />
     </Pressable>

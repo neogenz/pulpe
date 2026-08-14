@@ -76,6 +76,7 @@ export default function CreateBudgetScreen() {
   if (period === null) {
     return (
       <PlaceholderScreen
+        icon="calendar-check-outline"
         title="Tes prochains mois sont déjà prêts"
         hint="Reviens quand tu voudras en préparer un de plus."
         action={{ label: "Revenir", onPress: () => router.back() }}
@@ -86,6 +87,7 @@ export default function CreateBudgetScreen() {
   if ((templates.data ?? []).length === 0) {
     return (
       <PlaceholderScreen
+        icon="file-document-outline"
         title="Pas encore de modèle"
         hint="Un budget se crée depuis un modèle. Crée-en un d'abord."
         action={{

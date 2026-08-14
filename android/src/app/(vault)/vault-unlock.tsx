@@ -7,7 +7,7 @@ import { Button, useTheme } from "react-native-paper";
 import { normalizeApiError } from "@/core/api/api-error";
 import { useSessionStore } from "@/core/auth/session-store";
 import { useRipple } from "@/core/ui/ripple";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 import {
   unlockVaultWithBiometrics,
   unlockVaultWithPin,
@@ -16,8 +16,6 @@ import {
 import { PinPad } from "@/ui/pin-pad";
 import { PinScreen } from "@/ui/pin-screen";
 import { usePinEntry } from "@/ui/use-pin-entry";
-
-const BIOMETRIC_ICON_SIZE = 32;
 
 export default function VaultUnlockScreen() {
   const theme = useTheme();
@@ -82,7 +80,7 @@ export default function VaultUnlockScreen() {
             >
               <MaterialCommunityIcons
                 name="fingerprint"
-                size={BIOMETRIC_ICON_SIZE}
+                size={ICON_SIZE.xl}
                 color={theme.colors.primary}
               />
             </Pressable>

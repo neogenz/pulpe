@@ -1,7 +1,13 @@
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Linking, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Linking,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import {
   Appbar,
   Avatar,
@@ -59,7 +65,15 @@ export default function SettingsScreen() {
         <Appbar.Content title="Compte" />
       </ScreenAppBar>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={profile.isRefetching}
+            onRefresh={() => void profile.refetch()}
+          />
+        }
+      >
         <View style={styles.profile}>
           {/* Decorative: the name and email right below carry the identity. */}
           <Avatar.Text
@@ -86,7 +100,7 @@ export default function SettingsScreen() {
           )}
         </View>
 
-        <SettingsSection title="PARAMÈTRES DE L'APPLICATION">
+        <SettingsSection title="Paramètres de l'application">
           <SettingsRow
             icon="shield-lock-outline"
             title="Sécurité"
@@ -107,7 +121,7 @@ export default function SettingsScreen() {
           />
         </SettingsSection>
 
-        <SettingsSection title="SUPPORT">
+        <SettingsSection title="Support">
           <SettingsRow
             icon="help-circle-outline"
             title="FAQ et support"
@@ -124,7 +138,7 @@ export default function SettingsScreen() {
           />
         </SettingsSection>
 
-        <SettingsSection title="LÉGAL">
+        <SettingsSection title="Légal">
           <SettingsRow
             icon="file-document-outline"
             title="Conditions générales"

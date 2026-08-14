@@ -5,7 +5,7 @@ import {
   type Transaction,
 } from "pulpe-shared";
 import { useState } from "react";
-import { ScrollView, StyleSheet, useColorScheme, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Appbar,
@@ -20,6 +20,7 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Amount } from "@/core/ui/amount";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useTags } from "@/core/tags/tag-queries";
@@ -28,7 +29,8 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName, ofMonth } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
+import { SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import {
   useBudgetDetails,
@@ -78,7 +80,7 @@ export default function BudgetLineDetailScreen() {
   useAmountMasking();
   const { id, lineId } = useLocalSearchParams<{ id: string; lineId: string }>();
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const financial = useFinancialColors();
   const settings = useUserSettings();
   const details = useBudgetDetails(id);
   const budgets = useBudgetList();
@@ -118,6 +120,7 @@ export default function BudgetLineDetailScreen() {
   if (line === undefined || budget === undefined) {
     return (
       <PlaceholderScreen
+        icon="receipt-text-remove-outline"
         title="Cette prévision n'existe plus"
         hint="Elle a peut-être été supprimée depuis un autre appareil."
         action={{ label: "Revenir", onPress: () => router.back() }}
@@ -153,8 +156,8 @@ export default function BudgetLineDetailScreen() {
   ).toLocaleLowerCase();
   const accent =
     line.kind === "expense" && consumption.available < 0
-      ? FINANCIAL_COLORS[scheme].overBudget
-      : FINANCIAL_COLORS[scheme][
+      ? financial.overBudget
+      : financial[
           line.kind === "income"
             ? "income"
             : line.kind === "saving"
@@ -267,13 +270,9 @@ export default function BudgetLineDetailScreen() {
             {RECURRENCE_LABELS[line.recurrence].toLocaleLowerCase()}
           </Text>
 
-          <Text
-            variant="displaySmall"
-            style={[TABULAR_DIGITS, { color: accent }]}
-            numberOfLines={1}
-          >
+          <Amount size="hero" style={{ color: accent }} numberOfLines={1}>
             {formatCurrency(consumption.allocated, currency)}
-          </Text>
+          </Amount>
 
           <Text
             variant="bodyMedium"
@@ -288,11 +287,11 @@ export default function BudgetLineDetailScreen() {
             style={styles.progress}
           />
 
-          <Text variant="bodyMedium" style={TABULAR_DIGITS}>
+          <Amount size="row">
             {consumption.available >= 0
               ? `${formatCurrency(consumption.available, currency)} restants`
               : `${formatCurrency(-consumption.available, currency)} de dépassement`}
-          </Text>
+          </Amount>
         </View>
 
         <Text variant="titleSmall">

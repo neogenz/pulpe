@@ -8,7 +8,7 @@ import {
   PASSWORD_CRITERIA,
 } from "@/core/auth/password-rules";
 import { signUpWithEmail } from "@/core/auth/sign-up";
-import { SPACING } from "@/core/ui/theme";
+import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 import { LegalConsent } from "../components/legal-consent";
 import { StepScaffold } from "../components/step-scaffold";
@@ -18,8 +18,6 @@ import {
   setEmail,
   useOnboardingStore,
 } from "../onboarding-store";
-
-const CRITERION_ICON_SIZE = 16;
 
 /**
  * Where the account is created. Everything answered before this point lives in
@@ -114,7 +112,7 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
               <View key={criterion.label} style={styles.criterion}>
                 <MaterialCommunityIcons
                   name={isMet ? "check-circle" : "circle-outline"}
-                  size={CRITERION_ICON_SIZE}
+                  size={ICON_SIZE.sm}
                   color={
                     isMet ? theme.colors.primary : theme.colors.onSurfaceVariant
                   }

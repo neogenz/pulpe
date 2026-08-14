@@ -4,21 +4,14 @@ import type {
 } from "pulpe-shared";
 import { currentPlanMovement } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
-import {
-  Button,
-  Card,
-  HelperText,
-  Icon,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Button, HelperText, Icon, Text, useTheme } from "react-native-paper";
 
+import { Card } from "@/core/ui/card";
+import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
-import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
-
-const ARROW_SIZE = 16;
+import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 interface GoalPlanApplyRecapProps {
   isVisible: boolean;
@@ -102,23 +95,17 @@ export function GoalPlanApplyRecap({
                 )}
               </View>
               <View style={styles.amounts}>
-                <Text
-                  variant="labelLarge"
-                  style={[
-                    TABULAR_DIGITS,
-                    { color: theme.colors.onSurfaceVariant },
-                  ]}
-                >
+                <Amount size="meta" tone="muted">
                   {formatCurrency(currentPlanMovement(month), currency)}
-                </Text>
+                </Amount>
                 <Icon
                   source="arrow-right"
-                  size={ARROW_SIZE}
+                  size={ICON_SIZE.sm}
                   color={theme.colors.onSurfaceVariant}
                 />
-                <Text variant="labelLarge" style={TABULAR_DIGITS}>
+                <Amount size="meta">
                   {formatCurrency(month.simulatedAmount, currency)}
-                </Text>
+                </Amount>
               </View>
             </View>
           ))}

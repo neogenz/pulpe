@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
 import { useRipple } from "@/core/ui/ripple";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { EMPHASIS, ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 
 export const PIN_LENGTH = 4;
 
@@ -132,14 +132,14 @@ export function PinPad({
                   backgroundColor: pressed
                     ? theme.colors.surfaceVariant
                     : "transparent",
-                  opacity: isDisabled ? 0.4 : 1,
+                  opacity: isDisabled ? EMPHASIS.disabled : 1,
                 },
               ]}
             >
               {isBackspace ? (
                 <MaterialCommunityIcons
                   name="backspace-outline"
-                  size={26}
+                  size={ICON_SIZE.lg}
                   color={theme.colors.onSurfaceVariant}
                 />
               ) : (

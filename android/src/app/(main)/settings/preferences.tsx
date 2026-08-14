@@ -1,11 +1,10 @@
 import { router } from "expo-router";
 import { SUPPORTED_CURRENCIES, type SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   Appbar,
   Button,
-  Card,
   Dialog,
   Portal,
   SegmentedButtons,
@@ -16,6 +15,8 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Card } from "@/core/ui/card";
+import { Eyebrow } from "@/core/ui/eyebrow";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import {
@@ -114,14 +115,17 @@ export default function PreferencesScreen() {
         <Appbar.Content title="Préférences" />
       </ScreenAppBar>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={settings.isRefetching}
+            onRefresh={() => void settings.refetch()}
+          />
+        }
+      >
         <View style={styles.section}>
-          <Text
-            variant="labelLarge"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            DEVISE
-          </Text>
+          <Eyebrow>Devise</Eyebrow>
           <Card mode="contained">
             <Card.Content style={styles.card}>
               <Text
@@ -154,7 +158,7 @@ export default function PreferencesScreen() {
           </Card>
         </View>
 
-        <SettingsSection title="JOUR DE PAIE">
+        <SettingsSection title="Jour de paie">
           <SettingsRow
             icon="calendar-clock"
             title="Jour de paie"

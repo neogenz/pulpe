@@ -4,13 +4,15 @@ import {
   vec,
 } from "@shopify/react-native-skia";
 import type { SupportedCurrency } from "pulpe-shared";
-import { StyleSheet, useColorScheme, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 import { Area, CartesianChart, Line } from "victory-native";
 
+import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatMonthYearShort } from "@/core/ui/date-format";
-import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
+import { SPACING } from "@/core/ui/theme";
 
 import { projectionYDomain, type ProjectionSeries } from "../projection-series";
 
@@ -40,9 +42,9 @@ export function GoalProjectionChart({
   currency,
 }: GoalProjectionChartProps) {
   const theme = useTheme();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const savings = FINANCIAL_COLORS[scheme].savings;
-  const income = FINANCIAL_COLORS[scheme].income;
+  const financial = useFinancialColors();
+  const savings = financial.savings;
+  const income = financial.income;
 
   if (series.points.length === 0) return null;
 
@@ -131,17 +133,12 @@ export function GoalProjectionChart({
 }
 
 function LegendEntry({ color, label }: { color: string; label: string }) {
-  const theme = useTheme();
-
   return (
     <View style={styles.legendEntry}>
       <View style={[styles.swatch, { backgroundColor: color }]} />
-      <Text
-        variant="labelSmall"
-        style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
-      >
+      <Amount size="meta" tone="muted">
         {label}
-      </Text>
+      </Amount>
     </View>
   );
 }

@@ -4,10 +4,8 @@ import { StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 import { acknowledgeHandoff } from "@/features/onboarding/onboarding-store";
-
-const RITUAL_ICON_SIZE = 28;
 
 /**
  * Shown once, between the flow and the app. The budget that just got created is
@@ -88,7 +86,7 @@ function RitualStep({
       >
         <MaterialCommunityIcons
           name={icon}
-          size={RITUAL_ICON_SIZE}
+          size={ICON_SIZE.xl}
           color={theme.colors.onSecondaryContainer}
         />
       </View>

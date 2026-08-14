@@ -5,7 +5,6 @@ import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
-  Card,
   Chip,
   FAB,
   Text,
@@ -14,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Tooltip } from "@/core/tips/tooltip";
+import { Card } from "@/core/ui/card";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
@@ -52,6 +52,7 @@ export default function TemplatesScreen() {
   if (templates.isError) {
     return (
       <PlaceholderScreen
+        icon="cloud-off-outline"
         title="On n'a pas pu charger tes modèles"
         hint="Vérifie ta connexion, puis réessaie."
         action={{ label: "Réessayer", onPress: () => void templates.refetch() }}
@@ -69,6 +70,7 @@ export default function TemplatesScreen() {
     >
       {list.length === 0 ? (
         <PlaceholderScreen
+          icon="file-document-outline"
           title="Crée ton premier modèle"
           hint="Un mois type : tes revenus, tes charges et ton épargne, prêts à être rejoués."
           action={{

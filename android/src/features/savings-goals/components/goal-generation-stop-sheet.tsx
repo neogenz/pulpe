@@ -7,17 +7,18 @@ import type {
 import { StyleSheet, View } from "react-native";
 import {
   Button,
-  Card,
   Divider,
   HelperText,
   Text,
   useTheme,
 } from "react-native-paper";
 
+import { Card } from "@/core/ui/card";
+import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
-import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { SPACING } from "@/core/ui/theme";
 
 import { useStopSavingsGoalGeneration } from "../goals-queries";
 
@@ -160,9 +161,9 @@ export function GoalGenerationStopSheet({
               >
                 {formatMonthLabel(line.month, line.year)}
               </Text>
-              <Text variant="labelLarge" style={TABULAR_DIGITS}>
+              <Amount size="meta">
                 {formatCurrency(line.amount, currency)}
-              </Text>
+              </Amount>
             </View>
           ))}
 
@@ -170,9 +171,9 @@ export function GoalGenerationStopSheet({
 
           <View style={styles.row}>
             <Text variant="labelLarge">Total</Text>
-            <Text variant="labelLarge" style={TABULAR_DIGITS}>
+            <Amount size="meta">
               {formatCompactCurrency(total, currency)}
-            </Text>
+            </Amount>
           </View>
         </Card.Content>
       </Card>

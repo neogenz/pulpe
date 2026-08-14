@@ -2,16 +2,10 @@ import { router } from "expo-router";
 import { formatBudgetPeriod } from "pulpe-shared";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import {
-  Appbar,
-  Button,
-  Card,
-  HelperText,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Appbar, Button, HelperText, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Card } from "@/core/ui/card";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { scheduleMonthlyReminder } from "@/core/notifications/scheduler";

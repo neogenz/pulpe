@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
 
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 import { formatRecoveryKey } from "@/core/vault/recovery-key";
 import {
   acknowledgeRecoveryNotice,
@@ -109,7 +109,7 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
             >
               <MaterialCommunityIcons
                 name="alert"
-                size={ICON_SIZE}
+                size={ICON_SIZE.md}
                 color={theme.colors.onErrorContainer}
               />
               <Text
@@ -162,8 +162,6 @@ function MintFailedDialog() {
     </Portal>
   );
 }
-
-const ICON_SIZE = 20;
 
 const styles = StyleSheet.create({
   centered: { textAlign: "center" },

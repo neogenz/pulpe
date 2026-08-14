@@ -15,10 +15,11 @@ import {
   useTheme,
 } from "react-native-paper";
 
+import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
-import { RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { RADIUS, SPACING } from "@/core/ui/theme";
 
 import { useSpreadOccurrences } from "../spread-queries";
 
@@ -84,13 +85,10 @@ export function SpreadOccurrencesSheet({
             <Text variant="titleSmall">
               Mois {tracker.currentIndex} sur {tracker.count}
             </Text>
-            <Text
-              variant="labelLarge"
-              style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
-            >
+            <Amount size="meta" tone="muted">
               {formatCurrency(tracker.cumulatedAmount, currency)} /{" "}
               {formatCurrency(tracker.totalAmount, currency)}
-            </Text>
+            </Amount>
           </View>
 
           <ProgressBar
@@ -156,20 +154,17 @@ function OccurrenceRow({
           planned; the plan alone would read as still open. */}
       {hasReal ? (
         <View style={styles.rowAmounts}>
-          <Text variant="titleMedium" style={TABULAR_DIGITS}>
+          <Amount size="row">
             {formatCurrency(occurrence.consumed, currency)}
-          </Text>
-          <Text
-            variant="labelSmall"
-            style={[TABULAR_DIGITS, { color: theme.colors.outline }]}
-          >
+          </Amount>
+          <Amount size="meta" tone="muted">
             / {formatCurrency(occurrence.amount, currency)}
-          </Text>
+          </Amount>
         </View>
       ) : (
-        <Text variant="titleMedium" style={TABULAR_DIGITS}>
+        <Amount size="row">
           {formatCurrency(occurrence.amount, currency)}
-        </Text>
+        </Amount>
       )}
     </View>
   );
