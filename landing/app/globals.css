@@ -613,7 +613,7 @@ h3,
 
 .guide-prose a:hover,
 .guide-prose a:focus-visible {
-  color: var(--color-primary-hover);
+  text-decoration-thickness: 2px;
 }
 
 /* Tailwind preflight removes list markers and indentation. */

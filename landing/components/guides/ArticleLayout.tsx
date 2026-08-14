@@ -99,7 +99,7 @@ export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
           <article className="mx-auto max-w-3xl">
             <Link
               href="/conseils-budget"
-              className="inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-semibold text-primary transition-colors hover:text-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-semibold text-primary hover:underline hover:decoration-2 hover:underline-offset-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ArrowLeft aria-hidden="true" size={17} />
               Conseils budget

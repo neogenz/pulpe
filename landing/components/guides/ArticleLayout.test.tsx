@@ -22,6 +22,10 @@ const { metadata: guidesIndexMetadata } =
   await import("../../app/conseils-budget/page");
 
 const sources = {
+  articleLayout: readFileSync(
+    new URL("./ArticleLayout.tsx", import.meta.url),
+    "utf8",
+  ),
   config: readFileSync(new URL("../../lib/config.ts", import.meta.url), "utf8"),
   globals: readFileSync(
     new URL("../../app/globals.css", import.meta.url),
@@ -153,8 +157,10 @@ describe("guide article layout contract", () => {
   it("keeps article links interactive and the Pulpe pull quote semantic", () => {
     assert.match(
       sources.globals,
-      /\.guide-prose a:hover,\s*\.guide-prose a:focus-visible\s*\{[^}]*color:/,
+      /\.guide-prose a:hover,\s*\.guide-prose a:focus-visible\s*\{[^}]*text-decoration-thickness:/,
     );
+    assert.doesNotMatch(sources.articleLayout, /hover:text-primary-hover/);
+    assert.match(sources.articleLayout, /hover:underline/);
     const pageHtml = renderToStaticMarkup(<BudgetSuisseGuidePage />);
     const article = pageHtml.match(/<article[\s\S]*<\/article>/)?.[0];
     assert.ok(article, "the page must render an <article>");
