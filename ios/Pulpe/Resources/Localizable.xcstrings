@@ -544,6 +544,50 @@
         }
       }
     },
+    "%@ dépensés · %lld%% utilisé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ausgegeben · %lld%% verbraucht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ spent · %lld%% used"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ spesi · %lld%% utilizzato"
+          }
+        }
+      }
+    },
+    "%@ dépensés · Dépassé de %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ausgegeben · %@ darüber"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ spent · %@ over"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ spesi · %@ oltre"
+          }
+        }
+      }
+    },
     "%@ désactivé" : {
       "localizations" : {
         "de" : {
