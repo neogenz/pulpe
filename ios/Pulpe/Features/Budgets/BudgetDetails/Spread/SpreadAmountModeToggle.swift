@@ -9,8 +9,8 @@ enum SpreadAmountMode: CaseIterable, Hashable {
 
     var label: String {
         switch self {
-        case .total: "Total"
-        case .perMonth: "Par mois"
+        case .total: AppLocale.string("Total")
+        case .perMonth: AppLocale.string("Par mois")
         }
     }
 }

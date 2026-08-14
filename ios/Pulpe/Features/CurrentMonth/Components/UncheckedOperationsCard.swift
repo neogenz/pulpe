@@ -92,6 +92,10 @@ struct UncheckedOperationsCard: View {
             // The next operation must start from a clean slate, not inherit the confirmation.
             confirmingId = nil
         }
+        // `.contain` scopes the identifier to a container node; bare, it would
+        // propagate onto every child and clobber the rows' own identifiers.
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("homeUncheckedOperationsCard")
     }
 
     // MARK: - Inline Quick-Check
@@ -141,6 +145,7 @@ struct UncheckedOperationsCard: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("homeUncheckedOperationRow")
     }
 
     /// Trails the label while the row holds both; stacked it takes the line under it,

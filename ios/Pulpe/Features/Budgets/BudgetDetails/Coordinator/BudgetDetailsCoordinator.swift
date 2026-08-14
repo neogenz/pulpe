@@ -82,7 +82,7 @@ final class BudgetDetailsCoordinator {
                 showCheckToastIfNeeded(for: line, context: ctx, amountsHidden: amountsHidden)
             case .partialTransactionFailure:
                 ctx.toastManager.show(
-                    "Certaines lignes n'ont pas pu être pointées — réessaie",
+                    AppLocale.string("Certaines lignes n'ont pas pu être pointées — réessaie"),
                     type: .error
                 )
             }

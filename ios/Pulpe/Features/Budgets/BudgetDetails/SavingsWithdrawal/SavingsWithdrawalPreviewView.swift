@@ -35,7 +35,7 @@ struct SavingsWithdrawalPreviewView: View {
         .scrollBounceBehavior(.basedOnSize)
         .pulpeBackground()
         .pulpeStickyBottomCTA { ctaStack }
-        .navigationTitle("Aperçu")
+        .localizedNavigationTitle("Aperçu")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -54,21 +54,21 @@ struct SavingsWithdrawalPreviewView: View {
 
     private var incomeBlock: some View {
         monthBlock(MonthBlock(
-            monthLabel: "\(monthName) · le mois choisi",
-            kindLabel: "REVENU",
+            monthLabel: AppLocale.string("\(monthName) · le mois choisi"),
+            kindLabel: AppLocale.string("REVENU"),
             amountText: amount.asSignedCurrency(currency, for: .income),
-            note: "arrivent sur ton budget",
-            footnote: "↪ pris sur ton épargne",
+            note: AppLocale.string("arrivent sur ton budget"),
+            footnote: AppLocale.string("↪ pris sur ton épargne"),
             accent: .financialIncome
         ))
     }
 
     private var savingBlock: some View {
         monthBlock(MonthBlock(
-            monthLabel: "\(nextMonthName) · le mois suivant",
-            kindLabel: "ÉPARGNE",
+            monthLabel: AppLocale.string("\(nextMonthName) · le mois suivant"),
+            kindLabel: AppLocale.string("ÉPARGNE"),
             amountText: amount.asSignedCurrency(currency, for: .saving),
-            note: "mis de côté pour remettre l'argent sur ton épargne",
+            note: AppLocale.string("mis de côté pour remettre l'argent sur ton épargne"),
             accent: .financialSavings
         ))
     }

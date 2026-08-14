@@ -31,9 +31,9 @@ struct BudgetListView: View {
             } else if store.budgets.isEmpty {
                 PulpeEmptyState(
                     systemImage: "chart.bar.doc.horizontal",
-                    title: "Pas encore de budget",
-                    message: "Crée-en un pour commencer à suivre tes dépenses",
-                    actionTitle: "Créer un budget"
+                    title: AppLocale.string("Pas encore de budget"),
+                    message: AppLocale.string("Crée-en un pour commencer à suivre tes dépenses"),
+                    actionTitle: AppLocale.string("Créer un budget")
                 ) {
                     createBudgetTarget = store.nextAvailableMonth
                 }
@@ -45,7 +45,7 @@ struct BudgetListView: View {
         }
         .trackScreen("BudgetList")
         .animation(DesignTokens.Animation.smoothEaseOut, value: store.isLoading)
-        .navigationTitle("Budgets")
+        .localizedNavigationTitle("Budgets")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -145,10 +145,10 @@ struct BudgetListView: View {
     }
 
     private func yearStatusBadge(currentYear: Int) -> some View {
-        let label = selectedYear < currentYear ? "Terminé"
-            : selectedYear == currentYear ? "En cours"
-            : "À venir"
-        return Text(label)
+        let label = selectedYear < currentYear ? Text("Terminé")
+            : selectedYear == currentYear ? Text("En cours")
+            : Text("À venir")
+        return label
             .font(PulpeTypography.detailLabelBold)
             .textCase(.uppercase)
             .tracking(DesignTokens.Tracking.uppercaseWide)
@@ -296,10 +296,10 @@ struct BudgetListView: View {
                     .font(PulpeTypography.detailLabel)
                     .rotationEffect(.degrees(showPastMonths ? 90 : 0))
                     .accessibilityHidden(true)
-                Text(
+                (
                     showPastMonths
-                        ? "Masquer les mois passés"
-                        : "Voir les \(count) mois passés"
+                        ? Text("Masquer les mois passés")
+                        : Text("Voir les \(count) mois passés")
                 )
                 .font(PulpeTypography.labelMedium)
                 Spacer()
@@ -309,7 +309,9 @@ struct BudgetListView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityValue(showPastMonths ? "ouvert" : "fermé")
+        .accessibilityValue(
+            showPastMonths ? AppLocale.string("ouvert") : AppLocale.string("fermé")
+        )
         .padding(.horizontal, DesignTokens.Spacing.xl)
     }
 }

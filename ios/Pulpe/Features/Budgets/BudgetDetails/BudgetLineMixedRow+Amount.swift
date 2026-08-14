@@ -25,13 +25,13 @@ extension BudgetLineMixedRow {
     /// - everything else (full, equal, no-progress income/saving) → none.
     var amountSuffix: String? {
         if isExpense {
-            if isOverBudget { return "de dépassement" }
-            if !hasReal { return "prévu" }
+            if isOverBudget { return AppLocale.string("de dépassement") }
+            if !hasReal { return AppLocale.string("prévu") }
             if realAmount == plannedAmount { return nil }
-            return "restant sur \(plannedAmount.asAmount(for: currency))"
+            return AppLocale.string("restant sur \(plannedAmount.asAmount(for: currency))")
         }
         if hasReal, realAmount < plannedAmount {
-            return "/ \(plannedAmount.asAmount(for: currency)) prévu"
+            return AppLocale.string("/ \(plannedAmount.asAmount(for: currency)) prévu")
         }
         return nil
     }

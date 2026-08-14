@@ -104,6 +104,7 @@ struct CurrentMonthView: View {
                     )
                 }
                 .accessibilityLabel("Mon compte")
+                .accessibilityIdentifier("homeAccountButton")
             }
         }
         .sheet(item: $activeSheet) { sheet in
@@ -326,6 +327,7 @@ struct CurrentMonthView: View {
         }
         .primaryButtonStyle()
         .accessibilityLabel("Ajouter une opération")
+        .accessibilityIdentifier("homeAddOperationButton")
     }
 }
 

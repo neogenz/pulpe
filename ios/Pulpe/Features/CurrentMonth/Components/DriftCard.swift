@@ -94,6 +94,7 @@ struct DriftCard: View {
             .padding(.vertical, DesignTokens.Spacing.xs)
             .pulpeRowCard()
         }
+        .accessibilityIdentifier("homeDriftCard")
     }
 
     // MARK: - Drift Row

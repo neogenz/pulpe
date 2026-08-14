@@ -230,6 +230,7 @@ struct AddTransactionSheet: View {
             }
             .disabled(!canSubmit)
             .primaryButtonStyle(isEnabled: canSubmit)
+            .accessibilityIdentifier("addTransactionSubmit")
 
             if let hint = validationHint {
                 Text(hint)

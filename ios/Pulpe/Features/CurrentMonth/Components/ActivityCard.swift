@@ -99,6 +99,7 @@ struct ActivityCard: View {
             }
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
+        .accessibilityIdentifier("homeActivityCard")
     }
 
     // MARK: - Window Picker

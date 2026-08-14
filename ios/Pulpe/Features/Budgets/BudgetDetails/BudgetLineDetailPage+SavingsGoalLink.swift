@@ -56,11 +56,12 @@ extension BudgetLineDetailPage {
             ContextLinkRow(
                 icon: "target",
                 iconTint: .financialSavings,
-                title: "Objectif : \(goal.name)",
-                accessibilityLabel: "Objectif d'épargne : \(goal.name)",
-                accessibilityHint: "Touche pour ouvrir l'objectif",
+                title: AppLocale.string("Objectif : \(goal.name)"),
+                accessibilityLabel: AppLocale.string("Objectif d'épargne : \(goal.name)"),
+                accessibilityHint: AppLocale.string("Touche pour ouvrir l'objectif"),
                 action: { router.pushSavingsGoal(goal) }
             )
+            .accessibilityIdentifier("budgetLineDetailGoalLink")
         }
     }
 
@@ -78,7 +79,7 @@ extension BudgetLineDetailPage {
                     iconTint: .financialSavings,
                     title: source.label,
                     accessibilityLabel: source.accessibilityLabel,
-                    accessibilityHint: "Touche pour ouvrir l'objectif",
+                    accessibilityHint: AppLocale.string("Touche pour ouvrir l'objectif"),
                     action: {
                         guard let goal = linkedGoal(id: goalId) else { return }
                         router.pushSavingsGoal(goal)

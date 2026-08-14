@@ -18,9 +18,15 @@ extension BudgetLineDetailPage {
         // 2-decimal formatters everywhere on the budget detail page per
         // `feedback_two_decimals_ios_budget_detail` (2026-05-08): the page
         // renders ligne-level amounts, so `asCompactCurrency` is proscribed.
-        let remainingLabel = amountsHidden ? "Montant masqué" : remaining.asCurrency(currency)
-        let spentLabel = amountsHidden ? "Montant masqué" : consumption.allocated.asCurrency(currency)
-        let plannedLabel = amountsHidden ? "Montant masqué" : line.amount.asCurrency(currency)
+        let remainingLabel = amountsHidden
+            ? AppLocale.string("Montant masqué")
+            : remaining.asCurrency(currency)
+        let spentLabel = amountsHidden
+            ? AppLocale.string("Montant masqué")
+            : consumption.allocated.asCurrency(currency)
+        let plannedLabel = amountsHidden
+            ? AppLocale.string("Montant masqué")
+            : line.amount.asCurrency(currency)
 
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {

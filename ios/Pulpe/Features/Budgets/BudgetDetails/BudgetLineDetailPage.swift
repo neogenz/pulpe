@@ -270,9 +270,9 @@ private extension BudgetLineDetailPage {
 
     func emptyStateMessage(for kind: TransactionKind) -> String {
         switch kind {
-        case .income: "Note ce qui passe sur ton compte pour suivre tes revenus"
-        case .saving: "Note ce qui passe sur ton compte pour suivre ton épargne"
-        case .expense: "Note ce qui passe sur ton compte pour suivre tes dépenses"
+        case .income: AppLocale.string("Note ce qui passe sur ton compte pour suivre tes revenus")
+        case .saving: AppLocale.string("Note ce qui passe sur ton compte pour suivre ton épargne")
+        case .expense: AppLocale.string("Note ce qui passe sur ton compte pour suivre tes dépenses")
         }
     }
 
@@ -293,7 +293,7 @@ private extension BudgetLineDetailPage {
             Task { await coordinator.dispatch(.toggleTransaction(transaction)) }
         } label: {
             Label(
-                transaction.isChecked ? "Dépointer" : "Pointer",
+                transaction.isChecked ? AppLocale.string("Dépointer") : AppLocale.string("Pointer"),
                 systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
             )
         }
@@ -315,6 +315,7 @@ private extension BudgetLineDetailPage {
                 router.push(.addAllocatedTx(lineId: line.id))
             }
             .primaryButtonStyle()
+            .accessibilityIdentifier("budgetLineDetailPrimaryAction")
         } else if !line.isPlannedSavingsWithdrawal {
             Button {
                 router.push(.addAllocatedTx(lineId: line.id))
@@ -322,6 +323,7 @@ private extension BudgetLineDetailPage {
                 Label("Noter un montant", systemImage: "plus")
             }
             .primaryButtonStyle()
+            .accessibilityIdentifier("budgetLineDetailPrimaryAction")
         }
     }
 }

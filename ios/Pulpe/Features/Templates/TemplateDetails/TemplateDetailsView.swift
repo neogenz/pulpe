@@ -29,7 +29,7 @@ struct TemplateDetailsView: View {
             }
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
-        .navigationTitle(viewModel.template?.name ?? "Modèle")
+        .navigationTitle(viewModel.template?.name ?? AppLocale.string("Modèle"))
         .navigationBarTitleDisplayMode(.inline)
         .task(id: savingsGoalStore.templateDataVersion) {
             await viewModel.loadDetails()
@@ -86,15 +86,19 @@ struct TemplateDetailsView: View {
 
             // Lines by kind
             if !viewModel.incomeLines.isEmpty {
-                templateLineSection(title: "Revenus", lines: viewModel.incomeLines, kind: .income)
+                templateLineSection(title: AppLocale.string("Revenus"), lines: viewModel.incomeLines, kind: .income)
             }
 
             if !viewModel.expenseLines.isEmpty {
-                templateLineSection(title: "Dépenses", lines: viewModel.expenseLines, kind: .expense)
+                templateLineSection(
+                    title: AppLocale.string("Dépenses"),
+                    lines: viewModel.expenseLines,
+                    kind: .expense
+                )
             }
 
             if !viewModel.savingLines.isEmpty {
-                templateLineSection(title: "Épargne", lines: viewModel.savingLines, kind: .saving)
+                templateLineSection(title: AppLocale.string("Épargne"), lines: viewModel.savingLines, kind: .saving)
             }
         }
         .listStyle(.insetGrouped)
@@ -236,7 +240,7 @@ struct TemplateLineRow: View {
                     if let goalName {
                         PulpeChip(
                             icon: "target",
-                            label: "Objectif : \(goalName)",
+                            label: AppLocale.string("Objectif : \(goalName)"),
                             style: .semantic(.financialSavings)
                         )
                         .lineLimit(1)

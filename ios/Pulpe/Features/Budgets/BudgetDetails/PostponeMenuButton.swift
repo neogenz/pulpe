@@ -37,8 +37,8 @@ struct PostponeMenuButton: View {
 
     private var disabledMessage: String {
         if let nextMonthLabel {
-            return "Crée d'abord le budget de \(nextMonthLabel)"
+            return AppLocale.string("Crée d'abord le budget de \(nextMonthLabel)")
         }
-        return "Crée d'abord le budget du mois suivant"
+        return AppLocale.string("Crée d'abord le budget du mois suivant")
     }
 }

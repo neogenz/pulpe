@@ -108,6 +108,7 @@ struct HomeHeroCard: View {
             .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
             .accessibilityLabel(accessibilityDescription)
             .accessibilityHint("Ouvrir le suivi du réalisé")
+            .accessibilityIdentifier("homeHeroMetrics")
 
             balanceChart
         }
@@ -219,6 +220,7 @@ struct HomeHeroCard: View {
         // The verdict is already spoken by the metrics element above; repeating it here
         // would make VoiceOver say it twice in a row.
         .accessibilityLabel("Voir le détail du budget")
+        .accessibilityIdentifier("homeBudgetDetailLink")
     }
 }
 

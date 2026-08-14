@@ -75,6 +75,7 @@ struct GoalProgressCard: View {
             }
         }
         .pulpeCard()
+        .accessibilityIdentifier("savingsGoalProgressCard")
     }
 
     private var layeredBar: some View {

@@ -137,13 +137,15 @@ extension HomeHeroCard {
             .dynamicTypeSize(...DynamicTypeSize.xLarge)
             .frame(height: DesignTokens.Chart.dashboardHeight)
             .sensitiveAmount()
-            .accessibilityIdentifier("home-balance-chart")
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Self.chartAccessibilityLabel(
                 for: trajectory,
                 currency: currency,
                 amountsHidden: amountsHidden
             ))
+            // After `.accessibilityElement(children:)`, so the identifier lands on the
+            // element that speaks the trajectory rather than on the silent view above it.
+            .accessibilityIdentifier("home-balance-chart")
         }
     }
 

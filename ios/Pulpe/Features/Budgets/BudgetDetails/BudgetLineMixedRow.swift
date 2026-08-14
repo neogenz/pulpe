@@ -51,9 +51,9 @@ struct BudgetLineMixedRow: View {
         savingsGoalSource: SavingsGoalSource? = nil
     ) -> String? {
         var parts: [String] = []
-        if isSpread { parts.append("Lissé") }
-        if let savingsGoalName { parts.append("objectif \(savingsGoalName)") }
-        if isSavingsWithdrawalIncome { parts.append("Pris sur ton épargne") }
+        if isSpread { parts.append(AppLocale.string("Lissé")) }
+        if let savingsGoalName { parts.append(AppLocale.string("objectif \(savingsGoalName)")) }
+        if isSavingsWithdrawalIncome { parts.append(AppLocale.string("Pris sur ton épargne")) }
         // PUL-329 v2 — the goal this announced withdrawal draws from. Keeps its
         // own snapshot wording once the goal is deleted: history, not an error.
         if let savingsGoalSource { parts.append(savingsGoalSource.label) }
@@ -75,7 +75,9 @@ struct BudgetLineMixedRow: View {
         realizedAmount: Decimal
     ) -> String? {
         guard line.isPlannedSavingsWithdrawal, realizedAmount < line.amount else { return nil }
-        return realizedAmount > 0 ? "Réaliser le solde" : "Réaliser ce retrait"
+        return realizedAmount > 0
+            ? AppLocale.string("Réaliser le solde")
+            : AppLocale.string("Réaliser ce retrait")
     }
 
     private var realizationLabel: String? {
@@ -144,6 +146,8 @@ struct BudgetLineMixedRow: View {
             )
         }
         .buttonStyle(.plain)
+        // Explicit, or the button inherits the metadata Text's identifier from its label.
+        .accessibilityIdentifier("budgetLineMixedRowButton-\(line.id)")
         .pulpeRowCard(cornerRadius: DesignTokens.CornerRadius.xl)
         .sensoryFeedback(.success, trigger: triggerToggleFeedback)
         // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
@@ -197,6 +201,7 @@ struct BudgetLineMixedRow: View {
                     Text(metadata)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                         .truncationMode(.tail)
+                        .accessibilityIdentifier("budgetLineMixedRowMetadata-\(line.id)")
                 }
 
                 if !tagNames.isEmpty {
@@ -308,10 +313,12 @@ struct BudgetLineMixedRow: View {
         // own screen, so naming the verb here would announce a button that the
         // row does not carry.
         let status = line.isPlannedSavingsWithdrawal
-            ? (realizationLabel == nil ? "Réalisé" : "À réaliser")
-            : (isPointed ? "Pointé" : "À pointer")
+            ? (realizationLabel == nil ? AppLocale.string("Réalisé") : AppLocale.string("À réaliser"))
+            : (isPointed ? AppLocale.string("Pointé") : AppLocale.string("À pointer"))
         let amount = displayAmount.asCurrency(currency)
-        let tags = tagNames.isEmpty ? "" : " · Tags : \(tagNames.joined(separator: ", "))"
+        let tags = tagNames.isEmpty
+            ? ""
+            : " · " + AppLocale.string("Tags : \(tagNames.joined(separator: ", "))")
         let context = metadata.map { " · \($0)" } ?? ""
         return "\(kindWord) · \(line.name)\(context) · \(amount) · \(status)\(tags)"
     }

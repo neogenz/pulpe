@@ -109,6 +109,16 @@ enum Formatters {
         return formatter
     }()
 
+    /// Ordinal position: "1er"/"3e" in French, "1st"/"3rd" in English, "3." in German,
+    /// "3º" in Italian. Never hand-build the suffix — the rules differ per language,
+    /// and in several of them per gender too.
+    static func ordinal(_ value: Int, locale: Locale = AppLocale.currentUILocale) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .ordinal
+        formatter.locale = locale
+        return formatter.string(from: NSNumber(value: value)) ?? String(value)
+    }
+
     // MARK: - Month Name
 
     /// Bounds-checked month name from 1-based month number, capitalized.

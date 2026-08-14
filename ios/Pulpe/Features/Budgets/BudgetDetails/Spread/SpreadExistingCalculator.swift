@@ -50,9 +50,11 @@ final class SpreadExistingCalculator {
     var validationMessage: String? {
         // `<=`: end == start leaves only the locked M0 in the window, so the grid
         // offers nothing to toggle — point at the date, not at "choose two months".
-        if end.ordinal <= start.ordinal { return "Le mois de fin doit suivre le mois de début" }
-        if selectedCount > Self.maxMonths { return "36 mois maximum" }
-        if selectedCount < Self.minMonths { return "Choisis au moins deux mois" }
+        if end.ordinal <= start.ordinal {
+            return AppLocale.string("Le mois de fin doit suivre le mois de début")
+        }
+        if selectedCount > Self.maxMonths { return AppLocale.string("36 mois maximum") }
+        if selectedCount < Self.minMonths { return AppLocale.string("Choisis au moins deux mois") }
         return nil
     }
 

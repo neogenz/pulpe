@@ -73,7 +73,7 @@ extension AddBudgetLineSheet {
             let budgetLine = try await dependencies.createBudgetLine(data)
             submitSuccessTrigger.toggle()
             onAdd(budgetLine)
-            toastManager.show("Prévision ajoutée")
+            toastManager.show(AppLocale.string("Prévision ajoutée"))
             dismiss()
         } catch {
             self.error = error

@@ -55,6 +55,7 @@ struct NetworkUnavailableView: View {
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .pulpeBackground()
+        .accessibilityIdentifier("networkUnavailableRoot")
     }
 }
 

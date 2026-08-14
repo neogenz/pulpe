@@ -170,6 +170,7 @@ struct GoalPlanMonthRow: View {
             .opacity(isEffectivelyLocked ? DesignTokens.Opacity.pointedDim : 1)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel)
+            .accessibilityIdentifier("savingsGoalPlanMonthRow-\(month.year)-\(month.month)")
 
             if isBlockedByRealization, let onOpenBudget {
                 Button("Ouvrir le budget", action: onOpenBudget)

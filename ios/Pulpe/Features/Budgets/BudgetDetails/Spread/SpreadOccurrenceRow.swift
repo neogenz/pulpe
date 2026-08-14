@@ -26,7 +26,7 @@ struct SpreadOccurrenceRow: View {
                     .strikethrough(item.isChecked, color: .secondary)
 
                 if item.isCurrent {
-                    Text(isCurrentPeriod ? "Ce mois" : "Ici")
+                    (isCurrentPeriod ? Text("Ce mois") : Text("Ici"))
                         .font(PulpeTypography.metricMini)
                         .foregroundStyle(Color.pulpePrimary)
                 }
@@ -41,6 +41,7 @@ struct SpreadOccurrenceRow: View {
         .allowsHitTesting(!item.isPast)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
+        .accessibilityIdentifier("spreadOccurrenceRow-\(occurrence.budgetLineId)")
     }
 
     @ViewBuilder
@@ -83,16 +84,17 @@ struct SpreadOccurrenceRow: View {
     private var accessibilityLabel: String {
         var parts = [monthLabel]
         if occurrence.transactionCount > 0 {
-            parts.append(
-                "\(occurrence.consumed.asCurrency(currency)) consommés sur "
-                    + "\(occurrence.amount.asCurrency(currency)) prévus"
-            )
+            let consumed = occurrence.consumed.asCurrency(currency)
+            let planned = occurrence.amount.asCurrency(currency)
+            parts.append(AppLocale.string("\(consumed) consommés sur \(planned) prévus"))
         } else {
             parts.append(occurrence.amount.asCurrency(currency))
         }
-        if item.isCurrent { parts.append(isCurrentPeriod ? "ce mois" : "ici") }
-        if item.isChecked { parts.append("pointé") }
-        if item.isPast { parts.append("passé") }
+        if item.isCurrent {
+            parts.append(isCurrentPeriod ? AppLocale.string("ce mois") : AppLocale.string("ici"))
+        }
+        if item.isChecked { parts.append(AppLocale.string("pointé")) }
+        if item.isPast { parts.append(AppLocale.string("passé")) }
         return parts.joined(separator: ", ")
     }
 }

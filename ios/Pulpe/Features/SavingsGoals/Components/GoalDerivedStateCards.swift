@@ -44,6 +44,7 @@ struct GoalEmptyGuidanceCard: View {
         ) {
             EmptyView()
         }
+        .accessibilityIdentifier("savingsGoalEmptyGuidanceCard")
     }
 }
 

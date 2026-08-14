@@ -94,7 +94,7 @@ struct SpreadOccurrencesSheet: View {
         NavigationStack {
             Group {
                 if viewModel.isLoading && viewModel.items.isEmpty {
-                    LoadingView(message: "Chargement...")
+                    LoadingView(message: AppLocale.string("Chargement..."))
                 } else if let error = viewModel.error, viewModel.items.isEmpty {
                     ErrorView(error: error) { await viewModel.load() }
                 } else {
@@ -103,6 +103,7 @@ struct SpreadOccurrencesSheet: View {
             }
             .navigationTitle(SpreadAffordanceButton.title(for: kind))
             .navigationBarTitleDisplayMode(.inline)
+            .accessibilityIdentifier("spreadOccurrencesRoot")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     SheetCloseButton()

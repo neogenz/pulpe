@@ -128,11 +128,9 @@ struct GoalPlanApplyRecapSheet: View {
 
     private var summary: String {
         guard mode == .creation else {
-            return changes.count == 1 ? "1 mois ajusté" : "\(changes.count) mois ajustés"
+            return AppLocale.string("\(changes.count) mois ajustés")
         }
-        return changes.count == 1
-            ? "1 prévision Épargne à ajouter"
-            : "\(changes.count) prévisions Épargne à ajouter"
+        return AppLocale.string("\(changes.count) prévisions Épargne à ajouter")
     }
 
     private var hasWithdrawal: Bool { changes.contains { $0.simulatedAmount < 0 } }

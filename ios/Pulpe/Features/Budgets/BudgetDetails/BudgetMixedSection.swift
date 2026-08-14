@@ -50,9 +50,9 @@ struct BudgetMixedSection: View {
 
     private var headerTitle: String {
         switch kind {
-        case .income: "Revenus"
-        case .saving: "Épargne"
-        case .expense: "Dépenses"
+        case .income: AppLocale.string("Revenus")
+        case .saving: AppLocale.string("Épargne")
+        case .expense: AppLocale.string("Dépenses")
         }
     }
 

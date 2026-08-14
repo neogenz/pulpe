@@ -29,27 +29,27 @@ struct CreateTemplateView: View {
 
     var body: some View {
         SheetFormContainer(
-            title: "Nouveau modèle",
+            title: AppLocale.string("Nouveau modèle"),
             isLoading: isCreating,
             focus: $focusedField,
             focusOrder: [.name, .description]
         ) {
             // Name
             FormTextField(
-                hint: "Nom du modèle",
+                hint: AppLocale.string("Nom du modèle"),
                 text: $name,
-                label: "Nom",
-                accessibilityLabel: "Nom du modèle",
+                label: AppLocale.string("Nom"),
+                accessibilityLabel: AppLocale.string("Nom du modèle"),
                 focusBinding: $focusedField,
                 field: .name
             )
 
             // Description
             FormTextField(
-                hint: "Description (optionnel)",
+                hint: AppLocale.string("Description (optionnel)"),
                 text: $description,
-                label: "Description",
-                accessibilityLabel: "Description du modèle",
+                label: AppLocale.string("Description"),
+                accessibilityLabel: AppLocale.string("Description du modèle"),
                 focusBinding: $focusedField,
                 field: .description
             )
@@ -143,9 +143,9 @@ struct CreateTemplateView: View {
     private var lineTotals: some View {
         let totals = calculateTotals()
         return HStack(spacing: DesignTokens.Spacing.lg) {
-            totalItem(label: "Revenus", amount: totals.income, color: .financialIncome)
-            totalItem(label: "Dépenses", amount: -totals.expenses, color: .financialExpense)
-            totalItem(label: "Solde", amount: totals.balance,
+            totalItem(label: AppLocale.string("Revenus"), amount: totals.income, color: .financialIncome)
+            totalItem(label: AppLocale.string("Dépenses"), amount: -totals.expenses, color: .financialExpense)
+            totalItem(label: AppLocale.string("Solde"), amount: totals.balance,
                       color: totals.balance >= 0 ? .financialSavings : .financialOverBudget)
         }
         .padding(.top, DesignTokens.Spacing.xs)
@@ -206,7 +206,7 @@ struct CreateTemplateView: View {
             let result = try await templateService.createTemplate(data)
             submitSuccessTrigger.toggle()
             onCreate(result.template)
-            toastManager.show("Modèle créé")
+            toastManager.show(AppLocale.string("Modèle créé"))
             dismiss()
         } catch {
             self.error = error
@@ -299,14 +299,16 @@ struct AddTemplateLineSheet: View {
 
     private var validationHint: String? {
         guard !canSubmit, hasStartedFilling else { return nil }
-        if (amount ?? 0) <= 0 { return "Ajoute un montant" }
-        if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Ajoute une description" }
+        if (amount ?? 0) <= 0 { return AppLocale.string("Ajoute un montant") }
+        if name.trimmingCharacters(in: .whitespaces).isEmpty {
+            return AppLocale.string("Ajoute une description")
+        }
         return nil
     }
 
     var body: some View {
         SheetFormContainer(
-            title: "Nouvelle ligne",
+            title: AppLocale.string("Nouvelle ligne"),
             isLoading: false,
             focus: $focusedField,
             focusOrder: [.amount, .name]
@@ -340,10 +342,10 @@ struct AddTemplateLineSheet: View {
 
     private var descriptionField: some View {
         FormTextField(
-            hint: "Nom de la ligne",
+            hint: AppLocale.string("Nom de la ligne"),
             text: $name,
-            label: "Description",
-            accessibilityLabel: "Nom de la ligne budgétaire",
+            label: AppLocale.string("Description"),
+            accessibilityLabel: AppLocale.string("Nom de la ligne budgétaire"),
             focusBinding: $focusedField,
             field: .name
         )

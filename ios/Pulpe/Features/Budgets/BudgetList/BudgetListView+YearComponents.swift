@@ -29,18 +29,18 @@ struct YearRecapCard: View {
     private var subtitle: String {
         let count = budgets.count
         if count == 0 {
-            return "Aucun mois budgétisé. Commence dès maintenant."
+            return AppLocale.string("Aucun mois budgétisé. Commence dès maintenant.")
         }
         if count == 12 {
-            return "Tu as budgétisé toute l'année. Bravo !"
+            return AppLocale.string("Tu as budgétisé toute l'année. Bravo !")
         }
-        return "Tu as budgétisé \(count) mois sur 12 sur l'année. "
-            + "Ton potentiel de croissance est encore incomplet."
+        return AppLocale.string("Tu as budgétisé \(count) mois sur 12 sur l'année.")
+            + " " + AppLocale.string("Ton potentiel de croissance est encore incomplet.")
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text(isPastYear ? "Bilan de l'année" : "Potentiel de l'année")
+            (isPastYear ? Text("Bilan de l'année") : Text("Potentiel de l'année"))
                 .font(PulpeTypography.stepTitle)
                 .foregroundStyle(Color.textPrimary)
                 .tracking(DesignTokens.Tracking.title)
@@ -55,11 +55,15 @@ struct YearRecapCard: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "\(isPastYear ? "Bilan" : "Potentiel") \(year), "
+            (isPastYear
+                ? AppLocale.string("Bilan \(String(year))")
+                : AppLocale.string("Potentiel \(String(year))"))
+            + ", "
             + (amountsHidden
-                ? "montant masqué"
+                ? AppLocale.string("montant masqué")
                 : closingBalance.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
-            + ", \(budgets.count) mois sur 12"
+            + ", "
+            + AppLocale.string("\(budgets.count) mois sur 12")
         )
     }
 

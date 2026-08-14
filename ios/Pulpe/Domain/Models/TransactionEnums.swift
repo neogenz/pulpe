@@ -86,7 +86,10 @@ enum TransactionRecurrence: String, Codable, CaseIterable, Sendable {
     var label: String {
         switch self {
         case .fixed: AppLocale.string("Récurrent")
-        case .oneOff: AppLocale.string("Prévu")
+        // French says "Prévu" for this type AND for the planned aggregate; the other
+        // languages split them (One-off vs Planned), so this sense needs its own key —
+        // the bare "Prévu" key stays the aggregate (docs/I18N.md, deliberate divergence 1).
+        case .oneOff: AppLocale.string("recurrence.oneOff")
         }
     }
 

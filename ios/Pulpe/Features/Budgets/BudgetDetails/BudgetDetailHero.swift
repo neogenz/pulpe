@@ -31,12 +31,14 @@ struct BudgetDetailHero: View {
 
     private var contextLabel: String {
         let symbol = userSettingsStore.currency.symbol
-        return metrics.isDeficit ? "Déficit · \(symbol)" : "Disponible · \(symbol)"
+        return metrics.isDeficit
+            ? AppLocale.string("Déficit · \(symbol)")
+            : AppLocale.string("Disponible · \(symbol)")
     }
 
     /// VoiceOver-only label — no embedded currency symbol so it isn't doubled with the formatted amount.
     private var contextLabelForVoiceOver: String {
-        metrics.isDeficit ? "Déficit" : "Disponible"
+        metrics.isDeficit ? AppLocale.string("Déficit") : AppLocale.string("Disponible")
     }
 
     private var fillPercentage: Double {
@@ -70,26 +72,28 @@ struct BudgetDetailHero: View {
 
     private var rolloverDisclosureLabel: String {
         if let previousBudgetMonth, !previousBudgetMonth.isEmpty {
-            return "Report de \(previousBudgetMonth) inclus"
+            return AppLocale.string("Report de \(previousBudgetMonth) inclus")
         }
-        return "Report du mois précédent inclus"
+        return AppLocale.string("Report du mois précédent inclus")
     }
 
     private var accessibilityDescription: String {
         if amountsHidden {
-            return "\(contextLabelForVoiceOver) — montant masqué"
+            return AppLocale.string("\(contextLabelForVoiceOver) — montant masqué")
         }
         let currency = userSettingsStore.currency
-        var desc = """
+        var desc = AppLocale.string("""
         \(contextLabelForVoiceOver) \(abs(metrics.remaining).asCurrency(currency)). \
         \(Int(metrics.usagePercentage))% utilisé. \
         Revenus \(metrics.totalIncome.asCurrency(currency)). \
         Dépenses \(metrics.totalExpenses.asCurrency(currency)), \
         dont \(metrics.totalSavings.asCurrency(currency)) d'épargne
-        """
+        """)
         if hasRollover, let rolloverAmount {
-            let label = rolloverAmount >= 0 ? "Excédent reporté" : "Déficit reporté"
-            desc += ". \(label) de \(abs(rolloverAmount).asCurrency(currency))"
+            let formatted = abs(rolloverAmount).asCurrency(currency)
+            desc += ". " + (rolloverAmount >= 0
+                ? AppLocale.string("Excédent reporté de \(formatted)")
+                : AppLocale.string("Déficit reporté de \(formatted)"))
         }
         return desc
     }
@@ -256,7 +260,7 @@ struct BudgetDetailHero: View {
     private var incomePill: some View {
         tintedPill(
             amount: metrics.totalIncome,
-            label: "revenus",
+            label: AppLocale.string("revenus"),
             tint: .financialIncome
         )
     }
@@ -266,7 +270,7 @@ struct BudgetDetailHero: View {
     private var expensesPill: some View {
         tintedPill(
             amount: metrics.totalExpenses,
-            label: "dépenses",
+            label: AppLocale.string("dépenses"),
             tint: .financialExpense
         )
     }
@@ -276,9 +280,9 @@ struct BudgetDetailHero: View {
     /// disjoint buckets and the arithmetic looks broken.
     private var savingsPill: some View {
         tintedPill(
-            prefix: "dont",
+            prefix: AppLocale.string("dont"),
             amount: metrics.totalSavings,
-            label: "épargne",
+            label: AppLocale.string("épargne"),
             tint: .financialSavings
         )
     }

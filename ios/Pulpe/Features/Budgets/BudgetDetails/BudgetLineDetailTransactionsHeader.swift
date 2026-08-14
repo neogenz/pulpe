@@ -36,9 +36,8 @@ struct BudgetLineDetailTransactionsHeader: View {
 
     private var countLabel: String {
         switch count {
-        case 0: "Aucune"
-        case 1: "1 ce mois"
-        default: "\(count) ce mois"
+        case 0: AppLocale.string("Aucune")
+        default: AppLocale.string("\(count) ce mois")
         }
     }
 }
