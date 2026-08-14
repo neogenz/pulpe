@@ -1305,7 +1305,9 @@ describe("landing accessibility contracts", () => {
   });
 
   it("links the first help journey from support and navigation", () => {
-    assert.match(componentSources.support, /Guides pour utiliser Pulpe/);
+    // « Guides » est réservé à /guides : la section support parle de tutoriels.
+    assert.match(componentSources.support, /Bien démarrer avec Pulpe/);
+    assert.doesNotMatch(componentSources.support, /Guides pour utiliser/);
     assert.match(componentSources.support, /\/support\/modeles-et-budgets/);
     assert.match(componentSources.header, /href: "\/support", label: "Aide"/);
     assert.match(componentSources.footer, /label: "Aide", href: "\/support"/);

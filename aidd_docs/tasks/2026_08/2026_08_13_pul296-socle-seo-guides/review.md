@@ -33,7 +33,7 @@
 | --- | ---- | ----- | -------- | ----- | --- |
 | 🟢 | rot | 2 | `landing/components/guides/guides.ts:33-37` | `SOCIAL_PREVIEW_IMAGE`/`ALT` restent copiés dans layout.tsx, modeles-et-budgets et ici : bump `?v=3` = 3 sites à toucher. Copie assumée : le test a11y (l.1102) exige la déclaration DANS layout.tsx | Accepté en l'état ; centraliser si le contrat a11y évolue |
 | 🟢 | frontend | 2 | `landing/app/globals.css:648` | `.table-scroll` ne défile jamais avec le tableau actuel (2 colonnes étroites) et n'a pas de `tabIndex` clavier | Gardé : conteneur exigé par le plan (phase 1) ; ajouter `tabIndex={0}` + label le jour où un tableau déborde réellement |
-| 🟢 | fit | 3 | `landing/components/sections/Footer.tsx:14` | « Guides » (→ /guides) coexiste avec la section « Guides pour utiliser Pulpe » de /support : deux sens du mot dans le même parcours | Décision produit à trancher (renommer la section support, copy antérieure à cette PR) |
+| 🟢 | fit | 3 | `landing/components/sections/Footer.tsx:14` | « Guides » (→ /guides) coexistait avec la section « Guides pour utiliser Pulpe » de /support : deux sens du mot dans le même parcours | Corrigé (validé par Maxime) : /support dit désormais « Bien démarrer avec Pulpe » / « Tutoriels », le mot « Guides » ne désigne plus que /guides |
 
 ## Verification
 
