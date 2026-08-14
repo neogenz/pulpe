@@ -3,6 +3,9 @@ import SwiftUI
 struct TemplateDetailsView: View {
     let templateId: String
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(BudgetListStore.self) private var budgetListStore
+    @Environment(DashboardStore.self) private var dashboardStore
+    @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(SavingsGoalStore.self) private var savingsGoalStore
     @Environment(TagStore.self) private var tagStore
     @State private var viewModel: TemplateDetailsViewModel
@@ -44,10 +47,30 @@ struct TemplateDetailsView: View {
             EditTemplateLineSheet(
                 templateLine: line,
                 userCurrency: userSettingsStore.currency
-            ) { updatedLine in
+            ) { updatedLine, impact in
                 Task { await viewModel.updateTemplateLine(updatedLine) }
+                guard impact == .budgetsChanged else { return }
+                Self.invalidateBudgetProjectionCaches(
+                    budgetListStore: budgetListStore,
+                    dashboardStore: dashboardStore,
+                    currentMonthStore: currentMonthStore,
+                    savingsGoalStore: savingsGoalStore
+                )
             }
         }
+    }
+
+    @MainActor
+    static func invalidateBudgetProjectionCaches(
+        budgetListStore: BudgetListStore,
+        dashboardStore: DashboardStore,
+        currentMonthStore: CurrentMonthStore,
+        savingsGoalStore: SavingsGoalStore
+    ) {
+        budgetListStore.invalidateCache()
+        dashboardStore.invalidateCache()
+        currentMonthStore.invalidateCache()
+        savingsGoalStore.invalidateCache()
     }
 
     private var referencedTagIds: Set<String> {

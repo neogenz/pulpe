@@ -141,6 +141,12 @@ struct EditTemplateLineSheetTests {
         #expect(propagated.tagIds == [])
     }
 
+    @Test("A propagated update signals changed budgets only when at least one was affected")
+    func propagationImpact_distinguishesBudgetChanges() {
+        #expect(EditTemplateLineSaveImpact.propagation(affectedBudgetsCount: 1) == .budgetsChanged)
+        #expect(EditTemplateLineSaveImpact.propagation(affectedBudgetsCount: 0) == .templateOnly)
+    }
+
     // MARK: - Case 7: pure helper snapshot stability
 
     @Test("Case 7: pure helper — repeated calls with stable inputs are deterministic")
