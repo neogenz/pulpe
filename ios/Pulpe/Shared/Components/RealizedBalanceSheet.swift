@@ -30,7 +30,7 @@ struct RealizedBalanceSheet: View {
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .background(Color.sheetBackground)
-            .navigationTitle("Suivi du budget")
+            .localizedNavigationTitle("Suivi du budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

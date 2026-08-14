@@ -23,7 +23,7 @@ struct ForgotPasswordSheet: View {
             .padding(DesignTokens.Spacing.xl)
             .background(Color.sheetBackground)
             .dismissKeyboardOnTap()
-            .navigationTitle("Mot de passe oublié")
+            .localizedNavigationTitle("Mot de passe oublié")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

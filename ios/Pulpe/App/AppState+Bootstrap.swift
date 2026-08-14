@@ -110,7 +110,7 @@ extension AppState {
             )
             isNetworkUnavailable = false
             isInMaintenance = false
-            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
+            biometricError = AppLocale.string("Ta session a expiré, connecte-toi avec ton mot de passe")
             await ensureReturningUserFlagLoaded()
             authState = .unauthenticated
         case .cancelled:
@@ -120,7 +120,7 @@ extension AppState {
             AnalyticsService.captureAuthSessionDiagnostic(source: "startup_result", outcome: "timeout")
             isNetworkUnavailable = true
             isInMaintenance = false
-            biometricError = "Le chargement a pris trop de temps, réessaie"
+            biometricError = AppLocale.string("Le chargement a pris trop de temps, réessaie")
             authState = .loading
         }
     }

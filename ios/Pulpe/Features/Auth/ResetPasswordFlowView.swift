@@ -31,7 +31,7 @@ struct ResetPasswordFlowView: View {
             .padding(DesignTokens.Spacing.xl)
             .background(Color.sheetBackground)
             .dismissKeyboardOnTap()
-            .navigationTitle("Réinitialiser le mot de passe")
+            .localizedNavigationTitle("Réinitialiser le mot de passe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

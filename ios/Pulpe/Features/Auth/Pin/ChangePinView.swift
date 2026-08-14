@@ -21,7 +21,7 @@ struct ChangePinView: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .pulpeBackground()
-            .navigationTitle("Code PIN")
+            .localizedNavigationTitle("Code PIN")
             .navigationBarTitleDisplayMode(.inline)
             .sensoryFeedback(.error, trigger: viewModel.hapticError)
             .sensoryFeedback(.success, trigger: viewModel.hapticSuccess)

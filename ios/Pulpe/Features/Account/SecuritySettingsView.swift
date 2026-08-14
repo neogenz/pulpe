@@ -17,20 +17,23 @@ struct SecuritySettingsView: View {
     var body: some View {
         List {
             Section {
-                chevronRow("Code PIN", detail: "Modifier") {
+                chevronRow(AppLocale.string("Code PIN"), detail: AppLocale.string("Modifier")) {
                     showChangePin = true
                 }
 
-                chevronRow("Mot de passe", detail: "••••••••") {
+                chevronRow(AppLocale.string("Mot de passe"), detail: "••••••••") {
                     showChangePassword = true
                 }
 
-                chevronRow("Clé de secours", detail: "Régénérer") {
+                chevronRow(AppLocale.string("Clé de secours"), detail: AppLocale.string("Régénérer")) {
                     securityViewModel.showConfirmPassword = true
                 }
                 .disabled(securityViewModel.isRegenerating)
 
-                chevronRow("Vérifier ma clé de récupération", detail: "Vérifier") {
+                chevronRow(
+                    AppLocale.string("Vérifier ma clé de récupération"),
+                    detail: AppLocale.string("Vérifier")
+                ) {
                     showVerifyRecoveryKey = true
                 }
             }
@@ -44,10 +47,13 @@ struct SecuritySettingsView: View {
                                 Task {
                                     let success = await appState.enableBiometric()
                                     if success {
-                                        appState.toastManager.show("\(biometricDisplayName) activé", type: .success)
+                                        appState.toastManager.show(
+                                            AppLocale.string("\(biometricDisplayName) activé"),
+                                            type: .success
+                                        )
                                     } else {
                                         appState.toastManager.show(
-                                            "Impossible d'activer \(biometricDisplayName)",
+                                            AppLocale.string("Impossible d'activer \(biometricDisplayName)"),
                                             type: .error
                                         )
                                     }
@@ -111,7 +117,7 @@ struct SecuritySettingsView: View {
                     await appState.disableBiometric()
                     biometricToggle = false
                     appState.toastManager.show(
-                        "\(biometricDisplayName) désactivé",
+                        AppLocale.string("\(biometricDisplayName) désactivé"),
                         type: .success
                     )
                 }
@@ -122,12 +128,12 @@ struct SecuritySettingsView: View {
         .navigationDestination(isPresented: $showChangePin) {
             ChangePinView {
                 showChangePin = false
-                appState.toastManager.show("Code PIN modifié", type: .success)
+                appState.toastManager.show(AppLocale.string("Code PIN modifié"), type: .success)
             }
         }
         .sheet(isPresented: $showChangePassword) {
             ChangePasswordSheet {
-                appState.toastManager.show("Mot de passe modifié", type: .success)
+                appState.toastManager.show(AppLocale.string("Mot de passe modifié"), type: .success)
             }
         }
         .sheet(isPresented: $securityViewModel.showConfirmPassword) {
@@ -137,7 +143,7 @@ struct SecuritySettingsView: View {
                     email: appState.currentUser?.email
                 )
                 if error == nil {
-                    appState.toastManager.show("Clé de secours régénérée", type: .success)
+                    appState.toastManager.show(AppLocale.string("Clé de secours régénérée"), type: .success)
                 }
                 return error
             }
@@ -151,7 +157,10 @@ struct SecuritySettingsView: View {
         }
         .sheet(isPresented: $showVerifyRecoveryKey) {
             VerifyRecoveryKeySheet {
-                appState.toastManager.show("Cette clé est valide pour ton compte.", type: .success)
+                appState.toastManager.show(
+                    AppLocale.string("Cette clé est valide pour ton compte."),
+                    type: .success
+                )
             }
         }
         .overlay {
@@ -177,15 +186,15 @@ struct SecuritySettingsView: View {
                 }
             }
         } message: {
-            Text(
-                "Ton compte sera définitivement supprimé " +
-                "après un délai de 3 jours. Cette action est irréversible."
-            )
+            Text("""
+                Ton compte sera définitivement supprimé \
+                après un délai de 3 jours. Cette action est irréversible.
+                """)
         }
         .scrollContentBackground(.hidden)
         .pulpeBackground()
         .listStyle(.insetGrouped)
-        .navigationTitle("Sécurité")
+        .localizedNavigationTitle("Sécurité")
         .trackScreen("Security")
     }
 
@@ -230,7 +239,7 @@ final class AccountSecurityViewModel {
         email: String?
     ) async -> String? {
         guard let email, !email.isEmpty else {
-            return "Utilisateur non connecté"
+            return AppLocale.string("Utilisateur non connecté")
         }
 
         isRegenerating = true
@@ -244,10 +253,10 @@ final class AccountSecurityViewModel {
             return nil
         } catch {
             if AuthErrorLocalizer.isInvalidCredentials(error) {
-                return "Mot de passe incorrect"
+                return AppLocale.string("Mot de passe incorrect")
             }
             if error is APIError {
-                return "Erreur lors de la génération"
+                return AppLocale.string("Erreur lors de la génération")
             }
             return AuthErrorLocalizer.localize(error)
         }

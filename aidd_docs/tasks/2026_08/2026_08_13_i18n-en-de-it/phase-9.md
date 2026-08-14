@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: iOS — lot E : Account, App, Widget + relecture iOS

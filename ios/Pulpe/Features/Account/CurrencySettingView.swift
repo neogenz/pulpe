@@ -123,10 +123,10 @@ struct CurrencySettingView: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text("Saisir dans une autre devise")
                     .font(PulpeTypography.listRowTitle)
-                Text(
-                    "Un sélecteur de devise apparaît à côté du montant. "
-                        + "Pulpe convertit au cours du jour."
-                )
+                Text("""
+                    Un sélecteur de devise apparaît à côté du montant. \
+                    Pulpe convertit au cours du jour.
+                    """)
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.onSurfaceVariant)
                 .fixedSize(horizontal: false, vertical: true)
@@ -178,7 +178,9 @@ struct CurrencySettingView: View {
                 "to": to.rawValue
             ])
             submitSuccessTrigger.toggle()
-            let successMessage = "Affichage en \(to.symbol). Tes montants gardent leur valeur."
+            let successMessage = AppLocale.string(
+                "Affichage en \(to.symbol). Tes montants gardent leur valeur."
+            )
             appState.toastManager.show(successMessage, type: .success)
             announceForVoiceOver(successMessage)
             // Reload widget timelines so they stop rendering the previous currency.
@@ -187,8 +189,9 @@ struct CurrencySettingView: View {
                 currency: userSettingsStore.currency
             )
         } else {
-            appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
-            announceForVoiceOver("Erreur lors de la sauvegarde")
+            let errorMessage = AppLocale.string("Erreur lors de la sauvegarde")
+            appState.toastManager.show(errorMessage, type: .error)
+            announceForVoiceOver(errorMessage)
         }
     }
 
@@ -202,11 +205,13 @@ struct CurrencySettingView: View {
                 "enabled": newValue
             ])
             submitSuccessTrigger.toggle()
-            appState.toastManager.show("Préférence enregistrée", type: .success)
-            announceForVoiceOver("Préférence enregistrée")
+            let successMessage = AppLocale.string("Préférence enregistrée")
+            appState.toastManager.show(successMessage, type: .success)
+            announceForVoiceOver(successMessage)
         } else {
-            appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
-            announceForVoiceOver("Erreur lors de la sauvegarde")
+            let errorMessage = AppLocale.string("Erreur lors de la sauvegarde")
+            appState.toastManager.show(errorMessage, type: .error)
+            announceForVoiceOver(errorMessage)
         }
     }
 
@@ -263,11 +268,11 @@ extension CurrencySettingView {
     fileprivate var converterInputRow: some View {
         converterValueRow(
             ConverterValueRowModel(
-                title: "Depuis",
+                title: AppLocale.string("Depuis"),
                 caption: nil,
                 currency: viewModel.sourceCurrency,
                 isOutput: false,
-                inputAccessibilityLabel: "Depuis \(viewModel.sourceCurrency.nativeName)"
+                inputAccessibilityLabel: AppLocale.string("Depuis \(viewModel.sourceCurrency.nativeName)")
             )
         ) {
             TextField("0", text: $viewModel.converterInput)
@@ -283,7 +288,7 @@ extension CurrencySettingView {
     fileprivate var converterOutputRow: some View {
         converterValueRow(
             ConverterValueRowModel(
-                title: "Vers",
+                title: AppLocale.string("Vers"),
                 caption: AppLocale.string("Calcul automatique"),
                 currency: viewModel.targetCurrency,
                 isOutput: true,
@@ -355,10 +360,10 @@ extension CurrencySettingView {
                     Image(systemName: "chart.line.downtrend.xyaxis")
                         .font(PulpeTypography.listRowTitle)
                         .foregroundStyle(Color.textTertiary)
-                    Text(
-                        "Impossible de récupérer le cours du jour. "
-                            + "Tes montants déjà enregistrés restent intacts."
-                    )
+                    Text("""
+                        Impossible de récupérer le cours du jour. \
+                        Tes montants déjà enregistrés restent intacts.
+                        """)
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.onSurfaceVariant)
                         .fixedSize(horizontal: false, vertical: true)

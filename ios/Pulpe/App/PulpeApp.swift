@@ -114,11 +114,6 @@ struct PulpeApp: App {
                     .environment(tagStore)
                     .environment(appVersionStore)
                     .environment(whatsNewStore)
-                    // The whole interface language, in one line. Body text, plural variants,
-                    // toolbar items and alerts re-resolve against it with no restart;
-                    // `.navigationTitle` is the one exception and goes through
-                    // `.localizedNavigationTitle`.
-                    .environment(\.locale, AppLocale.uiLocale(for: userSettingsStore.locale))
                     .overlay(alignment: .topLeading) {
                         ToastOverlayWindowHost(toastManager: appState.toastManager)
                     }
@@ -142,6 +137,14 @@ struct PulpeApp: App {
                     .fullScreenCover(isPresented: forceUpdateBinding) {
                         ForceUpdateView(storeURL: forceUpdateStoreURL)
                     }
+                    // The whole interface language, in one line. Body text, plural variants,
+                    // toolbar items and alerts re-resolve against it with no restart;
+                    // `.navigationTitle` is the one exception and goes through
+                    // `.localizedNavigationTitle`. Kept outermost: presentation content
+                    // inherits the environment of its attachment point, so a cover attached
+                    // outside this line — as the force-update cover once was — renders in
+                    // the device language instead of the selector's.
+                    .environment(\.locale, AppLocale.uiLocale(for: userSettingsStore.locale))
             }
         }
     }
@@ -304,7 +307,7 @@ struct RootView: View {
     private var routeContent: some View {
         switch appState.currentRoute {
         case .loading:
-            LoadingView(message: "Chargement...")
+            LoadingView(message: AppLocale.string("Chargement..."))
 
         case .maintenance:
             MaintenanceView()
@@ -378,7 +381,7 @@ struct RootView: View {
                 onSessionExpired: { appState.send(.recoverySessionExpired) }
             )
         case .loading, .unauthenticated:
-            LoadingView(message: "Chargement...")
+            LoadingView(message: AppLocale.string("Chargement..."))
         }
     }
 

@@ -28,7 +28,7 @@ struct ConfirmPasswordSheet: View {
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     AuthSecureField(
-                        prompt: "Mot de passe",
+                        prompt: AppLocale.string("Mot de passe"),
                         text: $password,
                         isVisible: $showPassword,
                         systemImage: "lock",
@@ -67,7 +67,7 @@ struct ConfirmPasswordSheet: View {
                 .disabled(password.isEmpty || isVerifying)
                 .padding(.horizontal)
             }
-            .navigationTitle("Vérification")
+            .localizedNavigationTitle("Vérification")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

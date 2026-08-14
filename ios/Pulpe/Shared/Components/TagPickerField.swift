@@ -145,7 +145,7 @@ private struct TagPickerSheet: View {
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(Color.sheetBackground)
-            .navigationTitle("Tags")
+            .localizedNavigationTitle("Tags")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

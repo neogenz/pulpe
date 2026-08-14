@@ -123,7 +123,7 @@ final class OnboardingBootstrapper {
             return true
         } catch {
             Logger.auth.error("OnboardingBootstrapper: failed to create template/budget - \(error)")
-            toastManager.show("Erreur lors de la création du budget", type: .error)
+            toastManager.show(AppLocale.string("Erreur lors de la création du budget"), type: .error)
             return false
         }
     }
@@ -154,7 +154,7 @@ final class OnboardingBootstrapper {
             "attempts": totalAttempts
         ])
         toastManager.show(
-            "Devise non sauvegardée, réessaie depuis les paramètres",
+            AppLocale.string("Devise non sauvegardée, réessaie depuis les paramètres"),
             type: .error
         )
     }

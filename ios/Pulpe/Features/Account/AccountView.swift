@@ -33,7 +33,7 @@ struct AccountView: View {
             .sensoryFeedback(.impact, trigger: debugToggleTrigger)
             .listStyle(.insetGrouped)
             .trackScreen("Account")
-            .navigationTitle("Compte")
+            .localizedNavigationTitle("Compte")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Fermer") { dismiss() }
@@ -62,7 +62,7 @@ extension AccountView {
                     font: PulpeTypography.amountXL
                 )
                 .accessibilityHidden(true)
-                Text(email.isEmpty ? "Non connecté(e)" : email)
+                Text(email.isEmpty ? AppLocale.string("Non connecté(e)") : email)
                     .font(PulpeTypography.bodyLarge)
                 Text("Pulpe")
                     .font(PulpeTypography.caption)
@@ -79,8 +79,8 @@ extension AccountView {
             settingsNavigationRow(
                 icon: "lock.shield",
                 iconColor: Color.pulpePrimary,
-                title: "Sécurité",
-                subtitle: "Code PIN, Mot de passe, Biométrie"
+                title: AppLocale.string("Sécurité"),
+                subtitle: AppLocale.string("Code PIN, Mot de passe, Biométrie")
             ) {
                 SecuritySettingsView()
             }
@@ -88,8 +88,8 @@ extension AccountView {
             settingsNavigationRow(
                 icon: "gearshape",
                 iconColor: Color.textSecondary,
-                title: "Préférences",
-                subtitle: "Jour de paie et devise"
+                title: AppLocale.string("Préférences"),
+                subtitle: AppLocale.string("Jour de paie et devise")
             ) {
                 PreferencesView()
             }
@@ -97,8 +97,8 @@ extension AccountView {
             settingsNavigationRow(
                 icon: "tag",
                 iconColor: Color.textSecondary,
-                title: "Mes tags",
-                subtitle: "Tes tags personnels"
+                title: AppLocale.string("Mes tags"),
+                subtitle: AppLocale.string("Tes tags personnels")
             ) {
                 TagsSettingsView()
             }
@@ -112,16 +112,16 @@ extension AccountView {
             iconChevronLink(
                 icon: "questionmark.circle",
                 iconColor: Color.financialIncome,
-                title: "FAQ et support",
-                subtitle: "Aide et questions fréquentes",
+                title: AppLocale.string("FAQ et support"),
+                subtitle: AppLocale.string("Aide et questions fréquentes"),
                 url: AppURLs.support
             )
 
             iconChevronLink(
                 icon: "sparkles",
                 iconColor: Color.pulpePrimary,
-                title: "Nouveautés",
-                subtitle: "Dernières mises à jour",
+                title: AppLocale.string("Nouveautés"),
+                subtitle: AppLocale.string("Dernières mises à jour"),
                 url: AppURLs.changelog
             )
         } header: {
@@ -146,16 +146,16 @@ extension AccountView {
             iconChevronLink(
                 icon: "doc.text",
                 iconColor: Color.textSecondary,
-                title: "Conditions générales",
-                subtitle: "Conditions d'utilisation de Pulpe",
+                title: AppLocale.string("Conditions générales"),
+                subtitle: AppLocale.string("Conditions d'utilisation de Pulpe"),
                 url: AppURLs.terms
             )
 
             iconChevronLink(
                 icon: "hand.raised",
                 iconColor: Color.textSecondary,
-                title: "Avis de confidentialité",
-                subtitle: "Protection de tes données",
+                title: AppLocale.string("Avis de confidentialité"),
+                subtitle: AppLocale.string("Protection de tes données"),
                 url: AppURLs.privacy
             )
         } header: {

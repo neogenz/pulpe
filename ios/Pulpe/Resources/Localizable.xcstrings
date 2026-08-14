@@ -46,10 +46,12 @@
       }
     },
     " · %lld" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "%@" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "%@\n\n« Appliquer » mettra à jour les budgets en cours et futurs. Les prévisions modifiées manuellement ne seront pas affectées." : {
       "localizations" : {
@@ -165,7 +167,8 @@
             "value" : "%1$@ (%2$lld)"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@ / %@" : {
       "localizations" : {
@@ -175,7 +178,8 @@
             "value" : "%1$@ / %2$@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@ / mois" : {
       "localizations" : {
@@ -245,6 +249,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@: importo nascosto"
+          }
+        }
+      }
+    },
+    "%@ activé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ aktiviert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ turned on"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ attivato"
           }
         }
       }
@@ -515,6 +541,28 @@
         }
       }
     },
+    "%@ désactivé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ deaktiviert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ turned off"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ disattivato"
+          }
+        }
+      }
+    },
     "%@ mois sur %lld" : {
       "localizations" : {
         "de" : {
@@ -714,7 +762,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ · Ziel %@"
+            "value" : "%@ · Sparziel %@"
           }
         },
         "en" : {
@@ -951,7 +999,8 @@
             "value" : "%1$@, %2$lld"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@, %lld éléments" : {
       "localizations" : {
@@ -1217,9 +1266,6 @@
         }
       }
     },
-    "%@:" : {
-      "localizations" : {}
-    },
     "%@: %@" : {
       "localizations" : {
         "de" : {
@@ -1278,7 +1324,8 @@
             "value" : "%1$lld %2$@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%lld / %lld" : {
       "localizations" : {
@@ -1304,6 +1351,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld / %lld"
+          }
+        }
+      }
+    },
+    "%lld TAGS PERSONNELS" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld PERSÖNLICHE TAGS"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld PERSONAL TAGS"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld TAG PERSONALI"
           }
         }
       }
@@ -2146,13 +2215,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld Planposten ohne Ziel behalten"
+                  "value" : "%lld Planposten ohne Sparziel behalten"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld Planposten ohne Ziel behalten"
+                  "value" : "%lld Planposten ohne Sparziel behalten"
                 }
               }
             }
@@ -2374,13 +2443,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld Sparen-Planposten hängt in deinen kommenden Monaten noch an diesem Ziel. Was willst du damit machen?"
+                  "value" : "%lld Sparen-Planposten hängt in deinen kommenden Monaten noch an diesem Sparziel. Was willst du damit machen?"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld Sparen-Planposten hängen in deinen kommenden Monaten noch an diesem Ziel. Was willst du damit machen?"
+                  "value" : "%lld Sparen-Planposten hängen in deinen kommenden Monaten noch an diesem Sparziel. Was willst du damit machen?"
                 }
               }
             }
@@ -3064,13 +3133,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "+%lld more envelope"
+                  "value" : "+%lld more planned item"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "+%lld more envelopes"
+                  "value" : "+%lld more planned items"
                 }
               }
             }
@@ -3100,13 +3169,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "+%lld altra busta"
+                  "value" : "+%lld altra previsione"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "+%lld altre buste"
+                  "value" : "+%lld altre previsioni"
                 }
               }
             }
@@ -3159,7 +3228,8 @@
       }
     },
     "/" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "/ %@ prévu" : {
       "localizations" : {
@@ -3242,7 +3312,30 @@
       }
     },
     "0" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
+    },
+    "1 TAG PERSONNEL" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 PERSÖNLICHER TAG"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 PERSONAL TAG"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 TAG PERSONALE"
+          }
+        }
+      }
     },
     "1 à %lld caractères · ajouté à la sélection" : {
       "localizations" : {
@@ -3267,7 +3360,30 @@
       }
     },
     "12 janvier" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
+    },
+    "1er du mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. des Monats"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1st of the month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1° del mese"
+          }
+        }
+      }
     },
     "36 mois maximum" : {
       "localizations" : {
@@ -3402,7 +3518,8 @@
       }
     },
     "API" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Abandonner" : {
       "localizations" : {
@@ -3449,7 +3566,30 @@
       }
     },
     "Account header" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
+    },
+    "Accueil" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
+          }
+        }
+      }
     },
     "Actif" : {
       "localizations" : {
@@ -3583,6 +3723,28 @@
         }
       }
     },
+    "Affichage en %@. Tes montants gardent leur valeur." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anzeige in %@. Deine Beträge behalten ihren Wert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shown in %@. Your amounts keep their value."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visualizzazione in %@. I tuoi importi mantengono il loro valore."
+          }
+        }
+      }
+    },
     "Affiche le montant disponible à dépenser" : {
       "localizations" : {
         "de" : {
@@ -3606,7 +3768,26 @@
       }
     },
     "Affiche les 12 mois de l'année" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt die 12 Monate des Jahres"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows the 12 months of the year"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra i 12 mesi dell'anno"
+          }
+        }
+      }
     },
     "Affiche tous les mois" : {
       "localizations" : {
@@ -3631,7 +3812,26 @@
       }
     },
     "Afficher" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra"
+          }
+        }
+      }
     },
     "Afficher le mot de passe" : {
       "localizations" : {
@@ -3656,7 +3856,26 @@
       }
     },
     "Afficher les montants ?" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beträge anzeigen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the amounts?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrare gli importi?"
+          }
+        }
+      }
     },
     "Afficher tous les types" : {
       "localizations" : {
@@ -3808,6 +4027,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mostra solo gli elementi da spuntare"
+          }
+        }
+      }
+    },
+    "Aide et questions fréquentes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hilfe und häufige Fragen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help and frequently asked questions"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aiuto e domande frequenti"
           }
         }
       }
@@ -4297,7 +4538,8 @@
       }
     },
     "Anon Key" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Aperçu" : {
       "localizations" : {
@@ -4692,7 +4934,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Landung"
+            "value" : "Monatsende"
           }
         },
         "en" : {
@@ -4704,7 +4946,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Atterraggio"
+            "value" : "Fine mese"
           }
         }
       }
@@ -4714,7 +4956,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Geschätzte Landung %@."
+            "value" : "Geschätztes Monatsende %@."
           }
         },
         "en" : {
@@ -4726,7 +4968,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Atterraggio stimato %@."
+            "value" : "Stima di fine mese %@."
           }
         }
       }
@@ -4736,7 +4978,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Geplante Landung"
+            "value" : "Geplantes Monatsende"
           }
         },
         "en" : {
@@ -4748,7 +4990,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Atterraggio previsto"
+            "value" : "Fine mese previsto"
           }
         }
       }
@@ -4846,7 +5088,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kein Ziel"
+            "value" : "Kein Sparziel"
           }
         },
         "en" : {
@@ -4868,7 +5110,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kein Ziel gewählt"
+            "value" : "Kein Sparziel gewählt"
           }
         },
         "en" : {
@@ -4912,7 +5154,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kein Ziel verfügbar"
+            "value" : "Kein Sparziel verfügbar"
           }
         },
         "en" : {
@@ -4934,7 +5176,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kein Ziel hat im Moment Geld verfügbar."
+            "value" : "Kein Sparziel hat im Moment Geld verfügbar."
           }
         },
         "en" : {
@@ -4969,6 +5211,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nessun tag"
+          }
+        }
+      }
+    },
+    "Aucun tag personnel" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein persönlicher Tag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No personal tag"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun tag personale"
           }
         }
       }
@@ -5022,7 +5286,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Es ist kein Notfallschlüssel gespeichert — erstell einen unter „Notfallschlüssel“."
+            "value" : "Es ist kein Wiederherstellungsschlüssel gespeichert — erstell einen unter „Wiederherstellungsschlüssel“."
           }
         },
         "en" : {
@@ -5303,8 +5567,49 @@
         }
       }
     },
+    "Avis de confidentialité" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datenschutzhinweis"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy notice"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informativa sulla privacy"
+          }
+        }
+      }
+    },
     "BIOMÉTRIE" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BIOMETRIE"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BIOMETRICS"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BIOMETRIA"
+          }
+        }
+      }
     },
     "Belle marge pour le mois. Tu pourras affiner plus tard." : {
       "localizations" : {
@@ -5549,7 +5854,26 @@
       }
     },
     "Budget protégé" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschütztes Budget"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protected budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget protetto"
+          }
+        }
+      }
     },
     "Budgets" : {
       "localizations" : {
@@ -5742,7 +6066,8 @@
       }
     },
     "CHF 941.20" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Calcul automatique" : {
       "localizations" : {
@@ -6119,7 +6444,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieser Betrag ist höher als das, was im Ziel liegt."
+            "value" : "Dieser Betrag ist höher als das, was im Sparziel liegt."
           }
         },
         "en" : {
@@ -6141,7 +6466,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieser Betrag ist höher als das, was das Ziel in diesem Monat enthalten sollte. Du kannst ihn trotzdem planen."
+            "value" : "Dieser Betrag ist höher als das, was das Sparziel in diesem Monat enthalten sollte. Du kannst ihn trotzdem planen."
           }
         },
         "en" : {
@@ -6411,7 +6736,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This email is already in use — log in or use another one"
+            "value" : "This email is already in use — sign in or use another one"
           }
         },
         "it" : {
@@ -6449,7 +6774,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieses Ziel wurde gelöscht. Die Einnahme bleibt in deinem Budget."
+            "value" : "Dieses Sparziel wurde gelöscht. Die Einnahme bleibt in deinem Budget."
           }
         },
         "en" : {
@@ -6474,13 +6799,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Dieses Ziel ist gestoppt, aber %lld Sparen-Planposten ist in den kommenden Monaten noch dafür reserviert."
+                  "value" : "Dieses Sparziel ist gestoppt, aber %lld Sparen-Planposten ist in den kommenden Monaten noch dafür reserviert."
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Dieses Ziel ist gestoppt, aber %lld Sparen-Planposten sind in den kommenden Monaten noch dafür reserviert."
+                  "value" : "Dieses Sparziel ist gestoppt, aber %lld Sparen-Planposten sind in den kommenden Monaten noch dafür reserviert."
                 }
               }
             }
@@ -6547,7 +6872,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieses Ziel enthält nicht genug für diesen Betrag — prüf den angezeigten verfügbaren Betrag"
+            "value" : "Dieses Sparziel enthält nicht genug für diesen Betrag — prüf den angezeigten verfügbaren Betrag"
           }
         },
         "en" : {
@@ -6569,7 +6894,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieses Ziel gibt es nicht mehr"
+            "value" : "Dieses Sparziel gibt es nicht mehr"
           }
         },
         "en" : {
@@ -6591,7 +6916,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieses Ziel bleibt erreicht. Du kannst es in der Detailansicht wieder öffnen."
+            "value" : "Dieses Sparziel bleibt erreicht. Du kannst es in der Detailansicht wieder öffnen."
           }
         },
         "en" : {
@@ -6613,7 +6938,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieses Ziel hat sich gerade geändert — lade den verfügbaren Betrag neu und versuch es noch einmal"
+            "value" : "Dieses Sparziel hat sich gerade geändert — lade den verfügbaren Betrag neu und versuch es noch einmal"
           }
         },
         "en" : {
@@ -6696,6 +7021,28 @@
         }
       }
     },
+    "Cette clé est valide pour ton compte." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Schlüssel ist für dein Konto gültig."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This key is valid for your account."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa chiave è valida per il tuo account."
+          }
+        }
+      }
+    },
     "Cette pioche est introuvable — elle a peut-être déjà été supprimée" : {
       "localizations" : {
         "de" : {
@@ -6767,7 +7114,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieses Sparen liegt nach der Frist deines Ziels — verschieb die Frist oder wähl ein anderes Ziel"
+            "value" : "Dieses Sparen liegt nach der Frist deines Sparziels — verschieb die Frist oder wähl ein anderes Sparziel"
           }
         },
         "en" : {
@@ -6855,7 +7202,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ändern"
+            "value" : "Wechseln"
           }
         },
         "en" : {
@@ -6877,7 +7224,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anzeigewährung ändern?"
+            "value" : "Anzeigewährung wechseln?"
           }
         },
         "en" : {
@@ -6895,7 +7242,26 @@
       }
     },
     "Changer le mot de passe" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwort ändern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change the password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambia la password"
+          }
+        }
+      }
     },
     "Chaque mois s'ajuste tout seul. Zéro calcul, zéro doute — juste ta progression qui monte." : {
       "localizations" : {
@@ -6968,7 +7334,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Projektion wird geladen…"
+            "value" : "Prognose wird geladen…"
           }
         },
         "en" : {
@@ -6981,6 +7347,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Caricamento della proiezione…"
+          }
+        }
+      }
+    },
+    "Chargement de tes tags..." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Tags werden geladen..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading your tags..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carico i tuoi tag..."
           }
         }
       }
@@ -7034,7 +7422,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ziele werden geladen…"
+            "value" : "Sparziele werden geladen…"
           }
         },
         "en" : {
@@ -7337,6 +7725,28 @@
         }
       }
     },
+    "Choisis la date à laquelle tu souhaites commencer à suivre tes dépenses et revenus (ton jour de paie, par exemple)." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle das Datum, ab dem du deine Ausgaben und Einnahmen verfolgen willst (zum Beispiel deinen Zahltag)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the date you want to start tracking your expenses and income from (your pay day, for example)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli la data da cui vuoi iniziare a seguire le tue spese e le tue entrate (il tuo giorno di paga, per esempio)."
+          }
+        }
+      }
+    },
     "Choisis ta devise" : {
       "localizations" : {
         "de" : {
@@ -7386,7 +7796,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähl ein Ziel"
+            "value" : "Wähl ein Sparziel"
           }
         },
         "en" : {
@@ -7408,7 +7818,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ziel"
+            "value" : "Zielbetrag"
           }
         },
         "en" : {
@@ -7420,7 +7830,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Obiettivo"
+            "value" : "Traguardo"
           }
         }
       }
@@ -7513,6 +7923,50 @@
         }
       }
     },
+    "Clé de secours" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederherstellungsschlüssel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recovery key"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiave di recupero"
+          }
+        }
+      }
+    },
+    "Clé de secours régénérée" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederherstellungsschlüssel neu erzeugt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recovery key regenerated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiave di recupero rigenerata"
+          }
+        }
+      }
+    },
     "Code PIN" : {
       "localizations" : {
         "de" : {
@@ -7535,6 +7989,28 @@
         }
       }
     },
+    "Code PIN modifié" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN geändert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN changed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codice PIN modificato"
+          }
+        }
+      }
+    },
     "Code PIN oublié ?" : {
       "localizations" : {
         "de" : {
@@ -7553,6 +8029,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Codice PIN dimenticato?"
+          }
+        }
+      }
+    },
+    "Code PIN, Mot de passe, Biométrie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN, Passwort, Biometrie"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN, password, biometrics"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codice PIN, password, biometria"
           }
         }
       }
@@ -7733,6 +8231,50 @@
         }
       }
     },
+    "Conditions d'utilisation de Pulpe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutzungsbedingungen von Pulpe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe's terms of use"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condizioni d'uso di Pulpe"
+          }
+        }
+      }
+    },
+    "Conditions générales" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allgemeine Bedingungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms and conditions"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condizioni generali"
+          }
+        }
+      }
+    },
     "Configuration Google manquante — contacte le support" : {
       "localizations" : {
         "de" : {
@@ -7822,7 +8364,26 @@
       }
     },
     "Confirme ton identité pour modifier ton accès." : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätige deine Identität, um deinen Zugang zu ändern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm your identity to change your access."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conferma la tua identità per modificare il tuo accesso."
+          }
+        }
+      }
     },
     "Confirme ton nouveau mot de passe" : {
       "localizations" : {
@@ -7952,6 +8513,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Accesso con Apple in corso"
+          }
+        }
+      }
+    },
+    "Connexion difficile — réessaie dans un instant" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbindung schwierig — versuch es gleich nochmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection is struggling — try again in a second"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connessione difficile — riprova tra un attimo"
           }
         }
       }
@@ -9079,7 +9662,8 @@
       }
     },
     "Dashboard" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Date" : {
       "localizations" : {
@@ -9256,7 +9840,48 @@
       }
     },
     "Demande la suppression définitive de ton compte Pulpe" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beantragt die endgültige Löschung deines Pulpe-Kontos"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requests the permanent deletion of your Pulpe account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richiede l'eliminazione definitiva del tuo account Pulpe"
+          }
+        }
+      }
+    },
+    "Depuis" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da"
+          }
+        }
+      }
     },
     "Depuis %@" : {
       "localizations" : {
@@ -9348,6 +9973,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dirittura d’arrivo"
+          }
+        }
+      }
+    },
+    "Dernières mises à jour" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neueste Updates"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest updates"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultimi aggiornamenti"
           }
         }
       }
@@ -9550,6 +10197,28 @@
         }
       }
     },
+    "Devise non sauvegardée, réessaie depuis les paramètres" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Währung nicht gespeichert, versuch es nochmal über die Einstellungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Currency not saved, try again from the settings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valuta non salvata, riprova dalle impostazioni"
+          }
+        }
+      }
+    },
     "Disponible" : {
       "localizations" : {
         "de" : {
@@ -9660,6 +10329,56 @@
         }
       }
     },
+    "Disponible à dépenser %@, %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verfügbar zum Ausgeben %@, %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available to spend %@, %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Disponible à dépenser %1$@, %2$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibile da spendere %@, %@"
+          }
+        }
+      }
+    },
+    "Disponible à dépenser, %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verfügbar zum Ausgeben, %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available to spend, %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibile da spendere, %@"
+          }
+        }
+      }
+    },
     "Dès que tu dépenses, pointe-le en un tap. 10 secondes, et ton « disponible à dépenser » reste toujours juste." : {
       "localizations" : {
         "de" : {
@@ -9671,7 +10390,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "As soon as you spend, check it off in one tap. 10 seconds, and your \"available to spend\" always stays accurate."
+            "value" : "As soon as you spend, check it off in one tap. 10 seconds, and your “available to spend” always stays accurate."
           }
         },
         "it" : {
@@ -9727,29 +10446,89 @@
       }
     },
     "Déconnecter" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abmelden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign out"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci"
+          }
+        }
+      }
     },
     "Déconnexion" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abmelden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign out"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci"
+          }
+        }
+      }
+    },
+    "Déconnexion locale OK, mais serveur injoignable. Si tu suspectes un vol de session, change ton mot de passe à nouveau dans 5 min." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokal abgemeldet, aber der Server ist nicht erreichbar. Wenn du einen Sitzungsdiebstahl vermutest, ändere dein Passwort in 5 Min. erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed out locally, but the server can't be reached. If you suspect your session was stolen, change your password again in 5 min."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnessione locale riuscita, ma il server non è raggiungibile. Se sospetti un furto di sessione, cambia di nuovo la password tra 5 min."
+          }
+        }
+      }
     },
     "Déficit" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Defizit"
+            "value" : "Fehlbetrag"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deficit"
+            "value" : "Shortfall"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deficit"
+            "value" : "Ammanco"
           }
         }
       }
@@ -9771,7 +10550,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deficit %@"
+            "value" : "Ammanco %@"
           }
         }
       }
@@ -9781,19 +10560,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Übertragenes Defizit von %@"
+            "value" : "Übertragener Fehlbetrag von %@"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deficit of %@ carried over"
+            "value" : "Shortfall of %@ carried over"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deficit di %@ riportato"
+            "value" : "Ammanco di %@ riportato"
           }
         }
       }
@@ -9803,19 +10582,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Defizit · %@"
+            "value" : "Fehlbetrag · %@"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deficit · %@"
+            "value" : "Shortfall · %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deficit · %@"
+            "value" : "Ammanco · %@"
           }
         }
       }
@@ -10149,10 +10928,48 @@
       }
     },
     "Désactiver" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deaktivieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn off"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disattiva"
+          }
+        }
+      }
     },
     "Désactiver %@ ?" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ deaktivieren?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn off %@?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disattivare %@?"
+          }
+        }
+      }
     },
     "Désélectionné" : {
       "localizations" : {
@@ -10607,7 +11424,8 @@
       }
     },
     "Env" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Envoi en cours" : {
       "localizations" : {
@@ -10763,6 +11581,72 @@
         }
       }
     },
+    "Erreur lors de la création du budget" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fehler beim Erstellen des Budgets"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error while creating the budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Errore durante la creazione del budget"
+          }
+        }
+      }
+    },
+    "Erreur lors de la génération" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fehler beim Erzeugen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error while generating"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Errore durante la generazione"
+          }
+        }
+      }
+    },
+    "Erreur lors de la sauvegarde" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fehler beim Speichern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error while saving"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Errore durante il salvataggio"
+          }
+        }
+      }
+    },
     "Erreur: %@" : {
       "localizations" : {
         "de" : {
@@ -10790,7 +11674,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Endschätzung"
+            "value" : "Endprognose"
           }
         },
         "en" : {
@@ -10957,6 +11841,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eccedenza di %@ riportata"
+          }
+        }
+      }
+    },
+    "FAQ et support" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FAQ und Support"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FAQ and support"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FAQ e supporto"
           }
         }
       }
@@ -11248,13 +12154,70 @@
       }
     },
     "Génération de la nouvelle clé..." : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Schlüssel wird erzeugt..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creating the new key..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generazione della nuova chiave..."
+          }
+        }
+      }
     },
     "Générer maintenant" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jetzt erzeugen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create it now"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genera ora"
+          }
+        }
+      }
     },
     "Générer une clé de récupération ?" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen Wiederherstellungsschlüssel erzeugen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a recovery key?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generare una chiave di recupero?"
+          }
+        }
+      }
     },
     "Gérer ces prévisions" : {
       "localizations" : {
@@ -11520,6 +12483,28 @@
         }
       }
     },
+    "Impossible d'activer %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ liess sich nicht aktivieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't turn on %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile attivare %@"
+          }
+        }
+      }
+    },
     "Impossible d'afficher l'écran de connexion Google" : {
       "localizations" : {
         "de" : {
@@ -11569,7 +12554,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Ziele lassen sich nicht laden"
+            "value" : "Die Sparziele lassen sich nicht laden"
           }
         },
         "en" : {
@@ -11604,6 +12589,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Per ora non riesco a caricare i prelievi."
+          }
+        }
+      }
+    },
+    "Impossible de générer la clé de récupération" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Wiederherstellungsschlüssel liess sich nicht erzeugen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't create the recovery key"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile generare la chiave di recupero"
           }
         }
       }
@@ -11648,6 +12655,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impossibile modificare la scadenza e le sue previsioni — riprova"
+          }
+        }
+      }
+    },
+    "Impossible de récupérer le cours du jour. Tes montants déjà enregistrés restent intacts." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der aktuelle Kurs liess sich nicht holen. Deine bereits gespeicherten Beträge bleiben unangetastet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't fetch today's rate. The amounts you already saved stay untouched."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile recuperare il tasso del giorno. I tuoi importi già salvati restano intatti."
           }
         }
       }
@@ -11719,7 +12748,26 @@
       }
     },
     "Interagis avec tes lignes" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interagiere mit deinen Zeilen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interact with your items"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interagisci con le tue voci"
+          }
+        }
+      }
     },
     "J'ai déjà un compte" : {
       "localizations" : {
@@ -11832,7 +12880,26 @@
       }
     },
     "Jour %lld" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag %lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Day %lld"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giorno %lld"
+          }
+        }
+      }
     },
     "Jour de paie" : {
       "localizations" : {
@@ -11852,6 +12919,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Giorno di paga"
+          }
+        }
+      }
+    },
+    "Jour de paie enregistré" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zahltag gespeichert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pay day saved"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giorno di paga salvato"
+          }
+        }
+      }
+    },
+    "Jour de paie et devise" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zahltag und Währung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pay day and currency"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giorno di paga e valuta"
           }
         }
       }
@@ -11971,7 +13082,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Ziel und die gewählten Elemente wurden gelöscht, aber die Salden liessen sich nicht aktualisieren — lade deine Budgets neu, ohne die Löschung erneut zu starten"
+            "value" : "Das Sparziel und die gewählten Elemente wurden gelöscht, aber die Salden liessen sich nicht aktualisieren — lade deine Budgets neu, ohne die Löschung erneut zu starten"
           }
         },
         "en" : {
@@ -11993,7 +13104,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Ziel und sein monatlicher Planposten wurden erstellt, aber die Salden liessen sich nicht aktualisieren — lade die Seite neu, ohne das Ziel erneut zu erstellen"
+            "value" : "Das Sparziel und sein monatlicher Planposten wurden erstellt, aber die Salden liessen sich nicht aktualisieren — lade die Seite neu, ohne das Sparziel erneut zu erstellen"
           }
         },
         "en" : {
@@ -12121,7 +13232,26 @@
       }
     },
     "La configuration de ton compte n'a pas abouti — vérifie ta connexion et réessaie." : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Einrichtung deines Kontos hat nicht geklappt — prüf deine Verbindung und versuch es nochmal."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setting up your account didn't go through — check your connection and try again."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La configurazione del tuo account non è andata a buon fine — controlla la connessione e riprova."
+          }
+        }
+      }
     },
     "La connexion n'a pas abouti — %@" : {
       "localizations" : {
@@ -12238,7 +13368,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Projektion sinkt. In deinem Budget ändert sich nichts."
+            "value" : "Die Prognose sinkt. In deinem Budget ändert sich nichts."
           }
         },
         "en" : {
@@ -12255,12 +13385,34 @@
         }
       }
     },
+    "La reconnaissance biométrique n'a pas pu être activée" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die biometrische Erkennung liess sich nicht aktivieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biometric recognition couldn't be turned on"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile attivare il riconoscimento biometrico"
+          }
+        }
+      }
+    },
     "La rentrée remet les compteurs" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Neustart setzt die Zähler zurück"
+            "value" : "Der Herbststart setzt die Zähler zurück"
           }
         },
         "en" : {
@@ -12299,12 +13451,34 @@
         }
       }
     },
+    "La suppression du compte a échoué" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Löschen des Kontos ist fehlgeschlagen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleting the account failed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'eliminazione dell'account non è riuscita"
+          }
+        }
+      }
+    },
     "La suppression n'a pas pu aboutir" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Löschen hat nicht geklappt — versuch es nochmal"
+            "value" : "Das Löschen hat nicht geklappt"
           }
         },
         "en" : {
@@ -12431,12 +13605,34 @@
         }
       }
     },
+    "Le budget suit le calendrier mensuel standard." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Budget folgt dem üblichen Monatskalender."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The budget follows the standard monthly calendar."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il budget segue il calendario mensile standard."
+          }
+        }
+      }
+    },
     "Le changement de PIN a réussi mais la clé de secours n'a pas pu être mise à jour" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die PIN wurde geändert, aber der Notfallschlüssel liess sich nicht aktualisieren"
+            "value" : "Die PIN wurde geändert, aber der Wiederherstellungsschlüssel liess sich nicht aktualisieren"
           }
         },
         "en" : {
@@ -12449,6 +13645,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il PIN è stato cambiato ma la chiave di recupero non è stata aggiornata"
+          }
+        }
+      }
+    },
+    "Le chargement a pris trop de temps, réessaie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Laden hat zu lange gedauert, versuch es nochmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading took too long, try again"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il caricamento ha impiegato troppo tempo, riprova"
           }
         }
       }
@@ -12480,7 +13698,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Verteilen hat nicht geklappt — versuch es nochmal"
+            "value" : "Das Verteilen hat nicht geklappt"
           }
         },
         "en" : {
@@ -12498,14 +13716,33 @@
       }
     },
     "Le mois commencera un..." : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Monat beginnt am..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your month will start on the..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo mese inizierà il..."
+          }
+        }
+      }
     },
     "Le mois de %@ porte quelques centimes de plus." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Monat %@ trägt ein paar Rappen mehr."
+            "value" : "Auf den Monat %@ entfällt ein kleiner Restbetrag."
           }
         },
         "en" : {
@@ -12632,6 +13869,28 @@
         }
       }
     },
+    "Le mot de passe actuel est requis" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das aktuelle Passwort ist nötig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The current password is required"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La password attuale è obbligatoria"
+          }
+        }
+      }
+    },
     "Le nouveau code doit être différent" : {
       "localizations" : {
         "de" : {
@@ -12703,7 +13962,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Verschieben hat nicht geklappt — versuch es nochmal"
+            "value" : "Das Verschieben hat nicht geklappt"
           }
         },
         "en" : {
@@ -13121,7 +14380,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Planposten werden gelöscht: der Betrag ist jeden Monat wieder verfügbar."
+            "value" : "Die Planposten werden gelöscht: Der Betrag ist jeden Monat wieder verfügbar."
           }
         },
         "en" : {
@@ -13134,6 +14393,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Le previsioni vengono eliminate: l'importo torna disponibile ogni mese."
+          }
+        }
+      }
+    },
+    "Les tags créés sur le web apparaîtront ici." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Web erstellte Tags erscheinen hier."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags created on the web will show up here."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tag creati sul web appariranno qui."
           }
         }
       }
@@ -13447,7 +14728,8 @@
       }
     },
     "Long Press" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Loyer" : {
       "localizations" : {
@@ -13494,7 +14776,26 @@
       }
     },
     "LÉGAL" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RECHTLICHES"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LEGAL"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NOTE LEGALI"
+          }
+        }
+      }
     },
     "Maintenance en cours" : {
       "localizations" : {
@@ -13563,7 +14864,26 @@
       }
     },
     "Masquer" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausblenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nascondi"
+          }
+        }
+      }
     },
     "Masquer le mot de passe" : {
       "localizations" : {
@@ -13610,7 +14930,26 @@
       }
     },
     "Masquer les montants ?" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beträge ausblenden?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide the amounts?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nascondere gli importi?"
+          }
+        }
+      }
     },
     "Mes prévisions" : {
       "localizations" : {
@@ -13745,7 +15084,26 @@
       }
     },
     "Mise à jour en cours" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisierung läuft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update in progress"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornamento in corso"
+          }
+        }
+      }
     },
     "Mise à jour requise" : {
       "localizations" : {
@@ -14016,7 +15374,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gespeichert"
+            "value" : "Geändert"
           }
         },
         "en" : {
@@ -14028,7 +15386,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Salvato"
+            "value" : "Modificato"
           }
         }
       }
@@ -14144,7 +15502,26 @@
       }
     },
     "Modèles : version iOS encore allégée" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorlagen: auf iOS noch schlanker"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Templates: still a lighter version on iOS"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelli: su iOS una versione ancora essenziale"
+          }
+        }
+      }
     },
     "Mois" : {
       "localizations" : {
@@ -14169,7 +15546,26 @@
       }
     },
     "Mois %@" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monat %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mese %@"
+          }
+        }
+      }
     },
     "Mois Standard" : {
       "localizations" : {
@@ -14655,6 +16051,72 @@
         }
       }
     },
+    "Mot de passe actuel incorrect" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuelles Passwort falsch"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current password is wrong"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password attuale sbagliata"
+          }
+        }
+      }
+    },
+    "Mot de passe incorrect" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falsches Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrong password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password sbagliata"
+          }
+        }
+      }
+    },
+    "Mot de passe modifié" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwort geändert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password changed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password modificata"
+          }
+        }
+      }
+    },
     "Mot de passe oublié" : {
       "localizations" : {
         "de" : {
@@ -14695,6 +16157,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Password dimenticata?"
+          }
+        }
+      }
+    },
+    "Mot de passe réinitialisé, reconnecte-toi" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwort zurückgesetzt, melde dich neu an"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password reset, sign back in"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password reimpostata, accedi di nuovo"
           }
         }
       }
@@ -14750,7 +16234,8 @@
       }
     },
     "Muted" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Nature" : {
       "localizations" : {
@@ -14972,6 +16457,28 @@
         }
       }
     },
+    "Non connecté(e)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht angemeldet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not signed in"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non connesso/a"
+          }
+        }
+      }
+    },
     "Non sélectionné" : {
       "localizations" : {
         "de" : {
@@ -15017,26 +16524,27 @@
       }
     },
     "Not syncing" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Note ce qui passe sur ton compte pour suivre tes dépenses" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Halt fest, was über dein Konto läuft, und behalt deine Ausgaben im Blick"
+            "value" : "Halte fest, was auf deinem Konto passiert, um deine Ausgaben zu verfolgen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Write down what goes through your account to track your spending"
+            "value" : "Note what goes through your account to track your expenses"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Annota ciò che passa sul tuo conto per seguire le tue spese"
+            "value" : "Annota cosa passa sul tuo conto per seguire le tue spese"
           }
         }
       }
@@ -15052,7 +16560,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Note what moves on your account to track your income"
+            "value" : "Note what goes through your account to track your income"
           }
         },
         "it" : {
@@ -15074,7 +16582,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Note what moves on your account to track your savings"
+            "value" : "Note what goes through your account to track your savings"
           }
         },
         "it" : {
@@ -15140,7 +16648,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Log an income"
+            "value" : "Note income"
           }
         },
         "it" : {
@@ -15162,7 +16670,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Log an expense"
+            "value" : "Note an expense"
           }
         },
         "it" : {
@@ -15184,7 +16692,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Log a saving"
+            "value" : "Note savings"
           }
         },
         "it" : {
@@ -15196,7 +16704,26 @@
       }
     },
     "Nouveau\ndans Pulpe" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neu\nin Pulpe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New\nin Pulpe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Novità\nin Pulpe"
+          }
+        }
+      }
     },
     "Nouveau budget" : {
       "localizations" : {
@@ -15225,7 +16752,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Neuer PIN"
+            "value" : "Neue PIN"
           }
         },
         "en" : {
@@ -15374,6 +16901,28 @@
         }
       }
     },
+    "Nouveautés" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuigkeiten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What's new"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Novità"
+          }
+        }
+      }
+    },
     "Nouvel objectif" : {
       "localizations" : {
         "de" : {
@@ -15517,7 +17066,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ziel erreicht"
+            "value" : "Sparziel erreicht"
           }
         },
         "en" : {
@@ -15715,7 +17264,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ziel gelöscht · %@"
+            "value" : "Sparziel gelöscht · %@"
           }
         },
         "en" : {
@@ -15759,7 +17308,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwendetes Ziel"
+            "value" : "Genutztes Sparziel"
           }
         },
         "en" : {
@@ -15772,6 +17321,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Obiettivo usato"
+          }
+        }
+      }
+    },
+    "Objectifs" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparziele"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goals"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obiettivi"
           }
         }
       }
@@ -15794,6 +17365,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Obiettivi di risparmio"
+          }
+        }
+      }
+    },
+    "On améliore Pulpe pour toi — tes données sont bien au chaud, pas d'inquiétude. Réessaie dans quelques instants." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich mache Pulpe für dich besser — deine Daten liegen sicher, keine Sorge. Versuch es gleich nochmal."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We're making Pulpe better for you — your data is safe and sound, no need to worry. Try again in a moment."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sto migliorando Pulpe per te — i tuoi dati sono al sicuro, nessun problema. Riprova tra qualche istante."
           }
         }
       }
@@ -15825,7 +17418,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Damit zeigen wir alle deine Beträge an."
+            "value" : "Damit zeige ich alle deine Beträge an."
           }
         },
         "en" : {
@@ -15837,7 +17430,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La usiamo per mostrare tutti i tuoi importi."
+            "value" : "La uso per mostrare tutti i tuoi importi."
           }
         }
       }
@@ -15869,7 +17462,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sollen wir deinen Plan aktualisieren?"
+            "value" : "Soll ich deinen Plan aktualisieren?"
           }
         },
         "en" : {
@@ -15881,7 +17474,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aggiorniamo il tuo piano?"
+            "value" : "Aggiorno il tuo piano?"
           }
         }
       }
@@ -15913,7 +17506,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wir rechnen ihn nicht mehr neu, auch wenn sich der Kurs bewegt."
+            "value" : "Ich rechne ihn nicht mehr neu, auch wenn sich der Kurs bewegt."
           }
         },
         "en" : {
@@ -15925,7 +17518,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Non lo ricalcoliamo più, anche se il cambio si muove."
+            "value" : "Non lo ricalcolo più, anche se il cambio si muove."
           }
         }
       }
@@ -15935,7 +17528,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wir machen da weiter, wo du aufgehört hast."
+            "value" : "Ich mache da weiter, wo du aufgehört hast."
           }
         },
         "en" : {
@@ -15947,7 +17540,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riprendiamo da dove ti eri fermato."
+            "value" : "Riprendo da dove ti eri fermato."
           }
         }
       }
@@ -16001,7 +17594,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Planposten von %@ wird in %@ pro Monat auf %lld Monate aufgeteilt."
+            "value" : "Der Planposten von %@ wird in %@ pro Monat auf %lld Monate verteilt."
           }
         },
         "en" : {
@@ -16035,13 +17628,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Want a nudge on payday?"
+            "value" : "Want a nudge on pay day?"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ti avviso il giorno dello stipendio?"
+            "value" : "Ti avviso il giorno di paga?"
           }
         }
       }
@@ -16289,7 +17882,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open the budget to adjust your envelopes"
+            "value" : "Open the budget to adjust your planned items"
           }
         },
         "it" : {
@@ -16327,25 +17920,66 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bisher Gespartes öffnen"
+            "value" : "Budgetverlauf öffnen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open the actuals tracker"
+            "value" : "Open budget tracking"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apri il dettaglio dell'effettivo"
+            "value" : "Apri l'andamento del budget"
+          }
+        }
+      }
+    },
+    "Ouvrir sur le web" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Web öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open on the web"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri sul web"
           }
         }
       }
     },
     "PARAMÈTRES DE L'APPLICATION" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "APP-EINSTELLUNGEN"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "APP SETTINGS"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IMPOSTAZIONI DELL'APP"
+          }
+        }
+      }
     },
     "Page %lld sur %lld" : {
       "localizations" : {
@@ -16486,7 +18120,26 @@
       }
     },
     "Pas de données" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Daten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No data"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun dato"
+          }
+        }
+      }
     },
     "Pas encore de budget" : {
       "localizations" : {
@@ -16687,7 +18340,26 @@
       }
     },
     "Petit souci de connexion" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kleines Verbindungsproblem"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A small connection hiccup"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piccolo problema di connessione"
+          }
+        }
+      }
     },
     "Pile sur ton plan" : {
       "localizations" : {
@@ -16800,7 +18472,26 @@
       }
     },
     "Pointage" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abhaken"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta"
+          }
+        }
+      }
     },
     "Pointe tes dépenses" : {
       "localizations" : {
@@ -17073,7 +18764,26 @@
       }
     },
     "Pour ta sécurité, confirme ton mot de passe pour continuer." : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu deiner Sicherheit: Bestätige dein Passwort, um weiterzumachen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For your security, confirm your password to continue."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per la tua sicurezza, conferma la tua password per continuare."
+          }
+        }
+      }
     },
     "Pour tenir ton échéance" : {
       "localizations" : {
@@ -17278,7 +18988,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Projektion nach dem Erstellen: %@"
+            "value" : "Prognose nach dem Erstellen: %@"
           }
         },
         "en" : {
@@ -17300,7 +19010,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Monatsprojektion · %@%@"
+            "value" : "Monatsprognose · %@%@"
           }
         },
         "en" : {
@@ -17328,7 +19038,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plan-Projektion"
+            "value" : "Plan-Prognose"
           }
         },
         "en" : {
@@ -17368,7 +19078,30 @@
       }
     },
     "Prominent" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
+    },
+    "Protection de tes données" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schutz deiner Daten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protecting your data"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protezione dei tuoi dati"
+          }
+        }
+      }
     },
     "Pré-rempli avec cible ÷ mois restants." : {
       "localizations" : {
@@ -17388,6 +19121,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Precompilato con traguardo ÷ mesi rimanenti."
+          }
+        }
+      }
+    },
+    "Préférence enregistrée" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellung gespeichert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preference saved"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preferenza salvata"
           }
         }
       }
@@ -17721,7 +19476,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plan an income"
+            "value" : "Plan income"
           }
         },
         "it" : {
@@ -17765,7 +19520,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plan a saving"
+            "value" : "Plan savings"
           }
         },
         "it" : {
@@ -17781,7 +19536,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plan rund %@ pro Monat ein, um das Ziel zu halten"
+            "value" : "Plan rund %@ pro Monat ein, um dein Sparziel zu erreichen"
           }
         },
         "en" : {
@@ -17909,7 +19664,30 @@
       }
     },
     "Pulpe" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
+    },
+    "Pulpe, ouvre l'app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe, öffnet die App"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe, opens the app"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe, apre l'app"
+          }
+        }
+      }
     },
     "Période d'activité" : {
       "localizations" : {
@@ -17956,10 +19734,48 @@
       }
     },
     "Quand tu dépenses moins que prévu, Pulpe garde le montant prévu pour protéger ton budget." : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn du weniger ausgibst als geplant, behält Pulpe den geplanten Betrag, um dein Budget zu schützen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When you spend less than planned, Pulpe keeps the planned amount to protect your budget."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando spendi meno del previsto, Pulpe mantiene l'importo previsto per proteggere il tuo budget."
+          }
+        }
+      }
     },
     "Quand un mouvement est passé sur ton compte, pointe-le ici pour garder le fil." : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn eine Bewegung über dein Konto gelaufen ist, hake sie hier ab, um den Überblick zu behalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When activity has gone through your account, check it off here to stay on track."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando un movimento è passato sul tuo conto, spuntalo qui per non perdere il filo."
+          }
+        }
+      }
     },
     "Que veux-tu supprimer ?" : {
       "localizations" : {
@@ -18208,7 +20024,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verknüpf einen Sparen-Planposten aus deiner Monatsvorlage oder einem Budget, um dieses Ziel hier zu verfolgen."
+            "value" : "Verknüpf einen Sparen-Planposten aus deiner Monatsvorlage oder einem Budget, um dieses Sparziel hier zu verfolgen."
           }
         },
         "en" : {
@@ -18456,7 +20272,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Carryover from %@ included"
+            "value" : "Carry-over from %@ included"
           }
         },
         "it" : {
@@ -19226,7 +21042,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Einnahme aus dem Ziel %@"
+            "value" : "Einnahme aus dem Sparziel %@"
           }
         },
         "en" : {
@@ -19248,7 +21064,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Einnahme aus dem gelöschten Ziel %@"
+            "value" : "Einnahme aus dem gelöschten Sparziel %@"
           }
         },
         "en" : {
@@ -19464,7 +21280,8 @@
       }
     },
     "Row %lld" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Rythme : %@" : {
       "localizations" : {
@@ -19801,7 +21618,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erneut versuchen"
+            "value" : "Nochmal versuchen"
           }
         },
         "en" : {
@@ -19814,6 +21631,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Riprova"
+          }
+        }
+      }
+    },
+    "Régénérer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neu erzeugen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regenerate"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rigenera"
           }
         }
       }
@@ -19957,7 +21796,26 @@
       }
     },
     "SUPPORT" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SUPPORT"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SUPPORT"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SUPPORTO"
+          }
+        }
+      }
     },
     "Saisir dans une autre devise" : {
       "localizations" : {
@@ -19977,6 +21835,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inserisci in un'altra valuta"
+          }
+        }
+      }
+    },
+    "Saisis ta clé telle que tu l'as notée (tirets optionnels). Elle sert uniquement à cette vérification et n'est pas enregistrée." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib deinen Schlüssel so ein, wie du ihn notiert hast (Bindestriche optional). Er dient nur dieser Überprüfung und wird nicht gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type your key as you wrote it down (dashes optional). It's only used for this check and isn't stored."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrivi la tua chiave come l'hai annotata (trattini facoltativi). Serve solo per questa verifica e non viene salvata."
           }
         }
       }
@@ -20030,7 +21910,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gib deinen PIN ein"
+            "value" : "Gib deine PIN ein"
           }
         },
         "en" : {
@@ -20070,7 +21950,26 @@
       }
     },
     "Saisis ton mot de passe pour confirmer" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib dein Passwort ein, um zu bestätigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type your password to confirm"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrivi la tua password per confermare"
+          }
+        }
+      }
     },
     "Saisis ton nouveau code PIN" : {
       "localizations" : {
@@ -20227,7 +22126,8 @@
       }
     },
     "Selected: %@" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Session expirée — reconnecte-toi pour continuer" : {
       "localizations" : {
@@ -20240,7 +22140,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Session expired — log in again to continue"
+            "value" : "Session expired — sign in again to continue"
           }
         },
         "it" : {
@@ -20296,7 +22196,8 @@
       }
     },
     "Sheet content" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Si un compte existe avec cette adresse, tu recevras un email avec un lien de réinitialisation." : {
       "localizations" : {
@@ -20369,7 +22270,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Negativer Saldo — bringen wir das in Ordnung?"
+            "value" : "Negativer Saldo — bring ich das in Ordnung?"
           }
         },
         "en" : {
@@ -20381,7 +22282,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Saldo negativo — ci mettiamo mano?"
+            "value" : "Saldo negativo — ci metto mano?"
           }
         }
       }
@@ -20475,7 +22376,8 @@
       }
     },
     "Standard" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Statut" : {
       "localizations" : {
@@ -20632,7 +22534,8 @@
       }
     },
     "Supabase" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Suppression…" : {
       "localizations" : {
@@ -21031,7 +22934,8 @@
       }
     },
     "Syncing" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Sécurité" : {
       "localizations" : {
@@ -21122,7 +23026,26 @@
       }
     },
     "Sélectionne une date" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle ein Datum"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick a date"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli una data"
+          }
+        }
+      }
     },
     "Sélectionné" : {
       "localizations" : {
@@ -21223,13 +23146,57 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your session expired — log in again"
+            "value" : "Your session expired — sign in again"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "La tua sessione è scaduta — accedi di nuovo"
+          }
+        }
+      }
+    },
+    "Ta session a expiré, connecte-toi avec ton mot de passe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Sitzung ist abgelaufen, melde dich mit deinem Passwort an"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your session has expired, sign in with your password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua sessione è scaduta, accedi con la tua password"
+          }
+        }
+      }
+    },
+    "Ta session a expiré, reconnecte-toi" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Sitzung ist abgelaufen, melde dich neu an"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your session has expired, sign back in"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua sessione è scaduta, accedi di nuovo"
           }
         }
       }
@@ -21257,7 +23224,8 @@
       }
     },
     "Tag %@" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Tags" : {
       "localizations" : {
@@ -21534,7 +23502,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine Ziele für diesen Monat warten nur auf dich."
+            "value" : "Deine Sparziele für diesen Monat warten nur auf dich."
           }
         },
         "en" : {
@@ -21591,6 +23559,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Le tue entrate"
+          }
+        }
+      }
+    },
+    "Tes tags personnels" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine persönlichen Tags"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your personal tags"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi tag personali"
           }
         }
       }
@@ -21727,6 +23717,34 @@
         }
       }
     },
+    "Ton budget « %@ » couvrira du %@%@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Budget „%@“ umfasst %@%@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your budget “%@” will cover %@%@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Ton budget « %1$@ » couvrira du %2$@%3$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo budget «%@» coprirà %@%@"
+          }
+        }
+      }
+    },
     "Ton code d'accès a été modifié — saisis ton nouveau code" : {
       "localizations" : {
         "de" : {
@@ -21745,6 +23763,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il tuo codice di accesso è cambiato — inserisci il nuovo codice"
+          }
+        }
+      }
+    },
+    "Ton coffre est configuré sans clé de récupération. Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Tresor ist ohne Wiederherstellungsschlüssel eingerichtet. Erzeuge ihn jetzt, damit du den Zugang zu deinen verschlüsselten Daten nicht verlierst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your vault is set up without a recovery key. Create it now to avoid losing access to your encrypted data."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua cassaforte è configurata senza chiave di recupero. Generala ora per non perdere l'accesso ai tuoi dati cifrati."
           }
         }
       }
@@ -21793,6 +23833,28 @@
         }
       }
     },
+    "Ton compte sera définitivement supprimé après un délai de 3 jours. Cette action est irréversible." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Konto wird nach einer Frist von 3 Tagen endgültig gelöscht. Das lässt sich nicht rückgängig machen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your account will be permanently deleted after 3 days. This can't be undone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo account verrà eliminato definitivamente dopo 3 giorni. Questa azione è irreversibile."
+          }
+        }
+      }
+    },
     "Ton disponible s'affichera ici" : {
       "localizations" : {
         "de" : {
@@ -21816,7 +23878,26 @@
       }
     },
     "Ton mois budgétaire" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Budgetmonat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your budget month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo mese di budget"
+          }
+        }
+      }
     },
     "Ton mot de passe" : {
       "localizations" : {
@@ -21836,6 +23917,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La tua password"
+          }
+        }
+      }
+    },
+    "Ton mot de passe actuel" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein aktuelles Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your current password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua password attuale"
+          }
+        }
+      }
+    },
+    "Ton nouveau mot de passe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein neues Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your new password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua nuova password"
           }
         }
       }
@@ -22307,7 +24432,26 @@
       }
     },
     "Touche pour modifier · Glisse pour compléter ou supprimer · Reste appuyé pour voir le détail" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippe zum Bearbeiten · Wische zum Abschliessen oder Löschen · Halte gedrückt für die Details"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to edit · Swipe to complete or delete · Press and hold for the details"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocca per modificare · Scorri per completare o eliminare · Tieni premuto per vedere i dettagli"
+          }
+        }
+      }
     },
     "Touche pour noter un montant, maintiens pour voir les mouvements" : {
       "localizations" : {
@@ -22375,6 +24519,28 @@
         }
       }
     },
+    "Toujours en maintenance — réessaie dans un instant" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immer noch in Wartung — versuch es gleich nochmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still under maintenance — try again in a second"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora in manutenzione — riprova tra un attimo"
+          }
+        }
+      }
+    },
     "Tous les mois" : {
       "localizations" : {
         "de" : {
@@ -22402,7 +24568,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle Monate sind abgeschlossen · %@ wurden nie zurückgelegt"
+            "value" : "Alle Monate sind abgeschlossen · %@ bleiben offen"
           }
         },
         "en" : {
@@ -22414,7 +24580,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tutti i mesi sono chiusi · restano %@ mai accantonati"
+            "value" : "Tutti i mesi sono chiusi · restano %@ da accantonare"
           }
         }
       }
@@ -22551,6 +24717,28 @@
         }
       }
     },
+    "Toutes les actions sur les modèles ne sont pas encore dispos ici. Pour aller au bout, l'app web fait tout — n'hésite pas à y faire un tour." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch sind hier nicht alle Aktionen für Vorlagen verfügbar. Für den vollen Umfang kann die Web-App alles — schau ruhig mal vorbei."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not every template action is available here yet. To go all the way, the web app does everything — feel free to take a look."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non tutte le azioni sui modelli sono già disponibili qui. Per fare tutto, l'app web copre ogni cosa — fatti un giro quando vuoi."
+          }
+        }
+      }
+    },
     "Trajectoire d'épargne" : {
       "localizations" : {
         "de" : {
@@ -22578,7 +24766,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Landeverlauf des Zeitraums, Beträge ausgeblendet."
+            "value" : "Verlauf des Zeitraums bis zum Monatsende, Beträge ausgeblendet."
           }
         },
         "en" : {
@@ -22590,7 +24778,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Traiettoria di atterraggio del periodo, importi nascosti."
+            "value" : "Andamento del periodo fino a fine mese, importi nascosti."
           }
         }
       }
@@ -22662,7 +24850,8 @@
       }
     },
     "Trends content here" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "Trop d'emails envoyés — patiente quelques minutes" : {
       "localizations" : {
@@ -22943,10 +25132,48 @@
       }
     },
     "Tu devras te reconnecter avec ton email et ton mot de passe." : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du musst dich mit deiner E-Mail und deinem Passwort neu anmelden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You'll need to sign back in with your email and password."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dovrai accedere di nuovo con la tua email e la tua password."
+          }
+        }
+      }
     },
     "Tu devras utiliser ton code PIN pour te connecter." : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du brauchst dann deine PIN, um dich anzumelden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You'll need your PIN to sign in."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dovrai usare il tuo codice PIN per accedere."
+          }
+        }
+      }
     },
     "Tu dois te reconnecter avant de modifier ton mot de passe" : {
       "localizations" : {
@@ -22959,7 +25186,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You need to log in again before changing your password"
+            "value" : "You need to sign in again before changing your password"
           }
         },
         "it" : {
@@ -22975,7 +25202,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du liegst vorn um"
+            "value" : "Dein Vorsprung"
           }
         },
         "en" : {
@@ -23251,7 +25478,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Type: %@ · Check status: %@"
+            "value" : "Type: %@ · Checking: %@"
           }
         },
         "fr" : {
@@ -23427,7 +25654,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eine Einnahme aus einem Ziel bleibt eine Einnahme: Art und Herkunft lassen sich nicht ändern"
+            "value" : "Eine Einnahme aus einem Sparziel bleibt eine Einnahme: Art und Herkunft lassen sich nicht ändern"
           }
         },
         "en" : {
@@ -23440,6 +25667,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un'entrata che viene da un obiettivo resta un'entrata: il tipo e l'origine non possono cambiare"
+          }
+        }
+      }
+    },
+    "Un sélecteur de devise apparaît à côté du montant. Pulpe convertit au cours du jour." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neben dem Betrag erscheint eine Währungsauswahl. Pulpe rechnet zum aktuellen Kurs um."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A currency picker shows up next to the amount. Pulpe converts at today's rate."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accanto all'importo appare un selettore di valuta. Pulpe converte al tasso del giorno."
           }
         }
       }
@@ -23577,7 +25826,26 @@
       }
     },
     "Une nouvelle version de Pulpe est disponible. Mets l'app à jour pour continuer." : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine neue Version von Pulpe ist verfügbar. Aktualisiere die App, um weiterzumachen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new version of Pulpe is available. Update the app to continue."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È disponibile una nuova versione di Pulpe. Aggiorna l'app per continuare."
+          }
+        }
+      }
     },
     "Une pioche est déjà en place pour ce mois" : {
       "localizations" : {
@@ -23619,6 +25887,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Una sola volta"
+          }
+        }
+      }
+    },
+    "Utilisateur non connecté" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutzer nicht angemeldet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User not signed in"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utente non connesso"
           }
         }
       }
@@ -23755,15 +26045,74 @@
         }
       }
     },
+    "Vers" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A"
+          }
+        }
+      }
+    },
     "Version %@" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versione %@"
+          }
+        }
+      }
     },
     "Version %@ - %@" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@ - %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@ - %@"
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Version %1$@ - %2$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versione %@ - %@"
           }
         }
       }
@@ -23773,7 +26122,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das richten wir jetzt ein"
+            "value" : "Das richte ich jetzt ein"
           }
         },
         "en" : {
@@ -23785,7 +26134,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ecco cosa mettiamo in piedi"
+            "value" : "Ecco cosa metto in piedi"
           }
         }
       }
@@ -23817,7 +26166,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Weiter"
+            "value" : "Mehr anzeigen"
           }
         },
         "en" : {
@@ -23829,7 +26178,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continua"
+            "value" : "Mostra di più"
           }
         }
       }
@@ -24171,10 +26520,48 @@
       }
     },
     "Vue annuelle" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jahresansicht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Year view"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vista annuale"
+          }
+        }
+      }
     },
     "Vérification" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Überprüfung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verification"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica"
+          }
+        }
+      }
     },
     "Vérification du lien en cours" : {
       "localizations" : {
@@ -24286,8 +26673,53 @@
         }
       }
     },
+    "Vérifier ma clé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meinen Schlüssel prüfen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check my key"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica la mia chiave"
+          }
+        }
+      }
+    },
+    "Vérifier ma clé de récupération" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meinen Wiederherstellungsschlüssel prüfen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check my recovery key"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica la mia chiave di recupero"
+          }
+        }
+      }
+    },
     "With icon + trailing" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "XXXX-XXXX-XXXX-XXXX-..." : {
       "localizations" : {
@@ -24312,13 +26744,34 @@
       }
     },
     "Year overview content here" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "ZONE DE DANGER" : {
-      "localizations" : {}
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GEFAHRENZONE"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DANGER ZONE"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ZONA DI PERICOLO"
+          }
+        }
+      }
     },
     "Zero" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "arrivent sur ton budget" : {
       "localizations" : {
@@ -24887,7 +27340,8 @@
       }
     },
     "iOS %@" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "ici" : {
       "localizations" : {
@@ -25340,7 +27794,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "erfasst im %@"
+            "value" : "erfasst in %@"
           }
         },
         "en" : {
@@ -25352,7 +27806,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "inserito a %@"
+            "value" : "inserito in %@"
           }
         }
       }
@@ -25378,9 +27832,6 @@
           }
         }
       }
-    },
-    "text-field-placeholder" : {
-      "localizations" : {}
     },
     "ton@email.com" : {
       "localizations" : {
@@ -25471,7 +27922,8 @@
       }
     },
     "|" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "« %@ » · %@" : {
       "localizations" : {
@@ -25524,7 +27976,8 @@
       }
     },
     "·" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "À" : {
       "localizations" : {
@@ -25619,7 +28072,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nächsten Monat zurücklegen: ich erinnere dich daran."
+            "value" : "Nächsten Monat zurücklegen: Ich erinnere dich daran."
           }
         },
         "en" : {
@@ -25967,7 +28420,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Repayment saving deleted"
+            "value" : "Repayment savings deleted"
           }
         },
         "it" : {
@@ -26283,7 +28736,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gespart %@, geplante Projektion %@"
+            "value" : "Gespart %@, geplante Prognose %@"
           }
         },
         "en" : {
@@ -26311,7 +28764,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gespart %@, geplante Projektion %@, Zielbetrag %@"
+            "value" : "Gespart %@, geplante Prognose %@, Zielbetrag %@"
           }
         },
         "en" : {
@@ -26495,7 +28948,8 @@
       }
     },
     "—" : {
-      "localizations" : {}
+      "localizations" : {},
+      "shouldTranslate" : false
     },
     "→ %@" : {
       "localizations" : {
