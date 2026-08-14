@@ -38,6 +38,8 @@ DECLARE
     'public.update_savings_goal_withdrawal(uuid,bigint,jsonb,uuid[])'
   ];
   v_invoker_signatures constant text[] := ARRAY[
+    'public.apply_savings_goal_deletion(uuid,text,jsonb)',
+    'public.apply_savings_goal_generation_stop(uuid,text,uuid[],integer)',
     'public.apply_template_line_operations(uuid,uuid[],uuid[],jsonb,jsonb)',
     'public.check_unchecked_transactions(uuid)',
     'public.create_budget_lines_spread(uuid,jsonb,uuid,uuid)',
@@ -98,6 +100,69 @@ $$;
 DO $$
 DECLARE
   v_signature text;
+  v_definition text;
+  v_authenticated_definer_count integer;
+BEGIN
+  FOREACH v_signature IN ARRAY ARRAY[
+    'public.apply_savings_goal_plan_with_destinations(uuid,integer,jsonb,jsonb,bigint)',
+    'public.create_savings_goal_withdrawal(uuid,bigint,jsonb,uuid[])',
+    'public.delete_savings_goal_withdrawal(uuid,bigint)',
+    'public.update_savings_goal_withdrawal(uuid,bigint,jsonb,uuid[])'
+  ]
+  LOOP
+    SELECT pg_get_functiondef(p.oid) INTO v_definition
+    FROM pg_proc p
+    WHERE p.oid = to_regprocedure(v_signature)
+      AND p.prosecdef
+      AND p.proconfig = ARRAY['search_path=""'];
+
+    IF v_definition IS NULL THEN
+      RAISE EXCEPTION 'FAIL: privileged wrapper % is not hardened', v_signature;
+    END IF;
+
+    IF position('lock_savings_goal_for_withdrawal' in v_definition) = 0 THEN
+      RAISE EXCEPTION 'FAIL: privileged wrapper % lacks the guarded lock', v_signature;
+    END IF;
+  END LOOP;
+
+  SELECT pg_get_functiondef(p.oid) INTO v_definition
+  FROM pg_proc p
+  WHERE p.oid = to_regprocedure(
+    'public.reconcile_savings_goal_target_date(uuid,text,uuid[],date,jsonb)'
+  )
+    AND p.prosecdef
+    AND p.proconfig = ARRAY['search_path=""'];
+
+  IF v_definition IS NULL
+    OR position('auth.uid()' in v_definition) = 0
+  THEN
+    RAISE EXCEPTION 'FAIL: reconciliation definer is not hardened';
+  END IF;
+
+  SELECT count(*) INTO v_authenticated_definer_count
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.prosecdef
+    AND has_function_privilege('authenticated', p.oid, 'EXECUTE');
+
+  IF v_authenticated_definer_count <> 5 THEN
+    RAISE EXCEPTION 'FAIL: expected 5 authenticated definers, found %',
+      v_authenticated_definer_count;
+  END IF;
+
+  SELECT pg_get_functiondef(
+    to_regprocedure('public.lock_savings_goal_for_withdrawal(uuid,bigint)')
+  ) INTO v_definition;
+  IF position('auth.uid()' in v_definition) = 0 THEN
+    RAISE EXCEPTION 'FAIL: privileged wrapper guard no longer checks auth.uid()';
+  END IF;
+END;
+$$;
+
+DO $$
+DECLARE
+  v_signature text;
 BEGIN
   FOREACH v_signature IN ARRAY ARRAY[
     'public.apply_savings_goal_plan_core(uuid,integer,jsonb,jsonb)',
@@ -116,6 +181,25 @@ BEGIN
     THEN
       RAISE EXCEPTION 'FAIL: an API role can execute internal function %', v_signature;
     END IF;
+  END LOOP;
+END;
+$$;
+
+DO $$
+DECLARE
+  v_privilege text;
+BEGIN
+  FOREACH v_privilege IN ARRAY ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE']
+  LOOP
+    IF NOT has_table_privilege(
+      'service_role',
+      'public.savings_goal_plan_withdrawal',
+      v_privilege
+    ) THEN
+      RAISE EXCEPTION 'FAIL: service_role lacks % on plan withdrawals',
+        v_privilege;
+    END IF;
+
   END LOOP;
 END;
 $$;

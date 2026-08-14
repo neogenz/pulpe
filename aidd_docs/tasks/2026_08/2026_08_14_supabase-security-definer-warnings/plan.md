@@ -9,7 +9,7 @@ status: in-progress
 
 | Field      | Value                                                                                                                                                       |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Goal**   | Passer 10 RPC en `SECURITY INVOKER`, fermer 1 ancien point d'entrée et conserver seulement 4 wrappers privilégiés contrôlés.                                |
+| **Goal**   | Passer 9 RPC en `SECURITY INVOKER`, fermer 1 ancien point d'entrée et conserver seulement 5 fonctions privilégiées contrôlées.                             |
 | **Source** | Export Supabase Security Advisor joint le 14 août 2026 (`pasted-text.txt`), contenant 15 alertes `0029_authenticated_security_definer_function_executable`. |
 
 ## Phases
@@ -37,4 +37,5 @@ status: in-progress
 | Conserver le client Supabase authentifié par JWT                      | Passer les données utilisateur au `service_role` contournerait RLS et contredirait ADR-0006/0013/0014.                                                        |
 | Modifier les attributs et ACL des fonctions sans réécrire leurs corps | `ALTER FUNCTION ... SECURITY INVOKER` est le plus petit changement qui réactive RLS sans toucher à l'atomicité ni aux signatures.                             |
 | Révoquer l'accès direct à `apply_savings_goal_plan`                   | Le backend courant appelle uniquement `apply_savings_goal_plan_with_destinations`; l'ancienne fonction reste un helper indirect.                              |
-| Conserver 4 wrappers de retraits en `SECURITY DEFINER`                | Ils appellent des helpers/cores dont `EXECUTE` est volontairement révoqué aux rôles API; les rendre invoker exigerait de réexposer cette surface privilégiée. |
+| Conserver 5 fonctions en `SECURITY DEFINER`                           | Quatre wrappers appellent des helpers internes; la réconciliation lit le jour de paie autoritaire dans `auth.users`, inaccessible sous RLS.                   |
+| Rendre le DML `service_role` explicite sur les retraits planifiés     | Un reset frais prouve que la table créée tardivement n'hérite pas du contrat admin attendu; aucun droit supplémentaire n'est accordé aux rôles API.           |
