@@ -13,6 +13,8 @@ import {
 } from "../lib/config";
 import "./globals.css";
 
+const SCROLL_THRESHOLD_PX = 20;
+
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
@@ -94,23 +96,20 @@ export const viewport: Viewport = {
 // native (`<details>`) ; ce script ne fournit que ce que le navigateur ne fait
 // pas seul, et pose l'attribut de défilement sur `<html>` avant l'hydratation.
 // Cet écart attendu est ignoré directement sur l'élément racine.
+// Le Header est re-rendu à chaque navigation client : aucun listener ne
+// s'attache à ses éléments (ils deviendraient orphelins), tout passe par
+// délégation au document avec un getElementById frais à chaque événement.
+// `toggle` ne remonte pas, d'où l'écoute en phase de capture.
 const headerScript = `(function(){
 if(window.pulpeHeaderReady)return;
 window.pulpeHeaderReady=1;
-function start(){
-var sentinel=document.getElementById('${SCROLL_SENTINEL_ID}');
-if(sentinel&&window.IntersectionObserver){
-new IntersectionObserver(function(entries){
-document.documentElement.toggleAttribute('data-scrolled',!entries[0].isIntersecting);
-}).observe(sentinel);
-}
-var nav=document.getElementById('${MOBILE_NAV_ID}');
-if(!nav)return;
-function close(){if(nav.open)nav.open=false;}
-var panel=document.getElementById('${MOBILE_NAV_PANEL_ID}');
-if(panel){
+function nav(){return document.getElementById('${MOBILE_NAV_ID}');}
+function close(){var n=nav();if(n&&n.open)n.open=false;}
 function syncPanel(){
-var closed=!nav.open;
+var panel=document.getElementById('${MOBILE_NAV_PANEL_ID}');
+if(!panel)return;
+var n=nav();
+var closed=!(n&&n.open);
 panel.inert=closed;
 if(closed)panel.setAttribute('aria-hidden','true');
 else panel.removeAttribute('aria-hidden');
@@ -120,23 +119,33 @@ if(closed)links[i].setAttribute('tabindex','-1');
 else links[i].removeAttribute('tabindex');
 }
 }
-syncPanel();
-nav.addEventListener('toggle',syncPanel);
-panel.addEventListener('click',function(e){
+document.addEventListener('toggle',function(e){
+if(e.target&&e.target.id==='${MOBILE_NAV_ID}')syncPanel();
+},true);
+document.addEventListener('click',function(e){
 var t=e.target;
 if(t&&t.closest&&t.closest('#${MOBILE_NAV_PANEL_ID} a'))close();
 });
-}
 document.addEventListener('keydown',function(e){
-if(e.key!=='Escape'||!nav.open)return;
-nav.open=false;
-var summary=nav.querySelector('summary');
+if(e.key!=='Escape')return;
+var n=nav();
+if(!n||!n.open)return;
+n.open=false;
+var summary=n.querySelector('summary');
 if(summary)summary.focus({preventScroll:true});
 });
 window.addEventListener('scroll',close,{passive:true});
 window.addEventListener('resize',function(){
 if(window.innerWidth>=${DESKTOP_BREAKPOINT_PX})close();
 });
+function start(){
+var sentinel=document.getElementById('${SCROLL_SENTINEL_ID}');
+if(sentinel&&window.IntersectionObserver){
+new IntersectionObserver(function(entries){
+document.documentElement.toggleAttribute('data-scrolled',!entries[0].isIntersecting);
+}).observe(sentinel);
+}
+syncPanel();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);
 else start();
@@ -201,6 +210,14 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
+        {/* Rendue dans le layout, jamais re-créée par une navigation client :
+            l'IntersectionObserver posé au premier chargement reste vivant. */}
+        <div
+          id={SCROLL_SENTINEL_ID}
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 top-0 w-px"
+          style={{ height: SCROLL_THRESHOLD_PX }}
+        />
         <PostHogProvider>{children}</PostHogProvider>
         <div id="lightbox-root" />
       </body>

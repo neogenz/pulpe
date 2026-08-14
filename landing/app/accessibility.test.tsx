@@ -306,7 +306,10 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /@custom-variant scrolled \(html\[data-scrolled\] &\);/,
     );
-    assert.match(componentSources.header, /id=\{SCROLL_SENTINEL_ID\}/);
+    // La sentinelle vit dans le layout : re-rendue par une navigation client,
+    // elle rendrait l'IntersectionObserver orphelin et figerait `data-scrolled`.
+    assert.match(componentSources.layout, /id=\{SCROLL_SENTINEL_ID\}/);
+    assert.doesNotMatch(componentSources.header, /SCROLL_SENTINEL_ID/);
     assert.match(componentSources.layout, /toggleAttribute\('data-scrolled'/);
     assert.doesNotMatch(componentSources.header, /IntersectionObserver/);
   });
@@ -747,9 +750,16 @@ describe("landing accessibility contracts", () => {
     assert.equal(componentSources.header.match(/tabIndex=\{-1\}/g)?.length, 2);
     assert.doesNotMatch(componentSources.header, /\binvisible\b/);
     assert.doesNotMatch(componentSources.header, /\bbackdrop-blur-xl\b/);
+    // Délégation au document, en capture (`toggle` ne remonte pas) : le Header
+    // est re-rendu à chaque navigation client, un listener posé sur l'élément
+    // deviendrait orphelin et laisserait le panneau inerte (taps morts).
     assert.match(
       componentSources.layout,
-      /panel\.inert=closed[\s\S]*setAttribute\('aria-hidden','true'\)[\s\S]*removeAttribute\('aria-hidden'\)[\s\S]*setAttribute\('tabindex','-1'\)[\s\S]*removeAttribute\('tabindex'\)[\s\S]*nav\.addEventListener\('toggle',syncPanel\)/,
+      /panel\.inert=closed[\s\S]*setAttribute\('aria-hidden','true'\)[\s\S]*removeAttribute\('aria-hidden'\)[\s\S]*setAttribute\('tabindex','-1'\)[\s\S]*removeAttribute\('tabindex'\)[\s\S]*document\.addEventListener\('toggle',[\s\S]*\},true\)/,
+    );
+    assert.doesNotMatch(
+      componentSources.layout,
+      /nav\.addEventListener|panel\.addEventListener/,
     );
   });
 
