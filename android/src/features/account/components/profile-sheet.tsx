@@ -1,8 +1,8 @@
-import * as Haptics from "expo-haptics";
 import type { UserProfile } from "pulpe-shared";
 import { useState } from "react";
 import { Button, HelperText, TextInput } from "react-native-paper";
 
+import { hapticSuccess } from "@/core/ui/haptics";
 import { Sheet } from "@/core/ui/sheet";
 
 import { useUpdateUserProfile } from "../account-queries";
@@ -41,9 +41,7 @@ export function ProfileSheet({
       { firstName: firstName.trim(), lastName: lastName.trim() },
       {
         onSuccess: () => {
-          void Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Success,
-          );
+          hapticSuccess();
           onDismiss();
         },
       },

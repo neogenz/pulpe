@@ -1,8 +1,8 @@
-import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { Button } from "react-native-paper";
 
+import { hapticCommit, hapticSuccess } from "@/core/ui/haptics";
 import { normalizeApiError } from "@/core/api/api-error";
 import { changeVaultPin } from "@/core/vault/vault-store";
 import { PIN_LENGTH, PinPad } from "@/ui/pin-pad";
@@ -39,7 +39,7 @@ export default function ChangePinScreen() {
       if (step === "current") {
         currentPin.current = candidate;
         setStep("next");
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
+        hapticCommit();
         return null;
       }
 
@@ -49,7 +49,7 @@ export default function ChangePinScreen() {
         }
         nextPin.current = candidate;
         setStep("confirm");
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
+        hapticCommit();
         return null;
       }
 
@@ -61,9 +61,7 @@ export default function ChangePinScreen() {
 
       try {
         await changeVaultPin(currentPin.current ?? "", candidate);
-        void Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success,
-        );
+        hapticSuccess();
         router.back();
         return null;
       } catch (error) {

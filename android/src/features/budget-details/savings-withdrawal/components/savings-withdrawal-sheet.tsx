@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import type { BudgetPeriod, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { randomUUID } from "react-native-quick-crypto";
@@ -12,6 +11,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
+import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
@@ -99,9 +99,7 @@ export function SavingsWithdrawalSheet({
       },
       {
         onSuccess: () => {
-          void Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Success,
-          );
+          hapticSuccess();
           reset();
           onWithdrawn();
         },

@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import type {
   SupportedCurrency,
   Transaction,
@@ -18,6 +17,7 @@ import {
 } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
+import { hapticSuccess } from "@/core/ui/haptics";
 import { TagPicker } from "@/core/tags/tag-picker";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
@@ -175,7 +175,7 @@ export function TransactionSheet({
     if (!isDraftSubmittable(draft) || originProblem !== null) return;
 
     const onSuccess = () => {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      hapticSuccess();
       reset();
       onSaved();
     };

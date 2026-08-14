@@ -1,6 +1,6 @@
-import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { hapticFailure } from "@/core/ui/haptics";
 import { normalizeApiError } from "@/core/api/api-error";
 
 import { PIN_LENGTH } from "./pin-pad";
@@ -52,7 +52,7 @@ export function usePinEntry(handle: PinStepHandler): PinEntry {
 
   const showError = useCallback((message: string) => {
     setErrorMessage(message);
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    hapticFailure();
 
     if (errorTimeout.current) clearTimeout(errorTimeout.current);
     errorTimeout.current = setTimeout(

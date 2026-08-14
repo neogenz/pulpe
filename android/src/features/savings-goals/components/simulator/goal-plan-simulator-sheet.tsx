@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import type {
   SavingsGoalProgress,
   SavingsPlanSimulatedMonth,
@@ -8,6 +7,7 @@ import { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, Chip, Divider, Text, useTheme } from "react-native-paper";
 
+import { hapticSelection, hapticSuccess } from "@/core/ui/haptics";
 import { Card } from "@/core/ui/card";
 import { Amount } from "@/core/ui/amount";
 import { AmountField } from "@/core/ui/amount-field";
@@ -73,7 +73,7 @@ export function GoalPlanSimulatorSheet({
   function rewrite(next: PlanOverrides) {
     setOverrides(next);
     setGeneration((current) => current + 1);
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    hapticSelection();
   }
 
   function setUniformAmount(amount: number | null) {
@@ -105,9 +105,7 @@ export function GoalPlanSimulatorSheet({
       { goalId, plan },
       {
         onSuccess: () => {
-          void Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Success,
-          );
+          hapticSuccess();
           setOverrides({});
           setGeneration((current) => current + 1);
           setRecapVisible(false);

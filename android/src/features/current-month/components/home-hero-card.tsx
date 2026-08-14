@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import {
   CURRENCY_METADATA,
   type BalanceTrajectory,
@@ -7,6 +6,7 @@ import {
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 
+import { hapticCommit } from "@/core/ui/haptics";
 import { Amount } from "@/core/ui/amount";
 import { Eyebrow } from "@/core/ui/eyebrow";
 import { useFinancialColors, useHeroColors } from "@/core/ui/scheme-colors";
@@ -60,7 +60,7 @@ export function HomeHeroCard({
   const ripple = useRipple();
 
   function handlePressMetrics() {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+    hapticCommit();
     onPressMetrics();
   }
 

@@ -1,10 +1,10 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as Clipboard from "expo-clipboard";
-import * as Haptics from "expo-haptics";
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
 
+import { hapticSuccess } from "@/core/ui/haptics";
 import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 import { formatRecoveryKey } from "@/core/vault/recovery-key";
 import {
@@ -48,7 +48,7 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
 
   async function copy() {
     await Clipboard.setStringAsync(recoveryKey);
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    hapticSuccess();
     setIsCopied(true);
 
     if (resetTimeout.current) clearTimeout(resetTimeout.current);

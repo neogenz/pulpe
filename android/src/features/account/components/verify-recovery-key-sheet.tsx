@@ -1,7 +1,7 @@
-import * as Haptics from "expo-haptics";
 import { useState } from "react";
 import { Button, HelperText, TextInput } from "react-native-paper";
 
+import { hapticSuccess } from "@/core/ui/haptics";
 import { normalizeApiError } from "@/core/api/api-error";
 import { Sheet } from "@/core/ui/sheet";
 import {
@@ -44,7 +44,7 @@ export function VerifyRecoveryKeySheet({
     setErrorMessage(null);
     try {
       await checkRecoveryKey(stripRecoveryKey(value));
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      hapticSuccess();
       onVerified();
     } catch (error) {
       setErrorMessage(normalizeApiError(error).message);

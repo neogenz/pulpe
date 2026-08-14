@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import type {
   BudgetLine,
   SupportedCurrency,
@@ -18,6 +17,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
+import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
 import { Sheet } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
@@ -147,7 +147,7 @@ export function BudgetLineSheet({
     if (!isBudgetLineDraftSubmittable(draft)) return;
 
     const onSuccess = () => {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      hapticSuccess();
       reset();
       onSaved();
     };

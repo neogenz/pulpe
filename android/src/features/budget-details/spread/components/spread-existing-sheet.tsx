@@ -1,8 +1,8 @@
-import * as Haptics from "expo-haptics";
 import type { BudgetLine, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { Button, HelperText, Text, useTheme } from "react-native-paper";
 
+import { hapticSuccess } from "@/core/ui/haptics";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { Sheet } from "@/core/ui/sheet";
 
@@ -56,9 +56,7 @@ export function SpreadExistingSheet({
       { budgetLineId: line.id, periods: selectedPeriods(cells) },
       {
         onSuccess: () => {
-          void Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Success,
-          );
+          hapticSuccess();
           onSpread();
         },
       },

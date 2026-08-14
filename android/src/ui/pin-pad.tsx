@@ -1,9 +1,9 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import * as Haptics from "expo-haptics";
 import { memo, useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
+import { hapticSelection } from "@/core/ui/haptics";
 import { useRipple } from "@/core/ui/ripple";
 import { EMPHASIS, ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 
@@ -82,7 +82,7 @@ export function PinPad({
   const press = useCallback(
     (key: PadKey) => {
       if (isDisabled) return;
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      hapticSelection();
 
       if ("digit" in key) {
         if (value.length >= PIN_LENGTH) return;

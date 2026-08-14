@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { SupportedCurrency, Transaction } from "pulpe-shared";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -10,15 +9,13 @@ import {
   formatCompactCurrency,
   formatSignedCompactCurrency,
 } from "@/core/ui/amount-format";
+import { IconDisc } from "@/core/ui/icon-disc";
 import { Amount } from "@/core/ui/amount";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { FilterChip } from "@/core/ui/filter-chip";
-import { FINANCIAL_COLORS, ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
+import { FINANCIAL_COLORS, RADIUS, SPACING } from "@/core/ui/theme";
 
 import { summarizeActivity, type ActivityWindow } from "../activity-window";
-
-const ICON_DIAMETER = 36;
-const ICON_TINT_OPACITY = "26";
 
 const WINDOWS: { value: ActivityWindow; label: string }[] = [
   { value: "week", label: "7 jours" },
@@ -103,18 +100,7 @@ export function ActivityCard({
           ]}
         >
           <View style={styles.row}>
-            <View
-              style={[
-                styles.icon,
-                { backgroundColor: theme.colors.outlineVariant },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="tray"
-                size={ICON_SIZE.md}
-                color={theme.colors.onSurfaceVariant}
-              />
-            </View>
+            <IconDisc name="tray" tint={theme.colors.onSurfaceVariant} />
             <View style={styles.labels}>
               <Text variant="bodyLarge">{EMPTY_TITLES[window]}</Text>
               <Text
@@ -148,18 +134,10 @@ export function ActivityCard({
                   <View key={transaction.id}>
                     {index > 0 && <Divider />}
                     <View style={styles.row}>
-                      <View
-                        style={[
-                          styles.icon,
-                          { backgroundColor: `${accent}${ICON_TINT_OPACITY}` },
-                        ]}
-                      >
-                        <MaterialCommunityIcons
-                          name={KIND_ICONS[transaction.kind]}
-                          size={ICON_SIZE.md}
-                          color={accent}
-                        />
-                      </View>
+                      <IconDisc
+                        name={KIND_ICONS[transaction.kind]}
+                        tint={accent}
+                      />
                       <View style={styles.labels}>
                         <Text variant="bodyLarge" numberOfLines={1}>
                           {transaction.name}
@@ -205,13 +183,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: SPACING.md,
     paddingVertical: SPACING.md,
-  },
-  icon: {
-    width: ICON_DIAMETER,
-    height: ICON_DIAMETER,
-    borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
   },
   labels: { flex: 1, gap: SPACING.xxs },
 });

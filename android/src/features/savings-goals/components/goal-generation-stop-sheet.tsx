@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import type {
   SavingsGoalFutureLine,
   SavingsGoalStatus,
@@ -13,6 +12,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
+import { hapticSuccess } from "@/core/ui/haptics";
 import { Card } from "@/core/ui/card";
 import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
@@ -72,9 +72,7 @@ export function GoalGenerationStopSheet({
       },
       {
         onSuccess: () => {
-          void Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Success,
-          );
+          hapticSuccess();
           onApplied();
         },
       },

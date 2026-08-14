@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import type {
   SupportedCurrency,
   TemplateLine,
@@ -19,6 +18,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
+import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
 import { Sheet } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
@@ -109,7 +109,7 @@ export function TemplateLineSheet({
   }
 
   function succeed() {
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    hapticSuccess();
     setPropagationVisible(false);
     onSaved();
   }

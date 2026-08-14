@@ -1,19 +1,16 @@
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import * as Haptics from "expo-haptics";
 import type { SupportedCurrency, TransactionKind } from "pulpe-shared";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, Divider, Text, useTheme } from "react-native-paper";
 
+import { IconDisc } from "@/core/ui/icon-disc";
+import { hapticSelection, hapticSuccess } from "@/core/ui/haptics";
 import { Amount } from "@/core/ui/amount";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
-import { EMPHASIS, ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
+import { EMPHASIS, RADIUS, SPACING } from "@/core/ui/theme";
 
 import type { CheckableItem } from "../current-month-view-model";
-
-const ICON_DIAMETER = 36;
-const ICON_TINT_OPACITY = "26";
 
 const KIND_ICONS = {
   income: "arrow-down",
@@ -66,12 +63,12 @@ export function UncheckedOperationsCard({
   const accent = financial[KIND_ACCENTS[current.kind]];
 
   function handleConfirm() {
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    hapticSuccess();
     onToggle(current);
   }
 
   function handleSkip() {
-    void Haptics.selectionAsync();
+    hapticSelection();
     setSkippedIds(
       deferredIds.length + 1 >= items.length
         ? []
@@ -91,18 +88,7 @@ export function UncheckedOperationsCard({
         ]}
       >
         <View style={styles.operation}>
-          <View
-            style={[
-              styles.icon,
-              { backgroundColor: `${accent}${ICON_TINT_OPACITY}` },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name={KIND_ICONS[current.kind]}
-              size={ICON_SIZE.md}
-              color={accent}
-            />
-          </View>
+          <IconDisc name={KIND_ICONS[current.kind]} tint={accent} />
 
           <View style={styles.labels}>
             <Text variant="bodyLarge" numberOfLines={1}>
@@ -159,13 +145,6 @@ const styles = StyleSheet.create({
   },
   syncing: { opacity: EMPHASIS.pending },
   operation: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
-  icon: {
-    width: ICON_DIAMETER,
-    height: ICON_DIAMETER,
-    borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   labels: { flex: 1, gap: SPACING.xxs },
   actions: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
 });

@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
+import Animated, { LinearTransition } from "react-native-reanimated";
 import {
   BudgetFormulas,
   type SupportedCurrency,
@@ -33,7 +34,12 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import { FAB_CLEARANCE, SCREEN_PADDING, SPACING } from "@/core/ui/theme";
+import {
+  DURATION,
+  FAB_CLEARANCE,
+  SCREEN_PADDING,
+  SPACING,
+} from "@/core/ui/theme";
 import { tagSummary } from "@/core/tags/tag-selection";
 import { useTags } from "@/core/tags/tag-queries";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
@@ -346,7 +352,15 @@ export default function BudgetDetailScreen() {
           }
           if (row.kind === "transaction") {
             return (
-              <View style={styles.row}>
+              // `layout`, never `entering`: pointing a line moves it from "À
+              // pointer" to "Pointé", and that is a move, not an arrival — the
+              // row exists either way. An `entering` animation would also take
+              // the row out of flow while it played, which in this app once
+              // left a whole screen drawing over its own chrome.
+              <Animated.View
+                style={styles.row}
+                layout={LinearTransition.duration(DURATION.short)}
+              >
                 <TransactionRow
                   transaction={row.transaction}
                   currency={currency}
@@ -366,11 +380,14 @@ export default function BudgetDetailScreen() {
                     )
                   }
                 />
-              </View>
+              </Animated.View>
             );
           }
           return (
-            <View style={styles.row}>
+            <Animated.View
+              style={styles.row}
+              layout={LinearTransition.duration(DURATION.short)}
+            >
               <BudgetLineRow
                 item={row.item}
                 currency={currency}
@@ -395,7 +412,7 @@ export default function BudgetDetailScreen() {
                   );
                 }}
               />
-            </View>
+            </Animated.View>
           );
         }}
         ListEmptyComponent={

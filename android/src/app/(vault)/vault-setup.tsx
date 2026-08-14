@@ -1,7 +1,7 @@
-import * as Haptics from "expo-haptics";
 import { useRef, useState } from "react";
 import { Button } from "react-native-paper";
 
+import { hapticCommit, hapticSuccess } from "@/core/ui/haptics";
 import { normalizeApiError } from "@/core/api/api-error";
 import { useSessionStore } from "@/core/auth/session-store";
 import { setupVaultPin } from "@/core/vault/vault-store";
@@ -28,7 +28,7 @@ export default function VaultSetupScreen() {
       if (firstPin.current === null) {
         firstPin.current = candidate;
         setIsConfirming(true);
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
+        hapticCommit();
         return null;
       }
 
@@ -39,9 +39,7 @@ export default function VaultSetupScreen() {
 
       try {
         await setupVaultPin(candidate);
-        void Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success,
-        );
+        hapticSuccess();
         return null;
       } catch (error) {
         // A failed setup leaves nothing behind, so the next attempt starts

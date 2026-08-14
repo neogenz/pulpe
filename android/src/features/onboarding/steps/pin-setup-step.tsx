@@ -1,7 +1,7 @@
-import * as Haptics from "expo-haptics";
 import { useRef, useState } from "react";
 import { Button } from "react-native-paper";
 
+import { hapticCommit, hapticSuccess } from "@/core/ui/haptics";
 import { normalizeApiError } from "@/core/api/api-error";
 import { setupVaultPin } from "@/core/vault/vault-store";
 import { PIN_LENGTH, PinPad } from "@/ui/pin-pad";
@@ -32,7 +32,7 @@ export function PinSetupStep() {
       if (firstPin.current === null) {
         firstPin.current = candidate;
         setIsConfirming(true);
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
+        hapticCommit();
         return null;
       }
 
@@ -51,7 +51,7 @@ export function PinSetupStep() {
       }
 
       markPinSetupCompleted();
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      hapticSuccess();
       // Not awaited: its own overlay reports how it goes, and holding the pad
       // busy would leave the user staring at a locked keypad meanwhile.
       void submitOnboarding();

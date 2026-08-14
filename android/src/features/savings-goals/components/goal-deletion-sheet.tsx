@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import type {
   SavingsGoal,
   SavingsGoalDeletionImpact,
@@ -17,6 +16,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
+import { hapticSuccess } from "@/core/ui/haptics";
 import { Card } from "@/core/ui/card";
 import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
@@ -86,9 +86,7 @@ export function GoalDeletionSheet({
       { goalId: goal.id, command: { mode, revision: impact.data.revision } },
       {
         onSuccess: () => {
-          void Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Success,
-          );
+          hapticSuccess();
           onDeleted();
         },
       },

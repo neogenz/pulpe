@@ -175,9 +175,10 @@ export const TOUCH_TARGET = 48;
 /**
  * How much of an accent a surface takes when tinted by it, as a hex alpha
  * suffix. `surface` is M3's own pressed-state opacity, which is also what a
- * ripple lays over the thing it is acknowledging.
+ * ripple lays over the thing it is acknowledging; `icon` is the shade a disc
+ * needs to read as a disc behind a glyph of the same colour.
  */
-export const TINT_ALPHA = { subtle: "14", surface: "1F" } as const;
+export const TINT_ALPHA = { subtle: "14", surface: "1F", icon: "26" } as const;
 
 /**
  * Every icon in the app is one of these five. The ladder is the Material one,
@@ -193,6 +194,15 @@ export const ICON_SIZE = { xs: 12, sm: 16, md: 20, lg: 24, xl: 32 } as const;
  * control with no contrast contract left to keep — M3's own value.
  */
 export const EMPHASIS = { pending: 0.5, disabled: 0.38 } as const;
+
+/**
+ * How long anything is allowed to take, in milliseconds. M3's `short4` and
+ * `medium2`: `short` for something rearranging itself in place, `medium` for
+ * something arriving or leaving. Longer than this and the app is asking to be
+ * waited for; shorter and the eye reads a cut rather than a movement, which is
+ * the whole reason a line that gets pointed used to vanish between two frames.
+ */
+export const DURATION = { short: 200, medium: 300 } as const;
 
 /**
  * The margin Paper hangs off every side of an `IconButton`. Subtract it from a

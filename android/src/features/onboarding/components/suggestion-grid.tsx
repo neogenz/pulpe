@@ -1,8 +1,8 @@
-import * as Haptics from "expo-haptics";
 import { type SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
+import { hapticSelection } from "@/core/ui/haptics";
 import { FilterChip } from "@/core/ui/filter-chip";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { SPACING } from "@/core/ui/theme";
@@ -40,7 +40,7 @@ export function SuggestionGrid({
               key={suggestion.id}
               selected={isSelected}
               onPress={() => {
-                void Haptics.selectionAsync();
+                hapticSelection();
                 toggleSuggestion(suggestion);
               }}
               accessibilityLabel={`${suggestion.name}, ${formatCurrency(suggestion.amount, currency)}`}

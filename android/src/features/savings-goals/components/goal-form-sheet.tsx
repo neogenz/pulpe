@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import type {
   SavingsGoal,
   SavingsGoalStatus,
@@ -17,6 +16,7 @@ import {
 } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
+import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate, parseIsoDate, toIsoDate } from "@/core/ui/date-format";
@@ -116,7 +116,7 @@ export function GoalFormSheet({
     if (!isSavingsGoalDraftSubmittable(draft)) return;
 
     const onSuccess = () => {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      hapticSuccess();
       reset();
       onSaved();
     };

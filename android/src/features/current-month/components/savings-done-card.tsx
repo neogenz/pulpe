@@ -1,16 +1,15 @@
 import type { SupportedCurrency } from "pulpe-shared";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
+
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
+import { IconDisc } from "@/core/ui/icon-disc";
 import { Amount } from "@/core/ui/amount";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
 import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
-
-const ICON_DIAMETER = 36;
-const ICON_TINT_OPACITY = "26";
 
 interface SavingsDoneCardProps {
   amount: number;
@@ -42,18 +41,7 @@ export function SavingsDoneCard({
       accessibilityHint="Voir mes objectifs d'épargne"
       style={[styles.card, { backgroundColor: theme.colors.surfaceVariant }]}
     >
-      <View
-        style={[
-          styles.icon,
-          { backgroundColor: `${savingsColor}${ICON_TINT_OPACITY}` },
-        ]}
-      >
-        <MaterialCommunityIcons
-          name="check"
-          size={ICON_SIZE.md}
-          color={savingsColor}
-        />
-      </View>
+      <IconDisc name="check" tint={savingsColor} />
 
       <View style={styles.text}>
         <Text variant="bodyLarge">Épargne du mois versée</Text>
@@ -79,13 +67,6 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.card,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
-  },
-  icon: {
-    width: ICON_DIAMETER,
-    height: ICON_DIAMETER,
-    borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
   },
   text: { flex: 1, gap: SPACING.xxs },
 });

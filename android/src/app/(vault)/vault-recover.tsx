@@ -1,9 +1,9 @@
-import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { Linking, StyleSheet, View } from "react-native";
 import { Button, HelperText, Text, TextInput } from "react-native-paper";
 
+import { hapticCommit, hapticSuccess } from "@/core/ui/haptics";
 import { normalizeApiError } from "@/core/api/api-error";
 import { useSessionStore } from "@/core/auth/session-store";
 import { APP_URLS } from "@/core/ui/app-urls";
@@ -141,7 +141,7 @@ function NewPinStep({ recoveryKey, onBack, onKeyRejected }: NewPinStepProps) {
       if (firstPin.current === null) {
         firstPin.current = candidate;
         setIsConfirming(true);
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
+        hapticCommit();
         return null;
       }
 
@@ -153,9 +153,7 @@ function NewPinStep({ recoveryKey, onBack, onKeyRejected }: NewPinStepProps) {
 
       try {
         await recoverVaultWithKey(stripRecoveryKey(recoveryKey), candidate);
-        void Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success,
-        );
+        hapticSuccess();
         return null;
       } catch (error) {
         const apiError = normalizeApiError(error);

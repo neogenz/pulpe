@@ -1,5 +1,4 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import * as Haptics from "expo-haptics";
 import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Button, IconButton, Text, useTheme } from "react-native-paper";
@@ -20,6 +19,8 @@ import {
 import { STEP_COPY } from "../onboarding-step";
 import { goToPreviousStep, useOnboardingStore } from "../onboarding-store";
 import { ProgressDots } from "./progress-dots";
+
+import { hapticCommit } from "@/core/ui/haptics";
 
 /**
  * The frame every step is drawn in: where the user is, what the step asks, and
@@ -63,7 +64,7 @@ export function StepScaffold({
   }
 
   function handleContinue() {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    hapticCommit();
     onContinue();
   }
 

@@ -1,8 +1,8 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import * as Haptics from "expo-haptics";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
 
+import { hapticSelection } from "@/core/ui/haptics";
 import { useRipple } from "@/core/ui/ripple";
 import { EMPHASIS, ICON_SIZE, RADIUS, TOUCH_TARGET } from "@/core/ui/theme";
 
@@ -37,7 +37,7 @@ export function PointCircle({
   const ripple = useRipple({ radius: TOUCH_TARGET / 2 });
 
   function handlePress() {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    hapticSelection();
     onToggle();
   }
 

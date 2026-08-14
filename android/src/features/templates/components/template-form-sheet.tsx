@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import type { BudgetTemplate } from "pulpe-shared";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -11,6 +10,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
+import { hapticSuccess } from "@/core/ui/haptics";
 import { Sheet } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 
@@ -66,7 +66,7 @@ export function TemplateFormSheet({
     if (!isSubmittable) return;
 
     const onSuccess = (saved: BudgetTemplate) => {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      hapticSuccess();
       onSaved(saved);
     };
     const trimmed = description.trim();

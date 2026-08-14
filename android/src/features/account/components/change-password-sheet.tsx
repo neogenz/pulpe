@@ -1,5 +1,4 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import * as Haptics from "expo-haptics";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
@@ -14,6 +13,7 @@ import {
   isAcceptablePassword,
   PASSWORD_CRITERIA,
 } from "@/core/auth/password-rules";
+import { hapticSuccess } from "@/core/ui/haptics";
 import { updatePassword, verifyPassword } from "@/core/auth/supabase";
 import { Sheet } from "@/core/ui/sheet";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
@@ -56,7 +56,7 @@ export function ChangePasswordSheet({
     try {
       await verifyPassword(email, currentPassword);
       await updatePassword(newPassword);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      hapticSuccess();
       onChanged();
     } catch (error) {
       setErrorMessage(describeFailure(error));
