@@ -9,30 +9,6 @@ export const MAX_TEMPLATES = 5;
 
 export type TemplateUsage = TemplateUsageResponse["data"];
 
-export interface TemplateTotals {
-  income: number;
-  outflow: number;
-  balance: number;
-}
-
-/**
- * What a model plans for a month. Port of `BudgetFormulas.calculateTemplateTotals`,
- * which exists in Swift with no TypeScript twin — the rule belongs in
- * `shared/src/calculators/`, and this is a second copy until it moves there.
- */
-export function templateTotals(lines: TemplateLine[]): TemplateTotals {
-  const income = sumOf(lines, "income");
-  const outflow = sumOf(lines, "expense") + sumOf(lines, "saving");
-
-  return { income, outflow, balance: income - outflow };
-}
-
-function sumOf(lines: TemplateLine[], kind: TransactionKind): number {
-  return lines
-    .filter((line) => line.kind === kind)
-    .reduce((total, line) => total + line.amount, 0);
-}
-
 export const KIND_SECTION_LABELS: Record<TransactionKind, string> = {
   income: "Revenus",
   expense: "Dépenses",

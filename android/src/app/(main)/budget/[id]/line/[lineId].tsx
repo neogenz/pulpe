@@ -1,5 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
-import type { SupportedCurrency, Transaction } from "pulpe-shared";
+import {
+  BudgetFormulas,
+  type SupportedCurrency,
+  type Transaction,
+} from "pulpe-shared";
 import { useState } from "react";
 import { ScrollView, StyleSheet, useColorScheme, View } from "react-native";
 import {
@@ -30,7 +34,6 @@ import {
   useBudgetDetails,
   useBudgetList,
 } from "@/features/budgets/budget-queries";
-import { lineConsumption } from "@/features/budgets/line-consumption";
 import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
 import {
   useDeleteBudgetLine,
@@ -125,7 +128,7 @@ export default function BudgetLineDetailScreen() {
   const transactions = (details.data?.transactions ?? []).filter(
     (transaction) => transaction.budgetLineId === lineId,
   );
-  const consumption = lineConsumption(line, transactions);
+  const consumption = BudgetFormulas.calculateConsumption(line, transactions);
   const postponeTarget = postponeTargetPeriod({
     year: budget.year,
     month: budget.month,

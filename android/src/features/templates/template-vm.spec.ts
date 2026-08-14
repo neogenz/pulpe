@@ -6,7 +6,6 @@ import {
   propagationBudgetCount,
   type TemplateUsage,
   templateLineSections,
-  templateTotals,
 } from "./template-vm";
 
 function line(overrides: Partial<TemplateLine> = {}): TemplateLine {
@@ -37,26 +36,6 @@ function usage(budgets: { month: number; year: number }[] = []): TemplateUsage {
     })),
   };
 }
-
-describe("templateTotals", () => {
-  it("counts savings as money leaving the month", () => {
-    const totals = templateTotals([
-      line({ kind: "income", amount: 5000 }),
-      line({ kind: "expense", amount: 1200 }),
-      line({ kind: "saving", amount: 800 }),
-    ]);
-
-    expect(totals).toEqual({ income: 5000, outflow: 2000, balance: 3000 });
-  });
-
-  it("is all zeroes on an empty model", () => {
-    expect(templateTotals([])).toEqual({
-      income: 0,
-      outflow: 0,
-      balance: 0,
-    });
-  });
-});
 
 describe("templateLineSections", () => {
   it("puts income first and drops the empty natures", () => {

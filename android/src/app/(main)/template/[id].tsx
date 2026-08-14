@@ -1,5 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
-import type { SupportedCurrency, TemplateLine } from "pulpe-shared";
+import {
+  BudgetFormulas,
+  type SupportedCurrency,
+  type TemplateLine,
+} from "pulpe-shared";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -35,10 +39,7 @@ import {
   useTemplateLines,
   useTemplateUsage,
 } from "@/features/templates/template-queries";
-import {
-  propagationBudgetCount,
-  templateTotals,
-} from "@/features/templates/template-vm";
+import { propagationBudgetCount } from "@/features/templates/template-vm";
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 
@@ -90,7 +91,7 @@ export default function TemplateDetailScreen() {
   }
 
   const list = lines.data ?? [];
-  const totals = templateTotals(list);
+  const totals = BudgetFormulas.calculateTemplateTotals(list);
   // Zero until the usage answers: an edit that silently propagated would be
   // worse than one that asks a question too late.
   const propagationCount =
@@ -155,12 +156,12 @@ export default function TemplateDetailScreen() {
           <Card.Content style={styles.totals}>
             <TotalRow
               label="Revenus"
-              amount={totals.income}
+              amount={totals.totalIncome}
               currency={currency}
             />
             <TotalRow
               label="Dépenses et épargne"
-              amount={totals.outflow}
+              amount={totals.totalExpenses}
               currency={currency}
             />
             <TotalRow

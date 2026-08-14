@@ -6,6 +6,7 @@ import {
   type BudgetSparse,
   BudgetFormulas,
   calculateBalanceTrajectory,
+  type Consumption,
   type EmotionState,
   getBudgetPeriodDates,
   type Transaction,
@@ -14,10 +15,6 @@ import {
 
 import { formatDayMonth } from "@/core/ui/date-format";
 import type { BudgetDetails } from "@/features/budgets/budget-api";
-import {
-  type LineConsumption,
-  lineConsumption,
-} from "@/features/budgets/line-consumption";
 import type { CheckTarget } from "@/features/budgets/toggle-check-api";
 
 /** Mirrors `BudgetLine.rolloverLine` in `ios/Pulpe/Domain/Models/BudgetLine.swift`. */
@@ -41,7 +38,7 @@ const RECURRENCE_LABELS: Record<BudgetLine["recurrence"], string> = {
 
 export interface DriftLine {
   line: BudgetLine;
-  consumption: LineConsumption;
+  consumption: Consumption;
 }
 
 export interface CheckableItem extends CheckTarget {
@@ -51,7 +48,7 @@ export interface CheckableItem extends CheckTarget {
   kind: TransactionKind;
   amount: number;
   /** Present when the item is, or belongs to, an envelope with a plan. */
-  consumption: LineConsumption | null;
+  consumption: Consumption | null;
   /** What the row says under the name: a date for a spend, a frequency for a plan. */
   subtitle: string;
 }
@@ -247,7 +244,10 @@ function selectDriftLines(
 ): DriftLine[] {
   return budgetLines
     .filter((line) => line.kind === "expense" && line.isRollover !== true)
-    .map((line) => ({ line, consumption: lineConsumption(line, transactions) }))
+    .map((line) => ({
+      line,
+      consumption: BudgetFormulas.calculateConsumption(line, transactions),
+    }))
     .filter((drift) => drift.consumption.available < 0)
     .sort((a, b) => a.consumption.available - b.consumption.available);
 }
@@ -292,7 +292,7 @@ function selectUncheckedItems(
       const line = linesById.get(transaction.budgetLineId as string);
       return toCheckableItem(
         transaction,
-        line ? lineConsumption(line, transactions) : null,
+        line ? BudgetFormulas.calculateConsumption(line, transactions) : null,
       );
     });
 
@@ -306,7 +306,7 @@ function selectUncheckedItems(
       name: line.name,
       kind: line.kind,
       amount: line.amount,
-      consumption: lineConsumption(line, transactions),
+      consumption: BudgetFormulas.calculateConsumption(line, transactions),
       subtitle: RECURRENCE_LABELS[line.recurrence],
     }));
 
@@ -396,7 +396,7 @@ function isUnchecked(item: { checkedAt: string | null }): boolean {
 
 function toCheckableItem(
   transaction: Transaction,
-  consumption: LineConsumption | null,
+  consumption: Consumption | null,
 ): CheckableItem {
   return {
     id: `tx-${transaction.id}`,

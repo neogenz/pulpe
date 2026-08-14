@@ -1,6 +1,9 @@
 import {
   type BudgetPeriod,
   getBudgetPeriodForDate,
+  type SpreadOccurrenceItem,
+  spreadOccurrenceItems,
+  spreadTracker,
   type SupportedCurrency,
 } from "pulpe-shared";
 import { useMemo } from "react";
@@ -17,11 +20,6 @@ import { formatMonthName } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
 import { RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
-import {
-  type SpreadOccurrenceItem,
-  spreadOccurrenceItems,
-  spreadTracker,
-} from "../spread-progress";
 import { useSpreadOccurrences } from "../spread-queries";
 
 const PERCENT = 100;

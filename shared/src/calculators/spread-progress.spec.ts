@@ -1,10 +1,11 @@
-import type { SpreadOccurrence } from "pulpe-shared";
+import { describe, it, expect } from 'vitest';
 
+import type { SpreadOccurrence } from '../../schemas.js';
 import {
   spreadOccurrenceItems,
   spreadRealizedAmount,
   spreadTracker,
-} from "./spread-progress";
+} from './spread-progress.js';
 
 const VIEWED = { year: 2026, month: 8 };
 const LIVE = { year: 2026, month: 8 };
@@ -16,9 +17,9 @@ function occurrence(
     budgetLineId: `line-${overrides.month}`,
     budgetId: `budget-${overrides.month}`,
     year: 2026,
-    name: "Impôts",
+    name: 'Impôts',
     amount: 300,
-    kind: "expense",
+    kind: 'expense',
     checkedAt: null,
     consumed: 0,
     transactionCount: 0,
@@ -26,8 +27,8 @@ function occurrence(
   };
 }
 
-describe("spreadOccurrenceItems", () => {
-  it("orders the months and marks where the reader stands", () => {
+describe('spreadOccurrenceItems', () => {
+  it('orders the months and marks where the reader stands', () => {
     const items = spreadOccurrenceItems(
       [
         occurrence({ month: 9 }),
@@ -45,7 +46,7 @@ describe("spreadOccurrenceItems", () => {
 
   // The viewed month and the month being lived in are different axes: reading
   // last month's budget must not turn its own occurrence into a future one.
-  it("keeps past against the live month, not the viewed one", () => {
+  it('keeps past against the live month, not the viewed one', () => {
     const items = spreadOccurrenceItems(
       [occurrence({ month: 7 })],
       { year: 2026, month: 6 },
@@ -57,8 +58,8 @@ describe("spreadOccurrenceItems", () => {
   });
 });
 
-describe("spreadRealizedAmount", () => {
-  it("prefers what was really spent", () => {
+describe('spreadRealizedAmount', () => {
+  it('prefers what was really spent', () => {
     const [item] = spreadOccurrenceItems(
       [occurrence({ month: 7, consumed: 280, transactionCount: 2 })],
       VIEWED,
@@ -68,7 +69,7 @@ describe("spreadRealizedAmount", () => {
     expect(spreadRealizedAmount(item)).toBe(280);
   });
 
-  it("falls back to the tranche when nothing was booked", () => {
+  it('falls back to the tranche when nothing was booked', () => {
     const [item] = spreadOccurrenceItems(
       [occurrence({ month: 7 })],
       VIEWED,
@@ -79,8 +80,8 @@ describe("spreadRealizedAmount", () => {
   });
 });
 
-describe("spreadTracker", () => {
-  it("counts a past month as provisioned and shares the rest over the open ones", () => {
+describe('spreadTracker', () => {
+  it('counts a past month as provisioned and shares the rest over the open ones', () => {
     const items = spreadOccurrenceItems(
       [
         occurrence({ month: 7 }),
@@ -101,10 +102,10 @@ describe("spreadTracker", () => {
 
   // A pointed month is done: counting it in the total AND as a slot still to
   // fill would ask the user to provision it twice.
-  it("never counts a pointed month as still open", () => {
+  it('never counts a pointed month as still open', () => {
     const items = spreadOccurrenceItems(
       [
-        occurrence({ month: 8, checkedAt: "2026-08-05T00:00:00.000Z" }),
+        occurrence({ month: 8, checkedAt: '2026-08-05T00:00:00.000Z' }),
         occurrence({ month: 9 }),
       ],
       VIEWED,
@@ -116,7 +117,7 @@ describe("spreadTracker", () => {
     expect(tracker?.perRemainingMonth).toBe(300);
   });
 
-  it("says nothing is left when everything is behind", () => {
+  it('says nothing is left when everything is behind', () => {
     const items = spreadOccurrenceItems(
       [occurrence({ month: 6 }), occurrence({ month: 7 })],
       VIEWED,
@@ -129,7 +130,7 @@ describe("spreadTracker", () => {
     expect(tracker?.progressPercent).toBe(100);
   });
 
-  it("has nothing to track without occurrences", () => {
+  it('has nothing to track without occurrences', () => {
     expect(spreadTracker([])).toBeNull();
   });
 });

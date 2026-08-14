@@ -13,8 +13,17 @@ export {
   BudgetFormulas,
   isOutflowKind,
   TIGHT_BUDGET_THRESHOLD_PERCENT,
+  type Consumption,
   type EmotionState,
+  type TemplateTotals,
 } from './budget-formulas.js';
+export {
+  spreadOccurrenceItems,
+  spreadRealizedAmount,
+  spreadTracker,
+  type SpreadOccurrenceItem,
+  type SpreadTracker,
+} from './spread-progress.js';
 export {
   calculateBalanceTrajectory,
   type BalanceTrajectory,

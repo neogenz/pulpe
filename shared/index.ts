@@ -225,7 +225,16 @@ export {
 export {
   BudgetFormulas,
   TIGHT_BUDGET_THRESHOLD_PERCENT,
+  type Consumption,
   type EmotionState,
+  type TemplateTotals,
+} from './src/calculators/index.js';
+export {
+  spreadOccurrenceItems,
+  spreadRealizedAmount,
+  spreadTracker,
+  type SpreadOccurrenceItem,
+  type SpreadTracker,
 } from './src/calculators/index.js';
 export {
   calculateBalanceTrajectory,

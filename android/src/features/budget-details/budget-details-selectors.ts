@@ -1,9 +1,10 @@
-import type { BudgetLine, Transaction, TransactionKind } from "pulpe-shared";
-
 import {
-  type LineConsumption,
-  lineConsumption,
-} from "@/features/budgets/line-consumption";
+  type BudgetLine,
+  BudgetFormulas,
+  type Consumption,
+  type Transaction,
+  type TransactionKind,
+} from "pulpe-shared";
 
 /** Section order on the screen, from `FiltersStore.displayedSections`. */
 const KIND_ORDER: TransactionKind[] = ["income", "saving", "expense"];
@@ -38,7 +39,7 @@ export type AmountAccent =
 
 export interface LineItem {
   line: BudgetLine;
-  consumption: LineConsumption;
+  consumption: Consumption;
   /**
    * The one number the row shouts. Expenses surface what is left to spend —
    * the actionable figure — while income and savings surface what has actually
@@ -158,7 +159,7 @@ function toLineItem(
   transactions: Transaction[],
   formatAmount: (value: number) => string,
 ): LineItem {
-  const consumption = lineConsumption(line, transactions);
+  const consumption = BudgetFormulas.calculateConsumption(line, transactions);
   const isOverBudget = line.kind === "expense" && consumption.available < 0;
 
   return {
@@ -175,7 +176,7 @@ function toLineItem(
 
 function displayAmount(
   line: BudgetLine,
-  consumption: LineConsumption,
+  consumption: Consumption,
   isOverBudget: boolean,
 ): number {
   if (line.kind === "expense") {
@@ -187,7 +188,7 @@ function displayAmount(
 
 function amountSuffix(
   line: BudgetLine,
-  consumption: LineConsumption,
+  consumption: Consumption,
   isOverBudget: boolean,
   formatAmount: (value: number) => string,
 ): string | null {
@@ -210,7 +211,7 @@ function amountSuffix(
  */
 function statusLabel(
   line: BudgetLine,
-  consumption: LineConsumption,
+  consumption: Consumption,
   isOverBudget: boolean,
   formatAmount: (value: number) => string,
 ): string | null {
@@ -238,7 +239,7 @@ function statusLabel(
  */
 function amountAccent(
   line: BudgetLine,
-  consumption: LineConsumption,
+  consumption: Consumption,
   isOverBudget: boolean,
 ): AmountAccent {
   if (line.kind === "income") return "income";

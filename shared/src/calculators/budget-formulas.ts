@@ -67,6 +67,20 @@ export type EmotionState = 'comfortable' | 'tight' | 'deficit';
 /** Seuil DA §3.1 séparant "confortable" de "serré". */
 export const TIGHT_BUDGET_THRESHOLD_PERCENT = 80;
 
+/** Miroir de `BudgetFormulas.Consumption` (Swift). */
+export interface Consumption {
+  allocated: number;
+  available: number;
+  percentage: number;
+}
+
+/** Miroir de `BudgetFormulas.TemplateTotals` (Swift). */
+export interface TemplateTotals {
+  totalIncome: number;
+  totalExpenses: number;
+  balance: number;
+}
+
 /**
  * Classe contenant toutes les formules métier selon SPECS
  * Toutes les méthodes sont statiques et pures (pas d'effets de bord)
@@ -505,6 +519,47 @@ export class BudgetFormulas {
     const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
     const clampedDay = Math.min(payDay, lastDayOfPrevMonth);
     return new Date(prevYear, prevMonth - 1, clampedDay);
+  }
+
+  /**
+   * Ce qu'une enveloppe a absorbé jusqu'ici — barre de progression, filtre de
+   * dérive, lignes du détail de budget. Miroir de
+   * `BudgetFormulas.calculateConsumption` (Swift).
+   */
+  static calculateConsumption(
+    budgetLine: FinancialItemWithId,
+    transactions: TransactionWithBudgetLineId[],
+  ): Consumption {
+    const allocated = transactions
+      .filter((tx) => tx.budgetLineId === budgetLine.id)
+      .reduce((sum, tx) => sum + tx.amount, 0);
+
+    return {
+      allocated,
+      available: budgetLine.amount - allocated,
+      percentage:
+        budgetLine.amount > 0 ? (allocated / budgetLine.amount) * 100 : 0,
+    };
+  }
+
+  /**
+   * Ce qu'un modèle prévoit pour un mois. Miroir de
+   * `BudgetFormulas.calculateTemplateTotals` (Swift), noms de champs compris :
+   * `totalExpenses` y couvre tout ce qui sort, épargne incluse (`isOutflowKind`).
+   */
+  static calculateTemplateTotals(lines: FinancialItem[]): TemplateTotals {
+    const totalIncome = lines
+      .filter((line) => line.kind === 'income')
+      .reduce((sum, line) => sum + line.amount, 0);
+    const totalExpenses = lines
+      .filter((line) => isOutflowKind(line.kind))
+      .reduce((sum, line) => sum + line.amount, 0);
+
+    return {
+      totalIncome,
+      totalExpenses,
+      balance: totalIncome - totalExpenses,
+    };
   }
 
   static validateMetricsCoherence(

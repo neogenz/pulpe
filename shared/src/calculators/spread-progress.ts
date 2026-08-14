@@ -1,8 +1,15 @@
-import {
-  type BudgetPeriod,
-  compareBudgetPeriods,
-  type SpreadOccurrence,
-} from "pulpe-shared";
+/**
+ * @fileoverview Progression d'un groupe de lissage — état d'affichage et suivi.
+ *
+ * MIROIR SWIFT : `ios/Pulpe/Domain/Formulas/SpreadProgress.swift`. Toute modif
+ * ici se fait aussi là-bas, tests inclus, même commit
+ * (voir `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`).
+ *
+ * NOTE: L'import utilise l'extension .js (pas .ts) - exigence ESM Node.js
+ */
+
+import type { SpreadOccurrence } from '../../schemas.js';
+import { compareBudgetPeriods, type BudgetPeriod } from './budget-period.js';
 
 const PERCENT = 100;
 
@@ -32,13 +39,6 @@ export interface SpreadTracker {
  * stored: the server returns raw `{month, year}` precisely so the client can
  * decide past/current against the pay-day cycle, which a frozen flag would get
  * wrong on a short cache.
- *
- * This is a third implementation of one rule. The webapp owns the original
- * (`feature/budget/budget-details/spread-occurrences/spread-occurrence.view-model.ts`)
- * and iOS ports it in `Domain/Formulas/SpreadProgress.swift`. It belongs in
- * `shared/src/calculators/`, where Android would import it like every other
- * formula instead of restating it — moving it there means touching the webapp
- * and the Swift mirror in one commit, which is not this port's business.
  */
 export function spreadOccurrenceItems(
   occurrences: readonly SpreadOccurrence[],

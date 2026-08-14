@@ -1910,3 +1910,77 @@ describe('BudgetFormulas', () => {
     });
   });
 });
+
+/**
+ * Mêmes fixtures que `BudgetFormulasExtendedTests.swift` — une divergence entre
+ * les deux jumeaux doit casser une assertion, pas se lire entre les lignes.
+ */
+describe('BudgetFormulas.calculateConsumption', () => {
+  const line = { id: '1', kind: 'expense' as const, amount: 500 };
+
+  it('sums only the transactions allocated to the line', () => {
+    const consumption = BudgetFormulas.calculateConsumption(line, [
+      { budgetLineId: '1', kind: 'expense', amount: 200 },
+      { budgetLineId: '1', kind: 'expense', amount: 100 },
+      { budgetLineId: '2', kind: 'expense', amount: 999 },
+    ]);
+
+    expect(consumption.allocated).toBe(300);
+    expect(consumption.available).toBe(200);
+    expect(consumption.percentage).toBeCloseTo(60);
+  });
+
+  it('reports nothing consumed when no transaction points at it', () => {
+    expect(BudgetFormulas.calculateConsumption(line, [])).toEqual({
+      allocated: 0,
+      available: 500,
+      percentage: 0,
+    });
+  });
+
+  // A zero envelope has no denominator, and 0 is the honest answer rather than
+  // an infinity the progress bar would have to special-case.
+  it('says zero percent on an envelope of zero', () => {
+    const consumption = BudgetFormulas.calculateConsumption(
+      { id: '1', kind: 'expense', amount: 0 },
+      [{ budgetLineId: '1', kind: 'expense', amount: 50 }],
+    );
+
+    expect(consumption.allocated).toBe(50);
+    expect(consumption.percentage).toBe(0);
+  });
+
+  it('goes past 100% and negative rather than clamping', () => {
+    const consumption = BudgetFormulas.calculateConsumption(
+      { id: '1', kind: 'expense', amount: 200 },
+      [{ budgetLineId: '1', kind: 'expense', amount: 300 }],
+    );
+
+    expect(consumption.percentage).toBeGreaterThan(100);
+    expect(consumption.available).toBe(-100);
+  });
+});
+
+describe('BudgetFormulas.calculateTemplateTotals', () => {
+  it('counts savings as outflow, like the Swift twin', () => {
+    const totals = BudgetFormulas.calculateTemplateTotals([
+      { kind: 'income', amount: 5000 },
+      { kind: 'expense', amount: 1500 },
+      { kind: 'saving', amount: 500 },
+    ]);
+
+    expect(totals).toEqual({
+      totalIncome: 5000,
+      totalExpenses: 2000,
+      balance: 3000,
+    });
+  });
+
+  it('has nothing to total on an empty model', () => {
+    expect(BudgetFormulas.calculateTemplateTotals([])).toEqual({
+      totalIncome: 0,
+      totalExpenses: 0,
+      balance: 0,
+    });
+  });
+});
