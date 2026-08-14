@@ -1,38 +1,37 @@
 # Review: ios-segmented-capsule-picker
 
 - **Verdict**: approve
-- **Diff**: `preview...feat/ios-segmented-capsule-picker` (7e8dcc5e6)
+- **Diff**: `preview...feat/ios-segmented-capsule-picker` (fab80f209)
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_08_14
-- **Findings**: 0 critical, 0 warning, 2 minor
+- **Findings**: 0 critical, 0 warning, 1 minor
 
 ## Phases
 
-<!-- No plan.md: acceptance criteria are the session brief approved interactively (direction "track segmenté", portée "tous les 1-parmi-N"). -->
+<!-- No plan.md: acceptance criteria are the session brief approved interactively (direction retenue par Maxime sur visuels comparés : "pickers natifs", devise en segments texte). -->
 
-### Phase 1 — Track segmenté sur tous les sélecteurs 1-parmi-N
+### Phase 1 — Tous les sélecteurs 1-parmi-N sur le segmented control natif
 
-- [x] Atome partagé unique : track encastré `inputBackgroundSoft` + thumb `segmentedThumb` glissant (`matchedGeometryEffect`) — `ios/Pulpe/Shared/Components/CapsulePicker.swift:25-34,47-58`
-- [x] Les 3 toggles deviennent des wrappers fins sur l'atome — `KindToggle.swift:7`, `SpreadModeToggle.swift:24`, `SpreadAmountModeToggle.swift:26`
-- [x] Encre accent de la nature sur le segment actif — `KindToggle.swift:9`, `SpreadModeToggle.swift:26`, `SpreadAmountModeToggle.swift:28`
-- [x] Chips d'action intactes (montants rapides, mois, PulpeChip) — hors diff
-- [x] Mode sombre : le saut tonal du thumb porte le relief — `Color+Pulpe.swift` (`segmentedThumb`, light `.white` / dark `#4A4642`)
-- [x] A11y conservée : traits `isSelected`, labels/valeurs conteneur, cible 44pt sur le Button, Reduce Motion — `CapsulePicker.swift:15,40,59-63`
-- [x] Closures devise adaptées (`textOnPrimaryMuted` invisible sur thumb blanc) — `CurrencySettingView.swift:96`, `IncomeStep.swift:33`, `OnboardingStepView.swift:386`
-- [x] Gates verts : build EXIT 0, SwiftLint strict 0, 52 tests / 5 suites passés
+- [x] Atome partagé unique : `SegmentedPicker` = wrapper fin sur `Picker(.segmented)` (titre optionnel + `.sensoryFeedback(.selection)`) — `ios/Pulpe/Shared/Components/SegmentedPicker.swift`
+- [x] Les 3 toggles restent des wrappers fins, plomberie `accentColor` retirée (concession assumée : pas d'encre contextuelle sur le natif) — `KindToggle.swift`, `SpreadModeToggle.swift`, `SpreadAmountModeToggle.swift`, call sites `AddBudgetLineSheet.swift:136,139`
+- [x] Devise corrigée : labels riches (drapeau + code + nom natif) → `Text` unique `🇨🇭 CHF` / `🇪🇺 EUR`; `UISegmentedControl` éclatait les vues composées en segments surnuméraires — `CurrencySettingView.swift`, `IncomeStep.swift`, `OnboardingStepView.swift`, `CurrencyAmountPicker.swift`
+- [x] Code mort retiré : token `Color.segmentedThumb`, exclusion swiftlint `no_adhoc_capsule_chip` de l'atome, thumb/track custom (`matchedGeometryEffect`) — net −73 LOC
+- [x] DESIGN.md § Segmented Choice réécrit pour le rendu natif (labels Text-only, concession encre documentée)
+- [x] A11y : l'arbre expose désormais de vrais `SegmentedControl` nommés (« Nature », « Mode de création »); labels/valeurs des wrappers conservés
+- [x] Gates verts : build EXIT 0, SwiftLint strict 0 sur les fichiers touchés, 2091 tests / 218 suites passés
+- [x] Vérif visuelle sur simulateur : Devise (2 segments) et pile Nature / Lisser / Total (light) capturées et validées
 
 ## Findings
 
 | Sev | Kind | Phase | Location | Issue | Fix |
 | --- | ---- | ----- | -------- | ----- | --- |
-| 🟢 | rot | 1 | `ios/Pulpe/Shared/Extensions/Color+Pulpe.swift:121` | `textOnPrimaryMuted` orphelin : ce diff retire ses 3 derniers usages | Supprimer le computed var |
-| 🟢 | rot | 1 | `ios/Pulpe/Shared/Components/CurrencyAmountPicker.swift:23` | La capsule read-only garde le look pill hérité pendant que la variante interactive passe au track (pages Édition) | Aligner l'affichage read-only sur la nouvelle famille dans une passe ultérieure |
+| 🟢 | rot | 1 | `ios/Pulpe/Shared/Components/CurrencyAmountPicker.swift` | La capsule read-only garde le look pill hérité pendant que la variante interactive passe au natif | Aligner l'affichage read-only dans une passe ultérieure |
 
 ## Verification
 
 | Metric        | Value |
 | ------------- | ----- |
 | Verified      | 100% (8/8) |
-| Files checked | CapsulePicker.swift, KindToggle.swift, SpreadModeToggle.swift, SpreadAmountModeToggle.swift, Color+Pulpe.swift, CurrencySettingView.swift, IncomeStep.swift, OnboardingStepView.swift, DESIGN.md, .swiftlint.yml |
+| Files checked | SegmentedPicker.swift, KindToggle.swift, SpreadModeToggle.swift, SpreadAmountModeToggle.swift, AddBudgetLineSheet.swift, Color+Pulpe.swift, CurrencySettingView.swift, IncomeStep.swift, OnboardingStepView.swift, CurrencyAmountPicker.swift, SavingsGoalFormSheet.swift, DESIGN.md, .swiftlint.yml |
 | Unchecked     | none |
-| Unplanned     | `ios/DESIGN.md` : reformatage prettier (lignes vides) — la baseline était déjà non conforme, le fichier l'est désormais |
+| Unplanned     | Renommage `CapsulePicker` → `SegmentedPicker` (le nom décrivait un mécanisme disparu); commentaires mis à jour dans `ActivityCard.swift` et `OnboardingSuggestionGrid.swift` |
