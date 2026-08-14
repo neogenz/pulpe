@@ -353,21 +353,22 @@ The Budget Detail filter rail uses `PulpeChip` (`ios/Pulpe/Shared/Components/Pul
 
 Stat pills on hero cards use `Capsule + tint.opacity(0.15)` background keyed to financial category — currently still composed locally in `BudgetDetailHero` (legacy, audited 2026-05-09; migration to `PulpeChip.muted` is a follow-up).
 
-### Segmented Choice (CapsulePicker)
+### Segmented Choice (SegmentedPicker)
 
 Every 1-of-N control (nature, Une seule fois / Lisser, Total / Par mois, Devise, Statut)
-goes through `CapsulePicker` (`ios/Pulpe/Shared/Components/CapsulePicker.swift`) — never
+goes through `SegmentedPicker` (`ios/Pulpe/Shared/Components/SegmentedPicker.swift`) — never
 free-floating pills, whose unselected options read as bare text and blur into the chip
 families around them.
 
-- **Track:** recessed capsule, `Color.inputBackgroundSoft` (the form-field fill), `Spacing.xxs`
-  inner padding. The track is what makes the options read as one control and separates
-  segmented _choices_ from chip _actions_ (`QuickAmountChips`, month chips, `PulpeChip`).
-- **Thumb:** `Color.segmentedThumb` capsule sliding via `matchedGeometryEffect` (light: white +
-  `Shadow.subtle`; dark: lighter warm tone carries the lift, shadow dies on the dark track).
-- **Ink:** selected `textPrimary` by default; form toggles override to the picked kind's
-  financial accent inside `itemLabel`. Unselected is `onSurfaceVariant`.
-- **Selection animation** honors Reduce Motion (no slide, instant swap).
+- **Rendering is native:** the wrapper delegates to `Picker(.segmented)`, so track, thumb,
+  ink, typography, and selection animation are the OS's and stay aligned across releases.
+  The track is still what separates segmented _choices_ from chip _actions_
+  (`QuickAmountChips`, month chips, `PulpeChip`).
+- **Labels are plain `Text`** (emoji allowed — Devise reads `🇨🇭 CHF`): `UISegmentedControl`
+  flattens any richer view into extra segments. Deliberate concession: no per-context
+  accent ink on the selected label — the native control does not expose it per instance.
+- The wrapper adds the optional form-field title (`labelMedium` / `onSurfaceVariant`) and
+  `.sensoryFeedback(.selection)`; nothing else.
 
 ### Kind Tag (Inline Label)
 

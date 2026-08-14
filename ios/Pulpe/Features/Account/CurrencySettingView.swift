@@ -81,7 +81,7 @@ struct CurrencySettingView: View {
                 .foregroundStyle(Color.onSurfaceVariant)
                 .fixedSize(horizontal: false, vertical: true)
 
-            CapsulePicker(
+            SegmentedPicker(
                 selection: Binding(
                     get: { viewModel.selectedCurrency },
                     set: { newValue in
@@ -93,16 +93,8 @@ struct CurrencySettingView: View {
                     }
                 ),
                 title: nil
-            ) { currency, _ in
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Text(currency.flag)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(currency.rawValue).font(PulpeTypography.labelLarge)
-                        Text(currency.nativeName)
-                            .font(PulpeTypography.caption2)
-                            .foregroundStyle(Color.onSurfaceVariant)
-                    }
-                }
+            ) { currency in
+                Text("\(currency.flag) \(currency.rawValue)")
             }
         }
         .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }

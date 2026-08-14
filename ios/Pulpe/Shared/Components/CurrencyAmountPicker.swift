@@ -10,11 +10,8 @@ struct CurrencyAmountPicker: View {
         if isReadOnly {
             readOnlyCapsule
         } else {
-            CapsulePicker(selection: $selectedCurrency, title: "Devise") { currency, _ in
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Text(currency.flag)
-                    Text(currency.rawValue)
-                }
+            SegmentedPicker(selection: $selectedCurrency, title: "Devise") { currency in
+                Text("\(currency.flag) \(currency.rawValue)")
             }
             .accessibilityLabel("Sélection de la devise")
         }

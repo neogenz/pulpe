@@ -3,7 +3,7 @@ import SwiftUI
 /// Reusable suggestion chip grid for onboarding steps.
 /// Used by ChargesStep and SavingsStep — extracted to avoid duplication.
 ///
-/// Visual language aligned with `CapsulePicker`: warm `surfaceContainerLow` card with
+/// Visual language aligned with the form fields: warm `surfaceContainerLow` card with
 /// hairline stroke when unselected, `primaryContainer` tint with accent stroke + checkmark
 /// when selected. Two-line layout (name / amount) prevents mid-word truncation.
 struct OnboardingSuggestionGrid: View {

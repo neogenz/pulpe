@@ -424,13 +424,6 @@ extension Color {
     /// invisible there.
     static let rowCardBorder = Color(light: .clear, dark: .outlineVariant)
 
-    // MARK: - Segmented Picker
-
-    /// Selected-segment thumb of `CapsulePicker`. Light: white lifted off the soft
-    /// track by `Shadow.subtle`. Dark: the shadow dies on the dark track, so the
-    /// fill itself steps well past the track's composite tone to carry the lift.
-    static let segmentedThumb = Color(light: .white, dark: Color(hex: 0x4A4642))
-
     // MARK: - Skeleton
 
     /// Placeholder fill for skeleton loading shapes — warm tint to match neutral warm bg

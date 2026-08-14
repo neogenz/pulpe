@@ -383,16 +383,8 @@ struct OnboardingCurrencySwapSheet: View {
             .foregroundStyle(Color.onSurfaceVariant)
             .fixedSize(horizontal: false, vertical: true)
 
-            CapsulePicker(selection: $draft, title: nil) { currency, _ in
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Text(currency.flag)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(currency.rawValue).font(PulpeTypography.labelLarge)
-                        Text(currency.nativeName)
-                            .font(PulpeTypography.caption2)
-                            .foregroundStyle(Color.onSurfaceVariant)
-                    }
-                }
+            SegmentedPicker(selection: $draft, title: nil) { currency in
+                Text("\(currency.flag) \(currency.rawValue)")
             }
 
             Button {

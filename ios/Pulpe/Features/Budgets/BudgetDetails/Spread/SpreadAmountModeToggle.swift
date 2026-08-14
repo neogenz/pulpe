@@ -16,16 +16,12 @@ enum SpreadAmountMode: CaseIterable, Hashable {
 }
 
 /// Binary segmented control toggling between TOTAL and PER-MONTH amount entry.
-/// Rides `CapsulePicker`'s recessed track like `SpreadModeToggle`, so the two
-/// read as one family; the selected ink follows the picked `kind`.
 struct SpreadAmountModeToggle: View {
     @Binding var mode: SpreadAmountMode
-    let accentColor: Color
 
     var body: some View {
-        CapsulePicker(selection: $mode, title: nil) { candidate, isSelected in
+        SegmentedPicker(selection: $mode, title: nil) { candidate in
             Text(candidate.label)
-                .foregroundStyle(isSelected ? accentColor : Color.onSurfaceVariant)
         }
         .accessibilityLabel("Mode de montant")
         .accessibilityValue(mode.label)
@@ -34,6 +30,6 @@ struct SpreadAmountModeToggle: View {
 
 #Preview {
     @Previewable @State var mode: SpreadAmountMode = .total
-    SpreadAmountModeToggle(mode: $mode, accentColor: .financialExpense)
+    SpreadAmountModeToggle(mode: $mode)
         .padding()
 }
