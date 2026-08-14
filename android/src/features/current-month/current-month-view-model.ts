@@ -181,6 +181,7 @@ export function buildCurrentMonthViewModel(
     realized: summarizeRealized(
       withRolloverLine(budget, budgetLines),
       transactions,
+      budget.rollover ?? 0,
     ),
     periodProgress: measurePeriodProgress(budget, now, payDayOfMonth),
     trajectory: calculateBalanceTrajectory({
@@ -194,14 +195,16 @@ export function buildCurrentMonthViewModel(
 }
 
 /**
- * Takes the rollover through the virtual line and nowhere else. Its Swift twin
- * passes `displayBudgetLines` — which already carries that always-checked line —
- * *and* the rollover as a scalar on top, so a month opening on a carry-over
- * reports a realized balance that is one carry-over too high.
+ * The display list carries the always-checked rollover row, so the lists and
+ * the counts see it — the flows do not: `pulpe-shared` skips it, and the report
+ * reaches the balance through the scalar instead. Counting it as a pointed
+ * income (or expense) would put the carry-over in "Pointé", where it is not
+ * money that moved this month.
  */
 function summarizeRealized(
   displayLines: BudgetLine[],
   transactions: Transaction[],
+  rollover: number,
 ): RealizedMetrics {
   const realizedIncome = BudgetFormulas.calculateRealizedIncome(
     displayLines,
@@ -221,7 +224,11 @@ function summarizeRealized(
     realizedExpenses,
     realizedSpending: realizedExpenses - realizedSavings,
     realizedSavings,
-    realizedBalance: realizedIncome - realizedExpenses,
+    realizedBalance: BudgetFormulas.calculateRealizedBalance(
+      displayLines,
+      transactions,
+      rollover,
+    ),
     checkedItemsCount:
       displayLines.filter((line) => !isUnchecked(line)).length +
       transactions.filter((transaction) => !isUnchecked(transaction)).length,

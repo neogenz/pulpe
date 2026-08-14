@@ -326,7 +326,7 @@ describe("savings", () => {
 });
 
 describe("realized", () => {
-  it("counts the carry-over once, through its own line", () => {
+  it("carries the report in the balance, never in what was pointed", () => {
     const model = viewModelOf(
       [
         line({
@@ -340,7 +340,9 @@ describe("realized", () => {
       { rollover: 500 },
     );
 
-    expect(model.realized.realizedIncome).toBe(5500);
+    // Same balance as iOS, and "Pointé" shows the salary alone: the carry-over
+    // is not income that landed this month.
+    expect(model.realized.realizedIncome).toBe(5000);
     expect(model.realized.realizedBalance).toBe(5500);
   });
 

@@ -84,6 +84,13 @@ export class BudgetFormulas {
     return map;
   }
 
+  /**
+   * Les lignes de report sont écartées de TOUS les flux (prévu comme réalisé) :
+   * le report n'est pas de l'argent qui bouge ce mois-ci, il entre par le
+   * paramètre `rollover` — dans `available` côté prévu, dans le solde côté
+   * réalisé. La compter ici la ferait entrer deux fois.
+   * Miroir de `BudgetFormulas.swift` (gardes `!(line.isRollover ?? false)`).
+   */
   static #calculateEnvelopeTotal(
     budgetLines: FinancialItemWithId[],
     txsByLineId: Map<string, TransactionWithBudgetLineId[]>,
@@ -92,7 +99,7 @@ export class BudgetFormulas {
     let total = 0;
 
     for (const line of budgetLines) {
-      if (!kindFilter(line.kind)) continue;
+      if (!kindFilter(line.kind) || line.isRollover) continue;
       const consumed = (txsByLineId.get(line.id) ?? [])
         .filter((tx) => kindFilter(tx.kind))
         .reduce((sum, tx) => sum + tx.amount, 0);
@@ -169,7 +176,10 @@ export class BudgetFormulas {
     transactions: TransactionWithBudgetLineId[] = [],
   ): number {
     const checkedBudgetIncome = budgetLines
-      .filter((line) => line.checkedAt != null && line.kind === 'income')
+      .filter(
+        (line) =>
+          line.checkedAt != null && line.kind === 'income' && !line.isRollover,
+      )
       .reduce((sum, line) => sum + line.amount, 0);
 
     const checkedTransactionIncome = transactions
@@ -199,7 +209,7 @@ export class BudgetFormulas {
     let total = 0;
 
     for (const line of budgetLines) {
-      if (!isOutflowKind(line.kind)) continue;
+      if (!isOutflowKind(line.kind) || line.isRollover) continue;
 
       const consumed = (txsByLineId.get(line.id) ?? [])
         .filter((tx) => tx.checkedAt != null && isOutflowKind(tx.kind))
@@ -240,7 +250,7 @@ export class BudgetFormulas {
     let total = 0;
 
     for (const line of budgetLines) {
-      if (line.kind !== 'saving') continue;
+      if (line.kind !== 'saving' || line.isRollover) continue;
 
       const consumed = (txsByLineId.get(line.id) ?? [])
         .filter((tx) => tx.checkedAt != null && tx.kind === 'saving')
@@ -258,15 +268,21 @@ export class BudgetFormulas {
 
   /**
    * Calcule le solde réalisé (basé uniquement sur les éléments pointés)
-   * Formule: solde_réalisé = Σ(revenus pointés) - Σ(dépenses + épargnes pointées)
+   * Formule: solde_réalisé = Σ(revenus pointés) - Σ(dépenses + épargnes pointées) + report
+   *
+   * Le report arrive par `rollover`, pas par les flux : le solde observé est le
+   * même qu'au temps où la ligne virtuelle toujours pointée gonflait les revenus
+   * (report positif) ou les dépenses (report négatif).
    *
    * @param budgetLines - Lignes budgétaires planifiées
    * @param transactions - Transactions réelles
-   * @returns Solde calculé depuis les éléments pointés uniquement
+   * @param rollover - Report du mois précédent (peut être négatif)
+   * @returns Solde calculé depuis les éléments pointés, report inclus
    */
   static calculateRealizedBalance(
     budgetLines: FinancialItemWithId[],
     transactions: TransactionWithBudgetLineId[] = [],
+    rollover: number = 0,
   ): number {
     const realizedIncome = this.calculateRealizedIncome(
       budgetLines,
@@ -276,7 +292,7 @@ export class BudgetFormulas {
       budgetLines,
       transactions,
     );
-    return realizedIncome - realizedExpenses;
+    return realizedIncome - realizedExpenses + rollover;
   }
 
   /**

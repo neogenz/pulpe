@@ -534,7 +534,7 @@ describe('BudgetFormulas', () => {
       expect(result).toBe(125);
     });
 
-    it('should include rollover lines in realized expenses', () => {
+    it('should leave rollover lines out of realized expenses', () => {
       const budgetLines = [
         createBudgetLineWithId('line-1', 'expense', 100, '2025-01-15'),
         {
@@ -556,8 +556,9 @@ describe('BudgetFormulas', () => {
         transactions,
       );
 
-      // Both lines counted including rollover
-      expect(result).toBe(150);
+      // The report is not money that moved this month: it reaches the balance
+      // through the `rollover` parameter, never through a flow.
+      expect(result).toBe(100);
     });
 
     it('should apply envelope logic to savings (treated as expenses)', () => {
@@ -796,7 +797,7 @@ describe('BudgetFormulas', () => {
       expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(-1000);
     });
 
-    it('should include checked negative rollover (expense) in realized balance', () => {
+    it('should carry a checked negative rollover through the parameter', () => {
       const budgetLines = [
         {
           id: 'line-1',
@@ -818,11 +819,15 @@ describe('BudgetFormulas', () => {
           isRollover: true,
         },
       ];
-      // 5000 income - (3000 + 1950) expenses = 50
-      expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(50);
+      // 5000 income - 3000 expenses - 1950 report = 50, and the report is
+      // counted once: through the parameter, not through its display line.
+      expect(BudgetFormulas.calculateRealizedExpenses(budgetLines)).toBe(3000);
+      expect(
+        BudgetFormulas.calculateRealizedBalance(budgetLines, [], -1950),
+      ).toBe(50);
     });
 
-    it('should include checked positive rollover (income) in realized balance', () => {
+    it('should carry a checked positive rollover through the parameter', () => {
       const budgetLines = [
         {
           id: 'line-1',
@@ -844,8 +849,11 @@ describe('BudgetFormulas', () => {
           checkedAt: '2025-01-15',
         },
       ];
-      // (5000 + 3094) income - 8000 expenses = 94
-      expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(94);
+      // 5000 income - 8000 expenses + 3094 report = 94
+      expect(BudgetFormulas.calculateRealizedIncome(budgetLines)).toBe(5000);
+      expect(
+        BudgetFormulas.calculateRealizedBalance(budgetLines, [], 3094),
+      ).toBe(94);
     });
 
     it('should not include unchecked rollover in realized balance', () => {
@@ -1324,7 +1332,7 @@ describe('BudgetFormulas', () => {
           expect(result).toBe(800);
         });
 
-        it('should include rollover budget lines in expenses', () => {
+        it('should leave rollover budget lines out of expenses', () => {
           const budgetLines = [
             createBudgetLine('line-1', 'expense', 500),
             {
@@ -1335,7 +1343,8 @@ describe('BudgetFormulas', () => {
 
           const result = BudgetFormulas.calculateTotalExpenses(budgetLines, []);
 
-          expect(result).toBe(600);
+          // The report reaches the planned side through `available`, not here.
+          expect(result).toBe(500);
         });
 
         it('should handle transactions without budgetLineId field', () => {
@@ -1825,6 +1834,79 @@ describe('BudgetFormulas', () => {
       expect(BudgetFormulas.emotionState({ ...tight, rollover: 200 })).toBe(
         'comfortable',
       );
+    });
+  });
+
+  /**
+   * Mêmes fixtures que `BudgetFormulasRealizedTests.swift` — une divergence de
+   * garde doit tomber ici comme une assertion, pas se lire dans le code.
+   */
+  describe('rollover lines', () => {
+    const CHECKED = '2026-08-01T10:00:00Z';
+
+    it('leaves the rollover line out of realized income', () => {
+      const budgetLines = [
+        { id: '1', kind: 'income' as const, amount: 5000, checkedAt: CHECKED },
+        {
+          id: '2',
+          kind: 'income' as const,
+          amount: 3094,
+          checkedAt: CHECKED,
+          isRollover: true,
+        },
+      ];
+
+      expect(BudgetFormulas.calculateRealizedIncome(budgetLines)).toBe(5000);
+    });
+
+    /**
+     * Régression du hero : dans un mois qui ouvre sur un report négatif,
+     * « Pointé » doit montrer la dépense réelle et non la dépense + le report,
+     * sinon pointé + engagé + restant cesse de faire `available`.
+     */
+    it('keeps the hero ledger identity in a negative-report month', () => {
+      const base = [
+        { id: '1', kind: 'income' as const, amount: 5000, checkedAt: CHECKED },
+        { id: '2', kind: 'expense' as const, amount: 3000, checkedAt: CHECKED },
+        { id: '3', kind: 'expense' as const, amount: 1000, checkedAt: null },
+      ];
+      const rolloverLine = {
+        id: 'rollover',
+        kind: 'expense' as const,
+        amount: 1950,
+        checkedAt: CHECKED,
+        isRollover: true,
+      };
+
+      const realizedExpenses = BudgetFormulas.calculateRealizedExpenses([
+        rolloverLine,
+        ...base,
+      ]);
+      const planned = BudgetFormulas.calculateAllMetrics(base, [], -1950);
+
+      expect(realizedExpenses).toBe(3000);
+      expect(planned.totalExpenses).toBe(4000);
+
+      const engaged = Math.max(planned.totalExpenses - realizedExpenses, 0);
+      expect(realizedExpenses + engaged + planned.remaining).toBe(
+        planned.available,
+      );
+    });
+
+    it('leaves the rollover line out of realized savings', () => {
+      const budgetLines = [
+        { id: '1', kind: 'saving' as const, amount: 300, checkedAt: CHECKED },
+        {
+          id: '2',
+          kind: 'saving' as const,
+          amount: 200,
+          checkedAt: CHECKED,
+          isRollover: true,
+        },
+      ];
+
+      expect(BudgetFormulas.calculateRealizedSavings(budgetLines)).toBe(300);
+      expect(BudgetFormulas.calculateTotalSavings(budgetLines)).toBe(300);
     });
   });
 });
