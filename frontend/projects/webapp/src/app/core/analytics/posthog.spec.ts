@@ -6,6 +6,8 @@ import {
   computed,
 } from '@angular/core';
 import { PLATFORM_ID } from '@angular/core';
+import { NavigationEnd, Router, provideRouter } from '@angular/router';
+import { Subject } from 'rxjs';
 import type { CaptureResult } from 'posthog-js';
 import { ANALYTICS_EVENTS } from 'pulpe-shared';
 import { PostHogService } from './posthog';
@@ -21,6 +23,8 @@ let beforeSendHandler:
 let optedOut = false;
 let initializationOptions: Record<string, unknown> | undefined;
 let legacyCookiePresentAtInit = false;
+let routerEvents: Subject<NavigationEnd>;
+let routerNavigated = true;
 
 vi.mock('posthog-js', () => {
   return {
@@ -81,6 +85,8 @@ describe('PostHogService', () => {
     optedOut = false;
     initializationOptions = undefined;
     legacyCookiePresentAtInit = false;
+    routerEvents = new Subject<NavigationEnd>();
+    routerNavigated = true;
     document.cookie =
       'ph_test-api-key_posthog=; Max-Age=0; Path=/; SameSite=Lax';
 
@@ -116,6 +122,15 @@ describe('PostHogService', () => {
         { provide: ApplicationConfiguration, useValue: mockAppConfig },
         { provide: Logger, useValue: createMockLogger() },
         { provide: PLATFORM_ID, useValue: 'browser' },
+        {
+          provide: Router,
+          useValue: {
+            events: routerEvents,
+            get navigated() {
+              return routerNavigated;
+            },
+          },
+        },
       ],
     });
 
@@ -134,6 +149,18 @@ describe('PostHogService', () => {
         api_host: defaultConfig.host,
         capture_pageview: false,
         autocapture: false,
+        mask_all_text: true,
+        mask_all_element_attributes: true,
+        rageclick: false,
+        capture_heatmaps: false,
+        capture_dead_clicks: false,
+        enable_recording_console_log: false,
+        disable_surveys: true,
+        disable_product_tours: true,
+        disable_conversations: true,
+        strict_script_versioning: true,
+        save_campaign_params: false,
+        save_referrer: false,
       }),
     );
     expect(service.isInitialized()).toBe(true);
@@ -143,6 +170,81 @@ describe('PostHogService', () => {
         platform: 'web',
       }),
     );
+  });
+
+  it('applies the configured session replay sample rate', async () => {
+    postHogSignal.set({
+      ...defaultConfig,
+      sessionRecording: {
+        ...defaultConfig.sessionRecording,
+        sampleRate: 0.1,
+      },
+    });
+
+    await service.initialize();
+
+    expect(initializationOptions).toEqual(
+      expect.objectContaining({
+        session_recording: expect.objectContaining({
+          sampleRate: 0.1,
+        }),
+      }),
+    );
+  });
+
+  it('keeps session replay request bodies and headers disabled', async () => {
+    await service.initialize();
+
+    expect(initializationOptions).toEqual(
+      expect.objectContaining({
+        session_recording: expect.objectContaining({
+          recordBody: false,
+          recordHeaders: false,
+        }),
+      }),
+    );
+  });
+
+  it('keeps replay useful while relying on selective native masking', async () => {
+    await service.initialize();
+
+    const sessionRecording = initializationOptions?.[
+      'session_recording'
+    ] as Record<string, unknown>;
+
+    expect(sessionRecording['maskAllInputs']).toBe(true);
+    expect(sessionRecording).not.toHaveProperty('maskTextSelector');
+    expect(sessionRecording).not.toHaveProperty('blockSelector');
+    expect(sessionRecording['inlineStylesheet']).toBe(true);
+    expect(sessionRecording['collectFonts']).toBe(false);
+    expect(sessionRecording).not.toHaveProperty('compress_events');
+  });
+
+  it('sanitizes replay URLs and drops payload fields defensively', async () => {
+    await service.initialize();
+
+    const sessionRecording = initializationOptions?.[
+      'session_recording'
+    ] as Record<string, unknown>;
+    const sanitizeCapturedUrl = sessionRecording[
+      'maskCapturedNetworkRequestFn'
+    ] as (request: Record<string, unknown>) => Record<string, unknown>;
+
+    const sanitized = sanitizeCapturedUrl({
+      name: 'https://app.local/budgets/123?token=private&safe=1#access_token=private',
+      requestHeaders: { authorization: 'private' },
+      responseHeaders: { 'set-cookie': 'private' },
+      requestBody: 'private request',
+      responseBody: 'private response',
+      status: 200,
+    });
+
+    expect(sanitized['name']).toBe('https://app.local/budgets/[id]');
+    expect(sanitized['status']).toBe(200);
+    expect(sanitized).not.toHaveProperty('requestHeaders');
+    expect(sanitized).not.toHaveProperty('responseHeaders');
+    expect(sanitized).not.toHaveProperty('requestBody');
+    expect(sanitized).not.toHaveProperty('responseBody');
   });
 
   it('isolates app persistence and removes the legacy shared identity before init', async () => {
@@ -170,11 +272,167 @@ describe('PostHogService', () => {
     service.enableTracking();
 
     expect(posthog.set_config).toHaveBeenCalledWith({
-      capture_pageview: 'history_change',
-      capture_pageleave: 'if_capture_pageview',
-      autocapture: true,
+      capture_pageview: false,
+      capture_pageleave: true,
+      // Native PostHog autocapture can ingest data-ph-capture attributes before
+      // before_send. Pulpe emits the same event through its pre-sanitized listener.
+      autocapture: false,
     });
     expect(posthog.capture).toHaveBeenCalledWith('$pageview');
+  });
+
+  it('waits for the initial NavigationEnd before capturing a cold-start pageview', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    routerNavigated = false;
+
+    await service.initialize();
+    service.enableTracking();
+
+    expect(posthog.capture).not.toHaveBeenCalledWith('$pageview');
+
+    routerNavigated = true;
+    routerEvents.next(
+      new NavigationEnd(1, '/budgets/example-id', '/budgets/example-id'),
+    );
+
+    expect(posthog.capture).toHaveBeenCalledOnce();
+    expect(posthog.capture).toHaveBeenCalledWith('$pageview');
+  });
+
+  it('captures each completed Angular navigation after tracking starts', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+
+    await service.initialize();
+    service.enableTracking();
+    vi.mocked(posthog.capture).mockClear();
+
+    routerEvents.next(
+      new NavigationEnd(1, '/budgets/example-id', '/budgets/example-id'),
+    );
+
+    expect(posthog.capture).toHaveBeenCalledOnce();
+    expect(posthog.capture).toHaveBeenCalledWith('$pageview');
+  });
+
+  it('automatically captures clicks with structure only before invoking PostHog', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    const wrapper = document.createElement('section');
+    const button = document.createElement('button');
+    wrapper.id = 'example-budget-id';
+    wrapper.className = 'private-css-class';
+    button.textContent = 'Private budget label';
+    button.setAttribute(
+      'data-ph-capture-attribute-private-context',
+      'private-augmented-value',
+    );
+    wrapper.append(button);
+    document.body.append(wrapper);
+    const wrapperNthChild =
+      Array.from(document.body.children).indexOf(wrapper) + 1;
+
+    try {
+      await service.initialize();
+      service.enableTracking();
+      vi.mocked(posthog.capture).mockClear();
+
+      button.click();
+
+      expect(posthog.capture).toHaveBeenCalledTimes(1);
+      expect(posthog.capture).toHaveBeenCalledWith('$autocapture', {
+        $event_type: 'click',
+        $ce_version: 1,
+        $elements: [
+          { tag_name: 'button', nth_child: 1, nth_of_type: 1 },
+          {
+            tag_name: 'section',
+            nth_child: wrapperNthChild,
+            nth_of_type: 1,
+          },
+        ],
+        $elements_chain: `button:nth-child="1"nth-of-type="1";section:nth-child="${wrapperNthChild}"nth-of-type="1"`,
+      });
+      const serializedCall = JSON.stringify(
+        vi.mocked(posthog.capture).mock.calls[0],
+      );
+      expect(serializedCall).not.toContain('example-budget-id');
+      expect(serializedCall).not.toContain('private-css-class');
+      expect(serializedCall).not.toContain('Private budget label');
+      expect(serializedCall).not.toContain('private-augmented-value');
+      expect(serializedCall).not.toContain('private-context');
+    } finally {
+      wrapper.remove();
+    }
+  });
+
+  it('does not autocapture clicks inside ph-no-capture regions', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    const wrapper = document.createElement('div');
+    const button = document.createElement('button');
+    wrapper.className = 'ph-no-capture';
+    wrapper.append(button);
+    document.body.append(wrapper);
+
+    try {
+      await service.initialize();
+      service.enableTracking();
+      vi.mocked(posthog.capture).mockClear();
+
+      button.click();
+
+      expect(posthog.capture).not.toHaveBeenCalled();
+    } finally {
+      wrapper.remove();
+    }
+  });
+
+  it('stops sanitized autocapture immediately when diagnostic sharing is disabled', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    const button = document.createElement('button');
+    document.body.append(button);
+
+    try {
+      await service.initialize();
+      service.enableTracking();
+      vi.mocked(posthog.set_config).mockClear();
+      vi.mocked(posthog.capture).mockClear();
+
+      service.setDiagnosticSharingEnabled(false);
+      button.click();
+
+      expect(posthog.set_config).toHaveBeenCalledWith({
+        capture_pageview: false,
+        capture_pageleave: false,
+        autocapture: false,
+      });
+      expect(posthog.capture).not.toHaveBeenCalled();
+    } finally {
+      button.remove();
+    }
+  });
+
+  it('stops sanitized autocapture when PostHog state is reset', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    const button = document.createElement('button');
+    document.body.append(button);
+
+    try {
+      await service.initialize();
+      service.enableTracking();
+      vi.mocked(posthog.capture).mockClear();
+
+      service.reset();
+      button.click();
+
+      expect(posthog.capture).not.toHaveBeenCalled();
+    } finally {
+      button.remove();
+    }
   });
 
   it('keeps configured session replay enabled in production', async () => {
@@ -224,6 +482,83 @@ describe('PostHogService', () => {
     expect(posthog.identify).toHaveBeenCalledWith('user-123', { plan: 'pro' });
   });
 
+  it('sanitizes identify properties before they enter PostHog SDK state', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+
+    await service.initialize();
+
+    service.identify('user-example', {
+      email: 'person@example.test',
+      name: 'First',
+      supabase_user_id: 'technical-user-id',
+      currency: 'EUR',
+      early_adopter: true,
+      planned_amount: 1200,
+      budget_id: 'private-budget-id',
+      authToken: 'private-token',
+    });
+
+    expect(posthog.identify).toHaveBeenCalledWith('user-example', {
+      email: 'person@example.test',
+      name: 'First',
+      supabase_user_id: 'technical-user-id',
+      currency: 'EUR',
+      early_adopter: true,
+    });
+  });
+
+  it('rejects non-string identity properties before SDK state mutation', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+
+    await service.initialize();
+
+    service.identify('user-example', {
+      email: { authToken: 'private-token' },
+      name: ['private-name'],
+      supabase_user_id: { budget_id: 'private-budget-id' },
+      currency: 'EUR',
+    });
+
+    expect(posthog.identify).toHaveBeenCalledWith('user-example', {
+      currency: 'EUR',
+    });
+  });
+
+  it('sanitizes person property updates before they enter PostHog SDK state', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+
+    await service.initialize();
+    vi.mocked(posthog.setPersonProperties).mockClear();
+
+    service.setPersonProperties(
+      {
+        currency: 'EUR',
+        show_currency_selector: true,
+        balance: 4200,
+        goal_id: 'private-goal-id',
+        password: 'private-password',
+      },
+      {
+        first_app_version: '1.2.3',
+        signup_amount: 500,
+        initial_budget_id: 'private-budget-id',
+      },
+    );
+
+    expect(posthog.setPersonProperties).toHaveBeenCalledWith(
+      {
+        currency: 'EUR',
+        show_currency_selector: true,
+      },
+      {
+        first_app_version: '1.2.3',
+      },
+    );
+  });
+
   it('does not capture events before initialization', async () => {
     const posthogModule = await import('posthog-js');
     const posthog = posthogModule.default;
@@ -240,6 +575,30 @@ describe('PostHogService', () => {
     await service.initialize();
     service.captureEvent(ANALYTICS_EVENTS.BUDGET_CREATED, {
       feature: 'budget',
+    });
+
+    expect(posthog.capture).toHaveBeenCalledWith(
+      ANALYTICS_EVENTS.BUDGET_CREATED,
+      {
+        feature: 'budget',
+      },
+    );
+  });
+
+  it('drops event person mutations before they enter PostHog SDK state', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+
+    await service.initialize();
+    service.captureEvent(ANALYTICS_EVENTS.BUDGET_CREATED, {
+      feature: 'budget',
+      $set: {
+        email: 'private@example.test',
+        balance: 4200,
+      },
+      $set_once: {
+        initial_budget_id: 'private-budget-id',
+      },
     });
 
     expect(posthog.capture).toHaveBeenCalledWith(
@@ -280,6 +639,81 @@ describe('PostHogService', () => {
     });
     expect(posthog.startSessionRecording).toHaveBeenCalledTimes(1);
     expect(service.diagnosticSharingEnabled()).toBe(true);
+  });
+
+  it('starts requested tracking after opting in from an initially disabled state', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    optedOut = true;
+    await service.initialize();
+
+    service.enableTracking();
+    service.setDiagnosticSharingEnabled(true);
+    vi.mocked(posthog.capture).mockClear();
+
+    routerEvents.next(new NavigationEnd(2, '/settings', '/settings'));
+
+    expect(posthog.capture).toHaveBeenCalledOnce();
+    expect(posthog.capture).toHaveBeenCalledWith('$pageview');
+  });
+
+  it('restores exactly one click and navigation collector after opt-out then opt-in', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    const button = document.createElement('button');
+    document.body.append(button);
+
+    try {
+      await service.initialize();
+      service.enableTracking();
+      service.setDiagnosticSharingEnabled(false);
+      service.setDiagnosticSharingEnabled(true);
+      vi.mocked(posthog.capture).mockClear();
+
+      button.click();
+      routerEvents.next(new NavigationEnd(2, '/settings', '/settings'));
+
+      expect(posthog.capture).toHaveBeenCalledTimes(2);
+      expect(posthog.capture).toHaveBeenCalledWith(
+        '$autocapture',
+        expect.any(Object),
+      );
+      expect(posthog.capture).toHaveBeenCalledWith('$pageview');
+    } finally {
+      button.remove();
+    }
+  });
+
+  it('sanitizes exception context before it can mutate PostHog SDK state', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    await service.initialize();
+
+    service.captureException(new Error('technical failure'), {
+      httpStatus: 500,
+      backendErrorCode: 'BUDGET_LOAD_FAILED',
+      request_id: 'request-123',
+      budget_id: 'private-budget-id',
+      planned_amount: 4200,
+      $set: { email: 'private@example.test' },
+      $set_once: { initial_budget_id: 'private-budget-id' },
+    });
+
+    expect(posthog.captureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        httpStatus: 500,
+        backendErrorCode: 'BUDGET_LOAD_FAILED',
+        request_id: 'request-123',
+        release: expect.any(String),
+        commit: expect.any(String),
+      }),
+    );
+    const context = vi.mocked(posthog.captureException).mock.calls[0]?.[1];
+    expect(context).not.toHaveProperty('budget_id');
+    expect(context).not.toHaveProperty('planned_amount');
+    expect(context).not.toHaveProperty('$set');
+    expect(context).not.toHaveProperty('$set_once');
   });
 
   it('never restarts session replay when it is disabled by configuration', async () => {
@@ -343,34 +777,37 @@ describe('PostHogService', () => {
     expect(result?.properties?.['password']).toBeUndefined();
     expect(result?.properties?.['authToken']).toBeUndefined();
     expect(result?.properties?.['nested']).toEqual({
-      url: 'https://app.test/budget/[id]?safe=true',
+      url: 'https://app.test/budgets/[id]',
     });
     expect(result?.properties?.['$current_url']).toBe(
-      'https://app.test/transaction/[id]#details',
+      'https://app.test/transactions/[id]',
     );
     expect(result?.$set?.['expense']).toBeUndefined();
     expect(result?.$set_once?.['income']).toBeUndefined();
   });
 
-  it('preserves non-plain objects when sanitizing', async () => {
+  it('drops non-JSON property objects before PostHog transport serialization', async () => {
     await service.initialize();
 
     const eventDate = new Date('2025-01-01T00:00:00.000Z');
     const rawEvent = {
       properties: {
         timestamp: eventDate,
-        meta: new Map([['key', 'value']]),
+        meta: new Map([['private-key', 'private-value']]),
         info: {
           date: eventDate,
+          safe_state: 'completed',
         },
       },
     } as unknown as CaptureResult;
 
     const result = beforeSendHandler?.(rawEvent);
 
-    expect(result?.properties?.['timestamp']).toBe(eventDate);
-    expect(result?.properties?.['meta']).toBeInstanceOf(Map);
-    expect(result?.properties?.['info']).toEqual({ date: eventDate });
+    expect(result?.properties?.['timestamp']).toBeUndefined();
+    expect(result?.properties?.['meta']).toBeUndefined();
+    expect(result?.properties?.['info']).toEqual({ safe_state: 'completed' });
+    expect(JSON.stringify(result)).not.toContain('private-key');
+    expect(JSON.stringify(result)).not.toContain('private-value');
   });
 
   it('preserves only PostHog SDK token fields', async () => {
@@ -418,6 +855,76 @@ describe('PostHogService', () => {
     expect(result?.properties?.['$lib']).toBe('posthog-js');
     expect(result?.properties?.['$lib_version']).toBe('1.260.2');
     expect(result?.properties?.['authToken']).toBeUndefined();
+  });
+});
+
+describe('PostHogService — Angular Router bootstrap', () => {
+  it('captures exactly one pageview after the initial deep navigation resolves', async () => {
+    vi.clearAllMocks();
+    optedOut = false;
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    const config = {
+      apiKey: 'test-api-key',
+      host: 'https://posthog.test',
+      enabled: true,
+      capturePageviews: true,
+      capturePageleaves: true,
+      sessionRecording: {
+        enabled: true,
+        maskInputs: true,
+        sampleRate: 0.1,
+      },
+      debug: false,
+    };
+    const postHogSignal = signal(config);
+    const isDevelopmentSignal = signal(false);
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([{ path: 'budgets/:id', children: [] }]),
+        PostHogService,
+        {
+          provide: ApplicationConfiguration,
+          useValue: {
+            postHog: postHogSignal,
+            environment: signal('test'),
+            supabaseUrl: signal('https://test.supabase.co'),
+            supabaseAnonKey: signal('test-key'),
+            isDevelopment: isDevelopmentSignal,
+            postHogConfig: computed(() => ({
+              ...postHogSignal(),
+              debug: postHogSignal().debug || isDevelopmentSignal(),
+            })),
+          },
+        },
+        { provide: Logger, useValue: createMockLogger() },
+        {
+          provide: StorageService,
+          useValue: {
+            get: vi.fn(() => null),
+            getString: vi.fn(() => null),
+            setString: vi.fn(),
+            remove: vi.fn(),
+          },
+        },
+        { provide: PLATFORM_ID, useValue: 'browser' },
+      ],
+    });
+    const service = TestBed.inject(PostHogService);
+    const router = TestBed.inject(Router);
+
+    await service.initialize();
+    service.enableTracking();
+
+    expect(router.navigated).toBe(false);
+    expect(posthog.capture).not.toHaveBeenCalledWith('$pageview');
+
+    await router.navigateByUrl('/budgets/example-id');
+
+    expect(posthog.capture).toHaveBeenCalledOnce();
+    expect(posthog.capture).toHaveBeenCalledWith('$pageview');
   });
 });
 

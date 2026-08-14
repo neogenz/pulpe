@@ -1,5 +1,14 @@
-import { Service, PLATFORM_ID, inject, signal, computed } from '@angular/core';
+import {
+  Service,
+  PLATFORM_ID,
+  inject,
+  signal,
+  computed,
+  type OnDestroy,
+} from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { NavigationEnd, Router } from '@angular/router';
+import type { Subscription } from 'rxjs';
 import type { PostHog, Properties, CaptureResult } from 'posthog-js';
 import { ANALYTICS_EVENTS, type AnalyticsEventName } from 'pulpe-shared';
 import { ApplicationConfiguration } from '../config/application-configuration';
@@ -7,7 +16,14 @@ import { Logger } from '../logging/logger';
 import { StorageService } from '../storage/storage.service';
 import { STORAGE_KEYS } from '../storage/storage-keys';
 import { buildInfo } from '@env/build-info';
-import { sanitizeEventPayload } from './posthog-sanitizer';
+import {
+  AUTOCAPTURE_TAG_PATTERN,
+  MAX_AUTOCAPTURE_ELEMENTS,
+  sanitizeEventPayload,
+  sanitizePersonProperties,
+  sanitizeRecord,
+  sanitizeUrl,
+} from './posthog-sanitizer';
 
 const POSTHOG_PERSISTENCE_NAME = 'pulpe_app';
 
@@ -27,18 +43,22 @@ function expireLegacySharedCookie(apiKey: string): void {
  * Uses PostHog's built-in privacy protection and minimal configuration.
  */
 @Service()
-export class PostHogService {
+export class PostHogService implements OnDestroy {
   readonly #applicationConfiguration = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
   readonly #platformId = inject(PLATFORM_ID);
   readonly #storageService = inject(StorageService);
+  readonly #router = inject(Router);
 
   #posthog: PostHog | null = null;
   readonly #isInitialized = signal<boolean>(false);
   readonly #flagsVersion = signal<number>(0);
   readonly #diagnosticSharingEnabled = signal(true);
   #isTrackingEnabled = false;
+  #resumeTrackingAfterOptIn = false;
   #sessionReplayEnabled = false;
+  #autocaptureClickListener?: (event: MouseEvent) => void;
+  #navigationSubscription?: Subscription;
 
   constructor() {
     const overrides = this.#readFlagOverrides();
@@ -85,7 +105,7 @@ export class PostHogService {
       expireLegacySharedCookie(config.apiKey);
       const posthog = (await import('posthog-js')).default;
       this.#posthog = posthog;
-      this.#sessionReplayEnabled = config.sessionRecording?.enabled === true;
+      this.#sessionReplayEnabled = config.sessionRecording.enabled;
 
       posthog.init(config.apiKey, {
         api_host: config.host,
@@ -93,22 +113,53 @@ export class PostHogService {
         debug: config.debug,
 
         // Privacy-first: anonymous events flow immediately, person profiles
-        // only created after identify(). Full auto-capture enabled after auth.
+        // only exist after identify(). Autocapture is disabled until the
+        // authenticated tracking lifecycle enables click-only collection.
         capture_pageview: false,
         capture_pageleave: false,
         autocapture: false,
+        mask_all_text: true,
+        mask_all_element_attributes: true,
+        rageclick: false,
+        capture_heatmaps: false,
+        capture_dead_clicks: false,
+        enable_recording_console_log: false,
+        disable_surveys: true,
+        disable_product_tours: true,
+        disable_conversations: true,
+        strict_script_versioning: true,
+        save_campaign_params: false,
+        save_referrer: false,
 
-        // Session recording privacy relies on two mechanisms:
-        //  - `maskAllInputs` redacts every form field value;
-        //  - rendered amounts are plain text, so they are excluded through
-        //    `ph-no-capture`, which posthog-js hardcodes as rrweb's
-        //    `blockClass` — such elements are never serialized into a replay.
-        // That class is therefore load-bearing for privacy, not only for the
-        // "hide amounts" blur. See `.claude/rules/05-workflows-and-processes/
-        // posthog-privacy.md` before renaming it.
+        // Keep product copy and layout visible for support. Inputs are masked,
+        // sensitive DOM subtrees use PostHog's native `ph-no-capture` block,
+        // and replay URLs are sanitized before leaving the browser. See
+        // `.claude/rules/05-workflows-and-processes/posthog-privacy.md`.
         session_recording: {
           maskAllInputs: true,
+          inlineStylesheet: true,
+          collectFonts: false,
+          slimDOMOptions: 'all',
+          captureCanvas: { recordCanvas: false },
           recordCrossOriginIframes: false,
+          recordBody: false,
+          recordHeaders: false,
+          // posthog-js hashes the session ID, so the sampling decision remains
+          // stable across page reloads for the whole session.
+          sampleRate: config.sessionRecording.sampleRate,
+          // PostHog also applies this callback to the page URL stored in replay
+          // snapshots, not only to captured network requests.
+          maskCapturedNetworkRequestFn: (request) => {
+            const sanitizedRequest = { ...request };
+            delete sanitizedRequest.requestHeaders;
+            delete sanitizedRequest.responseHeaders;
+            delete sanitizedRequest.requestBody;
+            delete sanitizedRequest.responseBody;
+            if (sanitizedRequest.name) {
+              sanitizedRequest.name = sanitizeUrl(sanitizedRequest.name);
+            }
+            return sanitizedRequest;
+          },
         },
         disable_session_recording: !this.#sessionReplayEnabled,
 
@@ -118,7 +169,7 @@ export class PostHogService {
         persistence_name: POSTHOG_PERSISTENCE_NAME,
         cross_subdomain_cookie: false,
 
-        // Sanitize financial data before sending
+        // Sanitize application events; PostHog replay internals stay opaque.
         before_send: this.#sanitizeEvent.bind(this),
 
         loaded: () => {
@@ -174,7 +225,13 @@ export class PostHogService {
         if (this.#sessionReplayEnabled) {
           this.#posthog?.startSessionRecording();
         }
+        if (this.#resumeTrackingAfterOptIn) {
+          this.enableTracking();
+        }
       } else {
+        this.#resumeTrackingAfterOptIn = this.#isTrackingEnabled;
+        this.#stopSanitizedAutocapture();
+        this.#stopNavigationTracking();
         this.#posthog?.stopSessionRecording();
         this.#posthog?.set_config({
           capture_pageview: false,
@@ -225,18 +282,41 @@ export class PostHogService {
    * Enable tracking after user consent
    */
   enableTracking(): void {
-    if (!this.#canCapture() || this.#isTrackingEnabled) return;
+    if (this.#isTrackingEnabled) return;
+    if (!this.#canCapture()) {
+      if (
+        this.#isInitialized() &&
+        this.isEnabled() &&
+        !this.#diagnosticSharingEnabled()
+      ) {
+        this.#resumeTrackingAfterOptIn = true;
+      }
+      return;
+    }
 
     try {
-      // Enable full tracking: SPA navigation, page leaves, and autocapture
+      // Keep SDK pageview capture disabled: posthog-js 1.364.4 does not install
+      // HistoryAutocapture when this option is enabled after initialization.
+      // Pulpe owns Angular NavigationEnd tracking after authentication instead.
       this.#posthog?.set_config({
-        capture_pageview: 'history_change',
-        capture_pageleave: 'if_capture_pageview',
-        autocapture: true,
+        capture_pageview: false,
+        // The unload listener is installed during SDK initialization and reads
+        // this flag dynamically, independently from HistoryAutocapture.
+        capture_pageleave:
+          this.#applicationConfiguration.postHogConfig()?.capturePageleaves ===
+          true,
+        // Native autocapture reads special DOM attributes before before_send.
+        // Pulpe emits the same event from a structure-only listener instead.
+        autocapture: false,
       });
+      this.#startSanitizedAutocapture();
+      this.#startNavigationTracking();
 
-      // Capture the initial pageview (subsequent navigations are auto-tracked)
-      this.#posthog?.capture('$pageview');
+      // Catch up only when Angular already completed a navigation. During cold
+      // bootstrap, the first NavigationEnd below is the authoritative pageview.
+      if (this.#router.navigated) {
+        this.#posthog?.capture('$pageview');
+      }
       this.#isTrackingEnabled = true;
       this.#logger.info('PostHog tracking enabled with SPA navigation support');
     } catch (error) {
@@ -244,14 +324,102 @@ export class PostHogService {
     }
   }
 
+  #startSanitizedAutocapture(): void {
+    if (this.#autocaptureClickListener) return;
+
+    this.#autocaptureClickListener = (event: MouseEvent) => {
+      if (!this.#canCapture()) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const elements: Record<string, unknown>[] = [];
+      const chain: string[] = [];
+      let current: Element | null = target;
+      while (
+        current &&
+        current !== document.body &&
+        elements.length < MAX_AUTOCAPTURE_ELEMENTS
+      ) {
+        if (current.classList.contains('ph-no-capture')) return;
+        const tagName = current.localName.toLowerCase();
+        if (!AUTOCAPTURE_TAG_PATTERN.test(tagName)) return;
+
+        let nthChild = 1;
+        let nthOfType = 1;
+        for (
+          let sibling = current.previousElementSibling;
+          sibling;
+          sibling = sibling.previousElementSibling
+        ) {
+          nthChild += 1;
+          if (sibling.localName.toLowerCase() === tagName) nthOfType += 1;
+        }
+
+        elements.push({
+          tag_name: tagName,
+          nth_child: nthChild,
+          nth_of_type: nthOfType,
+        });
+        chain.push(
+          `${tagName}:nth-child="${nthChild}"nth-of-type="${nthOfType}"`,
+        );
+        current = current.parentElement;
+      }
+
+      if (elements.length === 0 || current !== document.body) return;
+      this.#posthog?.capture('$autocapture', {
+        $event_type: 'click',
+        $ce_version: 1,
+        $elements: elements,
+        $elements_chain: chain.join(';'),
+      });
+    };
+
+    document.addEventListener('click', this.#autocaptureClickListener, {
+      capture: true,
+    });
+  }
+
+  #stopSanitizedAutocapture(): void {
+    if (!this.#autocaptureClickListener) return;
+    document.removeEventListener('click', this.#autocaptureClickListener, {
+      capture: true,
+    });
+    this.#autocaptureClickListener = undefined;
+  }
+
+  #startNavigationTracking(): void {
+    if (this.#navigationSubscription) return;
+
+    this.#navigationSubscription = this.#router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd && this.#canCapture()) {
+        this.#posthog?.capture('$pageview');
+      }
+    });
+  }
+
+  #stopNavigationTracking(): void {
+    this.#navigationSubscription?.unsubscribe();
+    this.#navigationSubscription = undefined;
+  }
+
   /**
-   * Capture event - PostHog handles data sanitization automatically
+   * Capture an explicitly designed business event. Sanitize before invoking
+   * PostHog because `$set` fields mutate feature-flag person state before the
+   * SDK's `before_send` hook runs.
    */
   captureEvent(event: AnalyticsEventName, properties?: Properties): void {
     if (!this.#canCapture()) return;
 
     try {
-      this.#posthog?.capture(event, properties);
+      const sanitizedProperties = properties
+        ? sanitizeRecord(properties as Record<string, unknown>)
+        : undefined;
+      if (sanitizedProperties) {
+        delete sanitizedProperties['$set'];
+        delete sanitizedProperties['$set_once'];
+      }
+      this.#posthog?.capture(event, sanitizedProperties);
       this.#logger.debug('PostHog event captured', { event });
     } catch (error) {
       this.#logger.error('Failed to capture event', error);
@@ -266,8 +434,13 @@ export class PostHogService {
     if (!this.#canCapture()) return;
 
     try {
+      const sanitizedContext = context
+        ? sanitizeRecord(context as Record<string, unknown>)
+        : {};
+      delete sanitizedContext['$set'];
+      delete sanitizedContext['$set_once'];
       this.#posthog?.captureException(error, {
-        ...context,
+        ...sanitizedContext,
         release: buildInfo.version,
         commit: buildInfo.shortCommitHash,
       });
@@ -285,7 +458,10 @@ export class PostHogService {
     if (!this.#canCapture()) return;
 
     try {
-      this.#posthog?.identify(userId, properties);
+      const sanitizedProperties = properties
+        ? sanitizePersonProperties(properties as Record<string, unknown>)
+        : undefined;
+      this.#posthog?.identify(userId, sanitizedProperties);
       this.#logger.debug('PostHog user identified', { userId });
     } catch (error) {
       this.#logger.error('Failed to identify user', error);
@@ -302,7 +478,16 @@ export class PostHogService {
     if (!this.#canCapture()) return;
 
     try {
-      this.#posthog?.setPersonProperties(properties, propertiesOnce);
+      const sanitizedProperties = properties
+        ? sanitizePersonProperties(properties as Record<string, unknown>)
+        : undefined;
+      const sanitizedPropertiesOnce = propertiesOnce
+        ? sanitizeRecord(propertiesOnce as Record<string, unknown>)
+        : undefined;
+      this.#posthog?.setPersonProperties(
+        sanitizedProperties,
+        sanitizedPropertiesOnce,
+      );
       this.#logger.debug('PostHog person properties set');
     } catch (error) {
       this.#logger.error('Failed to set person properties', error);
@@ -357,8 +542,11 @@ export class PostHogService {
     if (!this.#canCapture()) return;
 
     try {
+      this.#stopSanitizedAutocapture();
+      this.#stopNavigationTracking();
       this.#posthog?.reset();
       this.#isTrackingEnabled = false;
+      this.#resumeTrackingAfterOptIn = false;
       this.#registerGlobalProperties();
       this.#logger.debug('PostHog state reset');
     } catch (error) {
@@ -397,9 +585,12 @@ export class PostHogService {
     }
   }
 
-  /**
-   * Sanitize events to protect financial data
-   */
+  ngOnDestroy(): void {
+    this.#stopSanitizedAutocapture();
+    this.#stopNavigationTracking();
+  }
+
+  /** Sanitize application events while preserving PostHog internals. */
   #sanitizeEvent(event: CaptureResult | null): CaptureResult | null {
     if (!event) return null;
 
