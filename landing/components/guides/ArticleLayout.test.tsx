@@ -155,10 +155,12 @@ describe("guide article layout contract", () => {
   });
 
   it("keeps article links interactive and the Pulpe pull quote semantic", () => {
-    assert.match(
-      sources.globals,
-      /\.guide-prose a:hover,\s*\.guide-prose a:focus-visible\s*\{[^}]*text-decoration-thickness:/,
+    const interactionStyles = sources.globals.match(
+      /\.guide-prose a:hover,\s*\.guide-prose a:focus-visible\s*\{[^}]*\}/,
     );
+    assert.ok(interactionStyles, "article link interaction styles are missing");
+    assert.match(interactionStyles[0], /text-decoration-thickness:/);
+    assert.doesNotMatch(interactionStyles[0], /color:/);
     assert.doesNotMatch(sources.articleLayout, /hover:text-primary-hover/);
     assert.match(sources.articleLayout, /hover:underline/);
     const pageHtml = renderToStaticMarkup(<BudgetSuisseGuidePage />);
