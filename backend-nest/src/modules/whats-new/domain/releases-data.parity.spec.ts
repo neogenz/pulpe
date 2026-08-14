@@ -1,4 +1,4 @@
-import { describe, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
@@ -134,12 +134,12 @@ const itemKey = (item: ChangeItem): string =>
 
 function assertMetadataParity(
   projection: WhatsNewReleaseEntry,
-  landing: IosMarketingRelease,
+  landing: LandingRelease,
 ): void {
   if (projection.iosVersion !== landing.iosVersion) {
     fail(
       landing.version,
-      `iosVersion mismatch: projection="${projection.iosVersion}", landing="${landing.iosVersion}"`,
+      `iosVersion mismatch: projection="${projection.iosVersion ?? '(none)'}", landing="${landing.iosVersion ?? '(none)'}"`,
     );
   }
 
@@ -169,7 +169,7 @@ function assertMetadataParity(
 
 function assertCuratedSubset(
   projection: WhatsNewReleaseEntry,
-  landing: IosMarketingRelease,
+  landing: LandingRelease,
 ): void {
   const items = [...projection.changes.features, ...projection.changes.fixes];
 
@@ -248,14 +248,6 @@ describe('embedded iOS release data parity', () => {
           `expected exactly one projection or silent entry, found ${backendMatches.length} projection(s) and ${silentMatches.length} silence(s)`,
         );
       }
-
-      const projection = backendMatches[0];
-      if (!projection) {
-        continue;
-      }
-
-      assertMetadataParity(projection, landingRelease);
-      assertCuratedSubset(projection, landingRelease);
     }
   });
 
@@ -292,9 +284,12 @@ describe('embedded iOS release data parity', () => {
     }
   });
 
-  it('contains no backend entry orphaned from an iOS marketing release', () => {
+  // Anchored against every landing release, not only the App Store ones: a
+  // release that ships on Android alone has no iOS marketing version and is a
+  // complete entry all the same.
+  it('keeps every projection anchored to a landing release and in sync with it', () => {
     for (const backendRelease of RELEASES) {
-      const landingMatches = iosMarketingReleases.filter(
+      const landingMatches = landingReleases.filter(
         (release) => release.version === backendRelease.version,
       );
 
@@ -304,6 +299,71 @@ describe('embedded iOS release data parity', () => {
           `expected one projected landing entry, found ${landingMatches.length}`,
         );
       }
+
+      const landingRelease = landingMatches[0];
+      if (!landingRelease) {
+        continue;
+      }
+
+      if (
+        backendRelease.platforms.includes('ios') &&
+        backendRelease.iosVersion === undefined
+      ) {
+        fail(backendRelease.version, 'the ios platform requires an iosVersion');
+      }
+
+      assertMetadataParity(backendRelease, landingRelease);
+      assertCuratedSubset(backendRelease, landingRelease);
     }
+  });
+
+  // The contract this whole file exists to state: until it held, no release
+  // could reach Android without borrowing an App Store version it never had.
+  it('accepts a release that ships on Android alone', () => {
+    const note = {
+      title: 'Pulpe sur Android',
+      description: 'Le budget dans ta poche',
+    };
+    const landing: LandingRelease = {
+      version: '9.9.9',
+      date: '2026-09-01',
+      platforms: ['android'],
+      changes: { features: [note], fixes: [], technical: [] },
+    };
+    const projection: WhatsNewReleaseEntry = {
+      version: '9.9.9',
+      date: '2026-09-01',
+      platforms: ['android'],
+      changes: { features: [note], fixes: [], technical: [] },
+    };
+
+    expect(() => {
+      assertMetadataParity(projection, landing);
+      assertCuratedSubset(projection, landing);
+    }).not.toThrow();
+  });
+
+  it('refuses a projection whose iOS marketing version drifted from landing', () => {
+    const note = { title: 'Une correction', description: 'Elle est corrigée' };
+    const landing: LandingRelease = {
+      version: '9.9.9',
+      iosVersion: '2.0.0',
+      date: '2026-09-01',
+      platforms: ['ios'],
+      changes: { features: [], fixes: [note], technical: [] },
+    };
+
+    expect(() =>
+      assertMetadataParity(
+        {
+          version: '9.9.9',
+          iosVersion: '2.0.1',
+          date: '2026-09-01',
+          platforms: ['ios'],
+          changes: { features: [], fixes: [note], technical: [] },
+        },
+        landing,
+      ),
+    ).toThrow(/iosVersion mismatch/);
   });
 });

@@ -29,11 +29,14 @@ export type WhatsNewPlatform = 'android' | 'ios';
  * The version a client of this platform reports. iOS ships under its own App
  * Store marketing version, which drifts from the repo version; Android ships
  * the repo version verbatim (`android/app.json` tracks `package.json`).
+ *
+ * Undefined for a release that never reached the App Store, which is how an
+ * Android-only entry stays invisible to iOS without a second flag saying so.
  */
 function clientVersionOf(
   entry: WhatsNewReleaseEntry,
   platform: WhatsNewPlatform,
-): string {
+): string | undefined {
   return platform === 'ios' ? entry.iosVersion : entry.version;
 }
 
@@ -47,20 +50,14 @@ export function isUserFacing(
   );
 }
 
-function hasValidReleaseMetadata(
-  entry: WhatsNewReleaseEntry,
-  platform: WhatsNewPlatform,
-): boolean {
-  if (
-    !semverPattern.test(clientVersionOf(entry, platform)) ||
-    !isoDatePattern.test(entry.date)
-  ) {
+function hasValidReleaseMetadata(clientVersion: string, date: string): boolean {
+  if (!semverPattern.test(clientVersion) || !isoDatePattern.test(date)) {
     return false;
   }
 
-  const year = Number(entry.date.slice(0, 4));
-  const month = Number(entry.date.slice(5, 7));
-  const day = Number(entry.date.slice(8, 10));
+  const year = Number(date.slice(0, 4));
+  const month = Number(date.slice(5, 7));
+  const day = Number(date.slice(8, 10));
   const parsedDate = new Date(Date.UTC(year, month - 1, day));
 
   return (
@@ -86,7 +83,8 @@ export function buildWhatsNewResponse(
   for (const entry of releases) {
     const clientVersion = clientVersionOf(entry, platform);
     if (
-      !hasValidReleaseMetadata(entry, platform) ||
+      clientVersion === undefined ||
+      !hasValidReleaseMetadata(clientVersion, entry.date) ||
       !isUserFacing(entry, platform) ||
       compareSemver(clientVersion, query.lastSeenVersion) <= 0 ||
       compareSemver(clientVersion, query.currentVersion) > 0

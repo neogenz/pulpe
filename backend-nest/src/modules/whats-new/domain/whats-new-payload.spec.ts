@@ -115,6 +115,29 @@ describe('buildWhatsNewResponse', () => {
     expect(response.data.entries).toEqual([]);
   });
 
+  // An Android-only release has no App Store version to borrow, and the two
+  // feeds must not leak into each other because of it.
+  it('serves a release without an iOS marketing version to Android alone', () => {
+    const androidOnly: WhatsNewReleaseEntry = {
+      version: '0.44.0',
+      date: '2026-09-01',
+      platforms: ['android'],
+      changes: {
+        features: [{ title: 'Le budget dans ta poche', description: 'Pulpe' }],
+        fixes: [],
+        technical: [],
+      },
+    };
+    const query = { currentVersion: '0.44.0', lastSeenVersion: '0.43.0' };
+
+    expect(
+      versionsOf(buildWhatsNewResponse(query, 'android', [androidOnly])),
+    ).toEqual(['0.44.0']);
+    expect(
+      buildWhatsNewResponse(query, 'ios', [androidOnly]).data.entries,
+    ).toEqual([]);
+  });
+
   it('returns an empty feed when last-seen equals current version', () => {
     const response = buildWhatsNewResponse(
       { currentVersion: '1.1.0', lastSeenVersion: '1.1.0' },

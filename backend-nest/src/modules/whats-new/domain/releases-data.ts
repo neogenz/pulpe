@@ -6,11 +6,16 @@ export interface WhatsNewReleaseChangeItem {
 export interface WhatsNewReleaseEntry {
   version: string;
   /**
-   * iOS marketing version that shipped this projection. A release intentionally
-   * without a dialog is recorded in `SILENT_IOS_RELEASES` instead of being
-   * omitted implicitly or represented by an incomplete projection.
+   * iOS marketing version that shipped this projection, absent on a release
+   * that never reached the App Store. An iOS release intentionally without a
+   * dialog is recorded in `SILENT_IOS_RELEASES` instead of being omitted
+   * implicitly or represented by an incomplete projection; that ledger covers
+   * iOS alone, which is why this field and not `version` may be missing.
+   *
+   * Android reads `version` directly (`clientVersionOf`), so an Android-only
+   * release is a complete entry with no iOS marketing version at all.
    */
-  iosVersion: string;
+  iosVersion?: string;
   date: string;
   platforms: ('android' | 'ios' | 'web')[];
   changes: {
