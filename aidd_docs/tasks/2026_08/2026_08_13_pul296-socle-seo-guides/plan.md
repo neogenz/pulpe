@@ -1,6 +1,6 @@
 ---
 objective: "The landing publishes Swiss budget advice from /conseils-budget: adding an article to the registry publishes it in the index, sitemap, and structured data in a form optimized for both Google and AI answer engines (ChatGPT, Perplexity, AI Overviews)."
-status: in-progress
+status: reviewed
 ---
 
 # Plan: PUL-296 — SEO/GEO foundation for `/conseils-budget` on the landing

@@ -1,7 +1,7 @@
 # Review: PUL-296 — SEO/GEO foundation for `/conseils-budget`
 
 - **Verdict**: approve
-- **Diff**: `origin/preview...working tree`
+- **Diff**: `origin/preview...7d7aaa5debd496811e838a7d9ef162b23efb2667`
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_08_14
 - **Findings**: 0 critical, 0 warning, 0 minor
@@ -31,6 +31,7 @@
 - [x] Article links have explicit hover and keyboard-focus feedback while retaining the global focus outline — `landing/app/globals.css:609-617`
 - [x] The JSON-LD assertion describes `ArticleLayout`'s actual scope, and regressions for metadata, Organization claims, link states, and pull-quote semantics are covered — `landing/components/guides/ArticleLayout.test.tsx:79-164`
 - [x] PR-added developer documentation and comments are English; deliberate French product copy remains French.
+- [x] PR #602 has final-route metadata, 20 resolved review threads, a `MERGEABLE`/`CLEAN` GitHub state, successful Vercel previews, Claude review, CodeQL, and `✅ CI Success`.
 
 ## Findings
 
@@ -38,9 +39,9 @@ None.
 
 ## Verification
 
-| Metric        | Value                                                                                                                                                                                                                                                                                |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Verified      | 100% (12/12)                                                                                                                                                                                                                                                                         |
-| Files checked | All files changed by `origin/preview...working tree`; implementation focus: `config.ts`, `layout.tsx`, both `/conseils-budget` pages, `globals.css`, `sitemap.ts`, `guides.ts`, `ArticleLayout.tsx`, `ArticleLayout.test.tsx`, `accessibility.test.tsx`; all PR-added task documents |
-| Unchecked     | Hosted PR metadata, review-thread resolution, and post-push CI — external delivery steps pending before the final mergeability verdict                                                                                                                                               |
-| Unplanned     | none                                                                                                                                                                                                                                                                                 |
+| Metric        | Value                                                                                                                                                                                                                                                                                                                                                     |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Verified      | 100% (13/13)                                                                                                                                                                                                                                                                                                                                              |
+| Files checked | All files changed by `origin/preview...7d7aaa5debd496811e838a7d9ef162b23efb2667`; implementation focus: `config.ts`, `layout.tsx`, both `/conseils-budget` pages, `globals.css`, `sitemap.ts`, `guides.ts`, `ArticleLayout.tsx`, `ArticleLayout.test.tsx`, `accessibility.test.tsx`; all PR-added task documents; hosted PR metadata, threads, and checks |
+| Unchecked     | none                                                                                                                                                                                                                                                                                                                                                      |
+| Unplanned     | none                                                                                                                                                                                                                                                                                                                                                      |
