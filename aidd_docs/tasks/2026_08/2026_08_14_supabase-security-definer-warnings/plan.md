@@ -1,6 +1,6 @@
 ---
 objective: "Les RPC utilisateur s'appuient sur RLS dès que possible, les points d'entrée privilégiés restants sont explicitement justifiés et les 15 alertes Supabase sont ramenées aux seules exceptions nécessaires."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Réduire les alertes SECURITY DEFINER Supabase
