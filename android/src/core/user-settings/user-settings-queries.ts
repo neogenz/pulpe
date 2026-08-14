@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { queryClient } from "@/core/query/query-client";
 import { useVaultStore } from "@/core/vault/vault-store";
 
 import { fetchUserSettings } from "./user-settings-api";
@@ -21,4 +22,8 @@ export function useUserSettings() {
     queryFn: fetchUserSettings,
     enabled: isVaultUnlocked,
   });
+}
+
+export function invalidateUserSettings(): Promise<void> {
+  return queryClient.invalidateQueries({ queryKey: userSettingsKeys.all });
 }

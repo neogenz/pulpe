@@ -8,16 +8,16 @@ that already works.
 
 ## What must exist before any of this runs
 
-| # | Thing | Where | Blocks |
-| - | ----- | ----- | ------ |
-| 1 | Expo account + `eas init` | expo.dev | every build |
-| 2 | Google Play Console account (one-off fee) | play.google.com/console | every submit |
-| 3 | Play service-account JSON | Play Console → API access | `eas submit` |
-| 4 | Google OAuth client IDs (web + Android) | Google Cloud, project `894420283180` | Google sign-in |
-| 5 | Sentry org/project/auth token | sentry.io | symbolicated crashes |
-| 6 | PostHog project key (EU host) | posthog.com | analytics (none wired yet) |
-| 7 | Backend env on Railway | `MIN_ANDROID_VERSION`, `LATEST_ANDROID_VERSION`, `ANDROID_STORE_URL` | force-update gate |
-| 8 | `assetlinks.json` on `app.pulpe.app` | landing/web hosting | App Links verification |
+| #   | Thing                                     | Where                                                                | Blocks                     |
+| --- | ----------------------------------------- | -------------------------------------------------------------------- | -------------------------- |
+| 1   | Expo account + `eas init`                 | expo.dev                                                             | every build                |
+| 2   | Google Play Console account (one-off fee) | play.google.com/console                                              | every submit               |
+| 3   | Play service-account JSON                 | Play Console → API access                                            | `eas submit`               |
+| 4   | Google OAuth client IDs (web + Android)   | Google Cloud, project `894420283180`                                 | Google sign-in             |
+| 5   | Sentry org/project/auth token             | sentry.io                                                            | symbolicated crashes       |
+| 6   | PostHog project key (EU host)             | posthog.com                                                          | analytics (none wired yet) |
+| 7   | Backend env on Railway                    | `MIN_ANDROID_VERSION`, `LATEST_ANDROID_VERSION`, `ANDROID_STORE_URL` | force-update gate          |
+| 8   | `assetlinks.json` on `app.pulpe.app`      | landing/web hosting                                                  | App Links verification     |
 
 `eas init` writes `extra.eas.projectId` and `updates.url` into `app.json`.
 Until it runs, `expo-updates` has no server to ask and OTA is inert — the app
@@ -49,11 +49,11 @@ already used for local Google sign-in, is
 
 `eas.json` defines them; each carries its own OTA channel of the same name.
 
-| Profile | Output | Distribution | Use |
-| ------- | ------ | ------------ | --- |
-| `development` | APK, dev client | internal | day-to-day, needs Metro |
-| `preview` | APK, standalone | internal | share a build, run Maestro |
-| `production` | AAB, auto-incremented versionCode | Play | releases |
+| Profile       | Output                            | Distribution | Use                        |
+| ------------- | --------------------------------- | ------------ | -------------------------- |
+| `development` | APK, dev client                   | internal     | day-to-day, needs Metro    |
+| `preview`     | APK, standalone                   | internal     | share a build, run Maestro |
+| `production`  | AAB, auto-incremented versionCode | Play         | releases                   |
 
 `appVersionSource: "remote"` means EAS owns `versionCode`; nothing in the repo
 tracks it and nothing should. The user-facing `version` stays in `app.json`,
@@ -107,11 +107,11 @@ pnpm dlx eas-cli@latest update:republish --group <previous-group-id>
 
 Three flows in `maestro/`, covering what must never break:
 
-| Flow | Proves |
-| ---- | ------ |
-| `login-vault.yaml` | sign in, unlock the vault, reach the month |
-| `check-operation.yaml` | pointing persists, and un-pointing undoes it |
-| `onboarding.yaml` | the eight onboarding screens chain to a real budget |
+| Flow                   | Proves                                              |
+| ---------------------- | --------------------------------------------------- |
+| `login-vault.yaml`     | sign in, unlock the vault, reach the month          |
+| `check-operation.yaml` | pointing persists, and un-pointing undoes it        |
+| `onboarding.yaml`      | the eight onboarding screens chain to a real budget |
 
 Only the first two run in CI. `onboarding.yaml` registers a real account, so
 running it per push would fill the database with throwaway users; run it by

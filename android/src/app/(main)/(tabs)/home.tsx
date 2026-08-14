@@ -78,7 +78,7 @@ export default function HomeScreen() {
     return (
       <PlaceholderScreen
         title="On n'a pas pu charger ton mois"
-        hint="Vérifie ta connexion, puis réessaie."
+        hint="Réessaie — si ça persiste, vérifie ta connexion."
         action={{
           label: "Réessayer",
           onPress: () => void currentMonth.refresh(),

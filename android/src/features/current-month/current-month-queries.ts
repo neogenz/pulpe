@@ -1,7 +1,10 @@
 import { getBudgetPeriodForDate, type SupportedCurrency } from "pulpe-shared";
 import { useMemo } from "react";
 
-import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import {
+  invalidateUserSettings,
+  useUserSettings,
+} from "@/core/user-settings/user-settings-queries";
 import type { BudgetDetails } from "@/features/budgets/budget-api";
 import {
   invalidateBudgetData,
@@ -33,6 +36,16 @@ export interface CurrentMonthQuery {
 }
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
+
+/**
+ * Retry and pull-to-refresh both come here because the settings query is fatal
+ * to this screen: invalidating the budgets alone leaves a settings query that
+ * failed at boot errored forever, and no amount of tapping clears the screen it
+ * put up.
+ */
+export async function refreshCurrentMonth(): Promise<void> {
+  await Promise.all([invalidateBudgetData(), invalidateUserSettings()]);
+}
 
 export function useCurrentMonth(): CurrentMonthQuery {
   const settings = useUserSettings();
@@ -71,7 +84,7 @@ export function useCurrentMonth(): CurrentMonthQuery {
     currency: settings.data?.currency ?? FALLBACK_CURRENCY,
     isRefreshing:
       periods.isRefetching || details.isRefetching || settings.isRefetching,
-    refresh: invalidateBudgetData,
+    refresh: refreshCurrentMonth,
   };
 }
 
@@ -87,7 +100,7 @@ interface StatusInput {
  * tell which budget the user is living in, and guessing the calendar month
  * would show a confident number for the wrong period.
  */
-function resolveStatus({
+export function resolveStatus({
   settings,
   periods,
   details,
