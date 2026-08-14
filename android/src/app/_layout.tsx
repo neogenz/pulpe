@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -12,6 +13,11 @@ import { observeSession, useSessionStore } from "@/core/auth/session-store";
 import { startSupabaseAutoRefresh } from "@/core/auth/supabase";
 import { DeepLinkRouter } from "@/core/linking/deep-link-router";
 import { openGroups } from "@/core/navigation/route-gates";
+import {
+  startAnalytics,
+  useScreenTracking,
+} from "@/core/observability/analytics";
+import { startSentry } from "@/core/observability/sentry";
 import { queryClient } from "@/core/query/query-client";
 import { ForegroundRefresh } from "@/core/system/foreground-refresh";
 import { armPrivacyShield } from "@/core/system/privacy-shield";
@@ -27,11 +33,14 @@ import {
 import { RecoveryKeyNotice } from "@/ui/recovery-key-notice";
 
 void SplashScreen.preventAutoHideAsync();
+// Before the first render rather than in an effect: a crash on the way up is
+// exactly the one worth reporting.
+const isSentryArmed = startSentry();
 
 // The date picker reads its labels from a global registry, so this has to run
 // before any calendar mounts — the app is French whatever the device is set to.
 
-export default function RootLayout() {
+function RootLayout() {
   const colorScheme = useColorScheme();
   const status = useSessionStore((state) => state.status);
   const vaultStatus = useVaultStore((state) => state.status);
@@ -55,6 +64,8 @@ export default function RootLayout() {
   useEffect(() => startSupabaseAutoRefresh(), []);
   useEffect(() => armPrivacyShield(), []);
   useEffect(() => observeVaultKeyRejection(), []);
+  useEffect(() => startAnalytics(), []);
+  useScreenTracking();
   // Synchronous, and before the first route decision: an unfinished run has to
   // be known by the time the guards below are evaluated.
   useEffect(() => restoreOnboardingDraft(), []);
@@ -124,3 +135,8 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+// `wrap` is what gives Sentry the error boundary and the touch trail that turn
+// a stack trace into something reproducible — and it warns on every launch if
+// it is applied with no client behind it, which is every development build.
+export default isSentryArmed ? Sentry.wrap(RootLayout) : RootLayout;

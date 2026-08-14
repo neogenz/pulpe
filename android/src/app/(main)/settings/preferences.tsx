@@ -28,6 +28,10 @@ import {
   writeRemindersEnabled,
 } from "@/core/notifications/reminder-flags";
 import {
+  setDiagnosticSharing,
+  useDiagnosticsConsent,
+} from "@/core/observability/diagnostics-consent";
+import {
   toggleAmountVisibility,
   useAmountVisibility,
 } from "@/core/ui/amount-visibility";
@@ -58,6 +62,9 @@ export default function PreferencesScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const areAmountsHidden = useAmountVisibility(
     (state) => state.areAmountsHidden,
+  );
+  const isDiagnosticSharingEnabled = useDiagnosticsConsent(
+    (state) => state.isDiagnosticSharingEnabled,
   );
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
@@ -207,6 +214,37 @@ export default function PreferencesScreen() {
                 value={areRemindersEnabled}
                 onValueChange={(next) => void applyReminders(next)}
                 accessibilityLabel="Rappel mensuel"
+              />
+            </Card.Content>
+          </Card>
+        </View>
+
+        {/* Last, and worded exactly as on iOS and the webapp: the same promise
+            has to read the same on all three. */}
+        <View style={styles.section}>
+          <Text
+            variant="labelLarge"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            DONNÉES ET CONFIDENTIALITÉ
+          </Text>
+          <Card mode="contained">
+            <Card.Content style={styles.switchRow}>
+              <View style={styles.switchLabels}>
+                <Text variant="bodyLarge">Partager les diagnostics</Text>
+                <Text
+                  variant="labelMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  Associe à ton compte les événements techniques et erreurs pour
+                  comprendre les problèmes et t&apos;aider plus rapidement.
+                  Aucun montant ni contenu saisi n&apos;est collecté.
+                </Text>
+              </View>
+              <Switch
+                value={isDiagnosticSharingEnabled}
+                onValueChange={setDiagnosticSharing}
+                accessibilityLabel="Partager les diagnostics"
               />
             </Card.Content>
           </Card>
