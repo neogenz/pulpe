@@ -428,7 +428,7 @@
     "pinCode": "Codice PIN",
     "pinCodeDescription": "Modifica il tuo codice di cifratura.",
     "pinChanged": "Codice PIN modificato",
-    "pinChangedNoRecovery": "Codice PIN modificato — rigenera la tua chiave di scorta nelle impostazioni",
+    "pinChangedNoRecovery": "Codice PIN modificato — rigenera la tua chiave di recupero nelle impostazioni",
     "changePin": {
       "title": "Modifica il codice PIN",
       "titleNewPin": "Nuovo codice PIN",
@@ -1208,7 +1208,7 @@
       "withdrawalsError": "Per ora non riesco a caricare i prelievi.",
       "withdrawalsRetry": "Riprova il caricamento",
       "withdrawalPlanOnlyAria": "{{ name }}, {{ period }}. Fuori budget. Previsto {{ planned }}.",
-      "withdrawalLinkedAria": "{{ name }}, {{ period }}. {{ status }}. Previsto {{ planned }}, effettuato {{ realized }}, resta {{ remaining }}. Apri questo budget.",
+      "withdrawalLinkedAria": "{{ name }}, {{ period }}. {{ status }}. Previsto {{ planned }}, effettivo {{ realized }}, resta {{ remaining }}. Apri questo budget.",
       "withdrawalRealizedAria": "{{ name }}, {{ date }}. {{ status }}. Prelievo {{ amount }}. Apri questo budget."
     },
     "plan": {
@@ -1633,7 +1633,7 @@
     "seeYouSoon": "A presto!"
   },
   "recoveryKey": {
-    "title": "La tua chiave di scorta",
+    "title": "La tua chiave di recupero",
     "description": "Questa chiave è la tua rete di sicurezza. Se dimentichi il tuo codice PIN, sarà l'unico modo per ritrovare i tuoi dati. Copiala in un posto sicuro: nessun altro può accedervi e non potremo recuperarla al posto tuo.",
     "copied": "Copiato!",
     "copyKey": "Copia la chiave",

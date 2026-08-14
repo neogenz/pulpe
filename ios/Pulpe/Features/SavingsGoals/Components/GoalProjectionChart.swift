@@ -92,7 +92,7 @@ struct GoalProjectionChart: View {
                 AxisGridLine().foregroundStyle(Color.textTertiary.opacity(DesignTokens.Opacity.secondary))
                 AxisValueLabel {
                     if let amount = value.as(Double.self) {
-                        Text(Self.axisLabel(amount, currency: currency))
+                        Text(Formatters.compactAxisLabel(amount, currency: currency))
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -130,16 +130,6 @@ struct GoalProjectionChart: View {
             startPoint: .top,
             endPoint: .bottom
         )
-    }
-
-    /// Compact axis label — `1K` / `1.5K` past a thousand, plain int otherwise.
-    private static func axisLabel(_ value: Double, currency: SupportedCurrency) -> String {
-        let magnitude = abs(value)
-        guard magnitude >= 1000 else { return "\(Int(value))" }
-        let thousands = magnitude / 1000
-        if thousands.truncatingRemainder(dividingBy: 1) == 0 { return "\(Int(thousands))K" }
-        let text = thousands.formatted(.number.precision(.fractionLength(1)).locale(Formatters.locale(for: currency)))
-        return "\(text)K"
     }
 }
 

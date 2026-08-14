@@ -276,10 +276,12 @@ struct UncheckedOperationsCard: View {
 
     private func subtitle(for item: CurrentMonthStore.CheckableItem) -> String {
         switch item {
+        // No `.lowercased()`: German capitalizes nouns ("Heute", "Montag") and English its
+        // weekdays, and every other date subtitle in the app already renders capitalized.
         case .transaction(let transaction, _):
-            transaction.transactionDate.relativeFormatted.lowercased()
+            transaction.transactionDate.relativeFormatted
         case .budgetLine(let line, _):
-            line.recurrence.label.lowercased()
+            line.recurrence.label
         }
     }
 

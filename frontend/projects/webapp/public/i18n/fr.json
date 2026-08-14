@@ -428,7 +428,7 @@
     "pinCode": "Code PIN",
     "pinCodeDescription": "Modifier ton code de chiffrement.",
     "pinChanged": "Code PIN modifié",
-    "pinChangedNoRecovery": "Code PIN modifié — régénère ta clé de secours dans les réglages",
+    "pinChangedNoRecovery": "Code PIN modifié — régénère ta clé de récupération dans les réglages",
     "changePin": {
       "title": "Modifier le code PIN",
       "titleNewPin": "Nouveau code PIN",
@@ -1633,7 +1633,7 @@
     "seeYouSoon": "À bientôt !"
   },
   "recoveryKey": {
-    "title": "Ta clé de secours",
+    "title": "Ta clé de récupération",
     "description": "Cette clé est ton filet de sécurité. Si tu oublies ton code PIN, elle sera le seul moyen de retrouver tes données. Copie-la dans un endroit sûr : personne d'autre n'y a accès, et on ne pourra pas la retrouver pour toi.",
     "copied": "Copié !",
     "copyKey": "Copier la clé",

@@ -108,7 +108,7 @@ extension Date {
         let now = Date()
 
         if calendar.isDateInToday(self) {
-            return AppLocale.string("Aujourd'hui")
+            return AppLocale.string("Aujourd’hui")
         }
         if calendar.isDateInYesterday(self) {
             return AppLocale.string("Hier")

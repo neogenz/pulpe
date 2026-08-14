@@ -25,7 +25,7 @@ struct SecuritySettingsView: View {
                     showChangePassword = true
                 }
 
-                chevronRow(AppLocale.string("Clé de secours"), detail: AppLocale.string("Régénérer")) {
+                chevronRow(AppLocale.string("Clé de récupération"), detail: AppLocale.string("Régénérer")) {
                     securityViewModel.showConfirmPassword = true
                 }
                 .disabled(securityViewModel.isRegenerating)
@@ -143,7 +143,7 @@ struct SecuritySettingsView: View {
                     email: appState.currentUser?.email
                 )
                 if error == nil {
-                    appState.toastManager.show(AppLocale.string("Clé de secours régénérée"), type: .success)
+                    appState.toastManager.show(AppLocale.string("Clé de récupération régénérée"), type: .success)
                 }
                 return error
             }

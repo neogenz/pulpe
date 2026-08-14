@@ -428,7 +428,7 @@
     "pinCode": "PIN",
     "pinCodeDescription": "Deinen Verschlüsselungscode ändern.",
     "pinChanged": "PIN geändert",
-    "pinChangedNoRecovery": "PIN geändert — erzeug deinen Ersatzschlüssel in den Einstellungen neu",
+    "pinChangedNoRecovery": "PIN geändert — erzeug deinen Wiederherstellungsschlüssel in den Einstellungen neu",
     "changePin": {
       "title": "PIN ändern",
       "titleNewPin": "Neuer PIN",
@@ -1197,7 +1197,7 @@
       "realizedWithdrawalsTitle": "Erfolgte Entnahmen",
       "withdrawalToRealize": "Noch auszuführen",
       "withdrawalPartiallyRealized": "Teilweise erfolgt",
-      "withdrawalRemaining": "Noch auszuführen",
+      "withdrawalRemaining": "Noch offen",
       "withdrawalRemainingLabel": "offen",
       "withdrawalPlanned": "Geplant",
       "withdrawalRealized": "Erfolgt",
@@ -1208,7 +1208,7 @@
       "withdrawalsError": "Die Entnahmen lassen sich gerade nicht laden.",
       "withdrawalsRetry": "Laden nochmal versuchen",
       "withdrawalPlanOnlyAria": "{{ name }}, {{ period }}. Ausserhalb des Budgets. Geplant {{ planned }}.",
-      "withdrawalLinkedAria": "{{ name }}, {{ period }}. {{ status }}. Geplant {{ planned }}, erfolgt {{ realized }}, offen {{ remaining }}. Dieses Budget öffnen.",
+      "withdrawalLinkedAria": "{{ name }}, {{ period }}. {{ status }}. Geplant {{ planned }}, tatsächlich {{ realized }}, offen {{ remaining }}. Dieses Budget öffnen.",
       "withdrawalRealizedAria": "{{ name }}, {{ date }}. {{ status }}. Entnahme {{ amount }}. Dieses Budget öffnen."
     },
     "plan": {
@@ -1312,7 +1312,7 @@
     "health": "Krankenkasse",
     "phone": "Handy-Abo",
     "internet": "Internet-Abo",
-    "transport": "Verkehr",
+    "transport": "Mobilität",
     "leasing": "Leasing",
     "chargesFooter": "Weitere Ausgaben kannst du aus deiner Vorlage hinzufügen",
     "submit": "Los geht's",
@@ -1633,7 +1633,7 @@
     "seeYouSoon": "Bis bald!"
   },
   "recoveryKey": {
-    "title": "Dein Ersatzschlüssel",
+    "title": "Dein Wiederherstellungsschlüssel",
     "description": "Dieser Schlüssel ist dein Sicherheitsnetz. Wenn du deinen PIN vergisst, ist er der einzige Weg zurück zu deinen Daten. Kopier ihn an einen sicheren Ort: niemand sonst kommt daran, und wir können ihn nicht für dich wiederherstellen.",
     "copied": "Kopiert!",
     "copyKey": "Schlüssel kopieren",

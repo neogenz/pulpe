@@ -114,9 +114,9 @@ enum APIError: LocalizedError {
         case .recoveryKeyInvalid:
             return "Clé de récupération invalide — vérifie que tu as bien copié la clé"
         case .recoveryKeyNotConfigured:
-            return "Aucune clé de secours n'est enregistrée — génère-en une depuis « Clé de secours »."
+            return "Aucune clé de récupération n'est enregistrée — génère-en une depuis « Clé de récupération »."
         case .rekeyPartialFailure:
-            return "Le changement de PIN a réussi mais la clé de secours n'a pas pu être mise à jour"
+            return "Le changement de PIN a réussi mais la clé de récupération n'a pas pu être mise à jour"
 
         // Savings withdrawal (PUL-292) — copy aligned with the webapp fr.json.
         case .savingsWithdrawalMonthUnprovisionable:

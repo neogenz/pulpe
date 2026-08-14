@@ -51,7 +51,7 @@ struct APIErrorLocalizationTests {
     /// key. The second literal is deliberately absent from the catalog — the catalog is
     /// only synced from the app target, so this file cannot add it.
     @Test func keyWithoutAGermanTranslation_fallsBackToFrench() {
-        #expect(AppLocale.string("Aucun objectif", locale: german) == "Kein Ziel")
+        #expect(AppLocale.string("Aucun objectif", locale: german) == "Kein Sparziel")
         #expect(
             AppLocale.string("Une phrase absente du catalogue", locale: german)
                 == "Une phrase absente du catalogue"

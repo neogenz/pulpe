@@ -120,4 +120,35 @@ struct FormattersLocaleSplitTests {
         #expect(Formatters.monthSubtitle(for: 0, isPositive: true).isEmpty)
         #expect(Formatters.monthSubtitle(for: 13, isPositive: false).isEmpty)
     }
+
+    // MARK: - Chart axis: the abbreviation is a word, the digits are money
+
+    /// CLDR abbreviates thousands per language — and not at all in German, which spells
+    /// the full number with the Swiss apostrophe when the currency is CHF.
+    @Test(arguments: [
+        (SupportedLocale.fr, "15 k"),
+        (.en, "15K"),
+        (.de, "15’000"),
+        (.it, "15K"),
+    ])
+    func compactAxisLabel_abbreviationFollowsTheLanguage(language: SupportedLocale, expected: String) {
+        // ICU separates "15" from "k" with a no-break space whose exact code point varies
+        // by OS release — normalize every space variant before comparing.
+        let rendered = Formatters.compactAxisLabel(15000, currency: .chf, language: language)
+            .replacingOccurrences(of: "\u{202F}", with: " ")
+            .replacingOccurrences(of: "\u{00A0}", with: " ")
+
+        #expect(rendered == expected)
+    }
+
+    /// EUR digits stay French-punctuated even when the language is English.
+    @Test func compactAxisLabel_digitsFollowTheCurrency() {
+        #expect(Formatters.compactAxisLabel(1500, currency: .eur, language: .en) == "1,5K")
+        #expect(Formatters.compactAxisLabel(1500, currency: .chf, language: .en) == "1.5K")
+    }
+
+    @Test func compactAxisLabel_keepsSignAndPlainSmallValues() {
+        #expect(Formatters.compactAxisLabel(-15000, currency: .chf, language: .en) == "-15K")
+        #expect(Formatters.compactAxisLabel(800, currency: .chf, language: .de) == "800")
+    }
 }

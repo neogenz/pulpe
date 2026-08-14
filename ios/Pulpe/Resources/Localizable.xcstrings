@@ -21,7 +21,8 @@
             "value" : ""
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     " *" : {
       "localizations" : {
@@ -101,7 +102,8 @@
             "value" : "%@ %@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@ %@. %lld%% utilisé. Revenus %@. Dépenses %@, dont %@ d'épargne" : {
       "localizations" : {
@@ -229,7 +231,8 @@
             "value" : "%@: %@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@ : montant masqué" : {
       "localizations" : {
@@ -905,7 +908,8 @@
             "value" : "%@, %@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@, %@ au-delà du plan" : {
       "localizations" : {
@@ -1208,7 +1212,8 @@
             "value" : "%@. %@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@. Solde estimé fin de mois %@. %@. %@" : {
       "localizations" : {
@@ -1292,7 +1297,8 @@
             "value" : "%@: %@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%lld" : {
       "localizations" : {
@@ -1314,7 +1320,8 @@
             "value" : "%lld"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%lld %@" : {
       "localizations" : {
@@ -2983,7 +2990,8 @@
             "value" : "%lld%%"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%lld%% de la cible épargné" : {
       "localizations" : {
@@ -5281,7 +5289,7 @@
         }
       }
     },
-    "Aucune clé de secours n'est enregistrée — génère-en une depuis « Clé de secours »." : {
+    "Aucune clé de récupération n'est enregistrée — génère-en une depuis « Clé de récupération »." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5409,28 +5417,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nessun risparmio previsto"
-          }
-        }
-      }
-    },
-    "Aujourd'hui" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heute"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Today"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Oggi"
           }
         }
       }
@@ -7923,29 +7909,7 @@
         }
       }
     },
-    "Clé de secours" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wiederherstellungsschlüssel"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recovery key"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chiave di recupero"
-          }
-        }
-      }
-    },
-    "Clé de secours régénérée" : {
+    "Clé de récupération régénérée" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -13627,7 +13591,7 @@
         }
       }
     },
-    "Le changement de PIN a réussi mais la clé de secours n'a pas pu être mise à jour" : {
+    "Le changement de PIN a réussi mais la clé de récupération n'a pas pu être mise à jour" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -18086,7 +18050,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Partly made"
+            "value" : "Partially completed"
           }
         },
         "it" : {
@@ -20872,7 +20836,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Withdrawals made"
+            "value" : "Completed withdrawals"
           }
         },
         "it" : {
@@ -21404,7 +21368,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Made"
+            "value" : "Completed"
           }
         },
         "it" : {
@@ -24810,7 +24774,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verkehr"
+            "value" : "Mobilität"
           }
         },
         "en" : {
@@ -28100,7 +28064,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To make"
+            "value" : "Pending"
           }
         },
         "it" : {

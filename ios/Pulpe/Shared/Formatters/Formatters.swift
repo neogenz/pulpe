@@ -26,6 +26,26 @@ enum Formatters {
         }
     }
 
+    /// Compact chart-axis label. The thousands abbreviation is a word, so it follows the
+    /// interface language the way CLDR writes it — `15 k` in French, `15K` in English and
+    /// Italian, and none at all in German, which spells `15'000` — while digits, separators
+    /// and grouping keep following the **currency** locale, like every other amount.
+    static func compactAxisLabel(
+        _ value: Double,
+        currency: SupportedCurrency,
+        language: SupportedLocale = AppLocale.current
+    ) -> String {
+        guard abs(value) >= 1000 else { return "\(Int(value))" }
+        var components = Locale.Components(locale: locale(for: currency))
+        components.languageComponents.languageCode = Locale.LanguageCode(language.rawValue)
+        return value.formatted(
+            .number.notation(.compactName)
+                .precision(.fractionLength(0...1))
+                .locale(Locale(components: components))
+        )
+        .replacingOccurrences(of: "'", with: swissGroupingSeparator)
+    }
+
     /// Thread-safe cache for currency formatters
     nonisolated(unsafe) private static let formatterCache = NSCache<NSString, NumberFormatter>()
 
