@@ -14,6 +14,7 @@ enum UITestLaunchScenario {
     case savingsGoalTemplateLines
     case contextualCreationHome
     case contextualCreationBudget
+    case loginScreen
 
     private static let longPressWithTransactionsKey = "UITEST_BUDGET_LONG_PRESS_WITH_TRANSACTIONS"
     private static let longPressEmptyKey = "UITEST_BUDGET_LONG_PRESS_EMPTY"
@@ -28,6 +29,7 @@ enum UITestLaunchScenario {
     private static let savingsGoalTemplateLinesKey = "UITEST_SAVINGS_GOAL_TEMPLATE_LINES"
     private static let contextualCreationHomeKey = "UITEST_CONTEXTUAL_CREATION_HOME"
     private static let contextualCreationBudgetKey = "UITEST_CONTEXTUAL_CREATION_BUDGET"
+    private static let loginScreenKey = "UITEST_LOGIN_SCREEN"
     private static let scenarioEnvironmentKey = "UITEST_SCENARIO"
 
     static var current: Self? {
@@ -65,6 +67,7 @@ enum UITestLaunchScenario {
             savingsGoalTemplateLinesKey: .savingsGoalTemplateLines,
             contextualCreationHomeKey: .contextualCreationHome,
             contextualCreationBudgetKey: .contextualCreationBudget,
+            loginScreenKey: .loginScreen,
         ][key]
     }
 
@@ -84,6 +87,7 @@ enum UITestLaunchScenario {
         case .savingsGoalTemplateLines: "savings-goal-template-lines"
         case .contextualCreationHome: "contextual-creation-home"
         case .contextualCreationBudget: "contextual-creation-budget"
+        case .loginScreen: "login-screen"
         }
     }
 }

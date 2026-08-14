@@ -8,6 +8,9 @@ final class LoginFlowTests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
+        // Harness root: the real startup routes on keychain/session leftovers from
+        // earlier runs on the shared simulator and rarely lands on LoginView.
+        app.launchArguments = ["-UITEST_LOGIN_SCREEN"]
         app.launch()
     }
 
