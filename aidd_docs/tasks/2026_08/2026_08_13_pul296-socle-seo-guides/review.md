@@ -1,7 +1,7 @@
 # Review: PUL-296 — SEO/GEO foundation for `/conseils-budget`
 
 - **Verdict**: approve
-- **Diff**: `origin/preview...7d7aaa5debd496811e838a7d9ef162b23efb2667`
+- **Diff**: `origin/preview...HEAD`
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_08_14
 - **Findings**: 0 critical, 0 warning, 0 minor
@@ -10,28 +10,29 @@
 
 ### Phase 1 — Typed registry, article layout, and prose CSS
 
-- [x] The registry is strictly typed and fails loudly when a page and registry entry drift apart — `landing/components/guides/guides.ts:5-37`
+- [x] The registry exports a strictly typed array; required `updatedAt` values feed article metadata and sitemap freshness — `landing/components/guides/guides.ts:5-82`, `landing/app/sitemap.ts:18-22`
+- [x] Prose keeps Poppins, a 65–75ch measure, underlined links, the warm background, and no glass or content animation — `landing/app/globals.css:13`, `landing/app/globals.css:75-77`, `landing/app/globals.css:558-617`
 - [x] The shared layout renders one H1 and one primary CTA; visible FAQ content and `FAQPage` JSON-LD use the same data — `landing/components/guides/ArticleLayout.tsx:58-158`
-- [x] Article contracts cover headings, CTA count, structured data, dates, and page-to-registry parity — `landing/components/guides/ArticleLayout.test.tsx:44-235`
+- [x] Landing contracts fail on a second H1, CTA drift, divergent FAQ schema, or page-to-registry mismatch — `landing/components/guides/ArticleLayout.test.tsx:44-247`
 
 ### Phase 2 — `/conseils-budget` index and GEO-structured seed article
 
-- [x] The index owns complete Open Graph and Twitter metadata with its canonical route and the shared social preview — `landing/app/conseils-budget/page.tsx:9-49`
-- [x] Article Open Graph metadata exposes registry publication and modification dates — `landing/components/guides/guides.ts:40-82`
-- [x] The seed article is server-rendered, uses live official Swiss sources, and presents the Pulpe pull quote without quotation semantics — `landing/app/conseils-budget/comment-faire-son-budget-en-suisse/page.tsx:27-114`, `landing/app/conseils-budget/comment-faire-son-budget-en-suisse/page.tsx:232`
+- [x] `/conseils-budget` lists the seed article from the registry, and every registry entry becomes an index card — `landing/app/conseils-budget/page.tsx:52-84`
+- [x] The seed article has one H1, a direct answer, sourced figures, visible FAQ content equal to `FAQPage`, and one CTA — `landing/app/conseils-budget/comment-faire-son-budget-en-suisse/page.tsx:27-247`, `landing/components/guides/ArticleLayout.tsx:58-158`
+- [x] The static export has the expected title, description, canonical, and server-rendered article content without client JavaScript — verified in `landing/dist/conseils-budget*.html`
 
 ### Phase 3 — Dynamic sitemap, Organization entity, and internal linking
 
 - [x] The dynamic sitemap publishes static routes and all registered articles with registry-backed modification dates — `landing/app/sitemap.ts:8-23`
 - [x] The root graph defines one Organization without unsupported `sameAs` claims, and site/article nodes reference it by `@id` — `landing/app/layout.tsx:154-192`, `landing/components/guides/ArticleLayout.tsx:49-56`
-- [x] Shared social preview data lives in the existing config module and is reused by all metadata producers — `landing/lib/config.ts:12-14`
+- [x] Every page footer exposes an internal “Conseils budget” link to `/conseils-budget` — `landing/components/sections/Footer.tsx:6-13`, `landing/components/sections/Footer.tsx:58-73`
 
 ### Phase 4 — Review corrections and merge validation
 
-- [x] Article links have explicit hover and keyboard-focus feedback while retaining the global focus outline — `landing/app/globals.css:609-617`
-- [x] The JSON-LD assertion describes `ArticleLayout`'s actual scope, and regressions for metadata, Organization claims, link states, and pull-quote semantics are covered — `landing/components/guides/ArticleLayout.test.tsx:79-164`
-- [x] PR-added developer documentation and comments are English; deliberate French product copy remains French.
-- [x] PR #602 has final-route metadata, 20 resolved review threads, a `MERGEABLE`/`CLEAN` GitHub state, successful Vercel previews, Claude review, CodeQL, and `✅ CI Success`.
+- [x] Index/article social metadata has one shared preview source and registry-backed article dates — `landing/lib/config.ts:12-14`, `landing/app/conseils-budget/page.tsx:9-49`, `landing/components/guides/guides.ts:40-82`
+- [x] Organization claims, article interaction states, pull-quote semantics, and JSON-LD assertion scope are accurate and regression-tested — `landing/app/globals.css:609-617`, `landing/components/guides/ArticleLayout.test.tsx:79-166`
+- [x] PR-added developer documentation is English; PR #602 metadata uses the final route, all 20 review threads are resolved, and GitHub reports `MERGEABLE`/`CLEAN`.
+- [x] Landing tests, type-check, lint, the 9-page static export, exported metadata/JSON-LD inspection, root `pnpm quality`, Vercel, Claude review, CodeQL, and `✅ CI Success` pass.
 
 ## Findings
 
@@ -39,9 +40,9 @@ None.
 
 ## Verification
 
-| Metric        | Value                                                                                                                                                                                                                                                                                                                                                     |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Verified      | 100% (13/13)                                                                                                                                                                                                                                                                                                                                              |
-| Files checked | All files changed by `origin/preview...7d7aaa5debd496811e838a7d9ef162b23efb2667`; implementation focus: `config.ts`, `layout.tsx`, both `/conseils-budget` pages, `globals.css`, `sitemap.ts`, `guides.ts`, `ArticleLayout.tsx`, `ArticleLayout.test.tsx`, `accessibility.test.tsx`; all PR-added task documents; hosted PR metadata, threads, and checks |
-| Unchecked     | none                                                                                                                                                                                                                                                                                                                                                      |
-| Unplanned     | none                                                                                                                                                                                                                                                                                                                                                      |
+| Metric        | Value                                                                                                                                                                                                                                                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Verified      | 100% (14/14)                                                                                                                                                                                                                                                                                                          |
+| Files checked | All files changed by `origin/preview...HEAD`; implementation focus: `config.ts`, `layout.tsx`, both `/conseils-budget` pages, `globals.css`, `sitemap.ts`, `guides.ts`, `ArticleLayout.tsx`, `ArticleLayout.test.tsx`, `accessibility.test.tsx`; all PR-added task documents; hosted PR metadata, threads, and checks |
+| Unchecked     | none                                                                                                                                                                                                                                                                                                                  |
+| Unplanned     | none                                                                                                                                                                                                                                                                                                                  |

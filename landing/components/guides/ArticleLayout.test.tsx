@@ -11,10 +11,14 @@ Object.assign(globalThis, { React });
 // Under tsx, the default static next/image import yields the module object
 // instead of the component (esbuild interop), breaking Header and Footer
 // rendering. This mock replaces only that module; everything else renders.
-mock.module("next/image", {
-  defaultExport: (props: Record<string, unknown>) =>
-    React.createElement("img", { src: props.src, alt: props.alt }),
-});
+const nextImageMock = {
+  cache: false,
+  exports: {
+    default: (props: Record<string, unknown>) =>
+      React.createElement("img", { src: props.src, alt: props.alt }),
+  },
+};
+mock.module("next/image", nextImageMock);
 const { ArticleLayout } = await import("./ArticleLayout");
 const { default: BudgetSuisseGuidePage } =
   await import("../../app/conseils-budget/comment-faire-son-budget-en-suisse/page");
