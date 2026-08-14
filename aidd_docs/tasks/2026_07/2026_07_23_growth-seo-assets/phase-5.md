@@ -2,7 +2,7 @@
 status: pending
 ---
 
-# Instruction: Kit distribution — listicles, communautés, directories
+# Instruction: Distribution kit — listicles, communities, and directories
 
 ## Architecture projection
 
@@ -10,47 +10,47 @@ status: pending
 
 ```txt
 aidd_docs/tasks/2026_07/2026_07_23_growth-seo-assets/
-├── outreach-listicles.md      ✅ cibles vérifiées avec contacts réels + email d'outreach par cible
-├── outreach-communautes.md    ✅ stratégie answer-first + 2 slots sanctionnés + drafts
-└── outreach-directories.md    ✅ fiches de soumission prêtes, avec déclencheur par cible
+├── outreach-listicles.md      ✅ verified targets with real contacts + one outreach email per target
+├── outreach-communautes.md    ✅ answer-first strategy + two sanctioned slots + drafts
+└── outreach-directories.md    ✅ submission-ready profiles with a trigger for each target
 ```
 
-## Contexte vérifié (recherche adversariale, juillet 2026)
+## Verified context (adversarial research, July 2026)
 
-Les cibles ci-dessous ont été vérifiées : la page existe, le contact est réel (fetch du formulaire/de l'email). Corrections notables vs plan initial : **comparis n'a aucun article apps budget** (retiré), **mustachianpost n'a pas de listicle et ferme les emails** (→ forum), **r/SuisseFinance n'existe pas** (retiré), forum-de-l-immobilier / frenchmobile introuvables (retirés), Discord non viable (retiré).
+The targets below were verified: each page exists and its contact is real (form or email fetched). Important corrections from the initial plan: **Comparis has no budget-app article** (removed), **Mustachian Post has no listicle and closes email outreach** (use the forum), **r/SuisseFinance does not exist** (removed), forum-de-l-immobilier and frenchmobile could not be found (removed), and Discord is not viable (removed).
 
 ## Tasks to do
 
-### `1)` `outreach-listicles.md` — cibles vérifiées, tiering réel
+### `1)` `outreach-listicles.md` — verified targets and real tiers
 
-> Un email copiable par cible, avec le contact vérifié et l'angle qui matche leur ligne éditoriale.
+> One copyable email per target, with a verified contact and an angle matching its editorial line.
 
-1. **Quick wins** : meilleur-achat.ch (formulaire avec dropdown « Suggestion de comparatif », contact@meilleur-achat.ch — bar éditorial bas, valeur SEO faible, 5 min) · jowi.fr (formulaire, listicle MAJ 11.05.2026, France/EUR) · alao.ch (support@alao.ch — article FR de 2023 MAJ nov. 2024, titre réel « …pour couples et célibataires » : pitcher un **refresh 2026**, pas un simple ajout).
-2. **Haute valeur éditoriale** : thepoorswiss.com (formulaire contact — ethos exact : gratuit + suisse + privacy sans sync bancaire ; article cible MAJ mars 2024, pitcher une review, pas un ajout) · Swisscom blog FR (via service presse — ils ont déjà featuré Budget bleu, startup suisse en waitlist) · magicheidi.ch (via help center /fr/tutorials ou Calendly du fondateur Nathan — positionner Pulpe comme complémentaire à leur produit facturation freelance).
-3. **Long shots documentés** : moneyland.ch (viser leur page « Swiss comparison websites and apps list », PAS un listicle inexistant ; lire l'email sur moneyland.ch/en/contact manuellement — 403 automatisé) · budgethub.ch (info@budgethub.ch — concurrent direct, leur modèle SEO vit des pages « vs » ; espérance faible, coût nul) · accrodubudget.com (formulaire, France).
-4. Chaque fiche : URL du listicle, date de fraîcheur constatée, contact vérifié, angle, email rédigé, probabilité.
+1. **Quick wins**: meilleur-achat.ch (form with “Suggestion de comparatif” dropdown, contact@meilleur-achat.ch; low editorial bar, low SEO value, five minutes) · jowi.fr (form, listicle updated May 11, 2026, France/EUR) · alao.ch (support@alao.ch; French 2023 article updated November 2024, actual title ends in “…pour couples et célibataires”: pitch a **2026 refresh**, not a simple addition).
+2. **High editorial value**: thepoorswiss.com (contact form; exact ethos match: free + Swiss + private with no bank sync; target article updated March 2024, pitch a review rather than an addition) · Swisscom French blog (through press relations; it already featured Budget bleu, a Swiss startup in waitlist) · magicheidi.ch (through the French help center or founder Nathan's Calendly; position Pulpe as complementary to freelance invoicing).
+3. **Documented long shots**: moneyland.ch (target “Swiss comparison websites and apps list”, not a nonexistent listicle; manually read the email on moneyland.ch/en/contact because automation gets 403) · budgethub.ch (info@budgethub.ch; direct competitor whose SEO model uses “vs” pages; low probability, zero cost) · accrodubudget.com (form, France).
+4. Every entry includes listicle URL, observed freshness date, verified contact, angle, drafted email, and probability.
 
-### `2)` `outreach-communautes.md` — answer-first + 2 slots sanctionnés
+### `2)` `outreach-communautes.md` — answer first + two sanctioned slots
 
-> Toutes les communautés à forte valeur interdisent le self-promo à froid. Le kit encode la stratégie conforme, pas une campagne de posts.
+> Every high-value community forbids cold self-promotion. The kit encodes a compliant strategy, not a posting campaign.
 
-1. **Les 2 seuls slots sanctionnés** : r/Suisse (~54k, FR — Règle 6 : pub interdite SAUF « intérêt public » ; rédiger le message aux mods AVANT tout post, puis le post calculateur gratuit) · Mustachian Post Community (forum le plus actif de Suisse, catégorie « Café francophone » — self-promo interdite SAUF **thread mensuel du dernier mercredi** ; rédiger le post pour ce thread).
-2. **Comment-only** (drafts de réponses types, jamais de post outil) : r/SwissPersonalFinance (~44k — anglais uniquement, bans « self advertisements of any kind » ET sondages ET non-anglais ; le thread promo épinglé = codes promo uniquement, pas un slot) · r/askswitzerland (~237k — Règle 7 anti-promo, sondages sur pré-approbation mod) · r/vosfinances (~425k, France/frontaliers, secondaire).
-3. **Facebook (vérification manuelle requise — règles login-walled)** : « Bons plans en Suisse romande », « Les Français en Suisse », « Frontaliers France – Suisse » — la fiche dit : rejoindre, lire les règles épinglées, contacter l'admin avant tout partage.
-4. Caveat encodé dans le doc : les règles Reddit ont été vérifiées sur snapshots Wayback (Reddit bloque l'accès anonyme) — re-vérifier depuis un compte connecté avant de poster.
+1. **The only two sanctioned slots**: r/Suisse (about 54k, French; rule 6 forbids advertising except for “public interest”: draft a moderator message **before** any post, then a free-calculator post) · Mustachian Post Community (Switzerland's most active forum, “Café francophone” category; self-promotion is forbidden except in the **monthly last-Wednesday thread**: draft that thread post).
+2. **Comment only** (draft response patterns, never a tool post): r/SwissPersonalFinance (about 44k, English only; bans “self advertisements of any kind”, polls, and non-English content; pinned promo thread is coupon-only, not a slot) · r/askswitzerland (about 237k; rule 7 anti-promo, polls require moderator preapproval) · r/vosfinances (about 425k, France/cross-border, secondary).
+3. **Facebook (manual verification required because rules are behind login)**: “Bons plans en Suisse romande”, “Les Français en Suisse”, “Frontaliers France – Suisse”. The entry says to join, read pinned rules, and contact an admin before sharing.
+4. Record the caveat that Reddit rules were checked through Wayback snapshots because Reddit blocks anonymous access; recheck from a signed-in account before posting.
 
-### `3)` `outreach-directories.md` — fiches prêtes + déclencheurs
+### `3)` `outreach-directories.md` — ready profiles and triggers
 
-> Levier 12 adapté : halo de plateformes existantes, préparé maintenant, déclenché selon le gate.
+> Adapt lever 12: prepare the halo of existing platforms now, then trigger it at the right gate.
 
-1. **AlternativeTo (passif → immédiat)** : action J+0 = créer le compte (gate d'âge ~1 semaine avant soumission) ; fiche de listing calée sur leurs facettes (iPhone, Web, freemium, EU-based) ; étape « suggest as alternative » sur la page YNAB (~398 alternatives) ; claim ownership via support@alternativeto.net (email depuis le domaine pulpe.app). Jamais d'upvotes incités (pénalisé).
-2. **Product Hunt (burst → différé post-gate rétention)** : self-post officiel, AUCUN hunter à chercher ; fiche = tagline, description ≤ 260 car., thumbnail 240×240, ≥ 2 visuels 1270×760 (screenshots App Store existants), 1er commentaire maker, lancement mar-jeu 12:01 PST ; cadrer comme play backlink/crédibilité (audience anglophone, pas l'ICP romand).
-3. **Directories suisses re-scopés** : Les Pépites Tech (formulaire gratuit, section Suisse — cible principale FR) · startupticker.ch (news@startupticker.ch, gratuit, MAIS critères : société incorporée + fondateur full-time — ne pitcher que sur un vrai milestone, flaguer le risque d'éligibilité) · swiss made software (optionnel, CHF 120/an tarif startup, nécessite entité légale — noter, ne pas soumettre). Retirés : SICTIC/digitalswitzerland (acteurs d'écosystème, pas d'apps), Venturelab TOP 100 (jury, pas de soumission).
+1. **AlternativeTo (passive → immediate)**: day-zero action is to create the account (about one week of age required before submission); align the profile with its facets (iPhone, Web, freemium, EU-based); “suggest as alternative” on the YNAB page (about 398 alternatives); claim ownership through support@alternativeto.net using a pulpe.app email. Never incentivize upvotes because that is penalized.
+2. **Product Hunt (burst → deferred until retention gate)**: official self-posting, with **no hunter search**; prepare a tagline, description up to 260 characters, 240×240 thumbnail, at least two 1270×760 visuals (existing App Store screenshots), first maker comment, and a Tuesday–Thursday 12:01 PST launch. Frame it as a backlink/credibility play because its English-speaking audience is not the Romandy ICP.
+3. **Rescoped Swiss directories**: Les Pépites Tech (free form, Switzerland section, main French target) · startupticker.ch (news@startupticker.ch, free, but requires an incorporated company and full-time founder; pitch only on a real milestone and flag eligibility risk) · swiss made software (optional, CHF 120/year startup price, legal entity required; note but do not submit). Removed: SICTIC/digitalswitzerland (ecosystem actors, not app directories), Venturelab TOP 100 (jury, no submission).
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria                                                                             |
-| ---- | ------------------------------------------------------------------------------------------------ |
-| 1    | Chaque cible listicle a un contact vérifié par fetch (ou l'instruction explicite de lecture manuelle pour les sites en 403) et un email prêt à envoyer |
-| 2    | Chaque communauté porte ses règles réelles citées (avec la source snapshot) ; aucune tactique ne viole une règle constatée ; les 2 slots sanctionnés ont leur draft complet (message mods + post) |
-| 3    | Les fiches directories sont complètes au point qu'aucune rédaction ne reste au moment de soumettre ; chaque fiche porte son déclencheur (immédiat / milestone / post-gate rétention) |
+| Task | Acceptance criteria                                                                                                                                            |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Every listicle target has a contact verified by fetch, or explicit manual-reading instructions for a 403 site, plus a ready-to-send email                      |
+| 2    | Every community lists its actual sourced rules; no tactic violates an observed rule; both sanctioned slots have a complete draft (moderator message + post)    |
+| 3    | Directory profiles are complete enough that no writing remains at submission time; every profile has its trigger (immediate / milestone / post-retention gate) |

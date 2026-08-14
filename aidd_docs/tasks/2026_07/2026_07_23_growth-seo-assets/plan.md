@@ -1,81 +1,81 @@
 ---
-objective: "Pulpe dispose d'actifs d'acquisition qui composent dans le temps (blog SEO, pages comparatives, calculateur lead-magnet) et d'un kit de distribution prêt à envoyer, sans dépendre d'un canal payant."
+objective: "Pulpe has acquisition assets that compound over time (SEO articles, comparison pages, and a lead-magnet calculator) plus a ready-to-send distribution kit, without relying on a paid channel."
 status: pending
 ---
 
-# Plan: Growth — actifs SEO & distribution pour faire connaître Pulpe
+# Plan: Growth — SEO and distribution assets for growing Pulpe awareness
 
 ## Overview
 
-| Field      | Value                                                                                                                                              |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Goal**   | Traduire le playbook « 0→2M€ » en actifs concrets exécutables par l'IA : socle blog SEO, pages concurrents, calculateur budget, guides evergreen, kit outreach |
-| **Source** | Texte brut : post « 15 leviers de croissance SaaS » fourni par Maxime + demande de filtrer sur ce qui est faisable en autonomie                     |
+| Field      | Value                                                                                                                                                     |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Goal**   | Turn the “€0→€2M” playbook into assets AI can execute: SEO article foundation, competitor pages, budget calculator, evergreen guides, and an outreach kit |
+| **Source** | Raw post “15 SaaS growth levers” supplied by Maxime, with a request to keep only work that can be completed autonomously                                  |
 
-## Cadrage stratégique
+## Strategic scope
 
-Le diagnostic rétention (juillet 2026) dit : le mur est la première transaction, pas l'acquisition — pas de marketing massif tant que l'adoption transaction < 40-50 %. Ce plan est compatible : le SEO met 3 à 6 mois à porter. On construit les actifs **maintenant** pour qu'ils mûrissent pendant que la rétention se règle. Les leviers « burst » (Google Ads, lancement Product Hunt) sont préparés mais différés.
+The July 2026 retention diagnosis says the wall is the first transaction, not acquisition: do not start mass marketing until transaction adoption reaches 40–50%. This plan is compatible because SEO takes three to six months to yield results. Build the assets **now** so they mature while retention improves. Burst levers such as Google Ads and Product Hunt are prepared but deferred.
 
-**Faits validés par recherche adversariale (juillet 2026), 10 clusters, 16 agents :**
+**Facts validated through adversarial research (July 2026), 10 clusters, 16 agents:**
 
-- **Baseline mesurée (PostHog projet 87621, `$host='pulpe.app'`)** : ~28 pageviews/30 j (~16 visiteurs), ~5 pv organiques/mois, 70 % direct. Les KPIs SEO seront en **absolu** (visiteurs organiques/mois), pas en %. Le projet PostHog « Pulpe Landing » (75556) est mort (ancien domaine uniquement) — ne pas y mesurer.
-- **Le gap SEO FR est réel mais la fenêtre se ferme** : BudgetHub (Innopulse GmbH, Zug) exécute déjà exactement ce playbook — section guides FR/DE, page `alternative-ynab-suisse` en français (mais faible : ~400 mots, pas de tableau, ne rank pas), pages « vs ». Les requêtes « alternative à YNAB gratuite » / « remplacer YNAB » ne servent QUE des listicles anglais. Time-sensitive.
-- **« YNAB avis » est un terrain perdu** (Mustachian Post, pro-YNAB, MAJ juillet 2026 + sites France) — retiré des cibles.
-- **La saisonnalité primes maladie est confirmée et datée** : annonce OFSP fin septembre chaque année (+4.4 % pour 2026, moyenne CHF 393.30, jeunes 19-25 CHF 326.30) ; hausse 2027 déjà télégraphiée (+3.7 % Comparis mai 2026, ~5 % OFSP). Le guide primes doit sortir **avant début septembre 2026**.
-- **Toutes les affirmations concurrents des pages comparatives sont sourcées chez les éditeurs** (prix YNAB, tiers gratuits BudgetHub/Goodbudget/MoneyControl, BudgetCH gratuit associatif) — détail en phase 2.
-- **Caveat méthodologique** : les SERPs ont été lues depuis un index US ; re-vérifier depuis une locale suisse (google.ch, fr-CH) avant de figer les briefs (tâche en phase 2).
+- **Measured baseline (PostHog project 87621, `$host='pulpe.app'`)**: about 28 pageviews over 30 days (about 16 visitors), about five organic pageviews per month, 70% direct. SEO KPIs will use **absolute values** (organic visitors per month), not percentages. The “Pulpe Landing” PostHog project (75556) is dormant and receives only the old domain; do not measure there.
+- **The French SEO gap is real, but the window is closing**: BudgetHub (Innopulse GmbH, Zug) is already executing this exact playbook with French/German guides, a French `alternative-ynab-suisse` page (weak: about 400 words, no table, does not rank), and “vs” pages. Searches for “alternative à YNAB gratuite” and “remplacer YNAB” return only English listicles. This is time-sensitive.
+- **“YNAB avis” is lost ground** (Mustachian Post is pro-YNAB and updated in July 2026, alongside French sites), so it was removed from the targets.
+- **Health-premium seasonality is confirmed and dated**: FOPH announces the next premiums at the end of September each year (+4.4% for 2026, CHF 393.30 average, CHF 326.30 for ages 19–25); the 2027 increase has already been signaled (+3.7% from Comparis in May 2026, about 5% from FOPH). Publish the premium guide **before early September 2026**.
+- **Every competitor claim in the comparison pages comes from its publisher** (YNAB pricing, free tiers for BudgetHub/Goodbudget/MoneyControl, and the free nonprofit BudgetCH); details are in phase 2.
+- **Method caveat**: the SERPs were read from a US index. Verify them again from a Swiss locale (google.ch, fr-CH) before finalizing briefs (phase 2 task).
 
-**Mapping des 15 leviers → ce plan :**
+**Mapping the 15 levers to this plan:**
 
-| Levier du post                          | Verdict       | Où                                                                 |
-| --------------------------------------- | ------------- | ------------------------------------------------------------------ |
-| 1. ICP + groupes FB/communautés         | Partiel       | Phase 5 (communautés vérifiées avec leurs règles réelles, envoi = Maxime) |
-| 2. Lead magnets                         | ✅ Exécutable | Phase 3 (calculateur budget interactif)                            |
-| 4. Listicles / référencement externe    | Partiel       | Phase 5 (cibles vérifiées + contacts réels + emails rédigés)       |
-| 7. Article sur un concurrent (gap SEO)  | ✅ Exécutable | Phase 2 (pages comparatives)                                       |
-| 10. Articles news secteur               | ✅ Exécutable | Phase 4 (guides evergreen, angle primes maladie daté)              |
-| 12. Lancement plateforme tierce         | Partiel       | Phase 5 (AlternativeTo immédiat/passif ; Product Hunt préparé, différé) |
-| 6. SEO YouTube, 14. Webinaires          | ❌ Exclu      | Nécessitent tournage/présence humaine                              |
-| 5. Affiliation, 9. Revente commission   | ❌ Exclu      | Pulpe est gratuit, pas de commission possible                      |
-| 11. Relance base dormante               | ❌ Différé    | Aucune infra d'envoi email (pas de Resend/Brevo), RGPD à cadrer    |
-| 13. Google Ads                          | ❌ Différé    | Budget + gate rétention                                            |
-| 15. EdTech                              | ❌ Exclu      | Non pertinent pour un budget planner B2C                           |
-| 3. Beta test / emails pré-launch        | ❌ N/A        | Pulpe est déjà lancé et gratuit                                    |
+| Lever from the post                   | Verdict       | Where                                                                      |
+| ------------------------------------- | ------------- | -------------------------------------------------------------------------- |
+| 1. ICP + Facebook groups/communities  | Partial       | Phase 5 (communities verified against their actual rules; Maxime sends)    |
+| 2. Lead magnets                       | ✅ Executable | Phase 3 (interactive budget calculator)                                    |
+| 4. Listicles / external discovery     | Partial       | Phase 5 (verified targets and contacts, with drafted emails)               |
+| 7. Competitor article (SEO gap)       | ✅ Executable | Phase 2 (comparison pages)                                                 |
+| 10. Industry news articles            | ✅ Executable | Phase 4 (evergreen guides, with a dated health-premium angle)              |
+| 12. Third-party platform launch       | Partial       | Phase 5 (AlternativeTo now/passive; Product Hunt prepared and deferred)    |
+| 6. YouTube SEO, 14. Webinars          | ❌ Excluded   | Require filming or a human presence                                        |
+| 5. Affiliate, 9. Commission reselling | ❌ Excluded   | Pulpe is free, so no commission is available                               |
+| 11. Dormant-base re-engagement        | ❌ Deferred   | No email delivery infrastructure (Resend/Brevo); GDPR scope still required |
+| 13. Google Ads                        | ❌ Deferred   | Requires budget and the retention gate                                     |
+| 15. EdTech                            | ❌ Excluded   | Not relevant to a B2C budget planner                                       |
+| 3. Beta test / pre-launch emails      | ❌ N/A        | Pulpe has already launched and is free                                     |
 
 ## Phases
 
-| #   | Phase                                             | File                         |
-| --- | ------------------------------------------------- | ---------------------------- |
-| 1   | Socle blog SEO sur la landing (`/guides`)         | [`phase-1.md`](./phase-1.md) |
-| 2   | Pages comparatives concurrents (gap SEO)          | [`phase-2.md`](./phase-2.md) |
-| 3   | Lead magnet : calculateur de budget suisse        | [`phase-3.md`](./phase-3.md) |
-| 4   | Guides evergreen Suisse romande (3 articles)      | [`phase-4.md`](./phase-4.md) |
-| 5   | Kit distribution : listicles, communautés, directories | [`phase-5.md`](./phase-5.md) |
+| #   | Phase                                                      | File                         |
+| --- | ---------------------------------------------------------- | ---------------------------- |
+| 1   | SEO article foundation on the landing (`/conseils-budget`) | [`phase-1.md`](./phase-1.md) |
+| 2   | Competitor comparison pages (SEO gap)                      | [`phase-2.md`](./phase-2.md) |
+| 3   | Lead magnet: Swiss budget calculator                       | [`phase-3.md`](./phase-3.md) |
+| 4   | French-speaking Switzerland evergreen guides (3 articles)  | [`phase-4.md`](./phase-4.md) |
+| 5   | Distribution kit: listicles, communities, and directories  | [`phase-5.md`](./phase-5.md) |
 
 ## Resources
 
-| Source                                                                 | Verified                                                                                  |
-| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| https://www.ynab.com/pricing                                           | YNAB $14.99/mois ou $109/an, USD uniquement (« Exchange rates are not reflected »), pas de tier gratuit, une devise par budget |
-| https://www.budgethub.ch/fr/guides/alternative-ynab-suisse             | La page FR concurrente existe mais est faible (~400 mots, pas de tableau, ne rank pas) — le gap de ranking est réel |
-| https://budgethub.ch/preise                                            | BudgetHub : gratuit limité (2 comptes), CHF 6.90/11.90 par mois ; PWA, « Datenhaltung in der Schweiz, Compute in der EU » |
-| https://apps.apple.com/fr/app/budgetch-app/id725506023                 | BudgetCH réel, gratuit, associatif (Budget-conseil Suisse), FR, MAJ juillet 2025           |
-| https://goodbudget.com/signup                                          | Goodbudget gratuit = 20 enveloppes, 1 compte, 2 appareils ; payant $10/mois — sync bancaire US uniquement |
-| https://www.bag.admin.ch/fr/newnsb/d2okh_kUK_OFhmMDfpyiy               | Primes 2026 : +4.4 %, moyenne CHF 393.30, jeunes 19-25 CHF 326.30 (annonce OFSP 23 sept 2025) |
-| https://www.bfs.admin.ch/bfs/en.assetdetail.36195848.html              | Salaire médian suisse CHF 7'024/mois (ESS 2024, publié 2025)                               |
-| https://www.moneyhaxx.ch/fr/calculateur                                | #1 sur « calculateur budget suisse » = moneyhaxx (Budget-conseil Suisse, marque jeunes, banques cantonales) — battable sur spécificité romande, pas sur autorité |
-| https://alternativeto.net/faq                                          | Soumission par le maker OK, compte âgé d'1 semaine requis, claim ownership via support@alternativeto.net |
-| https://help.producthunt.com/en/articles/479581-can-i-post-my-own-product-on-product-hunt | Product Hunt : self-post officiel, aucun hunter requis                   |
-| https://forum.mustachianpost.com/guidelines                            | Self-promo interdite SAUF thread mensuel dédié (dernier mercredi) — seul slot sanctionné du paysage suisse |
-| https://web.archive.org/web/20250517120126/https://www.reddit.com/r/Suisse/ | r/Suisse Règle 6 : pub interdite sauf « intérêt public » — contacter les mods d'abord |
+| Source                                                                                    | Verified                                                                                                                           |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| https://www.ynab.com/pricing                                                              | YNAB costs $14.99/month or $109/year, USD only (“Exchange rates are not reflected”), with no free tier and one currency per budget |
+| https://www.budgethub.ch/fr/guides/alternative-ynab-suisse                                | A competing French page exists but is weak (about 400 words, no table, does not rank), confirming the ranking gap                  |
+| https://budgethub.ch/preise                                                               | BudgetHub: free tier limited to two accounts, then CHF 6.90/11.90 per month; PWA; “Datenhaltung in der Schweiz, Compute in der EU” |
+| https://apps.apple.com/fr/app/budgetch-app/id725506023                                    | BudgetCH is real, free, nonprofit (Budget-conseil Suisse), available in French, and updated in July 2025                           |
+| https://goodbudget.com/signup                                                             | Goodbudget free tier: 20 envelopes, one account, two devices; paid tier $10/month; bank sync is US-only                            |
+| https://www.bag.admin.ch/fr/newnsb/d2okh_kUK_OFhmMDfpyiy                                  | 2026 premiums: +4.4%, CHF 393.30 average, CHF 326.30 for ages 19–25 (FOPH announcement, September 23, 2025)                        |
+| https://www.bfs.admin.ch/bfs/en.assetdetail.36195848.html                                 | Swiss median salary CHF 7,024/month (ESS 2024, published in 2025)                                                                  |
+| https://www.moneyhaxx.ch/fr/calculateur                                                   | #1 for “calculateur budget suisse” is moneyhaxx; beatable on Romandy specifics, not authority                                      |
+| https://alternativeto.net/faq                                                             | Maker submissions are allowed; account must be about one week old; claim ownership through support@alternativeto.net               |
+| https://help.producthunt.com/en/articles/479581-can-i-post-my-own-product-on-product-hunt | Product Hunt officially permits self-posting; no hunter is required                                                                |
+| https://forum.mustachianpost.com/guidelines                                               | Self-promotion is forbidden except in the dedicated monthly thread (last Wednesday), the only sanctioned Swiss slot                |
+| https://web.archive.org/web/20250517120126/https://www.reddit.com/r/Suisse/               | r/Suisse rule 6 forbids advertising except for “public interest”; contact moderators first                                         |
 
 ## Decisions
 
-| Decision                                                                 | Why                                                                                                     |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| Articles en pages TSX + layout `Article` partagé, pas de MDX ni CMS      | Vérifié : aucun tooling markdown installé, pattern `changelog` (TSX + data locale) déjà en place ; MDX seulement si > 5-10 articles |
-| Route `/guides` (pas `/blog`)                                            | Contenu evergreen orienté requête SEO, pas un flux daté ; « guides » vend la valeur, pas la fraîcheur    |
-| `app/sitemap.ts` remplace `public/sitemap.xml` (supprimé dans la même PR) | Vérifié : metadata routes fonctionnent sous `output: 'export'` ; le fichier statique (lastmod périmés) entrerait en collision |
-| Pas de dépendance `pulpe-shared` dans la landing                         | Vérifié : le calcul onboarding = 3 sommes (~10 lignes) et `getCurrencyFormatter` force 2 décimales ≠ affichage adaptatif onboarding ; inline `Intl.NumberFormat('de-CH')` min 0 / max 2 |
-| KPIs SEO en valeurs absolues, mesurés dans PostHog 87621 (`$host='pulpe.app'`) | Baseline ~28 pv/mois : les % seraient trompeurs ; le projet « Pulpe Landing » 75556 est dormant (ancien domaine) |
-| Leviers payants/burst différés post-gate rétention (transaction ≥ 40 %)  | Diagnostic rétention 2026-07 : acquérir avant de retenir gaspille le trafic ; le SEO compense par son délai |
+| Decision                                                                    | Why                                                                                                                                   |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| TSX article pages with a shared `Article` layout; no MDX or CMS             | No Markdown tooling is installed and the local TSX/data `changelog` pattern exists; add MDX only beyond 5–10 articles                 |
+| Route `/conseils-budget` rather than `/blog`                                | Evergreen, search-oriented content rather than a dated feed; the route conveys value rather than freshness                            |
+| `app/sitemap.ts` replaces `public/sitemap.xml` in the same PR               | Metadata routes work with `output: 'export'`; the stale static file would collide                                                     |
+| No `pulpe-shared` dependency in the landing                                 | Onboarding uses three sums, while `getCurrencyFormatter` forces two decimals; inline adaptive `Intl.NumberFormat('de-CH')` is smaller |
+| Absolute SEO KPIs in PostHog 87621 (`$host='pulpe.app'`)                    | At about 28 pageviews/month, percentages mislead; “Pulpe Landing” 75556 is dormant on the old domain                                  |
+| Paid/burst levers deferred until transaction retention reaches at least 40% | Acquiring before retaining wastes traffic; SEO's delay lets both efforts mature together                                              |

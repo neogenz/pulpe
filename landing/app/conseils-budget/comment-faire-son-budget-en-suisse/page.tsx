@@ -79,7 +79,7 @@ export default function BudgetSuisseGuidePage() {
           <mark className="marker-highlight">7’024&nbsp;CHF brut </mark>par mois
           selon l&apos;
           <a
-            href="https://www.bfs.admin.ch/bfs/fr/home/statistiques/travail-remuneration/salaires.html"
+            href="https://dam-api.bfs.admin.ch/hub/api/dam/assets/36195848/master"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -92,7 +92,7 @@ export default function BudgetSuisseGuidePage() {
           <mark className="marker-highlight">393.30&nbsp;CHF par mois </mark>en
           2026, d&apos;après l&apos;
           <a
-            href="https://www.bag.admin.ch/bag/fr/home/versicherungen/krankenversicherung/krankenversicherung-praemien.html"
+            href="https://www.bag.admin.ch/fr/primes-et-couts-reponses-aux-questions-frequentes"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -229,11 +229,11 @@ export default function BudgetSuisseGuidePage() {
         pas un bonus tombé du ciel, c&apos;est un mois différent que tu peux
         affecter d&apos;avance aux impôts ou aux vacances.
       </p>
-      <blockquote>
+      <p className="guide-pull-quote">
         Un budget n&apos;est pas là pour t&apos;empêcher de dépenser. Il est là
         pour que tu saches, avant de dépenser, ce que ça change pour les mois
         suivants.
-      </blockquote>
+      </p>
       <p>
         C&apos;est exactement ce que fait Pulpe : tu poses ton mois type une
         fois, tu ajustes les mois qui changent, et tu vois combien il te restera

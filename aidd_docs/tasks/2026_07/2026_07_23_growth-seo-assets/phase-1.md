@@ -2,7 +2,7 @@
 status: pending
 ---
 
-# Instruction: Socle blog SEO sur la landing (`/guides`)
+# Instruction: SEO article foundation on the landing (`/conseils-budget`)
 
 ## Architecture projection
 
@@ -11,100 +11,100 @@ status: pending
 ```txt
 landing/
 ├── app/
-│   ├── sitemap.ts                        ✅ sitemap dynamique (pages statiques + guides)
-│   ├── guides/
-│   │   ├── page.tsx                      ✅ index des guides (liste de cards)
+│   ├── sitemap.ts                        ✅ dynamic sitemap (static pages + articles)
+│   ├── conseils-budget/
+│   │   ├── page.tsx                      ✅ article index (card list)
 │   │   └── comment-faire-son-budget-en-suisse/
-│   │       └── page.tsx                  ✅ article seed qui prouve le socle
-│   └── layout.tsx                        ✏️ rien si possible ; sinon lien "Guides" surfaces communes
+│   │       └── page.tsx                  ✅ seed article proving the foundation
+│   └── layout.tsx                        ✏️ change nothing if possible; otherwise expose “Conseils budget” on shared surfaces
 ├── components/
 │   ├── guides/
-│   │   ├── ArticleLayout.tsx             ✅ layout partagé : header, sommaire, prose, CTA final, JSON-LD
-│   │   └── guides.ts                     ✅ registre typé des guides (slug, title, description, date) — source unique pour index + sitemap
-│   └── sections/Footer.tsx               ✏️ lien "Guides" dans le footer
-└── public/sitemap.xml                    ❌ remplacé par app/sitemap.ts
+│   │   ├── ArticleLayout.tsx             ✅ shared layout: header, contents, prose, final CTA, JSON-LD
+│   │   └── guides.ts                     ✅ typed article registry (slug, title, description, date), shared by index + sitemap
+│   └── sections/Footer.tsx               ✏️ “Conseils budget” footer link
+└── public/sitemap.xml                    ❌ replaced by app/sitemap.ts
 ```
 
 ## User Journey
 
 ```mermaid
 flowchart TD
-  A[Recherche Google: "comment faire son budget suisse"] --> B[/guides/... article/]
-  B --> C[Lecture: réponse concrète à la requête]
-  C --> D[CTA fin d'article: "Essaie Pulpe, gratuit"]
+  A[Google search: “comment faire son budget suisse”] --> B[/conseils-budget/... article/]
+  B --> C[Read a concrete answer to the query]
+  C --> D[Final article CTA: “Essaie Pulpe, gratuit”]
   D --> E[app.pulpe.app onboarding]
-  B --> F[/guides index → autres articles/]
+  B --> F[/conseils-budget index → other articles/]
 ```
 
 ## Wireframe
 
 ```txt
 ┌────────────────────────────────────────┐
-│ (1) Header landing existant            │
+│ (1) Existing landing header            │
 ├────────────────────────────────────────┤
-│ (2) H1 article + date + tps lecture    │
+│ (2) Article H1 + date + reading time   │
 ├────────────────────────────────────────┤
-│ (3) Prose: H2/H3, listes, tableaux     │
-│     largeur lecture ~65ch              │
+│ (3) Prose: H2/H3, lists, tables        │
+│     reading width around 65ch          │
 │                                        │
 ├────────────────────────────────────────┤
-│ (4) CTA card: "Essaie Pulpe" [Bouton]  │
+│ (4) CTA card: “Essaie Pulpe” [Button]  │
 ├────────────────────────────────────────┤
-│ (5) Footer existant + lien Guides      │
+│ (5) Existing footer + advice link      │
 └────────────────────────────────────────┘
 ```
 
-1. Header : réutilise `Header` existant, aucune variante.
-2. Titre : H1 unique (requête cible), métadonnées discrètes.
-3. Prose : styles typographiques Poppins existants, hiérarchie visuelle > copy verbeuse.
-4. CTA : un seul CTA primaire par article, vers l'app.
-5. Footer : réutilisé, gagne le lien vers `/guides`.
+1. Header: reuse the existing `Header` with no variant.
+2. Title: one H1 matching the target query, with discreet metadata.
+3. Prose: existing Poppins typography; visual hierarchy over verbose copy.
+4. CTA: one primary CTA per article, targeting the app.
+5. Footer: reuse it and add the `/conseils-budget` link.
 
-## Contexte vérifié (agent codebase, juillet 2026)
+## Verified context (codebase agent, July 2026)
 
-- Next.js 16.2.11, App Router, **`output: 'export'`** (statique pur, `distDir: 'dist'`) — `app/sitemap.ts` fonctionne au build ; routes imbriquées OK.
-- Déploiement : Vercel via `landing/vercel.json` (CSP, rewrites PostHog, redirects au niveau Vercel) — **rien à toucher** pour de nouvelles routes.
-- `robots.txt` déclare déjà `Sitemap: https://pulpe.app/sitemap.xml` — aucun changement robots.
-- `pnpm build` passe aujourd'hui (5 pages statiques) — baseline verte.
-- Pattern contenu existant à suivre : `app/changelog/page.tsx` (TSX + data locale + Container/Header/Footer).
-- **Aucun style prose n'existe** (`prose` absent de globals.css, pas de @tailwindcss/typography) — la typographie d'article est à créer.
-- FR-only (`<html lang="fr">`, fr_CH), title template `%s | Pulpe` + canonical par page déjà en place.
+- Next.js 16.2.11, App Router, **`output: 'export'`** (fully static, `distDir: 'dist'`): `app/sitemap.ts` works during builds and nested routes are supported.
+- Deployment: Vercel through `landing/vercel.json` (CSP, PostHog rewrites, Vercel redirects): **no change required** for new routes.
+- `robots.txt` already declares `Sitemap: https://pulpe.app/sitemap.xml`: no robots change.
+- `pnpm build` currently passes (five static pages): green baseline.
+- Existing content pattern to follow: `app/changelog/page.tsx` (TSX + local data + Container/Header/Footer).
+- **No prose styles exist** (`prose` is absent from globals.css and @tailwindcss/typography is not installed): article typography must be added.
+- French only (`<html lang="fr">`, fr_CH), with the `%s | Pulpe` title template and per-page canonicals already in place.
 
 ## Tasks to do
 
-### `1)` Registre des guides
+### `1)` Article registry
 
-> Une source unique de vérité pour index, sitemap et métadonnées.
+> One source of truth for the index, sitemap, and metadata.
 
-1. Créer `components/guides/guides.ts` : tableau typé `{ slug, title, description, publishedAt }`.
+1. Create `components/guides/guides.ts`: a typed `{ slug, title, description, publishedAt }` array.
 
-### `2)` Layout d'article partagé + typographie prose
+### `2)` Shared article layout and prose typography
 
-> Un composant qui rend chaque article cohérent avec la DA landing.
+> One component keeps every article aligned with the landing's visual direction.
 
-1. Lire `landing/DESIGN.md` + `app/changelog/page.tsx` + 2 composants sections avant d'écrire (règle workflow).
-2. Créer `ArticleLayout.tsx` : conteneur prose, H1, méta, CTA final, JSON-LD `Article` inline.
-3. Créer les styles prose (bloc CSS dans globals.css — pas de dépendance @tailwindcss/typography pour < 10 articles).
+1. Read `landing/DESIGN.md`, `app/changelog/page.tsx`, and two section components before writing (workflow rule).
+2. Create `ArticleLayout.tsx`: prose container, H1, metadata, final CTA, and inline `Article` JSON-LD.
+3. Add prose styles in globals.css; do not add @tailwindcss/typography for fewer than ten articles.
 
-### `3)` Index `/guides` + article seed
+### `3)` `/conseils-budget` index and seed article
 
-> La route vit avec un premier contenu réel.
+> The route launches with one real piece of content.
 
-1. `app/guides/page.tsx` : liste des guides depuis le registre, metadata + canonical.
-2. Article seed « Comment faire son budget en Suisse » (~1200 mots, tutoiement, vocabulaire Pulpe).
+1. `app/conseils-budget/page.tsx`: list registry entries, with metadata and a canonical.
+2. Seed article “Comment faire son budget en Suisse” (about 1,200 words, informal French, Pulpe vocabulary).
 
-### `4)` Sitemap dynamique + maillage
+### `4)` Dynamic sitemap and internal linking
 
-> Google découvre les articles sans édition manuelle.
+> Google discovers articles without a manual edit.
 
-1. Créer `app/sitemap.ts` (pages statiques + boucle sur le registre) ; supprimer `public/sitemap.xml` (via `trash`) **dans la même PR** (collision de chemin sinon).
-2. Ajouter le lien "Guides" au footer.
+1. Create `app/sitemap.ts` (static pages + registry loop) and remove `public/sitemap.xml` through `trash` **in the same PR** to avoid a route collision.
+2. Add the “Conseils budget” footer link.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria                                                                        |
-| ---- | ------------------------------------------------------------------------------------------ |
-| 1    | Ajouter un guide au registre le fait apparaître dans l'index ET le sitemap sans autre édit  |
-| 2    | L'article rend un JSON-LD `Article` valide et un seul H1 ; DA landing respectée (Poppins, fond clair) ; hiérarchie H2/H3 lisible sans classes ad-hoc |
-| 3    | `/guides` et l'article seed rendent en build prod (`pnpm build` landing) avec title/description/canonical propres |
-| 4    | Le `sitemap.xml` généré dans `dist/` liste `/`, `/changelog`, `/support`, `/guides` et l'article seed ; `public/sitemap.xml` n'existe plus |
+| Task | Acceptance criteria                                                                                                                                                          |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Adding a registry entry makes it appear in both the index and sitemap without another edit                                                                                   |
+| 2    | The article renders valid `Article` JSON-LD and one H1; the landing direction remains intact (Poppins, light background); H2/H3 hierarchy is readable without ad hoc classes |
+| 3    | `/conseils-budget` and the seed article pass the landing production build with their own title, description, and canonical                                                   |
+| 4    | Generated `dist/sitemap.xml` lists `/`, `/changelog`, `/support`, `/conseils-budget`, and the seed article; `public/sitemap.xml` is absent                                   |

@@ -2,7 +2,7 @@
 status: done
 ---
 
-# Instruction: Index `/guides` + article seed GEO-structuré
+# Instruction: `/conseils-budget` index and GEO-structured seed article
 
 ## Architecture projection
 
@@ -11,26 +11,26 @@ status: done
 ```txt
 landing/
 ├── app/
-│   └── guides/
-│       ├── page.tsx                                  ✅ index en cards scannables (titre, description, temps de lecture)
+│   └── conseils-budget/
+│       ├── page.tsx                                  ✅ index with scannable cards (title, description, reading time)
 │       └── comment-faire-son-budget-en-suisse/
-│           └── page.tsx                              ✅ article seed ~1200 mots via ArticleLayout
+│           └── page.tsx                              ✅ ~1,200-word seed article through ArticleLayout
 └── components/
     └── guides/
-        └── guides.ts                                 ✏️ entrée seed au registre
+        └── guides.ts                                 ✏️ seed entry in the registry
 ```
 
 ## User Journey
 
 ```mermaid
 flowchart TD
-  A["Recherche: 'comment faire son budget en Suisse'<br/>(Google, ChatGPT, Perplexity)"] --> B[/guides/comment-faire-son-budget-en-suisse/]
-  B --> C[Réponse courte 40-80 mots dès le premier écran]
-  C --> D[Étapes numérotées + chiffres suisses sourcés]
-  D --> E[FAQ visible]
-  E --> F[CTA unique: Essaie Pulpe, gratuit]
+  A["Search: 'comment faire son budget en Suisse'<br/>(Google, ChatGPT, Perplexity)"] --> B[/conseils-budget/comment-faire-son-budget-en-suisse/]
+  B --> C[Direct 40–80-word answer in the first viewport]
+  C --> D[Numbered steps and sourced Swiss figures]
+  D --> E[Visible FAQ]
+  E --> F[One CTA: Essaie Pulpe, gratuit]
   F --> G[app.pulpe.app onboarding]
-  B --> H[/guides index → autres articles/]
+  B --> H[/conseils-budget index → other articles/]
 ```
 
 ## Test Scope
@@ -41,72 +41,72 @@ title: Test scope
 ---
 journey
   section Setup
-    pnpm build (landing) => dist/ généré sans erreur: 5: cli
+    pnpm build for landing => dist generated without errors: 5: cli
   section Happy path
-    inspection dist/guides.html => cards avec titre + description + temps de lecture du registre: 5: cli
-    inspection dist/guides/comment-faire-son-budget-en-suisse.html => un seul h1 et title/description/canonical propres: 5: cli
-    parse du ld+json de l'article => Article avec datePublished/dateModified + FAQPage alignée sur la FAQ visible: 5: cli
-  section Edge case - contenu lisible sans JS
-    HTML statique seul => lecture du fichier dist sans exécuter de script => tout le contenu article présent: 1: cli
+    inspect dist/conseils-budget.html => registry cards include title, description, and reading time: 5: cli
+    inspect the exported seed article => one h1 plus its own title, description, and canonical: 5: cli
+    parse article ld+json => Article dates and FAQPage match the visible FAQ: 5: cli
+  section Edge case - readable without JavaScript
+    read the static HTML without executing scripts => complete article content is present: 1: cli
 ```
 
 ## Wireframe
 
 ```txt
 ┌────────────────────────────────────────┐
-│ (1) Header landing existant            │
+│ (1) Existing landing header            │
 ├────────────────────────────────────────┤
-│ (2) H1 "Guides" + intro courte         │
+│ (2) H1 "Conseils budget" + short intro │
 ├────────────────────────────────────────┤
-│ (3) Cards verticales                   │
+│ (3) Vertical cards                     │
 │  ┌───────────────────────────────────┐ │
-│  │ (4) Titre · description · ~X min  │ │
+│  │ (4) Title · description · ~X min  │ │
 │  └───────────────────────────────────┘ │
 ├────────────────────────────────────────┤
-│ (5) Footer existant                    │
+│ (5) Existing footer                    │
 └────────────────────────────────────────┘
 ```
 
-1. Header : composant existant.
-2. Titre : l'index reste sobre — c'est l'article qui convertit, pas l'index.
-3. Cards : boucle sur `GUIDES`, surfaces porcelaine `#FFFEFA` plates (filet léger, pas de grille générique à badges).
-4. Card : toute la card cliquable, cible ≥ 44px, focus visible.
-5. Footer : composant existant.
+1. Header: reuse the existing component.
+2. Title: keep the index restrained; the article converts, not the index.
+3. Cards: loop over `GUIDES` with flat porcelain `#FFFEFA` surfaces, a light rule, and no generic badge grid.
+4. Card: make the whole card clickable with a target of at least 44px and visible focus.
+5. Footer: reuse the existing component.
 
 ## Tasks to do
 
-### `1)` Index `/guides`
+### `1)` `/conseils-budget` index
 
-> La liste vit du registre ; ajouter un guide ne demande aucune autre édition.
+> The registry drives the list, so publishing another article requires no index edit.
 
-1. Créer `app/guides/page.tsx` : cards depuis `GUIDES`, `metadata` avec title, description et `canonical: '/guides'`.
-2. DA : cards éditoriales plates (ton + filet), pas de damier ni d'icônes décoratives.
+1. Create `app/conseils-budget/page.tsx`: cards from `GUIDES`, plus metadata with title, description, and `canonical: '/conseils-budget'`.
+2. Visual direction: flat editorial cards (tone + rule), with no checkerboard or decorative icons.
 
-### `2)` Article seed « Comment faire son budget en Suisse »
+### `2)` Seed article: « Comment faire son budget en Suisse »
 
-> Le premier contenu réel prouve le socle et vise la citation IA autant que le rang Google.
+> The first real article proves the foundation and targets AI citation as well as Google rank.
 
-1. Ajouter l'entrée au registre (`publishedAt` = `updatedAt` = date du jour, `readingMinutes` réaliste).
-2. Rédiger ~1200 mots dans `ArticleLayout`, structure GEO :
-   - réponse courte 40–80 mots immédiatement sous le H1 (citable telle quelle par un moteur IA) ;
-   - H2 formulés en questions quand c'est naturel (« Combien mettre de côté chaque mois ? ») ;
-   - étapes numérotées pour le cœur méthodologique (poser revenus → prévisions → épargne → disponible) ;
-   - 2–3 chiffres suisses sourcés (salaire médian OFS CHF 7'024/mois ESS 2024 ; prime maladie moyenne 2026 CHF 393.30, OFSP) — liens sortants vers les sources officielles ;
-   - FAQ 3 questions via la prop `faq` (visible + `FAQPage` auto).
-3. Copy : tutoiement, vocabulaire produit (« prévisions », « Disponible à dépenser », « épargne »), zéro jargon financier, le mot « transaction » n'apparaît jamais à l'écran.
-4. Un seul CTA primaire en fin d'article, aucun CTA concurrent dans la prose.
+1. Add the registry entry with `publishedAt` = `updatedAt` = the publication date and a realistic `readingMinutes`.
+2. Write about 1,200 words in `ArticleLayout` using this GEO structure:
+   - a citable 40–80-word direct answer immediately below the H1;
+   - question-shaped H2 headings where natural, such as « Combien mettre de côté chaque mois ? »;
+   - numbered steps for the core method: list income → add « prévisions » → plan « épargne » → calculate « Disponible à dépenser »;
+   - two or three sourced Swiss figures (FSO 2024 median salary of CHF 7,024/month; FOPH 2026 average health-insurance premium of CHF 393.30), with outbound links to official sources;
+   - a three-question FAQ through the `faq` prop, visible and mirrored automatically in `FAQPage`.
+3. Copy: use informal French, Pulpe vocabulary (« prévisions », « Disponible à dépenser », « épargne »), no financial jargon, and never render the word « transaction ».
+4. Keep one primary CTA at the end of the article and no competing CTA in the prose.
 
-### `3)` Vérification build + accessibilité
+### `3)` Build and accessibility verification
 
-> Les critères d'acceptation du ticket se constatent sur le build prod.
+> The ticket acceptance criteria are observable in the production export.
 
-1. `pnpm build` (landing) vert ; inspecter `dist/` : H1 unique, canonical, JSON-LD.
-2. Contrôle navigateur (`pnpm dev`) : contraste AA sur fond chaud, liens distinguables, focus visible, cibles ≥ 44px, `prefers-reduced-motion` sans effet résiduel.
+1. Run the landing `pnpm build` and inspect `dist/` for one H1, the canonical, and JSON-LD.
+2. Check in a browser with `pnpm dev`: AA contrast on the warm background, distinguishable links, visible focus, targets of at least 44px, and no residual effect under `prefers-reduced-motion`.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria                                                                                                        |
-| ---- | --------------------------------------------------------------------------------------------------------------------------- |
-| 1    | `/guides` liste l'article seed depuis le registre ; ajouter une entrée au registre suffit à faire apparaître une carte       |
-| 2    | L'article rend en build prod : H1 unique, réponse courte en tête, chiffres sourcés, FAQ visible ≡ FAQPage, un seul CTA       |
-| 3    | title/description/canonical corrects dans le HTML exporté ; tout le contenu lisible sans exécuter de JavaScript              |
+| Task | Acceptance criteria                                                                                                             |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `/conseils-budget` lists the seed article from the registry; adding a registry entry is sufficient to render another index card |
+| 2    | The production article has one H1, an opening direct answer, sourced figures, a visible FAQ equal to FAQPage, and one CTA       |
+| 3    | The exported HTML has the correct title, description, and canonical, and all content is readable without executing JavaScript   |

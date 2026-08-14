@@ -1,45 +1,46 @@
-# Review: PUL-296 — Socle SEO/GEO `/conseils-budget`
+# Review: PUL-296 — SEO/GEO foundation for `/conseils-budget`
 
 - **Verdict**: approve
-- **Diff**: `origin/preview...maximedesogus/pul-296-creer-le-socle-seo-guides-sur-la-landing`
-- **Axes run**: code, functional, relevancy (deux passes agent indépendantes + trace fonctionnelle)
+- **Diff**: `origin/preview...working tree`
+- **Axes run**: code, functional, relevancy
 - **Date**: 2026_08_14
-- **Findings**: 0 critical, 0 warning, 3 minor
+- **Findings**: 0 critical, 0 warning, 0 minor
 
 ## Phases
 
-### Phase 1 — Socle : registre typé, layout article, prose CSS
+### Phase 1 — Typed registry, article layout, and prose CSS
 
-- [x] Registre typé strict, `updatedAt` obligatoire — `landing/components/guides/guides.ts:6-15`
-- [x] Prose Poppins seul, mesure 65–75ch (70ch), liens soulignés, fond chaud, sans glass ni animation de contenu — `landing/app/globals.css:558-651`
-- [x] H1 unique, un seul CTA primaire, JSON-LD FAQ identique mot pour mot à la FAQ visible (même prop `answer: string`) — `landing/components/guides/ArticleLayout.tsx:51-63,89`
-- [x] `pnpm test` passe et casse sur second H1, FAQ divergente ou FAQ retirée du visible (le test exclut le script ld+json avant de vérifier le rendu) — `landing/components/guides/ArticleLayout.test.tsx:54-101` (run : 85/85)
+- [x] The registry is strictly typed and fails loudly when a page and registry entry drift apart — `landing/components/guides/guides.ts:5-37`
+- [x] The shared layout renders one H1 and one primary CTA; visible FAQ content and `FAQPage` JSON-LD use the same data — `landing/components/guides/ArticleLayout.tsx:58-158`
+- [x] Article contracts cover headings, CTA count, structured data, dates, and page-to-registry parity — `landing/components/guides/ArticleLayout.test.tsx:44-235`
 
-### Phase 2 — Index `/guides` + article seed GEO-structuré
+### Phase 2 — `/conseils-budget` index and GEO-structured seed article
 
-- [x] `/conseils-budget` (ex-`/guides`) liste depuis le registre, une entrée suffit pour une carte ; toute entrée sans page casse le test (garde anti-404 index/sitemap) — `landing/app/conseils-budget/page.tsx`, `ArticleLayout.test.tsx:143-155`
-- [x] Article en build prod : H1 unique (grep dist = 1, re-testé sur la vraie page), réponse 40–80 mots en tête, chiffres OFS/OFSP/Budget-conseil sourcés en liens, FAQ visible ≡ FAQPage (parse dist), un seul CTA — `landing/app/conseils-budget/comment-faire-son-budget-en-suisse/page.tsx`, `ArticleLayout.test.tsx:135-141`
-- [x] title/description/canonical corrects dans `dist/` (via `guideMetadata`), contenu entier dans le HTML serveur — `landing/components/guides/guides.ts:44-90`
+- [x] The index owns complete Open Graph and Twitter metadata with its canonical route and the shared social preview — `landing/app/conseils-budget/page.tsx:9-49`
+- [x] Article Open Graph metadata exposes registry publication and modification dates — `landing/components/guides/guides.ts:40-82`
+- [x] The seed article is server-rendered, uses live official Swiss sources, and presents the Pulpe pull quote without quotation semantics — `landing/app/conseils-budget/comment-faire-son-budget-en-suisse/page.tsx:27-114`, `landing/app/conseils-budget/comment-faire-son-budget-en-suisse/page.tsx:232`
 
-### Phase 3 — Découvrabilité : sitemap dynamique, Organization, maillage
+### Phase 3 — Dynamic sitemap, Organization entity, and internal linking
 
-- [x] `dist/sitemap.xml` : 5 pages statiques + article avec `lastmod` = `updatedAt` (2026-08-13) ; `public/sitemap.xml` supprimé — `landing/app/sitemap.ts`
-- [x] JSON-LD racine : `Organization` + `sameAs` (GitHub, App Store), référencée par `publisher` de l'article via la constante partagée `ORGANIZATION_ID` (parse dist : le `@id` résout) — `landing/lib/config.ts:12-15`, `landing/app/layout.tsx:148-157`
-- [x] Footer de toutes les pages : lien interne « Conseils budget » (grep dist : 4/4 pages) — `landing/components/sections/Footer.tsx:14`
+- [x] The dynamic sitemap publishes static routes and all registered articles with registry-backed modification dates — `landing/app/sitemap.ts:8-23`
+- [x] The root graph defines one Organization without unsupported `sameAs` claims, and site/article nodes reference it by `@id` — `landing/app/layout.tsx:154-192`, `landing/components/guides/ArticleLayout.tsx:49-56`
+- [x] Shared social preview data lives in the existing config module and is reused by all metadata producers — `landing/lib/config.ts:12-14`
+
+### Phase 4 — Review corrections and merge validation
+
+- [x] Article links have explicit hover and keyboard-focus feedback while retaining the global focus outline — `landing/app/globals.css:609-617`
+- [x] The JSON-LD assertion describes `ArticleLayout`'s actual scope, and regressions for metadata, Organization claims, link states, and pull-quote semantics are covered — `landing/components/guides/ArticleLayout.test.tsx:79-164`
+- [x] PR-added developer documentation and comments are English; deliberate French product copy remains French.
 
 ## Findings
 
-| Sev | Kind | Phase | Location | Issue | Fix |
-| --- | ---- | ----- | -------- | ----- | --- |
-| 🟢 | rot | 2 | `landing/components/guides/guides.ts:33-37` | `SOCIAL_PREVIEW_IMAGE`/`ALT` restent copiés dans layout.tsx, modeles-et-budgets et ici : bump `?v=3` = 3 sites à toucher. Copie assumée : le test a11y (l.1102) exige la déclaration DANS layout.tsx | Accepté en l'état ; centraliser si le contrat a11y évolue |
-| 🟢 | frontend | 2 | `landing/app/globals.css:648` | `.table-scroll` ne défile jamais avec le tableau actuel (2 colonnes étroites) et n'a pas de `tabIndex` clavier | Gardé : conteneur exigé par le plan (phase 1) ; ajouter `tabIndex={0}` + label le jour où un tableau déborde réellement |
-| 🟢 | fit | 3 | `landing/components/sections/Footer.tsx:14` | « Guides » (nav) coexistait avec « Guides pour utiliser Pulpe » (/support) et restait synonyme de « Aide » pour un visiteur | Corrigé (validé par Maxime) : contenu éditorial renommé « Conseils budget », route `/conseils-budget` (renommée avant tout déploiement, zéro redirection), /support dit « Bien démarrer avec Pulpe » / « Tutoriel » |
+None.
 
 ## Verification
 
-| Metric        | Value                                             |
-| ------------- | ------------------------------------------------- |
-| Verified      | 100% (10/10)                                      |
-| Files checked | guides.ts, ArticleLayout.tsx, ArticleLayout.test.tsx, globals.css, guides/page.tsx, comment-faire-son-budget-en-suisse/page.tsx, sitemap.ts, layout.tsx, accessibility.test.tsx, Footer.tsx, Platforms.tsx, config.ts, package.json, dist/ (article, index, sitemap.xml, 4 pages footer) |
-| Unchecked     | none                                              |
-| Unplanned     | Durcissements issus des deux passes de revue : FAQ visible prouvée hors ld+json, garde registre↔page, vraie page testée (H1/CTA), sources guides enregistrées dans accessibility.test.tsx (skip-link, transition-all, tirets), `SITE_URL`/`ORGANIZATION_ID` partagés, `guideMetadata`/`getGuide`, montants alignés sur lib/amount.ts (`7’024 CHF`), `formatDate` en UTC, espace fine insécable avant « ? » (7 sites), `image` + publisher typé au JSON-LD Article, back-link vers /guides, `text-wrap: pretty` sur la prose, hairline en `color-mix`, classe `group` morte retirée ; `lib/config.ts` normalisé prettier (pré-existant) ; commit de préservation `aidd_docs/tasks/2026_07/2026_07_23_growth-seo-assets/` (demande explicite hors plan) |
+| Metric        | Value                                                                                                                                                                                                                                                                                |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Verified      | 100% (12/12)                                                                                                                                                                                                                                                                         |
+| Files checked | All files changed by `origin/preview...working tree`; implementation focus: `config.ts`, `layout.tsx`, both `/conseils-budget` pages, `globals.css`, `sitemap.ts`, `guides.ts`, `ArticleLayout.tsx`, `ArticleLayout.test.tsx`, `accessibility.test.tsx`; all PR-added task documents |
+| Unchecked     | Hosted PR metadata, review-thread resolution, and post-push CI — external delivery steps pending before the final mergeability verdict                                                                                                                                               |
+| Unplanned     | none                                                                                                                                                                                                                                                                                 |

@@ -555,15 +555,15 @@ h3,
   }
 }
 
-/* Typographie des articles /conseils-budget : Poppins seul, mesure 65–75ch, aucune
-   animation de contenu. Les titres restent en encre végétale, le corps en
-   encre secondaire, comme le reste de la landing. */
+/* /conseils-budget article typography: Poppins only, a 65–75ch measure, and no
+   content animation. Headings use the plant ink and body copy uses the
+   secondary ink, like the rest of the landing. */
 .guide-prose {
   max-width: 70ch;
   font-size: 1.0625rem;
   line-height: 1.75;
   color: var(--color-text-secondary);
-  /* Tout montant en chiffres tabulaires, sans classe à poser à la main. */
+  /* Give every amount tabular figures without requiring a utility class. */
   font-variant-numeric: tabular-nums;
 }
 
@@ -597,8 +597,8 @@ h3,
   color: var(--color-text);
 }
 
-/* Dans la prose des guides le trait est posé dès le chargement : pas de
-   MarkerDraw, le contenu d'article ne s'anime pas. */
+/* Article marker strokes are complete at load time: no MarkerDraw and no
+   content animation. */
 .guide-prose .marker-highlight {
   background-size: 100% 0.92em;
 }
@@ -611,7 +611,12 @@ h3,
   border-radius: 2px;
 }
 
-/* Le preflight Tailwind retire puces et retraits. */
+.guide-prose a:hover,
+.guide-prose a:focus-visible {
+  color: var(--color-primary-hover);
+}
+
+/* Tailwind preflight removes list markers and indentation. */
 .guide-prose ul {
   padding-left: 1.5rem;
   list-style: disc;
@@ -630,14 +635,14 @@ h3,
   margin-top: 0.5em;
 }
 
-.guide-prose blockquote {
+.guide-prose .guide-pull-quote {
   padding-left: 1.25rem;
   border-left: 3px solid var(--color-primary);
   font-weight: 500;
   color: var(--color-text);
 }
 
-/* Un tableau large défile dans son conteneur, jamais la page. */
+/* Wide tables scroll inside their container, never the page. */
 .guide-prose .table-scroll {
   overflow-x: auto;
 }

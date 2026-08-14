@@ -3,17 +3,17 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Container, Section } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
-import { CONTACT_EMAIL } from "@/lib/config";
+import {
+  CONTACT_EMAIL,
+  SOCIAL_PREVIEW_ALT,
+  SOCIAL_PREVIEW_IMAGE,
+} from "@/lib/config";
 
 const GUIDE_PATH = "/support/modeles-et-budgets";
 const GUIDE_TITLE = "Modèle ou budget : que faut-il modifier ?";
 const GUIDE_DESCRIPTION =
   "Comprendre la différence entre un modèle et un budget mensuel dans Pulpe, puis savoir lequel modifier sur iPhone.";
 const SOCIAL_TITLE = `${GUIDE_TITLE} | Pulpe`;
-const SOCIAL_PREVIEW_IMAGE = "/pulpe-social-preview.png?v=2";
-const SOCIAL_PREVIEW_ALT =
-  "Pulpe projette ton budget sur l’année et montre combien il te restera";
-
 export const metadata: Metadata = {
   title: GUIDE_TITLE,
   description: GUIDE_DESCRIPTION,

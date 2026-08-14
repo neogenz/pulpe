@@ -1,15 +1,16 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, it, mock } from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { GUIDES, type Guide } from "./guides";
+import { SOCIAL_PREVIEW_ALT, SOCIAL_PREVIEW_IMAGE } from "../../lib/config";
+import { GUIDES, guideMetadata, type Guide } from "./guides";
 
 Object.assign(globalThis, { React });
 
-// Sous tsx, l'import statique par défaut de next/image livre l'objet module au
-// lieu du composant (interop esbuild) et fait échouer le rendu du Header et du
-// Footer. Le mock ne remplace que ce module ; tout le reste rend en vrai.
+// Under tsx, the default static next/image import yields the module object
+// instead of the component (esbuild interop), breaking Header and Footer
+// rendering. This mock replaces only that module; everything else renders.
 mock.module("next/image", {
   defaultExport: (props: Record<string, unknown>) =>
     React.createElement("img", { src: props.src, alt: props.alt }),
@@ -17,6 +18,25 @@ mock.module("next/image", {
 const { ArticleLayout } = await import("./ArticleLayout");
 const { default: BudgetSuisseGuidePage } =
   await import("../../app/conseils-budget/comment-faire-son-budget-en-suisse/page");
+const { metadata: guidesIndexMetadata } =
+  await import("../../app/conseils-budget/page");
+
+const sources = {
+  config: readFileSync(new URL("../../lib/config.ts", import.meta.url), "utf8"),
+  globals: readFileSync(
+    new URL("../../app/globals.css", import.meta.url),
+    "utf8",
+  ),
+  guides: readFileSync(new URL("./guides.ts", import.meta.url), "utf8"),
+  layout: readFileSync(
+    new URL("../../app/layout.tsx", import.meta.url),
+    "utf8",
+  ),
+  supportGuide: readFileSync(
+    new URL("../../app/support/modeles-et-budgets/page.tsx", import.meta.url),
+    "utf8",
+  ),
+};
 
 const guide: Guide = {
   slug: "guide-de-test",
@@ -38,7 +58,11 @@ function extractJsonLd(markup: string) {
       /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g,
     ),
   ];
-  assert.equal(scripts.length, 1, "exactly one JSON-LD script per article");
+  assert.equal(
+    scripts.length,
+    1,
+    "ArticleLayout must emit exactly one JSON-LD script",
+  );
   return JSON.parse(scripts[0][1]) as {
     "@graph": Record<string, unknown>[];
   };
@@ -82,6 +106,62 @@ describe("guide article layout contract", () => {
     );
   });
 
+  it("keeps route-specific social metadata tied to the shared preview", () => {
+    const indexOpenGraph = guidesIndexMetadata.openGraph as {
+      title?: unknown;
+      description?: unknown;
+      url?: unknown;
+      images?: { url?: unknown; alt?: unknown }[];
+    };
+    const indexTwitter = guidesIndexMetadata.twitter as {
+      title?: unknown;
+      description?: unknown;
+      images?: { url?: unknown; alt?: unknown }[];
+    };
+
+    assert.equal(indexOpenGraph.title, "Conseils budget | Pulpe");
+    assert.equal(indexOpenGraph.description, guidesIndexMetadata.description);
+    assert.equal(indexOpenGraph.url, "/conseils-budget");
+    assert.equal(indexTwitter.title, indexOpenGraph.title);
+    assert.equal(indexTwitter.description, indexOpenGraph.description);
+    for (const social of [indexOpenGraph, indexTwitter]) {
+      assert.equal(social.images?.[0]?.url, SOCIAL_PREVIEW_IMAGE);
+      assert.equal(social.images?.[0]?.alt, SOCIAL_PREVIEW_ALT);
+    }
+
+    const articleOpenGraph = guideMetadata(guide).openGraph as {
+      publishedTime?: unknown;
+      modifiedTime?: unknown;
+    };
+    assert.equal(articleOpenGraph.publishedTime, guide.publishedAt);
+    assert.equal(articleOpenGraph.modifiedTime, guide.updatedAt);
+  });
+
+  it("centralizes social data and keeps Organization claims accurate", () => {
+    const allSocialSources = Object.values(sources).join("\n");
+    assert.equal(
+      allSocialSources.match(/pulpe-social-preview\.png\?v=2/g)?.length,
+      1,
+    );
+    assert.match(
+      sources.config,
+      /export const SOCIAL_PREVIEW_IMAGE = "\/pulpe-social-preview\.png\?v=2";/,
+    );
+    assert.doesNotMatch(sources.layout, /\bsameAs\s*:/);
+  });
+
+  it("keeps article links interactive and the Pulpe pull quote semantic", () => {
+    assert.match(
+      sources.globals,
+      /\.guide-prose a:hover,\s*\.guide-prose a:focus-visible\s*\{[^}]*color:/,
+    );
+    const pageHtml = renderToStaticMarkup(<BudgetSuisseGuidePage />);
+    const article = pageHtml.match(/<article[\s\S]*<\/article>/)?.[0];
+    assert.ok(article, "the page must render an <article>");
+    assert.doesNotMatch(article, /<blockquote[\s>]/);
+    assert.match(article, /class="guide-pull-quote"/);
+  });
+
   it("keeps the FAQPage schema identical to the visible FAQ", () => {
     const graph = extractJsonLd(html)["@graph"];
     const faqPage = graph.find((node) => node["@type"] === "FAQPage") as
@@ -95,8 +175,8 @@ describe("guide article layout contract", () => {
       })),
       faq,
     );
-    // Le script ld+json contient déjà les textes : on l'exclut du markup pour
-    // prouver que la FAQ est rendue visible, pas seulement présente au schema.
+    // The ld+json script already contains the copy. Exclude it to prove the FAQ
+    // is visible rather than only present in the schema.
     const visibleHtml = html.replace(
       /<script type="application\/ld\+json">[\s\S]*?<\/script>/g,
       "",
@@ -149,7 +229,7 @@ describe("guide article layout contract", () => {
             import.meta.url,
           ),
         ),
-        `app/conseils-budget/${entry.slug}/page.tsx est absent : la carte de l'index et le sitemap pointeraient sur un 404`,
+        `app/conseils-budget/${entry.slug}/page.tsx is missing: the index card and sitemap would point to a 404`,
       );
     }
   });

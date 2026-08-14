@@ -2,7 +2,7 @@
 status: pending
 ---
 
-# Instruction: Lead magnet — calculateur de budget suisse
+# Instruction: Lead magnet — Swiss budget calculator
 
 ## Architecture projection
 
@@ -10,86 +10,88 @@ status: pending
 
 ```txt
 landing/
-├── app/calculateur-budget/page.tsx        ✅ page SEO "calculateur budget suisse" (metadata + prose)
+├── app/calculateur-budget/page.tsx        ✅ SEO page for “calculateur budget suisse” (metadata + prose)
 ├── components/calculator/
-│   └── BudgetCalculator.tsx               ✅ client component : miroir exact du calcul onboarding, zéro réseau
-└── app/sitemap.ts                         ✏️ entrée /calculateur-budget
+│   └── BudgetCalculator.tsx               ✅ client component: exact onboarding-calculation mirror, no network
+└── app/sitemap.ts                         ✏️ /calculateur-budget entry
 ```
 
-## Contexte vérifié (recherche + agent codebase, juillet 2026)
+## Verified context (research + codebase agent, July 2026)
 
-**SERP « calculateur budget suisse » — modérément gagnable** :
-- #1 = moneyhaxx.ch (Budget-conseil Suisse, **marque jeunes**, backing banques cantonales, FR/DE/IT, calculateur opérationnel + chatbot IA). Battable sur spécificité romande et continuité vers une vraie app, **pas** sur l'angle « jeunes » (ils l'occupent) ni l'autorité court terme.
-- Autres slots : Swiss Life (générique), Valiant (vrai calculateur budget, banque moyenne), salairesuisse.ch (micro-site expat qui rank = preuve qu'un petit domaine peut ranker), HelloSafe (calculateur gratuit existant), 2 courtiers crédit (intent mismatch). Caritas s'est retiré (app supprimée 2021, page morte).
-- **Ignorer les requêtes génériques FR** (« calculateur budget mensuel », « calcul budget gratuit ») : dominées par des sites France (reste-a-vivre.fr, N26, finary), mauvaise audience.
-- Différenciation obligatoire : données romandes pré-remplies (LAMal, impôts, Serafe, 3e pilier), personas (étudiant/apprenti/premier salaire), continuité vers l'app — pas « un calculateur de plus ».
+**The “calculateur budget suisse” SERP is moderately winnable**:
 
-**Logique onboarding réelle (vérifiée dans `complete-profile-store.ts`)** :
-- `income = revenus mensuels + revenus custom` ; `committed = 6 charges fixes + dépenses custom + épargnes custom` ; `available = income − committed`. **L'épargne compte dans le committed.** Déficit (`available < 0`) = état non bloquant, teinte erreur + hint rassurant (« Pas d'inquiétude — tu pourras ajuster tout ça après. »).
-- **Labels UI réels** (fr.json) : « Revenus mensuels », « Charges mensuelles », rangée résumé « Revenu / Dépenses / Disponible » — PAS « Disponible à dépenser » (réservé au copy marketing autour du widget). Champs charges : « Loyer / Crédit », « Assurance maladie », « Abonnement téléphonique », « Abonnement internet », « Transport », « Leasing ».
-- **Chips suggestions exactes** : Courses / alimentation 600 · Restaurants & sorties 150 · Loisirs & sport 100 · Épargne 500 · 3ème pilier 587 (CHF ; « Épargne retraite » en EUR).
-- **Formatage** : PAS de dépendance `pulpe-shared` (décision plan) — inline `Intl.NumberFormat('de-CH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })` + suffixe « CHF » (apostrophe suisse `1’234 CHF`), défaut CHF.
+- #1 is moneyhaxx.ch (Budget-conseil Suisse, **youth brand**, cantonal-bank backing, FR/DE/IT, working calculator + AI chatbot). It is beatable on French-speaking Switzerland specifics and continuity into a real app, **not** on the youth angle they already own or short-term authority.
+- Other positions include Swiss Life (generic), Valiant (real budget calculator, mid-sized bank), salairesuisse.ch (an expat microsite that ranks, proving a small domain can rank), HelloSafe (existing free calculator), and two credit brokers with mismatched intent. Caritas withdrew its app in 2021 and its page is dead.
+- **Ignore generic French searches** (“calculateur budget mensuel”, “calcul budget gratuit”): French sites such as reste-a-vivre.fr, N26, and Finary dominate them, but the audience is wrong.
+- Required differentiation: prefilled Romandy data (LAMal, taxes, Serafe, third pillar), personas (student, apprentice, first salary), and continuity into the app—not “one more calculator”.
+
+**Actual onboarding logic** (verified in `complete-profile-store.ts`):
+
+- `income = monthly income + custom income`; `committed = six fixed expenses + custom expenses + custom savings`; `available = income − committed`. **Savings count as committed.** A deficit (`available < 0`) is non-blocking, uses an error tint, and shows the reassuring hint “Pas d'inquiétude — tu pourras ajuster tout ça après.”
+- **Actual UI labels** (`fr.json`): “Revenus mensuels”, “Charges mensuelles”, and the summary row “Revenu / Dépenses / Disponible”. Do not use “Disponible à dépenser” in the widget; that phrase is reserved for surrounding marketing copy. Expense fields: “Loyer / Crédit”, “Assurance maladie”, “Abonnement téléphonique”, “Abonnement internet”, “Transport”, “Leasing”.
+- **Exact suggestion chips**: Courses / alimentation 600 · Restaurants & sorties 150 · Loisirs & sport 100 · Épargne 500 · 3ème pilier 587 (CHF; “Épargne retraite” in EUR).
+- **Formatting**: do not depend on `pulpe-shared` (plan decision). Inline `Intl.NumberFormat('de-CH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })` with a “CHF” suffix and Swiss apostrophe (`1’234 CHF`); CHF by default.
 
 ## User Journey
 
 ```mermaid
 flowchart TD
-  A[Recherche "calculateur budget suisse" / partage communauté] --> B[/calculateur-budget/]
-  B --> C[Saisit revenu + charges fixes + épargne — chips 1-clic]
-  C --> D[Voit son "Disponible" instantanément, format CHF suisse]
-  D --> E[CTA: la limite du calculateur — statique, 1 mois — est l'argument pour l'app: 12 mois, suivi]
-  E --> F[app.pulpe.app onboarding: mêmes champs, mêmes chips = continuité]
+  A[Search “calculateur budget suisse” / community share] --> B[/calculateur-budget/]
+  B --> C[Enter income, fixed expenses, and savings with one-click chips]
+  C --> D[See “Disponible” update instantly in Swiss CHF format]
+  D --> E[CTA turns the calculator's one-month static limit into the app's 12-month tracking value]
+  E --> F[app.pulpe.app onboarding: same fields and chips provide continuity]
 ```
 
 ## Wireframe
 
 ```txt
 ┌────────────────────────────────────────┐
-│ (1) Header landing existant            │
+│ (1) Existing landing header            │
 ├────────────────────────────────────────┤
 │ (2) H1: Calcule ton budget suisse      │
 ├───────────────────┬────────────────────┤
-│ (3) Formulaire    │ (4) Résultat live  │
+│ (3) Form          │ (4) Live result    │
 │  Revenus [____]   │   Disponible       │
 │  Loyer   [____]   │     2’100 CHF      │
 │  Assur.  [____]   │  Revenu · Dépenses │
 │  Transp. [____]   │  · Disponible      │
-│  Épargne [____]   │  (état déficit ok) │
+│  Épargne [____]   │  (deficit is OK)   │
 │  chips: +600 +150 │                    │
 ├───────────────────┴────────────────────┤
-│ (5) CTA: "Projette-le sur 12 mois"     │
+│ (5) CTA: “Projette-le sur 12 mois”     │
 ├────────────────────────────────────────┤
-│ (6) Prose SEO: postes romands (LAMal,  │
-│     Serafe, 3e pilier), personas       │
+│ (6) SEO prose: Romandy items (LAMal,   │
+│     Serafe, third pillar), personas    │
 └────────────────────────────────────────┘
 ```
 
-1. Header réutilisé.
-2. H1 = requête cible qualifiée suisse.
-3. Champs = mêmes labels que l'onboarding ; chips 1-clic identiques (600/150/100/500/587).
-4. Recalcul à chaque frappe ; rangée Revenu/Dépenses/Disponible identique à l'app ; déficit non bloquant avec hint rassurant.
-5. Un CTA primaire : la limite du calculateur est l'argument pour l'app.
-6. Prose indexable : postes typiques romands + liens personas — la différenciation vs moneyhaxx/HelloSafe.
+1. Reuse the header.
+2. The H1 is the Swiss-qualified target query.
+3. Fields use the same labels as onboarding; one-click chips use the exact 600/150/100/500/587 values.
+4. Recalculate on every keystroke; use the same Revenu/Dépenses/Disponible row as the app; deficits remain non-blocking with the reassuring hint.
+5. One primary CTA: the calculator's limit becomes the reason to use the app.
+6. Indexable prose covers typical Romandy expenses and persona links, differentiating it from moneyhaxx and HelloSafe.
 
 ## Tasks to do
 
-### `1)` Composant calculateur
+### `1)` Calculator component
 
-> Miroir exact du calcul onboarding, client-side pur.
+> Exact mirror of onboarding calculation, fully client-side.
 
-1. `BudgetCalculator.tsx` : état local React, formule vérifiée ci-dessus (épargne dans committed, déficit non bloquant), chips exactes, formateur `de-CH` inline.
+1. `BudgetCalculator.tsx`: local React state, the verified formula above (savings included in committed, deficit non-blocking), exact chips, and an inline `de-CH` formatter.
 
-### `2)` Page + SEO
+### `2)` Page and SEO
 
-> La page porte l'outil et le texte qui rank.
+> The page contains both the tool and the text that can rank.
 
-1. `app/calculateur-budget/page.tsx` : metadata, H1, calculateur, prose ~600 mots (postes romands : LAMal ~CHF 326 pour un 19-25 ans, Serafe, impôts, 3e pilier ; renvois personas vers les guides phase 4).
-2. Entrée sitemap + lien depuis l'index `/guides` et le footer.
+1. `app/calculateur-budget/page.tsx`: metadata, H1, calculator, and about 600 words of prose (Romandy items: LAMal about CHF 326 for ages 19–25, Serafe, taxes, third pillar; persona links to phase 4 articles).
+2. Add the sitemap entry and link from the `/conseils-budget` index and footer.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria                                                                                      |
-| ---- | --------------------------------------------------------------------------------------------------------- |
-| 1    | 5000 revenu / 2000 loyer / 400 assurance / 500 épargne ⇒ « 2’100 CHF » instantané (apostrophe suisse, 0 décimale sur saisie ronde) |
-| 1    | Labels et chips identiques à l'onboarding webapp (Revenu/Dépenses/Disponible, 600/150/100/500/587) ; déficit = teinte + hint, jamais bloquant |
-| 2    | Page en build prod, dans le sitemap, zéro appel réseau depuis le calculateur ; la prose mentionne ≥ 3 spécificités romandes |
+| Task | Acceptance criteria                                                                                                                                          |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | Income 5000 / rent 2000 / insurance 400 / savings 500 instantly produces “2’100 CHF” (Swiss apostrophe, no decimal for whole input)                          |
+| 1    | Labels and chips match web onboarding (Revenu/Dépenses/Disponible, 600/150/100/500/587); deficit uses a tint + hint and never blocks                         |
+| 2    | The page passes the production build, appears in the sitemap, and makes no network call from the calculator; prose mentions at least three Romandy specifics |

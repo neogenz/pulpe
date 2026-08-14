@@ -3,13 +3,13 @@ import { Poppins } from "next/font/google";
 import { PostHogProvider } from "../components/PostHogProvider";
 import {
   DESKTOP_BREAKPOINT_PX,
-  GITHUB_URL,
-  IOS_APP_URL,
   MOBILE_NAV_ID,
   MOBILE_NAV_PANEL_ID,
   ORGANIZATION_ID,
   SCROLL_SENTINEL_ID,
   SITE_URL,
+  SOCIAL_PREVIEW_ALT,
+  SOCIAL_PREVIEW_IMAGE,
 } from "../lib/config";
 import "./globals.css";
 
@@ -23,9 +23,6 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
-const SOCIAL_PREVIEW_IMAGE = "/pulpe-social-preview.png?v=2";
-const SOCIAL_PREVIEW_ALT =
-  "Pulpe projette ton budget sur l’année et montre combien il te restera";
 const SOCIAL_DESCRIPTION =
   "Planifie tes revenus, tes dépenses et ton épargne. Pulpe te montre combien il te restera chaque mois, sans connexion bancaire.";
 
@@ -96,10 +93,10 @@ export const viewport: Viewport = {
 // native (`<details>`) ; ce script ne fournit que ce que le navigateur ne fait
 // pas seul, et pose l'attribut de défilement sur `<html>` avant l'hydratation.
 // Cet écart attendu est ignoré directement sur l'élément racine.
-// Le Header est re-rendu à chaque navigation client : aucun listener ne
-// s'attache à ses éléments (ils deviendraient orphelins), tout passe par
-// délégation au document avec un getElementById frais à chaque événement.
-// `toggle` ne remonte pas, d'où l'écoute en phase de capture.
+// The Header renders again on every client navigation, so no listener attaches
+// to its elements and becomes orphaned. Events delegate through the document
+// and fetch a fresh element with getElementById. `toggle` does not bubble, so
+// it is captured.
 const headerScript = `(function(){
 if(window.pulpeHeaderReady)return;
 window.pulpeHeaderReady=1;
@@ -155,14 +152,13 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
     {
-      // Entité unique : les articles /conseils-budget la référencent par @id comme
-      // publisher au lieu de la redéfinir.
+      // Single entity: /conseils-budget articles reference its @id as publisher
+      // instead of defining it again.
       "@type": "Organization",
       "@id": ORGANIZATION_ID,
       name: "Pulpe",
       url: SITE_URL,
       logo: `${SITE_URL}/icon-192.png`,
-      sameAs: [GITHUB_URL, IOS_APP_URL],
     },
     {
       "@type": "WebSite",
@@ -210,8 +206,8 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-        {/* Rendue dans le layout, jamais re-créée par une navigation client :
-            l'IntersectionObserver posé au premier chargement reste vivant. */}
+        {/* Rendered by the layout and never recreated by client navigation, so
+            the IntersectionObserver installed on first load stays alive. */}
         <div
           id={SCROLL_SENTINEL_ID}
           aria-hidden="true"

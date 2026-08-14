@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { GUIDES } from "@/components/guides/guides";
 import { SITE_URL } from "@/lib/config";
 
-// Exigé par `output: "export"` : la route est résolue au build.
+// Required by `output: "export"`: resolve the route at build time.
 export const dynamic = "force-static";
 
 const STATIC_PAGES = [

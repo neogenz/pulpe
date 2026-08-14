@@ -2,7 +2,7 @@
 status: pending
 ---
 
-# Instruction: Guides evergreen Suisse romande (3 articles)
+# Instruction: Evergreen guides for French-speaking Switzerland (3 articles)
 
 ## Architecture projection
 
@@ -10,59 +10,60 @@ status: pending
 
 ```txt
 landing/
-├── app/guides/
-│   ├── budget-mensuel-suisse-exemple/page.tsx       ✅ SERP = PDFs institutionnels ; gap = provisioning interactif jeune actif
-│   ├── budgeter-primes-maladie/page.tsx             ✅ ⏰ PUBLIER AVANT DÉBUT SEPTEMBRE 2026 (annonce OFSP fin sept)
-│   └── epargner-avec-salaire-suisse/page.tsx        ✅ format à battre = calculsuisse.ch (guide + calculateur hybride)
-└── components/guides/guides.ts                      ✏️ 3 entrées registre
+├── app/conseils-budget/
+│   ├── budget-mensuel-suisse-exemple/page.tsx       ✅ SERP has institutional PDFs; gap is prospective planning for young workers
+│   ├── budgeter-primes-maladie/page.tsx             ✅ ⏰ PUBLISH BEFORE EARLY SEPTEMBER 2026 (FOPH announcement at month end)
+│   └── epargner-avec-salaire-suisse/page.tsx        ✅ format to beat: calculsuisse.ch (hybrid guide + calculator)
+└── components/guides/guides.ts                      ✏️ three registry entries
 ```
 
-## Contexte vérifié (recherche adversariale, juillet 2026)
+## Verified context (adversarial research, July 2026)
 
-**Chiffres confirmés aux sources primaires (à citer avec lien — E-E-A-T) :**
+**Figures confirmed by primary sources (cite with links for E-E-A-T):**
 
-| Donnée                                   | Valeur vérifiée                                     | Source primaire        |
-| ---------------------------------------- | ---------------------------------------------------- | ---------------------- |
-| Primes 2026 (annonce OFSP 23.09.2025)    | +4.4 % moyen, CHF 393.30/mois ; jeunes 19-25 : CHF 326.30 (+4.2 %) | OFSP/BAG communiqué    |
-| Historique hausses                       | +6.6 % (2023), +8.7 % (2024), +6 % (2025), +4.4 % (2026) | OFSP via RTS           |
-| Prévision 2027 (déjà publique)           | +3.7 % (Comparis, mai 2026) ; ~5 % signalé par l'OFSP | Comparis + RTS         |
-| Salaire médian brut plein temps           | CHF 7'024/mois (ESS 2024 ; Zurich 7'502 / Tessin 5'708) | OFS/BFS                |
-| Loyer net moyen                          | ~CHF 1'412 (2022) → ~1'451 (2023)                    | OFS                    |
-| Taux d'épargne ménages                   | ~17.5-20 % du revenu ; quintile inférieur < 5 %       | OFS EBM (relais)       |
-| Subsides primes Romandie                 | **32.2 % des Romands ont reçu un subside en 2024** — citer ce taux de recours, PAS « 1 sur 3 y aurait droit sans le savoir » (copy de courtier, non officiel) | stat cantonale relayée |
+| Data                                         | Verified value                                                                                                                                          | Primary source              |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| 2026 premiums (FOPH announcement 23.09.2025) | +4.4% average, CHF 393.30/month; ages 19–25: CHF 326.30 (+4.2%)                                                                                         | FOPH/BAG release            |
+| Historical increases                         | +6.6% (2023), +8.7% (2024), +6% (2025), +4.4% (2026)                                                                                                    | FOPH via RTS                |
+| 2027 forecast (already public)               | +3.7% (Comparis, May 2026); about 5% signaled by FOPH                                                                                                   | Comparis + RTS              |
+| Median full-time gross salary                | CHF 7,024/month (ESS 2024; Zurich 7,502 / Ticino 5,708)                                                                                                 | FSO/BFS                     |
+| Average net rent                             | About CHF 1,412 (2022) → about CHF 1,451 (2023)                                                                                                         | FSO                         |
+| Household savings rate                       | About 17.5–20% of income; bottom quintile below 5%                                                                                                      | FSO HBS (relay)             |
+| Premium subsidies in Romandy                 | **32.2% of Romandy residents received a subsidy in 2024**; cite this take-up rate, not the broker copy “one in three would be eligible without knowing” | Relayed cantonal statistics |
 
-Non vérifiés (ne pas imprimer sans re-check) : loyer Jura ~981, plafond épargne 1'460/mois.
+Unverified (do not publish without rechecking): Jura rent around CHF 981; savings ceiling CHF 1,460/month.
 
-**Angles gap confirmés (corrigés par les sceptiques) :**
-- « exemple budget mensuel suisse » : Budget-conseil Suisse a une app ET couvre jeunes/apprentis/étudiants — le gap n'est PAS « interactif jeune », c'est le **provisioning prospectif** (« combien il te restera dans X mois »), le modèle Pulpe. moneyland.ch (FR disponible, autorité forte, contenu EN-first) est à nommer dans le paysage.
-- « primes maladie » : SERP = 100 % comparateurs « change de caisse » + news. **Personne** ne couvre « provisionner la hausse dans son budget mensuel des mois à l'avance » — l'angle Pulpe exact. Prévoir un refresh d'1 h le jour de l'annonce des chiffres 2027.
-- « combien épargner salaire suisse » : #1 = calculsuisse.ch (hybride guide + calculateur = le format à battre) ; différencier sur jeune actif premier salaire, pilier 3a, primes comme charge fixe.
+**Confirmed gap angles** (corrected after skeptical review):
+
+- “exemple budget mensuel suisse”: Budget-conseil Suisse has an app and covers young people, apprentices, and students. The gap is **not** “interactive for youth”; it is **prospective provisioning** (“how much will be left in X months”), Pulpe's model. Mention moneyland.ch in the landscape (French available, high authority, English-first content).
+- “primes maladie”: the SERP is entirely “switch insurer” comparison sites and news. **Nobody** covers provisioning the increase in a monthly budget months ahead; that is Pulpe's exact angle. Schedule a one-hour refresh on the day 2027 figures are announced.
+- “combien épargner salaire suisse”: #1 is calculsuisse.ch (hybrid guide + calculator, the format to beat). Differentiate for young workers receiving a first salary, third pillar, and premiums as a fixed expense.
 
 ## User Journey
 
 ```mermaid
 flowchart TD
-  A[Recherche d'un problème concret: primes, épargne, exemple de budget] --> B[Guide]
-  B --> C[Réponse chiffrée, sources officielles OFS/OFSP liées]
-  C --> D[Maillage interne: calculateur + autres guides + pages comparatives]
-  D --> E[CTA Pulpe: "provisionne ça dans ton budget" — la feature lissage/prévisions]
+  A[Search for a concrete problem: premiums, savings, budget example] --> B[Guide]
+  B --> C[Quantified answer linked to official FSO/FOPH sources]
+  C --> D[Internal links: calculator + other guides + comparison pages]
+  D --> E[Pulpe CTA: “provisionne ça dans ton budget” — smoothing/forecast feature]
 ```
 
 ## Tasks to do
 
-### `1)` Rédiger les 3 guides
+### `1)` Write the three guides
 
-> ~1200 mots chacun, hiérarchie visuelle > verbosité, tutoiement, chaque chiffre lié à sa source primaire.
+> About 1,200 words each, visual hierarchy over verbosity, informal French, and every figure linked to its primary source.
 
-1. `budgeter-primes-maladie` **en premier (deadline début septembre)** : structure « provisionner la hausse » (différenciateur), prime jeune CHF 326.30, taux de recours subsides 32.2 %, pont vers le lissage Pulpe. Prévoir la section « chiffres 2027 » à remplir le jour J.
-2. `budget-mensuel-suisse-exemple` : 2-3 profils chiffrés (jeune actif Lausanne, couple, étudiant) construits sur les valeurs vérifiées (salaire médian, loyer, primes) ; angle prospectif (12 mois), lien calculateur.
-3. `epargner-avec-salaire-suisse` : repères par tranche autour du médian CHF 7'024, méthode payer-toi-d'abord, pilier 3a ; pont vers objectifs d'épargne.
-4. Maillage : chaque guide lie le calculateur (phase 3) + 1-2 autres guides.
+1. Write `budgeter-primes-maladie` **first (early-September deadline)**: “provision the increase” structure (the differentiator), CHF 326.30 youth premium, 32.2% subsidy take-up, and a bridge to Pulpe smoothing. Reserve a “2027 figures” section for announcement day.
+2. `budget-mensuel-suisse-exemple`: two or three quantified profiles (young worker in Lausanne, couple, student) based on verified values (median salary, rent, premiums); 12-month prospective angle and calculator link.
+3. `epargner-avec-salaire-suisse`: benchmarks by bracket around the CHF 7,024 median, pay-yourself-first method, third pillar, and a bridge to savings goals.
+4. Internal linking: every guide links the phase 3 calculator and one or two other guides.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria                                                                          |
-| ---- | --------------------------------------------------------------------------------------------- |
-| 1    | Chaque montant publié figure dans le tableau vérifié ci-dessus OU porte une source primaire fraîche liée ; les 2 chiffres non vérifiés n'apparaissent pas sans re-check |
-| 1    | Le guide primes est mergeable avant le 1er septembre 2026 et l'angle est le provisioning, pas le « change de caisse » |
-| 1    | Build prod OK, 3 guides au registre/sitemap, ≥ 2 liens internes par guide                      |
+| Task | Acceptance criteria                                                                                                                                   |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Every published amount appears in the verified table above or has a fresh linked primary source; neither unverified figure appears without rechecking |
+| 1    | The premiums guide is mergeable before September 1, 2026, and focuses on provisioning rather than switching insurer                                   |
+| 1    | Production build passes, all three guides are in the registry/sitemap, and each guide has at least two internal links                                 |

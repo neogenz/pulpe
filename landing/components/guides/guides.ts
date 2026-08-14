@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
+import { SOCIAL_PREVIEW_ALT, SOCIAL_PREVIEW_IMAGE } from "@/lib/config";
 
-// Source unique de vérité des guides : l'index /conseils-budget, le sitemap et
-// les métadonnées d'article lisent tous ce registre. Publier un guide = une
-// entrée ici + une page sous app/conseils-budget/<slug>/.
+// Single source of truth: the /conseils-budget index, sitemap, and article
+// metadata all read this registry. Publishing requires an entry here and a
+// page under app/conseils-budget/<slug>/.
 export interface Guide {
   slug: string;
   title: string;
   description: string;
   /** Date ISO yyyy-mm-dd. */
   publishedAt: string;
-  /** Date ISO yyyy-mm-dd — alimente dateModified (JSON-LD) et lastmod (sitemap). */
+  /** ISO yyyy-mm-dd date feeding JSON-LD dateModified and sitemap lastmod. */
   updatedAt: string;
   readingMinutes: number;
 }
@@ -26,22 +27,16 @@ export const GUIDES: Guide[] = [
   },
 ];
 
-// Copie assumée du couple layout.tsx / modeles-et-budgets : le test a11y exige
-// que layout.tsx déclare le sien. Une seule copie ici pour tous les guides.
-export const SOCIAL_PREVIEW_IMAGE = "/pulpe-social-preview.png?v=2";
-const SOCIAL_PREVIEW_ALT =
-  "Pulpe projette ton budget sur l’année et montre combien il te restera";
-
 export function getGuide(slug: string): Guide {
   const guide = GUIDES.find((candidate) => candidate.slug === slug);
-  // Échec de build bruyant si la page et le registre divergent.
+  // Fail the build loudly when a page and registry entry drift apart.
   if (!guide) {
-    throw new Error(`Guide absent du registre : ${slug}`);
+    throw new Error(`Guide missing from registry: ${slug}`);
   }
   return guide;
 }
 
-// Métadonnées partagées : une page d'article se réduit à `guideMetadata(guide)`.
+// Shared metadata keeps an article page to `guideMetadata(guide)`.
 export function guideMetadata(guide: Guide): Metadata {
   const path = `/conseils-budget/${guide.slug}`;
   const socialTitle = `${guide.title} | Pulpe`;
@@ -57,6 +52,8 @@ export function guideMetadata(guide: Guide): Metadata {
       siteName: "Pulpe",
       type: "article",
       url: path,
+      publishedTime: guide.publishedAt,
+      modifiedTime: guide.updatedAt,
       locale: "fr_CH",
       alternateLocale: ["fr_FR"],
       images: [

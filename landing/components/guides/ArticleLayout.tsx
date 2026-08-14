@@ -3,13 +3,18 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { AccordionItem, Button, Container } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
-import { angularUrl, ORGANIZATION_ID, SITE_URL } from "@/lib/config";
-import { SOCIAL_PREVIEW_IMAGE, type Guide } from "./guides";
+import {
+  angularUrl,
+  ORGANIZATION_ID,
+  SITE_URL,
+  SOCIAL_PREVIEW_IMAGE,
+} from "@/lib/config";
+import type { Guide } from "./guides";
 
 interface FaqEntry {
   question: string;
-  // Chaîne brute, pas de ReactNode : la même valeur alimente la FAQ visible et
-  // le JSON-LD FAQPage, ce qui rend toute divergence schema/page impossible.
+  // A string rather than ReactNode feeds both the visible FAQ and FAQPage
+  // JSON-LD, preventing schema/page drift.
   answer: string;
 }
 
@@ -24,8 +29,8 @@ function formatDate(iso: string): string {
     year: "numeric",
     month: "long",
     day: "numeric",
-    // Une date ISO nue est parsée en UTC : formater en UTC aussi évite un
-    // décalage d'un jour sur une machine de build à l'ouest de Greenwich.
+    // A bare ISO date parses as UTC. Formatting in UTC avoids a one-day shift
+    // on build machines west of Greenwich.
     timeZone: "UTC",
   });
 }
@@ -47,8 +52,8 @@ export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
         datePublished: guide.publishedAt,
         dateModified: guide.updatedAt,
         author: { "@type": "Person", name: "Maxime De Sogus" },
-        // L'entité complète vit dans le @graph du layout racine ; le type et le
-        // nom sont répétés ici pour les validateurs qui lisent ce bloc seul.
+        // The complete entity lives in the root layout @graph. Repeat its type
+        // and name for validators that read this block in isolation.
         publisher: {
           "@type": "Organization",
           "@id": ORGANIZATION_ID,

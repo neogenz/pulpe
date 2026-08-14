@@ -306,8 +306,8 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /@custom-variant scrolled \(html\[data-scrolled\] &\);/,
     );
-    // La sentinelle vit dans le layout : re-rendue par une navigation client,
-    // elle rendrait l'IntersectionObserver orphelin et figerait `data-scrolled`.
+    // The sentinel lives in the layout: rendering it again on client navigation
+    // would orphan the IntersectionObserver and freeze `data-scrolled`.
     assert.match(componentSources.layout, /id=\{SCROLL_SENTINEL_ID\}/);
     assert.doesNotMatch(componentSources.header, /SCROLL_SENTINEL_ID/);
     assert.match(componentSources.layout, /toggleAttribute\('data-scrolled'/);
@@ -750,9 +750,9 @@ describe("landing accessibility contracts", () => {
     assert.equal(componentSources.header.match(/tabIndex=\{-1\}/g)?.length, 2);
     assert.doesNotMatch(componentSources.header, /\binvisible\b/);
     assert.doesNotMatch(componentSources.header, /\bbackdrop-blur-xl\b/);
-    // Délégation au document, en capture (`toggle` ne remonte pas) : le Header
-    // est re-rendu à chaque navigation client, un listener posé sur l'élément
-    // deviendrait orphelin et laisserait le panneau inerte (taps morts).
+    // Delegate to the document in capture mode (`toggle` does not bubble): the
+    // Header renders again on client navigation, so an element listener would
+    // become orphaned and leave the panel inert.
     assert.match(
       componentSources.layout,
       /panel\.inert=closed[\s\S]*setAttribute\('aria-hidden','true'\)[\s\S]*removeAttribute\('aria-hidden'\)[\s\S]*setAttribute\('tabindex','-1'\)[\s\S]*removeAttribute\('tabindex'\)[\s\S]*document\.addEventListener\('toggle',[\s\S]*\},true\)/,
@@ -1111,7 +1111,7 @@ describe("landing accessibility contracts", () => {
   it("ships a fresh large social preview for Open Graph and X", () => {
     assert.match(
       componentSources.layout,
-      /const SOCIAL_PREVIEW_IMAGE = "\/pulpe-social-preview\.png\?v=2";/,
+      /SOCIAL_PREVIEW_ALT,[\s\S]*SOCIAL_PREVIEW_IMAGE,[\s\S]*from "\.\.\/lib\/config"/,
     );
     assert.equal(
       componentSources.layout.match(/url: SOCIAL_PREVIEW_IMAGE/g)?.length,
@@ -1315,8 +1315,8 @@ describe("landing accessibility contracts", () => {
   });
 
   it("links the first help journey from support and navigation", () => {
-    // « Guides » et « Aide » sont synonymes pour un visiteur : le contenu
-    // éditorial s'appelle « Conseils budget », le support parle de tutoriels.
+    // “Guides” and “Help” overlap for visitors: editorial content is named
+    // “Conseils budget”, while support refers to tutorials.
     assert.match(componentSources.support, /Bien démarrer avec Pulpe/);
     assert.doesNotMatch(componentSources.support, /Guides pour utiliser/);
     assert.match(componentSources.footer, /label: "Conseils budget"/);

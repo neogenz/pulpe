@@ -3,13 +3,50 @@ import Link from "next/link";
 import { Container } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
 import { GUIDES } from "@/components/guides/guides";
+import { SOCIAL_PREVIEW_ALT, SOCIAL_PREVIEW_IMAGE } from "@/lib/config";
+
+const PAGE_TITLE = "Conseils budget";
+const PAGE_DESCRIPTION =
+  "Des conseils concrets pour gérer ton budget en Suisse : méthode, chiffres et exemples pour savoir combien il te restera chaque mois.";
+const SOCIAL_TITLE = `${PAGE_TITLE} | Pulpe`;
 
 export const metadata: Metadata = {
-  title: "Conseils budget",
-  description:
-    "Des conseils concrets pour gérer ton budget en Suisse : méthode, chiffres et exemples pour savoir combien il te restera chaque mois.",
+  title: PAGE_TITLE,
+  description: PAGE_DESCRIPTION,
   alternates: {
     canonical: "/conseils-budget",
+  },
+  openGraph: {
+    title: SOCIAL_TITLE,
+    description: PAGE_DESCRIPTION,
+    siteName: "Pulpe",
+    type: "website",
+    url: "/conseils-budget",
+    locale: "fr_CH",
+    alternateLocale: ["fr_FR"],
+    images: [
+      {
+        url: SOCIAL_PREVIEW_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: SOCIAL_PREVIEW_ALT,
+        type: "image/png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SOCIAL_TITLE,
+    description: PAGE_DESCRIPTION,
+    images: [
+      {
+        url: SOCIAL_PREVIEW_IMAGE,
+        alt: SOCIAL_PREVIEW_ALT,
+        type: "image/png",
+        width: 1200,
+        height: 630,
+      },
+    ],
   },
 };
 
