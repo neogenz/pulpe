@@ -20,7 +20,7 @@ const faq = [
   {
     question: "Quelle application pour faire son budget en Suisse ?",
     answer:
-      "Pulpe est pensée pour ça : tu poses tes revenus, tes prévisions et ton épargne, et elle calcule ton disponible à dépenser pour chaque mois de l'année. C'est gratuit, sans publicité ni connexion bancaire, et tes montants sont chiffrés dans notre base de données. Tu peux aussi commencer avec un tableur : la méthode de ce guide fonctionne partout.",
+      "Pulpe est pensée pour ça : tu poses tes revenus, tes prévisions et ton épargne, et elle calcule ton disponible à dépenser pour chaque mois de l'année. C'est gratuit, sans publicité ni connexion bancaire, et tes montants sont chiffrés dans la base de données. Tu peux aussi commencer avec un tableur : la méthode de ce guide fonctionne partout.",
   },
 ];
 
@@ -72,35 +72,46 @@ export default function BudgetSuisseGuidePage() {
       </ol>
 
       <h2>Combien coûte la vie en Suisse ?</h2>
-      <p>
-        Trois repères pour situer ton budget. Le salaire médian suisse est de
-        7’024&nbsp;CHF brut par mois selon l&apos;
-        <a
-          href="https://www.bfs.admin.ch/bfs/fr/home/statistiques/travail-remuneration/salaires.html"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          enquête 2024 de l&apos;Office fédéral de la statistique
-        </a>
-        . La prime moyenne de l&apos;assurance maladie obligatoire atteint
-        393.30&nbsp;CHF par mois en 2026, d&apos;après l&apos;
-        <a
-          href="https://www.bag.admin.ch/bag/fr/home/versicherungen/krankenversicherung/krankenversicherung-praemien.html"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Office fédéral de la santé publique
-        </a>
-        . Et{" "}
-        <a
-          href="https://budgetberatung.ch"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Budget-conseil Suisse
-        </a>{" "}
-        recommande de garder le loyer sous un quart du revenu net.
-      </p>
+      <p>Trois repères pour situer ton budget :</p>
+      <ul>
+        <li>
+          Le salaire médian suisse est de{" "}
+          <mark className="marker-highlight">7’024&nbsp;CHF brut</mark> par mois
+          selon l&apos;
+          <a
+            href="https://www.bfs.admin.ch/bfs/fr/home/statistiques/travail-remuneration/salaires.html"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            enquête 2024 de l&apos;Office fédéral de la statistique
+          </a>
+          .
+        </li>
+        <li>
+          La prime moyenne de l&apos;assurance maladie obligatoire atteint{" "}
+          <mark className="marker-highlight">393.30&nbsp;CHF par mois</mark> en
+          2026, d&apos;après l&apos;
+          <a
+            href="https://www.bag.admin.ch/bag/fr/home/versicherungen/krankenversicherung/krankenversicherung-praemien.html"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Office fédéral de la santé publique
+          </a>
+          .
+        </li>
+        <li>
+          <a
+            href="https://budgetberatung.ch"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Budget-conseil Suisse
+          </a>{" "}
+          recommande de garder le loyer{" "}
+          <mark className="marker-highlight">sous un quart du revenu net</mark>.
+        </li>
+      </ul>
       <p>
         À cela s&apos;ajoutent les dépenses faciles à oublier : la redevance
         radio-TV, les frais médicaux qui restent à ta charge en dessous de la
@@ -165,12 +176,14 @@ export default function BudgetSuisseGuidePage() {
 
       <h2>Combien mettre de côté chaque mois ?</h2>
       <p>
-        Un repère simple : vise 10 à 20 % de ton revenu net. Commence par un
-        fonds de secours qui couvre trois mois de dépenses, puis épargne par
-        objectif : les vacances, le permis, un déménagement. Si 10 % est hors de
-        portée ce mois-ci, mets moins, mais mets quelque chose. Le pourcentage
-        parfait compte moins que la régularité : un montant décidé
-        d&apos;avance, chaque mois, même modeste.
+        Un repère simple : vise{" "}
+        <mark className="marker-highlight">10 à 20 % de ton revenu net</mark>.
+        Commence par un fonds de secours qui couvre{" "}
+        <strong>trois mois de dépenses</strong>, puis épargne par objectif : les
+        vacances, le permis, un déménagement. Si 10 % est hors de portée ce
+        mois-ci, mets moins, mais mets quelque chose. Le pourcentage parfait
+        compte moins que la régularité : un montant décidé d&apos;avance, chaque
+        mois, même modeste.
       </p>
       <p>
         En Suisse, le pilier 3a est souvent la première marche : les versements
@@ -187,14 +200,20 @@ export default function BudgetSuisseGuidePage() {
         Une fois par semaine, note tes dépenses et regarde où en est ton
         disponible. Dix minutes suffisent.
       </p>
-      <p>
-        Deux règles pour que ça tienne. D&apos;abord, ne vise pas le centime
-        près : un ordre de grandeur juste vaut mieux qu&apos;un suivi parfait
-        abandonné au bout de trois semaines. Ensuite, quand un montant prévu
-        change, ajuste la prévision au lieu de faire comme si de rien
-        n&apos;était. Un budget qui ne bouge jamais est un budget qu&apos;on a
-        arrêté de regarder.
-      </p>
+      <p>Deux règles pour que ça tienne :</p>
+      <ul>
+        <li>
+          <strong>Ne vise pas le centime près.</strong> Un ordre de grandeur
+          juste vaut mieux qu&apos;un suivi parfait abandonné au bout de trois
+          semaines.
+        </li>
+        <li>
+          <strong>Ajuste quand ça change.</strong> Quand un montant prévu bouge,
+          corrige la prévision au lieu de faire comme si de rien n&apos;était.
+          Un budget qui ne bouge jamais est un budget qu&apos;on a arrêté de
+          regarder.
+        </li>
+      </ul>
 
       <h2>Pourquoi prévoir l&apos;année entière, pas seulement le mois ?</h2>
       <p>
@@ -203,9 +222,12 @@ export default function BudgetSuisseGuidePage() {
         les impôts au moment des acomptes, la franchise maladie quand tu es
         malade, les vacances en été. Si tu regardes seulement le mois en cours,
         chacune ressemble à un imprévu. Sur une vue annuelle, ce sont juste des
-        mois différents. Le 13e salaire fonctionne pareil, dans l&apos;autre
-        sens : ce n&apos;est pas un bonus tombé du ciel, c&apos;est un mois
-        différent que tu peux affecter d&apos;avance aux impôts ou aux vacances.
+        mois différents.
+      </p>
+      <p>
+        Le 13e salaire fonctionne pareil, dans l&apos;autre sens : ce n&apos;est
+        pas un bonus tombé du ciel, c&apos;est un mois différent que tu peux
+        affecter d&apos;avance aux impôts ou aux vacances.
       </p>
       <blockquote>
         Un budget n&apos;est pas là pour t&apos;empêcher de dépenser. Il est là

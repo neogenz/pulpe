@@ -597,6 +597,12 @@ h3,
   color: var(--color-text);
 }
 
+/* Dans la prose des guides le trait est posé dès le chargement : pas de
+   MarkerDraw, le contenu d'article ne s'anime pas. */
+.guide-prose .marker-highlight {
+  background-size: 100% 0.92em;
+}
+
 .guide-prose a {
   color: var(--color-primary);
   font-weight: 500;
