@@ -1,9 +1,7 @@
 import { Globe, Smartphone } from "lucide-react";
 import { Badge, Button, Section } from "@/components/ui";
 import type { Dictionary } from "@/content/dictionary";
-import { angularUrl } from "@/lib/config";
-
-const IOS_APP_URL = "https://apps.apple.com/app/pulpe/id6758464920";
+import { angularUrl, IOS_APP_URL } from "@/lib/config";
 
 function AppleLogo({ className }: { className?: string }) {
   return (

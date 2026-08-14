@@ -22,6 +22,18 @@ export type Route = (typeof ROUTES)[number];
 export const GUIDE_ROUTE = "/support/modeles-et-budgets" satisfies Route;
 
 /**
+ * L'index des conseils budget et son libellé.
+ *
+ * Ces pages n'existent qu'en français : elles visent la recherche francophone
+ * suisse, et une traduction sans son propre travail de mots-clés n'y apporte
+ * rien. Elles sont donc hors de `ROUTES`, qui ne liste que ce dont les quatre
+ * langues ont une version — les y mettre ferait pointer chaque `hreflang` vers
+ * un 404.
+ */
+export const ADVICE_INDEX_ROUTE = "/conseils-budget";
+export const ADVICE_LABEL_FR = "Conseils budget";
+
+/**
  * Le chemin d'un lien dans une langue donnée. Le français reste à la racine :
  * ses URL sont indexées, et `/fr/…` les dédoublerait.
  *

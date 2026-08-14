@@ -42,12 +42,17 @@ const de: Dictionary = {
   footer: {
     tagline: "Das Budget, das nach vorne schaut. In der Schweiz entwickelt.",
     navAriaLabel: "Nützliche Links",
+    groups: {
+      discover: "Entdecken",
+      help: "Hilfe",
+      legal: "Rechtliches",
+    },
     links: {
       source: "Quellcode",
       terms: "Bedingungen",
       privacy: "Datenschutz",
       changelog: "Neuigkeiten",
-      support: "Hilfe",
+      support: "FAQ und Anleitungen",
       contact: "Kontakt",
     },
   },
@@ -315,9 +320,9 @@ const de: Dictionary = {
     heading: "Wie kann ich dir helfen?",
     intro:
       "Kurze Anleitungen für Pulpe, danach die Antworten auf die häufigsten Fragen. Fehlt deine, schreib mir.",
-    guidesHeading: "Anleitungen für Pulpe.",
+    guidesHeading: "Erste Schritte mit Pulpe.",
     guideCard: {
-      eyebrow: "Gut starten",
+      eyebrow: "Anleitung",
       title: "Vorlage oder Budget: Was musst du ändern?",
       text: "Wähle die richtige Stelle, je nachdem ob deine Änderung einen einzelnen Monat oder deine gewöhnlichen Monate betrifft.",
     },

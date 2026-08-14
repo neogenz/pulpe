@@ -90,6 +90,21 @@ const componentSources = {
     new URL("../components/pages/SupportGuide.tsx", import.meta.url),
     "utf8",
   ),
+  guidesIndex: readFileSync(
+    new URL("./(fr)/conseils-budget/page.tsx", import.meta.url),
+    "utf8",
+  ),
+  guideArticle: readFileSync(
+    new URL(
+      "./(fr)/conseils-budget/comment-faire-son-budget-en-suisse/page.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+  articleLayout: readFileSync(
+    new URL("../components/guides/ArticleLayout.tsx", import.meta.url),
+    "utf8",
+  ),
   painPoints: readFileSync(
     new URL("../components/sections/PainPoints.tsx", import.meta.url),
     "utf8",
@@ -393,7 +408,10 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /@custom-variant scrolled \(html\[data-scrolled\] &\);/,
     );
-    assert.match(componentSources.header, /id=\{SCROLL_SENTINEL_ID\}/);
+    // The sentinel lives in the layout: rendering it again on client navigation
+    // would orphan the IntersectionObserver and freeze `data-scrolled`.
+    assert.match(componentSources.layout, /id=\{SCROLL_SENTINEL_ID\}/);
+    assert.doesNotMatch(componentSources.header, /SCROLL_SENTINEL_ID/);
     assert.match(componentSources.layout, /toggleAttribute\('data-scrolled'/);
     assert.doesNotMatch(componentSources.header, /IntersectionObserver/);
   });
@@ -856,9 +874,16 @@ describe("landing accessibility contracts", () => {
     assert.equal(componentSources.header.match(/tabIndex=\{-1\}/g)?.length, 2);
     assert.doesNotMatch(componentSources.header, /\binvisible\b/);
     assert.doesNotMatch(componentSources.header, /\bbackdrop-blur-xl\b/);
+    // Delegate to the document in capture mode (`toggle` does not bubble): the
+    // Header renders again on client navigation, so an element listener would
+    // become orphaned and leave the panel inert.
     assert.match(
       componentSources.layout,
-      /panel\.inert=closed[\s\S]*setAttribute\('aria-hidden','true'\)[\s\S]*removeAttribute\('aria-hidden'\)[\s\S]*setAttribute\('tabindex','-1'\)[\s\S]*removeAttribute\('tabindex'\)[\s\S]*nav\.addEventListener\('toggle',syncPanel\)/,
+      /panel\.inert=closed[\s\S]*setAttribute\('aria-hidden','true'\)[\s\S]*removeAttribute\('aria-hidden'\)[\s\S]*setAttribute\('tabindex','-1'\)[\s\S]*removeAttribute\('tabindex'\)[\s\S]*document\.addEventListener\('toggle',[\s\S]*\},true\)/,
+    );
+    assert.doesNotMatch(
+      componentSources.layout,
+      /nav\.addEventListener|panel\.addEventListener/,
     );
   });
 
@@ -1469,7 +1494,17 @@ describe("landing accessibility contracts", () => {
   });
 
   it("links the first help journey from support and navigation", () => {
-    assert.match(frDict.support.guidesHeading, /Guides pour utiliser Pulpe/);
+    // « Guides » et « Aide » se marchent dessus pour un visiteur : l'éditorial
+    // s'appelle « Conseils budget », l'aide parle de tutoriels.
+    assert.match(frDict.support.guidesHeading, /Bien démarrer avec Pulpe/);
+    assert.doesNotMatch(frDict.support.guidesHeading, /Guides pour utiliser/);
+    assert.equal(frDict.footer.links.support, "FAQ et tutoriels");
+    // Les conseils budget n'existent qu'en français : leur libellé vit dans le
+    // code, et le lien se retire des trois autres langues.
+    assert.match(
+      componentSources.footer,
+      /id: "guides",\s*href: ADVICE_INDEX_ROUTE,[\s\S]*frenchOnly: true/,
+    );
     assert.match(componentSources.support, /\/support\/modeles-et-budgets/);
     // La destination est structurelle et reste dans le code ; seul le libellé
     // change de langue, et les quatre catalogues doivent en fournir un.
@@ -1492,6 +1527,8 @@ describe("landing accessibility contracts", () => {
       componentSources.page,
       componentSources.support,
       componentSources.supportGuide,
+      componentSources.guidesIndex,
+      componentSources.articleLayout,
     ]) {
       const skipLinkClass = source.match(
         /href="#main-content"\s+className="([^"]+)"/,
@@ -1507,6 +1544,16 @@ describe("landing accessibility contracts", () => {
       assert.ok(
         source.indexOf('href="#main-content"') < source.indexOf("<Header"),
       );
+    }
+  });
+
+  it("keeps guides copy free of em and en dashes", () => {
+    for (const source of [
+      componentSources.guidesIndex,
+      componentSources.guideArticle,
+      componentSources.articleLayout,
+    ]) {
+      assert.doesNotMatch(source, /—|–/);
     }
   });
 
@@ -1684,15 +1731,22 @@ describe("landing accessibility contracts", () => {
     );
   });
 
-  it("keeps desktop footer links readable and aligned with the tagline", () => {
+  it("keeps the footer grouped into titled columns with tappable links", () => {
     assert.match(
       componentSources.footer,
-      /lg:flex-row lg:items-end lg:justify-between/,
+      /lg:flex-row lg:items-start lg:justify-between/,
     );
-    assert.match(componentSources.footer, /text-sm font-semibold text-text"/);
-    assert.match(
-      componentSources.footer,
-      /min-h-11 min-w-11 items-center[^"\n]*lg:items-end/,
-    );
+    assert.deepEqual(Object.keys(frDict.footer.groups), [
+      "discover",
+      "help",
+      "legal",
+    ]);
+    for (const catalog of Object.values(CATALOGS)) {
+      for (const title of Object.values(catalog.footer.groups)) {
+        assert.ok(title.trim().length > 0);
+      }
+    }
+    assert.match(componentSources.footer, /\{dict\.groups\[group\.id\]\}/);
+    assert.match(componentSources.footer, /min-h-11 items-center/);
   });
 });

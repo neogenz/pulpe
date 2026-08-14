@@ -82,12 +82,17 @@ const fr = {
   footer: {
     tagline: "Le budget tourné vers les mois qui viennent. Créé en Suisse.",
     navAriaLabel: "Liens utiles",
+    groups: {
+      discover: "Découvrir",
+      help: "Aide",
+      legal: "Légal",
+    },
     links: {
       source: "Code source",
       terms: "Conditions",
       privacy: "Confidentialité",
       changelog: "Nouveautés",
-      support: "Aide",
+      support: "FAQ et tutoriels",
       contact: "Contact",
     },
   },
@@ -334,13 +339,13 @@ const fr = {
   support: {
     metaTitle: "Aide et questions fréquentes",
     metaDescription:
-      "Guides et réponses pour utiliser Pulpe : comprendre les modèles et budgets, protéger ses montants et gérer son compte.",
+      "Tutoriels et réponses pour utiliser Pulpe : comprendre les modèles et budgets, protéger ses montants et gérer son compte.",
     heading: "Comment puis-je t’aider ?",
     intro:
-      "Des guides courts pour utiliser Pulpe, puis les réponses aux questions fréquentes. Si la tienne manque, écris-moi.",
-    guidesHeading: "Guides pour utiliser Pulpe.",
+      "Des tutoriels courts pour utiliser Pulpe, puis les réponses aux questions fréquentes. Si la tienne manque, écris-moi.",
+    guidesHeading: "Bien démarrer avec Pulpe.",
     guideCard: {
-      eyebrow: "Bien démarrer",
+      eyebrow: "Tutoriel",
       title: "Modèle ou budget : que faut-il modifier ?",
       text: "Choisis le bon endroit selon que ton changement concerne un seul mois ou tes mois habituels.",
     },

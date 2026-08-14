@@ -41,12 +41,17 @@ const it: Dictionary = {
   footer: {
     tagline: "Il budget rivolto ai mesi che arrivano. Creato in Svizzera.",
     navAriaLabel: "Link utili",
+    groups: {
+      discover: "Scopri",
+      help: "Aiuto",
+      legal: "Note legali",
+    },
     links: {
       source: "Codice sorgente",
       terms: "Condizioni",
       privacy: "Privacy",
       changelog: "Novità",
-      support: "Aiuto",
+      support: "FAQ e tutorial",
       contact: "Contatti",
     },
   },
@@ -310,13 +315,13 @@ const it: Dictionary = {
   support: {
     metaTitle: "Aiuto e domande frequenti",
     metaDescription:
-      "Guide e risposte per usare Pulpe: capire modelli e budget, proteggere i propri importi e gestire il proprio account.",
+      "Tutorial e risposte per usare Pulpe: capire modelli e budget, proteggere i propri importi e gestire il proprio account.",
     heading: "Come posso aiutarti?",
     intro:
-      "Guide brevi per usare Pulpe, poi le risposte alle domande frequenti. Se manca la tua, scrivimi.",
-    guidesHeading: "Guide per usare Pulpe.",
+      "Tutorial brevi per usare Pulpe, poi le risposte alle domande frequenti. Se manca la tua, scrivimi.",
+    guidesHeading: "Inizia con Pulpe.",
     guideCard: {
-      eyebrow: "Iniziare bene",
+      eyebrow: "Tutorial",
       title: "Modello o budget: che cosa devi modificare?",
       text: "Scegli il posto giusto a seconda che il tuo cambiamento riguardi un solo mese o i tuoi mesi abituali.",
     },

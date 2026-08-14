@@ -3,12 +3,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui";
 import type { Dictionary } from "@/content/dictionary";
-import {
-  MOBILE_NAV_ID,
-  MOBILE_NAV_PANEL_ID,
-  SCROLL_SENTINEL_ID,
-  angularUrl,
-} from "@/lib/config";
+import { MOBILE_NAV_ID, MOBILE_NAV_PANEL_ID, angularUrl } from "@/lib/config";
 import type { Locale } from "@/lib/i18n";
 import { localizedPath } from "@/lib/routes";
 
@@ -25,8 +20,6 @@ const NAV_ITEMS = [
   href: string;
 }[];
 
-const SCROLL_THRESHOLD_PX = 20;
-
 export function Header({
   dict,
   locale,
@@ -42,14 +35,6 @@ export function Header({
 
   return (
     <>
-      {/* Rendue côté serveur : le script inline du layout l'observe dès la fin du
-          parsing, sans attendre React. */}
-      <div
-        id={SCROLL_SENTINEL_ID}
-        aria-hidden="true"
-        className="pointer-events-none absolute left-0 top-0 w-px"
-        style={{ height: SCROLL_THRESHOLD_PX }}
-      />
       <header className="fixed left-[calc(env(safe-area-inset-left)+0.625rem)] right-[calc(env(safe-area-inset-right)+0.625rem)] top-[calc(env(safe-area-inset-top)+0.625rem)] z-50">
         <nav
           // `backdrop-filter` est volontairement hors de la transition : Safari

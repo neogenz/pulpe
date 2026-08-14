@@ -41,12 +41,17 @@ const en: Dictionary = {
   footer: {
     tagline: "The budget that looks at the months ahead. Built in Switzerland.",
     navAriaLabel: "Useful links",
+    groups: {
+      discover: "Discover",
+      help: "Help",
+      legal: "Legal",
+    },
     links: {
       source: "Source code",
       terms: "Terms",
       privacy: "Privacy",
       changelog: "What’s new",
-      support: "Help",
+      support: "FAQ and tutorials",
       contact: "Contact",
     },
   },
@@ -309,13 +314,13 @@ const en: Dictionary = {
   support: {
     metaTitle: "Help and frequently asked questions",
     metaDescription:
-      "Guides and answers for using Pulpe: understanding templates and budgets, protecting your amounts and managing your account.",
+      "Tutorials and answers for using Pulpe: understanding templates and budgets, protecting your amounts and managing your account.",
     heading: "How can I help?",
     intro:
-      "Short guides for using Pulpe, then answers to the most frequent questions. If yours is missing, write to me.",
-    guidesHeading: "Guides for using Pulpe.",
+      "Short tutorials for using Pulpe, then answers to the most frequent questions. If yours is missing, write to me.",
+    guidesHeading: "Getting started with Pulpe.",
     guideCard: {
-      eyebrow: "Getting started",
+      eyebrow: "Tutorial",
       title: "Template or budget: which one should you edit?",
       text: "Pick the right place depending on whether your change affects a single month or your ordinary months.",
     },

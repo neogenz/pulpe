@@ -26,9 +26,12 @@ final class MockBudgetService: BudgetServicing {
     /// Flips true the moment a reload enters `getBudgetWithDetails`. Tests poll
     /// this with `waitForCondition` to know the reload reached the gate.
     private(set) var didEnterDetails = false
+    private(set) var didEnterSparse = false
 
     private var gateContinuation: CheckedContinuation<Void, Never>?
     private var isGated = false
+    private var sparseGateContinuation: CheckedContinuation<Void, Never>?
+    private var isSparseGated = false
 
     /// Arm a one-shot gate: the next `getBudgetWithDetails` call suspends until
     /// `releaseDetails()`. One-shot by design — drive at most one gated call per
@@ -42,6 +45,14 @@ final class MockBudgetService: BudgetServicing {
         isGated = false
         gateContinuation?.resume()
         gateContinuation = nil
+    }
+
+    func gateSparse() { isSparseGated = true }
+
+    func releaseSparse() {
+        isSparseGated = false
+        sparseGateContinuation?.resume()
+        sparseGateContinuation = nil
     }
 
     func getBudgetWithDetails(id: String) async throws -> BudgetDetails {
@@ -58,6 +69,13 @@ final class MockBudgetService: BudgetServicing {
 
     func getBudgetsSparse(fields: String, limit: Int?, year: Int?) async throws -> [BudgetSparse] {
         getBudgetsSparseCallCount += 1
-        return stubbedSparse
+        didEnterSparse = true
+        let snapshot = stubbedSparse
+        if isSparseGated {
+            await withCheckedContinuation { continuation in
+                sparseGateContinuation = continuation
+            }
+        }
+        return snapshot
     }
 }
