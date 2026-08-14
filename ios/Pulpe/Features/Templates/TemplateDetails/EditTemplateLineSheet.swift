@@ -9,22 +9,6 @@ enum EditTemplateLineSaveImpact: Equatable {
     }
 }
 
-@MainActor
-struct TemplateBudgetProjectionStores {
-    let budgetList: BudgetListStore
-    let dashboard: DashboardStore
-    let currentMonth: CurrentMonthStore
-    let savingsGoal: SavingsGoalStore
-
-    func invalidate() {
-        budgetList.invalidateCache()
-        dashboard.invalidateCache()
-        currentMonth.invalidateCache()
-        BudgetDetailCache.shared.invalidateAll()
-        savingsGoal.invalidateFromBudgetMutation()
-    }
-}
-
 /// Sheet for editing an existing template line — hero amount layout
 struct EditTemplateLineSheet: View {
     let templateLine: TemplateLine

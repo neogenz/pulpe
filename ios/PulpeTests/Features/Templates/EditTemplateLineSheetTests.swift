@@ -15,20 +15,13 @@ struct EditTemplateLineSheetTests {
         let staleLines: [BudgetLine]
         let refreshedDetails: BudgetDetails
         let refreshedSparse: [BudgetSparse]
-        let updatedLine: TemplateLine
-    }
-
-    @MainActor
-    private final class CallbackSpy {
-        var count = 0
     }
 
     private struct PropagationContext {
         let budgetService: MockBudgetService
         let budgetListStore: BudgetListStore
         let savingsGoalStore: SavingsGoalStore
-        let projectionStores: TemplateBudgetProjectionStores
-        let callbackSpy: CallbackSpy
+        let viewModel: TemplateDetailsViewModel
     }
 
     // MARK: - Helpers
@@ -106,8 +99,7 @@ struct EditTemplateLineSheetTests {
             budget: budget,
             staleLines: staleLines,
             refreshedDetails: BudgetDetails(budget: budget, transactions: [], budgetLines: refreshedLines),
-            refreshedSparse: [sparse],
-            updatedLine: makeLine(id: "template-line", amount: totalExpenses)
+            refreshedSparse: [sparse]
         )
     }
 
@@ -135,36 +127,28 @@ struct EditTemplateLineSheetTests {
         #expect(budgetListStore.budgets(forYear: 2026).first?.remaining == fixture.staleBalance)
 
         let savingsGoalStore = SavingsGoalStore(service: MockSavingsGoalService())
+        let projectionStores = TemplateBudgetProjectionStores(
+            budgetList: budgetListStore,
+            dashboard: DashboardStore(budgetService: MockBudgetService()),
+            currentMonth: CurrentMonthStore(),
+            savingsGoal: savingsGoalStore
+        )
+        let viewModel = TemplateDetailsViewModel(templateId: "template-1")
+        viewModel.onBudgetDataMutation = {
+            projectionStores.invalidate()
+        }
         return PropagationContext(
             budgetService: budgetService,
             budgetListStore: budgetListStore,
             savingsGoalStore: savingsGoalStore,
-            projectionStores: TemplateBudgetProjectionStores(
-                budgetList: budgetListStore,
-                dashboard: DashboardStore(budgetService: MockBudgetService()),
-                currentMonth: CurrentMonthStore(),
-                savingsGoal: savingsGoalStore
-            ),
-            callbackSpy: CallbackSpy()
-        )
-    }
-
-    private static func handle(
-        _ result: Result<(TemplateLine, EditTemplateLineSaveImpact), any Error>,
-        in context: PropagationContext
-    ) {
-        TemplateDetailsView.handleTemplateLineSave(
-            result: result,
-            updateTemplateLine: { _ in context.callbackSpy.count += 1 },
-            projectionStores: context.projectionStores
+            viewModel: viewModel
         )
     }
 
     private static func verifyRefresh(_ fixture: BalanceFixture, context: PropagationContext) async {
         context.budgetService.stubbedSparse = fixture.refreshedSparse
-        handle(.success((fixture.updatedLine, .budgetsChanged)), in: context)
+        context.viewModel.announceBudgetDataMutation(for: .budgetsChanged)
 
-        #expect(context.callbackSpy.count == 1)
         #expect(BudgetDetailCache.shared.get(budgetId: fixture.budgetId) == nil)
         #expect(context.savingsGoalStore.budgetMutationVersion == 1)
 
@@ -189,15 +173,10 @@ struct EditTemplateLineSheetTests {
             .propagation(affectedBudgetsCount: 0),
         ]
         for impact in impacts {
-            handle(.success((fixture.updatedLine, impact)), in: context)
+            context.viewModel.announceBudgetDataMutation(for: impact)
         }
-        let failedSave: Result<(TemplateLine, EditTemplateLineSaveImpact), any Error> = .failure(
-            NSError(domain: "TemplatePropagation", code: 1)
-        )
-        handle(failedSave, in: context)
         await context.budgetListStore.loadIfNeeded()
 
-        #expect(context.callbackSpy.count == 3)
         #expect(context.budgetService.getBudgetsSparseCallCount == 2)
         #expect(BudgetDetailCache.shared.get(budgetId: fixture.budgetId) != nil)
         #expect(context.savingsGoalStore.budgetMutationVersion == 1)
@@ -318,7 +297,7 @@ struct EditTemplateLineSheetTests {
         #expect(EditTemplateLineSaveImpact.propagation(affectedBudgetsCount: 0) == .templateOnly)
     }
 
-    @Test("Template propagation refreshes stale annual and detail balances through the production handler")
+    @Test("Template propagation refreshes stale annual and detail balances through the ViewModel mutation seam")
     func templatePropagation_refetchesAnnualBalanceToMatchDetail() async throws {
         BudgetDetailCache.shared.invalidateAll()
         defer { BudgetDetailCache.shared.invalidateAll() }
