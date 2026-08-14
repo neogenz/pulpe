@@ -20,7 +20,7 @@ const faq = [
   {
     question: "Quelle application pour faire son budget en Suisse ?",
     answer:
-      "Pulpe est pensée pour ça : tu poses tes revenus, tes prévisions et ton épargne, et elle calcule ton disponible à dépenser pour chaque mois de l'année. C'est gratuit, sans publicité, sans connexion bancaire, et tes montants sont chiffrés en base de données. Tu peux aussi commencer avec un tableur : la méthode de ce guide fonctionne partout.",
+      "Pulpe est pensée pour ça : tu poses tes revenus, tes prévisions et ton épargne, et elle calcule ton disponible à dépenser pour chaque mois de l'année. C'est gratuit, sans publicité ni connexion bancaire, et tes montants sont chiffrés dans notre base de données. Tu peux aussi commencer avec un tableur : la méthode de ce guide fonctionne partout.",
   },
 ];
 
@@ -36,10 +36,9 @@ export default function BudgetSuisseGuidePage() {
         les vacances ne tombent pas partout de la même façon.
       </p>
       <p>
-        Ce guide détaille la méthode en quatre étapes, avec les chiffres suisses
-        qui servent de repères et un exemple complet. Elle fonctionne sur
-        papier, dans un tableur ou dans une app : ce qui compte, c&apos;est de
-        la suivre chaque mois.
+        Ce guide déroule la méthode en quatre étapes, chiffres suisses et
+        exemple complet à l&apos;appui. Elle marche sur papier, dans un tableur
+        ou dans une app : ce qui compte, c&apos;est de la suivre chaque mois.
       </p>
 
       <h2>Les quatre étapes pour poser ton budget</h2>
@@ -159,10 +158,9 @@ export default function BudgetSuisseGuidePage() {
         </table>
       </div>
       <p>
-        Le disponible à dépenser absorbe les courses, les sorties et les
-        imprévus. Et si tes impôts ne sont pas prélevés à la source, la
-        provision mensuelle t&apos;évite la facture qui fait mal en fin
-        d&apos;année.
+        Ces 1’900&nbsp;CHF couvrent tout le quotidien du mois. Et si tes impôts
+        ne sont pas prélevés à la source, la provision mensuelle t&apos;évite la
+        facture qui fait mal en fin d&apos;année.
       </p>
 
       <h2>Combien mettre de côté chaque mois ?</h2>
@@ -170,9 +168,9 @@ export default function BudgetSuisseGuidePage() {
         Un repère simple : vise 10 à 20 % de ton revenu net. Commence par un
         fonds de secours qui couvre trois mois de dépenses, puis épargne par
         objectif : les vacances, le permis, un déménagement. Si 10 % est hors de
-        portée ce mois-ci, mets moins, mais mets quelque chose. L&apos;important
-        n&apos;est pas le pourcentage parfait, c&apos;est la régularité : un
-        montant décidé d&apos;avance, chaque mois, même modeste.
+        portée ce mois-ci, mets moins, mais mets quelque chose. Le pourcentage
+        parfait compte moins que la régularité : un montant décidé
+        d&apos;avance, chaque mois, même modeste.
       </p>
       <p>
         En Suisse, le pilier 3a est souvent la première marche : les versements
@@ -186,8 +184,8 @@ export default function BudgetSuisseGuidePage() {
       <p>
         Poser le budget est la partie facile. Le tenir, c&apos;est comparer ce
         que tu avais prévu avec ce que tu dépenses réellement, au fil du mois.
-        Une fois par semaine, note tes dépenses (courses, sorties, achats) et
-        regarde où en est ton disponible. Dix minutes suffisent.
+        Une fois par semaine, note tes dépenses et regarde où en est ton
+        disponible. Dix minutes suffisent.
       </p>
       <p>
         Deux règles pour que ça tienne. D&apos;abord, ne vise pas le centime
@@ -217,8 +215,8 @@ export default function BudgetSuisseGuidePage() {
       <p>
         C&apos;est exactement ce que fait Pulpe : tu poses ton mois type une
         fois, tu ajustes les mois qui changent, et tu vois combien il te restera
-        en juillet ou en décembre, des mois d&apos;avance. Sans connexion
-        bancaire, et tes montants sont chiffrés en base de données.
+        en juillet ou en décembre, des mois d&apos;avance. Le tout sans
+        connexion bancaire.
       </p>
     </ArticleLayout>
   );
