@@ -22,7 +22,7 @@ export const GUIDES: Guide[] = [
     description:
       "La méthode en quatre étapes pour poser ton budget suisse : revenus, prévisions, épargne, et le disponible à dépenser qui reste chaque mois.",
     publishedAt: "2026-08-13",
-    updatedAt: "2026-08-13",
+    updatedAt: "2026-08-14",
     readingMinutes: 6,
   },
 ];

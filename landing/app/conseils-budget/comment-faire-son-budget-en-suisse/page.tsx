@@ -10,12 +10,12 @@ const faq = [
   {
     question: "La règle 50/30/20 marche-t-elle en Suisse ?",
     answer:
-      "En partie. Elle propose 50 % du revenu net pour les besoins, 30 % pour les envies et 20 % pour l'épargne. En Suisse, le loyer, l'assurance maladie et les impôts dépassent souvent les 50 % à eux seuls, surtout en ville. Garde l'esprit de la règle, une part d'épargne fixée d'avance, et adapte les pourcentages à ta situation plutôt que de viser les chiffres exacts.",
+      "En partie. Elle propose 50 % du revenu net pour les besoins, 30 % pour les envies et 20 % pour l'épargne ou le remboursement de dettes. En Suisse, le loyer, l'assurance maladie et les impôts peuvent déjà prendre une grande part du revenu, surtout dans les zones où le logement est cher. Garde l'esprit de la règle, une part d'épargne fixée d'avance, et adapte les pourcentages à ta situation plutôt que de viser les chiffres exacts.",
   },
   {
     question: "Comment gérer les impôts dans un budget suisse ?",
     answer:
-      "Si tu n'es pas imposé à la source, mets de côté chaque mois une provision, par exemple un douzième de ta facture de l'an dernier, sur un compte séparé. La facture d'impôts devient une dépense prévue comme une autre, pas une mauvaise surprise. Si tu es imposé à la source, comme la plupart des permis B et des frontaliers, tu peux ignorer cette ligne : l'impôt part avant que le salaire arrive.",
+      "Si tu n'es pas imposé à la source, mets de côté chaque mois une provision, par exemple un douzième de ta facture de l'an dernier, sur un compte séparé. La facture d'impôts devient une dépense prévue comme une autre, pas une mauvaise surprise. Si l'impôt est effectivement retenu sur ton salaire, adapte ou retire cette provision. Pour les frontaliers, le régime dépend notamment du canton de travail et du pays de résidence.",
   },
   {
     question: "Quelle application pour faire son budget en Suisse ?",
@@ -75,7 +75,7 @@ export default function BudgetSuisseGuidePage() {
       <p>Trois repères pour situer ton budget :</p>
       <ul>
         <li>
-          Le salaire médian suisse est de{" "}
+          Le salaire médian suisse à plein temps est de{" "}
           <mark className="marker-highlight">7’024&nbsp;CHF brut </mark>par mois
           selon l&apos;
           <a
@@ -102,14 +102,17 @@ export default function BudgetSuisseGuidePage() {
         </li>
         <li>
           <a
-            href="https://budgetberatung.ch"
+            href="https://budgetberatung.ch/wohnen"
             target="_blank"
             rel="noopener noreferrer"
           >
             Budget-conseil Suisse
           </a>{" "}
-          recommande de garder le loyer{" "}
-          <mark className="marker-highlight">sous un quart du revenu net</mark>.
+          recommande de garder les frais de logement, charges comprises,{" "}
+          <mark className="marker-highlight">
+            au plus un quart du revenu net
+          </mark>
+          .
         </li>
       </ul>
       <p>
@@ -186,11 +189,16 @@ export default function BudgetSuisseGuidePage() {
         mois, même modeste.
       </p>
       <p>
-        En Suisse, le pilier 3a est souvent la première marche : les versements
-        se déduisent de ton revenu imposable, ce qui fait d&apos;une partie de
-        ton épargne une économie d&apos;impôts. Mais garde ton fonds de secours
-        sur un compte accessible : le 3a est bloqué jusqu&apos;à la retraite,
-        sauf exceptions.
+        Si tu y es éligible, les versements au{" "}
+        <a
+          href="https://www.ch.ch/fr/travail/prevoyance-vieillesse/prevoyance-privee-3eme-pilier/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          pilier 3a
+        </a>{" "}
+        peuvent être déduits dans la limite annuelle. Mais garde ton fonds de
+        secours accessible : le 3a n&apos;est pas librement retirable.
       </p>
 
       <h2>Comment tenir ton budget au fil du mois ?</h2>
