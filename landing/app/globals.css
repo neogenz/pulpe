@@ -571,6 +571,10 @@ h3,
   margin-top: 1.25em;
 }
 
+.guide-prose p {
+  text-wrap: pretty;
+}
+
 .guide-prose h2 {
   margin-top: 2.25em;
   font-size: 1.625rem;
@@ -641,7 +645,8 @@ h3,
 .guide-prose th,
 .guide-prose td {
   padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid rgba(26, 28, 25, 0.1);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--color-text) 10%, transparent);
   text-align: left;
 }
 

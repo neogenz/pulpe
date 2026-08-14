@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { AccordionItem, Button, Container } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
 import { angularUrl, ORGANIZATION_ID, SITE_URL } from "@/lib/config";
-import type { Guide } from "./guides";
+import { SOCIAL_PREVIEW_IMAGE, type Guide } from "./guides";
 
 interface FaqEntry {
   question: string;
@@ -40,13 +42,18 @@ export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
         description: guide.description,
         url: articleUrl,
         mainEntityOfPage: articleUrl,
+        image: `${SITE_URL}${SOCIAL_PREVIEW_IMAGE}`,
         inLanguage: "fr-CH",
         datePublished: guide.publishedAt,
         dateModified: guide.updatedAt,
         author: { "@type": "Person", name: "Maxime De Sogus" },
-        // L'Organization est définie une seule fois, dans le @graph du layout
-        // racine ; l'article la référence sans la dupliquer.
-        publisher: { "@id": ORGANIZATION_ID },
+        // L'entité complète vit dans le @graph du layout racine ; le type et le
+        // nom sont répétés ici pour les validateurs qui lisent ce bloc seul.
+        publisher: {
+          "@type": "Organization",
+          "@id": ORGANIZATION_ID,
+          name: "Pulpe",
+        },
       },
       ...(faq && faq.length > 0
         ? [
@@ -85,7 +92,14 @@ export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
       <main id="main-content" tabIndex={-1} className="pt-32 pb-16 md:pb-24">
         <Container>
           <article className="mx-auto max-w-3xl">
-            <header>
+            <Link
+              href="/guides"
+              className="inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-semibold text-primary transition-colors hover:text-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <ArrowLeft aria-hidden="true" size={17} />
+              Guides
+            </Link>
+            <header className="mt-8">
               <h1 className="text-4xl font-bold leading-[1.12] tracking-[-0.035em] text-text sm:text-5xl">
                 {guide.title}
               </h1>

@@ -71,7 +71,11 @@ describe("guide article layout contract", () => {
     assert.equal(article.description, guide.description);
     assert.equal(article.datePublished, guide.publishedAt);
     assert.equal(article.dateModified, guide.updatedAt);
-    assert.deepEqual(article.publisher, { "@id": "https://pulpe.app/#org" });
+    assert.deepEqual(article.publisher, {
+      "@type": "Organization",
+      "@id": "https://pulpe.app/#org",
+      name: "Pulpe",
+    });
     assert.equal(article.url, `https://pulpe.app/guides/${guide.slug}`);
   });
 

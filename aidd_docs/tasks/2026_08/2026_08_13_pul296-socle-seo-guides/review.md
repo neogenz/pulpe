@@ -2,9 +2,9 @@
 
 - **Verdict**: approve
 - **Diff**: `origin/preview...maximedesogus/pul-296-creer-le-socle-seo-guides-sur-la-landing`
-- **Axes run**: code, functional, relevancy
+- **Axes run**: code, functional, relevancy (deux passes agent indépendantes + trace fonctionnelle)
 - **Date**: 2026_08_14
-- **Findings**: 0 critical, 0 warning, 2 minor
+- **Findings**: 0 critical, 0 warning, 3 minor
 
 ## Phases
 
@@ -33,6 +33,7 @@
 | --- | ---- | ----- | -------- | ----- | --- |
 | 🟢 | rot | 2 | `landing/components/guides/guides.ts:33-37` | `SOCIAL_PREVIEW_IMAGE`/`ALT` restent copiés dans layout.tsx, modeles-et-budgets et ici : bump `?v=3` = 3 sites à toucher. Copie assumée : le test a11y (l.1102) exige la déclaration DANS layout.tsx | Accepté en l'état ; centraliser si le contrat a11y évolue |
 | 🟢 | frontend | 2 | `landing/app/globals.css:648` | `.table-scroll` ne défile jamais avec le tableau actuel (2 colonnes étroites) et n'a pas de `tabIndex` clavier | Gardé : conteneur exigé par le plan (phase 1) ; ajouter `tabIndex={0}` + label le jour où un tableau déborde réellement |
+| 🟢 | fit | 3 | `landing/components/sections/Footer.tsx:14` | « Guides » (→ /guides) coexiste avec la section « Guides pour utiliser Pulpe » de /support : deux sens du mot dans le même parcours | Décision produit à trancher (renommer la section support, copy antérieure à cette PR) |
 
 ## Verification
 
@@ -41,4 +42,4 @@
 | Verified      | 100% (10/10)                                      |
 | Files checked | guides.ts, ArticleLayout.tsx, ArticleLayout.test.tsx, globals.css, guides/page.tsx, comment-faire-son-budget-en-suisse/page.tsx, sitemap.ts, layout.tsx, accessibility.test.tsx, Footer.tsx, Platforms.tsx, config.ts, package.json, dist/ (article, index, sitemap.xml, 4 pages footer) |
 | Unchecked     | none                                              |
-| Unplanned     | Durcissements issus de la revue : FAQ visible prouvée hors ld+json, garde registre↔page, vraie page testée (H1/CTA), sources guides enregistrées dans accessibility.test.tsx (skip-link, transition-all, tirets), `SITE_URL`/`ORGANIZATION_ID` partagés, `guideMetadata`/`getGuide`, montants alignés sur lib/amount.ts (`7’024 CHF`), `formatDate` en UTC ; `lib/config.ts` normalisé prettier (pré-existant) ; commit de préservation `aidd_docs/tasks/2026_07/2026_07_23_growth-seo-assets/` (demande explicite hors plan) |
+| Unplanned     | Durcissements issus des deux passes de revue : FAQ visible prouvée hors ld+json, garde registre↔page, vraie page testée (H1/CTA), sources guides enregistrées dans accessibility.test.tsx (skip-link, transition-all, tirets), `SITE_URL`/`ORGANIZATION_ID` partagés, `guideMetadata`/`getGuide`, montants alignés sur lib/amount.ts (`7’024 CHF`), `formatDate` en UTC, espace fine insécable avant « ? » (7 sites), `image` + publisher typé au JSON-LD Article, back-link vers /guides, `text-wrap: pretty` sur la prose, hairline en `color-mix`, classe `group` morte retirée ; `lib/config.ts` normalisé prettier (pré-existant) ; commit de préservation `aidd_docs/tasks/2026_07/2026_07_23_growth-seo-assets/` (demande explicite hors plan) |

@@ -47,7 +47,7 @@ export default function GuidesPage() {
                 <Link
                   key={guide.slug}
                   href={`/guides/${guide.slug}`}
-                  className="group block rounded-[var(--radius-large)] border border-text/10 bg-surface p-6 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transform-none motion-reduce:transition-none sm:p-8"
+                  className="block rounded-[var(--radius-large)] border border-text/10 bg-surface p-6 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transform-none motion-reduce:transition-none sm:p-8"
                 >
                   <h2 className="text-2xl font-semibold leading-tight tracking-[-0.025em] text-text">
                     {guide.title}

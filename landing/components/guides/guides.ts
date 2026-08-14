@@ -28,7 +28,7 @@ export const GUIDES: Guide[] = [
 
 // Copie assumée du couple layout.tsx / modeles-et-budgets : le test a11y exige
 // que layout.tsx déclare le sien. Une seule copie ici pour tous les guides.
-const SOCIAL_PREVIEW_IMAGE = "/pulpe-social-preview.png?v=2";
+export const SOCIAL_PREVIEW_IMAGE = "/pulpe-social-preview.png?v=2";
 const SOCIAL_PREVIEW_ALT =
   "Pulpe projette ton budget sur l’année et montre combien il te restera";
 

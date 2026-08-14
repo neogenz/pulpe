@@ -8,17 +8,17 @@ export const metadata: Metadata = guideMetadata(guide);
 
 const faq = [
   {
-    question: "La règle 50/30/20 marche-t-elle en Suisse ?",
+    question: "La règle 50/30/20 marche-t-elle en Suisse ?",
     answer:
       "En partie. Elle propose 50 % du revenu net pour les besoins, 30 % pour les envies et 20 % pour l'épargne. En Suisse, le loyer, l'assurance maladie et les impôts dépassent souvent les 50 % à eux seuls, surtout en ville. Garde l'esprit de la règle, une part d'épargne fixée d'avance, et adapte les pourcentages à ta situation plutôt que de viser les chiffres exacts.",
   },
   {
-    question: "Comment gérer les impôts dans un budget suisse ?",
+    question: "Comment gérer les impôts dans un budget suisse ?",
     answer:
       "Si tu n'es pas imposé à la source, mets de côté chaque mois une provision, par exemple un douzième de ta facture de l'an dernier, sur un compte séparé. La facture d'impôts devient une dépense prévue comme une autre, pas une mauvaise surprise. Si tu es imposé à la source, comme la plupart des permis B et des frontaliers, tu peux ignorer cette ligne : l'impôt part avant que le salaire arrive.",
   },
   {
-    question: "Quelle application pour faire son budget en Suisse ?",
+    question: "Quelle application pour faire son budget en Suisse ?",
     answer:
       "Pulpe est pensée pour ça : tu poses tes revenus, tes prévisions et ton épargne, et elle calcule ton disponible à dépenser pour chaque mois de l'année. C'est gratuit, sans publicité, sans connexion bancaire, et tes montants sont chiffrés en base de données. Tu peux aussi commencer avec un tableur : la méthode de ce guide fonctionne partout.",
   },
@@ -72,7 +72,7 @@ export default function BudgetSuisseGuidePage() {
         </li>
       </ol>
 
-      <h2>Combien coûte la vie en Suisse ?</h2>
+      <h2>Combien coûte la vie en Suisse ?</h2>
       <p>
         Trois repères pour situer ton budget. Le salaire médian suisse est de
         7’024&nbsp;CHF brut par mois selon l&apos;
@@ -165,7 +165,7 @@ export default function BudgetSuisseGuidePage() {
         d&apos;année.
       </p>
 
-      <h2>Combien mettre de côté chaque mois ?</h2>
+      <h2>Combien mettre de côté chaque mois ?</h2>
       <p>
         Un repère simple : vise 10 à 20 % de ton revenu net. Commence par un
         fonds de secours qui couvre trois mois de dépenses, puis épargne par
@@ -182,7 +182,7 @@ export default function BudgetSuisseGuidePage() {
         sauf exceptions.
       </p>
 
-      <h2>Comment tenir ton budget au fil du mois ?</h2>
+      <h2>Comment tenir ton budget au fil du mois ?</h2>
       <p>
         Poser le budget est la partie facile. Le tenir, c&apos;est comparer ce
         que tu avais prévu avec ce que tu dépenses réellement, au fil du mois.
@@ -198,7 +198,7 @@ export default function BudgetSuisseGuidePage() {
         arrêté de regarder.
       </p>
 
-      <h2>Pourquoi prévoir l&apos;année entière, pas seulement le mois ?</h2>
+      <h2>Pourquoi prévoir l&apos;année entière, pas seulement le mois ?</h2>
       <p>
         Un budget mensuel isolé te dit si ce mois-ci passe. Il ne te dit pas si
         l&apos;année passe. En Suisse, les grosses dépenses sont concentrées :
