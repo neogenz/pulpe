@@ -155,6 +155,9 @@ final class BudgetListStore: StoreProtocol {
 
     /// Invalidates the cache so the next `loadIfNeeded()` will re-fetch.
     func invalidateCache() {
+        loadTask?.cancel()
+        loadTask = nil
+        loadGeneration += 1
         lastLoadTime = nil
     }
 }

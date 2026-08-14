@@ -142,6 +142,28 @@ struct BudgetListStoreCacheInvalidationTests {
         await store.loadIfNeeded()
         #expect(mockService.getBudgetsSparseCallCount == 2, "After invalidation, loadIfNeeded should re-fetch")
     }
+
+    @Test
+    func invalidateCache_duringLoad_doesNotRestoreStaleTTL() async {
+        let mockService = MockBudgetService()
+        let stale = TestDataFactory.createBudgetSparse(id: "stale", remaining: 1)
+        let fresh = TestDataFactory.createBudgetSparse(id: "fresh", remaining: 2)
+        mockService.stubbedSparse = [stale]
+        mockService.gateSparse()
+        let store = BudgetListStore(budgetService: mockService)
+        let staleLoad = Task { await store.forceRefresh() }
+
+        while !mockService.didEnterSparse { await Task.yield() }
+        store.invalidateCache()
+        mockService.stubbedSparse = [fresh]
+        mockService.releaseSparse()
+        await staleLoad.value
+
+        await store.loadIfNeeded()
+
+        #expect(mockService.getBudgetsSparseCallCount == 2)
+        #expect(store.budgets.first?.id == fresh.id)
+    }
 }
 
 // MARK: - CurrentMonthStore Mutation Seam (PUL-270)

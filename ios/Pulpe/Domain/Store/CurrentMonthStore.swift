@@ -246,6 +246,9 @@ final class CurrentMonthStore: StoreProtocol {
 
     /// Invalidates the cache so the next `loadDetailsIfNeeded()` / `loadIfNeeded()` will re-fetch.
     func invalidateCache() {
+        loadTask?.cancel()
+        loadTask = nil
+        loadGeneration += 1
         lastLoadTime = nil
     }
 
@@ -323,6 +326,7 @@ final class CurrentMonthStore: StoreProtocol {
 
             try Task.checkCancellation()
             let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
+            try Task.checkCancellation()
 
             if isFirstLoad {
                 try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
