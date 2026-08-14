@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { AccordionItem, Button, Container } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
-import { angularUrl } from "@/lib/config";
+import { angularUrl, ORGANIZATION_ID, SITE_URL } from "@/lib/config";
 import type { Guide } from "./guides";
 
 interface FaqEntry {
@@ -22,11 +22,14 @@ function formatDate(iso: string): string {
     year: "numeric",
     month: "long",
     day: "numeric",
+    // Une date ISO nue est parsée en UTC : formater en UTC aussi évite un
+    // décalage d'un jour sur une machine de build à l'ouest de Greenwich.
+    timeZone: "UTC",
   });
 }
 
 export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
-  const articleUrl = `https://pulpe.app/guides/${guide.slug}`;
+  const articleUrl = `${SITE_URL}/guides/${guide.slug}`;
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -43,7 +46,7 @@ export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
         author: { "@type": "Person", name: "Maxime De Sogus" },
         // L'Organization est définie une seule fois, dans le @graph du layout
         // racine ; l'article la référence sans la dupliquer.
-        publisher: { "@id": "https://pulpe.app/#org" },
+        publisher: { "@id": ORGANIZATION_ID },
       },
       ...(faq && faq.length > 0
         ? [

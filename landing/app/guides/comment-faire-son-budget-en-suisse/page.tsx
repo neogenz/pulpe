@@ -1,62 +1,10 @@
 import type { Metadata } from "next";
 import { ArticleLayout } from "@/components/guides/ArticleLayout";
-import { GUIDES } from "@/components/guides/guides";
+import { getGuide, guideMetadata } from "@/components/guides/guides";
 
-const GUIDE_SLUG = "comment-faire-son-budget-en-suisse";
-const guide = ((): (typeof GUIDES)[number] => {
-  const entry = GUIDES.find((candidate) => candidate.slug === GUIDE_SLUG);
-  // Échec de build bruyant si l'entrée du registre disparaît.
-  if (!entry) {
-    throw new Error(`Guide absent du registre : ${GUIDE_SLUG}`);
-  }
-  return entry;
-})();
+const guide = getGuide("comment-faire-son-budget-en-suisse");
 
-const GUIDE_PATH = `/guides/${guide.slug}`;
-const SOCIAL_TITLE = `${guide.title} | Pulpe`;
-const SOCIAL_PREVIEW_IMAGE = "/pulpe-social-preview.png?v=2";
-const SOCIAL_PREVIEW_ALT =
-  "Pulpe projette ton budget sur l’année et montre combien il te restera";
-
-export const metadata: Metadata = {
-  title: guide.title,
-  description: guide.description,
-  alternates: {
-    canonical: GUIDE_PATH,
-  },
-  openGraph: {
-    title: SOCIAL_TITLE,
-    description: guide.description,
-    siteName: "Pulpe",
-    type: "article",
-    url: GUIDE_PATH,
-    locale: "fr_CH",
-    alternateLocale: ["fr_FR"],
-    images: [
-      {
-        url: SOCIAL_PREVIEW_IMAGE,
-        width: 1200,
-        height: 630,
-        alt: SOCIAL_PREVIEW_ALT,
-        type: "image/png",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: SOCIAL_TITLE,
-    description: guide.description,
-    images: [
-      {
-        url: SOCIAL_PREVIEW_IMAGE,
-        alt: SOCIAL_PREVIEW_ALT,
-        type: "image/png",
-        width: 1200,
-        height: 630,
-      },
-    ],
-  },
-};
+export const metadata: Metadata = guideMetadata(guide);
 
 const faq = [
   {
@@ -127,7 +75,7 @@ export default function BudgetSuisseGuidePage() {
       <h2>Combien coûte la vie en Suisse ?</h2>
       <p>
         Trois repères pour situer ton budget. Le salaire médian suisse est de
-        CHF 7&apos;024 brut par mois selon l&apos;
+        7’024&nbsp;CHF brut par mois selon l&apos;
         <a
           href="https://www.bfs.admin.ch/bfs/fr/home/statistiques/travail-remuneration/salaires.html"
           target="_blank"
@@ -135,8 +83,8 @@ export default function BudgetSuisseGuidePage() {
         >
           enquête 2024 de l&apos;Office fédéral de la statistique
         </a>
-        . La prime moyenne de l&apos;assurance maladie obligatoire atteint CHF
-        393.30 par mois en 2026, d&apos;après l&apos;
+        . La prime moyenne de l&apos;assurance maladie obligatoire atteint
+        393.30&nbsp;CHF par mois en 2026, d&apos;après l&apos;
         <a
           href="https://www.bag.admin.ch/bag/fr/home/versicherungen/krankenversicherung/krankenversicherung-praemien.html"
           target="_blank"
@@ -163,7 +111,7 @@ export default function BudgetSuisseGuidePage() {
         toujours plus serré que prévu.
       </p>
       <p>
-        Voici à quoi ces étapes ressemblent pour un revenu net de CHF 5&apos;000
+        Voici à quoi ces étapes ressemblent pour un revenu net de 5’000&nbsp;CHF
         par mois :
       </p>
       <div className="table-scroll">
@@ -177,34 +125,34 @@ export default function BudgetSuisseGuidePage() {
           <tbody>
             <tr>
               <td>Revenu net</td>
-              <td>CHF 5&apos;000</td>
+              <td>5’000&nbsp;CHF</td>
             </tr>
             <tr>
               <td>Loyer</td>
-              <td>CHF 1&apos;400</td>
+              <td>1’400&nbsp;CHF</td>
             </tr>
             <tr>
               <td>Assurance maladie</td>
-              <td>CHF 400</td>
+              <td>400&nbsp;CHF</td>
             </tr>
             <tr>
               <td>Provision impôts</td>
-              <td>CHF 550</td>
+              <td>550&nbsp;CHF</td>
             </tr>
             <tr>
               <td>Transports et abonnements</td>
-              <td>CHF 250</td>
+              <td>250&nbsp;CHF</td>
             </tr>
             <tr>
               <td>Épargne</td>
-              <td>CHF 500</td>
+              <td>500&nbsp;CHF</td>
             </tr>
             <tr>
               <td>
                 <strong>Disponible à dépenser</strong>
               </td>
               <td>
-                <strong>CHF 1&apos;900</strong>
+                <strong>1’900&nbsp;CHF</strong>
               </td>
             </tr>
           </tbody>

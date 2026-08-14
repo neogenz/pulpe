@@ -33,6 +33,21 @@ const componentSources = {
     new URL("./support/modeles-et-budgets/page.tsx", import.meta.url),
     "utf8",
   ),
+  guidesIndex: readFileSync(
+    new URL("./guides/page.tsx", import.meta.url),
+    "utf8",
+  ),
+  guideArticle: readFileSync(
+    new URL(
+      "./guides/comment-faire-son-budget-en-suisse/page.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+  articleLayout: readFileSync(
+    new URL("../components/guides/ArticleLayout.tsx", import.meta.url),
+    "utf8",
+  ),
   painPoints: readFileSync(
     new URL("../components/sections/PainPoints.tsx", import.meta.url),
     "utf8",
@@ -1301,6 +1316,8 @@ describe("landing accessibility contracts", () => {
       componentSources.page,
       componentSources.support,
       componentSources.supportGuide,
+      componentSources.guidesIndex,
+      componentSources.articleLayout,
     ]) {
       const skipLinkClass = source.match(
         /href="#main-content"\s+className="([^"]+)"/,
@@ -1316,6 +1333,16 @@ describe("landing accessibility contracts", () => {
       assert.ok(
         source.indexOf('href="#main-content"') < source.indexOf("<Header"),
       );
+    }
+  });
+
+  it("keeps guides copy free of em and en dashes", () => {
+    for (const source of [
+      componentSources.guidesIndex,
+      componentSources.guideArticle,
+      componentSources.articleLayout,
+    ]) {
+      assert.doesNotMatch(source, /—|–/);
     }
   });
 

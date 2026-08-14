@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { describe, it, mock } from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { Guide } from "./guides";
+import { GUIDES, type Guide } from "./guides";
 
 Object.assign(globalThis, { React });
 
@@ -14,6 +15,8 @@ mock.module("next/image", {
     React.createElement("img", { src: props.src, alt: props.alt }),
 });
 const { ArticleLayout } = await import("./ArticleLayout");
+const { default: BudgetSuisseGuidePage } =
+  await import("../../app/guides/comment-faire-son-budget-en-suisse/page");
 
 const guide: Guide = {
   slug: "guide-de-test",
@@ -85,9 +88,15 @@ describe("guide article layout contract", () => {
       })),
       faq,
     );
+    // Le script ld+json contient déjà les textes : on l'exclut du markup pour
+    // prouver que la FAQ est rendue visible, pas seulement présente au schema.
+    const visibleHtml = html.replace(
+      /<script type="application\/ld\+json">[\s\S]*?<\/script>/g,
+      "",
+    );
     for (const entry of faq) {
-      assert.ok(html.includes(entry.question), entry.question);
-      assert.ok(html.includes(entry.answer), entry.answer);
+      assert.ok(visibleHtml.includes(entry.question), entry.question);
+      assert.ok(visibleHtml.includes(entry.answer), entry.answer);
     }
   });
 
@@ -114,5 +123,24 @@ describe("guide article layout contract", () => {
       </ArticleLayout>,
     );
     assert.ok(!samePublishedAndUpdated.includes("Mis à jour le"));
+  });
+
+  it("keeps the seed article itself to one h1 and one CTA", () => {
+    const pageHtml = renderToStaticMarkup(<BudgetSuisseGuidePage />);
+    assert.equal(pageHtml.match(/<h1[\s>]/g)?.length, 1);
+    const article = pageHtml.match(/<article[\s\S]*<\/article>/)?.[0];
+    assert.ok(article, "the page must render an <article>");
+    assert.equal(article.match(/data-cta-name=/g)?.length, 1);
+  });
+
+  it("has a page for every registry entry", () => {
+    for (const entry of GUIDES) {
+      assert.ok(
+        existsSync(
+          new URL(`../../app/guides/${entry.slug}/page.tsx`, import.meta.url),
+        ),
+        `app/guides/${entry.slug}/page.tsx est absent : la carte de l'index et le sitemap pointeraient sur un 404`,
+      );
+    }
   });
 });

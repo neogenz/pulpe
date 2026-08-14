@@ -7,7 +7,9 @@ import {
   IOS_APP_URL,
   MOBILE_NAV_ID,
   MOBILE_NAV_PANEL_ID,
+  ORGANIZATION_ID,
   SCROLL_SENTINEL_ID,
+  SITE_URL,
 } from "../lib/config";
 import "./globals.css";
 
@@ -147,10 +149,10 @@ const jsonLd = {
       // Entité unique : les articles /guides la référencent par @id comme
       // publisher au lieu de la redéfinir.
       "@type": "Organization",
-      "@id": "https://pulpe.app/#org",
+      "@id": ORGANIZATION_ID,
       name: "Pulpe",
-      url: "https://pulpe.app",
-      logo: "https://pulpe.app/icon-192.png",
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon-192.png`,
       sameAs: [GITHUB_URL, IOS_APP_URL],
     },
     {
@@ -162,7 +164,7 @@ const jsonLd = {
       description:
         "Pulpe calcule ton disponible mois après mois à partir de tes revenus, de tes dépenses et de ton épargne, sans connexion bancaire.",
       inLanguage: "fr-CH",
-      publisher: { "@id": "https://pulpe.app/#org" },
+      publisher: { "@id": ORGANIZATION_ID },
     },
     {
       "@type": "SoftwareApplication",
@@ -172,7 +174,7 @@ const jsonLd = {
         "Pulpe calcule ton disponible mois après mois à partir de tes revenus, de tes dépenses et de ton épargne, sans connexion bancaire.",
       applicationCategory: "FinanceApplication",
       operatingSystem: "Web, iOS",
-      author: { "@id": "https://pulpe.app/#org" },
+      author: { "@id": ORGANIZATION_ID },
       offers: {
         "@type": "Offer",
         price: "0",
