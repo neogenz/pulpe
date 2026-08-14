@@ -45,9 +45,9 @@ struct ChangePinView: View {
 
             switch viewModel.step {
             case .enterOldPin:
-                pinStep(title: "Saisis ton ancien code PIN")
+                pinStep(title: AppLocale.string("Saisis ton ancien code PIN"))
             case .enterNewPin:
-                pinStep(title: "Saisis ton nouveau code PIN")
+                pinStep(title: AppLocale.string("Saisis ton nouveau code PIN"))
             case .processing:
                 processingStep
             }
@@ -107,8 +107,8 @@ struct ChangePinView: View {
 
     private var processingStep: some View {
         PinProcessingView(
-            title: "Changement en cours...",
-            subtitle: "Tes données sont en cours de re-chiffrement"
+            title: AppLocale.string("Changement en cours..."),
+            subtitle: AppLocale.string("Tes données sont en cours de re-chiffrement")
         )
     }
 
@@ -148,8 +148,8 @@ final class ChangePinViewModel {
 
     var stepLabel: String {
         switch step {
-        case .enterOldPin: "Étape 1 sur 2"
-        case .enterNewPin: "Étape 2 sur 2"
+        case .enterOldPin: AppLocale.string("Étape 1 sur 2")
+        case .enterNewPin: AppLocale.string("Étape 2 sur 2")
         case .processing: ""
         }
     }
@@ -254,7 +254,7 @@ final class ChangePinViewModel {
         } catch let error as CryptoServiceError {
             handleCryptoError(error)
         } catch {
-            showError("Erreur inattendue, réessaie")
+            showError(AppLocale.string("Erreur inattendue, réessaie"))
         }
     }
 
@@ -278,7 +278,7 @@ final class ChangePinViewModel {
             guard result.clientKeyHex != oldClientKeyHex else {
                 step = .enterNewPin
                 digits = []
-                showError("Le nouveau code doit être différent")
+                showError(AppLocale.string("Le nouveau code doit être différent"))
                 return
             }
 
@@ -307,7 +307,7 @@ final class ChangePinViewModel {
             self.oldClientKeyHex = nil
             self.cachedSalt = nil
             step = .enterNewPin
-            showError("Erreur inattendue, réessaie")
+            showError(AppLocale.string("Erreur inattendue, réessaie"))
         }
     }
 

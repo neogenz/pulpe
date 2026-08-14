@@ -67,7 +67,7 @@ extension RegistrationStep {
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthTextField(
-                prompt: "ton@email.com",
+                prompt: AppLocale.string("ton@email.com"),
                 text: $state.email,
                 systemImage: "envelope",
                 isFilled: state.isEmailValid,

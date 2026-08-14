@@ -64,9 +64,18 @@ struct WelcomeStep: View {
 
                 // Benefits — concrete value props, left-aligned for scannability
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    benefitRow(icon: "list.bullet.rectangle", text: "Un plan clair pour chaque mois")
-                    benefitRow(icon: "checkmark.circle", text: "Tes dépenses pointées en un geste")
-                    benefitRow(icon: "lock", text: "Chiffré — tes montants restent privés")
+                    benefitRow(
+                        icon: "list.bullet.rectangle",
+                        text: AppLocale.string("Un plan clair pour chaque mois")
+                    )
+                    benefitRow(
+                        icon: "checkmark.circle",
+                        text: AppLocale.string("Tes dépenses pointées en un geste")
+                    )
+                    benefitRow(
+                        icon: "lock",
+                        text: AppLocale.string("Chiffré — tes montants restent privés")
+                    )
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, DesignTokens.Spacing.xxxl)

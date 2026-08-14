@@ -8,20 +8,26 @@ extension OnboardingState {
     // sourced from a chip?" check. Manually-added transactions use `UUID()`
     // and never collide with a suggestion, even when the user types the exact
     // same name and type.
-    static let chargeSuggestions: [OnboardingTransaction] = [
-        makeStaticSuggestion(
-            "F1A1E501-C0A5-4000-A000-000000000001",
-            amount: 600, type: .expense, name: "Courses / alimentation"
-        ),
-        makeStaticSuggestion(
-            "F1A1E501-C0A5-4000-A000-000000000002",
-            amount: 150, type: .expense, name: "Restaurants & sorties"
-        ),
-        makeStaticSuggestion(
-            "F1A1E501-C0A5-4000-A000-000000000003",
-            amount: 100, type: .expense, name: "Loisirs & sport"
-        )
-    ]
+    //
+    // Computed, not `static let`: a stored constant would freeze the language the
+    // app happened to be in when the type was first touched. The names are shown on
+    // the chips and persisted as budget line names, so they follow `AppLocale`.
+    static var chargeSuggestions: [OnboardingTransaction] {
+        [
+            makeStaticSuggestion(
+                "F1A1E501-C0A5-4000-A000-000000000001",
+                amount: 600, type: .expense, name: AppLocale.string("Courses / alimentation")
+            ),
+            makeStaticSuggestion(
+                "F1A1E501-C0A5-4000-A000-000000000002",
+                amount: 150, type: .expense, name: AppLocale.string("Restaurants & sorties")
+            ),
+            makeStaticSuggestion(
+                "F1A1E501-C0A5-4000-A000-000000000003",
+                amount: 100, type: .expense, name: AppLocale.string("Loisirs & sport")
+            )
+        ]
+    }
 
     /// Saving suggestions vary by currency for the retirement-pillar label only:
     /// Swiss users (`.chf`) see "3ème pilier", others (`.eur`) see "Épargne retraite".
@@ -33,7 +39,7 @@ extension OnboardingState {
         [
             makeStaticSuggestion(
                 "F1A1E501-C0A5-4000-A000-000000000004",
-                amount: 500, type: .saving, name: "Épargne"
+                amount: 500, type: .saving, name: AppLocale.string("Épargne")
             ),
             makeStaticSuggestion(
                 "F1A1E501-C0A5-4000-A000-000000000005",
@@ -45,8 +51,8 @@ extension OnboardingState {
     /// Currency-specific label for the retirement-pillar saving suggestion.
     private static func retirementPillarName(for currency: SupportedCurrency) -> String {
         switch currency {
-        case .chf: return "3ème pilier"
-        case .eur: return "Épargne retraite"
+        case .chf: return AppLocale.string("3ème pilier")
+        case .eur: return AppLocale.string("Épargne retraite")
         }
     }
 

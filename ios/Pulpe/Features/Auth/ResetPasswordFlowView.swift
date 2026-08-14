@@ -138,7 +138,7 @@ struct ResetPasswordFlowView: View {
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthSecureField(
-                prompt: "8 caractères minimum",
+                prompt: AppLocale.string("8 caractères minimum"),
                 text: $viewModel.newPassword,
                 isVisible: $showNewPassword,
                 systemImage: "lock",
@@ -161,7 +161,7 @@ struct ResetPasswordFlowView: View {
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthSecureField(
-                prompt: "Confirme ton nouveau mot de passe",
+                prompt: AppLocale.string("Confirme ton nouveau mot de passe"),
                 text: $viewModel.confirmPassword,
                 isVisible: $showConfirmPassword,
                 systemImage: "lock",
@@ -244,16 +244,18 @@ final class ResetPasswordFlowViewModel {
             _ = try await dependencies.beginPasswordRecovery(callbackURL)
             shouldCleanupOnDismiss = true
         } catch {
-            invalidLinkMessage = "Ce lien n'est plus valide. Demande un nouveau lien depuis l'écran de connexion."
+            invalidLinkMessage = AppLocale.string(
+                "Ce lien n'est plus valide. Demande un nouveau lien depuis l'écran de connexion."
+            )
         }
     }
 
     func submit() async {
         guard canSubmit else {
             if !isNewPasswordValid {
-                errorMessage = "8 caractères minimum avec au moins un chiffre"
+                errorMessage = AppLocale.string("8 caractères minimum avec au moins un chiffre")
             } else if !isPasswordConfirmed {
-                errorMessage = "Les mots de passe ne correspondent pas"
+                errorMessage = AppLocale.string("Les mots de passe ne correspondent pas")
             }
             return
         }
@@ -268,16 +270,16 @@ final class ResetPasswordFlowViewModel {
         } catch let apiError as APIError {
             handleAPIError(apiError)
         } catch {
-            errorMessage = "Quelque chose n'a pas fonctionné — réessaie"
+            errorMessage = AppLocale.string("Quelque chose n'a pas fonctionné — réessaie")
         }
     }
 
     private func handleAPIError(_ error: APIError) {
         switch error {
         case .rateLimited:
-            errorMessage = "Trop de tentatives — patiente un moment"
+            errorMessage = AppLocale.string("Trop de tentatives — patiente un moment")
         case .networkError:
-            errorMessage = "Connexion impossible — vérifie ta connexion internet"
+            errorMessage = AppLocale.string("Connexion impossible — vérifie ta connexion internet")
         default:
             errorMessage = error.localizedDescription
         }

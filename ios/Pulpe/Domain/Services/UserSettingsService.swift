@@ -19,7 +19,12 @@ extension UserSettingsServicing {
     func getSettingsWithDefaults(context: StaticString) async -> (payDay: Int?, currency: SupportedCurrency) {
         do {
             let settings = try await getSettings()
-            AppLocale.persist(settings.locale ?? .fallback)
+            // Only a real server preference lands in the snapshot: persisting the
+            // French fallback would freeze device detection out on accounts that
+            // have never chosen a language.
+            if let locale = settings.locale {
+                AppLocale.persist(locale)
+            }
             return (settings.payDayOfMonth, settings.currency ?? .chf)
         } catch {
             Logger.sync.warning("\(context): settings fetch failed - \(error)")

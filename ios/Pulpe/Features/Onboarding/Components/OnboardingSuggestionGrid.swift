@@ -13,7 +13,7 @@ struct OnboardingSuggestionGrid: View {
     @Binding var toggleTrigger: Bool
 
     var body: some View {
-        OnboardingSectionHeader(title: "Suggestions", icon: "lightbulb.fill") {
+        OnboardingSectionHeader(title: AppLocale.string("Suggestions"), icon: "lightbulb.fill") {
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 160), spacing: DesignTokens.Spacing.sm)],
                 spacing: DesignTokens.Spacing.sm

@@ -154,7 +154,7 @@ extension LoginView {
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthTextField(
-                prompt: "Adresse e-mail",
+                prompt: AppLocale.string("Adresse e-mail"),
                 text: $viewModel.email,
                 systemImage: "envelope",
                 isFilled: viewModel.isEmailValid,
@@ -180,7 +180,7 @@ extension LoginView {
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
             AuthSecureField(
-                prompt: "Ton mot de passe",
+                prompt: AppLocale.string("Ton mot de passe"),
                 text: $viewModel.password,
                 isVisible: $viewModel.showPassword,
                 systemImage: "lock",

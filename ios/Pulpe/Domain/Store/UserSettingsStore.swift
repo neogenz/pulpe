@@ -66,7 +66,15 @@ final class UserSettingsStore: StoreProtocol {
                 payDayOfMonth = settings.payDayOfMonth
                 currency = settings.currency ?? .chf
                 showCurrencySelector = settings.showCurrencySelector ?? false
-                applyLocale(settings.locale ?? .fallback)
+                if let serverLocale = settings.locale {
+                    applyLocale(serverLocale)
+                } else {
+                    // No server preference yet: keep the boot resolution (snapshot or
+                    // device detection) published, but don't persist it — a detection
+                    // frozen into the snapshot would outlive a later device-language
+                    // change. Mirrors the webapp's `?? fallbackLocale` computed.
+                    locale = AppLocale.current
+                }
                 lastLoadTime = Date()
             } catch is CancellationError {
                 // Task was cancelled, don't update error state
@@ -95,9 +103,10 @@ final class UserSettingsStore: StoreProtocol {
         currency = .chf
         showCurrencySelector = false
         // Clear rather than default: the next account must not inherit this one's language
-        // for the seconds between launch and the first settings response.
+        // for the seconds between launch and the first settings response. With the
+        // snapshot gone, `current` resolves from device detection, like a fresh install.
         AppLocale.clearPersisted()
-        locale = .fallback
+        locale = AppLocale.current
         lastLoadTime = nil
         error = nil
     }

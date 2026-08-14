@@ -70,6 +70,29 @@ struct UserSettingsStoreLocaleTests {
         store.reset()
     }
 
+    /// An account that has never chosen a language answers `locale: nil`. The load must
+    /// keep the boot resolution published and must NOT persist it: freezing a detection
+    /// into the snapshot would outlive a later device-language change.
+    @Test func load_withoutServerLocale_keepsBootResolutionUnpersisted() async {
+        AppLocale.clearPersisted()
+        let mockService = MockUserSettingsService(
+            stubbedGetSettings: UserSettings(
+                payDayOfMonth: nil,
+                currency: .chf,
+                showCurrencySelector: false,
+                locale: nil
+            )
+        )
+        let store = UserSettingsStore(service: mockService)
+
+        await store.loadIfNeeded()
+
+        #expect(store.locale == AppLocale.detected())
+        #expect(AppLocale.current == AppLocale.detected())
+
+        store.reset()
+    }
+
     /// A backend that answers without `locale` must not snap the interface back to French
     /// — the value we just persisted is the one to keep.
     @Test func updateLocale_partialResponse_keepsThePersistedValue() async {
@@ -107,6 +130,9 @@ struct UserSettingsStoreLocaleTests {
     }
 
     /// Logging out must not leave the next account booting in this one's language.
+    /// With the snapshot cleared, `current` resolves from device detection — asserted
+    /// through `detected()` rather than a literal so the test survives whatever
+    /// language the test simulator happens to run in.
     @Test func reset_clearsThePersistedLanguage() async {
         let mockService = MockUserSettingsService(
             stubbedUpdateSettings: UserSettings(
@@ -121,7 +147,7 @@ struct UserSettingsStoreLocaleTests {
 
         store.reset()
 
-        #expect(store.locale == .fr)
-        #expect(AppLocale.current == .fr)
+        #expect(store.locale == AppLocale.detected())
+        #expect(AppLocale.current == AppLocale.detected())
     }
 }

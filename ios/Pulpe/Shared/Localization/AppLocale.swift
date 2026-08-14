@@ -14,12 +14,27 @@ enum AppLocale {
     nonisolated(unsafe) private static let defaults =
         UserDefaults(suiteName: WidgetDataCoordinator.appGroupId) ?? .standard
 
-    /// The last language the user confirmed. Readable before the settings request
-    /// answers, which is what lets a cold start paint in the right language.
-    /// Falls back to French for a fresh install and for any value this binary does
-    /// not ship — a server that learns a fifth language must not crash an old client.
+    /// The last language the user confirmed, else the closest device language this
+    /// binary ships, else French. Readable before the settings request answers, which
+    /// is what lets a cold start paint in the right language. An unknown persisted
+    /// value falls through to detection — a server that learns a fifth language must
+    /// not crash an old client.
     static var current: SupportedLocale {
-        SupportedLocale(rawValue: defaults.string(forKey: Key.locale) ?? "") ?? .fallback
+        SupportedLocale(rawValue: defaults.string(forKey: Key.locale) ?? "") ?? detected()
+    }
+
+    /// Mirrors the webapp's `resolveStartupLanguage`: an explicit choice outranks the
+    /// device, the device outranks French. Scans the user's ordered language list the
+    /// way bundle matching does, so a Spanish device with German as second language
+    /// lands on German — and a list with no shipped language on French.
+    static func detected(from languages: [String] = Locale.preferredLanguages) -> SupportedLocale {
+        for identifier in languages {
+            if let code = Locale(identifier: identifier).language.languageCode?.identifier,
+               let match = SupportedLocale(rawValue: code) {
+                return match
+            }
+        }
+        return .fallback
     }
 
     static func persist(_ locale: SupportedLocale) {

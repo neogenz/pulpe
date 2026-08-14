@@ -25,25 +25,25 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .welcome: "Bienvenue"
-        case .firstName: "Comment tu t'appelles ?"
-        case .income: "Tes revenus"
-        case .charges: "Tes dépenses"
-        case .savings: "Ton épargne"
-        case .budgetPreview: "Ton budget"
-        case .registration: "Crée ton compte"
+        case .welcome: AppLocale.string("Bienvenue")
+        case .firstName: AppLocale.string("Comment tu t'appelles ?")
+        case .income: AppLocale.string("Tes revenus")
+        case .charges: AppLocale.string("Tes dépenses")
+        case .savings: AppLocale.string("Ton épargne")
+        case .budgetPreview: AppLocale.string("Ton budget")
+        case .registration: AppLocale.string("Crée ton compte")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .welcome: "Reprends le contrôle de tes finances"
-        case .firstName: "Juste ton prénom"
-        case .income: "Ce qui tombe sur ton compte chaque mois"
-        case .charges: "Renseigne ce que tu connais — le reste peut attendre"
-        case .savings: "Ce que tu mets de côté chaque mois"
-        case .budgetPreview: "Voici ce que ça donne"
-        case .registration: "Pour retrouver tout ça sur tous tes appareils"
+        case .welcome: AppLocale.string("Reprends le contrôle de tes finances")
+        case .firstName: AppLocale.string("Juste ton prénom")
+        case .income: AppLocale.string("Ce qui tombe sur ton compte chaque mois")
+        case .charges: AppLocale.string("Renseigne ce que tu connais — le reste peut attendre")
+        case .savings: AppLocale.string("Ce que tu mets de côté chaque mois")
+        case .budgetPreview: AppLocale.string("Voici ce que ça donne")
+        case .registration: AppLocale.string("Pour retrouver tout ça sur tous tes appareils")
         }
     }
 

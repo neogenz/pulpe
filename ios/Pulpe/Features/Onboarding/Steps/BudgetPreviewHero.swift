@@ -34,9 +34,9 @@ struct BudgetPreviewHero: View {
 
     private var heroSubtitleText: String {
         switch emotionState {
-        case .comfortable: "disponible à dépenser"
-        case .tight: "disponible, mais serré"
-        case .deficit: "à combler"
+        case .comfortable: AppLocale.string("disponible à dépenser")
+        case .tight: AppLocale.string("disponible, mais serré")
+        case .deficit: AppLocale.string("à combler")
         }
     }
 
@@ -44,9 +44,9 @@ struct BudgetPreviewHero: View {
     /// otherwise has no way to infer the chromatic signal.
     private var heroAccessibilityPrefix: String {
         switch emotionState {
-        case .comfortable: "Disponible à dépenser"
-        case .tight: "Disponible mais serré"
-        case .deficit: "À combler"
+        case .comfortable: AppLocale.string("Disponible à dépenser")
+        case .tight: AppLocale.string("Disponible mais serré")
+        case .deficit: AppLocale.string("À combler")
         }
     }
 

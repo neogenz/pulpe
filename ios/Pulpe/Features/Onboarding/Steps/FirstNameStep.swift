@@ -27,7 +27,7 @@ struct FirstNameStep: View {
                     .foregroundStyle(Color.textPrimaryOnboarding)
 
                     AuthTextField(
-                        prompt: "Ton prénom",
+                        prompt: AppLocale.string("Ton prénom"),
                         text: $state.firstName,
                         systemImage: "person",
                         isFilled: state.isFirstNameValid,

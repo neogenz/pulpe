@@ -61,7 +61,7 @@ struct AddCustomExpenseSheet: View {
 
     var body: some View {
         SheetFormContainer(
-            title: isEditing ? "Modifier" : kind.newBudgetLineTitle,
+            title: isEditing ? AppLocale.string("Modifier") : kind.newBudgetLineTitle,
             isLoading: false,
             focus: $focusedField,
             focusOrder: [.amount, .description]
@@ -71,15 +71,15 @@ struct AddCustomExpenseSheet: View {
                 amountText: $amountText,
                 focus: $focusedField,
                 field: .amount,
-                hint: "Quel montant ?",
+                hint: AppLocale.string("Quel montant ?"),
                 currency: currency
             )
 
             FormTextField(
-                hint: "Ex : Spotify, Salle de sport...",
+                hint: AppLocale.string("Ex : Spotify, Salle de sport..."),
                 text: $name,
-                label: "Description",
-                accessibilityLabel: "Description de la prévision",
+                label: AppLocale.string("Description"),
+                accessibilityLabel: AppLocale.string("Description de la prévision"),
                 focusBinding: $focusedField,
                 field: .description
             )

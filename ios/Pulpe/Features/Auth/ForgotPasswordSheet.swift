@@ -54,7 +54,7 @@ struct ForgotPasswordSheet: View {
                     .foregroundStyle(Color.textPrimaryOnboarding)
 
                 AuthTextField(
-                    prompt: "ton@email.com",
+                    prompt: AppLocale.string("ton@email.com"),
                     text: $viewModel.email,
                     systemImage: "envelope",
                     hasError: viewModel.errorMessage != nil,
@@ -147,7 +147,7 @@ final class ForgotPasswordViewModel {
 
     func submit() async {
         guard isEmailValid else {
-            errorMessage = "Cette adresse email ne semble pas valide"
+            errorMessage = AppLocale.string("Cette adresse email ne semble pas valide")
             return
         }
 

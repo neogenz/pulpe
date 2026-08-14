@@ -262,6 +262,10 @@ schemes:
         PulpeWidget: all
     test:
       config: Local
+      # Pin the test process to French: `AppLocale` resolves the device language
+      # when nothing is persisted, and dozens of suites assert the French copy
+      # literally — on an English simulator they would compare EN against FR.
+      language: fr
       targets:
         - name: PulpeTests
     run:
@@ -321,6 +325,8 @@ schemes:
         PulpeTests: all
     test:
       config: Local
+      # Same French pin as PulpeLocal — see the comment there.
+      language: fr
       targets:
         - name: PulpeTests
 

@@ -23,9 +23,34 @@
         }
       }
     },
-    " *" : {},
-    " · %lld" : {},
-    "%@" : {},
+    " *" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " *"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " *"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " *"
+          }
+        }
+      }
+    },
+    " · %lld" : {
+      "localizations" : {}
+    },
+    "%@" : {
+      "localizations" : {}
+    },
     "%@\n\n« Appliquer » mettra à jour les budgets en cours et futurs. Les prévisions modifiées manuellement ne seront pas affectées." : {
       "localizations" : {
         "de" : {
@@ -202,7 +227,28 @@
         }
       }
     },
-    "%@ : montant masqué" : {},
+    "%@ : montant masqué" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: Betrag ausgeblendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: amount hidden"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: importo nascosto"
+          }
+        }
+      }
+    },
     "%@ au-delà du plan" : {
       "localizations" : {
         "de" : {
@@ -871,10 +917,28 @@
     },
     "%@, %@. Toucher pour modifier." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@. Zum Bearbeiten tippen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@. Tap to edit."
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@, %2$@. Toucher pour modifier."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@. Tocca per modificare."
           }
         }
       }
@@ -1071,10 +1135,28 @@
     },
     "%@. %@" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. %@"
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@. %2$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. %@"
           }
         }
       }
@@ -1135,17 +1217,59 @@
         }
       }
     },
+    "%@:" : {
+      "localizations" : {}
+    },
     "%@: %@" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %@"
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@: %2$@"
           }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %@"
+          }
         }
       }
     },
-    "%lld" : {},
+    "%lld" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
+          }
+        }
+      }
+    },
     "%lld %@" : {
       "localizations" : {
         "fr" : {
@@ -1158,10 +1282,28 @@
     },
     "%lld / %lld" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld / %lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld / %lld"
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld / %2$lld"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld / %lld"
           }
         }
       }
@@ -1358,6 +1500,144 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld questo mese"
+          }
+        }
+      }
+    },
+    "%lld chiffres" : {
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Ziffer"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Ziffern"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld digit"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld digits"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld chiffre"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld chiffres"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cifra"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cifre"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld chiffres sur %lld saisis" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld von %lld Ziffern eingegeben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld digits entered"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld chiffres sur %2$lld saisis"
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cifra su %lld inserita"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld cifre su %lld inserite"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld chiffres — tes montants sont chiffrés avec ce code" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Ziffern — deine Beträge sind mit diesem Code verschlüsselt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld digits — your amounts are encrypted with this code"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld cifre — i tuoi importi sono cifrati con questo codice"
           }
         }
       }
@@ -2374,10 +2654,28 @@
     },
     "%lld sur %lld" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld von %lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld"
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld sur %2$lld"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld su %lld"
           }
         }
       }
@@ -2860,7 +3158,9 @@
         }
       }
     },
-    "/" : {},
+    "/" : {
+      "localizations" : {}
+    },
     "/ %@ prévu" : {
       "localizations" : {
         "de" : {
@@ -2941,7 +3241,9 @@
         }
       }
     },
-    "0" : {},
+    "0" : {
+      "localizations" : {}
+    },
     "1 à %lld caractères · ajouté à la sélection" : {
       "localizations" : {
         "de" : {
@@ -2964,7 +3266,9 @@
         }
       }
     },
-    "12 janvier" : {},
+    "12 janvier" : {
+      "localizations" : {}
+    },
     "36 mois maximum" : {
       "localizations" : {
         "de" : {
@@ -2983,6 +3287,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Massimo 36 mesi"
+          }
+        }
+      }
+    },
+    "3ème pilier" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Säule 3a"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Third pillar"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terzo pilastro"
           }
         }
       }
@@ -3009,7 +3335,50 @@
         }
       }
     },
-    "8 caractères minimum" : {},
+    "8 caractères minimum" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mindestens 8 Zeichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8 characters minimum"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimo 8 caratteri"
+          }
+        }
+      }
+    },
+    "8 caractères minimum avec au moins un chiffre" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mindestens 8 Zeichen, davon mindestens eine Ziffer"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At least 8 characters, including a number"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Almeno 8 caratteri con almeno una cifra"
+          }
+        }
+      }
+    },
     "8 caractères minimum pour sécuriser ton compte" : {
       "localizations" : {
         "de" : {
@@ -3032,7 +3401,9 @@
         }
       }
     },
-    "API" : {},
+    "API" : {
+      "localizations" : {}
+    },
     "Abandonner" : {
       "localizations" : {
         "de" : {
@@ -3077,7 +3448,9 @@
         }
       }
     },
-    "Account header" : {},
+    "Account header" : {
+      "localizations" : {}
+    },
     "Actif" : {
       "localizations" : {
         "de" : {
@@ -3188,7 +3561,28 @@
         }
       }
     },
-    "Adresse e-mail" : {},
+    "Adresse e-mail" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-Mail-Adresse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email address"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indirizzo email"
+          }
+        }
+      }
+    },
     "Affiche le montant disponible à dépenser" : {
       "localizations" : {
         "de" : {
@@ -3211,7 +3605,9 @@
         }
       }
     },
-    "Affiche les 12 mois de l'année" : {},
+    "Affiche les 12 mois de l'année" : {
+      "localizations" : {}
+    },
     "Affiche tous les mois" : {
       "localizations" : {
         "de" : {
@@ -3234,7 +3630,9 @@
         }
       }
     },
-    "Afficher" : {},
+    "Afficher" : {
+      "localizations" : {}
+    },
     "Afficher le mot de passe" : {
       "localizations" : {
         "de" : {
@@ -3257,7 +3655,9 @@
         }
       }
     },
-    "Afficher les montants ?" : {},
+    "Afficher les montants ?" : {
+      "localizations" : {}
+    },
     "Afficher tous les types" : {
       "localizations" : {
         "de" : {
@@ -3412,6 +3812,28 @@
         }
       }
     },
+    "Ajoute le widget Pulpe à ton écran verrouillé : tu vois ton disponible sans même ouvrir l'app." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Füge das Pulpe-Widget zu deinem Sperrbildschirm hinzu: Du siehst dein Verfügbares, ohne die App überhaupt zu öffnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add the Pulpe widget to your lock screen: you see what's available without even opening the app."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi il widget Pulpe alla schermata di blocco: vedi il tuo disponibile senza nemmeno aprire l'app."
+          }
+        }
+      }
+    },
     "Ajoute un montant" : {
       "localizations" : {
         "de" : {
@@ -3522,8 +3944,50 @@
         }
       }
     },
-    "Ajouter un revenu" : {},
-    "Ajouter une charge" : {},
+    "Ajouter un revenu" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einnahme hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add income"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi un'entrata"
+          }
+        }
+      }
+    },
+    "Ajouter une charge" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fixkosten hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a fixed cost"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi una spesa fissa"
+          }
+        }
+      }
+    },
     "Ajouter une dépense" : {
       "localizations" : {
         "de" : {
@@ -3612,7 +4076,28 @@
         }
       }
     },
-    "Ajouter une épargne" : {},
+    "Ajouter une épargne" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparen hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add savings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi un risparmio"
+          }
+        }
+      }
+    },
     "Ajustement" : {
       "localizations" : {
         "de" : {
@@ -3811,7 +4296,9 @@
         }
       }
     },
-    "Anon Key" : {},
+    "Anon Key" : {
+      "localizations" : {}
+    },
     "Aperçu" : {
       "localizations" : {
         "de" : {
@@ -3980,8 +4467,50 @@
         }
       }
     },
-    "Appuie pour développer" : {},
-    "Appuie pour réduire" : {},
+    "Appuie pour développer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Ausklappen tippen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to expand"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocca per espandere"
+          }
+        }
+      }
+    },
+    "Appuie pour réduire" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Einklappen tippen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to collapse"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocca per comprimere"
+          }
+        }
+      }
+    },
     "Appuie pour sélectionner" : {
       "localizations" : {
         "de" : {
@@ -4044,6 +4573,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Collega al tuo account gli eventi tecnici e gli errori, per capire i problemi e aiutarti più in fretta. Non raccogliamo importi né ciò che scrivi."
+          }
+        }
+      }
+    },
+    "Assurance & Abonnements" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versicherung & Abos"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insurance & Subscriptions"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assicurazioni & Abbonamenti"
+          }
+        }
+      }
+    },
+    "Assurance maladie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Krankenkasse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Health insurance"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cassa malati"
           }
         }
       }
@@ -4730,7 +5303,31 @@
         }
       }
     },
-    "BIOMÉTRIE" : {},
+    "BIOMÉTRIE" : {
+      "localizations" : {}
+    },
+    "Belle marge pour le mois. Tu pourras affiner plus tard." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schöner Spielraum für den Monat. Du kannst später feinjustieren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nice margin for the month. You can fine-tune later."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un bel margine per il mese. Potrai perfezionare più tardi."
+          }
+        }
+      }
+    },
     "Bien joué ! Passe sur « Tout voir » pour revoir tes prévisions." : {
       "localizations" : {
         "de" : {
@@ -4771,6 +5368,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Presto il bilancio — te la cavi"
+          }
+        }
+      }
+    },
+    "Bienvenue" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Willkommen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benvenuto"
           }
         }
       }
@@ -4841,7 +5460,28 @@
         }
       }
     },
-    "Bonjour, %@" : {},
+    "Bonjour, %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hallo, %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hello, %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciao, %@"
+          }
+        }
+      }
+    },
     "Budget %@" : {
       "localizations" : {
         "de" : {
@@ -4908,7 +5548,9 @@
         }
       }
     },
-    "Budget protégé" : {},
+    "Budget protégé" : {
+      "localizations" : {}
+    },
     "Budgets" : {
       "localizations" : {
         "de" : {
@@ -5055,8 +5697,53 @@
         }
       }
     },
-    "CGU" : {},
-    "CHF 941.20" : {},
+    "C'est équilibré mais serré. Tu pourras affiner plus tard." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es ist ausgeglichen, aber knapp. Du kannst später feinjustieren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It's balanced but tight. You can fine-tune later."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È in equilibrio ma stretto. Potrai perfezionare più tardi."
+          }
+        }
+      }
+    },
+    "CGU" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AGB"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condizioni"
+          }
+        }
+      }
+    },
+    "CHF 941.20" : {
+      "localizations" : {}
+    },
     "Calcul automatique" : {
       "localizations" : {
         "de" : {
@@ -5145,6 +5832,28 @@
         }
       }
     },
+    "Ce code ne semble pas correct" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Code scheint nicht zu stimmen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That code doesn't look right"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo codice non sembra corretto"
+          }
+        }
+      }
+    },
     "Ce lien a expiré — demande-en un nouveau" : {
       "localizations" : {
         "de" : {
@@ -5163,6 +5872,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Questo link è scaduto — richiedine uno nuovo"
+          }
+        }
+      }
+    },
+    "Ce lien n'est plus valide. Demande un nouveau lien depuis l'écran de connexion." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Link ist nicht mehr gültig. Fordere auf dem Anmeldebildschirm einen neuen an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This link is no longer valid. Request a new one from the sign-in screen."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo link non è più valido. Richiedine uno nuovo dalla schermata di accesso."
           }
         }
       }
@@ -5511,6 +6242,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Questo progetto? Ci arriverai"
+          }
+        }
+      }
+    },
+    "Ce que tu mets de côté chaque mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was du jeden Monat zur Seite legst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What you set aside each month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quello che metti da parte ogni mese"
+          }
+        }
+      }
+    },
+    "Ce qui tombe sur ton compte chaque mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was jeden Monat auf deinem Konto landet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What lands in your account each month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quello che arriva sul tuo conto ogni mese"
           }
         }
       }
@@ -5899,6 +6674,28 @@
         }
       }
     },
+    "Cette adresse email ne semble pas valide" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese E-Mail-Adresse sieht nicht gültig aus"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That email address doesn't look valid"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo indirizzo email non sembra valido"
+          }
+        }
+      }
+    },
     "Cette pioche est introuvable — elle a peut-être déjà été supprimée" : {
       "localizations" : {
         "de" : {
@@ -6031,6 +6828,28 @@
         }
       }
     },
+    "Changement en cours..." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird geändert..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changing..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifica in corso..."
+          }
+        }
+      }
+    },
     "Changer" : {
       "localizations" : {
         "de" : {
@@ -6075,7 +6894,9 @@
         }
       }
     },
-    "Changer le mot de passe" : {},
+    "Changer le mot de passe" : {
+      "localizations" : {}
+    },
     "Chaque mois s'ajuste tout seul. Zéro calcul, zéro doute — juste ta progression qui monte." : {
       "localizations" : {
         "de" : {
@@ -6120,7 +6941,28 @@
         }
       }
     },
-    "Chargement" : {},
+    "Chargement" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird geladen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caricamento"
+          }
+        }
+      }
+    },
     "Chargement de la projection…" : {
       "localizations" : {
         "de" : {
@@ -6363,6 +7205,50 @@
         }
       }
     },
+    "Charges fixes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fixkosten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fixed costs"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spese fisse"
+          }
+        }
+      }
+    },
+    "Chiffré — tes montants restent privés" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verschlüsselt — deine Beträge bleiben privat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypted — your amounts stay private"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cifrato — i tuoi importi restano privati"
+          }
+        }
+      }
+    },
     "Choisir un modèle" : {
       "localizations" : {
         "de" : {
@@ -6451,7 +7337,50 @@
         }
       }
     },
-    "Choisis ta devise" : {},
+    "Choisis ta devise" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle deine Währung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose your currency"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli la tua valuta"
+          }
+        }
+      }
+    },
+    "Choisis ton code PIN" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle deinen PIN-Code"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose your PIN"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli il tuo codice PIN"
+          }
+        }
+      }
+    },
     "Choisis un objectif" : {
       "localizations" : {
         "de" : {
@@ -6518,8 +7447,50 @@
         }
       }
     },
-    "Clé copiée" : {},
-    "Clé de récupération" : {},
+    "Clé copiée" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlüssel kopiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key copied"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiave copiata"
+          }
+        }
+      }
+    },
+    "Clé de récupération" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederherstellungsschlüssel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recovery key"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiave di recupero"
+          }
+        }
+      }
+    },
     "Clé de récupération invalide — vérifie que tu as bien copié la clé" : {
       "localizations" : {
         "de" : {
@@ -6542,7 +7513,72 @@
         }
       }
     },
-    "Code PIN" : {},
+    "Code PIN" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codice PIN"
+          }
+        }
+      }
+    },
+    "Code PIN oublié ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN-Code vergessen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forgot your PIN?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codice PIN dimenticato?"
+          }
+        }
+      }
+    },
+    "Code invalide" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungültiger Code"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid code"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codice non valido"
+          }
+        }
+      }
+    },
     "Combien te manque-t-il ?" : {
       "localizations" : {
         "de" : {
@@ -6587,6 +7623,50 @@
         }
       }
     },
+    "Commencer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loslegen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get started"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inizia"
+          }
+        }
+      }
+    },
+    "Comment tu t'appelles ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie heisst du?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What's your name?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Come ti chiami?"
+          }
+        }
+      }
+    },
     "Compare ce solde avec ton compte bancaire. S'il y a un écart, vérifie que toutes tes dépenses sont bien pointées." : {
       "localizations" : {
         "de" : {
@@ -6609,7 +7689,28 @@
         }
       }
     },
-    "Compte" : {},
+    "Compte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account"
+          }
+        }
+      }
+    },
     "Compte introuvable — vérifie ton email" : {
       "localizations" : {
         "de" : {
@@ -6654,7 +7755,50 @@
         }
       }
     },
-    "Confirmation du mot de passe" : {},
+    "Confirmation du mot de passe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwortbestätigung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password confirmation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conferma della password"
+          }
+        }
+      }
+    },
+    "Confirme ton code PIN" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätige deinen PIN-Code"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm your PIN"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conferma il tuo codice PIN"
+          }
+        }
+      }
+    },
     "Confirme ton email pour continuer — vérifie ta boîte mail" : {
       "localizations" : {
         "de" : {
@@ -6677,10 +7821,75 @@
         }
       }
     },
-    "Confirme ton identité pour modifier ton accès." : {},
-    "Confirme ton nouveau mot de passe" : {},
-    "Confirmer" : {},
-    "Confirmer le nouveau mot de passe" : {},
+    "Confirme ton identité pour modifier ton accès." : {
+      "localizations" : {}
+    },
+    "Confirme ton nouveau mot de passe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätige dein neues Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm your new password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conferma la tua nuova password"
+          }
+        }
+      }
+    },
+    "Confirmer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conferma"
+          }
+        }
+      }
+    },
+    "Confirmer le nouveau mot de passe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neues Passwort bestätigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm the new password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conferma la nuova password"
+          }
+        }
+      }
+    },
     "Confirmer le retrait" : {
       "localizations" : {
         "de" : {
@@ -6703,10 +7912,94 @@
         }
       }
     },
-    "Connecte-toi pour accéder à ton budget" : {},
-    "Connexion avec Apple en cours" : {},
-    "Connexion en cours" : {},
-    "Connexion en cours…" : {},
+    "Connecte-toi pour accéder à ton budget" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melde dich an, um auf dein Budget zuzugreifen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to access your budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi per vedere il tuo budget"
+          }
+        }
+      }
+    },
+    "Connexion avec Apple en cours" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmeldung mit Apple läuft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signing in with Apple"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso con Apple in corso"
+          }
+        }
+      }
+    },
+    "Connexion en cours" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmeldung läuft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signing in"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso in corso"
+          }
+        }
+      }
+    },
+    "Connexion en cours…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmeldung läuft…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signing in…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso in corso…"
+          }
+        }
+      }
+    },
     "Connexion impossible" : {
       "localizations" : {
         "de" : {
@@ -6795,8 +8088,50 @@
         }
       }
     },
-    "Contacter le support" : {},
-    "Content de te revoir" : {},
+    "Contacter le support" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support kontaktieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contact support"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contatta il supporto"
+          }
+        }
+      }
+    },
+    "Content de te revoir" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schön, dich wiederzusehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good to see you again"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bello rivederti"
+          }
+        }
+      }
+    },
     "Continuer" : {
       "localizations" : {
         "de" : {
@@ -6819,8 +8154,50 @@
         }
       }
     },
-    "Continuer avec Apple" : {},
-    "Continuer avec Google" : {},
+    "Continuer avec Apple" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiter mit Apple"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue with Apple"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua con Apple"
+          }
+        }
+      }
+    },
+    "Continuer avec Google" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiter mit Google"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue with Google"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua con Google"
+          }
+        }
+      }
+    },
     "Continuer l'édition" : {
       "localizations" : {
         "de" : {
@@ -6865,9 +8242,94 @@
         }
       }
     },
-    "Copier la clé" : {},
-    "Copier la clé de récupération" : {},
-    "Copié !" : {},
+    "Copier la clé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlüssel kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy the key"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia la chiave"
+          }
+        }
+      }
+    },
+    "Copier la clé de récupération" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederherstellungsschlüssel kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy the recovery key"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia la chiave di recupero"
+          }
+        }
+      }
+    },
+    "Copié !" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiert!"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied!"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiato!"
+          }
+        }
+      }
+    },
+    "Courses / alimentation" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einkauf / Essen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groceries / food"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spesa / alimentari"
+          }
+        }
+      }
+    },
     "Court mais décisif" : {
       "localizations" : {
         "de" : {
@@ -7044,7 +8506,50 @@
         }
       }
     },
-    "Crée ton mot de passe" : {},
+    "Crée ton compte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstelle dein Konto"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create your account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea il tuo account"
+          }
+        }
+      }
+    },
+    "Crée ton mot de passe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstelle dein Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create your password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea la tua password"
+          }
+        }
+      }
+    },
     "Crée ton premier tag ci-dessus." : {
       "localizations" : {
         "de" : {
@@ -7287,6 +8792,28 @@
         }
       }
     },
+    "Créer mon compte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mein Konto erstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create my account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea il mio account"
+          }
+        }
+      }
+    },
     "Créer mon objectif" : {
       "localizations" : {
         "de" : {
@@ -7353,7 +8880,28 @@
         }
       }
     },
-    "Créer un compte" : {},
+    "Créer un compte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto erstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create an account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un account"
+          }
+        }
+      }
+    },
     "Créer un modèle" : {
       "localizations" : {
         "de" : {
@@ -7416,6 +8964,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crea un obiettivo"
+          }
+        }
+      }
+    },
+    "Créé pendant l'inscription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei der Registrierung erstellt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Created during sign-up"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creato durante l'iscrizione"
           }
         }
       }
@@ -7508,7 +9078,9 @@
         }
       }
     },
-    "Dashboard" : {},
+    "Dashboard" : {
+      "localizations" : {}
+    },
     "Date" : {
       "localizations" : {
         "de" : {
@@ -7683,7 +9255,9 @@
         }
       }
     },
-    "Demande la suppression définitive de ton compte Pulpe" : {},
+    "Demande la suppression définitive de ton compte Pulpe" : {
+      "localizations" : {}
+    },
     "Depuis %@" : {
       "localizations" : {
         "de" : {
@@ -7954,7 +9528,28 @@
         }
       }
     },
-    "Devise actuelle : %@. Toucher pour changer." : {},
+    "Devise actuelle : %@. Toucher pour changer." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuelle Währung: %@. Zum Ändern tippen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current currency: %@. Tap to change."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valuta attuale: %@. Tocca per cambiare."
+          }
+        }
+      }
+    },
     "Disponible" : {
       "localizations" : {
         "de" : {
@@ -7995,6 +9590,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disponibile %@"
+          }
+        }
+      }
+    },
+    "Disponible mais serré" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verfügbar, aber knapp"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available, but tight"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibile ma stretto"
           }
         }
       }
@@ -8043,6 +9660,28 @@
         }
       }
     },
+    "Dès que tu dépenses, pointe-le en un tap. 10 secondes, et ton « disponible à dépenser » reste toujours juste." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobald du etwas ausgibst, hak es mit einem Tipp ab. 10 Sekunden, und dein „Verfügbar zum Ausgeben“ bleibt immer aktuell."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As soon as you spend, check it off in one tap. 10 seconds, and your \"available to spend\" always stays accurate."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appena spendi, spuntalo con un tocco. 10 secondi, e il tuo «disponibile da spendere» resta sempre giusto."
+          }
+        }
+      }
+    },
     "Début (optionnel)" : {
       "localizations" : {
         "de" : {
@@ -8087,8 +9726,12 @@
         }
       }
     },
-    "Déconnecter" : {},
-    "Déconnexion" : {},
+    "Déconnecter" : {
+      "localizations" : {}
+    },
+    "Déconnexion" : {
+      "localizations" : {}
+    },
     "Déficit" : {
       "localizations" : {
         "de" : {
@@ -8205,7 +9848,28 @@
         }
       }
     },
-    "Définis ton nouveau mot de passe." : {},
+    "Définis ton nouveau mot de passe." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lege dein neues Passwort fest."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set your new password."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imposta la tua nuova password."
+          }
+        }
+      }
+    },
     "Déjà pointé" : {
       "localizations" : {
         "de" : {
@@ -8250,7 +9914,28 @@
         }
       }
     },
-    "Dépense" : {},
+    "Dépense" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgabe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expense"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spesa"
+          }
+        }
+      }
+    },
     "Dépense lissée" : {
       "localizations" : {
         "de" : {
@@ -8463,8 +10148,12 @@
         }
       }
     },
-    "Désactiver" : {},
-    "Désactiver %@ ?" : {},
+    "Désactiver" : {
+      "localizations" : {}
+    },
+    "Désactiver %@ ?" : {
+      "localizations" : {}
+    },
     "Désélectionné" : {
       "localizations" : {
         "de" : {
@@ -8531,7 +10220,28 @@
         }
       }
     },
-    "E-mail" : {},
+    "E-mail" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-Mail"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        }
+      }
+    },
     "Effet net du mois" : {
       "localizations" : {
         "de" : {
@@ -8554,8 +10264,50 @@
         }
       }
     },
-    "Email" : {},
-    "Email envoyé" : {},
+    "Email" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-Mail"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        }
+      }
+    },
+    "Email envoyé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-Mail gesendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email sent"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email inviata"
+          }
+        }
+      }
+    },
     "Email ou mot de passe incorrect — on réessaie ?" : {
       "localizations" : {
         "de" : {
@@ -8788,11 +10540,141 @@
         }
       }
     },
-    "Entre la clé de récupération que tu as notée lors de la configuration de ton code PIN" : {},
-    "Entre ton email pour recevoir un lien de réinitialisation." : {},
-    "Env" : {},
-    "Envoi en cours" : {},
-    "Envoyer le lien" : {},
+    "Entre la clé de récupération que tu as notée lors de la configuration de ton code PIN" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib den Wiederherstellungsschlüssel ein, den du beim Einrichten deines PIN-Codes notiert hast"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the recovery key you wrote down when setting up your PIN"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci la chiave di recupero che hai annotato durante la configurazione del tuo codice PIN"
+          }
+        }
+      }
+    },
+    "Entre ton email pour recevoir un lien de réinitialisation." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib deine E-Mail ein, um einen Link zum Zurücksetzen zu erhalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your email to receive a reset link."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci la tua email per ricevere un link di reimpostazione."
+          }
+        }
+      }
+    },
+    "Entrées" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eingänge"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Money in"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrate"
+          }
+        }
+      }
+    },
+    "Env" : {
+      "localizations" : {}
+    },
+    "Envoi en cours" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird gesendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sending"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invio in corso"
+          }
+        }
+      }
+    },
+    "Envoyer le lien" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link senden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send the link"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia il link"
+          }
+        }
+      }
+    },
+    "Erreur de chiffrement, réessaie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verschlüsselungsfehler, versuch es nochmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encryption error, try again"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Errore di cifratura, riprova"
+          }
+        }
+      }
+    },
     "Erreur de connexion" : {
       "localizations" : {
         "de" : {
@@ -8811,6 +10693,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Errore di connessione"
+          }
+        }
+      }
+    },
+    "Erreur de connexion, réessaie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbindungsfehler, versuch es nochmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection error, try again"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Errore di connessione, riprova"
+          }
+        }
+      }
+    },
+    "Erreur de sécurité, contacte le support" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sicherheitsfehler, wende dich an den Support"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Security error, contact support"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Errore di sicurezza, contatta l'assistenza"
+          }
+        }
+      }
+    },
+    "Erreur inattendue, réessaie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unerwarteter Fehler, versuch es nochmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unexpected error, try again"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Errore imprevisto, riprova"
           }
         }
       }
@@ -8947,6 +10895,28 @@
         }
       }
     },
+    "Ex : Spotify, Salle de sport..." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Z. B. Spotify, Fitnessstudio..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E.g. Spotify, gym..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es.: Spotify, palestra..."
+          }
+        }
+      }
+    },
     "Ex : Vacances, Fonds d'urgence..." : {
       "localizations" : {
         "de" : {
@@ -8991,8 +10961,50 @@
         }
       }
     },
-    "Ferme cet écran et ouvre ton mois en cours" : {},
-    "Fermer" : {},
+    "Ferme cet écran et ouvre ton mois en cours" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schliesse diesen Bildschirm und öffne deinen laufenden Monat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close this screen and open your current month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiudi questa schermata e apri il tuo mese corrente"
+          }
+        }
+      }
+    },
+    "Fermer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schliessen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiudi"
+          }
+        }
+      }
+    },
     "Fermer l'erreur" : {
       "localizations" : {
         "de" : {
@@ -9103,6 +11115,28 @@
         }
       }
     },
+    "Forfait téléphone" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Handy-Abo"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phone plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piano telefonico"
+          }
+        }
+      }
+    },
     "Franc suisse" : {
       "localizations" : {
         "de" : {
@@ -9121,6 +11155,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Franco svizzero"
+          }
+        }
+      }
+    },
+    "Garde-le sous les yeux" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behalt es im Blick"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep it in sight"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tienilo sott'occhio"
           }
         }
       }
@@ -9191,9 +11247,15 @@
         }
       }
     },
-    "Génération de la nouvelle clé..." : {},
-    "Générer maintenant" : {},
-    "Générer une clé de récupération ?" : {},
+    "Génération de la nouvelle clé..." : {
+      "localizations" : {}
+    },
+    "Générer maintenant" : {
+      "localizations" : {}
+    },
+    "Générer une clé de récupération ?" : {
+      "localizations" : {}
+    },
     "Gérer ces prévisions" : {
       "localizations" : {
         "de" : {
@@ -9656,9 +11718,53 @@
         }
       }
     },
-    "Interagis avec tes lignes" : {},
-    "J'ai déjà un compte" : {},
-    "J'ai noté ma clé" : {},
+    "Interagis avec tes lignes" : {
+      "localizations" : {}
+    },
+    "J'ai déjà un compte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich habe bereits ein Konto"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I already have an account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ho già un account"
+          }
+        }
+      }
+    },
+    "J'ai noté ma clé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich habe meinen Schlüssel notiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I've written down my key"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ho annotato la mia chiave"
+          }
+        }
+      }
+    },
     "JOUR DE PAIE" : {
       "localizations" : {
         "de" : {
@@ -9725,7 +11831,9 @@
         }
       }
     },
-    "Jour %lld" : {},
+    "Jour %lld" : {
+      "localizations" : {}
+    },
     "Jour de paie" : {
       "localizations" : {
         "de" : {
@@ -9744,6 +11852,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Giorno di paga"
+          }
+        }
+      }
+    },
+    "Juste ton prénom" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur dein Vorname"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just your first name"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo il tuo nome"
           }
         }
       }
@@ -9990,7 +12120,9 @@
         }
       }
     },
-    "La configuration de ton compte n'a pas abouti — vérifie ta connexion et réessaie." : {},
+    "La configuration de ton compte n'a pas abouti — vérifie ta connexion et réessaie." : {
+      "localizations" : {}
+    },
     "La connexion n'a pas abouti — %@" : {
       "localizations" : {
         "de" : {
@@ -10009,6 +12141,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "L'accesso non è andato a buon fine — %@"
+          }
+        }
+      }
+    },
+    "La création du budget a échoué. Réessaie." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Budget konnte nicht erstellt werden. Versuch es nochmal."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creating the budget failed. Try again."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La creazione del budget non è riuscita. Riprova."
           }
         }
       }
@@ -10343,7 +12497,9 @@
         }
       }
     },
-    "Le mois commencera un..." : {},
+    "Le mois commencera un..." : {
+      "localizations" : {}
+    },
     "Le mois de %@ porte quelques centimes de plus." : {
       "localizations" : {
         "de" : {
@@ -10472,6 +12628,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "L'importo verrà prelevato dall'obiettivo che scegli."
+          }
+        }
+      }
+    },
+    "Le nouveau code doit être différent" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der neue Code muss sich unterscheiden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The new code must be different"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il nuovo codice deve essere diverso"
           }
         }
       }
@@ -10648,6 +12826,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il portachiavi non è disponibile su questo dispositivo"
+          }
+        }
+      }
+    },
+    "Leasing / crédit" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leasing / Kredit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lease / loan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leasing / prestito"
+          }
+        }
+      }
+    },
+    "Leasing ou mensualité de crédit" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leasing oder Kreditrate"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lease or loan payment"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leasing o rata del prestito"
+          }
+        }
+      }
+    },
+    "Les codes ne correspondent pas" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Codes stimmen nicht überein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The codes don't match"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I codici non corrispondono"
           }
         }
       }
@@ -10916,7 +13160,28 @@
         }
       }
     },
-    "Lien invalide ou expiré" : {},
+    "Lien invalide ou expiré" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link ungültig oder abgelaufen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid or expired link"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link non valido o scaduto"
+          }
+        }
+      }
+    },
     "Ligne %lld" : {
       "localizations" : {
         "de" : {
@@ -11115,6 +13380,28 @@
         }
       }
     },
+    "Logement" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wohnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Housing"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Casa"
+          }
+        }
+      }
+    },
     "Logo Pulpe" : {
       "localizations" : {
         "de" : {
@@ -11137,9 +13424,100 @@
         }
       }
     },
-    "Long Press" : {},
-    "LÉGAL" : {},
-    "Maintenance en cours" : {},
+    "Loisirs & sport" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freizeit & Sport"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leisure & sport"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo libero & sport"
+          }
+        }
+      }
+    },
+    "Long Press" : {
+      "localizations" : {}
+    },
+    "Loyer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miete"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rent"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affitto"
+          }
+        }
+      }
+    },
+    "Loyer mensuel" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monatsmiete"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly rent"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affitto mensile"
+          }
+        }
+      }
+    },
+    "LÉGAL" : {
+      "localizations" : {}
+    },
+    "Maintenance en cours" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wartung läuft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenance under way"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manutenzione in corso"
+          }
+        }
+      }
+    },
     "Maison, vacances, voiture…" : {
       "localizations" : {
         "de" : {
@@ -11184,7 +13562,9 @@
         }
       }
     },
-    "Masquer" : {},
+    "Masquer" : {
+      "localizations" : {}
+    },
     "Masquer le mot de passe" : {
       "localizations" : {
         "de" : {
@@ -11229,8 +13609,75 @@
         }
       }
     },
-    "Masquer les montants ?" : {},
-    "Mes tags" : {},
+    "Masquer les montants ?" : {
+      "localizations" : {}
+    },
+    "Mes prévisions" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine Planposten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My planned items"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le mie previsioni"
+          }
+        }
+      }
+    },
+    "Mes tags" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine Tags"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My tags"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I miei tag"
+          }
+        }
+      }
+    },
+    "Mes épargnes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mein Sparen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My savings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I miei risparmi"
+          }
+        }
+      }
+    },
     "Mettre à jour" : {
       "localizations" : {
         "de" : {
@@ -11297,8 +13744,53 @@
         }
       }
     },
-    "Mise à jour en cours" : {},
-    "Mise à jour requise" : {},
+    "Mise à jour en cours" : {
+      "localizations" : {}
+    },
+    "Mise à jour requise" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update nötig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update required"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornamento necessario"
+          }
+        }
+      }
+    },
+    "Mobilité & Crédit" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobilität & Kredit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobility & Credit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobilità & Credito"
+          }
+        }
+      }
+    },
     "Mode de création" : {
       "localizations" : {
         "de" : {
@@ -11365,7 +13857,28 @@
         }
       }
     },
-    "Modifier %@" : {},
+    "Modifier %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bearbeiten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifica %@"
+          }
+        }
+      }
+    },
     "Modifier l'objectif" : {
       "localizations" : {
         "de" : {
@@ -11630,7 +14143,9 @@
         }
       }
     },
-    "Modèles : version iOS encore allégée" : {},
+    "Modèles : version iOS encore allégée" : {
+      "localizations" : {}
+    },
     "Mois" : {
       "localizations" : {
         "de" : {
@@ -11653,7 +14168,31 @@
         }
       }
     },
-    "Mois %@" : {},
+    "Mois %@" : {
+      "localizations" : {}
+    },
+    "Mois Standard" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standardmonat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mese standard"
+          }
+        }
+      }
+    },
     "Mois Type" : {
       "localizations" : {
         "de" : {
@@ -12072,10 +14611,94 @@
         }
       }
     },
-    "Mot de passe" : {},
-    "Mot de passe actuel" : {},
-    "Mot de passe oublié" : {},
-    "Mot de passe oublié ?" : {},
+    "Mot de passe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password"
+          }
+        }
+      }
+    },
+    "Mot de passe actuel" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuelles Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password attuale"
+          }
+        }
+      }
+    },
+    "Mot de passe oublié" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwort vergessen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forgotten password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password dimenticata"
+          }
+        }
+      }
+    },
+    "Mot de passe oublié ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwort vergessen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forgot your password?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password dimenticata?"
+          }
+        }
+      }
+    },
     "Mouvement de l’objectif, %@ %@" : {
       "localizations" : {
         "de" : {
@@ -12126,7 +14749,9 @@
         }
       }
     },
-    "Muted" : {},
+    "Muted" : {
+      "localizations" : {}
+    },
     "Nature" : {
       "localizations" : {
         "de" : {
@@ -12391,7 +15016,9 @@
         }
       }
     },
-    "Not syncing" : {},
+    "Not syncing" : {
+      "localizations" : {}
+    },
     "Note ce qui passe sur ton compte pour suivre tes dépenses" : {
       "localizations" : {
         "de" : {
@@ -12454,6 +15081,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Annota cosa passa sul tuo conto per seguire il tuo risparmio"
+          }
+        }
+      }
+    },
+    "Note cette clé dans un endroit sûr. Elle te permettra de retrouver l'accès à tes données si tu oublies ton code PIN." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notiere diesen Schlüssel an einem sicheren Ort. Damit kommst du wieder an deine Daten, falls du deinen PIN-Code vergisst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write this key down somewhere safe. It will let you get back into your data if you forget your PIN."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annota questa chiave in un posto sicuro. Ti permetterà di riaccedere ai tuoi dati se dimentichi il tuo codice PIN."
           }
         }
       }
@@ -12546,7 +15195,9 @@
         }
       }
     },
-    "Nouveau\ndans Pulpe" : {},
+    "Nouveau\ndans Pulpe" : {
+      "localizations" : {}
+    },
     "Nouveau budget" : {
       "localizations" : {
         "de" : {
@@ -12565,6 +15216,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nuovo budget"
+          }
+        }
+      }
+    },
+    "Nouveau code PIN" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer PIN"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New PIN"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuovo codice PIN"
           }
         }
       }
@@ -12635,8 +15308,50 @@
         }
       }
     },
-    "Nouveau mot de passe" : {},
-    "Nouveau sur Pulpe ?" : {},
+    "Nouveau mot de passe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neues Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuova password"
+          }
+        }
+      }
+    },
+    "Nouveau sur Pulpe ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neu bei Pulpe?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New to Pulpe?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuovo su Pulpe?"
+          }
+        }
+      }
+    },
     "Nouveau tag" : {
       "localizations" : {
         "de" : {
@@ -12725,7 +15440,28 @@
         }
       }
     },
-    "Objectif" : {},
+    "Objectif" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparziel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obiettivo"
+          }
+        }
+      }
+    },
     "Objectif : %@" : {
       "localizations" : {
         "de" : {
@@ -13106,7 +15842,28 @@
         }
       }
     },
-    "On l'utilisera pour afficher tous tes montants. Tu peux la changer à tout moment dans tes paramètres." : {},
+    "On l'utilisera pour afficher tous tes montants. Tu peux la changer à tout moment dans tes paramètres." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Damit werden alle deine Beträge angezeigt. Du kannst sie jederzeit in deinen Einstellungen ändern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It will be used to display all your amounts. You can change it anytime in your settings."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verrà usata per mostrare tutti i tuoi importi. Puoi cambiarla in qualsiasi momento nelle impostazioni."
+          }
+        }
+      }
+    },
     "On met ton plan à jour ?" : {
       "localizations" : {
         "de" : {
@@ -13169,6 +15926,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Non lo ricalcoliamo più, anche se il cambio si muove."
+          }
+        }
+      }
+    },
+    "On reprend là où tu t'es arrêté." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wir machen da weiter, wo du aufgehört hast."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picking up where you left off."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprendiamo da dove ti eri fermato."
           }
         }
       }
@@ -13323,7 +16102,28 @@
         }
       }
     },
-    "Optionnel" : {},
+    "Optionnel" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facoltativo"
+          }
+        }
+      }
+    },
     "Opérations à pointer" : {
       "localizations" : {
         "de" : {
@@ -13544,7 +16344,9 @@
         }
       }
     },
-    "PARAMÈTRES DE L'APPLICATION" : {},
+    "PARAMÈTRES DE L'APPLICATION" : {
+      "localizations" : {}
+    },
     "Page %lld sur %lld" : {
       "localizations" : {
         "de" : {
@@ -13683,7 +16485,9 @@
         }
       }
     },
-    "Pas de données" : {},
+    "Pas de données" : {
+      "localizations" : {}
+    },
     "Pas encore de budget" : {
       "localizations" : {
         "de" : {
@@ -13772,7 +16576,28 @@
         }
       }
     },
-    "Passer cette étape" : {},
+    "Passer cette étape" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schritt überspringen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip this step"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salta questo passaggio"
+          }
+        }
+      }
+    },
     "Passer l'introduction" : {
       "localizations" : {
         "de" : {
@@ -13795,8 +16620,50 @@
         }
       }
     },
-    "Pense à vérifier tes spams si tu ne le vois pas." : {},
-    "Personne d'autre ne voit ces montants — pas même moi qui développe Pulpe." : {},
+    "Pense à vérifier tes spams si tu ne le vois pas." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schau auch im Spam nach, falls du sie nicht siehst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check your spam folder if you don't see it."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla anche lo spam se non la vedi."
+          }
+        }
+      }
+    },
+    "Personne d'autre ne voit ces montants — pas même moi qui développe Pulpe." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niemand sonst sieht diese Beträge — nicht einmal ich, der Pulpe entwickelt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No one else sees these amounts — not even me, and I'm the one building Pulpe."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun altro vede questi importi — nemmeno io che sviluppo Pulpe."
+          }
+        }
+      }
+    },
     "Petit mois, petit ajustement" : {
       "localizations" : {
         "de" : {
@@ -13819,7 +16686,9 @@
         }
       }
     },
-    "Petit souci de connexion" : {},
+    "Petit souci de connexion" : {
+      "localizations" : {}
+    },
     "Pile sur ton plan" : {
       "localizations" : {
         "de" : {
@@ -13930,7 +16799,31 @@
         }
       }
     },
-    "Pointage" : {},
+    "Pointage" : {
+      "localizations" : {}
+    },
+    "Pointe tes dépenses" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hak deine Ausgaben ab"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check off your expenses"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta le tue spese"
+          }
+        }
+      }
+    },
     "Pointer" : {
       "localizations" : {
         "de" : {
@@ -14069,7 +16962,28 @@
         }
       }
     },
-    "Politique de confidentialité" : {},
+    "Politique de confidentialité" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datenschutzerklärung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy policy"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informativa sulla privacy"
+          }
+        }
+      }
+    },
     "Potentiel" : {
       "localizations" : {
         "de" : {
@@ -14136,7 +17050,31 @@
         }
       }
     },
-    "Pour ta sécurité, confirme ton mot de passe pour continuer." : {},
+    "Pour retrouver tout ça sur tous tes appareils" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Damit du all das auf allen deinen Geräten wiederfindest"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "So you can find all this on every device"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per ritrovare tutto questo su tutti i tuoi dispositivi"
+          }
+        }
+      }
+    },
+    "Pour ta sécurité, confirme ton mot de passe pour continuer." : {
+      "localizations" : {}
+    },
     "Pour tenir ton échéance" : {
       "localizations" : {
         "de" : {
@@ -14429,7 +17367,9 @@
         }
       }
     },
-    "Prominent" : {},
+    "Prominent" : {
+      "localizations" : {}
+    },
     "Pré-rempli avec cible ÷ mois restants." : {
       "localizations" : {
         "de" : {
@@ -14474,8 +17414,50 @@
         }
       }
     },
-    "Prénom" : {},
-    "Prénom, requis" : {},
+    "Prénom" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorname"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First name"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome"
+          }
+        }
+      }
+    },
+    "Prénom, requis" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorname, erforderlich"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First name, required"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome, obbligatorio"
+          }
+        }
+      }
+    },
     "Préparation de ton tableau de bord" : {
       "localizations" : {
         "de" : {
@@ -14926,7 +17908,9 @@
         }
       }
     },
-    "Pulpe" : {},
+    "Pulpe" : {
+      "localizations" : {}
+    },
     "Période d'activité" : {
       "localizations" : {
         "de" : {
@@ -14971,8 +17955,12 @@
         }
       }
     },
-    "Quand tu dépenses moins que prévu, Pulpe garde le montant prévu pour protéger ton budget." : {},
-    "Quand un mouvement est passé sur ton compte, pointe-le ici pour garder le fil." : {},
+    "Quand tu dépenses moins que prévu, Pulpe garde le montant prévu pour protéger ton budget." : {
+      "localizations" : {}
+    },
+    "Quand un mouvement est passé sur ton compte, pointe-le ici pour garder le fil." : {
+      "localizations" : {}
+    },
     "Que veux-tu supprimer ?" : {
       "localizations" : {
         "de" : {
@@ -15105,8 +18093,50 @@
         }
       }
     },
-    "Quitter" : {},
-    "Quitter l'inscription ?" : {},
+    "Quitter" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlassen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci"
+          }
+        }
+      }
+    },
+    "Quitter l'inscription ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrierung verlassen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave sign-up?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uscire dall'iscrizione?"
+          }
+        }
+      }
+    },
     "RAPPELS" : {
       "localizations" : {
         "de" : {
@@ -15261,8 +18291,50 @@
         }
       }
     },
-    "Recommencer" : {},
-    "Recommencer l'inscription ?" : {},
+    "Recommencer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neu beginnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start over"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricomincia"
+          }
+        }
+      }
+    },
+    "Recommencer l'inscription ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrierung neu beginnen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart sign-up?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricominciare l'iscrizione?"
+          }
+        }
+      }
+    },
     "Remettre sur ton épargne" : {
       "localizations" : {
         "de" : {
@@ -15303,6 +18375,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Riempi con l’importo che manca questo mese"
+          }
+        }
+      }
+    },
+    "Renseigne ce que tu connais — le reste peut attendre" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trag ein, was du weisst — der Rest kann warten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fill in what you know — the rest can wait"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci quello che sai — il resto può aspettare"
           }
         }
       }
@@ -15577,6 +18671,28 @@
         }
       }
     },
+    "Reprends le contrôle de tes finances" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übernimm wieder die Kontrolle über deine Finanzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take back control of your finances"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprendi il controllo delle tue finanze"
+          }
+        }
+      }
+    },
     "Ressource introuvable — réessaie ou mets l'app à jour" : {
       "localizations" : {
         "de" : {
@@ -15595,6 +18711,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Risorsa non trovata — riprova o aggiorna l'app"
+          }
+        }
+      }
+    },
+    "Restaurants & sorties" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurants & Ausgehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eating out & going out"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ristoranti & uscite"
           }
         }
       }
@@ -15665,7 +18803,28 @@
         }
       }
     },
-    "Rester" : {},
+    "Rester" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bleiben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stay"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resta"
+          }
+        }
+      }
+    },
     "Retirer des mois futurs" : {
       "localizations" : {
         "de" : {
@@ -15688,9 +18847,72 @@
         }
       }
     },
-    "Retour" : {},
-    "Retour au résumé" : {},
-    "Retour à la connexion" : {},
+    "Retour" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indietro"
+          }
+        }
+      }
+    },
+    "Retour au résumé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück zur Übersicht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to the summary"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torna al riepilogo"
+          }
+        }
+      }
+    },
+    "Retour à la connexion" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück zur Anmeldung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to sign-in"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torna all'accesso"
+          }
+        }
+      }
+    },
     "Retrait d'un objectif" : {
       "localizations" : {
         "de" : {
@@ -15867,9 +19089,72 @@
         }
       }
     },
-    "Revenir" : {},
-    "Revenir à l'étape précédente" : {},
-    "Revenu" : {},
+    "Revenir" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go back"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indietro"
+          }
+        }
+      }
+    },
+    "Revenir à l'étape précédente" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück zum vorherigen Schritt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go back to the previous step"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torna al passaggio precedente"
+          }
+        }
+      }
+    },
+    "Revenu" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einnahme"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Income"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrata"
+          }
+        }
+      }
+    },
     "Revenu dans le budget" : {
       "localizations" : {
         "de" : {
@@ -15910,6 +19195,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Entrata abituale"
+          }
+        }
+      }
+    },
+    "Revenu mensuel net" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monatliches Nettoeinkommen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Net monthly income"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reddito mensile netto"
           }
         }
       }
@@ -15976,6 +19283,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Entrate"
+          }
+        }
+      }
+    },
+    "Revenus supplémentaires" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zusätzliche Einnahmen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Additional income"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrate aggiuntive"
           }
         }
       }
@@ -16068,6 +19397,28 @@
         }
       }
     },
+    "Rien n'est figé — tu pourras ajuster ton budget quand tu veux." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nichts ist in Stein gemeisselt — du kannst dein Budget jederzeit anpassen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is set in stone — you can adjust your budget whenever you want."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niente è definitivo — potrai regolare il tuo budget quando vuoi."
+          }
+        }
+      }
+    },
     "Rien n'est modifié tant que tu n'appliques pas" : {
       "localizations" : {
         "de" : {
@@ -16112,7 +19463,9 @@
         }
       }
     },
-    "Row %lld" : {},
+    "Row %lld" : {
+      "localizations" : {}
+    },
     "Rythme : %@" : {
       "localizations" : {
         "de" : {
@@ -16333,6 +19686,28 @@
         }
       }
     },
+    "Récupération en cours..." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederherstellung läuft..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recovering..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recupero in corso..."
+          }
+        }
+      }
+    },
     "Récurrence" : {
       "localizations" : {
         "de" : {
@@ -16443,8 +19818,50 @@
         }
       }
     },
-    "Réinitialisation en cours" : {},
-    "Réinitialiser le mot de passe" : {},
+    "Réinitialisation en cours" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird zurückgesetzt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resetting"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimpostazione in corso"
+          }
+        }
+      }
+    },
+    "Réinitialiser le mot de passe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwort zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset the password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta la password"
+          }
+        }
+      }
+    },
     "Répartir ce qu'il reste — %@/mois" : {
       "localizations" : {
         "de" : {
@@ -16489,8 +19906,59 @@
         }
       }
     },
-    "S'inscrire avec email" : {},
-    "SUPPORT" : {},
+    "Résumé du budget. Entrées %@, sorties %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budgetübersicht. Eingänge %@, Ausgänge %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget summary. Money in %@, money out %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Résumé du budget. Entrées %1$@, sorties %2$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riepilogo del budget. Entrate %@, uscite %@"
+          }
+        }
+      }
+    },
+    "S'inscrire avec email" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit E-Mail registrieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign up with email"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrati con l'email"
+          }
+        }
+      }
+    },
+    "SUPPORT" : {
+      "localizations" : {}
+    },
     "Saisir dans une autre devise" : {
       "localizations" : {
         "de" : {
@@ -16513,14 +19981,254 @@
         }
       }
     },
-    "Saisis ton adresse e-mail" : {},
-    "Saisis ton mot de passe" : {},
-    "Saisis ton mot de passe pour confirmer" : {},
-    "Saisis ton nouveau mot de passe" : {},
-    "Saisis ton prénom" : {},
-    "Se connecter" : {},
-    "Se déconnecter" : {},
-    "Selected: %@" : {},
+    "Saisis ton adresse e-mail" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib deine E-Mail-Adresse ein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your email address"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci il tuo indirizzo email"
+          }
+        }
+      }
+    },
+    "Saisis ton ancien code PIN" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib deinen alten PIN-Code ein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your old PIN"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci il tuo vecchio codice PIN"
+          }
+        }
+      }
+    },
+    "Saisis ton code PIN" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib deinen PIN ein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type your PIN"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrivi il tuo codice PIN"
+          }
+        }
+      }
+    },
+    "Saisis ton mot de passe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib dein Passwort ein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci la tua password"
+          }
+        }
+      }
+    },
+    "Saisis ton mot de passe pour confirmer" : {
+      "localizations" : {}
+    },
+    "Saisis ton nouveau code PIN" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib deinen neuen PIN-Code ein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your new PIN"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci il tuo nuovo codice PIN"
+          }
+        }
+      }
+    },
+    "Saisis ton nouveau mot de passe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib dein neues Passwort ein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your new password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci la tua nuova password"
+          }
+        }
+      }
+    },
+    "Saisis ton prénom" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib deinen Vornamen ein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your first name"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci il tuo nome"
+          }
+        }
+      }
+    },
+    "Saisis à nouveau ton code" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib deinen Code erneut ein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your code again"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci di nuovo il tuo codice"
+          }
+        }
+      }
+    },
+    "Sans cette clé et sans ton code PIN, tes données financières seront définitivement inaccessibles." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne diesen Schlüssel und ohne deinen PIN-Code sind deine Finanzdaten endgültig unzugänglich."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without this key and without your PIN, your financial data will be permanently inaccessible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senza questa chiave e senza il tuo codice PIN, i tuoi dati finanziari saranno definitivamente inaccessibili."
+          }
+        }
+      }
+    },
+    "Se connecter" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmelden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi"
+          }
+        }
+      }
+    },
+    "Se déconnecter" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abmelden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign out"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci"
+          }
+        }
+      }
+    },
+    "Selected: %@" : {
+      "localizations" : {}
+    },
     "Session expirée — reconnecte-toi pour continuer" : {
       "localizations" : {
         "de" : {
@@ -16587,8 +20295,31 @@
         }
       }
     },
-    "Sheet content" : {},
-    "Si un compte existe avec cette adresse, tu recevras un email avec un lien de réinitialisation." : {},
+    "Sheet content" : {
+      "localizations" : {}
+    },
+    "Si un compte existe avec cette adresse, tu recevras un email avec un lien de réinitialisation." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falls es zu dieser Adresse ein Konto gibt, bekommst du eine E-Mail mit einem Link zum Zurücksetzen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If an account exists with that address, you'll get an email with a reset link."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se esiste un account con questo indirizzo, riceverai un'email con un link per reimpostare la password."
+          }
+        }
+      }
+    },
     "Solde" : {
       "localizations" : {
         "de" : {
@@ -16677,6 +20408,28 @@
         }
       }
     },
+    "Sorties" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgänge"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Money out"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uscite"
+          }
+        }
+      }
+    },
     "Source de l'épargne" : {
       "localizations" : {
         "de" : {
@@ -16721,7 +20474,9 @@
         }
       }
     },
-    "Standard" : {},
+    "Standard" : {
+      "localizations" : {}
+    },
     "Statut" : {
       "localizations" : {
         "de" : {
@@ -16740,6 +20495,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stato"
+          }
+        }
+      }
+    },
+    "Suggestions" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorschläge"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggestions"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggerimenti"
           }
         }
       }
@@ -16854,7 +20631,9 @@
         }
       }
     },
-    "Supabase" : {},
+    "Supabase" : {
+      "localizations" : {}
+    },
     "Suppression…" : {
       "localizations" : {
         "de" : {
@@ -16921,7 +20700,28 @@
         }
       }
     },
-    "Supprimer %@" : {},
+    "Supprimer %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina %@"
+          }
+        }
+      }
+    },
     "Supprimer aussi les mouvements rattachés à ces prévisions" : {
       "localizations" : {
         "de" : {
@@ -17054,7 +20854,28 @@
         }
       }
     },
-    "Supprimer le compte" : {},
+    "Supprimer le compte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete the account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina l'account"
+          }
+        }
+      }
+    },
     "Supprimer les prévisions" : {
       "localizations" : {
         "de" : {
@@ -17077,7 +20898,28 @@
         }
       }
     },
-    "Supprimer mon compte" : {},
+    "Supprimer mon compte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mein Konto löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete my account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina il mio account"
+          }
+        }
+      }
+    },
     "Supprimer seulement l'objectif" : {
       "localizations" : {
         "de" : {
@@ -17188,8 +21030,31 @@
         }
       }
     },
-    "Syncing" : {},
-    "Sécurité" : {},
+    "Syncing" : {
+      "localizations" : {}
+    },
+    "Sécurité" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sicherheit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Security"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sicurezza"
+          }
+        }
+      }
+    },
     "Sélecteur de mois" : {
       "localizations" : {
         "de" : {
@@ -17256,7 +21121,9 @@
         }
       }
     },
-    "Sélectionne une date" : {},
+    "Sélectionne une date" : {
+      "localizations" : {}
+    },
     "Sélectionné" : {
       "localizations" : {
         "de" : {
@@ -17297,6 +21164,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Serie"
+          }
+        }
+      }
+    },
+    "Ta clé contient des caractères invalides" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Schlüssel enthält ungültige Zeichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your key contains invalid characters"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua chiave contiene caratteri non validi"
+          }
+        }
+      }
+    },
+    "Ta récupération est réussie mais la nouvelle clé de récupération n'a pas pu être générée. Tu peux en créer une depuis les réglages." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Wiederherstellung war erfolgreich, aber der neue Wiederherstellungsschlüssel konnte nicht erstellt werden. Du kannst in den Einstellungen einen neuen erstellen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recovery succeeded, but the new recovery key could not be generated. You can create one from the settings."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il recupero è riuscito, ma non è stato possibile generare la nuova chiave di recupero. Puoi crearne una dalle impostazioni."
           }
         }
       }
@@ -17345,7 +21256,9 @@
         }
       }
     },
-    "Tag %@" : {},
+    "Tag %@" : {
+      "localizations" : {}
+    },
     "Tags" : {
       "localizations" : {
         "de" : {
@@ -17462,7 +21375,94 @@
         }
       }
     },
-    "Tes données seront supprimées définitivement après 3 jours." : {},
+    "Tes données seront supprimées définitivement après 3 jours." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Daten werden nach 3 Tagen endgültig gelöscht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your data will be deleted for good after 3 days."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi dati verranno eliminati per sempre dopo 3 giorni."
+          }
+        }
+      }
+    },
+    "Tes données sont en cours de re-chiffrement" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Daten werden neu verschlüsselt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your data is being re-encrypted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi dati vengono nuovamente cifrati"
+          }
+        }
+      }
+    },
+    "Tes dépenses" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Ausgaben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your expenses"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le tue spese"
+          }
+        }
+      }
+    },
+    "Tes dépenses pointées en un geste" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Ausgaben mit einer Geste abgehakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your spending checked off in one gesture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le tue spese spuntate con un gesto"
+          }
+        }
+      }
+    },
     "Tes finances prennent forme" : {
       "localizations" : {
         "de" : {
@@ -17573,6 +21573,50 @@
         }
       }
     },
+    "Tes revenus" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Einnahmen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your income"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le tue entrate"
+          }
+        }
+      }
+    },
+    "Ton budget" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Budget"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo budget"
+          }
+        }
+      }
+    },
     "Ton budget du mois t'attend. Fais le point en 30 secondes." : {
       "localizations" : {
         "de" : {
@@ -17595,8 +21639,94 @@
         }
       }
     },
-    "Ton budget est prêt en 2 minutes" : {},
-    "Ton budget est une prévision. Pour qu'il reste juste, tu le fais vivre en deux gestes." : {},
+    "Ton budget est prêt en 2 minutes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Budget steht in 2 Minuten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your budget is ready in 2 minutes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo budget è pronto in 2 minuti"
+          }
+        }
+      }
+    },
+    "Ton budget est une prévision. Pour qu'il reste juste, tu le fais vivre en deux gestes." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Budget ist eine Planung. Damit es stimmt, hältst du es mit zwei Handgriffen lebendig."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your budget is a forecast. To keep it accurate, you keep it alive with two simple moves."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo budget è una previsione. Per mantenerlo giusto, lo fai vivere con due gesti."
+          }
+        }
+      }
+    },
+    "Ton budget respire" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Budget hat Luft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your budget has room to breathe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo budget respira"
+          }
+        }
+      }
+    },
+    "Ton budget tient debout" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Budget steht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your budget holds up"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo budget sta in piedi"
+          }
+        }
+      }
+    },
     "Ton code d'accès a été modifié — saisis ton nouveau code" : {
       "localizations" : {
         "de" : {
@@ -17619,7 +21749,28 @@
         }
       }
     },
-    "Ton compte en cours sera déconnecté. Tu pourras en recréer un nouveau." : {},
+    "Ton compte en cours sera déconnecté. Tu pourras en recréer un nouveau." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein aktuelles Konto wird abgemeldet. Du kannst ein neues erstellen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your current account will be signed out. You can create a new one."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo account attuale verrà disconnesso. Potrai crearne uno nuovo."
+          }
+        }
+      }
+    },
     "Ton compte est en cours de suppression." : {
       "localizations" : {
         "de" : {
@@ -17664,7 +21815,31 @@
         }
       }
     },
-    "Ton mois budgétaire" : {},
+    "Ton mois budgétaire" : {
+      "localizations" : {}
+    },
+    "Ton mot de passe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua password"
+          }
+        }
+      }
+    },
     "Ton plan a changé entre-temps — vérifie les données actualisées et relance la simulation" : {
       "localizations" : {
         "de" : {
@@ -17775,6 +21950,28 @@
         }
       }
     },
+    "Ton prénom" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Vorname"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your first name"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo nome"
+          }
+        }
+      }
+    },
     "Ton rythme prévu : %@/mois · pour finir le %@, vise %@/mois" : {
       "localizations" : {
         "de" : {
@@ -17875,6 +22072,28 @@
         }
       }
     },
+    "Ton épargne" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Sparen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your savings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo risparmio"
+          }
+        }
+      }
+    },
     "Total" : {
       "localizations" : {
         "de" : {
@@ -17897,6 +22116,28 @@
         }
       }
     },
+    "Total charges" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fixkosten gesamt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total fixed costs"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Totale spese fisse"
+          }
+        }
+      }
+    },
     "Total retiré" : {
       "localizations" : {
         "de" : {
@@ -17915,6 +22156,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Totale prelevato"
+          }
+        }
+      }
+    },
+    "Total revenus" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einnahmen gesamt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total income"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Totale entrate"
           }
         }
       }
@@ -17977,6 +22240,28 @@
         }
       }
     },
+    "Total épargne" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparen gesamt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total savings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Totale risparmio"
+          }
+        }
+      }
+    },
     "Touche deux fois pour ouvrir le menu de filtres d'état." : {
       "localizations" : {
         "de" : {
@@ -18021,7 +22306,9 @@
         }
       }
     },
-    "Touche pour modifier · Glisse pour compléter ou supprimer · Reste appuyé pour voir le détail" : {},
+    "Touche pour modifier · Glisse pour compléter ou supprimer · Reste appuyé pour voir le détail" : {
+      "localizations" : {}
+    },
     "Touche pour noter un montant, maintiens pour voir les mouvements" : {
       "localizations" : {
         "de" : {
@@ -18330,7 +22617,53 @@
         }
       }
     },
-    "Trends content here" : {},
+    "Transport" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verkehr"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transport"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trasporti"
+          }
+        }
+      }
+    },
+    "Transport (abonnement, essence...)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verkehr (Abo, Benzin...)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transport (pass, fuel...)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trasporti (abbonamento, benzina...)"
+          }
+        }
+      }
+    },
+    "Trends content here" : {
+      "localizations" : {}
+    },
     "Trop d'emails envoyés — patiente quelques minutes" : {
       "localizations" : {
         "de" : {
@@ -18371,6 +22704,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Troppi tentativi — aspetta qualche minuto"
+          }
+        }
+      }
+    },
+    "Trop de tentatives — patiente un moment" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu viele Versuche — warte einen Moment"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many attempts — wait a moment"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Troppi tentativi — aspetta un momento"
+          }
+        }
+      }
+    },
+    "Trop de tentatives, patiente un moment" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu viele Versuche, warte einen Moment"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many attempts, wait a moment"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Troppi tentativi, aspetta un momento"
           }
         }
       }
@@ -18543,9 +22920,34 @@
         }
       }
     },
-    "Tu comptes en francs ou en euros ?" : {},
-    "Tu devras te reconnecter avec ton email et ton mot de passe." : {},
-    "Tu devras utiliser ton code PIN pour te connecter." : {},
+    "Tu comptes en francs ou en euros ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechnest du in Franken oder Euro?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you count in francs or euros?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conti in franchi o in euro?"
+          }
+        }
+      }
+    },
+    "Tu devras te reconnecter avec ton email et ton mot de passe." : {
+      "localizations" : {}
+    },
+    "Tu devras utiliser ton code PIN pour te connecter." : {
+      "localizations" : {}
+    },
     "Tu dois te reconnecter avant de modifier ton mot de passe" : {
       "localizations" : {
         "de" : {
@@ -18634,7 +23036,28 @@
         }
       }
     },
-    "Tu n'as plus ta clé de récupération ?" : {},
+    "Tu n'as plus ta clé de récupération ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast deinen Wiederherstellungsschlüssel nicht mehr?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lost your recovery key?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non hai più la tua chiave di recupero?"
+          }
+        }
+      }
+    },
     "Tu peux couvrir ce mois avec ton épargne." : {
       "localizations" : {
         "de" : {
@@ -18723,8 +23146,50 @@
         }
       }
     },
-    "Tu pourras changer plus tard si besoin." : {},
-    "Tu pourras reprendre plus tard." : {},
+    "Tu pourras changer plus tard si besoin." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du kannst das später bei Bedarf ändern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can change it later if needed."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrai cambiare più tardi se serve."
+          }
+        }
+      }
+    },
+    "Tu pourras reprendre plus tard." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du kannst später weitermachen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can pick up later."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrai riprendere più tardi."
+          }
+        }
+      }
+    },
     "Tu tiens %@. Ton épargne est reconstituée en %@." : {
       "localizations" : {
         "de" : {
@@ -18749,6 +23214,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Arrivi in fondo a %@. Il tuo risparmio torna pieno a %@."
+          }
+        }
+      }
+    },
+    "Tu vois clairement où tu en es" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du siehst klar, wo du stehst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can see clearly where you stand"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi chiaramente a che punto sei"
           }
         }
       }
@@ -18803,6 +23290,28 @@
         }
       }
     },
+    "Un code PIN existe déjà pour ce compte — saisis-le" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für dieses Konto gibt es bereits einen PIN-Code — gib ihn ein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A PIN already exists for this account — enter it"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per questo account esiste già un codice PIN — inseriscilo"
+          }
+        }
+      }
+    },
     "Un mois un peu juste ?" : {
       "localizations" : {
         "de" : {
@@ -18843,6 +23352,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un po' indietro"
+          }
+        }
+      }
+    },
+    "Un plan clair pour chaque mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein klarer Plan für jeden Monat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A clear plan for every month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un piano chiaro per ogni mese"
           }
         }
       }
@@ -19001,8 +23532,53 @@
         }
       }
     },
-    "Une dernière chose" : {},
-    "Une nouvelle version de Pulpe est disponible. Mets l'app à jour pour continuer." : {},
+    "Une dernière chose" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine letzte Sache"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One last thing"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un'ultima cosa"
+          }
+        }
+      }
+    },
+    "Une erreur est survenue, réessaie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etwas ist schiefgelaufen, versuch es nochmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong, try again"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qualcosa è andato storto, riprova"
+          }
+        }
+      }
+    },
+    "Une nouvelle version de Pulpe est disponible. Mets l'app à jour pour continuer." : {
+      "localizations" : {}
+    },
     "Une pioche est déjà en place pour ce mois" : {
       "localizations" : {
         "de" : {
@@ -19069,8 +23645,94 @@
         }
       }
     },
-    "Utiliser %@" : {},
-    "Valider" : {},
+    "Utiliser %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa %@"
+          }
+        }
+      }
+    },
+    "Valider" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conferma"
+          }
+        }
+      }
+    },
+    "Valider et affiner" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätigen und anpassen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm and fine-tune"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conferma e perfeziona"
+          }
+        }
+      }
+    },
+    "Valider mon budget" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mein Budget bestätigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm my budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conferma il mio budget"
+          }
+        }
+      }
+    },
     "Verrouillé" : {
       "localizations" : {
         "de" : {
@@ -19093,7 +23755,9 @@
         }
       }
     },
-    "Version %@" : {},
+    "Version %@" : {
+      "localizations" : {}
+    },
     "Version %@ - %@" : {
       "localizations" : {
         "fr" : {
@@ -19122,6 +23786,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ecco cosa mettiamo in piedi"
+          }
+        }
+      }
+    },
+    "Voici ce que ça donne" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "So sieht das aus"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here's how it looks"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ecco come viene"
+          }
+        }
+      }
+    },
+    "Voir la suite" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiter"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See what's next"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua"
           }
         }
       }
@@ -19396,7 +24104,28 @@
         }
       }
     },
-    "Vois clair dans tes finances" : {},
+    "Vois clair dans tes finances" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sieh klar bei deinen Finanzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See your finances clearly"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi chiaro nelle tue finanze"
+          }
+        }
+      }
+    },
     "Voyage au Japon" : {
       "localizations" : {
         "de" : {
@@ -19441,11 +24170,78 @@
         }
       }
     },
-    "Vue annuelle" : {},
-    "Vérification" : {},
-    "Vérification du lien en cours" : {},
-    "Vérification du lien..." : {},
-    "Vérification en cours" : {},
+    "Vue annuelle" : {
+      "localizations" : {}
+    },
+    "Vérification" : {
+      "localizations" : {}
+    },
+    "Vérification du lien en cours" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link wird geprüft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking the link"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica del link in corso"
+          }
+        }
+      }
+    },
+    "Vérification du lien..." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link wird geprüft..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking the link..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica del link..."
+          }
+        }
+      }
+    },
+    "Vérification en cours" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüfung läuft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica in corso"
+          }
+        }
+      }
+    },
     "Vérifie tout ce qui est rattaché à « %@ » avant de choisir." : {
       "localizations" : {
         "de" : {
@@ -19468,12 +24264,62 @@
         }
       }
     },
-    "Vérifier" : {},
-    "With icon + trailing" : {},
-    "XXXX-XXXX-XXXX-XXXX-..." : {},
-    "Year overview content here" : {},
-    "ZONE DE DANGER" : {},
-    "Zero" : {},
+    "Vérifier" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüfen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica"
+          }
+        }
+      }
+    },
+    "With icon + trailing" : {
+      "localizations" : {}
+    },
+    "XXXX-XXXX-XXXX-XXXX-..." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "XXXX-XXXX-XXXX-XXXX-..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "XXXX-XXXX-XXXX-XXXX-..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "XXXX-XXXX-XXXX-XXXX-..."
+          }
+        }
+      }
+    },
+    "Year overview content here" : {
+      "localizations" : {}
+    },
+    "ZONE DE DANGER" : {
+      "localizations" : {}
+    },
+    "Zero" : {
+      "localizations" : {}
+    },
     "arrivent sur ton budget" : {
       "localizations" : {
         "de" : {
@@ -19672,6 +24518,50 @@
         }
       }
     },
+    "disponible à dépenser" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "verfügbar zum Ausgeben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "available to spend"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "disponibile da spendere"
+          }
+        }
+      }
+    },
+    "disponible, mais serré" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "verfügbar, aber knapp"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "available, but tight"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "disponibile, ma stretto"
+          }
+        }
+      }
+    },
     "dont" : {
       "localizations" : {
         "de" : {
@@ -19690,6 +24580,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "di cui"
+          }
+        }
+      }
+    },
+    "dont %@ d'épargne" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "davon %@ Sparen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "including %@ in savings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "di cui %@ di risparmio"
+          }
+        }
+      }
+    },
+    "dont %@ de charges" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "davon %@ Fixkosten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "including %@ in fixed costs"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "di cui %@ di spese fisse"
+          }
+        }
+      }
+    },
+    "dont %@ de charges et %@ d'épargne" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "davon %@ Fixkosten und %@ Sparen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "including %@ in fixed costs and %@ in savings"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "dont %1$@ de charges et %2$@ d'épargne"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "di cui %@ di spese fisse e %@ di risparmio"
           }
         }
       }
@@ -19716,8 +24678,50 @@
         }
       }
     },
-    "désactivé" : {},
-    "développé" : {},
+    "désactivé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "deaktiviert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "disabled"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "disattivato"
+          }
+        }
+      }
+    },
+    "développé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ausgeklappt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "expanded"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "espanso"
+          }
+        }
+      }
+    },
     "estimé fin %@" : {
       "localizations" : {
         "de" : {
@@ -19740,7 +24744,28 @@
         }
       }
     },
-    "et" : {},
+    "et" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "und"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "and"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e"
+          }
+        }
+      }
+    },
     "et %lld autres" : {
       "localizations" : {
         "de" : {
@@ -19861,7 +24886,9 @@
         }
       }
     },
-    "iOS %@" : {},
+    "iOS %@" : {
+      "localizations" : {}
+    },
     "ici" : {
       "localizations" : {
         "de" : {
@@ -19972,7 +24999,28 @@
         }
       }
     },
-    "ou" : {},
+    "ou" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "oder"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "or"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "oppure"
+          }
+        }
+      }
+    },
     "ouvert" : {
       "localizations" : {
         "de" : {
@@ -20265,7 +25313,28 @@
         }
       }
     },
-    "réduit" : {},
+    "réduit" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "eingeklappt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "collapsed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "compresso"
+          }
+        }
+      }
+    },
     "saisi en %@" : {
       "localizations" : {
         "de" : {
@@ -20306,6 +25375,31 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "su %@"
+          }
+        }
+      }
+    },
+    "text-field-placeholder" : {
+      "localizations" : {}
+    },
+    "ton@email.com" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "du@email.com"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "you@email.com"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tua@email.com"
           }
         }
       }
@@ -20376,7 +25470,9 @@
         }
       }
     },
-    "|" : {},
+    "|" : {
+      "localizations" : {}
+    },
     "« %@ » · %@" : {
       "localizations" : {
         "de" : {
@@ -20427,7 +25523,9 @@
         }
       }
     },
-    "·" : {},
+    "·" : {
+      "localizations" : {}
+    },
     "À" : {
       "localizations" : {
         "de" : {
@@ -20468,6 +25566,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A: %@"
+          }
+        }
+      }
+    },
+    "À combler" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu decken"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To cover"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da coprire"
           }
         }
       }
@@ -20814,7 +25934,28 @@
         }
       }
     },
-    "Épargne" : {},
+    "Épargne" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Savings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Risparmio"
+          }
+        }
+      }
+    },
     "Épargne de remboursement supprimée" : {
       "localizations" : {
         "de" : {
@@ -21071,6 +26212,28 @@
         }
       }
     },
+    "Épargne retraite" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altersvorsorge"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retirement savings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previdenza"
+          }
+        }
+      }
+    },
     "Épargne à ajouter" : {
       "localizations" : {
         "de" : {
@@ -21195,10 +26358,94 @@
     },
     "Étape %lld sur %lld, étape actuelle : %@" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schritt %lld von %lld, aktueller Schritt: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step %lld of %lld, current step: %@"
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Étape %1$lld sur %2$lld, étape actuelle : %3$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passaggio %lld di %lld, passaggio attuale: %@"
+          }
+        }
+      }
+    },
+    "Étape 1 sur 2" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schritt 1 von 2"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step 1 of 2"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passaggio 1 di 2"
+          }
+        }
+      }
+    },
+    "Étape 2 sur 2" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schritt 2 von 2"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step 2 of 2"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passaggio 2 di 2"
+          }
+        }
+      }
+    },
+    "à combler" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "zu decken"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "to cover"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "da coprire"
           }
         }
       }
@@ -21247,7 +26494,9 @@
         }
       }
     },
-    "—" : {},
+    "—" : {
+      "localizations" : {}
+    },
     "→ %@" : {
       "localizations" : {
         "de" : {
