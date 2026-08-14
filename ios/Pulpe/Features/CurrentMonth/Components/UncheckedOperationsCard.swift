@@ -108,23 +108,32 @@ struct UncheckedOperationsCard: View {
                         .pulpeRowCard()
                         .containerRelativeFrame(.horizontal)
                         .scrollTransition(.interactive, axis: .horizontal) { content, phase in
-                            // Tucked neighbours: anchored on the inner edge so the peek
-                            // width survives the shrink, turned slightly away like cards
-                            // on a ring, faded one step behind the focused one. Under
-                            // Reduce Motion the turn goes; scale and fade are resting
-                            // states that only track the user's own finger.
+                            // Tucked neighbours: scale AND turn both pivot on the inner
+                            // edge — the peek width survives the shrink, and the 3D
+                            // projection grows toward the screen edge instead of
+                            // swelling inward over the focused card. Under Reduce
+                            // Motion the turn goes; scale and fade are resting states
+                            // that only track the user's own finger.
                             let depth = abs(phase.value)
+                            let innerEdge: UnitPoint = phase.value > 0 ? .leading : .trailing
                             return content
                                 .scaleEffect(
                                     1 - depth * DesignTokens.Deck.tuckScaleDrop,
-                                    anchor: phase.value > 0 ? .leading : .trailing
+                                    anchor: innerEdge
                                 )
                                 .rotation3DEffect(
                                     .degrees(reduceMotion ? 0 : phase.value * DesignTokens.Deck.turnDegrees),
-                                    axis: (x: 0, y: 1, z: 0)
+                                    axis: (x: 0, y: 1, z: 0),
+                                    anchor: innerEdge
                                 )
                                 .opacity(1 - depth * DesignTokens.Deck.tuckFade)
                         }
+                        // An HStack paints later siblings on top, so the trailing
+                        // neighbour — its shadow and its perspective projection — would
+                        // ride over the focused card. The focused card owns the top
+                        // layer; behind it the natural order keeps each billet under
+                        // the one nearer the focus.
+                        .zIndex(item.id == focusedId ? 1 : 0)
                         // Only the focused card answers taps: a peeking sliver exposes
                         // the leading edge of its neighbour's own "C'est passé", and one
                         // stray tap there would point an operation the user barely sees.
