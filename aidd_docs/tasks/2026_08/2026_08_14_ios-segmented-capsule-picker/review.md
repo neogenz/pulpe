@@ -28,6 +28,12 @@
 - [x] Les éléments blancs (thumb du segment natif, toggles) restent lisibles sur carte blanche : leur contraste vient de leurs tracks systemFill, pas de la carte — vérifié sur captures light + dark
 - [x] Gates verts : build EXIT 0, SwiftLint strict 0 sur fichiers touchés, 2091 tests / 218 suites passés; captures light + dark validées sur simulateur
 
+### Phase 3 — Contraste des helpers TipKit (demande Maxime en cours de branche)
+
+- [x] Cause : les 3 `TipView` inline (accueil `BudgetSection`, détail budget `pessimisticCheck`, Modèles `webParityTip`) ridaient le fond gris par défaut de TipKit, quasi invisible sur `appBackground`
+- [x] Fix : modifier partagé `pulpeTipBackground()` (dans `ProductTips.swift`, à côté de `suppressesTips()`) = `tipBackground(Color.surfaceContainerLowest)`, appliqué aux 3 sites; les `.popoverTip` gardent leur bulle système
+- [x] Gates verts : build EXIT 0, SwiftLint strict 0, 2091 tests / 218 suites; captures Modèles light + dark validées sur simulateur
+
 ## Findings
 
 | Sev | Kind | Phase | Location | Issue | Fix |

@@ -186,4 +186,11 @@ extension View {
     func suppressesTips() -> some View {
         modifier(SuppressesTipsModifier())
     }
+
+    /// Shared surface for inline `TipView`s: the row-card token, so education
+    /// banners lift off the canvas like every other card. TipKit's default
+    /// gray fill is near-indistinguishable from `appBackground`.
+    func pulpeTipBackground() -> some View {
+        tipBackground(Color.surfaceContainerLowest)
+    }
 }
