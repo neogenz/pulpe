@@ -1,5 +1,6 @@
 import Foundation
 @testable import Pulpe
+import Supabase
 import Testing
 
 @Suite(.serialized)
@@ -171,6 +172,116 @@ struct APIClientClientKeyHeaderTests {
         }
 
         #expect(invalidationCalled.value == false)
+    }
+
+    @Test func request_unauthorized_refreshRejectedWith4xx_invalidatesSessionAndThrowsUnauthorized() async {
+        let invalidationCalled = AtomicFlag()
+
+        InterceptingURLProtocol.requestHandler = { request in
+            (makeHTTPResponse(for: request, statusCode: 401), Data())
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let sut = makeSUT(
+            token: "expired-token",
+            clientKey: clientKey,
+            forceRefreshAccessToken: { throw Self.authAPIError(statusCode: 400) },
+            invalidateSession: { invalidationCalled.set() }
+        )
+
+        do {
+            let _: UserPayload = try await sut.request(.userProfile)
+            Issue.record("Expected the request to fail")
+        } catch let error as APIError {
+            guard case .unauthorized = error else {
+                Issue.record("Expected APIError.unauthorized, got \(error)")
+                return
+            }
+        } catch {
+            Issue.record("Expected APIError, got \(error)")
+        }
+        #expect(invalidationCalled.value == true)
+    }
+
+    @Test func request_unauthorized_refreshURLError_keepsSessionAndThrowsNetworkError() async {
+        let invalidationCalled = AtomicFlag()
+
+        InterceptingURLProtocol.requestHandler = { request in
+            (makeHTTPResponse(for: request, statusCode: 401), Data())
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let sut = makeSUT(
+            token: "expired-token",
+            clientKey: clientKey,
+            forceRefreshAccessToken: { throw URLError(.notConnectedToInternet) },
+            invalidateSession: { invalidationCalled.set() }
+        )
+
+        await expectNetworkError(from: sut)
+        #expect(invalidationCalled.value == false)
+    }
+
+    @Test func request_unauthorized_refreshAuthServer5xx_keepsSessionAndThrowsNetworkError() async {
+        let invalidationCalled = AtomicFlag()
+
+        InterceptingURLProtocol.requestHandler = { request in
+            (makeHTTPResponse(for: request, statusCode: 401), Data())
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let sut = makeSUT(
+            token: "expired-token",
+            clientKey: clientKey,
+            forceRefreshAccessToken: { throw Self.authAPIError(statusCode: 503) },
+            invalidateSession: { invalidationCalled.set() }
+        )
+
+        await expectNetworkError(from: sut)
+        #expect(invalidationCalled.value == false)
+    }
+
+    @Test func request_unauthorized_refreshUnconfirmedSessionMissing_keepsSessionAndThrowsNetworkError() async {
+        let invalidationCalled = AtomicFlag()
+
+        InterceptingURLProtocol.requestHandler = { request in
+            (makeHTTPResponse(for: request, statusCode: 401), Data())
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let sut = makeSUT(
+            token: "expired-token",
+            clientKey: clientKey,
+            forceRefreshAccessToken: { throw AuthError.sessionMissing },
+            invalidateSession: { invalidationCalled.set() }
+        )
+
+        await expectNetworkError(from: sut)
+        #expect(invalidationCalled.value == false)
+    }
+
+    private static func authAPIError(statusCode: Int) -> AuthError {
+        let url = URL(string: "https://example.supabase.co/auth/v1/token") ?? URL(fileURLWithPath: "/")
+        return AuthError.api(
+            message: "refresh rejected",
+            errorCode: .unknown,
+            underlyingData: Data(),
+            underlyingResponse: makeHTTPResponse(for: URLRequest(url: url), statusCode: statusCode)
+        )
+    }
+
+    private func expectNetworkError(from sut: APIClient) async {
+        do {
+            let _: UserPayload = try await sut.request(.userProfile)
+            Issue.record("Expected the request to fail")
+        } catch let error as APIError {
+            guard case .networkError = error else {
+                Issue.record("Expected APIError.networkError, got \(error)")
+                return
+            }
+        } catch {
+            Issue.record("Expected APIError, got \(error)")
+        }
     }
 
     @Test func request_successFalsePlanConflictOn2xxStaysServerError() async {
