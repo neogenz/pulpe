@@ -40,6 +40,15 @@
 - [x] Arrondis bas plus fuyants : nouveau token `CornerRadius.zone` (44pt) sur la courbe du surface mint (`CurrentMonthView.dashboardBackground`), remplaçant `lg` (30pt)
 - [x] Gates verts : build EXIT 0, SwiftLint strict 0 (DesignTokens ramené sous le mur des 500 lignes), 2091 tests / 218 suites; avant/après validé par Maxime sur simulateur
 
+### Phase 5 — Deck des « Opérations à pointer » (demande Maxime : peek + motion « pas cheap »)
+
+- [x] Le pane unique devient un deck horizontal paginé : `ScrollView(.horizontal)` + `scrollTargetLayout` + `.viewAligned` + `containerRelativeFrame`, carte focus sur le rail (`Spacing.xxl` annulé puis réappliqué en `contentMargins`), voisines en billets aux bords — `UncheckedOperationsCard.swift`
+- [x] Motion : `scrollTransition(.interactive)` — voisines réduites (ancrage bord intérieur pour préserver le peek), tournées en perspective (`rotation3DEffect` 8°), estompées; tokens `DesignTokens.Deck` (nouveau `DesignTokens+Deck.swift`, le fichier principal est au mur des 500 lignes); Reduce Motion coupe la rotation
+- [x] Sémantique conservée : « C'est passé » garde le 2-beats (Pointé → résolution vers le haut) et le deck atterrit sur le successeur; « Plus tard » devient une rotation du deck (wrap en bout de course) — `skippedIds` supprimé, la position du deck EST l'état
+- [x] Garde anti-tap : `allowsHitTesting` sur la seule carte focus — le sliver visible expose le bord du « C'est passé » voisin; VoiceOver garde l'accès à toutes les cartes
+- [x] Cible iOS 18 ⇒ APIs scroll toutes iOS 17+, aucun fallback ancien OS nécessaire
+- [x] Vérifié sur simulateur light + dark : peek 1er/2e/3e élément, skip, pointage réel (17→16, successeur au slot focus) puis état seed restauré (dépointage)
+
 ## Findings
 
 | Sev | Kind | Phase | Location | Issue | Fix |
