@@ -1312,7 +1312,10 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.footer, /label: "Conseils budget"/);
     assert.match(componentSources.support, /\/support\/modeles-et-budgets/);
     assert.match(componentSources.header, /href: "\/support", label: "Aide"/);
-    assert.match(componentSources.footer, /label: "Aide", href: "\/support"/);
+    assert.match(
+      componentSources.footer,
+      /label: "FAQ et tutoriels", href: "\/support"/,
+    );
   });
 
   it("keeps skip links keyboard-only and moves focus to main content", () => {
@@ -1505,15 +1508,14 @@ describe("landing accessibility contracts", () => {
     );
   });
 
-  it("keeps desktop footer links readable and aligned with the tagline", () => {
+  it("keeps the footer grouped into titled columns with tappable links", () => {
     assert.match(
       componentSources.footer,
-      /lg:flex-row lg:items-end lg:justify-between/,
+      /lg:flex-row lg:items-start lg:justify-between/,
     );
-    assert.match(componentSources.footer, /text-sm font-semibold text-text"/);
-    assert.match(
-      componentSources.footer,
-      /min-h-11 min-w-11 items-center[^"\n]*lg:items-end/,
-    );
+    for (const title of ["Découvrir", "Aide", "Légal"]) {
+      assert.match(componentSources.footer, new RegExp(`title: "${title}"`));
+    }
+    assert.match(componentSources.footer, /min-h-11 items-center/);
   });
 });
