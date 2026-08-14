@@ -34,6 +34,12 @@
 - [x] Fix : modifier partagé `pulpeTipBackground()` (dans `ProductTips.swift`, à côté de `suppressesTips()`) = `tipBackground(Color.surfaceContainerLowest)`, appliqué aux 3 sites; les `.popoverTip` gardent leur bulle système
 - [x] Gates verts : build EXIT 0, SwiftLint strict 0, 2091 tests / 218 suites; captures Modèles light + dark validées sur simulateur
 
+### Phase 4 — Détachement du hero home (demande Maxime, itéré à deux, validé « très bien comme ça »)
+
+- [x] Ombre de zone resserrée et densifiée : `Shadow.zoneBoundary` blur 10→6, y 4/6→3; `homeZoneBoundaryShadow` opacité 0.12→0.25 (`Opacity.glow`), light seulement (dark inchangé, porté par le ton)
+- [x] Arrondis bas plus fuyants : nouveau token `CornerRadius.zone` (44pt) sur la courbe du surface mint (`CurrentMonthView.dashboardBackground`), remplaçant `lg` (30pt)
+- [x] Gates verts : build EXIT 0, SwiftLint strict 0 (DesignTokens ramené sous le mur des 500 lignes), 2091 tests / 218 suites; avant/après validé par Maxime sur simulateur
+
 ## Findings
 
 | Sev | Kind | Phase | Location | Issue | Fix |

@@ -28,6 +28,8 @@ enum DesignTokens {
         static let lg: CGFloat = 30
         /// Extra large: hero cards (32pt)
         static let xl: CGFloat = 32
+        /// Bottom sweep of a full-bleed zone (home hero) — reads as a sheet over the page (44pt)
+        static let zone: CGFloat = 44
         /// Hairline: thin separators in Form (1pt)
         static let hairline: CGFloat = 1
     }
@@ -115,8 +117,8 @@ enum DesignTokens {
         /// Scheme-aware colour, because dark mode gets its depth from tone instead.
         static let zoneBoundary = ShadowStyle(
             color: .homeZoneBoundaryShadow,
-            radius: 10,
-            y: 4
+            radius: 6,
+            y: 3
         )
         /// Input fields (auth, currency)
         static let input = ShadowStyle(

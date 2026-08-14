@@ -412,7 +412,7 @@ extension Color {
     /// the whole depth cue; in dark mode the tonal jump already carries it and a black
     /// shadow on a near-black canvas only muddies the edge.
     static let homeZoneBoundaryShadow = Color(
-        light: .black.opacity(DesignTokens.Opacity.badgeBackground),
+        light: .black.opacity(DesignTokens.Opacity.glow),
         dark: .clear
     )
 
