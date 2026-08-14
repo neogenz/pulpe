@@ -148,6 +148,10 @@ export default function HomeScreen() {
             icon="account-circle-outline"
             onPress={() => router.push("/settings")}
             accessibilityLabel="Mon compte"
+            // Paper's own margin would push the glyph six points past the
+            // right gutter every card below it lines up against. The target
+            // stays 48 without it — `IconButton` supplies its own hitSlop.
+            style={styles.headerAction}
           />
         </View>
 
@@ -225,16 +229,14 @@ export default function HomeScreen() {
           }
         />
 
-        <View style={styles.dailyBudget}>
-          <Text
-            variant="bodyMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {viewModel.daysRemaining === 1
-              ? "Dernier jour de la période"
-              : `${viewModel.daysRemaining} jours avant la prochaine paie`}
-          </Text>
-        </View>
+        <Text
+          variant="bodyMedium"
+          style={{ color: theme.colors.onSurfaceVariant }}
+        >
+          {viewModel.daysRemaining === 1
+            ? "Dernier jour de la période"
+            : `${viewModel.daysRemaining} jours avant la prochaine paie`}
+        </Text>
 
         {hasMonthToPrepare && (
           <Button
@@ -341,6 +343,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   title: { textTransform: "capitalize" },
-  dailyBudget: { paddingHorizontal: SPACING.xs },
+  headerAction: { margin: 0 },
   fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

@@ -15,9 +15,9 @@ that already works.
 | 3   | Play service-account JSON                 | Play Console → API access                                            | `eas submit`               |
 | 4   | Google OAuth client IDs (web + Android)   | Google Cloud, project `894420283180`                                 | Google sign-in             |
 | 5   | Sentry org/project/auth token             | sentry.io                                                            | symbolicated crashes       |
-| 6   | PostHog project key (EU host)             | posthog.com                                                          | analytics (none wired yet) |
+| 6   | PostHog project key (EU host)             | posthog.com                                                          | analytics                  |
 | 7   | Backend env on Railway                    | `MIN_ANDROID_VERSION`, `LATEST_ANDROID_VERSION`, `ANDROID_STORE_URL` | force-update gate          |
-| 8   | `assetlinks.json` on `app.pulpe.app`      | landing/web hosting                                                  | App Links verification     |
+| 8   | `assetlinks.json` on `app.pulpe.app`      | `frontend/projects/webapp/public/.well-known/`                       | App Links verification     |
 
 `eas init` writes `extra.eas.projectId` and `updates.url` into `app.json`.
 Until it runs, `expo-updates` has no server to ask and OTA is inert — the app

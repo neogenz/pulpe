@@ -5,9 +5,9 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { ProgressBar, Text, useTheme } from "react-native-paper";
 
 import {
-  formatCompactAmount,
+  formatAmount,
   formatCurrency,
-  formatSignedCompactCurrency,
+  formatSignedCurrency,
 } from "@/core/ui/amount-format";
 import { Amount } from "@/core/ui/amount";
 import { ofMonth } from "@/core/ui/date-format";
@@ -108,7 +108,7 @@ export function BudgetDetailHero({
                 : `Report ${ofMonth(previousMonthName)} inclus`}
             </Text>
             <Amount size="meta" tone="muted">
-              {formatSignedCompactCurrency(rollover, currency)}
+              {formatSignedCurrency(rollover, currency)}
             </Amount>
             {onPressRollover !== undefined && (
               <MaterialCommunityIcons
@@ -138,19 +138,19 @@ export function BudgetDetailHero({
       <FadingRail accessibilityLabel="Répartition du mois">
         <Pill
           icon="arrow-down"
-          amount={formatCompactAmount(metrics.totalIncome, currency)}
+          amount={formatAmount(metrics.totalIncome, currency)}
           label="revenus"
           tint={financial.income}
         />
         <Pill
           icon="piggy-bank-outline"
-          amount={formatCompactAmount(metrics.totalSavings, currency)}
+          amount={formatAmount(metrics.totalSavings, currency)}
           label="épargne"
           tint={financial.savings}
         />
         <Pill
           icon="arrow-up"
-          amount={formatCompactAmount(metrics.totalExpenses, currency)}
+          amount={formatAmount(metrics.totalExpenses, currency)}
           label="dépenses"
           // The darker amber, not the row one: expense ink on its own tint
           // measures 3.85:1, and `overBudget` is the value already tuned to
@@ -162,10 +162,15 @@ export function BudgetDetailHero({
   );
 }
 
-/** A `+` only where it adds meaning: a negative amount already reads as one. */
+/**
+ * A `+` only where it adds meaning: a negative amount already reads as one.
+ * Decimals, always — this is the screen where a line is being edited, and a
+ * hero that rounds forty centimes to `+0` announces a sign with nothing after
+ * it. The rule iOS keeps on the same screen.
+ */
 function signedAmount(value: number, currency: SupportedCurrency): string {
   const sign = value > 0 ? "+" : value < 0 ? "-" : "";
-  return `${sign}${formatCompactAmount(Math.abs(value), currency)}`;
+  return `${sign}${formatAmount(Math.abs(value), currency)}`;
 }
 
 const styles = StyleSheet.create({

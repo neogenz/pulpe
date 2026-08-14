@@ -11,7 +11,7 @@ pnpm dev:frontend             # frontend + shared    (same for dev:backend)
 pnpm dev:android              # Expo on a device — needs JAVA_HOME=jdk17 + ANDROID_HOME (see android/README.md)
 pnpm test                     # Unit tests           (pnpm test:e2e → Playwright)
 
-# Quality — root only (no package defines `quality` except backend-nest)
+# Quality — run from the root (backend-nest and android define their own `quality`)
 pnpm quality                  # turbo quality + format:check:automation + test:ci-security + test:public-surface
                               # lefthook runs it pre-commit, but scoped `--filter="...[HEAD^]"` and SKIPPED on merge/rebase
                               # Angular templates (strictTemplates) are only checked by `ng build` → dedicated CI job

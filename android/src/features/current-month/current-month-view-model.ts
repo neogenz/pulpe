@@ -13,6 +13,7 @@ import {
   type TransactionKind,
 } from "pulpe-shared";
 
+import { RECURRENCE_LABELS } from "@/core/ui/vocabulary";
 import { formatDayMonth } from "@/core/ui/date-format";
 import type { BudgetDetails } from "@/features/budgets/budget-api";
 import type { CheckTarget } from "@/features/budgets/toggle-check-api";
@@ -31,11 +32,6 @@ const PERCENT = 100;
 const KIND_ORDER: TransactionKind[] = ["income", "expense", "saving"];
 
 /** The product vocabulary, from `TransactionEnums.swift`. */
-const RECURRENCE_LABELS: Record<BudgetLine["recurrence"], string> = {
-  fixed: "Récurrent",
-  one_off: "Prévu",
-};
-
 export interface DriftLine {
   line: BudgetLine;
   consumption: Consumption;

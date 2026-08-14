@@ -17,6 +17,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
+import { RECURRENCE_OPTIONS } from "@/core/ui/vocabulary";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
 import { Sheet } from "@/core/ui/sheet";
@@ -56,11 +57,6 @@ const KIND_BUTTONS: { value: TransactionKind; label: string; icon: string }[] =
     { value: "income", label: "Revenu", icon: "arrow-down" },
     { value: "saving", label: "Épargne", icon: "piggy-bank-outline" },
   ];
-
-const RECURRENCE_BUTTONS: { value: TransactionRecurrence; label: string }[] = [
-  { value: "fixed", label: "Récurrent" },
-  { value: "one_off", label: "Prévu" },
-];
 
 const NAME_PLACEHOLDERS: Record<TransactionKind, string> = {
   expense: "Loyer, courses…",
@@ -254,7 +250,7 @@ export function BudgetLineSheet({
             onValueChange={(recurrence) =>
               change({ recurrence: recurrence as TransactionRecurrence })
             }
-            buttons={RECURRENCE_BUTTONS}
+            buttons={RECURRENCE_OPTIONS}
           />
 
           <Text

@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
   CURRENCY_METADATA,
   type BalanceTrajectory,
@@ -12,7 +13,7 @@ import { Eyebrow } from "@/core/ui/eyebrow";
 import { useFinancialColors, useHeroColors } from "@/core/ui/scheme-colors";
 import { formatCompactAmount } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
-import { RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
+import { ICON_SIZE, RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 
 import {
   varianceLabel,
@@ -94,10 +95,11 @@ export function HomeHeroCard({
         />
         <Metric
           value={varianceLabel(presentation, currency)}
-          label="vs prévu ›"
+          label="vs prévu"
           tint={accent}
           supportColor={hero.support}
           alignEnd
+          hasChevron
         />
       </Pressable>
 
@@ -123,7 +125,12 @@ export function HomeHeroCard({
         >
           <Text variant="labelLarge" style={{ color: accent }}>
             {verdictSentence(presentation)}
-            <Text style={{ color: hero.ink }}> Voir le détail ›</Text>
+            <Text style={{ color: hero.ink }}> Voir le détail </Text>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={ICON_SIZE.sm}
+              color={hero.ink}
+            />
           </Text>
         </Pressable>
       )}
@@ -137,12 +144,15 @@ function Metric({
   tint,
   supportColor,
   alignEnd = false,
+  hasChevron = false,
 }: {
   value: string;
   label: string;
   tint: string;
   supportColor: string;
   alignEnd?: boolean;
+  /** Marks the half of the pair that opens something. */
+  hasChevron?: boolean;
 }) {
   const align = alignEnd ? "flex-end" : "flex-start";
   return (
@@ -150,9 +160,18 @@ function Metric({
       <Amount size="row" style={{ color: tint }} numberOfLines={1}>
         {value}
       </Amount>
-      <Text variant="labelMedium" style={{ color: supportColor }}>
-        {label}
-      </Text>
+      <View style={styles.metricLabel}>
+        <Text variant="labelMedium" style={{ color: supportColor }}>
+          {label}
+        </Text>
+        {hasChevron && (
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={ICON_SIZE.sm}
+            color={supportColor}
+          />
+        )}
+      </View>
     </View>
   );
 }
@@ -192,5 +211,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: SPACING.md,
   },
+  metricLabel: { flexDirection: "row", alignItems: "center" },
   verdict: { minHeight: TOUCH_TARGET, justifyContent: "center" },
 });

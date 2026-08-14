@@ -49,6 +49,21 @@ export function formatCompactCurrency(
   return withSymbol(format(value, currency, WHOLE_DIGITS), currency);
 }
 
+/**
+ * `1’234.56` — decimals included, for a hero that sets its symbol apart. The
+ * budget detail is where the centimes matter: rounded to the unit, forty
+ * centimes of headroom printed as `+0`, a hero announcing a sign and then
+ * nothing to put after it. Mirrors `asAmount(for:)` on iOS, which is what that
+ * screen has always used.
+ */
+export function formatAmount(
+  value: number,
+  currency: SupportedCurrency,
+): string {
+  if (areAmountsHidden()) return MASK;
+  return format(value, currency, FULL_DIGITS);
+}
+
 /** `1’235` — rounded to the unit, for a hero that sets its symbol apart. */
 export function formatCompactAmount(
   value: number,
@@ -70,6 +85,20 @@ export function formatSignedCompactCurrency(
   if (areAmountsHidden()) return MASK;
   const sign = value > 0 ? "+" : "";
   return `${sign}${formatCompactCurrency(value, currency)}`;
+}
+
+/**
+ * The same `+`, over the full amount. The budget detail's carry-over line, where
+ * a rounded one reads as a report of nothing — `asArithmeticSignedCurrency` on
+ * iOS.
+ */
+export function formatSignedCurrency(
+  value: number,
+  currency: SupportedCurrency,
+): string {
+  if (areAmountsHidden()) return MASK;
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatCurrency(value, currency)}`;
 }
 
 function format(

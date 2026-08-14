@@ -20,6 +20,7 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { RECURRENCE_LABELS } from "@/core/ui/vocabulary";
 import { Amount } from "@/core/ui/amount";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
@@ -62,11 +63,6 @@ const KIND_LABELS = {
   income: "Revenu",
   expense: "Dépense",
   saving: "Épargne",
-} as const;
-
-const RECURRENCE_LABELS = {
-  fixed: "Récurrent",
-  one_off: "Prévu",
 } as const;
 
 /**

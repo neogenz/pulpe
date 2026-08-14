@@ -3,6 +3,7 @@ import type { SupportedCurrency } from "pulpe-shared";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
+import { RECURRENCE_LABELS } from "@/core/ui/vocabulary";
 import { Amount } from "@/core/ui/amount";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCurrency } from "@/core/ui/amount-format";
@@ -12,11 +13,6 @@ import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 import type { AmountAccent, LineItem } from "../budget-details-selectors";
 
 import { PointCircle } from "./point-circle";
-
-const RECURRENCE_LABELS = {
-  fixed: "Récurrent",
-  one_off: "Prévu",
-} as const;
 
 interface BudgetLineRowProps {
   item: LineItem;

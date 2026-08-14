@@ -2,6 +2,7 @@ import type { SupportedCurrency, TemplateLine } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
 import { Divider, IconButton, Text, useTheme } from "react-native-paper";
 
+import { RECURRENCE_LABELS } from "@/core/ui/vocabulary";
 import { Card } from "@/core/ui/card";
 import { Amount } from "@/core/ui/amount";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
@@ -9,11 +10,6 @@ import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { ROW_ACTION_ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 import { KIND_SECTION_LABELS, templateLineSections } from "../template-vm";
-
-const RECURRENCE_LABELS = {
-  fixed: "Récurrent",
-  one_off: "Prévu",
-} as const;
 
 interface TemplateLinesProps {
   lines: TemplateLine[];

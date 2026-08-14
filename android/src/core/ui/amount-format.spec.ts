@@ -1,10 +1,12 @@
 import { readFileSync, sourceFiles } from "@/core/testing/source-files";
 
 import {
+  formatAmount,
   formatCompactAmount,
   formatCompactCurrency,
   formatCurrency,
   formatSignedCompactCurrency,
+  formatSignedCurrency,
 } from "./amount-format";
 import {
   toggleAmountVisibility,
@@ -27,6 +29,18 @@ describe("amount formatting", () => {
     expect(formatSignedCompactCurrency(-120, "CHF")).toBe("-120 CHF");
   });
 
+  /**
+   * The budget detail is the screen a line is edited on, and the compact
+   * formatter turned forty centimes of headroom into a hero reading "+0" — a
+   * sign with nothing after it. iOS has always used the full amount here.
+   */
+  it("should keep the centimes the budget detail is read for", () => {
+    expect(formatAmount(0.4, "CHF")).toBe("0.40");
+    expect(formatCompactAmount(0.4, "CHF")).toBe("0");
+    expect(formatSignedCurrency(0.4, "CHF")).toBe("+0.40 CHF");
+    expect(formatSignedCurrency(-0.4, "CHF")).toBe("-0.40 CHF");
+  });
+
   it("should mask every shape once amounts are hidden", () => {
     // All four, because one that forgot would be the only figure on screen.
     toggleAmountVisibility();
@@ -35,6 +49,8 @@ describe("amount formatting", () => {
     expect(formatCompactCurrency(1234.5, "CHF")).toBe(MASK);
     expect(formatCompactAmount(1234.5, "CHF")).toBe(MASK);
     expect(formatSignedCompactCurrency(1234.5, "CHF")).toBe(MASK);
+    expect(formatAmount(1234.5, "CHF")).toBe(MASK);
+    expect(formatSignedCurrency(1234.5, "CHF")).toBe(MASK);
   });
 
   it("should come back unmasked", () => {
