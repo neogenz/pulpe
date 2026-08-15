@@ -156,6 +156,11 @@ function toDraft(state: OnboardingState) {
     transportCosts: state.transportCosts,
     leasingCredit: state.leasingCredit,
     customTransactions: state.customTransactions,
+    // How the run signed in, not only what it answered. Which steps exist is
+    // decided from these three, so a draft that carried the answers alone came
+    // back as an anonymous run and put questions back that were already settled.
+    isSocialAuth: state.isSocialAuth,
+    socialProvidedName: state.socialProvidedName,
     wasEmailRegistered: state.wasEmailRegistered,
     hasCompletedPinSetup: state.hasCompletedPinSetup,
   };
@@ -177,6 +182,9 @@ export function restoreOnboardingDraft(): void {
   const draft = readDraft();
   if (draft === null) return;
 
+  const isSocialAuth = draft.isSocialAuth ?? false;
+  const wasEmailRegistered = draft.wasEmailRegistered ?? false;
+
   useOnboardingStore.setState({
     isFlowActive: true,
     currentStep: draft.currentStep ?? INITIAL_STATE.currentStep,
@@ -189,7 +197,14 @@ export function restoreOnboardingDraft(): void {
     transportCosts: draft.transportCosts ?? null,
     leasingCredit: draft.leasingCredit ?? null,
     customTransactions: draft.customTransactions ?? [],
-    wasEmailRegistered: draft.wasEmailRegistered ?? false,
+    isSocialAuth,
+    socialProvidedName: draft.socialProvidedName ?? false,
+    wasEmailRegistered,
+    // The account outlives the process. Left to default, a resumed run came
+    // back anonymous and `registration` became navigable again — so back from
+    // the step the app died on landed on "Créer mon compte", for an address
+    // that already had an account and could only answer that it did.
+    isAuthenticated: isSocialAuth || wasEmailRegistered,
     hasCompletedPinSetup: draft.hasCompletedPinSetup ?? false,
   });
 }
@@ -250,6 +265,10 @@ export function configureSocialUser(providedFirstName: string | null): void {
       providedFirstName !== null && providedFirstName.length > 0,
     firstName: providedFirstName ?? "",
   });
+  // Written straight away rather than at the first answer: the account already
+  // exists at this point, and a run that died before the next step had no draft
+  // to resume — which sent a signed-in user to the vault setup with no budget.
+  writeDraft(toDraft(useOnboardingStore.getState()));
 }
 
 /** The account exists; the draft is what the rest of the flow builds on. */

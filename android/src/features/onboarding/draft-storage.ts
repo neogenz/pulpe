@@ -46,6 +46,8 @@ const draftSchema = z.object({
   transportCosts: z.number().nullable().optional(),
   leasingCredit: z.number().nullable().optional(),
   customTransactions: z.array(onboardingTransactionDraftSchema).optional(),
+  isSocialAuth: z.boolean().optional(),
+  socialProvidedName: z.boolean().optional(),
   wasEmailRegistered: z.boolean().optional(),
   hasCompletedPinSetup: z.boolean().optional(),
 });

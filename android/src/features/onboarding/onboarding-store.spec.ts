@@ -1,3 +1,5 @@
+import { readFileSync, sourceFiles } from "@/core/testing/source-files";
+
 import {
   clearDraft,
   readDraft,
@@ -229,6 +231,43 @@ describe("draft", () => {
     expect(state.wasEmailRegistered).toBe(true);
   });
 
+  it("comes back signed in, so registration stays behind the user", () => {
+    goToNextStep();
+    configureEmailUser();
+    goToNextStep();
+
+    // The relaunch: nothing in memory, only what reached the draft.
+    useOnboardingStore.setState({
+      currentStep: "welcome",
+      isAuthenticated: false,
+    });
+    restoreOnboardingDraft();
+
+    expect(useOnboardingStore.getState().isAuthenticated).toBe(true);
+    // The account exists; stepping back must not offer to create it again.
+    goToPreviousStep();
+    expect(useOnboardingStore.getState().currentStep).toBe("firstName");
+  });
+
+  it("comes back a Google run, with the steps it skipped still skipped", () => {
+    configureSocialUser("Maxime");
+    startAfterWelcome();
+
+    useOnboardingStore.setState({
+      currentStep: "welcome",
+      isAuthenticated: false,
+      isSocialAuth: false,
+      socialProvidedName: false,
+    });
+    restoreOnboardingDraft();
+
+    const state = useOnboardingStore.getState();
+    expect(state.currentStep).toBe("income");
+    expect(state.isSocialAuth).toBe(true);
+    goToPreviousStep();
+    expect(useOnboardingStore.getState().currentStep).toBe("welcome");
+  });
+
   it("leaves the flow at welcome when there is nothing to resume", () => {
     mocked.readDraft.mockReturnValueOnce(null);
 
@@ -316,6 +355,9 @@ describe("draft", () => {
     const state = useOnboardingStore.getState();
     expect(state.monthlyIncome).toBeNull();
     expect(state.firstName).toBe("Google");
+    // And opens one of its own immediately: the account exists from here on,
+    // and a signed-in user with no draft is one the flow can no longer claim.
+    expect(mocked.readDraft()).toMatchObject({ isSocialAuth: true });
   });
 });
 
@@ -367,5 +409,28 @@ describe("custom transactions", () => {
     expect(
       useOnboardingStore.getState().customTransactions.map((it) => it.id),
     ).toEqual(["b"]);
+  });
+});
+
+/**
+ * `configureSocialUser` records who signed in; it does not move the flow on.
+ * Called alone it left the Google button authenticating the user and then
+ * re-rendering the pitch they had just tapped — the one way out of welcome that
+ * led straight back to welcome, and nothing on screen said why.
+ */
+describe("the Google entry point", () => {
+  it("advances the flow wherever it configures the user", () => {
+    const stranded = sourceFiles("src").filter((path) => {
+      const source = readFileSync(path, "utf8");
+      return (
+        source.includes("configureSocialUser(") &&
+        !source.includes("export function configureSocialUser") &&
+        // The call, not the import: deleting one and leaving the other is
+        // exactly the shape this guard has to keep catching.
+        !source.includes("startAfterWelcome(")
+      );
+    });
+
+    expect(stranded).toEqual([]);
   });
 });
