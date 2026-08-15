@@ -1,68 +1,70 @@
 # Review: ios-segmented-capsule-picker
 
 - **Verdict**: approve
-- **Diff**: `preview...feat/ios-segmented-capsule-picker` (settings-contrast fix included)
+- **Diff**: `preview...feat/ios-segmented-capsule-picker` (17 commits, correctifs de revue inclus)
 - **Axes run**: code, functional, relevancy
-- **Date**: 2026_08_14
-- **Findings**: 0 critical, 0 warning, 1 minor
+- **Date**: 2026_08_15
+- **Findings**: 0 critical, 0 warning, 0 minor
 
 ## Phases
 
-<!-- No plan.md: acceptance criteria are the session brief approved interactively (direction retenue par Maxime sur visuels comparés : "pickers natifs", devise en segments texte). -->
+<!-- No plan.md à l'origine : critères = le brief de session enregistré dans le snapshot précédent, re-tracés sur le diff courant. Les correctifs de revue ont leur propre plan.md dans ce dossier. -->
 
 ### Phase 1 — Tous les sélecteurs 1-parmi-N sur le segmented control natif
 
-- [x] Atome partagé unique : `SegmentedPicker` = wrapper fin sur `Picker(.segmented)` (titre optionnel + `.sensoryFeedback(.selection)`) — `ios/Pulpe/Shared/Components/SegmentedPicker.swift`
-- [x] Les 3 toggles restent des wrappers fins, plomberie `accentColor` retirée (concession assumée : pas d'encre contextuelle sur le natif) — `KindToggle.swift`, `SpreadModeToggle.swift`, `SpreadAmountModeToggle.swift`, call sites `AddBudgetLineSheet.swift:136,139`
-- [x] Devise corrigée : labels riches (drapeau + code + nom natif) → `Text` unique `🇨🇭 CHF` / `🇪🇺 EUR`; `UISegmentedControl` éclatait les vues composées en segments surnuméraires — `CurrencySettingView.swift`, `IncomeStep.swift`, `OnboardingStepView.swift`, `CurrencyAmountPicker.swift`
-- [x] Code mort retiré : token `Color.segmentedThumb`, exclusion swiftlint `no_adhoc_capsule_chip` de l'atome, thumb/track custom (`matchedGeometryEffect`) — net −73 LOC
-- [x] DESIGN.md § Segmented Choice réécrit pour le rendu natif (labels Text-only, concession encre documentée)
-- [x] A11y : l'arbre expose désormais de vrais `SegmentedControl` nommés (« Nature », « Mode de création »); labels/valeurs des wrappers conservés
-- [x] Gates verts : build EXIT 0, SwiftLint strict 0 sur les fichiers touchés, 2091 tests / 218 suites passés
-- [x] Vérif visuelle sur simulateur : Devise (2 segments) et pile Nature / Lisser / Total (light) capturées et validées
+- [x] Atome partagé unique : `SegmentedPicker` = wrapper fin sur `Picker(.segmented)` — `SegmentedPicker.swift:8-32`
+- [x] Les 3 toggles restent des wrappers fins, plomberie `accentColor` retirée — `KindToggle.swift:7`, `SpreadModeToggle.swift:20`, `SpreadAmountModeToggle.swift:22`, call sites `AddBudgetLineSheet.swift:136,139`
+- [x] Devise en `Text` unique `🇨🇭 CHF` — `CurrencySettingView.swift:96`, `IncomeStep.swift:38`, `OnboardingStepView.swift:386`, `CurrencyAmountPicker.swift:13`
+- [x] Code mort retiré : `CapsulePicker.swift` supprimé, exclusion swiftlint absente de `ios/.swiftlint.yml:81-88`, token `segmentedThumb` absent
+- [x] `ios/DESIGN.md` § Segmented Choice écrit pour le rendu natif — `ios/DESIGN.md:356-372`
+- [x] A11y : chaque segment garde son propre nom — `.accessibilityElement(children: .contain)` rétabli avant les labels de conteneur sur les 4 wrappers (45582e8f2)
+- [x] Gates verts : `swiftlint --strict` 0 violation, `UncheckedOperationsCard.swift` tenu à 500 lignes pile sous `file_length: warning: 500`
+- [x] Vérif visuelle simulateur — re-jouée au pilotage noqa (voir Verification)
 
-### Phase 2 — Contraste des cartes réglages (demande Maxime en cours de branche)
+### Phase 2 — Contraste des cartes réglages
 
-- [x] Cause : `.listRowBackground(Color.surfaceContainerHigh)` (`#F0EDE9`) sur le canvas `appBackground` (`#EFF3EE`) ≈ 1.04:1 — violation de la règle DESIGN.md:346 (« never on the bare appBackground »)
-- [x] Fix : famille réglages entière sur `Color.surfaceContainerLowest` (blanc / brun chaud `#1E1C1A`), même token que les cartes de lignes — `PreferencesView` ×3, `CurrencySettingView`, `TagsSettingsView` (remplacements) + `AccountView` ×4 et `SecuritySettingsView` ×2 (épinglés, remplaçant le blanc natif `secondarySystemGroupedBackground` pour une seule mécanique light+dark); la zone danger garde `destructiveBackground`, avatar et footer version gardent `.clear`
-- [x] Les éléments blancs (thumb du segment natif, toggles) restent lisibles sur carte blanche : leur contraste vient de leurs tracks systemFill, pas de la carte — vérifié sur captures light + dark
-- [x] Gates verts : build EXIT 0, SwiftLint strict 0 sur fichiers touchés, 2091 tests / 218 suites passés; captures light + dark validées sur simulateur
+- [x] Cause : `surfaceContainerHigh` (`#F0EDE9`) sur `appBackground` (`#EFF3EE`) ≈ 1.04:1 — `ios/DESIGN.md:346`
+- [x] Fix : famille réglages sur `surfaceContainerLowest` via le modificateur partagé `listRowSettingsBackground()` — `View+Extensions.swift:288`, 11 sites dans 5 écrans
+- [x] Zone danger, avatar et footer version gardent leurs fonds — non touchés
 
-### Phase 3 — Contraste des helpers TipKit (demande Maxime en cours de branche)
+### Phase 3 — Contraste des helpers TipKit
 
-- [x] Cause : les 3 `TipView` inline (accueil `BudgetSection`, détail budget `pessimisticCheck`, Modèles `webParityTip`) ridaient le fond gris par défaut de TipKit, quasi invisible sur `appBackground`
-- [x] Fix : modifier partagé `pulpeTipBackground()` (dans `ProductTips.swift`, à côté de `suppressesTips()`) = `tipBackground(Color.surfaceContainerLowest)`, appliqué aux 3 sites; les `.popoverTip` gardent leur bulle système
-- [x] Gates verts : build EXIT 0, SwiftLint strict 0, 2091 tests / 218 suites; captures Modèles light + dark validées sur simulateur
+- [x] Modifier partagé `pulpeTipBackground()` à côté de `suppressesTips()` — `ProductTips.swift:190-193`
+- [x] Appliqué aux 3 `TipView` inline — `BudgetSection.swift:80`, `BudgetDetailsView.swift:238`, `TemplateListView.swift:76`
 
-### Phase 4 — Détachement du hero home (demande Maxime, itéré à deux, validé « très bien comme ça »)
+### Phase 4 — Détachement du hero home
 
-- [x] Ombre de zone resserrée et densifiée : `Shadow.zoneBoundary` blur 10→6, y 4/6→3; `homeZoneBoundaryShadow` opacité 0.12→0.25 (`Opacity.glow`), light seulement (dark inchangé, porté par le ton)
-- [x] Arrondis bas plus fuyants : nouveau token `CornerRadius.zone` (44pt) sur la courbe du surface mint (`CurrentMonthView.dashboardBackground`), remplaçant `lg` (30pt)
-- [x] Gates verts : build EXIT 0, SwiftLint strict 0 (DesignTokens ramené sous le mur des 500 lignes), 2091 tests / 218 suites; avant/après validé par Maxime sur simulateur
+- [x] `Shadow.zoneBoundary` resserré (blur 10→6, y 4/6→3) — `DesignTokens.swift:117-121`; un seul consommateur (`CurrentMonthView.swift:361`)
+- [x] `homeZoneBoundaryShadow` opacité `badgeBackground` (0.12) → `glow` (0.25), light seulement — `Color+Pulpe.swift:415`
+- [x] Nouveau token `CornerRadius.zone` (44pt) — `DesignTokens.swift:31`, `CurrentMonthView.swift:354-356`
 
-### Phase 5 — Deck des « Opérations à pointer » (demande Maxime : peek + motion « pas cheap »)
+### Phase 5 — Deck des « Opérations à pointer »
 
-- [x] Le pane unique devient un deck horizontal paginé : `ScrollView(.horizontal)` + `scrollTargetLayout` + `.viewAligned` + `containerRelativeFrame`, carte focus sur le rail (`Spacing.xxl` annulé puis réappliqué en `contentMargins`), voisines en billets aux bords — `UncheckedOperationsCard.swift`
-- [x] Motion : `scrollTransition(.interactive)` — voisines réduites (ancrage bord intérieur pour préserver le peek), tournées en perspective (`rotation3DEffect` 8°), estompées; tokens `DesignTokens.Deck` (nouveau `DesignTokens+Deck.swift`, le fichier principal est au mur des 500 lignes); Reduce Motion coupe la rotation
-- [x] Sémantique conservée : « C'est passé » garde le 2-beats (Pointé → résolution vers le haut) et le deck atterrit sur le successeur; « Plus tard » devient une rotation du deck (wrap en bout de course) — `skippedIds` supprimé, la position du deck EST l'état
-- [x] Garde anti-tap : `allowsHitTesting` sur la seule carte focus — le sliver visible expose le bord du « C'est passé » voisin; VoiceOver garde l'accès à toutes les cartes
-- [x] Cible iOS 18 ⇒ APIs scroll toutes iOS 17+, aucun fallback ancien OS nécessaire
-- [x] Vérifié sur simulateur light + dark : peek 1er/2e/3e élément, skip, pointage réel (17→16, successeur au slot focus) puis état seed restauré (dépointage)
-- [x] Layer (retour Maxime) : le billet trailing recouvrait la carte focus — un HStack peint les frères suivants au-dessus; `zIndex` explicite sur la carte focus (et la carte en exit) + pivot de la rotation 3D sur le bord intérieur pour que la projection déborde vers l'écran
-- [x] Clôture animée (retour Maxime) : le deck rend depuis `displayItems`, miroir local du store — le retrait de la carte confirmée et le glissement du successeur partagent UNE transaction `withAnimation` (retirée directement de `items`, la cible de scroll disparue était résolue instantanément et l'exit coupé); `confirmingId` survit jusqu'au `completion` pour garder la carte sortante au premier plan
-- [x] Boucle (retour Maxime, itéré ×3 : le geste, puis « une vraie loop ») : carrousel infini par recentrage d'offset en plein vol — le deck rend trois cycles identiques (`DeckSlot`, un cycle complet en copie de chaque côté, fichier compagnon `UncheckedOperationsCard+DeckSlot.swift`); `onScrollGeometryChange` (iOS 18) surveille chaque tick et, dès que le scroll s'enfonce d'un demi-cycle dans une zone copiée, glisse l'offset d'exactement une largeur de cycle via `ScrollPosition.scrollTo(x:)` — pixels identiques, recentrage invisible même en rafale de flicks (les v1/v2 « rebasage à l'arrêt » perçaient : un spin continu ne passe jamais par `.idle`); la carte focus dérive de la même géométrie (slot sous le centre du viewport); seed à l'apparition (la valeur initiale du binding ne scrolle pas → copie focus, boutons morts); copies non tappables et masquées de VoiceOver; « Plus tard » et le pointage de la dernière carte = tour avant d'une carte (copie de la première puis rebase à l'arrêt); anti-spam (retour Maxime : gel sous double-clic instant, itéré ×2) — le toucher lui-même stoppe net un scroll programmé (comportement UIScrollView) et `viewAligned` ne re-snappe que les gestes, d'où l'arrêt mort entre deux cartes; fix : deck `allowsHitTesting(false)` pendant le tour + garde `isTurning` levée à la phase `.idle` (le `completion` de `withAnimation` ne trace pas les animations de scroll et partait immédiatement); vérifié au double-clic réel 100 ms et en rafale de 5 clics via cliclick
+- [x] Pane unique → deck horizontal paginé — `UncheckedOperationsCard.swift:155-232`
+- [x] Motion : `scrollTransition(.interactive)`, ancrages sur le bord intérieur, tokens `DesignTokens.Deck`
+- [x] Sémantique conservée : le deck atterrit sur le successeur et la dernière carte reste pointable — `settleScrolledId()` réconcilie `scrolledId` contre les slots rendus (`UncheckedOperationsCard.swift:441`, `DeckCycle.reconciledScrolledId`), `handleScrollGeometry` suit le focus même à une carte. **Vérifié sur simulateur avant/après** (voir Verification)
+- [x] « Plus tard » n'est plus un contrôle mort : désactivé quand il ne reste qu'une carte — `UncheckedOperationsCard.swift:396,399`
+- [x] Garde anti-tap : `allowsHitTesting` sur la seule carte focus, copies wrap masquées de VoiceOver
+- [x] Cible iOS 18 ⇒ APIs scroll toutes disponibles, aucun `#available` requis
+- [x] Layer : `zIndex` explicite sur la carte focus et la carte en exit
+- [x] Clôture animée : `displayItems` miroir local, retrait + glissement dans UNE transaction `withAnimation`
+- [x] Boucle infinie : 3 cycles identiques, recentrage d'un cycle en plein vol, garde `isTurning` levée à `.idle`
 
 ## Findings
 
+None. Les 9 findings du tour précédent (1 🔴, 5 🟡, 3 🟢) sont corrigés dans
+`da52f5066`, `45582e8f2` et `231faa8a4`; le détail par finding est dans `plan.md`.
+
 | Sev | Kind | Phase | Location | Issue | Fix |
 | --- | ---- | ----- | -------- | ----- | --- |
-| 🟢 | rot | 1 | `ios/Pulpe/Shared/Components/CurrencyAmountPicker.swift` | La capsule read-only garde le look pill hérité pendant que la variante interactive passe au natif | Aligner l'affichage read-only dans une passe ultérieure |
 
 ## Verification
 
-| Metric        | Value |
-| ------------- | ----- |
-| Verified      | 100% (8/8) |
-| Files checked | SegmentedPicker.swift, KindToggle.swift, SpreadModeToggle.swift, SpreadAmountModeToggle.swift, AddBudgetLineSheet.swift, Color+Pulpe.swift, CurrencySettingView.swift, IncomeStep.swift, OnboardingStepView.swift, CurrencyAmountPicker.swift, SavingsGoalFormSheet.swift, DESIGN.md, .swiftlint.yml |
-| Unchecked     | none |
-| Unplanned     | Renommage `CapsulePicker` → `SegmentedPicker` (le nom décrivait un mécanisme disparu); commentaires mis à jour dans `ActivityCard.swift` et `OnboardingSuggestionGrid.swift` |
+| Metric        | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Verified      | 100% (25/25)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Files checked | UncheckedOperationsCard.swift, UncheckedOperationsCard+Cycle.swift, UncheckedOperationsCard+DeckSlot.swift, UncheckedOperationsCardDeckTests.swift, CurrentMonthView.swift, BudgetSection.swift, ActivityCard.swift, SegmentedPicker.swift, KindToggle.swift, CurrencyAmountPicker.swift, SpreadModeToggle.swift, SpreadAmountModeToggle.swift, AddBudgetLineSheet.swift, BudgetDetailsView.swift, View+Extensions.swift, AccountView.swift, PreferencesView.swift, CurrencySettingView.swift, SecuritySettingsView.swift, TagsSettingsView.swift, OnboardingStepView.swift, IncomeStep.swift, OnboardingSuggestionGrid.swift, SavingsGoalFormSheet.swift, TemplateListView.swift, ProductTips.swift, DesignTokens.swift, DesignTokens+Deck.swift, Color+Pulpe.swift, ios/DESIGN.md, aidd_docs/memory/mobile.md |
+| Unchecked     | none                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Unplanned     | Passe de formatage Markdown sur `ios/DESIGN.md` — légitime, la version de `preview` échouait `prettier --check` que `pnpm quality` bloque ; `#Preview` ajouté à `KindToggle` ; mémoire projet `aidd_docs/memory/mobile.md` § UI controls                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Gates         | Suite complète `xcodebuild test -scheme PulpeLocal` : **2104 tests / 219 suites passés**. `swiftlint --strict` 0 violation. `prettier --check` OK.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Device (noqa) | Simulateur iPhone 17 Pro Max, compte demo, budget d'août ramené à 2 opérations à pointer. **Avant (`e57579af2`)** : pointer « Shopping » fait tomber le deck à 1 carte, puis 3 taps sur « C'est passé » de « Épargne vacances » ne font rien — compteur figé à « 1, à pointer », et « Plus tard » reste actif alors qu'il n'a nulle part où tourner. **Après (`231faa8a4`)** : même séquence, la carte survivante prend le slot focus, « Plus tard » passe `enabled="false"`, et « C'est passé » la pointe — compteur « 0, à pointer », section retirée. Seed remis à son état initial (16 lignes non pointées).                                                                                                                                                                                                |
