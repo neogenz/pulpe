@@ -25,6 +25,13 @@ struct NetworkUnavailableView: View {
                     .font(PulpeTypography.bodyLarge)
                     .foregroundStyle(Color.textSecondaryOnboarding)
                     .multilineTextAlignment(.center)
+
+                if AppConfiguration.environment == .local {
+                    Text("Build Local : le serveur est peut-être éteint — lance pnpm dev.")
+                        .font(PulpeTypography.bodyLarge)
+                        .foregroundStyle(Color.textSecondaryOnboarding)
+                        .multilineTextAlignment(.center)
+                }
             }
 
             Button {
