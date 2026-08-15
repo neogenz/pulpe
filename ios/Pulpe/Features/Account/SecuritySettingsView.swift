@@ -34,7 +34,7 @@ struct SecuritySettingsView: View {
                     showVerifyRecoveryKey = true
                 }
             }
-            .listRowBackground(Color.surfaceContainerLowest)
+            .listRowSettingsBackground()
 
             if canUseBiometrics {
                 Section {
@@ -62,7 +62,7 @@ struct SecuritySettingsView: View {
                 } header: {
                     Text("BIOMÉTRIE")
                 }
-                .listRowBackground(Color.surfaceContainerLowest)
+                .listRowSettingsBackground()
             }
             Section {
                 HStack(spacing: DesignTokens.Spacing.md) {

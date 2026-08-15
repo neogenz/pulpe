@@ -284,6 +284,12 @@ extension View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
     }
+
+    /// Card background for a settings-screen `Section` — the `surfaceContainerLowest` tone
+    /// shared by Account, Preferences, Security, Tags and Currency.
+    func listRowSettingsBackground() -> some View {
+        listRowBackground(Color.surfaceContainerLowest)
+    }
 }
 
 // MARK: - Card Modifiers

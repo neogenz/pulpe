@@ -23,6 +23,9 @@ struct SpreadAmountModeToggle: View {
         SegmentedPicker(selection: $mode, title: nil) { candidate in
             Text(candidate.label)
         }
+        // `.contain` before the label/value: without it, both propagate onto the
+        // segments themselves and VoiceOver loses "Total" / "Par mois".
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("Mode de montant")
         .accessibilityValue(mode.label)
     }

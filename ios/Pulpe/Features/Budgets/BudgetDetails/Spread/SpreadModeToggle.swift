@@ -21,6 +21,9 @@ struct SpreadModeToggle: View {
         SegmentedPicker(selection: $selection, title: nil) { mode in
             Text(mode.label)
         }
+        // `.contain` before the label/value: without it, both propagate onto the
+        // segments themselves and VoiceOver loses "Une seule fois" / "Lisser".
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("Mode de création")
         .accessibilityValue(selection.label)
     }

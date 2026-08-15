@@ -50,7 +50,7 @@ struct TagsSettingsView: View {
                 Text(viewModel.countLabel)
                     .font(PulpeTypography.labelLarge)
             }
-            .listRowBackground(Color.surfaceContainerLowest)
+            .listRowSettingsBackground()
         }
         .scrollContentBackground(.hidden)
         .pulpeBackground()

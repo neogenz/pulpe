@@ -16,6 +16,9 @@ struct SegmentedPicker<T: CaseIterable & Hashable>: View where T.AllCases: Rando
                 Text(title)
                     .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.onSurfaceVariant)
+                    // The Picker below carries the same title as its own accessibility
+                    // label; without this, VoiceOver announces it twice.
+                    .accessibilityHidden(true)
             }
 
             Picker(title ?? "", selection: $selection) {

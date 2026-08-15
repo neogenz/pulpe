@@ -13,6 +13,9 @@ struct CurrencyAmountPicker: View {
             SegmentedPicker(selection: $selectedCurrency, title: "Devise") { currency in
                 Text("\(currency.flag) \(currency.rawValue)")
             }
+            // `.contain` before the label: without it, it propagates onto the segments
+            // themselves and VoiceOver loses each currency's own name.
+            .accessibilityElement(children: .contain)
             .accessibilityLabel("Sélection de la devise")
         }
     }
