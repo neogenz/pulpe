@@ -212,19 +212,22 @@ struct UncheckedOperationsCard: View {
         .scrollPosition($position)
         .scrollIndicators(.hidden)
         .scrollClipDisabled()
+        // Untouchable mid-turn: a touch stops the programmatic scroll dead between slots.
+        .allowsHitTesting(confirmingId == nil && !isTurning)
         .onScrollGeometryChange(for: [CGFloat].self) { geo in
             [geo.visibleRect.midX, geo.contentSize.width, geo.contentOffset.x]
         } action: { _, values in
             handleScrollGeometry(midX: values[0], contentWidth: values[1], offsetX: values[2])
         }
+        // The turn guard is released here: `withAnimation`'s completion doesn't track
+        // scroll animations and fires at once, letting a second tap kill both turns.
         .onScrollPhaseChange { _, newPhase in
             guard newPhase == .idle else { return }
+            isTurning = false
             rebaseIfOnWrapSlot()
         }
-        // Seeded here, not through an initial position value: an initial value performs
-        // no scroll and left the deck at offset zero — on the wrap copy of the first
-        // card, whose buttons are dead and which shows no left peek. A post-layout
-        // request is a real (invisible) scroll onto the real first card.
+        // Seeded here: an initial position value performs no scroll and left the deck at
+        // offset zero, on a wrap copy with dead buttons and no left peek.
         .onAppear {
             guard scrolledId == nil, let first = displayItems.first?.id else { return }
             scrolledId = first
@@ -492,9 +495,6 @@ private extension UncheckedOperationsCard {
         isTurning = true
         withAnimation(deckAnimation) {
             position.scrollTo(id: target)
-        } completion: {
-            rebaseIfOnWrapSlot()
-            isTurning = false
         }
     }
 }
