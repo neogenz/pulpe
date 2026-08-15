@@ -18,5 +18,5 @@ The feature's locale, legal, release, analytics and cross-platform paths have au
 
 ## Coverage
 
-- **Scanned**: tests; 5,353 monorepo unit tests, 238 Playwright tests, 2,125 passed iOS unit tests (0 failed, 9 skipped), 26 XCUITests, SQL RLS assertions, release validator, coverage reports and skipped-test scan
+- **Scanned**: tests; 5,354 monorepo unit tests, 238 Playwright tests, 2,125 passed iOS unit tests (0 failed, 9 skipped), 26 XCUITests, SQL RLS assertions, release validator, coverage reports and skipped-test scan
 - **Skipped**: landing and iOS do not expose repository coverage percentages; behavior suites were used instead

@@ -1,7 +1,7 @@
 import { inject, Service } from '@angular/core';
 
 import { REQUEST_ID_HEADER } from 'pulpe-shared';
-import { z } from 'zod';
+import * as z from 'zod';
 
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { NGROK_SKIP_HEADER } from '../config/ngrok.constants';

@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod';
 import { type BudgetCreate } from 'pulpe-shared';
 
 export const BUDGET_DESCRIPTION_MAX_LENGTH = 100;

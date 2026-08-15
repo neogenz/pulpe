@@ -1,10 +1,10 @@
-import { z, type ZodTypeAny } from 'zod';
+import * as z from 'zod';
 
 /**
  * Factory for success response schemas: { success: true, data: T }
  * Replaces manual `z.object({ success: z.literal(true), data: someSchema })` patterns.
  */
-export function createSuccessResponse<T extends ZodTypeAny>(dataSchema: T) {
+export function createSuccessResponse<T extends z.ZodTypeAny>(dataSchema: T) {
   return z.object({
     success: z.literal(true),
     data: dataSchema,
@@ -14,7 +14,7 @@ export function createSuccessResponse<T extends ZodTypeAny>(dataSchema: T) {
 /**
  * Factory for list response schemas: { success: true, data: T[] }
  */
-export function createListResponse<T extends ZodTypeAny>(itemSchema: T) {
+export function createListResponse<T extends z.ZodTypeAny>(itemSchema: T) {
   return z.object({
     success: z.literal(true),
     data: z.array(itemSchema),

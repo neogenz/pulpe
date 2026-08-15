@@ -74,8 +74,8 @@ journey
 
 > Garder le plus petit changement qui reflète le coût réel de la feature i18n.
 
-1. Mesurer la baseline avec `ng build --stats-json`, puis vérifier si les imports Zod nommés retirent réellement `zod/v4/locales/*` de `main`.
-2. Annuler l’essai si l’entrée publique Zod conserve ces locales et si le gain ne justifie pas le diff ; relever alors uniquement le warning avec une marge limitée, sans toucher au plafond d’erreur.
+1. Mesurer la baseline avec `ng build --stats-json`, puis comparer l’export nommé `z` au namespace ESM sur les versions Zod/esbuild du projet.
+2. Utiliser `import * as z from 'zod'`, conserver la locale anglaise par défaut et interdire l’export nommé par ESLint ; ne toucher au budget qu’après le build instrumenté.
 3. Ne toucher ni aux routes ni aux stratégies de préchargement : les stats prouvent déjà que `feature/`, `layout/` et `ui/` contribuent chacun à 0 octet dans `main`.
 
 ### `2)` Rejouer et documenter la matrice complète
@@ -107,7 +107,7 @@ journey
 
 | Task | Acceptance criteria                                                                                                                                                                                                                              |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1    | Les 710 tests shared et les 55 tests Angular de schémas restent verts ; l’essai Zod et son annulation sont mesurés, le total initial respecte le warning 1,40 MB, et l’erreur reste à 1,50 MB.                                                   |
+| 1    | Les 711 tests shared et les 3 019 tests Angular restent verts ; les stats ne gardent que 2 481 octets de locale anglaise Zod, le total initial de 1,14 MB respecte le warning 1,25 MB, et l’erreur reste à 1,50 MB.                              |
 | 2    | Toutes les gates terminent avec succès ; les huit rapports et la review nomment le SHA distant enregistré en phase 1, reflètent les compteurs rejoués et ne cachent aucun finding bloquant.                                                      |
 | 3    | `locale` est contrainte et owner-scoped dans `user_locale_preference` ; le backfill conserve les valeurs valides, la lecture legacy ne sert qu'en absence de ligne, l'upsert locale-only n'utilise pas le service role et le test SQL RLS passe. |
 | 4    | Les commits contiennent tout le diff prévu ; `feat/i18n-en-de-it` les contient après une dernière vérification distante et son arbre est propre.                                                                                                 |

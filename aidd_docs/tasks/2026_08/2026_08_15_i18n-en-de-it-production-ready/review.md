@@ -42,7 +42,7 @@
 
 ### Phase 7 — Réduire le bundle, exécuter les gates, documenter et commiter
 
-- [x] Shared/schema suites pass and the 1.37 MB initial Angular bundle stays below the 1.40 MB warning and 1.50 MB error limits — `frontend/angular.json:75`
+- [x] Shared/schema suites pass; namespace Zod imports keep default English errors, remove 47 unused locales and bring the 1.14 MB initial bundle below the 1.25 MB warning and 1.50 MB error limits — `frontend/angular.json:75`
 - [x] All applicable local gates pass and the eight audit reports record feature tip `38ae006` on preview base `07433bbe6` — `aidd_docs/tasks/2026_08/2026_08_15_audit/report.md:1`
 - [x] Locale is constrained and owner-scoped, legacy metadata is read-only fallback, locale-only writes avoid service role, and SQL RLS assertions pass — `backend-nest/supabase/migrations/20260815100000_create_user_locale_preference.sql:4`, `backend-nest/supabase/tests/user_locale_preference_rls.sql:28`
 - [x] Functional commits and merged preview base are contained by remote `feat/i18n-en-de-it` at `e3206fb42`; the final AIDD evidence commit is pushed immediately after this review snapshot

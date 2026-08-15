@@ -30,6 +30,23 @@ module.exports = tseslint.config(
     },
   },
   {
+    files: ["projects/**/src/app/**/*.ts"],
+    ignores: ["**/*.spec.ts"],
+    rules: {
+      // Zod's named `z` export reifies every locale under esbuild. The ESM
+      // namespace keeps default English errors and lets unused locales shake.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            ":matches(ImportDeclaration[source.value='zod'], ImportDeclaration[source.value='zod/v4']) > ImportSpecifier[imported.name='z']",
+          message:
+            "Use `import * as z from 'zod'` to keep default English errors without bundling every Zod locale.",
+        },
+      ],
+    },
+  },
+  {
     files: ["**/*.ts"],
     plugins: { boundaries },
     extends: [boundaries.configs.strict],

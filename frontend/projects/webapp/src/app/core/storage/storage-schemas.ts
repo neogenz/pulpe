@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import {
   onboardingTransactionSchema,
   PAY_DAY_MAX,

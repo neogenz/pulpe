@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
+import * as z from 'zod';
 import { createListResponse, createSuccessResponse } from './api-response.js';
 
 const itemSchema = z.object({
@@ -88,6 +88,15 @@ describe('api-response factories', () => {
 
     if (!factoryResult.success && !manualResult.success) {
       expect(factoryResult.error.issues).toEqual(manualResult.error.issues);
+    }
+  });
+
+  it('keeps default Zod errors in English', () => {
+    const result = z.string().safeParse(42);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toMatch(/expected string/i);
     }
   });
 });
