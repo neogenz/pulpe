@@ -370,6 +370,32 @@ families around them.
 - The wrapper adds the optional form-field title (`labelMedium` / `onSurfaceVariant`) and
   `.sensoryFeedback(.selection)`; nothing else.
 
+### Card Deck (UncheckedOperationsCard)
+
+The dashboard's "Opérations à pointer" section is a horizontal, paginated deck of
+quick-check cards, one operation per card ("C'est passé" / "Plus tard") — built from
+`ScrollView(.horizontal)` + `.viewAligned` snapping, not a carousel library
+(`ios/Pulpe/Features/CurrentMonth/Components/UncheckedOperationsCard.swift`).
+
+- **Role:** replaces a single flat pane once there is more than one operation to point,
+  so a page that used to grow with the list stays one card tall. Only the focused card is
+  interactive; VoiceOver still reaches every real card in order.
+- **Peek:** the deck escapes the page's `Spacing.xxl` content rail and re-applies the same
+  token as a scroll content margin, so the focused card sits exactly on the rail while its
+  neighbours peek at the screen edges — tucked tickets, not a hint arrow or dots.
+- **Motion (`DesignTokens.Deck`):** a tucked neighbour shrinks by `tuckScaleDrop` (0.1),
+  turns `turnDegrees` (8°) around the vertical axis anchored on its inner edge, and fades
+  by `tuckFade` (0.35) — the combination reads as a card turning away, not sliding off.
+  Anchoring on the inner edge (not centre) keeps the peek width intact through the shrink
+  and grows the 3D turn toward the screen edge instead of swelling over the focused card.
+- **Reduce Motion:** the 3D turn is suppressed (`phase.value * 0` in effect); scale and
+  fade — resting states that only track the user's own finger — still play, since they
+  read as position, not motion.
+- **Loop:** the deck is a cycle — a turn past either end comes out on the other side —
+  built from three concatenated copies of the card list so a one-cycle offset shift is
+  pixel-invisible. Confirming a card plays its exit and the deck's slide to the next
+  operation in one animated transaction.
+
 ### Kind Tag (Inline Label)
 
 - **Style:** 10pt Manrope ExtraBold, uppercased, tracking `0.7px`, semantic financial color (income blue, saving green, expense neutral `textSecondary`).
