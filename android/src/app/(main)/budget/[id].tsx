@@ -308,8 +308,17 @@ export default function BudgetDetailScreen() {
       ) : (
         <ScreenAppBar>
           <Appbar.BackAction onPress={() => router.back()} />
+          {/* The year, whenever the tabs below name the month — otherwise the
+              same word is written twice, three centimetres apart. It is also
+              the hierarchy the budget list already uses: a year heads a group
+              of months. With a single budget there are no tabs, so the app bar
+              is the only thing left to say which month this is. */}
           <Appbar.Content
-            title={formatMonthName(budget.month, budget.year)}
+            title={
+              months.length > 1
+                ? `${budget.year}`
+                : formatMonthName(budget.month, budget.year)
+            }
             titleStyle={styles.title}
           />
           <Appbar.Action
@@ -321,10 +330,10 @@ export default function BudgetDetailScreen() {
       )}
 
       {months.length > 1 && (
-        // Raised, so the list below reads as passing under it. Without the
-        // shadow the rail's own bottom edge is where the content is clipped,
-        // and a half-cut segmented control there looks like a rendering fault
-        // rather than like something that scrolled away.
+        // Opaque and above the list, so the content passes under it rather than
+        // through it. The boundary is drawn by the tab row's own divider now,
+        // which is what Material puts under a set of tabs — the shadow this
+        // carried was standing in for that line.
         <View
           style={[styles.pager, { backgroundColor: theme.colors.background }]}
         >
@@ -674,7 +683,7 @@ const styles = StyleSheet.create({
   // The rhythm is per row rather than a container `gap`, which a virtualised
   // list has no single container to hold.
   content: { paddingVertical: SPACING.md, paddingBottom: FAB_CLEARANCE },
-  pager: { elevation: 3, zIndex: 1 },
+  pager: { zIndex: 1 },
   header: { gap: SPACING.md, paddingBottom: SPACING.md },
   gutter: { paddingHorizontal: SCREEN_PADDING },
   row: { paddingHorizontal: SCREEN_PADDING, paddingBottom: SPACING.sm },
