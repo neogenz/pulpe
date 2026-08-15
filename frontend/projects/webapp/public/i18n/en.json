@@ -1362,6 +1362,160 @@
     "privacyLink": "Privacy Policy",
     "termsFooter": "By using Pulpe, you accept these terms of service as well as my",
     "privacyFooter": "This policy is part and parcel of my",
+    "privacy": {
+      "introduction": {
+        "title": "1. Introduction",
+        "body": "I take your privacy seriously. This policy explains how I collect, use and protect your personal data when you use Pulpe through the web application or the iOS application."
+      },
+      "collected": {
+        "title": "2. Data collected",
+        "providedTitle": "Data you provide:",
+        "provided": {
+          "email": "Email and password (for your account)",
+          "google": "If you sign up with Google: email, name and profile picture provided by Google",
+          "financial": "Financial information (income, expenses and savings)",
+          "preferences": "Application preferences and settings"
+        },
+        "automaticTitle": "Data collected automatically:",
+        "automatic": {
+          "pages": "Pages visited and features used",
+          "duration": "Duration and frequency of use",
+          "errors": "Errors and technical issues encountered",
+          "device": "Device type and browser"
+        }
+      },
+      "use": {
+        "title": "3. How your data is used",
+        "intro": "I use your data to:",
+        "items": {
+          "service": "Provide the budgeting service",
+          "sync": "Save and synchronise your budgets",
+          "improve": "Improve the application and fix bugs",
+          "communication": "Communicate important information about the service",
+          "security": "Keep your account secure"
+        }
+      },
+      "analytics": {
+        "title": "4. Analytics tools",
+        "intro": " is hosted in Europe (eu.posthog.com). I use it to analyse application usage. It helps me to:",
+        "goals": {
+          "understand": "Understand how you use Pulpe",
+          "resolve": "Identify and resolve technical issues",
+          "improve": "Improve the user experience"
+        },
+        "sentTitle": "Data sent to PostHog:",
+        "sent": {
+          "user": "User identifier (Supabase UUID) and email",
+          "firstName": "First name (if provided during sign-up)",
+          "preferences": "Product preferences: language, currency and display settings",
+          "earlyAdopter": "Early-adopter status (user who activated their account before a reference date)",
+          "pages": "Pages visited and interactions (clicks and navigation)",
+          "errors": "Technical error traces (without sensitive content)"
+        },
+        "notSentTitle": "Data never sent to PostHog:",
+        "notSent": {
+          "amounts": "Your financial amounts: automatically masked before sending and never transmitted",
+          "auth": "Passwords and authentication tokens",
+          "recovery": "Recovery keys",
+          "content": "Financial labels, activity identifiers and content you enter"
+        },
+        "replayTitle": "Session recordings:",
+        "replayBody": "replay is disabled in production. It can be enabled by configuration in local and preview environments used to test and diagnose a version before release.",
+        "legalBasisTitle": "Legal basis:",
+        "legalBasisBody": "legitimate interest (Article 6(1)(f) GDPR): product analytics required to improve the service, with minimised data and European hosting.",
+        "dpaTitle": "Data Processing Agreement (DPA):",
+        "dpaBody": "a Data Processing Agreement has been signed with PostHog Inc. in accordance with Article 28 GDPR. PostHog acts as a processor for data collected through Pulpe.",
+        "optOutBefore": "You can immediately stop this collection on this device from Settings → Diagnostic data by turning off ",
+        "optOutSetting": "“Share diagnostics”",
+        "optOutAfter": ". This clears the local association with your PostHog identity and is remembered on this device."
+      },
+      "infrastructure": {
+        "title": "5. Infrastructure and hosting",
+        "intro": "Pulpe uses several cloud services to operate:",
+        "supabase": " (Europe - Frankfurt): storage of your data",
+        "railway": " (USA - Oregon): backend API",
+        "vercel": " (global CDN): web interface",
+        "posthog": " (Europe): analytics",
+        "cloudflare": " : anti-bot verification used only in demo mode (no cookie stored)",
+        "google": " (OAuth): sign-in with your Google account (if you choose this sign-up method)",
+        "noteTitle": "Note:",
+        "noteBody": "your data is primarily stored in Europe (Supabase). The Railway backend only passes data through and does not store it permanently."
+      },
+      "security": {
+        "title": "6. Security",
+        "items": {
+          "https": "All connections are encrypted (HTTPS)",
+          "passwords": "Passwords securely hashed by Supabase (my authentication provider)",
+          "jwt": "Secure JWT authentication",
+          "rls": "Data access restricted per user (Row Level Security)",
+          "backups": "Automatic backups by Supabase"
+        }
+      },
+      "sharing": {
+        "title": "7. Sharing data",
+        "neverSell": "I never sell your personal data.",
+        "privateBody": "Your data only passes through the services listed above. The source code is open source on GitHub, but your data remains private.",
+        "processors": "The listed third-party services (Supabase, Railway, Vercel, PostHog, Cloudflare and Google) act as processors under Article 28 GDPR. A dedicated Data Processing Agreement (DPA) has been signed with PostHog Inc. For the other processors, processing commitments are provided through their standard terms of service in accordance with Article 28 GDPR."
+      },
+      "retention": {
+        "title": "8. Retention periods",
+        "items": {
+          "account": "Account data: while your account remains active",
+          "financial": "Financial data: retained with your account",
+          "analytics": "Analytics data: no more than 12 months",
+          "deletion": "After account deletion: erased within 3 days",
+          "demo": "Demo session data: automatically deleted after 24 hours"
+        },
+        "analyticsDeletionTitle": "Analytics deletion:",
+        "analyticsDeletionBody": "deleting your Pulpe account automatically triggers deletion of your PostHog profile, including events and session recordings. Deletion by PostHog is asynchronous and completed within a few days after your account grace period ends."
+      },
+      "rights": {
+        "title": "9. Your rights (GDPR/FADP)",
+        "introTitle": "Under the GDPR and the Swiss FADP,",
+        "introBody": "you have the following rights:",
+        "items": {
+          "access": "Right to access your personal data",
+          "rectification": "Right to rectify your data",
+          "erasure": "Right to erasure (account deletion)",
+          "portability": "Right to portability (JSON export)",
+          "objection": "Right to object (Article 21 GDPR): you may object to any processing based on legitimate interest, including usage analytics"
+        },
+        "contactBefore": "To exercise these rights, contact me at ",
+        "contactAfter": ". I will respond within one month.",
+        "controller": "I am the controller of your data from the moment your account is created."
+      },
+      "cookies": {
+        "title": "10. Cookies and tracking",
+        "intro": "I use strictly necessary cookies to:",
+        "items": {
+          "session": "Keep your session signed in (authentication)",
+          "preferences": "Remember your interface preferences",
+          "security": "Keep the service secure"
+        },
+        "trackersTitle": "Analytics trackers (PostHog):",
+        "trackers": {
+          "automatic": "Enabled automatically on the basis of legitimate interest (Article 6(1)(f) GDPR). You may exercise your right to object at any time through the “Share diagnostics” setting.",
+          "identifiable": "Identifiable data (email, user identifier and first name): see section 4 for details of the data sent to PostHog",
+          "perDevice": "The choice applies separately to each device and platform. It does not affect data required for the account to work."
+        }
+      },
+      "children": {
+        "title": "11. Children",
+        "body": "Pulpe is not intended for children under 16. I do not knowingly collect data from children."
+      },
+      "changes": {
+        "title": "12. Changes",
+        "body": "This policy may be updated occasionally. Material changes will be notified by email."
+      },
+      "contact": {
+        "title": "13. Contact",
+        "intro": "For any question about your personal data:",
+        "emailLabel": "Email:",
+        "githubLabel": "GitHub:",
+        "githubText": "Issues and discussions",
+        "location": "Location: Switzerland"
+      }
+    },
     "terms": {
       "acceptance": {
         "title": "1. Acceptance of the terms",
