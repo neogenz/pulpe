@@ -12,6 +12,7 @@ import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 import { LegalConsent } from "../components/legal-consent";
 import { StepScaffold } from "../components/step-scaffold";
+import { hasAccount } from "../onboarding-selectors";
 import {
   configureEmailUser,
   goToNextStep,
@@ -28,7 +29,7 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
   const theme = useTheme();
   const email = useOnboardingStore((state) => state.email);
   const firstName = useOnboardingStore((state) => state.firstName);
-  const isAuthenticated = useOnboardingStore((state) => state.isAuthenticated);
+  const isAlreadyRegistered = useOnboardingStore(hasAccount);
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
     // A cold start can land back here on an account that already exists, and
     // signing up again on the same address would fail on a user who is in fact
     // already registered.
-    if (isAuthenticated) {
+    if (isAlreadyRegistered) {
       goToNextStep();
       return;
     }

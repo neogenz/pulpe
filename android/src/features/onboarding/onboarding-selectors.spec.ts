@@ -3,6 +3,7 @@ import {
   canProceed,
   emotionState,
   fixedChargeLines,
+  isStepNavigable,
   progressBarSteps,
   totalCharges,
   totalExpenses,
@@ -18,7 +19,6 @@ const BASE: OnboardingState = {
   hasSeenHandoff: false,
   currentStep: "income",
   editReturnStep: null,
-  isAuthenticated: false,
   isSocialAuth: false,
   socialProvidedName: false,
   wasEmailRegistered: false,
@@ -78,9 +78,21 @@ describe("progress bar", () => {
 
   it("keeps registration counted after the account is created, so the total holds", () => {
     const before = progressBarSteps(BASE).length;
-    const after = progressBarSteps(stateWith({ isAuthenticated: true })).length;
+    const after = progressBarSteps(
+      stateWith({ wasEmailRegistered: true }),
+    ).length;
 
     expect(after).toBe(before);
+  });
+
+  it("stops navigating to registration once either path created the account", () => {
+    expect(isStepNavigable(BASE, "registration")).toBe(true);
+    expect(
+      isStepNavigable(stateWith({ wasEmailRegistered: true }), "registration"),
+    ).toBe(false);
+    expect(
+      isStepNavigable(stateWith({ isSocialAuth: true }), "registration"),
+    ).toBe(false);
   });
 });
 

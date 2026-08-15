@@ -9,7 +9,7 @@ import {
   writeHandoffSeen,
   writeOnboardingCompleted,
 } from "./draft-storage";
-import { wouldExitOnBack } from "./onboarding-selectors";
+import { hasAccount, wouldExitOnBack } from "./onboarding-selectors";
 import {
   acknowledgeHandoff,
   addCustomTransaction,
@@ -206,7 +206,7 @@ describe("draft", () => {
       firstName: "",
       monthlyIncome: null,
       customTransactions: [],
-      isAuthenticated: false,
+      wasEmailRegistered: false,
     });
     restoreOnboardingDraft();
 
@@ -218,7 +218,7 @@ describe("draft", () => {
     expect(state.wasEmailRegistered).toBe(true);
   });
 
-  it("comes back signed in, so registration stays behind the user", () => {
+  it("comes back knowing it has an account, so registration stays behind the user", () => {
     goToNextStep();
     configureEmailUser();
     goToNextStep();
@@ -226,11 +226,11 @@ describe("draft", () => {
     // The relaunch: nothing in memory, only what reached the draft.
     useOnboardingStore.setState({
       currentStep: "welcome",
-      isAuthenticated: false,
+      wasEmailRegistered: false,
     });
     restoreOnboardingDraft();
 
-    expect(useOnboardingStore.getState().isAuthenticated).toBe(true);
+    expect(hasAccount(useOnboardingStore.getState())).toBe(true);
     // The account exists; stepping back must not offer to create it again.
     goToPreviousStep();
     expect(useOnboardingStore.getState().currentStep).toBe("firstName");
@@ -242,7 +242,6 @@ describe("draft", () => {
 
     useOnboardingStore.setState({
       currentStep: "welcome",
-      isAuthenticated: false,
       isSocialAuth: false,
       socialProvidedName: false,
     });

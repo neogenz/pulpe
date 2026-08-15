@@ -40,8 +40,11 @@ export interface OnboardingState {
    */
   editReturnStep: OnboardingStep | null;
 
-  isAuthenticated: boolean;
-  /** True for Google signup only — it is what makes firstName and registration skippable. */
+  /**
+   * True for Google signup only — it is what makes firstName and registration
+   * skippable. Together with `wasEmailRegistered` it is also how the flow knows
+   * it has an account; see `hasAccount`.
+   */
   isSocialAuth: boolean;
   /**
    * Whether the provider supplied a usable first name. Captured once at auth
@@ -94,7 +97,6 @@ const INITIAL_STATE: OnboardingState = {
   currentStep: "welcome",
   editReturnStep: null,
 
-  isAuthenticated: false,
   isSocialAuth: false,
   socialProvidedName: false,
   wasEmailRegistered: false,
@@ -154,8 +156,8 @@ function toDraft(state: OnboardingState) {
     leasingCredit: state.leasingCredit,
     customTransactions: state.customTransactions,
     // How the run signed in, not only what it answered. Which steps exist is
-    // decided from these three, so a draft that carried the answers alone came
-    // back as an anonymous run and put questions back that were already settled.
+    // decided from these, so a draft that carried the answers alone came back
+    // as an anonymous run and put questions back that were already settled.
     isSocialAuth: state.isSocialAuth,
     socialProvidedName: state.socialProvidedName,
     wasEmailRegistered: state.wasEmailRegistered,
@@ -179,9 +181,6 @@ export function restoreOnboardingDraft(): void {
   const draft = readDraft();
   if (draft === null) return;
 
-  const isSocialAuth = draft.isSocialAuth ?? false;
-  const wasEmailRegistered = draft.wasEmailRegistered ?? false;
-
   useOnboardingStore.setState({
     isFlowActive: true,
     currentStep: draft.currentStep ?? INITIAL_STATE.currentStep,
@@ -194,14 +193,13 @@ export function restoreOnboardingDraft(): void {
     transportCosts: draft.transportCosts ?? null,
     leasingCredit: draft.leasingCredit ?? null,
     customTransactions: draft.customTransactions ?? [],
-    isSocialAuth,
-    socialProvidedName: draft.socialProvidedName ?? false,
-    wasEmailRegistered,
     // The account outlives the process. Left to default, a resumed run came
     // back anonymous and `registration` became navigable again — so back from
     // the step the app died on landed on "Créer mon compte", for an address
     // that already had an account and could only answer that it did.
-    isAuthenticated: isSocialAuth || wasEmailRegistered,
+    isSocialAuth: draft.isSocialAuth ?? false,
+    socialProvidedName: draft.socialProvidedName ?? false,
+    wasEmailRegistered: draft.wasEmailRegistered ?? false,
     hasCompletedPinSetup: draft.hasCompletedPinSetup ?? false,
   });
 }
@@ -256,7 +254,6 @@ export function configureSocialUser(providedFirstName: string | null): void {
     ...INITIAL_STATE,
     ...deviceFlags(),
     isFlowActive: true,
-    isAuthenticated: true,
     isSocialAuth: true,
     socialProvidedName:
       providedFirstName !== null && providedFirstName.length > 0,
@@ -271,7 +268,6 @@ export function configureSocialUser(providedFirstName: string | null): void {
 /** The account exists; the draft is what the rest of the flow builds on. */
 export function configureEmailUser(): void {
   patch({
-    isAuthenticated: true,
     isSocialAuth: false,
     socialProvidedName: false,
     wasEmailRegistered: true,

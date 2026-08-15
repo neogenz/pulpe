@@ -41,9 +41,23 @@ export function isStepInProgressBar(
 }
 
 /**
+ * Whether this run has already created its account, by either of the two paths
+ * that can create one. Both halves are persisted, so it answers the same after
+ * a relaunch as it did before — which is what keeps a resumed run from being
+ * offered "Créer mon compte" for an address that already has one.
+ *
+ * Deliberately not the session status: a session revoked mid-flow does not
+ * un-create the account, and offering to register it a second time is the wrong
+ * turn this guard exists to prevent.
+ */
+export function hasAccount(state: OnboardingState): boolean {
+  return state.isSocialAuth || state.wasEmailRegistered;
+}
+
+/**
  * Whether navigation should stop on the step. Stricter than the progress bar:
- * an authenticated user never lands on registration even though it is still
- * counted.
+ * a run that has its account never lands on registration even though it is
+ * still counted.
  */
 export function isStepNavigable(
   state: OnboardingState,
@@ -55,7 +69,7 @@ export function isStepNavigable(
     case "firstName":
       return !(state.isSocialAuth && state.socialProvidedName);
     case "registration":
-      return !state.isAuthenticated;
+      return !hasAccount(state);
     // Asking for the code a second time would be asking the user to invent a
     // second one — the vault already holds the key derived from the first.
     case "pinSetup":

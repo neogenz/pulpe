@@ -19,7 +19,6 @@ const ANSWERS: OnboardingState = {
   hasSeenHandoff: false,
   currentStep: "budgetPreview",
   editReturnStep: null,
-  isAuthenticated: true,
   isSocialAuth: false,
   socialProvidedName: false,
   wasEmailRegistered: true,
