@@ -23,8 +23,38 @@ struct UncheckedOperationsCard: View {
     /// tap time while the confirmed card still anchors the order.
     @State private var successorId: String?
     /// The operation currently showing its local "Pointé" confirmation, held from the tap
-    /// until the store drops it — the round-trip is too slow to be the only acknowledgement.
+    /// until its exit animation completes — the round-trip is too slow to be the only
+    /// acknowledgement, and the exiting card keeps the top layer for as long as it is set.
     @State private var confirmingId: String?
+    /// Mirror of `items`, one commit behind the store. The deck renders from it because
+    /// owning the removal locally is what puts the confirmed card's exit and the deck's
+    /// slide to the successor in a single animated transaction — dropped straight from
+    /// `items`, the ScrollView resolves the vanished scroll target instantly and the
+    /// closing animation is cut.
+    @State private var displayItems: [CurrentMonthStore.CheckableItem]
+
+    init(
+        items: [CurrentMonthStore.CheckableItem],
+        tagNamesById: [String: String] = [:],
+        syncingBudgetLineIds: Set<String>,
+        syncingTransactionIds: Set<String>,
+        onToggle: @escaping (CurrentMonthStore.CheckableItem) -> Void,
+        onViewAll: @escaping () -> Void
+    ) {
+        self.items = items
+        self.tagNamesById = tagNamesById
+        self.syncingBudgetLineIds = syncingBudgetLineIds
+        self.syncingTransactionIds = syncingTransactionIds
+        self.onToggle = onToggle
+        self.onViewAll = onViewAll
+        _displayItems = State(initialValue: items)
+    }
+
+    /// What the deck shows: membership and order owned by `displayItems` (so an exiting
+    /// card survives its transition), values refreshed from the store on every render.
+    private var deckItems: [CurrentMonthStore.CheckableItem] {
+        displayItems.map { shown in items.first { $0.id == shown.id } ?? shown }
+    }
 
     /// SwiftUI removes a view with the transition captured at its LAST render, not the one
     /// computed alongside the removal — so an exit direction stored in a flag flipped in the
@@ -45,7 +75,7 @@ struct UncheckedOperationsCard: View {
     private var currency: SupportedCurrency { userSettingsStore.currency }
 
     /// The card the deck is resting on — the only one whose buttons answer taps.
-    private var focusedId: String? { scrolledId ?? items.first?.id }
+    private var focusedId: String? { scrolledId ?? displayItems.first?.id }
 
     private var deckAnimation: SwiftUI.Animation {
         reduceMotion ? DesignTokens.Animation.smoothEaseOut : DesignTokens.Animation.gentleSpring
@@ -54,8 +84,10 @@ struct UncheckedOperationsCard: View {
     /// The card after this one in the deck, wrapping past the end so "Plus tard" keeps
     /// offering operations for as long as any remain unchecked.
     private func nextId(after item: CurrentMonthStore.CheckableItem) -> String? {
-        guard let idx = items.firstIndex(where: { $0.id == item.id }) else { return items.first?.id }
-        return items[(idx + 1) % items.count].id
+        guard let idx = displayItems.firstIndex(where: { $0.id == item.id }) else {
+            return displayItems.first?.id
+        }
+        return displayItems[(idx + 1) % displayItems.count].id
     }
 
     private func isSyncing(_ item: CurrentMonthStore.CheckableItem) -> Bool {
@@ -79,16 +111,20 @@ struct UncheckedOperationsCard: View {
         .sensoryFeedback(.success, trigger: checkTrigger)
         .sensoryFeedback(.selection, trigger: skipTrigger)
         .onChange(of: items.map(\.id)) { _, newIds in
-            // The confirmed card left the store: land the deck on its successor so the
-            // next operation clicks into the focus slot instead of leaving a hole, and
-            // start it from a clean slate rather than inheriting the confirmation.
-            if let focused = focusedId, !newIds.contains(focused) {
-                withAnimation(deckAnimation) {
+            // One transaction for the whole handover: the confirmed card plays its exit
+            // (it only leaves `displayItems` here, inside the animation) while the deck
+            // slides its successor into the focus slot. `confirmingId` survives until
+            // the exit completes so the closing card keeps the top layer and the
+            // buttons stay quiet, then the next card starts from a clean slate.
+            withAnimation(deckAnimation) {
+                if let focused = focusedId, !newIds.contains(focused) {
                     scrolledId = successorId ?? newIds.first
                 }
+                displayItems = items
+            } completion: {
+                successorId = nil
+                confirmingId = nil
             }
-            successorId = nil
-            confirmingId = nil
         }
     }
 
@@ -103,7 +139,7 @@ struct UncheckedOperationsCard: View {
     private var deck: some View {
         ScrollView(.horizontal) {
             HStack(spacing: DesignTokens.Spacing.xs) {
-                ForEach(items) { item in
+                ForEach(deckItems) { item in
                     inlinePane(item)
                         .pulpeRowCard()
                         .containerRelativeFrame(.horizontal)
@@ -131,9 +167,10 @@ struct UncheckedOperationsCard: View {
                         // An HStack paints later siblings on top, so the trailing
                         // neighbour — its shadow and its perspective projection — would
                         // ride over the focused card. The focused card owns the top
-                        // layer; behind it the natural order keeps each billet under
-                        // the one nearer the focus.
-                        .zIndex(item.id == focusedId ? 1 : 0)
+                        // layer (and a card playing its confirmed exit keeps it, so it
+                        // closes above the successor sliding in); behind it the natural
+                        // order keeps each billet under the one nearer the focus.
+                        .zIndex(item.id == focusedId || item.id == confirmingId ? 1 : 0)
                         // Only the focused card answers taps: a peeking sliver exposes
                         // the leading edge of its neighbour's own "C'est passé", and one
                         // stray tap there would point an operation the user barely sees.
@@ -151,7 +188,6 @@ struct UncheckedOperationsCard: View {
         .scrollIndicators(.hidden)
         .scrollClipDisabled()
         .padding(.horizontal, -DesignTokens.Spacing.xxl)
-        .animation(deckAnimation, value: items.map(\.id))
     }
 
     // MARK: - Inline Quick-Check
@@ -274,10 +310,11 @@ struct UncheckedOperationsCard: View {
             guard confirmingId == nil else { return }
             checkTrigger.toggle()
             // Where the deck lands once the store drops this card: the operation that
-            // was next in line, or the new last card when the last one was confirmed.
-            let rest = items.filter { $0.id != item.id }
-            if let idx = items.firstIndex(where: { $0.id == item.id }), !rest.isEmpty {
-                successorId = rest[min(idx, rest.count - 1)].id
+            // was next in line, wrapping to the first when the last one was confirmed —
+            // the deck is a cycle, same as "Plus tard".
+            let rest = displayItems.filter { $0.id != item.id }
+            if let idx = displayItems.firstIndex(where: { $0.id == item.id }), !rest.isEmpty {
+                successorId = rest[idx % rest.count].id
             } else {
                 successorId = nil
             }

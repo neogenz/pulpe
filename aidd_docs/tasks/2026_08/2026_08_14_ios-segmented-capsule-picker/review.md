@@ -48,6 +48,9 @@
 - [x] Garde anti-tap : `allowsHitTesting` sur la seule carte focus — le sliver visible expose le bord du « C'est passé » voisin; VoiceOver garde l'accès à toutes les cartes
 - [x] Cible iOS 18 ⇒ APIs scroll toutes iOS 17+, aucun fallback ancien OS nécessaire
 - [x] Vérifié sur simulateur light + dark : peek 1er/2e/3e élément, skip, pointage réel (17→16, successeur au slot focus) puis état seed restauré (dépointage)
+- [x] Layer (retour Maxime) : le billet trailing recouvrait la carte focus — un HStack peint les frères suivants au-dessus; `zIndex` explicite sur la carte focus (et la carte en exit) + pivot de la rotation 3D sur le bord intérieur pour que la projection déborde vers l'écran
+- [x] Clôture animée (retour Maxime) : le deck rend depuis `displayItems`, miroir local du store — le retrait de la carte confirmée et le glissement du successeur partagent UNE transaction `withAnimation` (retirée directement de `items`, la cible de scroll disparue était résolue instantanément et l'exit coupé); `confirmingId` survit jusqu'au `completion` pour garder la carte sortante au premier plan
+- [x] Boucle (retour Maxime) : le successeur d'un pointage passe en modulo (`rest[idx % rest.count]`) — clôturer la dernière carte ramène à la première, même cycle que « Plus tard »; le swipe pur reste borné (rebond standard en bout de deck, pas de scroll infini par sentinelles)
 
 ## Findings
 
