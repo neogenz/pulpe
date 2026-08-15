@@ -59,6 +59,7 @@ import { changePasswordFormSchema } from './change-password-dialog.schema';
             matInput
             [type]="isCurrentPasswordHidden() ? 'password' : 'text'"
             formControlName="currentPassword"
+            autocomplete="current-password"
             data-testid="current-password-input"
             (input)="clearError()"
           />
@@ -95,6 +96,7 @@ import { changePasswordFormSchema } from './change-password-dialog.schema';
               matInput
               [type]="isNewPasswordHidden() ? 'password' : 'text'"
               formControlName="newPassword"
+              autocomplete="new-password"
               data-testid="new-password-input"
               (input)="clearError()"
             />
@@ -139,6 +141,7 @@ import { changePasswordFormSchema } from './change-password-dialog.schema';
               matInput
               [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
               formControlName="confirmPassword"
+              autocomplete="new-password"
               data-testid="confirm-password-input"
               (input)="clearError()"
             />

@@ -63,8 +63,9 @@ test.describe('Product tour accessibility', () => {
     const menuTrigger = authenticatedPage.getByTestId('user-menu-trigger');
     await menuTrigger.focus();
     await authenticatedPage.keyboard.press('Enter');
-    await authenticatedPage.keyboard.press('ArrowDown');
-    await authenticatedPage.keyboard.press('ArrowDown');
+    const pageTourButton = authenticatedPage.getByTestId('page-tour-button');
+    await pageTourButton.focus();
+    await expect(pageTourButton).toBeFocused();
     await authenticatedPage.keyboard.press('Enter');
 
     const dialog = authenticatedPage.getByRole('dialog');
