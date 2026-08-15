@@ -19,6 +19,11 @@ function buildAuthenticatedClient(
   metadata: MockUserMetadata,
   userOverrides: Partial<{ id: string; email: string }> = {},
   appMetadata: unknown = {},
+  localePreference: {
+    persistedLocale?: string | null;
+    readError?: Error;
+    upsertError?: Error;
+  } = {},
 ) {
   const updateUser = mock(
     (payload: {
@@ -41,6 +46,31 @@ function buildAuthenticatedClient(
       }),
   );
 
+  let upsertedLocale: string | undefined;
+  const localeQuery = {
+    select: mock(() => localeQuery),
+    eq: mock(() => localeQuery),
+    maybeSingle: mock(() =>
+      Promise.resolve({
+        data:
+          localePreference.persistedLocale == null
+            ? null
+            : { locale: localePreference.persistedLocale },
+        error: localePreference.readError ?? null,
+      }),
+    ),
+    upsert: mock((row: { user_id: string; locale: string }) => {
+      upsertedLocale = row.locale;
+      return localeQuery;
+    }),
+    single: mock(() =>
+      Promise.resolve({
+        data: localePreference.upsertError ? null : { locale: upsertedLocale },
+        error: localePreference.upsertError ?? null,
+      }),
+    ),
+  };
+
   return {
     auth: {
       getUser: mock(() =>
@@ -58,6 +88,8 @@ function buildAuthenticatedClient(
       ),
       updateUser,
     },
+    from: mock(() => localeQuery),
+    localeQuery,
   };
 }
 
@@ -180,13 +212,18 @@ describe('SupabaseUserRepository', () => {
   });
 
   describe('findSettings', () => {
-    it('returns parsed settings from user_metadata', async () => {
-      const client = buildAuthenticatedClient({
-        payDayOfMonth: 15,
-        currency: 'EUR',
-        showCurrencySelector: true,
-        locale: 'de',
-      });
+    it('returns settings with locale from the dedicated preference table', async () => {
+      const client = buildAuthenticatedClient(
+        {
+          payDayOfMonth: 15,
+          currency: 'EUR',
+          showCurrencySelector: true,
+          locale: 'de',
+        },
+        {},
+        {},
+        { persistedLocale: 'it' },
+      );
       Object.defineProperty(authenticatedProvider, 'client', {
         get: () => client,
       });
@@ -197,8 +234,9 @@ describe('SupabaseUserRepository', () => {
         payDayOfMonth: 15,
         currency: 'EUR',
         showCurrencySelector: true,
-        locale: 'de',
+        locale: 'it',
       });
+      expect(client.from).toHaveBeenCalledWith('user_locale_preference');
     });
 
     it('falls back to CHF when currency is invalid', async () => {
@@ -213,16 +251,52 @@ describe('SupabaseUserRepository', () => {
       expect(mockLogger.warn).toHaveBeenCalled();
     });
 
-    it('falls back to fr when the persisted locale is not supported', async () => {
-      const client = buildAuthenticatedClient({ locale: 'es' });
+    it('ignores a persisted locale that is not supported', async () => {
+      const client = buildAuthenticatedClient(
+        {},
+        {},
+        {},
+        {
+          persistedLocale: 'es',
+        },
+      );
       Object.defineProperty(authenticatedProvider, 'client', {
         get: () => client,
       });
 
       const result = await repo.findSettings();
 
-      expect(result.locale).toBe('fr');
+      expect(result.locale).toBeUndefined();
       expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    it('uses legacy metadata only when no preference row exists', async () => {
+      const client = buildAuthenticatedClient({ locale: 'de' });
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => client,
+      });
+
+      const result = await repo.findSettings();
+
+      expect(result.locale).toBe('de');
+    });
+
+    it('throws BusinessException when the locale query fails', async () => {
+      const client = buildAuthenticatedClient(
+        {},
+        {},
+        {},
+        {
+          readError: new Error('query failure'),
+        },
+      );
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => client,
+      });
+
+      await expect(repo.findSettings()).rejects.toBeInstanceOf(
+        BusinessException,
+      );
     });
 
     it('returns null payDayOfMonth and default currency when metadata is missing', async () => {
@@ -237,7 +311,6 @@ describe('SupabaseUserRepository', () => {
         payDayOfMonth: null,
         currency: 'CHF',
         showCurrencySelector: false,
-        locale: 'fr',
       });
       expect(mockLogger.warn).not.toHaveBeenCalled();
     });
@@ -270,10 +343,12 @@ describe('SupabaseUserRepository', () => {
     });
 
     it('preserves an existing locale when patch omits it', async () => {
-      const authClient = buildAuthenticatedClient({
-        payDayOfMonth: 15,
-        locale: 'de',
-      });
+      const authClient = buildAuthenticatedClient(
+        { payDayOfMonth: 15 },
+        {},
+        {},
+        { persistedLocale: 'de' },
+      );
       Object.defineProperty(authenticatedProvider, 'client', {
         get: () => authClient,
       });
@@ -286,15 +361,17 @@ describe('SupabaseUserRepository', () => {
 
       const sentMetadata =
         serviceRole.updateUserById.mock.calls[0]?.[1]?.user_metadata;
-      expect(sentMetadata?.locale).toBe('de');
+      expect(sentMetadata?.locale).toBeUndefined();
       expect(result.locale).toBe('de');
     });
 
-    it('writes the locale when patch carries only that field', async () => {
-      const authClient = buildAuthenticatedClient({
-        payDayOfMonth: 15,
-        currency: 'EUR',
-      });
+    it('upserts locale through RLS without using the service role', async () => {
+      const authClient = buildAuthenticatedClient(
+        { payDayOfMonth: 15, currency: 'EUR' },
+        {},
+        {},
+        { persistedLocale: 'de' },
+      );
       Object.defineProperty(authenticatedProvider, 'client', {
         get: () => authClient,
       });
@@ -305,12 +382,46 @@ describe('SupabaseUserRepository', () => {
 
       const result = await repo.updateSettings('user-1', { locale: 'it' });
 
-      const sentMetadata =
-        serviceRole.updateUserById.mock.calls[0]?.[1]?.user_metadata;
-      expect(sentMetadata?.locale).toBe('it');
-      expect(sentMetadata?.payDayOfMonth).toBe(15);
-      expect(sentMetadata?.currency).toBe('EUR');
+      expect(serviceRole.updateUserById).not.toHaveBeenCalled();
+      expect(authClient.localeQuery.upsert).toHaveBeenCalledWith(
+        { user_id: 'user-1', locale: 'it' },
+        { onConflict: 'user_id' },
+      );
       expect(result.locale).toBe('it');
+    });
+
+    it('throws BusinessException when the locale upsert fails', async () => {
+      const authClient = buildAuthenticatedClient(
+        {},
+        {},
+        {},
+        {
+          upsertError: new Error('upsert failure'),
+        },
+      );
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => authClient,
+      });
+
+      await expect(
+        repo.updateSettings('user-1', { locale: 'it' }),
+      ).rejects.toBeInstanceOf(BusinessException);
+    });
+
+    it('rejects a settings update for a different user id', async () => {
+      const authClient = buildAuthenticatedClient({});
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => authClient,
+      });
+      const serviceRole = buildServiceRoleClient();
+      (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
+        () => serviceRole,
+      );
+
+      await expect(
+        repo.updateSettings('user-2', { currency: 'EUR' }),
+      ).rejects.toBeInstanceOf(BusinessException);
+      expect(serviceRole.updateUserById).not.toHaveBeenCalled();
     });
 
     it('clears payDayOfMonth when patch sends null explicitly', async () => {

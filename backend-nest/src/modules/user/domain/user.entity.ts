@@ -12,15 +12,16 @@ export interface UserProfile {
 }
 
 /**
- * Domain entity representing the user's settings persisted in
- * `auth.users.user_metadata`.
+ * Domain entity representing the user's settings. Locale is application data
+ * stored in `user_locale_preference`; legacy budget settings remain in Auth
+ * metadata until their existing consumers are migrated separately.
  */
 export interface UserSettings {
   payDayOfMonth: number | null;
   currency: SupportedCurrency;
   showCurrencySelector: boolean;
   /** Interface language. Independent of `currency`, which drives amount formatting. */
-  locale: SupportedLocale;
+  locale?: SupportedLocale;
 }
 
 /**
@@ -32,9 +33,8 @@ export interface UpdateUserProfileInput {
 }
 
 /**
- * Partial patch applied when updating the user's settings in
- * `auth.users.user_metadata`. Fields left undefined are not modified;
- * `payDayOfMonth: null` clears the value explicitly.
+ * Partial patch applied when updating the user's settings. Fields left
+ * undefined are not modified; `payDayOfMonth: null` clears it explicitly.
  */
 export interface UpdateUserSettingsInput {
   payDayOfMonth?: number | null;

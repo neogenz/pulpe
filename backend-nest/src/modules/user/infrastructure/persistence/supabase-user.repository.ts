@@ -5,7 +5,6 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import {
-  DEFAULT_LOCALE,
   type SupportedCurrency,
   payDayOfMonthSchema,
   supportedCurrencySchema,
@@ -27,6 +26,7 @@ interface SupabaseUserMetadata {
   payDayOfMonth?: number | null;
   currency?: string;
   showCurrencySelector?: boolean;
+  /** Read-only rollout fallback; new locale writes use user_locale_preference. */
   locale?: string;
 }
 
@@ -71,40 +71,59 @@ export class SupabaseUserRepository implements UserRepositoryPort {
     return this.#toUserProfile(data.user as SupabaseUserShape);
   }
 
-  /**
-   * Settings reads use the JWT-scoped client (`auth.getUser()` returns the
-   * current user's metadata).
-   */
+  /** Settings reads use only the current user's JWT-scoped client. */
   async findSettings(): Promise<UserSettings> {
-    const supabase = this.authenticatedProvider.client;
-    const { data, error } = await supabase.auth.getUser();
-
-    if (error || !data.user) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.USER_FETCH_FAILED,
-        undefined,
-        { operation: 'user.findSettings' },
-        { cause: error },
-      );
-    }
-
-    return this.#toUserSettings((data.user as SupabaseUserShape).user_metadata);
+    const user = await this.#fetchCurrentUser();
+    const locale = await this.#findLocale(user);
+    return this.#toUserSettings(user.user_metadata, locale);
   }
 
   /**
-   * Settings writes go through the service-role admin API so the full
-   * `user_metadata` object can be replaced atomically (preserving keys the
-   * caller did not patch). The current metadata is fetched via the
-   * authenticated client first.
+   * Legacy budget settings still use user_metadata. Locale is application
+   * data and is upserted through the JWT-scoped client with owner-only RLS.
    */
   async updateSettings(
     userId: string,
     patch: UpdateUserSettingsInput,
   ): Promise<UserSettings> {
-    const currentMetadata =
-      (await this.#fetchCurrentUser()).user_metadata ?? {};
+    const currentUser = await this.#fetchCurrentUser();
+    if (currentUser.id !== userId) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_SETTINGS_UPDATE_FAILED,
+        undefined,
+        { operation: 'user.updateSettings', userId },
+      );
+    }
+
+    const currentMetadata = currentUser.user_metadata ?? {};
+    let locale = await this.#findLocale(currentUser);
+    let updatedMetadata = currentMetadata;
+    if (
+      patch.payDayOfMonth !== undefined ||
+      patch.currency !== undefined ||
+      patch.showCurrencySelector !== undefined
+    ) {
+      updatedMetadata = await this.#updateLegacySettings(
+        userId,
+        currentMetadata,
+        patch,
+      );
+    }
+
+    if (patch.locale !== undefined) {
+      locale = await this.#upsertLocale(userId, patch.locale);
+    }
+
+    return this.#toUserSettings(updatedMetadata, locale);
+  }
+
+  async #updateLegacySettings(
+    userId: string,
+    current: SupabaseUserMetadata,
+    patch: UpdateUserSettingsInput,
+  ): Promise<SupabaseUserMetadata> {
     const merged: SupabaseUserMetadata = {
-      ...currentMetadata,
+      ...current,
       ...(patch.payDayOfMonth !== undefined && {
         payDayOfMonth: patch.payDayOfMonth,
       }),
@@ -112,15 +131,12 @@ export class SupabaseUserRepository implements UserRepositoryPort {
       ...(patch.showCurrencySelector !== undefined && {
         showCurrencySelector: patch.showCurrencySelector,
       }),
-      ...(patch.locale !== undefined && { locale: patch.locale }),
     };
-
     const serviceClient = this.supabaseService.getServiceRoleClient();
     const { data, error } = await serviceClient.auth.admin.updateUserById(
       userId,
       { user_metadata: merged },
     );
-
     if (error || !data.user) {
       throw new BusinessException(
         ERROR_DEFINITIONS.USER_SETTINGS_UPDATE_FAILED,
@@ -129,8 +145,7 @@ export class SupabaseUserRepository implements UserRepositoryPort {
         { cause: error },
       );
     }
-
-    return this.#toUserSettings((data.user as SupabaseUserShape).user_metadata);
+    return (data.user as SupabaseUserShape).user_metadata ?? current;
   }
 
   /**
@@ -203,6 +218,47 @@ export class SupabaseUserRepository implements UserRepositoryPort {
     return data.user as SupabaseUserShape;
   }
 
+  async #findLocale(user: SupabaseUserShape) {
+    const { data, error } = await this.authenticatedProvider.client
+      .from('user_locale_preference')
+      .select('locale')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_FETCH_FAILED,
+        undefined,
+        { operation: 'user.findLocale' },
+        { cause: error },
+      );
+    }
+
+    return this.#parseLocale(data?.locale ?? user.user_metadata?.locale);
+  }
+
+  async #upsertLocale(
+    userId: string,
+    locale: NonNullable<UserSettings['locale']>,
+  ) {
+    const { data, error } = await this.authenticatedProvider.client
+      .from('user_locale_preference')
+      .upsert({ user_id: userId, locale }, { onConflict: 'user_id' })
+      .select('locale')
+      .single();
+
+    if (error || !data) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_SETTINGS_UPDATE_FAILED,
+        undefined,
+        { operation: 'user.updateLocale', userId },
+        { cause: error },
+      );
+    }
+
+    return this.#parseLocale(data.locale);
+  }
+
   #normalizeAppMetadata(value: unknown): Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
       ? (value as Record<string, unknown>)
@@ -222,7 +278,10 @@ export class SupabaseUserRepository implements UserRepositoryPort {
     };
   }
 
-  #toUserSettings(metadata: SupabaseUserMetadata | undefined): UserSettings {
+  #toUserSettings(
+    metadata: SupabaseUserMetadata | undefined,
+    locale: UserSettings['locale'],
+  ): UserSettings {
     const rawPayDay = metadata?.payDayOfMonth;
     const parsedPayDay = payDayOfMonthSchema.safeParse(rawPayDay);
     const payDayOfMonth = parsedPayDay.success
@@ -242,25 +301,25 @@ export class SupabaseUserRepository implements UserRepositoryPort {
       );
     }
 
-    // `userSettingsSchema` defaults `locale` to 'fr', but a Zod default only
-    // fires on `undefined` — a junk string persisted in the metadata blob
-    // would flow straight through. Parse it here like the currency.
-    const rawLocale = metadata?.locale;
-    const parsedLocale = supportedLocaleSchema.safeParse(rawLocale);
-    const locale = parsedLocale.success ? parsedLocale.data : DEFAULT_LOCALE;
-
-    if (!parsedLocale.success && rawLocale !== undefined) {
-      this.logger.warn(
-        { rawLocale },
-        'Invalid locale in user_metadata, falling back to default',
-      );
-    }
-
     return {
       payDayOfMonth,
       currency,
       showCurrencySelector: metadata?.showCurrencySelector === true,
-      locale,
+      ...(locale !== undefined && { locale }),
     };
+  }
+
+  #parseLocale(rawLocale: unknown): UserSettings['locale'] {
+    if (rawLocale === undefined) return undefined;
+
+    const parsedLocale = supportedLocaleSchema.safeParse(rawLocale);
+    if (!parsedLocale.success) {
+      this.logger.warn(
+        { rawLocale },
+        'Invalid persisted locale, ignoring server preference',
+      );
+      return undefined;
+    }
+    return parsedLocale.data;
   }
 }

@@ -128,9 +128,10 @@ export class AnalyticsService implements OnDestroy {
 
       this.#personPropertiesEffect = effect(() => {
         const userSettings = this.#userSettingsStore.settings();
+        const locale = this.#userSettingsStore.locale();
 
         if (userSettings) {
-          this.#postHogService.setLocale(userSettings.locale);
+          this.#postHogService.setLocale(locale);
         }
 
         // Skip until identify has fired and settings have actually loaded.
@@ -144,7 +145,7 @@ export class AnalyticsService implements OnDestroy {
           [ANALYTICS_PROPERTIES.CURRENCY]: userSettings.currency,
           [ANALYTICS_PROPERTIES.SHOW_CURRENCY_SELECTOR]:
             userSettings.showCurrencySelector,
-          [ANALYTICS_PROPERTIES.LOCALE]: userSettings.locale,
+          [ANALYTICS_PROPERTIES.LOCALE]: locale,
         });
       });
 

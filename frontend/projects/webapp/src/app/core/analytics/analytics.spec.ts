@@ -27,6 +27,7 @@ function createMockUserSettingsStore(
   const settingsSignal = signal<UserSettings | null>(initial);
   return {
     settings: settingsSignal,
+    locale: () => settingsSignal()?.locale ?? 'fr',
     setSettings: (value: UserSettings | null) => settingsSignal.set(value),
   };
 }

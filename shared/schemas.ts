@@ -2182,7 +2182,7 @@ export const userSettingsSchema = z.object({
   payDayOfMonth: payDayOfMonthSchema,
   currency: supportedCurrencySchema.default('CHF'),
   showCurrencySelector: z.boolean().default(false),
-  locale: supportedLocaleSchema.default('fr'),
+  locale: supportedLocaleSchema.optional(),
 });
 export type UserSettings = z.infer<typeof userSettingsSchema>;
 

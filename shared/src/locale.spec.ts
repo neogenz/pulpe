@@ -49,13 +49,13 @@ describe('LOCALE_METADATA', () => {
 });
 
 describe('user settings locale field', () => {
-  it('should default to french when absent from the stored settings', () => {
+  it('should preserve an absent server preference', () => {
     const result = userSettingsSchema.parse({
       payDayOfMonth: null,
       currency: 'CHF',
       showCurrencySelector: false,
     });
-    expect(result.locale).toBe(DEFAULT_LOCALE);
+    expect(result.locale).toBeUndefined();
   });
 
   it('should accept an update carrying only the locale', () => {

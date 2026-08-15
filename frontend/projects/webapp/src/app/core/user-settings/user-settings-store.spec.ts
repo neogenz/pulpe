@@ -341,6 +341,57 @@ describe('UserSettingsStore — loading conditions', () => {
     );
   });
 
+  it('should keep the startup language when the server has no preference', async () => {
+    const setString = vi.fn();
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        UserSettingsStore,
+        {
+          provide: UserSettingsApi,
+          useValue: {
+            getSettings$: vi.fn().mockReturnValue(
+              of({
+                success: true,
+                data: {
+                  payDayOfMonth: null,
+                  currency: 'CHF',
+                  showCurrencySelector: false,
+                } satisfies UserSettings,
+              }),
+            ),
+            cache: mockCache,
+          },
+        },
+        {
+          provide: StorageService,
+          useValue: {
+            get: vi.fn((key: string) =>
+              key === STORAGE_KEYS.SETTINGS_LANGUAGE ? 'de' : null,
+            ),
+            setString,
+          },
+        },
+        { provide: AuthStore, useValue: { isAuthenticated: signal(true) } },
+        {
+          provide: ClientKeyService,
+          useValue: { hasClientKey: signal(true) },
+        },
+        { provide: DemoModeService, useValue: { isDemoMode: signal(false) } },
+      ],
+    });
+
+    const store = TestBed.inject(UserSettingsStore);
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(store.locale()).toBe('de');
+    expect(setString).not.toHaveBeenCalledWith(
+      STORAGE_KEYS.SETTINGS_LANGUAGE,
+      expect.anything(),
+    );
+  });
+
   it('should not load settings when user is not authenticated', async () => {
     const getSettingsSpy = vi.fn();
 
