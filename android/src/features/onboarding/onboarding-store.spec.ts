@@ -25,7 +25,6 @@ import {
   removeCustomTransaction,
   resetOnboarding,
   restoreOnboardingDraft,
-  resumeEmailUserAfterRegistration,
   selectCurrency,
   startAfterWelcome,
   toggleSuggestion,
@@ -188,18 +187,6 @@ describe("navigation", () => {
     jumpToStepForEdit("charges");
     goToPreviousStep();
     expect(useOnboardingStore.getState().currentStep).toBe("budgetPreview");
-  });
-
-  it("moves past registration when a cold start lands on an account that exists", () => {
-    useOnboardingStore.setState({
-      currentStep: "registration",
-      isAuthenticated: true,
-      wasEmailRegistered: true,
-    });
-
-    resumeEmailUserAfterRegistration();
-
-    expect(useOnboardingStore.getState().currentStep).toBe("income");
   });
 });
 

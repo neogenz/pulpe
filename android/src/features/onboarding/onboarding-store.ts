@@ -34,8 +34,6 @@ export interface OnboardingState {
   hasSeenHandoff: boolean;
 
   currentStep: OnboardingStep;
-  /** Drives the step transition direction; navigation is by button only. */
-  isMovingForward: boolean;
   /**
    * Set while editing an answer from the budget preview: the next move in
    * either direction returns here instead of walking the steps in order.
@@ -94,7 +92,6 @@ const INITIAL_STATE: OnboardingState = {
   hasSeenHandoff: false,
 
   currentStep: "welcome",
-  isMovingForward: true,
   editReturnStep: null,
 
   isAuthenticated: false,
@@ -372,18 +369,14 @@ export function goToNextStep(): boolean {
   const state = useOnboardingStore.getState();
 
   if (state.editReturnStep !== null) {
-    patch({
-      currentStep: state.editReturnStep,
-      editReturnStep: null,
-      isMovingForward: true,
-    });
+    patch({ currentStep: state.editReturnStep, editReturnStep: null });
     return true;
   }
 
   const next = nextVisibleStep(state, state.currentStep);
   if (next === null) return false;
 
-  patch({ currentStep: next, isMovingForward: true });
+  patch({ currentStep: next });
   return true;
 }
 
@@ -396,18 +389,14 @@ export function goToPreviousStep(): boolean {
   const state = useOnboardingStore.getState();
 
   if (state.editReturnStep !== null) {
-    patch({
-      currentStep: state.editReturnStep,
-      editReturnStep: null,
-      isMovingForward: true,
-    });
+    patch({ currentStep: state.editReturnStep, editReturnStep: null });
     return true;
   }
 
   const previous = previousVisibleStep(state, state.currentStep);
   if (previous === null) return false;
 
-  patch({ currentStep: previous, isMovingForward: false });
+  patch({ currentStep: previous });
   return true;
 }
 
@@ -416,28 +405,10 @@ export function startAfterWelcome(): void {
   const state = useOnboardingStore.getState();
   const next = nextVisibleStep(state, "welcome");
   if (next === null) return;
-  patch({ currentStep: next, isMovingForward: true });
-}
-
-/**
- * Cold-start recovery for the narrow window where the account was created but
- * the flow died before leaving registration. Without it the user taps "Créer
- * mon compte" on an e-mail that already exists.
- */
-export function resumeEmailUserAfterRegistration(): void {
-  const state = useOnboardingStore.getState();
-  if (state.currentStep !== "registration") return;
-
-  const next = nextVisibleStep(state, "registration");
-  if (next === null) return;
-  patch({ currentStep: next, isMovingForward: true });
+  patch({ currentStep: next });
 }
 
 /** Jumps to a step with a bookmark back to the preview that sent the user there. */
 export function jumpToStepForEdit(step: OnboardingStep): void {
-  patch({
-    currentStep: step,
-    editReturnStep: "budgetPreview",
-    isMovingForward: false,
-  });
+  patch({ currentStep: step, editReturnStep: "budgetPreview" });
 }

@@ -4,7 +4,6 @@ import {
   emotionState,
   fixedChargeLines,
   progressBarSteps,
-  progressPercentage,
   totalCharges,
   totalExpenses,
   totalIncome,
@@ -18,7 +17,6 @@ const BASE: OnboardingState = {
   hasCompletedOnboarding: false,
   hasSeenHandoff: false,
   currentStep: "income",
-  isMovingForward: true,
   editReturnStep: null,
   isAuthenticated: false,
   isSocialAuth: false,
@@ -83,13 +81,6 @@ describe("progress bar", () => {
     const after = progressBarSteps(stateWith({ isAuthenticated: true })).length;
 
     expect(after).toBe(before);
-  });
-
-  it("runs from 0 on the first counted step to 100 on the last", () => {
-    expect(progressPercentage(stateWith({ currentStep: "firstName" }))).toBe(0);
-    expect(
-      progressPercentage(stateWith({ currentStep: "budgetPreview" })),
-    ).toBe(100);
   });
 });
 

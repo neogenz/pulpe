@@ -93,13 +93,6 @@ export function wouldExitOnBack(state: OnboardingState): boolean {
   return previousVisibleStep(state, state.currentStep) === "welcome";
 }
 
-export function progressPercentage(state: OnboardingState): number {
-  const bar = progressBarSteps(state);
-  const index = bar.indexOf(state.currentStep);
-  if (index < 0 || bar.length < 2) return 0;
-  return (index / (bar.length - 1)) * 100;
-}
-
 export function isFirstNameValid(state: OnboardingState): boolean {
   return state.firstName.trim().length > 0;
 }

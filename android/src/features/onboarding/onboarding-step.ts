@@ -75,12 +75,3 @@ export const STEP_COPY: Record<OnboardingStep, StepCopy> = {
     analyticsName: "pin_setup",
   },
 };
-
-/** Steps the user may skip outright. */
-export function isOptionalStep(step: OnboardingStep): boolean {
-  return step === "charges" || step === "savings";
-}
-
-export function stepIndex(step: OnboardingStep): number {
-  return ONBOARDING_STEPS.indexOf(step);
-}
