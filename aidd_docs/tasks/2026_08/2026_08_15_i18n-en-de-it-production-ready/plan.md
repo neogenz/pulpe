@@ -1,0 +1,41 @@
+---
+objective: "La branche feat/i18n-en-de-it intègre le dernier commit distant, des surfaces intégralement cohérentes en FR/EN/DE/IT et une preuve automatisée complète avant son merge dans preview."
+status: in-progress
+---
+
+# Plan: Mise en production de `feat/i18n-en-de-it`
+
+## Overview
+
+| Field      | Value |
+| ---------- | ----- |
+| **Goal**   | Synchroniser la dernière pointe distante de `feat/i18n-en-de-it`, corriger les défauts i18n et le passage de locale landing → webapp, traduire les pages juridiques et les nouveautés, puis rejouer toutes les gates |
+| **Source** | Demandes et screenshots du 2026-08-15, `2026_08_13_i18n-en-de-it/review.md`, audit à 7 piliers et pointe distante observée `38ae006` |
+
+La preview manuelle a révélé quatre défauts absents de la première review : suggestion automatique de langue, perte de la locale entre les CTA de la landing et la webapp, pages juridiques partiellement traduites et nouveautés françaises sous une interface étrangère. La readiness exige de les fermer après rattachement à la pointe distante vérifiée au début de l’exécution, puis de reproduire toute la matrice de validation. Les alertes de dépendances restent une baseline héritée ; le budget Angular doit être recalibré si le delta mesuré est une conséquence attendue de la feature i18n.
+
+## Phases
+
+| #   | Phase | File |
+| --- | ----- | ---- |
+| 1 | Synchroniser et contrôler la pointe distante | [`phase-1.md`](./phase-1.md) |
+| 2 | Finaliser les corrections fonctionnelles i18n | [`phase-2.md`](./phase-2.md) |
+| 3 | Fiabiliser la couverture automatisée | [`phase-3.md`](./phase-3.md) |
+| 4 | Supprimer la suggestion automatique et traduire les CGU | [`phase-4.md`](./phase-4.md) |
+| 5 | Traduire la politique de confidentialité | [`phase-5.md`](./phase-5.md) |
+| 6 | Internationaliser les nouveautés et le pipeline de release | [`phase-6.md`](./phase-6.md) |
+| 7 | Réduire le bundle, exécuter les gates, documenter et commiter | [`phase-7.md`](./phase-7.md) |
+
+## Decisions
+
+| Decision | Why |
+| -------- | --- |
+| Conserver la suppression de `rollover-types` si aucune référence n’existe à la pointe distante vérifiée | Le code et son spec étaient isolés, non exportés et sans appelant ; les restaurer maintiendrait du code mort et une copie française codée en dur. |
+| Éviter la refonte des routes et corriger l’inclusion Zod mesurée | Le build instrumenté place déjà `feature/`, `layout/` et `ui/` entièrement hors de `main`. En revanche, l’objet agrégé `z` conserve 180,69 kB de locales Zod inutilisées dans le chunk initial, qui dépasse le budget de 120,83 kB. Remplacer uniquement les imports eager concernés doit repasser sous le seuil sans nouvelle dépendance ni redécoupage architectural. |
+| Garder le français comme copie canonique et langue de GitHub, avec EN/DE/IT obligatoires sur les surfaces produit | Le pipeline existant produit déjà une note française et trois projections ; l’étendre évite une nouvelle source de vérité et respecte l’exception GitHub demandée. |
+| Traduire uniquement le contenu produit visible | L’interface, le marketing, le juridique et les nouveautés suivent FR/EN/DE/IT. Le code, les clés, les contrats API, les logs, la documentation technique, les événements/propriétés PostHog et analytics, ainsi que la mécanique SEO restent en anglais. Les textes SEO visibles dans les résultats ou aperçus sociaux restent du contenu produit et suivent la locale. |
+| Ajouter `locale` à chaque événement produit | La clé reste technique et anglaise, avec uniquement `fr`, `en`, `de` ou `it`. Une super-propriété d’événement conserve la langue au moment de chaque action pour les volumes et funnels ; la propriété de personne existante reste disponible pour segmenter les comptes identifiés selon leur langue courante. |
+| Localiser la release i18n et les suivantes, sans retraduire les 37 releases historiques | Les 251 entrées existantes représentent environ 750 traductions ; les pages non françaises montreront une archive française explicite au lieu de mélanger les langues. |
+| Traduire intégralement CGU et confidentialité en FR/EN/DE/IT depuis le français canonique | Les quatre langues servent le marché visé ; une page moitié traduite est trompeuse et les obligations doivent conserver une structure identique. |
+| Supprimer `LanguageBanner` et garder le sélecteur explicite | L’URL choisie exprime mieux l’intention que `navigator.language`, et le sélecteur couvre déjà le changement de langue sans interruption. |
+| Résoudre la langue webapp dans l’ordre préférence enregistrée → locale du CTA → navigateur → français | La landing doit définir le premier affichage sans écraser un choix explicite déjà fait dans l’app ; le paramètre entrant reste validé sur FR/EN/DE/IT. |
