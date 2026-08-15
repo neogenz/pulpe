@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 ---
 
 # Instruction: Réduire le bundle, exécuter les gates, documenter et commiter
