@@ -129,12 +129,7 @@ struct UncheckedOperationsCard: View {
             // slides its successor into the focus slot. `confirmingId` survives until
             // the exit completes so the closing card keeps the top layer and the
             // buttons stay quiet, then the next card starts from a clean slate.
-            // The deck can be born empty; seed the position when cards first arrive,
-            // or it would sit on the leading wrap copies.
-            if scrolledId == nil, let first = newIds.first {
-                scrolledId = first
-                position.scrollTo(id: first)
-            }
+            seedPositionIfNeeded(first: newIds.first)
             withAnimation(deckAnimation) {
                 if let focused = focusedId, !newIds.contains(focused),
                    let target = successorId ?? newIds.first {
@@ -142,7 +137,7 @@ struct UncheckedOperationsCard: View {
                 }
                 displayItems = items
             } completion: {
-                rebaseIfOnWrapSlot()
+                settleScrolledId()
                 successorId = nil
                 confirmingId = nil
             }
@@ -224,14 +219,12 @@ struct UncheckedOperationsCard: View {
         .onScrollPhaseChange { _, newPhase in
             guard newPhase == .idle else { return }
             isTurning = false
-            rebaseIfOnWrapSlot()
+            settleScrolledId()
         }
-        // Seeded here: an initial position value performs no scroll and left the deck at
-        // offset zero, on a wrap copy with dead buttons and no left peek.
+        // Seeded here too: an initial position value performs no scroll and left the deck
+        // at offset zero, on a wrap copy with dead buttons and no left peek.
         .onAppear {
-            guard scrolledId == nil, let first = displayItems.first?.id else { return }
-            scrolledId = first
-            position.scrollTo(id: first)
+            seedPositionIfNeeded(first: displayItems.first?.id)
         }
         .padding(.horizontal, -DesignTokens.Spacing.xxl)
     }
@@ -358,14 +351,7 @@ struct UncheckedOperationsCard: View {
             // Where the deck lands once the store drops this card: the operation that
             // was next in line. Confirming the last card targets the wrap copy of the
             // first, so the handover turns forward — the same way the deck does.
-            let rest = displayItems.filter { $0.id != item.id }
-            if let idx = displayItems.firstIndex(where: { $0.id == item.id }), !rest.isEmpty {
-                successorId = idx < rest.count
-                    ? rest[idx].id
-                    : DeckSlot.wrapId(for: rest[0].id, at: .trailing)
-            } else {
-                successorId = nil
-            }
+            successorId = DeckCycle.successorId(after: item.id, in: displayItems.map(\.id))
             // Beat one: the capsule commits to solid green immediately, so the tap is
             // acknowledged now rather than whenever the network answers.
             withAnimation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring) {
@@ -407,13 +393,13 @@ struct UncheckedOperationsCard: View {
             PulpeChip(
                 label: "Plus tard",
                 style: .muted,
-                // During the "Pointé" beat the guard already ignores taps; without the
-                // visual disable the button looks live and silently does nothing.
-                isDisabled: confirmingId != nil
+                // Dead with one card left (nothing to turn to) or during the "Pointé" beat
+                // (guard already ignores taps); without the visual disable it looks live.
+                isDisabled: confirmingId != nil || displayItems.count <= 1
             )
         }
         .plainPressedButtonStyle()
-        .disabled(confirmingId != nil)
+        .disabled(confirmingId != nil || displayItems.count <= 1)
         .accessibilityLabel("Plus tard pour \(item.name)")
     }
 
@@ -448,33 +434,47 @@ struct UncheckedOperationsCard: View {
 // MARK: - Cycle Mechanics
 
 private extension UncheckedOperationsCard {
-    /// At rest on a wrap copy, swap the scroll target for the real card it mirrors —
-    /// same content, same peeks, nothing moves on screen — so buttons, zIndex and
-    /// successor logic reason about real slots.
-    func rebaseIfOnWrapSlot() {
-        guard let current = scrolledId, let realId = DeckSlot.realId(fromWrapId: current) else { return }
-        scrolledId = realId
-        position.scrollTo(id: realId)
+    /// Seeds the scroll position once — called from both `.onChange` and `.onAppear` below.
+    func seedPositionIfNeeded(first: String?) {
+        guard scrolledId == nil, let first else { return }
+        scrolledId = first
+        position.scrollTo(id: first)
     }
 
-    /// The endless half of the loop, run on every scroll tick. The content is three
-    /// identical cycles side by side, so sliding the offset by exactly one cycle width
-    /// shows the exact same pixels: whenever the scroll sinks half a cycle into either
-    /// wrap zone — mid-flight included — it is slid one cycle back toward the middle,
-    /// and the runway never ends. The focused slot falls out of the same geometry, as
-    /// the slot under the viewport's centre.
+    /// Canonicalizes `scrolledId` once a transition or scroll settles: at rest on a wrap
+    /// copy, it rebases onto the real card that copy mirrors — same content, same peeks,
+    /// nothing moves on screen. A real id the 2 → 1 collapse orphaned (no slot left to
+    /// answer to, `DeckCycle.reconciledScrolledId`) falls back to the deck's first card.
+    func settleScrolledId() {
+        guard let current = scrolledId else { return }
+        let next = DeckSlot.realId(fromWrapId: current)
+            ?? DeckCycle.reconciledScrolledId(current: current, ids: displayItems.map(\.id))
+        guard next != current else { return }
+        scrolledId = next
+        if let next { position.scrollTo(id: next) }
+    }
+
+    /// The endless half of the loop, run on every scroll tick. The content is three identical
+    /// cycles side by side, so sliding the offset by exactly one cycle width shows the exact
+    /// same pixels: whenever the scroll sinks half a cycle into either wrap zone — mid-flight
+    /// included — it is slid one cycle back toward the middle, and the runway never ends. The
+    /// focused slot falls out of the same geometry, as the slot under the viewport's centre;
+    /// one card has no cycle to recentre but still needs its focus tracked, below.
     func handleScrollGeometry(midX: CGFloat, contentWidth: CGFloat, offsetX: CGFloat) {
-        let cards = displayItems.count
-        guard cards > 1, contentWidth > 0 else { return }
-        let slotSpan = (contentWidth + DesignTokens.Spacing.xs) / CGFloat(cards * 3)
-        let cycleWidth = slotSpan * CGFloat(cards)
-        let index = min(max(0, Int(midX / slotSpan)), cards * 3 - 1)
-        let item = displayItems[index % cards]
-        let focused: String = switch index / cards {
-        case 0: DeckSlot.wrapId(for: item.id, at: .leading)
-        case 1: item.id
-        default: DeckSlot.wrapId(for: item.id, at: .trailing)
+        let cardIds = displayItems.map(\.id)
+        guard let onlyId = cardIds.first else { return }
+        guard cardIds.count > 1 else {
+            if onlyId != scrolledId { scrolledId = onlyId }
+            return
         }
+        guard contentWidth > 0 else { return }
+        // Assumes `contentSize.width` excludes the `contentMargins(.horizontal, Spacing.xxl)` below;
+        // if wrong, `slotSpan` drifts by `2·xxl / (3N)` per slot — harmless only because
+        // `uncheckedItems` caps at 5 (`CurrentMonthStore.maxDashboardItems`).
+        let slotSpan = (contentWidth + DesignTokens.Spacing.xs) / CGFloat(cardIds.count * 3)
+        let cycleWidth = slotSpan * CGFloat(cardIds.count)
+        let index = min(max(0, Int(midX / slotSpan)), cardIds.count * 3 - 1)
+        let focused = DeckCycle.focusedId(atFlatIndex: index, cards: cardIds)
         if focused != scrolledId { scrolledId = focused }
         if midX < cycleWidth * 0.5 {
             position.scrollTo(x: offsetX + cycleWidth)
