@@ -9,9 +9,10 @@
  * reaches the server. iOS runs the same ceremony outside its step enum, which is
  * why comparing the two funnels means comparing the seven, not the eight.
  *
- * `analyticsName` is the name each step *would* report under. Nothing emits it
- * yet: `core/observability/analytics.ts` captures screens only, and this flow is
- * one route, so today the whole of onboarding is a single screen event.
+ * `analyticsName` is the value each step reports as the `step` property of
+ * `onboarding_step_completed` — a property value, not an event name, which is
+ * why it lives here rather than in the shared catalogue. `onboarding-analytics.ts`
+ * is what sends it.
  */
 export const ONBOARDING_STEPS = [
   "welcome",

@@ -9,6 +9,7 @@ import {
   deleteTemplate,
   generateInitialBudgets,
 } from "./api";
+import { captureFirstBudgetCreated } from "./onboarding-analytics";
 import { completeOnboarding, useOnboardingStore } from "./onboarding-store";
 import { toTemplatePayload } from "./template-payload";
 
@@ -60,6 +61,9 @@ export async function submitOnboarding(): Promise<void> {
   // not.
   await persistCurrency(state.currency);
 
+  // Before `completeOnboarding`, which spreads the initial state back over the
+  // answers this event counts.
+  captureFirstBudgetCreated(state);
   completeOnboarding();
   useSubmissionStore.setState({ status: "idle", errorMessage: null });
 }

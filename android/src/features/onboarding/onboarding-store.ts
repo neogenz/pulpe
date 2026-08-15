@@ -10,6 +10,13 @@ import {
   writeHandoffSeen,
   writeOnboardingCompleted,
 } from "./draft-storage";
+import {
+  capturePinSetupCompleted,
+  captureOnboardingResumed,
+  captureOnboardingStarted,
+  captureStepCompleted,
+  resetOnboardingAnalytics,
+} from "./onboarding-analytics";
 import { nextVisibleStep, previousVisibleStep } from "./onboarding-selectors";
 import type { OnboardingStep } from "./onboarding-step";
 import type { OnboardingTransaction } from "./onboarding-transaction";
@@ -202,11 +209,14 @@ export function restoreOnboardingDraft(): void {
     wasEmailRegistered: draft.wasEmailRegistered ?? false,
     hasCompletedPinSetup: draft.hasCompletedPinSetup ?? false,
   });
+
+  captureOnboardingResumed(useOnboardingStore.getState());
 }
 
 /** The welcome CTA: from here on the flow owns the router. */
 export function beginOnboarding(): void {
   patch({ isFlowActive: true });
+  captureOnboardingStarted(useOnboardingStore.getState());
   goToNextStep();
 }
 
@@ -218,6 +228,7 @@ export function beginOnboarding(): void {
 export function completeOnboarding(): void {
   writeOnboardingCompleted();
   clearDraft();
+  resetOnboardingAnalytics();
   useOnboardingStore.setState({
     ...INITIAL_STATE,
     ...deviceFlags(),
@@ -238,6 +249,7 @@ export function acknowledgeHandoff(): void {
  */
 export function resetOnboarding(): void {
   clearDraft();
+  resetOnboardingAnalytics();
   useOnboardingStore.setState({ ...INITIAL_STATE, ...deviceFlags() });
 }
 
@@ -276,6 +288,7 @@ export function configureEmailUser(): void {
 
 export function markPinSetupCompleted(): void {
   patch({ hasCompletedPinSetup: true });
+  capturePinSetupCompleted();
 }
 
 // MARK: - Answers
@@ -372,6 +385,11 @@ export function goToNextStep(): boolean {
   const next = nextVisibleStep(state, state.currentStep);
   if (next === null) return false;
 
+  // Before the move, so the event reports the step being left — and never for
+  // welcome, which is a pitch rather than a question and has its own event.
+  if (state.currentStep !== "welcome") {
+    captureStepCompleted(state, state.currentStep);
+  }
   patch({ currentStep: next });
   return true;
 }
@@ -401,6 +419,7 @@ export function startAfterWelcome(): void {
   const state = useOnboardingStore.getState();
   const next = nextVisibleStep(state, "welcome");
   if (next === null) return;
+  captureOnboardingStarted(state);
   patch({ currentStep: next });
 }
 

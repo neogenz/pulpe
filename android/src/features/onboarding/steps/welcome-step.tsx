@@ -18,6 +18,7 @@ import {
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 import { LegalConsent } from "../components/legal-consent";
+import { captureSignupCompleted } from "../onboarding-analytics";
 import {
   beginOnboarding,
   configureSocialUser,
@@ -53,6 +54,7 @@ export function WelcomeStep() {
       // leaves the flow on this very screen, so without the second call the
       // Google button authenticated the user and then showed them the pitch
       // again — the one path out of welcome that led back to welcome.
+      captureSignupCompleted("google");
       configureSocialUser(result.firstName);
       startAfterWelcome();
     } catch (error) {

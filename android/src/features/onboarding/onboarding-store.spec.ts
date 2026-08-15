@@ -1,3 +1,4 @@
+import { captureEvent } from "@/core/observability/analytics";
 import { readFileSync, sourceFiles } from "@/core/testing/source-files";
 
 import {
@@ -62,6 +63,27 @@ jest.mock("./draft-storage", () => {
     }),
   };
 });
+
+/**
+ * The real module builds a PostHog client from `ENV`, which no test process
+ * has. Mocking the seam also makes the funnel assertable: what the flow reports
+ * is a behaviour of the state machine, not a detail of the SDK.
+ */
+jest.mock("@/core/observability/analytics", () => ({
+  captureEvent: jest.fn(),
+}));
+
+const captured = jest.mocked(captureEvent);
+
+/** The properties sent with an event, or null when it never fired. */
+function propertiesOf(event: string): Record<string, unknown> | null {
+  const call = captured.mock.calls.find(([name]) => name === event);
+  return call === undefined ? null : (call[1] ?? {});
+}
+
+function timesCaptured(event: string): number {
+  return captured.mock.calls.filter(([name]) => name === event).length;
+}
 
 const mocked = {
   readDraft: jest.mocked(readDraft),
@@ -395,6 +417,102 @@ describe("custom transactions", () => {
     expect(
       useOnboardingStore.getState().customTransactions.map((it) => it.id),
     ).toEqual(["b"]);
+  });
+});
+
+/**
+ * The funnel, under the names `shared/src/feature-flags.ts` publishes. What is
+ * asserted here is the shape a dashboard reads: which event, with which
+ * dimensions, and how many times.
+ */
+describe("the funnel", () => {
+  it("opens once when the email path leaves welcome", () => {
+    beginOnboarding();
+
+    expect(propertiesOf("onboarding_started")).toEqual({ method: "email" });
+
+    // A second entry in the same run is the same run, not a second funnel.
+    beginOnboarding();
+    expect(timesCaptured("onboarding_started")).toBe(1);
+  });
+
+  it("opens as a Google run when that is the path taken", () => {
+    configureSocialUser("Maxime");
+    startAfterWelcome();
+
+    expect(propertiesOf("onboarding_started")).toEqual({ method: "google" });
+  });
+
+  it("reports each step it leaves, positioned in the path being walked", () => {
+    goToNextStep();
+    configureEmailUser();
+    goToNextStep();
+
+    // Welcome is a pitch, not a question — `onboarding_started` covers it.
+    expect(propertiesOf("onboarding_step_completed")).toEqual({
+      step: "first_name",
+      step_index: 1,
+      step_count: 6,
+      auth_method: "email",
+    });
+    expect(timesCaptured("onboarding_step_completed")).toBe(1);
+  });
+
+  it("counts a Google run against its own shorter path", () => {
+    configureSocialUser("Maxime");
+    startAfterWelcome();
+    goToNextStep();
+
+    expect(propertiesOf("onboarding_step_completed")).toEqual({
+      step: "income",
+      step_index: 1,
+      step_count: 4,
+      auth_method: "google",
+    });
+  });
+
+  it("says a run was picked back up rather than started afresh", () => {
+    goToNextStep();
+    configureEmailUser();
+    goToNextStep();
+    captured.mockClear();
+
+    restoreOnboardingDraft();
+
+    expect(propertiesOf("onboarding_resumed")).toEqual({
+      method: "email",
+      source: "draft",
+      resumed_at_step: "income",
+    });
+    // A resumed run has already started; both would double the top of the funnel.
+    expect(timesCaptured("onboarding_started")).toBe(0);
+  });
+
+  it("closes the ceremony that ends the flow", () => {
+    markPinSetupCompleted();
+
+    expect(propertiesOf("pin_setup_completed")).toEqual({});
+  });
+
+  it("carries no amount out of a run that answered with amounts", () => {
+    goToNextStep();
+    updateAnswers({ monthlyIncome: 6500, housingCosts: 1800 });
+    goToNextStep();
+
+    for (const [, properties] of captured.mock.calls) {
+      expect(Object.values(properties ?? {})).not.toContain(6500);
+      expect(Object.values(properties ?? {})).not.toContain(1800);
+    }
+  });
+
+  it("starts a fresh funnel once a run has ended", () => {
+    beginOnboarding();
+    resetOnboarding();
+    captured.mockClear();
+
+    beginOnboarding();
+
+    expect(timesCaptured("onboarding_started")).toBe(1);
   });
 });
 

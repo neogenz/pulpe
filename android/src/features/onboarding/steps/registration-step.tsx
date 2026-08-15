@@ -12,6 +12,7 @@ import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 import { LegalConsent } from "../components/legal-consent";
 import { StepScaffold } from "../components/step-scaffold";
+import { captureSignupCompleted } from "../onboarding-analytics";
 import { hasAccount } from "../onboarding-selectors";
 import {
   configureEmailUser,
@@ -50,6 +51,7 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
     setErrorMessage(null);
     try {
       await signUpWithEmail(email.trim(), password, firstName);
+      captureSignupCompleted("email");
       configureEmailUser();
       goToNextStep();
     } catch (error) {

@@ -46,7 +46,16 @@ export const ANALYTICS_EVENTS = {
   SIGNUP_COMPLETED: 'signup_completed',
   /** Fires after registration fails. Properties: `method`, `error_kind`, `error_message`. */
   SIGNUP_FAILED: 'signup_failed',
-  /** Fires after an onboarding step. Properties: `step`, optional `skipped`, `step_index`, `step_total`, `auth_method`. */
+  /**
+   * Fires after an onboarding step. Properties: `step`, optional `skipped`,
+   * `step_index`, `step_count`, `auth_method`.
+   *
+   * `step_count` is how many steps this signup path shows. It was `step_total`
+   * until it was found never to arrive: both clients drop any property whose key
+   * carries `total` as a word, so that no amount can be sent by accident, and the
+   * name collided with that filter. Nothing was ever recorded under the old name,
+   * so there is no history to preserve.
+   */
   ONBOARDING_STEP_COMPLETED: 'onboarding_step_completed',
   /** Fires when onboarding is exited early. Properties: `last_step`, `exit_method`, `was_authenticated`, `auth_method`. */
   ONBOARDING_ABANDONED: 'onboarding_abandoned',

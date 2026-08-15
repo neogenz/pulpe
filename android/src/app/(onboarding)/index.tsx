@@ -4,6 +4,7 @@ import { BackHandler } from "react-native";
 import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
 
 import { SubmissionOverlay } from "@/features/onboarding/components/submission-overlay";
+import { captureOnboardingAbandoned } from "@/features/onboarding/onboarding-analytics";
 import { wouldExitOnBack } from "@/features/onboarding/onboarding-selectors";
 import {
   goToPreviousStep,
@@ -43,6 +44,8 @@ export default function OnboardingRoute() {
 
   function leaveFlow() {
     setExitConfirmed(false);
+    // Before the reset, which is what wipes the step the run stopped on.
+    captureOnboardingAbandoned(useOnboardingStore.getState());
     resetOnboarding();
     router.replace("/sign-in");
   }
