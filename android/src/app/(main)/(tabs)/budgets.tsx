@@ -16,6 +16,7 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatSignedCompactCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
+import { StatusBadge } from "@/core/ui/status-badge";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import {
   type BudgetTiming,
@@ -180,28 +181,32 @@ function BudgetRow({
 
   return (
     <Card
-      // Three weights for three meanings: the month being lived in is raised
-      // and tinted, a plan is only outlined, and a month that is over is a flat
-      // filled surface. The surface carries it on its own — the 0.72 opacity
-      // that used to sit on top took "Résultat" down to 3.64:1, and a month
-      // already lived is exactly the one someone re-reads.
+      // Three weights for three meanings: the month being lived in is raised,
+      // a plan is only outlined, and a month that is over is a flat filled
+      // surface. The surface carries it on its own — the 0.72 opacity that used
+      // to sit on top took "Résultat" down to 3.64:1, and a month already lived
+      // is exactly the one someone re-reads.
+      //
+      // Raised, and no longer also tinted: filling the card with
+      // `primaryContainer` put the loudest colour in the palette on a list row
+      // and stranded the text below on roles resolved for a neutral surface.
+      // The month is named by `StatusBadge` now, which is where that accent
+      // belongs and is what iOS has always done here.
       mode={isCurrent ? "elevated" : isPast ? "contained" : "outlined"}
-      style={isCurrent && { backgroundColor: theme.colors.primaryContainer }}
       onPress={() => router.push(`/budget/${budget.id}`)}
     >
       <Card.Content style={styles.cardRow}>
         <View style={styles.rowLabels}>
-          {isCurrent && (
-            <Text
-              variant="labelSmall"
-              style={{ color: theme.colors.onPrimaryContainer }}
-            >
-              Mois actuel
+          {/* Beside the month, not above it: stacked, the badge pushed "Août"
+              off the line every other month name shares with its amount, and a
+              list read by scanning down one column cannot afford one row that
+              sits lower than the rest. */}
+          <View style={styles.monthLine}>
+            <Text variant="titleMedium" style={styles.month}>
+              {formatMonthName(month, year)}
             </Text>
-          )}
-          <Text variant="titleMedium" style={styles.month}>
-            {formatMonthName(month, year)}
-          </Text>
+            {isCurrent && <StatusBadge>Mois actuel</StatusBadge>}
+          </View>
           <Text
             variant="bodySmall"
             style={{ color: theme.colors.onSurfaceVariant }}
@@ -262,6 +267,12 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   rowLabels: { flex: 1, gap: SPACING.xxs },
+  monthLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    flexWrap: "wrap",
+  },
   month: { textTransform: "capitalize" },
   amount: { alignItems: "flex-end", gap: SPACING.xxs },
   fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
