@@ -26,6 +26,7 @@ import {
   useRenameTag,
   useTags,
 } from "@/core/tags/tag-queries";
+import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { ROW_ACTION_ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 /** `tagCreateSchema` caps a name at 30 characters. */
@@ -38,6 +39,7 @@ const NAME_MAX_LENGTH = 30;
  */
 export default function TagsSettingsScreen() {
   const theme = useTheme();
+  const keyboardHeight = useKeyboardHeight();
   const tags = useTags();
   const create = useCreateTag();
   const rename = useRenameTag();
@@ -72,7 +74,10 @@ export default function TagsSettingsScreen() {
       </ScreenAppBar>
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: SPACING.xxl + keyboardHeight },
+        ]}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl

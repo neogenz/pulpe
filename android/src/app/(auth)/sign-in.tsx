@@ -18,12 +18,14 @@ import {
 } from "@/core/auth/google-sign-in";
 import { supabase } from "@/core/auth/supabase";
 import { APP_URLS } from "@/core/ui/app-urls";
+import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 
 type Pending = "password" | "google" | null;
 
 export default function SignInScreen() {
   const theme = useTheme();
+  const keyboardHeight = useKeyboardHeight();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -64,8 +66,15 @@ export default function SignInScreen() {
     <SafeAreaView
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
+      {/* The window does not shrink when the keyboard opens — the app is
+          edge-to-edge, so the IME arrives as an inset the layout never sees.
+          Padding the scroll content by that inset is what lets the centred
+          form rise, and what keeps "Se connecter" reachable while typing. */}
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: SCREEN_PADDING + keyboardHeight },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>

@@ -1,3 +1,5 @@
+import { readFileSync, sourceFiles } from "@/core/testing/source-files";
+
 import { sheetBox, SHEET_HEIGHT_RATIO } from "./keyboard-inset";
 
 const WINDOW_HEIGHT = 800;
@@ -50,5 +52,34 @@ describe("sheetBox", () => {
     });
 
     expect(box.maxHeight + box.marginBottom).toBeLessThanOrEqual(640);
+  });
+});
+
+/**
+ * The same defect as the sheets', one layer out. `adjustResize` stopped
+ * resizing anything the day the app went edge-to-edge: the IME now arrives as
+ * an inset, and a screen that scrolls keeps its full height with the keyboard
+ * up. `KeyboardAvoidingView` is no help either — it displaces by
+ * `endCoordinates.screenY`, which Android only sets to the top of the keyboard
+ * under `SOFT_INPUT_ADJUST_NOTHING`, and the manifest says `adjustResize`.
+ *
+ * So a screen that scrolls around a field has to pad itself by the inset. A
+ * `Sheet` is exempt because `Sheet` already does it for its children.
+ */
+describe("screens that scroll around a field", () => {
+  const scrollsAroundAField = (source: string) =>
+    /<(ScrollView|FlatList|SectionList)/.test(source) &&
+    source.includes("TextInput") &&
+    !source.includes("<Sheet");
+
+  it("pad themselves by the keyboard the window no longer subtracts", () => {
+    const blind = sourceFiles("src").filter((path) => {
+      const source = readFileSync(path, "utf8");
+      return (
+        scrollsAroundAField(source) && !source.includes("useKeyboardHeight")
+      );
+    });
+
+    expect(blind).toEqual([]);
   });
 });

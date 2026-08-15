@@ -15,6 +15,7 @@ import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { z } from "zod";
 
 import { PASSWORD_RESET_REDIRECT_URL, supabase } from "@/core/auth/supabase";
+import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 
 const emailSchema = z.email();
@@ -22,6 +23,7 @@ const emailSchema = z.email();
 export default function ForgotPasswordScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const keyboardHeight = useKeyboardHeight();
   const [email, setEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
@@ -59,7 +61,10 @@ export default function ForgotPasswordScreen() {
       </ScreenAppBar>
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: SCREEN_PADDING + keyboardHeight },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         {isSent ? (

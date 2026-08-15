@@ -25,6 +25,7 @@ import {
   PASSWORD_MIN_LENGTH,
 } from "@/core/auth/password-rules";
 import { endRecoverySession, useSessionStore } from "@/core/auth/session-store";
+import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { SPACING } from "@/core/ui/theme";
 
 const INVALID_LINK_MESSAGE =
@@ -55,6 +56,7 @@ export default function ResetPasswordScreen() {
   const theme = useTheme();
   const router = useRouter();
   const url = useLinkingURL();
+  const keyboardHeight = useKeyboardHeight();
   const status = useSessionStore((state) => state.status);
   const [phase, setPhase] = useState<Phase>({ kind: "preparing" });
 
@@ -113,7 +115,10 @@ export default function ResetPasswordScreen() {
       </ScreenAppBar>
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: SPACING.lg + keyboardHeight },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         {phase.kind === "preparing" && <PreparingState />}
