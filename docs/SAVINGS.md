@@ -434,13 +434,12 @@ Deux garanties se cumulent, et toutes deux comptent :
   révision, et c'est son unique point d'entrée — aucune variante ne permet de
   l'omettre. Preuve : `supabase/tests/savings_goal_plan_concurrency.sql`.
 
-`apply_savings_goal_plan` reste disponible pour un pod encore déployé pendant un
-rolling deploy, et prend désormais lui aussi le verrou de réalisation. Il ne
-compare en revanche aucune révision : il reste donc compatible uniquement pour
-les mises à jour de lignes, avec `p_plan_withdrawals = []` (sa valeur par
-défaut). Toute autre valeur échoue en `P0001` avant verrou ou mutation. Seule la
-RPC à destinations à cinq arguments, avec sa révision certifiée, peut écrire un
-retrait de plan.
+`apply_savings_goal_plan` subsiste comme wrapper legacy interne. Il prend le même
+verrou de réalisation, mais ne compare aucune révision et rejette donc tout
+retrait de plan. Son exécution n'est pas exposée aux clients API (`anon` et
+`authenticated`). Le seul point d'entrée utilisateur est la RPC à destinations
+à cinq arguments : elle exige la révision certifiée et la recompare une fois le
+verrou obtenu avant toute écriture.
 
 Le provisioning n'est pas sérialisé entre deux demandes indépendantes. Deux
 appareils ou onglets qui confirment au même instant sortent donc de cette

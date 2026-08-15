@@ -28,8 +28,9 @@ The same loop runs in CI, in the `supabase-setup` job of `.github/workflows/ci.y
 | `apply_template_line_operations_failure_rollback.sql` | `apply_template_line_operations`          | invalid enum cast raises, no template_line writes leak (atomicity guarantee)                                                                                                                                             |
 | `apply_template_line_operations_cross_user.sql`       | `apply_template_line_operations`          | cross-tenant budget injection rejected with `Budget access denied` (P0001), zero leaked rows, own-budget propagation preserved (IDOR fix) — PUL-272                                                                      |
 | `create_budget_from_template_owner_only.sql`          | `create_budget_from_template`             | owner can create budget from own template, other user's template is rejected (Bug #2 fix)                                                                                                                                |
+| `budget_line_check_rpcs.sql`                          | `toggle_budget_line_check`, `check_unchecked_transactions` | authenticated owner success and cross-tenant rejection through budget-line and transaction RLS                                                                                                                           |
 | `toggle_transaction_check.sql`                        | `toggle_transaction_check`                | toggle null↔now, ownership enforcement, ending_balance untouched (Option A regression guard) — HI-14                                                                                                                     |
-| `security_definer_function_privileges.sql`            | exposed `SECURITY DEFINER` RPC grants      | obsolete bulk RPC removed, `anon` denied, authenticated/service roles preserved, future function execution opt-in                                                                                                         |
+| `security_definer_function_privileges.sql`            | exposed RPC modes and grants               | exact 15-function inventory, nine invoker RPCs, legacy plan entry point closed, five hardened authenticated definers, internal helpers inaccessible, future execution opt-in                                                  |
 | `enforce_template_limit_per_user.sql`                 | `enforce_template_limit_per_user` trigger | 6th template insert rejected with P0001/TEMPLATE_LIMIT_EXCEEDED, cross-user isolation — HI-30                                                                                                                            |
 | `create_budget_lines_spread_source_consumption.sql`   | `create_budget_lines_spread`              | consumed source rejects retry before insert, duplicate group prevention, dual-source rejection, cross-user source ignored by DELETE (IDOR: raises `Spread source unavailable`, victim row intact, zero inserts), sourceless additive replay rejected by the dup-group guard (`Spread group already exists`, no duplicate group) — PUL-17 |
 | `transaction_budget_line_coherence.sql`               | `enforce_transaction_budget_line_link` trigger | cross-budget `budget_line_id` rejected on INSERT and on budget relocation UPDATE, same-budget link and free (NULL) transaction accepted — security audit 2026-07-23 |
@@ -39,3 +40,20 @@ The same loop runs in CI, in the `supabase-setup` job of `.github/workflows/ci.y
 ## Why SQL files (not Bun specs)
 
 The tests need real Postgres semantics: `auth.uid()` resolution, JSONB operators, enum casts, transaction rollback. Mocking these in JS would just re-test the mock. Plain SQL against a live database is the simplest way to prove the function actually works.
+
+## Authenticated SECURITY DEFINER allowlist
+
+Only these five user-executable functions intentionally bypass RLS:
+
+- `reconcile_savings_goal_target_date`
+- `apply_savings_goal_plan_with_destinations`
+- `create_savings_goal_withdrawal`
+- `update_savings_goal_withdrawal`
+- `delete_savings_goal_withdrawal`
+
+The four plan/withdrawal wrappers share the revoked
+`lock_savings_goal_for_withdrawal` helper, which checks `auth.uid()` and the
+expected revision under a goal row lock. Reconciliation checks `auth.uid()`
+directly and reads the authoritative pay day from `auth.users`. The privilege
+suite pins their empty `search_path`, authenticated ACL, helper isolation and
+exact allowlist size.
