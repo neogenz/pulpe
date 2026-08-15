@@ -34,6 +34,12 @@ const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 /** Below this, the period is the calendar month and printing its dates says nothing. */
 const CALENDAR_PAY_DAY = 1;
 
+/**
+ * Twice the hairline Paper draws around an outlined card, so the month being
+ * lived in reads as the same shape drawn harder rather than as a different one.
+ */
+const CURRENT_MONTH_BORDER = 2;
+
 export default function BudgetsScreen() {
   // Repaints this screen when amounts are hidden or shown; the masking
   // itself lives in the formatters.
@@ -181,18 +187,29 @@ function BudgetRow({
 
   return (
     <Card
-      // Three weights for three meanings: the month being lived in is raised,
-      // a plan is only outlined, and a month that is over is a flat filled
-      // surface. The surface carries it on its own — the 0.72 opacity that used
-      // to sit on top took "Résultat" down to 3.64:1, and a month already lived
-      // is exactly the one someone re-reads.
+      // Three weights for three meanings: the month being lived in is raised
+      // and ringed, a plan is only outlined, and a month that is over is a flat
+      // filled surface. The surface carries it on its own — the 0.72 opacity
+      // that used to sit on top took "Résultat" down to 3.64:1, and a month
+      // already lived is exactly the one someone re-reads.
       //
-      // Raised, and no longer also tinted: filling the card with
-      // `primaryContainer` put the loudest colour in the palette on a list row
-      // and stranded the text below on roles resolved for a neutral surface.
-      // The month is named by `StatusBadge` now, which is where that accent
-      // belongs and is what iOS has always done here.
+      // The ring is what makes "raised" legible. `background` is #F7F6F3 and
+      // `surface` is #FFFFFF, so an outlined card is white against warm grey
+      // with a crisp edge, while an elevated one is a faint tint under a soft
+      // Android shadow — on this background elevation is the *weakest* of the
+      // three, and the current month ended up quieter than the plans above it.
+      // Drawing its edge in `primary` is the app's own way of saying "this one"
+      // (`budget/create.tsx` marks the chosen model the same way), and it does
+      // it without tinting a surface: filling the card with `primaryContainer`
+      // is what put the loudest colour in the palette on a list row and left
+      // the text below on roles resolved for a neutral one.
       mode={isCurrent ? "elevated" : isPast ? "contained" : "outlined"}
+      style={
+        isCurrent && {
+          borderWidth: CURRENT_MONTH_BORDER,
+          borderColor: theme.colors.primary,
+        }
+      }
       onPress={() => router.push(`/budget/${budget.id}`)}
     >
       <Card.Content style={styles.cardRow}>
