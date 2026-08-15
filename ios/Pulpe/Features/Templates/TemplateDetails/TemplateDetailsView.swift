@@ -1,8 +1,27 @@
 import SwiftUI
 
+@MainActor
+struct TemplateBudgetProjectionStores {
+    let budgetList: BudgetListStore
+    let dashboard: DashboardStore
+    let currentMonth: CurrentMonthStore
+    let savingsGoal: SavingsGoalStore
+
+    func invalidate() {
+        budgetList.invalidateCache()
+        dashboard.invalidateCache()
+        currentMonth.invalidateCache()
+        BudgetDetailCache.shared.invalidateAll()
+        savingsGoal.invalidateFromBudgetMutation()
+    }
+}
+
 struct TemplateDetailsView: View {
     let templateId: String
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(BudgetListStore.self) private var budgetListStore
+    @Environment(DashboardStore.self) private var dashboardStore
+    @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(SavingsGoalStore.self) private var savingsGoalStore
     @Environment(TagStore.self) private var tagStore
     @State private var viewModel: TemplateDetailsViewModel
@@ -35,6 +54,15 @@ struct TemplateDetailsView: View {
             await viewModel.loadDetails()
         }
         .task {
+            let projectionStores = TemplateBudgetProjectionStores(
+                budgetList: budgetListStore,
+                dashboard: dashboardStore,
+                currentMonth: currentMonthStore,
+                savingsGoal: savingsGoalStore
+            )
+            viewModel.onBudgetDataMutation = {
+                projectionStores.invalidate()
+            }
             await savingsGoalStore.loadIfNeeded()
         }
         .task(id: referencedTagIds) {
@@ -44,8 +72,9 @@ struct TemplateDetailsView: View {
             EditTemplateLineSheet(
                 templateLine: line,
                 userCurrency: userSettingsStore.currency
-            ) { updatedLine in
+            ) { updatedLine, impact in
                 Task { await viewModel.updateTemplateLine(updatedLine) }
+                viewModel.announceBudgetDataMutation(for: impact)
             }
         }
     }
@@ -282,6 +311,7 @@ final class TemplateDetailsViewModel {
     private var hasLoadedOnce = false
 
     private let templateService = TemplateService.shared
+    @ObservationIgnored var onBudgetDataMutation: (@MainActor () -> Void)?
 
     init(templateId: String) {
         self.templateId = templateId
@@ -343,6 +373,11 @@ final class TemplateDetailsViewModel {
 
         // Reload to sync with server
         await loadDetails()
+    }
+
+    func announceBudgetDataMutation(for impact: EditTemplateLineSaveImpact) {
+        guard impact == .budgetsChanged else { return }
+        onBudgetDataMutation?()
     }
 }
 
@@ -457,6 +492,9 @@ private struct TemplateDetailsSkeletonView: View {
         TemplateDetailsView(templateId: "test")
     }
     .environment(UserSettingsStore())
+    .environment(BudgetListStore())
+    .environment(DashboardStore())
+    .environment(CurrentMonthStore())
     .environment(SavingsGoalStore())
     .environment(TagStore())
 }

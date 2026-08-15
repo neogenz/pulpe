@@ -1,9 +1,18 @@
 import SwiftUI
 
+enum EditTemplateLineSaveImpact: Equatable {
+    case templateOnly
+    case budgetsChanged
+
+    static func propagation(affectedBudgetsCount: Int) -> Self {
+        affectedBudgetsCount > 0 ? .budgetsChanged : .templateOnly
+    }
+}
+
 /// Sheet for editing an existing template line — hero amount layout
 struct EditTemplateLineSheet: View {
     let templateLine: TemplateLine
-    let onUpdate: (TemplateLine) -> Void
+    let onUpdate: (TemplateLine, EditTemplateLineSaveImpact) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
@@ -34,7 +43,7 @@ struct EditTemplateLineSheet: View {
         templateLine: TemplateLine,
         userCurrency: SupportedCurrency,
         dependencies: EditTemplateLineDependencies = .live,
-        onUpdate: @escaping (TemplateLine) -> Void
+        onUpdate: @escaping (TemplateLine, EditTemplateLineSaveImpact) -> Void
     ) {
         self.templateLine = templateLine
         self.dependencies = dependencies
@@ -233,7 +242,7 @@ struct EditTemplateLineSheet: View {
 
         do {
             let updatedLine = try await dependencies.updateTemplateLine(templateLine.templateId, templateLine.id, data)
-            finishSave(updatedLine: updatedLine, message: "Prévision modifiée")
+            finishSave(updatedLine: updatedLine, message: "Prévision modifiée", impact: .templateOnly)
         } catch {
             self.error = error
         }
@@ -258,15 +267,23 @@ struct EditTemplateLineSheet: View {
                 ? "Prévision modifiée — \(affectedCount) "
                 + (affectedCount == 1 ? "budget mis à jour" : "budgets mis à jour")
                 : "Prévision modifiée"
-            finishSave(updatedLine: updatedLine, message: message)
+            finishSave(
+                updatedLine: updatedLine,
+                message: message,
+                impact: EditTemplateLineSaveImpact.propagation(affectedBudgetsCount: affectedCount)
+            )
         } catch {
             self.error = error
         }
     }
 
-    private func finishSave(updatedLine: TemplateLine, message: String) {
+    private func finishSave(
+        updatedLine: TemplateLine,
+        message: String,
+        impact: EditTemplateLineSaveImpact
+    ) {
         submitSuccessTrigger.toggle()
-        onUpdate(updatedLine)
+        onUpdate(updatedLine, impact)
         toastManager.show(message)
         pendingUpdate = nil
         dismiss()
@@ -372,7 +389,7 @@ struct EditTemplateLineDependencies: Sendable {
             updatedAt: Date()
         ),
         userCurrency: .chf
-    ) { line in
+    ) { line, _ in
         print("Updated: \(line)")
     }
     .environment(ToastManager())

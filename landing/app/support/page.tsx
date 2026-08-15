@@ -9,7 +9,7 @@ import { angularUrl, CONTACT_EMAIL, GITHUB_URL } from "@/lib/config";
 export const metadata: Metadata = {
   title: "Aide et questions fréquentes",
   description:
-    "Guides et réponses pour utiliser Pulpe : comprendre les modèles et budgets, protéger ses montants et gérer son compte.",
+    "Tutoriels et réponses pour utiliser Pulpe : comprendre les modèles et budgets, protéger ses montants et gérer son compte.",
   alternates: {
     canonical: "/support",
   },
@@ -172,7 +172,7 @@ export default function SupportPage() {
                 Comment puis-je t&apos;aider&nbsp;?
               </h1>
               <p className="pretty mt-6 max-w-2xl text-lg leading-relaxed text-text-secondary sm:text-xl">
-                Des guides courts pour utiliser Pulpe, puis les réponses aux
+                Des tutoriels courts pour utiliser Pulpe, puis les réponses aux
                 questions fréquentes. Si la tienne manque, écris-moi.
               </p>
             </div>
@@ -185,7 +185,7 @@ export default function SupportPage() {
               id="guides-heading"
               className="max-w-2xl text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-text sm:text-5xl"
             >
-              Guides pour utiliser Pulpe.
+              Bien démarrer avec Pulpe.
             </h2>
 
             <Link
@@ -193,7 +193,7 @@ export default function SupportPage() {
               className="group mt-10 block rounded-[var(--radius-large)] border border-text/10 bg-surface p-6 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transform-none motion-reduce:transition-none sm:p-8"
             >
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
-                Bien démarrer
+                Tutoriel
               </p>
               <div className="mt-4 flex items-start justify-between gap-6">
                 <div>
