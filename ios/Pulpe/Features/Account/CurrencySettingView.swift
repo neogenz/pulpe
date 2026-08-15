@@ -37,7 +37,7 @@ struct CurrencySettingView: View {
             Text("DEVISE")
                 .font(PulpeTypography.labelLarge)
         }
-        .listRowBackground(Color.surfaceContainerHigh)
+        .listRowSettingsBackground()
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         // PUL-205: alert (not action sheet) confirming the flip before it
         // persists — the copy makes explicit that amounts are not converted.
@@ -81,7 +81,7 @@ struct CurrencySettingView: View {
                 .foregroundStyle(Color.onSurfaceVariant)
                 .fixedSize(horizontal: false, vertical: true)
 
-            CapsulePicker(
+            SegmentedPicker(
                 selection: Binding(
                     get: { viewModel.selectedCurrency },
                     set: { newValue in
@@ -93,16 +93,8 @@ struct CurrencySettingView: View {
                     }
                 ),
                 title: nil
-            ) { currency, isSelected in
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Text(currency.flag)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(currency.rawValue).font(PulpeTypography.labelLarge)
-                        Text(currency.nativeName)
-                            .font(PulpeTypography.caption2)
-                            .foregroundStyle(isSelected ? Color.textOnPrimaryMuted : Color.onSurfaceVariant)
-                    }
-                }
+            ) { currency in
+                Text("\(currency.flag) \(currency.rawValue)")
             }
         }
         .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }

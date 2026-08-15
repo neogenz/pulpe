@@ -133,10 +133,10 @@ struct AddBudgetLineSheet: View {
             // be spread, so raising it higher would make it flicker in answer to
             // a control further down.
             if kind != .income {
-                SpreadModeToggle(selection: $mode, accentColor: kind.color)
+                SpreadModeToggle(selection: $mode)
             }
             if isSpreadMode {
-                SpreadAmountModeToggle(mode: $amountMode, accentColor: kind.color)
+                SpreadAmountModeToggle(mode: $amountMode)
             }
 
             if userSettingsStore.showCurrencySelector {

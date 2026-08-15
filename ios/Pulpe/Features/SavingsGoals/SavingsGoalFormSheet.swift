@@ -181,7 +181,7 @@ struct SavingsGoalFormSheet: View {
                 manualMonthlySection
             }
             if isEditing {
-                CapsulePicker(selection: $status, title: "Statut") { item, _ in
+                SegmentedPicker(selection: $status, title: "Statut") { item in
                     Text(item.label)
                 }
             }

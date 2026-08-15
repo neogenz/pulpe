@@ -104,7 +104,7 @@ struct ActivityCard: View {
     // MARK: - Window Picker
 
     /// Two `PulpeChip`s, on the model of `BudgetTypeFilter.typePill`: this is a selector,
-    /// not the filter pastille `CapsulePicker` renders, and it sat as the biggest solid
+    /// not the filter pastille `SegmentedPicker` renders, and it sat as the biggest solid
     /// green below the fold — the same ink as the CTA, for a state instead of the action
     /// the product depends on.
     private var windowPicker: some View {

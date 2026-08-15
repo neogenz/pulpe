@@ -235,6 +235,7 @@ struct BudgetDetailsView: View {
                 )
 
                 TipView(ProductTips.pessimisticCheck)
+                    .pulpeTipBackground()
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.bottom, DesignTokens.Spacing.sm)
 

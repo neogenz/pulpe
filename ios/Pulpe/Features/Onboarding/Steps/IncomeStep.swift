@@ -29,27 +29,14 @@ struct IncomeStep: View {
                                 .font(PulpeTypography.caption)
                                 .foregroundStyle(Color.textTertiaryOnboarding)
                                 .fixedSize(horizontal: false, vertical: true)
-                            CapsulePicker(
+                            SegmentedPicker(
                                 selection: Binding(
                                     get: { state.currency },
                                     set: { state.selectCurrency($0) }
                                 ),
                                 title: nil
-                            ) { currency, isSelected in
-                                HStack(spacing: DesignTokens.Spacing.xs) {
-                                    Text(currency.flag)
-                                    VStack(alignment: .leading, spacing: 0) {
-                                        Text(currency.rawValue)
-                                            .font(PulpeTypography.labelLarge)
-                                        Text(currency.nativeName)
-                                            .font(PulpeTypography.caption2)
-                                            .foregroundStyle(
-                                                isSelected
-                                                    ? Color.textOnPrimaryMuted
-                                                    : Color.textSecondaryOnboarding
-                                            )
-                                    }
-                                }
+                            ) { currency in
+                                Text("\(currency.flag) \(currency.rawValue)")
                             }
                         }
 
