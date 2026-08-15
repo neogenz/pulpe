@@ -129,6 +129,10 @@ export class AnalyticsService implements OnDestroy {
       this.#personPropertiesEffect = effect(() => {
         const userSettings = this.#userSettingsStore.settings();
 
+        if (userSettings) {
+          this.#postHogService.setLocale(userSettings.locale);
+        }
+
         // Skip until identify has fired and settings have actually loaded.
         // Without this guard a user with `currency = EUR` would briefly land
         // on the CHF cohort before the settings resource resolves.
@@ -171,6 +175,10 @@ export class AnalyticsService implements OnDestroy {
       return;
     }
     this.#postHogService.setPersonProperties(properties);
+  }
+
+  setLocale(locale: Parameters<PostHogService['setLocale']>[0]): void {
+    this.#postHogService.setLocale(locale);
   }
 
   setDiagnosticSharingEnabled(enabled: boolean): void {

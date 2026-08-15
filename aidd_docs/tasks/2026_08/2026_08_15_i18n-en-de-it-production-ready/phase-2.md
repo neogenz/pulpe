@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Finaliser les corrections fonctionnelles et le passage de locale

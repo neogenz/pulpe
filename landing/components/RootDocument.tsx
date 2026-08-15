@@ -168,7 +168,7 @@ export function RootDocument({
           className="pointer-events-none absolute left-0 top-0 w-px"
           style={{ height: SCROLL_THRESHOLD_PX }}
         />
-        <PostHogProvider>{children}</PostHogProvider>
+        <PostHogProvider locale={locale}>{children}</PostHogProvider>
         <div id="lightbox-root" />
       </body>
     </html>

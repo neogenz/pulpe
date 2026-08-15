@@ -3,10 +3,17 @@
 import { useEffect } from "react";
 import { ANGULAR_APP_URL } from "../lib/config";
 import { initPostHog, trackCTAClick } from "../lib/posthog";
+import type { Locale } from "../lib/i18n";
 
-export function PostHogProvider({ children }: { children: React.ReactNode }) {
+export function PostHogProvider({
+  children,
+  locale,
+}: {
+  children: React.ReactNode;
+  locale: Locale;
+}) {
   useEffect(() => {
-    void initPostHog();
+    void initPostHog(locale);
 
     const handleClick = (e: MouseEvent) => {
       if (!(e.target instanceof Element)) return;
@@ -49,7 +56,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
-  }, []);
+  }, [locale]);
 
   return <>{children}</>;
 }

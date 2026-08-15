@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "./Button";
 import { angularUrl } from "@/lib/config";
+import type { Locale } from "@/lib/i18n";
 
 /**
  * Persistent CTA below the desktop header breakpoint: appears once the hero
@@ -14,7 +15,13 @@ import { angularUrl } from "@/lib/config";
  * `#platforms`, whose card is `bg-primary`, and a bare green button on green
  * loses its boundary entirely.
  */
-export function StickyCTA({ label }: { label: string }) {
+export function StickyCTA({
+  label,
+  locale,
+}: {
+  label: string;
+  locale: Locale;
+}) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -57,7 +64,7 @@ export function StickyCTA({ label }: { label: string }) {
     >
       <div className="rounded-full bg-surface p-1.5 shadow-glass">
         <Button
-          href={angularUrl("/signup", "sticky_cta_commencer")}
+          href={angularUrl("/signup", "sticky_cta_commencer", locale)}
           glow
           className="w-full"
           data-cta-name="commencer"

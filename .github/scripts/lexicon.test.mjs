@@ -244,12 +244,13 @@ const IOS_CATALOG = "ios/Pulpe/Resources/Localizable.xcstrings";
  * genre — imbriquées à profondeur libre. Ne lire que le premier cas rendrait le
  * garde muet sur les formes plurielles, sans le dire.
  */
-const stringUnitValues = (node) => {
+const stringUnits = (node) => {
   if (node === null || typeof node !== "object") return [];
-  if (typeof node.stringUnit?.value === "string")
-    return [node.stringUnit.value];
-  return Object.values(node).flatMap(stringUnitValues);
+  if (typeof node.stringUnit?.value === "string") return [node.stringUnit];
+  return Object.values(node).flatMap(stringUnits);
 };
+
+const stringUnitValues = (node) => stringUnits(node).map(({ value }) => value);
 
 const iosTranslations = () =>
   Object.entries(JSON.parse(read(IOS_CATALOG)).strings).flatMap(
@@ -258,6 +259,29 @@ const iosTranslations = () =>
         stringUnitValues(node).map((value) => ({ key, lang, value })),
       ),
   );
+
+test("chaque clé traduisible iOS est complète en allemand, anglais et italien", () => {
+  const catalog = JSON.parse(read(IOS_CATALOG));
+  const translatedLocales = ["de", "en", "it"];
+  const offenders = Object.entries(catalog.strings).flatMap(([key, entry]) => {
+    if (entry.shouldTranslate === false) return [];
+    return translatedLocales.flatMap((lang) => {
+      const units = stringUnits(entry.localizations?.[lang]);
+      if (units.length === 0)
+        return [`  ${lang} → ${key} : traduction absente`];
+      return units
+        .filter(({ state }) => state !== "translated")
+        .map(({ state }) => `  ${lang} → ${key} : état ${state ?? "absent"}`);
+    });
+  });
+
+  assert.equal(
+    offenders.length,
+    0,
+    `Toutes les clés traduisibles de ${IOS_CATALOG} doivent être traduites.\n` +
+      offenders.join("\n"),
+  );
+});
 
 test("aucune traduction du catalogue iOS ne dit « transaction »", () => {
   const translations = iosTranslations();

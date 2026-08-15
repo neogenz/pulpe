@@ -15,11 +15,16 @@ import type {
   PostHog,
   Properties,
 } from 'posthog-js';
-import { ANALYTICS_EVENTS, type AnalyticsEventName } from 'pulpe-shared';
+import {
+  ANALYTICS_EVENTS,
+  type AnalyticsEventName,
+  type SupportedLocale,
+} from 'pulpe-shared';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { StorageService } from '../storage/storage.service';
 import { STORAGE_KEYS } from '../storage/storage-keys';
+import { resolveStartupLanguage } from '../i18n/language-resolver';
 import { buildInfo } from '@env/build-info';
 import {
   AUTOCAPTURE_TAG_PATTERN,
@@ -64,6 +69,7 @@ export class PostHogService implements OnDestroy {
   #sessionReplayEnabled = false;
   #autocaptureClickListener?: (event: MouseEvent) => void;
   #navigationSubscription?: Subscription;
+  #activeLocale = resolveStartupLanguage(this.#storageService);
 
   constructor() {
     const overrides = this.#readFlagOverrides();
@@ -507,6 +513,13 @@ export class PostHogService implements OnDestroy {
     }
   }
 
+  setLocale(locale: SupportedLocale): void {
+    this.#activeLocale = locale;
+    if (this.#canCapture()) {
+      this.#posthog?.register({ locale });
+    }
+  }
+
   /**
    * Store the pending OAuth signup method for cross-redirect tracking.
    */
@@ -582,6 +595,7 @@ export class PostHogService implements OnDestroy {
         environment: this.#applicationConfiguration.environment(),
         app_version: buildInfo.version,
         app_commit: buildInfo.shortCommitHash,
+        locale: this.#activeLocale,
         platform: 'web',
       };
 

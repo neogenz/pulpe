@@ -11,8 +11,6 @@ import { localizedPath } from "@/lib/routes";
 
 const linkClass =
   "rounded-sm font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
-const DEMO_URL = angularUrl("/welcome", "faq_demo");
-const SETTINGS_URL = angularUrl("/settings", "faq_delete_account");
 
 type SupportFaq = Dictionary["support"]["faq"];
 
@@ -68,17 +66,21 @@ function linkedFaq(
 
 // L'ordre d'affichage vit ici, avec la destination de chaque lien ; seul le
 // texte vient du catalogue.
-function buildFaqs(faq: SupportFaq): FaqItem[] {
+function buildFaqs(faq: SupportFaq, locale: Locale): FaqItem[] {
   return [
     plainFaq(faq.purpose),
     plainFaq(faq.excel),
     plainFaq(faq.bank),
     linkedFaq(faq.trust, { href: GITHUB_URL, external: true }),
-    linkedFaq(faq.demo, { href: DEMO_URL }),
+    linkedFaq(faq.demo, {
+      href: angularUrl("/welcome", "faq_demo", locale),
+    }),
     linkedFaq(faq.free, { href: GITHUB_URL, external: true }),
     plainFaq(faq.countries),
     plainFaq(faq.sync),
-    linkedFaq(faq.deletion, { href: SETTINGS_URL }),
+    linkedFaq(faq.deletion, {
+      href: angularUrl("/settings", "faq_delete_account", locale),
+    }),
   ];
 }
 
@@ -90,7 +92,7 @@ export function Support({
   locale: Locale;
 }) {
   const { support } = dict;
-  const faqs = buildFaqs(support.faq);
+  const faqs = buildFaqs(support.faq, locale);
 
   const faqJsonLd = {
     "@context": "https://schema.org",
@@ -225,7 +227,7 @@ export function Support({
           </div>
         </Section>
 
-        <FinalCTA dict={dict.home.finalCta} />
+        <FinalCTA dict={dict.home.finalCta} locale={locale} />
       </main>
 
       <Footer

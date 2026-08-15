@@ -3,6 +3,7 @@ import { ANALYTICS_EVENTS, type SupportedLocale } from 'pulpe-shared';
 import { AnalyticsService } from '../analytics/analytics';
 import { AuthStore } from '../auth/auth-store';
 import { Logger } from '../logging/logger';
+import { PAGE_RELOAD } from '../page-reload';
 import { STORAGE_KEYS } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
 import { UserSettingsStore } from '../user-settings/user-settings-store';
@@ -23,6 +24,7 @@ export class LanguageService {
   readonly #analytics = inject(AnalyticsService);
   readonly #authStore = inject(AuthStore);
   readonly #logger = inject(Logger);
+  readonly #reload = inject(PAGE_RELOAD);
   readonly #storage = inject(StorageService);
   readonly #userSettings = inject(UserSettingsStore);
 
@@ -43,6 +45,7 @@ export class LanguageService {
     if (next === previous) return;
 
     this.#storage.setString(STORAGE_KEYS.SETTINGS_LANGUAGE, next);
+    this.#analytics.setLocale(next);
 
     // `send_instantly` because the reload below discards the batched queue.
     this.#analytics.captureEvent(
@@ -61,6 +64,6 @@ export class LanguageService {
       }
     }
 
-    window.location.reload();
+    this.#reload();
   }
 }

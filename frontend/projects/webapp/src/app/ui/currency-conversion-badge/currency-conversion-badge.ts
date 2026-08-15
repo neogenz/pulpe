@@ -9,7 +9,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { getCurrencyFormatter } from 'pulpe-shared';
+import { getCurrencyFormatter, parseIsoDateLocal } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-currency-conversion-badge',
@@ -126,7 +126,7 @@ export class CurrencyConversionBadge {
   protected readonly formattedFallbackDate = computed(() => {
     const raw = this.fallbackDate();
     if (!raw) return '';
-    const parsed = new Date(raw);
+    const parsed = parseIsoDateLocal(raw);
     if (Number.isNaN(parsed.getTime())) return raw;
     return this.#fallbackDateFormatter.format(parsed);
   });

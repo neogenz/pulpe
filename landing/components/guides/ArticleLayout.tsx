@@ -158,7 +158,11 @@ export function ArticleLayout({
                 Envie de voir combien il te restera chaque mois&nbsp;?
               </p>
               <Button
-                href={angularUrl("/signup", `guide_${guide.slug}`)}
+                href={angularUrl(
+                  "/signup",
+                  `guide_${guide.slug}`,
+                  DEFAULT_LOCALE,
+                )}
                 className="mt-6"
                 data-cta-name="commencer_gratuitement"
                 data-cta-location="guide_article"

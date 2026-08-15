@@ -1,8 +1,15 @@
 import { ArrowNote, Button, Container } from "@/components/ui";
 import type { Dictionary } from "@/content/dictionary";
 import { angularUrl } from "@/lib/config";
+import type { Locale } from "@/lib/i18n";
 
-export function FinalCTA({ dict }: { dict: Dictionary["home"]["finalCta"] }) {
+export function FinalCTA({
+  dict,
+  locale,
+}: {
+  dict: Dictionary["home"]["finalCta"];
+  locale: Locale;
+}) {
   return (
     <section id="final-cta" className="py-24 sm:py-28 lg:py-36">
       <Container>
@@ -27,7 +34,7 @@ export function FinalCTA({ dict }: { dict: Dictionary["home"]["finalCta"] }) {
               className="absolute bottom-full left-1/2 -mb-2.5 -translate-x-1/2 md:-mb-10 md:left-auto md:right-0 md:translate-x-38"
             />
             <Button
-              href={angularUrl("/signup", "final_cta_commencer")}
+              href={angularUrl("/signup", "final_cta_commencer", locale)}
               data-cta-name="commencer_gratuitement"
               data-cta-location="final_cta"
               data-cta-destination="/signup"

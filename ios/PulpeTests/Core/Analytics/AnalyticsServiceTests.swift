@@ -88,6 +88,7 @@ struct AnalyticsServiceTests {
         #expect(properties["environment"] as? String == AppConfiguration.environment.rawValue)
         #expect(properties["app_version"] as? String == AppConfiguration.appVersion)
         #expect(properties["build_number"] as? String == AppConfiguration.buildNumber)
+        #expect(properties["locale"] as? String == AppLocale.current.rawValue)
         #expect(properties["platform"] as? String == "ios")
     }
 

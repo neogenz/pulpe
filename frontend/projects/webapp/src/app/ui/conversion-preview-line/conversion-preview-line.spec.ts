@@ -1,5 +1,5 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { LOCALE_ID, provideZonelessChangeDetection } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { describe, it, expect, beforeEach } from 'vitest';
 
@@ -22,6 +22,7 @@ describe('ConversionPreviewLine', () => {
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         ...provideTranslocoForTest(),
+        { provide: LOCALE_ID, useValue: 'fr-CH' },
       ],
     }).compileComponents();
 
@@ -152,5 +153,33 @@ describe('ConversionPreviewLine', () => {
         root?.querySelector('[data-testid="conversion-preview-fallback-date"]'),
       ).toBeNull();
     });
+  });
+});
+
+describe('ConversionPreviewLine fallback date locale', () => {
+  it('formats the cached date from the interface locale, not the currency', async () => {
+    await TestBed.configureTestingModule({
+      imports: [ConversionPreviewLine],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideAnimationsAsync(),
+        ...provideTranslocoForTest(),
+        { provide: LOCALE_ID, useValue: 'de-CH' },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ConversionPreviewLine);
+    setTestInput(fixture.componentInstance.amount, 108);
+    setTestInput(fixture.componentInstance.rate, 1.08);
+    setTestInput(fixture.componentInstance.cachedDate, '2026-04-22');
+    setTestInput(fixture.componentInstance.displayCurrency, 'EUR');
+    setTestInput(fixture.componentInstance.status, 'fallback');
+    TestBed.flushEffects();
+    fixture.detectChanges();
+
+    const chip = fixture.nativeElement.querySelector(
+      '[data-testid="conversion-preview-fallback-date"]',
+    );
+    expect(chip?.textContent).toContain('22. Apr.');
   });
 });

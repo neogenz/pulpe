@@ -78,6 +78,7 @@ final class AnalyticsService {
             "environment": AppConfiguration.environment.rawValue,
             "app_version": AppConfiguration.appVersion,
             "build_number": AppConfiguration.buildNumber,
+            "locale": AppLocale.current.rawValue,
             "platform": "ios"
         ]
     }
@@ -272,6 +273,9 @@ final class AnalyticsService {
     func setPersonProperties(_ properties: [String: Any]) {
         let sanitized = Self.sanitizeProperties(properties)
         currentPersonProperties.merge(sanitized) { _, latest in latest }
+        if isEventCapturingEnabled, let locale = sanitized[Self.localeProperty] as? String {
+            PostHogSDK.shared.register([Self.localeProperty: locale])
+        }
         guard isEventCapturingEnabled, isIdentified else { return }
         PostHogSDK.shared.setPersonProperties(userPropertiesToSet: sanitized)
     }

@@ -1,4 +1,5 @@
 import { SITE_URL } from "./routes";
+import type { Locale } from "./i18n";
 
 export const ANGULAR_APP_URL = process.env.NEXT_PUBLIC_ANGULAR_APP_URL || "";
 
@@ -16,7 +17,11 @@ export const IOS_APP_URL = "https://apps.apple.com/app/pulpe/id6758464920";
 export const ORGANIZATION_ID = `${SITE_URL}/#org`;
 export const CONTACT_EMAIL = "maxime.desogus@gmail.com";
 
-export function angularUrl(path: string, utmContent: string): string {
+export function angularUrl(
+  path: string,
+  utmContent: string,
+  locale: Locale,
+): string {
   const separator = path.includes("?") ? "&" : "?";
-  return `${ANGULAR_APP_URL}${path}${separator}utm_source=landing&utm_medium=cta&utm_content=${encodeURIComponent(utmContent)}`;
+  return `${ANGULAR_APP_URL}${path}${separator}utm_source=landing&utm_medium=cta&utm_content=${encodeURIComponent(utmContent)}&lang=${locale}`;
 }

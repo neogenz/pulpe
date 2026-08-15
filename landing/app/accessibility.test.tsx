@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { LOCALES } from "../lib/i18n";
+import { angularUrl } from "../lib/config";
 import { socialPreviewFile } from "../lib/metadata";
 import type { PostHog } from "posthog-js/dist/module.slim";
 import React from "react";
@@ -740,6 +741,27 @@ describe("landing accessibility contracts", () => {
     }
   });
 
+  it("propagates each landing locale through every webapp CTA", () => {
+    for (const locale of LOCALES) {
+      const url = angularUrl("/signup", "test", locale);
+      assert.match(url, new RegExp(`[?&]lang=${locale}(?:&|$)`));
+      assert.match(url, /[?&]utm_source=landing(?:&|$)/);
+    }
+
+    for (const source of [
+      componentSources.header,
+      componentSources.hero,
+      componentSources.finalCta,
+      componentSources.platforms,
+      componentSources.stickyCta,
+      componentSources.support,
+    ]) {
+      for (const call of source.matchAll(/angularUrl\([\s\S]*?\)/g)) {
+        assert.match(call[0], /,\s*(?:locale|DEFAULT_LOCALE)\s*\)$/);
+      }
+    }
+  });
+
   it("keeps sections that only tracked clicks out of the client bundle", () => {
     // La devise dépend du visiteur, mais elle ne concerne que les nœuds de
     // montant : la frontière client est descendue jusqu'à eux, donc les sections
@@ -972,6 +994,7 @@ describe("landing accessibility contracts", () => {
 
       let initOptions: Parameters<PostHog["init"]>[1];
       const captures: Parameters<PostHog["capture"]>[] = [];
+      const registrations: Parameters<PostHog["register"]>[] = [];
       const posthog = {
         init: (_key: string, options: Parameters<PostHog["init"]>[1]) => {
           assert.equal(
@@ -981,7 +1004,9 @@ describe("landing accessibility contracts", () => {
           );
           initOptions = options;
         },
-        register: () => undefined,
+        register: (...args: Parameters<PostHog["register"]>) => {
+          registrations.push(args);
+        },
         capture: (...args: Parameters<PostHog["capture"]>) => {
           captures.push(args);
           return undefined;
@@ -989,18 +1014,23 @@ describe("landing accessibility contracts", () => {
       } as unknown as PostHog;
 
       const fast = await importFresh();
-      await fast.initPostHog(async () => ({ default: posthog }));
+      await fast.initPostHog("de", async () => ({ default: posthog }));
       await fast.trackCTAClick("commencer", "hero", "/signup");
 
       assert.equal(initOptions?.persistence_name, "pulpe_landing");
       assert.equal(initOptions?.cross_subdomain_cookie, false);
+      assert.deepEqual(registrations[0]?.[0], {
+        environment: "local",
+        locale: "de",
+        platform: "landing",
+      });
       assert.deepEqual(captures[0]?.[2], {
         send_instantly: true,
         transport: "sendBeacon",
       });
 
       const slow = await importFresh();
-      slow.initPostHog(() => new Promise(() => undefined));
+      slow.initPostHog("fr", () => new Promise(() => undefined));
       let trackingFinished = false;
       const tracking = slow
         .trackCTAClick("commencer", "hero", "/signup")
@@ -1017,7 +1047,7 @@ describe("landing accessibility contracts", () => {
       const consoleError = console.error;
       console.error = () => undefined;
       try {
-        const failedInit = failed.initPostHog(async () => {
+        const failedInit = failed.initPostHog("fr", async () => {
           throw new Error("module unavailable");
         });
         await Promise.all([
@@ -1165,7 +1195,7 @@ describe("landing accessibility contracts", () => {
   it("places authentic testimonials after product proof with quote semantics", () => {
     assert.match(
       componentSources.page,
-      /<Solution dict=\{[^}]+\}[^>]*\/>[\s\S]*<Testimonials dict=\{[^}]+\} \/>[\s\S]*<Platforms dict=\{[^}]+\} \/>/,
+      /<Solution dict=\{[^}]+\}[^>]*\/>[\s\S]*<Testimonials dict=\{[^}]+\} \/>[\s\S]*<Platforms dict=\{[^}]+\}[^>]*\/>/,
     );
     assert.doesNotMatch(componentSources.page, /<HowItWorks\b/);
     assert.match(componentSources.testimonials, /<blockquote/);
@@ -1315,7 +1345,7 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.page, /<Roadmap\b/);
     assert.match(
       componentSources.page,
-      /<Testimonials dict=\{[^}]+\} \/>[\s\S]*<Features dict=\{[^}]+\} \/>[\s\S]*<Platforms dict=\{[^}]+\} \/>/,
+      /<Testimonials dict=\{[^}]+\} \/>[\s\S]*<Features dict=\{[^}]+\} \/>[\s\S]*<Platforms dict=\{[^}]+\}[^>]*\/>/,
     );
     assert.match(
       joined(frDict.home.features),
@@ -1459,7 +1489,7 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.support, /hero-mesh/);
     assert.match(componentSources.support, /max-w-3xl/);
     assert.match(componentSources.support, /<AccordionItem/);
-    assert.match(componentSources.support, /<FinalCTA dict=\{[^}]+\} \/>/);
+    assert.match(componentSources.support, /<FinalCTA dict=\{[^}]+\}[^>]*\/>/);
     assert.doesNotMatch(componentSources.support, /<details|<summary/);
   });
 
@@ -1621,7 +1651,7 @@ describe("landing accessibility contracts", () => {
   it("keeps support links accessible and answer copy canonical", () => {
     assert.match(
       componentSources.support,
-      /const SETTINGS_URL = angularUrl\("\/settings", "faq_delete_account"\);/,
+      /angularUrl\("\/settings", "faq_delete_account", locale\)/,
     );
     // Le texte nu du JSON-LD est recollé des trois morceaux de la réponse au
     // lieu d'être rédigé une seconde fois : les deux versions ne peuvent plus
@@ -1662,7 +1692,8 @@ describe("landing accessibility contracts", () => {
       },
       {
         key: "demo",
-        wiring: /linkedFaq\(faq\.demo, \{ href: DEMO_URL \}\)/,
+        wiring:
+          /linkedFaq\(faq\.demo, \{[\s\S]*angularUrl\("\/welcome", "faq_demo", locale\)[\s\S]*\}\)/,
         facts: [
           "mode démo",
           "utiliser Pulpe sans compte",
@@ -1681,7 +1712,8 @@ describe("landing accessibility contracts", () => {
       },
       {
         key: "deletion",
-        wiring: /linkedFaq\(faq\.deletion, \{ href: SETTINGS_URL \}\)/,
+        wiring:
+          /linkedFaq\(faq\.deletion, \{[\s\S]*angularUrl\("\/settings", "faq_delete_account", locale\)[\s\S]*\}\)/,
         facts: [
           "demander la suppression",
           "paramètres",

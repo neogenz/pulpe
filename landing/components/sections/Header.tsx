@@ -76,7 +76,7 @@ export function Header({
           <div className="relative z-10 flex items-center gap-2">
             <div className="hidden lg:block">
               <Button
-                href={angularUrl("/signup", "header_commencer")}
+                href={angularUrl("/signup", "header_commencer", locale)}
                 size="sm"
                 className="shrink-0"
                 data-cta-name="commencer"
@@ -145,7 +145,7 @@ export function Header({
               </Link>
             ))}
             <Button
-              href={angularUrl("/signup", "mobile_menu_commencer")}
+              href={angularUrl("/signup", "mobile_menu_commencer", locale)}
               tabIndex={-1}
               className="mt-auto w-full"
               data-cta-name="commencer"

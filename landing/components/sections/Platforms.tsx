@@ -2,6 +2,7 @@ import { Globe, Smartphone } from "lucide-react";
 import { Badge, Button, Section } from "@/components/ui";
 import type { Dictionary } from "@/content/dictionary";
 import { angularUrl, IOS_APP_URL } from "@/lib/config";
+import type { Locale } from "@/lib/i18n";
 
 function AppleLogo({ className }: { className?: string }) {
   return (
@@ -16,7 +17,13 @@ function AppleLogo({ className }: { className?: string }) {
   );
 }
 
-export function Platforms({ dict }: { dict: Dictionary["home"]["platforms"] }) {
+export function Platforms({
+  dict,
+  locale,
+}: {
+  dict: Dictionary["home"]["platforms"];
+  locale: Locale;
+}) {
   return (
     <Section id="platforms">
       <div className="mx-auto max-w-3xl text-center">
@@ -85,7 +92,7 @@ export function Platforms({ dict }: { dict: Dictionary["home"]["platforms"] }) {
             {dict.web.text}
           </p>
           <Button
-            href={angularUrl("/welcome", "platforms_ouvrir")}
+            href={angularUrl("/welcome", "platforms_ouvrir", locale)}
             variant="secondary"
             className="mt-7 w-full"
             data-cta-name="ouvrir_navigateur"

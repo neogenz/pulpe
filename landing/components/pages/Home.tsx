@@ -42,15 +42,15 @@ export function Home({ dict, locale }: { dict: Dictionary; locale: Locale }) {
         tabIndex={-1}
         className="pb-[calc(3.75rem+max(0.75rem,env(safe-area-inset-bottom)))] lg:pb-0"
       >
-        <Hero dict={home.hero} dashboardDict={home.dashboard} />
+        <Hero dict={home.hero} dashboardDict={home.dashboard} locale={locale} />
         <PainPoints dict={home.painPoints} />
         <Solution dict={home.solution} howItWorksDict={home.howItWorks} />
         <Testimonials dict={home.testimonials} />
         <Features dict={home.features} />
-        <Platforms dict={home.platforms} />
+        <Platforms dict={home.platforms} locale={locale} />
         <WhyFree dict={home.whyFree} />
         <FAQ dict={home.faq} />
-        <FinalCTA dict={home.finalCta} />
+        <FinalCTA dict={home.finalCta} locale={locale} />
       </main>
 
       <Footer
@@ -60,7 +60,7 @@ export function Home({ dict, locale }: { dict: Dictionary; locale: Locale }) {
         route="/"
       />
       <MarkerDraw />
-      <StickyCTA label={home.stickyCta} />
+      <StickyCTA label={home.stickyCta} locale={locale} />
     </>
   );
 }

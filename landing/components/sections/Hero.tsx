@@ -1,13 +1,16 @@
 import { Button, HeroDashboard } from "@/components/ui";
 import type { Dictionary } from "@/content/dictionary";
 import { angularUrl } from "@/lib/config";
+import type { Locale } from "@/lib/i18n";
 
 export function Hero({
   dict,
   dashboardDict,
+  locale,
 }: {
   dict: Dictionary["home"]["hero"];
   dashboardDict: Dictionary["home"]["dashboard"];
+  locale: Locale;
 }) {
   return (
     <section
@@ -31,7 +34,7 @@ export function Hero({
           </p>
           <div className="mt-9 flex justify-center">
             <Button
-              href={angularUrl("/signup", "hero_commencer")}
+              href={angularUrl("/signup", "hero_commencer", locale)}
               glow
               data-cta-name="commencer"
               data-cta-location="hero"
