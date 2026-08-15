@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { LanguageBanner } from "@/components/LanguageBanner";
 import { Container, Section } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
 import type { Dictionary } from "@/content/dictionary";
@@ -37,8 +36,6 @@ export function SupportGuide({
 
   return (
     <>
-      <LanguageBanner locale={locale} route={GUIDE_ROUTE} />
-
       <a
         href="#main-content"
         className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[60] focus-visible:rounded-lg focus-visible:bg-primary focus-visible:px-4 focus-visible:py-2 focus-visible:text-white"

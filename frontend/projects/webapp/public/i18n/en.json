@@ -1361,7 +1361,79 @@
     "termsLink": "Terms of Service",
     "privacyLink": "Privacy Policy",
     "termsFooter": "By using Pulpe, you accept these terms of service as well as my",
-    "privacyFooter": "This policy is part and parcel of my"
+    "privacyFooter": "This policy is part and parcel of my",
+    "terms": {
+      "acceptance": {
+        "title": "1. Acceptance of the terms",
+        "body": "By creating a Pulpe account, you accept these terms of service. If you do not accept them, do not use the service."
+      },
+      "service": {
+        "title": "2. Description of the service",
+        "intro": "Pulpe is a personal budgeting application that lets you:",
+        "items": {
+          "plan": "Plan your monthly budgets",
+          "track": "Track your expenses and income",
+          "savings": "Manage your savings",
+          "templates": "Create reusable budget templates",
+          "demo": "Try the service in demo mode (temporary data deleted after 24 hours)"
+        }
+      },
+      "account": {
+        "title": "3. User account",
+        "intro": "You are responsible for:",
+        "items": {
+          "password": "Keeping your password confidential",
+          "activity": "All activity carried out through your account",
+          "unauthorized": "Informing me immediately of any unauthorised access"
+        }
+      },
+      "data": {
+        "title": "4. Use of data",
+        "intro": "I collect and use your data to:",
+        "items": {
+          "improve": "Provide and improve the service",
+          "security": "Keep your account secure",
+          "bugs": "Fix bugs and technical issues",
+          "analytics": "Analyse usage to improve the experience"
+        },
+        "analyticsLabel": "Important:",
+        "analyticsBody": "I use PostHog to understand how the application is used. This includes pages visited, features used, errors encountered and session recordings (interaction replays). Your financial data is always masked in these analyses and recordings."
+      },
+      "source": {
+        "title": "5. Open source and ownership",
+        "body": "Pulpe's source code is available on GitHub under the MIT licence. You may inspect, modify and host it yourself. Your personal data belongs to you and remains private."
+      },
+      "liability": {
+        "title": "6. Limitation of liability",
+        "intro": "Pulpe is a personal project maintained in my spare time. The service is provided “as is”, and I cannot guarantee:",
+        "warning": "Important warning:",
+        "items": {
+          "availability": "Continuous availability of the service",
+          "errors": "The complete absence of errors or bugs",
+          "accuracy": "The accuracy of calculations (always check your data)",
+          "advice": "Pulpe is a budgeting aid and does not constitute professional financial advice",
+          "loss": "I accept no liability for financial loss related to the use of Pulpe",
+          "decisions": "You alone are responsible for your financial decisions",
+          "advisor": "If in doubt, consult a qualified financial adviser"
+        }
+      },
+      "termination": {
+        "title": "7. Termination",
+        "body": "You may delete your account at any time from the settings. I reserve the right to suspend or delete your account if you breach these terms or misuse the service."
+      },
+      "changes": {
+        "title": "8. Changes to these terms",
+        "body": "I may amend these terms when necessary. Material changes will be notified by email. Continuing to use the service after a change constitutes acceptance of the new terms."
+      },
+      "law": {
+        "title": "9. Governing law",
+        "body": "These terms are governed by Swiss law. Any dispute will be submitted to the competent courts of Geneva, Switzerland."
+      },
+      "contact": {
+        "title": "10. Contact",
+        "body": "For questions about these terms, contact me at:"
+      }
+    }
   },
   "dashboard": {
     "available": "Available",

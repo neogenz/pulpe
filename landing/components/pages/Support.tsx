@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
-import { LanguageBanner } from "@/components/LanguageBanner";
 import { AccordionItem, Container, Section } from "@/components/ui";
 import { FinalCTA, Footer, Header } from "@/components/sections";
 import type { Dictionary } from "@/content/dictionary";
@@ -115,8 +114,6 @@ export function Support({
           __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c"),
         }}
       />
-
-      <LanguageBanner locale={locale} route="/support" />
 
       <a
         href="#main-content"

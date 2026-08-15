@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Supprimer la suggestion automatique et traduire les CGU

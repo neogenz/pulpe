@@ -1361,7 +1361,79 @@
     "termsLink": "Conditions d'Utilisation",
     "privacyLink": "Politique de Confidentialité",
     "termsFooter": "En utilisant Pulpe, tu acceptes ces conditions d'utilisation ainsi que ma",
-    "privacyFooter": "Cette politique fait partie intégrante de mes"
+    "privacyFooter": "Cette politique fait partie intégrante de mes",
+    "terms": {
+      "acceptance": {
+        "title": "1. Acceptation des conditions",
+        "body": "En créant un compte sur Pulpe, tu acceptes les présentes conditions d'utilisation. Si tu n'acceptes pas ces conditions, n'utilise pas le service."
+      },
+      "service": {
+        "title": "2. Description du service",
+        "intro": "Pulpe est une application de gestion budgétaire personnelle qui te permet de :",
+        "items": {
+          "plan": "Planifier tes budgets mensuels",
+          "track": "Suivre tes dépenses et revenus",
+          "savings": "Gérer ton épargne",
+          "templates": "Créer des modèles de budget réutilisables",
+          "demo": "Tester le service en mode démo (données éphémères, supprimées après 24 heures)"
+        }
+      },
+      "account": {
+        "title": "3. Compte utilisateur",
+        "intro": "Tu es responsable de :",
+        "items": {
+          "password": "Maintenir la confidentialité de ton mot de passe",
+          "activity": "Toutes les activités effectuées avec ton compte",
+          "unauthorized": "M'informer immédiatement de tout accès non autorisé"
+        }
+      },
+      "data": {
+        "title": "4. Utilisation des données",
+        "intro": "Je collecte et utilise tes données pour :",
+        "items": {
+          "improve": "Fournir et améliorer le service",
+          "security": "Assurer la sécurité de ton compte",
+          "bugs": "Corriger les bugs et problèmes techniques",
+          "analytics": "Analyser l'utilisation pour améliorer l'expérience"
+        },
+        "analyticsLabel": "Important :",
+        "analyticsBody": "J'utilise PostHog pour suivre l'utilisation de l'application. Cela inclut les pages visitées, les fonctionnalités utilisées, les erreurs rencontrées et l'enregistrement de sessions (replay des interactions). Tes données financières sont toujours masquées dans ces analyses et enregistrements."
+      },
+      "source": {
+        "title": "5. Open Source et propriété",
+        "body": "Le code source de Pulpe est disponible sous licence MIT sur GitHub. Tu peux le consulter, le modifier et l'héberger toi-même. Tes données personnelles t'appartiennent et restent privées."
+      },
+      "liability": {
+        "title": "6. Limitation de responsabilité",
+        "intro": "Pulpe est un projet personnel maintenu sur mon temps libre. Le service est fourni « tel quel » et je ne peux pas garantir :",
+        "warning": "Avertissement important :",
+        "items": {
+          "availability": "Une disponibilité continue du service",
+          "errors": "L'absence totale d'erreurs ou de bugs",
+          "accuracy": "L'exactitude des calculs (vérifie toujours tes données)",
+          "advice": "Pulpe est un outil d'aide à la gestion budgétaire et ne constitue pas un conseil financier professionnel",
+          "loss": "Je décline toute responsabilité en cas de perte financière liée à l'utilisation de Pulpe",
+          "decisions": "Tu es seul responsable de tes décisions financières",
+          "advisor": "En cas de doute, consulte un conseiller financier qualifié"
+        }
+      },
+      "termination": {
+        "title": "7. Résiliation",
+        "body": "Tu peux supprimer ton compte à tout moment depuis les paramètres. Je me réserve le droit de suspendre ou supprimer ton compte en cas de violation de ces conditions ou d'utilisation abusive."
+      },
+      "changes": {
+        "title": "8. Modifications des CGU",
+        "body": "Je peux modifier ces conditions si nécessaire. Les modifications importantes seront notifiées par email. L'utilisation continue du service après modification vaut acceptation des nouvelles conditions."
+      },
+      "law": {
+        "title": "9. Droit applicable",
+        "body": "Ces conditions sont régies par le droit suisse. Tout litige sera soumis aux tribunaux compétents de Genève, Suisse."
+      },
+      "contact": {
+        "title": "10. Contact",
+        "body": "Pour toute question concernant ces conditions, contacte-moi à :"
+      }
+    }
   },
   "dashboard": {
     "available": "Disponible",

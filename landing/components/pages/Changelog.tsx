@@ -1,5 +1,4 @@
 import { ExternalLink } from "lucide-react";
-import { LanguageBanner } from "@/components/LanguageBanner";
 import { Container } from "@/components/ui";
 import { Header, Footer } from "@/components/sections";
 import releases from "@/data/releases.json";
@@ -40,8 +39,6 @@ export function Changelog({
 
   return (
     <>
-      <LanguageBanner locale={locale} route="/changelog" />
-
       <Header dict={dict.header} locale={locale} />
 
       <main className="pt-32 pb-16 md:pb-24">
