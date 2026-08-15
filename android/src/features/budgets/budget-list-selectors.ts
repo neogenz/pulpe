@@ -63,6 +63,46 @@ export function budgetTiming(
     : "future";
 }
 
+/** Where a row sits in the sectioned list, and how much of the list precedes it. */
+export interface BudgetListLocation {
+  sectionIndex: number;
+  itemIndex: number;
+  /**
+   * Rows above it, year headers counted — a section header occupies a row of the
+   * virtualiser just as a card does. It is what says how far the first render
+   * has to reach for the row to exist by the time the list is asked to show it.
+   */
+  rowsAbove: number;
+}
+
+/**
+ * Where the list should open, or `null` when there is nothing to move to.
+ *
+ * The list reads newest first, so what buries the month being lived in is the
+ * *plans* above it: an account provisioned a year ahead opens twelve cards away
+ * from the only month anyone can act on today. Null covers the two cases where
+ * moving would be noise — the current month has no budget, and it is already the
+ * first row.
+ */
+export function currentBudgetLocation(
+  sections: BudgetYearSection[],
+  current: Period,
+): BudgetListLocation | null {
+  let rows = 0;
+
+  for (const [sectionIndex, section] of sections.entries()) {
+    rows += 1; // this section's year header
+    for (const [itemIndex, budget] of section.budgets.entries()) {
+      if (budgetTiming(budget, current) !== "current") continue;
+      if (sectionIndex === 0 && itemIndex === 0) return null;
+      return { sectionIndex, itemIndex, rowsAbove: rows + itemIndex };
+    }
+    rows += section.budgets.length;
+  }
+
+  return null;
+}
+
 /**
  * The same budgets read the other way round — oldest first, across years. The
  * month pager runs left to right like a calendar, where the list reads newest

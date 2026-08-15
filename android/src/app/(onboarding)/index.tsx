@@ -47,7 +47,11 @@ export default function OnboardingRoute() {
     // Before the reset, which is what wipes the step the run stopped on.
     captureOnboardingAbandoned(useOnboardingStore.getState());
     resetOnboarding();
-    router.replace("/sign-in");
+    // Through the landing decision, never straight to sign-in: a device that
+    // has never finished a run belongs back on the pitch, and a run abandoned
+    // after a Google signup is authenticated — for which `(auth)` is not even
+    // mounted, so the hardcoded route left a blank screen.
+    router.replace("/");
   }
 
   // The hardware back button has to answer the same way the on-screen one

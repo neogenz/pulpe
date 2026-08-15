@@ -204,7 +204,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: SPACING.sm,
   },
-  headlineLabels: { gap: SPACING.xxs },
+  // The column that yields. Nothing in a row shrinks unless it is told to, so
+  // the hero used to measure at its natural width and push the target clean out
+  // of the card — a six-figure goal printed "sur 200'000 CHF" past the rounded
+  // edge, on the screen that exists to compare the two. The target keeps its
+  // width; the hero is the one that can afford to lose a few points of type.
+  headlineLabels: { flexShrink: 1, gap: SPACING.xxs },
   barStack: { position: "relative", justifyContent: "center" },
   bar: { height: SPACING.sm, borderRadius: RADIUS.sm },
   barOverlay: {

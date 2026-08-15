@@ -8,7 +8,6 @@ import {
   Dialog,
   Portal,
   SegmentedButtons,
-  Snackbar,
   Switch,
   Text,
   useTheme,
@@ -37,6 +36,7 @@ import {
   useAmountVisibility,
 } from "@/core/ui/amount-visibility";
 import { SPACING } from "@/core/ui/theme";
+import { Notice } from "@/core/ui/notice";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { useUpdateUserSettings } from "@/features/account/account-queries";
 import { useCurrencyRate } from "@/features/account/currency-queries";
@@ -281,9 +281,9 @@ export default function PreferencesScreen() {
         </Dialog>
       </Portal>
 
-      <Snackbar visible={notice !== null} onDismiss={() => setNotice(null)}>
+      <Notice visible={notice !== null} onDismiss={() => setNotice(null)}>
         {notice ?? ""}
-      </Snackbar>
+      </Notice>
     </SafeAreaView>
   );
 }

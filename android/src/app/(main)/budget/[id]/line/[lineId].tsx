@@ -14,7 +14,6 @@ import {
   Menu,
   Portal,
   ProgressBar,
-  Snackbar,
   Text,
   useTheme,
 } from "react-native-paper";
@@ -32,6 +31,7 @@ import { formatMonthName, ofMonth } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
+import { Notice } from "@/core/ui/notice";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import {
   useBudgetDetails,
@@ -337,17 +337,17 @@ export default function BudgetLineDetailScreen() {
         </Button>
       </ScrollView>
 
-      <Snackbar
+      <Notice
         visible={hasToggleFailed}
         onDismiss={() => setToggleFailed(false)}
         action={{ label: "Fermer", onPress: () => setToggleFailed(false) }}
       >
         Le pointage n&apos;a pas été enregistré. Réessaie.
-      </Snackbar>
+      </Notice>
 
-      <Snackbar visible={failure !== null} onDismiss={() => setFailure(null)}>
+      <Notice visible={failure !== null} onDismiss={() => setFailure(null)}>
         {failure ?? ""}
-      </Snackbar>
+      </Notice>
 
       <BudgetLineSheet
         // Keyed on the line so reopening after a change starts from the saved
@@ -362,7 +362,7 @@ export default function BudgetLineDetailScreen() {
         onSaved={() => setEditVisible(false)}
       />
 
-      <Snackbar
+      <Notice
         visible={removal.last !== null}
         onDismiss={removal.forget}
         action={{ label: "Annuler", onPress: removal.undo }}
@@ -370,14 +370,14 @@ export default function BudgetLineDetailScreen() {
         {removal.undoable.length === 1
           ? `« ${removal.last?.name} » supprimée`
           : `${removal.undoable.length} opérations supprimées`}
-      </Snackbar>
+      </Notice>
 
-      <Snackbar
+      <Notice
         visible={removal.failureMessage !== null}
         onDismiss={removal.dismissFailure}
       >
         {removal.failureMessage}
-      </Snackbar>
+      </Notice>
 
       <TransactionSheet
         isVisible={isAddVisible}

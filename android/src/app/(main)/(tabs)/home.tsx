@@ -6,7 +6,6 @@ import {
   Button,
   FAB,
   IconButton,
-  Snackbar,
   Text,
   useTheme,
 } from "react-native-paper";
@@ -23,6 +22,7 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
+import { Notice } from "@/core/ui/notice";
 import { useBudgetList } from "@/features/budgets/budget-queries";
 import { hasAvailableMonth } from "@/features/budgets/available-months";
 import { ActivityCard } from "@/features/current-month/components/activity-card";
@@ -263,7 +263,8 @@ export default function HomeScreen() {
 
       {/* The server flips whatever state it holds, so taking the pointing back
           is the very same call a second time. */}
-      <Snackbar
+      <Notice
+        clearsFab
         visible={pointed !== null}
         onDismiss={() => setPointed(null)}
         action={{
@@ -282,22 +283,24 @@ export default function HomeScreen() {
         }}
       >
         {pointed === null ? "" : `${pointed.name} pointé`}
-      </Snackbar>
+      </Notice>
 
-      <Snackbar
+      <Notice
+        clearsFab
         visible={toggleFailure !== null}
         onDismiss={() => setToggleFailure(null)}
         action={{ label: "Fermer", onPress: () => setToggleFailure(null) }}
       >
         {toggleFailure}
-      </Snackbar>
+      </Notice>
 
-      <Snackbar
+      <Notice
+        clearsFab
         visible={hasTransactionAdded}
         onDismiss={() => setTransactionAdded(false)}
       >
         Opération ajoutée
-      </Snackbar>
+      </Notice>
 
       <RealizedBalanceSheet
         isVisible={isRealizedVisible}

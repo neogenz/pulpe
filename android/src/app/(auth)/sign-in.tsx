@@ -1,4 +1,4 @@
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import { Linking, ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -25,6 +25,7 @@ type Pending = "password" | "google" | null;
 
 export default function SignInScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const keyboardHeight = useKeyboardHeight();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -168,6 +169,28 @@ export default function SignInScreen() {
           </>
         )}
 
+        {/* The way back to the pitch. Welcome sends here with `replace`, so
+            without its mirror this screen was a one-way door: a device that had
+            already been through the flow could only ever sign in again, never
+            create a second account. `replace` both ways keeps the two screens a
+            single slot rather than a stack that grows on every toggle. */}
+        <View style={styles.signUp}>
+          <Text
+            variant="bodyMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            Nouveau sur Pulpe ?
+          </Text>
+          <Button
+            mode="text"
+            compact
+            disabled={isBusy}
+            onPress={() => router.replace("/(onboarding)")}
+          >
+            Créer un compte
+          </Button>
+        </View>
+
         <View style={styles.legal}>
           <Button
             mode="text"
@@ -210,6 +233,11 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   dividerLine: { flex: 1 },
+  signUp: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   legal: {
     flexDirection: "row",
     alignItems: "center",

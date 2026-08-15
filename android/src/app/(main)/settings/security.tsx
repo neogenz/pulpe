@@ -7,7 +7,6 @@ import {
   Button,
   Dialog,
   Portal,
-  Snackbar,
   Switch,
   Text,
   useTheme,
@@ -22,6 +21,7 @@ import { useSessionStore } from "@/core/auth/session-store";
 import { describeBiometrics } from "@/core/crypto/biometrics";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
+import { Notice } from "@/core/ui/notice";
 import { AUTO_LOCK_DELAY_MINUTES } from "@/core/vault/auto-lock";
 import {
   disableVaultBiometrics,
@@ -302,9 +302,9 @@ export default function SecuritySettingsScreen() {
         </Dialog>
       </Portal>
 
-      <Snackbar visible={notice !== null} onDismiss={() => setNotice(null)}>
+      <Notice visible={notice !== null} onDismiss={() => setNotice(null)}>
         {notice ?? ""}
-      </Snackbar>
+      </Notice>
     </SafeAreaView>
   );
 }

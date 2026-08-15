@@ -27,6 +27,13 @@ const SIZES = {
  * amount whose sign is the whole story; `muted` steps back without dimming,
  * for a figure that qualifies the one beside it.
  */
+/**
+ * How far a hero may shrink before it stops being one. Left unsaid, Android
+ * shrinks to a 4 dp floor — small enough to fit any amount, and far too small to
+ * read one.
+ */
+const HERO_MINIMUM_SCALE = 0.6;
+
 type Tone =
   | "neutral"
   | "muted"
@@ -67,6 +74,11 @@ export function Amount({
   // A hero is one line that shrinks to fit, always: it is the largest type on
   // the screen, and the one amount big enough to wrap is a seven-figure balance
   // — the moment the screen can least afford to reflow around it.
+  //
+  // It shrinks against the width it is *given*, though. A hero in a row whose
+  // siblings cannot yield measures at its natural width, finds nothing to shrink
+  // into, and — because Android turns the ellipsis off while autosizing — runs
+  // straight out of its card. Whoever places a hero owes it a bounded width.
   const isHero = size === "hero";
 
   return (
@@ -74,6 +86,7 @@ export function Amount({
       variant={SIZES[size]}
       numberOfLines={isHero ? 1 : numberOfLines}
       adjustsFontSizeToFit={isHero}
+      minimumFontScale={isHero ? HERO_MINIMUM_SCALE : undefined}
       style={[TABULAR_DIGITS, { color }, style]}
     >
       {children}

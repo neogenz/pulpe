@@ -5,6 +5,7 @@ import {
   type BudgetSparse,
   type SupportedCurrency,
 } from "pulpe-shared";
+import { useEffect, useMemo, useRef } from "react";
 import { RefreshControl, SectionList, StyleSheet, View } from "react-native";
 import { ActivityIndicator, FAB, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,6 +23,7 @@ import {
   type BudgetTiming,
   budgetTiming,
   budgetYearSections,
+  currentBudgetLocation,
 } from "@/features/budgets/budget-list-selectors";
 import {
   invalidateBudgetData,
@@ -40,6 +42,21 @@ const CALENDAR_PAY_DAY = 1;
  */
 const CURRENT_MONTH_BORDER = 2;
 
+/**
+ * What the sticky year header covers. Without it the card the list opens on
+ * arrives exactly under the header that names its year, which is the one row a
+ * reader needs whole.
+ */
+const YEAR_HEADER_CLEARANCE = 40;
+
+/** `VirtualizedList`'s own default, kept as the floor rather than lowered. */
+const DEFAULT_RENDER_WINDOW = 10;
+
+interface BudgetYearGroup {
+  year: number;
+  data: BudgetSparse[];
+}
+
 export default function BudgetsScreen() {
   // Repaints this screen when amounts are hidden or shown; the masking
   // itself lives in the formatters.
@@ -50,6 +67,49 @@ export default function BudgetsScreen() {
 
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
+
+  // Derived above the gates below, and the anchor with it: the loading and error
+  // returns sit between here and the list, and a hook declared past an early
+  // return is a hook the next render may not reach.
+  const sections = useMemo(
+    () => budgetYearSections(budgets.data ?? []),
+    [budgets.data],
+  );
+  const groups = useMemo<BudgetYearGroup[]>(
+    () =>
+      sections.map((section) => ({
+        year: section.year,
+        data: section.budgets,
+      })),
+    [sections],
+  );
+  const currentPeriod = useMemo(
+    () => getBudgetPeriodForDate(new Date(), payDayOfMonth),
+    [payDayOfMonth],
+  );
+  const anchor = useMemo(
+    () => currentBudgetLocation(sections, currentPeriod),
+    [sections, currentPeriod],
+  );
+
+  const list = useRef<SectionList<BudgetSparse, BudgetYearGroup>>(null);
+  const hasAnchored = useRef(false);
+
+  // The list reads newest first, so the months still to come sit *above* the one
+  // being lived in — an account provisioned a year ahead opened twelve cards
+  // away from the only month anyone can act on. Once per mount: re-anchoring
+  // after a pull-to-refresh would take the list back from under the thumb.
+  useEffect(() => {
+    if (anchor === null || hasAnchored.current) return;
+    hasAnchored.current = true;
+    list.current?.scrollToLocation({
+      sectionIndex: anchor.sectionIndex,
+      itemIndex: anchor.itemIndex,
+      viewPosition: 0,
+      viewOffset: YEAR_HEADER_CLEARANCE,
+      animated: false,
+    });
+  }, [anchor]);
 
   if (budgets.isPending || settings.isPending) {
     return (
@@ -76,8 +136,6 @@ export default function BudgetsScreen() {
     );
   }
 
-  const sections = budgetYearSections(budgets.data ?? []);
-
   if (sections.length === 0) {
     return (
       <PlaceholderScreen
@@ -92,8 +150,6 @@ export default function BudgetsScreen() {
     );
   }
 
-  const currentPeriod = getBudgetPeriodForDate(new Date(), payDayOfMonth);
-
   return (
     <SafeAreaView
       edges={["top"]}
@@ -104,12 +160,19 @@ export default function BudgetsScreen() {
           list opens on. `SectionList` is the virtualiser that already speaks
           year-then-months, so nothing has to be flattened by hand. */}
       <SectionList
-        sections={sections.map((section) => ({
-          year: section.year,
-          data: section.budgets,
-        }))}
+        ref={list}
+        sections={groups}
         keyExtractor={(budget) => budget.id}
         contentContainerStyle={styles.content}
+        // `SectionList` cannot scroll to a row outside its render window without
+        // a `getItemLayout`, and these cards have no fixed height — a subtitle
+        // wraps, a badge does not. Rendering as far as the anchor is what makes
+        // the row exist by the time it is asked for.
+        initialNumToRender={
+          anchor === null
+            ? undefined
+            : Math.max(DEFAULT_RENDER_WINDOW, anchor.rowsAbove + 1)
+        }
         // Off by default on Android, on by default on iOS. A year is the one
         // thing a month card never says, so scrolling into 2025 without it
         // leaves twelve "Décembre" with nothing to date them.

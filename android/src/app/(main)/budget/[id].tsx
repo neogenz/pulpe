@@ -19,7 +19,6 @@ import {
   FAB,
   Menu,
   Searchbar,
-  Snackbar,
   Text,
   useTheme,
 } from "react-native-paper";
@@ -41,6 +40,7 @@ import {
   SCREEN_PADDING,
   SPACING,
 } from "@/core/ui/theme";
+import { Notice } from "@/core/ui/notice";
 import { tagSummary } from "@/core/tags/tag-selection";
 import { useTags } from "@/core/tags/tag-queries";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
@@ -535,20 +535,22 @@ export default function BudgetDetailScreen() {
         accessibilityLabel="Ajouter"
       />
 
-      <Snackbar
+      <Notice
+        clearsFab
         visible={savedMessage !== null}
         onDismiss={() => setSavedMessage(null)}
       >
         {savedMessage ?? ""}
-      </Snackbar>
+      </Notice>
 
-      <Snackbar
+      <Notice
+        clearsFab
         visible={hasToggleFailed}
         onDismiss={() => setToggleFailed(false)}
         action={{ label: "Fermer", onPress: () => setToggleFailed(false) }}
       >
         Le pointage n&apos;a pas été enregistré. Réessaie.
-      </Snackbar>
+      </Notice>
 
       <BudgetLineSheet
         isVisible={isLineSheetVisible}
@@ -618,7 +620,8 @@ export default function BudgetDetailScreen() {
         />
       </Menu>
 
-      <Snackbar
+      <Notice
+        clearsFab
         visible={removal.last !== null}
         onDismiss={removal.forget}
         action={{ label: "Annuler", onPress: removal.undo }}
@@ -626,14 +629,15 @@ export default function BudgetDetailScreen() {
         {removal.undoable.length === 1
           ? `« ${removal.last?.name} » supprimée`
           : `${removal.undoable.length} opérations supprimées`}
-      </Snackbar>
+      </Notice>
 
-      <Snackbar
+      <Notice
+        clearsFab
         visible={removal.failureMessage !== null}
         onDismiss={removal.dismissFailure}
       >
         {removal.failureMessage}
-      </Snackbar>
+      </Notice>
 
       <SavingsWithdrawalSheet
         isVisible={isWithdrawalVisible}
