@@ -18,9 +18,12 @@ struct UncheckedOperationsCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var checkTrigger = false
     @State private var skipTrigger = false
-    /// Deck position — a slot id, seeded to the first card on appear. Settling on a
-    /// wrap copy rebases it onto the real card the copy mirrors.
+    /// The slot the deck is resting on or heading to — derived from scroll geometry on
+    /// every tick, so it stays honest even between two alignments.
     @State private var scrolledId: String?
+    /// Programmatic handle on the scroll: the turns, the appear seed, and the exact
+    /// one-cycle offset shifts that keep the loop endless.
+    @State private var position = ScrollPosition(idType: String.self)
     /// Where the deck should land once the confirmed card leaves the store, computed at
     /// tap time while the confirmed card still anchors the order. Confirming the last
     /// card targets the wrap copy of the first, so the handover keeps turning forward.
@@ -29,6 +32,9 @@ struct UncheckedOperationsCard: View {
     /// until its exit animation completes — the round-trip is too slow to be the only
     /// acknowledgement, and the exiting card keeps the top layer for as long as it is set.
     @State private var confirmingId: String?
+    /// A "Plus tard" turn in flight. Spam-clicks used to pile animated scroll targets on
+    /// top of each other until they cancelled out and the deck froze between two cards.
+    @State private var isTurning = false
     /// Mirror of `items`, one commit behind the store. The deck renders from it because
     /// owning the removal locally is what puts the confirmed card's exit and the deck's
     /// slide to the successor in a single animated transaction — dropped straight from
@@ -60,10 +66,10 @@ struct UncheckedOperationsCard: View {
     }
 
     /// The rendered deck: every operation once under its own id, framed by a full wrap
-    /// copy of the cycle on each side. A full cycle, not a couple of cards: the rebase
-    /// below only fires when the scroll pauses, so the runway must absorb an unbroken
-    /// run of flicks — outrunning a whole extra cycle without a single pause is not a
-    /// gesture a hand makes, and every pause recenters the deck invisibly.
+    /// copy of the cycle on each side. Three identical cycles are what make a one-cycle
+    /// offset shift pixel-invisible — that shift, applied mid-scroll by
+    /// `handleScrollGeometry`, is what closes the loop; the full copies give it half a
+    /// cycle of margin on each side so it always fires far from either content edge.
     private var deckSlots: [DeckSlot] {
         let cards = deckItems
         guard cards.count > 1 else { return cards.map(DeckSlot.init(real:)) }
@@ -97,29 +103,6 @@ struct UncheckedOperationsCard: View {
         reduceMotion ? DesignTokens.Animation.smoothEaseOut : DesignTokens.Animation.gentleSpring
     }
 
-    /// The invisible half of a wrap: settled on a wrap copy, swap the scroll target for
-    /// the real card it mirrors. Same content, same peeks — nothing moves on screen, and
-    /// the deck is free to keep turning in the same direction.
-    private func rebaseIfOnWrapSlot() {
-        guard let current = scrolledId, let realId = DeckSlot.realId(fromWrapId: current) else { return }
-        scrolledId = realId
-    }
-
-    /// One turn of the deck forward — the move a swipe makes. On the last card the turn
-    /// continues onto the wrap copy of the first, then rebases: the cycle never plays
-    /// the deck backwards.
-    private func advance(after item: CurrentMonthStore.CheckableItem) {
-        guard displayItems.count > 1,
-              let idx = displayItems.firstIndex(where: { $0.id == item.id }) else { return }
-        withAnimation(deckAnimation) {
-            scrolledId = idx == displayItems.count - 1
-                ? DeckSlot.wrapId(for: displayItems[0].id, at: .trailing)
-                : displayItems[idx + 1].id
-        } completion: {
-            rebaseIfOnWrapSlot()
-        }
-    }
-
     private func isSyncing(_ item: CurrentMonthStore.CheckableItem) -> Bool {
         switch item {
         case .transaction(let transaction, _): syncingTransactionIds.contains(transaction.id)
@@ -148,10 +131,14 @@ struct UncheckedOperationsCard: View {
             // buttons stay quiet, then the next card starts from a clean slate.
             // The deck can be born empty; seed the position when cards first arrive,
             // or it would sit on the leading wrap copies.
-            if scrolledId == nil { scrolledId = newIds.first }
+            if scrolledId == nil, let first = newIds.first {
+                scrolledId = first
+                position.scrollTo(id: first)
+            }
             withAnimation(deckAnimation) {
-                if let focused = focusedId, !newIds.contains(focused) {
-                    scrolledId = successorId ?? newIds.first
+                if let focused = focusedId, !newIds.contains(focused),
+                   let target = successorId ?? newIds.first {
+                    position.scrollTo(id: target)
                 }
                 displayItems = items
             } completion: {
@@ -222,22 +209,26 @@ struct UncheckedOperationsCard: View {
         // One turn per gesture: a flick advances one card, so a run of flicks spends
         // the wrap runway one slot at a time instead of leaping through it.
         .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
-        .scrollPosition(id: $scrolledId)
+        .scrollPosition($position)
         .scrollIndicators(.hidden)
         .scrollClipDisabled()
+        .onScrollGeometryChange(for: [CGFloat].self) { geo in
+            [geo.visibleRect.midX, geo.contentSize.width, geo.contentOffset.x]
+        } action: { _, values in
+            handleScrollGeometry(midX: values[0], contentWidth: values[1], offsetX: values[2])
+        }
         .onScrollPhaseChange { _, newPhase in
             guard newPhase == .idle else { return }
             rebaseIfOnWrapSlot()
         }
-        // Seeded here, not in init: an initial `scrollPosition` value is treated as
-        // where the content already is and performs no scroll, leaving the deck at
-        // offset zero — on the wrap copy of the first card, whose buttons are dead and
-        // which shows no left peek. A post-layout assignment is a real scroll (the same
-        // one "Plus tard" makes), and lands on the real first card between two frames
-        // that draw the exact same operation.
+        // Seeded here, not through an initial position value: an initial value performs
+        // no scroll and left the deck at offset zero — on the wrap copy of the first
+        // card, whose buttons are dead and which shows no left peek. A post-layout
+        // request is a real (invisible) scroll onto the real first card.
         .onAppear {
-            guard scrolledId == nil else { return }
-            scrolledId = displayItems.first?.id
+            guard scrolledId == nil, let first = displayItems.first?.id else { return }
+            scrolledId = first
+            position.scrollTo(id: first)
         }
         .padding(.horizontal, -DesignTokens.Spacing.xxl)
     }
@@ -359,7 +350,7 @@ struct UncheckedOperationsCard: View {
         let isConfirming = confirmingId == item.id
 
         return Button {
-            guard confirmingId == nil else { return }
+            guard confirmingId == nil, !isTurning else { return }
             checkTrigger.toggle()
             // Where the deck lands once the store drops this card: the operation that
             // was next in line. Confirming the last card targets the wrap copy of the
@@ -398,7 +389,7 @@ struct UncheckedOperationsCard: View {
 
     private func skipButton(_ item: CurrentMonthStore.CheckableItem) -> some View {
         Button {
-            guard confirmingId == nil else { return }
+            guard confirmingId == nil, !isTurning else { return }
             skipTrigger.toggle()
             // "Plus tard" is a turn of the deck: the card stays in the rotation and the
             // deck advances to the next one — the same move a swipe makes, kept as a
@@ -451,40 +442,59 @@ struct UncheckedOperationsCard: View {
     }
 }
 
-/// One pane of the deck. A real slot is an operation under its own id; a wrap slot is a
-/// copy of a first/last operation pinned past the opposite end, so a swipe beyond either
-/// edge keeps turning — into the deck starting over.
-private struct DeckSlot: Identifiable {
-    enum WrapEdge: String {
-        case leading, trailing
+// MARK: - Cycle Mechanics
+
+private extension UncheckedOperationsCard {
+    /// At rest on a wrap copy, swap the scroll target for the real card it mirrors —
+    /// same content, same peeks, nothing moves on screen — so buttons, zIndex and
+    /// successor logic reason about real slots.
+    func rebaseIfOnWrapSlot() {
+        guard let current = scrolledId, let realId = DeckSlot.realId(fromWrapId: current) else { return }
+        scrolledId = realId
+        position.scrollTo(id: realId)
     }
 
-    let id: String
-    let item: CurrentMonthStore.CheckableItem
-    let isReal: Bool
-
-    init(real item: CurrentMonthStore.CheckableItem) {
-        id = item.id
-        self.item = item
-        isReal = true
-    }
-
-    init(wrapCopyOf item: CurrentMonthStore.CheckableItem, past edge: WrapEdge) {
-        id = Self.wrapId(for: item.id, at: edge)
-        self.item = item
-        isReal = false
-    }
-
-    static func wrapId(for itemId: String, at edge: WrapEdge) -> String {
-        "wrap-\(edge.rawValue)-\(itemId)"
-    }
-
-    /// The real card a wrap slot stands in for — nil when the id is a real slot's.
-    static func realId(fromWrapId id: String) -> String? {
-        for edge in [WrapEdge.leading, .trailing] {
-            let prefix = "wrap-\(edge.rawValue)-"
-            if id.hasPrefix(prefix) { return String(id.dropFirst(prefix.count)) }
+    /// The endless half of the loop, run on every scroll tick. The content is three
+    /// identical cycles side by side, so sliding the offset by exactly one cycle width
+    /// shows the exact same pixels: whenever the scroll sinks half a cycle into either
+    /// wrap zone — mid-flight included — it is slid one cycle back toward the middle,
+    /// and the runway never ends. The focused slot falls out of the same geometry, as
+    /// the slot under the viewport's centre.
+    func handleScrollGeometry(midX: CGFloat, contentWidth: CGFloat, offsetX: CGFloat) {
+        let cards = displayItems.count
+        guard cards > 1, contentWidth > 0 else { return }
+        let slotSpan = (contentWidth + DesignTokens.Spacing.xs) / CGFloat(cards * 3)
+        let cycleWidth = slotSpan * CGFloat(cards)
+        let index = min(max(0, Int(midX / slotSpan)), cards * 3 - 1)
+        let item = displayItems[index % cards]
+        let focused: String = switch index / cards {
+        case 0: DeckSlot.wrapId(for: item.id, at: .leading)
+        case 1: item.id
+        default: DeckSlot.wrapId(for: item.id, at: .trailing)
         }
-        return nil
+        if focused != scrolledId { scrolledId = focused }
+        if midX < cycleWidth * 0.5 {
+            position.scrollTo(x: offsetX + cycleWidth)
+        } else if midX > cycleWidth * 2.5 {
+            position.scrollTo(x: offsetX - cycleWidth)
+        }
+    }
+
+    /// One turn of the deck forward — the move a swipe makes. On the last card the turn
+    /// continues onto the wrap copy of the first, then rebases: the cycle never plays
+    /// the deck backwards.
+    func advance(after item: CurrentMonthStore.CheckableItem) {
+        guard displayItems.count > 1,
+              let idx = displayItems.firstIndex(where: { $0.id == item.id }) else { return }
+        let target = idx == displayItems.count - 1
+            ? DeckSlot.wrapId(for: displayItems[0].id, at: .trailing)
+            : displayItems[idx + 1].id
+        isTurning = true
+        withAnimation(deckAnimation) {
+            position.scrollTo(id: target)
+        } completion: {
+            rebaseIfOnWrapSlot()
+            isTurning = false
+        }
     }
 }
