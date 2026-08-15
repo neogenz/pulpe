@@ -1,6 +1,6 @@
 # Codebase Audit: i18n branch — security
 
-Locale persistence is owner-scoped, allow-listed and least-privileged; the existing privacy and CSP gates remain green.
+Locale persistence is owner-scoped, allow-listed and least-privileged. The CodeQL dynamic-method finding in the iOS release feed is closed by runtime locale normalization and static title dispatch; privacy and CSP gates remain green.
 
 - **Date**: 2026_08_15
 - **Scope**: `origin/preview@07433bbe6...working tree` (feature tip `38ae006`, latest preview base and production-readiness commits)
@@ -18,5 +18,5 @@ Locale persistence is owner-scoped, allow-listed and least-privileged; the exist
 
 ## Coverage
 
-- **Scanned**: security; SQL constraints, owner-only RLS, grants, authenticated upsert, legacy read-only backfill, secrets patterns, PostHog privacy, CSP build and E2E checks
+- **Scanned**: security; SQL constraints, owner-only RLS, grants, authenticated upsert, legacy read-only backfill, secrets patterns, PostHog privacy, CodeQL source-to-sink review with a forged-locale regression test, CSP build and E2E checks
 - **Skipped**: none

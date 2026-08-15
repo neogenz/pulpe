@@ -58,21 +58,35 @@ function hasValidReleaseMetadata(entry: WhatsNewReleaseEntry): boolean {
   );
 }
 
-const titleForLocale: Record<SupportedLocale, (version: string) => string> = {
-  fr: (version) => `Nouveautés de la version ${version}`,
-  en: (version) => `What’s new in version ${version}`,
-  de: (version) => `Neu in Version ${version}`,
-  it: (version) => `Novità della versione ${version}`,
-};
+function titleForLocale(locale: SupportedLocale, version: string): string {
+  switch (locale) {
+    case 'fr':
+      return `Nouveautés de la version ${version}`;
+    case 'en':
+      return `What’s new in version ${version}`;
+    case 'de':
+      return `Neu in Version ${version}`;
+    case 'it':
+      return `Novità della versione ${version}`;
+  }
+}
 
 function resolvedLocale(
   entries: readonly WhatsNewReleaseEntry[],
-  requested: SupportedLocale,
+  requested: unknown,
 ): SupportedLocale {
-  if (requested === 'fr') return 'fr';
-  return entries.every((entry) => entry.translations?.[requested] !== undefined)
-    ? requested
-    : 'fr';
+  switch (requested) {
+    case 'en':
+    case 'de':
+    case 'it':
+      return entries.every(
+        (entry) => entry.translations?.[requested] !== undefined,
+      )
+        ? requested
+        : 'fr';
+    default:
+      return 'fr';
+  }
 }
 
 function toBody(
@@ -124,7 +138,7 @@ export function buildWhatsNewResponse(
       return [
         {
           version: iosVersion,
-          title: titleForLocale[locale](iosVersion),
+          title: titleForLocale(locale, iosVersion),
           body: toBody(releases, locale),
           publishedAt,
         },

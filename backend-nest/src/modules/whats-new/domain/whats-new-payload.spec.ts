@@ -99,6 +99,19 @@ describe('buildWhatsNewResponse', () => {
     expect(response.data.entries[0]?.body).toContain('Trajectoire mensuelle');
   });
 
+  it('falls back to French when an unvalidated locale reaches the domain', () => {
+    const response = buildWhatsNewResponse({
+      currentVersion: '1.3.2',
+      lastSeenVersion: '1.3.1',
+      locale: '__defineGetter__' as never,
+    });
+
+    expect(response.data.entries[0]?.title).toBe(
+      'Nouveautés de la version 1.3.2',
+    );
+    expect(response.data.entries[0]?.body).toContain('Trajectoire mensuelle');
+  });
+
   it('falls back the whole historical entry to French without mixing copies', () => {
     const response = buildWhatsNewResponse({
       currentVersion: '1.3.0',
