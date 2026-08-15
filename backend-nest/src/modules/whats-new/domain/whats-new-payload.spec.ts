@@ -68,6 +68,53 @@ describe('isIosUserFacing', () => {
 });
 
 describe('buildWhatsNewResponse', () => {
+  it.each([
+    ['en', 'What’s new in version 1.3.2', 'Monthly trajectory'],
+    ['de', 'Neu in Version 1.3.2', 'Monatsverlauf'],
+    ['it', 'Novità della versione 1.3.2', 'Andamento mensile'],
+  ] as const)('renders the 1.3.2 feed in %s', (locale, title, marker) => {
+    const response = buildWhatsNewResponse({
+      currentVersion: '1.3.2',
+      lastSeenVersion: '1.3.1',
+      locale,
+    });
+
+    expect(response.data.entries).toHaveLength(1);
+    expect(response.data.entries[0]?.title).toBe(title);
+    expect(response.data.entries[0]?.body).toContain(marker);
+    expect(response.data.entries[0]?.body).not.toContain(
+      'Trajectoire mensuelle',
+    );
+  });
+
+  it('defaults an omitted locale to the canonical French copy', () => {
+    const response = buildWhatsNewResponse({
+      currentVersion: '1.3.2',
+      lastSeenVersion: '1.3.1',
+    });
+
+    expect(response.data.entries[0]?.title).toBe(
+      'Nouveautés de la version 1.3.2',
+    );
+    expect(response.data.entries[0]?.body).toContain('Trajectoire mensuelle');
+  });
+
+  it('falls back the whole historical entry to French without mixing copies', () => {
+    const response = buildWhatsNewResponse({
+      currentVersion: '1.3.0',
+      lastSeenVersion: '1.2.2',
+      locale: 'de',
+    });
+
+    expect(response.data.entries[0]?.title).toBe(
+      'Nouveautés de la version 1.3.0',
+    );
+    expect(response.data.entries[0]?.body).toContain(
+      'Des objectifs plus flexibles',
+    );
+    expect(response.data.entries[0]?.body).not.toContain('Neu in Version');
+  });
+
   it('ignores malformed release metadata instead of failing the feed', () => {
     const malformedRelease: WhatsNewReleaseEntry = {
       version: '9.9.9',

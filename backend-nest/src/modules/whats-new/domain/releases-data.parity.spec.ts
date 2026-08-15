@@ -6,10 +6,15 @@ import {
   RELEASES,
   SILENT_IOS_RELEASES,
   type WhatsNewReleaseEntry,
+  type WhatsNewTranslatedLocale,
 } from './releases-data';
 
 type ChangeItem = { title: string; description: string };
 type LandingPlatform = 'android' | 'ios' | 'web';
+type LocalizedChanges = {
+  features: ChangeItem[];
+  fixes: ChangeItem[];
+};
 type LandingRelease = {
   version: string;
   iosVersion?: string;
@@ -20,6 +25,7 @@ type LandingRelease = {
     fixes: ChangeItem[];
     technical: ChangeItem[];
   };
+  translations?: Record<WhatsNewTranslatedLocale, LocalizedChanges>;
 };
 
 type IosMarketingRelease = LandingRelease & { iosVersion: string };
@@ -64,10 +70,54 @@ function parseChangeItems(value: unknown, path: string): ChangeItem[] {
   });
 }
 
+function parseTranslations(
+  value: unknown,
+  path: string,
+): Record<WhatsNewTranslatedLocale, LocalizedChanges> | undefined {
+  if (value === undefined) return undefined;
+
+  const translations = expectRecord(value, path);
+  const locales: WhatsNewTranslatedLocale[] = ['en', 'de', 'it'];
+  const keys = Object.keys(translations).sort();
+  if (!isDeepStrictEqual(keys, [...locales].sort())) {
+    invalidLandingData(path, 'exactly the en, de, and it translations');
+  }
+
+  return Object.fromEntries(
+    locales.map((locale) => {
+      const translation = expectRecord(
+        translations[locale],
+        `${path}.${locale}`,
+      );
+      const changes = expectRecord(
+        translation['changes'],
+        `${path}.${locale}.changes`,
+      );
+      return [
+        locale,
+        {
+          features: parseChangeItems(
+            changes['features'],
+            `${path}.${locale}.changes.features`,
+          ),
+          fixes: parseChangeItems(
+            changes['fixes'],
+            `${path}.${locale}.changes.fixes`,
+          ),
+        },
+      ];
+    }),
+  ) as Record<WhatsNewTranslatedLocale, LocalizedChanges>;
+}
+
 function parseLandingRelease(value: unknown, index: number): LandingRelease {
   const path = `$[${index}]`;
   const release = expectRecord(value, path);
   const rawIosVersion = release['iosVersion'];
+  const translations = parseTranslations(
+    release['translations'],
+    `${path}.translations`,
+  );
   const rawChanges = expectRecord(release['changes'], `${path}.changes`);
   const platforms = expectArray(release['platforms'], `${path}.platforms`).map(
     (platform, platformIndex) => {
@@ -101,6 +151,7 @@ function parseLandingRelease(value: unknown, index: number): LandingRelease {
         `${path}.changes.technical`,
       ),
     },
+    ...(translations === undefined ? {} : { translations }),
   };
 }
 
@@ -205,11 +256,46 @@ function assertCuratedSubset(
     projection.changes.fixes,
     landing.changes.fixes,
   );
+
+  assertTranslationSubset(projection, landing);
+}
+
+function assertTranslationSubset(
+  projection: WhatsNewReleaseEntry,
+  landing: IosMarketingRelease,
+): void {
+  const locales: WhatsNewTranslatedLocale[] = ['en', 'de', 'it'];
+  const hasTranslations =
+    projection.translations !== undefined || landing.translations !== undefined;
+  if (!hasTranslations) return;
+
+  for (const locale of locales) {
+    const projected = projection.translations?.[locale];
+    const approved = landing.translations?.[locale];
+    if (!projected || !approved) {
+      fail(
+        landing.version,
+        `missing ${locale} translation in landing or iOS projection`,
+      );
+    }
+    assertCategorySubset(
+      landing.version,
+      `${locale}.features`,
+      projected.features,
+      approved.features,
+    );
+    assertCategorySubset(
+      landing.version,
+      `${locale}.fixes`,
+      projected.fixes,
+      approved.fixes,
+    );
+  }
 }
 
 function assertCategorySubset(
   version: string,
-  category: 'features' | 'fixes',
+  category: string,
   projectedItems: readonly ChangeItem[],
   landingItems: readonly ChangeItem[],
 ): void {

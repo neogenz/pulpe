@@ -2550,5 +2550,6 @@ export type WhatsNewResponse = z.infer<typeof whatsNewResponseSchema>;
 export const whatsNewQuerySchema = z.object({
   currentVersion: semverString,
   lastSeenVersion: semverString,
+  locale: supportedLocaleSchema.optional(),
 });
 export type WhatsNewQuery = z.infer<typeof whatsNewQuerySchema>;

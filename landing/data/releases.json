@@ -56,6 +56,170 @@
           "description": "Les événements PostHog sont assainis et les fonctions sensibles de Supabase ont des droits plus stricts"
         }
       ]
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Withdrawals from a goal",
+              "description": "A withdrawal can be added to the budget as income immediately or scheduled for a future month"
+            },
+            {
+              "title": "Monthly trajectory",
+              "description": "The home page separates completed activity from what is still planned and estimates the end-of-month balance"
+            },
+            {
+              "title": "Undo check-offs and additions",
+              "description": "From the home page, a checked-off or newly added item can be undone for a few seconds"
+            },
+            {
+              "title": "Goal-linked smoothed savings",
+              "description": "Savings spread over several months remain linked to the goal they fund"
+            },
+            {
+              "title": "Templates and budgets guide",
+              "description": "The help centre explains what to edit depending on whether a change concerns one month or your usual months"
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Completed savings plans",
+              "description": "Pulpe finds contributions missing from budgets already created and lets you add them after review"
+            },
+            {
+              "title": "Home aligned with actual activity",
+              "description": "The monthly summary includes checked-off activity without counting savings twice"
+            },
+            {
+              "title": "Budget kept open after an error",
+              "description": "If an action fails, the budget page stays open and displays the problem"
+            },
+            {
+              "title": "Simpler sign-up",
+              "description": "The password is no longer requested a second time, and the flow resumes after an interruption"
+            },
+            {
+              "title": "Sign-out limited to this device",
+              "description": "Signing out of Pulpe no longer ends your other open sessions"
+            }
+          ],
+          "technical": [
+            {
+              "title": "Tighter diagnostics and data access",
+              "description": "PostHog events are sanitised, and sensitive Supabase functions have stricter permissions"
+            }
+          ]
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Auszahlungen aus einem Ziel",
+              "description": "Eine Auszahlung kann sofort als Einnahme zum Budget hinzugefügt oder für einen späteren Monat geplant werden"
+            },
+            {
+              "title": "Monatsverlauf",
+              "description": "Die Startseite trennt erledigte Bewegungen von den noch geplanten und schätzt den Saldo zum Monatsende"
+            },
+            {
+              "title": "Abhaken und Hinzufügen rückgängig machen",
+              "description": "Auf der Startseite lässt sich ein gerade abgehakter oder hinzugefügter Eintrag einige Sekunden lang rückgängig machen"
+            },
+            {
+              "title": "Verteiltes Sparen bleibt mit Zielen verknüpft",
+              "description": "Über mehrere Monate verteiltes Sparen behält die Verknüpfung mit dem finanzierten Ziel"
+            },
+            {
+              "title": "Leitfaden für Vorlagen und Budgets",
+              "description": "Die Hilfe erklärt, was du ändern musst, je nachdem, ob die Änderung einen einzelnen oder deine gewöhnlichen Monate betrifft"
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Vervollständigte Sparpläne",
+              "description": "Pulpe erkennt fehlende Beiträge in bereits erstellten Budgets und lässt dich diese nach einer Prüfung ergänzen"
+            },
+            {
+              "title": "Startseite am tatsächlichen Verlauf ausgerichtet",
+              "description": "Die Monatsbilanz berücksichtigt abgehakte Bewegungen, ohne das Sparen doppelt zu zählen"
+            },
+            {
+              "title": "Budget bleibt bei einem Fehler geöffnet",
+              "description": "Wenn eine Aktion fehlschlägt, bleibt die Budgetseite geöffnet und zeigt das Problem an"
+            },
+            {
+              "title": "Einfachere Registrierung",
+              "description": "Das Passwort wird nicht mehr ein zweites Mal verlangt und der Ablauf wird nach einer Unterbrechung fortgesetzt"
+            },
+            {
+              "title": "Abmeldung nur auf diesem Gerät",
+              "description": "Wenn du dich bei Pulpe abmeldest, bleiben deine anderen offenen Sitzungen bestehen"
+            }
+          ],
+          "technical": [
+            {
+              "title": "Strengere Diagnosen und Datenzugriffe",
+              "description": "PostHog-Ereignisse werden bereinigt und sensible Supabase-Funktionen erhalten strengere Berechtigungen"
+            }
+          ]
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Prelievi da un obiettivo",
+              "description": "Un prelievo può essere aggiunto subito al budget come entrata o pianificato per un mese futuro"
+            },
+            {
+              "title": "Andamento mensile",
+              "description": "La pagina iniziale separa ciò che è già avvenuto da ciò che resta pianificato e stima il saldo di fine mese"
+            },
+            {
+              "title": "Spunte e aggiunte annullabili",
+              "description": "Dalla pagina iniziale, una voce appena spuntata o aggiunta può essere annullata per alcuni secondi"
+            },
+            {
+              "title": "Risparmi distribuiti collegati agli obiettivi",
+              "description": "I risparmi distribuiti su più mesi restano collegati all’obiettivo che finanziano"
+            },
+            {
+              "title": "Guida a modelli e budget",
+              "description": "Il centro assistenza spiega cosa modificare a seconda che il cambiamento riguardi un solo mese o i mesi abituali"
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Piani di risparmio completati",
+              "description": "Pulpe individua i versamenti mancanti nei budget già creati e ti permette di aggiungerli dopo una verifica"
+            },
+            {
+              "title": "Pagina iniziale allineata ai dati effettivi",
+              "description": "Il riepilogo del mese include i movimenti spuntati senza contare due volte i risparmi"
+            },
+            {
+              "title": "Budget mantenuto aperto in caso di errore",
+              "description": "Se un’azione non riesce, la pagina del budget resta aperta e mostra il problema"
+            },
+            {
+              "title": "Registrazione semplificata",
+              "description": "La password non viene più richiesta una seconda volta e il percorso riprende dopo un’interruzione"
+            },
+            {
+              "title": "Disconnessione limitata al dispositivo",
+              "description": "Uscire da Pulpe non interrompe più le altre sessioni aperte"
+            }
+          ],
+          "technical": [
+            {
+              "title": "Diagnostica e accesso ai dati più rigorosi",
+              "description": "Gli eventi PostHog vengono ripuliti e le funzioni sensibili di Supabase hanno autorizzazioni più restrittive"
+            }
+          ]
+        }
+      }
     }
   },
   {

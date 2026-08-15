@@ -63,12 +63,13 @@ struct WhatsNewStoreTests {
         let flags = MockWhatsNewFlagsStore(lastSeenVersion: "1.1.0")
         let store = WhatsNewStore(service: service, flagsStore: flags)
 
-        await store.check(currentVersion: "1.2.0")
+        await store.check(currentVersion: "1.2.0", locale: .de)
 
         #expect(service.fetchCallCount == 1)
         #expect(store.isPresented)
         #expect(store.entries.count == 1)
         #expect(store.entries.first?.version == "1.2.0")
+        #expect(service.lastRequest?.locale == .de)
     }
 
     @Test func check_existingInstallWithoutMarker_usesMigrationBaseline() async {
@@ -204,6 +205,12 @@ struct WhatsNewStoreTests {
 
 @MainActor
 private final class MockWhatsNewService: WhatsNewServiceProtocol {
+    struct Request {
+        let currentVersion: String
+        let lastSeenVersion: String
+        let locale: SupportedLocale
+    }
+
     enum Outcome {
         case success([WhatsNewEntry])
         case failure(Error)
@@ -212,16 +219,24 @@ private final class MockWhatsNewService: WhatsNewServiceProtocol {
     private let outcome: Outcome
     private let suspendsBeforeReturning: Bool
     private(set) var fetchCallCount = 0
-    private(set) var lastRequest: (currentVersion: String, lastSeenVersion: String)?
+    private(set) var lastRequest: Request?
 
     init(outcome: Outcome, suspendsBeforeReturning: Bool = false) {
         self.outcome = outcome
         self.suspendsBeforeReturning = suspendsBeforeReturning
     }
 
-    func fetch(currentVersion: String, lastSeenVersion: String) async throws -> WhatsNewResponse {
+    func fetch(
+        currentVersion: String,
+        lastSeenVersion: String,
+        locale: SupportedLocale
+    ) async throws -> WhatsNewResponse {
         fetchCallCount += 1
-        lastRequest = (currentVersion, lastSeenVersion)
+        lastRequest = Request(
+            currentVersion: currentVersion,
+            lastSeenVersion: lastSeenVersion,
+            locale: locale
+        )
         if suspendsBeforeReturning {
             await Task.yield()
         }

@@ -29,7 +29,10 @@ final class WhatsNewStore {
         self.flagsStore = flagsStore
     }
 
-    func check(currentVersion: String = AppConfiguration.appVersion) async {
+    func check(
+        currentVersion: String = AppConfiguration.appVersion,
+        locale: SupportedLocale = AppLocale.current
+    ) async {
         guard !isChecking, !isPresented else {
             Logger.app.info(
                 "[WHATS_NEW] skipped checking=\(self.isChecking) presented=\(self.isPresented)"
@@ -74,7 +77,8 @@ final class WhatsNewStore {
         do {
             let response = try await service.fetch(
                 currentVersion: currentVersion,
-                lastSeenVersion: lastSeenVersion
+                lastSeenVersion: lastSeenVersion,
+                locale: locale
             )
             let entries = response.data.entries
             guard !entries.isEmpty else {

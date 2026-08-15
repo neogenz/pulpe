@@ -461,6 +461,7 @@ const en: Dictionary = {
       technical: "Technical",
     },
     githubRelease: "GitHub Release",
+    frenchArchive: "Browse the complete archive in French",
   },
 
   notFound: {

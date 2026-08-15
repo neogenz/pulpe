@@ -1,6 +1,8 @@
+import type { SupportedLocale } from 'pulpe-shared';
+
 export interface WhatsNewRelease {
   readonly version: string;
-  readonly features: readonly string[];
+  readonly features: Readonly<Record<SupportedLocale, readonly string[]>>;
 }
 
 export interface SkippedWhatsNewRelease {
@@ -10,13 +12,40 @@ export interface SkippedWhatsNewRelease {
 
 export const LATEST_RELEASE: WhatsNewRelease = {
   version: '0.44.0',
-  features: [
-    'Ajoute l’argent d’un objectif comme revenu ce mois ou plus tard',
-    'Vois ce qui est déjà passé sur ton compte et ce qu’il te reste pour le mois',
-    'Annule aussitôt ce que tu viens de pointer ou de noter',
-    'Ajoute aux budgets déjà créés les versements prévus pour ton objectif',
-  ],
+  features: {
+    fr: [
+      'Ajoute l’argent d’un objectif comme revenu ce mois ou plus tard',
+      'Vois ce qui est déjà passé sur ton compte et ce qu’il te reste pour le mois',
+      'Annule aussitôt ce que tu viens de pointer ou de noter',
+      'Ajoute aux budgets déjà créés les versements prévus pour ton objectif',
+    ],
+    en: [
+      'Add money from a goal as income now or later',
+      'See what has already cleared and what remains for the month',
+      'Immediately undo the item you just checked off or added',
+      'Add planned goal contributions to budgets already created',
+    ],
+    de: [
+      'Füge Geld aus einem Ziel jetzt oder später als Einnahme hinzu',
+      'Sieh, was bereits vom Konto abgegangen ist und was für den Monat bleibt',
+      'Mache einen gerade abgehakten oder erfassten Eintrag sofort rückgängig',
+      'Ergänze geplante Zielbeiträge in bereits erstellten Budgets',
+    ],
+    it: [
+      'Aggiungi il denaro di un obiettivo come entrata, ora o più avanti',
+      'Vedi ciò che è già passato sul conto e quanto resta per il mese',
+      'Annulla subito una voce appena spuntata o aggiunta',
+      'Aggiungi i versamenti previsti per un obiettivo ai budget già creati',
+    ],
+  },
 };
+
+export function featuresForLocale(locale: string): readonly string[] {
+  return (
+    LATEST_RELEASE.features[locale as SupportedLocale] ??
+    LATEST_RELEASE.features.fr
+  );
+}
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {

@@ -1,5 +1,13 @@
-import type { WhatsNewQuery, WhatsNewResponse } from 'pulpe-shared';
-import { RELEASES, type WhatsNewReleaseEntry } from './releases-data';
+import type {
+  SupportedLocale,
+  WhatsNewQuery,
+  WhatsNewResponse,
+} from 'pulpe-shared';
+import {
+  RELEASES,
+  type WhatsNewReleaseEntry,
+  type WhatsNewTranslatedLocale,
+} from './releases-data';
 
 const semverPattern = /^\d+\.\d+\.\d+$/;
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
@@ -50,9 +58,35 @@ function hasValidReleaseMetadata(entry: WhatsNewReleaseEntry): boolean {
   );
 }
 
-function toBody(entries: WhatsNewReleaseEntry[]): string {
+const titleForLocale: Record<SupportedLocale, (version: string) => string> = {
+  fr: (version) => `Nouveautés de la version ${version}`,
+  en: (version) => `What’s new in version ${version}`,
+  de: (version) => `Neu in Version ${version}`,
+  it: (version) => `Novità della versione ${version}`,
+};
+
+function resolvedLocale(
+  entries: readonly WhatsNewReleaseEntry[],
+  requested: SupportedLocale,
+): SupportedLocale {
+  if (requested === 'fr') return 'fr';
+  return entries.every((entry) => entry.translations?.[requested] !== undefined)
+    ? requested
+    : 'fr';
+}
+
+function toBody(
+  entries: WhatsNewReleaseEntry[],
+  locale: SupportedLocale,
+): string {
   return entries
-    .flatMap((entry) => [...entry.changes.features, ...entry.changes.fixes])
+    .flatMap((entry) => {
+      const changes =
+        locale === 'fr'
+          ? entry.changes
+          : entry.translations?.[locale as WhatsNewTranslatedLocale];
+      return changes ? [...changes.features, ...changes.fixes] : [];
+    })
     .map((item) => `- **${item.title}** — ${item.description}`)
     .join('\n');
 }
@@ -86,11 +120,12 @@ export function buildWhatsNewResponse(
       if (publishedAt === undefined) {
         return [];
       }
+      const locale = resolvedLocale(releases, query.locale ?? 'fr');
       return [
         {
           version: iosVersion,
-          title: `Nouveautés de la version ${iosVersion}`,
-          body: toBody(releases),
+          title: titleForLocale[locale](iosVersion),
+          body: toBody(releases, locale),
           publishedAt,
         },
       ];

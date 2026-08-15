@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Internationaliser les nouveautés et le pipeline de release

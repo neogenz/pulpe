@@ -5,7 +5,7 @@ description: Unified release workflow that analyzes git changes, bumps the produ
 
 # Release
 
-Analyze code changes to produce a unified product release with clear, user-focused changelog entries in French.
+Analyze code changes to produce a unified product release with clear, user-focused product copy in French, English, German, and Italian. French remains canonical and is the only copy published on GitHub.
 
 **Release model:** One SemVer version, one git tag (`vX.Y.Z`), one GitHub Release. Every npm sub-package in the workspace mirrors the root version via Changesets `fixed` mode — there is no per-package version drift.
 
@@ -177,7 +177,7 @@ Use this exact template for the **proposal** (shown in terminal):
 
 - Frontend, Backend, iOS
 
-### Notes de release
+### Notes de release — FR canonique
 
 #### Nouveautés
 
@@ -192,6 +192,18 @@ Use this exact template for the **proposal** (shown in terminal):
 - Description si pertinent
 
 _Les changements techniques internes ont été exclus._
+
+### Product copy — EN
+
+Repeat the same visible sections and items in English.
+
+### Produkttexte — DE
+
+Repeat the same visible sections and items in German, using Swiss spelling without `ß`.
+
+### Testi del prodotto — IT
+
+Repeat the same visible sections and items in Italian.
 ```
 
 Use this exact template for the **GitHub Release** (created in Step 9):
@@ -218,7 +230,10 @@ _[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://git
 
 Rules for writing notes:
 
-- French with proper accents (é, è, ê, à, ù, ô, î, ç, etc.) — NEVER omit accents
+- Present and approve all four product copies together. An item, section, title, or description missing in EN, DE, or IT blocks the release.
+- French is canonical and uses proper accents (é, è, ê, à, ù, ô, î, ç, etc.). Never omit accents.
+- Translate only visible product copy. Keep event names, analytics properties, internal categories (`features`, `fixes`, `technical`), projection scopes, SEO mechanics, and other technical identifiers in English.
+- Build the GitHub Release exclusively from the approved French copy. Never append the other languages to it.
 - No emojis, no package names
 - Grouped by type (Nouveautés / Corrections / Technique), NOT by package
 - User-focused: describe what changed for the user, not technical details
@@ -236,6 +251,8 @@ Then ask: "Approuves-tu cette proposition ?" → "Oui, appliquer" / "Non, ajuste
 **Skip if `SKIP_WHATS_NEW=true`.** When the user signaled a technical-only release (or passed `--skip-whats-new`), the public landing changelog page on pulpe.app/changelog must ALSO stay quiet — the same logic that hides the in-app toast must hide the public-facing entry. Otherwise you'd publish "fix télémétrie" or similar internal infrastructure work to all visitors of the marketing site, which is exactly the v0.33.1-class mistake one layer further out. The git tag and GitHub Release (Step 9) still record the version for internal traceability.
 
 Otherwise, update `landing/data/releases.json` with the new release.
+
+Do not backfill historical releases. The French page remains the complete archive; translated pages intentionally render only entries carrying a complete `translations` object and link to that French archive.
 
 **Procedure:**
 
@@ -255,6 +272,11 @@ Otherwise, update `landing/data/releases.json` with the new release.
     ],
     "fixes": [],
     "technical": []
+  },
+  "translations": {
+    "en": { "changes": { "features": [], "fixes": [], "technical": [] } },
+    "de": { "changes": { "features": [], "fixes": [], "technical": [] } },
+    "it": { "changes": { "features": [], "fixes": [], "technical": [] } }
   }
 }
 ```
@@ -264,18 +286,19 @@ Otherwise, update `landing/data/releases.json` with the new release.
 
 **Field rules:**
 
-| Field               | Value                                                                                                        |
-| ------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `version`           | Version from Step 4 (without `v` prefix)                                                                     |
-| `iosVersion`        | `IOS_MARKETING_VERSION` confirmed in Step 4; include only when the release ships a new iOS marketing version |
-| `date`              | Today's date in `YYYY-MM-DD` format                                                                          |
-| `githubUrl`         | `https://github.com/neogenz/pulpe/releases/tag/vX.Y.Z`                                                       |
-| `platforms`         | Derived from affected packages (see mapping below)                                                           |
-| `changes.features`  | From approved "Nouveautés" entries                                                                           |
-| `changes.fixes`     | From approved "Corrections" entries                                                                          |
-| `changes.technical` | From approved "Technique" entries                                                                            |
+| Field               | Value                                                                                                          |
+| ------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `version`           | Version from Step 4 (without `v` prefix)                                                                       |
+| `iosVersion`        | `IOS_MARKETING_VERSION` confirmed in Step 4; include only when the release ships a new iOS marketing version   |
+| `date`              | Today's date in `YYYY-MM-DD` format                                                                            |
+| `githubUrl`         | `https://github.com/neogenz/pulpe/releases/tag/vX.Y.Z`                                                         |
+| `platforms`         | Derived from affected packages (see mapping below)                                                             |
+| `changes.features`  | From approved "Nouveautés" entries                                                                             |
+| `changes.fixes`     | From approved "Corrections" entries                                                                            |
+| `changes.technical` | From approved "Technique" entries                                                                              |
+| `translations`      | Approved EN/DE/IT copies with exactly the same visible fields, categories, and item counts as canonical French |
 
-Each entry: `{ "title": "Bold title from Step 5", "description": "Description from Step 5" }`
+Each entry: `{ "title": "Bold title from Step 5", "description": "Description from Step 5" }`. Keep French in the top-level fields and EN/DE/IT under `translations`; do not add a duplicate `fr` translation.
 
 **Platform mapping** — derived from packages that contributed at least one **bump-triggering commit** in Step 3 (i.e. `feat:`, `fix:`, `feat!:`, `BREAKING CHANGE:`, `perf:`). Files touched only by `chore:`/`refactor:`/`test:`/`docs:`/`ci:`/`build:`/`style:` commits do NOT count, even though they live under one of the package paths.
 
@@ -300,7 +323,7 @@ The iOS app's "what's new" dialog (PUL-186) is served by `backend-nest/src/modul
 2. Filter the approved "Nouveautés" and "Corrections" using the internal scope from Step 5. Keep only items scoped to `ios` that meet the user-value threshold. Never copy web-only items or the complete mixed-platform release blindly.
 3. Keep at most 4 items total. Prioritize new capabilities, then fixes to frequent/core flows, then visible UX improvements. Ask if the cutoff is ambiguous.
 4. If ZERO items survive, append one unique `{ version, reason }` entry to `SILENT_IOS_RELEASES`. The reason must concretely identify why the approved notes did not meet the iOS dialog threshold; reject an empty reason. State: "Pas de What's New iOS pour cette version."
-5. Otherwise prepend an iOS projection with the same `version`/`iosVersion`/`date`/`platforms` metadata as Step 5b, omit `githubUrl`, set `changes.features` and `changes.fixes` to the curated iOS items, and set `changes.technical` to `[]`.
+5. Otherwise prepend an iOS projection with the same `version`/`iosVersion`/`date`/`platforms` metadata as Step 5b, omit `githubUrl`, set canonical French `changes.features` and `changes.fixes` to the curated iOS items, set `changes.technical` to `[]`, and add the exact EN/DE/IT equivalents under `translations`.
 6. Before writing either mode, require the current product version to be absent from both `RELEASES` and `SILENT_IOS_RELEASES`. A projection and a silence may never overlap.
 7. Write back using the available file-editing tool, matching the existing TypeScript formatting.
 
@@ -346,7 +369,12 @@ For `silent` mode:
 ```typescript
 export const LATEST_RELEASE: WhatsNewRelease = {
   version: "X.Y.Z",
-  features: ["Titre court de la nouveauté 1", "Titre court de la nouveauté 2"],
+  features: {
+    fr: ["Titre court 1", "Titre court 2"],
+    en: ["Short title 1", "Short title 2"],
+    de: ["Kurzer Titel 1", "Kurzer Titel 2"],
+    it: ["Titolo breve 1", "Titolo breve 2"],
+  },
 };
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
@@ -365,7 +393,7 @@ export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
 
 **Writing rules — pas d'anglicismes:**
 
-- Écrire en français courant, sans anglicismes (ex: "libellés" au lieu de "wording", "modèle" au lieu de "template", "mise en cache" au lieu de "cache")
+- Write each visible item in FR/EN/DE/IT. Use current, natural product language; in French, avoid anglicisms (for example "libellés" instead of "wording", "modèle" instead of "template").
 - `version`: Same as Step 4 (without `v` prefix) — must match the bumped `package.json` version so `buildInfo.version === LATEST_RELEASE.version`
 - `features`: Short titles only, no descriptions — max ~50 chars per line
 - Max 3-4 features to keep the toast concise
@@ -401,6 +429,7 @@ Run the checked-in What's New contracts from the repository root for every relea
 ```bash
 pnpm build:shared
 (cd backend-nest && bun test src/modules/whats-new/domain/releases-data.parity.spec.ts)
+(cd landing && pnpm exec tsx --test data/releases.test.ts)
 (cd frontend && pnpm test \
   --include 'projects/webapp/src/app/layout/whats-new/whats-new-releases.spec.ts' \
   --include 'projects/webapp/src/app/layout/whats-new/whats-new-toast.spec.ts')
@@ -408,23 +437,26 @@ pnpm build:shared
 
 Stop on any contract failure. These targeted tests are the local fail-fast gate; the complete CI after the `preview` and `main` pushes remains the second barrier.
 
-When `ios/**` changed, validate the exact release outcome from the repository root before running quality. Pass the resulting `MARKETING_VERSION` for every mode:
+Validate the exact cross-platform outcome from the repository root for every release:
 
 ```bash
+# No iOS change
+bun .claude/skills/release/scripts/validate-whats-new-release.ts X.Y.Z none
+
 # New marketing version with curated iOS notes
-bun .claude/skills/release/scripts/validate-ios-release.ts X.Y.Z A.B.C projection
+bun .claude/skills/release/scripts/validate-whats-new-release.ts X.Y.Z projection A.B.C
 
 # New marketing version without a relevant dialog
-bun .claude/skills/release/scripts/validate-ios-release.ts X.Y.Z A.B.C silent
+bun .claude/skills/release/scripts/validate-whats-new-release.ts X.Y.Z silent A.B.C
 
 # Build-only release, public changelog kept
-bun .claude/skills/release/scripts/validate-ios-release.ts X.Y.Z A.B.C build
+bun .claude/skills/release/scripts/validate-whats-new-release.ts X.Y.Z build A.B.C
 
 # Technical-only release, all public What's New surfaces skipped
-bun .claude/skills/release/scripts/validate-ios-release.ts X.Y.Z A.B.C skip
+bun .claude/skills/release/scripts/validate-whats-new-release.ts X.Y.Z skip
 ```
 
-Use exactly one mode from the decision table in [references/ios-release.md](references/ios-release.md). Stop on any validation error; do not convert it into a warning.
+Use `none` when iOS did not change; otherwise use exactly one mode from the decision table in [references/ios-release.md](references/ios-release.md). The validator checks locale completeness, projection parity, scopes, item limits, and explicit silent modes across landing, webapp, and iOS. Stop on any validation error; do not convert it into a warning.
 
 ```bash
 pnpm quality
@@ -615,6 +647,7 @@ Treat every shell block below as an independent session. Step 9.2 is the only wr
    ```
 
    This includes the main-only `migrate`, `posthog-annotate`, and `verify-prod-csp` jobs after `ci-success`. Missing, cancelled, or failed CI stops publication.
+
 9. Independently inspect the production deployments:
    - before each provider inspection, independently read `pulpe-release-sha` through `git rev-parse --git-path`, validate it as the same full commit, and require `HEAD` to equal it;
    - both Vercel production projects are ready and report that frozen SHA;
@@ -625,23 +658,23 @@ Treat every shell block below as an independent session. Step 9.2 is the only wr
 
 10. Only after every production proof passes, refetch `main` and tags, require `origin/main` to equal the release SHA, and recheck that the local tag, remote tag, and GitHub Release are still absent. Then create and push the one immutable tag:
 
-   ```bash
-   set -euo pipefail
-   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
-   test -f "${RELEASE_SHA_FILE}"
-   SHA=$(cat "${RELEASE_SHA_FILE}")
-   test -n "${SHA}"
-   git cat-file -e "${SHA}^{commit}"
-   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
-   test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
-   VERSION=$(git show "${SHA}:package.json" | node -e 'const fs = require("node:fs"); const { version } = JSON.parse(fs.readFileSync(0, "utf8")); if (typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version)) process.exit(1); process.stdout.write(version);')
-   test -n "${VERSION}"
-   TAG="v${VERSION}"
-   git fetch origin main --tags
-   test "$(git rev-parse origin/main)" = "${SHA}"
-   git tag -a "${TAG}" "${SHA}" -m "Release ${TAG}"
-   git push origin "refs/tags/${TAG}"
-   ```
+```bash
+set -euo pipefail
+RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
+test -f "${RELEASE_SHA_FILE}"
+SHA=$(cat "${RELEASE_SHA_FILE}")
+test -n "${SHA}"
+git cat-file -e "${SHA}^{commit}"
+test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
+test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
+VERSION=$(git show "${SHA}:package.json" | node -e 'const fs = require("node:fs"); const { version } = JSON.parse(fs.readFileSync(0, "utf8")); if (typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version)) process.exit(1); process.stdout.write(version);')
+test -n "${VERSION}"
+TAG="v${VERSION}"
+git fetch origin main --tags
+test "$(git rev-parse origin/main)" = "${SHA}"
+git tag -a "${TAG}" "${SHA}" -m "Release ${TAG}"
+git push origin "refs/tags/${TAG}"
+```
 
 11. Create the GitHub Release using the **GitHub Release template** from Step 5:
 

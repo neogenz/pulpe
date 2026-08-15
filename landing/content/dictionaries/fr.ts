@@ -493,6 +493,7 @@ const fr = {
       technical: "Technique",
     },
     githubRelease: "GitHub Release",
+    frenchArchive: "Voir l’archive complète en français",
   },
 
   notFound: {

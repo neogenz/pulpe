@@ -1,4 +1,5 @@
 import { ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { Container } from "@/components/ui";
 import { Header, Footer } from "@/components/sections";
 import releases from "@/data/releases.json";
@@ -13,6 +14,33 @@ const PLATFORM_STYLES: Record<string, { label: string; className: string }> = {
 };
 
 const SECTION_KEYS = ["features", "fixes", "technical"] as const;
+type SectionKey = (typeof SECTION_KEYS)[number];
+type TranslatedLocale = Exclude<Locale, "fr">;
+type ChangeItem = { title: string; description: string };
+type ReleaseCopy = {
+  headline?: string;
+  description?: string;
+  changes: Record<SectionKey, ChangeItem[]>;
+};
+type ReleaseData = ReleaseCopy & {
+  version: string;
+  date: string;
+  githubUrl?: string;
+  platforms: string[];
+  translations?: Partial<Record<TranslatedLocale, ReleaseCopy>>;
+};
+
+const releaseData = releases as ReleaseData[];
+
+/** Historical releases stay canonical French instead of leaking into translated pages. */
+export function releasesForLocale(locale: Locale): ReleaseData[] {
+  if (locale === "fr") return releaseData;
+
+  return releaseData.flatMap((release) => {
+    const translation = release.translations?.[locale];
+    return translation ? [{ ...release, ...translation }] : [];
+  });
+}
 
 // Rendu au build, jamais dans le navigateur : ce composant est un composant
 // serveur, donc l'ICU de Node est le seul en jeu et il n'y a pas d'écart
@@ -36,6 +64,7 @@ export function Changelog({
   locale: Locale;
 }) {
   const { changelog } = dict;
+  const visibleReleases = releasesForLocale(locale);
 
   return (
     <>
@@ -49,15 +78,24 @@ export function Changelog({
                 {changelog.heading}
               </h1>
               <p className="text-text-secondary text-lg">{changelog.intro}</p>
+              {locale !== "fr" && (
+                <Link
+                  href="/changelog"
+                  className="inline-flex items-center gap-1.5 mt-4 text-sm text-primary hover:underline"
+                >
+                  {changelog.frenchArchive}
+                  <ExternalLink size={14} />
+                </Link>
+              )}
             </header>
 
             <div>
-              {releases.map((release, index) => (
+              {visibleReleases.map((release, index) => (
                 <article
                   key={release.version}
                   id={`v${release.version}`}
                   className={`grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4 md:gap-12 pb-14 md:pb-16 ${
-                    index < releases.length - 1
+                    index < visibleReleases.length - 1
                       ? "mb-14 md:mb-16 border-b border-text/8"
                       : ""
                   }`}

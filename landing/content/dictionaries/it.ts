@@ -465,6 +465,7 @@ const it: Dictionary = {
       technical: "Tecnico",
     },
     githubRelease: "GitHub Release",
+    frenchArchive: "Consulta l’archivio completo in francese",
   },
 
   notFound: {
