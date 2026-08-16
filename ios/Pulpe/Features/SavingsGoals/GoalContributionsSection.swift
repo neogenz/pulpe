@@ -30,9 +30,11 @@ struct GoalContributionsSection: View {
                     Button("Réessayer", action: onRetry)
                         .secondaryButtonStyle()
                 }
-            } else {
+            } else if !contributions.isEmpty {
                 // One card holds the whole list, hairlines inside it: a card per
-                // month turned a plan of twelve into twelve floating blocks.
+                // month turned a plan of twelve into twelve floating blocks. The
+                // card is what needs the emptiness guard, not the list: an empty
+                // `ForEach` drew nothing, an empty card draws a hollow block.
                 VStack(spacing: DesignTokens.Spacing.none) {
                     ForEach(Array(contributions.enumerated()), id: \.element.id) { index, contribution in
                         if index > 0 { Divider() }
