@@ -6,12 +6,12 @@ import SwiftUI
 /// Three balance series anchored → target (`docs/SAVINGS.md` §10.1):
 /// **Épargné** (reality, stops at current month), **Projection planifiée**
 /// (confirmed balance + remaining planned contributions), and a flat **Cible**
-/// rule. Confirmed savings stay green; the planned future uses the existing
-/// blue income/information token. Cloned from `RealizedBalanceSheet.BalanceTrendChart`.
+/// rule. One ink throughout — savings green, muted and dashed for the planned
+/// future. Cloned from `RealizedBalanceSheet.BalanceTrendChart`.
 struct GoalProjectionChart: View {
     let series: GoalProjectionSeries
     let currency: SupportedCurrency
-    var height: CGFloat = 200
+    var height: CGFloat = DesignTokens.Chart.goalHeight
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -35,7 +35,10 @@ struct GoalProjectionChart: View {
             if let target = series.target {
                 RuleMark(y: .value("Cible", target))
                     .foregroundStyle(Color.textTertiary.opacity(DesignTokens.Opacity.heavy))
-                    .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin, dash: [4]))
+                    .lineStyle(StrokeStyle(
+                        lineWidth: DesignTokens.BorderWidth.thin,
+                        dash: DesignTokens.Chart.markerDash
+                    ))
                     .annotation(position: .top, alignment: .leading) {
                         Text("Cible")
                             .font(PulpeTypography.caption2)
@@ -71,15 +74,21 @@ struct GoalProjectionChart: View {
                 .lineStyle(StrokeStyle(
                     lineWidth: DesignTokens.BorderWidth.medium,
                     lineCap: .round,
-                    dash: [5, 4]
+                    dash: DesignTokens.Chart.dash
                 ))
-                .foregroundStyle(Color.financialIncome)
+                // Une seule encre pour un seul objet : le prolongement du plan est
+                // la même épargne, en pointillé et atténuée. Le bleu revenu disait
+                // « autre nature d'argent » et la ligne future volait la vedette.
+                .foregroundStyle(Color.financialSavings.opacity(DesignTokens.Opacity.heroInkMuted))
             }
         }
         .chartXAxis {
             AxisMarks(values: series.ticks.map(\.index)) { value in
                 if let index = value.as(Int.self), let tick = series.ticks.first(where: { $0.index == index }) {
-                    AxisValueLabel {
+                    // Le tick d'échéance tombe sur le bord droit : centré, la moitié
+                    // du libellé sort du cadre et Swift Charts le supprime — c'est
+                    // le seul repère qui compte, il s'ancre donc par sa fin.
+                    AxisValueLabel(anchor: index == series.ticks.last?.index ? .topTrailing : .top) {
                         Text(tick.label)
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.textTertiary)
@@ -152,9 +161,11 @@ struct GoalTrajectorySection: View {
     /// accounting signed value (`+300 CHF`) read as good news on a lag — the
     /// copy spells the direction out instead; zero gap carries no amount.
     static func gapCopy(for gap: Decimal, currency: SupportedCurrency) -> (lead: String, amount: String?) {
-        if gap > 0 { return (AppLocale.string("Il te manque"), gap.asCompactCurrency(currency)) }
+        // Le référent est dans le libellé : le hero juge la CIBLE, cette métrique
+        // juge le PLAN. Sans le mot, les deux verdicts se lisaient comme un doublon.
+        if gap > 0 { return (AppLocale.string("En retard sur ton plan"), gap.asCompactCurrency(currency)) }
         if gap < 0 {
-            return (AppLocale.string("Tu es en avance de"), gap.absoluteValue.asCompactCurrency(currency))
+            return (AppLocale.string("En avance sur ton plan"), gap.absoluteValue.asCompactCurrency(currency))
         }
         return (AppLocale.string("Pile sur ton plan"), nil)
     }

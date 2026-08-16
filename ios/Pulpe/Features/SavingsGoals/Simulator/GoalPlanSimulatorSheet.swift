@@ -73,7 +73,7 @@ struct GoalPlanSimulatorSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                     infoBanner
-                    GoalProjectionChart(series: viewModel.chartSeries, currency: currency, height: 160)
+                    GoalProjectionChart(series: viewModel.chartSeries, currency: currency)
                     verdict
                     globalControl
                     redistributeButton

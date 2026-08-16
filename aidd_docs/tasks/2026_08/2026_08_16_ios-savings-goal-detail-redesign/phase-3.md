@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Trajectoire sur tokens, encre unique, tick d'échéance visible, verdict d'écart nommé

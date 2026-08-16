@@ -18,6 +18,15 @@ struct GoalProjectionSeriesTests {
         #expect(ticks.map(\.index) == [0, 8, 19])
     }
 
+    /// The deadline is the only landmark the drawing owes the reader: whatever the
+    /// horizon, the last month must always earn a tick.
+    @Test("the deadline month always carries a tick", arguments: [2, 3, 24])
+    func alwaysTicksTheDeadlineMonth(monthCount: Int) {
+        let ticks = GoalProjectionSeries.ticks(for: makeMonths(count: monthCount), currentIndex: 1)
+
+        #expect(ticks.last?.index == monthCount - 1)
+    }
+
     @Test("day 1 — current month first: a single confirmed point is no trend, chart hidden")
     func hasConfirmedTrend_day1_isFalse() {
         let series = GoalProjectionSeries.read(from: makeProgress(currentIndex: 0))
@@ -70,9 +79,9 @@ struct GoalProjectionSeriesTests {
         let expectedLag = Decimal(300).asCompactCurrency(.chf)
         let expectedAdvance = Decimal(150).asCompactCurrency(.chf)
 
-        #expect(lag.lead == "Il te manque")
+        #expect(lag.lead == "En retard sur ton plan")
         #expect(lag.amount == expectedLag)
-        #expect(advance.lead == "Tu es en avance de")
+        #expect(advance.lead == "En avance sur ton plan")
         #expect(advance.amount == expectedAdvance)
         #expect(onPlan.lead == "Pile sur ton plan")
         #expect(onPlan.amount == nil)

@@ -11221,6 +11221,28 @@
         }
       }
     },
+    "En avance sur ton plan" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vor deinem Plan"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ahead of your plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In anticipo sul tuo piano"
+          }
+        }
+      }
+    },
     "En continuant, tu acceptes nos %@ et confirmes avoir pris connaissance de notre %@." : {
       "localizations" : {
         "de" : {
@@ -11339,6 +11361,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "In pausa"
+          }
+        }
+      }
+    },
+    "En retard sur ton plan" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinter deinem Plan"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behind your plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indietro sul tuo piano"
           }
         }
       }
@@ -12443,28 +12487,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restano %@"
-          }
-        }
-      }
-    },
-    "Il te manque" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dir fehlen noch"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You're short"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ti mancano"
           }
         }
       }
@@ -25145,28 +25167,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Devi accedere di nuovo prima di cambiare la password"
-          }
-        }
-      }
-    },
-    "Tu es en avance de" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dein Vorsprung"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You're ahead by"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sei in anticipo di"
           }
         }
       }
