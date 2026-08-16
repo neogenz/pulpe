@@ -85,10 +85,17 @@ struct GoalWithdrawalsSection: View {
             }
         }
 
-        var primaryAmountDetail: String? {
+        /// Un retrait entamé est le seul qui ait deux montants à raconter. Tant
+        /// que rien n'est sorti, « Prévu … · Réalisé 0 » répète le montant de la
+        /// rangée et lui ajoute un zéro.
+        var isPartiallyRealized: Bool {
             guard case .linked(let withdrawal) = self,
-                  case .partiallyRealized = withdrawal.status else { return nil }
-            return AppLocale.string("restant")
+                  case .partiallyRealized = withdrawal.status else { return false }
+            return true
+        }
+
+        var primaryAmountDetail: String? {
+            isPartiallyRealized ? AppLocale.string("restant") : nil
         }
 
         var remainingAmount: Decimal {

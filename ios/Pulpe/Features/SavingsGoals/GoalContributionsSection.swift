@@ -51,7 +51,7 @@ struct GoalContributionsSection: View {
             HStack(spacing: DesignTokens.Spacing.md) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     Text(contribution.name)
-                        .font(PulpeTypography.listRowTitle)
+                        .font(PulpeTypography.labelLarge)
                         .foregroundStyle(Color.textPrimary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                     // Statut en texte, pas en glyphe : le cercle vide est le
@@ -78,9 +78,11 @@ struct GoalContributionsSection: View {
 
             if !contribution.transactions.isEmpty {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    // Même rôle que « Retraits planifiés » : une étiquette qui
+                    // nomme un groupe, pas un titre de rangée.
                     Text("Réel")
-                        .font(PulpeTypography.metricLabel)
-                        .foregroundStyle(Color.textSecondary)
+                        .font(PulpeTypography.labelMedium)
+                        .foregroundStyle(Color.textTertiary)
 
                     ForEach(Array(contribution.transactions.enumerated()), id: \.element.id) { index, transaction in
                         if index > 0 { Divider() }
@@ -97,7 +99,7 @@ struct GoalContributionsSection: View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text(transaction.name)
-                    .font(PulpeTypography.listRowSubtitle)
+                    .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 statusSubtitle(
@@ -129,6 +131,6 @@ struct GoalContributionsSection: View {
                 .foregroundStyle(Color.textTertiary)
             + status
         )
-        .font(PulpeTypography.listRowSubtitle)
+        .font(PulpeTypography.labelMedium)
     }
 }

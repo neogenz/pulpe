@@ -4659,64 +4659,6 @@
         }
       }
     },
-    "Appliquer (%lld mois)" : {
-      "localizations" : {
-        "de" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Übernehmen (%lld Monat)"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Übernehmen (%lld Monate)"
-                }
-              }
-            }
-          }
-        },
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Apply (%lld month)"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Apply (%lld months)"
-                }
-              }
-            }
-          }
-        },
-        "it" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Applica (%lld mese)"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Applica (%lld mesi)"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "Appliquer aux mois suivants ?" : {
       "localizations" : {
         "de" : {
@@ -4735,6 +4677,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Applicare ai mesi successivi?"
+          }
+        }
+      }
+    },
+    "Appliquer · %lld mois" : {
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Übernehmen · %lld Monat"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Übernehmen · %lld Monate"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Apply · %lld month"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Apply · %lld months"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Applica · %lld mese"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Applica · %lld mesi"
+                }
+              }
+            }
           }
         }
       }
@@ -15949,28 +15949,6 @@
         }
       }
     },
-    "Montant positif : mettre de côté · montant négatif : retirer" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Positiver Betrag: zurücklegen · negativer Betrag: entnehmen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Positive amount: set aside · negative amount: withdraw"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importo positivo: metti da parte · importo negativo: preleva"
-          }
-        }
-      }
-    },
     "Montant restant prévu · %@" : {
       "localizations" : {
         "de" : {
@@ -20225,28 +20203,6 @@
         }
       }
     },
-    "Repartir du plan actuel" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wieder vom aktuellen Plan ausgehen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start over from the current plan"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riparti dal piano attuale"
-          }
-        }
-      }
-    },
     "Report" : {
       "localizations" : {
         "de" : {
@@ -21687,6 +21643,28 @@
         }
       }
     },
+    "Réinitialiser" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta"
+          }
+        }
+      }
+    },
     "Réinitialiser le mot de passe" : {
       "localizations" : {
         "de" : {
@@ -21705,6 +21683,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reimposta la password"
+          }
+        }
+      }
+    },
+    "Réinitialiser le plan" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset the plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta il piano"
           }
         }
       }
@@ -23951,6 +23951,28 @@
         }
       }
     },
+    "Ton plan" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Plan"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo piano"
+          }
+        }
+      }
+    },
     "Ton plan a changé entre-temps — vérifie les données actualisées et relance la simulation" : {
       "localizations" : {
         "de" : {
@@ -24057,28 +24079,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il tuo piano ti porta a %@ entro la scadenza."
-          }
-        }
-      }
-    },
-    "Ton plan, mois par mois" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dein Plan, Monat für Monat"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your plan, month by month"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il tuo piano, mese per mese"
           }
         }
       }
@@ -25513,6 +25513,28 @@
         }
       }
     },
+    "Un montant négatif retire de l'objectif." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein negativer Betrag nimmt vom Ziel weg."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A negative amount withdraws from the goal."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un importo negativo preleva dall'obiettivo."
+          }
+        }
+      }
+    },
     "Un plan clair pour chaque mois" : {
       "localizations" : {
         "de" : {
@@ -26201,6 +26223,64 @@
         }
       }
     },
+    "Voir les %lld mois" : {
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Monat ansehen"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Alle %lld Monate ansehen"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "See %lld month"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "See all %lld months"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Vedi %lld mese"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Vedi tutti i %lld mesi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Voir les %lld mois passés" : {
       "localizations" : {
         "de" : {
@@ -26343,64 +26423,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vedi altro (+%lld)"
-          }
-        }
-      }
-    },
-    "Voir tout le plan (%lld mois)" : {
-      "localizations" : {
-        "de" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Ganzen Plan ansehen (%lld Monat)"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Ganzen Plan ansehen (%lld Monate)"
-                }
-              }
-            }
-          }
-        },
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "See the whole plan (%lld month)"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "See the whole plan (%lld months)"
-                }
-              }
-            }
-          }
-        },
-        "it" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Vedi tutto il piano (%lld mese)"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Vedi tutto il piano (%lld mesi)"
-                }
-              }
-            }
           }
         }
       }

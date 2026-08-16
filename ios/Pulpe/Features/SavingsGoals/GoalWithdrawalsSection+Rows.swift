@@ -32,21 +32,24 @@ extension GoalWithdrawalsSection {
     /// calendar scans as texture rather than information. The « Hors budget »
     /// segment of the subtitle already carries what the second glyph encoded.
     private func plannedRowContent(_ item: PlannedItem) -> some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+        // Ligne de base commune, pas alignement haut : la colonne de droite ne
+        // porte de contenu que sur la première ligne, alors un chevron centré
+        // sur une rangée de trois lignes flotte seul au milieu du vide.
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     plannedDescription(item)
-                    HStack(spacing: DesignTokens.Spacing.sm) {
+                    HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
                         Spacer(minLength: DesignTokens.Spacing.none)
                         plannedAmount(item)
-                        if item.budgetId != nil { chevron }
+                        chevron.opacity(item.budgetId == nil ? 0 : 1)
                     }
                 }
             } else {
                 plannedDescription(item)
                 Spacer(minLength: DesignTokens.Spacing.sm)
                 plannedAmount(item)
-                if item.budgetId != nil { chevron }
+                chevron.opacity(item.budgetId == nil ? 0 : 1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -56,18 +59,18 @@ extension GoalWithdrawalsSection {
     private func plannedDescription(_ item: PlannedItem) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
             Text(item.name)
-                .font(PulpeTypography.listRowTitle)
+                .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
             Text(verbatim: item.isPlanOnly
                 ? "\(item.periodLabel) · \(item.statusLabel) · " + AppLocale.string("Hors budget")
                 : "\(item.periodLabel) · \(item.statusLabel)")
-                .font(PulpeTypography.listRowSubtitle)
+                .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
-            if !item.isPlanOnly {
+            if item.isPartiallyRealized {
                 Text(item.contextLabel(currency: currency))
-                    .font(PulpeTypography.listRowSubtitle)
+                    .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .sensitiveAmount()
@@ -87,7 +90,7 @@ extension GoalWithdrawalsSection {
 
             if let detail = item.primaryAmountDetail {
                 Text(detail)
-                    .font(PulpeTypography.listRowSubtitle)
+                    .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textSecondary)
                     .accessibilityHidden(true)
             }
@@ -95,7 +98,9 @@ extension GoalWithdrawalsSection {
     }
 
     /// The only glyph left in the section: it points at a destination, which no
-    /// word on the row already says.
+    /// word on the row already says. A row with nothing to open hides it rather
+    /// than dropping it — a missing chevron shifts that row's amount past its
+    /// neighbours' and the column loses the trailing edge it is read against.
     private var chevron: some View {
         Image(systemName: "chevron.right")
             .font(PulpeTypography.caption)
@@ -107,11 +112,11 @@ extension GoalWithdrawalsSection {
         Button {
             onOpenBudget(withdrawal.budgetId)
         } label: {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                         realizedDescription(withdrawal)
-                        HStack(spacing: DesignTokens.Spacing.sm) {
+                        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
                             Spacer(minLength: DesignTokens.Spacing.none)
                             realizedAmount(withdrawal)
                             chevron
@@ -138,11 +143,11 @@ extension GoalWithdrawalsSection {
     private func realizedDescription(_ withdrawal: SavingsGoalWithdrawal) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
             Text(withdrawal.name)
-                .font(PulpeTypography.listRowTitle)
+                .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
             Text(realizedStatus(withdrawal))
-                .font(PulpeTypography.listRowSubtitle)
+                .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
