@@ -1,14 +1,7 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import {
-  Appbar,
-  Button,
-  HelperText,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { Appbar, Button, Text, TextInput, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
@@ -17,6 +10,7 @@ import { z } from "zod";
 import { PASSWORD_RESET_REDIRECT_URL, supabase } from "@/core/auth/supabase";
 import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 const emailSchema = z.email();
 
@@ -88,9 +82,7 @@ export default function ForgotPasswordScreen() {
             />
 
             {errorMessage !== null && (
-              <HelperText type="error" visible accessibilityLiveRegion="polite">
-                {errorMessage}
-              </HelperText>
+              <FieldError visible>{errorMessage}</FieldError>
             )}
 
             <Button

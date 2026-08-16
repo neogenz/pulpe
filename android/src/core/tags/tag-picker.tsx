@@ -4,7 +4,6 @@ import { StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Chip,
-  HelperText,
   IconButton,
   Text,
   TextInput,
@@ -14,6 +13,7 @@ import {
 import { FadingRail } from "@/core/ui/fading-rail";
 import { FilterChip } from "@/core/ui/filter-chip";
 import { SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 import { useCreateTag, useTags } from "./tag-queries";
 import {
@@ -76,7 +76,7 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
           the bottom of the sheet. It runs to the sheet's own edges so a chip
           scrolls past the gutter instead of being clipped by it. */}
       {tags.isPending ? (
-        <ActivityIndicator />
+        <ActivityIndicator accessibilityLabel="Chargement" />
       ) : (
         <View style={styles.rail}>
           <FadingRail
@@ -128,7 +128,10 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
             style={styles.nameField}
           />
           {createTag.isPending ? (
-            <ActivityIndicator style={styles.creating} />
+            <ActivityIndicator
+              style={styles.creating}
+              accessibilityLabel="Chargement"
+            />
           ) : (
             <IconButton
               icon="plus"
@@ -141,15 +144,11 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
         </View>
       )}
 
-      {issue !== null && (
-        <HelperText type="error" visible>
-          {issue}
-        </HelperText>
-      )}
+      {issue !== null && <FieldError visible>{issue}</FieldError>}
       {createTag.isError && (
-        <HelperText type="error" visible>
+        <FieldError visible>
           Le tag n&apos;a pas pu être créé. Réessaie.
-        </HelperText>
+        </FieldError>
       )}
     </View>
   );

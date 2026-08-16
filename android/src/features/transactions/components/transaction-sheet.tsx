@@ -8,7 +8,6 @@ import { StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
-  HelperText,
   SegmentedButtons,
   Switch,
   Text,
@@ -26,6 +25,7 @@ import { FadingRail } from "@/core/ui/fading-rail";
 import { FilterChip } from "@/core/ui/filter-chip";
 import { Sheet } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 import { useSavingsGoalWithdrawalOptions } from "@/features/savings-goals/goals-queries";
 
 import {
@@ -216,9 +216,9 @@ export function TransactionSheet({
         footer={
           <>
             {mutation.isError && (
-              <HelperText type="error" visible>
+              <FieldError visible>
                 L&apos;opération n&apos;a pas pu être enregistrée. Réessaie.
-              </HelperText>
+              </FieldError>
             )}
 
             <Button
@@ -321,7 +321,7 @@ export function TransactionSheet({
 
             {isFromSavingsGoal &&
               (options.isPending ? (
-                <ActivityIndicator />
+                <ActivityIndicator accessibilityLabel="Chargement" />
               ) : (options.data ?? []).length === 0 ? (
                 <Text
                   variant="labelMedium"

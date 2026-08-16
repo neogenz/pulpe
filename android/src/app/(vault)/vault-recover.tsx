@@ -1,13 +1,14 @@
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { Linking, StyleSheet, View } from "react-native";
-import { Button, HelperText, Text, TextInput } from "react-native-paper";
+import { Button, Text, TextInput } from "react-native-paper";
 
 import { hapticCommit, hapticSuccess } from "@/core/ui/haptics";
 import { normalizeApiError } from "@/core/api/api-error";
 import { useSessionStore } from "@/core/auth/session-store";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 import {
   formatRecoveryKey,
   hasInvalidRecoveryKeyCharacters,
@@ -109,9 +110,7 @@ function RecoveryKeyStep({
           multiline
           style={styles.input}
         />
-        <HelperText type="error" visible={message !== null}>
-          {message}
-        </HelperText>
+        <FieldError visible={message !== null}>{message}</FieldError>
 
         <Button
           mode="contained"

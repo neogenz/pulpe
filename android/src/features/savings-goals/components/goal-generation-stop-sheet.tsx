@@ -4,13 +4,7 @@ import type {
   SupportedCurrency,
 } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
-import {
-  Button,
-  Divider,
-  HelperText,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Button, Divider, Text, useTheme } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
 import { Card } from "@/core/ui/card";
@@ -19,6 +13,7 @@ import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 import { useStopSavingsGoalGeneration } from "../goals-queries";
 
@@ -90,9 +85,9 @@ export function GoalGenerationStopSheet({
       footer={
         <>
           {stop.isError && (
-            <HelperText type="error" visible>
+            <FieldError visible>
               La décision n&apos;a pas pu être appliquée. Recharge et réessaie.
-            </HelperText>
+            </FieldError>
           )}
 
           <View style={styles.decision}>

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Button, HelperText, TextInput } from "react-native-paper";
+import { Button, TextInput } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
 import { normalizeApiError } from "@/core/api/api-error";
 import { Sheet } from "@/core/ui/sheet";
+import { FieldError } from "@/core/ui/field-error";
 import {
   formatRecoveryKey,
   hasInvalidRecoveryKeyCharacters,
@@ -62,9 +63,7 @@ export function VerifyRecoveryKeySheet({
       footer={
         <>
           {errorMessage !== null && (
-            <HelperText type="error" visible>
-              {errorMessage}
-            </HelperText>
+            <FieldError visible>{errorMessage}</FieldError>
           )}
 
           <Button
@@ -92,9 +91,9 @@ export function VerifyRecoveryKeySheet({
         autoFocus
       />
       {hasInvalidCharacters && (
-        <HelperText type="error" visible>
+        <FieldError visible>
           Une clé ne contient que des lettres et les chiffres 2 à 7.
-        </HelperText>
+        </FieldError>
       )}
     </Sheet>
   );

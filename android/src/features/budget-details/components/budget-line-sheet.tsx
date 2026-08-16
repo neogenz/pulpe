@@ -9,7 +9,6 @@ import { randomUUID } from "react-native-quick-crypto";
 import { StyleSheet, View } from "react-native";
 import {
   Button,
-  HelperText,
   SegmentedButtons,
   Switch,
   Text,
@@ -22,6 +21,7 @@ import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
 import { Sheet } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 import {
   budgetLineDraftFrom,
@@ -183,9 +183,9 @@ export function BudgetLineSheet({
       footer={
         <>
           {mutation.isError && (
-            <HelperText type="error" visible>
+            <FieldError visible>
               La prévision n&apos;a pas pu être enregistrée. Réessaie.
-            </HelperText>
+            </FieldError>
           )}
 
           <Button

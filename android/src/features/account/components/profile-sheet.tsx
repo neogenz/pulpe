@@ -4,6 +4,7 @@ import { Button, HelperText, TextInput } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
 import { Sheet } from "@/core/ui/sheet";
+import { FieldError } from "@/core/ui/field-error";
 
 import { useUpdateUserProfile } from "../account-queries";
 
@@ -56,9 +57,9 @@ export function ProfileSheet({
       footer={
         <>
           {update.isError && (
-            <HelperText type="error" visible>
+            <FieldError visible>
               Ton profil n&apos;a pas pu être enregistré. Réessaie.
-            </HelperText>
+            </FieldError>
           )}
 
           <Button

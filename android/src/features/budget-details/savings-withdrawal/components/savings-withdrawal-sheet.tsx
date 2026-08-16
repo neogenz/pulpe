@@ -2,14 +2,7 @@ import type { BudgetPeriod, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { randomUUID } from "react-native-quick-crypto";
 import { StyleSheet, View } from "react-native";
-import {
-  Button,
-  Chip,
-  HelperText,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { Button, Chip, Text, TextInput, useTheme } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
@@ -18,6 +11,7 @@ import { formatMonthName } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 import { useCreateSavingsWithdrawal } from "../withdrawal-mutations";
 import { repaymentPeriod } from "../withdrawal-gate";
@@ -122,9 +116,9 @@ export function SavingsWithdrawalSheet({
         isPreviewing ? (
           <>
             {withdraw.isError && (
-              <HelperText type="error" visible>
+              <FieldError visible>
                 On n&apos;a pas pu mettre ça en place. Réessaie.
-              </HelperText>
+              </FieldError>
             )}
 
             <Button

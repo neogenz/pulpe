@@ -1,7 +1,6 @@
 import type { SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
 import {
-  HelperText,
   IconButton,
   SegmentedButtons,
   Text,
@@ -12,6 +11,7 @@ import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
 import { FilterChip } from "@/core/ui/filter-chip";
 import { SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 import {
   MAX_SPREAD_MONTHS,
@@ -117,9 +117,7 @@ export function SpreadFormSection({
               : `${formatCurrency(counterpart, currency)} au total sur ${selectedCount} mois`}
         </Text>
       ) : (
-        <HelperText type="error" visible>
-          {problem}
-        </HelperText>
+        <FieldError visible>{problem}</FieldError>
       )}
     </View>
   );

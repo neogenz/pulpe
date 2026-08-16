@@ -7,7 +7,6 @@ import {
   Appbar,
   Button,
   Dialog,
-  HelperText,
   IconButton,
   List,
   Portal,
@@ -28,6 +27,7 @@ import {
 } from "@/core/tags/tag-queries";
 import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { ROW_ACTION_ICON_SIZE, SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 /** `tagCreateSchema` caps a name at 30 characters. */
 const NAME_MAX_LENGTH = 30;
@@ -116,13 +116,13 @@ export default function TagsSettingsScreen() {
         </View>
 
         {create.isError && (
-          <HelperText type="error" visible>
+          <FieldError visible>
             Le tag n&apos;a pas pu être créé. Il existe peut-être déjà.
-          </HelperText>
+          </FieldError>
         )}
 
         {tags.isPending ? (
-          <ActivityIndicator />
+          <ActivityIndicator accessibilityLabel="Chargement" />
         ) : list.length === 0 ? (
           <Text
             variant="bodyMedium"

@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Appbar,
   Button,
-  HelperText,
   Text,
   TextInput,
   useTheme,
@@ -27,6 +26,7 @@ import {
 import { endRecoverySession, useSessionStore } from "@/core/auth/session-store";
 import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 const INVALID_LINK_MESSAGE =
   "Ce lien n'est plus valide. Demande un nouveau lien depuis l'écran de connexion.";
@@ -235,11 +235,7 @@ function PasswordForm({ onDone }: { onDone: () => void }) {
         disabled={isSubmitting}
       />
 
-      {errorMessage !== null && (
-        <HelperText type="error" visible accessibilityLiveRegion="polite">
-          {errorMessage}
-        </HelperText>
-      )}
+      {errorMessage !== null && <FieldError visible>{errorMessage}</FieldError>}
 
       <Button
         mode="contained"

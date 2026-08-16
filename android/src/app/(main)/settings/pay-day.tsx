@@ -12,6 +12,7 @@ import { scheduleMonthlyReminder } from "@/core/notifications/scheduler";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { useRipple } from "@/core/ui/ripple";
 import { RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { useUpdateUserSettings } from "@/features/account/account-queries";
 
@@ -139,9 +140,9 @@ export default function PayDayScreen() {
         )}
 
         {update.isError && (
-          <HelperText type="error" visible>
+          <FieldError visible>
             Le jour de paie n&apos;a pas pu être enregistré. Réessaie.
-          </HelperText>
+          </FieldError>
         )}
 
         <Button

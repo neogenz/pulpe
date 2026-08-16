@@ -128,7 +128,7 @@ export default function BudgetsScreen() {
         edges={["top"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator />
+        <ActivityIndicator accessibilityLabel="Chargement" />
       </SafeAreaView>
     );
   }

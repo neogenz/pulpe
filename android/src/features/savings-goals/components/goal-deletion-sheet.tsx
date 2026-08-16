@@ -11,7 +11,6 @@ import {
   Button,
   Checkbox,
   Divider,
-  HelperText,
   Text,
   useTheme,
 } from "react-native-paper";
@@ -24,6 +23,7 @@ import { formatMonthLabel } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 import {
   useDeleteSavingsGoal,
@@ -104,9 +104,9 @@ export function GoalDeletionSheet({
       footer={
         <>
           {remove.isError && (
-            <HelperText type="error" visible>
+            <FieldError visible>
               La suppression a échoué. Rien n&apos;a été supprimé.
-            </HelperText>
+            </FieldError>
           )}
 
           {impact.data !== undefined && (

@@ -1,14 +1,7 @@
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import { Linking, ScrollView, StyleSheet, View } from "react-native";
-import {
-  Button,
-  Divider,
-  HelperText,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { Button, Divider, Text, TextInput, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { authLoginSchema } from "pulpe-shared";
 
@@ -21,6 +14,7 @@ import { preferPitch } from "@/core/navigation/landing-preference";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 type Pending = "password" | "google" | null;
 
@@ -125,9 +119,7 @@ export default function SignInScreen() {
         </Link>
 
         {errorMessage !== null && (
-          <HelperText type="error" visible accessibilityLiveRegion="polite">
-            {errorMessage}
-          </HelperText>
+          <FieldError visible>{errorMessage}</FieldError>
         )}
 
         <Button

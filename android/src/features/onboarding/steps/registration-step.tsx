@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { HelperText, Text, TextInput, useTheme } from "react-native-paper";
+import { Text, TextInput, useTheme } from "react-native-paper";
 
 import {
   isAcceptablePassword,
@@ -9,6 +9,7 @@ import {
 } from "@/core/auth/password-rules";
 import { signUpWithEmail } from "@/core/auth/sign-up";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 import { LegalConsent } from "../components/legal-consent";
 import { StepScaffold } from "../components/step-scaffold";
@@ -137,11 +138,7 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
         </View>
       </View>
 
-      {errorMessage !== null && (
-        <HelperText type="error" visible accessibilityLiveRegion="polite">
-          {errorMessage}
-        </HelperText>
-      )}
+      {errorMessage !== null && <FieldError visible>{errorMessage}</FieldError>}
 
       <LegalConsent prefix="En créant ton compte, tu acceptes" />
     </StepScaffold>

@@ -1,10 +1,11 @@
 import type { BudgetLine, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
-import { Button, HelperText, Text, useTheme } from "react-native-paper";
+import { Button, Text, useTheme } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { Sheet } from "@/core/ui/sheet";
+import { FieldError } from "@/core/ui/field-error";
 
 import { useSpreadExistingLine } from "../spread-queries";
 import {
@@ -73,9 +74,9 @@ export function SpreadExistingSheet({
       footer={
         <>
           {spread.isError && (
-            <HelperText type="error" visible>
+            <FieldError visible>
               Le lissage n&apos;a pas pu être fait. Réessaie.
-            </HelperText>
+            </FieldError>
           )}
 
           <Button

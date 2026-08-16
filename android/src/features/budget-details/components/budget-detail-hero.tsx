@@ -16,7 +16,13 @@ import { FadingRail } from "@/core/ui/fading-rail";
 import { Pill } from "@/core/ui/pill";
 import { useRipple } from "@/core/ui/ripple";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
-import { ICON_SIZE, RADIUS, SCREEN_PADDING, SPACING } from "@/core/ui/theme";
+import {
+  ICON_SIZE,
+  RADIUS,
+  SCREEN_PADDING,
+  SPACING,
+  TOUCH_TARGET,
+} from "@/core/ui/theme";
 
 import { budgetUsagePercentage } from "../budget-details-selectors";
 
@@ -178,7 +184,15 @@ const styles = StyleSheet.create({
   // The hero pays its own gutter so the pill rail underneath does not have to —
   // it reaches the screen edges, which is where its fades belong.
   summary: { gap: SPACING.xs, paddingHorizontal: SCREEN_PADDING },
-  rollover: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
+  // A row of a 12-point glyph and a label measures about twenty; this is a
+  // link that navigates to another month, and it owes the finger the same
+  // floor every other control keeps.
+  rollover: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
+    minHeight: TOUCH_TARGET,
+  },
   progressRow: {
     flexDirection: "row",
     alignItems: "center",

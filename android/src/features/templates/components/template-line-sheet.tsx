@@ -10,7 +10,6 @@ import {
   Button,
   Chip,
   Dialog,
-  HelperText,
   Portal,
   SegmentedButtons,
   Text,
@@ -23,6 +22,7 @@ import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
 import { Sheet } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 import { useSavingsGoals } from "@/features/savings-goals/goals-queries";
 
 import {
@@ -187,9 +187,9 @@ export function TemplateLineSheet({
         footer={
           <>
             {mutation.isError && (
-              <HelperText type="error" visible>
+              <FieldError visible>
                 La prévision n&apos;a pas pu être enregistrée. Réessaie.
-              </HelperText>
+              </FieldError>
             )}
 
             <Button

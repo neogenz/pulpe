@@ -76,7 +76,7 @@ export default function TemplateDetailScreen() {
         edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator />
+        <ActivityIndicator accessibilityLabel="Chargement" />
       </SafeAreaView>
     );
   }

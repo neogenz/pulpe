@@ -69,7 +69,9 @@ export function SpreadOccurrencesSheet({
 
   return (
     <Sheet isVisible={isVisible} onDismiss={onDismiss} title="Dépense lissée">
-      {occurrences.isPending && <ActivityIndicator />}
+      {occurrences.isPending && (
+        <ActivityIndicator accessibilityLabel="Chargement" />
+      )}
 
       {occurrences.isError && (
         <Text variant="bodyMedium" style={{ color: theme.colors.error }}>

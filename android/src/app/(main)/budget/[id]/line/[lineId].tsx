@@ -5,7 +5,7 @@ import {
   type Transaction,
 } from "pulpe-shared";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Appbar,
@@ -105,7 +105,7 @@ export default function BudgetLineDetailScreen() {
         edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator />
+        <ActivityIndicator accessibilityLabel="Chargement" />
       </SafeAreaView>
     );
   }
@@ -256,7 +256,15 @@ export default function BudgetLineDetailScreen() {
         </Menu>
       </ScreenAppBar>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={details.isRefetching}
+            onRefresh={() => void details.refetch()}
+          />
+        }
+      >
         <View style={styles.hero}>
           <Text
             variant="labelLarge"

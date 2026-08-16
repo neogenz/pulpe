@@ -2,13 +2,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Image, ScrollView, StyleSheet, View } from "react-native";
-import {
-  Button,
-  Divider,
-  HelperText,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Button, Divider, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
@@ -17,6 +11,7 @@ import {
 } from "@/core/auth/google-sign-in";
 import { preferSignIn } from "@/core/navigation/landing-preference";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 import { LegalConsent } from "../components/legal-consent";
 import { captureSignupCompleted } from "../onboarding-analytics";
@@ -113,9 +108,7 @@ export function WelcomeStep() {
 
       <View style={styles.actions}>
         {errorMessage !== null && (
-          <HelperText type="error" visible accessibilityLiveRegion="polite">
-            {errorMessage}
-          </HelperText>
+          <FieldError visible>{errorMessage}</FieldError>
         )}
 
         {isGoogleSignInAvailable && (

@@ -1,13 +1,7 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import {
-  Button,
-  HelperText,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { Button, Text, TextInput, useTheme } from "react-native-paper";
 
 import {
   isAcceptablePassword,
@@ -17,6 +11,7 @@ import { hapticSuccess } from "@/core/ui/haptics";
 import { updatePassword, verifyPassword } from "@/core/auth/supabase";
 import { Sheet } from "@/core/ui/sheet";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 /**
  * Changing the password asks for the current one first — Supabase would let an
@@ -74,9 +69,7 @@ export function ChangePasswordSheet({
       footer={
         <>
           {errorMessage !== null && (
-            <HelperText type="error" visible>
-              {errorMessage}
-            </HelperText>
+            <FieldError visible>{errorMessage}</FieldError>
           )}
 
           <Button
@@ -146,9 +139,7 @@ export function ChangePasswordSheet({
         error={confirmation.length > 0 && !isConfirmed}
       />
       {confirmation.length > 0 && !isConfirmed && (
-        <HelperText type="error" visible>
-          Les mots de passe ne correspondent pas.
-        </HelperText>
+        <FieldError visible>Les mots de passe ne correspondent pas.</FieldError>
       )}
     </Sheet>
   );

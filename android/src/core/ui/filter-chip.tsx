@@ -24,6 +24,15 @@ export function FilterChip({
       selected={selected}
       mode={selected === true ? "flat" : "outlined"}
       showSelectedCheck={false}
+      // Paper sets no minimum height on an MD3 chip: six points of margin
+      // around a 20-point line comes out at 32, sixteen short of Material's
+      // floor, on the row this app asks the most taps of. The slop is what
+      // Paper hands down to its own `TouchableRipple`, so the chip keeps its
+      // drawn size and answers across 48.
+      hitSlop={CHIP_SLOP}
     />
   );
 }
+
+/** Half of what `TOUCH_TARGET` is missing, taken on each side. */
+const CHIP_SLOP = 8;

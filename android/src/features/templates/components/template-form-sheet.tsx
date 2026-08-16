@@ -1,18 +1,12 @@
 import type { BudgetTemplate } from "pulpe-shared";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import {
-  Button,
-  HelperText,
-  Switch,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { Button, Switch, Text, TextInput, useTheme } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
 import { Sheet } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 import { useCreateTemplate, useUpdateTemplate } from "../template-queries";
 
@@ -100,9 +94,9 @@ export function TemplateFormSheet({
       footer={
         <>
           {mutation.isError && (
-            <HelperText type="error" visible>
+            <FieldError visible>
               Le modèle n&apos;a pas pu être enregistré. Réessaie.
-            </HelperText>
+            </FieldError>
           )}
 
           <Button

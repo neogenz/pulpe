@@ -4,7 +4,7 @@ import type {
 } from "pulpe-shared";
 import { currentPlanMovement } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
-import { Button, HelperText, Icon, Text, useTheme } from "react-native-paper";
+import { Button, Icon, Text, useTheme } from "react-native-paper";
 
 import { Card } from "@/core/ui/card";
 import { Amount } from "@/core/ui/amount";
@@ -12,6 +12,7 @@ import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 interface GoalPlanApplyRecapProps {
   isVisible: boolean;
@@ -49,10 +50,10 @@ export function GoalPlanApplyRecap({
       footer={
         <>
           {hasFailed && (
-            <HelperText type="error" visible>
+            <FieldError visible>
               Le plan n&apos;a pas pu être appliqué. Rien n&apos;a changé —
               recharge l&apos;objectif et réessaie.
-            </HelperText>
+            </FieldError>
           )}
 
           <Button

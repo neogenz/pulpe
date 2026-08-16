@@ -7,7 +7,6 @@ import {
   Appbar,
   Button,
   Divider,
-  HelperText,
   RadioButton,
   Text,
   useTheme,
@@ -21,6 +20,7 @@ import { formatMonthLabel, formatMonthName } from "@/core/ui/date-format";
 import { FilterChip } from "@/core/ui/filter-chip";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { RADIUS, SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 import {
   availableMonths,
   type BudgetPeriod,
@@ -68,7 +68,7 @@ export default function CreateBudgetScreen() {
         edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator />
+        <ActivityIndicator accessibilityLabel="Chargement" />
       </SafeAreaView>
     );
   }
@@ -187,9 +187,9 @@ export default function CreateBudgetScreen() {
       <Divider />
       <View style={styles.footer}>
         {create.isError && (
-          <HelperText type="error" visible>
+          <FieldError visible>
             Le budget n&apos;a pas pu être créé. Réessaie.
-          </HelperText>
+          </FieldError>
         )}
 
         <Button

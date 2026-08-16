@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Button, HelperText, TextInput } from "react-native-paper";
+import { Button, TextInput } from "react-native-paper";
 
 import { verifyPassword } from "@/core/auth/supabase";
 import { Sheet } from "@/core/ui/sheet";
+import { FieldError } from "@/core/ui/field-error";
 
 /**
  * Stands between an unlocked session and an act only the account holder should
@@ -58,9 +59,7 @@ export function ConfirmPasswordSheet({
       footer={
         <>
           {errorMessage !== null && (
-            <HelperText type="error" visible>
-              {errorMessage}
-            </HelperText>
+            <FieldError visible>{errorMessage}</FieldError>
           )}
 
           <Button

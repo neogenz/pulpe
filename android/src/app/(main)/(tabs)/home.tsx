@@ -74,7 +74,7 @@ export default function HomeScreen() {
         edges={["top"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator />
+        <ActivityIndicator accessibilityLabel="Chargement" />
       </SafeAreaView>
     );
   }

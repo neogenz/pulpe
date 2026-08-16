@@ -7,7 +7,6 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
   Button,
-  HelperText,
   SegmentedButtons,
   Switch,
   Text,
@@ -22,6 +21,7 @@ import { formatCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate, parseIsoDate, toIsoDate } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
 
 import {
   buildSavingsGoalCreate,
@@ -145,9 +145,9 @@ export function GoalFormSheet({
         footer={
           <>
             {mutation.isError && (
-              <HelperText type="error" visible>
+              <FieldError visible>
                 L&apos;objectif n&apos;a pas pu être enregistré. Réessaie.
-              </HelperText>
+              </FieldError>
             )}
 
             <Button
