@@ -1,6 +1,6 @@
 ---
 objective: "Huit captures iOS françaises, fidèles aux six planches App Store, existent en 1320 × 2868 dans un dossier local ignoré par Git."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Captures iOS pour l’App Store
