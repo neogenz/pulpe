@@ -2,6 +2,52 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+private actor ControlledUserSettingsService: UserSettingsServicing {
+    private var continuations: [SupportedLocale: CheckedContinuation<UserSettings, any Error>] = [:]
+    private var waiters: [Int: CheckedContinuation<Void, Never>] = [:]
+    private var callCount = 0
+
+    func getSettings() async throws -> UserSettings {
+        UserSettings(payDayOfMonth: nil, currency: .chf, showCurrencySelector: false, locale: nil)
+    }
+
+    func updateSettings(_ settings: UpdateUserSettings) async throws -> UserSettings {
+        guard let locale = settings.locale else { preconditionFailure("Expected a locale update") }
+        callCount += 1
+        for expected in waiters.keys.filter({ $0 <= callCount }) {
+            waiters.removeValue(forKey: expected)?.resume()
+        }
+        return try await withCheckedThrowingContinuation { continuations[locale] = $0 }
+    }
+
+    func waitForCallCount(_ expected: Int) async {
+        guard callCount < expected else { return }
+        await withCheckedContinuation { waiters[expected] = $0 }
+    }
+
+    func succeed(_ locale: SupportedLocale) {
+        continuations.removeValue(forKey: locale)?.resume(
+            returning: UserSettings(
+                payDayOfMonth: nil,
+                currency: .chf,
+                showCurrencySelector: false,
+                locale: locale
+            )
+        )
+    }
+
+    func fail(_ locale: SupportedLocale) {
+        continuations.removeValue(forKey: locale)?.resume(
+            throwing: APIError.networkError(URLError(.notConnectedToInternet))
+        )
+    }
+}
+
+enum StaleLocaleCompletion: Sendable {
+    case success
+    case failure
+}
+
 @Suite("UserSettingsStore — showCurrencySelector mutation")
 @MainActor
 struct UserSettingsStoreTests {
@@ -48,6 +94,34 @@ struct UserSettingsStoreTests {
 @Suite("UserSettingsStore — locale mutation", .serialized)
 @MainActor
 struct UserSettingsStoreLocaleTests {
+    @Test(
+        "Latest locale wins when the older request completes last",
+        arguments: [StaleLocaleCompletion.success, .failure]
+    )
+    func updateLocale_ignoresStaleCompletion(_ staleCompletion: StaleLocaleCompletion) async {
+        let service = ControlledUserSettingsService()
+        let store = UserSettingsStore(service: service)
+
+        let olderUpdate = Task { await store.updateLocale(.de) }
+        await service.waitForCallCount(1)
+        let latestUpdate = Task { await store.updateLocale(.it) }
+        await service.waitForCallCount(2)
+
+        await service.succeed(.it)
+        await latestUpdate.value
+        switch staleCompletion {
+        case .success: await service.succeed(.de)
+        case .failure: await service.fail(.de)
+        }
+        await olderUpdate.value
+
+        #expect(store.locale == .it)
+        #expect(AppLocale.current == .it)
+        #expect(store.error == nil)
+
+        store.reset()
+    }
+
     @Test func updateLocale_onSuccess_publishesAndPersists() async {
         let mockService = MockUserSettingsService(
             stubbedUpdateSettings: UserSettings(
