@@ -28,6 +28,8 @@ final class UserSettingsStore: StoreProtocol {
     private var loadGeneration = 0
     /// Only the latest optimistic locale mutation may publish its completion.
     private var localeUpdateGeneration = 0
+    /// Serializes locale writes so the latest choice is also the last PUT sent.
+    private var localeUpdateTask: Task<Void, Never>?
 
     // MARK: - Services
 
@@ -102,6 +104,8 @@ final class UserSettingsStore: StoreProtocol {
         loadTask = nil
         loadGeneration = 0
         localeUpdateGeneration += 1
+        localeUpdateTask?.cancel()
+        localeUpdateTask = nil
         payDayOfMonth = nil
         currency = .chf
         showCurrencySelector = false
@@ -147,22 +151,32 @@ final class UserSettingsStore: StoreProtocol {
         // Optimistic update — the interface switches on this line, not on the response.
         applyLocale(newLocale)
 
-        do {
-            let updated = try await service.updateSettings(UpdateUserSettings(locale: newLocale))
-            guard localeUpdateGeneration == currentGeneration else { return }
-            // Backend may return a partial settings payload without `locale`; keep the value we
-            // just persisted instead of falling back to French and snapping the UI back.
-            applyLocale(updated.locale ?? newLocale)
-            lastLoadTime = Date()
-        } catch let apiError as APIError {
-            guard localeUpdateGeneration == currentGeneration else { return }
-            applyLocale(previousValue)
-            self.error = apiError
-        } catch {
-            guard localeUpdateGeneration == currentGeneration else { return }
-            applyLocale(previousValue)
-            self.error = .networkError(error)
+        let previousTask = localeUpdateTask
+        let task = Task(name: "UserSettings.updateLocale") {
+            await previousTask?.value
+            guard !Task.isCancelled else { return }
+
+            do {
+                let updated = try await service.updateSettings(UpdateUserSettings(locale: newLocale))
+                guard localeUpdateGeneration == currentGeneration else { return }
+                // Backend may return a partial settings payload without `locale`; keep the value we
+                // just persisted instead of falling back to French and snapping the UI back.
+                applyLocale(updated.locale ?? newLocale)
+                lastLoadTime = Date()
+            } catch let apiError as APIError {
+                guard localeUpdateGeneration == currentGeneration else { return }
+                applyLocale(previousValue)
+                self.error = apiError
+            } catch {
+                guard localeUpdateGeneration == currentGeneration else { return }
+                applyLocale(previousValue)
+                self.error = .networkError(error)
+            }
         }
+
+        localeUpdateTask = task
+        await task.value
+        if localeUpdateGeneration == currentGeneration { localeUpdateTask = nil }
     }
 
     /// Publishing and persisting are one act: `AppLocale.current` backs every formatter and

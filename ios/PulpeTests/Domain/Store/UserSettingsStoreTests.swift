@@ -5,7 +5,8 @@ import Testing
 private actor ControlledUserSettingsService: UserSettingsServicing {
     private var continuations: [SupportedLocale: CheckedContinuation<UserSettings, any Error>] = [:]
     private var waiters: [Int: CheckedContinuation<Void, Never>] = [:]
-    private var callCount = 0
+    private(set) var callCount = 0
+    private(set) var remoteLocale: SupportedLocale?
 
     func getSettings() async throws -> UserSettings {
         UserSettings(payDayOfMonth: nil, currency: .chf, showCurrencySelector: false, locale: nil)
@@ -26,6 +27,7 @@ private actor ControlledUserSettingsService: UserSettingsServicing {
     }
 
     func succeed(_ locale: SupportedLocale) {
+        remoteLocale = locale
         continuations.removeValue(forKey: locale)?.resume(
             returning: UserSettings(
                 payDayOfMonth: nil,
@@ -43,7 +45,7 @@ private actor ControlledUserSettingsService: UserSettingsServicing {
     }
 }
 
-enum StaleLocaleCompletion: Sendable {
+enum FirstLocaleCompletion: Sendable {
     case success
     case failure
 }
@@ -94,32 +96,34 @@ struct UserSettingsStoreTests {
 @Suite("UserSettingsStore — locale mutation", .serialized)
 @MainActor
 struct UserSettingsStoreLocaleTests {
-    @Test(
-        "Latest locale wins when the older request completes last",
-        arguments: [StaleLocaleCompletion.success, .failure]
-    )
-    func updateLocale_ignoresStaleCompletion(_ staleCompletion: StaleLocaleCompletion) async {
-        let service = ControlledUserSettingsService()
-        let store = UserSettingsStore(service: service)
+    @Test("Latest locale is the last serialized write")
+    func updateLocale_serializesWrites() async {
+        for firstCompletion in [FirstLocaleCompletion.success, .failure] {
+            let service = ControlledUserSettingsService()
+            let store = UserSettingsStore(service: service)
 
-        let olderUpdate = Task { await store.updateLocale(.de) }
-        await service.waitForCallCount(1)
-        let latestUpdate = Task { await store.updateLocale(.it) }
-        await service.waitForCallCount(2)
+            let olderUpdate = Task { await store.updateLocale(.de) }
+            await service.waitForCallCount(1)
+            let latestUpdate = Task { await store.updateLocale(.it) }
+            while store.locale != .it { await Task.yield() }
 
-        await service.succeed(.it)
-        await latestUpdate.value
-        switch staleCompletion {
-        case .success: await service.succeed(.de)
-        case .failure: await service.fail(.de)
+            #expect(await service.callCount == 1)
+            switch firstCompletion {
+            case .success: await service.succeed(.de)
+            case .failure: await service.fail(.de)
+            }
+            await service.waitForCallCount(2)
+            await service.succeed(.it)
+            await olderUpdate.value
+            await latestUpdate.value
+
+            #expect(await service.remoteLocale == .it)
+            #expect(store.locale == .it)
+            #expect(AppLocale.current == .it)
+            #expect(store.error == nil)
+
+            store.reset()
         }
-        await olderUpdate.value
-
-        #expect(store.locale == .it)
-        #expect(AppLocale.current == .it)
-        #expect(store.error == nil)
-
-        store.reset()
     }
 
     @Test func updateLocale_onSuccess_publishesAndPersists() async {
