@@ -4,17 +4,18 @@ import Testing
 
 private actor ControlledUserSettingsService: UserSettingsServicing {
     private var getContinuation: CheckedContinuation<UserSettings, Never>?
-    private var getWaiter: CheckedContinuation<Void, Never>?
+    private var getWaiters: [Int: CheckedContinuation<Void, Never>] = [:]
     private var continuations: [SupportedLocale: CheckedContinuation<UserSettings, any Error>] = [:]
     private var waiters: [Int: CheckedContinuation<Void, Never>] = [:]
-    private var getCallCount = 0
+    private(set) var getCallCount = 0
     private(set) var callCount = 0
     private(set) var remoteLocale: SupportedLocale = .fr
 
     func getSettings() async throws -> UserSettings {
         getCallCount += 1
-        getWaiter?.resume()
-        getWaiter = nil
+        for expected in getWaiters.keys.filter({ $0 <= getCallCount }) {
+            getWaiters.removeValue(forKey: expected)?.resume()
+        }
         return await withCheckedContinuation { getContinuation = $0 }
     }
 
@@ -32,15 +33,15 @@ private actor ControlledUserSettingsService: UserSettingsServicing {
         await withCheckedContinuation { waiters[expected] = $0 }
     }
 
-    func waitForGetCall() async {
-        guard getCallCount == 0 else { return }
-        await withCheckedContinuation { getWaiter = $0 }
+    func waitForGetCallCount(_ expected: Int) async {
+        guard getCallCount < expected else { return }
+        await withCheckedContinuation { getWaiters[expected] = $0 }
     }
 
-    func completeGet(_ locale: SupportedLocale) {
+    func completeGet(_ locale: SupportedLocale, payDayOfMonth: Int? = nil) {
         getContinuation?.resume(
             returning: UserSettings(
-                payDayOfMonth: nil,
+                payDayOfMonth: payDayOfMonth,
                 currency: .chf,
                 showCurrencySelector: false,
                 locale: locale
@@ -181,7 +182,7 @@ struct UserSettingsStoreLocaleTests {
         let store = UserSettingsStore(service: service)
 
         let staleLoad = Task { await store.forceRefresh() }
-        await service.waitForGetCall()
+        await service.waitForGetCallCount(1)
         #expect(store.isLoading)
 
         let update = Task { await store.updateLocale(.it) }
@@ -196,6 +197,54 @@ struct UserSettingsStoreLocaleTests {
         #expect(AppLocale.current == .it)
         #expect(store.isLoading == false)
         #expect(store.error == nil)
+
+        var reloadFinished = false
+        let reload = Task {
+            await store.loadIfNeeded()
+            reloadFinished = true
+        }
+        while await service.getCallCount < 2 && !reloadFinished { await Task.yield() }
+        let getCallCount = await service.getCallCount
+        #expect(getCallCount == 2)
+        if getCallCount == 2 { await service.completeGet(.it, payDayOfMonth: 27) }
+        await reload.value
+
+        #expect(store.payDayOfMonth == 27)
+        #expect(store.locale == .it)
+        #expect(AppLocale.current == .it)
+
+        store.reset()
+    }
+
+    @Test("A refresh waits for locale persistence before loading settings")
+    func forceRefresh_waitsForLocaleUpdate() async {
+        AppLocale.persist(.fr)
+        let service = ControlledUserSettingsService()
+        let store = UserSettingsStore(service: service)
+
+        let update = Task { await store.updateLocale(.it) }
+        await service.waitForCallCount(1)
+
+        var refreshStarted = false
+        let refresh = Task {
+            refreshStarted = true
+            await store.forceRefresh()
+        }
+        while !refreshStarted { await Task.yield() }
+        #expect(await service.getCallCount == 0)
+        #expect(store.isLoading == false)
+
+        await service.succeed(.it)
+        await service.waitForGetCallCount(1)
+        await service.completeGet(.it, payDayOfMonth: 15)
+        await update.value
+        await refresh.value
+
+        #expect(await service.remoteLocale == .it)
+        #expect(store.locale == .it)
+        #expect(AppLocale.current == .it)
+        #expect(store.payDayOfMonth == 15)
+        #expect(store.isLoading == false)
 
         store.reset()
     }

@@ -52,6 +52,12 @@ final class UserSettingsStore: StoreProtocol {
     }
 
     func forceRefresh() async {
+        while let pendingLocaleUpdate = localeUpdateTask {
+            let pendingGeneration = localeUpdateGeneration
+            _ = await pendingLocaleUpdate.value
+            if localeUpdateGeneration == pendingGeneration { break }
+        }
+
         loadTask?.cancel()
 
         loadGeneration += 1
@@ -167,7 +173,7 @@ final class UserSettingsStore: StoreProtocol {
                 // Backend may return a partial settings payload without `locale`; keep the value we
                 // just persisted instead of falling back to French and snapping the UI back.
                 applyLocale(persistedLocale)
-                lastLoadTime = Date()
+                lastLoadTime = nil
                 return persistedLocale
             } catch let apiError as APIError {
                 guard localeUpdateGeneration == currentGeneration else { return confirmedLocale }
