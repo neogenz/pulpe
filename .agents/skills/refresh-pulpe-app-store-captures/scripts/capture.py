@@ -13,8 +13,8 @@ OUT = ROOT / "appstore-screenshots"
 CATALOG = json.loads((SKILL / "references/routes.json").read_text())
 
 
-def command(*args, check=True):
-    return subprocess.run(args, check=check, text=True, capture_output=True)
+def command(*args, check=True, env=None):
+    return subprocess.run(args, check=check, text=True, capture_output=True, env=env)
 
 
 def roster(includes):
@@ -96,8 +96,12 @@ def unlock(udid):
 def capture(udid, name, route, output):
     bundle = CATALOG["bundle_id"]
     command("xcrun", "simctl", "terminate", udid, bundle, check=False)
+    launch_env = os.environ | {
+        f"SIMCTL_CHILD_{key}": str(value) for key, value in route.get("launch_env", {}).items()
+    }
     command("xcrun", "simctl", "launch", udid, bundle,
-            "-AppleLanguages", "(fr)", "-AppleLocale", "fr_CH")
+            "-AppleLanguages", "(fr)", "-AppleLocale", "fr_CH",
+            *route.get("launch_args", []), env=launch_env)
     unlock(udid)
     for action in route["actions"]:
         tap(udid, action, action.get("optional", False))
@@ -135,10 +139,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=("plan", "run", "check"))
     parser.add_argument("--include", action="append", default=[])
+    parser.add_argument("--only", action="append", default=[])
     parser.add_argument("--udid")
     parser.add_argument("--output-dir", type=Path, default=OUT)
     args = parser.parse_args()
     names = roster(args.include)
+    if args.only:
+        missing = sorted(set(args.only) - set(names))
+        if missing:
+            raise SystemExit("Captures not in roster: " + ", ".join(missing))
+        names = sorted(set(args.only))
     if args.mode == "plan":
         print(json.dumps(names, ensure_ascii=False, indent=2))
         return

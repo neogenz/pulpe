@@ -41,6 +41,8 @@ capture from memory or from the route catalog.
 ## Roster changes
 
 - **Refresh:** run with no include flags; only existing PNG names are captured.
+- **Refresh one existing screen:** pass `--only <filename.png>`; the filename must
+  already belong to the folder roster.
 - **Add explicitly:** add its stable route to `references/routes.json`, then run with
   `--include <filename.png>`. After the first successful capture, the file joins all
   future refreshes automatically.

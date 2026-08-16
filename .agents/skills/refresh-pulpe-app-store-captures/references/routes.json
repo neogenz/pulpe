@@ -6,6 +6,11 @@
   "height": 2868,
   "screens": {
     "01-accueil.png": {
+      "launch_args": ["-UITEST_CONTEXTUAL_CREATION_HOME"],
+      "launch_env": {
+        "UITEST_COLOR_SCHEME": "light",
+        "UITEST_HOME_MARKETING_GAIN": "1"
+      },
       "actions": [],
       "expect": "home-balance-chart"
     },
