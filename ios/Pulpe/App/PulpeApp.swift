@@ -137,6 +137,15 @@ struct PulpeApp: App {
                     .fullScreenCover(isPresented: forceUpdateBinding) {
                         ForceUpdateView(storeURL: forceUpdateStoreURL)
                     }
+                    .sheet(item: updateAvailableBinding) { update in
+                        UpdateAvailableSheet(
+                            version: update.version,
+                            storeURL: update.storeURL,
+                            onClose: appVersionStore.dismissUpdateAvailable
+                        )
+                        .standardSheetPresentation(detents: [.medium, .large])
+                        .onAppear { appVersionStore.markUpdatePresented() }
+                    }
                     // The whole interface language, in one line. Body text, plural variants,
                     // toolbar items and alerts re-resolve against it with no restart;
                     // `.navigationTitle` is the one exception and goes through
@@ -164,6 +173,23 @@ struct PulpeApp: App {
             return url
         }
         return nil
+    }
+
+    private var updateAvailableBinding: Binding<AppVersionStore.AvailableUpdate?> {
+        Binding(
+            get: {
+                guard appState.authState == .authenticated,
+                      !whatsNewStore.isChecking,
+                      !whatsNewStore.isPresented,
+                      case .updateAvailable(let update) = appVersionStore.status else {
+                    return nil
+                }
+                return update
+            },
+            set: { update in
+                if update == nil { appVersionStore.dismissUpdateAvailable() }
+            }
+        )
     }
 
     /// Refresh the monthly reminder on each foreground so it tracks a changed pay-day

@@ -2493,7 +2493,7 @@ export type EncryptionChangePinResponse = z.infer<
 >;
 
 /**
- * APP VERSION — Force update gate
+ * APP VERSION — Update policy
  *
  * Server-published minimum-supported-version per platform. Clients fetch on
  * launch + foreground, compare against their bundle version, and gate the UI
@@ -2501,8 +2501,9 @@ export type EncryptionChangePinResponse = z.infer<
  *
  * Endpoint: `GET /api/v1/app/version` (public, unauthenticated, cacheable).
  *
- * `latestVersion` is informational today (reserved for an optional soft-update
- * prompt). `storeUrl` is the platform store deep link (App Store for `ios`).
+ * iOS uses `latestVersion` for a dismissible soft-update prompt; the web client
+ * still ignores it. `storeUrl` is the platform store deep link (App Store for
+ * `ios`).
  */
 const semverString = z.string().regex(/^\d+\.\d+\.\d+$/);
 
