@@ -11,8 +11,6 @@ appId: app.pulpe.android
 env:
   LINE: Loyer
 ---
-- launchApp
-
 - extendedWaitUntil:
     visible: "Voir le détail du budget"
     timeout: 30000
