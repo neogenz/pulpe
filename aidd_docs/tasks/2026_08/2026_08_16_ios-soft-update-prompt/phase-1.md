@@ -15,13 +15,16 @@ status: done
 ├── ios
 │   ├── Pulpe
 │   │   ├── App
-│   │   │   ├── AppUpdateFlagsStore.swift ✅ mémoriser la version cible déjà proposée
 │   │   │   └── PulpeApp.swift ✏️ présenter la sheet au bon niveau et relier ses actions
+│   │   ├── Core
+│   │   │   └── Config/AppUpdateFlagsStore.swift ✅ mémoriser la version cible déjà proposée
 │   │   ├── Domain
 │   │   │   ├── Services/AppVersionService.swift ✏️ décrire et journaliser une politique de version, plus seulement le gate dur
-│   │   │   └── Store/AppVersionStore.swift ✏️ prioriser minVersion puis classifier latestVersion et la dismissal
+│   │   │   ├── Store/AppVersionStore.swift ✏️ prioriser minVersion puis classifier latestVersion et la dismissal
+│   │   │   └── Store/WhatsNewStore.swift ✏️ différer la suggestion douce jusqu'à la fin du contrôle « Nouveau dans Pulpe »
 │   │   └── Features/ForceUpdate/UpdateAvailableSheet.swift ✅ afficher la suggestion App Store dismissible
-│   └── PulpeTests/Domain/Store/AppVersionStoreTests.swift ✏️ couvrir priorité, persistance, répétition et fail-open
+│   ├── PulpeTests/Domain/Store/AppVersionStoreTests.swift ✏️ couvrir priorité, persistance, répétition et fail-open
+│   └── PulpeTests/Domain/Store/WhatsNewStoreTests.swift ✏️ couvrir la priorité de présentation après le contrôle « Nouveau dans Pulpe »
 └── shared/schemas.ts ✏️ documenter latestVersion comme signal de mise à jour douce consommé par iOS
 ```
 
