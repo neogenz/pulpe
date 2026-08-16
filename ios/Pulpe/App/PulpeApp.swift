@@ -300,6 +300,7 @@ struct RootView: View {
             deepLinkDestination: deepLinkDestination,
             onAppStart: handleAppStart,
             onWhatsNewCheck: { await whatsNewStore.check() },
+            onWhatsNewSessionEnded: whatsNewStore.invalidateSession,
             onClientKeyCheckFailed: handleClientKeyCheckFailed,
             onPendingDeepLink: handlePendingDeepLink
         ))

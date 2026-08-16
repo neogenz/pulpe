@@ -52,6 +52,7 @@ final class AppVersionStore {
                     storeURL: storeURL
                 )
                 if flagsStore.lastPromptedVersion.map({ $0.isSemVerBelow(policy.latestVersion) }) ?? true
+                    // Keep a visible sheet alive after `markUpdatePresented()` advances the high-water mark.
                     || isPresentingUpdate(version: policy.latestVersion) {
                     status = .updateAvailable(update)
                 } else {

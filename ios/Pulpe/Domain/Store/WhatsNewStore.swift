@@ -25,6 +25,7 @@ final class WhatsNewStore {
 
     private let service: WhatsNewServiceProtocol
     private let flagsStore: WhatsNewFlagsStoring
+    private var sessionGeneration = 0
 
     init(
         service: WhatsNewServiceProtocol = WhatsNewService.shared,
@@ -42,13 +43,11 @@ final class WhatsNewStore {
             Logger.app.info("[WHATS_NEW] skipped checking=\(self.isChecking) presented=\(self.isPresented)")
             return
         }
+        let generation = sessionGeneration
         isChecking = true
         hasCompletedCheck = false
         var didComplete = true
-        defer {
-            isChecking = false
-            hasCompletedCheck = didComplete
-        }
+        defer { completeCheck(generation: generation, didComplete: didComplete) }
 
         let lastSeenVersion: String
         if let persistedVersion = flagsStore.lastSeenVersion {
@@ -84,6 +83,7 @@ final class WhatsNewStore {
                 lastSeenVersion: lastSeenVersion,
                 locale: locale
             )
+            guard generation == sessionGeneration else { return }
             let entries = response.data.entries
             guard !entries.isEmpty else {
                 // Upgrade happened but nothing user-facing between the two
@@ -107,6 +107,20 @@ final class WhatsNewStore {
             // Fail open: leave `lastSeenVersion` untouched so the next launch or
             // foreground retries, and never surface anything to the user.
         }
+    }
+
+    func invalidateSession() {
+        sessionGeneration += 1
+        isChecking = false
+        hasCompletedCheck = false
+        isPresented = false
+        entries = []
+    }
+
+    private func completeCheck(generation: Int, didComplete: Bool) {
+        guard generation == sessionGeneration else { return }
+        isChecking = false
+        hasCompletedCheck = didComplete
     }
 
     func dismiss(currentVersion: String = AppConfiguration.appVersion) {
