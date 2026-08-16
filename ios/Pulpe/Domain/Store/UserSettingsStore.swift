@@ -29,7 +29,7 @@ final class UserSettingsStore: StoreProtocol {
     /// Only the latest optimistic locale mutation may publish its completion.
     private var localeUpdateGeneration = 0
     /// Serializes locale writes so the latest choice is also the last PUT sent.
-    private var localeUpdateTask: Task<Void, Never>?
+    private var localeUpdateTask: Task<SupportedLocale, Never>?
 
     // MARK: - Services
 
@@ -153,29 +153,33 @@ final class UserSettingsStore: StoreProtocol {
 
         let previousTask = localeUpdateTask
         let task = Task(name: "UserSettings.updateLocale") {
-            await previousTask?.value
-            guard !Task.isCancelled else { return }
+            let confirmedLocale = await previousTask?.value ?? previousValue
+            guard !Task.isCancelled else { return confirmedLocale }
 
             do {
                 let updated = try await service.updateSettings(UpdateUserSettings(locale: newLocale))
-                guard localeUpdateGeneration == currentGeneration else { return }
+                let persistedLocale = updated.locale ?? newLocale
+                guard localeUpdateGeneration == currentGeneration else { return persistedLocale }
                 // Backend may return a partial settings payload without `locale`; keep the value we
                 // just persisted instead of falling back to French and snapping the UI back.
-                applyLocale(updated.locale ?? newLocale)
+                applyLocale(persistedLocale)
                 lastLoadTime = Date()
+                return persistedLocale
             } catch let apiError as APIError {
-                guard localeUpdateGeneration == currentGeneration else { return }
-                applyLocale(previousValue)
+                guard localeUpdateGeneration == currentGeneration else { return confirmedLocale }
+                applyLocale(confirmedLocale)
                 self.error = apiError
+                return confirmedLocale
             } catch {
-                guard localeUpdateGeneration == currentGeneration else { return }
-                applyLocale(previousValue)
+                guard localeUpdateGeneration == currentGeneration else { return confirmedLocale }
+                applyLocale(confirmedLocale)
                 self.error = .networkError(error)
+                return confirmedLocale
             }
         }
 
         localeUpdateTask = task
-        await task.value
+        _ = await task.value
         if localeUpdateGeneration == currentGeneration { localeUpdateTask = nil }
     }
 

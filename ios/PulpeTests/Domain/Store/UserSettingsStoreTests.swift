@@ -6,10 +6,15 @@ private actor ControlledUserSettingsService: UserSettingsServicing {
     private var continuations: [SupportedLocale: CheckedContinuation<UserSettings, any Error>] = [:]
     private var waiters: [Int: CheckedContinuation<Void, Never>] = [:]
     private(set) var callCount = 0
-    private(set) var remoteLocale: SupportedLocale?
+    private(set) var remoteLocale: SupportedLocale = .fr
 
     func getSettings() async throws -> UserSettings {
-        UserSettings(payDayOfMonth: nil, currency: .chf, showCurrencySelector: false, locale: nil)
+        UserSettings(
+            payDayOfMonth: nil,
+            currency: .chf,
+            showCurrencySelector: false,
+            locale: remoteLocale
+        )
     }
 
     func updateSettings(_ settings: UpdateUserSettings) async throws -> UserSettings {
@@ -124,6 +129,31 @@ struct UserSettingsStoreLocaleTests {
 
             store.reset()
         }
+    }
+
+    @Test("Two failed locale writes restore the last confirmed locale")
+    func updateLocale_twoFailuresRestoreConfirmedLocale() async {
+        AppLocale.persist(.fr)
+        let service = ControlledUserSettingsService()
+        let store = UserSettingsStore(service: service)
+
+        let olderUpdate = Task { await store.updateLocale(.de) }
+        await service.waitForCallCount(1)
+        let latestUpdate = Task { await store.updateLocale(.it) }
+        while store.locale != .it { await Task.yield() }
+
+        await service.fail(.de)
+        await service.waitForCallCount(2)
+        await service.fail(.it)
+        await olderUpdate.value
+        await latestUpdate.value
+
+        #expect(await service.remoteLocale == .fr)
+        #expect(store.locale == .fr)
+        #expect(AppLocale.current == .fr)
+        #expect(store.error != nil)
+
+        store.reset()
     }
 
     @Test func updateLocale_onSuccess_publishesAndPersists() async {
