@@ -719,6 +719,8 @@ jobs:
     name: ✅ CI Success
     runs-on: ubuntu-latest
     timeout-minutes: 1
+    permissions:
+      contents: read
     needs:
       [
         build,
@@ -761,6 +763,54 @@ jobs:
           echo "Workflow Lint: ${{ needs.actionlint.result }}"
           echo "iOS Tests: ${{ needs.test-ios.result }}"
           exit 1
+
+      - name: 📥 Checkout tested tree
+        if: github.event_name == 'pull_request' && github.base_ref == 'preview'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 🧾 Record tested tree
+        if: github.event_name == 'pull_request' && github.base_ref == 'preview'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          MERGE_SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          tree_sha=$(git rev-parse "${GITHUB_SHA}^{tree}")
+          TREE_SHA="$tree_sha" python3 - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          evidence = {
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "pr_number": int(os.environ["PR_NUMBER"]),
+              "run_id": int(os.environ["RUN_ID"]),
+              "run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "workflow_path": ".github/workflows/ci.yml",
+              "base_ref": os.environ["BASE_REF"],
+              "base_sha": os.environ["BASE_SHA"],
+              "head_sha": os.environ["HEAD_SHA"],
+              "merge_sha": os.environ["MERGE_SHA"],
+              "tree_sha": os.environ["TREE_SHA"],
+              "created_at": datetime.now(timezone.utc).isoformat(),
+          }
+          with open("ci-evidence.json", "w", encoding="utf-8") as handle:
+              json.dump(evidence, handle, separators=(",", ":"))
+          PY
+
+      - name: 📤 Upload tested-tree evidence
+        if: github.event_name == 'pull_request' && github.base_ref == 'preview'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-evidence-pr-${{ github.event.pull_request.number }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: ci-evidence.json
+          retention-days: 14
+          if-no-files-found: error
 
   # 🗄️ MIGRATION PRODUCTION (push main only — applique les migrations après CI verte)
   # Gated on detect-migrations so a code-only release applies nothing and never

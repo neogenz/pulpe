@@ -1,0 +1,257 @@
+name: ✅ Staging Ready (shadow)
+
+on:
+  push:
+    branches: [preview]
+
+permissions:
+  actions: read
+  contents: read
+  deployments: read
+  pull-requests: read
+
+jobs:
+  staging-ready:
+    name: ✅ Staging Ready (shadow)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PREVIEW_BACKEND_HEALTH_URL: https://backend-preview-34f4.up.railway.app/health
+    steps:
+      - name: 📥 Checkout merged commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: 🔎 Resolve merged PR and canonical CI run
+        id: canonical
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --paginate -H "Accept: application/vnd.github+json" "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls?per_page=100" --jq '.[]' > "$RUNNER_TEMP/commit-pulls.jsonl"
+
+          python3 - "$RUNNER_TEMP/commit-pulls.jsonl" "$GITHUB_SHA" "$GITHUB_OUTPUT" "$RUNNER_TEMP/merged-pr.json" <<'PY'
+          import json
+          import sys
+
+          path, sha, output, resolved = sys.argv[1:]
+          with open(path, encoding="utf-8") as handle:
+              pulls = [json.loads(line) for line in handle if line.strip()]
+          matches = [
+              pr
+              for pr in pulls
+              if pr.get("merged_at")
+              and pr.get("merge_commit_sha") == sha
+              and pr.get("base", {}).get("ref") == "preview"
+          ]
+          if len(matches) != 1:
+              raise SystemExit(
+                  f"expected one merged PR for preview commit {sha}, found {len(matches)}"
+              )
+          pr = matches[0]
+          data = {
+              "pr_number": pr["number"],
+              "head_ref": pr["head"]["ref"],
+              "head_sha": pr["head"]["sha"],
+          }
+          with open(output, "a", encoding="utf-8") as handle:
+              for key, value in data.items():
+                  handle.write(f"{key}={value}\n")
+          with open(resolved, "w", encoding="utf-8") as handle:
+              json.dump(data, handle)
+          PY
+
+          head_ref=$(jq -r .head_ref "$RUNNER_TEMP/merged-pr.json")
+          head_sha=$(jq -r .head_sha "$RUNNER_TEMP/merged-pr.json")
+          pr_number=$(jq -r .pr_number "$RUNNER_TEMP/merged-pr.json")
+          gh api --paginate -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" -f event=pull_request -f branch="$head_ref" -f per_page=100 --jq '.workflow_runs[]' > "$RUNNER_TEMP/ci-runs.jsonl"
+
+          python3 - "$RUNNER_TEMP/ci-runs.jsonl" "$pr_number" "$head_ref" "$head_sha" "$GITHUB_REPOSITORY" "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import sys
+
+          path, pr_number, head_ref, head_sha, repository, output = sys.argv[1:]
+          pr_number = int(pr_number)
+          with open(path, encoding="utf-8") as handle:
+              runs = [json.loads(line) for line in handle if line.strip()]
+          canonical = [
+              run
+              for run in runs
+              if run.get("path") == ".github/workflows/ci.yml"
+              and run.get("event") == "pull_request"
+              and run.get("head_branch") == head_ref
+              and run.get("head_sha") == head_sha
+              and run.get("repository", {}).get("full_name") == repository
+          ]
+          if not canonical:
+              raise SystemExit(f"canonical CI run missing for PR #{pr_number}")
+          latest = max(canonical, key=lambda run: int(run["id"]))
+          if latest.get("status") != "completed" or latest.get("conclusion") != "success":
+              raise SystemExit(
+                  "latest canonical CI run is not green: "
+                  f"{latest.get('status')}/{latest.get('conclusion')}"
+              )
+          with open(output, "a", encoding="utf-8") as handle:
+              handle.write(f"ci_run_id={latest['id']}\n")
+              handle.write(f"ci_run_attempt={latest['run_attempt']}\n")
+          PY
+
+      - name: 📥 Download tested-tree evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.canonical.outputs.pr_number }}
+          CI_RUN_ID: ${{ steps.canonical.outputs.ci_run_id }}
+          CI_RUN_ATTEMPT: ${{ steps.canonical.outputs.ci_run_attempt }}
+        run: |
+          set -euo pipefail
+          artifact="ci-evidence-pr-$PR_NUMBER-run-$CI_RUN_ID-attempt-$CI_RUN_ATTEMPT"
+          gh run download "$CI_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "$RUNNER_TEMP/ci-evidence"
+
+      - name: 🔐 Verify tested tree identity
+        id: identity
+        env:
+          PR_NUMBER: ${{ steps.canonical.outputs.pr_number }}
+          HEAD_SHA: ${{ steps.canonical.outputs.head_sha }}
+          CI_RUN_ID: ${{ steps.canonical.outputs.ci_run_id }}
+          CI_RUN_ATTEMPT: ${{ steps.canonical.outputs.ci_run_attempt }}
+        run: |
+          set -euo pipefail
+          merged_tree=$(git rev-parse "${GITHUB_SHA}^{tree}")
+          jq -e --arg repository "$GITHUB_REPOSITORY" --argjson pr_number "$PR_NUMBER" --argjson run_id "$CI_RUN_ID" --argjson run_attempt "$CI_RUN_ATTEMPT" --arg head_sha "$HEAD_SHA" --arg tree_sha "$merged_tree" '.repository == $repository and .pr_number == $pr_number and .run_id == $run_id and .run_attempt == $run_attempt and .workflow_path == ".github/workflows/ci.yml" and .base_ref == "preview" and .head_sha == $head_sha and .tree_sha == $tree_sha' "$RUNNER_TEMP/ci-evidence/ci-evidence.json"
+          echo "tree_sha=$merged_tree" >> "$GITHUB_OUTPUT"
+
+      - name: 🚦 Wait for exact preview deployments
+        id: deployments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          deployment_field() {
+            local environment="$1"
+            local creator="$2"
+            local field="$3"
+            gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f environment="$environment" -f sha="$GITHUB_SHA" -f per_page=100 | jq -r --arg creator "$creator" --arg field "$field" '[.[] | select(.creator.login == $creator)] | max_by(.id) | .[$field] // empty'
+          }
+
+          deployment_state() {
+            gh api "repos/$GITHUB_REPOSITORY/deployments/$1/statuses" --jq 'max_by(.id) | .state // empty'
+          }
+
+          frontend_id=
+          landing_id=
+          railway_id=
+          frontend_sha=
+          landing_sha=
+          railway_sha=
+          frontend_state=
+          landing_state=
+          railway_state=
+
+          for _ in {1..72}; do
+            current_sha=$(gh api "repos/$GITHUB_REPOSITORY/branches/preview" --jq .commit.sha)
+            if [ "$current_sha" != "$GITHUB_SHA" ]; then
+              echo "::error::preview moved from $GITHUB_SHA to $current_sha"
+              exit 1
+            fi
+
+            frontend_id=$(deployment_field "Preview – pulpe-frontend" "vercel[bot]" id)
+            landing_id=$(deployment_field "Preview – pulpe-landing" "vercel[bot]" id)
+            railway_id=$(deployment_field "pulpe-backend / preview" "railway-app[bot]" id)
+            frontend_sha=$(deployment_field "Preview – pulpe-frontend" "vercel[bot]" sha)
+            landing_sha=$(deployment_field "Preview – pulpe-landing" "vercel[bot]" sha)
+            railway_sha=$(deployment_field "pulpe-backend / preview" "railway-app[bot]" sha)
+
+            if [ "$frontend_sha" = "$GITHUB_SHA" ] &&
+               [ "$landing_sha" = "$GITHUB_SHA" ] &&
+               [ "$railway_sha" = "$GITHUB_SHA" ]; then
+              frontend_state=$(deployment_state "$frontend_id")
+              landing_state=$(deployment_state "$landing_id")
+              railway_state=$(deployment_state "$railway_id")
+              case "$frontend_state $landing_state $railway_state" in
+                *error*|*failure*)
+                  echo "::error::provider deployment failed: $frontend_state/$landing_state/$railway_state"
+                  exit 1
+                  ;;
+              esac
+              if [ "$frontend_state" = success ] &&
+                 [ "$landing_state" = success ] &&
+                 [ "$railway_state" = success ]; then
+                break
+              fi
+            fi
+            sleep 10
+          done
+
+          test "$frontend_sha" = "$GITHUB_SHA"
+          test "$landing_sha" = "$GITHUB_SHA"
+          test "$railway_sha" = "$GITHUB_SHA"
+          test "$frontend_state" = success
+          test "$landing_state" = success
+          test "$railway_state" = success
+
+          frontend_url=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$frontend_id/statuses" --jq 'max_by(.id) | .environment_url')
+          landing_url=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$landing_id/statuses" --jq 'max_by(.id) | .environment_url')
+          {
+            echo "frontend_id=$frontend_id"
+            echo "landing_id=$landing_id"
+            echo "railway_id=$railway_id"
+            echo "frontend_url=$frontend_url"
+            echo "landing_url=$landing_url"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 🩺 Smoke test exact staging
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FRONTEND_URL: ${{ steps.deployments.outputs.frontend_url }}
+          LANDING_URL: ${{ steps.deployments.outputs.landing_url }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 20 "$FRONTEND_URL/" >/dev/null
+          curl --fail --silent --show-error --location --max-time 20 "$LANDING_URL/" >/dev/null
+          curl --fail --silent --show-error --location --max-time 20 "$PREVIEW_BACKEND_HEALTH_URL" >/dev/null
+          current_sha=$(gh api "repos/$GITHUB_REPOSITORY/branches/preview" --jq .commit.sha)
+          test "$current_sha" = "$GITHUB_SHA"
+
+      - name: 🧾 Record staging proof
+        env:
+          PR_NUMBER: ${{ steps.canonical.outputs.pr_number }}
+          CI_RUN_ID: ${{ steps.canonical.outputs.ci_run_id }}
+          CI_RUN_ATTEMPT: ${{ steps.canonical.outputs.ci_run_attempt }}
+          TREE_SHA: ${{ steps.identity.outputs.tree_sha }}
+          FRONTEND_DEPLOYMENT_ID: ${{ steps.deployments.outputs.frontend_id }}
+          LANDING_DEPLOYMENT_ID: ${{ steps.deployments.outputs.landing_id }}
+          RAILWAY_DEPLOYMENT_ID: ${{ steps.deployments.outputs.railway_id }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          proof = {
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "pr_number": int(os.environ["PR_NUMBER"]),
+              "ci_run_id": int(os.environ["CI_RUN_ID"]),
+              "ci_run_attempt": int(os.environ["CI_RUN_ATTEMPT"]),
+              "staging_run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "candidate_sha": os.environ["GITHUB_SHA"],
+              "tree_sha": os.environ["TREE_SHA"],
+              "deployments": {
+                  "frontend": int(os.environ["FRONTEND_DEPLOYMENT_ID"]),
+                  "landing": int(os.environ["LANDING_DEPLOYMENT_ID"]),
+                  "railway": int(os.environ["RAILWAY_DEPLOYMENT_ID"]),
+              },
+              "created_at": datetime.now(timezone.utc).isoformat(),
+          }
+          with open("staging-proof.json", "w", encoding="utf-8") as handle:
+              json.dump(proof, handle, separators=(",", ":"))
+          PY
+
+      - name: 📤 Upload staging proof
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: staging-proof-${{ github.sha }}
+          path: staging-proof.json
+          retention-days: 14
+          if-no-files-found: error
