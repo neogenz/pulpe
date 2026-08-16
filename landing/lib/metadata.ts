@@ -112,18 +112,20 @@ export function rootMetadata(
  * comme le guide. Les pages qui n'en déclarent pas héritent de celles du
  * layout, ce qui reste le comportement d'origine.
  */
-export function articleSocialMetadata({
+export function socialMetadata({
   locale,
   path,
   title,
   description,
   imageAlt,
+  type,
 }: {
   locale: Locale;
   path: string;
   title: string;
   description: string;
   imageAlt: string;
+  type: "article" | "website";
 }): Pick<Metadata, "openGraph" | "twitter"> {
   const images = socialImages(locale, imageAlt);
 
@@ -132,7 +134,7 @@ export function articleSocialMetadata({
       title,
       description,
       siteName: "Pulpe",
-      type: "article",
+      type,
       url: path,
       locale: OPEN_GRAPH_LOCALE[locale],
       alternateLocale: openGraphAlternates(locale),

@@ -152,7 +152,12 @@ export default class BudgetDetailsPage {
     const budget = this.store.budgetDetails();
     const payDayOfMonth = this.userSettingsStore.payDayOfMonth();
     if (!budget || !payDayOfMonth || payDayOfMonth === 1) return null;
-    return formatBudgetPeriod(budget.month, budget.year, payDayOfMonth);
+    return formatBudgetPeriod(
+      budget.month,
+      budget.year,
+      payDayOfMonth,
+      this.userSettingsStore.locale(),
+    );
   });
 
   constructor() {

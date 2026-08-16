@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Container } from "@/components/ui";
 import type { Dictionary } from "@/content/dictionary";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { ANGULAR_APP_URL, CONTACT_EMAIL, GITHUB_URL } from "@/lib/config";
+import { angularUrl, CONTACT_EMAIL, GITHUB_URL } from "@/lib/config";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n";
 import {
   ADVICE_LABEL_FR,
@@ -40,8 +40,8 @@ const FOOTER_GROUPS = [
   {
     id: "legal",
     links: [
-      { id: "terms", href: `${ANGULAR_APP_URL}/legal/cgu` },
-      { id: "privacy", href: `${ANGULAR_APP_URL}/legal/confidentialite` },
+      { id: "terms", href: "/legal/cgu", angular: true },
+      { id: "privacy", href: "/legal/confidentialite", angular: true },
     ],
   },
 ] as const satisfies readonly {
@@ -52,6 +52,7 @@ const FOOTER_GROUPS = [
     external?: boolean;
     internal?: boolean;
     frenchOnly?: boolean;
+    angular?: boolean;
   }[];
 }[];
 
@@ -120,7 +121,15 @@ export function Footer({
                           </Link>
                         ) : (
                           <a
-                            href={link.href}
+                            href={
+                              "angular" in link && link.angular
+                                ? angularUrl(
+                                    link.href,
+                                    `footer_${link.id}`,
+                                    locale,
+                                  )
+                                : link.href
+                            }
                             className={linkClassName}
                             target={
                               "external" in link && link.external
