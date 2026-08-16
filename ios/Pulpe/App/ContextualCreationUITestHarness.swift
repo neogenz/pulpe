@@ -45,13 +45,14 @@ struct ContextualCreationUITestHarness: View {
                 createdAt: now, updatedAt: now
             ),
         ]
+        let transactions = marketingGainTransactions(budgetId: budgetId, period: period, now: now)
 
         let currentMonthStore = CurrentMonthStore()
         #if DEBUG
         if ProcessInfo.processInfo.environment["UITEST_HOME_SKELETON"] == "1" {
             currentMonthStore.prepareLoadingForTesting()
         } else {
-            currentMonthStore.populateForTesting(budget: budget, budgetLines: lines)
+            currentMonthStore.populateForTesting(budget: budget, budgetLines: lines, transactions: transactions)
         }
         #endif
         _currentMonthStore = State(initialValue: currentMonthStore)
@@ -61,7 +62,7 @@ struct ContextualCreationUITestHarness: View {
             budgetId: budgetId,
             budget: budget,
             budgetLines: lines,
-            transactions: []
+            transactions: transactions
         )
         BudgetDetailCache.shared.storeAllBudgets([
             BudgetSparse(
@@ -340,4 +341,39 @@ struct ContextualCreationUITestHarness: View {
         let trajectory: BudgetFormulas.BalanceTrajectory
         let monthName: String
     }
+}
+
+private func marketingGainTransactions(
+    budgetId: String,
+    period: BudgetPeriod,
+    now: Date
+) -> [Transaction] {
+    guard ProcessInfo.processInfo.environment["UITEST_HOME_MARKETING_GAIN"] == "1" else {
+        return []
+    }
+    let start = BudgetPeriodCalculator.periodDates(
+        month: period.month,
+        year: period.year,
+        payDayOfMonth: nil
+    ).startDate
+    let elapsed = max(now.timeIntervalSince(start), 0)
+    let entries = [
+        MarketingGainEntry(id: "freelance", name: "Mission freelance", amount: 200),
+        MarketingGainEntry(id: "sale", name: "Vente", amount: 250),
+        MarketingGainEntry(id: "bonus", name: "Bonus", amount: 350),
+    ]
+    return entries.enumerated().map { index, entry in
+        Transaction(
+            id: "marketing-\(entry.id)", budgetId: budgetId, budgetLineId: nil,
+            name: entry.name, amount: entry.amount, kind: .income,
+            transactionDate: start.addingTimeInterval(elapsed * Double(index + 1) / 4),
+            category: nil, checkedAt: now, createdAt: now, updatedAt: now
+        )
+    }
+}
+
+private struct MarketingGainEntry {
+    let id: String
+    let name: String
+    let amount: Decimal
 }

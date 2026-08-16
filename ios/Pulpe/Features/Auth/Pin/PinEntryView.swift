@@ -22,6 +22,7 @@ struct PinEntryView: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .pulpeBackground()
+            .accessibilityIdentifier("pinEntryRoot")
             .sensoryFeedback(.error, trigger: viewModel.hapticError)
             .sensoryFeedback(.success, trigger: viewModel.hapticSuccess)
             .onChange(of: viewModel.authenticated) { _, authenticated in

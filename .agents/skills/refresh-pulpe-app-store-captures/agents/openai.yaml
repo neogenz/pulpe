@@ -1,0 +1,4 @@
+interface:
+  display_name: "Refresh Pulpe App Store Captures"
+  short_description: "Refresh exactly the existing Pulpe store shots"
+  default_prompt: "Use $refresh-pulpe-app-store-captures to regenerate the existing Pulpe App Store screenshots in place."

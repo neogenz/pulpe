@@ -91,6 +91,7 @@ struct HomeHeroCard: View {
                     // has no digits to animate.
                     .contentTransition(.numericText())
                     .sensitiveAmount()
+                    .accessibilityIdentifier("homeProjectedBalanceAmount")
 
                 Text("estimé fin \(monthName)")
                     .font(PulpeTypography.labelMedium)
