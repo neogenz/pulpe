@@ -47,7 +47,13 @@ export function parseDeepLink(url: string): DeepLink | null {
 function queryValue(query: string, key: string): string | null {
   for (const pair of query.split("&")) {
     const [name, value = ""] = pair.split("=");
-    if (name === key && value.length > 0) return decodeURIComponent(value);
+    if (name === key && value.length > 0) {
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        return null;
+      }
+    }
   }
   return null;
 }

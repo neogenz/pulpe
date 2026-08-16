@@ -12,6 +12,7 @@
     "icon": "./assets/images/icon.png",
     "android": {
       "package": "app.pulpe.android",
+      "allowBackup": false,
       "predictiveBackGestureEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",

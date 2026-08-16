@@ -30,6 +30,10 @@ describe("parseDeepLink", () => {
     expect(parseDeepLink("pulpe://budget?id=")).toBeNull();
   });
 
+  it("should ignore malformed percent encoding", () => {
+    expect(parseDeepLink("pulpe://budget?id=%E0%A4%A")).toBeNull();
+  });
+
   it("should leave the URLs other screens own alone", () => {
     expect(
       parseDeepLink("https://app.pulpe.app/reset-password#access_token=x"),

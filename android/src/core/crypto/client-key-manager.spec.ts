@@ -1,12 +1,12 @@
 import {
   clearAllKeys,
+  clearLegacyClientKey,
   clearSessionKey,
   disableBiometricUnlock,
   enableBiometricUnlock,
   getCachedClientKey,
   hasBiometricKey,
   resolveViaBiometric,
-  restoreClientKey,
   storeClientKey,
 } from "./client-key-manager";
 
@@ -48,24 +48,19 @@ describe("clientKeyManager", () => {
     expect(await hasBiometricKey()).toBe(false);
   });
 
-  it("should write both slots when biometric unlock is enabled", async () => {
+  it("should persist only the authenticated slot when biometrics are enabled", async () => {
     await storeClientKey(CLIENT_KEY, { enableBiometric: true });
 
-    expect(mockStore.get(STANDARD_SLOT)).toBe(CLIENT_KEY);
+    expect(mockStore.has(STANDARD_SLOT)).toBe(false);
     expect(mockStore.get(BIOMETRIC_SLOT)).toBe(CLIENT_KEY);
   });
 
-  it("should restore the key from storage after the cache is gone", async () => {
+  it("should delete a legacy ungated key on cold start", async () => {
     mockStore.set(STANDARD_SLOT, CLIENT_KEY);
 
-    await expect(restoreClientKey()).resolves.toBe(CLIENT_KEY);
-    expect(getCachedClientKey()).toBe(CLIENT_KEY);
-  });
+    await clearLegacyClientKey();
 
-  it("should treat a malformed stored key as absent and drop it", async () => {
-    mockStore.set(STANDARD_SLOT, "not-a-key");
-
-    await expect(restoreClientKey()).resolves.toBeNull();
+    expect(getCachedClientKey()).toBeNull();
     expect(mockStore.has(STANDARD_SLOT)).toBe(false);
   });
 
@@ -79,13 +74,13 @@ describe("clientKeyManager", () => {
     expect(await hasBiometricKey()).toBe(true);
   });
 
-  it("should repopulate the standard slot after a biometric unlock", async () => {
+  it("should keep a biometric unlock in memory only", async () => {
     await storeClientKey(CLIENT_KEY, { enableBiometric: true });
     await clearSessionKey();
 
     await expect(resolveViaBiometric()).resolves.toBe(CLIENT_KEY);
     expect(getCachedClientKey()).toBe(CLIENT_KEY);
-    expect(mockStore.get(STANDARD_SLOT)).toBe(CLIENT_KEY);
+    expect(mockStore.has(STANDARD_SLOT)).toBe(false);
   });
 
   it("should remove every slot on sign-out", async () => {

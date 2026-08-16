@@ -1,11 +1,11 @@
 import {
   clearAllKeys,
+  clearLegacyClientKey,
   clearSessionKey,
   disableBiometricUnlock,
   enableBiometricUnlock,
   hasBiometricKey,
   resolveViaBiometric,
-  restoreClientKey,
   storeClientKey,
 } from "@/core/crypto/client-key-manager";
 import { deriveClientKey } from "@/core/crypto/pbkdf2";
@@ -66,7 +66,7 @@ const mocked = {
   storeClientKey: jest.mocked(storeClientKey),
   clearSessionKey: jest.mocked(clearSessionKey),
   clearAllKeys: jest.mocked(clearAllKeys),
-  restoreClientKey: jest.mocked(restoreClientKey),
+  clearLegacyClientKey: jest.mocked(clearLegacyClientKey),
   resolveViaBiometric: jest.mocked(resolveViaBiometric),
   hasBiometricKey: jest.mocked(hasBiometricKey),
   changePin: jest.mocked(changePin),
@@ -98,7 +98,7 @@ beforeEach(() => {
   });
   mocked.deriveClientKey.mockResolvedValue(CLIENT_KEY);
   mocked.hasBiometricKey.mockResolvedValue(false);
-  mocked.restoreClientKey.mockResolvedValue(null);
+  mocked.clearLegacyClientKey.mockResolvedValue(undefined);
 });
 
 describe("bootstrapVault", () => {
@@ -110,13 +110,13 @@ describe("bootstrapVault", () => {
     expect(useVaultStore.getState().status).toBe("setupRequired");
   });
 
-  it("should land unlocked when a stored key comes back", async () => {
+  it("should delete a legacy key and land locked after a cold start", async () => {
     mocked.fetchVaultStatus.mockResolvedValue(vaultStatus(true));
-    mocked.restoreClientKey.mockResolvedValue(CLIENT_KEY);
 
     await bootstrapVault();
 
-    expect(useVaultStore.getState().status).toBe("unlocked");
+    expect(mocked.clearLegacyClientKey).toHaveBeenCalled();
+    expect(useVaultStore.getState().status).toBe("locked");
   });
 
   it("should land locked when the vault is configured but no key is held", async () => {
