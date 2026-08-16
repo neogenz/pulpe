@@ -22,9 +22,11 @@ env:
     visible: "À pointer · ${LINE}"
     timeout: 30000
 - tapOn: "À pointer · ${LINE}"
+- tapOn: "Pointé"
 - assertVisible: "Pointé · ${LINE}"
 
 # And back, because an undo that does not undo is the same bug wearing a
 # different hat.
 - tapOn: "Pointé · ${LINE}"
+- tapOn: "À pointer"
 - assertVisible: "À pointer · ${LINE}"
