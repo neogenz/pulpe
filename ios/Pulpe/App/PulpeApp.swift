@@ -179,8 +179,7 @@ struct PulpeApp: App {
         Binding(
             get: {
                 guard appState.authState == .authenticated,
-                      !whatsNewStore.isChecking,
-                      !whatsNewStore.isPresented,
+                      whatsNewStore.allowsLowerPriorityPresentation,
                       case .updateAvailable(let update) = appVersionStore.status else {
                     return nil
                 }

@@ -63,10 +63,12 @@ struct WhatsNewStoreTests {
         let flags = MockWhatsNewFlagsStore(lastSeenVersion: "1.1.0")
         let store = WhatsNewStore(service: service, flagsStore: flags)
 
+        #expect(!store.allowsLowerPriorityPresentation)
         await store.check(currentVersion: "1.2.0", locale: .de)
 
         #expect(service.fetchCallCount == 1)
         #expect(store.isPresented)
+        #expect(!store.allowsLowerPriorityPresentation)
         #expect(store.entries.count == 1)
         #expect(store.entries.first?.version == "1.2.0")
         #expect(service.lastRequest?.locale == .de)
@@ -120,11 +122,13 @@ struct WhatsNewStoreTests {
         let flags = MockWhatsNewFlagsStore(lastSeenVersion: "1.2.0")
         let store = WhatsNewStore(service: service, flagsStore: flags)
 
+        #expect(!store.allowsLowerPriorityPresentation)
         await store.check(currentVersion: "1.2.0")
 
         #expect(service.fetchCallCount == 0)
         #expect(store.isPresented == false)
         #expect(flags.lastSeenVersion == "1.2.0")
+        #expect(store.allowsLowerPriorityPresentation)
     }
 
     @Test func check_downgrade_isNoOp() async {
@@ -150,6 +154,7 @@ struct WhatsNewStoreTests {
         #expect(flags.lastSeenVersion == "1.1.0")
         #expect(store.isPresented == false)
         #expect(store.entries.isEmpty)
+        #expect(store.allowsLowerPriorityPresentation)
     }
 
     @Test func check_urlCancellation_failsOpenAndLeavesLastSeenUntouched() async {
@@ -163,6 +168,7 @@ struct WhatsNewStoreTests {
         #expect(flags.lastSeenVersion == "1.1.0")
         #expect(store.isPresented == false)
         #expect(store.entries.isEmpty)
+        #expect(!store.allowsLowerPriorityPresentation)
     }
 
     @Test func dismiss_persistsCurrentVersionAndHidesSheet() async {

@@ -162,5 +162,5 @@ Hors ces cas, `MIN_*` reste figé. Une release "classique" ne bouge que `LATEST_
 ### Anti-patterns
 
 - Bumper `MIN_IOS_VERSION` avant l'approbation App Store → users bloqués sur une version inexistante.
-- Bumper `LATEST_*` sans avoir publié la build → toast qui pointe vers du vide.
+- Bumper `LATEST_IOS_VERSION` sans avoir publié la build iOS → suggestion iOS qui pointe vers du vide.
 - Modifier l'env Railway sans tracer la raison (PR description, run book) — l'audit disparaît.

@@ -22,6 +22,7 @@ struct AppUpdateFlagsStore: AppUpdateFlagsStoring, @unchecked Sendable {
     }
 
     func setLastPromptedVersion(_ version: String) {
+        guard lastPromptedVersion.map({ $0.isSemVerBelow(version) }) ?? true else { return }
         defaults.set(version, forKey: Key.lastPromptedVersion)
     }
 }

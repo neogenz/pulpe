@@ -51,7 +51,7 @@ final class AppVersionStore {
                     version: policy.latestVersion,
                     storeURL: storeURL
                 )
-                if flagsStore.lastPromptedVersion != policy.latestVersion
+                if flagsStore.lastPromptedVersion.map({ $0.isSemVerBelow(policy.latestVersion) }) ?? true
                     || isPresentingUpdate(version: policy.latestVersion) {
                     status = .updateAvailable(update)
                 } else {
@@ -63,7 +63,7 @@ final class AppVersionStore {
         } catch {
             // Fail-open ONLY on first launch (status == .unknown) so a backend
             // outage on cold-launch never bricks users. Once we have a
-            // confirmed status — either .ok or .forceUpdate — preserve it:
+            // confirmed status, preserve it:
             // dropping to .ok on a later failure would let an offline device
             // bypass the gate by toggling airplane mode after a forced cover
             // already displayed.

@@ -17,6 +17,11 @@ final class WhatsNewStore {
     private(set) var entries: [WhatsNewEntry] = []
     private(set) var isPresented = false
     private(set) var isChecking = false
+    private(set) var hasCompletedCheck = false
+
+    var allowsLowerPriorityPresentation: Bool {
+        hasCompletedCheck && !isPresented
+    }
 
     private let service: WhatsNewServiceProtocol
     private let flagsStore: WhatsNewFlagsStoring
@@ -34,13 +39,16 @@ final class WhatsNewStore {
         locale: SupportedLocale = AppLocale.current
     ) async {
         guard !isChecking, !isPresented else {
-            Logger.app.info(
-                "[WHATS_NEW] skipped checking=\(self.isChecking) presented=\(self.isPresented)"
-            )
+            Logger.app.info("[WHATS_NEW] skipped checking=\(self.isChecking) presented=\(self.isPresented)")
             return
         }
         isChecking = true
-        defer { isChecking = false }
+        hasCompletedCheck = false
+        var didComplete = true
+        defer {
+            isChecking = false
+            hasCompletedCheck = didComplete
+        }
 
         let lastSeenVersion: String
         if let persistedVersion = flagsStore.lastSeenVersion {
@@ -55,15 +63,11 @@ final class WhatsNewStore {
             // `WhatsNewFlagsStore` seeds this marker during app initialization,
             // before authentication can defer `check()` to a later launch.
             flagsStore.setLastSeenVersion(currentVersion)
-            Logger.app.info(
-                "[WHATS_NEW] first install recorded version=\(currentVersion, privacy: .public)"
-            )
+            Logger.app.info("[WHATS_NEW] first install recorded version=\(currentVersion, privacy: .public)")
             return
         }
 
-        Logger.app.info(
-            "[WHATS_NEW] \(lastSeenVersion, privacy: .public) -> \(currentVersion, privacy: .public)"
-        )
+        Logger.app.info("[WHATS_NEW] \(lastSeenVersion, privacy: .public) -> \(currentVersion, privacy: .public)")
 
         // Same version, or a downgrade (e.g. a debug build running an older
         // binary): nothing to show. `isSemVerBelow` already rejects the equal
@@ -97,6 +101,7 @@ final class WhatsNewStore {
         } catch let error where error.isCancellationOrURLCancellation {
             // Lifecycle cancellation is expected; keep the marker untouched so
             // a later authenticated trigger can retry.
+            didComplete = false
         } catch {
             Logger.app.error("[WHATS_NEW] failed: \(error.localizedDescription, privacy: .public)")
             // Fail open: leave `lastSeenVersion` untouched so the next launch or

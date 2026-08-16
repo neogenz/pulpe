@@ -36,8 +36,8 @@ struct AppVersionStoreTests {
         #expect(store.status == .ok)
     }
 
-    @Test("Latest version emits one dismissible update per target")
-    func check_currentBelowLatest_emitsOnceAndAllowsNewerTarget() async throws {
+    @Test("Latest version uses a monotone prompt high-water mark")
+    func check_currentBelowLatest_emitsOnceAndIgnoresOlderTargetAfterNewer() async throws {
         let suiteName = "AppVersionStoreTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
@@ -86,6 +86,16 @@ struct AppVersionStoreTests {
         )
         await newerStore.check()
         #expect(newerStore.status == .updateAvailable(.init(version: "1.3.3", storeURL: storeURL)))
+
+        newerStore.markUpdatePresented()
+        #expect(flagsStore.lastPromptedVersion == "1.3.3")
+
+        let rolledBackStore = AppVersionStore(
+            service: service, flagsStore: AppUpdateFlagsStore(defaults: defaults), currentVersion: "1.3.1"
+        )
+        await rolledBackStore.check()
+        #expect(rolledBackStore.status == .ok)
+        #expect(flagsStore.lastPromptedVersion == "1.3.3")
     }
 
     @Test("Minimum version keeps priority over the optional update")

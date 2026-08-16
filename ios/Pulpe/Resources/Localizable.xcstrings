@@ -15091,6 +15091,28 @@
         }
       }
     },
+    "Mise à jour disponible" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update available"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornamento disponibile"
+          }
+        }
+      }
+    },
     "Mise à jour en cours" : {
       "localizations" : {
         "de" : {
@@ -18943,6 +18965,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Problema di connessione — controlla la rete"
+          }
+        }
+      }
+    },
+    "Profite des dernières améliorations de Pulpe. Tu peux les installer maintenant ou plus tard." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profitiere von den neuesten Verbesserungen in Pulpe. Du kannst sie jetzt oder später installieren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enjoy the latest improvements to Pulpe. You can install them now or later."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scopri gli ultimi miglioramenti di Pulpe. Puoi installarli ora o più tardi."
           }
         }
       }
