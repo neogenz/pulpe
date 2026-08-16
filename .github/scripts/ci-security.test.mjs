@@ -13,6 +13,7 @@ const workflow = read(".github/workflows/ci.yml");
 const stagingProof = read(".github/workflows/staging-proof.yml");
 const releasePromotion = read(".github/workflows/release-promotion.yml");
 const releaseGate = read(".github/workflows/release-gate.yml");
+const production = read(".github/workflows/production.yml");
 const dockerfile = read("backend-nest/Dockerfile");
 const rootPackage = JSON.parse(read("package.json"));
 const backendPackage = JSON.parse(read("backend-nest/package.json"));
@@ -182,6 +183,43 @@ test("the production PR gate is read-only and proof-bound", () => {
   assert.match(releaseGate, /\.conclusion == "success"/);
   assert.match(releaseGate, /staging-proof-\$CANDIDATE_SHA/);
   assert.match(releaseGate, /matching-refs\/tags/);
+});
+
+test("production publishes only an approved and proven release", () => {
+  assert.match(production, /push:\n\s+branches: \[main\]/);
+  assert.match(production, /actions: read/);
+  assert.match(production, /contents: read/);
+  assert.match(production, /deployments: read/);
+  assert.match(production, /pull-requests: read/);
+  assert.doesNotMatch(production, /:\s*write\b|actions\/checkout|--force/);
+  assert.match(production, /.user\.login == "pulpe-release\[bot\]"/);
+  assert.match(production, /.state == "APPROVED"/);
+  assert.match(production, /release-gate\.yml/);
+  assert.match(production, /.parents\[1\]\.sha == \$candidate/);
+  assert.match(production, /staging-proof-\$candidate_sha/);
+  assert.match(production, /Production – pulpe-frontend/);
+  assert.match(production, /Production – pulpe-landing/);
+  assert.match(production, /pulpe-backend \/ production/);
+  assert.match(production, /production-proof-\$\{\{ github\.sha \}\}/);
+  assert.match(
+    production,
+    /actions\/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349/,
+  );
+  assert.match(production, /repos\/\$GITHUB_REPOSITORY\/git\/tags/);
+  assert.match(production, /repos\/\$GITHUB_REPOSITORY\/releases/);
+  assert.match(production, /RAILWAY_PREVIEW_TOKEN/);
+  assert.match(production, /RAILWAY_PRODUCTION_TOKEN/);
+  assert.match(production, /LATEST_WEB_VERSION=\$VERSION/);
+  assert.doesNotMatch(production, /LATEST_IOS_VERSION|MIN_WEB_VERSION/);
+  assert.ok(
+    production.indexOf("Upload production proof") <
+      production.indexOf("secrets.RAILWAY_PREVIEW_TOKEN"),
+    "persistent credentials must only be consumed after the immutable proof",
+  );
+
+  for (const actionUse of production.matchAll(/^\s*uses:\s*([^\s#]+)/gm)) {
+    assert.match(actionUse[1], /@[0-9a-f]{40}$/);
+  }
 });
 
 test("the backend image does not install Bun", () => {

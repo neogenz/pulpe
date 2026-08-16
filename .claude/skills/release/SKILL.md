@@ -60,13 +60,16 @@ Run this before modifying release files. A failed check stops the workflow witho
 
    A feature branch must reach `preview` through its normal PR first. A hotfix present only on `main` must be reconciled through the normal branch flow before releasing.
 
-2. Require the trusted promotion workflow and both GitHub App secret names. Secret values are never readable and must not be requested:
+2. Require both trusted release workflows and their four credential names. Secret values are never readable and must not be requested:
 
    ```bash
    gh workflow view release-promotion.yml --repo neogenz/pulpe >/dev/null
+   gh workflow view production.yml --repo neogenz/pulpe >/dev/null
    SECRET_NAMES=$(gh secret list --repo neogenz/pulpe --json name --jq '.[].name')
    grep -qx PULPE_RELEASE_APP_ID <<< "$SECRET_NAMES"
    grep -qx PULPE_RELEASE_APP_PRIVATE_KEY <<< "$SECRET_NAMES"
+   grep -qx RAILWAY_PREVIEW_TOKEN <<< "$SECRET_NAMES"
+   grep -qx RAILWAY_PRODUCTION_TOKEN <<< "$SECRET_NAMES"
    ```
 
    Missing workflow or secret names stops preparation before any release file changes.
@@ -558,6 +561,7 @@ After the preparation PR is reviewed and merged with a merge commit:
 - new feature PRs may then continue merging into `preview` without changing the frozen candidate;
 - `✅ Release Gate` validates the production PR without secrets or executing PR code;
 - a human other than the App approves production.
+- `🏭 Production Release` revalidates every proof, waits for exact production CI and deployments, publishes the tag and GitHub Release, then synchronizes Railway's web version gate.
 
 This skill does not push `preview` or `main`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release. Those production operations belong to the protected GitHub workflow after the approved production PR is merged.
 

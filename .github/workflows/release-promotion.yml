@@ -58,7 +58,7 @@ jobs:
             tr -d '\n' | base64 --decode > "$RUNNER_TEMP/package.json"
           test "$(jq -r .version "$RUNNER_TEMP/package.json")" = "$version"
           test "$(printf '%s\n' "$RELEASE_NOTES" | sed -n '1p')" = "## v$version"
-          if grep -q 'pulpe-release:' <<< "$RELEASE_NOTES"; then
+          if grep -q '<!-- pulpe-release:' <<< "$RELEASE_NOTES"; then
             exit 1
           fi
 

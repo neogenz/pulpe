@@ -1,8 +1,10 @@
 ---
-status: pending
+status: in-progress
 ---
 
 # Instruction: Publier depuis GitHub et retirer l'ancien bypass
+
+The canary slice adds `production.yml` beside the current main CI. It does not move migrations, PostHog, CSP, or iOS distribution yet: those removals happen only after one real release proves the complete happy path.
 
 ## Architecture projection
 
