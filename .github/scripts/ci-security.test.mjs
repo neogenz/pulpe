@@ -210,8 +210,14 @@ test("production publishes only an approved and proven release", () => {
   assert.match(production, /repos\/\$GITHUB_REPOSITORY\/releases/);
   assert.match(production, /RAILWAY_PREVIEW_TOKEN/);
   assert.match(production, /RAILWAY_PRODUCTION_TOKEN/);
+  assert.match(
+    production,
+    /RAILWAY_CLI_SHA256: d302113b772b8f34d28ed2242c1d258953de989c282d4cc72291239ccb0fb041/,
+  );
+  assert.match(production, /sha256sum --check/);
+  assert.doesNotMatch(production, /npx --yes "@railway\/cli/);
   assert.match(production, /LATEST_WEB_VERSION=\$VERSION/);
-  assert.match(production, /redeploy --project "\$RAILWAY_PROJECT"/);
+  assert.match(production, /railway redeploy --project "\$RAILWAY_PROJECT"/);
   assert.doesNotMatch(production, /LATEST_IOS_VERSION|MIN_WEB_VERSION/);
   assert.ok(
     production.indexOf("Upload production proof") <

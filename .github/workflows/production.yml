@@ -21,6 +21,7 @@ jobs:
     timeout-minutes: 90
     env:
       RAILWAY_CLI_VERSION: "5.15.0"
+      RAILWAY_CLI_SHA256: d302113b772b8f34d28ed2242c1d258953de989c282d4cc72291239ccb0fb041
       RAILWAY_PROJECT: 33ba829c-d4d6-4096-b0dc-57c89c367063
       RAILWAY_SERVICE: b1f9b1c0-7eca-4c58-b203-cdbbed8ae0a4
     steps:
@@ -140,6 +141,18 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
+      - name: Install verified Railway CLI
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/railway.tar.gz"
+          bin_dir="$RUNNER_TEMP/railway-cli"
+          curl --fail --silent --show-error --location "https://github.com/railwayapp/cli/releases/download/v$RAILWAY_CLI_VERSION/railway-v$RAILWAY_CLI_VERSION-x86_64-unknown-linux-gnu.tar.gz" --output "$archive"
+          echo "$RAILWAY_CLI_SHA256  $archive" | sha256sum --check
+          mkdir -p "$bin_dir"
+          tar --extract --gzip --file "$archive" --directory "$bin_dir"
+          test -x "$bin_dir/railway"
+          echo "$bin_dir" >> "$GITHUB_PATH"
+
       - name: Verify Railway credentials before publication
         env:
           PREVIEW_TOKEN: ${{ secrets.RAILWAY_PREVIEW_TOKEN }}
@@ -149,7 +162,7 @@ jobs:
           for environment in preview production; do
             if [ "$environment" = preview ]; then token="$PREVIEW_TOKEN"; else token="$PRODUCTION_TOKEN"; fi
             test -n "$token"
-            RAILWAY_TOKEN="$token" npx --yes "@railway/cli@$RAILWAY_CLI_VERSION" variable list --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --json > "$RUNNER_TEMP/railway-$environment.json"
+            RAILWAY_TOKEN="$token" railway variable list --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --json > "$RUNNER_TEMP/railway-$environment.json"
             jq -e 'type == "object"' "$RUNNER_TEMP/railway-$environment.json" >/dev/null
           done
 
@@ -208,14 +221,14 @@ jobs:
             local live_version before id status
             live_version=$(curl --fail --silent --show-error --location --max-time 20 "$endpoint" | jq -r .data.web.latestVersion || true)
             if [ "$live_version" != "$VERSION" ]; then
-              before=$(RAILWAY_TOKEN="$token" npx --yes "@railway/cli@$RAILWAY_CLI_VERSION" deployment list --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --limit 1 --json | jq -r '.[0].id // empty')
+              before=$(RAILWAY_TOKEN="$token" railway deployment list --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --limit 1 --json | jq -r '.[0].id // empty')
               if jq -e --arg version "$VERSION" '.LATEST_WEB_VERSION == $version' "$vars" >/dev/null; then
-                RAILWAY_TOKEN="$token" npx --yes "@railway/cli@$RAILWAY_CLI_VERSION" redeploy --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --yes --json >/dev/null
+                RAILWAY_TOKEN="$token" railway redeploy --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --yes --json >/dev/null
               else
-                RAILWAY_TOKEN="$token" npx --yes "@railway/cli@$RAILWAY_CLI_VERSION" variable set "LATEST_WEB_VERSION=$VERSION" --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --json >/dev/null
+                RAILWAY_TOKEN="$token" railway variable set "LATEST_WEB_VERSION=$VERSION" --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --json >/dev/null
               fi
               for _ in {1..120}; do
-                RAILWAY_TOKEN="$token" npx --yes "@railway/cli@$RAILWAY_CLI_VERSION" deployment list --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --limit 1 --json > "$RUNNER_TEMP/deployment-$environment.json"
+                RAILWAY_TOKEN="$token" railway deployment list --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --limit 1 --json > "$RUNNER_TEMP/deployment-$environment.json"
                 id=$(jq -r '.[0].id // empty' "$RUNNER_TEMP/deployment-$environment.json")
                 status=$(jq -r '.[0].status // empty' "$RUNNER_TEMP/deployment-$environment.json")
                 case "$status" in FAILED|CRASHED|REMOVED|CANCELED) exit 1 ;; esac
