@@ -1,6 +1,6 @@
 ---
 objective: "Close the Android audit's security and correctness risks, then reduce its verified maintenance and delivery debt without changing financial rules."
-status: in-progress
+status: blocked
 ---
 
 # Plan: Android audit corrections

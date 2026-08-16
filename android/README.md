@@ -36,11 +36,18 @@ pnpm dev:android
 | `pnpm dev:android`                            | Builds `shared`, then starts Metro against a device       |
 | `pnpm build:android`                          | `expo export` — the only check that Metro resolves it all |
 | `pnpm --filter pulpe-android test`            | Jest                                                      |
+| `pnpm --filter pulpe-android test:e2e`        | Maestro smoke flow on an installed preview APK            |
 | `pnpm --filter pulpe-android quality`         | tsc + eslint + prettier                                   |
 | `pnpm --filter pulpe-android native:generate` | Regenerates the native project                            |
 
-CI needs no dedicated Android job: the package is a Turborepo workspace, so the
-existing `build`, `test-unit` and `quality` jobs already cover it.
+GitHub CI needs no duplicate Android job: the package is a Turborepo workspace,
+so the existing `build`, `test-unit` and `quality` jobs already cover it. EAS
+Workflows owns the preview APK plus Maestro emulator smoke test.
+
+The E2E command expects a running Android emulator, a preview APK already
+installed, and a reachable backend. Local Supabase must contain the seeded
+`demo@pulpe.test` account and its unchecked `Loyer`; override it with
+`MAESTRO_EMAIL`, `MAESTRO_PASSWORD` and `MAESTRO_PIN` when needed.
 
 The native regeneration script is called `native:generate` and not `prebuild`,
 because npm and pnpm treat `prebuild` as the lifecycle hook of `build` — naming it

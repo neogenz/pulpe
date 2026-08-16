@@ -3,14 +3,13 @@
 # The one that must never break: the vault is the only screen in Pulpe with no
 # way around it, so a user who cannot get past the PIN has no app at all.
 #
-# Credentials come from the environment; the defaults are the local seed
+# EAS injects protected MAESTRO_* variables. Local runs fall back to the seed
 # account (`backend-nest/supabase/seed.sql`), which exists nowhere else.
-#   maestro test -e EMAIL=… -e PASSWORD=… -e PIN=1234 maestro/login-vault.yaml
 appId: app.pulpe.android
 env:
-  EMAIL: demo@pulpe.test
-  PASSWORD: local-demo-only
-  PIN: "1234"
+  EMAIL: ${MAESTRO_EMAIL || "demo@pulpe.test"}
+  PASSWORD: ${MAESTRO_PASSWORD || "local-demo-only"}
+  PIN: ${MAESTRO_PIN || "1234"}
 ---
 - launchApp:
     clearState: true
