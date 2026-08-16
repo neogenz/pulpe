@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: « Ton suivi » et « Retraits » en ledger : une carte par groupe, rangées séparées d'un filet
