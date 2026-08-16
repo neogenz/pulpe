@@ -124,6 +124,8 @@ docs/angular-architecture-for-enterprise.md
 .agents/skills/*
 !.agents/skills/product-owner
 !.agents/skills/release
+!.agents/skills/refresh-pulpe-app-store-captures/
+!.agents/skills/refresh-pulpe-app-store-captures/**
 .agent/skills/
 .gemini/skills/
 .claude/skills/*
