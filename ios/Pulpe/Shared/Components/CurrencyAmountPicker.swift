@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Capsule pill selector for choosing input currency in amount forms.
+/// Currency selector for amount forms.
 /// When `isReadOnly` is `true`, renders a non-interactive capsule.
 struct CurrencyAmountPicker: View {
     @Binding var selectedCurrency: SupportedCurrency
