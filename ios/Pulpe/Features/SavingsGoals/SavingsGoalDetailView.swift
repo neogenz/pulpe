@@ -141,7 +141,10 @@ struct SavingsGoalDetailView: View {
     @ViewBuilder
     private func content(progress: SavingsGoalProgress) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+            // Section rhythm of the home: `xxl` between sections, `md` from a
+            // title to the card it introduces — the 2:1 ratio that tells which
+            // block a header belongs to.
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
                 hero(progress)
                 if progress.linkedLineCount == 0 {
                     GoalEmptyGuidanceCard()

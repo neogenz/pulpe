@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: `SectionHeader` partagé, sections de l'objectif alignées sur la home

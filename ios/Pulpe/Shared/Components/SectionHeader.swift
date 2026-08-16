@@ -6,7 +6,7 @@ import SwiftUI
 /// It replaces the bare chevrons the home used to carry: each sat half a screen from
 /// the title it belonged to and never said where it went. A named link says both, and
 /// reads as a link because that is what it is.
-struct HomeSectionHeader: View {
+struct SectionHeader: View {
     let title: String
     /// Optional figure under the title — a window total, an overrun. Always an amount,
     /// so the header can treat every one of them the same way.
@@ -16,6 +16,9 @@ struct HomeSectionHeader: View {
     /// value means the compiler refuses both halves of that rather than the header
     /// silently dropping the link.
     var link: (label: String, action: () -> Void)?
+    /// Identifier for the link button, when a screen's tests need to reach it by
+    /// name. The header composes the a11y label itself, so this only names the node.
+    var linkAccessibilityIdentifier: String?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -88,21 +91,22 @@ struct HomeSectionHeader: View {
             // Out of its visual context "Tout voir" names nothing; paired with the
             // section it does, and that saves every call site a hint of its own.
             .accessibilityLabel("\(link.label), \(title)")
+            .ifLet(linkAccessibilityIdentifier) { view, id in view.accessibilityIdentifier(id) }
         }
     }
 }
 
 #Preview {
     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
-        HomeSectionHeader(title: "Opérations à pointer", link: (label: "Tout voir", action: {}))
+        SectionHeader(title: "Opérations à pointer", link: (label: "Tout voir", action: {}))
 
-        HomeSectionHeader(
+        SectionHeader(
             title: "Activité",
             amountSubtitle: "+4 871 CHF",
             link: (label: "Tout voir", action: {})
         )
 
-        HomeSectionHeader(title: "Sans lien", amountSubtitle: "142 CHF au-delà du plan")
+        SectionHeader(title: "Sans lien", amountSubtitle: "142 CHF au-delà du plan")
     }
     .padding()
     .frame(maxWidth: .infinity, alignment: .leading)

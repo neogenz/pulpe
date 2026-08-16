@@ -87,24 +87,11 @@ struct GoalPlanTimelineSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Text("Ton plan, mois par mois")
-                    .font(PulpeTypography.title2)
-                    .foregroundStyle(Color.textPrimary)
-
-                Spacer(minLength: DesignTokens.Spacing.sm)
-
-                if canAdjust {
-                    Button(action: onAdjust) {
-                        Label("Ajuster", systemImage: "slider.horizontal.3")
-                            .font(PulpeTypography.buttonSecondary)
-                    }
-                    .frame(minHeight: DesignTokens.TapTarget.minimum)
-                    .textLinkButtonStyle()
-                    .accessibilityLabel("Ajuster le plan")
-                    .accessibilityIdentifier("savingsGoalAdjustPlanButton")
-                }
-            }
+            SectionHeader(
+                title: AppLocale.string("Ton plan, mois par mois"),
+                link: canAdjust ? (label: AppLocale.string("Ajuster"), action: onAdjust) : nil,
+                linkAccessibilityIdentifier: "savingsGoalAdjustPlanButton"
+            )
 
             if canRepair {
                 GoalInfoCard(
@@ -119,35 +106,6 @@ struct GoalPlanTimelineSection: View {
             }
 
             timelineCard
-
-            if presentation.canToggle {
-                Button {
-                    withAnimation(DesignTokens.Animation.gentleSpring) { isExpanded.toggle() }
-                } label: {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        if isExpanded {
-                            Text("Voir moins")
-                        } else {
-                            Text("Voir tout le plan (\(months.count) mois)")
-                        }
-                        Spacer()
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .accessibilityHidden(true)
-                    }
-                }
-                .frame(
-                    maxWidth: .infinity,
-                    minHeight: DesignTokens.TapTarget.minimum,
-                    alignment: .leading
-                )
-                .contentShape(Rectangle())
-                .textLinkButtonStyle()
-                .accessibilityHint(
-                    isExpanded
-                        ? AppLocale.string("Réduit la liste des mois")
-                        : AppLocale.string("Affiche tous les mois")
-                )
-            }
 
             if presentation.remainingUnlinkedMonthCount > 0 {
                 Text("\(presentation.remainingUnlinkedMonthCount) mois restants sans prévision liée à cet objectif.")
@@ -173,10 +131,45 @@ struct GoalPlanTimelineSection: View {
                     onOpenBudget: budgetAction(for: month)
                 )
             }
+            // Le toggle est la dernière rangée du plan, pas une ligne nue sur le
+            // canvas : un filet le sépare des mois, la carte le contient.
+            if presentation.canToggle {
+                Divider().foregroundStyle(Color.textTertiary.opacity(DesignTokens.Opacity.secondary))
+                expandToggle
+            }
         }
         // pulpeCard() porte déjà l'inset lg — un padding ici le doublait (32pt)
         // et désalignait cette carte de « Ton suivi » juste en dessous.
         .pulpeCard()
+    }
+
+    private var expandToggle: some View {
+        Button {
+            withAnimation(DesignTokens.Animation.gentleSpring) { isExpanded.toggle() }
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                if isExpanded {
+                    Text("Voir moins")
+                } else {
+                    Text("Voir tout le plan (\(months.count) mois)")
+                }
+                Spacer()
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(
+            maxWidth: .infinity,
+            minHeight: DesignTokens.TapTarget.minimum,
+            alignment: .leading
+        )
+        .contentShape(Rectangle())
+        .textLinkButtonStyle()
+        .accessibilityHint(
+            isExpanded
+                ? AppLocale.string("Réduit la liste des mois")
+                : AppLocale.string("Affiche tous les mois")
+        )
     }
 
     private func budgetAction(for month: SavingsGoalPlanMonth) -> (() -> Void)? {

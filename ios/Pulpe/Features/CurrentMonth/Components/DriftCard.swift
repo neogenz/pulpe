@@ -58,7 +58,7 @@ struct DriftCard: View {
             // No link on this heading: the card ends on "Rattraper", which goes to the
             // same place and names the remedy. Two ways into the budget, one of them
             // unnamed, is the arrangement this screen is getting rid of.
-            HomeSectionHeader(
+            SectionHeader(
                 title: AppLocale.string("Ça dérive"),
                 amountSubtitle: subtitle
             )

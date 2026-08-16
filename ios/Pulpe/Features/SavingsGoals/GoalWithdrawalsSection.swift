@@ -163,9 +163,7 @@ struct GoalWithdrawalsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Retraits")
-                .font(PulpeTypography.title2)
-                .foregroundStyle(Color.textPrimary)
+            SectionHeader(title: AppLocale.string("Retraits"))
 
             if isLoading, withdrawals.isEmpty, planned.isEmpty, planOnly.isEmpty {
                 ProgressView("Chargement des retraits…")

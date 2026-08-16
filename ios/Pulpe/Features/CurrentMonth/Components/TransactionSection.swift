@@ -124,7 +124,7 @@ struct TransactionSection: View {
 
             expandCollapseButton
         } header: {
-            SectionHeader(
+            CountedSectionHeader(
                 title: title,
                 count: transactions.count,
                 totalAmount: totalAmount,

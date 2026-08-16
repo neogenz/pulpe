@@ -204,7 +204,7 @@ struct HomeHeroCard: View {
     /// marks a drill-in; an underline here would be a web idiom on an iOS surface.
     ///
     /// Standalone-row variant of the 44pt text link: this Button owns its row, so a frame
-    /// can carry the tap target outright. `HomeSectionHeader` reaches the same 44pt through
+    /// can carry the tap target outright. `SectionHeader` reaches the same 44pt through
     /// a padding sandwich instead, because there the link shares an HStack and a frame would
     /// grow the whole row — see `swiftui-hit-areas.md`. Two shapes, one rule, on purpose.
     private var verdictSentence: some View {

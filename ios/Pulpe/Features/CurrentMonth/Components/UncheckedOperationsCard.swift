@@ -104,7 +104,7 @@ struct UncheckedOperationsCard: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             // The count lives on the hero metric; this heading names the section only,
             // so the number is announced once per screen.
-            HomeSectionHeader(
+            SectionHeader(
                 title: AppLocale.string("Opérations à pointer"),
                 link: (label: AppLocale.string("Tout voir"), action: onViewAll)
             )

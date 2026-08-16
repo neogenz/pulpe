@@ -14,9 +14,7 @@ struct GoalContributionsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Ton suivi")
-                .font(PulpeTypography.title2)
-                .foregroundStyle(Color.textPrimary)
+            SectionHeader(title: AppLocale.string("Ton suivi"))
 
             if isLoading, contributions.isEmpty {
                 ProgressView("Chargement du suivi…")

@@ -86,7 +86,7 @@ struct ActivityCard: View {
         let groups = dayGroups(for: windowed)
 
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HomeSectionHeader(
+            SectionHeader(
                 title: AppLocale.string("Activité"),
                 amountSubtitle: headerTotal(for: windowed),
                 link: (label: AppLocale.string("Tout voir"), action: onViewAll)

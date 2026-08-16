@@ -160,36 +160,35 @@ struct GoalTrajectorySection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            Text("Ta trajectoire")
-                .font(PulpeTypography.title2)
-                .foregroundStyle(Color.textPrimary)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            SectionHeader(title: AppLocale.string("Ta trajectoire"))
                 .accessibilityIdentifier("savingsGoalTrajectoryTitle")
 
-            GoalProjectionChart(series: series, currency: currency)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                GoalProjectionChart(series: series, currency: currency)
 
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
-                let gap = Self.gapCopy(for: progress.cumulativeGap, currency: currency)
-                metric(
-                    label: gap.lead,
-                    value: gap.amount,
-                    isSensitive: true
-                )
-
-                Spacer(minLength: DesignTokens.Spacing.md)
-
-                if let completion = progress.estimatedCompletion {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
+                    let gap = Self.gapCopy(for: progress.cumulativeGap, currency: currency)
                     metric(
-                        label: AppLocale.string("Atteinte estimée"),
-                        value: periodLabel(completion),
-                        isSensitive: false,
-                        identifier: "savingsGoalEstimatedCompletion"
+                        label: gap.lead,
+                        value: gap.amount,
+                        isSensitive: true
                     )
+
+                    Spacer(minLength: DesignTokens.Spacing.md)
+
+                    if let completion = progress.estimatedCompletion {
+                        metric(
+                            label: AppLocale.string("Atteinte estimée"),
+                            value: periodLabel(completion),
+                            isSensitive: false,
+                            identifier: "savingsGoalEstimatedCompletion"
+                        )
+                    }
                 }
             }
+            .pulpeCard()
         }
-        .padding(DesignTokens.Spacing.lg)
-        .pulpeCardBackground()
     }
 
     @ViewBuilder
