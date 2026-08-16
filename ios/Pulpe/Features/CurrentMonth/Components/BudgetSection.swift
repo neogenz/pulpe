@@ -77,6 +77,7 @@ struct BudgetSection: View {
         Section {
             if let tip {
                 TipView(tip)
+                    .pulpeTipBackground()
                     .listRowSeparator(.hidden)
             }
 

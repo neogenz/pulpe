@@ -1,7 +1,10 @@
 import SwiftUI
 
 /// Tour 11 "opérations à pointer" — the section heading on the page, and under it a
-/// card holding an inline quick-check of one operation: "C'est passé" / "Plus tard".
+/// deck of quick-check cards, one operation per card: "C'est passé" / "Plus tard".
+/// The neighbouring cards peek at the screen edges as tickets tucked behind the focused
+/// one, so the deck reads as swipeable without a single affordance drawn on it. The deck
+/// is a cycle: a turn past either end comes out on the other side.
 struct UncheckedOperationsCard: View {
     let items: [CurrentMonthStore.CheckableItem]
     var tagNamesById: [String: String] = [:]
@@ -13,45 +16,91 @@ struct UncheckedOperationsCard: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var skippedIds: Set<String> = []
     @State private var checkTrigger = false
     @State private var skipTrigger = false
+    /// The slot the deck is resting on or heading to — derived from scroll geometry on
+    /// every tick, so it stays honest even between two alignments.
+    @State private var scrolledId: String?
+    /// Programmatic handle on the scroll: the turns, the appear seed, and the exact
+    /// one-cycle offset shifts that keep the loop endless.
+    @State private var position = ScrollPosition(idType: String.self)
+    /// Where the deck should land once the confirmed card leaves the store, computed at
+    /// tap time while the confirmed card still anchors the order. Confirming the last
+    /// card targets the wrap copy of the first, so the handover keeps turning forward.
+    @State private var successorId: String?
     /// The operation currently showing its local "Pointé" confirmation, held from the tap
-    /// until the store drops it — the round-trip is too slow to be the only acknowledgement.
+    /// until its exit animation completes — the round-trip is too slow to be the only
+    /// acknowledgement, and the exiting card keeps the top layer for as long as it is set.
     @State private var confirmingId: String?
+    /// A "Plus tard" turn in flight. Spam-clicks used to pile animated scroll targets on
+    /// top of each other until they cancelled out and the deck froze between two cards.
+    @State private var isTurning = false
+    /// Mirror of `items`, one commit behind the store. The deck renders from it because
+    /// owning the removal locally is what puts the confirmed card's exit and the deck's
+    /// slide to the successor in a single animated transaction — dropped straight from
+    /// `items`, the ScrollView resolves the vanished scroll target instantly and the
+    /// closing animation is cut.
+    @State private var displayItems: [CurrentMonthStore.CheckableItem]
+
+    init(
+        items: [CurrentMonthStore.CheckableItem],
+        tagNamesById: [String: String] = [:],
+        syncingBudgetLineIds: Set<String>,
+        syncingTransactionIds: Set<String>,
+        onToggle: @escaping (CurrentMonthStore.CheckableItem) -> Void,
+        onViewAll: @escaping () -> Void
+    ) {
+        self.items = items
+        self.tagNamesById = tagNamesById
+        self.syncingBudgetLineIds = syncingBudgetLineIds
+        self.syncingTransactionIds = syncingTransactionIds
+        self.onToggle = onToggle
+        self.onViewAll = onViewAll
+        _displayItems = State(initialValue: items)
+    }
+
+    /// What the deck shows: membership and order owned by `displayItems` (so an exiting
+    /// card survives its transition), values refreshed from the store on every render.
+    private var deckItems: [CurrentMonthStore.CheckableItem] {
+        displayItems.map { shown in items.first { $0.id == shown.id } ?? shown }
+    }
+
+    /// The rendered deck: every operation once under its own id, framed by a full wrap
+    /// copy of the cycle on each side. Three identical cycles are what make a one-cycle
+    /// offset shift pixel-invisible — that shift, applied mid-scroll by
+    /// `handleScrollGeometry`, is what closes the loop; the full copies give it half a
+    /// cycle of margin on each side so it always fires far from either content edge.
+    private var deckSlots: [DeckSlot] {
+        let cards = deckItems
+        guard cards.count > 1 else { return cards.map(DeckSlot.init(real:)) }
+        let before = cards.map { DeckSlot(wrapCopyOf: $0, past: .leading) }
+        let after = cards.map { DeckSlot(wrapCopyOf: $0, past: .trailing) }
+        return before + cards.map(DeckSlot.init(real:)) + after
+    }
 
     /// SwiftUI removes a view with the transition captured at its LAST render, not the one
     /// computed alongside the removal — so an exit direction stored in a flag flipped in the
     /// same transaction arrives one animation late. The only removal-time signal that is
-    /// always fresh is the pane's own confirmation state: `confirmingId` is committed one
-    /// beat before a check's removal and nil otherwise.
-    ///
-    /// Vocabulary: every new operation arrives the same way (slides in from leading — next
-    /// in the queue). Only the exit differs, and it depends solely on what was done to THIS
-    /// item: confirmed resolves upward and settles; deferred slides out to trailing.
+    /// always fresh is the card's own confirmation state: `confirmingId` is committed one
+    /// beat before a check's removal and nil otherwise. Confirmed resolves upward and
+    /// settles; any other arrival or removal (a refresh reshuffling the list) fades, the
+    /// deck's own slide carrying the motion.
     private func paneTransition(for item: CurrentMonthStore.CheckableItem) -> AnyTransition {
-        guard !reduceMotion else { return .opacity }
-        let insertion = AnyTransition.opacity.combined(with: .move(edge: .leading))
-        if confirmingId == item.id {
-            return .asymmetric(
-                insertion: insertion,
-                removal: .opacity.combined(with: .push(from: .bottom))
-                    .combined(with: .scale(scale: DesignTokens.Animation.settleScale))
-            )
-        }
+        guard !reduceMotion, confirmingId == item.id else { return .opacity }
         return .asymmetric(
-            insertion: insertion,
-            removal: .opacity.combined(with: .move(edge: .trailing))
+            insertion: .opacity,
+            removal: .opacity.combined(with: .push(from: .bottom))
+                .combined(with: .scale(scale: DesignTokens.Animation.settleScale))
         )
     }
 
     private var currency: SupportedCurrency { userSettingsStore.currency }
 
-    /// The operation currently offered for inline check — first one not skipped via "Plus tard".
-    /// Falls back to the first item when every live item has been skipped, so pointing an
-    /// operation while others are skipped can never strand the pane hidden while ops remain.
-    private var currentItem: CurrentMonthStore.CheckableItem? {
-        items.first { !skippedIds.contains($0.id) } ?? items.first
+    /// The card the deck is resting on — the only one whose buttons answer taps.
+    private var focusedId: String? { scrolledId ?? displayItems.first?.id }
+
+    private var deckAnimation: SwiftUI.Animation {
+        reduceMotion ? DesignTokens.Animation.smoothEaseOut : DesignTokens.Animation.gentleSpring
     }
 
     private func isSyncing(_ item: CurrentMonthStore.CheckableItem) -> Bool {
@@ -70,32 +119,118 @@ struct UncheckedOperationsCard: View {
                 link: (label: AppLocale.string("Tout voir"), action: onViewAll)
             )
 
-            // The card is the stable frame and the operations swap inside it: it clips
-            // the pane, so one slides out and the next slides in without either of them
-            // travelling over the page.
-            VStack(spacing: DesignTokens.Spacing.none) {
-                if let item = currentItem {
-                    inlinePane(item)
-                        .id(item.id)
-                        .transition(paneTransition(for: item))
-                }
-            }
-            .pulpeRowCard()
+            deck
         }
-        .animation(
-            reduceMotion ? DesignTokens.Animation.smoothEaseOut : DesignTokens.Animation.gentleSpring,
-            value: currentItem?.id
-        )
         .sensoryFeedback(.success, trigger: checkTrigger)
         .sensoryFeedback(.selection, trigger: skipTrigger)
-        .onChange(of: currentItem?.id) { _, _ in
-            // The next operation must start from a clean slate, not inherit the confirmation.
-            confirmingId = nil
+        .onChange(of: items.map(\.id)) { _, newIds in
+            // One transaction for the whole handover: the confirmed card plays its exit
+            // (it only leaves `displayItems` here, inside the animation) while the deck
+            // slides its successor into the focus slot. `confirmingId` survives until
+            // the exit completes so the closing card keeps the top layer and the
+            // buttons stay quiet, then the next card starts from a clean slate.
+            seedPositionIfNeeded(first: newIds.first)
+            withAnimation(deckAnimation) {
+                if let focused = focusedId, !newIds.contains(focused),
+                   let target = successorId ?? newIds.first {
+                    position.scrollTo(id: target)
+                }
+                displayItems = items
+            } completion: {
+                settleScrolledId()
+                successorId = nil
+                confirmingId = nil
+            }
         }
         // `.contain` scopes the identifier to a container node; bare, it would
         // propagate onto every child and clobber the rows' own identifiers.
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("homeUncheckedOperationsCard")
+    }
+
+    // MARK: - Deck
+
+    /// The page hangs everything on one rail (the `Spacing.xxl` content margin applied
+    /// by CurrentMonthView). A deck can only peek if it escapes that rail: it cancels
+    /// the margin, runs full-bleed, and re-applies the same token as a scroll content
+    /// margin — the focused card sits exactly on the rail while its neighbours own the
+    /// edges. A plain HStack, not lazy: removal transitions don't play inside lazy
+    /// containers, and the list is at most a month's unchecked operations.
+    private var deck: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                ForEach(deckSlots) { slot in
+                    inlinePane(slot.item)
+                        .pulpeRowCard()
+                        .containerRelativeFrame(.horizontal)
+                        .scrollTransition(.interactive, axis: .horizontal) { content, phase in
+                            // Tucked neighbours: scale AND turn both pivot on the inner
+                            // edge — the peek width survives the shrink, and the 3D
+                            // projection grows toward the screen edge instead of
+                            // swelling inward over the focused card. Under Reduce
+                            // Motion the turn goes; scale and fade are resting states
+                            // that only track the user's own finger.
+                            let depth = abs(phase.value)
+                            let innerEdge: UnitPoint = phase.value > 0 ? .leading : .trailing
+                            return content
+                                .scaleEffect(
+                                    1 - depth * DesignTokens.Deck.tuckScaleDrop,
+                                    anchor: innerEdge
+                                )
+                                .rotation3DEffect(
+                                    .degrees(reduceMotion ? 0 : phase.value * DesignTokens.Deck.turnDegrees),
+                                    axis: (x: 0, y: 1, z: 0),
+                                    anchor: innerEdge
+                                )
+                                .opacity(1 - depth * DesignTokens.Deck.tuckFade)
+                        }
+                        // An HStack paints later siblings on top, so the trailing
+                        // neighbour — its shadow and its perspective projection — would
+                        // ride over the focused card. The focused card owns the top
+                        // layer (and a card playing its confirmed exit keeps it, so it
+                        // closes above the successor sliding in); behind it the natural
+                        // order keeps each billet under the one nearer the focus.
+                        .zIndex(slot.id == focusedId || (slot.isReal && slot.item.id == confirmingId) ? 1 : 0)
+                        // Only the focused card answers taps: a peeking sliver exposes
+                        // the leading edge of its neighbour's own "C'est passé", and one
+                        // stray tap there would point an operation the user barely sees.
+                        // VoiceOver still reaches every real card — hit testing gates
+                        // touch, not accessibility activation — and skips the wrap
+                        // copies, which would read as duplicates.
+                        .allowsHitTesting(slot.isReal && slot.id == focusedId)
+                        .accessibilityHidden(!slot.isReal)
+                        .transition(slot.isReal ? paneTransition(for: slot.item) : .opacity)
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .contentMargins(.horizontal, DesignTokens.Spacing.xxl, for: .scrollContent)
+        // One turn per gesture: a flick advances one card, so a run of flicks spends
+        // the wrap runway one slot at a time instead of leaping through it.
+        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+        .scrollPosition($position)
+        .scrollIndicators(.hidden)
+        .scrollClipDisabled()
+        // Untouchable mid-turn: a touch stops the programmatic scroll dead between slots.
+        .allowsHitTesting(confirmingId == nil && !isTurning)
+        .onScrollGeometryChange(for: [CGFloat].self) { geo in
+            [geo.visibleRect.midX, geo.contentSize.width, geo.contentOffset.x]
+        } action: { _, values in
+            handleScrollGeometry(midX: values[0], contentWidth: values[1], offsetX: values[2])
+        }
+        // The turn guard is released here: `withAnimation`'s completion doesn't track
+        // scroll animations and fires at once, letting a second tap kill both turns.
+        .onScrollPhaseChange { _, newPhase in
+            guard newPhase == .idle else { return }
+            isTurning = false
+            settleScrolledId()
+        }
+        // Seeded here too: an initial position value performs no scroll and left the deck
+        // at offset zero, on a wrap copy with dead buttons and no left peek.
+        .onAppear {
+            seedPositionIfNeeded(first: displayItems.first?.id)
+        }
+        .padding(.horizontal, -DesignTokens.Spacing.xxl)
     }
 
     // MARK: - Inline Quick-Check
@@ -216,14 +351,18 @@ struct UncheckedOperationsCard: View {
         let isConfirming = confirmingId == item.id
 
         return Button {
-            guard confirmingId == nil else { return }
+            guard confirmingId == nil, !isTurning else { return }
             checkTrigger.toggle()
+            // Where the deck lands once the store drops this card: the operation that
+            // was next in line. Confirming the last card targets the wrap copy of the
+            // first, so the handover turns forward — the same way the deck does.
+            successorId = DeckCycle.successorId(after: item.id, in: displayItems.map(\.id))
             // Beat one: the capsule commits to solid green immediately, so the tap is
             // acknowledged now rather than whenever the network answers.
             withAnimation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring) {
                 confirmingId = item.id
             }
-            // Beat two: the store drops the item and the pane resolves upward.
+            // Beat two: the store drops the item and the card resolves upward.
             onToggle(item)
         } label: {
             // The capsule this used to hand-roll was `ChipMetrics.Standard` rewritten by
@@ -244,17 +383,12 @@ struct UncheckedOperationsCard: View {
 
     private func skipButton(_ item: CurrentMonthStore.CheckableItem) -> some View {
         Button {
-            guard confirmingId == nil else { return }
+            guard confirmingId == nil, !isTurning else { return }
             skipTrigger.toggle()
-            withAnimation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring) {
-                _ = skippedIds.insert(item.id)
-                // Wrap around: once every item has been skipped, restart the
-                // rotation so the inline pane keeps offering operations to point
-                // instead of vanishing while some are still "à pointer".
-                if items.allSatisfy({ skippedIds.contains($0.id) }) {
-                    skippedIds.removeAll()
-                }
-            }
+            // "Plus tard" is a turn of the deck: the card stays in the rotation and the
+            // deck advances to the next one — the same move a swipe makes, kept as a
+            // button so the choice stays explicit and reachable without the gesture.
+            advance(after: item)
         } label: {
             // A bounded shape, not bare grey text. Two boxes of one size read as the two
             // terms of a choice; text alone at the far end of a row read as a caption that
@@ -264,13 +398,13 @@ struct UncheckedOperationsCard: View {
             PulpeChip(
                 label: AppLocale.string("Plus tard"),
                 style: .muted,
-                // During the "Pointé" beat the guard already ignores taps; without the
-                // visual disable the button looks live and silently does nothing.
-                isDisabled: confirmingId != nil
+                // Dead with one card left (nothing to turn to) or during the "Pointé" beat
+                // (guard already ignores taps); without the visual disable it looks live.
+                isDisabled: confirmingId != nil || displayItems.count <= 1
             )
         }
         .plainPressedButtonStyle()
-        .disabled(confirmingId != nil)
+        .disabled(confirmingId != nil || displayItems.count <= 1)
         .accessibilityLabel("Plus tard pour \(item.name)")
     }
 
@@ -300,6 +434,74 @@ struct UncheckedOperationsCard: View {
             transaction.amount.asSignedAmount(for: transaction.kind, in: currency)
         case .budgetLine(let line, _):
             line.amount.asSignedAmount(for: line.kind, in: currency)
+        }
+    }
+}
+
+// MARK: - Cycle Mechanics
+
+private extension UncheckedOperationsCard {
+    /// Seeds the scroll position once — called from both `.onChange` and `.onAppear` below.
+    func seedPositionIfNeeded(first: String?) {
+        guard scrolledId == nil, let first else { return }
+        scrolledId = first
+        position.scrollTo(id: first)
+    }
+
+    /// Canonicalizes `scrolledId` once a transition or scroll settles: at rest on a wrap
+    /// copy, it rebases onto the real card that copy mirrors — same content, same peeks,
+    /// nothing moves on screen. A real id the 2 → 1 collapse orphaned (no slot left to
+    /// answer to, `DeckCycle.reconciledScrolledId`) falls back to the deck's first card.
+    func settleScrolledId() {
+        guard let current = scrolledId else { return }
+        let next = DeckSlot.realId(fromWrapId: current)
+            ?? DeckCycle.reconciledScrolledId(current: current, ids: displayItems.map(\.id))
+        guard next != current else { return }
+        scrolledId = next
+        if let next { position.scrollTo(id: next) }
+    }
+
+    /// The endless half of the loop, run on every scroll tick. The content is three identical
+    /// cycles side by side, so sliding the offset by exactly one cycle width shows the exact
+    /// same pixels: whenever the scroll sinks half a cycle into either wrap zone — mid-flight
+    /// included — it is slid one cycle back toward the middle, and the runway never ends. The
+    /// focused slot falls out of the same geometry, as the slot under the viewport's centre;
+    /// one card has no cycle to recentre but still needs its focus tracked, below.
+    func handleScrollGeometry(midX: CGFloat, contentWidth: CGFloat, offsetX: CGFloat) {
+        let cardIds = displayItems.map(\.id)
+        guard let onlyId = cardIds.first else { return }
+        guard cardIds.count > 1 else {
+            if onlyId != scrolledId { scrolledId = onlyId }
+            return
+        }
+        guard contentWidth > 0 else { return }
+        // Assumes `contentSize.width` excludes the `contentMargins(.horizontal, Spacing.xxl)` below;
+        // if wrong, `slotSpan` drifts by `2·xxl / (3N)` per slot — harmless only because
+        // `uncheckedItems` caps at 5 (`CurrentMonthStore.maxDashboardItems`).
+        let slotSpan = (contentWidth + DesignTokens.Spacing.xs) / CGFloat(cardIds.count * 3)
+        let cycleWidth = slotSpan * CGFloat(cardIds.count)
+        let index = min(max(0, Int(midX / slotSpan)), cardIds.count * 3 - 1)
+        let focused = DeckCycle.focusedId(atFlatIndex: index, cards: cardIds)
+        if focused != scrolledId { scrolledId = focused }
+        if midX < cycleWidth * 0.5 {
+            position.scrollTo(x: offsetX + cycleWidth)
+        } else if midX > cycleWidth * 2.5 {
+            position.scrollTo(x: offsetX - cycleWidth)
+        }
+    }
+
+    /// One turn of the deck forward — the move a swipe makes. On the last card the turn
+    /// continues onto the wrap copy of the first, then rebases: the cycle never plays
+    /// the deck backwards.
+    func advance(after item: CurrentMonthStore.CheckableItem) {
+        guard displayItems.count > 1,
+              let idx = displayItems.firstIndex(where: { $0.id == item.id }) else { return }
+        let target = idx == displayItems.count - 1
+            ? DeckSlot.wrapId(for: displayItems[0].id, at: .trailing)
+            : displayItems[idx + 1].id
+        isTurning = true
+        withAnimation(deckAnimation) {
+            position.scrollTo(id: target)
         }
     }
 }

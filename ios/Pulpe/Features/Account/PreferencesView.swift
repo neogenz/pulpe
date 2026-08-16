@@ -30,7 +30,7 @@ struct PreferencesView: View {
                 Text("JOUR DE PAIE")
                     .font(PulpeTypography.labelLarge)
             }
-            .listRowBackground(Color.surfaceContainerHigh)
+            .listRowSettingsBackground()
 
             Section {
                 Toggle("Rappels mensuels", isOn: reminderBinding)
@@ -41,7 +41,7 @@ struct PreferencesView: View {
             } footer: {
                 Text("Un rappel par mois, le jour de paie, pour pointer tes dépenses. Tu peux couper quand tu veux.")
             }
-            .listRowBackground(Color.surfaceContainerHigh)
+            .listRowSettingsBackground()
 
             Section {
                 Toggle(
@@ -62,7 +62,7 @@ struct PreferencesView: View {
                     n’est collecté.
                     """)
             }
-            .listRowBackground(Color.surfaceContainerHigh)
+            .listRowSettingsBackground()
         }
         .scrollContentBackground(.hidden)
         .pulpeBackground()

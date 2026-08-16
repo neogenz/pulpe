@@ -356,8 +356,8 @@ extension CurrentMonthView {
                 .frame(height: max(0, heroSurfaceBottom))
                 .clipShape(
                     .rect(
-                        bottomLeadingRadius: DesignTokens.CornerRadius.lg,
-                        bottomTrailingRadius: DesignTokens.CornerRadius.lg
+                        bottomLeadingRadius: DesignTokens.CornerRadius.zone,
+                        bottomTrailingRadius: DesignTokens.CornerRadius.zone
                     )
                 )
                 .shadow(DesignTokens.Shadow.zoneBoundary)

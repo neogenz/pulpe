@@ -73,6 +73,7 @@ struct TemplateListView: View {
                         webParityTip.invalidate(reason: .actionPerformed)
                     }
                 }
+                .pulpeTipBackground()
             }
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets(

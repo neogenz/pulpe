@@ -183,7 +183,7 @@ struct SavingsGoalFormSheet: View {
                 manualMonthlySection
             }
             if isEditing {
-                CapsulePicker(selection: $status, title: AppLocale.string("Statut")) { item, _ in
+                SegmentedPicker(selection: $status, title: AppLocale.string("Statut")) { item in
                     Text(item.label)
                 }
             }
