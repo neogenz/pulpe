@@ -115,11 +115,11 @@ jobs:
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: |
-            mkdir -p android/maestro-artifacts
-            trap 'status=$?; if [ "$status" -ne 0 ]; then adb exec-out screencap -p > android/maestro-artifacts/failure.png || true; adb logcat -d > android/maestro-artifacts/logcat.txt || true; fi; exit "$status"' EXIT
-            adb install -r android/android/app/build/outputs/apk/release/app-release.apk
-            maestro test android/maestro/smoke.yaml
+          script: >-
+            mkdir -p android/maestro-artifacts &&
+            adb install -r android/android/app/build/outputs/apk/release/app-release.apk &&
+            maestro test android/maestro/smoke.yaml ||
+            { status=$?; adb exec-out screencap -p > android/maestro-artifacts/failure.png || true; adb logcat -d > android/maestro-artifacts/logcat.txt || true; cp -R "$HOME/.maestro/tests" android/maestro-artifacts/maestro-tests || true; exit "$status"; }
 
       - name: Upload failure artifacts
         if: failure()
