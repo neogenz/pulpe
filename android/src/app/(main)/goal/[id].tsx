@@ -15,6 +15,7 @@ import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatIsoDate } from "@/core/ui/date-format";
+import { InlineQueryError } from "@/core/ui/inline-query-error";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
@@ -83,6 +84,20 @@ export default function GoalDetailScreen() {
     );
   }
 
+  if (goal.isError || progress.isError) {
+    return (
+      <PlaceholderScreen
+        icon="cloud-off-outline"
+        title="On n'a pas pu charger cet objectif"
+        hint="Vérifie ta connexion, puis réessaie."
+        action={{
+          label: "Réessayer",
+          onPress: () => void Promise.all([goal.refetch(), progress.refetch()]),
+        }}
+      />
+    );
+  }
+
   if (goal.data === undefined) {
     return (
       <PlaceholderScreen
@@ -95,6 +110,8 @@ export default function GoalDetailScreen() {
   }
 
   const lines = futureLines.data ?? [];
+  const areFutureLinesReady =
+    futureLines.data !== undefined && !futureLines.isError;
 
   /**
    * Stopping a goal is one decision; what happens to the forecasts it still
@@ -119,6 +136,7 @@ export default function GoalDetailScreen() {
         <Appbar.Action
           icon="pencil-outline"
           onPress={() => setEditVisible(true)}
+          disabled={!areFutureLinesReady}
           accessibilityLabel="Modifier l'objectif"
         />
         <Menu
@@ -165,7 +183,14 @@ export default function GoalDetailScreen() {
           <GoalProgressCard progress={progress.data} currency={currency} />
         )}
 
-        {progress.data !== undefined && (
+        {futureLines.isError && (
+          <InlineQueryError
+            message="Impossible de vérifier les prévisions futures de cet objectif."
+            onRetry={() => void futureLines.refetch()}
+          />
+        )}
+
+        {progress.data !== undefined && areFutureLinesReady && (
           <GoalStateCards
             progress={progress.data}
             status={goal.data.status}
@@ -195,7 +220,7 @@ export default function GoalDetailScreen() {
             months={progress.data.months}
             currency={currency}
             onAdjust={
-              goal.data.status === "ACTIVE"
+              goal.data.status === "ACTIVE" && areFutureLinesReady
                 ? () => setSimulatorVisible(true)
                 : undefined
             }
@@ -211,17 +236,31 @@ export default function GoalDetailScreen() {
           />
         )}
 
+        {withdrawals.isError && (
+          <InlineQueryError
+            message="Impossible de charger les retraits de cet objectif."
+            onRetry={() => void withdrawals.refetch()}
+          />
+        )}
+
         {contributions.data !== undefined && (
           <GoalContributions
             contributions={contributions.data}
             currency={currency}
           />
         )}
+
+        {contributions.isError && (
+          <InlineQueryError
+            message="Impossible de charger les versements de cet objectif."
+            onRetry={() => void contributions.refetch()}
+          />
+        )}
       </ScrollView>
 
       <GoalFormSheet
         key={goal.data.updatedAt}
-        isVisible={isEditVisible}
+        isVisible={isEditVisible && areFutureLinesReady}
         onDismiss={() => setEditVisible(false)}
         currency={currency}
         payDayOfMonth={payDayOfMonth}
@@ -229,7 +268,7 @@ export default function GoalDetailScreen() {
         onSaved={() => setEditVisible(false)}
       />
 
-      {progress.data !== undefined && (
+      {progress.data !== undefined && areFutureLinesReady && (
         <GoalPlanSimulatorSheet
           isVisible={isSimulatorVisible}
           onDismiss={() => setSimulatorVisible(false)}
@@ -240,15 +279,17 @@ export default function GoalDetailScreen() {
         />
       )}
 
-      <GoalGenerationStopSheet
-        isVisible={isStopVisible}
-        onDismiss={() => setStopVisible(false)}
-        goalId={id}
-        status={goal.data.status}
-        lines={lines}
-        currency={currency}
-        onApplied={() => setStopVisible(false)}
-      />
+      {areFutureLinesReady && (
+        <GoalGenerationStopSheet
+          isVisible={isStopVisible}
+          onDismiss={() => setStopVisible(false)}
+          goalId={id}
+          status={goal.data.status}
+          lines={lines}
+          currency={currency}
+          onApplied={() => setStopVisible(false)}
+        />
+      )}
 
       <GoalDeletionSheet
         isVisible={isDeleteVisible}

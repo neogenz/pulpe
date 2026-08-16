@@ -1,4 +1,5 @@
 import LottieView from "lottie-react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { Linking, StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -50,6 +51,7 @@ export function SystemGateScreen() {
   const gate = useSystemStore((state) => state.gate);
   const storeUrl = useSystemStore((state) => state.storeUrl);
   const isChecking = useSystemStore((state) => state.isChecking);
+  const shouldReduceMotion = useReducedMotion();
 
   if (gate === "ok") return null;
 
@@ -66,8 +68,8 @@ export function SystemGateScreen() {
       {gate === "maintenance" && (
         <LottieView
           source={require("../../../assets/lottie/maintenance-animation.json")}
-          autoPlay
-          loop
+          autoPlay={!shouldReduceMotion}
+          loop={!shouldReduceMotion}
           style={styles.animation}
         />
       )}
