@@ -3,18 +3,19 @@ import Foundation
 import Testing
 
 private actor ControlledUserSettingsService: UserSettingsServicing {
+    private var getContinuation: CheckedContinuation<UserSettings, Never>?
+    private var getWaiter: CheckedContinuation<Void, Never>?
     private var continuations: [SupportedLocale: CheckedContinuation<UserSettings, any Error>] = [:]
     private var waiters: [Int: CheckedContinuation<Void, Never>] = [:]
+    private var getCallCount = 0
     private(set) var callCount = 0
     private(set) var remoteLocale: SupportedLocale = .fr
 
     func getSettings() async throws -> UserSettings {
-        UserSettings(
-            payDayOfMonth: nil,
-            currency: .chf,
-            showCurrencySelector: false,
-            locale: remoteLocale
-        )
+        getCallCount += 1
+        getWaiter?.resume()
+        getWaiter = nil
+        return await withCheckedContinuation { getContinuation = $0 }
     }
 
     func updateSettings(_ settings: UpdateUserSettings) async throws -> UserSettings {
@@ -29,6 +30,23 @@ private actor ControlledUserSettingsService: UserSettingsServicing {
     func waitForCallCount(_ expected: Int) async {
         guard callCount < expected else { return }
         await withCheckedContinuation { waiters[expected] = $0 }
+    }
+
+    func waitForGetCall() async {
+        guard getCallCount == 0 else { return }
+        await withCheckedContinuation { getWaiter = $0 }
+    }
+
+    func completeGet(_ locale: SupportedLocale) {
+        getContinuation?.resume(
+            returning: UserSettings(
+                payDayOfMonth: nil,
+                currency: .chf,
+                showCurrencySelector: false,
+                locale: locale
+            )
+        )
+        getContinuation = nil
     }
 
     func succeed(_ locale: SupportedLocale) {
@@ -152,6 +170,32 @@ struct UserSettingsStoreLocaleTests {
         #expect(store.locale == .fr)
         #expect(AppLocale.current == .fr)
         #expect(store.error != nil)
+
+        store.reset()
+    }
+
+    @Test("A stale locale load cannot overwrite a successful update")
+    func updateLocale_cancelsStaleLoad() async {
+        AppLocale.persist(.fr)
+        let service = ControlledUserSettingsService()
+        let store = UserSettingsStore(service: service)
+
+        let staleLoad = Task { await store.forceRefresh() }
+        await service.waitForGetCall()
+        #expect(store.isLoading)
+
+        let update = Task { await store.updateLocale(.it) }
+        await service.waitForCallCount(1)
+        await service.succeed(.it)
+        await update.value
+        await service.completeGet(.fr)
+        await staleLoad.value
+
+        #expect(await service.remoteLocale == .it)
+        #expect(store.locale == .it)
+        #expect(AppLocale.current == .it)
+        #expect(store.isLoading == false)
+        #expect(store.error == nil)
 
         store.reset()
     }

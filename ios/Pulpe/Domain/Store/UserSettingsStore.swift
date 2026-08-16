@@ -143,6 +143,10 @@ final class UserSettingsStore: StoreProtocol {
     }
 
     func updateLocale(_ newLocale: SupportedLocale) async {
+        loadTask?.cancel()
+        loadTask = nil
+        loadGeneration += 1
+
         localeUpdateGeneration += 1
         let currentGeneration = localeUpdateGeneration
         let previousValue = locale
