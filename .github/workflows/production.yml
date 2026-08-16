@@ -205,9 +205,14 @@ jobs:
           update_gate() {
             local environment="$1" token="$2" endpoint="$3"
             local vars="$RUNNER_TEMP/railway-$environment.json"
-            if ! jq -e --arg version "$VERSION" '.LATEST_WEB_VERSION == $version' "$vars" >/dev/null; then
+            live_version=$(curl --fail --silent --show-error --location --max-time 20 "$endpoint" | jq -r .data.web.latestVersion || true)
+            if [ "$live_version" != "$VERSION" ]; then
               before=$(RAILWAY_TOKEN="$token" npx --yes "@railway/cli@$RAILWAY_CLI_VERSION" deployment list --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --limit 1 --json | jq -r '.[0].id // empty')
-              RAILWAY_TOKEN="$token" npx --yes "@railway/cli@$RAILWAY_CLI_VERSION" variable set "LATEST_WEB_VERSION=$VERSION" --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --json >/dev/null
+              if jq -e --arg version "$VERSION" '.LATEST_WEB_VERSION == $version' "$vars" >/dev/null; then
+                RAILWAY_TOKEN="$token" npx --yes "@railway/cli@$RAILWAY_CLI_VERSION" redeploy --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --yes --json >/dev/null
+              else
+                RAILWAY_TOKEN="$token" npx --yes "@railway/cli@$RAILWAY_CLI_VERSION" variable set "LATEST_WEB_VERSION=$VERSION" --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --json >/dev/null
+              fi
               for _ in {1..120}; do
                 RAILWAY_TOKEN="$token" npx --yes "@railway/cli@$RAILWAY_CLI_VERSION" deployment list --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --limit 1 --json > "$RUNNER_TEMP/deployment-$environment.json"
                 id=$(jq -r '.[0].id // empty' "$RUNNER_TEMP/deployment-$environment.json")
