@@ -1,6 +1,6 @@
 ---
 objective: "L'écran iOS de détail d'un objectif d'épargne lit en un coup d'œil : un hero plat qui répond « où j'en suis », puis des sections nommées comme sur la home, sans carte sur carte, sans icône décorative, sans doublon de chiffre."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Alléger l'écran iOS de détail d'objectif d'épargne
