@@ -1,8 +1,14 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Le hero d'un objectif tient dans sa carte
+
+> Vérifié sur émulateur, sur un objectif « Maison » créé pour l'occasion. À six chiffres
+> (128 383 € sur 200 000 €) comme à sept (1 283 835 € sur 2 000 000 €), le hero tient sur
+> une ligne, sans ellipse, et « sur X € » reste entièrement dans la carte — en clair comme
+> en sombre. Le cas « police système au maximum » n'a pas pu être observé : l'app ne suit
+> pas `font_scale`, et le vérifier demanderait de trancher d'abord si elle le devrait.
 
 ## Architecture projection
 

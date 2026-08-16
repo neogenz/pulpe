@@ -1,8 +1,17 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Un seul toast, lisible en sombre et au-dessus du FAB
+
+> Vérifié sur émulateur. Le défaut exact remonté — « Prévision ajoutée » blanc et sous le
+> bouton `+` en thème sombre — ne se reproduit plus : surface sombre, encre claire, FAB
+> entièrement dégagé. Sur l'accueil, « Freelance pointé / Annuler » passe au-dessus du FAB
+> et de la barre d'onglets. En clair, rien n'a bougé. Les écrans de réglages n'ont pas été
+> pilotés sur l'appareil : ils appellent `<Notice>` sans `clearsFab`, donc le `bottom` de
+> Paper s'applique exactement comme avant — constaté dans le code, pas à l'écran.
+>
+> Le plan comptait neuf `<Snackbar>` ; il y en avait treize. Le compte est corrigé ci-dessous.
 
 ## Architecture projection
 
@@ -75,18 +84,18 @@ journey
 
 ### `1)` Écrire le toast de l'app
 
-> Neuf `<Snackbar>` nus, c'est la même décision prise neuf fois — et jamais prise pour le thème sombre.
+> Treize `<Snackbar>` nus, c'est la même décision prise treize fois — et jamais prise pour le thème sombre.
 
 1. Créer `core/ui/notice.tsx` : une enveloppe autour du `Snackbar` de Paper, même API d'appel (`visible`, `onDismiss`, `action`, enfants).
 2. Le fond vient d'une surface du thème de l'app, l'encre du rôle qui lui répond. Ne pas toucher `inverseSurface`/`inverseOnSurface` dans `theme.ts` : le rôle MD3 est correct, c'est son usage par le `Snackbar` qui ne convient pas à Pulpe, et d'autres composants Paper lisent ces mêmes rôles.
 3. Réserver la hauteur du FAB sous le toast, en réutilisant la constante de garde déjà définie dans `theme.ts` plutôt qu'un nombre neuf.
 4. Commenter la raison : en sombre, le fond par défaut d'un `Snackbar` est presque blanc, et le FAB Android passe au-dessus par son élévation quelle que soit sa place dans l'arbre.
 
-### `2)` Basculer les neuf appels
+### `2)` Basculer les treize appels
 
 > Aucun écran ne doit avoir à se souvenir de ces réglages.
 
-1. Remplacer les neuf `<Snackbar>` des cinq écrans par `<Notice>`, sans changer un seul message.
+1. Remplacer les treize `<Snackbar>` des cinq écrans par `<Notice>`, sans changer un seul message.
 2. Vérifier qu'aucun `Snackbar` de Paper ne subsiste hors de `notice.tsx`.
 
 ### `3)` Vérifier sur appareil, dans les deux thèmes
@@ -102,7 +111,7 @@ journey
 | Task | Acceptance criteria                                                                                        |
 | ---- | ------------------------------------------------------------------------------------------------------------ |
 | 1    | `notice.tsx` est le seul fichier qui importe `Snackbar` de Paper                                            |
-| 2    | Les neuf messages sont inchangés, y compris les libellés d'action « Annuler » et « Fermer »                  |
+| 2    | Les treize messages sont inchangés, y compris les libellés d'action « Annuler » et « Fermer »                  |
 | 3    | En thème sombre, le toast est sombre à encre claire, entièrement lisible                                     |
 | 3    | Le toast et le FAB ne se recouvrent jamais, dans aucun des deux sens                                         |
 | 3    | Sur un écran sans FAB, le toast ne laisse pas de vide sous lui ; sur l'accueil, il passe au-dessus des onglets |
