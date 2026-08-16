@@ -68,6 +68,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e876501a-aa88-495e-941a-5d218021e5e9"
+      }
+    },
+    "owner": "maximedesogus"
   }
 }
