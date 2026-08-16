@@ -1,8 +1,22 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: La liste des budgets s'ouvre sur le mois vécu
+
+> Vérifié sur émulateur. La tâche `3.4` a payé deux fois : `SectionList` numérote
+> l'en-tête d'année comme la rangée `0` de sa section, donc l'index du budget doit être
+> décalé d'une unité, et `scrollToLocation` mesure lui-même cet en-tête collant — la marge
+> qu'on ajoutait à la main le comptait une seconde fois. Un troisième écart n'était visible
+> que sur l'appareil : `scrollToIndex` refuse de partir sans `getItemLayout` **ou**
+> `onScrollToIndexFailed`, et il lève au lieu de rendre la main. Sur cet onglet, cela
+> ressortait en crash natif de montage (`The specified child already has a parent`), pas en
+> défilement resté sur place.
+>
+> Le compte de démonstration ne descend pas assez bas sous le mois vécu pour que la position
+> demandée soit atteignable : la liste bute sur sa fin, et la carte reste visible sans se
+> poser en haut. Le cadrage exact a donc été observé écran raccourci (`wm size 1080x1400`),
+> où la carte « Mois actuel » vient bien entière sous l'en-tête `2026`.
 
 ## Architecture projection
 

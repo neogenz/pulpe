@@ -5,7 +5,7 @@ import {
   type BudgetSparse,
   type SupportedCurrency,
 } from "pulpe-shared";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { RefreshControl, SectionList, StyleSheet, View } from "react-native";
 import { ActivityIndicator, FAB, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -41,13 +41,6 @@ const CALENDAR_PAY_DAY = 1;
  * lived in reads as the same shape drawn harder rather than as a different one.
  */
 const CURRENT_MONTH_BORDER = 2;
-
-/**
- * What the sticky year header covers. Without it the card the list opens on
- * arrives exactly under the header that names its year, which is the one row a
- * reader needs whole.
- */
-const YEAR_HEADER_CLEARANCE = 40;
 
 /** `VirtualizedList`'s own default, kept as the floor rather than lowered. */
 const DEFAULT_RENDER_WINDOW = 10;
@@ -95,21 +88,39 @@ export default function BudgetsScreen() {
   const list = useRef<SectionList<BudgetSparse, BudgetYearGroup>>(null);
   const hasAnchored = useRef(false);
 
-  // The list reads newest first, so the months still to come sit *above* the one
-  // being lived in — an account provisioned a year ahead opened twelve cards
-  // away from the only month anyone can act on. Once per mount: re-anchoring
-  // after a pull-to-refresh would take the list back from under the thumb.
-  useEffect(() => {
-    if (anchor === null || hasAnchored.current) return;
-    hasAnchored.current = true;
+  const scrollToAnchor = useCallback(() => {
+    if (anchor === null) return;
     list.current?.scrollToLocation({
       sectionIndex: anchor.sectionIndex,
-      itemIndex: anchor.itemIndex,
+      // `+ 1` because `SectionList` counts the year header as row `0` of its
+      // own section, where the selector counts budgets. Passing the budget's
+      // own index lands the list a card early — the month above the one being
+      // lived in. Kept here rather than in the selector: this is the list
+      // component's own numbering, not something the domain knows about.
+      itemIndex: anchor.itemIndex + 1,
       viewPosition: 0,
-      viewOffset: YEAR_HEADER_CLEARANCE,
+      // No clearance of our own: `scrollToLocation` measures the sticky year
+      // header and adds it to `viewOffset` itself, so a second allowance for
+      // it would push the card that far below the header instead of under it.
       animated: false,
     });
   }, [anchor]);
+
+  // The list reads newest first, so the months still to come sit *above* the one
+  // being lived in — an account provisioned a year ahead opened twelve cards
+  // away from the only month anyone can act on.
+  //
+  // Driven by the list's own measurement rather than by a mount effect: asking
+  // it to scroll from inside the commit that mounts it moves rows the mounting
+  // is still placing, and Fabric answers that with "The specified child already
+  // has a parent" — a native crash on the tab, not a misplaced scroll. Once, and
+  // only once: re-anchoring after a pull-to-refresh would take the list back
+  // from under the thumb.
+  const anchorList = useCallback(() => {
+    if (anchor === null || hasAnchored.current) return;
+    hasAnchored.current = true;
+    scrollToAnchor();
+  }, [anchor, scrollToAnchor]);
 
   if (budgets.isPending || settings.isPending) {
     return (
@@ -164,10 +175,19 @@ export default function BudgetsScreen() {
         sections={groups}
         keyExtractor={(budget) => budget.id}
         contentContainerStyle={styles.content}
-        // `SectionList` cannot scroll to a row outside its render window without
-        // a `getItemLayout`, and these cards have no fixed height — a subtitle
-        // wraps, a badge does not. Rendering as far as the anchor is what makes
-        // the row exist by the time it is asked for.
+        onContentSizeChange={anchorList}
+        // Not optional, whatever is on screen: `scrollToIndex` refuses outright
+        // unless one of these two is present, and it throws rather than returns
+        // — which on this tab came out as a native mounting crash, not a scroll
+        // that quietly did nothing. These cards have no fixed height (a subtitle
+        // wraps, a badge does not), so `getItemLayout` would have to lie; the
+        // honest half of the pair is to answer the failure. It means the row is
+        // rendered but not yet measured, and one frame later it is.
+        onScrollToIndexFailed={() => {
+          requestAnimationFrame(scrollToAnchor);
+        }}
+        // What makes that second attempt land: the row has to exist to be
+        // measured, and the window stops well short of a year of months.
         initialNumToRender={
           anchor === null
             ? undefined
