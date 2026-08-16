@@ -55,7 +55,10 @@ export function PointCircle({
         style={[
           styles.ring,
           {
-            borderColor: isChecked ? color : theme.colors.outlineVariant,
+            // `outline`, not `outlineVariant`: the divider role measured
+            // 1.70:1 against the surface, and an empty ring *is* the state of
+            // the control — WCAG 1.4.11 asks 3:1 of it. `outline` gives 4.49:1.
+            borderColor: isChecked ? color : theme.colors.outline,
             backgroundColor: isChecked ? color : "transparent",
           },
         ]}

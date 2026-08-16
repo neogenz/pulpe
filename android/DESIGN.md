@@ -35,7 +35,7 @@ already resolved, so the two native apps render the same surface ladder.
 
 Two Android-specific consequences:
 
-- **`colors.error` is amber (`#D4760A`), not red.** MD3 wires `error` into every field
+- **`colors.error` is amber (`#9A5500`), not red.** MD3 wires `error` into every field
   validation state, and a form error is not a punishment. True red is `FINANCIAL_COLORS
 .destructive`, reserved for irreversible actions, and it is deliberately not an MD3 role so
   a component cannot reach it by accident.

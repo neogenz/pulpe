@@ -81,11 +81,7 @@ export function UncheckedOperationsCard({
       <Text variant="titleSmall">Opérations à pointer</Text>
 
       <View
-        style={[
-          styles.pane,
-          { backgroundColor: theme.colors.surfaceVariant },
-          isSyncing && styles.syncing,
-        ]}
+        style={[styles.pane, { backgroundColor: theme.colors.surfaceVariant }]}
       >
         <View style={styles.operation}>
           <IconDisc name={KIND_ICONS[current.kind]} tint={accent} />
@@ -112,7 +108,12 @@ export function UncheckedOperationsCard({
         {/* Adjacent and both on the leading rail: pushed to opposite ends they
             read as two unrelated controls, side by side as one question with
             two answers, the affirmative first. */}
-        <View style={styles.actions}>
+        {/* The wait is worn by the controls, not by the pane: dimming the whole
+            thing took the question — name, subtitle, amount — to 2.23:1, and
+            the operation someone is being asked about has to stay readable
+            while the answer is in flight. Both buttons are `disabled` anyway,
+            which is the state opacity is allowed to express. */}
+        <View style={[styles.actions, isSyncing && styles.syncing]}>
           <Button
             mode="contained-tonal"
             icon="check"

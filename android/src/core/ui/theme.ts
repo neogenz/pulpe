@@ -46,7 +46,14 @@ const PALETTE = {
 
     // Amber, not red: a form error is not a punishment. True red is reserved
     // for irreversible actions, exposed below as `destructive`.
-    error: "#D4760A",
+    //
+    // Darkened from the `#D4760A` this opened on, which measured 3.28:1 on
+    // `surface` and 2.71:1 on `surfaceVariant`. Paper wires this role into
+    // every `HelperText`, so the screen where someone is already stuck was the
+    // one whose message they could least read. Tuned the way `overBudget`
+    // below was — same hue, moved until it clears 4.5:1 on the darkest
+    // background it lands on.
+    error: "#9A5500",
     onError: "#FFFFFF",
     errorContainer: "#FFF3E0",
     onErrorContainer: "#3A2510",

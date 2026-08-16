@@ -12,8 +12,13 @@ export const PIN_LENGTH = 4;
 const KEY_SIZE = 76;
 const DOT_SIZE = 16;
 const DOT_BORDER_WIDTH = 2;
-/** Reserved so the numpad does not jump when a message appears under the dots. */
-const MESSAGE_HEIGHT = 20;
+/**
+ * Reserved so the numpad does not jump when a message appears under the dots.
+ * A floor and not a height: Paper sets no `maxFontSizeMultiplier`, so at the
+ * system's 200% the 12sp line grows past 20dp and a fixed box would clip the
+ * only thing telling someone their code was wrong.
+ */
+const MESSAGE_MIN_HEIGHT = 20;
 
 type PadKey = { digit: string } | { action: "backspace" } | { action: "blank" };
 
@@ -161,7 +166,7 @@ export function PinPad({
 const styles = StyleSheet.create({
   container: { alignItems: "center", gap: SPACING.xl },
   status: { alignItems: "center", gap: SPACING.md },
-  message: { height: MESSAGE_HEIGHT, textAlign: "center" },
+  message: { minHeight: MESSAGE_MIN_HEIGHT, textAlign: "center" },
   dots: { flexDirection: "row", gap: SPACING.md },
   dot: {
     width: DOT_SIZE,
