@@ -1,6 +1,6 @@
 ---
 objective: "Le prompt de mise à jour iOS reste bloqué jusqu'au contrôle « Nouveau dans Pulpe » de la session authentifiée courante, y compris après une déconnexion, et les remarques de revue encore applicables sont soldées sans réintroduire de documentation obsolète."
-status: in-progress
+status: implemented
 ---
 
 # Plan: corriger les remarques de revue du prompt doux iOS
