@@ -1,6 +1,6 @@
 ---
 objective: "Les versions iOS qui embarquent ce changement proposent une mise à jour App Store non bloquante quand elles sont sous latestVersion, sans modifier le gate dur fondé sur minVersion."
-status: in-progress
+status: implemented
 ---
 
 # Plan: proposer doucement les mises à jour iOS disponibles
