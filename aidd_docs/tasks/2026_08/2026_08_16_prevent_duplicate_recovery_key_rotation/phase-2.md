@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Verrouiller le parcours navigateur et documenter l'invariant

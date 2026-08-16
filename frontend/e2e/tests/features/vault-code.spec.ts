@@ -1,6 +1,8 @@
 import { test, expect } from '../../fixtures/test-fixtures';
 import { setupAuthBypass, setupMaintenanceMock } from '../../utils/auth-bypass';
 import type { Page, Route } from '@playwright/test';
+import type { E2ETestWindow } from '../../types/e2e.types';
+import { TEST_CONFIG } from '../../config/test-config';
 
 const MOCK_RECOVERY_KEY = 'AAAA-BBBB-CCCC-DDDD';
 const MOCK_RECOVERY_KEY_LONG =
@@ -140,6 +142,82 @@ test.describe('Vault Code', () => {
 
       // Dialog should close after confirmation (no error visible)
       await expect(page.getByTestId('recovery-key-dialog')).not.toBeVisible();
+    });
+
+    test('retries metadata without rotating a confirmed recovery key', async ({
+      page,
+      vaultCodePage,
+    }) => {
+      let setupCalls = 0;
+      let regenerateCalls = 0;
+      let metadataCalls = 0;
+
+      await setupAuthBypass(page, { vaultCodeConfigured: false });
+      await page.addInitScript(
+        ({ user, tokens }) => {
+          localStorage.setItem(
+            'sb-localhost-auth-token',
+            JSON.stringify({
+              access_token: tokens.ACCESS,
+              refresh_token: tokens.REFRESH,
+              expires_at: Math.floor(Date.now() / 1000) + 3600,
+              user: { id: user.ID, email: user.EMAIL },
+            }),
+          );
+        },
+        { user: TEST_CONFIG.USER, tokens: TEST_CONFIG.TOKENS },
+      );
+      await page.route('**/api/v1/encryption/setup-recovery', (route) => {
+        setupCalls++;
+        return route.fulfill({ json: { recoveryKey: MOCK_RECOVERY_KEY } });
+      });
+      await page.route('**/api/v1/encryption/regenerate-recovery', (route) => {
+        regenerateCalls++;
+        return route.fulfill({
+          json: { recoveryKey: 'EEEE-FFFF-GGGG-HHHH' },
+        });
+      });
+      await page.route('**/auth/v1/user**', async (route) => {
+        metadataCalls++;
+        if (metadataCalls === 2) {
+          await page.evaluate(() => {
+            const state = (window as E2ETestWindow).__E2E_MOCK_AUTH_STATE__;
+            if (state) {
+              state.user.user_metadata = { vaultCodeConfigured: true };
+            }
+          });
+        }
+        return route.fulfill({
+          status: metadataCalls === 1 ? 500 : 200,
+          json:
+            metadataCalls === 1
+              ? { message: 'Temporary metadata failure' }
+              : {
+                  id: TEST_CONFIG.USER.ID,
+                  user_metadata: { vaultCodeConfigured: true },
+                },
+        });
+      });
+
+      await vaultCodePage.gotoSetup();
+      await vaultCodePage.fillVaultCode('1234');
+      await vaultCodePage.fillConfirmCode('1234');
+      await vaultCodePage.submitSetup();
+      await vaultCodePage.expectRecoveryKeyDialogVisible();
+      await vaultCodePage.confirmRecoveryKey(MOCK_RECOVERY_KEY);
+      await expect(page.locator('[role="alert"]')).toBeVisible();
+      await expect(
+        page.getByTestId('setup-vault-code-submit-button'),
+      ).toBeEnabled();
+
+      await vaultCodePage.submitSetup();
+      await expect.poll(() => metadataCalls).toBe(2);
+      await expectDashboardLoaded(page);
+
+      expect(setupCalls).toBe(1);
+      expect(regenerateCalls).toBe(0);
+      expect(metadataCalls).toBe(2);
+      await expect(page.getByTestId('recovery-key-dialog')).toHaveCount(0);
     });
 
     test('recovery key dialog supports copy and confirmation (case-insensitive)', async ({
