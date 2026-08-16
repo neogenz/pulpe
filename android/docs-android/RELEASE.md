@@ -1,10 +1,9 @@
 # Releasing Pulpe on Android
 
-Everything in this file is written and committed. **None of it has been run**:
-the pipeline needs an Expo account and a Play Console account that do not exist
-yet, so the first execution of every command below is still ahead of us. Treat
-the steps as a checklist to work through, not as a description of something
-that already works.
+The Expo project is linked and a preview-configured release APK has compiled
+locally. Play signing, submission, OTA and the GitHub Maestro journey still need
+their first successful remote run, so keep treating those sections as a
+checklist rather than a description of a finished release pipeline.
 
 ## What must exist before any of this runs
 
@@ -19,9 +18,9 @@ that already works.
 | 7   | Backend env on Railway                    | `MIN_ANDROID_VERSION`, `LATEST_ANDROID_VERSION`, `ANDROID_STORE_URL` | force-update gate      |
 | 8   | `assetlinks.json` on `app.pulpe.app`      | `frontend/projects/webapp/public/.well-known/`                       | App Links verification |
 
-`eas init` writes `extra.eas.projectId` and `updates.url` into `app.json`.
-Until it runs, `expo-updates` has no server to ask and OTA is inert — the app
-still builds and runs, it simply never checks for an update.
+`eas init` writes `extra.eas.projectId` into `app.json`; `eas update:configure`
+writes `updates.url`. Until the latter runs, OTA is inert — the app still builds
+and runs, it simply never checks for an update.
 
 ## First-time setup
 
@@ -31,10 +30,9 @@ pnpm dlx eas-cli@latest login
 pnpm dlx eas-cli@latest init
 ```
 
-Link the GitHub repository from the EAS project, then create protected
-`MAESTRO_EMAIL`, `MAESTRO_PASSWORD` and `MAESTRO_PIN` variables in the
-`preview` environment. They must identify a deterministic account with an
-unchecked `Loyer` operation.
+Link the GitHub repository from the EAS project. In the GitHub `Preview`
+environment, create `MAESTRO_EMAIL`, `MAESTRO_PASSWORD` and `MAESTRO_PIN`
+secrets for a deterministic account containing an unchecked `Loyer` operation.
 
 Then the signing key. Let EAS generate and hold it — a keystore on a laptop is
 a keystore that gets lost, and Play App Signing means losing the upload key is
@@ -66,11 +64,11 @@ in lockstep with the root `package.json` like every other Pulpe surface.
 
 ## Workflows
 
-Two files in `.eas/workflows/`, run by EAS rather than GitHub Actions:
+Two files in `.eas/workflows/` handle distributable builds:
 
 - **`deploy-preview.yml`** — relevant pull requests to `preview` or `main`
-  build a preview APK and run the composed Maestro smoke journey. Path filters
-  skip unrelated monorepo changes; manual dispatch remains available.
+  build a preview APK. Path filters skip unrelated monorepo changes; manual
+  dispatch remains available.
 - **`deploy-production.yml`** — pushes to `main` build the AAB and submit it to
   the Play **internal** track as a **draft**. `main` is not this repo's default
   branch (`preview` is), so a push there is already a deliberate act; the draft
@@ -80,6 +78,11 @@ This is a deliberate divergence from iOS, whose distribution workflow is
 `workflow_dispatch`-only with an explicit SHA. The safety comes from a
 different place on each platform — an explicit trigger there, a draft on a
 closed track here — and both end with a human promoting the build.
+
+`.github/workflows/android-e2e.yml` owns the smoke gate without a paid Expo
+plan. It generates a release APK for x86_64, boots an API 35 emulator, verifies
+the pinned Maestro archive before installing it, and keeps a screenshot plus
+logcat when the journey fails.
 
 ## OTA vs a new binary
 
@@ -130,13 +133,13 @@ backend/Supabase seed, then run:
 pnpm --filter pulpe-android test:e2e
 ```
 
-The local seed credentials are explicit fallbacks. EAS uses protected
-`MAESTRO_EMAIL`, `MAESTRO_PASSWORD` and `MAESTRO_PIN` variables instead. The
-workflow pins Maestro 2.7.0, records the screen and retries a failed flow once
-on a nested-virtualization runner.
+The local seed credentials are explicit fallbacks. GitHub Actions uses
+`MAESTRO_EMAIL`, `MAESTRO_PASSWORD` and `MAESTRO_PIN` secrets from the
+`Preview` environment instead. The workflow pins Maestro 2.7.0 and captures
+the screen plus logcat on failure.
 
-The pre-packaged EAS Maestro job is still alpha. Run five consecutive green
-pull-request checks before making its status required in branch protection.
+Run five consecutive green pull-request checks before making the Maestro smoke
+status required in branch protection.
 
 **These flows have never been executed.** The selectors were read out of the
 source — `sign-in-email`, `sign-in-password` and `sign-in-submit` are testIDs

@@ -40,9 +40,10 @@ pnpm dev:android
 | `pnpm --filter pulpe-android quality`         | tsc + eslint + prettier                                   |
 | `pnpm --filter pulpe-android native:generate` | Regenerates the native project                            |
 
-GitHub CI needs no duplicate Android job: the package is a Turborepo workspace,
-so the existing `build`, `test-unit` and `quality` jobs already cover it. EAS
-Workflows owns the preview APK plus Maestro emulator smoke test.
+The existing GitHub jobs cover build, unit tests and quality through the
+Turborepo workspace. `.github/workflows/android-e2e.yml` adds the native gap: it
+builds a release APK, boots an emulator and runs the Maestro smoke journey. EAS
+Workflows remains responsible only for shareable preview builds.
 
 The E2E command expects a running Android emulator, a preview APK already
 installed, and a reachable backend. Local Supabase must contain the seeded

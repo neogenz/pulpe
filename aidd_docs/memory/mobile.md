@@ -31,4 +31,4 @@ flowchart LR
 ## Build and release
 
 - Generate with XcodeGen, build/test through Xcode/GitHub Actions, and export for App Store Connect; no OTA path exists.
-- Android uses EAS Build/Workflows, preview APKs and Maestro smoke flows; Expo Updates provides the OTA path within the configured runtime version.
+- Android uses EAS for distributable builds and GitHub Actions for Maestro smoke flows; Expo Updates provides the OTA path within the configured runtime version.

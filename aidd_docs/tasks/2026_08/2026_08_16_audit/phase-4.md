@@ -19,14 +19,15 @@ android/
 │   ├── login-vault.yaml ✏️
 │   └── smoke.yaml ✅
 └── package.json ✏️
+.github/workflows/android-e2e.yml ✅
 ```
 
 ## User Journey
 
 ```mermaid
 flowchart TD
-  A[Relevant pull request] --> B[EAS builds the preview APK]
-  B --> C[Maestro starts the Android emulator]
+  A[Relevant pull request] --> B[GitHub builds the preview APK]
+  B --> C[GitHub starts the Android emulator]
   C --> D[Login and vault flow runs]
   D --> E[Point and undo flow runs]
   E --> F[Pull request receives a pass or actionable failure]
@@ -40,11 +41,11 @@ title: Test scope
 ---
 journey
   section Setup
-    EAS project and deterministic preview fixture exist => protected credentials are available: 5: system
+    GitHub Preview environment and deterministic fixture exist => protected credentials are available: 5: system
   section Happy path
     Open a relevant pull request => build login unlock point and undo all pass: 5: system
   section Edge case - broken journey
-    One visible assertion fails => EAS reports a failed check with video and test result: 1: system
+    One visible assertion fails => GitHub reports a failed check with screenshot and logcat: 1: system
   section Edge case - unrelated change
     Open a pull request outside Android or shared => expensive workflow is skipped: 5: system
   section Teardown
@@ -63,26 +64,26 @@ journey
 
 ### `2)` Make existing Maestro flows repeatable
 
-> Compose the two stable journeys once for local use and EAS.
+> Compose the two stable journeys once for local use and GitHub Actions.
 
 1. Add `maestro/smoke.yaml` chaining `login-vault` then `check-operation`.
 2. Read `MAESTRO_EMAIL`, `MAESTRO_PASSWORD` and `MAESTRO_PIN` in the login flow, retaining explicit local-seed fallbacks only for local development.
 3. Expose the smoke flow as the Android package's `test:e2e` script and document its emulator/backend prerequisites.
 4. Keep onboarding manual because it creates real accounts.
 
-### `3)` Turn the existing EAS workflow into a pull-request gate
+### `3)` Add a GitHub Actions Maestro pull-request gate
 
-> Reuse Expo's first-party build plus Maestro workflow; do not add a duplicate GitHub Actions emulator job.
+> Build and exercise the APK without requiring Expo's paid Maestro job.
 
-1. Run the one-time `eas init`, link the GitHub repository, and configure protected preview credentials for a deterministic account containing an unchecked `Loyer` fixture.
-2. Replace branch-name push triggers with pull requests targeting `preview` or `main`, filtered to `android/**`, `shared/**` and workspace manifests; keep manual dispatch.
-3. Run Maestro on a nested-virtualization runner with one retry, screen recording and a pinned verified Maestro version.
-4. Burn in five consecutive green runs before making the EAS status required; the pre-packaged Maestro job is still marked alpha by Expo.
+1. Keep EAS responsible for distributable preview builds and configure protected credentials in the GitHub `Preview` environment for a deterministic account containing an unchecked `Loyer` fixture.
+2. Trigger GitHub Actions for pull requests touching `android/**`, `shared/**` or workspace manifests; keep manual dispatch.
+3. Generate a release x86_64 APK, boot an API 35 emulator and run a checksum-verified Maestro 2.7.0 CLI.
+4. Capture a screenshot and logcat on failure, then burn in five consecutive green runs before making the status required.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria                                                                                                       |
-| ---- | ------------------------------------------------------------------------------------------------------------------------- |
-| 1    | Expo export and quality pass with no import/config reference to a removed package.                                        |
-| 2    | One documented local command deterministically signs in, unlocks, points and restores the seeded operation.               |
-| 3    | A relevant pull request receives an EAS APK-plus-Maestro status while unrelated monorepo pull requests skip the workflow. |
+| Task | Acceptance criteria                                                                                                         |
+| ---- | --------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Expo export and quality pass with no import/config reference to a removed package.                                          |
+| 2    | One documented local command deterministically signs in, unlocks, points and restores the seeded operation.                 |
+| 3    | A relevant pull request receives a GitHub APK-plus-Maestro status while unrelated monorepo pull requests skip the workflow. |

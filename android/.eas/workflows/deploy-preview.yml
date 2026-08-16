@@ -1,4 +1,4 @@
-name: Android preview
+name: Android preview build
 
 on:
   pull_request:
@@ -19,20 +19,3 @@ jobs:
     params:
       platform: android
       profile: preview
-
-  e2e:
-    name: Journeys that must never break
-    type: maestro
-    environment: preview
-    runs_on: linux-large-nested-virtualization
-    needs: [build]
-    params:
-      build_id: ${{ needs.build.outputs.build_id }}
-      # `onboarding.yaml` is deliberately absent: it registers a real account
-      # against the API, so running it on every push would seed the database
-      # with a build's worth of throwaway users. Run it by hand before a
-      # release, against a disposable address.
-      flow_path: maestro/smoke.yaml
-      maestro_version: 2.7.0
-      retries: 1
-      record_screen: true

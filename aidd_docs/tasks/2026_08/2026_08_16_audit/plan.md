@@ -38,4 +38,4 @@ status: blocked
 | A cold process start always returns a configured vault to `locked`.   | Removing the ungated persisted key is smaller and safer than maintaining expiry metadata beside a key.                                 |
 | Android backup is disabled for the whole app.                         | Pulpe is server-authoritative and its only backup-eligible draft contains financial estimates.                                         |
 | Cross-stack budget pagination is not part of these correction phases. | The current API cannot preserve complete history and bound the response at once; no measured issue justifies that contract change yet. |
-| Android E2E remains on the existing EAS Workflow.                     | This reuses Expo's first-party CNG path and avoids a second emulator pipeline or Maestro Cloud.                                        |
+| Android E2E runs in GitHub Actions; EAS keeps distributable builds.   | Expo's pre-packaged Maestro job requires a paid plan; GitHub's emulator runner keeps the smoke gate available without another service. |
