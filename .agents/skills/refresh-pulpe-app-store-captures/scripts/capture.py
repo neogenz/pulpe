@@ -52,23 +52,48 @@ def wait_for(udid, needle, timeout=15):
 
 def tap(udid, selector, optional=False):
     key, value = next((k, v) for k, v in selector.items() if k.startswith("tap_"))
-    flag = "--id" if key == "tap_id" else "--label"
-    result = command("axe", "tap", flag, value, "--wait-timeout", "8", "--post-delay", "0.7",
+    if key == "tap_point":
+        target = ("-x", str(value[0]), "-y", str(value[1]))
+    elif key == "tap_id":
+        target = ("--id", value)
+    elif key == "tap_button_label":
+        target = ("--label", value, "--element-type", "Button")
+    else:
+        target = ("--label", value)
+    result = command("axe", "tap", *target, "--wait-timeout", "8", "--post-delay", "0.7",
                      "--udid", udid, check=not optional)
     return result.returncode == 0
 
 
 def unlock(udid):
-    current = wait_for(udid, "Pulpe")
+    end = time.time() + 15
+    while time.time() < end:
+        current = tree(udid)
+        if "Saisis ton code PIN" in current or "home-balance-chart" in current:
+            break
+        time.sleep(0.4)
+    else:
+        raise RuntimeError("Timed out waiting for PIN or home screen")
     if "Saisis ton code PIN" in current:
-        for digit in os.environ.get("PULPE_CAPTURE_PIN", "1234"):
-            tap(udid, {"tap_label": digit})
-    current = wait_for(udid, "home-balance-chart")
+        for _ in range(3):
+            for _ in range(4):
+                tap(udid, {"tap_id": "delete.backward"}, optional=True)
+            for digit in os.environ.get("PULPE_CAPTURE_PIN", "1234"):
+                tap(udid, {"tap_button_label": digit})
+            try:
+                current = wait_for(udid, "home-balance-chart", timeout=6)
+                break
+            except RuntimeError:
+                pass
+        else:
+            raise RuntimeError("PIN was not accepted after 3 attempts")
+    else:
+        current = wait_for(udid, "home-balance-chart")
     if "CHF" not in current or "estimé fin" not in current:
         raise RuntimeError("Capture account must use French UI and CHF")
 
 
-def capture(udid, name, route):
+def capture(udid, name, route, output):
     bundle = CATALOG["bundle_id"]
     command("xcrun", "simctl", "terminate", udid, bundle, check=False)
     command("xcrun", "simctl", "launch", udid, bundle,
@@ -77,9 +102,9 @@ def capture(udid, name, route):
     for action in route["actions"]:
         tap(udid, action, action.get("optional", False))
     wait_for(udid, route["expect"])
-    temporary = OUT / f".{name}.tmp.png"
+    temporary = output / f".{name}.tmp.png"
     command("axe", "screenshot", "--udid", udid, "--output", str(temporary))
-    temporary.replace(OUT / name)
+    temporary.replace(output / name)
 
 
 def dimensions(path):
@@ -91,12 +116,12 @@ def dimensions(path):
         return struct.unpack(">II", image.read(8))
 
 
-def check(names):
+def check(names, output=OUT):
     expected = (CATALOG["width"], CATALOG["height"])
     failures = []
     for name in names:
         try:
-            actual = dimensions(OUT / name)
+            actual = dimensions(output / name)
             if actual != expected:
                 failures.append(f"{name}: {actual[0]}x{actual[1]}")
         except (OSError, ValueError) as error:
@@ -111,15 +136,16 @@ def main():
     parser.add_argument("mode", choices=("plan", "run", "check"))
     parser.add_argument("--include", action="append", default=[])
     parser.add_argument("--udid")
+    parser.add_argument("--output-dir", type=Path, default=OUT)
     args = parser.parse_args()
     names = roster(args.include)
     if args.mode == "plan":
         print(json.dumps(names, ensure_ascii=False, indent=2))
         return
     if args.mode == "check":
-        check(names)
+        check(names, args.output_dir)
         return
-    OUT.mkdir(exist_ok=True)
+    args.output_dir.mkdir(parents=True, exist_ok=True)
     udid = device(args.udid)
     command("xcrun", "simctl", "boot", udid, check=False)
     command("xcrun", "simctl", "bootstatus", udid, "-b")
@@ -130,8 +156,8 @@ def main():
     try:
         for name in names:
             print(f"Capturing {name}", flush=True)
-            capture(udid, name, CATALOG["screens"][name])
-        check(names)
+            capture(udid, name, CATALOG["screens"][name], args.output_dir)
+        check(names, args.output_dir)
     finally:
         command("xcrun", "simctl", "status_bar", udid, "clear", check=False)
 

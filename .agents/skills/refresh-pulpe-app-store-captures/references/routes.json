@@ -10,26 +10,26 @@
       "expect": "home-balance-chart"
     },
     "02-vue-annuelle.png": {
-      "actions": [{ "tap_label": "Budgets" }],
-      "expect": "Potentiel de l'année"
+      "actions": [{ "tap_point": [172, 910] }],
+      "expect": "Potentiel 2026"
     },
     "03-modeles.png": {
-      "actions": [{ "tap_label": "Modèles" }],
-      "expect": "2/5 modèles"
+      "actions": [{ "tap_point": [363, 910] }],
+      "expect": "Budget Mensuel Standard"
     },
     "04-modele-budget-mensuel-standard.png": {
       "actions": [
-        { "tap_label": "Modèles" },
-        { "tap_label": "Budget Mensuel Standard" }
+        { "tap_point": [363, 910] },
+        { "tap_point": [220, 205] }
       ],
       "expect": "Récapitulatif"
     },
     "05-prevu-vs-reel.png": {
       "actions": [
-        { "tap_label": "Budgets" },
+        { "tap_point": [172, 910] },
         { "tap_id": "budgetCard-22222222-0008-4026-a008-888888888888" }
       ],
-      "expect": "Disponible · CHF"
+      "expect": "Dépense · Courses"
     },
     "06-nouvelle-depense.png": {
       "actions": [
@@ -39,15 +39,15 @@
       "expect": "Aucun tag"
     },
     "07-objectifs-epargne.png": {
-      "actions": [{ "tap_label": "Objectifs" }],
-      "expect": "savingsGoalsListRoot"
+      "actions": [{ "tap_point": [268, 910] }],
+      "expect": "Objectifs d'épargne"
     },
     "08-objectif-macbook-pro.png": {
       "actions": [
-        { "tap_label": "Objectifs" },
+        { "tap_point": [268, 910] },
         { "tap_id": "savingsGoalRow-aaaaaaaa-2222-2222-8222-222222222222" }
       ],
-      "expect": "savingsGoalDetailRoot"
+      "expect": "Ta trajectoire"
     }
   }
 }
