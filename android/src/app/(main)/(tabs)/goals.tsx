@@ -126,7 +126,9 @@ export default function GoalsScreen() {
         </ScrollView>
       )}
 
-      {list.length > 0 && (
+      {/* Hidden while the sheet is up: the FAB floats above the Portal's scrim
+          and would otherwise sit on top of the form it just opened. */}
+      {list.length > 0 && !isCreating && (
         <FAB
           icon="plus"
           style={styles.fab}

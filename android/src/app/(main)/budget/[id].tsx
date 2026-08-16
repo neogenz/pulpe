@@ -1,11 +1,11 @@
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import {
   BudgetFormulas,
   type SupportedCurrency,
   type Transaction,
 } from "pulpe-shared";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   BackHandler,
   FlatList,
@@ -175,18 +175,25 @@ export default function BudgetDetailScreen() {
   // Back closes the search before it leaves the screen — on Android that is
   // what the button means while any overlay is open, and losing the whole
   // screen because you wanted to stop filtering is a bad trade.
-  useEffect(() => {
-    if (!isSearchVisible) return;
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      () => {
-        setFilters((current) => ({ ...current, search: "" }));
-        setSearchVisible(false);
-        return true;
-      },
-    );
-    return () => subscription.remove();
-  }, [isSearchVisible]);
+  //
+  // `useFocusEffect`, not `useEffect`: handlers are a global LIFO stack, and
+  // this one answers `true`. Left subscribed while a filtered row pushes the
+  // line detail, it ate the back press meant for that child screen — the exit
+  // this app has, since predictive back is off.
+  useFocusEffect(
+    useCallback(() => {
+      if (!isSearchVisible) return;
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => {
+          setFilters((current) => ({ ...current, search: "" }));
+          setSearchVisible(false);
+          return true;
+        },
+      );
+      return () => subscription.remove();
+    }, [isSearchVisible]),
+  );
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;

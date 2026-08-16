@@ -50,7 +50,43 @@ export function TransactionRow({
   const accent = financial[KIND_ACCENTS[transaction.kind]];
 
   return (
-    <View style={[styles.row, { backgroundColor: theme.colors.surface }]}>
+    // The whole row answers, exactly as `budget-line-row.tsx` does: with the
+    // press on the middle column alone, the amount and the margin beside it
+    // were dead, and the ripple drew a rectangle inside a rounded row. Two
+    // sibling rows in one list where only one opens when you tap its amount is
+    // not a distinction anyone can learn. `PointCircle` keeps its own touch.
+    <Pressable
+      style={[styles.row, { backgroundColor: theme.colors.surface }]}
+      onPress={onPress}
+      // A press-and-hold is the Android way to ask "what else can I do with
+      // this?", and the answer had been two taps and a scroll to the bottom
+      // of a form. `pageY` rather than `locationY`: the menu is positioned
+      // against the window, not against the row it came out of.
+      onLongPress={
+        onLongPress === undefined
+          ? undefined
+          : (event) => {
+              hapticCommit();
+              onLongPress({
+                x: event.nativeEvent.pageX,
+                y: event.nativeEvent.pageY,
+              });
+            }
+      }
+      android_ripple={ripple}
+      disabled={onPress === undefined}
+      accessibilityRole={onPress === undefined ? undefined : "button"}
+      accessibilityLabel={
+        onPress === undefined ? undefined : `Modifier ${transaction.name}`
+      }
+      // TalkBack has no long press, so the menu's contents have to be
+      // reachable some other way — the sheet the tap opens still holds them.
+      accessibilityHint={
+        onLongPress === undefined
+          ? undefined
+          : "Appui long pour supprimer ou modifier"
+      }
+    >
       <PointCircle
         isChecked={isChecked}
         color={accent}
@@ -59,38 +95,7 @@ export function TransactionRow({
         onToggle={onToggle}
       />
 
-      <Pressable
-        style={styles.labels}
-        onPress={onPress}
-        // A press-and-hold is the Android way to ask "what else can I do with
-        // this?", and the answer had been two taps and a scroll to the bottom
-        // of a form. `pageY` rather than `locationY`: the menu is positioned
-        // against the window, not against the row it came out of.
-        onLongPress={
-          onLongPress === undefined
-            ? undefined
-            : (event) => {
-                hapticCommit();
-                onLongPress({
-                  x: event.nativeEvent.pageX,
-                  y: event.nativeEvent.pageY,
-                });
-              }
-        }
-        android_ripple={ripple}
-        disabled={onPress === undefined}
-        accessibilityRole={onPress === undefined ? undefined : "button"}
-        accessibilityLabel={
-          onPress === undefined ? undefined : `Modifier ${transaction.name}`
-        }
-        // TalkBack has no long press, so the menu's contents have to be
-        // reachable some other way — the sheet the tap opens still holds them.
-        accessibilityHint={
-          onLongPress === undefined
-            ? undefined
-            : "Appui long pour supprimer ou modifier"
-        }
-      >
+      <View style={styles.labels}>
         <Text
           variant="bodyLarge"
           numberOfLines={1}
@@ -106,12 +111,12 @@ export function TransactionRow({
             ? formatDayMonth(new Date(transaction.transactionDate))
             : `${formatDayMonth(new Date(transaction.transactionDate))} · ${tagSummary}`}
         </Text>
-      </Pressable>
+      </View>
 
       <Amount size="row" style={{ color: accent }} numberOfLines={1}>
         {formatCurrency(transaction.amount, currency)}
       </Amount>
-    </View>
+    </Pressable>
   );
 }
 

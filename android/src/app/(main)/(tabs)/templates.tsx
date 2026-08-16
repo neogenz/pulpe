@@ -126,7 +126,9 @@ export default function TemplatesScreen() {
         </ScrollView>
       )}
 
-      {list.length > 0 && canAdd && (
+      {/* Hidden while the sheet is up: the FAB floats above the Portal's scrim
+          and would otherwise sit on top of the form it just opened. */}
+      {list.length > 0 && canAdd && !isCreating && (
         <FAB
           icon="plus"
           style={styles.fab}
