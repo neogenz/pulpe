@@ -117,8 +117,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'preview'
+      github.event.workflow_run.event == 'deployment_status'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -132,6 +131,13 @@ jobs:
           # shellcheck disable=SC2016 # jq programs use their own $variables.
           set -euo pipefail
           artifact="staging-proof-$CANDIDATE_SHA"
+          artifact_count=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$STAGING_RUN_ID/artifacts" | jq --arg artifact "$artifact" '[.artifacts[] | select(.name == $artifact and .expired == false)] | length')
+          if [ "$artifact_count" = 0 ]; then
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::completed staging workflow has no proof artifact; no release promotion requested"
+            exit 0
+          fi
+          test "$artifact_count" = 1
           gh run download "$STAGING_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "$RUNNER_TEMP/staging-proof"
           proof="$RUNNER_TEMP/staging-proof/staging-proof.json"
           jq -e --arg repository "$GITHUB_REPOSITORY" --arg candidate "$CANDIDATE_SHA" --argjson run "$STAGING_RUN_ID" '.repository == $repository and .candidate_sha == $candidate and .staging_run_id == $run' "$proof"

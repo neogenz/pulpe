@@ -98,7 +98,11 @@ test("successful preview PRs emit one immutable tested-tree proof", () => {
 });
 
 test("the shadow staging proof fails closed on identity or deployment drift", () => {
-  assert.match(stagingProof, /push:\n\s+branches: \[preview\]/);
+  assert.match(stagingProof, /on: deployment_status/);
+  assert.match(
+    stagingProof,
+    /deployment_status\.state == 'success'.*deployment\.environment == 'pulpe-backend \/ preview'.*deployment\.creator\.login == 'railway-app\[bot\]'/s,
+  );
   assert.doesNotMatch(
     stagingProof,
     /pull_request_target|secrets\.|:\s*write\b/,
@@ -149,6 +153,11 @@ test("release promotion writes only after a trusted immutable proof", () => {
   assert.match(releasePromotion, /\.user\.login == "pulpe-release\[bot\]"/);
   assert.match(releasePromotion, /\.parents\[1\]\.sha == \$release/);
   assert.match(releasePromotion, /staging-proof-\$CANDIDATE_SHA/);
+  assert.match(releasePromotion, /artifact_count.*\.expired == false/s);
+  assert.match(
+    releasePromotion,
+    /completed staging workflow has no proof artifact/,
+  );
   assert.match(releasePromotion, /-F force=false/);
   assert.match(releasePromotion, /base=preview/);
   assert.match(releasePromotion, /base=main/);
