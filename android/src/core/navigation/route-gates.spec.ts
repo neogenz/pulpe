@@ -20,6 +20,7 @@ const VAULT_STATUSES: VaultStatus[] = [
   "unlocked",
 ];
 const BOOLEANS = [false, true];
+const PREFERENCES: (boolean | null)[] = [null, false, true];
 
 function everyState(): GateState[] {
   const states: GateState[] = [];
@@ -28,13 +29,16 @@ function everyState(): GateState[] {
       for (const isOnboarding of BOOLEANS) {
         for (const hasCompletedOnboarding of BOOLEANS) {
           for (const hasSeenHandoff of BOOLEANS) {
-            states.push({
-              status,
-              vaultStatus,
-              isOnboarding,
-              hasCompletedOnboarding,
-              hasSeenHandoff,
-            });
+            for (const prefersSignIn of PREFERENCES) {
+              states.push({
+                status,
+                vaultStatus,
+                isOnboarding,
+                hasCompletedOnboarding,
+                hasSeenHandoff,
+                prefersSignIn,
+              });
+            }
           }
         }
       }
@@ -66,6 +70,7 @@ describe("landing contract", () => {
       isOnboarding: false,
       hasCompletedOnboarding: false,
       hasSeenHandoff: false,
+      prefersSignIn: null,
     };
 
     expect(landingRoute(freshInstall)).toBe("/(onboarding)");
@@ -80,6 +85,32 @@ describe("landing contract", () => {
         isOnboarding: false,
         hasCompletedOnboarding: true,
         hasSeenHandoff: true,
+        prefersSignIn: null,
+      }),
+    ).toBe("/sign-in");
+  });
+
+  // Measured on a device: with the flow already completed, "Créer un compte"
+  // moved to the pitch and `/` put the user straight back on sign-in. The two
+  // screens send the user at each other, and this decision is what arbitrates.
+  it("answers the door the user asked for, over the device's history", () => {
+    const signedOut: GateState = {
+      status: "unauthenticated",
+      vaultStatus: "unknown",
+      isOnboarding: false,
+      hasCompletedOnboarding: true,
+      hasSeenHandoff: true,
+      prefersSignIn: null,
+    };
+
+    expect(landingRoute({ ...signedOut, prefersSignIn: false })).toBe(
+      "/(onboarding)",
+    );
+    expect(
+      landingRoute({
+        ...signedOut,
+        hasCompletedOnboarding: false,
+        prefersSignIn: true,
       }),
     ).toBe("/sign-in");
   });
@@ -92,6 +123,7 @@ describe("landing contract", () => {
         isOnboarding: false,
         hasCompletedOnboarding: false,
         hasSeenHandoff: false,
+        prefersSignIn: null,
       }),
     ).toBeNull();
   });
@@ -105,6 +137,7 @@ describe("landing contract", () => {
       isOnboarding: true,
       hasCompletedOnboarding: false,
       hasSeenHandoff: false,
+      prefersSignIn: null,
     };
 
     expect(landingRoute(midFlow)).toBe("/(onboarding)");

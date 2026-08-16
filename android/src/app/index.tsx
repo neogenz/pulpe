@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { ActivityIndicator, Button, Text, useTheme } from "react-native-paper";
 
 import { useSessionStore } from "@/core/auth/session-store";
+import { useLandingPreference } from "@/core/navigation/landing-preference";
 import { landingRoute } from "@/core/navigation/route-gates";
 import { SPACING } from "@/core/ui/theme";
 import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
@@ -27,6 +28,7 @@ export default function IndexRoute() {
     (state) => state.hasCompletedOnboarding,
   );
   const hasSeenHandoff = useOnboardingStore((state) => state.hasSeenHandoff);
+  const prefersSignIn = useLandingPreference((state) => state.prefersSignIn);
 
   const route = landingRoute({
     status,
@@ -34,6 +36,7 @@ export default function IndexRoute() {
     isOnboarding,
     hasCompletedOnboarding,
     hasSeenHandoff,
+    prefersSignIn,
   });
 
   if (route !== null) return <Redirect href={route} />;

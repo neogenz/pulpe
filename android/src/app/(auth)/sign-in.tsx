@@ -17,6 +17,7 @@ import {
   signInWithGoogle,
 } from "@/core/auth/google-sign-in";
 import { supabase } from "@/core/auth/supabase";
+import { preferPitch } from "@/core/navigation/landing-preference";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
@@ -169,11 +170,11 @@ export default function SignInScreen() {
           </>
         )}
 
-        {/* The way back to the pitch. Welcome sends here with `replace`, so
-            without its mirror this screen was a one-way door: a device that had
-            already been through the flow could only ever sign in again, never
-            create a second account. `replace` both ways keeps the two screens a
-            single slot rather than a stack that grows on every toggle. */}
+        {/* The way back to the pitch. Without it this screen was a one-way
+            door: a device that had already been through the flow could only
+            ever sign in again, never create a second account. `replace` both
+            ways keeps the two screens a single slot rather than a stack that
+            grows on every toggle. */}
         <View style={styles.signUp}>
           <Text
             variant="bodyMedium"
@@ -185,7 +186,10 @@ export default function SignInScreen() {
             mode="text"
             compact
             disabled={isBusy}
-            onPress={() => router.replace("/(onboarding)")}
+            onPress={() => {
+              preferPitch();
+              router.replace("/(onboarding)");
+            }}
           >
             Créer un compte
           </Button>

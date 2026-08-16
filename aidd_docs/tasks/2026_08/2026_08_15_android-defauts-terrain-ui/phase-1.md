@@ -1,19 +1,25 @@
 ---
-status: in-progress
+status: done
 ---
 
 # Instruction: La sortie d'onboarding repasse par la décision d'atterrissage
 
-> Le code de cette phase est **déjà écrit** dans le worktree (`pnpm quality` vert, 463 tests verts).
-> Ce qui reste est la vérification sur appareil des trois parcours, avant de la considérer close.
+> Vérifié sur émulateur. La tâche `2)` a effectivement révélé un écart, et il a été corrigé
+> là où le plan le demandait : dans `landingRoute`, pas dans l'écran. Sur un appareil ayant
+> déjà terminé un run, « Créer un compte » ouvrait la pitch puis en était immédiatement
+> chassé — `/` est un écran, son `Redirect` est armé sur le focus, et il réaffirmait le
+> sign-in à chaque passage. La porte demandée est donc enregistrée (`landing-preference.ts`)
+> et `landingRoute` l'arbitre avant l'historique de l'appareil.
 
 ## Architecture projection
 
 ```txt
 .
-└── android/src/app/
-    ├── (onboarding)/index.tsx   ✏️ `leaveFlow` rend la main à `/` au lieu de nommer `/sign-in`
-    └── (auth)/sign-in.tsx       ✏️ ajoute le retour « Nouveau sur Pulpe ? / Créer un compte »
+└── android/src/
+    ├── app/(onboarding)/index.tsx        ✏️ `leaveFlow` rend la main à `/` au lieu de nommer `/sign-in`
+    ├── app/(auth)/sign-in.tsx            ✏️ ajoute le retour « Nouveau sur Pulpe ? / Créer un compte »
+    ├── core/navigation/landing-preference.ts  ➕ la porte que l'utilisateur a demandée
+    └── core/navigation/route-gates.ts    ✏️ elle passe avant l'historique de l'appareil
 ```
 
 ## User Journey

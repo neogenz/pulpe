@@ -12,6 +12,8 @@ export interface GateState {
   isOnboarding: boolean;
   hasCompletedOnboarding: boolean;
   hasSeenHandoff: boolean;
+  /** The door the user asked for, or `null` to let the device's history decide. */
+  prefersSignIn: boolean | null;
 }
 
 /**
@@ -31,8 +33,13 @@ export function landingRoute(state: GateState): string | null {
   if (isOnboarding) return "/(onboarding)";
   if (status === "unauthenticated") {
     // A device that has never been through the flow gets the pitch; one that
-    // has gets the sign-in form it is coming back to.
-    return hasCompletedOnboarding ? "/sign-in" : "/(onboarding)";
+    // has gets the sign-in form it is coming back to. That is only the default,
+    // though: the two screens send the user at each other, and this decision is
+    // re-stated every time `/` regains focus — so an ask that is not answered
+    // here is an ask this function undoes on arrival.
+    return (state.prefersSignIn ?? hasCompletedOnboarding)
+      ? "/sign-in"
+      : "/(onboarding)";
   }
 
   switch (vaultStatus) {

@@ -12,6 +12,7 @@ import { PaperProvider } from "react-native-paper";
 import { observeSession, useSessionStore } from "@/core/auth/session-store";
 import { startSupabaseAutoRefresh } from "@/core/auth/supabase";
 import { DeepLinkRouter } from "@/core/linking/deep-link-router";
+import { useLandingPreference } from "@/core/navigation/landing-preference";
 import { openGroups } from "@/core/navigation/route-gates";
 import {
   startAnalytics,
@@ -47,6 +48,7 @@ function RootLayout() {
     (state) => state.hasCompletedOnboarding,
   );
   const hasSeenHandoff = useOnboardingStore((state) => state.hasSeenHandoff);
+  const prefersSignIn = useLandingPreference((state) => state.prefersSignIn);
   const [areFontsLoaded, fontError] = useFonts({
     Manrope: require("../../assets/fonts/Manrope.ttf"),
   });
@@ -56,6 +58,7 @@ function RootLayout() {
     isOnboarding,
     hasCompletedOnboarding,
     hasSeenHandoff,
+    prefersSignIn,
   });
 
   useEffect(() => observeSession(), []);

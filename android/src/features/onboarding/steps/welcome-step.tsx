@@ -15,6 +15,7 @@ import {
   isGoogleSignInAvailable,
   signInWithGoogle,
 } from "@/core/auth/google-sign-in";
+import { preferSignIn } from "@/core/navigation/landing-preference";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 import { LegalConsent } from "../components/legal-consent";
@@ -152,7 +153,14 @@ export function WelcomeStep() {
         <Button
           mode="text"
           disabled={isSigningIn}
-          onPress={() => router.replace("/sign-in")}
+          onPress={() => {
+            // The ask is recorded before the move: `/` re-states the landing
+            // decision every time it regains focus, and the router passes back
+            // through it on the way across. On record, that re-statement agrees
+            // with where the user is going; without it, it sends them back.
+            preferSignIn();
+            router.replace("/sign-in");
+          }}
         >
           J&apos;ai déjà un compte
         </Button>
