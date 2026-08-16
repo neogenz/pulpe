@@ -63,10 +63,12 @@ struct WhatsNewStoreTests {
         let flags = MockWhatsNewFlagsStore(lastSeenVersion: "1.1.0")
         let store = WhatsNewStore(service: service, flagsStore: flags)
 
+        #expect(!store.allowsLowerPriorityPresentation)
         await store.check(currentVersion: "1.2.0", locale: .de)
 
         #expect(service.fetchCallCount == 1)
         #expect(store.isPresented)
+        #expect(!store.allowsLowerPriorityPresentation)
         #expect(store.entries.count == 1)
         #expect(store.entries.first?.version == "1.2.0")
         #expect(service.lastRequest?.locale == .de)
@@ -120,11 +122,13 @@ struct WhatsNewStoreTests {
         let flags = MockWhatsNewFlagsStore(lastSeenVersion: "1.2.0")
         let store = WhatsNewStore(service: service, flagsStore: flags)
 
+        #expect(!store.allowsLowerPriorityPresentation)
         await store.check(currentVersion: "1.2.0")
 
         #expect(service.fetchCallCount == 0)
         #expect(store.isPresented == false)
         #expect(flags.lastSeenVersion == "1.2.0")
+        #expect(store.allowsLowerPriorityPresentation)
     }
 
     @Test func check_downgrade_isNoOp() async {
@@ -150,6 +154,7 @@ struct WhatsNewStoreTests {
         #expect(flags.lastSeenVersion == "1.1.0")
         #expect(store.isPresented == false)
         #expect(store.entries.isEmpty)
+        #expect(store.allowsLowerPriorityPresentation)
     }
 
     @Test func check_urlCancellation_failsOpenAndLeavesLastSeenUntouched() async {
@@ -163,6 +168,47 @@ struct WhatsNewStoreTests {
         #expect(flags.lastSeenVersion == "1.1.0")
         #expect(store.isPresented == false)
         #expect(store.entries.isEmpty)
+        #expect(!store.allowsLowerPriorityPresentation)
+    }
+
+    @Test func invalidateSession_closesLowerPriorityGateWithoutChangingLastSeen() async {
+        let service = MockWhatsNewService(outcome: .success([]))
+        let flags = MockWhatsNewFlagsStore(lastSeenVersion: "1.2.0")
+        let store = WhatsNewStore(service: service, flagsStore: flags)
+
+        await store.check(currentVersion: "1.2.0")
+        #expect(store.allowsLowerPriorityPresentation)
+
+        store.invalidateSession()
+
+        #expect(!store.allowsLowerPriorityPresentation)
+        #expect(flags.lastSeenVersion == "1.2.0")
+    }
+
+    @Test func invalidateSession_ignoresOldCheckCompletionAndAllowsFreshCheck() async {
+        let service = MockWhatsNewService(outcome: .success([.makeFixture(version: "1.2.0")]))
+        let flags = MockWhatsNewFlagsStore(lastSeenVersion: "1.1.0")
+        let store = WhatsNewStore(service: service, flagsStore: flags)
+        service.gateNextRequest()
+
+        let oldCheck = Task { await store.check(currentVersion: "1.2.0") }
+        await waitForCondition("old check must reach the service") {
+            service.fetchCallCount == 1
+        }
+        store.invalidateSession()
+        service.releaseRequest()
+        await oldCheck.value
+
+        #expect(!store.allowsLowerPriorityPresentation)
+        #expect(!store.isPresented)
+        #expect(store.entries.isEmpty)
+        #expect(flags.lastSeenVersion == "1.1.0")
+
+        service.setOutcome(.success([]))
+        await store.check(currentVersion: "1.2.0")
+
+        #expect(store.allowsLowerPriorityPresentation)
+        #expect(flags.lastSeenVersion == "1.2.0")
     }
 
     @Test func dismiss_persistsCurrentVersionAndHidesSheet() async {
@@ -216,14 +262,29 @@ private final class MockWhatsNewService: WhatsNewServiceProtocol {
         case failure(Error)
     }
 
-    private let outcome: Outcome
+    private var outcome: Outcome
     private let suspendsBeforeReturning: Bool
+    private var shouldGateNextRequest = false
+    private var requestContinuation: CheckedContinuation<Void, Never>?
     private(set) var fetchCallCount = 0
     private(set) var lastRequest: Request?
 
     init(outcome: Outcome, suspendsBeforeReturning: Bool = false) {
         self.outcome = outcome
         self.suspendsBeforeReturning = suspendsBeforeReturning
+    }
+
+    func setOutcome(_ outcome: Outcome) {
+        self.outcome = outcome
+    }
+
+    func gateNextRequest() {
+        shouldGateNextRequest = true
+    }
+
+    func releaseRequest() {
+        requestContinuation?.resume()
+        requestContinuation = nil
     }
 
     func fetch(
@@ -237,6 +298,13 @@ private final class MockWhatsNewService: WhatsNewServiceProtocol {
             lastSeenVersion: lastSeenVersion,
             locale: locale
         )
+        let outcome = outcome
+        if shouldGateNextRequest {
+            shouldGateNextRequest = false
+            await withCheckedContinuation { continuation in
+                requestContinuation = continuation
+            }
+        }
         if suspendsBeforeReturning {
             await Task.yield()
         }
