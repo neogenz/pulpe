@@ -14,9 +14,10 @@ Analyze code changes to produce a unified product release with clear, user-focus
 **Critical rules:**
 
 - NEVER apply versions without explicit user approval
-- NEVER mutate Railway, push, tag, or create a GitHub Release without a separate explicit user approval after local validation
-- NEVER push to `main` before `✅ CI Success` is green for the exact release SHA on `preview`
-- NEVER tag or create the GitHub Release before that exact SHA is verified in production; update a `LATEST_*` gate only after its client is public (web deployment or App Store)
+- NEVER push directly to `preview` or `main`, create a tag, publish a GitHub Release, or mutate Railway from this skill
+- NEVER push the prepared `release/vX.Y.Z` branch or dispatch its PR without a separate explicit user approval after local validation
+- The GitHub App may open release PRs and fast-forward the proven release branch only; it has no ruleset bypass and cannot approve its own production PR
+- NEVER tag or create the GitHub Release before the exact candidate tree is verified in production; update a `LATEST_*` gate only after its client is public (web deployment or App Store)
 - NEVER use `--force`, `--force-with-lease`, or `git push --tags`
 - If changes are ambiguous, ASK — do not guess
 - When uncertain about bump severity, prefer the HIGHER bump
@@ -46,37 +47,29 @@ Use the user's invocation text as the argument (`$ARGUMENTS` in Claude Code, the
 
 Run this before modifying release files. A failed check stops the workflow without changing local or remote state.
 
-1. Require a clean worktree, fetch the release branches and tags, and accept only `preview` or `main`:
+1. Require a clean, synchronized `preview` worktree and fetch the release branches and tags:
 
    ```bash
    test -z "$(git status --porcelain)"
    git fetch origin main preview --tags
 
-   RELEASE_BRANCH=$(git branch --show-current)
-   case "$RELEASE_BRANCH" in
-     preview|main) ;;
-     *) echo "Release must start from preview or main"; exit 1 ;;
-   esac
-
-   test "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$RELEASE_BRANCH")"
+   test "$(git branch --show-current)" = preview
+   test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
    git merge-base --is-ancestor origin/main HEAD
-   git merge-base --is-ancestor origin/preview HEAD
    ```
 
-   A feature branch must reach `preview` through its normal PR first. Both release branches must already be ancestors of the synchronized `HEAD`: starting from `preview` therefore refuses a hotfix present only on `main`, while starting from `main` refuses a `preview` change that has not been promoted. Resolve either divergence through the normal branch flow before releasing.
+   A feature branch must reach `preview` through its normal PR first. A hotfix present only on `main` must be reconciled through the normal branch flow before releasing.
 
-2. Resolve the branch ruleset by name, never by a stored numeric id. Require exactly one `main-protection` result and `current_user_can_bypass == "exempt"`:
+2. Require the trusted promotion workflow and both GitHub App secret names. Secret values are never readable and must not be requested:
 
    ```bash
-   RULESET_IDS=$(gh api --paginate repos/neogenz/pulpe/rulesets \
-     --jq '.[] | select(.name == "main-protection") | .id')
-   test "$(printf '%s\n' "$RULESET_IDS" | grep -c .)" -eq 1
-   RULESET_ID=$RULESET_IDS
-   test "$(gh api "repos/neogenz/pulpe/rulesets/$RULESET_ID" \
-     --jq .current_user_can_bypass)" = "exempt"
+   gh workflow view release-promotion.yml --repo neogenz/pulpe >/dev/null
+   SECRET_NAMES=$(gh secret list --repo neogenz/pulpe --json name --jq '.[].name')
+   grep -qx PULPE_RELEASE_APP_ID <<< "$SECRET_NAMES"
+   grep -qx PULPE_RELEASE_APP_PRIVATE_KEY <<< "$SECRET_NAMES"
    ```
 
-   Without that bypass, direct promotion is impossible for the solo maintainer. Stop rather than opening a release PR that cannot satisfy the self-approval rule.
+   Missing workflow or secret names stops preparation before any release file changes.
 
 ### Step 1: Determine base reference
 
@@ -403,6 +396,17 @@ export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
 
 Execute ONLY after user confirms.
 
+0. **Create the unique release branch** after rechecking that `preview` has not moved:
+
+   ```bash
+   git fetch origin preview
+   test "$(git branch --show-current)" = preview
+   test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
+   test -z "$(git branch --list "release/vX.Y.Z")"
+   test -z "$(git ls-remote --heads origin "refs/heads/release/vX.Y.Z")"
+   git switch -c "release/vX.Y.Z"
+   ```
+
 1. **Bump root product version** in root `package.json` — use the available file-editing tool to replace the `"version"` field with the target version computed in Step 4.
 
 2. **Bump all JS/TS sub-packages via Changesets fixed mode** — this is NOT optional and NOT conditional on which packages were touched. Fixed mode keeps all four npm packages in lockstep with root. See [references/jsts-release.md](references/jsts-release.md) for the exact procedure (create one changeset file at the right bump level, then `pnpm changeset version`).
@@ -435,7 +439,7 @@ pnpm build:shared
   --include 'projects/webapp/src/app/layout/whats-new/whats-new-toast.spec.ts')
 ```
 
-Stop on any contract failure. These targeted tests are the local fail-fast gate; the complete CI after the `preview` and `main` pushes remains the second barrier.
+Stop on any contract failure. These targeted tests are the local fail-fast gate; the complete CI on the preparation PR to `preview` remains the second barrier.
 
 Validate the exact cross-platform outcome from the repository root for every release:
 
@@ -498,225 +502,64 @@ Run `git status` and confirm only the expected files are staged. If anything unr
 - `ios/Pulpe.xcodeproj/` is gitignored (regenerated by xcodegen). Do NOT try to stage it.
 - Per-package `CHANGELOG.md` files all get new entries even for packages whose code didn't change — that's expected under fixed mode (see `references/jsts-release.md`).
 
-### Step 9: Validate, promote, and publish the exact SHA
+### Step 9: Commit and hand off to GitHub
 
-Show the commit, target branches, tag, GitHub Release, provider checks, and pending Railway gate changes. Then ask: "Prêt à valider sur preview, promouvoir ce SHA vers main et publier la release ?"
+Show the exact release commit, the branch `release/vX.Y.Z`, the approved French GitHub Release notes, and the two protected PR targets. Then ask: "Prêt à publier la branche de release et ouvrir la PR vers preview ?"
 
 Only after "oui":
 
-Treat every shell block below as an independent session. Step 9.2 is the only writer of `pulpe-release-sha`, stored under the path returned by `git rev-parse --git-path` so linked worktrees cannot share or overwrite release identity. Every later block must read that frozen SHA, resolve it as the same full commit, and require the current `HEAD` to remain equal to it. Never replace the frozen identity with a later `HEAD`.
-
-1. Confirm that the available Railway capabilities can inspect preview and production deployments, their Git commit metadata, and the preview public domain. Confirm that the available Vercel capabilities can inspect production deployments and their Git commit metadata. Also confirm that the Railway integration can apply the pending web gate after deployment. If any required capability is missing, stop before committing; never skip a proof or invent a command.
-2. Create the release commit without a tag and freeze its identity:
+1. Recheck that the release branch still has the synchronized `preview` commit as its unchanged `HEAD`, then create exactly one release commit:
 
    ```bash
    set -euo pipefail
-   git commit -m "chore(release): vX.Y.Z"
-   SHA=$(git rev-parse --verify 'HEAD^{commit}')
-   test -n "${SHA}"
-   git cat-file -e "${SHA}^{commit}"
-   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
-   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
-   test -n "${RELEASE_SHA_FILE}"
-   printf '%s\n' "${SHA}" > "${RELEASE_SHA_FILE}"
-   test "$(cat "${RELEASE_SHA_FILE}")" = "${SHA}"
-   VERSION=$(git show "${SHA}:package.json" | node -e 'const fs = require("node:fs"); const { version } = JSON.parse(fs.readFileSync(0, "utf8")); if (typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version)) process.exit(1); process.stdout.write(version);')
-   test -n "${VERSION}"
-   TAG="v${VERSION}"
+   VERSION=$(node -p 'require("./package.json").version')
+   BRANCH="release/v${VERSION}"
+   test "$(git branch --show-current)" = "$BRANCH"
+   git fetch origin main preview --tags
+   test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
+   git merge-base --is-ancestor origin/main HEAD
+   test -z "$(git tag -l "v${VERSION}")"
+   test -z "$(git ls-remote --tags origin "refs/tags/v${VERSION}")"
+   git commit -m "chore(release): v${VERSION}"
+   RELEASE_SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   test "$(git rev-list --count origin/preview..HEAD)" -eq 1
+   test "$(git rev-parse HEAD^)" = "$(git rev-parse origin/preview)"
+   test "$(git show -s --format=%s "$RELEASE_SHA")" = "chore(release): v${VERSION}"
    ```
 
-3. Push only that object to `preview`, regardless of whether the workflow started on `preview` or `main`:
+2. Push only the new release branch. Never push its commit directly to either protected branch:
 
    ```bash
-   set -euo pipefail
-   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
-   test -f "${RELEASE_SHA_FILE}"
-   SHA=$(cat "${RELEASE_SHA_FILE}")
-   test -n "${SHA}"
-   git cat-file -e "${SHA}^{commit}"
-   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
-   test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
-   git push origin "${SHA}:refs/heads/preview"
+   git push --set-upstream origin "$BRANCH"
+   test "$(git ls-remote --heads origin "refs/heads/$BRANCH" | awk '{print $1}')" = "$RELEASE_SHA"
    ```
 
-4. Poll for up to 5 minutes until `gh run list` returns the `ci.yml` run whose `headSha` is the release SHA, `headBranch` is `preview`, and event is `push`. Do not filter cancelled runs. Resolve and consume the run id in the same session:
+3. Put the exact approved **GitHub Release** template from Step 5 in a temporary UTF-8 file using the available file-editing capability. Its first line must be `## vX.Y.Z`. Dispatch the trusted workflow with that file as JSON input:
 
    ```bash
-   set -euo pipefail
-   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
-   test -f "${RELEASE_SHA_FILE}"
-   SHA=$(cat "${RELEASE_SHA_FILE}")
-   test -n "${SHA}"
-   git cat-file -e "${SHA}^{commit}"
-   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
-   test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
-   PREVIEW_RUN_ID=
-   for _ in $(seq 1 60); do
-     PREVIEW_RUN_ID=$(gh run list \
-       --workflow ci.yml \
-       --branch preview \
-       --event push \
-       --commit "${SHA}" \
-       --limit 20 \
-       --json databaseId,headSha,headBranch,event \
-       --jq '.[] | [.databaseId, .headSha, .headBranch, .event] | @tsv' |
-       awk -v sha="${SHA}" '$2 == sha && $3 == "preview" && $4 == "push" { print $1; exit }')
-     test -n "${PREVIEW_RUN_ID}" && break
-     sleep 5
-   done
-   test -n "${PREVIEW_RUN_ID}"
-   gh run watch "${PREVIEW_RUN_ID}" --exit-status
+   test "$(sed -n '1p' "$NOTES_FILE")" = "## v${VERSION}"
+   jq -n \
+     --arg release_branch "$BRANCH" \
+     --rawfile release_notes "$NOTES_FILE" \
+     '{release_branch: $release_branch, release_notes: $release_notes}' |
+     gh workflow run release-promotion.yml \
+       --repo neogenz/pulpe \
+       --ref preview \
+       --json
    ```
 
-   Missing, cancelled, or failed CI means stop. Fix the release on `preview`; do not promote it.
+4. Watch the dispatched `🚦 Release Promotion` run and report the preparation PR URL. A failure leaves `preview`, `main`, tags, GitHub Releases, and providers untouched.
 
-5. After green preview CI, independently inspect the Railway `pulpe-backend` deployment in the `preview` environment, `backend` service:
-   - before each inspection, independently read `pulpe-release-sha` through `git rev-parse --git-path`, validate it as the same full commit, and require `HEAD` to equal it;
-   - poll the deployment created from that frozen SHA for up to 5 minutes; do not accept an older active deployment as evidence;
-   - require the deployment to reach `SUCCESS`, become active, and report that exact frozen SHA;
-   - resolve the preview service's public domain and require its `/health` endpoint to respond successfully.
+After the preparation PR is reviewed and merged with a merge commit:
 
-   A missing deployment, timeout, different SHA, `SKIPPED`, any other terminal state, or failed health check stops the release before even a dry-run toward `main`.
+- `✅ Staging Ready (shadow)` proves the exact merged commit and deployments;
+- the trusted promotion workflow fast-forwards the same release branch to that proven commit;
+- the App opens the production PR to `main`;
+- new feature PRs may then continue merging into `preview` without changing the frozen candidate;
+- `✅ Release Gate` validates the production PR without secrets or executing PR code;
+- a human other than the App approves production.
 
-6. After the Railway preview proof, refetch and reject any drift or loss of ancestry:
-
-   ```bash
-   set -euo pipefail
-   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
-   test -f "${RELEASE_SHA_FILE}"
-   SHA=$(cat "${RELEASE_SHA_FILE}")
-   test -n "${SHA}"
-   git cat-file -e "${SHA}^{commit}"
-   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
-   test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
-   git fetch origin main preview
-   test "$(git rev-parse origin/preview)" = "${SHA}"
-   git merge-base --is-ancestor origin/main "${SHA}"
-   git push --dry-run origin "${SHA}:refs/heads/main"
-   ```
-
-   The dry-run checks fast-forward feasibility, not ruleset authorization. The Step 0 bypass check remains mandatory.
-
-7. Promote the same immutable object, never the mutable `origin/preview` ref:
-
-   ```bash
-   set -euo pipefail
-   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
-   test -f "${RELEASE_SHA_FILE}"
-   SHA=$(cat "${RELEASE_SHA_FILE}")
-   test -n "${SHA}"
-   git cat-file -e "${SHA}^{commit}"
-   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
-   test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
-   git fetch origin main preview
-   test "$(git rev-parse origin/preview)" = "${SHA}"
-   git merge-base --is-ancestor origin/main "${SHA}"
-   git push --dry-run origin "${SHA}:refs/heads/main"
-   git push origin "${SHA}:refs/heads/main"
-   git fetch origin main
-   test "$(git rev-parse origin/main)" = "${SHA}"
-   ```
-
-8. Poll for up to 5 minutes for the `ci.yml` run whose `headSha` is the release SHA, `headBranch` is `main`, and event is `push`. Do not filter cancelled runs. Resolve and consume the run id in the same session:
-
-   ```bash
-   set -euo pipefail
-   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
-   test -f "${RELEASE_SHA_FILE}"
-   SHA=$(cat "${RELEASE_SHA_FILE}")
-   test -n "${SHA}"
-   git cat-file -e "${SHA}^{commit}"
-   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
-   test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
-   MAIN_RUN_ID=
-   for _ in $(seq 1 60); do
-     MAIN_RUN_ID=$(gh run list \
-       --workflow ci.yml \
-       --branch main \
-       --event push \
-       --commit "${SHA}" \
-       --limit 20 \
-       --json databaseId,headSha,headBranch,event \
-       --jq '.[] | [.databaseId, .headSha, .headBranch, .event] | @tsv' |
-       awk -v sha="${SHA}" '$2 == sha && $3 == "main" && $4 == "push" { print $1; exit }')
-     test -n "${MAIN_RUN_ID}" && break
-     sleep 5
-   done
-   test -n "${MAIN_RUN_ID}"
-   gh run watch "${MAIN_RUN_ID}" --exit-status
-   ```
-
-   This includes the main-only `migrate`, `posthog-annotate`, and `verify-prod-csp` jobs after `ci-success`. Missing, cancelled, or failed CI stops publication.
-
-9. Independently inspect the production deployments:
-   - before each provider inspection, independently read `pulpe-release-sha` through `git rev-parse --git-path`, validate it as the same full commit, and require `HEAD` to equal it;
-   - both Vercel production projects are ready and report that frozen SHA;
-   - the Railway production deployment is successful and reports that frozen SHA;
-   - `https://pulpe.app`, `https://app.pulpe.app`, and `https://api.pulpe.app/health` respond successfully.
-
-   Vercel and Railway react to GitHub pushes; do not assume GitHub `ci-success` delayed those webhooks. If a status, SHA, or health check differs, stop without a tag, GitHub Release, or client gate. Correct through `preview` while keeping the same product version.
-
-10. Only after every production proof passes, refetch `main` and tags, require `origin/main` to equal the release SHA, and recheck that the local tag, remote tag, and GitHub Release are still absent. Then create and push the one immutable tag:
-
-```bash
-set -euo pipefail
-RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
-test -f "${RELEASE_SHA_FILE}"
-SHA=$(cat "${RELEASE_SHA_FILE}")
-test -n "${SHA}"
-git cat-file -e "${SHA}^{commit}"
-test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
-test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
-VERSION=$(git show "${SHA}:package.json" | node -e 'const fs = require("node:fs"); const { version } = JSON.parse(fs.readFileSync(0, "utf8")); if (typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version)) process.exit(1); process.stdout.write(version);')
-test -n "${VERSION}"
-TAG="v${VERSION}"
-git fetch origin main --tags
-test "$(git rev-parse origin/main)" = "${SHA}"
-git tag -a "${TAG}" "${SHA}" -m "Release ${TAG}"
-git push origin "refs/tags/${TAG}"
-```
-
-11. Create the GitHub Release using the **GitHub Release template** from Step 5:
-
-```bash
-set -euo pipefail
-RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
-test -f "${RELEASE_SHA_FILE}"
-SHA=$(cat "${RELEASE_SHA_FILE}")
-test -n "${SHA}"
-git cat-file -e "${SHA}^{commit}"
-test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
-test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
-VERSION=$(git show "${SHA}:package.json" | node -e 'const fs = require("node:fs"); const { version } = JSON.parse(fs.readFileSync(0, "utf8")); if (typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version)) process.exit(1); process.stdout.write(version);')
-test -n "${VERSION}"
-TAG="v${VERSION}"
-REMOTE_TAG_SHA=$(git ls-remote --tags origin "refs/tags/${TAG}^{}" | awk '{ print $1 }')
-test -n "${REMOTE_TAG_SHA}"
-test "${REMOTE_TAG_SHA}" = "${SHA}"
-gh release create "${TAG}" --verify-tag --repo neogenz/pulpe --title "${TAG}" --notes "$(cat <<'EOF'
-## vX.Y.Z
-
-### Nouveautés
-- **Titre** — Description
-
-### Corrections
-- **Titre** — Description
-
----
-
-*[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)*
-EOF
-)"
-```
-
-12. Apply the pending `LATEST_WEB_VERSION` update from [references/jsts-release.md](references/jsts-release.md) in `preview` and `production`, then verify `GET /api/v1/app/version`.
-13. Never schedule a Railway `LATEST_IOS_VERSION` operation: the backend reads the published iOS version from the App Store itself (see [references/ios-release.md](references/ios-release.md)). No post-App-Store follow-up is owed for this gate, so do not report one.
-
-Release rules:
-
-- Release title is always `vX.Y.Z` — nothing else
-- Omit empty sections (no corrections? skip the section)
-- Footer links always present
+This skill does not push `preview` or `main`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release. Those production operations belong to the protected GitHub workflow after the approved production PR is merged.
 
 ## Maintenance: Re-align an already published GitHub Release
 

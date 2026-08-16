@@ -1,0 +1,232 @@
+name: 🚦 Release Promotion
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_branch:
+        description: Release branch created from the current preview head
+        required: true
+        type: string
+      release_notes:
+        description: Approved French GitHub Release notes
+        required: true
+        type: string
+  workflow_run:
+    workflows: ["✅ Staging Ready (shadow)"]
+    types: [completed]
+
+concurrency:
+  group: release-promotion
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+jobs:
+  prepare:
+    name: Open release PR to preview
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate the prepared release branch
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BRANCH: ${{ inputs.release_branch }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          # shellcheck disable=SC2016
+          set -euo pipefail
+          [[ "$RELEASE_BRANCH" =~ ^release/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]
+          version="${BASH_REMATCH[1]}"
+          owner="${GITHUB_REPOSITORY%%/*}"
+          encoded_branch=$(jq -rn --arg value "$RELEASE_BRANCH" '$value | @uri')
+
+          gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/$encoded_branch" > "$RUNNER_TEMP/refs.json"
+          jq -e --arg ref "refs/heads/$RELEASE_BRANCH" '[.[] | select(.ref == $ref)] | length == 1' "$RUNNER_TEMP/refs.json"
+          release_sha=$(jq -r --arg ref "refs/heads/$RELEASE_BRANCH" '.[] | select(.ref == $ref) | .object.sha' "$RUNNER_TEMP/refs.json")
+
+          gh api "repos/$GITHUB_REPOSITORY/compare/preview...$encoded_branch" > "$RUNNER_TEMP/preview-compare.json"
+          jq -e '.status == "ahead" and .ahead_by == 1 and .behind_by == 0 and (.commits | length) == 1' "$RUNNER_TEMP/preview-compare.json"
+          test "$(jq -r '.commits[0].sha' "$RUNNER_TEMP/preview-compare.json")" = "$release_sha"
+          test "$(jq -r '.commits[0].commit.message | split("\n")[0]' "$RUNNER_TEMP/preview-compare.json")" = "chore(release): v$version"
+
+          gh api -X GET "repos/$GITHUB_REPOSITORY/contents/package.json" -f ref="$release_sha" --jq .content |
+            tr -d '\n' | base64 --decode > "$RUNNER_TEMP/package.json"
+          test "$(jq -r .version "$RUNNER_TEMP/package.json")" = "$version"
+          test "$(printf '%s\n' "$RELEASE_NOTES" | sed -n '1p')" = "## v$version"
+          if grep -q 'pulpe-release:' <<< "$RELEASE_NOTES"; then
+            exit 1
+          fi
+
+          gh api "repos/$GITHUB_REPOSITORY/compare/main...$release_sha" > "$RUNNER_TEMP/main-compare.json"
+          jq -e '.behind_by == 0' "$RUNNER_TEMP/main-compare.json"
+          encoded_tag=$(jq -rn --arg value "v$version" '$value | @uri')
+          tag_count=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$encoded_tag" | jq --arg ref "refs/tags/v$version" '[.[] | select(.ref == $ref)] | length')
+          test "$tag_count" = 0
+
+          {
+            echo "branch=$RELEASE_BRANCH"
+            echo "owner=$owner"
+            echo "sha=$release_sha"
+            echo "version=$version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create short-lived GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.PULPE_RELEASE_APP_ID }}
+          private-key: ${{ secrets.PULPE_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: pulpe
+
+      - name: Open the preparation PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_BRANCH: ${{ steps.release.outputs.branch }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+          VERSION: ${{ steps.release.outputs.version }}
+          OWNER: ${{ steps.release.outputs.owner }}
+        run: |
+          # shellcheck disable=SC2016
+          set -euo pipefail
+          gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=all -f base=preview -f head="$OWNER:$RELEASE_BRANCH" -f per_page=100 > "$RUNNER_TEMP/pulls.json"
+          count=$(jq 'length' "$RUNNER_TEMP/pulls.json")
+          if [ "$count" -gt 0 ]; then
+            jq -e --arg sha "$RELEASE_SHA" 'length == 1 and .[0].state == "open" and .[0].head.sha == $sha' "$RUNNER_TEMP/pulls.json"
+            jq -r '.[0].html_url' "$RUNNER_TEMP/pulls.json"
+            exit 0
+          fi
+
+          body=$(printf '<!-- pulpe-release:v%s:%s -->\n\n# Release v%s\n\nThis PR prepares the single candidate for the preview environment. It does not publish a second release.\n\n%s\n' "$VERSION" "$RELEASE_SHA" "$VERSION" "$RELEASE_NOTES")
+          gh api -X POST "repos/$GITHUB_REPOSITORY/pulls" \
+            -f title="chore(release): v$VERSION" \
+            -f head="$RELEASE_BRANCH" \
+            -f base=preview \
+            -f body="$body" \
+            -F maintainer_can_modify=false \
+            --jq .html_url
+
+  promote:
+    name: Open proven release PR to main
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'preview'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate the immutable staging proof
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ github.event.workflow_run.head_sha }}
+          STAGING_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          # shellcheck disable=SC2016 # jq programs use their own $variables.
+          set -euo pipefail
+          artifact="staging-proof-$CANDIDATE_SHA"
+          gh run download "$STAGING_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "$RUNNER_TEMP/staging-proof"
+          proof="$RUNNER_TEMP/staging-proof/staging-proof.json"
+          jq -e --arg repository "$GITHUB_REPOSITORY" --arg candidate "$CANDIDATE_SHA" --argjson run "$STAGING_RUN_ID" '.repository == $repository and .candidate_sha == $candidate and .staging_run_id == $run' "$proof"
+
+          pr_number=$(jq -r .pr_number "$proof")
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$pr_number" > "$RUNNER_TEMP/preparation-pr.json"
+          release_branch=$(jq -r .head.ref "$RUNNER_TEMP/preparation-pr.json")
+          if ! jq -e --arg candidate "$CANDIDATE_SHA" '.user.login == "pulpe-release[bot]" and .base.ref == "preview" and .merged_at != null and .merge_commit_sha == $candidate' "$RUNNER_TEMP/preparation-pr.json" >/dev/null ||
+             ! [[ "$release_branch" =~ ^release/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::staging proof belongs to a normal preview PR; no release promotion requested"
+            exit 0
+          fi
+          version="${BASH_REMATCH[1]}"
+
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$pr_number/commits?per_page=100" --jq '.[].sha' > "$RUNNER_TEMP/preparation-commits"
+          release_sha=$(tail -n 1 "$RUNNER_TEMP/preparation-commits")
+          test -n "$release_sha"
+          test "$(jq -r .body "$RUNNER_TEMP/preparation-pr.json" | sed -n '1p')" = "<!-- pulpe-release:v$version:$release_sha -->"
+
+          gh api "repos/$GITHUB_REPOSITORY/git/commits/$CANDIDATE_SHA" > "$RUNNER_TEMP/candidate.json"
+          jq -e --arg release "$release_sha" --arg tree "$(jq -r .tree_sha "$proof")" '(.parents | length) == 2 and .parents[1].sha == $release and .tree.sha == $tree' "$RUNNER_TEMP/candidate.json"
+
+          encoded_branch=$(jq -rn --arg value "$release_branch" '$value | @uri')
+          gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/$encoded_branch" > "$RUNNER_TEMP/refs.json"
+          jq -e --arg ref "refs/heads/$release_branch" '[.[] | select(.ref == $ref)] | length == 1' "$RUNNER_TEMP/refs.json"
+          branch_sha=$(jq -r --arg ref "refs/heads/$release_branch" '.[] | select(.ref == $ref) | .object.sha' "$RUNNER_TEMP/refs.json")
+          test "$branch_sha" = "$release_sha" || test "$branch_sha" = "$CANDIDATE_SHA"
+
+          gh api "repos/$GITHUB_REPOSITORY/compare/main...$CANDIDATE_SHA" > "$RUNNER_TEMP/main-compare.json"
+          jq -e '.behind_by == 0' "$RUNNER_TEMP/main-compare.json"
+          encoded_tag=$(jq -rn --arg value "v$version" '$value | @uri')
+          tag_count=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$encoded_tag" | jq --arg ref "refs/tags/v$version" '[.[] | select(.ref == $ref)] | length')
+          test "$tag_count" = 0
+
+          {
+            echo "is_release=true"
+            echo "branch=$release_branch"
+            echo "branch_sha=$branch_sha"
+            echo "candidate_sha=$CANDIDATE_SHA"
+            echo "encoded_branch=$encoded_branch"
+            echo "preparation_pr=$pr_number"
+            echo "release_sha=$release_sha"
+            echo "staging_run_id=$STAGING_RUN_ID"
+            echo "version=$version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create short-lived GitHub App token
+        id: app-token
+        if: steps.release.outputs.is_release == 'true'
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.PULPE_RELEASE_APP_ID }}
+          private-key: ${{ secrets.PULPE_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: pulpe
+
+      - name: Freeze the candidate and open the production PR
+        if: steps.release.outputs.is_release == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_BRANCH: ${{ steps.release.outputs.branch }}
+          BRANCH_SHA: ${{ steps.release.outputs.branch_sha }}
+          CANDIDATE_SHA: ${{ steps.release.outputs.candidate_sha }}
+          ENCODED_BRANCH: ${{ steps.release.outputs.encoded_branch }}
+          PREPARATION_PR: ${{ steps.release.outputs.preparation_pr }}
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
+          STAGING_RUN_ID: ${{ steps.release.outputs.staging_run_id }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          # shellcheck disable=SC2016
+          set -euo pipefail
+          if [ "$BRANCH_SHA" = "$RELEASE_SHA" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/$ENCODED_BRANCH" -f sha="$CANDIDATE_SHA" -F force=false >/dev/null
+          fi
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$ENCODED_BRANCH" --jq .object.sha)" = "$CANDIDATE_SHA"
+
+          owner="${GITHUB_REPOSITORY%%/*}"
+          gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=all -f base=main -f head="$owner:$RELEASE_BRANCH" -f per_page=100 > "$RUNNER_TEMP/pulls.json"
+          count=$(jq 'length' "$RUNNER_TEMP/pulls.json")
+          if [ "$count" -gt 0 ]; then
+            # shellcheck disable=SC2016
+            jq -e --arg sha "$CANDIDATE_SHA" 'length == 1 and .[0].state == "open" and .[0].head.sha == $sha' "$RUNNER_TEMP/pulls.json"
+            jq -r '.[0].html_url' "$RUNNER_TEMP/pulls.json"
+            exit 0
+          fi
+
+          prep_body=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PREPARATION_PR" --jq .body)
+          marker="<!-- pulpe-promotion:v$VERSION:$CANDIDATE_SHA:$PREPARATION_PR:$STAGING_RUN_ID -->"
+          # shellcheck disable=SC2016
+          body=$(printf '%s\n\n# Promote v%s to production\n\nCandidate `%s` passed the canonical preview CI and exact staging proof. New preview features do not change this frozen branch.\n\nPreparation: #%s\nStaging proof: [run %s](https://github.com/%s/actions/runs/%s)\n\n%s\n' "$marker" "$VERSION" "$CANDIDATE_SHA" "$PREPARATION_PR" "$STAGING_RUN_ID" "$GITHUB_REPOSITORY" "$STAGING_RUN_ID" "$prep_body")
+          gh api -X POST "repos/$GITHUB_REPOSITORY/pulls" \
+            -f title="chore(release): v$VERSION" \
+            -f head="$RELEASE_BRANCH" \
+            -f base=main \
+            -f body="$body" \
+            -F maintainer_can_modify=false \
+            --jq .html_url

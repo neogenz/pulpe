@@ -1,0 +1,68 @@
+name: ✅ Release Gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+jobs:
+  release-gate:
+    name: ✅ Release Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify App author, frozen candidate, and staging proof
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          RELEASE_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          # shellcheck disable=SC2016
+          set -euo pipefail
+          test "$PR_AUTHOR" = 'pulpe-release[bot]'
+          [[ "$RELEASE_BRANCH" =~ ^release/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]
+          version="${BASH_REMATCH[1]}"
+
+          marker=$(printf '%s\n' "$PR_BODY" | sed -n '1p')
+          [[ "$marker" =~ ^\<\!--\ pulpe-promotion:v${version}:([0-9a-f]{40}):([0-9]+):([0-9]+)\ --\>$ ]]
+          test "${BASH_REMATCH[1]}" = "$CANDIDATE_SHA"
+          preparation_pr="${BASH_REMATCH[2]}"
+          staging_run_id="${BASH_REMATCH[3]}"
+
+          current_main=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)
+          test "$current_main" = "$BASE_SHA"
+          encoded_branch=$(jq -rn --arg value "$RELEASE_BRANCH" '$value | @uri')
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$encoded_branch" --jq .object.sha)" = "$CANDIDATE_SHA"
+
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$preparation_pr" > "$RUNNER_TEMP/preparation-pr.json"
+          jq -e --arg candidate "$CANDIDATE_SHA" --arg branch "$RELEASE_BRANCH" '.user.login == "pulpe-release[bot]" and .base.ref == "preview" and .head.ref == $branch and .merged_at != null and .merge_commit_sha == $candidate' "$RUNNER_TEMP/preparation-pr.json"
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$preparation_pr/commits?per_page=100" --jq '.[].sha' > "$RUNNER_TEMP/preparation-commits"
+          release_sha=$(tail -n 1 "$RUNNER_TEMP/preparation-commits")
+          test -n "$release_sha"
+          test "$(jq -r .body "$RUNNER_TEMP/preparation-pr.json" | sed -n '1p')" = "<!-- pulpe-release:v$version:$release_sha -->"
+
+          gh api "repos/$GITHUB_REPOSITORY/git/commits/$CANDIDATE_SHA" > "$RUNNER_TEMP/candidate.json"
+          jq -e --arg release "$release_sha" '(.parents | length) == 2 and .parents[1].sha == $release' "$RUNNER_TEMP/candidate.json"
+          candidate_tree=$(jq -r .tree.sha "$RUNNER_TEMP/candidate.json")
+
+          gh api -X GET "repos/$GITHUB_REPOSITORY/contents/package.json" -f ref="$CANDIDATE_SHA" --jq .content |
+            tr -d '\n' | base64 --decode > "$RUNNER_TEMP/package.json"
+          test "$(jq -r .version "$RUNNER_TEMP/package.json")" = "$version"
+          gh api "repos/$GITHUB_REPOSITORY/compare/$current_main...$CANDIDATE_SHA" > "$RUNNER_TEMP/main-compare.json"
+          jq -e '.behind_by == 0' "$RUNNER_TEMP/main-compare.json"
+          encoded_tag=$(jq -rn --arg value "v$version" '$value | @uri')
+          tag_count=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$encoded_tag" | jq --arg ref "refs/tags/v$version" '[.[] | select(.ref == $ref)] | length')
+          test "$tag_count" = 0
+
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$staging_run_id" > "$RUNNER_TEMP/staging-run.json"
+          jq -e --arg candidate "$CANDIDATE_SHA" '.path == ".github/workflows/staging-proof.yml" and .event == "push" and .head_branch == "preview" and .head_sha == $candidate and .status == "completed" and .conclusion == "success"' "$RUNNER_TEMP/staging-run.json"
+          gh run download "$staging_run_id" --repo "$GITHUB_REPOSITORY" --name "staging-proof-$CANDIDATE_SHA" --dir "$RUNNER_TEMP/staging-proof"
+          jq -e --arg repository "$GITHUB_REPOSITORY" --arg candidate "$CANDIDATE_SHA" --arg tree "$candidate_tree" --argjson pr "$preparation_pr" --argjson run "$staging_run_id" '.repository == $repository and .candidate_sha == $candidate and .tree_sha == $tree and .pr_number == $pr and .staging_run_id == $run' "$RUNNER_TEMP/staging-proof/staging-proof.json"

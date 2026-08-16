@@ -1,5 +1,5 @@
 ---
-status: pending
+status: in-progress
 ---
 
 # Instruction: Promouvoir un candidat unique avec deux PR
@@ -77,7 +77,7 @@ journey
 1. Faire ouvrir par la GitHub App la PR `release/vX.Y.Z -> preview`, avec permissions limitées à Contents et Pull requests, sans bypass de ruleset ni secret de production.
 2. Exiger review agentique, conversations résolues, branche à jour et `✅ CI Success`; activer l'auto-merge uniquement sur cette PR de confiance.
 3. Imposer le merge commit pour cette PR précise afin que le commit fusionné `P` soit descendant de `R` et que la branche puisse avancer sans force-push.
-4. Entre le merge de `P` et `✅ Staging Ready`, ne fusionner aucune autre PR vers `preview`; si `preview` ou Railway dérive, échouer et ne rien promouvoir.
+4. De la création de `release/vX.Y.Z` jusqu'à `✅ Staging Ready`, ne fusionner aucune autre PR vers `preview`; si la base, `preview` ou Railway dérive, échouer et ne rien promouvoir.
 5. Après `✅ Staging Ready` et la QA agentique sur les déploiements exacts, avancer `release/vX.Y.Z` en fast-forward de `R` vers `P`, enregistrer les identifiants de preuve puis interdire toute nouvelle modification.
 6. Autoriser immédiatement les autres feature PR à fusionner : elles produisent des commits `Q`, `R2`, etc. sur `preview`, sans déplacer la branche release restée sur `P`.
 
