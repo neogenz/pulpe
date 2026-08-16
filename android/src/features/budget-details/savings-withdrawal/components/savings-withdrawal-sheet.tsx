@@ -246,7 +246,10 @@ function MonthBlock({
 
   return (
     <View style={styles.block}>
-      <Text variant="labelMedium" style={{ color: theme.colors.outline }}>
+      <Text
+        variant="labelMedium"
+        style={{ color: theme.colors.onSurfaceVariant }}
+      >
         {monthLabel}
       </Text>
       <Text variant="labelSmall" style={{ color: accent }}>
@@ -263,7 +266,10 @@ function MonthBlock({
         {note}
       </Text>
       {footnote !== undefined && (
-        <Text variant="labelMedium" style={{ color: theme.colors.outline }}>
+        <Text
+          variant="labelMedium"
+          style={{ color: theme.colors.onSurfaceVariant }}
+        >
           {footnote}
         </Text>
       )}

@@ -24,8 +24,6 @@ import { RADIUS, SPACING } from "@/core/ui/theme";
 import { useSpreadOccurrences } from "../spread-queries";
 
 const PERCENT = 100;
-/** How far a month that can no longer move steps back. */
-const PAST_OPACITY = 0.5;
 
 interface SpreadOccurrencesSheetProps {
   isVisible: boolean;
@@ -135,11 +133,20 @@ function OccurrenceRow({
   const hasReal = occurrence.transactionCount > 0;
 
   return (
-    <View style={[styles.row, item.isPast && styles.past]}>
+    <View style={styles.row}>
       <View style={styles.rowLabels}>
         <Text
           variant="bodyLarge"
-          style={[styles.month, item.isChecked && styles.struck]}
+          style={[
+            styles.month,
+            item.isChecked && styles.struck,
+            // A past month recedes through its ink, never through the row's
+            // opacity: 0.5 over the whole row took its amounts to 2.42:1, the
+            // failure `budget-line-row.tsx` already names. The instalments a
+            // spread has already paid are exactly what someone opens this sheet
+            // to count.
+            item.isPast && { color: theme.colors.onSurfaceVariant },
+          ]}
         >
           {formatMonthName(occurrence.month, occurrence.year)}
         </Text>
@@ -185,7 +192,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: SPACING.md,
   },
-  past: { opacity: PAST_OPACITY },
   rowLabels: { flex: 1, gap: SPACING.xxs },
   rowAmounts: { flexDirection: "row", alignItems: "baseline", gap: SPACING.xs },
   month: { textTransform: "capitalize" },

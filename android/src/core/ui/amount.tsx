@@ -23,17 +23,17 @@ const SIZES = {
 } as const;
 
 /**
- * What the amount *is*, not what colour to paint it. `neutral` is ink, for an
- * amount whose sign is the whole story; `muted` steps back without dimming,
- * for a figure that qualifies the one beside it.
- */
-/**
  * How far a hero may shrink before it stops being one. Left unsaid, Android
  * shrinks to a 4 dp floor — small enough to fit any amount, and far too small to
  * read one.
  */
 const HERO_MINIMUM_SCALE = 0.6;
 
+/**
+ * What the amount *is*, not what colour to paint it. `neutral` is ink, for an
+ * amount whose sign is the whole story; `muted` steps back without dimming,
+ * for a figure that qualifies the one beside it.
+ */
 type Tone =
   | "neutral"
   | "muted"

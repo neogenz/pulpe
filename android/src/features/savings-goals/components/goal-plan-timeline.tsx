@@ -18,8 +18,6 @@ import {
   planTimeline,
 } from "../plan-timeline";
 
-const DIMMED_OPACITY = 0.55;
-
 interface GoalPlanTimelineProps {
   months: SavingsGoalPlanMonth[];
   currency: SupportedCurrency;
@@ -118,10 +116,20 @@ function MonthRow({
   const state = monthState(month);
   const plannedWithdrawal = month.plannedWithdrawalAmount ?? 0;
 
+  // A month steps back through its ink, never through the row's opacity: 0.55
+  // laid over the whole row took its metadata to 2.70:1, which is the failure
+  // `budget-line-row.tsx` already names — a month someone scrolls back to is
+  // not decoration. `onSurfaceVariant` recedes at 8.35:1.
+  const labelColor = isCurrent
+    ? savings
+    : isPast
+      ? theme.colors.onSurfaceVariant
+      : undefined;
+
   return (
-    <View style={[styles.row, isPast && { opacity: DIMMED_OPACITY }]}>
+    <View style={styles.row}>
       <View style={styles.rowLabels}>
-        <Text variant="bodyLarge" style={isCurrent && { color: savings }}>
+        <Text variant="bodyLarge" style={{ color: labelColor }}>
           {formatMonthLabel(month.month, month.year)}
         </Text>
 
@@ -135,7 +143,8 @@ function MonthRow({
             <Text
               variant="labelSmall"
               style={{
-                color: state === "checked" ? savings : theme.colors.outline,
+                color:
+                  state === "checked" ? savings : theme.colors.onSurfaceVariant,
               }}
             >
               {MONTH_STATE_LABELS[state]}

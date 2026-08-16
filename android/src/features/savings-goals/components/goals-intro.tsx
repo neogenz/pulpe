@@ -164,7 +164,9 @@ function PlanPreview({ currency }: { currency: SupportedCurrency }) {
               variant="labelMedium"
               style={{
                 color:
-                  index === 0 ? theme.colors.primary : theme.colors.outline,
+                  index === 0
+                    ? theme.colors.primary
+                    : theme.colors.onSurfaceVariant,
               }}
             >
               {index === 0 ? "Ce mois" : "Prévu"}
