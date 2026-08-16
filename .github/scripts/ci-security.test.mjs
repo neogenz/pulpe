@@ -11,6 +11,8 @@ const read = (path) =>
 const action = read(".github/actions/setup-supabase-cli/action.yml");
 const workflow = read(".github/workflows/ci.yml");
 const stagingProof = read(".github/workflows/staging-proof.yml");
+const releasePromotion = read(".github/workflows/release-promotion.yml");
+const releaseGate = read(".github/workflows/release-gate.yml");
 const dockerfile = read("backend-nest/Dockerfile");
 const rootPackage = JSON.parse(read("package.json"));
 const backendPackage = JSON.parse(read("backend-nest/package.json"));
@@ -123,6 +125,63 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
       `workflow action is not pinned: ${actionUse[1]}`,
     );
   }
+});
+
+test("release promotion writes only after a trusted immutable proof", () => {
+  assert.match(releasePromotion, /workflow_dispatch:/);
+  assert.match(
+    releasePromotion,
+    /workflow_run:\n\s+workflows: \["✅ Staging Ready \(shadow\)"\]/,
+  );
+  assert.doesNotMatch(releasePromotion, /^\s{2}pull_request(?:_target)?:/m);
+  assert.match(releasePromotion, /actions: read/);
+  assert.match(releasePromotion, /contents: read/);
+  assert.match(releasePromotion, /pull-requests: read/);
+  assert.doesNotMatch(
+    releasePromotion,
+    /:\s*write\b|--admin|enablePullRequestAutoMerge/,
+  );
+  assert.match(
+    releasePromotion,
+    /actions\/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349/,
+  );
+  assert.match(releasePromotion, /\.user\.login == "pulpe-release\[bot\]"/);
+  assert.match(releasePromotion, /\.parents\[1\]\.sha == \$release/);
+  assert.match(releasePromotion, /staging-proof-\$CANDIDATE_SHA/);
+  assert.match(releasePromotion, /-F force=false/);
+  assert.match(releasePromotion, /base=preview/);
+  assert.match(releasePromotion, /base=main/);
+
+  for (const actionUse of releasePromotion.matchAll(
+    /^\s*uses:\s*([^\s#]+)/gm,
+  )) {
+    assert.match(
+      actionUse[1],
+      /@[0-9a-f]{40}$/,
+      `workflow action is not pinned: ${actionUse[1]}`,
+    );
+  }
+});
+
+test("the production PR gate is read-only and proof-bound", () => {
+  assert.match(releaseGate, /pull_request:\n\s+branches: \[main\]/);
+  assert.doesNotMatch(releaseGate, /pull_request_target/);
+  assert.match(releaseGate, /actions: read/);
+  assert.match(releaseGate, /contents: read/);
+  assert.match(releaseGate, /pull-requests: read/);
+  assert.doesNotMatch(
+    releaseGate,
+    /secrets\.|:\s*write\b|actions\/checkout|git checkout|pull_request\.head\.repo/,
+  );
+  assert.match(releaseGate, /PR_AUTHOR.*pull_request\.user\.login/);
+  assert.match(releaseGate, /test "\$PR_AUTHOR" = 'pulpe-release\[bot\]'/);
+  assert.match(releaseGate, /release\/v\(\[0-9\]/);
+  assert.match(releaseGate, /\.merge_commit_sha == \$candidate/);
+  assert.match(releaseGate, /\.parents\[1\]\.sha == \$release/);
+  assert.match(releaseGate, /\.tree_sha == \$tree/);
+  assert.match(releaseGate, /\.conclusion == "success"/);
+  assert.match(releaseGate, /staging-proof-\$CANDIDATE_SHA/);
+  assert.match(releaseGate, /matching-refs\/tags/);
 });
 
 test("the backend image does not install Bun", () => {

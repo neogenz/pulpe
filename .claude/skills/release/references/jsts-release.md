@@ -66,11 +66,11 @@ All must be staged in the release commit, alongside the manually-bumped root `pa
 
 ## Sync Railway `LATEST_WEB_VERSION` (force-update gate)
 
-After bumping the product version, record a pending `LATEST_WEB_VERSION` update for Railway in **both** `preview` and `production`. Apply it only after Step 9 proves that the exact release SHA is ready in both Vercel production projects and Railway production, the `main` CI is green, and the public health checks pass. A failed or incomplete publication leaves both values unchanged.
+After bumping the product version, `LATEST_WEB_VERSION` remains pending for Railway in **both** `preview` and `production`. The preparation skill never applies it. The protected production workflow may apply it only after the exact candidate tree is ready in both Vercel production projects and Railway production, the production checks are green, and the public health checks pass. A failed or incomplete publication leaves both values unchanged.
 
 The force-update endpoint (`GET /api/v1/app/version`) serves this value to webapp clients; changing it before the web release is public would advertise a version clients cannot use.
 
-Use the Railway integration available to the current agent — one operation per environment with these semantics:
+The protected production workflow uses one operation per environment with these semantics:
 
 ```
 workspace: <repo root>
@@ -80,6 +80,6 @@ skip deploy: false
 variable: LATEST_WEB_VERSION=<new root version>
 ```
 
-The variable change must redeploy the backend so the running `ConfigService` reads the new value. Wait for the resulting deployment to succeed in each environment. If no Railway integration is available, stop before the release commit and report the missing capability. Never omit the update silently or guess an unsupported CLI/MCP command. After both updates, verify the public version endpoint reports the new web version.
+The variable change must redeploy the backend so the running `ConfigService` reads the new value. The production workflow waits for the resulting deployments and verifies the public version endpoint. If that workflow lacks its Railway credential, it stops before publication; the preparation skill never substitutes a local mutation.
 
 > **Never** touch `MIN_WEB_VERSION` from this skill. That value is a deliberate kill switch — only bumped when a release contains a breaking change or critical fix that must force users off old binaries. Always require explicit user confirmation before changing it.
