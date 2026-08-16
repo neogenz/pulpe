@@ -1,6 +1,6 @@
 ---
 objective: "Une recovery key confirmée n'est jamais remplacée par un double submit ou un retry local, sans casser la reprise sûre d'une réponse setup perdue."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Empêcher la rotation dupliquée de recovery key
