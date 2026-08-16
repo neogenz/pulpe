@@ -20,6 +20,7 @@ import { dismissTip } from "@/core/tips/tips-store";
 import { Tooltip } from "@/core/tips/tooltip";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatMonthName } from "@/core/ui/date-format";
+import { hapticFailure, hapticSuccess } from "@/core/ui/haptics";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { Notice } from "@/core/ui/notice";
@@ -202,14 +203,17 @@ export default function HomeScreen() {
                 // Doing it explains it better than the card ever could.
                 dismissTip("checking");
                 toggle.mutate(item, {
-                  onError: () =>
+                  onError: () => {
+                    hapticFailure();
                     setToggleFailure(
                       "Le pointage n'a pas été enregistré. Réessaie.",
-                    ),
+                    );
+                  },
                   // Offered here and nowhere else: a reminder to point is worth
                   // something only to someone who has just found out what
                   // pointing does.
                   onSuccess: () => {
+                    hapticSuccess();
                     setPointed(item);
                     reminders.offer();
                   },

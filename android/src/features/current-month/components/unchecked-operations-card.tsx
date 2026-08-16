@@ -4,7 +4,7 @@ import { StyleSheet, View } from "react-native";
 import { Button, Divider, Text, useTheme } from "react-native-paper";
 
 import { IconDisc } from "@/core/ui/icon-disc";
-import { hapticSelection, hapticSuccess } from "@/core/ui/haptics";
+import { hapticCommit, hapticSelection } from "@/core/ui/haptics";
 import { Amount } from "@/core/ui/amount";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
@@ -63,7 +63,11 @@ export function UncheckedOperationsCard({
   const accent = financial[KIND_ACCENTS[current.kind]];
 
   function handleConfirm() {
-    hapticSuccess();
+    // `commit`, not `success`: nothing has succeeded yet. The buzz that says
+    // the app kept what was asked of it belongs to the mutation's answer, and
+    // fired here it confirmed pointings that went on to fail — the hand saying
+    // "done" while the screen was about to say "not saved".
+    hapticCommit();
     onToggle(current);
   }
 
