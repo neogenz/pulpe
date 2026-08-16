@@ -5,7 +5,7 @@ import {
   type SupportedCurrency,
   type Transaction,
 } from "pulpe-shared";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   BackHandler,
   FlatList,
@@ -16,8 +16,6 @@ import {
 import {
   ActivityIndicator,
   Appbar,
-  FAB,
-  Menu,
   Searchbar,
   Text,
   useTheme,
@@ -40,9 +38,8 @@ import {
   SCREEN_PADDING,
   SPACING,
 } from "@/core/ui/theme";
-import { Notice } from "@/core/ui/notice";
-import { tagSummary } from "@/core/tags/tag-selection";
-import { useTags } from "@/core/tags/tag-queries";
+import { tagSummary } from "@/features/tags/tag-selection";
+import { useTags } from "@/features/tags/tag-queries";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { budgetsInPeriodOrder } from "@/features/budgets/budget-list-selectors";
 import {
@@ -60,11 +57,13 @@ import {
   type LineItem,
 } from "@/features/budget-details/budget-details-selectors";
 import { BudgetDetailHero } from "@/features/budget-details/components/budget-detail-hero";
+import {
+  BudgetDetailOverlays,
+  type BudgetDetailOverlaysHandle,
+} from "@/features/budget-details/components/budget-detail-overlays";
 import { BudgetLineRow } from "@/features/budget-details/components/budget-line-row";
-import { BudgetLineSheet } from "@/features/budget-details/components/budget-line-sheet";
 import { DetailsFilterBar } from "@/features/budget-details/components/details-filter-bar";
 import { MonthPager } from "@/features/budget-details/components/month-pager";
-import { SavingsWithdrawalSheet } from "@/features/budget-details/savings-withdrawal/components/savings-withdrawal-sheet";
 import { TightMonthCard } from "@/features/budget-details/savings-withdrawal/components/tight-month-card";
 import {
   dismissWithdrawal,
@@ -72,9 +71,6 @@ import {
   shouldOfferWithdrawal,
 } from "@/features/budget-details/savings-withdrawal/withdrawal-gate";
 import { TransactionRow } from "@/features/budget-details/components/transaction-row";
-import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
-import { useTransactionRemoval } from "@/features/transactions/use-transaction-removal";
-import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { buildCurrentMonthViewModel } from "@/features/current-month/current-month-view-model";
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
@@ -150,26 +146,12 @@ export default function BudgetDetailScreen() {
   const budgets = useBudgetList();
   const tags = useTags();
   const toggle = useToggleCheck(id);
+  const overlays = useRef<BudgetDetailOverlaysHandle>(null);
   const [filters, setFilters] = useState<DetailsFilters>(DEFAULT_FILTERS);
   const [isSearchVisible, setSearchVisible] = useState(false);
-  const [isRealizedVisible, setRealizedVisible] = useState(false);
-  const [hasToggleFailed, setToggleFailed] = useState(false);
-  const [isFabOpen, setFabOpen] = useState(false);
-  const [isLineSheetVisible, setLineSheetVisible] = useState(false);
-  const [isTransactionSheetVisible, setTransactionSheetVisible] =
-    useState(false);
-  const [edited, setEdited] = useState<Transaction | null>(null);
-  // The operation a long press asked about, and the point it was asked at.
-  const [contextual, setContextual] = useState<{
-    transaction: Transaction;
-    anchor: { x: number; y: number };
-  } | null>(null);
-  const [isWithdrawalVisible, setWithdrawalVisible] = useState(false);
   const [isCardDismissed, setCardDismissed] = useState(() =>
     isWithdrawalDismissed(id),
   );
-  const removal = useTransactionRemoval();
-  const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const isPessimisticTipArmed = useIsTipArmed("pessimistic-check");
 
   // Back closes the search before it leaves the screen — on Android that is
@@ -394,14 +376,19 @@ export default function BudgetDetailScreen() {
                     row.transaction.tagIds ?? [],
                     tags.data ?? [],
                   )}
-                  onPress={() => setEdited(row.transaction)}
+                  onPress={() =>
+                    overlays.current?.editTransaction(row.transaction)
+                  }
                   onLongPress={(anchor) =>
-                    setContextual({ transaction: row.transaction, anchor })
+                    overlays.current?.showTransactionMenu(
+                      row.transaction,
+                      anchor,
+                    )
                   }
                   onToggle={() =>
                     toggle.mutate(
                       { source: "transaction", sourceId: row.transaction.id },
-                      { onError: () => setToggleFailed(true) },
+                      { onError: () => overlays.current?.showToggleFailure() },
                     )
                   }
                 />
@@ -433,7 +420,7 @@ export default function BudgetDetailScreen() {
                   if (isPessimistic(row.item)) armTip("pessimistic-check");
                   toggle.mutate(
                     { source: "budgetLine", sourceId: row.item.line.id },
-                    { onError: () => setToggleFailed(true) },
+                    { onError: () => overlays.current?.showToggleFailure() },
                   );
                 }}
               />
@@ -463,7 +450,7 @@ export default function BudgetDetailScreen() {
               currency={currency}
               rollover={budget.rollover ?? 0}
               previousMonthName={previousMonthName}
-              onPressMetrics={() => setRealizedVisible(true)}
+              onPressMetrics={() => overlays.current?.showRealizedBalance()}
               onPressRollover={
                 budget.previousBudgetId == null
                   ? undefined
@@ -491,7 +478,7 @@ export default function BudgetDetailScreen() {
             {isTight && (
               <View style={styles.gutter}>
                 <TightMonthCard
-                  onWithdraw={() => setWithdrawalVisible(true)}
+                  onWithdraw={() => overlays.current?.showWithdrawal()}
                   onDismiss={() => {
                     dismissWithdrawal(id);
                     setCardDismissed(true);
@@ -518,156 +505,14 @@ export default function BudgetDetailScreen() {
         }
       />
 
-      {/* Two things can be added to a month and they are not the same act: a
-          forecast plans, an operation records. One FAB, two answers. */}
-      <FAB.Group
-        open={isFabOpen}
-        visible={
-          !isLineSheetVisible && !isTransactionSheetVisible && edited === null
-        }
-        icon={isFabOpen ? "close" : "plus"}
-        onStateChange={({ open }) => setFabOpen(open)}
-        actions={[
-          {
-            icon: "calendar-check",
-            label: "Une prévision",
-            onPress: () => setLineSheetVisible(true),
-          },
-          {
-            icon: "cash",
-            label: "Une opération",
-            onPress: () => setTransactionSheetVisible(true),
-          },
-        ]}
-        accessibilityLabel="Ajouter"
-      />
-
-      <Notice
-        clearsFab
-        visible={savedMessage !== null}
-        onDismiss={() => setSavedMessage(null)}
-      >
-        {savedMessage ?? ""}
-      </Notice>
-
-      <Notice
-        clearsFab
-        visible={hasToggleFailed}
-        onDismiss={() => setToggleFailed(false)}
-        action={{ label: "Fermer", onPress: () => setToggleFailed(false) }}
-      >
-        Le pointage n&apos;a pas été enregistré. Réessaie.
-      </Notice>
-
-      <BudgetLineSheet
-        isVisible={isLineSheetVisible}
-        onDismiss={() => setLineSheetVisible(false)}
+      <BudgetDetailOverlays
+        ref={overlays}
         budgetId={id}
-        anchor={{ year: budget.year, month: budget.month }}
+        period={{ year: budget.year, month: budget.month }}
         currency={currency}
-        onSaved={() => {
-          setLineSheetVisible(false);
-          setSavedMessage("Prévision ajoutée");
-        }}
-      />
-
-      <TransactionSheet
-        isVisible={isTransactionSheetVisible}
-        onDismiss={() => setTransactionSheetVisible(false)}
-        budgetId={id}
-        currency={currency}
-        onSaved={() => {
-          setTransactionSheetVisible(false);
-          setSavedMessage("Opération ajoutée");
-        }}
-      />
-
-      {edited !== null && (
-        <TransactionSheet
-          // Keyed on the operation so opening a second one starts from its own
-          // values rather than from the first one's.
-          key={edited.id}
-          isVisible
-          onDismiss={() => setEdited(null)}
-          budgetId={id}
-          currency={currency}
-          transaction={edited}
-          onSaved={() => {
-            setEdited(null);
-            setSavedMessage("Opération modifiée");
-          }}
-          onDelete={() => removal.remove(edited, () => setEdited(null))}
-        />
-      )}
-
-      {/* Anchored to the finger. Deleting from here goes through the same
-          removal as the form's own button, so it lands in the same undo
-          snackbar rather than being a second, unrecoverable way out. */}
-      <Menu
-        visible={contextual !== null}
-        onDismiss={() => setContextual(null)}
-        anchor={contextual?.anchor ?? { x: 0, y: 0 }}
-      >
-        <Menu.Item
-          leadingIcon="pencil-outline"
-          title="Modifier"
-          onPress={() => {
-            setEdited(contextual?.transaction ?? null);
-            setContextual(null);
-          }}
-        />
-        <Menu.Item
-          leadingIcon="trash-can-outline"
-          title="Supprimer"
-          titleStyle={{ color: theme.colors.error }}
-          onPress={() => {
-            if (contextual !== null) removal.remove(contextual.transaction);
-            setContextual(null);
-          }}
-        />
-      </Menu>
-
-      <Notice
-        clearsFab
-        visible={removal.last !== null}
-        onDismiss={removal.forget}
-        action={{ label: "Annuler", onPress: removal.undo }}
-      >
-        {removal.undoable.length === 1
-          ? `« ${removal.last?.name} » supprimée`
-          : `${removal.undoable.length} opérations supprimées`}
-      </Notice>
-
-      <Notice
-        clearsFab
-        visible={removal.failureMessage !== null}
-        onDismiss={removal.dismissFailure}
-      >
-        {removal.failureMessage}
-      </Notice>
-
-      <SavingsWithdrawalSheet
-        isVisible={isWithdrawalVisible}
-        onDismiss={() => setWithdrawalVisible(false)}
-        budgetId={id}
-        viewedPeriod={{ year: budget.year, month: budget.month }}
         missingAmount={Math.max(0, -metrics.remaining)}
-        currency={currency}
-        onWithdrawn={() => {
-          setWithdrawalVisible(false);
-          setSavedMessage("C'est en place");
-        }}
+        viewModel={viewModel}
       />
-
-      {viewModel !== null && (
-        <RealizedBalanceSheet
-          isVisible={isRealizedVisible}
-          onDismiss={() => setRealizedVisible(false)}
-          metrics={viewModel.metrics}
-          realized={viewModel.realized}
-          currency={currency}
-        />
-      )}
     </SafeAreaView>
   );
 }

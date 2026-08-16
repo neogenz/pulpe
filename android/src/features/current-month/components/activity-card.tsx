@@ -3,8 +3,8 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, Divider, Text, useTheme } from "react-native-paper";
 
-import { useTags } from "@/core/tags/tag-queries";
-import { tagSummary } from "@/core/tags/tag-selection";
+import { useTags } from "@/features/tags/tag-queries";
+import { tagSummary } from "@/features/tags/tag-selection";
 import {
   formatCompactCurrency,
   formatSignedCompactCurrency,
