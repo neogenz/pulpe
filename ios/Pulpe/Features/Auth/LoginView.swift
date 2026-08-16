@@ -184,11 +184,11 @@ extension LoginView {
                 text: $viewModel.password,
                 isVisible: $viewModel.showPassword,
                 systemImage: "lock",
+                fieldAccessibilityIdentifier: "password",
                 focusBinding: $focusedField,
                 focusField: .password
             )
             .textContentType(.password)
-            .accessibilityIdentifier("password")
             .accessibilityLabel("Mot de passe")
             .accessibilityHint(!viewModel.password.isEmpty && !viewModel.isPasswordValid
                 ? "8 caractères minimum"

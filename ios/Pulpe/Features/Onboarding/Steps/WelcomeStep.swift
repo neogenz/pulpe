@@ -123,6 +123,7 @@ struct WelcomeStep: View {
                     .textLinkButtonStyle()
                     .frame(minHeight: DesignTokens.TapTarget.minimum)
                     .contentShape(Rectangle())
+                    .accessibilityIdentifier("existingAccountButton")
 
                     // Implicit consent — covers all auth methods (foundation of the stack)
                     OnboardingConsentText(attributed: Self.consentMarkdown)

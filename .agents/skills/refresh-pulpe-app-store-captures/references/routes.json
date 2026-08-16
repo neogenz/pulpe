@@ -1,7 +1,9 @@
 {
   "version": 1,
   "bundle_id": "app.pulpe.ios",
-  "device_name": "iPhone 17 Pro Max",
+  "device_name": "Pulpe App Store Captures",
+  "device_type": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max",
+  "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
   "width": 1320,
   "height": 2868,
   "screens": {
@@ -15,44 +17,47 @@
       "expect": "home-balance-chart"
     },
     "02-vue-annuelle.png": {
-      "actions": [{ "tap_point": [172, 910] }],
-      "expect": "Potentiel 2026"
+      "launch_env": { "UITEST_CAPTURE_TAB": "budgets" },
+      "actions": [],
+      "expect": "budgetCard-22222222-0008-4026-a008-888888888888"
     },
     "03-modeles.png": {
-      "actions": [{ "tap_point": [363, 910] }],
-      "expect": "Budget Mensuel Standard"
+      "launch_env": { "UITEST_CAPTURE_TAB": "templates" },
+      "actions": [],
+      "expect": "templateRow-aaaa1111-aaaa-1111-aaaa-111111111111"
     },
     "04-modele-budget-mensuel-standard.png": {
-      "actions": [
-        { "tap_point": [363, 910] },
-        { "tap_point": [220, 205] }
-      ],
-      "expect": "Récapitulatif"
+      "launch_env": { "UITEST_CAPTURE_TAB": "templates" },
+      "ready": "templateRow-aaaa1111-aaaa-1111-aaaa-111111111111",
+      "actions": [{ "tap_id": "templateRow-aaaa1111-aaaa-1111-aaaa-111111111111" }],
+      "expect": "templateDetailsRoot"
     },
     "05-prevu-vs-reel.png": {
-      "actions": [
-        { "tap_point": [172, 910] },
-        { "tap_id": "budgetCard-22222222-0008-4026-a008-888888888888" }
-      ],
-      "expect": "Dépense · Courses"
+      "launch_env": { "UITEST_CAPTURE_TAB": "budgets" },
+      "ready": "budgetCard-22222222-0008-4026-a008-888888888888",
+      "actions": [{ "tap_id": "budgetCard-22222222-0008-4026-a008-888888888888" }],
+      "expect": "budgetTrackingButton"
     },
     "06-nouvelle-depense.png": {
+      "ready": "home-balance-chart",
       "actions": [
         { "tap_id": "homeAddOperationButton" },
-        { "tap_label": "Fermer le clavier", "optional": true }
+        { "tap_id": "keyboardDismissButton", "optional": true }
       ],
-      "expect": "Aucun tag"
+      "expect": "addTransactionSubmit"
     },
     "07-objectifs-epargne.png": {
-      "actions": [{ "tap_point": [268, 910] }],
-      "expect": "Objectifs d'épargne"
+      "launch_args": ["-hasSeenSavingsGoalsIntro", "YES"],
+      "launch_env": { "UITEST_CAPTURE_TAB": "savings-goals" },
+      "actions": [],
+      "expect": "savingsGoalsListRoot"
     },
     "08-objectif-macbook-pro.png": {
-      "actions": [
-        { "tap_point": [268, 910] },
-        { "tap_id": "savingsGoalRow-aaaaaaaa-2222-2222-8222-222222222222" }
-      ],
-      "expect": "Ta trajectoire"
+      "launch_args": ["-hasSeenSavingsGoalsIntro", "YES"],
+      "launch_env": { "UITEST_CAPTURE_TAB": "savings-goals" },
+      "ready": "savingsGoalsListRoot",
+      "actions": [{ "tap_id": "savingsGoalRow-aaaaaaaa-2222-2222-8222-222222222222" }],
+      "expect": "savingsGoalDetailRoot"
     }
   }
 }
