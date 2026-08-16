@@ -91,8 +91,10 @@ def unlock(udid, ready):
     while time.time() < end:
         current = tree(udid)
         if ready in current:
-            if "home-balance-chart" in current and ("CHF" not in current or "estimé fin" not in current):
-                raise RuntimeError("Capture account must use French UI and CHF")
+            if "home-balance-chart" in current and (
+                "homeProjectedBalanceAmount" not in current or "CHF" not in current
+            ):
+                raise RuntimeError("Capture account must display projected amounts in CHF")
             return
         if "networkReturnToLoginButton" in current:
             tap(udid, {"tap_id": "networkReturnToLoginButton"})
@@ -109,7 +111,7 @@ def unlock(udid, ready):
             tap(udid, {"tap_id": "loginButton"})
             login_attempts += 1
             last_login = time.time()
-        elif "Saisis ton code PIN" in current:
+        elif "pinEntryRoot" in current:
             if pin_attempts >= 3:
                 raise RuntimeError("PIN was not accepted after 3 attempts")
             for _ in pin:

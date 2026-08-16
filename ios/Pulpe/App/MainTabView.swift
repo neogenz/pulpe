@@ -42,6 +42,9 @@ struct MainTabView: View {
         .tint(Color.pulpePrimary)
         .pulpeBackground()
         .onChange(of: appState.selectedTab) { _, newTab in
+            #if DEBUG
+            guard ProcessInfo.processInfo.environment["UITEST_CAPTURE_TAB"] == nil else { return }
+            #endif
             AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])
         }
         .task {
