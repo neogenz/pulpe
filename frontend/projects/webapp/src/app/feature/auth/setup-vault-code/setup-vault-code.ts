@@ -243,7 +243,7 @@ export default class SetupVaultCode {
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
   readonly #transloco = inject(TranslocoService);
-  #recoveryKeyConfirmed = false;
+  readonly #recoveryKeyConfirmed = signal(false);
 
   protected readonly ROUTES = ROUTES;
   protected readonly VAULT_CODE_LENGTH = VAULT_CODE_LENGTH;
@@ -276,7 +276,10 @@ export default class SetupVaultCode {
   });
 
   protected readonly canSubmit = computed(() => {
-    return this.#formStatus() === 'VALID' && !this.isSubmitting();
+    return (
+      (this.#recoveryKeyConfirmed() || this.#formStatus() === 'VALID') &&
+      !this.isSubmitting()
+    );
   });
 
   protected clearError(): void {
@@ -286,12 +289,12 @@ export default class SetupVaultCode {
   protected async onSubmit(): Promise<void> {
     if (this.isSubmitting()) return;
 
-    if (!this.#recoveryKeyConfirmed && !this.form.valid) {
+    if (!this.#recoveryKeyConfirmed() && !this.form.valid) {
       this.form.markAllAsTouched();
       return;
     }
 
-    const parsed = this.#recoveryKeyConfirmed
+    const parsed = this.#recoveryKeyConfirmed()
       ? undefined
       : setupVaultCodeFormSchema.safeParse(this.form.getRawValue());
     if (parsed && !parsed.success) {
@@ -320,7 +323,7 @@ export default class SetupVaultCode {
 
         this.#clientKeyService.setDirectKey(clientKeyHex, rememberDevice);
         await this.#showRecoveryKey(clientKeyHex);
-        this.#recoveryKeyConfirmed = true;
+        this.#recoveryKeyConfirmed.set(true);
       }
 
       const { error } = await this.#authSession
@@ -337,7 +340,7 @@ export default class SetupVaultCode {
         this.#transloco.translate('common.somethingWentWrong'),
       );
     } finally {
-      this.form.enable();
+      if (!this.#recoveryKeyConfirmed()) this.form.enable();
       this.isSubmitting.set(false);
     }
   }
