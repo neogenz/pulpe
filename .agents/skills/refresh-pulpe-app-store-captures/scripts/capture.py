@@ -27,12 +27,23 @@ def roster(includes, output=OUT):
     return sorted(names)
 
 
+def matching_devices(data):
+    return [
+        device
+        for runtime, devices in data["devices"].items()
+        if runtime == CATALOG["runtime"]
+        for device in devices
+        if device["name"] == CATALOG["device_name"]
+        and device.get("deviceTypeIdentifier") == CATALOG["device_type"]
+        and device["isAvailable"]
+    ]
+
+
 def device(override):
     if override:
         return override
     data = json.loads(command("xcrun", "simctl", "list", "-j", "devices", "available").stdout)
-    matches = [d for devices in data["devices"].values() for d in devices
-               if d["name"] == CATALOG["device_name"] and d["isAvailable"]]
+    matches = matching_devices(data)
     if not matches:
         return command(
             "xcrun", "simctl", "create", CATALOG["device_name"],
@@ -43,6 +54,22 @@ def device(override):
 
 def tree(udid):
     return command("axe", "describe-ui", "--udid", udid).stdout
+
+
+def has_identifier(description, identifier):
+    try:
+        pending = [json.loads(description)]
+    except json.JSONDecodeError as error:
+        raise RuntimeError("axe describe-ui returned invalid JSON") from error
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            if value.get("AXUniqueId") == identifier:
+                return True
+            pending.extend(value.values())
+        elif isinstance(value, list):
+            pending.extend(value)
+    return False
 
 
 def wait_for(udid, needle, timeout=15):
@@ -100,7 +127,7 @@ def unlock(udid, ready):
             tap(udid, {"tap_id": "networkReturnToLoginButton"})
         elif "existingAccountButton" in current:
             tap(udid, {"tap_id": "existingAccountButton"})
-        elif '"AXUniqueId" : "email"' in current:
+        elif has_identifier(current, "email"):
             if time.time() - last_login < 5:
                 time.sleep(0.4)
                 continue

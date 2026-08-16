@@ -161,7 +161,7 @@ final class BudgetLineLongPressTests: XCTestCase {
             below: app.navigationBars.firstMatch.frame.maxY,
             above: app.windows.firstMatch.frame.maxY
         )
-        XCTAssertFalse(app.descendants(matching: .any)["networkUnavailableRoot"].exists)
+        XCTAssertFalse(app.staticTexts["networkUnavailableTitle"].exists)
         attachScreenshot("ios-goal-spread-goal-destination")
 
         app.navigationBars.buttons.firstMatch.tap()
@@ -182,7 +182,7 @@ final class BudgetLineLongPressTests: XCTestCase {
         )
         XCTAssertTrue(occurrence.label.contains(Self.goalSpreadAmount))
         XCTAssertTrue(occurrence.label.contains("CHF"))
-        XCTAssertFalse(app.descendants(matching: .any)["networkUnavailableRoot"].exists)
+        XCTAssertFalse(app.staticTexts["networkUnavailableTitle"].exists)
         attachScreenshot("ios-goal-spread-spread-destination")
     }
 
