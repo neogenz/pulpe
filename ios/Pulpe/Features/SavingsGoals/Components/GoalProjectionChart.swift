@@ -92,7 +92,7 @@ struct GoalProjectionChart: View {
                 AxisGridLine().foregroundStyle(Color.textTertiary.opacity(DesignTokens.Opacity.secondary))
                 AxisValueLabel {
                     if let amount = value.as(Double.self) {
-                        Text(Self.axisLabel(amount, currency: currency))
+                        Text(Formatters.compactAxisLabel(amount, currency: currency))
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -113,10 +113,12 @@ struct GoalProjectionChart: View {
         let confirmed = Decimal(series.confirmed.last?.value ?? 0).asCompactCurrency(currency)
         let projection = Decimal(series.projection.last?.value ?? 0).asCompactCurrency(currency)
         guard let target = series.target else {
-            return "Épargné \(confirmed), projection planifiée \(projection)"
+            return AppLocale.string("Épargné \(confirmed), projection planifiée \(projection)")
         }
         let targetLabel = Decimal(target).asCompactCurrency(currency)
-        return "Épargné \(confirmed), projection planifiée \(projection), cible \(targetLabel)"
+        return AppLocale.string(
+            "Épargné \(confirmed), projection planifiée \(projection), cible \(targetLabel)"
+        )
     }
 
     private var areaGradient: LinearGradient {
@@ -128,16 +130,6 @@ struct GoalProjectionChart: View {
             startPoint: .top,
             endPoint: .bottom
         )
-    }
-
-    /// Compact axis label — `1K` / `1.5K` past a thousand, plain int otherwise.
-    private static func axisLabel(_ value: Double, currency: SupportedCurrency) -> String {
-        let magnitude = abs(value)
-        guard magnitude >= 1000 else { return "\(Int(value))" }
-        let thousands = magnitude / 1000
-        if thousands.truncatingRemainder(dividingBy: 1) == 0 { return "\(Int(thousands))K" }
-        let text = thousands.formatted(.number.precision(.fractionLength(1)).locale(Formatters.locale(for: currency)))
-        return "\(text)K"
     }
 }
 
@@ -160,9 +152,11 @@ struct GoalTrajectorySection: View {
     /// accounting signed value (`+300 CHF`) read as good news on a lag — the
     /// copy spells the direction out instead; zero gap carries no amount.
     static func gapCopy(for gap: Decimal, currency: SupportedCurrency) -> (lead: String, amount: String?) {
-        if gap > 0 { return ("Il te manque", gap.asCompactCurrency(currency)) }
-        if gap < 0 { return ("Tu es en avance de", gap.absoluteValue.asCompactCurrency(currency)) }
-        return ("Pile sur ton plan", nil)
+        if gap > 0 { return (AppLocale.string("Il te manque"), gap.asCompactCurrency(currency)) }
+        if gap < 0 {
+            return (AppLocale.string("Tu es en avance de"), gap.absoluteValue.asCompactCurrency(currency))
+        }
+        return (AppLocale.string("Pile sur ton plan"), nil)
     }
 
     var body: some View {
@@ -170,6 +164,7 @@ struct GoalTrajectorySection: View {
             Text("Ta trajectoire")
                 .font(PulpeTypography.title2)
                 .foregroundStyle(Color.textPrimary)
+                .accessibilityIdentifier("savingsGoalTrajectoryTitle")
 
             GoalProjectionChart(series: series, currency: currency)
 
@@ -185,9 +180,10 @@ struct GoalTrajectorySection: View {
 
                 if let completion = progress.estimatedCompletion {
                     metric(
-                        label: "Atteinte estimée",
+                        label: AppLocale.string("Atteinte estimée"),
                         value: periodLabel(completion),
-                        isSensitive: false
+                        isSensitive: false,
+                        identifier: "savingsGoalEstimatedCompletion"
                     )
                 }
             }
@@ -197,11 +193,17 @@ struct GoalTrajectorySection: View {
     }
 
     @ViewBuilder
-    private func metric(label: String, value: String?, isSensitive: Bool) -> some View {
+    private func metric(
+        label: String,
+        value: String?,
+        isSensitive: Bool,
+        identifier: String? = nil
+    ) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
             Text(label)
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textSecondary)
+                .ifLet(identifier) { view, id in view.accessibilityIdentifier(id) }
             if let value {
                 Text(value)
                     .font(PulpeTypography.metricLabelBold)

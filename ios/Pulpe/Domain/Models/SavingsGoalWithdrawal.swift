@@ -189,8 +189,8 @@ enum SavingsGoalSource: Equatable, Hashable, Sendable {
     /// also stays first so the status survives the tail truncation a dense row applies.
     var label: String {
         switch self {
-        case .active(_, let name): "Pris sur \(name)"
-        case .broken(let name): "Objectif supprimé · \(name)"
+        case .active(_, let name): AppLocale.string("Pris sur \(name)")
+        case .broken(let name): AppLocale.string("Objectif supprimé · \(name)")
         }
     }
 
@@ -198,11 +198,13 @@ enum SavingsGoalSource: Equatable, Hashable, Sendable {
     /// line is truncated.
     var accessibilityLabel: String {
         isBroken
-            ? "Revenu pris sur l'objectif supprimé \(name)"
-            : "Revenu pris sur l'objectif \(name)"
+            ? AppLocale.string("Revenu pris sur l'objectif supprimé \(name)")
+            : AppLocale.string("Revenu pris sur l'objectif \(name)")
     }
 
     /// Why the row leads nowhere. Shown as visible text, not a tooltip: on iOS
     /// there is nothing to hover.
-    static let brokenExplanation = "Cet objectif a été supprimé. Le revenu reste dans ton budget."
+    static var brokenExplanation: String {
+        AppLocale.string("Cet objectif a été supprimé. Le revenu reste dans ton budget.")
+    }
 }

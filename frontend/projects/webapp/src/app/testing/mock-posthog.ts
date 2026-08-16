@@ -19,6 +19,7 @@ export function createMockPostHogService() {
     capture: vi.fn(),
     captureException: vi.fn(),
     setPersonProperties: vi.fn(),
+    setLocale: vi.fn(),
     capturePendingSignupCompleted: vi.fn(),
     setPendingSignupMethod: vi.fn(),
     clearPendingSignupMethod: vi.fn(),

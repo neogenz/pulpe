@@ -85,7 +85,7 @@ struct GoalWithdrawalsSection: View {
         var primaryAmountDetail: String? {
             guard case .linked(let withdrawal) = self,
                   case .partiallyRealized = withdrawal.status else { return nil }
-            return "restant"
+            return AppLocale.string("restant")
         }
 
         var remainingAmount: Decimal {
@@ -106,33 +106,37 @@ struct GoalWithdrawalsSection: View {
         }
 
         var statusLabel: String {
-            guard case .linked(let withdrawal) = self else { return "À réaliser" }
+            guard case .linked(let withdrawal) = self else { return AppLocale.string("À réaliser") }
             return switch withdrawal.status {
-            case .planned: "À réaliser"
-            case .partiallyRealized: "Partiellement réalisé"
-            case .realized: "Réalisé"
+            case .planned: AppLocale.string("À réaliser")
+            case .partiallyRealized: AppLocale.string("Partiellement réalisé")
+            case .realized: AppLocale.string("Réalisé")
             }
         }
 
+        /// `String(year)`: interpolating an `Int` would apply localized grouping
+        /// ("2'026" in de-CH) — never on a year.
         var periodLabel: String {
-            let components = DateComponents(year: year, month: month, day: 1)
-            return (Calendar.current.date(from: components) ?? .now)
-                .formatted(.dateTime.month(.wide).year())
+            "\(Formatters.monthName(for: month)) " + String(year)
         }
 
         func contextLabel(currency: SupportedCurrency) -> String {
-            "Prévu \(plannedAmount.asCurrency(currency)) · Réalisé \(realizedAmount.asCurrency(currency))"
+            AppLocale.string("Prévu \(plannedAmount.asCurrency(currency))")
+                + " · " + AppLocale.string("Réalisé \(realizedAmount.asCurrency(currency))")
         }
 
+        /// Comma-joined independent segments, each its own key: the destination
+        /// segment only exists off-budget, and no language has to reorder them.
         func accessibilityLabel(currency: SupportedCurrency) -> String {
-            let destination = isPlanOnly ? ", hors budget" : ""
-            return "\(name), \(periodLabel), \(statusLabel)\(destination), "
-                + "prévu \(plannedAmount.asCurrency(currency)), "
-                + "réalisé \(realizedAmount.asCurrency(currency)), "
-                + "reste \(remainingAmount.asCurrency(currency))"
+            var parts = ["\(name), \(periodLabel), \(statusLabel)"]
+            if isPlanOnly { parts.append(AppLocale.string("hors budget")) }
+            parts.append(AppLocale.string("prévu \(plannedAmount.asCurrency(currency))"))
+            parts.append(AppLocale.string("réalisé \(realizedAmount.asCurrency(currency))"))
+            parts.append(AppLocale.string("reste \(remainingAmount.asCurrency(currency))"))
+            return parts.joined(separator: ", ")
         }
 
-        var accessibilityHint: String? { budgetId == nil ? nil : "Ouvre le budget" }
+        var accessibilityHint: String? { budgetId == nil ? nil : AppLocale.string("Ouvre le budget") }
     }
 
     nonisolated static func plannedItems(
@@ -170,8 +174,8 @@ struct GoalWithdrawalsSection: View {
             } else if error != nil, withdrawals.isEmpty, planned.isEmpty, planOnly.isEmpty {
                 GoalInfoCard(
                     icon: "arrow.clockwise",
-                    title: "Retraits indisponibles",
-                    message: "Impossible de charger les retraits pour le moment."
+                    title: AppLocale.string("Retraits indisponibles"),
+                    message: AppLocale.string("Impossible de charger les retraits pour le moment.")
                 ) {
                     Button("Réessayer", action: onRetry)
                         .secondaryButtonStyle()
@@ -252,7 +256,9 @@ struct GoalWithdrawalsSection: View {
                 .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(Color.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("\(item.periodLabel) · \(item.statusLabel)\(item.isPlanOnly ? " · Hors budget" : "")")
+            Text(verbatim: item.isPlanOnly
+                ? "\(item.periodLabel) · \(item.statusLabel) · " + AppLocale.string("Hors budget")
+                : "\(item.periodLabel) · \(item.statusLabel)")
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(Color.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -334,13 +340,14 @@ struct GoalWithdrawalsSection: View {
     }
 
     private func realizedStatus(_ withdrawal: SavingsGoalWithdrawal) -> String {
-        "\(withdrawal.transactionDate.formatted(date: .abbreviated, time: .omitted)) · "
-            + (withdrawal.checkedAt == nil ? "À pointer" : "Pointé")
+        "\(withdrawal.transactionDate.abbreviatedDateFormatted) · "
+            + (withdrawal.checkedAt == nil ? AppLocale.string("À pointer") : AppLocale.string("Pointé"))
     }
 
     private func realizedAccessibilityLabel(_ withdrawal: SavingsGoalWithdrawal) -> String {
-        "\(withdrawal.name), \(realizedStatus(withdrawal)), retrait réalisé "
-            + withdrawal.amount.asCurrency(currency)
+        let status = realizedStatus(withdrawal)
+        let amount = withdrawal.amount.asCurrency(currency)
+        return AppLocale.string("\(withdrawal.name), \(status), retrait réalisé \(amount)")
     }
 }
 

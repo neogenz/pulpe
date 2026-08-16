@@ -267,9 +267,10 @@ struct BudgetLineRow: View {
     ) -> String {
         let spent = consumption.allocated.asCurrency(currency)
         if consumption.available < 0 {
-            return "\(spent) dépensés · Dépassé de \((-consumption.available).asCompactCurrency(currency))"
+            let overrun = (-consumption.available).asCompactCurrency(currency)
+            return AppLocale.string("\(spent) dépensés · Dépassé de \(overrun)")
         }
-        return "\(spent) dépensés · \(Int(consumption.percentage.rounded()))% utilisé"
+        return AppLocale.string("\(spent) dépensés · \(Int(consumption.percentage.rounded()))% utilisé")
     }
 
     var body: some View {
@@ -348,13 +349,17 @@ struct BudgetLineRow: View {
             view
                 .accessibilityAddTraits(.isButton)
                 .accessibilityAction { onAdd() }
-                .accessibilityHint(
-                    hasConsumption
-                        ? "Montant restant: \(consumption.available.asCurrency(userSettingsStore.currency)). " +
-                          "Touche pour noter un montant, maintiens pour voir les mouvements"
-                        : "Touche pour noter un montant, maintiens pour voir les mouvements"
-                )
+                .accessibilityHint(addTransactionHint)
         }
+    }
+
+    /// Whole sentences per variant rather than a concatenation: `+` on two literals binds
+    /// the verbatim `Text`/hint overload, which the string extractor never sees.
+    private var addTransactionHint: String {
+        let gesture = AppLocale.string("Touche pour noter un montant, maintiens pour voir les mouvements")
+        guard hasConsumption else { return gesture }
+        let remaining = consumption.available.asCurrency(userSettingsStore.currency)
+        return AppLocale.string("Montant restant: \(remaining).") + " " + gesture
     }
 
     // MARK: - Kind Icon Circle (Revolut-style)

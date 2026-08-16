@@ -73,6 +73,25 @@ describe('GET /api/v1/whats-new/ios', () => {
     expect(response.status).toBe(200);
     expect(whatsNewResponseSchema.safeParse(response.body).success).toBe(true);
     expect(response.body.data.entries.length).toBeGreaterThan(0);
+    expect(response.body.data.entries[0].title).toBe(
+      'Nouveautés de la version 1.1.0',
+    );
+  });
+
+  it('returns the feed in the requested product locale', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/whats-new/ios')
+      .set('Authorization', 'Bearer valid-token')
+      .set('x-client-key', VALID_CLIENT_KEY)
+      .query({
+        currentVersion: '1.3.2',
+        lastSeenVersion: '1.3.1',
+        locale: 'de',
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.entries[0].title).toBe('Neu in Version 1.3.2');
+    expect(response.body.data.entries[0].body).toContain('Monatsverlauf');
   });
 
   it('returns an empty payload for an authenticated upgrade without release data', async () => {

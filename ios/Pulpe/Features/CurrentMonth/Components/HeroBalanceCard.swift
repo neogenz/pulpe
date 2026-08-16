@@ -20,12 +20,14 @@ struct HeroBalanceCard: View {
 
     private var contextLabel: String {
         let symbol = userSettingsStore.currency.symbol
-        return metrics.isDeficit ? "Déficit \(symbol)" : "Disponible \(symbol)"
+        return metrics.isDeficit
+            ? AppLocale.string("Déficit \(symbol)")
+            : AppLocale.string("Disponible \(symbol)")
     }
 
     /// VoiceOver-only label — no embedded currency symbol so it isn't doubled with the formatted amount.
     private var contextLabelForVoiceOver: String {
-        metrics.isDeficit ? "Déficit" : "Disponible"
+        metrics.isDeficit ? AppLocale.string("Déficit") : AppLocale.string("Disponible")
     }
 
     private var fillPercentage: Double {
@@ -78,16 +80,19 @@ struct HeroBalanceCard: View {
 
     private var accessibilityDescription: String {
         if amountsHidden {
-            return "\(contextLabelForVoiceOver) — montant masqué"
+            return AppLocale.string("\(contextLabelForVoiceOver) — montant masqué")
         }
         let currency = userSettingsStore.currency
-        var desc = """
-        \(contextLabelForVoiceOver) \(abs(metrics.remaining).asCurrency(currency)). \
-        Dépensé \(metrics.totalExpenses.asCurrency(currency)) sur \(metrics.available.asCurrency(currency))
-        """
+        var desc = AppLocale.string("""
+            \(contextLabelForVoiceOver) \(abs(metrics.remaining).asCurrency(currency)). \
+            Dépensé \(metrics.totalExpenses.asCurrency(currency)) \
+            sur \(metrics.available.asCurrency(currency))
+            """)
         if let rolloverAmount {
-            let label = rolloverAmount >= 0 ? "Excédent reporté" : "Déficit reporté"
-            desc += ". \(label) de \(abs(rolloverAmount).asCurrency(currency))"
+            let formatted = abs(rolloverAmount).asCurrency(currency)
+            desc += ". " + (rolloverAmount >= 0
+                ? AppLocale.string("Excédent reporté de \(formatted)")
+                : AppLocale.string("Déficit reporté de \(formatted)"))
         }
         return desc
     }
@@ -131,7 +136,7 @@ struct HeroBalanceCard: View {
                 .foregroundStyle(.white.opacity(supportingTextOpacity))
 
             // Chunk 2 — Hero amount
-            Text("\(formattedBalance)")
+            Text(formattedBalance)
                 .font(PulpeTypography.amountHero)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)

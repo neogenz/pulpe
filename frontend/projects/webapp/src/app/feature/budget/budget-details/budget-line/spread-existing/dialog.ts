@@ -280,7 +280,7 @@ export class SpreadExistingDialog {
   protected readonly endKey = computed(() => monthKey(this.#end()));
 
   readonly #dateFnsLocale = computed(() =>
-    dateFnsLocaleFor(this.#settings.currency()),
+    dateFnsLocaleFor(this.#settings.locale(), this.#settings.currency()),
   );
 
   protected readonly startLabel = computed(() =>

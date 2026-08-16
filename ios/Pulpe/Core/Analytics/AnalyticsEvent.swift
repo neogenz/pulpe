@@ -75,6 +75,13 @@ enum AnalyticsEvent: String, CaseIterable {
     /// Properties: `currency` (target ISO code), `attempts` (total tried).
     case currencyPersistFailed = "currency_persist_failed"
 
+    // MARK: - Language
+    /// Fires after the interface language changes. Properties: `from`, `to`
+    /// (both `fr` | `en` | `de` | `it`), `surface` (`settings` on iOS).
+    /// The `locale` person property is last-write-wins and never shows the
+    /// transition — this event is where a wrong auto-detection is visible.
+    case languageChanged = "language_changed"
+
     // MARK: - Savings Goals
     /// Objectifs first-run intro cover. `viewed` fires on open, then exactly one
     /// of `completed` (final "Créer mon objectif") or `skipped` (Passer / Plus tard).

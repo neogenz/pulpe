@@ -10,22 +10,22 @@ struct TagsSettingsView: View {
     var body: some View {
         Group {
             if viewModel.isLoading {
-                LoadingView(message: "Chargement de tes tags...")
+                LoadingView(message: AppLocale.string("Chargement de tes tags..."))
             } else if let error = viewModel.error {
                 ErrorView(error: error) {
                     await viewModel.load()
                 }
             } else if viewModel.tags.isEmpty {
                 EmptyStateView(
-                    title: "Aucun tag personnel",
-                    description: "Les tags créés sur le web apparaîtront ici.",
+                    title: AppLocale.string("Aucun tag personnel"),
+                    description: AppLocale.string("Les tags créés sur le web apparaîtront ici."),
                     systemImage: "tag"
                 )
             } else {
                 tagsList
             }
         }
-        .navigationTitle("Mes tags")
+        .localizedNavigationTitle("Mes tags")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.load()
@@ -73,7 +73,9 @@ final class TagsSettingsViewModel {
     }
 
     var countLabel: String {
-        tags.count == 1 ? "1 TAG PERSONNEL" : "\(tags.count) TAGS PERSONNELS"
+        tags.count == 1
+            ? AppLocale.string("1 TAG PERSONNEL")
+            : AppLocale.string("\(tags.count) TAGS PERSONNELS")
     }
 
     func load() async {

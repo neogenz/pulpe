@@ -5,6 +5,7 @@ import {
   output,
   computed,
 } from '@angular/core';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { type SupportedCurrency } from 'pulpe-shared';
 import { MonthTile } from './month-tile';
 import {
@@ -16,7 +17,7 @@ import {
 @Component({
   selector: 'pulpe-year-calendar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MonthTile],
+  imports: [MonthTile, TranslocoPipe],
   template: `
     <div
       class="w-full p-2 md:p-4"
@@ -31,7 +32,12 @@ import {
         <span
           class="text-label-medium text-on-surface-variant bg-surface-container px-3 py-1 rounded-full"
         >
-          {{ budgetCount() }} budget{{ budgetCount() > 1 ? 's' : '' }}
+          {{
+            (budgetCount() === 1
+              ? 'yearCalendar.budgetCountOne'
+              : 'yearCalendar.budgetCountMany'
+            ) | transloco: { count: budgetCount() }
+          }}
         </span>
       </div>
 
@@ -68,7 +74,9 @@ export class YearCalendar {
   readonly locale = input<string>('de-CH');
   readonly currentDate = input<{ month: number; year: number }>();
 
-  // i18n labels delegated to consumer per ui/ layer rule (no TranslocoService here).
+  // Les libellés de la tuile restent délégués au consommateur : ils s'y
+  // résolvent une fois pour les douze mois. Le compteur, lui, dépend d'un
+  // nombre que ce composant est seul à connaître, d'où le pipe ci-dessus.
   readonly labels = input.required<MonthTileLabels>();
 
   // Outputs

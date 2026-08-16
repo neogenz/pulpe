@@ -320,6 +320,9 @@ struct SavingsGoalIntervalUITestHarness: View {
     @State private var currentMonthStore = CurrentMonthStore()
     @State private var budgetListStore = BudgetListStore()
     @State private var dashboardStore = DashboardStore()
+    // SavingsGoalDetailView reads AppState (budget navigation); without this
+    // injection every DETAIL_* scenario traps on the environment lookup.
+    @State private var appState = AppState()
 
     init(scenario: UITestLaunchScenario) {
         self.scenario = scenario
@@ -332,6 +335,7 @@ struct SavingsGoalIntervalUITestHarness: View {
         content
             .environment(\.dynamicTypeSize, dynamicTypeSize)
             .preferredColorScheme(preferredColorScheme)
+            .environment(appState)
             .environment(store)
             .environment(userSettingsStore)
             .environment(toastManager)
@@ -397,7 +401,8 @@ struct SavingsGoalIntervalUITestHarness: View {
              .budgetLongPressEmpty,
              .budgetGoalSpreadMetadata,
              .contextualCreationHome,
-             .contextualCreationBudget:
+             .contextualCreationBudget,
+             .loginScreen:
             EmptyView()
         }
     }

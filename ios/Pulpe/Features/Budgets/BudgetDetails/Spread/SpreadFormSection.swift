@@ -61,8 +61,14 @@ struct SpreadFormSection: View {
 
     private var monthRangeRow: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
-            monthPickerButton(label: "De", value: calculator.start.longName) { activePicker = .start }
-            monthPickerButton(label: "À", value: calculator.end.longName) { activePicker = .end }
+            monthPickerButton(
+                label: AppLocale.string("De"),
+                value: calculator.start.longName
+            ) { activePicker = .start }
+            monthPickerButton(
+                label: AppLocale.string("À"),
+                value: calculator.end.longName
+            ) { activePicker = .end }
         }
     }
 
@@ -119,7 +125,7 @@ struct SpreadFormSection: View {
         }
         .plainPressedButtonStyle()
         .accessibilityLabel(month.longName)
-        .accessibilityValue(isOn ? "Sélectionné" : "Désélectionné")
+        .accessibilityValue(isOn ? Text("Sélectionné") : Text("Désélectionné"))
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
@@ -151,12 +157,12 @@ struct SpreadFormSection: View {
         let count = calculator.selectedCount
         switch amountMode {
         case .perMonth:
-            return "Total · \(count) mois"
+            return AppLocale.string("Total · \(count) mois")
         case .total:
             let firstPart = SpreadSplit
                 .splitTotalPreserving(total: amount ?? 0, partCount: count)
                 .first ?? 0
-            return "≈ \(firstPart.asCurrency(currency))/mois · \(count) mois"
+            return AppLocale.string("≈ \(firstPart.asCurrency(currency))/mois · \(count) mois")
         }
     }
 
@@ -177,14 +183,14 @@ struct SpreadFormSection: View {
         switch picker {
         case .start:
             SpreadMonthPickerSheet(
-                title: "Premier mois",
+                title: AppLocale.string("Premier mois"),
                 initial: calculator.start,
                 yearRange: yearRange,
                 accentColor: accentColor
             ) { calculator.setStart($0) }
         case .end:
             SpreadMonthPickerSheet(
-                title: "Dernier mois",
+                title: AppLocale.string("Dernier mois"),
                 initial: calculator.end,
                 yearRange: yearRange,
                 accentColor: accentColor

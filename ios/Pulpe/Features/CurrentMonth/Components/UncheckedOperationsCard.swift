@@ -1,10 +1,7 @@
 import SwiftUI
 
-/// Tour 11 "opérations à pointer" — the section heading on the page, and under it a
-/// deck of quick-check cards, one operation per card: "C'est passé" / "Plus tard".
-/// The neighbouring cards peek at the screen edges as tickets tucked behind the focused
-/// one, so the deck reads as swipeable without a single affordance drawn on it. The deck
-/// is a cycle: a turn past either end comes out on the other side.
+/// Tour 11 "opérations à pointer": a cyclic deck of quick-check cards whose neighbours
+/// peek at the screen edges to make swiping discoverable.
 struct UncheckedOperationsCard: View {
     let items: [CurrentMonthStore.CheckableItem]
     var tagNamesById: [String: String] = [:]
@@ -65,11 +62,8 @@ struct UncheckedOperationsCard: View {
         displayItems.map { shown in items.first { $0.id == shown.id } ?? shown }
     }
 
-    /// The rendered deck: every operation once under its own id, framed by a full wrap
-    /// copy of the cycle on each side. Three identical cycles are what make a one-cycle
-    /// offset shift pixel-invisible — that shift, applied mid-scroll by
-    /// `handleScrollGeometry`, is what closes the loop; the full copies give it half a
-    /// cycle of margin on each side so it always fires far from either content edge.
+    /// Every operation under its own id, framed by a full cycle copy on each side.
+    /// `handleScrollGeometry` shifts by one cycle mid-scroll to close the loop invisibly.
     private var deckSlots: [DeckSlot] {
         let cards = deckItems
         guard cards.count > 1 else { return cards.map(DeckSlot.init(real:)) }
@@ -78,13 +72,9 @@ struct UncheckedOperationsCard: View {
         return before + cards.map(DeckSlot.init(real:)) + after
     }
 
-    /// SwiftUI removes a view with the transition captured at its LAST render, not the one
-    /// computed alongside the removal — so an exit direction stored in a flag flipped in the
-    /// same transaction arrives one animation late. The only removal-time signal that is
-    /// always fresh is the card's own confirmation state: `confirmingId` is committed one
-    /// beat before a check's removal and nil otherwise. Confirmed resolves upward and
-    /// settles; any other arrival or removal (a refresh reshuffling the list) fades, the
-    /// deck's own slide carrying the motion.
+    /// SwiftUI captures a removal transition at the view's last render, so `confirmingId`
+    /// is committed one beat before removal. Confirmed cards resolve upward; refresh-driven
+    /// arrivals and removals fade while the deck carries the motion.
     private func paneTransition(for item: CurrentMonthStore.CheckableItem) -> AnyTransition {
         guard !reduceMotion, confirmingId == item.id else { return .opacity }
         return .asymmetric(
@@ -115,8 +105,8 @@ struct UncheckedOperationsCard: View {
             // The count lives on the hero metric; this heading names the section only,
             // so the number is announced once per screen.
             HomeSectionHeader(
-                title: "Opérations à pointer",
-                link: (label: "Tout voir", action: onViewAll)
+                title: AppLocale.string("Opérations à pointer"),
+                link: (label: AppLocale.string("Tout voir"), action: onViewAll)
             )
 
             deck
@@ -142,6 +132,10 @@ struct UncheckedOperationsCard: View {
                 confirmingId = nil
             }
         }
+        // `.contain` scopes the identifier to a container node; bare, it would
+        // propagate onto every child and clobber the rows' own identifiers.
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("homeUncheckedOperationsCard")
     }
 
     // MARK: - Deck
@@ -153,7 +147,8 @@ struct UncheckedOperationsCard: View {
     /// edges. A plain HStack, not lazy: removal transitions don't play inside lazy
     /// containers, and the list is at most a month's unchecked operations.
     private var deck: some View {
-        ScrollView(.horizontal) {
+        let reduceDeckMotion = reduceMotion
+        return ScrollView(.horizontal) {
             HStack(spacing: DesignTokens.Spacing.xs) {
                 ForEach(deckSlots) { slot in
                     inlinePane(slot.item)
@@ -174,7 +169,7 @@ struct UncheckedOperationsCard: View {
                                     anchor: innerEdge
                                 )
                                 .rotation3DEffect(
-                                    .degrees(reduceMotion ? 0 : phase.value * DesignTokens.Deck.turnDegrees),
+                                    .degrees(reduceDeckMotion ? 0 : phase.value * DesignTokens.Deck.turnDegrees),
                                     axis: (x: 0, y: 1, z: 0),
                                     anchor: innerEdge
                                 )
@@ -276,6 +271,7 @@ struct UncheckedOperationsCard: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("homeUncheckedOperationRow")
     }
 
     /// Trails the label while the row holds both; stacked it takes the line under it,
@@ -365,7 +361,7 @@ struct UncheckedOperationsCard: View {
             // two actions below be measured by one ruler instead of two.
             PulpeChip(
                 icon: isConfirming ? "checkmark.circle.fill" : "checkmark",
-                label: isConfirming ? "Pointé" : "C'est passé",
+                label: isConfirming ? AppLocale.string("Pointé") : AppLocale.string("C'est passé"),
                 style: isConfirming
                     ? .tinted(surface: .pulpePrimary, foreground: .textOnPrimary)
                     : .semantic(.pulpePrimary)
@@ -391,7 +387,7 @@ struct UncheckedOperationsCard: View {
             // draws a hairline meant for `appBackground`, which a card of the same
             // `surfaceContainerLowest` tone swallows at 1,00:1.
             PulpeChip(
-                label: "Plus tard",
+                label: AppLocale.string("Plus tard"),
                 style: .muted,
                 // Dead with one card left (nothing to turn to) or during the "Pointé" beat
                 // (guard already ignores taps); without the visual disable it looks live.
@@ -405,10 +401,12 @@ struct UncheckedOperationsCard: View {
 
     private func subtitle(for item: CurrentMonthStore.CheckableItem) -> String {
         switch item {
+        // No `.lowercased()`: German capitalizes nouns ("Heute", "Montag") and English its
+        // weekdays, and every other date subtitle in the app already renders capitalized.
         case .transaction(let transaction, _):
-            transaction.transactionDate.relativeFormatted.lowercased()
+            transaction.transactionDate.relativeFormatted
         case .budgetLine(let line, _):
-            line.recurrence.label.lowercased()
+            line.recurrence.label
         }
     }
 

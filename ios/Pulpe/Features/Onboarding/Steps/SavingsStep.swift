@@ -28,7 +28,7 @@ struct SavingsStep: View {
 
                     if state.totalSavings > 0 {
                         OnboardingRunningTotal(
-                            label: "Total épargne",
+                            label: AppLocale.string("Total épargne"),
                             amount: state.totalSavings,
                             color: .financialSavings,
                             currency: state.currency
@@ -67,7 +67,7 @@ struct SavingsStep: View {
 
     private var customSavingsSection: some View {
         OnboardingTransactionListSection(
-            title: "Mes épargnes",
+            title: AppLocale.string("Mes épargnes"),
             icon: "list.bullet",
             transactions: customSavings,
             state: state,

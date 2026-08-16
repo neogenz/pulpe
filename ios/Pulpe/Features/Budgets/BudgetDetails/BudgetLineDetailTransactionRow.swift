@@ -48,9 +48,11 @@ struct BudgetLineDetailTransactionRow: View {
     /// as a strikethrough. Pointing is the whole signal on this screen, so the
     /// row has to say it out loud.
     private var accessibilityLabel: String {
-        let status = transaction.isChecked ? "Pointé" : "À pointer"
+        let status = transaction.isChecked ? AppLocale.string("Pointé") : AppLocale.string("À pointer")
         let amount = transaction.amount.asCurrency(displayCurrency)
-        let tags = tagNames.isEmpty ? "" : " · Tags : \(tagNames.joined(separator: ", "))"
+        let tags = tagNames.isEmpty
+            ? ""
+            : " · " + AppLocale.string("Tags : \(tagNames.joined(separator: ", "))")
         return "\(transaction.name) · \(transaction.transactionDate.relativeFormatted) · \(amount) · \(status)\(tags)"
     }
 

@@ -15,8 +15,10 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test --experimental-test-module-mocks app/accessibility.test.tsx components/guides/ArticleLayout.test.tsx lib/amount.test.ts lib/visitorCurrency.test.ts lib/bodyScrollLock.test.ts scripts/create-release.test.js",
+    "test": "tsx --test --experimental-test-module-mocks app/accessibility.test.tsx components/guides/ArticleLayout.test.tsx content/dictionaries.test.ts data/releases.test.ts lib/amount.test.ts lib/visitorCurrency.test.ts lib/bodyScrollLock.test.ts scripts/create-release.test.js",
     "lint": "eslint .",
+    "format": "prettier --write \"{app,components,content,lib,scripts}/**/*.{ts,tsx,css}\" \"*.{ts,json}\"",
+    "format:check": "prettier --check \"{app,components,content,lib,scripts}/**/*.{ts,tsx,css}\" \"*.{ts,json}\"",
     "type-check": "tsc --noEmit",
     "generate:og": "npx tsx scripts/generate-og-image.ts",
     "create:release": "node scripts/create-release.js"

@@ -6,7 +6,9 @@ struct PasswordMatchRow: View {
 
     private var icon: String { matches ? "checkmark.circle.fill" : "xmark.circle.fill" }
     private var text: String {
-        matches ? "Les mots de passe correspondent" : "Les mots de passe ne correspondent pas"
+        matches
+            ? AppLocale.string("Les mots de passe correspondent")
+            : AppLocale.string("Les mots de passe ne correspondent pas")
     }
     private var color: Color { matches ? .financialSavings : .errorPrimary }
 

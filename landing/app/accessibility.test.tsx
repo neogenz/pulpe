@@ -1,11 +1,63 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { LOCALES } from "../lib/i18n";
+import { angularUrl } from "../lib/config";
+import { socialPreviewFile } from "../lib/metadata";
 import type { PostHog } from "posthog-js/dist/module.slim";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Testimonials } from "../components/sections/Testimonials";
 import { AccordionItem } from "../components/ui/AccordionItem";
+// Nommés `…Dict` : `it` importé nu masquerait le `it` de `node:test`, et la
+// suite entière se charge alors sans exécuter un seul bloc.
+import frDict from "../content/dictionaries/fr";
+import enDict from "../content/dictionaries/en";
+import deDict from "../content/dictionaries/de";
+import itDict from "../content/dictionaries/it";
+
+const CATALOGS = {
+  fr: frDict,
+  en: enDict,
+  de: deDict,
+  it: itDict,
+} as const;
+
+/**
+ * Toutes les chaînes d'une tranche de catalogue, à plat. Les assertions de
+ * copie portent désormais sur le catalogue et non sur le texte source des
+ * composants : le balisage ne contient plus un mot de français.
+ */
+function allStrings(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(allStrings);
+  if (value && typeof value === "object") {
+    return Object.values(value).flatMap(allStrings);
+  }
+  return [];
+}
+
+function joined(value: unknown): string {
+  return allStrings(value).join("\n");
+}
+
+type SupportFaq = (typeof frDict)["support"]["faq"];
+type SupportFaqEntry = SupportFaq[keyof SupportFaq];
+
+/**
+ * La réponse telle que la page la recolle pour le JSON-LD. Une entrée qui porte
+ * un lien en ligne est écrite en trois morceaux ; le texte nu est leur somme,
+ * jamais une seconde rédaction.
+ */
+function answerText(entry: SupportFaqEntry): string {
+  return "answer" in entry
+    ? entry.answer
+    : `${entry.answerBefore}${entry.answerLink}${entry.answerAfter}`;
+}
+
+function supportFaq(catalog: (typeof CATALOGS)[keyof typeof CATALOGS]) {
+  return Object.values(catalog.support.faq) as SupportFaqEntry[];
+}
 
 Object.assign(globalThis, { React });
 
@@ -27,19 +79,25 @@ const componentSources = {
     new URL("../components/sections/Hero.tsx", import.meta.url),
     "utf8",
   ),
-  page: readFileSync(new URL("./page.tsx", import.meta.url), "utf8"),
-  support: readFileSync(new URL("./support/page.tsx", import.meta.url), "utf8"),
+  page: readFileSync(
+    new URL("../components/pages/Home.tsx", import.meta.url),
+    "utf8",
+  ),
+  support: readFileSync(
+    new URL("../components/pages/Support.tsx", import.meta.url),
+    "utf8",
+  ),
   supportGuide: readFileSync(
-    new URL("./support/modeles-et-budgets/page.tsx", import.meta.url),
+    new URL("../components/pages/SupportGuide.tsx", import.meta.url),
     "utf8",
   ),
   guidesIndex: readFileSync(
-    new URL("./conseils-budget/page.tsx", import.meta.url),
+    new URL("./(fr)/conseils-budget/page.tsx", import.meta.url),
     "utf8",
   ),
   guideArticle: readFileSync(
     new URL(
-      "./conseils-budget/comment-faire-son-budget-en-suisse/page.tsx",
+      "./(fr)/conseils-budget/comment-faire-son-budget-en-suisse/page.tsx",
       import.meta.url,
     ),
     "utf8",
@@ -62,10 +120,6 @@ const componentSources = {
   ),
   section: readFileSync(
     new URL("../components/ui/Section.tsx", import.meta.url),
-    "utf8",
-  ),
-  roadmap: readFileSync(
-    new URL("../components/sections/Roadmap.tsx", import.meta.url),
     "utf8",
   ),
   howItWorks: readFileSync(
@@ -124,7 +178,19 @@ const componentSources = {
     new URL("../components/sections/Footer.tsx", import.meta.url),
     "utf8",
   ),
-  layout: readFileSync(new URL("./layout.tsx", import.meta.url), "utf8"),
+  // Le document racine partagé par les deux layouts, français et préfixé.
+  layout: readFileSync(
+    new URL("../components/RootDocument.tsx", import.meta.url),
+    "utf8",
+  ),
+  metadata: readFileSync(
+    new URL("../lib/metadata.ts", import.meta.url),
+    "utf8",
+  ),
+  pageMetadata: readFileSync(
+    new URL("../components/pages/metadata.ts", import.meta.url),
+    "utf8",
+  ),
   ogGenerator: readFileSync(
     new URL("../scripts/generate-og-image.ts", import.meta.url),
     "utf8",
@@ -132,6 +198,20 @@ const componentSources = {
   posthog: readFileSync(new URL("../lib/posthog.ts", import.meta.url), "utf8"),
   posthogProvider: readFileSync(
     new URL("../components/PostHogProvider.tsx", import.meta.url),
+    "utf8",
+  ),
+};
+
+// Les trois documents qui portent leur propre `<html>` : la racine française,
+// la racine préfixée et le 404 global.
+const rootDocuments = {
+  french: readFileSync(new URL("./(fr)/layout.tsx", import.meta.url), "utf8"),
+  prefixed: readFileSync(
+    new URL("./[lang]/layout.tsx", import.meta.url),
+    "utf8",
+  ),
+  notFound: readFileSync(
+    new URL("./global-not-found.tsx", import.meta.url),
     "utf8",
   ),
 };
@@ -148,6 +228,17 @@ const planningVisuals = componentSources.howItWorksVisuals.replace(
   /FULL_MONTH/g,
   fullMonth,
 );
+
+// Les douze disponibles du graphe annuel, `FULL_MONTH` déjà résolu. Les mois
+// eux-mêmes n'ont plus d'initiale ici : elle vient du catalogue, parce que
+// l'année italienne commence par `G`.
+function monthAvailable(): number[] {
+  const block = planningVisuals.match(
+    /const MONTH_AVAILABLE = \[([\s\S]*?)\];/,
+  );
+  assert.ok(block, "HowItWorksVisuals ne déclare plus MONTH_AVAILABLE");
+  return [...block[1].matchAll(/\d+/g)].map(([amount]) => Number(amount));
+}
 
 function getDeclarations(selector: string): string {
   const ruleStart = globalsCss.indexOf(`${selector} {`);
@@ -261,24 +352,36 @@ describe("landing accessibility contracts", () => {
     // mêmes mots deux fois sur la page, et poussait la preuve produit sous la
     // ligne de flottaison d'un portable en 900px de haut.
     assert.doesNotMatch(componentSources.hero, /<blockquote/);
-    assert.doesNotMatch(componentSources.hero, /Julie D\./);
-    assert.match(
-      componentSources.testimonials,
-      /prévoir nos vacances sur l’année/,
+    assert.doesNotMatch(joined(frDict.home.hero), /Julie D\./);
+    assert.doesNotMatch(
+      joined(frDict.home.hero),
+      /dépenses que je ne voyais pas/,
     );
+    assert.ok(
+      frDict.home.testimonials.items.some((testimonial) =>
+        /prévoir nos vacances sur l’année/.test(testimonial.highlight),
+      ),
+    );
+    // Le surligneur porte la fin de la promesse, et rien d'autre.
     assert.match(
       componentSources.hero,
-      /<mark className="marker-highlight marker-highlight-strong">\s*combien il te restera\.\s*<\/mark>/,
+      /<mark className="marker-highlight marker-highlight-strong">\s*\{dict\.headlineHighlight\}\s*<\/mark>/,
     );
+    assert.equal(frDict.home.hero.headlineHighlight, "combien il te restera.");
     assert.doesNotMatch(
       componentSources.hero,
       /marker-highlight[\s\S]*?<span className="text-primary">/,
     );
     assert.match(
       componentSources.hero,
-      /Planifie ton budget[\s\S]*<strong className="font-semibold text-text">\s*sur l&apos;année\s*<\/strong>[\s\S]*préparer tes\s*projets plus sereinement/,
+      /\{dict\.subheadLead\}[\s\S]*<strong className="font-semibold text-text">\s*\{dict\.subheadEmphasis\}\s*<\/strong>\s*\{dict\.subheadTail\}/,
     );
-    assert.doesNotMatch(componentSources.hero, /dépenses que je ne voyais pas/);
+    assert.match(frDict.home.hero.subheadLead, /^Planifie ton budget /);
+    assert.equal(frDict.home.hero.subheadEmphasis, "sur l’année");
+    assert.match(
+      frDict.home.hero.subheadTail,
+      /préparer tes projets plus sereinement/,
+    );
     assert.doesNotMatch(componentSources.hero, /href="#how-it-works"/);
   });
 
@@ -316,9 +419,14 @@ describe("landing accessibility contracts", () => {
 
   it("extends the landing into the iOS safe area without hiding the header", () => {
     assert.match(
-      componentSources.layout,
-      /export const viewport: Viewport = \{[\s\S]*themeColor: "#eaf6e6"[\s\S]*viewportFit: "cover"/,
+      componentSources.metadata,
+      /export const rootViewport: Viewport = \{[\s\S]*themeColor: "#eaf6e6"[\s\S]*viewportFit: "cover"/,
     );
+    // Les trois documents racines partagent la même fenêtre. Celui qui
+    // l'oublierait ne se trahirait que sur un appareil à encoche.
+    for (const [name, source] of Object.entries(rootDocuments)) {
+      assert.match(source, /export const viewport = rootViewport;/, name);
+    }
     assert.match(
       getDeclarations("html"),
       /background-color:\s*var\(--color-surface-alt\)/,
@@ -350,31 +458,46 @@ describe("landing accessibility contracts", () => {
   });
 
   it("frames the problem and current alternatives before the solution", () => {
-    assert.match(
-      componentSources.painPoints,
-      /LIMITS = \[[\s\S]*Avec un tableur, tu dois tout tenir à jour[\s\S]*Le suivi commence une fois l’argent dépensé/,
+    assert.equal(
+      frDict.home.painPoints.spreadsheet.title,
+      "Avec un tableur, tu dois tout tenir à jour.",
+    );
+    assert.equal(
+      frDict.home.painPoints.tracking.title,
+      "Le suivi commence une fois l’argent dépensé.",
     );
     assert.doesNotMatch(componentSources.painPoints, /PROOFS = \[/);
     assert.match(
-      componentSources.painPoints,
+      frDict.home.painPoints.tracking.text,
       /dépense prévue en septembre tient encore dans ton budget/,
     );
-    assert.match(componentSources.page, /<PainPoints \/>[\s\S]*<Solution \/>/);
+    assert.match(
+      componentSources.page,
+      /<PainPoints dict=\{[^}]+\} \/>[\s\S]*<Solution\b/,
+    );
   });
 
   it("turns future planning into a concrete tax scenario", () => {
     assert.match(
-      componentSources.painPoints,
-      /Les impôts tombent en juillet[\s\S]*combien il te restera en\s+août/,
+      frDict.home.painPoints.heading,
+      /Les impôts tombent en juillet[\s\S]*combien il te restera en août/,
     );
   });
 
   it("shows how one typical month becomes a projected year", () => {
+    // L'ordre des étapes et le visuel de chacune sont structurels ; leur titre
+    // vient du catalogue.
     assert.match(
       componentSources.howItWorks,
-      /Ton mois type[\s\S]*<MonthTemplateVisual \/>[\s\S]*Ton année[\s\S]*<YearSpreadVisual \/>/,
+      /STEP_IDS = \["template", "year", "month"\]/,
     );
-    assert.match(componentSources.solution, /<HowItWorks \/>/);
+    assert.match(
+      componentSources.howItWorks,
+      /template: MonthTemplateVisual,[\s\S]*year: YearSpreadVisual,[\s\S]*month: MonthAvailableVisual,/,
+    );
+    assert.equal(frDict.home.howItWorks.visuals.templateTitle, "Ton mois type");
+    assert.equal(frDict.home.howItWorks.visuals.yearTitle, "Ton année");
+    assert.match(componentSources.solution, /<HowItWorks dict=\{[^}]+\} \/>/);
   });
 
   it("gives the three planning visuals one shared frame", () => {
@@ -411,21 +534,21 @@ describe("landing accessibility contracts", () => {
       new RegExp(`<Payoff value=\\{${fullMonth}\\}`),
     );
     assert.match(body("MonthAvailableVisual"), /<Payoff value=\{500\}/);
-    assert.match(planningVisuals, /key: "jul", initial: "J", available: 500/);
-    assert.match(planningVisuals, /key: "aou", initial: "A", available: 700/);
-    assert.match(planningVisuals, /key: "dec", initial: "D", available: 200/);
     // Trois catégories annoncées par la copie, donc trois mois qui décrochent,
-    // et la légende sous le graphe les nomme toutes les trois.
-    const dips = [
-      ...planningVisuals.matchAll(
-        new RegExp(`available: (?!${fullMonth})(\\d+)`, "g"),
-      ),
-    ];
+    // aux rangs de juillet, août et décembre, et la légende sous le graphe les
+    // nomme toutes les trois.
+    assert.deepEqual(
+      monthAvailable(),
+      [1400, 1400, 1400, 1400, 1400, 1400, 500, 700, 1400, 1400, 1400, 200],
+    );
+    const dips = monthAvailable().filter(
+      (amount) => amount !== Number(fullMonth),
+    );
     assert.equal(dips.length, 3);
-    assert.equal(new Set(dips.map(([, amount]) => amount)).size, 3);
-    assert.match(
-      planningVisuals,
-      /Juillet, impôts · Août, vacances · Décembre, gros achat/,
+    assert.equal(new Set(dips).size, 3);
+    assert.equal(
+      frDict.home.howItWorks.visuals.yearLegend,
+      "Juillet, impôts · Août, vacances · Décembre, gros achat",
     );
   });
 
@@ -449,24 +572,26 @@ describe("landing accessibility contracts", () => {
     ];
     const drawn = [
       composition("MonthTemplateVisual"),
-      [
-        Number(fullMonth),
-        ...amounts(
-          planningVisuals,
-          new RegExp(`available: (?!${fullMonth})(\\d+)`, "g"),
-        ),
-      ],
+      monthAvailable(),
       composition("MonthAvailableVisual"),
     ];
 
-    // Les montants des légendes sont écrits à la française, `3 500`, et le
-    // rewrapping de Prettier peut poser le séparateur sur une fin de ligne.
-    const announced = [
-      ...componentSources.howItWorks.matchAll(
-        /caption: \(([\s\S]*?)\),\s*content:/g,
+    // La légende est coupée autour de l'unité monétaire, qui suit le visiteur et
+    // non la langue de la page : les deux morceaux se recollent pour être lus.
+    // Les montants y sont écrits à la française, `3 500`, avec une espace.
+    const steps = frDict.home.howItWorks.steps;
+    const announced = (["template", "year", "month"] as const).map((id) =>
+      amounts(
+        `${steps[id].captionLead}${steps[id].captionTail}`.replace(
+          /(\d)\s+(?=\d)/g,
+          "$1",
+        ),
+        /(\d+)/g,
       ),
-    ].map(([, caption]) =>
-      amounts(caption.replace(/(\d)\s+(?=\d)/g, "$1"), /(\d+)/g),
+    );
+    assert.match(
+      componentSources.howItWorks,
+      /captionLead\}\s*<CurrencyUnit \/>\s*\{dict\.steps\[id\]\.captionTail/,
     );
 
     const sorted = (values: number[]) =>
@@ -484,11 +609,11 @@ describe("landing accessibility contracts", () => {
   it("presents the three setup steps as one scannable ordered process", () => {
     assert.match(
       componentSources.howItWorks,
-      /<ol[\s\S]*md:grid-cols-3[\s\S]*STEPS\.map/,
+      /<ol[\s\S]*md:grid-cols-3[\s\S]*steps\.map/,
     );
     assert.match(
       componentSources.howItWorks,
-      /<li[\s\S]*<StepCopy[\s\S]*<figure[\s\S]*step\.image\.content/,
+      /<li[\s\S]*<StepCopy[\s\S]*<figure[\s\S]*step\.visual/,
     );
     assert.match(
       componentSources.howItWorks,
@@ -613,6 +738,27 @@ describe("landing accessibility contracts", () => {
     ]) {
       assert.doesNotMatch(source, /trackCTAClick/);
       assert.match(source, /data-cta-name=/);
+    }
+  });
+
+  it("propagates each landing locale through every webapp CTA", () => {
+    for (const locale of LOCALES) {
+      const url = angularUrl("/signup", "test", locale);
+      assert.match(url, new RegExp(`[?&]lang=${locale}(?:&|$)`));
+      assert.match(url, /[?&]utm_source=landing(?:&|$)/);
+    }
+
+    for (const source of [
+      componentSources.header,
+      componentSources.hero,
+      componentSources.finalCta,
+      componentSources.platforms,
+      componentSources.stickyCta,
+      componentSources.support,
+    ]) {
+      for (const call of source.matchAll(/angularUrl\([\s\S]*?\)/g)) {
+        assert.match(call[0], /,\s*(?:locale|DEFAULT_LOCALE)\s*\)$/);
+      }
     }
   });
 
@@ -848,6 +994,7 @@ describe("landing accessibility contracts", () => {
 
       let initOptions: Parameters<PostHog["init"]>[1];
       const captures: Parameters<PostHog["capture"]>[] = [];
+      const registrations: Parameters<PostHog["register"]>[] = [];
       const posthog = {
         init: (_key: string, options: Parameters<PostHog["init"]>[1]) => {
           assert.equal(
@@ -857,7 +1004,9 @@ describe("landing accessibility contracts", () => {
           );
           initOptions = options;
         },
-        register: () => undefined,
+        register: (...args: Parameters<PostHog["register"]>) => {
+          registrations.push(args);
+        },
         capture: (...args: Parameters<PostHog["capture"]>) => {
           captures.push(args);
           return undefined;
@@ -865,18 +1014,23 @@ describe("landing accessibility contracts", () => {
       } as unknown as PostHog;
 
       const fast = await importFresh();
-      await fast.initPostHog(async () => ({ default: posthog }));
+      await fast.initPostHog("de", async () => ({ default: posthog }));
       await fast.trackCTAClick("commencer", "hero", "/signup");
 
       assert.equal(initOptions?.persistence_name, "pulpe_landing");
       assert.equal(initOptions?.cross_subdomain_cookie, false);
+      assert.deepEqual(registrations[0]?.[0], {
+        environment: "local",
+        locale: "de",
+        platform: "landing",
+      });
       assert.deepEqual(captures[0]?.[2], {
         send_instantly: true,
         transport: "sendBeacon",
       });
 
       const slow = await importFresh();
-      slow.initPostHog(() => new Promise(() => undefined));
+      slow.initPostHog("fr", () => new Promise(() => undefined));
       let trackingFinished = false;
       const tracking = slow
         .trackCTAClick("commencer", "hero", "/signup")
@@ -893,7 +1047,7 @@ describe("landing accessibility contracts", () => {
       const consoleError = console.error;
       console.error = () => undefined;
       try {
-        const failedInit = failed.initPostHog(async () => {
+        const failedInit = failed.initPostHog("fr", async () => {
           throw new Error("module unavailable");
         });
         await Promise.all([
@@ -928,7 +1082,13 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /(?:animation|transition)-duration:\s*0\.01ms/,
     );
-    assert.match(componentSources.roadmap, /motion-safe:animate-pulse/);
+    // Chaque animation porte sa propre sortie `motion-reduce:`, plutôt qu'un
+    // interrupteur global qui couperait aussi les transitions utiles au repère.
+    assert.match(
+      componentSources.accordionItem,
+      /motion-reduce:transition-none/,
+    );
+    assert.match(componentSources.header, /motion-reduce:transition-none/);
   });
 
   it("adds inset neutral outlines to the product surfaces", () => {
@@ -1002,15 +1162,19 @@ describe("landing accessibility contracts", () => {
   });
 
   it("pairs each of the three static setup steps with its own visual", () => {
-    assert.match(componentSources.howItWorks, /number: "1"/);
-    assert.match(componentSources.howItWorks, /number: "2"/);
-    assert.match(componentSources.howItWorks, /number: "3"/);
-    assert.doesNotMatch(componentSources.howItWorks, /number: "4"/);
+    // Le numéro se dérive du rang dans `STEP_IDS` : trois étapes déclarées, donc
+    // trois numéros, et aucun quatrième à oublier de renuméroter.
+    assert.deepEqual(Object.keys(frDict.home.howItWorks.steps), [
+      "template",
+      "year",
+      "month",
+    ]);
+    assert.match(componentSources.howItWorks, /number: String\(index \+ 1\)/);
     assert.doesNotMatch(componentSources.howItWorks, /IntersectionObserver/);
     for (const visual of [
-      /<MonthTemplateVisual \/>/,
-      /<YearSpreadVisual \/>/,
-      /<MonthAvailableVisual \/>/,
+      /template: MonthTemplateVisual/,
+      /year: YearSpreadVisual/,
+      /month: MonthAvailableVisual/,
     ]) {
       assert.equal(componentSources.howItWorks.match(visual)?.length, 1);
     }
@@ -1031,23 +1195,32 @@ describe("landing accessibility contracts", () => {
   it("places authentic testimonials after product proof with quote semantics", () => {
     assert.match(
       componentSources.page,
-      /<Solution \/>[\s\S]*<Testimonials \/>[\s\S]*<Platforms \/>/,
+      /<Solution dict=\{[^}]+\}[^>]*\/>[\s\S]*<Testimonials dict=\{[^}]+\} \/>[\s\S]*<Platforms dict=\{[^}]+\}[^>]*\/>/,
     );
-    assert.doesNotMatch(componentSources.page, /<HowItWorks \/>/);
+    assert.doesNotMatch(componentSources.page, /<HowItWorks\b/);
     assert.match(componentSources.testimonials, /<blockquote/);
     // Person names are not works: no <cite>, plain styled text instead.
     assert.doesNotMatch(componentSources.testimonials, /<cite/);
-    assert.match(componentSources.testimonials, /Ismaël/);
-    assert.match(
-      componentSources.testimonials,
-      /depuis novembre 2025[\s\S]*depuis mai 2026[\s\S]*depuis décembre 2025/,
-    );
+    // Les témoignages sont des propos rapportés : ils gardent le nom et la date
+    // d'inscription de leur auteur dans les quatre langues, jamais réécrits.
+    for (const catalog of Object.values(CATALOGS)) {
+      assert.deepEqual(
+        catalog.home.testimonials.items.map((item) => item.name),
+        ["Ismaël S.", "Sylvie G.", "Julie D."],
+      );
+      assert.match(
+        joined(catalog.home.testimonials.items.map((item) => item.since)),
+        /2025[\s\S]*2026[\s\S]*2025/,
+      );
+    }
     assert.doesNotMatch(componentSources.testimonials, /carousel|autoPlay/);
     assert.doesNotMatch(componentSources.testimonials, /background="primary"/);
   });
 
   it("uses one scannable emphasis per testimonial without card chrome", () => {
-    const testimonialMarkup = renderToStaticMarkup(<Testimonials />);
+    const testimonialMarkup = renderToStaticMarkup(
+      <Testimonials dict={frDict.home.testimonials} />,
+    );
 
     assert.match(
       globalsCss,
@@ -1078,10 +1251,14 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /\.marker-highlight-proof\s*\{[\s\S]*?--marker-color:\s*var\(--color-marker-highlight-proof\);[\s\S]*?color:\s*var\(--color-text\);/,
     );
-    assert.equal(
-      componentSources.testimonials.match(/highlight: "/g)?.length,
-      3,
-    );
+    // Un seul passage surligné par témoignage, dans les quatre langues : la
+    // traduction ne peut ni en ajouter un second ni laisser la marque vide.
+    for (const catalog of Object.values(CATALOGS)) {
+      assert.equal(catalog.home.testimonials.items.length, 3);
+      for (const item of catalog.home.testimonials.items) {
+        assert.ok(item.highlight.trim().length > 0);
+      }
+    }
     assert.equal(
       testimonialMarkup.match(
         /class="marker-highlight marker-highlight-proof"/g,
@@ -1091,7 +1268,7 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.testimonials, /grid[\s\S]*md:grid-cols-3/);
     assert.match(
       componentSources.testimonials,
-      /TESTIMONIALS\.map[\s\S]*marker-highlight[\s\S]*font-semibold/,
+      /dict\.items\.map[\s\S]*marker-highlight[\s\S]*font-semibold/,
     );
     assert.doesNotMatch(componentSources.testimonials, /leadTestimonial/);
     assert.doesNotMatch(
@@ -1099,7 +1276,7 @@ describe("landing accessibility contracts", () => {
       /supportingTestimonials/,
     );
     assert.doesNotMatch(
-      componentSources.testimonials,
+      joined(frDict.home.testimonials),
       /Trois usages différents, un même résultat/,
     );
     assert.doesNotMatch(
@@ -1110,28 +1287,42 @@ describe("landing accessibility contracts", () => {
 
   it("ships a fresh large social preview for Open Graph and X", () => {
     assert.match(
-      componentSources.layout,
-      /SOCIAL_PREVIEW_ALT,[\s\S]*SOCIAL_PREVIEW_IMAGE,[\s\S]*from "\.\.\/lib\/config"/,
-    );
-    assert.equal(
-      componentSources.layout.match(/url: SOCIAL_PREVIEW_IMAGE/g)?.length,
-      2,
+      componentSources.metadata,
+      /card: "summary_large_image"[\s\S]*images: socialImages\(locale, site\.socialImageAlt\)/,
     );
     assert.match(
-      componentSources.layout,
-      /twitter:[\s\S]*card: "summary_large_image"[\s\S]*images: \[[\s\S]*url: SOCIAL_PREVIEW_IMAGE,[\s\S]*alt: SOCIAL_PREVIEW_ALT,[\s\S]*width: 1200,[\s\S]*height: 630/,
+      componentSources.metadata,
+      /url: socialPreviewImage\(locale\),\s*width: 1200,\s*height: 630,\s*alt,/,
+    );
+    // Le français garde le nom d'origine : cette URL circule déjà dans des
+    // partages, et la renommer y remplacerait la vignette par un carré vide.
+    assert.equal(socialPreviewFile("fr"), "pulpe-social-preview.png");
+    // Chaque langue a sa carte, écrite dans sa langue et présente sur le disque.
+    for (const locale of LOCALES) {
+      assert.ok(
+        existsSync(
+          new URL(`../public/${socialPreviewFile(locale)}`, import.meta.url),
+        ),
+        `carte sociale manquante pour ${locale}`,
+      );
+      assert.ok(CATALOGS[locale].site.socialCard.subhead.trim().length > 0);
+      assert.ok(CATALOGS[locale].site.socialImageAlt.trim().length > 0);
+    }
+    // Le générateur lit le catalogue : plus une phrase française en dur, sinon
+    // les trois autres cartes reviendraient au français sans rien casser.
+    assert.match(
+      componentSources.ogGenerator,
+      /for \(const locale of LOCALES\)/,
     );
     assert.match(
       componentSources.ogGenerator,
-      /const HERO_HEADLINE = "Tu sais des mois à l’avance";/,
+      /children: dict\.site\.socialCard\.subhead/,
     );
     assert.match(
       componentSources.ogGenerator,
-      /const HERO_MARKER = "combien il te restera\.";/,
+      /children: dict\.home\.dashboard\.title/,
     );
-    assert.match(componentSources.ogGenerator, /Tableau de bord/);
-    assert.match(componentSources.ogGenerator, /Disponible ce mois/);
-    assert.match(componentSources.ogGenerator, /Vue annuelle/);
+    assert.doesNotMatch(componentSources.ogGenerator, /Tableau de bord/);
     assert.match(
       componentSources.ogGenerator,
       /children: formatAmount\(\s*HERO_AVAILABLE,\s*OG_CURRENCY,?\s*\)/,
@@ -1140,24 +1331,24 @@ describe("landing accessibility contracts", () => {
       componentSources.ogGenerator,
       /PRODUCT_SCREENSHOT|social-preview-screenshot/,
     );
-    assert.match(componentSources.ogGenerator, /pulpe-social-preview\.png/);
+    assert.match(componentSources.ogGenerator, /socialPreviewFile\(locale\)/);
     assert.match(componentSources.ogGenerator, /process\.exitCode = 1/);
   });
 
   it("shows the creator behind Pulpe without inventing additional social proof", () => {
     assert.match(componentSources.whyFree, /import Image from "next\/image"/);
     assert.match(componentSources.whyFree, /src="\/maxime-portrait\.webp"/);
-    assert.match(componentSources.whyFree, /Maxime, créateur de Pulpe/);
+    assert.equal(frDict.home.whyFree.portraitAlt, "Maxime, créateur de Pulpe");
   });
 
   it("keeps secondary planning tools after social proof", () => {
-    assert.doesNotMatch(componentSources.page, /<Roadmap \/>/);
+    assert.doesNotMatch(componentSources.page, /<Roadmap\b/);
     assert.match(
       componentSources.page,
-      /<Testimonials \/>[\s\S]*<Features \/>[\s\S]*<Platforms \/>/,
+      /<Testimonials dict=\{[^}]+\} \/>[\s\S]*<Features dict=\{[^}]+\} \/>[\s\S]*<Platforms dict=\{[^}]+\}[^>]*\/>/,
     );
     assert.match(
-      componentSources.features,
+      joined(frDict.home.features),
       /Pulpe recalcule la suite[\s\S]*Répartis une grosse dépense[\s\S]*Avance vers ton objectif, même si un mois change/,
     );
     assert.doesNotMatch(componentSources.features, /ADJUSTMENTS/);
@@ -1165,28 +1356,28 @@ describe("landing accessibility contracts", () => {
   });
 
   it("explains how savings goals adapt without implying silent changes", () => {
+    const goal = frDict.home.features.goal;
     assert.match(
-      componentSources.features,
+      goal.body,
       /Fixe une cible et une date[\s\S]*Tu vois les épargnes qui y contribuent[\s\S]*et peux répartir le reste sur les mois suivants/,
     );
-    assert.match(componentSources.features, /Pour septembre/);
-    assert.doesNotMatch(componentSources.features, /Prévision liée/);
+    assert.equal(goal.mockDeadline, "Pour septembre");
+    assert.doesNotMatch(joined(frDict.home.features), /Prévision liée/);
     assert.doesNotMatch(componentSources.features, /Juil\. · 0 CHF/);
-    assert.match(componentSources.features, /Reste réparti/);
-    // Les parts viennent du même reste divisé par le nombre de mois listés, et
-    // les mois sont la liste elle-même : la maquette ne peut plus afficher deux
-    // montants qui ne s'accordent pas, ni un mois de plus que ce qu'elle divise.
+    assert.equal(goal.mockRemaining, "Reste réparti");
+    // Les parts viennent du même reste divisé par le nombre de mois affichés, et
+    // ce nombre est écrit ici plutôt que lu du catalogue : une traduction qui
+    // listerait trois mois ne peut plus fausser la part en silence. Le tuple du
+    // catalogue oblige les quatre langues à en fournir exactement deux.
+    assert.equal(goal.mockMonths.length, 2);
+    assert.match(componentSources.features, /GOAL_MONTH_COUNT = 2/);
     assert.match(
       componentSources.features,
-      /GOAL_MONTHS: readonly \[string, string\] = \["Août", "Sept\."\]/,
+      /GOAL_REMAINING_SHARE = \(GOAL_TARGET - GOAL_SAVED\) \/ GOAL_MONTH_COUNT/,
     );
     assert.match(
       componentSources.features,
-      /GOAL_REMAINING_SHARE = \(GOAL_TARGET - GOAL_SAVED\) \/ GOAL_MONTHS\.length/,
-    );
-    assert.match(
-      componentSources.features,
-      /GOAL_MONTHS\.map\([\s\S]*\{month\}[\s\S]*<Money value=\{GOAL_REMAINING_SHARE\} \/>/,
+      /dict\.goal\.mockMonths\.map\([\s\S]*\{month\}[\s\S]*<Money value=\{GOAL_REMAINING_SHARE\} \/>/,
     );
     // La barre et son libellé disaient 65 % de leur côté, sans lien avec les
     // deux montants au-dessus d'eux.
@@ -1255,35 +1446,40 @@ describe("landing accessibility contracts", () => {
 
   it("keeps final conversion copy factual and aligned with metadata", () => {
     assert.doesNotMatch(componentSources.finalCta, /Julie|blockquote/);
-    assert.match(componentSources.whyFree, /AES-256-GCM/);
+    assert.match(joined(frDict.home.whyFree), /AES-256-GCM/);
+    // L'algorithme est un fait technique, pas de la copie : les quatre langues
+    // le nomment à l'identique.
+    for (const catalog of Object.values(CATALOGS)) {
+      assert.match(joined(catalog.home.whyFree), /AES-256-GCM/);
+    }
     assert.match(
-      componentSources.layout,
+      frDict.site.titleDefault,
       /des mois d’avance combien il te restera/i,
     );
     assert.match(
-      componentSources.finalCta,
+      joined(frDict.home.finalCta),
       /Prépare ton année[\s\S]*Vois combien il te restera chaque mois/i,
     );
   });
 
   it("uses concrete, natural wording for the future available amount", () => {
-    for (const source of [
-      componentSources.hero,
-      componentSources.painPoints,
-      componentSources.howItWorks,
-      componentSources.finalCta,
-      componentSources.layout,
+    for (const slice of [
+      frDict.home.hero,
+      frDict.home.painPoints,
+      frDict.home.howItWorks,
+      frDict.home.finalCta,
+      frDict.site,
     ]) {
-      assert.doesNotMatch(source, /ce qu(?:’|&apos;)il te restera/i);
+      assert.doesNotMatch(joined(slice), /ce qu(?:’|')il te restera/i);
     }
 
-    assert.match(
-      componentSources.howItWorks,
-      /title: "Vois combien il te restera"/,
+    assert.equal(
+      frDict.home.howItWorks.steps.month.title,
+      "Vois combien il te restera",
     );
     assert.match(
-      componentSources.faq,
-      /Les questions qu&apos;on me pose le plus/,
+      frDict.home.faq.heading,
+      /Les questions qu(?:’|')on me pose le plus/,
     );
   });
 
@@ -1293,39 +1489,67 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.support, /hero-mesh/);
     assert.match(componentSources.support, /max-w-3xl/);
     assert.match(componentSources.support, /<AccordionItem/);
-    assert.match(componentSources.support, /<FinalCTA \/>/);
+    assert.match(componentSources.support, /<FinalCTA dict=\{[^}]+\}[^>]*\/>/);
     assert.doesNotMatch(componentSources.support, /<details|<summary/);
   });
 
   it("explains when to edit a model versus a monthly budget", () => {
-    assert.match(componentSources.supportGuide, /base de départ/);
-    assert.match(componentSources.supportGuide, /mois précis/);
-    assert.match(componentSources.supportGuide, /Appliquer/);
-    assert.match(componentSources.supportGuide, /modifiée manuellement/);
-    assert.match(componentSources.supportGuide, /Changer uniquement ce mois/);
-    assert.doesNotMatch(componentSources.supportGuide, /catégor/i);
+    const guide = joined(frDict.guide);
+    assert.match(guide, /base de départ/);
+    assert.match(guide, /mois précis/);
+    assert.match(guide, /Appliquer/);
+    assert.match(guide, /modifiée manuellement/);
+    assert.match(guide, /Changer uniquement ce mois/);
+    // Le mot « catégorie » ne fait pas partie du vocabulaire produit : aucune
+    // des quatre langues ne doit le réintroduire par la traduction.
+    for (const catalog of Object.values(CATALOGS)) {
+      assert.doesNotMatch(joined(catalog.guide), /catégor|categor|Kategori/i);
+    }
     assert.doesNotMatch(componentSources.supportGuide, /<Image|next\/image/);
   });
 
   it("owns the guide social metadata instead of inheriting the homepage", () => {
-    assert.match(componentSources.supportGuide, /const GUIDE_PATH/);
-    assert.match(componentSources.supportGuide, /openGraph:\s*\{/);
-    assert.match(componentSources.supportGuide, /url: GUIDE_PATH/);
-    assert.match(componentSources.supportGuide, /twitter:\s*\{/);
+    assert.match(
+      componentSources.pageMetadata,
+      /supportGuideMetadata[\s\S]*articleSocialMetadata\(\{[\s\S]*path: alternates\.canonical/,
+    );
+    assert.match(
+      componentSources.metadata,
+      /openGraph:\s*\{[\s\S]*type: "article"/,
+    );
+    assert.match(
+      componentSources.metadata,
+      /twitter:\s*\{[\s\S]*card: "summary_large_image"/,
+    );
   });
 
   it("links the first help journey from support and navigation", () => {
-    // “Guides” and “Help” overlap for visitors: editorial content is named
-    // “Conseils budget”, while support refers to tutorials.
-    assert.match(componentSources.support, /Bien démarrer avec Pulpe/);
-    assert.doesNotMatch(componentSources.support, /Guides pour utiliser/);
-    assert.match(componentSources.footer, /label: "Conseils budget"/);
-    assert.match(componentSources.support, /\/support\/modeles-et-budgets/);
-    assert.match(componentSources.header, /href: "\/support", label: "Aide"/);
+    // « Guides » et « Aide » se marchent dessus pour un visiteur : l'éditorial
+    // s'appelle « Conseils budget », l'aide parle de tutoriels.
+    assert.match(frDict.support.guidesHeading, /Bien démarrer avec Pulpe/);
+    assert.doesNotMatch(frDict.support.guidesHeading, /Guides pour utiliser/);
+    assert.equal(frDict.footer.links.support, "FAQ et tutoriels");
+    // Les conseils budget n'existent qu'en français : leur libellé vit dans le
+    // code, et le lien se retire des trois autres langues.
     assert.match(
       componentSources.footer,
-      /label: "FAQ et tutoriels", href: "\/support"/,
+      /id: "guides",\s*href: ADVICE_INDEX_ROUTE,[\s\S]*frenchOnly: true/,
     );
+    assert.match(componentSources.support, /\/support\/modeles-et-budgets/);
+    // La destination est structurelle et reste dans le code ; seul le libellé
+    // change de langue, et les quatre catalogues doivent en fournir un.
+    assert.match(
+      componentSources.header,
+      /\{ id: "support", href: "\/support" \}/,
+    );
+    assert.match(
+      componentSources.footer,
+      /\{ id: "support", href: "\/support", internal: true \}/,
+    );
+    for (const catalog of Object.values(CATALOGS)) {
+      assert.ok(catalog.header.nav.support.trim().length > 0);
+      assert.ok(catalog.footer.links.support.trim().length > 0);
+    }
   });
 
   it("keeps skip links keyboard-only and moves focus to main content", () => {
@@ -1370,23 +1594,29 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(componentSources.layout, /<html[^>]*suppressHydrationWarning/);
 
-    const questions = [
-      ...componentSources.support.matchAll(/question: "([^"]+)"/g),
-    ].map((match) => match[1]);
+    const questions = supportFaq(frDict).map((entry) => entry.question);
     assert.equal(questions.length, 9);
+    // L'insécable fine devant le `?` est une règle française : les trois autres
+    // langues ne la portent pas, et la compter ici évite qu'elle disparaisse
+    // d'une question au fil d'une relecture.
     assert.ok(questions.every((question) => question.endsWith("\u202f?")));
     assert.ok(questions.includes("Ça marche en Suisse et en France\u202f?"));
-    assert.match(componentSources.support, /Si la tienne manque, écris-moi\./);
+    assert.match(frDict.support.intro, /Si la tienne manque, écris-moi\./);
     assert.doesNotMatch(
-      componentSources.support,
+      frDict.support.intro,
       /Si la tienne manque, écris-moi directement\./,
     );
   });
 
   it("keeps support answers factual and aligned with the landing FAQ", () => {
-    assert.equal(componentSources.support.match(/\n {4}question:/g)?.length, 9);
+    assert.equal(supportFaq(frDict).length, 9);
 
-    for (const source of [componentSources.support, componentSources.faq]) {
+    // La FAQ de la page d'accueil et celle du support répondent la même chose :
+    // les deux catalogues portent les mêmes faits, mot pour mot.
+    for (const source of [
+      joined(frDict.support.faq),
+      joined(frDict.home.faq),
+    ]) {
       assert.match(source, /prestataires externes/);
       assert.match(source, /contraintes réglementaires/);
       assert.match(source, /coût est trop élevé/);
@@ -1408,26 +1638,30 @@ describe("landing accessibility contracts", () => {
 
     assert.match(componentSources.support, /mainEntity: faqs\.map/);
     assert.match(componentSources.support, /text: faq\.plainAnswer/);
-    assert.doesNotMatch(
-      componentSources.support,
-      /chiffrement de bout en bout|Google Drive/,
-    );
+    // Aucune traduction ne doit promettre plus que le produit ne tient : le
+    // chiffrement est en base, déchiffré côté serveur, jamais de bout en bout.
+    for (const catalog of Object.values(CATALOGS)) {
+      assert.doesNotMatch(
+        joined(catalog.support.faq),
+        /bout en bout|end-to-end|Ende-zu-Ende|end to end|punto a punto|zero-knowledge/i,
+      );
+    }
   });
 
   it("keeps support links accessible and answer copy canonical", () => {
     assert.match(
       componentSources.support,
-      /const SETTINGS_URL = angularUrl\("\/settings", "faq_delete_account"\);/,
+      /angularUrl\("\/settings", "faq_delete_account", locale\)/,
     );
+    // Le texte nu du JSON-LD est recollé des trois morceaux de la réponse au
+    // lieu d'être rédigé une seconde fois : les deux versions ne peuvent plus
+    // diverger, et il n'y a plus rien à comparer ici.
     assert.match(
       componentSources.support,
-      /question: "Comment supprimer mon compte et mes données\u202f\?"[\s\S]*?href=\{SETTINGS_URL\}[\s\S]*?>\s*paramètres\s*<\/a>[\s\S]*?plainAnswer:/,
+      /plainAnswer: `\$\{entry\.answerBefore\}\$\{entry\.answerLink\}\$\{entry\.answerAfter\}`/,
     );
-    assert.match(componentSources.support, /answer\?: ReactNode;/);
-    assert.match(
-      componentSources.support,
-      /answer=\{faq\.answer \?\? faq\.plainAnswer\}/,
-    );
+    assert.match(componentSources.support, /answer: ReactNode;/);
+    assert.match(componentSources.support, /answer=\{faq\.answer\}/);
     assert.equal(
       componentSources.support.match(/inline-flex min-h-11 items-center/g)
         ?.length,
@@ -1437,12 +1671,19 @@ describe("landing accessibility contracts", () => {
       componentSources.support,
       /const linkClass\s*=\s*"[^"]*min-h-11/,
     );
-    assert.equal(componentSources.support.match(/\n {4}answer:/g)?.length, 4);
+    assert.equal(
+      componentSources.support.match(/linkedFaq\(faq\./g)?.length,
+      4,
+    );
 
+    // La destination de chaque lien vit dans le code, son libellé dans le
+    // catalogue : une traduction ne peut pas déplacer un lien, et un lien ne
+    // peut pas se retrouver sans texte.
     for (const linkedAnswer of [
       {
-        question: "Pourquoi confier mes chiffres à Pulpe\u202f?",
-        href: "href={GITHUB_URL}",
+        key: "trust",
+        wiring:
+          /linkedFaq\(faq\.trust, \{ href: GITHUB_URL, external: true \}\)/,
         facts: [
           "Tes montants ne sont jamais stockés en clair.",
           "deux clés conservées séparément",
@@ -1450,8 +1691,9 @@ describe("landing accessibility contracts", () => {
         ],
       },
       {
-        question: "Est-ce que je peux essayer sans créer de compte\u202f?",
-        href: "href={DEMO_URL}",
+        key: "demo",
+        wiring:
+          /linkedFaq\(faq\.demo, \{[\s\S]*angularUrl\("\/welcome", "faq_demo", locale\)[\s\S]*\}\)/,
         facts: [
           "mode démo",
           "utiliser Pulpe sans compte",
@@ -1459,8 +1701,9 @@ describe("landing accessibility contracts", () => {
         ],
       },
       {
-        question: "C'est vraiment gratuit\u202f?",
-        href: "href={GITHUB_URL}",
+        key: "free",
+        wiring:
+          /linkedFaq\(faq\.free, \{ href: GITHUB_URL, external: true \}\)/,
         facts: [
           "Pulpe est gratuit, sans publicité ni abonnement.",
           "projet solo",
@@ -1468,8 +1711,9 @@ describe("landing accessibility contracts", () => {
         ],
       },
       {
-        question: "Comment supprimer mon compte et mes données\u202f?",
-        href: "href={SETTINGS_URL}",
+        key: "deletion",
+        wiring:
+          /linkedFaq\(faq\.deletion, \{[\s\S]*angularUrl\("\/settings", "faq_delete_account", locale\)[\s\S]*\}\)/,
         facts: [
           "demander la suppression",
           "paramètres",
@@ -1479,25 +1723,26 @@ describe("landing accessibility contracts", () => {
           "politique de rétention",
         ],
       },
-    ]) {
-      const start = componentSources.support.indexOf(
-        `question: "${linkedAnswer.question}",`,
-      );
-      const end = componentSources.support.indexOf("\n  },", start);
-      assert.ok(start >= 0 && end > start);
+    ] as const) {
+      assert.match(componentSources.support, linkedAnswer.wiring);
 
-      const block = componentSources.support
-        .slice(start, end)
-        .replace(/\s+/g, " ");
-      const plainAnswerIndex = block.indexOf("plainAnswer:");
-      assert.ok(plainAnswerIndex > 0);
-
-      const visibleAnswer = block.slice(0, plainAnswerIndex);
-      const plainAnswer = block.slice(plainAnswerIndex);
-      assert.ok(visibleAnswer.includes(linkedAnswer.href));
+      const entry = frDict.support.faq[linkedAnswer.key];
+      assert.ok(entry.answerLink.trim().length > 0);
+      const text = answerText(entry);
       for (const fact of linkedAnswer.facts) {
-        assert.ok(visibleAnswer.includes(fact));
-        assert.ok(plainAnswer.includes(fact));
+        assert.ok(
+          text.includes(fact),
+          `la réponse « ${linkedAnswer.key} » ne dit plus « ${fact} »`,
+        );
+      }
+
+      // Les trois autres langues gardent le lien, sans reprendre le français.
+      for (const [code, catalog] of Object.entries(CATALOGS)) {
+        const translated = catalog.support.faq[linkedAnswer.key];
+        assert.ok(
+          translated.answerLink.trim().length > 0,
+          `${code} : le libellé du lien « ${linkedAnswer.key} » est vide`,
+        );
       }
     }
   });
@@ -1523,9 +1768,17 @@ describe("landing accessibility contracts", () => {
       componentSources.footer,
       /lg:flex-row lg:items-start lg:justify-between/,
     );
-    for (const title of ["Découvrir", "Aide", "Légal"]) {
-      assert.match(componentSources.footer, new RegExp(`title: "${title}"`));
+    assert.deepEqual(Object.keys(frDict.footer.groups), [
+      "discover",
+      "help",
+      "legal",
+    ]);
+    for (const catalog of Object.values(CATALOGS)) {
+      for (const title of Object.values(catalog.footer.groups)) {
+        assert.ok(title.trim().length > 0);
+      }
     }
+    assert.match(componentSources.footer, /\{dict\.groups\[group\.id\]\}/);
     assert.match(componentSources.footer, /min-h-11 items-center/);
   });
 });

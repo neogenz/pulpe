@@ -100,13 +100,13 @@ final class RecoveryFlowCoordinator {
             }
 
             Logger.auth.error("acceptConsent: setup-recovery failed - \(error)")
-            toastManager.show("Impossible de générer la clé de récupération", type: .error)
+            toastManager.show(AppLocale.string("Impossible de générer la clé de récupération"), type: .error)
             recoveryFlowState = .idle
             return .error
         } catch {
             guard currentOperationId == operationId else { return .error }
             Logger.auth.error("acceptConsent: unexpected setup-recovery error - \(error)")
-            toastManager.show("Impossible de générer la clé de récupération", type: .error)
+            toastManager.show(AppLocale.string("Impossible de générer la clé de récupération"), type: .error)
             recoveryFlowState = .idle
             return .error
         }

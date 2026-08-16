@@ -39,7 +39,20 @@ extension Date {
     /// Format as "Le 15" — used when the surrounding context already names
     /// the month (e.g. budget detail header). Day-of-month only, no padding.
     var dayInMonthFormatted: String {
-        "Le \(Calendar.current.component(.day, from: self))"
+        AppLocale.string("Le \(Calendar.current.component(.day, from: self))")
+    }
+
+    /// Format as "15 janv. 2026".
+    ///
+    /// Use instead of the `Date.FormatStyle` default, which resolves against
+    /// `Locale.autoupdatingCurrent` — the *device* language, not the one chosen in the app.
+    /// The gap is invisible while everything is French and shows up as one screen in two
+    /// languages the day someone switches.
+    var abbreviatedDateFormatted: String {
+        formatted(
+            Date.FormatStyle(date: .abbreviated, time: .omitted)
+                .locale(AppLocale.currentUILocale)
+        )
     }
 
     /// Create a date from month and year
@@ -95,10 +108,10 @@ extension Date {
         let now = Date()
 
         if calendar.isDateInToday(self) {
-            return "Aujourd'hui"
+            return AppLocale.string("Aujourd’hui")
         }
         if calendar.isDateInYesterday(self) {
-            return "Hier"
+            return AppLocale.string("Hier")
         }
 
         // Check if within this week (show day name)

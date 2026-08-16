@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod';
 import { VAULT_CODE_LENGTH } from '@core/auth';
 
 export interface SetupVaultCodeSubmit {

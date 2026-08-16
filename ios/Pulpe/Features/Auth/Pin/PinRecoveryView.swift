@@ -41,10 +41,10 @@ struct PinRecoveryView: View {
             .alert("Clé de récupération", isPresented: $viewModel.showRecoveryKeyWarning) {
                 Button("OK") { onComplete() }
             } message: {
-                Text(
-                    "Ta récupération est réussie mais la nouvelle clé de récupération n'a pas pu être générée. "
-                    + "Tu peux en créer une depuis les réglages."
-                )
+                Text(AppLocale.string("""
+                Ta récupération est réussie mais la nouvelle clé de récupération n'a pas pu être générée. \
+                Tu peux en créer une depuis les réglages.
+                """))
             }
             .onChange(of: viewModel.requiresReauthentication) { _, requiresReauthentication in
                 guard requiresReauthentication else { return }
@@ -62,9 +62,12 @@ struct PinRecoveryView: View {
             case .enterRecoveryKey:
                 recoveryKeyStep
             case .createPin:
-                pinStep(title: "Nouveau code PIN", subtitle: "\(PinConstants.length) chiffres")
+                pinStep(
+                    title: AppLocale.string("Nouveau code PIN"),
+                    subtitle: AppLocale.string("\(PinConstants.length) chiffres")
+                )
             case .confirmPin:
-                pinStep(title: "Confirme ton code PIN", subtitle: nil)
+                pinStep(title: AppLocale.string("Confirme ton code PIN"), subtitle: nil)
             case .processing:
                 processingStep
             }
@@ -198,8 +201,8 @@ struct PinRecoveryView: View {
 
     private var processingStep: some View {
         PinProcessingView(
-            title: "Récupération en cours...",
-            subtitle: "Tes données sont en cours de re-chiffrement"
+            title: AppLocale.string("Récupération en cours..."),
+            subtitle: AppLocale.string("Tes données sont en cours de re-chiffrement")
         )
     }
 

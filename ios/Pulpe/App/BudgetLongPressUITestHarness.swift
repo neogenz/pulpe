@@ -14,6 +14,7 @@ enum UITestLaunchScenario {
     case savingsGoalTemplateLines
     case contextualCreationHome
     case contextualCreationBudget
+    case loginScreen
 
     private static let longPressWithTransactionsKey = "UITEST_BUDGET_LONG_PRESS_WITH_TRANSACTIONS"
     private static let longPressEmptyKey = "UITEST_BUDGET_LONG_PRESS_EMPTY"
@@ -28,6 +29,7 @@ enum UITestLaunchScenario {
     private static let savingsGoalTemplateLinesKey = "UITEST_SAVINGS_GOAL_TEMPLATE_LINES"
     private static let contextualCreationHomeKey = "UITEST_CONTEXTUAL_CREATION_HOME"
     private static let contextualCreationBudgetKey = "UITEST_CONTEXTUAL_CREATION_BUDGET"
+    private static let loginScreenKey = "UITEST_LOGIN_SCREEN"
     private static let scenarioEnvironmentKey = "UITEST_SCENARIO"
 
     static var current: Self? {
@@ -65,6 +67,7 @@ enum UITestLaunchScenario {
             savingsGoalTemplateLinesKey: .savingsGoalTemplateLines,
             contextualCreationHomeKey: .contextualCreationHome,
             contextualCreationBudgetKey: .contextualCreationBudget,
+            loginScreenKey: .loginScreen,
         ][key]
     }
 
@@ -84,6 +87,7 @@ enum UITestLaunchScenario {
         case .savingsGoalTemplateLines: "savings-goal-template-lines"
         case .contextualCreationHome: "contextual-creation-home"
         case .contextualCreationBudget: "contextual-creation-budget"
+        case .loginScreen: "login-screen"
         }
     }
 }
@@ -165,6 +169,10 @@ struct BudgetGoalSpreadUITestHarness: View {
 
     init() {
         let appState = AppState()
+        // This harness shows the budgets branch alone; `pushOnActiveStack` routes by
+        // `selectedTab`, so the default `.currentMonth` would push onto a stack
+        // nobody is looking at and every tap-to-detail would silently do nothing.
+        appState.selectedTab = .budgets
         let savingsGoalService = SavingsGoalIntervalUITestService(scenario: .budgetGoalSpreadMetadata)
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let seed = Self.seed(now: now)
@@ -174,28 +182,10 @@ struct BudgetGoalSpreadUITestHarness: View {
             budgets: [sparse],
             spreadGroupId: Self.spreadGroupIdString,
             occurrences: [
-                SpreadOccurrence(
-                    budgetLineId: "goal-spread-july",
-                    budgetId: "goal-spread-july-budget",
-                    month: 7, year: 2026,
-                    name: "Voyage au Japon",
-                    amount: 137,
-                    kind: .saving,
-                    checkedAt: nil,
-                    originalAmount: nil,
-                    consumed: 0, transactionCount: 0
+                Self.occurrence(
+                    budgetLineId: "goal-spread-july", budgetId: "goal-spread-july-budget", month: 7, amount: 137
                 ),
-                SpreadOccurrence(
-                    budgetLineId: Self.lineId,
-                    budgetId: Self.budgetId,
-                    month: 8, year: 2026,
-                    name: "Voyage au Japon",
-                    amount: 413,
-                    kind: .saving,
-                    checkedAt: nil,
-                    originalAmount: nil,
-                    consumed: 0, transactionCount: 0
-                ),
+                Self.occurrence(budgetLineId: Self.lineId, budgetId: Self.budgetId, month: 8, amount: 413),
             ]
         )
         ProductTips.tourDismissed = true
@@ -216,6 +206,16 @@ struct BudgetGoalSpreadUITestHarness: View {
         )
         _savingsGoalStore = State(initialValue: SavingsGoalStore(service: savingsGoalService))
         _tagStore = State(initialValue: TagStore(service: routeService))
+    }
+
+    private static func occurrence(
+        budgetLineId: String, budgetId: String, month: Int, amount: Decimal
+    ) -> SpreadOccurrence {
+        SpreadOccurrence(
+            budgetLineId: budgetLineId, budgetId: budgetId, month: month, year: 2026,
+            name: "Voyage au Japon", amount: amount, kind: .saving, checkedAt: nil,
+            originalAmount: nil, consumed: 0, transactionCount: 0
+        )
     }
 
     private static func seed(now: Date) -> (budget: Budget, line: BudgetLine) {

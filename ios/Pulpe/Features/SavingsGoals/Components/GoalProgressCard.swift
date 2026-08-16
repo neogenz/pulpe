@@ -48,16 +48,20 @@ struct GoalProgressCard: View {
 
             VStack(spacing: DesignTokens.Spacing.sm) {
                 if progress.initialAmount > 0 {
-                    statRow(label: "Montant de départ", value: progress.initialAmount.asCompactCurrency(currency))
+                    statRow(
+                        label: AppLocale.string("Montant de départ"),
+                        value: progress.initialAmount.asCompactCurrency(currency)
+                    )
                 }
                 statRow(
-                    label: "Déjà prévu",
+                    label: AppLocale.string("Déjà prévu"),
                     value: progress.plannedCumulative.asCompactCurrency(currency),
                     swatch: Color.financialSavings.opacity(DesignTokens.Opacity.strong)
                 )
                 statRow(
-                    label: "Projection du plan",
-                    value: progress.plannedProjection.asCompactCurrency(currency)
+                    label: AppLocale.string("Projection du plan"),
+                    value: progress.plannedProjection.asCompactCurrency(currency),
+                    identifier: "savingsGoalProjectionStat"
                 )
                 if let required = progress.required, hasClosedPlanMonth {
                     if SavingsGoalDetailViewModel.requiredMatchesPlannedPace(
@@ -65,8 +69,9 @@ struct GoalProgressCard: View {
                         required: required
                     ) {
                         statRow(
-                            label: "Pour tenir ton échéance",
-                            value: "\(required.asCompactCurrency(currency)) / mois"
+                            label: AppLocale.string("Pour tenir ton échéance"),
+                            value: AppLocale.string("\(required.asCompactCurrency(currency)) / mois"),
+                            identifier: "savingsGoalRequiredPaceStat"
                         )
                     } else {
                         deadlineReconciliation(required: required)
@@ -75,6 +80,10 @@ struct GoalProgressCard: View {
             }
         }
         .pulpeCard()
+        // `.contain` scopes the identifier to the card node; bare, it would propagate
+        // onto every descendant and clobber the stat rows' own identifiers.
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("savingsGoalProgressCard")
     }
 
     private var layeredBar: some View {
@@ -94,10 +103,16 @@ struct GoalProgressCard: View {
         .frame(height: DesignTokens.ProgressBar.thickHeight)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(progress.achievementPercent ?? 0)% de la cible épargné")
+        .accessibilityIdentifier("savingsGoalTargetProgressBar")
     }
 
     @ViewBuilder
-    private func statRow(label: String, value: String, swatch: Color? = nil) -> some View {
+    private func statRow(
+        label: String,
+        value: String,
+        swatch: Color? = nil,
+        identifier: String? = nil
+    ) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             if let swatch {
                 Circle()
@@ -107,6 +122,7 @@ struct GoalProgressCard: View {
             Text(label)
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textSecondary)
+                .ifLet(identifier) { view, id in view.accessibilityIdentifier(id) }
 
             Spacer(minLength: DesignTokens.Spacing.sm)
 
@@ -119,19 +135,23 @@ struct GoalProgressCard: View {
     }
 
     private func deadlineReconciliation(required: Decimal) -> some View {
-        let deadlinePart = progress.targetDateValue
-            .map { "pour finir le \($0.formatted(date: .abbreviated, time: .omitted))" }
-            ?? "pour tenir ton échéance"
-        let plannedPart = "Ton rythme prévu : \(progress.pace.asCompactCurrency(currency))/mois"
-        return Text(
-            "\(plannedPart) · \(deadlinePart), vise \(required.asCompactCurrency(currency))/mois"
-        )
-        .font(PulpeTypography.metricLabel)
-        .foregroundStyle(Color.textSecondary)
-        .monospacedDigit()
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .sensitiveAmount()
+        let pace = progress.pace.asCompactCurrency(currency)
+        let target = required.asCompactCurrency(currency)
+        // One whole key per variant: « pour finir le … » is a subordinate clause,
+        // untranslatable on its own and glued back into the sentence.
+        let copy = progress.targetDateValue.map {
+            AppLocale.string("""
+                Ton rythme prévu : \(pace)/mois · \
+                pour finir le \($0.abbreviatedDateFormatted), vise \(target)/mois
+                """)
+        } ?? AppLocale.string("Ton rythme prévu : \(pace)/mois · pour tenir ton échéance, vise \(target)/mois")
+        return Text(copy)
+            .font(PulpeTypography.metricLabel)
+            .foregroundStyle(Color.textSecondary)
+            .monospacedDigit()
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .sensitiveAmount()
     }
 
     private func paceIndicator(_ pace: SavingsGoalPaceStatus) -> some View {
@@ -139,6 +159,7 @@ struct GoalProgressCard: View {
             .font(PulpeTypography.metricLabelBold)
             .foregroundStyle(Color.textSecondary)
             .accessibilityLabel("Rythme : \(paceLabel(pace))")
+            .accessibilityIdentifier("savingsGoalPaceIndicator")
     }
 
     private func planReadyIndicator(_ amount: Decimal) -> some View {
@@ -153,9 +174,9 @@ struct GoalProgressCard: View {
 
     private func paceLabel(_ pace: SavingsGoalPaceStatus) -> String {
         switch pace {
-        case .behind: "Un peu en retrait"
-        case .onTrack: "Sur la bonne voie"
-        case .ahead: "En avance"
+        case .behind: AppLocale.string("Un peu en retrait")
+        case .onTrack: AppLocale.string("Sur la bonne voie")
+        case .ahead: AppLocale.string("En avance")
         }
     }
 

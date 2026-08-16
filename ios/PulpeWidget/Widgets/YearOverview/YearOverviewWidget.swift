@@ -7,6 +7,7 @@ struct YearOverviewWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: YearOverviewProvider()) { entry in
             YearOverviewWidgetView(entry: entry)
+                .environment(\.locale, AppLocale.currentUILocale)
         }
         .configurationDisplayName("Vue annuelle")
         .description("Affiche les 12 mois de l'année")

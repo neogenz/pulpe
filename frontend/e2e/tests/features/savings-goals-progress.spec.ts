@@ -677,19 +677,19 @@ test.describe('Savings goal optional interval (PUL-314)', () => {
       await page.getByTestId('edit-savings-goal-button').click();
       const editDialog = page.getByTestId('savings-goal-form-dialog');
       const updatedName = `Objectif ${scenario.label} modifié`;
-      await editDialog.getByTestId('savings-goal-name').fill(updatedName);
       if (scenario.label === 'name only') {
-        await editDialog.getByTestId('savings-goal-target-amount').fill('3500');
         await pickFutureDate(page, editDialog, 'savings-goal-target-date', 3);
+        await editDialog.getByTestId('savings-goal-target-amount').fill('3500');
       } else if (scenario.label === 'target only') {
-        await editDialog.getByTestId('savings-goal-target-amount').clear();
         await pickFutureDate(page, editDialog, 'savings-goal-target-date', 3);
+        await editDialog.getByTestId('savings-goal-target-amount').clear();
       } else if (scenario.label === 'deadline only') {
-        await editDialog.getByTestId('savings-goal-target-amount').fill('3500');
         await editDialog.getByTestId('savings-goal-clear-target-date').click();
+        await editDialog.getByTestId('savings-goal-target-amount').fill('3500');
       } else {
         await editDialog.getByTestId('savings-goal-clear-start-date').click();
       }
+      await editDialog.getByTestId('savings-goal-name').fill(updatedName);
 
       const patchRequest = page.waitForRequest(
         (request) =>

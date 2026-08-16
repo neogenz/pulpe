@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   payDayOfMonth: null,
   currency: 'CHF',
   showCurrencySelector: false,
+  locale: 'fr',
 };
 
 function createMockUserSettingsStore(
@@ -26,6 +27,7 @@ function createMockUserSettingsStore(
   const settingsSignal = signal<UserSettings | null>(initial);
   return {
     settings: settingsSignal,
+    locale: () => settingsSignal()?.locale ?? 'fr',
     setSettings: (value: UserSettings | null) => settingsSignal.set(value),
   };
 }
@@ -299,6 +301,7 @@ describe('User consent and tracking behavior', () => {
         payDayOfMonth: 25,
         currency: 'EUR',
         showCurrencySelector: true,
+        locale: 'fr',
       });
       TestBed.runInInjectionContext(() => {
         analyticsService.initializeAnalyticsTracking();
@@ -337,6 +340,7 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
         currency: 'EUR',
         show_currency_selector: true,
+        locale: 'fr',
       });
       expect(mockPostHogService.setPersonProperties).toHaveBeenCalledTimes(1);
     });
@@ -349,6 +353,7 @@ describe('User consent and tracking behavior', () => {
         payDayOfMonth: 25,
         currency: 'EUR',
         showCurrencySelector: true,
+        locale: 'fr',
       });
 
       TestBed.runInInjectionContext(() => {
@@ -373,6 +378,7 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
         currency: 'EUR',
         show_currency_selector: true,
+        locale: 'fr',
       });
     });
     it('should not push person properties while user settings are still null', () => {
@@ -421,6 +427,7 @@ describe('User consent and tracking behavior', () => {
         payDayOfMonth: 1,
         currency: 'EUR',
         showCurrencySelector: false,
+        locale: 'fr',
       });
       TestBed.tick();
 
@@ -428,6 +435,7 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
         currency: 'EUR',
         show_currency_selector: false,
+        locale: 'fr',
       });
     });
   });
@@ -616,6 +624,8 @@ describe('captureEvent', () => {
     expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
       ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED,
       properties,
+      // Third argument: the pass-through capture options, absent here.
+      undefined,
     );
   });
 

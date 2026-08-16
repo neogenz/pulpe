@@ -79,6 +79,7 @@ struct SavingsGoalDetailView: View {
                     Image(systemName: "pencil")
                 }
                 .accessibilityLabel("Modifier l'objectif")
+                .accessibilityIdentifier("savingsGoalEditButton")
             }
         }
         .sheet(item: $editTarget, onDismiss: handleEditDismiss) { goal in
@@ -293,8 +294,9 @@ struct SavingsGoalDetailView: View {
     private func recoveryVerdict(_ progress: SavingsGoalProgress) -> String {
         let changes = recoveryChanges(progress)
         let added = changes.reduce(Decimal.zero) { $0 + $1.simulatedAmount }
-        return "Projection après création : "
-            + (progress.plannedProjection + added).asCompactCurrency(currency)
+        return AppLocale.string(
+            "Projection après création : \((progress.plannedProjection + added).asCompactCurrency(currency))"
+        )
     }
 
     // MARK: - Header
@@ -306,17 +308,19 @@ struct SavingsGoalDetailView: View {
 
             if let start = progress.startDateValue, let end = progress.targetDateValue {
                 Text(
-                    "\(start.formatted(date: .abbreviated, time: .omitted))"
-                        + " → \(end.formatted(date: .abbreviated, time: .omitted))"
+                    "\(start.abbreviatedDateFormatted)"
+                        + " → \(end.abbreviatedDateFormatted)"
                 )
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(Color.textTertiary)
+                .accessibilityIdentifier("savingsGoalDeadlineRange")
             } else if let date = progress.targetDateValue {
-                Text("Échéance \(date.formatted(date: .abbreviated, time: .omitted))")
+                Text("Échéance \(date.abbreviatedDateFormatted)")
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.textTertiary)
+                    .accessibilityIdentifier("savingsGoalDeadlineDate")
             } else if let date = progress.startDateValue {
-                Text("Depuis \(date.formatted(date: .abbreviated, time: .omitted))")
+                Text("Depuis \(date.abbreviatedDateFormatted)")
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.textTertiary)
             }
@@ -340,7 +344,7 @@ private extension SavingsGoalDetailView {
         BudgetDetailCache.shared.invalidateAll()
         store.invalidateCache()
         await viewModel.load()
-        toastManager.show("Ton plan est à jour")
+        toastManager.show(AppLocale.string("Ton plan est à jour"))
     }
 
     /// A 409 means the recap's baseline is stale. The simulator has already
@@ -357,7 +361,11 @@ private extension SavingsGoalDetailView {
             toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
             return
         }
-        toastManager.show(status == .completed ? "Objectif marqué comme atteint" : "Objectif ré-ouvert")
+        toastManager.show(
+            status == .completed
+                ? AppLocale.string("Objectif marqué comme atteint")
+                : AppLocale.string("Objectif ré-ouvert")
+        )
         if status != .active {
             await proposeGenerationStop()
         }
@@ -410,7 +418,7 @@ private extension SavingsGoalDetailView {
             _ = try await store.update(id: goal.id, data: update)
             await viewModel.load()
             await refreshFutureLinesIfStopped()
-            toastManager.show("Objectif modifié")
+            toastManager.show(AppLocale.string("Objectif modifié"))
         } catch let error as APIError where error.requiresSavingsGoalReconciliationRefresh {
             guard case .some(let updatedTarget) = update.targetDate,
                   let targetDate = updatedTarget else {
@@ -471,7 +479,7 @@ private extension SavingsGoalDetailView {
             _ = try await store.update(id: goal.id, data: update)
             await viewModel.load()
             await refreshFutureLinesIfStopped()
-            toastManager.show("Objectif modifié")
+            toastManager.show(AppLocale.string("Objectif modifié"))
         } catch let error as APIError where error.requiresSavingsGoalReconciliationRefresh {
             try await refreshDeadlineDecision(
                 update,
@@ -523,8 +531,8 @@ private extension SavingsGoalDetailView {
         await viewModel.loadFutureLines()
         toastManager.show(
             mode == .freeze
-                ? "\(result.affectedCount) prévision(s) conservée(s) sans objectif"
-                : "\(result.affectedCount) prévision(s) retirée(s) de tes mois futurs"
+                ? AppLocale.string("\(result.affectedCount) prévision(s) conservée(s) sans objectif")
+                : AppLocale.string("\(result.affectedCount) prévision(s) retirée(s) de tes mois futurs")
         )
     }
 }

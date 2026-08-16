@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import {
   createSuccessResponse,
   createListResponse,
@@ -56,6 +56,17 @@ export const supportedCurrencySchema = z.enum(['CHF', 'EUR']);
 export type SupportedCurrency = z.infer<typeof supportedCurrencySchema>;
 export const SUPPORTED_CURRENCIES: readonly SupportedCurrency[] =
   supportedCurrencySchema.options;
+
+/**
+ * UI languages Pulpe ships. ISO 639-1 codes only, never a regional variant:
+ * the region already comes from the currency (`CHF` → `de-CH`, `EUR` → `fr-FR`),
+ * and a `de-CH` here would create a second, contradictory regional axis.
+ * A browser reporting `de-CH` collapses to `de`.
+ */
+export const supportedLocaleSchema = z.enum(['fr', 'en', 'de', 'it']);
+export type SupportedLocale = z.infer<typeof supportedLocaleSchema>;
+export const SUPPORTED_LOCALES: readonly SupportedLocale[] =
+  supportedLocaleSchema.options;
 
 export const currencyRateQuerySchema = z.object({
   base: supportedCurrencySchema,
@@ -2163,6 +2174,7 @@ export const updateUserSettingsSchema = z.strictObject({
     .optional(),
   currency: supportedCurrencySchema.optional(),
   showCurrencySelector: z.boolean().optional(),
+  locale: supportedLocaleSchema.optional(),
 });
 export type UpdateUserSettings = z.infer<typeof updateUserSettingsSchema>;
 
@@ -2170,6 +2182,7 @@ export const userSettingsSchema = z.object({
   payDayOfMonth: payDayOfMonthSchema,
   currency: supportedCurrencySchema.default('CHF'),
   showCurrencySelector: z.boolean().default(false),
+  locale: supportedLocaleSchema.optional(),
 });
 export type UserSettings = z.infer<typeof userSettingsSchema>;
 
@@ -2537,5 +2550,6 @@ export type WhatsNewResponse = z.infer<typeof whatsNewResponseSchema>;
 export const whatsNewQuerySchema = z.object({
   currentVersion: semverString,
   lastSeenVersion: semverString,
+  locale: supportedLocaleSchema.optional(),
 });
 export type WhatsNewQuery = z.infer<typeof whatsNewQuerySchema>;

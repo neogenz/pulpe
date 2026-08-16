@@ -3,7 +3,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, it, mock } from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { SOCIAL_PREVIEW_ALT, SOCIAL_PREVIEW_IMAGE } from "../../lib/config";
+import { getDictionary } from "../../content/dictionary";
+import { DEFAULT_LOCALE } from "../../lib/i18n";
+import { socialPreviewImage } from "../../lib/metadata";
 import { GUIDES, guideMetadata, type Guide } from "./guides";
 
 Object.assign(globalThis, { React });
@@ -21,30 +23,34 @@ const nextImageMock = {
 mock.module("next/image", nextImageMock);
 const { ArticleLayout } = await import("./ArticleLayout");
 const { default: BudgetSuisseGuidePage } =
-  await import("../../app/conseils-budget/comment-faire-son-budget-en-suisse/page");
-const { metadata: guidesIndexMetadata } =
-  await import("../../app/conseils-budget/page");
+  await import("../../app/(fr)/conseils-budget/comment-faire-son-budget-en-suisse/page");
+const { generateMetadata: guidesIndexMetadata } =
+  await import("../../app/(fr)/conseils-budget/page");
 
 const sources = {
   articleLayout: readFileSync(
     new URL("./ArticleLayout.tsx", import.meta.url),
     "utf8",
   ),
-  config: readFileSync(new URL("../../lib/config.ts", import.meta.url), "utf8"),
   globals: readFileSync(
     new URL("../../app/globals.css", import.meta.url),
     "utf8",
   ),
   guides: readFileSync(new URL("./guides.ts", import.meta.url), "utf8"),
-  layout: readFileSync(
-    new URL("../../app/layout.tsx", import.meta.url),
+  rootDocument: readFileSync(
+    new URL("../../components/RootDocument.tsx", import.meta.url),
     "utf8",
   ),
   supportGuide: readFileSync(
-    new URL("../../app/support/modeles-et-budgets/page.tsx", import.meta.url),
+    new URL(
+      "../../app/(fr)/support/modeles-et-budgets/page.tsx",
+      import.meta.url,
+    ),
     "utf8",
   ),
 };
+
+const dict = await getDictionary(DEFAULT_LOCALE);
 
 const guide: Guide = {
   slug: "guide-de-test",
@@ -76,12 +82,15 @@ function extractJsonLd(markup: string) {
   };
 }
 
-describe("guide article layout contract", () => {
+describe("guide article layout contract", async () => {
   const html = renderToStaticMarkup(
-    <ArticleLayout guide={guide} faq={faq}>
+    <ArticleLayout guide={guide} faq={faq} dict={dict}>
       <p>Corps du guide, présent dans le HTML serveur.</p>
     </ArticleLayout>,
   );
+  // La page est un composant serveur asynchrone : elle s'appelle, elle ne se
+  // rend pas comme un élément.
+  const pageHtml = renderToStaticMarkup(await BudgetSuisseGuidePage());
 
   it("renders exactly one h1 and the server-side content", () => {
     assert.equal(html.match(/<h1[\s>]/g)?.length, 1);
@@ -114,30 +123,33 @@ describe("guide article layout contract", () => {
     );
   });
 
-  it("keeps route-specific social metadata tied to the shared preview", () => {
-    const indexOpenGraph = guidesIndexMetadata.openGraph as {
+  it("keeps route-specific social metadata tied to the shared preview", async () => {
+    const indexMetadata = await guidesIndexMetadata();
+    const indexOpenGraph = indexMetadata.openGraph as {
       title?: unknown;
       description?: unknown;
       url?: unknown;
       images?: { url?: unknown; alt?: unknown }[];
     };
-    const indexTwitter = guidesIndexMetadata.twitter as {
+    const indexTwitter = indexMetadata.twitter as {
       title?: unknown;
       description?: unknown;
       images?: { url?: unknown; alt?: unknown }[];
     };
 
     assert.equal(indexOpenGraph.title, "Conseils budget | Pulpe");
-    assert.equal(indexOpenGraph.description, guidesIndexMetadata.description);
+    assert.equal(indexOpenGraph.description, indexMetadata.description);
     assert.equal(indexOpenGraph.url, "/conseils-budget");
     assert.equal(indexTwitter.title, indexOpenGraph.title);
     assert.equal(indexTwitter.description, indexOpenGraph.description);
     for (const social of [indexOpenGraph, indexTwitter]) {
-      assert.equal(social.images?.[0]?.url, SOCIAL_PREVIEW_IMAGE);
-      assert.equal(social.images?.[0]?.alt, SOCIAL_PREVIEW_ALT);
+      // Ces pages n'existent qu'en français : elles portent la vignette
+      // française, pas celle de la langue du visiteur.
+      assert.equal(social.images?.[0]?.url, socialPreviewImage(DEFAULT_LOCALE));
+      assert.equal(social.images?.[0]?.alt, dict.site.socialImageAlt);
     }
 
-    const articleOpenGraph = guideMetadata(guide).openGraph as {
+    const articleOpenGraph = (await guideMetadata(guide)).openGraph as {
       publishedTime?: unknown;
       modifiedTime?: unknown;
     };
@@ -146,16 +158,13 @@ describe("guide article layout contract", () => {
   });
 
   it("centralizes social data and keeps Organization claims accurate", () => {
-    const allSocialSources = Object.values(sources).join("\n");
-    assert.equal(
-      allSocialSources.match(/pulpe-social-preview\.png\?v=2/g)?.length,
-      1,
-    );
-    assert.match(
-      sources.config,
-      /export const SOCIAL_PREVIEW_IMAGE = "\/pulpe-social-preview\.png\?v=2";/,
-    );
-    assert.doesNotMatch(sources.layout, /\bsameAs\s*:/);
+    // Le nom du fichier et sa version vivent dans `lib/metadata.ts` seul : un
+    // guide qui le réécrirait à la main figerait une vignette périmée.
+    for (const source of Object.values(sources)) {
+      assert.doesNotMatch(source, /pulpe-social-preview/);
+    }
+    assert.match(sources.articleLayout, /socialPreviewImage\(DEFAULT_LOCALE\)/);
+    assert.doesNotMatch(sources.rootDocument, /\bsameAs\s*:/);
   });
 
   it("keeps article links interactive and the Pulpe pull quote semantic", () => {
@@ -167,7 +176,6 @@ describe("guide article layout contract", () => {
     assert.doesNotMatch(interactionStyles[0], /color:/);
     assert.doesNotMatch(sources.articleLayout, /hover:text-primary-hover/);
     assert.match(sources.articleLayout, /hover:underline/);
-    const pageHtml = renderToStaticMarkup(<BudgetSuisseGuidePage />);
     const article = pageHtml.match(/<article[\s\S]*<\/article>/)?.[0];
     assert.ok(article, "the page must render an <article>");
     assert.doesNotMatch(article, /<blockquote[\s>]/);
@@ -201,7 +209,7 @@ describe("guide article layout contract", () => {
 
   it("omits the FAQ section and FAQPage schema when no faq is provided", () => {
     const bare = renderToStaticMarkup(
-      <ArticleLayout guide={guide}>
+      <ArticleLayout guide={guide} dict={dict}>
         <p>Corps du guide.</p>
       </ArticleLayout>,
     );
@@ -217,7 +225,10 @@ describe("guide article layout contract", () => {
     assert.ok(html.includes(`<time dateTime="${guide.publishedAt}"`));
     assert.ok(html.includes(`<time dateTime="${guide.updatedAt}"`));
     const samePublishedAndUpdated = renderToStaticMarkup(
-      <ArticleLayout guide={{ ...guide, updatedAt: guide.publishedAt }}>
+      <ArticleLayout
+        guide={{ ...guide, updatedAt: guide.publishedAt }}
+        dict={dict}
+      >
         <p>Corps.</p>
       </ArticleLayout>,
     );
@@ -225,7 +236,6 @@ describe("guide article layout contract", () => {
   });
 
   it("keeps the seed article itself to one h1 and one CTA", () => {
-    const pageHtml = renderToStaticMarkup(<BudgetSuisseGuidePage />);
     assert.equal(pageHtml.match(/<h1[\s>]/g)?.length, 1);
     const article = pageHtml.match(/<article[\s\S]*<\/article>/)?.[0];
     assert.ok(article, "the page must render an <article>");
@@ -233,7 +243,6 @@ describe("guide article layout contract", () => {
   });
 
   it("labels the budget table and keeps its borders on legacy Safari", () => {
-    const pageHtml = renderToStaticMarkup(<BudgetSuisseGuidePage />);
     assert.match(
       pageHtml,
       /<caption class="sr-only">Exemple de budget pour un revenu net de 5’000[^<]+CHF par mois<\/caption>/,
@@ -251,11 +260,11 @@ describe("guide article layout contract", () => {
       assert.ok(
         existsSync(
           new URL(
-            `../../app/conseils-budget/${entry.slug}/page.tsx`,
+            `../../app/(fr)/conseils-budget/${entry.slug}/page.tsx`,
             import.meta.url,
           ),
         ),
-        `app/conseils-budget/${entry.slug}/page.tsx is missing: the index card and sitemap would point to a 404`,
+        `app/(fr)/conseils-budget/${entry.slug}/page.tsx is missing: the index card and sitemap would point to a 404`,
       );
     }
   });

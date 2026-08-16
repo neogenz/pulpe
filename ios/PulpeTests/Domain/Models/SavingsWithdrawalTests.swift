@@ -79,7 +79,7 @@ struct SavingsWithdrawalTests {
         ),
     ])
     func apiError_mapsSavingsWithdrawalCodes(code: String, expected: String) {
-        #expect(APIError.from(code: code, message: nil).errorDescription == expected)
+        #expect(APIError.from(code: code, message: nil).message(in: AppLocale.uiLocale(for: .fr)) == expected)
     }
 
     @Test("Plan conflicts ask for a fresh simulation")
@@ -91,7 +91,7 @@ struct SavingsWithdrawalTests {
         )
 
         #expect(
-            error.errorDescription
+            error.message(in: AppLocale.uiLocale(for: .fr))
                 == "Ton plan a changé entre-temps — vérifie les données actualisées et relance la simulation"
         )
         #expect(error.requiresSavingsGoalPlanRefresh)

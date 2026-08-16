@@ -5,8 +5,19 @@ import test from "node:test";
 const read = (path) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
-const FR_JSON = "frontend/projects/webapp/public/i18n/fr.json";
+const I18N_ROOT = "frontend/projects/webapp/public/i18n";
 const SWIFT_ROOT = "ios/Pulpe";
+
+// Le mot est banni parce que Pulpe n'a aucun lien bancaire — c'est une règle
+// produit, pas une règle de français. Chaque langue doit donc déclarer le sien :
+// une liste unique ferait échouer en.json dès le premier jour, puisque
+// « transaction » y est le mot anglais juste.
+const BANNED_WORD_BY_LANG = {
+  fr: /transaction/i,
+  en: /transaction/i,
+  de: /transaktion/i,
+  it: /transazione/i,
+};
 
 const flatten = (node, prefix = "") =>
   Object.entries(node).flatMap(([key, value]) => {
@@ -18,26 +29,76 @@ const HOW_TO_WRITE_IT_INSTEAD = [
   "« transaction » nomme la table, pas ce que l'utilisateur lit. Écris plutôt :",
   "  · action ou titre  → un verbe          « Noter une dépense », « Modifier »",
   "  · message d'erreur → perds le sujet    « L'ajout a échoué — réessaie »",
-  "  · collection       → au pluriel        « Mouvements »",
-  "  · total face à Prévu → l'agrégat       « Réel »",
+  "  · collection       → au pluriel        « Mouvements », Activity, Bewegungen, Movimenti",
+  "  · total face à Prévu → l'agrégat       « Réel », Actual, Tatsächlich, Effettivo",
   "Les clés, elles, gardent le nom du domaine : seule la valeur affichée change.",
+  "La traduction arrêtée de chaque terme vit dans docs/I18N.md.",
 ].join("\n");
 
+const catalogs = () =>
+  readdirSync(new URL(`../../${I18N_ROOT}`, import.meta.url))
+    .filter((file) => file.endsWith(".json"))
+    .sort()
+    .map((file) => ({ file, lang: file.replace(/\.json$/, "") }));
+
 test("aucune chaîne affichée par la webapp ne dit « transaction »", () => {
-  const offenders = flatten(JSON.parse(read(FR_JSON)))
-    .filter(([, value]) => /transaction/i.test(value))
-    .map(([path, value]) => `  ${path} = ${value}`);
+  const found = catalogs();
+  assert.notEqual(found.length, 0, `Aucun catalogue lu dans ${I18N_ROOT}/.`);
+
+  const offenders = found.flatMap(({ file, lang }) => {
+    const banned = BANNED_WORD_BY_LANG[lang];
+    assert.ok(
+      banned,
+      `${I18N_ROOT}/${file} : aucun mot interdit déclaré pour « ${lang} ». ` +
+        "Ajoute-le à BANNED_WORD_BY_LANG, sinon ce garde reste vert sans rien prouver.",
+    );
+
+    return flatten(JSON.parse(read(`${I18N_ROOT}/${file}`)))
+      .filter(([, value]) => banned.test(value))
+      .map(([path, value]) => `  ${file} → ${path} = ${value}`);
+  });
 
   assert.equal(
     offenders.length,
     0,
-    `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${FR_JSON} :\n${offenders.join("\n")}`,
+    `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${I18N_ROOT}/ :\n${offenders.join("\n")}`,
   );
 });
 
-// iOS n'a pas de catalogue de chaînes : la copie vit en dur dans les vues, et
-// aucun compilateur ne signalera un oubli. Ce garde lit les sources comme du
-// texte, ce qui lui suffit pour tenir les deux clients sur le même mot.
+// Le vouvoiement se réintroduit par reformulation, exactement comme le mot
+// interdit : rien ne casse, et il faut lire la langue pour le voir. En allemand
+// la forme de politesse ne se distingue du pronom « ils » que par la majuscule,
+// donc c'est la majuscule qu'on interdit — une phrase qui commence par `Sie`
+// reste ambiguë même quand l'auteur voulait « ils », et la lever demande de
+// déplacer le pronom vers le milieu de la phrase.
+const FORMAL_ADDRESS_BY_LANG = {
+  de: /(?<![A-Za-zÄÖÜäöüß])(Sie|Ihre?[mnrs]?|Ihnen)(?![a-zäöüß])/,
+  it: /(?<![A-Za-zÀ-ÿ])(Lei|Suoi?|Sua|Sue|Vostr[aeio])(?![a-zà-ÿ])/,
+};
+
+test("aucune chaîne affichée par la webapp ne vouvoie", () => {
+  const offenders = catalogs().flatMap(({ file, lang }) => {
+    const formal = FORMAL_ADDRESS_BY_LANG[lang];
+    if (!formal) return [];
+
+    return flatten(JSON.parse(read(`${I18N_ROOT}/${file}`)))
+      .filter(([, value]) => formal.test(value))
+      .map(([path, value]) => `  ${file} → ${path} = ${value}`);
+  });
+
+  assert.equal(
+    offenders.length,
+    0,
+    "Pulpe tutoie dans les quatre langues (docs/I18N.md).\n" +
+      `Dans ${I18N_ROOT}/ :\n${offenders.join("\n")}`,
+  );
+});
+
+// Le catalogue iOS prend le littéral français pour clé : le français vit donc
+// toujours dans les sources, et aucun compilateur ne signalera un oubli. Ce
+// garde lit les sources comme du texte, ce qui lui suffit pour tenir les deux
+// clients sur le même mot. Les traductions, elles, vivent dans le catalogue et
+// sont lues plus bas.
 //
 // Aucun fichier n'en est exempté. Une note de version déjà publiée est le seul
 // texte que le garde ne doit pas régenter, et elle ne vit pas dans une vue :
@@ -171,5 +232,147 @@ test("aucune chaîne affichée par l'app iOS ne dit « transaction »", () => {
     offenders.length,
     0,
     `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${SWIFT_ROOT}/ :\n${offenders.join("\n")}`,
+  );
+});
+
+const IOS_CATALOG = "ios/Pulpe/Resources/Localizable.xcstrings";
+
+/**
+ * Toute valeur rendue par une localisation, quelle que soit sa profondeur.
+ *
+ * Une entrée porte soit un `stringUnit`, soit des `variations` — pluriel,
+ * genre — imbriquées à profondeur libre. Ne lire que le premier cas rendrait le
+ * garde muet sur les formes plurielles, sans le dire.
+ */
+const stringUnits = (node) => {
+  if (node === null || typeof node !== "object") return [];
+  if (typeof node.stringUnit?.value === "string") return [node.stringUnit];
+  return Object.values(node).flatMap(stringUnits);
+};
+
+const stringUnitValues = (node) => stringUnits(node).map(({ value }) => value);
+
+const iosTranslations = () =>
+  Object.entries(JSON.parse(read(IOS_CATALOG)).strings).flatMap(
+    ([key, entry]) =>
+      Object.entries(entry.localizations ?? {}).flatMap(([lang, node]) =>
+        stringUnitValues(node).map((value) => ({ key, lang, value })),
+      ),
+  );
+
+test("chaque clé traduisible iOS est complète en allemand, anglais et italien", () => {
+  const catalog = JSON.parse(read(IOS_CATALOG));
+  const translatedLocales = ["de", "en", "it"];
+  const offenders = Object.entries(catalog.strings).flatMap(([key, entry]) => {
+    if (entry.shouldTranslate === false) return [];
+    return translatedLocales.flatMap((lang) => {
+      const units = stringUnits(entry.localizations?.[lang]);
+      if (units.length === 0)
+        return [`  ${lang} → ${key} : traduction absente`];
+      return units
+        .filter(({ state }) => state !== "translated")
+        .map(({ state }) => `  ${lang} → ${key} : état ${state ?? "absent"}`);
+    });
+  });
+
+  assert.equal(
+    offenders.length,
+    0,
+    `Toutes les clés traduisibles de ${IOS_CATALOG} doivent être traduites.\n` +
+      offenders.join("\n"),
+  );
+});
+
+test("aucune traduction du catalogue iOS ne dit « transaction »", () => {
+  const translations = iosTranslations();
+  assert.notEqual(
+    translations.length,
+    0,
+    `Aucune traduction lue dans ${IOS_CATALOG}. Le garde ne prouverait rien.`,
+  );
+
+  const offenders = translations
+    .filter(({ lang, value }) => BANNED_WORD_BY_LANG[lang]?.test(value))
+    .map(({ key, lang, value }) => `  ${lang} → ${key} = ${value}`);
+
+  assert.equal(
+    offenders.length,
+    0,
+    `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${IOS_CATALOG} :\n${offenders.join("\n")}`,
+  );
+});
+
+test("aucune traduction du catalogue iOS ne vouvoie", () => {
+  const offenders = iosTranslations()
+    .filter(({ lang, value }) => FORMAL_ADDRESS_BY_LANG[lang]?.test(value))
+    .map(({ key, lang, value }) => `  ${lang} → ${key} = ${value}`);
+
+  assert.equal(
+    offenders.length,
+    0,
+    "Pulpe tutoie dans les quatre langues (docs/I18N.md).\n" +
+      `Dans ${IOS_CATALOG} :\n${offenders.join("\n")}`,
+  );
+});
+
+/**
+ * Les deux gardes qui suivent lisent les deux clients d'un coup, parce que la
+ * règle qu'ils tiennent est la même des deux côtés et qu'un mot ne se corrige
+ * jamais sur une seule plateforme. La source est nommée dans la ligne fautive.
+ */
+const everyTranslation = () => [
+  ...catalogs().flatMap(({ file, lang }) =>
+    flatten(JSON.parse(read(`${I18N_ROOT}/${file}`))).map(([key, value]) => ({
+      source: `${I18N_ROOT}/${file}`,
+      lang,
+      key,
+      value,
+    })),
+  ),
+  ...iosTranslations().map(({ key, lang, value }) => ({
+    source: IOS_CATALOG,
+    lang,
+    key,
+    value,
+  })),
+];
+
+// Pointer est un geste de l'utilisateur, pas un règlement bancaire : Pulpe ne
+// voit jamais passer l'argent. Un verbe de banque promettrait donc un fait que
+// l'app ne constate pas — c'est la divergence n°2 de docs/I18N.md, et elle se
+// perd à la première traduction faite au fil du texte.
+const BANKING_VERB_BY_LANG = {
+  fr: /\b(débit[ée]e?s?|rapproch[ée]e?s?)\b/i,
+  en: /\b(cleared|reconciled|debited)\b/i,
+  de: /\b(gebucht|abgebucht)\b/i,
+  it: /\b(addebitat[oaie]|riconciliat[oaie])\b/i,
+};
+
+test("aucune traduction ne pointe avec un verbe bancaire", () => {
+  const offenders = everyTranslation()
+    .filter(({ lang, value }) => BANKING_VERB_BY_LANG[lang]?.test(value))
+    .map(
+      ({ source, lang, key, value }) =>
+        `  ${source} → ${lang}.${key} = ${value}`,
+    );
+
+  assert.equal(
+    offenders.length,
+    0,
+    "Pulpe n'a aucun lien bancaire : « Pointé » ne se traduit ni par cleared,\n" +
+      "reconciled, gebucht ni addebitato (docs/I18N.md, divergence n°2).\n" +
+      `${offenders.join("\n")}`,
+  );
+});
+
+test("l'allemand de Pulpe n'écrit jamais ß", () => {
+  const offenders = everyTranslation()
+    .filter(({ lang, value }) => lang === "de" && value.includes("ß"))
+    .map(({ source, key, value }) => `  ${source} → de.${key} = ${value}`);
+
+  assert.equal(
+    offenders.length,
+    0,
+    "L'allemand de Pulpe est suisse : ß s'écrit ss.\n" + offenders.join("\n"),
   );
 });

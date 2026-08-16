@@ -128,10 +128,10 @@ enum ProductTips {
         }
 
         var message: Text? {
-            Text(
-                "Toutes les actions sur les modèles ne sont pas encore dispos ici. "
-                + "Pour aller au bout, l'app web fait tout — n'hésite pas à y faire un tour."
-            )
+            Text("""
+                Toutes les actions sur les modèles ne sont pas encore dispos ici. \
+                Pour aller au bout, l'app web fait tout — n'hésite pas à y faire un tour.
+                """)
         }
 
         var image: Image? {
@@ -139,7 +139,7 @@ enum ProductTips {
         }
 
         var actions: [Action] {
-            [Action(id: "open-web", title: "Ouvrir sur le web")]
+            [Action(id: "open-web", title: AppLocale.string("Ouvrir sur le web"))]
         }
 
         var rules: [Rule] {

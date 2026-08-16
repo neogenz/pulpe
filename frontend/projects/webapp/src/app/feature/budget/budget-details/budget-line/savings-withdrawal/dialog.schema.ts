@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod';
 import { type BudgetLineSavingsWithdrawalCreate } from 'pulpe-shared';
 import { conversionFormSchema } from '@core/currency';
 

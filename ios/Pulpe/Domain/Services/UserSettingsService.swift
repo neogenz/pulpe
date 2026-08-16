@@ -10,9 +10,21 @@ protocol UserSettingsServicing: Sendable {
 extension UserSettingsServicing {
     /// Fetches settings and returns `(payDay, currency)` with defaults (`nil` payDay, `.chf` currency)
     /// when the network blips. Logs the failure with `context` so sync pipelines stay traceable.
+    ///
+    /// Also refreshes the persisted language, rather than handing it back: the callers are
+    /// background and widget sync pipelines that never render it themselves — the widget
+    /// process reads the snapshot. Returning it would give three call sites a binding to
+    /// ignore and one more place to forget. A failed fetch leaves the snapshot alone: the
+    /// last known language beats French while the network is down.
     func getSettingsWithDefaults(context: StaticString) async -> (payDay: Int?, currency: SupportedCurrency) {
         do {
             let settings = try await getSettings()
+            // Only a real server preference lands in the snapshot: persisting the
+            // French fallback would freeze device detection out on accounts that
+            // have never chosen a language.
+            if let locale = settings.locale {
+                AppLocale.persist(locale)
+            }
             return (settings.payDayOfMonth, settings.currency ?? .chf)
         } catch {
             Logger.sync.warning("\(context): settings fetch failed - \(error)")

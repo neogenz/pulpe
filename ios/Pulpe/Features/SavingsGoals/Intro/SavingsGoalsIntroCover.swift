@@ -22,21 +22,33 @@ struct SavingsGoalsIntroCover: View {
 
     private var isLastPage: Bool { selection >= pageCount - 1 }
 
+    private static var firstPageCaption: String {
+        AppLocale.string(
+            "Voyage, appart, coussin de sécurité… donne-lui un montant et une date. Pulpe garde le cap avec toi."
+        )
+    }
+
+    private static var secondPageCaption: String {
+        AppLocale.string(
+            "Chaque mois s'ajuste tout seul. Zéro calcul, zéro doute — juste ta progression qui monte."
+        )
+    }
+
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             skipRow
 
             TabView(selection: $selection) {
                 SavingsGoalsIntroPageView(
-                    title: "Ce projet, tu vas l'atteindre",
-                    caption: "Voyage, appart, coussin de sécurité… donne-lui un montant et une date. Pulpe garde le cap avec toi.",
+                    title: AppLocale.string("Ce projet, tu vas l'atteindre"),
+                    caption: Self.firstPageCaption,
                     isActive: selection == 0
                 ) { active in IntroGoalCardPreview(currency: currency, animate: active) }
                     .tag(0)
 
                 SavingsGoalsIntroPageView(
-                    title: "Et tu sauras toujours où tu en es",
-                    caption: "Chaque mois s'ajuste tout seul. Zéro calcul, zéro doute — juste ta progression qui monte.",
+                    title: AppLocale.string("Et tu sauras toujours où tu en es"),
+                    caption: Self.secondPageCaption,
                     isActive: selection == 1
                 ) { active in IntroPlanPreview(currency: currency, animate: active) }
                     .tag(1)
@@ -90,13 +102,15 @@ struct SavingsGoalsIntroCover: View {
 
     private var primaryButtons: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Button(isLastPage ? "Créer mon objectif" : "Suivant") {
+            Button {
                 if isLastPage {
                     AnalyticsService.shared.capture(.savingsGoalsIntroCompleted)
                     onComplete(true)
                 } else {
                     withAnimation(DesignTokens.Animation.stepTransition) { selection += 1 }
                 }
+            } label: {
+                isLastPage ? Text("Créer mon objectif") : Text("Suivant")
             }
             .primaryButtonStyle()
 

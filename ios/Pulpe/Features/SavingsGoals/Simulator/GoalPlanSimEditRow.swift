@@ -29,7 +29,9 @@ struct GoalPlanSimEditRow: View {
 
     private var monthDescription: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-            Text("\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year)")
+            // `String(year)`: interpolating an `Int` would apply localized grouping
+            // and render « Août 2 026 ».
+            Text("\(Formatters.monthName(for: simMonth.month.month)) \(String(simMonth.month.year))")
                 .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(Color.textPrimary)
             Text("→ \(simMonth.simulatedCumulative.asCompactCurrency(currency))")
@@ -49,10 +51,10 @@ struct GoalPlanSimEditRow: View {
                 .frame(width: width)
                 .frame(maxWidth: width == nil ? .infinity : nil)
                 .frame(minHeight: DesignTokens.TapTarget.minimum)
-                .accessibilityLabel(
-                    "Mouvement de l’objectif, "
-                        + "\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year)"
-                )
+                .accessibilityLabel(AppLocale.string("""
+                    Mouvement de l’objectif, \
+                    \(Formatters.monthName(for: simMonth.month.month)) \(String(simMonth.month.year))
+                    """))
             Text(currency.symbol)
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textSecondary)

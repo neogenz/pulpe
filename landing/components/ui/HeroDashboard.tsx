@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Check } from "lucide-react";
 import { memo, useEffect, useId, useState } from "react";
+import type { Dictionary } from "@/content/dictionary";
 import { currencyUnit, formatAmount, formatMoney } from "@/lib/amount";
 import {
   HERO_AVAILABLE,
@@ -15,7 +16,11 @@ import { useVisitorCurrency } from "@/lib/visitorCurrency";
 
 const CURVE = "M0,27 C14,25 22,29 34,25 C46,21 54,16 66,17 C78,18 86,9 100,8";
 
-export const HeroDashboard = memo(function HeroDashboard() {
+export const HeroDashboard = memo(function HeroDashboard({
+  dict,
+}: {
+  dict: Dictionary["home"]["dashboard"];
+}) {
   const currency = useVisitorCurrency();
   const unit = currencyUnit(currency);
   const gradientId = useId();
@@ -50,9 +55,7 @@ export const HeroDashboard = memo(function HeroDashboard() {
   // would hide the sr-only amount below, which is the one line worth reading.
   return (
     <figure className="overflow-hidden rounded-[var(--radius-large)] bg-surface shadow-[var(--shadow-screenshot)] outline outline-1 -outline-offset-1 outline-black/10">
-      <figcaption className="sr-only">
-        Aperçu du tableau de bord Pulpe
-      </figcaption>
+      <figcaption className="sr-only">{dict.caption}</figcaption>
       <div className="flex items-center gap-2 border-b border-text/[0.06] px-4 py-3 md:px-5">
         <Image
           src="/icon-64.webp"
@@ -63,9 +66,9 @@ export const HeroDashboard = memo(function HeroDashboard() {
           className="h-5 w-5"
           priority
         />
-        <span className="text-sm font-semibold text-text">Tableau de bord</span>
+        <span className="text-sm font-semibold text-text">{dict.title}</span>
         <span className="ml-auto text-xs font-medium text-text-secondary">
-          Vue annuelle
+          {dict.scope}
         </span>
       </div>
 
@@ -79,10 +82,11 @@ export const HeroDashboard = memo(function HeroDashboard() {
               className="h-1.5 w-1.5 rounded-full bg-white/80"
               aria-hidden="true"
             />
-            Mois en cours{monthLabel ? ` · ${monthLabel}` : ""}
+            {dict.currentMonth}
+            {monthLabel ? ` · ${monthLabel}` : ""}
           </div>
 
-          <p className="text-sm text-white/90">Disponible ce mois</p>
+          <p className="text-sm text-white/90">{dict.available}</p>
           <p className="mt-1 leading-none">
             <span className="sr-only">
               {HERO_AVAILABLE} {unit}
@@ -103,8 +107,12 @@ export const HeroDashboard = memo(function HeroDashboard() {
 
           <div className="mt-auto pt-10">
             <div className="mb-2 flex justify-between text-xs text-white/90 tabular-nums">
-              <span>Dépensé {formatMoney(HERO_SPENT, currency)}</span>
-              <span>sur {formatMoney(HERO_BUDGET, currency)}</span>
+              <span>
+                {dict.spent} {formatMoney(HERO_SPENT, currency)}
+              </span>
+              <span>
+                {dict.outOf} {formatMoney(HERO_BUDGET, currency)}
+              </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/20">
               <div
@@ -114,7 +122,7 @@ export const HeroDashboard = memo(function HeroDashboard() {
               />
             </div>
             <p className="mt-4 text-sm leading-relaxed text-white/90">
-              Tes grosses dépenses sont déjà intégrées aux mois qui arrivent.
+              {dict.note}
             </p>
           </div>
         </div>
@@ -122,7 +130,7 @@ export const HeroDashboard = memo(function HeroDashboard() {
         <div className="grid gap-3 md:grid-rows-[auto_1fr]">
           <div className="rounded-[14px] bg-[#f1f6ef] p-5 md:p-6">
             <p className="mb-4 text-xs font-semibold text-text-secondary">
-              Prévisions du mois
+              {dict.previsionsTitle}
             </p>
             <ul className="space-y-3">
               {HERO_PREVISIONS.map((prevision) => {
@@ -132,7 +140,7 @@ export const HeroDashboard = memo(function HeroDashboard() {
 
                 return (
                   <li
-                    key={prevision.label}
+                    key={prevision.id}
                     className="flex items-center gap-3 text-sm"
                   >
                     <span
@@ -150,7 +158,7 @@ export const HeroDashboard = memo(function HeroDashboard() {
                     <span
                       className={`flex-1 ${isChecked ? "text-text-secondary" : "text-text"}`}
                     >
-                      {prevision.label}
+                      {dict.previsions[prevision.id]}
                     </span>
                     <span className="text-text-secondary tabular-nums">
                       {formatMoney(prevision.amount, currency)}
@@ -164,14 +172,14 @@ export const HeroDashboard = memo(function HeroDashboard() {
           <div className="flex flex-col rounded-[14px] bg-[#f1f6ef] p-5 md:p-6">
             <div className="flex items-baseline justify-between gap-4">
               <p className="text-xs font-semibold text-text-secondary">
-                Projection du solde
+                {dict.projectionTitle}
               </p>
               {/* Même graisse et même ton que le libellé de gauche : en
                   primary/semibold, aligné à droite d'un panneau, cette phrase
                   occupait la place d'un « Voir plus » et se lisait comme un
                   lien. C'est une légende, pas une action. */}
               <p className="text-xs font-semibold text-text-secondary">
-                Tu vois venir
+                {dict.projectionHint}
               </p>
             </div>
             {/* La viewBox déborde la courbe de 3 unités de chaque côté : tracée
@@ -187,7 +195,7 @@ export const HeroDashboard = memo(function HeroDashboard() {
               className="mt-auto h-24 w-full pt-5"
               preserveAspectRatio="none"
               role="img"
-              aria-label="Projection du solde en hausse sur l'année"
+              aria-label={dict.projectionAriaLabel}
             >
               <defs>
                 <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">

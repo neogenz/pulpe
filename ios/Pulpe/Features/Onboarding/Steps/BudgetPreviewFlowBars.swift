@@ -29,12 +29,12 @@ struct BudgetPreviewFlowBars: View {
                 verticalSpacing: DesignTokens.Spacing.md
             ) {
                 GridRow {
-                    label("Entrées")
+                    label(AppLocale.string("Entrées"))
                     track(segments: [(income, .financialIncome)])
                         .frame(height: DesignTokens.ProgressBar.flowBarHeight)
                 }
                 GridRow {
-                    label("Sorties")
+                    label(AppLocale.string("Sorties"))
                     track(segments: [
                         (charges, .financialExpense),
                         (savings, .financialSavings)

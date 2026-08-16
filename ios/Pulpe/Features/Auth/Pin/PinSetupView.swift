@@ -9,17 +9,17 @@ enum PinSetupMode: Equatable, Sendable {
 
     var title: String {
         switch self {
-        case .chooseAndSetupRecovery: "Choisis ton code PIN"
-        case .enterExistingPin: "Saisis ton code PIN"
+        case .chooseAndSetupRecovery: AppLocale.string("Choisis ton code PIN")
+        case .enterExistingPin: AppLocale.string("Saisis ton code PIN")
         }
     }
 
     var subtitle: String {
         switch self {
         case .chooseAndSetupRecovery:
-            "\(PinConstants.length) chiffres — tes montants sont chiffrés avec ce code"
+            AppLocale.string("\(PinConstants.length) chiffres — tes montants sont chiffrés avec ce code")
         case .enterExistingPin:
-            "\(PinConstants.length) chiffres"
+            AppLocale.string("\(PinConstants.length) chiffres")
         }
     }
 }
@@ -175,15 +175,15 @@ final class PinSetupViewModel {
     var title: String {
         if mode == .enterExistingPin { return mode.title }
         switch currentStep {
-        case .enterPin: return "Choisis ton code PIN"
-        case .confirmPin: return "Confirme ton code PIN"
+        case .enterPin: return AppLocale.string("Choisis ton code PIN")
+        case .confirmPin: return AppLocale.string("Confirme ton code PIN")
         }
     }
 
     var subtitle: String {
         switch currentStep {
         case .enterPin: return mode.subtitle
-        case .confirmPin: return "Saisis à nouveau ton code"
+        case .confirmPin: return AppLocale.string("Saisis à nouveau ton code")
         }
     }
 
@@ -250,7 +250,7 @@ final class PinSetupViewModel {
             hapticStepAdvance.toggle()
         case .confirmPin:
             guard digits == savedDigits else {
-                showError("Les codes ne correspondent pas")
+                showError(AppLocale.string("Les codes ne correspondent pas"))
                 savedDigits = nil
                 currentStep = .enterPin
                 return
@@ -295,7 +295,7 @@ final class PinSetupViewModel {
             handleAPIError(apiError)
         } catch {
             Logger.encryption.error("PIN setup failed: \(error.localizedDescription)")
-            showError("Une erreur est survenue, réessaie")
+            showError(AppLocale.string("Une erreur est survenue, réessaie"))
         }
     }
 
@@ -305,10 +305,10 @@ final class PinSetupViewModel {
         switch error {
         case .clientKeyInvalid:
             Logger.encryption.warning("PIN setup: existing key_check detected — account already has a PIN")
-            showError("Un code PIN existe déjà pour ce compte — saisis-le")
+            showError(AppLocale.string("Un code PIN existe déjà pour ce compte — saisis-le"))
         default:
             Logger.encryption.error("PIN setup failed: \(error.localizedDescription)")
-            showError("Une erreur est survenue, réessaie")
+            showError(AppLocale.string("Une erreur est survenue, réessaie"))
         }
     }
 

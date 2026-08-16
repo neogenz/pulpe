@@ -100,7 +100,7 @@ struct PreviousBudgetSheet: View {
         NavigationStack {
             Group {
                 if viewModel.isLoading && viewModel.budget == nil {
-                    LoadingView(message: "Chargement...")
+                    LoadingView(message: AppLocale.string("Chargement..."))
                 } else if let error = viewModel.error, viewModel.budget == nil {
                     ErrorView(error: error) {
                         await viewModel.loadDetails()
@@ -155,7 +155,7 @@ struct PreviousBudgetSheet: View {
 
         if !income.isEmpty {
             BudgetSection(
-                title: "Revenus",
+                title: AppLocale.string("Revenus"),
                 items: income,
                 transactions: viewModel.transactions,
                 syncingIds: []
@@ -164,7 +164,7 @@ struct PreviousBudgetSheet: View {
 
         if !expenses.isEmpty {
             BudgetSection(
-                title: "Dépenses",
+                title: AppLocale.string("Dépenses"),
                 items: expenses,
                 transactions: viewModel.transactions,
                 syncingIds: []
@@ -173,7 +173,7 @@ struct PreviousBudgetSheet: View {
 
         if !savings.isEmpty {
             BudgetSection(
-                title: "Épargne",
+                title: AppLocale.string("Épargne"),
                 items: savings,
                 transactions: viewModel.transactions,
                 syncingIds: []
@@ -186,7 +186,7 @@ struct PreviousBudgetSheet: View {
         let free = viewModel.freeTransactions
         if !free.isEmpty {
             TransactionSection(
-                title: "Hors prévisions",
+                title: AppLocale.string("Hors prévisions"),
                 transactions: free,
                 syncingIds: []
             )

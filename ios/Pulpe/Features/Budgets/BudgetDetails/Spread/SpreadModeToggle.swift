@@ -7,8 +7,8 @@ enum BudgetLineCreationMode: CaseIterable, Hashable {
 
     var label: String {
         switch self {
-        case .once: "Une seule fois"
-        case .spread: "Lisser"
+        case .once: AppLocale.string("Une seule fois")
+        case .spread: AppLocale.string("Lisser")
         }
     }
 }

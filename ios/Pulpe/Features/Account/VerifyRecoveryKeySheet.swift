@@ -15,15 +15,15 @@ struct VerifyRecoveryKeySheet: View {
 
     var body: some View {
         SheetFormContainer(
-            title: "Vérifier ma clé",
+            title: AppLocale.string("Vérifier ma clé"),
             isLoading: isVerifying,
             focus: $focusedField,
             focusOrder: [.recoveryKey]
         ) {
-            Text(
-                "Saisis ta clé telle que tu l'as notée (tirets optionnels). " +
-                    "Elle sert uniquement à cette vérification et n'est pas enregistrée."
-            )
+            Text("""
+                Saisis ta clé telle que tu l'as notée (tirets optionnels). \
+                Elle sert uniquement à cette vérification et n'est pas enregistrée.
+                """)
             .font(PulpeTypography.bodyLarge)
             .foregroundStyle(Color.textSecondaryOnboarding)
             .multilineTextAlignment(.center)
@@ -31,8 +31,8 @@ struct VerifyRecoveryKeySheet: View {
             FormTextField(
                 hint: "XXXX-XXXX-…",
                 text: $recoveryKey,
-                label: "Clé de récupération",
-                accessibilityLabel: "Clé de récupération",
+                label: AppLocale.string("Clé de récupération"),
+                accessibilityLabel: AppLocale.string("Clé de récupération"),
                 focusBinding: $focusedField,
                 field: .recoveryKey
             )

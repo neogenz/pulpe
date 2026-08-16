@@ -132,7 +132,10 @@ export default class BudgetDetailsPage {
     () => CURRENCY_CONFIG[this.userSettingsStore.currency()].locale,
   );
   protected readonly dateFnsLocale = computed(() =>
-    dateFnsLocaleFor(this.userSettingsStore.currency()),
+    dateFnsLocaleFor(
+      this.userSettingsStore.locale(),
+      this.userSettingsStore.currency(),
+    ),
   );
   protected readonly financialTotals = this.store.financialTotals;
 

@@ -1,6 +1,15 @@
+import type { SupportedLocale } from 'pulpe-shared';
+
 export interface WhatsNewReleaseChangeItem {
   title: string;
   description: string;
+}
+
+export type WhatsNewTranslatedLocale = Exclude<SupportedLocale, 'fr'>;
+
+export interface WhatsNewLocalizedChanges {
+  features: WhatsNewReleaseChangeItem[];
+  fixes: WhatsNewReleaseChangeItem[];
 }
 
 export interface WhatsNewReleaseEntry {
@@ -18,6 +27,9 @@ export interface WhatsNewReleaseEntry {
     fixes: WhatsNewReleaseChangeItem[];
     technical: WhatsNewReleaseChangeItem[];
   };
+  translations?: Partial<
+    Record<WhatsNewTranslatedLocale, WhatsNewLocalizedChanges>
+  >;
 }
 
 export interface SilentIosReleaseEntry {
@@ -66,6 +78,86 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
         },
       ],
       technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Monthly trajectory',
+            description:
+              'The home page separates completed activity from what is still planned and estimates the end-of-month balance',
+          },
+          {
+            title: 'Withdrawals from a goal',
+            description:
+              'A withdrawal can be added to the budget as income immediately or scheduled for a future month',
+          },
+          {
+            title: 'Goal-linked smoothed savings',
+            description:
+              'Savings spread over several months remain linked to the goal they fund',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Completed savings plans',
+            description:
+              'Pulpe finds contributions missing from budgets already created and lets you add them after review',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Monatsverlauf',
+            description:
+              'Die Startseite trennt erledigte Bewegungen von den noch geplanten und schätzt den Saldo zum Monatsende',
+          },
+          {
+            title: 'Auszahlungen aus einem Ziel',
+            description:
+              'Eine Auszahlung kann sofort als Einnahme zum Budget hinzugefügt oder für einen späteren Monat geplant werden',
+          },
+          {
+            title: 'Verteiltes Sparen bleibt mit Zielen verknüpft',
+            description:
+              'Über mehrere Monate verteiltes Sparen behält die Verknüpfung mit dem finanzierten Ziel',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Vervollständigte Sparpläne',
+            description:
+              'Pulpe erkennt fehlende Beiträge in bereits erstellten Budgets und lässt dich diese nach einer Prüfung ergänzen',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Andamento mensile',
+            description:
+              'La pagina iniziale separa ciò che è già avvenuto da ciò che resta pianificato e stima il saldo di fine mese',
+          },
+          {
+            title: 'Prelievi da un obiettivo',
+            description:
+              'Un prelievo può essere aggiunto subito al budget come entrata o pianificato per un mese futuro',
+          },
+          {
+            title: 'Risparmi distribuiti collegati agli obiettivi',
+            description:
+              'I risparmi distribuiti su più mesi restano collegati all’obiettivo che finanziano',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Piani di risparmio completati',
+            description:
+              'Pulpe individua i versamenti mancanti nei budget già creati e ti permette di aggiungerli dopo una verifica',
+          },
+        ],
+      },
     },
   },
   {

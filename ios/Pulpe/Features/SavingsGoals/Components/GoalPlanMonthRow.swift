@@ -31,11 +31,11 @@ enum GoalPlanMonthAvailability: Equatable {
         case .linkedForecast:
             ""
         case .repairableForecast:
-            "Épargne à ajouter"
+            AppLocale.string("Épargne à ajouter")
         case .noLinkedForecast:
-            "Aucune épargne prévue"
+            AppLocale.string("Aucune épargne prévue")
         case .missingBudget:
-            "Pas de budget"
+            AppLocale.string("Pas de budget")
         }
     }
 
@@ -87,8 +87,11 @@ struct GoalPlanMonthRow: View {
     }
     private var isEffectivelyLocked: Bool { month.isLocked || isBlockedByRealization }
 
-    nonisolated static let realizedWithdrawalLockReason =
-        "Ce retrait est déjà réalisé en partie ou en totalité. Modifie-le depuis le budget."
+    /// Computed, not stored: a `static let` resolves once per process and would
+    /// keep serving the language the app was launched in.
+    nonisolated static var realizedWithdrawalLockReason: String {
+        AppLocale.string("Ce retrait est déjà réalisé en partie ou en totalité. Modifie-le depuis le budget.")
+    }
 
     private var allChecked: Bool {
         !month.lines.isEmpty && month.lines.allSatisfy(\.isChecked)
@@ -100,8 +103,8 @@ struct GoalPlanMonthRow: View {
     /// quand aucun mois ne portait de coche ni de cadenas (le cas commun d'un
     /// objectif qui démarre).
     private var stateText: (label: String, color: Color)? {
-        if allChecked { return ("Pointé", .financialSavings) }
-        if isEffectivelyLocked { return ("Verrouillé", .textTertiary) }
+        if allChecked { return (AppLocale.string("Pointé"), .financialSavings) }
+        if isEffectivelyLocked { return (AppLocale.string("Verrouillé"), .textTertiary) }
         return nil
     }
 
@@ -118,7 +121,9 @@ struct GoalPlanMonthRow: View {
         currency: SupportedCurrency
     ) -> String? {
         guard month.plannedWithdrawalAmount > 0 else { return nil }
-        return "Retrait prévu · \((-month.plannedWithdrawalAmount).asCompactCurrency(currency))"
+        return AppLocale.string(
+            "Retrait prévu · \((-month.plannedWithdrawalAmount).asCompactCurrency(currency))"
+        )
     }
 
     private var announcedWithdrawal: String? {
@@ -170,6 +175,7 @@ struct GoalPlanMonthRow: View {
             .opacity(isEffectivelyLocked ? DesignTokens.Opacity.pointedDim : 1)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel)
+            .accessibilityIdentifier("savingsGoalPlanMonthRow-\(month.year)-\(month.month)")
 
             if isBlockedByRealization, let onOpenBudget {
                 Button("Ouvrir le budget", action: onOpenBudget)
@@ -222,12 +228,12 @@ struct GoalPlanMonthRow: View {
             parts.append(announcedWithdrawal)
         }
         if showsCumulative {
-            parts.append("cumulé \(cumulative.asCurrency(currency))")
+            parts.append(AppLocale.string("cumulé \(cumulative.asCurrency(currency))"))
         }
-        if isCurrentPeriod { parts.append("ce mois") }
-        if allChecked { parts.append("pointé") }
+        if isCurrentPeriod { parts.append(AppLocale.string("ce mois")) }
+        if allChecked { parts.append(AppLocale.string("pointé")) }
         if isBlockedByRealization { parts.append(Self.realizedWithdrawalLockReason) }
-        if isEffectivelyLocked { parts.append("verrouillé") }
+        if isEffectivelyLocked { parts.append(AppLocale.string("verrouillé")) }
         return parts.joined(separator: ", ")
     }
 }

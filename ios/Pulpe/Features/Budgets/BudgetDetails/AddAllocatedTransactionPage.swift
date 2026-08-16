@@ -219,7 +219,7 @@ struct AddAllocatedTransactionPage: View {
         FormTextField(
             hint: line.kind.descriptionPlaceholder,
             text: $name,
-            label: "Description",
+            label: AppLocale.string("Description"),
             focusBinding: $focusedField,
             field: .description
         )
@@ -245,7 +245,7 @@ struct AddAllocatedTransactionPage: View {
             Button {
                 Task { await add(for: line) }
             } label: {
-                Text(realization == nil ? "Ajouter" : "Confirmer le retrait")
+                realization == nil ? Text("Ajouter") : Text("Confirmer le retrait")
             }
             .disabled(!canSubmit)
             .primaryButtonStyle(isEnabled: canSubmit)
@@ -294,7 +294,7 @@ struct AddAllocatedTransactionPage: View {
             // once the server confirms, so the UI can dismiss immediately.
             _ = try await coordinator.createAllocatedTransaction(data)
             submitSuccessTrigger.toggle()
-            toastManager.show("Enregistré")
+            toastManager.show(AppLocale.string("Enregistré"))
             dismiss()
         } catch {
             // The entry stays on screen with everything the user typed: a refusal

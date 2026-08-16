@@ -74,7 +74,7 @@ struct EditTemplateLineSheet: View {
 
     var body: some View {
         SheetFormContainer(
-            title: "Modifier la ligne",
+            title: AppLocale.string("Modifier la ligne"),
             isLoading: isLoading,
             focus: $focusedField,
             focusOrder: [.amount, .description]
@@ -139,12 +139,12 @@ struct EditTemplateLineSheet: View {
         } message: {
             let count = usageData?.propagationBudgetCount ?? 0
             let intro = usageFetchFailed
-                ? "Ce modèle est peut-être utilisé par d'autres budgets."
-                : "Ce modèle est utilisé par \(count) \(count == 1 ? "budget" : "budgets")."
+                ? AppLocale.string("Ce modèle est peut-être utilisé par d'autres budgets.")
+                : AppLocale.string("Ce modèle est utilisé par \(count) budgets.")
             Text("""
                 \(intro)\n\n\
                 « Appliquer » mettra à jour les budgets en cours et futurs. \
-                Les catégories modifiées manuellement ne seront pas affectées.
+                Les prévisions modifiées manuellement ne seront pas affectées.
                 """)
         }
     }
@@ -155,8 +155,8 @@ struct EditTemplateLineSheet: View {
         FormTextField(
             hint: kind.descriptionPlaceholder,
             text: $name,
-            label: "Description",
-            accessibilityLabel: "Nom de la ligne du modèle",
+            label: AppLocale.string("Description"),
+            accessibilityLabel: AppLocale.string("Nom de la ligne du modèle"),
             focusBinding: $focusedField,
             field: .description
         )
@@ -242,7 +242,11 @@ struct EditTemplateLineSheet: View {
 
         do {
             let updatedLine = try await dependencies.updateTemplateLine(templateLine.templateId, templateLine.id, data)
-            finishSave(updatedLine: updatedLine, message: "Prévision modifiée", impact: .templateOnly)
+            finishSave(
+                updatedLine: updatedLine,
+                message: AppLocale.string("Prévision modifiée"),
+                impact: .templateOnly
+            )
         } catch {
             self.error = error
         }
@@ -264,9 +268,8 @@ struct EditTemplateLineSheet: View {
             let updatedLine = response.updated.first ?? templateLine
             let affectedCount = response.propagation?.affectedBudgetsCount ?? 0
             let message = affectedCount > 0
-                ? "Prévision modifiée — \(affectedCount) "
-                + (affectedCount == 1 ? "budget mis à jour" : "budgets mis à jour")
-                : "Prévision modifiée"
+                ? AppLocale.string("Prévision modifiée — \(affectedCount) budgets mis à jour")
+                : AppLocale.string("Prévision modifiée")
             finishSave(
                 updatedLine: updatedLine,
                 message: message,

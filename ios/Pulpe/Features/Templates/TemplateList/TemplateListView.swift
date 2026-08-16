@@ -24,9 +24,9 @@ struct TemplateListView: View {
             } else if viewModel.templates.isEmpty {
                 PulpeEmptyState(
                     systemImage: "doc.on.doc",
-                    title: "Pas encore de modèle",
-                    message: "Crée-en un pour préparer tes prochains budgets plus vite",
-                    actionTitle: "Créer un modèle"
+                    title: AppLocale.string("Pas encore de modèle"),
+                    message: AppLocale.string("Crée-en un pour préparer tes prochains budgets plus vite"),
+                    actionTitle: AppLocale.string("Créer un modèle")
                 ) {
                     showCreateTemplate = true
                 }
@@ -38,7 +38,7 @@ struct TemplateListView: View {
         }
         .trackScreen("TemplateList")
         .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
-        .navigationTitle("Modèles")
+        .localizedNavigationTitle("Modèles")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -301,7 +301,9 @@ final class TemplateListViewModel {
         do {
             let usage = try await templateService.checkTemplateUsage(id: template.id)
             if usage.isUsed {
-                error = APIError.conflict(message: "Ce modèle est utilisé par \(usage.budgetCount) budget(s)")
+                error = APIError.conflict(
+                    message: AppLocale.string("Ce modèle est utilisé par \(usage.budgetCount) budgets")
+                )
                 return
             }
 

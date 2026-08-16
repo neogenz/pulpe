@@ -293,40 +293,39 @@ struct PeriodDatesEdgeCaseTests {
 
 struct FormatPeriodTests {
     @Test func nilPayDay_returnsNil() {
-        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: nil, currency: .chf)
+        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: nil, language: .fr)
         #expect(result == nil)
     }
 
     @Test func payDayOne_returnsNil() {
-        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 1, currency: .chf)
+        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 1, language: .fr)
         #expect(result == nil)
     }
 
     @Test func payDay5_containsSeparator() {
-        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 5, currency: .chf)
+        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 5, language: .fr)
         #expect(result?.contains(" - ") == true)
     }
 
     @Test func payDay27_containsExpectedMonths() {
-        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 27, currency: .chf)
+        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 27, language: .fr)
         // Should contain "27" and "26" (start day and end day)
         #expect(result?.contains("27") == true)
         #expect(result?.contains("26") == true)
     }
 
-    // The 'd MMM' format produces identical output for fr_CH (CHF) and fr_FR (EUR) —
-    // only the day number and abbreviated month name are rendered, which are the same
-    // in both French locales. These two tests document that business rule (PUL-100):
-    // the formatter locale follows the user's currency, but the period label stays stable.
-    @Test func payDay5_chf_rendersExpectedLabel() {
-        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 5, currency: .chf)
+    // The period label is a day plus an abbreviated month name: it follows the interface
+    // language, never the currency. Both facts are asserted, because getting the axis
+    // wrong is invisible as long as the whole app is French.
+    @Test func payDay5_french_rendersExpectedLabel() {
+        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 5, language: .fr)
         #expect(result == "5 mars - 4 avr.")
     }
 
-    @Test func payDay5_eur_rendersSameLabelAsChf() {
-        let chf = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 5, currency: .chf)
-        let eur = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 5, currency: .eur)
-        #expect(chf == eur)
+    @Test func payDay5_german_rendersGermanMonths() {
+        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 5, language: .de)
+        #expect(result?.contains("März") == true)
+        #expect(result?.contains("Apr") == true)
     }
 }
 

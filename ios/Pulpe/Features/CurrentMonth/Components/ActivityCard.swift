@@ -13,6 +13,15 @@ struct ActivityCard: View {
     enum Window: String, CaseIterable {
         case week = "7 jours"
         case month = "Ce mois"
+
+        /// The chip's copy. The raw value is the French wording this shipped with and is
+        /// kept as the case's identity; only this reads off the catalog.
+        var label: String {
+            switch self {
+            case .week: AppLocale.string("7 jours")
+            case .month: AppLocale.string("Ce mois")
+            }
+        }
     }
 
     /// Per-window cap: the week is a chronological prefix of the month, so an equal cap
@@ -78,9 +87,9 @@ struct ActivityCard: View {
 
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HomeSectionHeader(
-                title: "Activité",
+                title: AppLocale.string("Activité"),
                 amountSubtitle: headerTotal(for: windowed),
-                link: (label: "Tout voir", action: onViewAll)
+                link: (label: AppLocale.string("Tout voir"), action: onViewAll)
             )
 
             // Its own row, full width. Squeezed into the heading it fought the title for
@@ -99,6 +108,7 @@ struct ActivityCard: View {
             }
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
+        .accessibilityIdentifier("homeActivityCard")
     }
 
     // MARK: - Window Picker
@@ -127,7 +137,7 @@ struct ActivityCard: View {
                 window = option
             }
         } label: {
-            PulpeChip(label: option.rawValue, style: isSelected ? .solid : .outlined)
+            PulpeChip(label: option.label, style: isSelected ? .solid : .outlined)
         }
         .plainPressedButtonStyle()
         .accessibilityAddTraits(isSelected ? .isSelected : [])

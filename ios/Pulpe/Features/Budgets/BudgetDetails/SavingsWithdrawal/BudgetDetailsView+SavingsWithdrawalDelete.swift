@@ -11,7 +11,8 @@ extension BudgetDetailsView {
     }
 
     func savingsWithdrawalKeepIncomeLabel(for line: BudgetLine) -> String {
-        "Garder le revenu de \(Formatters.monthName(for: savingsWithdrawalIncomeMonth(for: line)))"
+        let monthName = Formatters.monthName(for: savingsWithdrawalIncomeMonth(for: line))
+        return AppLocale.string("Garder le revenu de \(monthName)")
     }
 
     func savingsWithdrawalDeleteMessage(for line: BudgetLine) -> String {
@@ -20,8 +21,9 @@ extension BudgetDetailsView {
         let savingMonth = incomeMonth == 12 ? 1 : incomeMonth + 1
         let plus = line.amount.asSignedCurrency(currency, for: .income)
         let minus = line.amount.asSignedCurrency(currency, for: .saving)
-        return "\(plus) sur \(Formatters.monthName(for: incomeMonth)) est lié à "
-            + "\(minus) sur \(Formatters.monthName(for: savingMonth))."
+        let incomeMonthName = Formatters.monthName(for: incomeMonth)
+        let savingMonthName = Formatters.monthName(for: savingMonth)
+        return AppLocale.string("\(plus) sur \(incomeMonthName) est lié à \(minus) sur \(savingMonthName).")
     }
 
     /// Month M carrying the income half. The selected line lives in the open

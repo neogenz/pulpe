@@ -158,6 +158,10 @@ export {
   exchangeRateWire,
   exchangeRateWirePositive,
 
+  // Locale schemas
+  supportedLocaleSchema,
+  SUPPORTED_LOCALES,
+
   // User schemas
   userProfileSchema,
   updateProfileSchema,
@@ -281,6 +285,13 @@ export {
 
 // Export shared currency formatter factory
 export { getCurrencyFormatter } from './src/currency-format.js';
+
+// Export locale display metadata
+export {
+  DEFAULT_LOCALE,
+  LOCALE_METADATA,
+  type LocaleMetadataEntry,
+} from './src/locale.js';
 
 // Export all types from types.ts
 export type {
@@ -430,6 +441,9 @@ export type {
   SupportedCurrency,
   CurrencyRateQuery,
   CurrencyRateResponse,
+
+  // Locale types
+  SupportedLocale,
 
   // User types
   UserProfile,

@@ -16,6 +16,8 @@ struct PreferencesView: View {
         List {
             CurrencySettingView(converterFocus: $currencyConverterFocus)
 
+            LanguageSettingView()
+
             Section {
                 Button {
                     showPayDayPicker = true
@@ -51,18 +53,21 @@ struct PreferencesView: View {
                 Text("DONNÉES ET CONFIDENTIALITÉ")
                     .font(PulpeTypography.labelLarge)
             } footer: {
-                Text(
-                    "Associe à ton compte les événements techniques et erreurs "
-                        + "pour comprendre les problèmes et t’aider plus rapidement. "
-                        + "Aucun montant ni contenu saisi n’est collecté."
-                )
+                // One literal, continued across lines: `"a" + "b"` is a String expression,
+                // so `Text` picks its non-localizing overload and the copy never reaches
+                // the catalog. Same trap everywhere long copy is wrapped.
+                Text("""
+                    Associe à ton compte les événements techniques et erreurs pour comprendre \
+                    les problèmes et t’aider plus rapidement. Aucun montant ni contenu saisi \
+                    n’est collecté.
+                    """)
             }
             .listRowSettingsBackground()
         }
         .scrollContentBackground(.hidden)
         .pulpeBackground()
         .listStyle(.insetGrouped)
-        .navigationTitle("Préférences")
+        .localizedNavigationTitle("Préférences")
         .keyboardFieldNavigation(focus: $currencyConverterFocus, order: [.input])
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }

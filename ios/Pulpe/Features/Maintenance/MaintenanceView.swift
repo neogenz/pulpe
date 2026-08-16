@@ -18,10 +18,10 @@ struct MaintenanceView: View {
                 .font(PulpeTypography.title)
                 .fontWeight(.bold)
 
-            Text(
-                "On améliore Pulpe pour toi — tes données sont bien au chaud, " +
-                "pas d'inquiétude. Réessaie dans quelques instants."
-            )
+            Text("""
+                On améliore Pulpe pour toi — tes données sont bien au chaud, \
+                pas d'inquiétude. Réessaie dans quelques instants.
+                """)
                 .font(PulpeTypography.body)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
@@ -59,10 +59,10 @@ struct MaintenanceView: View {
             if !stillInMaintenance {
                 appState.setMaintenanceMode(false)
             } else {
-                errorMessage = "Toujours en maintenance — réessaie dans un instant"
+                errorMessage = AppLocale.string("Toujours en maintenance — réessaie dans un instant")
             }
         } catch {
-            errorMessage = "Connexion difficile — réessaie dans un instant"
+            errorMessage = AppLocale.string("Connexion difficile — réessaie dans un instant")
         }
 
         isChecking = false

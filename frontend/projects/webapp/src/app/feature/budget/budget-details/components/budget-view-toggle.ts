@@ -9,7 +9,7 @@ import type { BudgetViewMode } from '../view-models/budget-view-mode';
   imports: [MatButtonToggleModule, MatIconModule, TranslocoPipe],
   template: `
     <mat-button-toggle-group
-      aria-label="Mode d'affichage"
+      [attr.aria-label]="'budget.viewModeLabel' | transloco"
       [value]="viewMode()"
       (change)="viewMode.set($event.value)"
     >

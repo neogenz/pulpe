@@ -91,9 +91,9 @@ extension APIError {
     /// User-facing message for PIN validation errors (entry, change).
     var pinValidationMessage: String {
         switch self {
-        case .rateLimited: "Trop de tentatives, patiente un moment"
-        case .networkError: "Erreur de connexion, réessaie"
-        default: "Ce code ne semble pas correct"
+        case .rateLimited: AppLocale.string("Trop de tentatives, patiente un moment")
+        case .networkError: AppLocale.string("Erreur de connexion, réessaie")
+        default: AppLocale.string("Ce code ne semble pas correct")
         }
     }
 }
@@ -102,9 +102,9 @@ extension CryptoServiceError {
     /// User-facing message for crypto errors during PIN flows.
     var pinUserMessage: String {
         switch self {
-        case .invalidSalt, .invalidIterations: "Erreur de sécurité, contacte le support"
-        case .derivationFailed: "Erreur de chiffrement, réessaie"
-        case .invalidPin: "Code invalide"
+        case .invalidSalt, .invalidIterations: AppLocale.string("Erreur de sécurité, contacte le support")
+        case .derivationFailed: AppLocale.string("Erreur de chiffrement, réessaie")
+        case .invalidPin: AppLocale.string("Code invalide")
         }
     }
 }

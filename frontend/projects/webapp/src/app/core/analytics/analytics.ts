@@ -13,7 +13,7 @@ import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { UserSettingsStore } from '../user-settings/user-settings-store';
-import type { Properties } from 'posthog-js';
+import type { CaptureOptions, Properties } from 'posthog-js';
 
 // Trim + reject empty so re-identify can't overwrite a known-good
 // email/name with `undefined` (posthog-js serializes that as null).
@@ -128,6 +128,11 @@ export class AnalyticsService implements OnDestroy {
 
       this.#personPropertiesEffect = effect(() => {
         const userSettings = this.#userSettingsStore.settings();
+        const locale = this.#userSettingsStore.locale();
+
+        if (userSettings) {
+          this.#postHogService.setLocale(locale);
+        }
 
         // Skip until identify has fired and settings have actually loaded.
         // Without this guard a user with `currency = EUR` would briefly land
@@ -140,6 +145,7 @@ export class AnalyticsService implements OnDestroy {
           [ANALYTICS_PROPERTIES.CURRENCY]: userSettings.currency,
           [ANALYTICS_PROPERTIES.SHOW_CURRENCY_SELECTOR]:
             userSettings.showCurrencySelector,
+          [ANALYTICS_PROPERTIES.LOCALE]: locale,
         });
       });
 
@@ -152,8 +158,12 @@ export class AnalyticsService implements OnDestroy {
   /**
    * Capture event - PostHog handles data sanitization automatically
    */
-  captureEvent(event: AnalyticsEventName, properties?: Properties): void {
-    this.#postHogService.captureEvent(event, properties);
+  captureEvent(
+    event: AnalyticsEventName,
+    properties?: Properties,
+    options?: CaptureOptions,
+  ): void {
+    this.#postHogService.captureEvent(event, properties, options);
   }
 
   /**
@@ -166,6 +176,10 @@ export class AnalyticsService implements OnDestroy {
       return;
     }
     this.#postHogService.setPersonProperties(properties);
+  }
+
+  setLocale(locale: Parameters<PostHogService['setLocale']>[0]): void {
+    this.#postHogService.setLocale(locale);
   }
 
   setDiagnosticSharingEnabled(enabled: boolean): void {

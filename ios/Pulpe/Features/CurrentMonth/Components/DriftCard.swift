@@ -27,27 +27,30 @@ struct DriftCard: View {
     /// its plan says the excess is absorbed elsewhere instead of asserting the hero's
     /// opposite — a month exactly on plan covered it as surely as one that came out ahead.
     private var subtitle: String {
-        let base = "\(totalOver.asCompactCurrency(currency)) au-delà du plan"
-        guard overrunIsAbsorbed else { return base }
-        return "\(base), compensé ailleurs ce mois"
+        let total = totalOver.asCompactCurrency(currency)
+        guard overrunIsAbsorbed else { return AppLocale.string("\(total) au-delà du plan") }
+        return AppLocale.string("\(total) au-delà du plan, compensé ailleurs ce mois")
     }
 
-    /// Residual count when more envelopes drift than the card shows.
+    /// Residual count when more envelopes drift than the card shows. One key for every
+    /// count — the singular is a plural variant of it in the catalog.
     private var overflowLabel: String {
         let hidden = drifts.count - Self.maxRows
-        return "+\(hidden) autre\(hidden > 1 ? "s" : "") enveloppe\(hidden > 1 ? "s" : "")"
+        return AppLocale.string("+\(hidden) autres enveloppes")
     }
 
     private var catchUpAccessibilityLabel: String {
-        guard !amountsHidden else { return "Rattraper le dépassement" }
-        return "Rattraper ces \(totalOver.asCompactCurrency(currency)) en trop"
+        guard !amountsHidden else { return AppLocale.string("Rattraper le dépassement") }
+        return AppLocale.string("Rattraper ces \(totalOver.asCompactCurrency(currency)) en trop")
     }
 
     private func rowAccessibilityLabel(_ line: BudgetLine, overBy: Decimal) -> String {
+        let base = amountsHidden
+            ? AppLocale.string("\(line.name), au-delà du plan")
+            : AppLocale.string("\(line.name), \(overBy.asCompactCurrency(currency)) au-delà du plan")
         let names = TagChips.names(for: line.tagIds, namesById: tagNamesById)
-        let tags = names.isEmpty ? "" : ", tags : \(names.joined(separator: ", "))"
-        guard !amountsHidden else { return "\(line.name), au-delà du plan\(tags)" }
-        return "\(line.name), \(overBy.asCompactCurrency(currency)) au-delà du plan\(tags)"
+        guard !names.isEmpty else { return base }
+        return base + AppLocale.string(", tags : \(names.joined(separator: ", "))")
     }
 
     var body: some View {
@@ -56,7 +59,7 @@ struct DriftCard: View {
             // same place and names the remedy. Two ways into the budget, one of them
             // unnamed, is the arrangement this screen is getting rid of.
             HomeSectionHeader(
-                title: "Ça dérive",
+                title: AppLocale.string("Ça dérive"),
                 amountSubtitle: subtitle
             )
 
@@ -94,6 +97,7 @@ struct DriftCard: View {
             .padding(.vertical, DesignTokens.Spacing.xs)
             .pulpeRowCard()
         }
+        .accessibilityIdentifier("homeDriftCard")
     }
 
     // MARK: - Drift Row

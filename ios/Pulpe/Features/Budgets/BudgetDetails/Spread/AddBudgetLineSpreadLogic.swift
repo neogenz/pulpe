@@ -8,7 +8,7 @@ import Foundation
 /// invalidation fired, success-toast copy) without bootstrapping SwiftUI.
 enum AddBudgetLineSpreadLogic {
     static func ctaTitle(for kind: TransactionKind) -> String {
-        kind == .saving ? "Lisser l’épargne" : "Lisser la dépense"
+        kind == .saving ? AppLocale.string("Lisser l’épargne") : AppLocale.string("Lisser la dépense")
     }
 
     /// Form inputs for one spread submit. FX is already resolved once upstream
@@ -81,18 +81,24 @@ enum AddBudgetLineSpreadLogic {
     /// Base toast + conditional suffixes (auto-created budgets / skipped months).
     /// The noun follows the spread's kind — "Épargne lissée" for `.saving`,
     /// "Dépense lissée" otherwise (both feminine, so "lissée" accords either way).
-    /// "{Noun} lissée sur {n} mois · {b} budget(s) créé(s) · {s} mois ignoré(s) (aucun modèle)".
+    /// "{Noun} lissée sur {n} mois · {b} budgets créés · {s} mois ignorés (aucun modèle)".
+    /// One whole key per segment so no sentence is assembled from translated
+    /// fragments; singular/plural variants belong to the string catalog.
     static func successMessage(for response: BudgetLineSpreadResponse) -> String {
-        let noun = response.lines.first?.kind == .saving ? "Épargne" : "Dépense"
-        var message = "\(noun) lissée sur \(response.lines.count) mois"
+        let months = response.lines.count
+        var segments = [
+            response.lines.first?.kind == .saving
+                ? AppLocale.string("Épargne lissée sur \(months) mois")
+                : AppLocale.string("Dépense lissée sur \(months) mois"),
+        ]
         let created = response.createdBudgets.count
         if created > 0 {
-            message += " · \(created) budget\(created > 1 ? "s" : "") créé\(created > 1 ? "s" : "")"
+            segments.append(AppLocale.string("\(created) budgets créés"))
         }
         let skipped = response.skippedMonths.count
         if skipped > 0 {
-            message += " · \(skipped) mois ignoré\(skipped > 1 ? "s" : "") (aucun modèle)"
+            segments.append(AppLocale.string("\(skipped) mois ignorés (aucun modèle)"))
         }
-        return message
+        return segments.joined(separator: " · ")
     }
 }

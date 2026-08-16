@@ -38,7 +38,7 @@ struct PayDayPickerSheet: View {
                     .padding(.bottom, DesignTokens.Spacing.xxl)
                     .background(.ultraThinMaterial)
             }
-            .navigationTitle("Jour de paie")
+            .localizedNavigationTitle("Jour de paie")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -65,10 +65,10 @@ struct PayDayPickerSheet: View {
                 .font(PulpeTypography.stepTitle)
                 .foregroundStyle(Color.textPrimary)
 
-            Text(
-                "Choisis la date à laquelle tu souhaites commencer " +
-                "à suivre tes dépenses et revenus (ton jour de paie, par exemple)."
-            )
+            Text("""
+                Choisis la date à laquelle tu souhaites commencer \
+                à suivre tes dépenses et revenus (ton jour de paie, par exemple).
+                """)
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.onSurfaceVariant)
         }
@@ -78,7 +78,7 @@ struct PayDayPickerSheet: View {
 
     private var dayGrid: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("S\u{00E9}lectionne une date")
+            Text("Sélectionne une date")
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.onSurfaceVariant)
 
@@ -125,7 +125,7 @@ struct PayDayPickerSheet: View {
     private var hintCard: some View {
         if let day = viewModel?.selectedDay, day >= 2 {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Text("Ton mois budg\u{00E9}taire")
+                Text("Ton mois budgétaire")
                     .font(PulpeTypography.labelLargeBold)
                     .foregroundStyle(Color.textPrimary)
 
@@ -155,7 +155,7 @@ struct PayDayPickerSheet: View {
                 await viewModel.save(using: userSettingsStore)
                 if userSettingsStore.error == nil {
                     viewModel.commitSave()
-                    appState.toastManager.show("Jour de paie enregistr\u{00E9}", type: .success)
+                    appState.toastManager.show(AppLocale.string("Jour de paie enregistré"), type: .success)
                     currentMonthStore.setPayDay(userSettingsStore.payDayOfMonth)
                     dashboardStore.setPayDay(userSettingsStore.payDayOfMonth)
                     async let refreshMonth: Void = currentMonthStore.forceRefresh()
@@ -164,7 +164,7 @@ struct PayDayPickerSheet: View {
                     _ = await (refreshMonth, refreshList, refreshDashboard)
                     dismiss()
                 } else {
-                    appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
+                    appState.toastManager.show(AppLocale.string("Erreur lors de la sauvegarde"), type: .error)
                 }
             }
         } label: {
@@ -186,14 +186,13 @@ struct PayDayPickerSheet: View {
         let exampleMonth = calendar.component(.month, from: now)
         let exampleYear = calendar.component(.year, from: now)
         guard let period = BudgetPeriodCalculator.formatPeriod(
-            month: exampleMonth, year: exampleYear, payDayOfMonth: day,
-            currency: userSettingsStore.currency
+            month: exampleMonth, year: exampleYear, payDayOfMonth: day
         ) else {
-            return "Le budget suit le calendrier mensuel standard."
+            return AppLocale.string("Le budget suit le calendrier mensuel standard.")
         }
         let monthName = Formatters.monthYear.monthSymbols[exampleMonth - 1].capitalized
         let suffix = period.hasSuffix(".") ? "" : "."
-        return "Ton budget \u{00AB}\u{00A0}\(monthName)\u{00A0}\u{00BB} couvrira du \(period)\(suffix)"
+        return AppLocale.string("Ton budget «\u{00A0}\(monthName)\u{00A0}» couvrira du \(period)\(suffix)")
     }
 }
 
@@ -216,9 +215,9 @@ struct PayDaySettingRow: View {
 
     private var displayValue: String {
         guard let day = userSettingsStore.payDayOfMonth else {
-            return "1er du mois"
+            return AppLocale.string("1er du mois")
         }
-        return "Le \(day)"
+        return AppLocale.string("Le \(day)")
     }
 }
 

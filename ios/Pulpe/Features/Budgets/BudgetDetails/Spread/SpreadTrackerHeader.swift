@@ -82,35 +82,35 @@ struct SpreadTrackerHeader: View {
     }
 
     private var positionLabel: String {
-        tracker.currentIndex == 0
-            ? "Commence le mois prochain"
-            : "\(ordinal) mois sur \(tracker.count)"
-    }
-
-    private var ordinal: String {
-        tracker.currentIndex == 1 ? "1er" : "\(tracker.currentIndex)e"
+        guard tracker.currentIndex > 0 else {
+            return AppLocale.string("Commence le mois prochain")
+        }
+        let ordinal = Formatters.ordinal(tracker.currentIndex)
+        return AppLocale.string("\(ordinal) mois sur \(tracker.count)")
     }
 
     private var cumulatedLabel: String {
-        "\(tracker.cumulatedAmount.asCurrency(currency)) sur \(tracker.totalAmount.asCurrency(currency))"
+        let cumulated = tracker.cumulatedAmount.asCurrency(currency)
+        let total = tracker.totalAmount.asCurrency(currency)
+        return AppLocale.string("\(cumulated) sur \(total)")
     }
 
     private var remainingLabel: String {
-        "Reste \(tracker.remainingToProvision.asCurrency(currency)) à provisionner"
+        AppLocale.string("Reste \(tracker.remainingToProvision.asCurrency(currency)) à provisionner")
     }
 
     private func perRemainingMonthLabel(_ amount: Decimal) -> String {
-        "Prévois ~\(amount.asCurrency(currency)) par mois pour tenir l'objectif"
+        AppLocale.string("Prévois ~\(amount.asCurrency(currency)) par mois pour tenir l'objectif")
     }
 
     private var finalGapLabel: String {
-        "Tous les mois sont clôturés · il reste "
-            + "\(tracker.remainingToProvision.asCurrency(currency)) non provisionné"
+        let remaining = tracker.remainingToProvision.asCurrency(currency)
+        return AppLocale.string("Tous les mois sont clôturés · il reste \(remaining) non provisionné")
     }
 
     private var provisionLabel: String {
         if tracker.remainingToProvision <= 0 {
-            return "Objectif atteint"
+            return AppLocale.string("Objectif atteint")
         }
         if let perRemaining = tracker.perRemainingMonth {
             return "\(remainingLabel), \(perRemainingMonthLabel(perRemaining))"

@@ -429,8 +429,11 @@ struct OnboardingStateTests {
         state.leasingCredit = 300
 
         let template = state.createTemplateData()
-        #expect(template.name == "Mois Standard")
-        #expect(template.description == "Créé pendant l'inscription")
+        // Compared through `AppLocale` rather than against the French literals: the
+        // template name and description are user copy now, so a suite that switched
+        // the app language before this one would otherwise fail it.
+        #expect(template.name == AppLocale.string("Mois Standard"))
+        #expect(template.description == AppLocale.string("Créé pendant l'inscription"))
         #expect(template.isDefault == true)
         #expect(template.monthlyIncome == 5000)
         #expect(template.housingCosts == 1500)
@@ -651,8 +654,10 @@ struct OnboardingStateTests {
         let chfPillar = OnboardingState.savingSuggestions(for: .chf)[1]
         let eurPillar = OnboardingState.savingSuggestions(for: .eur)[1]
 
-        #expect(chfPillar.name == "3ème pilier")
-        #expect(eurPillar.name == "Épargne retraite")
+        #expect(chfPillar.name == AppLocale.string("3ème pilier"))
+        #expect(eurPillar.name == AppLocale.string("Épargne retraite"))
+        // The point of the test is that the two labels differ, whatever the language.
+        #expect(chfPillar.name != eurPillar.name)
         // UUID + amount stay identical across both variants → identity unaffected.
         #expect(chfPillar.id == eurPillar.id)
         #expect(chfPillar.amount == 587)
@@ -764,10 +769,11 @@ struct OnboardingStateTests {
         defer { OnboardingState.clearPersistedData() }
 
         // 1) User adds a manual charge that happens to share the chip's label.
+        //    Read from the chip so the collision holds in every language.
         let manualCollision = OnboardingTransaction(
             amount: 800,
             type: .expense,
-            name: "Courses / alimentation"
+            name: OnboardingState.chargeSuggestions[0].name
         )
         state.addCustomTransaction(manualCollision)
 
@@ -971,7 +977,7 @@ struct OnboardingStateTests {
 
         let template = state.createTemplateData()
         #expect(template.healthInsurance == nil)
-        #expect(!state.fixedChargeLines.contains { $0.label == "Assurance maladie" })
+        #expect(!state.fixedChargeLines.contains { $0.label == AppLocale.string("Assurance maladie") })
         // Housing is a currency-agnostic charge — it must survive the switch.
         #expect(template.housingCosts == 1200)
     }

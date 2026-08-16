@@ -4,8 +4,6 @@ export interface BudgetPlaceholder {
   month: number;
   year: number;
 }
-import { format } from 'date-fns';
-import { frCH } from 'date-fns/locale';
 import {
   type CalendarMonth,
   type CalendarYear,
@@ -27,6 +25,7 @@ export function buildCalendarYears(
   budgetsGroupedByYears: Map<number, (Budget | BudgetPlaceholder)[]>,
   payDayOfMonth: number | null,
   currentYear: number,
+  locale: string,
 ): CalendarYear[] {
   const existingYears = Array.from(budgetsGroupedByYears.keys());
   const calculatedYears = Array.from(
@@ -42,13 +41,13 @@ export function buildCalendarYears(
     const existingBudgets = budgetsGroupedByYears.get(year);
 
     if (existingBudgets) {
-      return mapToCalendarYear(year, existingBudgets, payDayOfMonth);
+      return mapToCalendarYear(year, existingBudgets, locale, payDayOfMonth);
     } else {
       const emptyMonths = Array.from({ length: 12 }, (_, monthIndex) => ({
         month: monthIndex + 1,
         year,
       }));
-      return mapToCalendarYear(year, emptyMonths, payDayOfMonth);
+      return mapToCalendarYear(year, emptyMonths, locale, payDayOfMonth);
     }
   });
 }
@@ -56,20 +55,35 @@ export function buildCalendarYears(
 export function mapToCalendarYear(
   year: number,
   budgets: (Budget | BudgetPlaceholder)[],
+  locale: string,
   payDayOfMonth?: number | null,
 ): CalendarYear {
   return {
     year,
-    months: budgets.map((budget) => mapToCalendarMonth(budget, payDayOfMonth)),
+    months: budgets.map((budget) =>
+      mapToCalendarMonth(budget, locale, payDayOfMonth),
+    ),
   };
 }
 
-function formatCalendarMonthDisplayName(month: number, year: number): string {
-  return format(new Date(year, month - 1), 'MMMM yyyy', { locale: frCH });
+/**
+ * Le nom du mois suit la langue de l'interface. Une locale figée ici afficherait
+ * un calendrier français dans une application allemande, sans que rien n'échoue.
+ */
+function formatCalendarMonthDisplayName(
+  month: number,
+  year: number,
+  locale: string,
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(year, month - 1));
 }
 
 function mapToCalendarMonth(
   budget: Budget | BudgetPlaceholder,
+  locale: string,
   payDayOfMonth?: number | null,
 ): CalendarMonth {
   const isPlannedBudget = (
@@ -87,6 +101,7 @@ function mapToCalendarMonth(
   const period = formatPeriodIfCustomPayDay(
     budget.month,
     budget.year,
+    locale,
     payDayOfMonth,
   );
 
@@ -98,7 +113,11 @@ function mapToCalendarMonth(
       year: budget.year,
       hasContent: true,
       value,
-      displayName: formatCalendarMonthDisplayName(budget.month, budget.year),
+      displayName: formatCalendarMonthDisplayName(
+        budget.month,
+        budget.year,
+        locale,
+      ),
       period,
       status: getStatusFromValue(value),
     };
@@ -106,7 +125,7 @@ function mapToCalendarMonth(
   const emptyMonth = createEmptyCalendarMonth(
     budget.month,
     budget.year,
-    formatCalendarMonthDisplayName(budget.month, budget.year),
+    formatCalendarMonthDisplayName(budget.month, budget.year, locale),
   );
   return { ...emptyMonth, period };
 }
@@ -114,12 +133,13 @@ function mapToCalendarMonth(
 function formatPeriodIfCustomPayDay(
   month: number,
   year: number,
+  locale: string,
   payDayOfMonth?: number | null,
 ): string | undefined {
   if (!payDayOfMonth || payDayOfMonth === 1) {
     return undefined;
   }
-  return formatBudgetPeriod(month, year, payDayOfMonth);
+  return formatBudgetPeriod(month, year, payDayOfMonth, locale);
 }
 
 function getStatusFromValue(

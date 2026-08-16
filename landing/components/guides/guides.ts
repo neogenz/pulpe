@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { SOCIAL_PREVIEW_ALT, SOCIAL_PREVIEW_IMAGE } from "@/lib/config";
+import { getDictionary } from "@/content/dictionary";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { socialPreviewImage } from "@/lib/metadata";
 
 // Single source of truth: the /conseils-budget index, sitemap, and article
 // metadata all read this registry. Publishing requires an entry here and a
@@ -37,9 +39,14 @@ export function getGuide(slug: string): Guide {
 }
 
 // Shared metadata keeps an article page to `guideMetadata(guide)`.
-export function guideMetadata(guide: Guide): Metadata {
+//
+// These pages only exist in French, so they carry the French social card rather
+// than resolving one per language.
+export async function guideMetadata(guide: Guide): Promise<Metadata> {
   const path = `/conseils-budget/${guide.slug}`;
   const socialTitle = `${guide.title} | Pulpe`;
+  const image = socialPreviewImage(DEFAULT_LOCALE);
+  const imageAlt = (await getDictionary(DEFAULT_LOCALE)).site.socialImageAlt;
   return {
     title: guide.title,
     description: guide.description,
@@ -58,10 +65,10 @@ export function guideMetadata(guide: Guide): Metadata {
       alternateLocale: ["fr_FR"],
       images: [
         {
-          url: SOCIAL_PREVIEW_IMAGE,
+          url: image,
           width: 1200,
           height: 630,
-          alt: SOCIAL_PREVIEW_ALT,
+          alt: imageAlt,
           type: "image/png",
         },
       ],
@@ -72,8 +79,8 @@ export function guideMetadata(guide: Guide): Metadata {
       description: guide.description,
       images: [
         {
-          url: SOCIAL_PREVIEW_IMAGE,
-          alt: SOCIAL_PREVIEW_ALT,
+          url: image,
+          alt: imageAlt,
           type: "image/png",
           width: 1200,
           height: 630,
