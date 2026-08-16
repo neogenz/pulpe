@@ -10,7 +10,7 @@ status: implemented
 | Field      | Value |
 | ---------- | ----- |
 | **Goal**   | Lancer PulpeLocal sur iPhone 17 Pro Max avec le compte démo seedé, parcourir les écrans avec NoQA et enregistrer les captures brutes nécessaires aux six compositions App Store |
-| **Source** | Demande utilisateur (texte) et six planches PNG : `/Users/maximedesogus/Downloads/01_ecran_1.png` à `/Users/maximedesogus/Downloads/06_06_confiance.png` |
+| **Source** | Demande utilisateur (texte) et six planches PNG : `01_ecran_1.png` à `06_06_confiance.png` |
 
 ## Phases
 
