@@ -52,23 +52,25 @@ final class UserSettingsStore: StoreProtocol {
     }
 
     func forceRefresh() async {
-        while let pendingLocaleUpdate = localeUpdateTask {
-            let pendingGeneration = localeUpdateGeneration
-            _ = await pendingLocaleUpdate.value
-            if localeUpdateGeneration == pendingGeneration { break }
-        }
-
         loadTask?.cancel()
 
         loadGeneration += 1
         let currentGeneration = loadGeneration
 
         let task = Task(name: "UserSettings.load") {
-            isLoading = true
-            error = nil
-            defer { isLoading = false }
-
             do {
+                while let pendingLocaleUpdate = localeUpdateTask {
+                    let pendingGeneration = localeUpdateGeneration
+                    _ = await pendingLocaleUpdate.value
+                    try Task.checkCancellation()
+                    if localeUpdateGeneration == pendingGeneration { break }
+                }
+
+                try Task.checkCancellation()
+                isLoading = true
+                error = nil
+                defer { isLoading = false }
+
                 let settings = try await service.getSettings()
 
                 try Task.checkCancellation()

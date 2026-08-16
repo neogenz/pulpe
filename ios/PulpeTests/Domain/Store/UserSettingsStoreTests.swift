@@ -249,6 +249,42 @@ struct UserSettingsStoreLocaleTests {
         store.reset()
     }
 
+    @Test("Reset cancels a refresh waiting for locale persistence")
+    func reset_cancelsRefreshWaitingForLocaleUpdate() async {
+        AppLocale.persist(.fr)
+        let service = ControlledUserSettingsService()
+        let store = UserSettingsStore(service: service)
+
+        let update = Task { await store.updateLocale(.it) }
+        await service.waitForCallCount(1)
+
+        var refreshStarted = false
+        var refreshFinished = false
+        let refresh = Task {
+            refreshStarted = true
+            await store.forceRefresh()
+            refreshFinished = true
+        }
+        while !refreshStarted { await Task.yield() }
+        await Task.yield()
+        #expect(await service.getCallCount == 0)
+
+        store.reset()
+        await service.succeed(.it)
+        await update.value
+        while await service.getCallCount == 0 && !refreshFinished { await Task.yield() }
+        let getCallCount = await service.getCallCount
+        #expect(getCallCount == 0)
+        if getCallCount > 0 { await service.completeGet(.it, payDayOfMonth: 31) }
+        await refresh.value
+
+        #expect(store.payDayOfMonth == nil)
+        #expect(store.locale == AppLocale.detected())
+        #expect(AppLocale.current == AppLocale.detected())
+        #expect(store.isLoading == false)
+        #expect(store.error == nil)
+    }
+
     @Test func updateLocale_onSuccess_publishesAndPersists() async {
         let mockService = MockUserSettingsService(
             stubbedUpdateSettings: UserSettings(
