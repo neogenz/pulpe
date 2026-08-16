@@ -15,18 +15,22 @@ env:
     visible: "Voir le détail du budget"
     timeout: 30000
 - tapOn: "Voir le détail du budget"
+- tapOn: "Tout"
 
 # The circle carries the state in its accessibility label, which is the only
 # place the two states are named in words.
+- runFlow:
+    when:
+      visible: "Pointé · ${LINE}"
+    commands:
+      - tapOn: "Pointé · ${LINE}"
 - extendedWaitUntil:
     visible: "À pointer · ${LINE}"
     timeout: 30000
 - tapOn: "À pointer · ${LINE}"
-- tapOn: "Pointé"
 - assertVisible: "Pointé · ${LINE}"
 
 # And back, because an undo that does not undo is the same bug wearing a
 # different hat.
 - tapOn: "Pointé · ${LINE}"
-- tapOn: "À pointer"
 - assertVisible: "À pointer · ${LINE}"
