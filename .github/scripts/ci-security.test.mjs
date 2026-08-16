@@ -10,6 +10,7 @@ const read = (path) =>
 
 const action = read(".github/actions/setup-supabase-cli/action.yml");
 const workflow = read(".github/workflows/ci.yml");
+const stagingProof = read(".github/workflows/staging-proof.yml");
 const dockerfile = read("backend-nest/Dockerfile");
 const rootPackage = JSON.parse(read("package.json"));
 const backendPackage = JSON.parse(read("backend-nest/package.json"));
@@ -67,6 +68,61 @@ test("pull requests cannot execute production migration credentials", () => {
     dryRun < apply,
     "the production dry-run must precede migration apply",
   );
+});
+
+test("successful preview PRs emit one immutable tested-tree proof", () => {
+  const successStart = workflow.indexOf("\n  ci-success:");
+  const migrateStart = workflow.indexOf("\n  migrate:");
+  const success = workflow.slice(successStart, migrateStart);
+
+  assert.match(success, /permissions:\n\s+contents: read/);
+  assert.match(
+    success,
+    /github\.event_name == 'pull_request' && github\.base_ref == 'preview'/,
+  );
+  assert.match(success, /tree_sha.*git rev-parse/s);
+  assert.match(success, /"run_attempt": int\(os\.environ\["RUN_ATTEMPT"\]\)/);
+  assert.match(
+    success,
+    /name: ci-evidence-pr-.*-run-.*-attempt-.*\n\s+path: ci-evidence\.json\n\s+retention-days: 14/,
+  );
+  assert.doesNotMatch(success, /secrets\./);
+  assert.ok(
+    success.indexOf("✅ Check all jobs") <
+      success.indexOf("📤 Upload tested-tree evidence"),
+    "the proof must be emitted only after the complete matrix gate",
+  );
+});
+
+test("the shadow staging proof fails closed on identity or deployment drift", () => {
+  assert.match(stagingProof, /push:\n\s+branches: \[preview\]/);
+  assert.doesNotMatch(
+    stagingProof,
+    /pull_request_target|secrets\.|:\s*write\b/,
+  );
+  assert.match(stagingProof, /actions: read/);
+  assert.match(stagingProof, /deployments: read/);
+  assert.match(stagingProof, /pull-requests: read/);
+  assert.match(stagingProof, /latest canonical CI run is not green/);
+  assert.match(stagingProof, /timeout-minutes: 25/);
+  assert.match(stagingProof, /for _ in \{1\.\.120\}/);
+  assert.match(stagingProof, /\.tree_sha == \$tree_sha/);
+  assert.match(stagingProof, /Preview – pulpe-frontend/);
+  assert.match(stagingProof, /Preview – pulpe-landing/);
+  assert.match(stagingProof, /pulpe-backend \/ preview/);
+  assert.match(stagingProof, /vercel\[bot\]/);
+  assert.match(stagingProof, /railway-app\[bot\]/);
+  assert.match(stagingProof, /preview moved from/);
+  assert.match(stagingProof, /backend-preview-34f4\.up\.railway\.app\/health/);
+  assert.match(stagingProof, /name: staging-proof-\$\{\{ github\.sha \}\}/);
+
+  for (const actionUse of stagingProof.matchAll(/^\s*uses:\s*([^\s#]+)/gm)) {
+    assert.match(
+      actionUse[1],
+      /@[0-9a-f]{40}$/,
+      `workflow action is not pinned: ${actionUse[1]}`,
+    );
+  }
 });
 
 test("the backend image does not install Bun", () => {
