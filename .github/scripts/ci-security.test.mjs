@@ -104,6 +104,8 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
   assert.match(stagingProof, /deployments: read/);
   assert.match(stagingProof, /pull-requests: read/);
   assert.match(stagingProof, /latest canonical CI run is not green/);
+  assert.match(stagingProof, /timeout-minutes: 25/);
+  assert.match(stagingProof, /for _ in \{1\.\.120\}/);
   assert.match(stagingProof, /\.tree_sha == \$tree_sha/);
   assert.match(stagingProof, /Preview – pulpe-frontend/);
   assert.match(stagingProof, /Preview – pulpe-landing/);

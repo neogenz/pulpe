@@ -14,7 +14,7 @@ jobs:
   staging-ready:
     name: ✅ Staging Ready (shadow)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       PREVIEW_BACKEND_HEALTH_URL: https://backend-preview-34f4.up.railway.app/health
     steps:
@@ -149,7 +149,7 @@ jobs:
           landing_state=
           railway_state=
 
-          for _ in {1..72}; do
+          for _ in {1..120}; do
             current_sha=$(gh api "repos/$GITHUB_REPOSITORY/branches/preview" --jq .commit.sha)
             if [ "$current_sha" != "$GITHUB_SHA" ]; then
               echo "::error::preview moved from $GITHUB_SHA to $current_sha"
