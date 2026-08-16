@@ -413,7 +413,7 @@ describe('SetupVaultCode', () => {
       expect(mockUpdateUser).not.toHaveBeenCalled();
     });
 
-    it('should reconcile a retry after user metadata update failed', async () => {
+    it('should retry user metadata without rotating a confirmed recovery key', async () => {
       mockEncryptionApi.setupRecoveryKey$
         .mockReturnValueOnce(of({ recoveryKey: 'ABCD-EFGH-IJKL-MNOP' }))
         .mockReturnValueOnce(
@@ -428,11 +428,55 @@ describe('SetupVaultCode', () => {
       await component['onSubmit']();
       await component['onSubmit']();
 
+      expect(mockEncryptionApi.setupRecoveryKey$).toHaveBeenCalledOnce();
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      expect(mockEncryptionApi.validateKey$).not.toHaveBeenCalled();
+      expect(mockEncryptionApi.regenerateRecoveryKey$).not.toHaveBeenCalled();
+      expect(mockUpdateUser).toHaveBeenCalledTimes(2);
+      expect(navigateSpy).toHaveBeenCalledOnce();
+    });
+
+    it('should keep setup single-flight until navigation completes', async () => {
+      let resolveNavigation!: (value: boolean) => void;
+      navigateSpy.mockReturnValue(
+        new Promise<boolean>((resolve) => {
+          resolveNavigation = resolve;
+        }),
+      );
+
+      const firstSubmit = component['onSubmit']();
+      await vi.waitFor(() => expect(navigateSpy).toHaveBeenCalledOnce());
+
+      const secondSubmit = component['onSubmit']();
+
+      expect(mockEncryptionApi.getSalt$).toHaveBeenCalledOnce();
+      expect(mockEncryptionApi.setupRecoveryKey$).toHaveBeenCalledOnce();
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+
+      resolveNavigation(true);
+      await Promise.all([firstSubmit, secondSubmit]);
+    });
+
+    it('should safely regenerate recovery for a fresh existing setup', async () => {
+      mockEncryptionApi.setupRecoveryKey$.mockReturnValue(
+        throwError(() =>
+          apiError(API_ERROR_CODES.RECOVERY_KEY_ALREADY_EXISTS, 409),
+        ),
+      );
+
+      await component['onSubmit']();
+
       expect(mockEncryptionApi.validateKey$).toHaveBeenCalledWith(
         'abcd'.repeat(16),
       );
       expect(mockEncryptionApi.regenerateRecoveryKey$).toHaveBeenCalledOnce();
-      expect(mockUpdateUser).toHaveBeenCalledTimes(2);
+      expect(mockDialog.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: { recoveryKey: 'WXYZ-1234-5678-90AB' },
+        }),
+      );
+      expect(mockUpdateUser).toHaveBeenCalledOnce();
       expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
     });
 
