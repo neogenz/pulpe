@@ -12,6 +12,7 @@
     "icon": "./assets/images/icon.png",
     "android": {
       "package": "app.pulpe.android",
+      "allowBackup": false,
       "predictiveBackGestureEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -67,6 +68,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e876501a-aa88-495e-941a-5d218021e5e9"
+      }
+    },
+    "owner": "maximedesogus"
   }
 }

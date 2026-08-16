@@ -17,7 +17,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { hapticSuccess } from "@/core/ui/haptics";
-import { TagPicker } from "@/core/tags/tag-picker";
+import { TagPicker } from "@/features/tags/tag-picker";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatRelativeDay } from "@/core/ui/date-format";

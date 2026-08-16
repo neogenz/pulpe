@@ -3,12 +3,12 @@ import { create } from "zustand";
 import { normalizeApiError } from "@/core/api/api-error";
 import {
   clearAllKeys,
+  clearLegacyClientKey,
   clearSessionKey,
   disableBiometricUnlock,
   enableBiometricUnlock,
   hasBiometricKey,
   resolveViaBiometric,
-  restoreClientKey,
   storeClientKey,
 } from "@/core/crypto/client-key-manager";
 import { deriveClientKey } from "@/core/crypto/pbkdf2";
@@ -83,6 +83,7 @@ export async function bootstrapVault(): Promise<void> {
   setState({ bootstrapError: null });
 
   try {
+    await clearLegacyClientKey();
     const status = await fetchVaultStatus();
 
     if (!status.pinCodeConfigured) {
@@ -90,9 +91,8 @@ export async function bootstrapVault(): Promise<void> {
       return;
     }
 
-    const restored = await restoreClientKey();
     setState({
-      status: restored ? "unlocked" : "locked",
+      status: "locked",
       isBiometricAvailable: await hasBiometricKey(),
     });
   } catch (error) {

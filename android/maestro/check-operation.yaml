@@ -11,15 +11,19 @@ appId: app.pulpe.android
 env:
   LINE: Loyer
 ---
-- launchApp
-
 - extendedWaitUntil:
     visible: "Voir le détail du budget"
     timeout: 30000
 - tapOn: "Voir le détail du budget"
+- tapOn: "Tout"
 
 # The circle carries the state in its accessibility label, which is the only
 # place the two states are named in words.
+- runFlow:
+    when:
+      visible: "Pointé · ${LINE}"
+    commands:
+      - tapOn: "Pointé · ${LINE}"
 - extendedWaitUntil:
     visible: "À pointer · ${LINE}"
     timeout: 30000

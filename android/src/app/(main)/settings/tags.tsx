@@ -24,7 +24,7 @@ import {
   useDeleteTag,
   useRenameTag,
   useTags,
-} from "@/core/tags/tag-queries";
+} from "@/features/tags/tag-queries";
 import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { ROW_ACTION_ICON_SIZE, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";

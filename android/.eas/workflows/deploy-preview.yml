@@ -1,12 +1,16 @@
-name: Android preview
+name: Android preview build
 
-# Not wired to pull_request: the Android app lives in a pnpm monorepo where
-# most PRs never touch `android/`, and each one would still pay for a build.
-# Push an `android/**` branch, or run it by hand from the EAS dashboard.
 on:
-  push:
-    branches: ["claude/android-*", "feat/android-*"]
-  workflow_dispatch:
+  pull_request:
+    branches: [preview, main]
+    paths:
+      - android/**
+      - shared/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - turbo.json
+  workflow_dispatch: {}
 
 jobs:
   build:
@@ -15,18 +19,3 @@ jobs:
     params:
       platform: android
       profile: preview
-
-  e2e:
-    name: Journeys that must never break
-    type: maestro
-    needs: [build]
-    params:
-      build_id: ${{ needs.build.outputs.build_id }}
-      # `onboarding.yaml` is deliberately absent: it registers a real account
-      # against the API, so running it on every push would seed the database
-      # with a build's worth of throwaway users. Run it by hand before a
-      # release, against a disposable address.
-      flow_path:
-        - maestro/login-vault.yaml
-        - maestro/check-operation.yaml
-      record_screen: true

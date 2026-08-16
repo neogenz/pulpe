@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import type { ReactNode, Ref } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -27,6 +27,34 @@ interface FadingRailProps {
   accessibilityLabel?: string;
 }
 
+interface RailEdges {
+  hasLeading: boolean;
+  hasTrailing: boolean;
+}
+
+const INITIAL_EDGES: RailEdges = {
+  hasLeading: false,
+  hasTrailing: false,
+};
+
+export function nextRailEdges(
+  current: RailEdges,
+  offset: number,
+  contentWidth: number,
+  railWidth: number,
+): RailEdges {
+  const overflow = contentWidth - railWidth;
+  const next = {
+    hasLeading: offset > 1,
+    hasTrailing: overflow > 1 && offset < overflow - 1,
+  };
+
+  return next.hasLeading === current.hasLeading &&
+    next.hasTrailing === current.hasTrailing
+    ? current
+    : next;
+}
+
 /**
  * A row that runs from one display edge to the other and says so.
  *
@@ -49,13 +77,23 @@ export function FadingRail({
   accessibilityLabel,
 }: FadingRailProps) {
   const theme = useTheme();
-  const [offset, setOffset] = useState(0);
-  const [contentWidth, setContentWidth] = useState(0);
-  const [railWidth, setRailWidth] = useState(0);
+  const offset = useRef(0);
+  const contentWidth = useRef(0);
+  const railWidth = useRef(0);
+  const edgesRef = useRef<RailEdges>(INITIAL_EDGES);
+  const [edges, setEdges] = useState(INITIAL_EDGES);
 
-  const overflow = contentWidth - railWidth;
-  const hasLeading = offset > 1;
-  const hasTrailing = offset < overflow - 1;
+  function updateEdges() {
+    const next = nextRailEdges(
+      edgesRef.current,
+      offset.current,
+      contentWidth.current,
+      railWidth.current,
+    );
+    if (next === edgesRef.current) return;
+    edgesRef.current = next;
+    setEdges(next);
+  }
 
   const opaque = background ?? theme.colors.background;
   const clear = `${opaque}00`;
@@ -63,9 +101,10 @@ export function FadingRail({
   return (
     <View
       accessibilityLabel={accessibilityLabel}
-      onLayout={(event: LayoutChangeEvent) =>
-        setRailWidth(event.nativeEvent.layout.width)
-      }
+      onLayout={(event: LayoutChangeEvent) => {
+        railWidth.current = event.nativeEvent.layout.width;
+        updateEdges();
+      }}
     >
       <ScrollView
         ref={scrollRef}
@@ -74,15 +113,19 @@ export function FadingRail({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}
         scrollEventThrottle={16}
-        onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) =>
-          setOffset(event.nativeEvent.contentOffset.x)
-        }
-        onContentSizeChange={setContentWidth}
+        onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+          offset.current = event.nativeEvent.contentOffset.x;
+          updateEdges();
+        }}
+        onContentSizeChange={(width) => {
+          contentWidth.current = width;
+          updateEdges();
+        }}
       >
         {children}
       </ScrollView>
 
-      {hasLeading && (
+      {edges.hasLeading && (
         <LinearGradient
           pointerEvents="none"
           colors={[opaque, clear]}
@@ -92,7 +135,7 @@ export function FadingRail({
         />
       )}
 
-      {hasTrailing && (
+      {edges.hasTrailing && (
         <LinearGradient
           pointerEvents="none"
           colors={[clear, opaque]}

@@ -26,6 +26,7 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { FadingRail } from "@/core/ui/fading-rail";
+import { InlineQueryError } from "@/core/ui/inline-query-error";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { Amount } from "@/core/ui/amount";
 import { SPACING } from "@/core/ui/theme";
@@ -81,6 +82,21 @@ export default function TemplateDetailScreen() {
     );
   }
 
+  if (template.isError || lines.isError) {
+    return (
+      <PlaceholderScreen
+        icon="cloud-off-outline"
+        title="On n'a pas pu charger ce modèle"
+        hint="Vérifie ta connexion, puis réessaie."
+        action={{
+          label: "Réessayer",
+          onPress: () =>
+            void Promise.all([template.refetch(), lines.refetch()]),
+        }}
+      />
+    );
+  }
+
   if (template.data === undefined) {
     return (
       <PlaceholderScreen
@@ -94,10 +110,10 @@ export default function TemplateDetailScreen() {
 
   const list = lines.data ?? [];
   const totals = BudgetFormulas.calculateTemplateTotals(list);
-  // Zero until the usage answers: an edit that silently propagated would be
-  // worse than one that asks a question too late.
-  const propagationCount =
-    usage.data === undefined ? 0 : propagationBudgetCount(usage.data);
+  const isUsageReady = usage.data !== undefined && !usage.isError;
+  const propagationCount = isUsageReady
+    ? propagationBudgetCount(usage.data)
+    : 0;
 
   return (
     <SafeAreaView
@@ -184,18 +200,32 @@ export default function TemplateDetailScreen() {
             épargne pour qu&apos;il puisse servir de mois type.
           </Text>
         ) : (
-          <TemplateLines
-            lines={list}
-            currency={currency}
-            isDeleting={removeLine.isPending}
-            onEdit={setEditedLine}
-            onDelete={setDeletedLine}
-          />
+          <View pointerEvents={isUsageReady ? "auto" : "none"}>
+            <TemplateLines
+              lines={list}
+              currency={currency}
+              isDeleting={removeLine.isPending || !isUsageReady}
+              onEdit={isUsageReady ? setEditedLine : () => undefined}
+              onDelete={isUsageReady ? setDeletedLine : () => undefined}
+            />
+          </View>
         )}
 
-        <Button mode="outlined" icon="plus" onPress={() => setAdding(true)}>
+        <Button
+          mode="outlined"
+          icon="plus"
+          disabled={!isUsageReady}
+          onPress={() => setAdding(true)}
+        >
           Ajouter une prévision
         </Button>
+
+        {usage.isError && (
+          <InlineQueryError
+            message="Impossible de vérifier les budgets liés à ce modèle."
+            onRetry={() => void usage.refetch()}
+          />
+        )}
 
         {usage.data !== undefined && usage.data.budgets.length > 0 && (
           <View style={styles.usage}>
@@ -239,7 +269,7 @@ export default function TemplateDetailScreen() {
         />
       )}
 
-      {isAdding && (
+      {isAdding && isUsageReady && (
         <TemplateLineSheet
           isVisible
           onDismiss={() => setAdding(false)}
@@ -250,7 +280,7 @@ export default function TemplateDetailScreen() {
         />
       )}
 
-      {editedLine !== null && (
+      {editedLine !== null && isUsageReady && (
         <TemplateLineSheet
           isVisible
           onDismiss={() => setEditedLine(null)}
@@ -264,7 +294,7 @@ export default function TemplateDetailScreen() {
 
       <Portal>
         <Dialog
-          visible={deletedLine !== null}
+          visible={deletedLine !== null && isUsageReady}
           onDismiss={() => setDeletedLine(null)}
         >
           <Dialog.Title>Supprimer cette prévision ?</Dialog.Title>
@@ -278,7 +308,7 @@ export default function TemplateDetailScreen() {
             <Button onPress={() => setDeletedLine(null)}>Annuler</Button>
             <Button
               onPress={() => {
-                if (deletedLine === null) return;
+                if (deletedLine === null || !isUsageReady) return;
                 removeLine.mutate(
                   { templateId: id, lineId: deletedLine.id },
                   { onSuccess: () => setDeletedLine(null) },

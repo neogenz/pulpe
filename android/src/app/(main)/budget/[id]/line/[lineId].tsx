@@ -23,8 +23,8 @@ import { RECURRENCE_LABELS } from "@/core/ui/vocabulary";
 import { Amount } from "@/core/ui/amount";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
-import { useTags } from "@/core/tags/tag-queries";
-import { tagSummary } from "@/core/tags/tag-selection";
+import { useTags } from "@/features/tags/tag-queries";
+import { tagSummary } from "@/features/tags/tag-selection";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName, ofMonth } from "@/core/ui/date-format";

@@ -3,24 +3,23 @@
 # The one that must never break: the vault is the only screen in Pulpe with no
 # way around it, so a user who cannot get past the PIN has no app at all.
 #
-# Credentials come from the environment; the defaults are the local seed
-# account (`backend-nest/supabase/seed.sql`), which exists nowhere else.
-#   maestro test -e EMAIL=… -e PASSWORD=… -e PIN=1234 maestro/login-vault.yaml
+# GitHub Actions injects protected MAESTRO_* secrets. Local runs fall back to
+# the seed account (`backend-nest/supabase/seed.sql`), which exists nowhere else.
 appId: app.pulpe.android
 env:
-  EMAIL: demo@pulpe.test
-  PASSWORD: local-demo-only
-  PIN: "1234"
+  EMAIL: ${MAESTRO_EMAIL || "demo@pulpe.test"}
+  PASSWORD: ${MAESTRO_PASSWORD || "local-demo-only"}
+  PIN: ${MAESTRO_PIN || "1234"}
 ---
 - launchApp:
     clearState: true
 
-# A device that has never onboarded gets the pitch before the form.
-- runFlow:
-    when:
-      visible: "J'ai déjà un compte"
-    commands:
-      - tapOn: "J'ai déjà un compte"
+# Clearing the app state always restores the pitch before the form. Wait for
+# React Native's first frame instead of treating a slow cold start as a skip.
+- extendedWaitUntil:
+    visible: "J'ai déjà un compte"
+    timeout: 30000
+- tapOn: "J'ai déjà un compte"
 
 - assertVisible: "Content de te revoir"
 

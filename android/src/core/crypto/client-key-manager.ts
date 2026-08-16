@@ -5,11 +5,8 @@ import { isValidClientKeyHex } from "./client-key-format";
 /**
  * Owns the client key's lifetime, mirroring `ClientKeyManager.swift`.
  *
- * Two slots, because they answer different questions:
+ * One persistent slot, because a cold launch must always relock the vault:
  *
- * - **standard** survives a relaunch without prompting, so the app can keep
- *   working after the OS reclaims it. Locking the vault is an app-lifecycle
- *   decision, not a storage one.
  * - **biometric** is gated behind the device's own authentication and is what
  *   makes "unlock with your fingerprint" possible without ever re-deriving from
  *   the PIN. It deliberately survives `clearSession`, so a locked vault can
@@ -54,12 +51,10 @@ async function readSlot(
   return stored;
 }
 
-/** Repopulates the cache from the standard slot. No user interaction. */
-export async function restoreClientKey(): Promise<string | null> {
-  if (cachedClientKeyHex !== null) return cachedClientKeyHex;
-
-  cachedClientKeyHex = await readSlot(STANDARD_KEY_SLOT);
-  return cachedClientKeyHex;
+/** Cold-start migration: a legacy ungated key must never unlock the vault. */
+export async function clearLegacyClientKey(): Promise<void> {
+  cachedClientKeyHex = null;
+  await SecureStore.deleteItemAsync(STANDARD_KEY_SLOT);
 }
 
 export async function hasBiometricKey(): Promise<boolean> {
@@ -71,8 +66,8 @@ export async function hasBiometricKey(): Promise<boolean> {
 }
 
 /**
- * Prompts for biometric authentication and, on success, mirrors the key into
- * the standard slot so the rest of the session needs no further prompts.
+ * Prompts for biometric authentication and keeps the key in memory for the
+ * rest of the process.
  */
 export async function resolveViaBiometric(): Promise<string | null> {
   const hex = await readSlot(BIOMETRIC_KEY_SLOT, {
@@ -82,7 +77,6 @@ export async function resolveViaBiometric(): Promise<string | null> {
   if (hex === null) return null;
 
   cachedClientKeyHex = hex;
-  await SecureStore.setItemAsync(STANDARD_KEY_SLOT, hex);
   return hex;
 }
 
@@ -92,7 +86,6 @@ export async function storeClientKey(
   { enableBiometric }: { enableBiometric: boolean },
 ): Promise<void> {
   cachedClientKeyHex = clientKeyHex;
-  await SecureStore.setItemAsync(STANDARD_KEY_SLOT, clientKeyHex);
 
   if (enableBiometric) {
     await enableBiometricUnlock();

@@ -59,10 +59,38 @@ function requiredEnvironment(): AppEnvironment {
   return environment;
 }
 
+function requiredServiceUrl(
+  name: "API_BASE_URL" | "SUPABASE_URL",
+  environment: AppEnvironment,
+): string {
+  const value = requiredValue(name);
+  let url: URL;
+
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`Invalid EXPO_PUBLIC_${name} URL.`);
+  }
+
+  const isLoopback = ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+  if (
+    url.protocol !== "https:" &&
+    !(environment === "local" && url.protocol === "http:" && isLoopback)
+  ) {
+    throw new Error(
+      `EXPO_PUBLIC_${name} must use HTTPS; local HTTP is limited to loopback hosts.`,
+    );
+  }
+
+  return value;
+}
+
+const environment = requiredEnvironment();
+
 export const ENV = {
-  environment: requiredEnvironment(),
-  apiBaseUrl: requiredValue("API_BASE_URL"),
-  supabaseUrl: requiredValue("SUPABASE_URL"),
+  environment,
+  apiBaseUrl: requiredServiceUrl("API_BASE_URL", environment),
+  supabaseUrl: requiredServiceUrl("SUPABASE_URL", environment),
   supabaseAnonKey: requiredValue("SUPABASE_ANON_KEY"),
   // Optional, unlike the rest: sign-in by e-mail has to keep working on a
   // build where Google is not wired up yet. The button hides instead.
