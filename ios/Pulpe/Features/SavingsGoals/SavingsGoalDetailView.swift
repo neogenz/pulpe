@@ -142,9 +142,7 @@ struct SavingsGoalDetailView: View {
     private func content(progress: SavingsGoalProgress) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                header(progress: progress)
-
-                GoalProgressCard(progress: progress, currency: currency)
+                hero(progress)
                 if progress.linkedLineCount == 0 {
                     GoalEmptyGuidanceCard()
                 }
@@ -193,6 +191,17 @@ struct SavingsGoalDetailView: View {
         .sheet(isPresented: $isSimulating, onDismiss: openPendingSimulatorBudget) {
             simulator(progress: progress)
         }
+    }
+
+    private func hero(_ progress: SavingsGoalProgress) -> some View {
+        GoalProgressHero(
+            presentation: GoalHeroPresentation(
+                progress: progress,
+                status: currentGoal.status,
+                currency: currency
+            ),
+            status: currentGoal.status
+        )
     }
 
     private func simulator(progress: SavingsGoalProgress) -> some View {
@@ -297,36 +306,6 @@ struct SavingsGoalDetailView: View {
         return AppLocale.string(
             "Projection après création : \((progress.plannedProjection + added).asCompactCurrency(currency))"
         )
-    }
-
-    // MARK: - Header
-
-    @ViewBuilder
-    private func header(progress: SavingsGoalProgress) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            SavingsGoalStatusBadge(status: currentGoal.status, showsIcon: true)
-
-            if let start = progress.startDateValue, let end = progress.targetDateValue {
-                Text(
-                    "\(start.abbreviatedDateFormatted)"
-                        + " → \(end.abbreviatedDateFormatted)"
-                )
-                .font(PulpeTypography.listRowSubtitle)
-                .foregroundStyle(Color.textTertiary)
-                .accessibilityIdentifier("savingsGoalDeadlineRange")
-            } else if let date = progress.targetDateValue {
-                Text("Échéance \(date.abbreviatedDateFormatted)")
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(Color.textTertiary)
-                    .accessibilityIdentifier("savingsGoalDeadlineDate")
-            } else if let date = progress.startDateValue {
-                Text("Depuis \(date.abbreviatedDateFormatted)")
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(Color.textTertiary)
-            }
-
-            Spacer(minLength: 0)
-        }
     }
 }
 
@@ -604,26 +583,17 @@ final class SavingsGoalDetailViewModel {
     /// No pace verdict before the first plan month has closed: a fresh goal has
     /// nothing to be judged on yet. Closed = server-locked (strictly-past cycle
     /// or everything pointé — same signal the timeline dims rows on).
-    static func hasClosedPlanMonth(_ months: [SavingsGoalPlanMonth]) -> Bool {
+    nonisolated static func hasClosedPlanMonth(_ months: [SavingsGoalPlanMonth]) -> Bool {
         months.contains { $0.isContributionEligible && $0.isLocked }
     }
 
     /// Amount for the day-1 « plan prêt » beat: the current month's planned
     /// amount. `nil` (beat hidden) when the timeline has no funded current
     /// month — legacy payload without `months`, or a gap month.
-    static func currentMonthPlannedAmount(_ months: [SavingsGoalPlanMonth]) -> Decimal? {
+    nonisolated static func currentMonthPlannedAmount(_ months: [SavingsGoalPlanMonth]) -> Decimal? {
         guard let amount = months.first(where: { $0.state == .current })?.plannedAmount,
               amount > 0 else { return nil }
         return amount
-    }
-
-    /// « requis ≈ prévu » band for the deadline stat — same ±5 % relative
-    /// tolerance as the server's pace verdict (`PACE_TOLERANCE_PERCENT`), so
-    /// the stat never contradicts the verdict shown above it. Outside the band
-    /// the stat becomes one sentence relating both rhythms.
-    static func requiredMatchesPlannedPace(planned: Decimal, required: Decimal) -> Bool {
-        guard planned > 0 else { return required <= 0 }
-        return abs(required - planned) <= planned * SavingsGoalProgress.paceTolerancePercent / 100
     }
 
     static func recoveryAmount(_ progress: SavingsGoalProgress) -> Decimal? {

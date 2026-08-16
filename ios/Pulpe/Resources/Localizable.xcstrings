@@ -350,6 +350,28 @@
         }
       }
     },
+    "%@ de la cible épargné" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ deines Ziels gespart"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ of your target saved"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ dell'obiettivo risparmiato"
+          }
+        }
+      }
+    },
     "%@ de mieux que prévu" : {
       "localizations" : {
         "de" : {
@@ -3037,28 +3059,6 @@
       },
       "shouldTranslate" : false
     },
-    "%lld%% de la cible épargné" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%% des Zielbetrags gespart"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%% of the target saved"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%% del traguardo risparmiato"
-          }
-        }
-      }
-    },
     "%lld%% utilisé" : {
       "localizations" : {
         "de" : {
@@ -5087,6 +5087,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Almeno una lettera"
+          }
+        }
+      }
+    },
+    "Au niveau de la cible" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Zielkurs"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On target"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In linea con l'obiettivo"
+          }
+        }
+      }
+    },
+    "Au-dessus de la cible" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über deinem Ziel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Above your target"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sopra il tuo obiettivo"
           }
         }
       }
@@ -10387,6 +10431,28 @@
         }
       }
     },
+    "Dont %@ de départ" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Davon %@ Startbetrag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Including %@ you started with"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di cui %@ di partenza"
+          }
+        }
+      }
+    },
     "Dès que tu dépenses, pointe-le en un tap. 10 secondes, et ton « disponible à dépenser » reste toujours juste." : {
       "localizations" : {
         "de" : {
@@ -10675,28 +10741,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Già spuntato"
-          }
-        }
-      }
-    },
-    "Déjà prévu" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schon eingeplant"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Already planned"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Già previsto"
           }
         }
       }
@@ -11177,28 +11221,6 @@
         }
       }
     },
-    "En avance" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vor dem Plan"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ahead"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In anticipo"
-          }
-        }
-      }
-    },
     "En continuant, tu acceptes nos %@ et confirmes avoir pris connaissance de notre %@." : {
       "localizations" : {
         "de" : {
@@ -11273,6 +11295,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Creando il tuo account, accetti le nostre %@ e confermi di aver preso visione della nostra %@."
+          }
+        }
+      }
+    },
+    "En dessous de la cible" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unter deinem Ziel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Below your target"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sotto il tuo obiettivo"
           }
         }
       }
@@ -15751,28 +15795,6 @@
         }
       }
     },
-    "Montant de départ" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Startbetrag"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Starting amount"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importo di partenza"
-          }
-        }
-      }
-    },
     "Montant de départ (optionnel)" : {
       "localizations" : {
         "de" : {
@@ -18793,28 +18815,6 @@
         }
       }
     },
-    "Pour tenir ton échéance" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Um deine Frist zu halten"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "To make your deadline"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Per rispettare la scadenza"
-          }
-        }
-      }
-    },
     "Premier mois" : {
       "localizations" : {
         "de" : {
@@ -19037,28 +19037,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Proiezione del mese · %@%@"
-          }
-        }
-      }
-    },
-    "Projection du plan" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plan-Prognose"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plan projection"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Proiezione del piano"
           }
         }
       }
@@ -22897,28 +22875,6 @@
         }
       }
     },
-    "Sur la bonne voie" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auf Kurs"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "On track"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sulla buona strada"
-          }
-        }
-      }
-    },
     "Synchronisation en cours" : {
       "localizations" : {
         "de" : {
@@ -23995,24 +23951,24 @@
         }
       }
     },
-    "Ton plan est prêt — %@ à mettre de côté ce mois." : {
+    "Ton plan est prêt : %@ à mettre de côté ce mois." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dein Plan steht — %@ zum Zurücklegen diesen Monat."
+            "value" : "Dein Plan steht: %@ zum Zurücklegen diesen Monat."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your plan is ready — %@ to set aside this month."
+            "value" : "Your plan is ready: %@ to set aside this month."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il tuo piano è pronto — %@ da mettere da parte questo mese."
+            "value" : "Il tuo piano è pronto: %@ da mettere da parte questo mese."
           }
         }
       }
@@ -24035,6 +23991,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il tuo piano è aggiornato"
+          }
+        }
+      }
+    },
+    "Ton plan te mène à %@ au total." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Plan bringt dich auf insgesamt %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your plan takes you to %@ in total."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo piano ti porta a %@ in totale."
+          }
+        }
+      }
+    },
+    "Ton plan te mène à %@ à l'échéance." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Plan bringt dich bis zur Frist auf %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your plan takes you to %@ by the deadline."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo piano ti porta a %@ entro la scadenza."
           }
         }
       }
@@ -24101,62 +24101,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il tuo nome"
-          }
-        }
-      }
-    },
-    "Ton rythme prévu : %@/mois · pour finir le %@, vise %@/mois" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dein geplantes Tempo: %@/Monat · um am %@ fertig zu sein, peil %@/Monat an"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your planned pace: %@/month · to finish by %@, aim for %@/month"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Ton rythme prévu : %1$@/mois · pour finir le %2$@, vise %3$@/mois"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il tuo ritmo previsto: %@/mese · per finire entro il %@, punta a %@/mese"
-          }
-        }
-      }
-    },
-    "Ton rythme prévu : %@/mois · pour tenir ton échéance, vise %@/mois" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dein geplantes Tempo: %@/Monat · um deine Frist zu halten, peil %@/Monat an"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your planned pace: %@/month · to hit your deadline, aim for %@/month"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Ton rythme prévu : %1$@/mois · pour tenir ton échéance, vise %2$@/mois"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il tuo ritmo previsto: %@/mese · per rispettare la scadenza, punta a %@/mese"
           }
         }
       }
@@ -25569,28 +25513,6 @@
         }
       }
     },
-    "Un peu en retrait" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Etwas zurück"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A bit behind"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un po' indietro"
-          }
-        }
-      }
-    },
     "Un plan clair pour chaque mois" : {
       "localizations" : {
         "de" : {
@@ -26121,6 +26043,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Versione %@ - %@"
+          }
+        }
+      }
+    },
+    "Vise %@/mois pour finir le %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peil %@/Monat an, um am %@ fertig zu sein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aim for %@/month to finish by %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Punta a %@/mese per finire entro il %@."
           }
         }
       }

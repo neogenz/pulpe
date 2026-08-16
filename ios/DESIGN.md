@@ -301,7 +301,7 @@ Live tokens: `ios/Pulpe/Shared/Styles/Typography.swift`.
 
 **The Two-Decimals Rule (Budget Detail page).** On the iOS Budget Detail page, all currency amounts render with two decimals (`1'234.56 CHF`). `asCompactCurrency` (the rounded compact format) is **prohibited** in this context. Other surfaces apply the dual aggregation/ligne policy from the project's currency-formatting rule.
 
-**The Hero Flat Rule.** The Budget Detail hero amount is `Manrope ExtraBold` rendered in `Color.textPrimary` (black on neutral). The hero is **flat** on the warm canvas — no surface, no border, no shadow. Color comes from the financial-state pill row beneath it, never from the hero number itself.
+**The Hero Flat Rule.** The Budget Detail hero amount is `Manrope ExtraBold` rendered in `Color.textPrimary` (black on neutral). The hero is **flat** on the warm canvas — no surface, no border, no shadow. Color comes from the financial-state pill row beneath it, never from the hero number itself. The savings-goal detail hero obeys the same rule: the confirmed amount is `amountHero` in `Color.textPrimary`, and the only colour on it comes from the progress bar underneath.
 
 ## 4. Elevation
 

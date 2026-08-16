@@ -119,19 +119,21 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
         achievementPercent.map { Double($0) / 100 }
     }
 
-    /// Progress fraction (0…1) of the full known plan against the target.
-    /// against a zero / undecrypted target (never divide by it — §4.3).
-    var plannedFraction: Double? {
-        guard let targetAmount else { return nil }
-        guard targetAmount > 0 else { return 0 }
-        let ratio = ((plannedProjection / targetAmount) as NSDecimalNumber).doubleValue
-        return min(max(ratio, 0), 1)
+    /// The one projection the UI shows: deadline-aware when the server computed
+    /// it, full known plan otherwise. Miroir web `displayedProjection`
+    /// (`savings-goal-detail-page.ts`) — both clients name a single figure, so
+    /// the bar, the sentence and the verdict can never quote three different ones.
+    var displayedProjection: Decimal {
+        projected ?? plannedProjection
     }
 
-    /// Deadline projection fraction used by the current progress card.
-    var projectedFraction: Double {
-        guard let targetAmount, targetAmount > 0, let projected else { return 0 }
-        let ratio = ((projected / targetAmount) as NSDecimalNumber).doubleValue
+    /// Progress fraction (0…1) of `displayedProjection` against the target.
+    /// `nil` without a target, 0 against a zero / undecrypted one (never divide
+    /// by it — §4.3).
+    var displayedProjectionFraction: Double? {
+        guard let targetAmount else { return nil }
+        guard targetAmount > 0 else { return 0 }
+        let ratio = ((displayedProjection / targetAmount) as NSDecimalNumber).doubleValue
         return min(max(ratio, 0), 1)
     }
 

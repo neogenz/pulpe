@@ -304,33 +304,6 @@ struct SavingsGoalDetailViewModelTests {
         #expect(amount == 250)
     }
 
-    // MARK: - Deadline stat vs planned pace (one sentence when they diverge)
-
-    @Test("required within the ±5 % verdict band keeps the simple stat form")
-    func requiredMatchesPlannedPace_withinBand_isTrue() {
-        let atEdge = SavingsGoalDetailViewModel.requiredMatchesPlannedPace(planned: 200, required: 210)
-        let equal = SavingsGoalDetailViewModel.requiredMatchesPlannedPace(planned: 200, required: 200)
-
-        #expect(atEdge == true)
-        #expect(equal == true)
-    }
-
-    @Test("required drifting past the band switches to the reconciliation sentence")
-    func requiredMatchesPlannedPace_outsideBand_isFalse() {
-        let above = SavingsGoalDetailViewModel.requiredMatchesPlannedPace(planned: 200, required: 334)
-        let below = SavingsGoalDetailViewModel.requiredMatchesPlannedPace(planned: 200, required: 150)
-
-        #expect(above == false)
-        #expect(below == false)
-    }
-
-    @Test("a zero planned pace never matches a positive required amount")
-    func requiredMatchesPlannedPace_zeroPlanned_isFalse() {
-        let matches = SavingsGoalDetailViewModel.requiredMatchesPlannedPace(planned: 0, required: 100)
-
-        #expect(matches == false)
-    }
-
     private func makeContribution() -> SavingsGoalContribution {
         SavingsGoalContribution(
             lineId: "line-1",

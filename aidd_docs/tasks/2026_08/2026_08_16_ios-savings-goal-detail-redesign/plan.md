@@ -1,0 +1,33 @@
+---
+objective: "L'écran iOS de détail d'un objectif d'épargne lit en un coup d'œil : un hero plat qui répond « où j'en suis », puis des sections nommées comme sur la home, sans carte sur carte, sans icône décorative, sans doublon de chiffre."
+status: in-progress
+---
+
+# Plan: Alléger l'écran iOS de détail d'objectif d'épargne
+
+## Overview
+
+| Field      | Value                                                                                                                                                                                                                                                                                                             |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Goal**   | Remplacer `GoalProgressCard` par un hero plat porté par une projection pure, aligner les sections de l'écran sur la grammaire de la home (`SectionHeader` partagé), désaturer le chart et regrouper les historiques en une carte par groupe. iOS uniquement, aucune règle métier ne change.                          |
+| **Source** | Retour Maxime sur `appstore-screenshots/08-objectif-macbook-pro.png` : premier bloc « trop lourd, trop chargé, pas lisible », écran entier « complexe, AI slop ». Diagnostic : 4 lentilles analytiques et ~8 chiffres dans la première carte, carte sur carte, titres tantôt dedans tantôt dehors, icônes décoratives. |
+
+## Phases
+
+| #   | Phase                                                                                    | File                         |
+| --- | ---------------------------------------------------------------------------------------- | ---------------------------- |
+| 1   | Hero plat : `GoalProgressHero` + `GoalHeroPresentation`, une projection unique           | [`phase-1.md`](./phase-1.md) |
+| 2   | Grammaire des sections : `SectionHeader` promu dans `Shared/`, adopté par l'objectif     | [`phase-2.md`](./phase-2.md) |
+| 3   | Trajectoire : chart sur tokens, encre unique, tick d'échéance visible, verdict d'écart   | [`phase-3.md`](./phase-3.md) |
+| 4   | Historiques en ledger : « Ton suivi » et « Retraits » en une carte par groupe            | [`phase-4.md`](./phase-4.md) |
+
+## Decisions
+
+| Decision                                                                                                                                                                                             | Why                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Le premier bloc devient un **hero plat** sur le canvas (Hero Flat Rule de `ios/DESIGN.md`), montant `amountHero` en `textPrimary`, pas de carte.                                                      | C'est déjà la règle du Budget Detail ; la carte mint sur canvas chaud avec un montant de la taille des lignes est ce qui donne le « chargé ». Une deuxième grammaire de hero dans l'app serait une dette de design.                                                                                                                       |
+| **Une seule projection** affichée partout : `displayedProjection = projected ?? plannedProjection`, portée par le modèle `SavingsGoalProgress`, remplace `plannedFraction`/`projectedFraction`.       | Le web fait exactement ce choix (`savings-goal-detail-page.ts`, `displayedProjection`). Aujourd'hui iOS montre « Projection du plan » (plannedProjection) ET peint la barre avec plannedFraction ET colle une pastille légende sur « Déjà prévu » : trois encodages du même « où mène le plan », dont un faux.                             |
+| Le rythme requis n'apparaît que quand le plan **ne mène pas** à la cible (`displayedProjection < targetAmount`) ; `requiredMatchesPlannedPace` et sa bande ±5 % disparaissent.                        | Quand le plan suffit, « Pour tenir ton échéance : 300/mois » ne fait que répéter le plan sous un autre nom. Une seule condition dérivée du modèle, pas de bande de tolérance côté client à maintenir en miroir du serveur.                                                                                                                 |
+| Vocabulaire du verdict : le hero parle **cible** (« Au-dessus / Au niveau / En dessous de la cible », comme le web) ; la trajectoire parle **plan** (« En avance / En retard sur ton plan », « Pile sur ton plan »). | Aujourd'hui « En avance » (hero, réel vs plan) et « Tu es en avance de » (trajectoire, réel vs plan cumulé) se lisent comme la même info dite deux fois. Nommer le référent dans chaque libellé rend les deux lentilles distinguables ; parité web sur les libellés du hero.                                                               |
+| `HomeSectionHeader` est **promu** en `Shared/Components/SectionHeader.swift` (rename, `Features/X → Features/Y` interdit) au lieu d'être recopié dans `SavingsGoals`.                                | Troisième usage identique → on enrichit le composant partagé (règle `ios/CLAUDE.md`). Un `GoalSectionHeader` copié aurait divergé au premier ajustement.                                                                                                                                                                                  |
+| Le chip de statut n'apparaît que quand le statut est **≠ actif** ; `showsIcon` retiré du badge.                                                                                                        | « Actif » avec une icône coche est de l'ornement : c'est l'état par défaut de 100 % des objectifs à la création. Le chip retrouve son sens quand il porte une info (En pause, Atteint).                                                                                                                                                    |
