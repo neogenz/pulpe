@@ -1,6 +1,6 @@
 ---
 objective: "Les défauts pré-release confirmés sont corrigés avec des tests de non-régression, et l’API refuse les mises à jour de paramètres qu’elle ne peut pas appliquer atomiquement."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corrections pré-release vérifiées
