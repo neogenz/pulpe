@@ -124,7 +124,15 @@ function buildPlannedProjection(
   currentIndex: number,
   confirmed: number,
   projected: number,
-  monthlyAmounts = months.map((month) => month.plannedAmount),
+  /**
+   * Solde de fin de mois faisant autorité, un par mois : `projectedCumulative`
+   * (serveur) en lecture, `simulatedCumulative` (calculateur) en simulation.
+   * Les deux retranchent déjà les retraits réels et annoncés — ce que la somme
+   * de repli, qui n'additionne que des contributions, ne peut pas voir : un
+   * mois portant un retrait continuait de grimper et seul le dernier point,
+   * réécrit plus bas, redescendait.
+   */
+  cumulatives?: readonly (number | undefined)[],
 ): (number | null)[] {
   const data: (number | null)[] = months.map(() => null);
   if (currentIndex < 0) return data;
@@ -139,8 +147,8 @@ function buildPlannedProjection(
   let cumulative = confirmed;
   for (let index = currentIndex; index <= lastIndex; index++) {
     const month = months[index];
-    cumulative += Math.max(0, monthlyAmounts[index] - month.confirmedAmount);
-    if (index > currentIndex) data[index] = cumulative;
+    cumulative += Math.max(0, month.plannedAmount - month.confirmedAmount);
+    if (index > currentIndex) data[index] = cumulatives?.[index] ?? cumulative;
   }
   // The server owns the canonical endpoint; this also absorbs float rounding.
   data[lastIndex] = projected;
@@ -185,9 +193,15 @@ export function buildGoalProjectionChartData(
         currentIndex,
         confirmed,
         draft.simulatedFinal,
-        draft.months.map((month) => month.simulatedAmount),
+        draft.months.map((month) => month.simulatedCumulative),
       )
-    : buildPlannedProjection(months, currentIndex, confirmed, projected);
+    : buildPlannedProjection(
+        months,
+        currentIndex,
+        confirmed,
+        projected,
+        months.map((month) => month.projectedCumulative),
+      );
 
   // Reality stops at the current month — a null tail keeps the line from
   // implying pointé data exists in the future.

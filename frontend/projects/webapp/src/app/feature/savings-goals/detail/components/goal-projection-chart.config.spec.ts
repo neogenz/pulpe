@@ -165,6 +165,62 @@ describe('buildGoalProjectionChartData', () => {
     expect(projection?.data).toEqual([null, 180, 360]);
   });
 
+  it('digs the planned projection into the month that announces a retrait', () => {
+    // Un retrait annoncé de 200 sur le troisième mois : le serveur le retranche
+    // dans `projectedCumulative` (280 → 80 → 180), et c'est là que la courbe
+    // doit plonger. En sommant les seules contributions elle lisait 280 et ne
+    // redescendait qu'au tout dernier point, réécrit par `projected`.
+    const withWithdrawal: SavingsGoalPlanMonth[] = [
+      makeMonth({
+        month: 1,
+        confirmedCumulative: 180,
+        projectedCumulative: 280,
+      }),
+      makeMonth({
+        month: 2,
+        state: 'current',
+        isLocked: false,
+        confirmedAmount: 20,
+        confirmedCumulative: 180,
+        projectedCumulative: 280,
+      }),
+      makeMonth({
+        month: 3,
+        state: 'future',
+        isLocked: false,
+        confirmedAmount: 0,
+        confirmedCumulative: 180,
+        plannedWithdrawalAmount: 200,
+        remainingPlannedWithdrawalAmount: 200,
+        projectedCumulative: 80,
+      }),
+      makeMonth({
+        month: 4,
+        state: 'future',
+        isLocked: false,
+        confirmedAmount: 0,
+        confirmedCumulative: 180,
+        projectedCumulative: 180,
+      }),
+    ];
+
+    const data = buildGoalProjectionChartData({
+      months: withWithdrawal,
+      draft: null,
+      targetAmount: 300,
+      confirmed: 180,
+      projected: 180,
+      theme,
+      locale: 'fr-CH',
+      labels,
+    });
+
+    const projection = data.datasets.find(
+      (d) => d.label === 'Projection planifiée',
+    );
+    expect(projection?.data).toEqual([null, 180, 80, 180]);
+  });
+
   it('follows the sandbox as the planned projection in simulation mode', () => {
     const draft: SavingsPlanSimulationResult = {
       months: months.map(
@@ -194,6 +250,51 @@ describe('buildGoalProjectionChartData', () => {
       (d) => d.label === 'Projection planifiée',
     );
     expect(projection?.data).toEqual([null, 180, 420]);
+  });
+
+  it('follows the sandbox down through a retrait too', () => {
+    // Même contrat côté simulation : `simulatedCumulative` nette déjà les
+    // retraits, et c'est le chiffre que chaque rangée éditable affiche — la
+    // courbe ne doit pas en dériver un second.
+    const fourMonths: SavingsGoalPlanMonth[] = [
+      ...months,
+      makeMonth({
+        month: 4,
+        state: 'future',
+        isLocked: false,
+        confirmedAmount: 0,
+      }),
+    ];
+    const draft: SavingsPlanSimulationResult = {
+      months: fourMonths.map(
+        (month, index): SavingsPlanSimulatedMonth => ({
+          ...month,
+          simulatedAmount: [100, 100, -100, 100][index],
+          simulatedCumulative: [180, 280, 180, 280][index],
+          isAdjusted: false,
+        }),
+      ),
+      simulatedFinal: 280,
+      gapToTarget: 20,
+      isTargetMet: false,
+      attainedPeriod: null,
+    };
+
+    const data = buildGoalProjectionChartData({
+      months: fourMonths,
+      draft,
+      targetAmount: 300,
+      confirmed: 180,
+      projected: 360,
+      theme,
+      locale: 'fr-CH',
+      labels,
+    });
+
+    const projection = data.datasets.find(
+      (d) => d.label === 'Projection planifiée',
+    );
+    expect(projection?.data).toEqual([null, 180, 180, 280]);
   });
 });
 

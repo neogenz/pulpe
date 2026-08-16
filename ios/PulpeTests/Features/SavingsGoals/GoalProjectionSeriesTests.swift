@@ -87,6 +87,40 @@ struct GoalProjectionSeriesTests {
         #expect(onPlan.amount == nil)
     }
 
+    /// The bug this pins: the curve used to be a running sum of contributions, so a
+    /// month that announced a retrait kept climbing and only the final point — which
+    /// the API owns — came back down. The dip has to be drawn where it happens.
+    @Test("a planned withdrawal digs into the projection on its own month")
+    func plannedWithdrawal_digsIntoTheProjectedCurve() {
+        let series = GoalProjectionSeries.read(from: makeProgressWithWithdrawal())
+
+        #expect(series.projection.map(\.index) == [1, 2, 3])
+        #expect(series.projection.map(\.value) == [85_000, 83_500, 84_000])
+    }
+
+    /// Same contract in the simulator, against the calculator instead of the API:
+    /// `simulatedCumulative` already nets the retraits out, and it is the very figure
+    /// each editable row prints — the curve must not derive a second one.
+    /// 500 confirmés, puis +500/mois avec un retrait de 1 500 sur le troisième mois :
+    /// 500 → 0 → 500. En sommant les seules contributions on lisait 500 → 1 500 → 500.
+    @Test("simulation projection follows the calculator down through a retrait")
+    func simulationProjection_followsTheCalculatorThroughAWithdrawal() throws {
+        let draft = try SavingsPlanCalculator.simulate(
+            timeline: makeSimulatableTimeline(withdrawalOnThirdMonth: 1_500),
+            targetAmount: 2_000,
+            globalMonthlyAmount: 500
+        )
+
+        let series = GoalProjectionSeries.simulation(
+            from: draft,
+            targetAmount: 2_000,
+            confirmedAmount: 500
+        )
+
+        #expect(draft.months.map(\.simulatedCumulative) == [500, 1_000, 0, 500])
+        #expect(series.projection.map(\.value) == [500, 0, 500])
+    }
+
     @Test("a targetless series keeps its data without inventing a chart target")
     func targetlessSeries_hasNoTargetRuleValue() {
         let series = GoalProjectionSeries.read(from: makeProgress(currentIndex: 1, targetAmount: nil))
@@ -94,6 +128,82 @@ struct GoalProjectionSeriesTests {
         #expect(series.target == nil)
         #expect(series.projection.count == 3)
         #expect(series.confirmed.count == 2)
+    }
+
+    /// Un mois passé pointé à 500, puis trois mois ouverts (`isProvisionable`, sans
+    /// quoi `isContributivePlanMonth` les écarterait de la simulation), le troisième
+    /// portant un retrait annoncé côté budget — pas piloté par le plan, sinon le
+    /// montant global le REMPLACE au lieu de s'y ajouter et rien n'est retranché.
+    private func makeSimulatableTimeline(withdrawalOnThirdMonth: Decimal) -> [SavingsGoalPlanMonth] {
+        (0..<4).map { offset in
+            let withdrawal: Decimal = offset == 2 ? withdrawalOnThirdMonth : 0
+            return SavingsGoalPlanMonth(
+                month: offset + 1,
+                year: 2099,
+                state: offset == 0 ? .past : (offset == 1 ? .current : .future),
+                isLocked: offset == 0,
+                isProvisionable: offset > 0,
+                plannedAmount: 500,
+                confirmedAmount: offset == 0 ? 500 : 0,
+                remainingPlannedWithdrawalAmount: withdrawal,
+                plannedCumulative: Decimal(500 * (offset + 1)),
+                confirmedCumulative: 500,
+                lines: []
+            )
+        }
+    }
+
+    /// Four months, the current one at index 1, and a 2 000 retrait announced on
+    /// index 2 — so the server's own `projectedCumulative` falls before it climbs
+    /// back: 85 000 → 83 500 → 84 000.
+    private func makeProgressWithWithdrawal() -> SavingsGoalProgress {
+        let months: [SavingsGoalPlanMonth] = (0..<4).map { offset in
+            let withdrawal: Decimal = offset == 2 ? 2_000 : 0
+            let projected: Decimal = switch offset {
+            case 2: 83_500
+            case 3: 84_000
+            default: 85_000
+            }
+            return SavingsGoalPlanMonth(
+                month: offset + 1,
+                year: 2099,
+                state: offset < 1 ? .past : (offset == 1 ? .current : .future),
+                isLocked: offset < 1,
+                plannedAmount: 500,
+                confirmedAmount: 0,
+                plannedWithdrawalAmount: withdrawal,
+                remainingPlannedWithdrawalAmount: withdrawal,
+                planLinkedWithdrawalAmount: withdrawal,
+                plannedCumulative: Decimal(500 * (offset + 1)),
+                confirmedCumulative: offset <= 1 ? 85_000 : 0,
+                projectedCumulative: projected,
+                lines: []
+            )
+        }
+        return SavingsGoalProgress(
+            goalId: "g1",
+            status: .active,
+            targetAmount: 2_000,
+            targetDate: "2099-04-01",
+            plannedCumulative: 500,
+            confirmed: 85_000,
+            achievementPercent: 43,
+            monthsElapsed: 2,
+            monthsRemaining: 3,
+            isOverdue: false,
+            pace: 500,
+            confirmedPace: 0,
+            required: 500,
+            projected: 84_000,
+            paceStatus: .behind,
+            suggestCompletion: false,
+            linkedLineCount: 1,
+            originalTargetAmount: nil,
+            originalCurrency: nil,
+            targetCurrency: nil,
+            exchangeRate: nil,
+            months: months
+        )
     }
 
     private func makeProgress(

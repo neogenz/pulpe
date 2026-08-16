@@ -291,11 +291,21 @@ struct GoalProjectionSeries: Equatable {
         if currentIndex == lastIndex {
             projection[0] = Point(index: currentIndex, value: double(projected))
         } else {
+            // `projectedCumulative` is the server's own end-of-month balance:
+            // confirmed acquired, remaining plan added, real AND announced
+            // withdrawals subtracted. The running sum below only ever adds
+            // contributions, so on its own a withdrawal month never dug into the
+            // curve — the line ran above the truth from that month on and the
+            // last point snapped down onto the API's endpoint. It survives as the
+            // fallback for a payload served before the field existed.
             var cumulative = progress.confirmed
             for index in currentIndex ... lastIndex {
                 cumulative += max(0, months[index].plannedAmount - months[index].confirmedAmount)
                 if index > currentIndex {
-                    projection.append(Point(index: index, value: double(cumulative)))
+                    projection.append(Point(
+                        index: index,
+                        value: double(months[index].projectedCumulative ?? cumulative)
+                    ))
                 }
             }
             // The API owns the canonical endpoint and absorbs decimal rounding.
@@ -330,12 +340,13 @@ struct GoalProjectionSeries: Equatable {
         if currentIndex == lastIndex {
             projection[0] = Point(index: currentIndex, value: double(result.simulatedFinal))
         } else {
-            var cumulative = confirmedAmount
-            for index in currentIndex ... lastIndex {
-                cumulative += max(0, months[index].simulatedAmount - months[index].month.confirmedAmount)
-                if index > currentIndex {
-                    projection.append(Point(index: index, value: double(cumulative)))
-                }
+            // Same rule as read mode: `simulatedCumulative` is the calculator's
+            // own end-of-month balance and already subtracts real and announced
+            // withdrawals, which a running sum of movements cannot see. It is
+            // also the figure each editable row displays, so the curve and the
+            // rows now quote one number instead of two.
+            for index in (currentIndex + 1) ... lastIndex {
+                projection.append(Point(index: index, value: double(months[index].simulatedCumulative)))
             }
             projection[projection.count - 1] = Point(index: lastIndex, value: double(result.simulatedFinal))
         }
