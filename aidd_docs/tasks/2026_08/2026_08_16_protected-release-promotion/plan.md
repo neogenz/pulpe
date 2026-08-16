@@ -1,6 +1,6 @@
 ---
 objective: "Remplacer le push de release administrateur par la promotion protégée d'un candidat unique, sans doubler la CI ni bloquer l'intégration continue sur preview."
-status: blocked
+status: in-progress
 ---
 
 # Plan: Promotion de release Pulpe protégée et agentique
@@ -25,7 +25,7 @@ Audit GitHub Actions du 17 juillet au 16 août 2026 :
 | Consommation observée | Échantillon de 11 runs réussis : médiane 36,1 runner-min, dont 11,4 macOS                            | Ordre de grandeur évitable : ~2 800 runner-min et ~880 min macOS par mois, avant le faible coût des gates légers.        |
 | Coût monétaire        | Dépôt public, runners GitHub standard                                                                | Gain direct actuel : 0 USD ; le bénéfice porte sur les files, le feedback, la lisibilité et la sécurité du processus.    |
 
-La décision de cutover reste réversible : `Staging Ready` fonctionne d'abord en observation pendant cinq fusions consécutives, dont une canary de release. La CI post-merge actuelle n'est retirée qu'après concordance des preuves.
+La décision de cutover reste réversible : le nouveau flux est implémenté à côté du flux actuel, puis validé par la première vraie release utilisée comme canary. Aucun merge artificiel n'est requis et la CI post-merge actuelle n'est retirée qu'après le succès complet de cette canary.
 
 ## Phases
 
@@ -53,7 +53,7 @@ La décision de cutover reste réversible : `Staging Ready` fonctionne d'abord e
 | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Conserver Changesets CLI en mode `fixed` et la logique produit actuelle de `/release`.                           | Pulpe publie une seule version cohérente sur cinq packages, quatre langues et iOS ; `changesets/action` ne couvre pas seul ce contrat.                                           |
 | Valider complètement les PR vers `preview`, puis prouver l'identité de l'arbre et des déploiements après fusion. | La seconde compilation du même contenu apporte peu ; l'arbre Git et les SHA fournisseurs répondent précisément au risque de drift.                                               |
-| Observer `Staging Ready` sur cinq fusions avant de retirer la CI `push`.                                         | Le gain est réel mais modéré ; un cutover progressif évite de remplacer une duplication coûteuse par une preuve fragile.                                                         |
+| Valider `Staging Ready` sur la première vraie release canary avant de retirer la CI `push`.                      | Les échecs fermés déjà observés couvrent le drift et la preuve absente ; une canary réelle valide le chemin heureux sans imposer de merges artificiels.                          |
 | Utiliser une seule branche logique `release/vX.Y.Z` et un seul commit de version.                                | La PR vers `preview` valide le candidat ; après son merge commit, la branche avance en fast-forward sur ce commit puis sert sans nouvelle modification à la PR vers `main`.      |
 | Suspendre les autres auto-merges seulement entre le merge du candidat et sa preuve `Staging Ready`.              | Railway preview expose un domaine partagé. Après capture de la preuve du déploiement exact, `preview` peut avancer sans modifier le candidat figé.                               |
 | Garder exactement deux environnements permanents : preview et production.                                        | Un environnement release-candidate dédié complexifierait Vercel, Railway, Supabase et les secrets pour un besoin couvert par une courte fenêtre de stabilisation.                |

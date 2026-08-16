@@ -25,9 +25,9 @@ flowchart TD
   B --> C["Artifact minimal : PR, run, SHA et tree testés"]
   C --> D["Fusion vers preview"]
   D --> E["CI push actuelle et Staging Ready shadow en parallèle"]
-  E --> F{"Cinq preuves consécutives concordantes ?"}
-  F -->|Non| G["Corriger la preuve sans changer le flux actuel"]
-  F -->|Oui| H["Autoriser le cutover de la phase 2"]
+  E --> F{"Première vraie release canary concordante ?"}
+  F -->|Non| G["Conserver l'ancien flux et corriger la preuve"]
+  F -->|Oui| H["Autoriser le cutover"]
 ```
 
 ## Test Scope
@@ -41,7 +41,7 @@ journey
     Activer la preuve en shadow sans la rendre requise => CI actuelle inchangee: 5: system
   section Happy path
     Fusionner une PR a jour => arbre teste egal arbre fusionne et deployements au bon SHA: 5: system
-    Verifier cinq fusions dont une canary release => concordance documentee avant cutover: 5: system
+    Vérifier la première vraie release canary => concordance documentée avant cutover: 5: system
   section Edge case - drift
     Modifier la base ou servir un autre SHA => Staging Ready shadow echoue sans bloquer la CI actuelle: 1: system
   section Edge case - contribution publique
@@ -75,11 +75,12 @@ journey
 
 > Ne retirer la duplication que si la preuve légère reproduit correctement le verdict utile.
 
-1. Observer cinq fusions consécutives comprenant frontend/backend, iOS si possible et une PR canary structurée comme une release.
-2. Exiger zéro faux positif, zéro preuve ambiguë et une concordance entre le SHA/tree annoncé, les déploiements actifs et la CI post-merge actuelle.
-3. Mesurer le temps de `Staging Ready` et confirmer que son coût est nettement inférieur à une matrice complète médiane de 36 runner-min.
-4. Si les critères passent, renommer le check `✅ Staging Ready` et autoriser les changements de triggers/rulesets de la phase 2 ; sinon conserver la CI actuelle et corriger ou abandonner la preuve.
-5. Étendre `ci-security.test.mjs` pour verrouiller les permissions, l'absence de secrets PR et la validation d'identité, sans encore interdire la CI `push`.
+1. Conserver comme preuves négatives les observations réelles déjà obtenues : drift de `preview` refusé et artifact pré-installation absent refusé.
+2. Implémenter les phases 2 et 3 à côté du flux actuel, sans encore retirer la CI `push` ni l'ancien chemin de release.
+3. Utiliser la première vraie release comme canary du chemin heureux complet : SHA/tree, déploiements, QA, promotion et production.
+4. Mesurer le temps de `Staging Ready` et confirmer que son coût est nettement inférieur à une matrice complète médiane de 36 runner-min.
+5. Si la canary passe, renommer le check `✅ Staging Ready` et autoriser le cutover ; sinon conserver l'ancien flux et corriger ou abandonner la preuve.
+6. Étendre `ci-security.test.mjs` pour verrouiller les permissions, l'absence de secrets PR et la validation d'identité, sans encore interdire la CI `push`.
 
 ## Test acceptance criteria
 
@@ -89,5 +90,5 @@ journey
 | 1    | Une contribution de fork ne peut lire aucun secret ni obtenir de permission d'écriture.                                                |
 | 2    | `Staging Ready (shadow)` devient vert uniquement quand tree testé, commit fusionné, déploiements exacts et smoke checks concordent.    |
 | 2    | Un SHA fournisseur obsolète, un Railway preview déjà remplacé ou une preuve issue d'un autre run donne un verdict rouge.               |
-| 3    | Cinq fusions, dont une canary release, concordent avec le flux actuel avant toute suppression de CI.                                   |
+| 3    | Une vraie release canary concorde avec le flux actuel avant toute suppression de CI ou de l'ancien chemin de release.                  |
 | 3    | Un échec de la phase d'observation laisse les triggers et protections actuels inchangés.                                               |
