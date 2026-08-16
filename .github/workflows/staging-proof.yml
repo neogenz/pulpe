@@ -1,8 +1,6 @@
 name: ✅ Staging Ready (shadow)
 
-on:
-  push:
-    branches: [preview]
+on: deployment_status
 
 permissions:
   actions: read
@@ -13,6 +11,10 @@ permissions:
 jobs:
   staging-ready:
     name: ✅ Staging Ready (shadow)
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'pulpe-backend / preview' &&
+      github.event.deployment.creator.login == 'railway-app[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:

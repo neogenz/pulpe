@@ -63,6 +63,6 @@ jobs:
           test "$tag_count" = 0
 
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$staging_run_id" > "$RUNNER_TEMP/staging-run.json"
-          jq -e --arg candidate "$CANDIDATE_SHA" '.path == ".github/workflows/staging-proof.yml" and .event == "push" and .head_branch == "preview" and .head_sha == $candidate and .status == "completed" and .conclusion == "success"' "$RUNNER_TEMP/staging-run.json"
+          jq -e --arg candidate "$CANDIDATE_SHA" '.path == ".github/workflows/staging-proof.yml" and .event == "deployment_status" and .head_sha == $candidate and .status == "completed" and .conclusion == "success"' "$RUNNER_TEMP/staging-run.json"
           gh run download "$staging_run_id" --repo "$GITHUB_REPOSITORY" --name "staging-proof-$CANDIDATE_SHA" --dir "$RUNNER_TEMP/staging-proof"
           jq -e --arg repository "$GITHUB_REPOSITORY" --arg candidate "$CANDIDATE_SHA" --arg tree "$candidate_tree" --argjson pr "$preparation_pr" --argjson run "$staging_run_id" '.repository == $repository and .candidate_sha == $candidate and .tree_sha == $tree and .pr_number == $pr and .staging_run_id == $run' "$RUNNER_TEMP/staging-proof/staging-proof.json"

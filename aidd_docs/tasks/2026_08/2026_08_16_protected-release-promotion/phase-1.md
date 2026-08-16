@@ -24,10 +24,11 @@ flowchart TD
   A["PR vers preview"] --> B["CI complète sur le merge test GitHub"]
   B --> C["Artifact minimal : PR, run, SHA et tree testés"]
   C --> D["Fusion vers preview"]
-  D --> E["CI push actuelle et Staging Ready shadow en parallèle"]
-  E --> F{"Première vraie release canary concordante ?"}
-  F -->|Non| G["Conserver l'ancien flux et corriger la preuve"]
-  F -->|Oui| H["Autoriser le cutover"]
+  D --> E["CI push actuelle puis déploiements preview"]
+  E --> F["Staging Ready shadow après le succès Railway"]
+  F --> G{"Première vraie release canary concordante ?"}
+  G -->|Non| H["Conserver l'ancien flux et corriger la preuve"]
+  G -->|Oui| I["Autoriser le cutover"]
 ```
 
 ## Test Scope
@@ -64,7 +65,7 @@ journey
 
 > Observer d'abord la nouvelle preuve à côté de la CI post-merge actuelle.
 
-1. Créer `staging-proof.yml` sur push `preview` et limiter la première version aux commits provenant d'une PR fusionnée.
+1. Créer `staging-proof.yml` sur le `deployment_status` réussi de Railway `preview` et limiter la première version aux commits provenant d'une PR fusionnée ; ce déclenchement post-déploiement évite une dépendance circulaire avec Railway `Wait for CI`.
 2. Retrouver le dernier run PR canonique, télécharger sa preuve et comparer le tree du commit fusionné au tree testé ; le SHA peut différer, le contenu non.
 3. Attendre les déploiements Vercel frontend/landing et Railway preview rattachés au commit fusionné, exiger leur état prêt/succès et contrôler les endpoints utiles.
 4. Pour Railway, exiger que le déploiement de ce SHA soit actif au moment du health check afin de ne pas valider silencieusement une feature arrivée après lui.
