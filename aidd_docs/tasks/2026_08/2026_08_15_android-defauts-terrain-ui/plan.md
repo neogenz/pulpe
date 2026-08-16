@@ -1,6 +1,6 @@
 ---
 objective: "Sur Android, quitter l'onboarding laisse toujours une route vers la création de compte, le hero d'un objectif reste dans sa carte quel que soit le montant, la liste des budgets s'ouvre sur le mois vécu, et un toast se lit en thème sombre sans passer sous le bouton +."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Android — quatre défauts remontés du terrain
