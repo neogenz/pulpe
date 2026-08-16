@@ -1,6 +1,6 @@
 ---
 objective: "The i18n branch contains the current preview tip, preserves the native iOS segmented-picker work and all FR/EN/DE/IT behavior, and passes the production merge gates."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Resolve `preview` conflicts on the i18n branch
