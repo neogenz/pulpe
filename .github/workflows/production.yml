@@ -18,7 +18,7 @@ jobs:
   publish:
     name: 🏭 Production Release
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       RAILWAY_CLI_VERSION: "5.15.0"
       RAILWAY_PROJECT: 33ba829c-d4d6-4096-b0dc-57c89c367063
@@ -205,6 +205,7 @@ jobs:
           update_gate() {
             local environment="$1" token="$2" endpoint="$3"
             local vars="$RUNNER_TEMP/railway-$environment.json"
+            local live_version before id status
             live_version=$(curl --fail --silent --show-error --location --max-time 20 "$endpoint" | jq -r .data.web.latestVersion || true)
             if [ "$live_version" != "$VERSION" ]; then
               before=$(RAILWAY_TOKEN="$token" npx --yes "@railway/cli@$RAILWAY_CLI_VERSION" deployment list --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --limit 1 --json | jq -r '.[0].id // empty')

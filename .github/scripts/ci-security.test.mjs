@@ -187,6 +187,7 @@ test("the production PR gate is read-only and proof-bound", () => {
 
 test("production publishes only an approved and proven release", () => {
   assert.match(production, /push:\n\s+branches: \[main\]/);
+  assert.match(production, /timeout-minutes: 90/);
   assert.match(production, /actions: read/);
   assert.match(production, /contents: read/);
   assert.match(production, /deployments: read/);
