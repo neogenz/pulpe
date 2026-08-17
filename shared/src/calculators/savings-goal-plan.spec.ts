@@ -435,6 +435,26 @@ describe('simulateSavingsPlan', () => {
     expect(result.attainedPeriod).toEqual({ month: 4, year: 2026 });
   });
 
+  it('uses the cent gap for target verdict and attained period', () => {
+    const exact = simulateSavingsPlan({
+      timeline: [planMonth({ month: 3, year: 2026, state: 'current' })],
+      targetAmount: 100,
+      globalMonthlyAmount: 100,
+    });
+    const missingCent = simulateSavingsPlan({
+      timeline: [planMonth({ month: 3, year: 2026, state: 'current' })],
+      targetAmount: 100,
+      globalMonthlyAmount: 99.99,
+    });
+
+    expect(exact.gapToTarget).toBe(0);
+    expect(exact.isTargetMet).toBe(true);
+    expect(exact.attainedPeriod).toEqual({ month: 3, year: 2026 });
+    expect(missingCent.gapToTarget).toBe(0.01);
+    expect(missingCent.isTargetMet).toBe(false);
+    expect(missingCent.attainedPeriod).toBeNull();
+  });
+
   it('should treat a negative monthly adjustment as one plan-only withdrawal', () => {
     const result = simulateSavingsPlan({
       timeline: [
@@ -725,6 +745,19 @@ describe('redistributeRemainingEffort', () => {
       simulateSavingsPlan({ timeline: exactTimeline, targetAmount: 3000 })
         .simulatedFinal,
     );
+  });
+
+  it('keeps a one-cent redistribution effort after cent quantization', () => {
+    const result = redistributeRemainingEffort({
+      timeline: [planMonth({ month: 3, year: 2026, state: 'current' })],
+      targetAmount: 100,
+      initialAmount: 99.99,
+    });
+
+    expect(result.remainingEffort).toBe(0.01);
+    expect(result.adjustments).toEqual([
+      { month: 3, year: 2026, amount: 0.01 },
+    ]);
   });
 
   it('should split the remaining effort over open months cents-exact', () => {

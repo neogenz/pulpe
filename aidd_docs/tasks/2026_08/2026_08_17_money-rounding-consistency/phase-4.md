@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Sécuriser les décisions métier des objectifs et retraits

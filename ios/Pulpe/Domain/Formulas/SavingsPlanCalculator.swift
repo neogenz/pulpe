@@ -140,8 +140,8 @@ enum SavingsPlanCalculator {
             if let targetAmount,
                attainedPeriod == nil,
                month.isContributionEligible,
-               targetAmount > 0,
-               simulatedCumulative >= targetAmount {
+               targetAmount.rounded(2) > 0,
+               simulatedCumulative.rounded(2) >= targetAmount.rounded(2) {
                 attainedPeriod = month.period
             }
 
@@ -166,10 +166,14 @@ enum SavingsPlanCalculator {
         targetAmount: Decimal?,
         attainedPeriod: BudgetPeriod?
     ) -> SimulationResult {
-        let isTargetMet = targetAmount.map { $0 > 0 && simulatedFinal >= $0 }
+        let isTargetMet = targetAmount.map {
+            $0.rounded(2) > 0 && simulatedFinal.rounded(2) >= $0.rounded(2)
+        }
         return SimulationResult(
             months: months, simulatedFinal: simulatedFinal,
-            gapToTarget: targetAmount.map { $0 - simulatedFinal },
+            gapToTarget: targetAmount.map {
+                $0.rounded(2) - simulatedFinal.rounded(2)
+            },
             isTargetMet: isTargetMet,
             // A retrait makes the curve non-monotonic: a cumulative can cross the
             // target and then fall back under it. Announcing « atteint en mars »
@@ -257,10 +261,8 @@ extension SavingsPlanCalculator {
         )
         let pinnedEffect = signedPinnedEffect(openMonths, pinnedByKey: pinnedByKey)
 
-        let remaining = max(
-            0,
-            targetAmount - initialAmount - lockedConfirmedSum + withdrawnSum + pinnedEffect
-        )
+        let settled = initialAmount + lockedConfirmedSum - withdrawnSum - pinnedEffect
+        let remaining = max(0, targetAmount.rounded(2) - settled.rounded(2))
 
         if hasUnavailablePeriod || openUnpinned.isEmpty {
             return RedistributeResult(
@@ -306,7 +308,8 @@ extension SavingsPlanCalculator {
     }
 
     private static func normalizedWithdrawalRemainder(_ amount: Decimal) -> Decimal {
-        amount > SavingsGoalProgress.withdrawalBalanceTolerance ? amount : 0
+        let roundedAmount = amount.rounded(2)
+        return roundedAmount > 0 ? roundedAmount : 0
     }
 
     private static func signedPinnedEffect(
@@ -409,7 +412,7 @@ extension SavingsPlanCalculator {
         let monthsRemaining = periodKey(month: target.month, year: target.year)
             - effectiveStartIndex + 1
         guard monthsRemaining > 0, targetAmount > 0 else { return nil }
-        let remaining = targetAmount - initialAmount
+        let remaining = targetAmount.rounded(2) - initialAmount.rounded(2)
         guard remaining > 0 else { return nil }
 
         var rawCents = remaining / Decimal(monthsRemaining) * Decimal(centsPerUnit)

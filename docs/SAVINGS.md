@@ -117,6 +117,7 @@ Règles de calcul structurantes :
 - `getBudgetPeriodForDate`, payDay-aware, fournit l'index de période (`year * 12 + month`).
 - `calculateRealizedSavings` filtre strictement `kind === 'saving'` et exclut les transactions libres : un objectif ne comptabilise que les montants pointés de ses Prévisions liées.
 - `paceStatus` applique une tolérance de `PACE_TOLERANCE_PERCENT = 5 %`.
+- Les décisions de montant utilisent l'écart au centime (`moneyDifference` en TypeScript, `Decimal.rounded(2)` en Swift) : cible atteinte, plafond de retrait, reliquat, écart final et effort à redistribuer. Un résidu sous-centime vaut zéro ; `0.01` reste significatif. Cette règle ne remplace pas la bande relative de ±5 % du rythme.
 
 ### 4.1 Sélection des lignes liées
 
@@ -157,7 +158,7 @@ confirmed      = initialAmount + linesConfirmed − withdrawn   // initialAmount
 //   jamais clampé à 0 : l'écriture interdit le découvert, un négatif signale une incohérence à diagnostiquer
 
 // 3. % d'atteinte — sur le CONFIRMÉ, jamais le prévu
-achievementPercent = round( min(confirmed / targetAmount, 1) * 100 )
+achievementPercent = round( min(roundCent(confirmed) / roundCent(targetAmount), 1) * 100 )
 //   garde : targetAmount = 0 → 0   (ne JAMAIS diviser par une cible non déchiffrée / nulle)
 //   cible absente → null
 
@@ -166,7 +167,7 @@ pace          = plannedCumulative / max(1, monthsElapsed)   // engagement (indic
 confirmedPace = linesConfirmed    / max(1, monthsElapsed)   // réel pointé — base de la date d'atteinte estimée
 
 // 5. Requis pour tenir l'échéance
-required = max(0, targetAmount − confirmed) / monthsRemaining
+required = max(0, moneyDifference(targetAmount, confirmed)) / monthsRemaining
 //   = null sans cible, sans échéance ou si monthsRemaining ≤ 0
 
 // 6. Projection à l'échéance — solde confirmé + reliquat du plan courant/futur
@@ -193,7 +194,7 @@ paceStatus = behind | on_track | ahead          // via paceStatus(projected, tar
 | **Pointage anticipé d'un mois futur** | Le pointage est accepté ; il entre dans `confirmed` et est retiré du reliquat planifié pour ne pas être compté deux fois.                                                                                                                                  |
 | **Montant de départ (stock vs flux)** | `initialAmount` entre dans `confirmed` (barre, %, `required`, `projected`, D2) mais **jamais** dans `confirmedPace` ni `cumulativeGap` (`= plannedCumulative − (linesConfirmed − retraits déjà survenus)`).                                                |
 | **Retrait (stock vs flux)**           | Se retranche de `confirmed` (donc de la barre, du %, de `required`, de `projected`, de `estimatedCompletion`) et de `cumulativeGap` pour les retraits déjà survenus, mais **jamais** de `confirmedPace`, `plannedCumulative` ni `plannedProjection` (§11). |
-| **Montant de départ ≥ cible**         | `suggestCompletion = true` dès la création (D2) — jamais d'auto-flip, l'utilisateur confirme.                                                                                                                                                              |
+| **Montant de départ ≥ cible**         | `suggestCompletion = true` dès que l'écart au centime est positif ou nul (D2) — jamais d'auto-flip, l'utilisateur confirme.                                                                                                                                |
 | **Cible absente**                     | `achievementPercent` et `suggestCompletion` sont `null`. La simulation garde son cumul final mais ses verdicts cible et la redistribution sont désactivés.                                                                                                 |
 | **Échéance absente**                  | `monthsRemaining`, `required`, `projected` et `paceStatus` sont `null`, `isOverdue = false`. Une cible présente conserve `estimatedCompletion` si le rythme confirmé suffit.                                                                               |
 
@@ -469,7 +470,7 @@ garantie.
 
 ### 11.3 Éligibilité et devise
 
-Un objectif est proposé au retrait dès que `confirmed > 0`, quel que soit son statut (`ACTIVE`, `PAUSED`, `COMPLETED`).
+Un objectif est proposé au retrait dès que son `confirmed` arrondi au centime est strictement positif, quel que soit son statut (`ACTIVE`, `PAUSED`, `COMPLETED`). Le plafond exposé est ce même montant au centime : le retirer exactement est valide, demander `0.01` de plus est refusé avant toute écriture.
 
 Le montant retiré est le montant **cible normalisé dans la devise du compte**, après conversion éventuelle (RG-009) — jamais `originalAmount`. Comparer une saisie en EUR au solde d'un objectif en CHF rendrait le contrôle de solde incohérent.
 
@@ -514,7 +515,7 @@ Le solde disponible d'un nouveau retrait reste `confirmed` (§11.1) : une annonc
 
 ```text
 réel alloué      = Σ retraits dont budgetLineId = prévision.id
-retrait restant  = max(0, prévision.montant − réel alloué)
+retrait restant  = max(0, moneyDifference(prévision.montant, réel alloué))
 ```
 
 Sur une prévision de 500 :

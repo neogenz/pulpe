@@ -146,6 +146,23 @@ describe('SavingsGoalWithdrawalPolicyService', () => {
       expect(write).toHaveBeenCalledTimes(1);
     });
 
+    it('accepts the exact cent balance despite JavaScript sum noise', async () => {
+      mockRepo.findById.mockResolvedValueOnce({
+        ...goal,
+        initialAmount: 0.1 + 0.2,
+      });
+      const write = jest.fn().mockResolvedValue(undefined);
+
+      await service.runAgainstBalance({
+        goalId: GOAL_ID,
+        debit: 0.3,
+        user: mockUser,
+        write,
+      });
+
+      expect(write).toHaveBeenCalledWith(REVISION);
+    });
+
     it('refuses an overshoot of one cent without writing', async () => {
       const write = jest.fn();
 

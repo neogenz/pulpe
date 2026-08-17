@@ -209,7 +209,31 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     expect(callOrder).toEqual(['goal', 'linked', 'revision', 'linked', 'goal']);
   });
 
-  it('rejects a direct withdrawal that would make the projected stock negative', async () => {
+  it('accepts a direct withdrawal equal to the projected stock', async () => {
+    repo.findById.mockResolvedValue({
+      id: 'goal-1',
+      userId: user.id,
+      name: 'Petit pot',
+      targetAmount: 1_000,
+      targetDate: `${periods[23].year}-${String(periods[23].month).padStart(2, '0')}-15`,
+      initialAmount: 1_000,
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+    });
+
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [],
+        planWithdrawalAdjustments: [{ ...periods[0], amount: -1_000 }],
+      },
+      user,
+    );
+
+    expect(repo.applyPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a direct withdrawal one cent above the projected stock', async () => {
     repo.findById.mockResolvedValue({
       id: 'goal-1',
       userId: user.id,
@@ -226,7 +250,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         'goal-1',
         {
           monthAdjustments: [],
-          planWithdrawalAdjustments: [{ ...periods[0], amount: -4_500 }],
+          planWithdrawalAdjustments: [{ ...periods[0], amount: -1_000.01 }],
         },
         user,
       ),

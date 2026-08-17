@@ -127,6 +127,28 @@ struct SavingsPlanCalculatorTests {
         #expect(result.attainedPeriod == BudgetPeriod(month: 4, year: 2026))
     }
 
+    @Test("uses the cent gap for target verdict and attained period")
+    func simulate_usesCentGapForTargetVerdict() throws {
+        let timeline = [planMonth(month: 3, year: 2026, state: .current)]
+        let exact = try SavingsPlanCalculator.simulate(
+            timeline: timeline,
+            targetAmount: 100,
+            globalMonthlyAmount: 100
+        )
+        let missingCent = try SavingsPlanCalculator.simulate(
+            timeline: timeline,
+            targetAmount: 100,
+            globalMonthlyAmount: dec("99.99")
+        )
+
+        #expect(exact.gapToTarget == 0)
+        #expect(exact.isTargetMet == true)
+        #expect(exact.attainedPeriod == BudgetPeriod(month: 3, year: 2026))
+        #expect(missingCent.gapToTarget == dec("0.01"))
+        #expect(missingCent.isTargetMet == false)
+        #expect(missingCent.attainedPeriod == nil)
+    }
+
     @Test("includes 22 provisionable gaps in a 24-month global plan")
     func simulate_includesProvisionableGapsInGlobalPlan() throws {
         let timeline = (0 ..< 24).map { offset in
@@ -224,6 +246,20 @@ struct SavingsPlanCalculatorTests {
         #expect(result.adjustments == [
             .init(month: 3, year: 2026, amount: 1000),
             .init(month: 4, year: 2026, amount: 1000),
+        ])
+    }
+
+    @Test("keeps a one-cent remaining effort after quantization")
+    func redistribute_keepsOneCentRemainingEffort() {
+        let result = SavingsPlanCalculator.redistributeRemainingEffort(
+            timeline: [planMonth(month: 3, year: 2026, state: .current)],
+            targetAmount: 100,
+            initialAmount: dec("99.99")
+        )
+
+        #expect(result.remainingEffort == dec("0.01"))
+        #expect(result.adjustments == [
+            .init(month: 3, year: 2026, amount: dec("0.01")),
         ])
     }
 

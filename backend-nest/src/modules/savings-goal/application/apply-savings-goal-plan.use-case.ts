@@ -4,9 +4,9 @@ import {
   buildSavingsGoalTimeline,
   getBudgetPeriodForDate,
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
+  moneyDifference,
   parseIsoDateLocal,
   periodIndex,
-  WITHDRAWAL_BALANCE_TOLERANCE,
   type BudgetPeriod,
   type LinkedSavingLine,
   type LinkedPlannedWithdrawal,
@@ -420,10 +420,7 @@ export class ApplySavingsGoalPlanUseCase {
       ...resultingManaged,
     ]);
 
-    if (
-      after < -WITHDRAWAL_BALANCE_TOLERANCE &&
-      after < before - WITHDRAWAL_BALANCE_TOLERANCE
-    ) {
+    if (moneyDifference(after, 0) < 0 && moneyDifference(after, before) < 0) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE,
         undefined,

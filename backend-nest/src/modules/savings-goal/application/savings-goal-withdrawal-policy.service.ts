@@ -1,8 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  computeSavingsGoalProgress,
-  WITHDRAWAL_BALANCE_TOLERANCE,
-} from 'pulpe-shared';
+import { computeSavingsGoalProgress, moneyDifference } from 'pulpe-shared';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -121,7 +118,7 @@ export class SavingsGoalWithdrawalPolicyService implements SavingsGoalWithdrawal
     if (input.debit <= 0) return;
 
     const available = confirmed + (input.creditBack ?? 0);
-    if (input.debit <= available + WITHDRAWAL_BALANCE_TOLERANCE) return;
+    if (moneyDifference(input.debit, available) <= 0) return;
 
     // Le message ne porte AUCUN chiffre : le solde d'un objectif est une donnée
     // financière, et une réponse d'erreur voyage jusque dans les logs.
