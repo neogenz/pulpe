@@ -1,6 +1,6 @@
 ---
 objective: "Rendre la preuve de staging robuste à une fusion preview autorisée pendant que sa CI canonique est encore en cours, sans affaiblir les contrôles d'identité ni la promotion de release."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Attente CI canonique dans la preuve de staging
