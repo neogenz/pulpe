@@ -148,6 +148,43 @@ struct GoalProjectionSeriesTests {
         #expect(series.confirmed.count == 2)
     }
 
+    // MARK: - Vertical domain
+
+    private func makeSeries(values: [Double], target: Double?) -> GoalProjectionSeries {
+        GoalProjectionSeries(
+            confirmed: values.enumerated().map { .init(index: $0.offset, value: $0.element) },
+            projection: [],
+            target: target,
+            ticks: []
+        )
+    }
+
+    @Test("a positive curve keeps the axis on zero — épargne reads from nothing")
+    func valueDomain_floorsOnZero() {
+        let domain = makeSeries(values: [400, 1_200], target: 3_000).valueDomain
+
+        #expect(domain.lowerBound == 0)
+        #expect(domain.upperBound == 3_240)
+    }
+
+    /// Le serveur ne clampe jamais un solde à 0 : un négatif signale une
+    /// incohérence à diagnostiquer. Un plancher figé à 0 l'écrasait contre l'axe,
+    /// où il se lisait « zéro » — exactement ce que le négatif est là pour dire.
+    @Test("a negative balance digs below the axis instead of flattening on it")
+    func valueDomain_digsForANegativeBalance() {
+        let domain = makeSeries(values: [200, -500], target: 3_000).valueDomain
+
+        #expect(domain.lowerBound == -780)
+        #expect(domain.upperBound == 3_280)
+    }
+
+    @Test("an empty series still spans a positive range — Charts crashes on a flat domain")
+    func valueDomain_neverCollapses() {
+        let domain = makeSeries(values: [], target: nil).valueDomain
+
+        #expect(domain.lowerBound < domain.upperBound)
+    }
+
     /// Un mois passé pointé à 500, puis trois mois ouverts (`isProvisionable`, sans
     /// quoi `isContributivePlanMonth` les écarterait de la simulation), le troisième
     /// portant un retrait annoncé côté budget — pas piloté par le plan, sinon le

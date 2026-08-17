@@ -15,21 +15,6 @@ struct GoalProjectionChart: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var yMin: Double { 0 }
-
-    private var yMax: Double {
-        let seriesMax = (series.confirmed + series.projection)
-            .map(\.value)
-            .max() ?? 0
-        let candidate = max(seriesMax, series.target ?? 0)
-        // Swift Charts crashes on a zero-height domain — guarantee a positive range.
-        return candidate <= 0 ? 1 : candidate
-    }
-
-    private var yPadding: Double {
-        max((yMax - yMin) * 0.08, 1)
-    }
-
     var body: some View {
         Chart {
             if let target = series.target {
@@ -109,7 +94,7 @@ struct GoalProjectionChart: View {
             }
         }
         .chartLegend(.hidden)
-        .chartYScale(domain: yMin ... (yMax + yPadding))
+        .chartYScale(domain: series.valueDomain)
         .frame(height: height)
         .animation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring, value: series)
         .sensitiveAmount()
@@ -272,6 +257,24 @@ struct GoalProjectionSeries: Equatable {
     /// intimidating on day 1. Stricter than `hasClosedPlanMonth` on purpose:
     /// a current month locked by pointage still has no trend to draw.
     var hasConfirmedTrend: Bool { confirmed.count >= 2 }
+
+    /// Vertical domain of the chart, padded on whichever ends are in play.
+    ///
+    /// The floor stays at 0 on a normal goal — an épargne curve reads from
+    /// zero, and starting the axis at the first balance would fake a slope.
+    /// It only drops below when a balance genuinely goes negative: the server
+    /// never clamps one to 0 (`docs/SAVINGS.md`), so a negative has to dig.
+    /// Pinned at 0 it flattened against the axis and read as zero, hiding the
+    /// very incoherence the negative is there to signal.
+    var valueDomain: ClosedRange<Double> {
+        let values = (confirmed + projection).map(\.value)
+        let low = min(values.min() ?? 0, 0)
+        let candidate = max(values.max() ?? 0, target ?? 0)
+        // Swift Charts crashes on a zero-height domain — guarantee a positive range.
+        let high = candidate <= low ? low + 1 : candidate
+        let padding = max((high - low) * 0.08, 1)
+        return (low < 0 ? low - padding : low) ... (high + padding)
+    }
 
     /// Read mode: confirmed balance through the current month, then the planned
     /// balance projection through the deadline.
