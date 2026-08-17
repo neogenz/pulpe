@@ -29,6 +29,10 @@ env:
 - tapOn:
     id: "sign-in-password"
 - inputText: ${PASSWORD}
+- assertVisible: "Afficher le mot de passe"
+- tapOn: "Afficher le mot de passe"
+- assertVisible: "Masquer le mot de passe"
+- tapOn: "Masquer le mot de passe"
 - hideKeyboard
 - tapOn:
     id: "sign-in-submit"
@@ -45,6 +49,21 @@ env:
 - tapOn: ${PIN.charAt(3)}
 
 # The FAB is on the month screen and nowhere before it.
+- extendedWaitUntil:
+    visible: "Ajouter"
+    timeout: 30000
+
+# A restart keeps the session and must ask for the existing PIN, never a new one.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Ton code"
+    timeout: 30000
+- assertNotVisible: "Choisis ton code"
+- tapOn: ${PIN.charAt(0)}
+- tapOn: ${PIN.charAt(1)}
+- tapOn: ${PIN.charAt(2)}
+- tapOn: ${PIN.charAt(3)}
 - extendedWaitUntil:
     visible: "Ajouter"
     timeout: 30000

@@ -24,6 +24,7 @@ export default function SignInScreen() {
   const keyboardHeight = useKeyboardHeight();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pending, setPending] = useState<Pending>(null);
 
@@ -108,8 +109,19 @@ export default function SignInScreen() {
           onChangeText={setPassword}
           autoCapitalize="none"
           autoComplete="current-password"
-          secureTextEntry
+          secureTextEntry={!isPasswordVisible}
           disabled={isBusy}
+          right={
+            <TextInput.Icon
+              icon={isPasswordVisible ? "eye-off" : "eye"}
+              onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+              accessibilityLabel={
+                isPasswordVisible
+                  ? "Masquer le mot de passe"
+                  : "Afficher le mot de passe"
+              }
+            />
+          }
         />
 
         <Link href="/forgot-password" asChild>
