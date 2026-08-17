@@ -1,6 +1,6 @@
 ---
 objective: "Les résumés de consommation Web affichent un dépassement et un disponible cohérents jusque dans les centimes, sans modifier les calculs financiers."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger le dépassement arrondi à zéro
