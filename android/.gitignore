@@ -1,6 +1,7 @@
 # Expo
 .expo/
 dist/
+builds/
 expo-env.d.ts
 
 # Generated native projects (continuous native generation — never committed)

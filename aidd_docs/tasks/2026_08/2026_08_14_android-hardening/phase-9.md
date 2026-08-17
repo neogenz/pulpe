@@ -62,7 +62,7 @@ flowchart TD
 
 1. `eas init` (crée `extra.eas.projectId`) puis `eas credentials` (keystore) — sans quoi workflows `.eas/` et OTA restent inertes
 2. Play Console : app créée, service account JSON pour `eas submit`
-3. `eas env` : secrets par profil (DSN Sentry, clé PostHog, URLs prod)
+3. `eas env` : secrets par profil (clé PostHog, URLs prod)
 4. Publier `assetlinks.json` (avec le SHA-256 du keystore EAS) dans `frontend/projects/webapp/public/.well-known/` — déblocage de l'App Link reset-password
 5. Premier build interne + passage TestFlight-équivalent (internal testing track)
 

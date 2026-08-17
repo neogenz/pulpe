@@ -58,6 +58,14 @@ export function startAnalytics(): () => void {
       // the moment the subscription below first fires.
       defaultOptIn: isDiagnosticSharingEnabled(),
       enableSessionReplay: false,
+      errorTracking: {
+        autocapture: {
+          uncaughtExceptions: true,
+          unhandledRejections: true,
+          console: [],
+          nativeCrashes: false,
+        },
+      },
     });
     // Registered with the client rather than added at each call site: a super
     // property reaches the SDK's own lifecycle events too, which no caller here

@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -18,7 +17,6 @@ import {
   startAnalytics,
   useScreenTracking,
 } from "@/core/observability/analytics";
-import { startSentry } from "@/core/observability/sentry";
 import { queryClient } from "@/core/query/query-client";
 import { ForegroundRefresh } from "@/core/system/foreground-refresh";
 import { armPrivacyShield } from "@/core/system/privacy-shield";
@@ -35,9 +33,6 @@ import {
 import { RecoveryKeyNotice } from "@/ui/recovery-key-notice";
 
 void SplashScreen.preventAutoHideAsync();
-// Before the first render rather than in an effect: a crash on the way up is
-// exactly the one worth reporting.
-const isSentryArmed = startSentry();
 
 function RootLayout() {
   const colorScheme = useColorScheme();
@@ -138,7 +133,4 @@ function RootLayout() {
   );
 }
 
-// `wrap` is what gives Sentry the error boundary and the touch trail that turn
-// a stack trace into something reproducible — and it warns on every launch if
-// it is applied with no client behind it, which is every development build.
-export default isSentryArmed ? Sentry.wrap(RootLayout) : RootLayout;
+export default RootLayout;

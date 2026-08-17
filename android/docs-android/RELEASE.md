@@ -13,10 +13,9 @@ checklist rather than a description of a finished release pipeline.
 | 2   | Google Play Console account (one-off fee) | play.google.com/console                                              | every submit           |
 | 3   | Play service-account JSON                 | Play Console → API access                                            | `eas submit`           |
 | 4   | Google OAuth client IDs (web + Android)   | Google Cloud, project `894420283180`                                 | Google sign-in         |
-| 5   | Sentry org/project/auth token             | sentry.io                                                            | symbolicated crashes   |
-| 6   | PostHog project key (EU host)             | posthog.com                                                          | analytics              |
-| 7   | Backend env on Railway                    | `MIN_ANDROID_VERSION`, `LATEST_ANDROID_VERSION`, `ANDROID_STORE_URL` | force-update gate      |
-| 8   | `assetlinks.json` on `app.pulpe.app`      | `frontend/projects/webapp/public/.well-known/`                       | App Links verification |
+| 5   | PostHog project key (EU host)             | posthog.com                                                          | analytics + JS errors  |
+| 6   | Backend env on Railway                    | `MIN_ANDROID_VERSION`, `LATEST_ANDROID_VERSION`, `ANDROID_STORE_URL` | force-update gate      |
+| 7   | `assetlinks.json` on `app.pulpe.app`      | `frontend/projects/webapp/public/.well-known/`                       | App Links verification |
 
 `eas init` writes `extra.eas.projectId` into `app.json`; `eas update:configure`
 writes `updates.url`. Until the latter runs, OTA is inert — the app still builds
@@ -43,7 +42,7 @@ pnpm dlx eas-cli@latest credentials --platform android
 ```
 
 Record the resulting **SHA-256** fingerprint: it goes into the Android OAuth
-client (item 4) and into `assetlinks.json` (item 8). The debug fingerprint,
+client (item 4) and into `assetlinks.json` (item 7). The debug fingerprint,
 already used for local Google sign-in, is
 `FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C`
 — it is not the release one, and both need registering.

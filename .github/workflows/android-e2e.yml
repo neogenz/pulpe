@@ -38,7 +38,6 @@ jobs:
       MAESTRO_PIN: ${{ secrets.MAESTRO_PIN }}
       CI: "1"
       NODE_ENV: production
-      SENTRY_DISABLE_AUTO_UPLOAD: "true"
 
     steps:
       - name: Checkout

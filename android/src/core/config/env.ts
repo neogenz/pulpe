@@ -13,7 +13,6 @@ const RAW_ENV = {
   SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
   SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
   GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  SENTRY_DSN: process.env.EXPO_PUBLIC_SENTRY_DSN,
   POSTHOG_API_KEY: process.env.EXPO_PUBLIC_POSTHOG_API_KEY,
   POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST,
   POSTHOG_ENABLED: process.env.EXPO_PUBLIC_POSTHOG_ENABLED,
@@ -95,10 +94,6 @@ export const ENV = {
   // Optional, unlike the rest: sign-in by e-mail has to keep working on a
   // build where Google is not wired up yet. The button hides instead.
   googleWebClientId: RAW_ENV.GOOGLE_WEB_CLIENT_ID ?? null,
-  // No Sentry project exists yet, so every profile is missing this one and
-  // crash reporting stays off until a human creates one. Absent rather than
-  // empty: a DSN of "" would be an init failure instead of a decision.
-  sentryDsn: RAW_ENV.SENTRY_DSN ?? null,
   /**
    * Null means "do not measure anything", which is the answer whenever the
    * profile says so or the key is absent — one check for both, so no caller

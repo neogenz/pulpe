@@ -14,9 +14,9 @@ interface DiagnosticsConsentState {
  * page: a device that has never been asked counts as a yes, and only a refusal
  * is ever written down.
  *
- * Two SDKs obey this one answer — PostHog and Sentry — so it lives here rather
- * than inside either of them. Each is told what it says; neither keeps a copy
- * the other could contradict.
+ * PostHog obeys this answer for analytics and JavaScript error reporting. It
+ * lives outside the client so the preference remains available even when the
+ * production-only client does not exist.
  */
 export const useDiagnosticsConsent = create<DiagnosticsConsentState>(() => ({
   isDiagnosticSharingEnabled: storage.getBoolean(SHARING_KEY) !== false,
