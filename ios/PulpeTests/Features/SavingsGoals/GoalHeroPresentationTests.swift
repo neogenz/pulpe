@@ -94,15 +94,16 @@ struct GoalHeroPresentationTests {
     }
 
     @Test("before the first month closes, the day-1 beat replaces the verdict")
-    func dayOneBeat_standsInForTheVerdict() {
+    func dayOneBeat_standsInForTheVerdict() throws {
+        let planned = try #require(Decimal(string: "300.01"))
         let progress = makeProgress(months: [
-            makeMonth(month: 6, state: .current, isLocked: false, planned: 300.01),
+            makeMonth(month: 6, state: .current, isLocked: false, planned: planned),
         ])
 
         let presentation = makePresentation(progress)
 
         #expect(presentation.verdict == nil)
-        #expect(presentation.dayOneBeat?.contains(Decimal(string: "300.01")!.asAdaptiveCurrency(currency)) == true)
+        #expect(presentation.dayOneBeat?.contains(planned.asAdaptiveCurrency(currency)) == true)
     }
 
     @Test("no pace status at all leaves both the verdict and the beat empty")
@@ -118,11 +119,12 @@ struct GoalHeroPresentationTests {
     // MARK: - Projection and required pace
 
     @Test("the projection quotes the displayed figure and names the échéance")
-    func projection_quotesTheDisplayedProjection() {
-        let presentation = makePresentation(makeProgress(projected: 3_600.01))
+    func projection_quotesTheDisplayedProjection() throws {
+        let projection = try #require(Decimal(string: "3600.01"))
+        let presentation = makePresentation(makeProgress(projected: projection))
 
         #expect(presentation.projection == AppLocale.string(
-            "Ton plan te mène à \(Decimal(string: "3600.01")!.asAdaptiveCurrency(currency)) à l'échéance."
+            "Ton plan te mène à \(projection.asAdaptiveCurrency(currency)) à l'échéance."
         ))
     }
 
@@ -162,21 +164,57 @@ struct GoalHeroPresentationTests {
     }
 
     @Test("a plan short of the target advises the pace that closes the gap")
-    func requiredPace_shownWhenThePlanFallsShort() {
+    func requiredPace_shownWhenThePlanFallsShort() throws {
+        let required = try #require(Decimal(string: "320.01"))
         let presentation = makePresentation(makeProgress(
             plannedProjection: 2_400,
             projected: 2_400,
-            required: 320.01
+            required: required
         ))
 
         #expect(
             presentation.requiredPace?.contains(
-                Decimal(string: "320.01")!.asAdaptiveCurrency(currency)
+                required.asAdaptiveCurrency(currency)
             ) == true
         )
     }
 
+    @Test("a sub-cent projection residue does not advise a zero pace")
+    func requiredPace_hiddenForASubCentResidue() {
+        let presentation = makePresentation(makeProgress(
+            targetAmount: 3_000,
+            projected: Decimal(string: "2999.999"),
+            required: Decimal(string: "0.001")
+        ))
+
+        #expect(presentation.requiredPace == nil)
+    }
+
+    @Test("a one-cent projection gap still advises the exact pace")
+    func requiredPace_shownForAOneCentGap() throws {
+        let oneCent = try #require(Decimal(string: "0.01"))
+        let presentation = makePresentation(makeProgress(
+            targetAmount: 3_000,
+            projected: Decimal(string: "2999.99"),
+            required: oneCent
+        ))
+
+        #expect(presentation.requiredPace?.contains(oneCent.asAdaptiveCurrency(currency)) == true)
+    }
+
     // MARK: - Bar, chip, meta
+
+    @Test("a one-cent target gap stays visible in the hero amounts")
+    func amounts_keepAOneCentTargetGapVisible() throws {
+        let confirmed = try #require(Decimal(string: "999.99"))
+        let presentation = makePresentation(makeProgress(
+            targetAmount: 1_000,
+            confirmed: confirmed
+        ))
+
+        #expect(presentation.amount == confirmed.asAdaptiveCurrency(currency))
+        #expect(presentation.targetLine == AppLocale.string("sur \(Decimal(1_000).asAdaptiveCurrency(currency))"))
+    }
 
     @Test("the bar layers confirmed over the displayed projection and shares one percent")
     func bar_layersConfirmedOverProjection() throws {

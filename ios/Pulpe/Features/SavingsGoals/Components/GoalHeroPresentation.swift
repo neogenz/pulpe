@@ -41,10 +41,8 @@ struct GoalHeroPresentation: Equatable {
         let hasClosedPlanMonth = progress.hasClosedPlanMonth
 
         showsStatusChip = status != .active
-        amount = progress.confirmed.asCompactCurrency(currency)
-        // Compact like the hero above it: two decimals on the target beside a
-        // rounded balance reads as two different figures of the same money.
-        targetLine = progress.targetAmount.map { AppLocale.string("sur \($0.asCompactCurrency(currency))") }
+        amount = progress.confirmed.asAdaptiveCurrency(currency)
+        targetLine = progress.targetAmount.map { AppLocale.string("sur \($0.asAdaptiveCurrency(currency))") }
         dateLine = Self.makeDateLine(progress)
         initialAmountLine = progress.initialAmount > 0
             ? AppLocale.string("Dont \(progress.initialAmount.asCompactCurrency(currency)) de départ")
@@ -126,7 +124,7 @@ struct GoalHeroPresentation: Equatable {
         guard hasClosedPlanMonth,
               let required = progress.required,
               let targetAmount = progress.targetAmount,
-              progress.displayedProjection < targetAmount,
+              progress.displayedProjection.rounded(2) < targetAmount.rounded(2),
               let deadline = progress.targetDateValue else { return nil }
         return AppLocale.string(
             "Vise \(required.asAdaptiveCurrency(currency))/mois pour finir le \(deadline.abbreviatedDateFormatted)."
