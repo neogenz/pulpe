@@ -62,8 +62,8 @@ final class MutationQueue {
             ? deletionToastSingleTitle(for: last)
             : deletionToastPluralTitle(count: count, pendingSoftDeletions: pendingSoftDeletions)
         let detail = count == 1
-            ? "« \(lastName) » · \(detailAmount)"
-            : "Dernière : « \(lastName) » · \(detailAmount)"
+            ? AppLocale.string("« \(lastName) » · \(detailAmount)")
+            : AppLocale.string("Dernière : « \(lastName) » · \(detailAmount)")
         return (title: title, detail: detail)
     }
 
@@ -88,9 +88,9 @@ final class MutationQueue {
     static func deletionToastSingleTitle(for last: PendingBudgetDetailSoftDeletion) -> String {
         switch last {
         case .transaction:
-            "Supprimé"
+            AppLocale.string("Supprimé")
         case .budgetLine:
-            "Prévision supprimée"
+            AppLocale.string("Prévision supprimée")
         }
     }
 
@@ -107,11 +107,11 @@ final class MutationQueue {
             return false
         }
         if allTransactions {
-            return "\(count) mouvements supprimés"
+            return AppLocale.string("\(count) mouvements supprimés")
         }
         if allBudgetLines {
-            return "\(count) prévisions supprimées"
+            return AppLocale.string("\(count) prévisions supprimées")
         }
-        return "\(count) éléments supprimés"
+        return AppLocale.string("\(count) éléments supprimés")
     }
 }

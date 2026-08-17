@@ -8,9 +8,9 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
 
     var label: String {
         switch self {
-        case .income: "Revenu"
-        case .expense: "Dépense"
-        case .saving: "Épargne"
+        case .income: AppLocale.string("Revenu")
+        case .expense: AppLocale.string("Dépense")
+        case .saving: AppLocale.string("Épargne")
         }
     }
 
@@ -35,35 +35,40 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
 
     var descriptionPlaceholder: String {
         switch self {
-        case .expense: "Ex : Courses, Restaurant..."
-        case .income: "Ex : Salaire, Remboursement..."
-        case .saving: "Ex : Vacances, Fonds d'urgence..."
-        }
-    }
-
-    /// The article travels with the word, so a title only ever prefixes a verb:
-    /// "Noter" + "une dépense". Holding the two halves in one property is what
-    /// keeps them from drifting apart as titles are added.
-    var indefiniteLabel: String {
-        switch self {
-        case .expense: "une dépense"
-        case .income: "un revenu"
-        case .saving: "une épargne"
+        case .expense: AppLocale.string("Ex : Courses, Restaurant...")
+        case .income: AppLocale.string("Ex : Salaire, Remboursement...")
+        case .saving: AppLocale.string("Ex : Vacances, Fonds d'urgence...")
         }
     }
 
     /// The verb carries the tense: here a fact already on the account, on the
     /// forecast side an intention still to come. "Nouvelle dépense" named
     /// neither — it only said something was about to exist.
-    var newTransactionTitle: String { "Noter \(indefiniteLabel)" }
+    ///
+    /// Whole sentences rather than a verb interpolated with an article: French puts the
+    /// verb first and German puts it last, so a "Noter %@" template would force the
+    /// French word order on every language.
+    var newTransactionTitle: String {
+        switch self {
+        case .expense: AppLocale.string("Noter une dépense")
+        case .income: AppLocale.string("Noter un revenu")
+        case .saving: AppLocale.string("Noter une épargne")
+        }
+    }
 
-    var newBudgetLineTitle: String { "Prévoir \(indefiniteLabel)" }
+    var newBudgetLineTitle: String {
+        switch self {
+        case .expense: AppLocale.string("Prévoir une dépense")
+        case .income: AppLocale.string("Prévoir un revenu")
+        case .saving: AppLocale.string("Prévoir une épargne")
+        }
+    }
 
     var editBudgetLineTitle: String {
         switch self {
-        case .expense: "Modifier la dépense"
-        case .income: "Modifier le revenu"
-        case .saving: "Modifier l'épargne"
+        case .expense: AppLocale.string("Modifier la dépense")
+        case .income: AppLocale.string("Modifier le revenu")
+        case .saving: AppLocale.string("Modifier l'épargne")
         }
     }
 
@@ -80,15 +85,18 @@ enum TransactionRecurrence: String, Codable, CaseIterable, Sendable {
 
     var label: String {
         switch self {
-        case .fixed: "Récurrent"
-        case .oneOff: "Prévu"
+        case .fixed: AppLocale.string("Récurrent")
+        // French says "Prévu" for this type AND for the planned aggregate; the other
+        // languages split them (One-off vs Planned), so this sense needs its own key —
+        // the bare "Prévu" key stays the aggregate (docs/I18N.md, deliberate divergence 1).
+        case .oneOff: AppLocale.string("recurrence.oneOff")
         }
     }
 
     var longLabel: String {
         switch self {
-        case .fixed: "Tous les mois"
-        case .oneOff: "Une seule fois"
+        case .fixed: AppLocale.string("Tous les mois")
+        case .oneOff: AppLocale.string("Une seule fois")
         }
     }
 

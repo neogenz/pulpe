@@ -17,10 +17,10 @@ Rules when touching either entry:
 
 ## State
 
-| App | script-src `'unsafe-inline'` | Tracking |
-|-----|------------------------------|----------|
-| Webapp | **removed** (PUL-234) | done |
-| Landing | **kept by design** (PUL-254) | wontfix |
+| App     | script-src `'unsafe-inline'` | Tracking |
+| ------- | ---------------------------- | -------- |
+| Webapp  | **removed** (PUL-234)        | done     |
+| Landing | **kept by design** (PUL-254) | wontfix  |
 
 `style-src 'unsafe-inline'` stays — Angular Material + Tailwind v4 inject runtime `<style>` tags; removal requires SSR + per-request nonces, low ROI (XSS still blocked by `script-src`).
 
@@ -39,7 +39,12 @@ Loaded via `<script src="init/*.js">` in `index.html`. Synchronous (head) for `t
 `inlineCritical: true` stays in `angular.json` — Angular's beasties optimizer inlines above-the-fold CSS (faster FCP/LCP) and emits a single deterministic inline handler on the non-critical CSS preload tag:
 
 ```html
-<link rel="stylesheet" href="styles-<hash>.css" media="print" onload="this.media='all'">
+<link
+  rel="stylesheet"
+  href="styles-<hash>.css"
+  media="print"
+  onload="this.media='all'"
+/>
 ```
 
 CSP allow-lists this exact handler value:
@@ -52,12 +57,12 @@ script-src-attr 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCc
 
 ## Regression guards (webapp)
 
-| Layer | File | Trigger |
-|-------|------|---------|
-| Build-time scanner | `frontend/scripts/check-no-inline-scripts.ts` | chained inside `pnpm build` (`ng build && tsx scripts/check-no-inline-scripts.ts`) so Turbo + Vercel both run it |
-| Subset invariant | same scanner (`assertProductionIsSubsetOfFallback`) | fails the build if the production CSP grants any source absent from the fallback — the worst case Vercel can ever serve on a prod host is the fallback policy, never something more permissive than reviewed |
-| Playwright e2e | `frontend/e2e/tests/smoke/csp-violations.spec.ts` | `pnpm test:e2e --grep CSP` |
-| Post-deploy conformance | `verify-prod-csp` job in `.github/workflows/ci.yml` | on push to `main` after CI success: polls `app.pulpe.app` + `pulpe-frontend.vercel.app` and fails if the served CSP differs byte-for-byte from the host-conditioned entry in `vercel.json` |
+| Layer                   | File                                                                  | Trigger                                                                                                                                                                                                      |
+| ----------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Build-time scanner      | `frontend/scripts/check-no-inline-scripts.ts`                         | chained inside `pnpm build` (`ng build && tsx scripts/check-no-inline-scripts.ts`) so Turbo + Vercel both run it                                                                                             |
+| Subset invariant        | same scanner (`assertProductionIsSubsetOfFallback`)                   | fails the build if the production CSP grants any source absent from the fallback — the worst case Vercel can ever serve on a prod host is the fallback policy, never something more permissive than reviewed |
+| Playwright e2e          | `frontend/e2e/tests/smoke/csp-violations.spec.ts`                     | `pnpm test:e2e --grep CSP`                                                                                                                                                                                   |
+| Post-deploy conformance | `Verify production CSP headers` in `.github/workflows/production.yml` | after exact production deployments: polls `app.pulpe.app` + `pulpe-frontend.vercel.app` and fails if the served CSP differs byte-for-byte from the host-conditioned entry in `vercel.json`                   |
 
 The scanner parses `dist/webapp/browser/index.html` with JSDOM, computes a `sha256-...` for every inline `<script>` and every `on*=` handler, and fails the build if any hash is missing from the corresponding directive of **any** CSP entry in `vercel.json` (`script-src-elem` for inline scripts, `script-src-attr` for handlers).
 

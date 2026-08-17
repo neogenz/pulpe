@@ -23,6 +23,7 @@ const settings: UserSettings = {
   payDayOfMonth: null,
   currency: 'CHF',
   showCurrencySelector: false,
+  locale: 'fr',
 };
 
 function makeGoal(overrides: Partial<SavingsGoal>): SavingsGoal {

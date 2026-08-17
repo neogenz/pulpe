@@ -1,4 +1,5 @@
-import { inject, Service } from '@angular/core';
+import { inject, LOCALE_ID, Service } from '@angular/core';
+import { TranslocoService } from '@jsverse/transloco';
 import type { Cell, Row } from 'write-excel-file/browser';
 import type {
   SupportedCurrency,
@@ -13,31 +14,16 @@ import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { type ExcelSheet } from '@core/file-download';
 
-const KIND_LABELS: Record<TransactionKind, string> = {
-  income: 'Revenu',
-  expense: 'Dépense',
-  saving: 'Épargne',
+const KIND_KEYS: Record<TransactionKind, string> = {
+  income: 'transactionKind.income',
+  expense: 'transactionKind.expense',
+  saving: 'transactionKind.saving',
 };
 
-const RECURRENCE_LABELS: Record<TransactionRecurrence, string> = {
-  fixed: 'Récurrent',
-  one_off: 'Prévu',
+const RECURRENCE_KEYS: Record<TransactionRecurrence, string> = {
+  fixed: 'recurrence.fixed',
+  one_off: 'recurrence.oneOff',
 };
-
-const MONTH_NAMES = [
-  'Janvier',
-  'Février',
-  'Mars',
-  'Avril',
-  'Mai',
-  'Juin',
-  'Juillet',
-  'Août',
-  'Septembre',
-  'Octobre',
-  'Novembre',
-  'Décembre',
-];
 
 const CURRENCY_EXCEL_FORMATS: Record<SupportedCurrency, string> = {
   CHF: '"CHF" #,##0.00',
@@ -56,9 +42,22 @@ const COLUMN_WIDTHS = [
 export class ExcelExportService {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #tagStore = inject(TagStore);
+  readonly #transloco = inject(TranslocoService);
+  readonly #localeId = inject(LOCALE_ID);
 
   get #currencyFormat(): string {
     return CURRENCY_EXCEL_FORMATS[this.#userSettings.currency()];
+  }
+
+  // The month name comes from CLDR rather than from the catalog: the twelve
+  // names exist in every locale Angular already registers, and a downloaded
+  // file that says "Janvier" inside a German app is the most visible leak
+  // this service could ship.
+  #monthName(month: number): string {
+    const name = new Intl.DateTimeFormat(this.#localeId, {
+      month: 'long',
+    }).format(new Date(2000, month - 1, 1));
+    return name.charAt(0).toUpperCase() + name.slice(1);
   }
 
   async buildSheets(response: BudgetExportResponse): Promise<ExcelSheet[]> {
@@ -80,16 +79,23 @@ export class ExcelExportService {
   #buildSheetData(budget: BudgetWithDetails): Row[] {
     const rows: Row[] = [];
 
-    const monthName = MONTH_NAMES[budget.month - 1] ?? `Mois ${budget.month}`;
-    rows.push([`BUDGET ${monthName.toUpperCase()} ${budget.year}`]);
+    const t = (key: string) => this.#transloco.translate(`export.${key}`);
+
+    const monthName = this.#monthName(budget.month);
+    rows.push([
+      `${t('budgetTitle')} ${monthName.toUpperCase()} ${budget.year}`,
+    ]);
     rows.push([]);
-    rows.push(['Report', this.#currencyCell(budget.rollover)]);
-    rows.push(['Reste', this.#currencyCell(budget.remaining)]);
-    rows.push(['Solde final', this.#currencyCell(budget.endingBalance ?? 0)]);
+    rows.push([t('rollover'), this.#currencyCell(budget.rollover)]);
+    rows.push([t('remaining'), this.#currencyCell(budget.remaining)]);
+    rows.push([
+      t('endingBalance'),
+      this.#currencyCell(budget.endingBalance ?? 0),
+    ]);
     rows.push([]);
 
-    rows.push(['PRÉVISIONS']);
-    rows.push(['Nom', 'Montant', 'Type', 'Récurrence']);
+    rows.push([t('budgetLinesTitle')]);
+    rows.push([t('name'), t('amount'), t('type'), t('recurrence')]);
 
     const budgetLines = budget.budgetLines ?? [];
     const budgetLinesStartRow = rows.length + 1;
@@ -100,14 +106,14 @@ export class ExcelExportService {
 
     if (budgetLines.length > 0) {
       rows.push([
-        'Total prévisions',
+        t('budgetLinesTotal'),
         this.#formulaCell(`SUM(B${budgetLinesStartRow}:B${budgetLinesEndRow})`),
       ]);
     }
 
     rows.push([]);
-    rows.push(['TRANSACTIONS']);
-    rows.push(['Date', 'Nom', 'Montant', 'Type', 'Tags']);
+    rows.push([t('transactionsTitle')]);
+    rows.push([t('date'), t('name'), t('amount'), t('type'), t('tags')]);
 
     const transactions = budget.transactions ?? [];
     const transactionsStartRow = rows.length + 1;
@@ -119,7 +125,7 @@ export class ExcelExportService {
     if (transactions.length > 0) {
       rows.push([
         '',
-        'Total transactions',
+        t('transactionsTotal'),
         this.#formulaCell(
           `SUM(C${transactionsStartRow}:C${transactionsEndRow})`,
         ),
@@ -133,8 +139,8 @@ export class ExcelExportService {
     return [
       this.#escapeFormulaInjection(line.name ?? ''),
       this.#currencyCell(line.amount),
-      KIND_LABELS[line.kind] ?? line.kind,
-      RECURRENCE_LABELS[line.recurrence] ?? line.recurrence,
+      this.#kindLabel(line.kind),
+      this.#recurrenceLabel(line.recurrence),
     ];
   }
 
@@ -143,9 +149,19 @@ export class ExcelExportService {
       this.#formatDate(transaction.transactionDate),
       this.#escapeFormulaInjection(transaction.name ?? ''),
       this.#currencyCell(transaction.amount),
-      KIND_LABELS[transaction.kind] ?? transaction.kind,
+      this.#kindLabel(transaction.kind),
       this.#escapeFormulaInjection(this.#formatTags(transaction.tagIds)),
     ];
+  }
+
+  #kindLabel(kind: TransactionKind): string {
+    const key = KIND_KEYS[kind];
+    return key ? this.#transloco.translate(key) : kind;
+  }
+
+  #recurrenceLabel(recurrence: TransactionRecurrence): string {
+    const key = RECURRENCE_KEYS[recurrence];
+    return key ? this.#transloco.translate(key) : recurrence;
   }
 
   #formatTags(tagIds: readonly string[] | undefined): string {

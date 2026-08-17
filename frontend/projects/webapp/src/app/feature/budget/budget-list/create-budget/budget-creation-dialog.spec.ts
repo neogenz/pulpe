@@ -24,7 +24,11 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { Subject, of } from 'rxjs';
 
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
-import { type BudgetTemplate, type SupportedCurrency } from 'pulpe-shared';
+import {
+  type BudgetTemplate,
+  type SupportedCurrency,
+  type SupportedLocale,
+} from 'pulpe-shared';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateStore, type TemplateTotals } from './services/template-store';
 import { type TemplateViewModel } from './template-view-model';
@@ -274,7 +278,10 @@ describe('CreateBudgetDialogComponent', () => {
           { provide: MAT_DIALOG_DATA, useValue: {} },
           {
             provide: UserSettingsStore,
-            useValue: { currency: signal<SupportedCurrency>('EUR') },
+            useValue: {
+              currency: signal<SupportedCurrency>('EUR'),
+              locale: signal<SupportedLocale>('fr'),
+            },
           },
         ],
         schemas: [NO_ERRORS_SCHEMA],

@@ -1,8 +1,8 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { ROUTES } from '@core/routing';
 
 @Component({
@@ -22,138 +22,133 @@ import { ROUTES } from '@core/routing';
 
         <section class="mb-8">
           <h2 class="text-headline-medium mb-4">
-            1. Acceptation des conditions
+            {{ 'legal.terms.acceptance.title' | transloco }}
           </h2>
           <p class="text-body-large">
-            En créant un compte sur Pulpe, vous acceptez les présentes
-            conditions d'utilisation. Si vous n'acceptez pas ces conditions,
-            veuillez ne pas utiliser mon service.
-          </p>
-        </section>
-
-        <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">2. Description du service</h2>
-          <p class="text-body-large">
-            Pulpe est une application de gestion budgétaire personnelle qui vous
-            permet de :
-          </p>
-          <ul class="list-disc pl-6 text-body-large">
-            <li>Planifier vos budgets mensuels</li>
-            <li>Suivre vos dépenses et revenus</li>
-            <li>Gérer votre épargne</li>
-            <li>Créer des modèles de budget réutilisables</li>
-            <li>
-              Tester le service en mode démo (données éphémères, supprimées
-              après 24 heures)
-            </li>
-          </ul>
-        </section>
-
-        <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">3. Compte utilisateur</h2>
-          <p class="text-body-large">Vous êtes responsable de :</p>
-          <ul class="list-disc pl-6 text-body-large">
-            <li>Maintenir la confidentialité de votre mot de passe</li>
-            <li>Toutes les activités effectuées avec votre compte</li>
-            <li>M’informer immédiatement de tout accès non autorisé</li>
-          </ul>
-        </section>
-
-        <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">4. Utilisation des données</h2>
-          <p class="text-body-large">
-            Je collecte et utilise vos données pour :
-          </p>
-          <ul class="list-disc pl-6 text-body-large">
-            <li>Fournir et améliorer le service</li>
-            <li>Assurer la sécurité de votre compte</li>
-            <li>Corriger les bugs et problèmes techniques</li>
-            <li>Analyser l'utilisation pour améliorer l'expérience</li>
-          </ul>
-          <p class="text-body-large mt-4">
-            <strong>Important :</strong> J'utilise PostHog pour suivre
-            l'utilisation de l'application. Cela inclut les pages visitées, les
-            fonctionnalités utilisées, les erreurs rencontrées et
-            l'enregistrement de sessions (replay des interactions). Vos données
-            financières sont toujours masquées dans ces analyses et
-            enregistrements.
-          </p>
-        </section>
-
-        <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">5. Open Source et propriété</h2>
-          <p class="text-body-large">
-            Le code source de Pulpe est disponible sous licence MIT sur GitHub.
-            Vous pouvez le consulter, le modifier et l'héberger vous-même.
-            Cependant, vos données personnelles vous appartiennent et restent
-            privées.
+            {{ 'legal.terms.acceptance.body' | transloco }}
           </p>
         </section>
 
         <section class="mb-8">
           <h2 class="text-headline-medium mb-4">
-            6. Limitation de responsabilité
+            {{ 'legal.terms.service.title' | transloco }}
           </h2>
           <p class="text-body-large">
-            Pulpe est un projet personnel maintenu sur mon temps libre. Le
-            service est fourni "tel quel" et je ne peux pas garantir :
+            {{ 'legal.terms.service.intro' | transloco }}
           </p>
           <ul class="list-disc pl-6 text-body-large">
-            <li>Une disponibilité continue du service</li>
-            <li>L'absence totale d'erreurs ou de bugs</li>
-            <li>L'exactitude des calculs (vérifiez toujours vos données)</li>
+            <li>{{ 'legal.terms.service.items.plan' | transloco }}</li>
+            <li>{{ 'legal.terms.service.items.track' | transloco }}</li>
+            <li>{{ 'legal.terms.service.items.savings' | transloco }}</li>
+            <li>{{ 'legal.terms.service.items.templates' | transloco }}</li>
+            <li>{{ 'legal.terms.service.items.demo' | transloco }}</li>
+          </ul>
+        </section>
+
+        <section class="mb-8">
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.terms.account.title' | transloco }}
+          </h2>
+          <p class="text-body-large">
+            {{ 'legal.terms.account.intro' | transloco }}
+          </p>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>{{ 'legal.terms.account.items.password' | transloco }}</li>
+            <li>{{ 'legal.terms.account.items.activity' | transloco }}</li>
+            <li>{{ 'legal.terms.account.items.unauthorized' | transloco }}</li>
+          </ul>
+        </section>
+
+        <section class="mb-8">
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.terms.data.title' | transloco }}
+          </h2>
+          <p class="text-body-large">
+            {{ 'legal.terms.data.intro' | transloco }}
+          </p>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>{{ 'legal.terms.data.items.improve' | transloco }}</li>
+            <li>{{ 'legal.terms.data.items.security' | transloco }}</li>
+            <li>{{ 'legal.terms.data.items.bugs' | transloco }}</li>
+            <li>{{ 'legal.terms.data.items.analytics' | transloco }}</li>
           </ul>
           <p class="text-body-large mt-4">
-            <strong>Avertissement important :</strong>
+            <strong>{{ 'legal.terms.data.analyticsLabel' | transloco }}</strong>
+            {{ 'legal.terms.data.analyticsBody' | transloco }}
+          </p>
+        </section>
+
+        <section class="mb-8">
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.terms.source.title' | transloco }}
+          </h2>
+          <p class="text-body-large">
+            {{ 'legal.terms.source.body' | transloco }}
+          </p>
+        </section>
+
+        <section class="mb-8">
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.terms.liability.title' | transloco }}
+          </h2>
+          <p class="text-body-large">
+            {{ 'legal.terms.liability.intro' | transloco }}
           </p>
           <ul class="list-disc pl-6 text-body-large">
             <li>
-              Pulpe est un outil d'aide à la gestion budgétaire et ne constitue
-              pas un conseil financier professionnel
+              {{ 'legal.terms.liability.items.availability' | transloco }}
             </li>
+            <li>{{ 'legal.terms.liability.items.errors' | transloco }}</li>
+            <li>{{ 'legal.terms.liability.items.accuracy' | transloco }}</li>
+          </ul>
+          <p class="text-body-large mt-4">
+            <strong>{{ 'legal.terms.liability.warning' | transloco }}</strong>
+          </p>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>{{ 'legal.terms.liability.items.advice' | transloco }}</li>
             <li>
-              <strong
-                >Je décline toute responsabilité en cas de perte financière liée
-                à l'utilisation de Pulpe</strong
-              >
+              <strong>{{
+                'legal.terms.liability.items.loss' | transloco
+              }}</strong>
             </li>
-            <li>Vous êtes seul responsable de vos décisions financières</li>
-            <li>En cas de doute, consultez un conseiller financier qualifié</li>
+            <li>{{ 'legal.terms.liability.items.decisions' | transloco }}</li>
+            <li>{{ 'legal.terms.liability.items.advisor' | transloco }}</li>
           </ul>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">7. Résiliation</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.terms.termination.title' | transloco }}
+          </h2>
           <p class="text-body-large">
-            Vous pouvez supprimer votre compte à tout moment depuis les
-            paramètres. Je me réserve le droit de suspendre ou supprimer votre
-            compte en cas de violation de ces conditions ou d'utilisation
-            abusive.
+            {{ 'legal.terms.termination.body' | transloco }}
           </p>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">8. Modifications des CGU</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.terms.changes.title' | transloco }}
+          </h2>
           <p class="text-body-large">
-            Je peux modifier ces conditions si nécessaire. Les modifications
-            importantes seront notifiées par email. L'utilisation continue du
-            service après modification vaut acceptation des nouvelles
-            conditions.
+            {{ 'legal.terms.changes.body' | transloco }}
           </p>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">9. Droit applicable</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.terms.law.title' | transloco }}
+          </h2>
           <p class="text-body-large">
-            Ces conditions sont régies par le droit suisse. Tout litige sera
-            soumis aux tribunaux compétents de Genève, Suisse.
+            {{ 'legal.terms.law.body' | transloco }}
           </p>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">10. Contact</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.terms.contact.title' | transloco }}
+          </h2>
           <p class="text-body-large">
-            Pour toute question concernant ces conditions, contactez-moi à :
+            {{ 'legal.terms.contact.body' | transloco }}
             <a href="mailto:maxime.desogus@gmail.com" class="text-primary"
               >maxime.desogus@gmail.com</a
             >
@@ -182,7 +177,12 @@ import { ROUTES } from '@core/routing';
   `,
 })
 export default class TermsOfServiceComponent {
+  readonly #transloco = inject(TranslocoService);
+
   protected readonly ROUTES = ROUTES;
 
-  protected readonly currentDate = '27 janvier 2026';
+  protected readonly currentDate = new Intl.DateTimeFormat(
+    this.#transloco.getActiveLang(),
+    { dateStyle: 'long', timeZone: 'UTC' },
+  ).format(new Date('2026-01-27T00:00:00Z'));
 }

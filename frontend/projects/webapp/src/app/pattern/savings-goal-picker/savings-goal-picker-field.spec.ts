@@ -77,7 +77,11 @@ describe('SavingsGoalPickerField', () => {
         },
         {
           provide: UserSettingsStore,
-          useValue: { currency: signal('CHF'), payDayOfMonth },
+          useValue: {
+            currency: signal('CHF'),
+            locale: signal('fr'),
+            payDayOfMonth,
+          },
         },
       ],
     }).compileComponents();

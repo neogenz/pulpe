@@ -36,6 +36,106 @@ struct AppVersionStoreTests {
         #expect(store.status == .ok)
     }
 
+    @Test("Latest version uses a monotone prompt high-water mark")
+    func check_currentBelowLatest_emitsOnceAndIgnoresOlderTargetAfterNewer() async throws {
+        let suiteName = "AppVersionStoreTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let flagsStore = AppUpdateFlagsStore(defaults: defaults)
+        let storeURL = try #require(URL(string: "https://apps.apple.com/app/id6758464920"))
+
+        let service = StubAppVersionService(response: .makeFixture(
+            iosMin: "1.0.0",
+            iosLatest: "1.3.2",
+            iosStoreURL: storeURL.absoluteString
+        ))
+        let store = AppVersionStore(
+            service: service,
+            flagsStore: flagsStore,
+            currentVersion: "1.3.1"
+        )
+
+        await store.check()
+        #expect(store.status == .updateAvailable(.init(version: "1.3.2", storeURL: storeURL)))
+
+        store.markUpdatePresented()
+        await store.check()
+        #expect(store.status == .updateAvailable(.init(version: "1.3.2", storeURL: storeURL)))
+
+        store.dismissUpdateAvailable()
+        #expect(store.status == .ok)
+        #expect(flagsStore.lastPromptedVersion == "1.3.2")
+
+        let relaunchedStore = AppVersionStore(
+            service: service,
+            flagsStore: AppUpdateFlagsStore(defaults: defaults),
+            currentVersion: "1.3.1"
+        )
+        await relaunchedStore.check()
+        #expect(relaunchedStore.status == .ok)
+
+        let newerService = StubAppVersionService(response: .makeFixture(
+            iosMin: "1.0.0",
+            iosLatest: "1.3.3",
+            iosStoreURL: storeURL.absoluteString
+        ))
+        let newerStore = AppVersionStore(
+            service: newerService,
+            flagsStore: AppUpdateFlagsStore(defaults: defaults),
+            currentVersion: "1.3.1"
+        )
+        await newerStore.check()
+        #expect(newerStore.status == .updateAvailable(.init(version: "1.3.3", storeURL: storeURL)))
+
+        newerStore.markUpdatePresented()
+        #expect(flagsStore.lastPromptedVersion == "1.3.3")
+
+        let rolledBackStore = AppVersionStore(
+            service: service, flagsStore: AppUpdateFlagsStore(defaults: defaults), currentVersion: "1.3.1"
+        )
+        await rolledBackStore.check()
+        #expect(rolledBackStore.status == .ok)
+        #expect(flagsStore.lastPromptedVersion == "1.3.3")
+    }
+
+    @Test("Minimum version keeps priority over the optional update")
+    func check_currentBelowMin_emitsForceUpdateBeforeLatest() async throws {
+        let suiteName = "AppVersionStoreTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let flagsStore = AppUpdateFlagsStore(defaults: defaults)
+        flagsStore.setLastPromptedVersion("1.3.2")
+        let storeURL = try #require(URL(string: "https://apps.apple.com/app/id6758464920"))
+        let service = StubAppVersionService(response: .makeFixture(
+            iosMin: "1.3.1",
+            iosLatest: "1.3.2",
+            iosStoreURL: storeURL.absoluteString
+        ))
+        let store = AppVersionStore(
+            service: service,
+            flagsStore: flagsStore,
+            currentVersion: "1.3.0"
+        )
+
+        await store.check()
+
+        #expect(store.status == .forceUpdate(storeURL: storeURL))
+    }
+
+    @Test("Optional update requires an absolute App Store URL")
+    func check_softUpdateWithoutUsableURL_emitsOk() async {
+        let service = StubAppVersionService(response: .makeFixture(
+            iosMin: "1.0.0",
+            iosLatest: "1.3.2",
+            iosStoreURL: "not-an-absolute-url"
+        ))
+        let store = AppVersionStore(service: service, currentVersion: "1.3.1")
+
+        await store.check()
+
+        #expect(store.status == .ok)
+    }
+
     @Test func check_fetchThrows_failsOpenWithOkStatus() async {
         let service = StubAppVersionService(error: URLError(.notConnectedToInternet))
         let store = AppVersionStore(service: service, currentVersion: "1.0.0")
@@ -91,6 +191,27 @@ struct AppVersionStoreTests {
         await store.check()
 
         #expect(store.status == .ok)
+    }
+
+    @Test("Optional-update status persists on later fetch failure")
+    func check_updateAvailableThenFetchThrows_preservesUpdate() async throws {
+        let storeURL = try #require(URL(string: "https://apps.apple.com/app/id6758464920"))
+        let service = SwitchableStubService(
+            initialOutcome: .success(.makeFixture(
+                iosMin: "1.0.0",
+                iosLatest: "1.3.2",
+                iosStoreURL: storeURL.absoluteString
+            ))
+        )
+        let store = AppVersionStore(service: service, currentVersion: "1.3.1")
+
+        await store.check()
+        let confirmedStatus = store.status
+        service.swap(to: .failure(URLError(.timedOut)))
+        await store.check()
+
+        #expect(confirmedStatus == .updateAvailable(.init(version: "1.3.2", storeURL: storeURL)))
+        #expect(store.status == confirmedStatus)
     }
 }
 

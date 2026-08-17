@@ -115,13 +115,13 @@ enum CryptoServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidPin:
-            return "Le code PIN est invalide"
+            return AppLocale.string("Le code PIN est invalide")
         case .invalidSalt:
-            return "Le sel de chiffrement est invalide"
+            return AppLocale.string("Le sel de chiffrement est invalide")
         case .invalidIterations:
-            return "Les paramètres de sécurité sont invalides"
+            return AppLocale.string("Les paramètres de sécurité sont invalides")
         case .derivationFailed:
-            return "La dérivation de la clé a échoué"
+            return AppLocale.string("La dérivation de la clé a échoué")
         }
     }
 }

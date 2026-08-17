@@ -113,7 +113,7 @@ struct SavingsGoalPlannedWithdrawalPicker: View {
             }
         } label: {
             savingsGoalFieldSurface {
-                Text(selectedGoal?.name ?? "Choisis un objectif")
+                Text(selectedGoal?.name ?? AppLocale.string("Choisis un objectif"))
                     .foregroundStyle(selectedGoal == nil ? Color.onSurfaceVariant : Color.textPrimary)
                 Spacer()
                 Image(systemName: "chevron.up.chevron.down")
@@ -122,7 +122,7 @@ struct SavingsGoalPlannedWithdrawalPicker: View {
             }
         }
         .accessibilityLabel("Objectif utilisé")
-        .accessibilityValue(selectedGoal?.name ?? "Aucun objectif choisi")
+        .accessibilityValue(selectedGoal?.name ?? AppLocale.string("Aucun objectif choisi"))
     }
 
     @ViewBuilder
@@ -137,10 +137,10 @@ struct SavingsGoalPlannedWithdrawalPicker: View {
                     .sensitiveAmount()
 
                 if projection.isOverProjection {
-                    Text(
-                        "Ce montant dépasse ce que l'objectif devrait contenir ce mois-là. "
-                            + "Tu peux quand même le planifier."
-                    )
+                    Text("""
+                        Ce montant dépasse ce que l'objectif devrait contenir ce mois-là. \
+                        Tu peux quand même le planifier.
+                        """)
                     .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.onSurfaceVariant)
                 }

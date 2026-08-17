@@ -2,19 +2,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
+  LOCALE_ID,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { getCurrencyFormatter } from 'pulpe-shared';
-
-const FALLBACK_DATE_LOCALE = 'fr-CH';
-
-const fallbackDateFormatter = new Intl.DateTimeFormat(FALLBACK_DATE_LOCALE, {
-  day: '2-digit',
-  month: 'short',
-});
+import { getCurrencyFormatter, parseIsoDateLocal } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-currency-conversion-badge',
@@ -95,6 +90,16 @@ const fallbackDateFormatter = new Intl.DateTimeFormat(FALLBACK_DATE_LOCALE, {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CurrencyConversionBadge {
+  // Le libellé autour de la date vient du catalogue, la date elle-même suit la
+  // langue de l'interface. Une locale figée ici afficherait « Kurs vom 12 janv. »
+  // à un utilisateur allemand, sans que rien n'échoue.
+  readonly #locale = inject(LOCALE_ID);
+
+  readonly #fallbackDateFormatter = new Intl.DateTimeFormat(this.#locale, {
+    day: '2-digit',
+    month: 'short',
+  });
+
   readonly originalAmount = input<number | null | undefined>(null);
   readonly originalCurrency = input<string | null | undefined>(null);
   readonly exchangeRate = input<number | null | undefined>(null);
@@ -103,7 +108,8 @@ export class CurrencyConversionBadge {
   /**
    * Fallback mode — set when the live FX fetch failed and the UI is
    * displaying the last cached rate. Pass the ISO date (YYYY-MM-DD) of
-   * the cached rate; the badge formats it as "dd MMM" in fr-CH.
+   * the cached rate; the badge renders it as a short day/month in the
+   * interface language.
    */
   readonly fallbackDate = input<string | null | undefined>(null);
   readonly fallbackTooltipText = input<string>('');
@@ -120,9 +126,9 @@ export class CurrencyConversionBadge {
   protected readonly formattedFallbackDate = computed(() => {
     const raw = this.fallbackDate();
     if (!raw) return '';
-    const parsed = new Date(raw);
+    const parsed = parseIsoDateLocal(raw);
     if (Number.isNaN(parsed.getTime())) return raw;
-    return fallbackDateFormatter.format(parsed);
+    return this.#fallbackDateFormatter.format(parsed);
   });
 
   protected readonly formattedOriginalAmount = computed(() => {

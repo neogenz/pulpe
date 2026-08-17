@@ -20,6 +20,7 @@ struct NetworkUnavailableView: View {
                 Text("Connexion impossible")
                     .font(PulpeTypography.onboardingTitle)
                     .foregroundStyle(Color.textPrimaryOnboarding)
+                    .accessibilityIdentifier("networkUnavailableTitle")
 
                 Text("Impossible de joindre le serveur — vérifie ta connexion internet et réessaie.")
                     .font(PulpeTypography.bodyLarge)
@@ -56,6 +57,7 @@ struct NetworkUnavailableView: View {
             }
             .textLinkButtonStyle()
             .disabled(isRetrying)
+            .accessibilityIdentifier("networkReturnToLoginButton")
 
             Spacer()
         }

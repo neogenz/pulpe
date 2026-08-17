@@ -42,7 +42,17 @@ struct MainTabView: View {
         .tint(Color.pulpePrimary)
         .pulpeBackground()
         .onChange(of: appState.selectedTab) { _, newTab in
+            #if DEBUG
+            guard ProcessInfo.processInfo.environment["UITEST_CAPTURE_TAB"] == nil else { return }
+            #endif
             AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])
+        }
+        .task {
+            #if DEBUG
+            guard let rawValue = ProcessInfo.processInfo.environment["UITEST_CAPTURE_TAB"],
+                  let tab = Tab(rawValue: rawValue) else { return }
+            appState.selectedTab = tab
+            #endif
         }
     }
 }
@@ -191,6 +201,7 @@ struct TemplatesTab: View {
                     switch destination {
                     case .details(let templateId):
                         TemplateDetailsView(templateId: templateId)
+                            .accessibilityIdentifier("templateDetailsRoot")
                     }
                 }
         }

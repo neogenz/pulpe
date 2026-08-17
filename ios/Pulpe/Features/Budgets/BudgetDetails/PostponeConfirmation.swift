@@ -66,9 +66,9 @@ private struct PostponeConfirmationModifier: ViewModifier {
     private var confirmationTitle: String {
         guard let target else { return "" }
         if let nextMonthLabel {
-            return "Reporter \(target.name) en \(nextMonthLabel) ?"
+            return AppLocale.string("Reporter \(target.name) en \(nextMonthLabel) ?")
         }
-        return "Reporter \(target.name) au mois suivant ?"
+        return AppLocale.string("Reporter \(target.name) au mois suivant ?")
     }
 
     /// Bridges the `PostponeTarget?` state to the `Bool` binding the alert

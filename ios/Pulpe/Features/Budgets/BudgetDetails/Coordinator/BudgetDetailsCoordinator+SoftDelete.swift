@@ -55,16 +55,16 @@ extension BudgetDetailsCoordinator {
         }
 
         if amountsHidden {
-            context.toastManager.show("Pointé")
+            context.toastManager.show(AppLocale.string("Pointé"))
         } else if isPessimistic {
+            let consumedText = consumed.asCurrency(context.presentationCurrency)
+            let effectiveText = effective.asCurrency(context.presentationCurrency)
             context.toastManager.show(
-                "Pointé · \(consumed.asCurrency(context.presentationCurrency)) — "
-                    + "\(effective.asCurrency(context.presentationCurrency)) prévus"
+                AppLocale.string("Pointé · \(consumedText) — \(effectiveText) prévus")
             )
         } else {
-            context.toastManager.show(
-                "Pointé · \(effective.asCurrency(context.presentationCurrency))"
-            )
+            let effectiveText = effective.asCurrency(context.presentationCurrency)
+            context.toastManager.show(AppLocale.string("Pointé · \(effectiveText)"))
         }
     }
 

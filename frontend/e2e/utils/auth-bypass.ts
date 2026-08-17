@@ -318,6 +318,19 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
+    // Savings goal withdrawals are eagerly loaded with the detail view.
+    // Keep the fake E2E bearer away from the real backend, as for tags.
+    if (
+      method === 'GET' &&
+      url.match(/\/savings-goals\/[^/]+\/withdrawals(\?.*)?$/)
+    ) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      });
+    }
+
     // Savings goal list endpoint - same escape route as tags
     if (method === 'GET' && url.match(/\/savings-goals(\?.*)?$/)) {
       return route.fulfill({

@@ -9,6 +9,22 @@ import { setupAuthBypass } from '../../utils/auth-bypass';
 test.describe('Authentication', () => {
   test.describe.configure({ mode: 'parallel' });
 
+  for (const locale of ['fr', 'en', 'de', 'it'] as const) {
+    test(`should use and persist the landing CTA locale (${locale})`, async ({
+      page,
+    }) => {
+      await page.addInitScript(() => localStorage.clear());
+
+      await page.goto(`/welcome?utm_source=landing&lang=${locale}`);
+
+      await expect(page.locator('html')).toHaveAttribute('lang', locale);
+      const persisted = await page.evaluate(() =>
+        JSON.parse(localStorage.getItem('pulpe-settings-language') ?? 'null'),
+      );
+      expect(persisted?.data).toBe(locale);
+    });
+  }
+
   test('should protect routes from unauthenticated access', async ({
     page,
   }) => {
@@ -137,6 +153,45 @@ test.describe('Authentication', () => {
 
     // Should redirect away from app
     await expect(authenticatedPage).toHaveURL(/\/(login|welcome)/);
+  });
+
+  test('should preserve the dashboard language after logout', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'pulpe-settings-language',
+        JSON.stringify({
+          version: 1,
+          data: 'en',
+          updatedAt: new Date().toISOString(),
+        }),
+      );
+    });
+    await page.route('**/api/v1/users/settings', (route) => {
+      const data =
+        route.request().method() === 'PUT'
+          ? route.request().postDataJSON()
+          : {
+              payDayOfMonth: null,
+              currency: 'CHF',
+              showCurrencySelector: false,
+              locale: 'en',
+            };
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data }),
+      });
+    });
+
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await page.getByTestId('user-menu-trigger').click();
+    await page.getByTestId('logout-button').click();
+
+    await expect(page).toHaveURL(/\/(login|welcome)/);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   });
 
   test('should clear session vault key on logout but preserve device trust key', async ({

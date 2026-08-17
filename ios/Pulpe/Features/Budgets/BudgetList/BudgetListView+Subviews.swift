@@ -1,5 +1,17 @@
 import SwiftUI
 
+/// One whole-sentence key per variant: "disponible non défini" is a sentence, not
+/// "disponible" glued to "non défini" — word order and agreement differ per language.
+private func availabilityLabel(
+    remaining: Decimal?,
+    amountsHidden: Bool,
+    currency: SupportedCurrency
+) -> String {
+    if amountsHidden { return AppLocale.string("montant masqué") }
+    guard let remaining else { return AppLocale.string("disponible non défini") }
+    return AppLocale.string("disponible \(remaining.asCompactCurrency(currency))")
+}
+
 // MARK: - Current Month Hero Card
 
 struct CurrentMonthHeroCard: View {
@@ -63,13 +75,17 @@ struct CurrentMonthHeroCard: View {
         .pulpeCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
         .sensoryFeedback(.impact(weight: .medium), trigger: tapTrigger)
         .accessibilityLabel(
-            "\(monthName), mois actuel, "
-            + (amountsHidden
-                ? "montant masqué"
-                : "disponible \(budget.remaining?.asCompactCurrency(userSettingsStore.currency) ?? "non défini")")
+            AppLocale.string("\(monthName), mois actuel")
+            + ", "
+            + availabilityLabel(
+                remaining: budget.remaining,
+                amountsHidden: amountsHidden,
+                currency: userSettingsStore.currency
+            )
         )
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("budgetCard-\(budget.id)")
     }
 }
 
@@ -123,12 +139,15 @@ struct BudgetMonthCard: View {
         .sensoryFeedback(.selection, trigger: tapTrigger)
         .accessibilityLabel(
             "\(monthName), "
-            + (amountsHidden
-                ? "montant masqué"
-                : "disponible \(budget.remaining?.asCompactCurrency(userSettingsStore.currency) ?? "non défini")")
+            + availabilityLabel(
+                remaining: budget.remaining,
+                amountsHidden: amountsHidden,
+                currency: userSettingsStore.currency
+            )
         )
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("budgetCard-\(budget.id)")
     }
 }
 
@@ -142,7 +161,7 @@ struct BudgetAmountBlock: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
     private var amountLabel: String {
-        (remaining ?? 0) >= 0 ? "Potentiel" : "Ajustement"
+        (remaining ?? 0) >= 0 ? AppLocale.string("Potentiel") : AppLocale.string("Ajustement")
     }
 
     var body: some View {
@@ -189,8 +208,8 @@ struct NextMonthPlaceholder: View {
 
     private var subtitle: String {
         isNegative
-            ? "Tu peux encore corriger si tu y vois plus clair"
-            : "Tes objectifs pour ce mois n'attendent que toi."
+            ? AppLocale.string("Tu peux encore corriger si tu y vois plus clair")
+            : AppLocale.string("Tes objectifs pour ce mois n'attendent que toi.")
     }
 
     var body: some View {
@@ -242,7 +261,7 @@ struct NextMonthPlaceholder: View {
                         .monospacedDigit()
                         .foregroundStyle(adjustmentColor)
                         .sensitiveAmount()
-                    Text(isNegative ? "Ajustement" : "Potentiel")
+                    (isNegative ? Text("Ajustement") : Text("Potentiel"))
                         .font(PulpeTypography.metricMini)
                         .foregroundStyle(adjustmentColor)
                         .textCase(.uppercase)

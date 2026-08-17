@@ -128,11 +128,9 @@ struct GoalPlanApplyRecapSheet: View {
 
     private var summary: String {
         guard mode == .creation else {
-            return changes.count == 1 ? "1 mois ajusté" : "\(changes.count) mois ajustés"
+            return AppLocale.string("\(changes.count) mois ajustés")
         }
-        return changes.count == 1
-            ? "1 prévision Épargne à ajouter"
-            : "\(changes.count) prévisions Épargne à ajouter"
+        return AppLocale.string("\(changes.count) prévisions Épargne à ajouter")
     }
 
     private var hasWithdrawal: Bool { changes.contains { $0.simulatedAmount < 0 } }
@@ -147,8 +145,8 @@ struct GoalPlanApplyRecapSheet: View {
     ) -> String? {
         guard let existing, existing != selected else { return nil }
         return existing == .linkedIncome
-            ? "La Prévision Revenu liée sera supprimée avec la mise à jour du plan."
-            : "Une Prévision Revenu liée sera créée avec la mise à jour du plan."
+            ? AppLocale.string("La Prévision Revenu liée sera supprimée avec la mise à jour du plan.")
+            : AppLocale.string("Une Prévision Revenu liée sera créée avec la mise à jour du plan.")
     }
 
     var body: some View {
@@ -170,7 +168,7 @@ struct GoalPlanApplyRecapSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color.sheetBackground)
-            .navigationTitle(
+            .localizedNavigationTitle(
                 mode == .creation ? "Ajouter les épargnes manquantes ?" : "On met ton plan à jour ?"
             )
             .navigationBarTitleDisplayMode(.inline)
@@ -244,10 +242,10 @@ private extension GoalPlanApplyRecapSheet {
                 .font(PulpeTypography.amountCard)
                 .monospacedDigit()
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(
-                    "De \(before.asCurrency(currency)) à \(after.asCurrency(currency)) "
-                        + "par mois sur \(changes.count) mois"
-                )
+                .accessibilityLabel(AppLocale.string("""
+                    De \(before.asCurrency(currency)) à \(after.asCurrency(currency)) \
+                    par mois sur \(changes.count) mois
+                    """))
                 .sensitiveAmount()
             } else {
                 ForEach(Array(listedChanges.enumerated()), id: \.element.id) { index, simMonth in
@@ -325,19 +323,23 @@ private extension GoalPlanApplyRecapSheet {
         .font(PulpeTypography.metricLabelBold)
         .monospacedDigit()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            mode == .adjustment
-                ? "\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year), "
-                    + "de \(SavingsPlanCalculator.currentPlanMovement(simMonth.month).asCompactCurrency(currency)) "
-                    + "à \(simMonth.simulatedAmount.asCompactCurrency(currency))"
-                : "\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year), "
-                    + simMonth.simulatedAmount.asCompactCurrency(currency)
-        )
+        .accessibilityLabel(diffRowAccessibilityLabel(simMonth))
         .sensitiveAmount()
     }
 
+    private func diffRowAccessibilityLabel(
+        _ simMonth: SavingsPlanCalculator.SimulatedMonth
+    ) -> String {
+        let period = "\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year)"
+        let after = simMonth.simulatedAmount.asCompactCurrency(currency)
+        guard mode == .adjustment else { return AppLocale.string("\(period), \(after)") }
+        let before = SavingsPlanCalculator.currentPlanMovement(simMonth.month).asCompactCurrency(currency)
+        return AppLocale.string("\(period), de \(before) à \(after)")
+    }
+
     private func diffRowPeriod(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
-        Text("\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year)")
+        // `String(year)`: interpolating an `Int` would apply localized grouping.
+        Text("\(Formatters.monthName(for: simMonth.month.month)) \(String(simMonth.month.year))")
             .font(PulpeTypography.metricLabel)
             .foregroundStyle(Color.textSecondary)
     }
@@ -378,7 +380,8 @@ private extension GoalPlanApplyRecapSheet {
         let breakdown = Self.withdrawalBreakdown(for: change)
 
         return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("\(Formatters.monthName(for: change.month.month)) \(change.month.year)")
+            // `String(year)`: interpolating an `Int` would apply localized grouping.
+            Text("\(Formatters.monthName(for: change.month.month)) \(String(change.month.year))")
                 .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(Color.textPrimary)
 
@@ -398,13 +401,13 @@ private extension GoalPlanApplyRecapSheet {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             if breakdown.contribution == breakdown.updatedContribution {
                 amountRow(
-                    label: "Épargne prévue",
+                    label: AppLocale.string("Épargne prévue"),
                     amount: breakdown.contribution,
-                    detail: "Conservée"
+                    detail: AppLocale.string("Conservée")
                 )
             } else {
                 withdrawalTransition(
-                    label: "Épargne prévue",
+                    label: AppLocale.string("Épargne prévue"),
                     from: breakdown.contribution,
                     to: breakdown.updatedContribution
                 )
@@ -413,7 +416,7 @@ private extension GoalPlanApplyRecapSheet {
                 from: breakdown.previousWithdrawal,
                 to: breakdown.plannedWithdrawal
             )
-            amountRow(label: "Effet net du mois", amount: breakdown.netEffect)
+            amountRow(label: AppLocale.string("Effet net du mois"), amount: breakdown.netEffect)
         }
     }
 
@@ -431,15 +434,17 @@ private extension GoalPlanApplyRecapSheet {
             destinationRow(
                 for: change,
                 .goalOnly,
-                title: "Objectif uniquement",
-                detail: "La projection baisse. Rien ne change dans ton budget."
+                title: AppLocale.string("Objectif uniquement"),
+                detail: AppLocale.string("La projection baisse. Rien ne change dans ton budget.")
             )
             destinationRow(
                 for: change,
                 .linkedIncome,
-                title: "Revenu dans le budget",
-                detail: "Une Prévision Revenu liée sera ajoutée. "
-                    + "Réalise-la dans le budget : le Réel créé sera automatiquement pointé.",
+                title: AppLocale.string("Revenu dans le budget"),
+                detail: AppLocale.string("""
+                    Une Prévision Revenu liée sera ajoutée. \
+                    Réalise-la dans le budget : le Réel créé sera automatiquement pointé.
+                    """),
                 enabled: canLink
             )
 
@@ -503,7 +508,7 @@ private extension GoalPlanApplyRecapSheet {
     }
 
     private func withdrawalTransition(
-        label: String = "Retrait planifié",
+        label: String = AppLocale.string("Retrait planifié"),
         from: Decimal,
         to: Decimal
     ) -> some View {
@@ -578,11 +583,7 @@ private extension GoalPlanApplyRecapSheet {
         } label: {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 if isConfirming { ProgressView().tint(Color.textOnPrimary) }
-                Text(
-                    hasWithdrawal
-                        ? "Planifier le retrait"
-                        : mode == .creation ? "Créer les épargnes" : "Mettre à jour"
-                )
+                confirmLabel
             }
         }
         .primaryButtonStyle(isEnabled: !isConfirming)
@@ -590,6 +591,11 @@ private extension GoalPlanApplyRecapSheet {
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, DesignTokens.Spacing.md)
         .background(.bar)
+    }
+
+    private var confirmLabel: Text {
+        if hasWithdrawal { return Text("Planifier le retrait") }
+        return mode == .creation ? Text("Créer les épargnes") : Text("Mettre à jour")
     }
 
     private func confirm() {

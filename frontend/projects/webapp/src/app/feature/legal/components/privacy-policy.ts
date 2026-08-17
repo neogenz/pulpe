@@ -1,8 +1,8 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { ROUTES } from '@core/routing';
 
 @Component({
@@ -22,307 +22,327 @@ import { ROUTES } from '@core/routing';
         </p>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">1. Introduction</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.introduction.title' | transloco }}
+          </h2>
           <p class="text-body-large">
-            Je prends votre vie privée au sérieux. Cette politique explique
-            comment je collecte, utilise et protège vos données personnelles
-            dans le cadre du service Pulpe, accessible via l'application web et
-            l'application iOS.
-          </p>
-        </section>
-
-        <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">2. Données collectées</h2>
-
-          <h3 class="text-title-large mb-2 mt-4">
-            Données que vous me fournissez :
-          </h3>
-          <ul class="list-disc pl-6 text-body-large">
-            <li>Email et mot de passe (pour votre compte)</li>
-            <li>
-              Si vous vous inscrivez via Google : email, nom et photo de profil
-              transmis par Google
-            </li>
-            <li>Informations financières (revenus, dépenses, épargne)</li>
-            <li>Préférences et paramètres de l'application</li>
-          </ul>
-
-          <h3 class="text-title-large mb-2 mt-4">
-            Données collectées automatiquement :
-          </h3>
-          <ul class="list-disc pl-6 text-body-large">
-            <li>Pages visitées et fonctionnalités utilisées</li>
-            <li>Durée d'utilisation et fréquence</li>
-            <li>Erreurs et problèmes techniques rencontrés</li>
-            <li>Type d'appareil et navigateur</li>
-          </ul>
-        </section>
-
-        <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">3. Utilisation des données</h2>
-          <p class="text-body-large">J'utilise vos données pour :</p>
-          <ul class="list-disc pl-6 text-body-large">
-            <li>Fournir le service de gestion budgétaire</li>
-            <li>Sauvegarder et synchroniser vos budgets</li>
-            <li>Améliorer l'application et corriger les bugs</li>
-            <li>Communiquer des informations importantes sur le service</li>
-            <li>Assurer la sécurité de votre compte</li>
-          </ul>
-        </section>
-
-        <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">4. Outils d'analyse</h2>
-          <p class="text-body-large">
-            J'utilise <strong>PostHog</strong> (hébergé en Europe -
-            eu.posthog.com) pour analyser l'utilisation de l'application. Cet
-            outil m'aide à :
-          </p>
-          <ul class="list-disc pl-6 text-body-large">
-            <li>Comprendre comment vous utilisez Pulpe</li>
-            <li>Identifier et résoudre les problèmes techniques</li>
-            <li>Améliorer l'expérience utilisateur</li>
-          </ul>
-          <p class="text-body-large mt-4">
-            <strong>Données envoyées à PostHog :</strong>
-          </p>
-          <ul class="list-disc pl-6 text-body-large">
-            <li>Identifiant utilisateur (UUID Supabase) et email</li>
-            <li>Prénom (si renseigné lors de l'inscription)</li>
-            <li>Préférences produit : devise, paramètres d'affichage</li>
-            <li>
-              Statut early-adopter (utilisateur ayant activé son compte avant
-              une date de référence)
-            </li>
-            <li>Pages visitées et interactions (clics, navigation)</li>
-            <li>Traces d'erreur techniques (sans contenu sensible)</li>
-          </ul>
-          <p class="text-body-large mt-4">
-            <strong>Données NON envoyées à PostHog :</strong>
-          </p>
-          <ul class="list-disc pl-6 text-body-large">
-            <li>
-              Vos montants financiers — masqués automatiquement avant envoi,
-              jamais transmis
-            </li>
-            <li>Mots de passe, tokens d'authentification</li>
-            <li>Clés de récupération</li>
-            <li>
-              Libellés financiers, identifiants de transactions et contenus
-              saisis
-            </li>
-          </ul>
-          <p class="text-body-large mt-4">
-            <strong>Enregistrement de sessions :</strong> le replay est
-            désactivé en production. Il peut être activé par configuration dans
-            les environnements local et preview utilisés pour tester et
-            diagnostiquer une version avant sa publication.
-          </p>
-          <p class="text-body-large mt-4">
-            <strong>Base légale :</strong> intérêt légitime (article 6.1.f du
-            RGPD) — analytics produit nécessaires à l'amélioration du service,
-            avec données minimisées et hébergement Europe.
-          </p>
-          <p class="text-body-large mt-4">
-            <strong>Accord de traitement (DPA) :</strong> un Data Processing
-            Agreement a été signé avec PostHog Inc., conforme à l'article 28 du
-            RGPD. PostHog agit en tant que sous-traitant (processor) pour les
-            données collectées via Pulpe.
-          </p>
-          <p class="text-body-large mt-4">
-            Vous pouvez arrêter immédiatement cette collecte sur l'appareil
-            depuis <strong>Paramètres → Données de diagnostic</strong>, en
-            désactivant « Partager les diagnostics ». Ce choix efface
-            l'association locale à votre identité PostHog et reste mémorisé sur
-            cet appareil.
+            {{ 'legal.privacy.introduction.body' | transloco }}
           </p>
         </section>
 
         <section class="mb-8">
           <h2 class="text-headline-medium mb-4">
-            5. Infrastructure et hébergement
+            {{ 'legal.privacy.collected.title' | transloco }}
+          </h2>
+
+          <h3 class="text-title-large mb-2 mt-4">
+            {{ 'legal.privacy.collected.providedTitle' | transloco }}
+          </h3>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>{{ 'legal.privacy.collected.provided.email' | transloco }}</li>
+            <li>{{ 'legal.privacy.collected.provided.google' | transloco }}</li>
+            <li>
+              {{ 'legal.privacy.collected.provided.financial' | transloco }}
+            </li>
+            <li>
+              {{ 'legal.privacy.collected.provided.preferences' | transloco }}
+            </li>
+          </ul>
+
+          <h3 class="text-title-large mb-2 mt-4">
+            {{ 'legal.privacy.collected.automaticTitle' | transloco }}
+          </h3>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>{{ 'legal.privacy.collected.automatic.pages' | transloco }}</li>
+            <li>
+              {{ 'legal.privacy.collected.automatic.duration' | transloco }}
+            </li>
+            <li>
+              {{ 'legal.privacy.collected.automatic.errors' | transloco }}
+            </li>
+            <li>
+              {{ 'legal.privacy.collected.automatic.device' | transloco }}
+            </li>
+          </ul>
+        </section>
+
+        <section class="mb-8">
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.use.title' | transloco }}
+          </h2>
+          <p class="text-body-large">
+            {{ 'legal.privacy.use.intro' | transloco }}
+          </p>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>{{ 'legal.privacy.use.items.service' | transloco }}</li>
+            <li>{{ 'legal.privacy.use.items.sync' | transloco }}</li>
+            <li>{{ 'legal.privacy.use.items.improve' | transloco }}</li>
+            <li>{{ 'legal.privacy.use.items.communication' | transloco }}</li>
+            <li>{{ 'legal.privacy.use.items.security' | transloco }}</li>
+          </ul>
+        </section>
+
+        <section class="mb-8">
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.analytics.title' | transloco }}
+          </h2>
+          <p class="text-body-large">
+            <strong>PostHog</strong>
+            {{ 'legal.privacy.analytics.intro' | transloco }}
+          </p>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>
+              {{ 'legal.privacy.analytics.goals.understand' | transloco }}
+            </li>
+            <li>{{ 'legal.privacy.analytics.goals.resolve' | transloco }}</li>
+            <li>{{ 'legal.privacy.analytics.goals.improve' | transloco }}</li>
+          </ul>
+          <p class="text-body-large mt-4">
+            <strong>{{
+              'legal.privacy.analytics.sentTitle' | transloco
+            }}</strong>
+          </p>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>{{ 'legal.privacy.analytics.sent.user' | transloco }}</li>
+            <li>{{ 'legal.privacy.analytics.sent.firstName' | transloco }}</li>
+            <li>
+              {{ 'legal.privacy.analytics.sent.preferences' | transloco }}
+            </li>
+            <li>
+              {{ 'legal.privacy.analytics.sent.earlyAdopter' | transloco }}
+            </li>
+            <li>{{ 'legal.privacy.analytics.sent.pages' | transloco }}</li>
+            <li>{{ 'legal.privacy.analytics.sent.errors' | transloco }}</li>
+          </ul>
+          <p class="text-body-large mt-4">
+            <strong>{{
+              'legal.privacy.analytics.notSentTitle' | transloco
+            }}</strong>
+          </p>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>{{ 'legal.privacy.analytics.notSent.amounts' | transloco }}</li>
+            <li>{{ 'legal.privacy.analytics.notSent.auth' | transloco }}</li>
+            <li>
+              {{ 'legal.privacy.analytics.notSent.recovery' | transloco }}
+            </li>
+            <li>{{ 'legal.privacy.analytics.notSent.content' | transloco }}</li>
+          </ul>
+          <p class="text-body-large mt-4">
+            <strong>{{
+              'legal.privacy.analytics.replayTitle' | transloco
+            }}</strong>
+            {{ 'legal.privacy.analytics.replayBody' | transloco }}
+          </p>
+          <p class="text-body-large mt-4">
+            <strong>{{
+              'legal.privacy.analytics.legalBasisTitle' | transloco
+            }}</strong>
+            {{ 'legal.privacy.analytics.legalBasisBody' | transloco }}
+          </p>
+          <p class="text-body-large mt-4">
+            <strong>{{
+              'legal.privacy.analytics.dpaTitle' | transloco
+            }}</strong>
+            {{ 'legal.privacy.analytics.dpaBody' | transloco }}
+          </p>
+          <p class="text-body-large mt-4">
+            {{ 'legal.privacy.analytics.optOutBefore' | transloco }}
+            <strong>{{
+              'legal.privacy.analytics.optOutSetting' | transloco
+            }}</strong>
+            {{ 'legal.privacy.analytics.optOutAfter' | transloco }}
+          </p>
+        </section>
+
+        <section class="mb-8">
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.infrastructure.title' | transloco }}
           </h2>
           <p class="text-body-large mb-4">
-            Pulpe utilise plusieurs services cloud pour fonctionner :
+            {{ 'legal.privacy.infrastructure.intro' | transloco }}
           </p>
           <ul class="list-disc pl-6 text-body-large">
             <li>
-              <strong>Supabase</strong> (Europe - Frankfurt) : Stockage de vos
-              données
-            </li>
-            <li><strong>Railway</strong> (USA - Oregon) : Backend API</li>
-            <li><strong>Vercel</strong> (CDN global) : Interface web</li>
-            <li><strong>PostHog</strong> (Europe) : Analytics</li>
-            <li>
-              <strong>Cloudflare Turnstile</strong> : Vérification anti-bot
-              utilisée uniquement en mode démo (aucun cookie stocké)
+              <strong>Supabase</strong>
+              {{ 'legal.privacy.infrastructure.supabase' | transloco }}
             </li>
             <li>
-              <strong>Google</strong> (OAuth) : Connexion via votre compte
-              Google (si vous choisissez cette méthode d'inscription)
+              <strong>Railway</strong>
+              {{ 'legal.privacy.infrastructure.railway' | transloco }}
+            </li>
+            <li>
+              <strong>Vercel</strong>
+              {{ 'legal.privacy.infrastructure.vercel' | transloco }}
+            </li>
+            <li>
+              <strong>PostHog</strong>
+              {{ 'legal.privacy.infrastructure.posthog' | transloco }}
+            </li>
+            <li>
+              <strong>Cloudflare Turnstile</strong>
+              {{ 'legal.privacy.infrastructure.cloudflare' | transloco }}
+            </li>
+            <li>
+              <strong>Google</strong>
+              {{ 'legal.privacy.infrastructure.google' | transloco }}
             </li>
           </ul>
           <p class="text-body-large mt-4">
-            <strong>Note :</strong> Vos données sont principalement stockées en
-            Europe (Supabase). Le backend Railway ne fait que transiter les
-            données sans stockage permanent.
+            <strong>{{
+              'legal.privacy.infrastructure.noteTitle' | transloco
+            }}</strong>
+            {{ 'legal.privacy.infrastructure.noteBody' | transloco }}
           </p>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">6. Sécurité</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.security.title' | transloco }}
+          </h2>
           <ul class="list-disc pl-6 text-body-large">
-            <li>Toutes les connexions sont chiffrées (HTTPS)</li>
-            <li>
-              Mots de passe hashés de manière sécurisée par Supabase (notre
-              fournisseur d'authentification)
-            </li>
-            <li>Authentification JWT sécurisée</li>
-            <li>
-              Accès aux données limité par utilisateur (Row Level Security)
-            </li>
-            <li>Sauvegardes automatiques par Supabase</li>
+            <li>{{ 'legal.privacy.security.items.https' | transloco }}</li>
+            <li>{{ 'legal.privacy.security.items.passwords' | transloco }}</li>
+            <li>{{ 'legal.privacy.security.items.jwt' | transloco }}</li>
+            <li>{{ 'legal.privacy.security.items.rls' | transloco }}</li>
+            <li>{{ 'legal.privacy.security.items.backups' | transloco }}</li>
           </ul>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">7. Partage des données</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.sharing.title' | transloco }}
+          </h2>
           <p class="text-body-large">
-            Je <strong>ne vends JAMAIS</strong> vos données personnelles.
+            <strong>{{ 'legal.privacy.sharing.neverSell' | transloco }}</strong>
           </p>
           <p class="text-body-large mt-4">
-            Vos données transitent uniquement par les services mentionnés
-            ci-dessus. Le code source est open source sur GitHub mais vos
-            données restent privées.
+            {{ 'legal.privacy.sharing.privateBody' | transloco }}
           </p>
           <p class="text-body-large mt-4">
-            Les services tiers listés (Supabase, Railway, Vercel, PostHog,
-            Cloudflare, Google) agissent comme sous-traitants au sens de
-            l'article 28 du RGPD. Un Data Processing Agreement (DPA) dédié a été
-            signé avec PostHog Inc. Pour les autres sous-traitants, les
-            engagements de traitement sont fournis via leurs conditions de
-            service standard, conformément à l'article 28 du RGPD.
+            {{ 'legal.privacy.sharing.processors' | transloco }}
           </p>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">8. Durée de conservation</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.retention.title' | transloco }}
+          </h2>
           <ul class="list-disc pl-6 text-body-large">
-            <li>Données de compte : Tant que votre compte est actif</li>
-            <li>Données financières : Conservées avec votre compte</li>
-            <li>Données d'analyse : Maximum 12 mois</li>
-            <li>Après suppression du compte : Effacement sous 3 jours</li>
-            <li>
-              Données de session démo : Supprimées automatiquement après 24
-              heures
-            </li>
+            <li>{{ 'legal.privacy.retention.items.account' | transloco }}</li>
+            <li>{{ 'legal.privacy.retention.items.financial' | transloco }}</li>
+            <li>{{ 'legal.privacy.retention.items.analytics' | transloco }}</li>
+            <li>{{ 'legal.privacy.retention.items.deletion' | transloco }}</li>
+            <li>{{ 'legal.privacy.retention.items.demo' | transloco }}</li>
           </ul>
           <p class="text-body-large mt-4">
-            <strong>Suppression analytics :</strong> la suppression de votre
-            compte Pulpe déclenche automatiquement la suppression de votre
-            profil PostHog (événements et enregistrements de session inclus).
-            L'effacement chez PostHog est asynchrone et finalisé sous quelques
-            jours après la fin du délai de grâce de votre compte.
+            <strong>{{
+              'legal.privacy.retention.analyticsDeletionTitle' | transloco
+            }}</strong>
+            {{ 'legal.privacy.retention.analyticsDeletionBody' | transloco }}
           </p>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">9. Vos droits (RGPD/LPD)</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.rights.title' | transloco }}
+          </h2>
           <p class="text-body-large mb-4">
-            <strong>Conformément au RGPD et à la LPD suisse</strong>, vous
-            disposez des droits suivants :
+            <strong>{{ 'legal.privacy.rights.introTitle' | transloco }}</strong>
+            {{ 'legal.privacy.rights.introBody' | transloco }}
           </p>
           <ul class="list-disc pl-6 text-body-large">
-            <li>Droit d'accès à vos données personnelles</li>
-            <li>Droit de rectification de vos données</li>
-            <li>Droit à l'effacement (suppression du compte)</li>
-            <li>Droit à la portabilité (export JSON)</li>
+            <li>{{ 'legal.privacy.rights.items.access' | transloco }}</li>
             <li>
-              Droit d'opposition (article 21 RGPD) — vous pouvez vous opposer à
-              tout traitement fondé sur l'intérêt légitime, notamment
-              l'analytics
+              {{ 'legal.privacy.rights.items.rectification' | transloco }}
             </li>
+            <li>{{ 'legal.privacy.rights.items.erasure' | transloco }}</li>
+            <li>{{ 'legal.privacy.rights.items.portability' | transloco }}</li>
+            <li>{{ 'legal.privacy.rights.items.objection' | transloco }}</li>
           </ul>
           <p class="text-body-large mt-4">
-            Pour exercer ces droits, contactez-moi à :
+            {{ 'legal.privacy.rights.contactBefore' | transloco }}
             <a href="mailto:maxime.desogus@gmail.com" class="text-primary"
               >maxime.desogus@gmail.com</a
-            >. Je m'engage à vous répondre dans un délai d'un mois
+            >{{ 'legal.privacy.rights.contactAfter' | transloco }}
           </p>
           <p class="text-body-large mt-2">
-            Je suis responsable du traitement de vos données dès la création de
-            votre compte.
+            {{ 'legal.privacy.rights.controller' | transloco }}
           </p>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">10. Cookies et tracking</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.cookies.title' | transloco }}
+          </h2>
           <p class="text-body-large">
-            J'utilise des cookies strictement nécessaires pour :
+            {{ 'legal.privacy.cookies.intro' | transloco }}
           </p>
           <ul class="list-disc pl-6 text-body-large">
-            <li>Maintenir votre session connectée (authentification)</li>
-            <li>Mémoriser vos préférences d'interface</li>
-            <li>Assurer la sécurité du service</li>
+            <li>{{ 'legal.privacy.cookies.items.session' | transloco }}</li>
+            <li>{{ 'legal.privacy.cookies.items.preferences' | transloco }}</li>
+            <li>{{ 'legal.privacy.cookies.items.security' | transloco }}</li>
           </ul>
           <p class="text-body-large mt-4">
-            <strong>Traceurs d'analyse (PostHog) :</strong>
+            <strong>{{
+              'legal.privacy.cookies.trackersTitle' | transloco
+            }}</strong>
           </p>
           <ul class="list-disc pl-6 text-body-large">
             <li>
-              Activés automatiquement (base légale : intérêt légitime, article
-              6.1.f du RGPD). Vous pouvez exercer votre droit d'opposition à
-              tout moment via le réglage « Partager les diagnostics ».
+              {{ 'legal.privacy.cookies.trackers.automatic' | transloco }}
             </li>
             <li>
-              Données identifiables (email, identifiant utilisateur, prénom) —
-              voir section 4 pour le détail des données envoyées à PostHog
+              {{ 'legal.privacy.cookies.trackers.identifiable' | transloco }}
             </li>
             <li>
-              Le choix est propre à chaque appareil et à chaque plateforme. Il
-              n'affecte pas les données nécessaires au fonctionnement du compte.
+              {{ 'legal.privacy.cookies.trackers.perDevice' | transloco }}
             </li>
           </ul>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">11. Enfants</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.children.title' | transloco }}
+          </h2>
           <p class="text-body-large">
-            Pulpe n'est pas destiné aux enfants de moins de 16 ans. Je ne
-            collecte pas sciemment de données d'enfants.
+            {{ 'legal.privacy.children.body' | transloco }}
           </p>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">12. Modifications</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.changes.title' | transloco }}
+          </h2>
           <p class="text-body-large">
-            Cette politique peut être mise à jour occasionnellement. Les
-            changements importants seront notifiés par email.
+            {{ 'legal.privacy.changes.body' | transloco }}
           </p>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">13. Contact</h2>
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.contact.title' | transloco }}
+          </h2>
           <p class="text-body-large">
-            Pour toute question sur vos données personnelles :
+            {{ 'legal.privacy.contact.intro' | transloco }}
           </p>
           <ul class="list-disc pl-6 text-body-large">
             <li>
-              Email :
+              {{ 'legal.privacy.contact.emailLabel' | transloco }}
               <a href="mailto:maxime.desogus@gmail.com" class="text-primary"
                 >maxime.desogus@gmail.com</a
               >
             </li>
             <li>
-              GitHub :
+              {{ 'legal.privacy.contact.githubLabel' | transloco }}
               <a
                 href="https://github.com/neogenz/pulpe"
                 class="text-primary"
                 target="_blank"
                 rel="noopener noreferrer"
-                >Issues & Discussions</a
+                >{{ 'legal.privacy.contact.githubText' | transloco }}</a
               >
             </li>
-            <li>Localisation : Suisse</li>
+            <li>{{ 'legal.privacy.contact.location' | transloco }}</li>
           </ul>
         </section>
 
@@ -349,6 +369,10 @@ import { ROUTES } from '@core/routing';
 })
 export default class PrivacyPolicyComponent {
   protected readonly ROUTES = ROUTES;
+  readonly #transloco = inject(TranslocoService);
 
-  protected readonly currentDate = '28 juillet 2026';
+  protected readonly currentDate = new Intl.DateTimeFormat(
+    this.#transloco.getActiveLang(),
+    { dateStyle: 'long', timeZone: 'UTC' },
+  ).format(new Date('2026-07-28T00:00:00Z'));
 }

@@ -75,7 +75,7 @@ struct BudgetDetailsFreeTransactionsList: View {
                     }
                 } label: {
                     HStack {
-                        Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
+                        (isExpanded ? Text("Voir moins") : Text("Voir plus (+\(hiddenItemsCount))"))
                             .font(PulpeTypography.subheadline)
                         Spacer()
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
@@ -147,9 +147,11 @@ private struct BudgetDetailsFreeTransactionRow: View {
 
     private var accessibilityLabel: String {
         let amount = transaction.amount.asCurrency(currency)
-        let pointed = isPointed ? "Pointé" : "À pointer"
+        let pointed = isPointed ? AppLocale.string("Pointé") : AppLocale.string("À pointer")
         let date = transaction.transactionDate.dayMonthFormatted
-        let tags = tagNames.isEmpty ? "" : " · Tags : \(tagNames.joined(separator: ", "))"
+        let tags = tagNames.isEmpty
+            ? ""
+            : " · " + AppLocale.string("Tags : \(tagNames.joined(separator: ", "))")
         let origin = transaction.savingsGoalSource.map { " · \($0.accessibilityLabel)" } ?? ""
         return "\(kind.label) · \(transaction.name) · \(amount) · \(date) · \(pointed)\(tags)\(origin)"
     }

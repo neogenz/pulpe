@@ -10,6 +10,7 @@ import { ApiClient } from '../api/api-client';
 import { ApiError } from '../api/api-error';
 import { ROUTES } from '../routing/routes-constants';
 import { Logger } from '../logging/logger';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 describe('DemoInitializerService', () => {
   let service: DemoInitializerService;
@@ -70,6 +71,7 @@ describe('DemoInitializerService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         DemoInitializerService,
         { provide: ApiClient, useValue: mockApi },
         { provide: Router, useValue: mockRouter },
@@ -133,7 +135,7 @@ describe('DemoInitializerService', () => {
       await expect(
         service.startDemoSession(TEST_TURNSTILE_TOKEN),
       ).rejects.toThrow(
-        'Impossible de contacter le serveur. Vérifiez votre connexion internet.',
+        'Impossible de contacter le serveur — vérifie ta connexion internet',
       );
 
       expect(mockAuthSessionService.setSession).not.toHaveBeenCalled();

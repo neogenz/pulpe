@@ -322,7 +322,7 @@ struct OnboardingFlow: View {
     private func showResumeToastIfNeeded() {
         guard !hasShownResumeToast else { return }
         hasShownResumeToast = true
-        appState.toastManager.show("On reprend là où tu t'es arrêté.")
+        appState.toastManager.show(AppLocale.string("On reprend là où tu t'es arrêté."))
     }
 
     // MARK: - Completion
@@ -348,7 +348,7 @@ struct OnboardingFlow: View {
             // to avoid dual error surfaces (global alert + local banner).
             appState.showPostAuthError = false
             state.error = APIError.serverError(
-                message: "La création du budget a échoué. Réessaie."
+                message: AppLocale.string("La création du budget a échoué. Réessaie.")
             )
             state.readyToComplete = false
         } else {

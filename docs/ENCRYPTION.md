@@ -158,6 +158,12 @@ Recovery (code PIN oublié) :
   6. Le frontend génère ensuite une **nouvelle** recovery key (setup-recovery) et l’affiche
 ```
 
+### Reprise après le setup
+
+Après confirmation locale de la recovery key, un échec de mise à jour de la metadata utilisateur est repris sans dérivation ni rotation : le frontend retente uniquement la metadata. Après un rechargement ou une réponse `setup-recovery` perdue, le client ne peut plus prouver que la clé brute a été vue ; il valide alors le PIN candidat, régénère la recovery key, l'affiche et la fait confirmer avant de finaliser la metadata.
+
+Le serveur ne stocke jamais la recovery key brute. Chaque régénération remplace donc le `wrapped_dek` et invalide immédiatement la clé précédente.
+
 ### Format (UX)
 
 - 32 bytes encodés en **base32 groupé** : `XXXX-XXXX-XXXX-XXXX-...`

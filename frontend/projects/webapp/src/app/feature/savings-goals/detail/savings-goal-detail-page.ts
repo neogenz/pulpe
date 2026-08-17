@@ -868,10 +868,21 @@ export default class SavingsGoalDetailPage {
       !!this.store.withdrawalsError(),
   );
 
+  /**
+   * The one projection every surface quotes. `projected` is null without a
+   * target amount or a deadline, and both are optional at creation — a goal
+   * with neither is a supported path, not an edge case. The last
+   * `projectedCumulative` closes the same curve the chart draws;
+   * `plannedProjection` only closes a payload that predates the field, and it
+   * sums contributions without ever subtracting a withdrawal, so on its own it
+   * made the sentence quote more than the curve ever reached. iOS mirror:
+   * `SavingsGoalProgress.displayedProjection`.
+   */
   protected readonly displayedProjection = computed(
     () =>
       this.simulator.draft()?.simulatedFinal ??
       this.progress()?.projected ??
+      this.progress()?.months.at(-1)?.projectedCumulative ??
       this.progress()?.plannedProjection ??
       0,
   );
@@ -1288,7 +1299,13 @@ export default class SavingsGoalDetailPage {
       before: 0,
       after: amount,
     }));
-    const projected = progress.plannedProjection + amount * changes.length;
+    // Base `displayedProjection`, not `plannedProjection`: the verdict answers
+    // the same question as the bar and the chart endpoint, so it has to start
+    // from the same figure. `plannedProjection` never subtracts a withdrawal, so
+    // on a goal without a target amount it quoted an "après création" above what
+    // the curve reaches — two projections for one plan. The callout only renders
+    // outside simulation, so the draft term of `displayedProjection` is inert.
+    const projected = this.displayedProjection() + amount * changes.length;
     const confirmed = await this.#dialogs.openApplyPlan({
       mode: 'creation',
       changes,

@@ -35,6 +35,7 @@ describe('UpdateUserSettingsUseCase', () => {
       payDayOfMonth: 28,
       currency: 'EUR' as const,
       showCurrencySelector: false,
+      locale: 'fr' as const,
     };
     mockRepo.updateSettings = mock(async () => settings);
 
@@ -46,5 +47,23 @@ describe('UpdateUserSettingsUseCase', () => {
       payDayOfMonth: 28,
     });
     expect(mockLogger.info).toHaveBeenCalled();
+  });
+
+  it('passes the locale through untouched', async () => {
+    const settings = {
+      payDayOfMonth: null,
+      currency: 'CHF' as const,
+      showCurrencySelector: false,
+      locale: 'de' as const,
+    };
+    mockRepo.updateSettings = mock(async () => settings);
+
+    const user = createMockAuthenticatedUser();
+    const result = await useCase.execute({ locale: 'de' }, user);
+
+    expect(result.locale).toBe('de');
+    expect(mockRepo.updateSettings).toHaveBeenCalledWith(user.id, {
+      locale: 'de',
+    });
   });
 });

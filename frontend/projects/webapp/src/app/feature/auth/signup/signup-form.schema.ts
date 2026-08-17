@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod';
 import { PASSWORD_MIN_LENGTH } from '@core/auth';
 // Règles définies dans ui/password-criteria (source unique avec la checklist
 // visuelle — parité iOS PasswordValidator) ; ré-exportées pour les consommateurs

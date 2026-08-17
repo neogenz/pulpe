@@ -16,6 +16,12 @@ export const ANALYTICS_PROPERTIES = {
   CURRENCY: 'currency',
   /** Whether the per-amount currency selector input is enabled. */
   SHOW_CURRENCY_SELECTOR: 'show_currency_selector',
+  /**
+   * User's interface language (`'fr' | 'en' | 'de' | 'it'`). Pushed with `$set`
+   * from the settings observer, never from `identify`. Segments every existing
+   * funnel by language — which is the whole point of measuring the translations.
+   */
+  LOCALE: 'locale',
   /** User's email — pushed at identify so PostHog UI shows persons by email. */
   EMAIL: 'email',
   /** User's display name (firstName from Supabase user_metadata). */
@@ -107,6 +113,15 @@ export const ANALYTICS_EVENTS = {
   CURRENCY_SELECTOR_TOGGLED: 'currency_selector_toggled',
   /** Fires after all onboarding currency persistence retries fail. Properties: `currency`, `attempts`. */
   CURRENCY_PERSIST_FAILED: 'currency_persist_failed',
+  /**
+   * Fires after a successful interface language change. Properties: `from`,
+   * `to` (both `'fr' | 'en' | 'de' | 'it'`), `surface`
+   * (`'settings' | 'welcome' | 'landing'`). The `locale` person property is
+   * last-write-wins and never shows the transition — this event is the only
+   * place a wrong auto-detection ("40% of detected `de` switch back to `fr`")
+   * is visible.
+   */
+  LANGUAGE_CHANGED: 'language_changed',
   /** Fires when the savings-goals first-run intro opens. Properties: none. */
   SAVINGS_GOALS_INTRO_VIEWED: 'savings_goals_intro_viewed',
   /** Fires when the savings-goals intro creates its first goal. Properties: none. */

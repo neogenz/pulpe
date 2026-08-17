@@ -5,11 +5,17 @@ import { registerLocaleData } from '@angular/common';
 import localeFrCh from '@angular/common/locales/fr-CH';
 import localeDeCh from '@angular/common/locales/de-CH';
 import localeFR from '@angular/common/locales/fr';
+import { pinBrowserLanguage } from './app/testing/browser-language';
 
 // Register locales for CurrencyPipe / AppCurrencyPipe in tests
 registerLocaleData(localeFrCh, 'fr-CH');
 registerLocaleData(localeDeCh, 'de-CH');
 registerLocaleData(localeFR, 'fr-FR');
+
+// The app now resolves its language from the browser when nothing is stored,
+// and jsdom answers `en-US`. French is this suite's baseline; a spec that needs
+// another language pins its own and restores this one.
+pinBrowserLanguage();
 
 // jsdom ships no 2D canvas. `ng2-charts` asks for a context the moment its
 // directive is constructed, which now happens for real: the specs compile ahead

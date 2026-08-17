@@ -31,6 +31,7 @@ cd backend-nest && supabase start
 - **AFTER** DB schema change: `bun run generate-types:local` in backend
 - **ALWAYS** encrypt financial amounts (`amount`, `target_amount`, `ending_balance`) via `ENCRYPTION_PORT` before DB write. Columns `text` holding AES-256-GCM ciphertexts. (see `docs/ENCRYPTION.md`)
 - **ALWAYS** mirror a formula change across both sides: `shared/src/calculators/` ↔ `ios/Pulpe/Domain/Formulas/`, tests included, same commit. Nothing fails the build when they diverge — web and iOS just show two different amounts. Android is not a third side: it imports `shared/src/calculators/` directly. (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`)
+- **ALWAYS** use `import * as z from 'zod'` for frontend/shared runtime schemas. Keep Zod errors in default English, never configure locales, and remeasure the Angular bundle after Zod or esbuild upgrades.
 
 ## Vocabulary
 
@@ -44,17 +45,17 @@ Product-facing copy is French. Code and docs are English.
 
 ## Docs
 
-| Purpose                     | Path                                       |
-| --------------------------- | ------------------------------------------ |
-| Strategic foundation        | `PRODUCT.md`                               |
-| Business rules              | `docs/BUSINESS_RULES.md`                   |
-| Encryption (AES-256-GCM)    | `docs/ENCRYPTION.md`                       |
-| Spreading an expense        | `docs/SPREAD.md`                           |
-| Savings goals               | `docs/SAVINGS.md`                          |
-| Architecture decisions      | `docs/adr/README.md`                       |
-| Backend Clean Architecture  | `backend-nest/docs/ARCHITECTURE.md`        |
-| DB types                    | `backend-nest/src/types/database.types.ts` |
-| Shared schemas              | `shared/schemas.ts`                        |
+| Purpose                    | Path                                       |
+| -------------------------- | ------------------------------------------ |
+| Strategic foundation       | `PRODUCT.md`                               |
+| Business rules             | `docs/BUSINESS_RULES.md`                   |
+| Encryption (AES-256-GCM)   | `docs/ENCRYPTION.md`                       |
+| Spreading an expense       | `docs/SPREAD.md`                           |
+| Savings goals              | `docs/SAVINGS.md`                          |
+| Architecture decisions     | `docs/adr/README.md`                       |
+| Backend Clean Architecture | `backend-nest/docs/ARCHITECTURE.md`        |
+| DB types                   | `backend-nest/src/types/database.types.ts` |
+| Shared schemas             | `shared/schemas.ts`                        |
 
 **Design:** `PRODUCT.md` (strategy) → `DESIGN.md` (cross-platform visual) → `{ios,frontend,landing}/DESIGN.md` (extensions). Never duplicate a cross-platform rule inside a platform doc. `ios/DESIGN.md` has no sidecar — `/impeccable live` is browser-only.
 

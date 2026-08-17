@@ -17,7 +17,7 @@ enum AuthErrorKind: Equatable {
 
 enum AuthErrorLocalizer {
     // MARK: - Supabase error code translations (from error.code)
-    private static let codeTranslations: [String: (AuthErrorKind, String)] = [
+    private static let codeTranslations: [String: (AuthErrorKind, String.LocalizationValue)] = [
         "same_password": (.samePassword, "Le nouveau mot de passe doit être différent de l'ancien"),
         "weak_password": (
             .weakPassword, "Ce mot de passe est trop prévisible — essaie une combinaison moins courante"
@@ -42,7 +42,7 @@ enum AuthErrorLocalizer {
     ]
 
     // MARK: - Message-based translations (exact match)
-    private static let messageTranslations: [String: (AuthErrorKind, String)] = [
+    private static let messageTranslations: [String: (AuthErrorKind, String.LocalizationValue)] = [
         "Invalid login credentials": (.invalidCredentials, "Email ou mot de passe incorrect — réessaie"),
         "Email not confirmed": (.emailNotConfirmed, "Confirme ton email pour continuer — vérifie ta boîte mail"),
         "Too many requests": (.rateLimited, "Trop de tentatives — patiente quelques minutes"),
@@ -157,7 +157,7 @@ enum AuthErrorLocalizer {
         classify(error) == .invalidCredentials
     }
 
-    private static let kindMessages: [AuthErrorKind: String] = [
+    private static let kindMessages: [AuthErrorKind: String.LocalizationValue] = [
         .invalidCredentials: "Email ou mot de passe incorrect — réessaie",
         .rateLimited: "Trop de tentatives — patiente quelques minutes",
         .emailNotConfirmed: "Confirme ton email pour continuer — vérifie ta boîte mail",
@@ -172,7 +172,16 @@ enum AuthErrorLocalizer {
         .unknown: "Quelque chose n'a pas fonctionné — réessaie",
     ]
 
-    static func localize(_ error: Error) -> String {
+    /// The message to show for `error`, in an explicit language.
+    ///
+    /// The default reads the language chosen in the app, which is global state — a test
+    /// asserting a French message would then depend on no other suite having switched
+    /// language meanwhile. Tests pass a pinned locale instead.
+    static func localize(_ error: Error, in locale: Locale = AppLocale.currentUILocale) -> String {
+        AppLocale.string(catalogKey(for: error), locale: locale)
+    }
+
+    private static func catalogKey(for error: Error) -> String.LocalizationValue {
         let description = error.localizedDescription
 
         // Try code-based translation first

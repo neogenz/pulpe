@@ -37,10 +37,10 @@ struct GoalPlanTimelinePresentation {
     }
 
     var repairMessage: String {
-        let count = repairableMonths.count
-        return count == 1
-            ? "1 prévision Épargne peut maintenant être ajoutée automatiquement."
-            : "\(count) prévisions Épargne peuvent maintenant être ajoutées automatiquement."
+        AppLocale.string("""
+            \(repairableMonths.count) prévisions Épargne peuvent maintenant \
+            être ajoutées automatiquement.
+            """)
     }
 
     /// A realised plan withdrawal is editable from the budget line that the
@@ -62,10 +62,15 @@ struct GoalPlanTimelinePresentation {
     }
 }
 
-/// « Ton plan, mois par mois » (PUL-12+, pilier B) — the read-mode timeline section
-/// on the goal detail. Windowed by default (current month + three future months)
-/// with a « Voir tout le plan » toggle; a full 24–96 row list
-/// would burn the 30 s attention budget (`docs/SAVINGS.md` §10.1).
+/// « Ton plan » (PUL-12+, pilier B) — the read-mode timeline section on the goal
+/// detail. Windowed by default (current month + three future months) with a
+/// « Voir les N mois » toggle; a full 24–96 row list would burn the 30 s
+/// attention budget (`docs/SAVINGS.md` §10.1).
+///
+/// Same ledger surface as « Ton suivi » and « Retraits » below it: one
+/// `pulpeRowCard()` holding the rows, plain hairlines between them. Three cards
+/// in a row, each with its own fill and its own rule, is what made the bottom of
+/// this screen read as assembled rather than designed.
 ///
 /// The section header carries the « Ajuster » CTA (pilier C entry), shown
 /// only when the goal is actionable (`canAdjust`).
@@ -87,28 +92,16 @@ struct GoalPlanTimelineSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Text("Ton plan, mois par mois")
-                    .font(PulpeTypography.title2)
-                    .foregroundStyle(Color.textPrimary)
-
-                Spacer(minLength: DesignTokens.Spacing.sm)
-
-                if canAdjust {
-                    Button(action: onAdjust) {
-                        Label("Ajuster", systemImage: "slider.horizontal.3")
-                            .font(PulpeTypography.buttonSecondary)
-                    }
-                    .frame(minHeight: DesignTokens.TapTarget.minimum)
-                    .textLinkButtonStyle()
-                    .accessibilityLabel("Ajuster le plan")
-                }
-            }
+            SectionHeader(
+                title: AppLocale.string("Ton plan"),
+                link: canAdjust ? (label: AppLocale.string("Ajuster"), action: onAdjust) : nil,
+                linkAccessibilityIdentifier: "savingsGoalAdjustPlanButton"
+            )
 
             if canRepair {
                 GoalInfoCard(
                     icon: "calendar.badge.plus",
-                    title: "Tes nouveaux budgets sont prêts",
+                    title: AppLocale.string("Tes nouveaux budgets sont prêts"),
                     message: presentation.repairMessage
                 ) {
                     Button("Prévisualiser", action: onRepair)
@@ -119,30 +112,9 @@ struct GoalPlanTimelineSection: View {
 
             timelineCard
 
-            if presentation.canToggle {
-                Button {
-                    withAnimation(DesignTokens.Animation.gentleSpring) { isExpanded.toggle() }
-                } label: {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Text(isExpanded ? "Voir moins" : "Voir tout le plan (\(months.count) mois)")
-                        Spacer()
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .accessibilityHidden(true)
-                    }
-                }
-                .frame(
-                    maxWidth: .infinity,
-                    minHeight: DesignTokens.TapTarget.minimum,
-                    alignment: .leading
-                )
-                .contentShape(Rectangle())
-                .textLinkButtonStyle()
-                .accessibilityHint(isExpanded ? "Réduit la liste des mois" : "Affiche tous les mois")
-            }
-
             if presentation.remainingUnlinkedMonthCount > 0 {
                 Text("\(presentation.remainingUnlinkedMonthCount) mois restants sans prévision liée à cet objectif.")
-                    .font(PulpeTypography.listRowSubtitle)
+                    .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -150,11 +122,9 @@ struct GoalPlanTimelineSection: View {
     }
 
     private var timelineCard: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: DesignTokens.Spacing.none) {
             ForEach(Array(presentation.visibleMonths.enumerated()), id: \.element.id) { index, month in
-                if index > 0 {
-                    Divider().foregroundStyle(Color.textTertiary.opacity(DesignTokens.Opacity.secondary))
-                }
+                if index > 0 { Divider() }
                 GoalPlanMonthRow(
                     month: month,
                     amount: month.plannedAmount,
@@ -164,10 +134,61 @@ struct GoalPlanTimelineSection: View {
                     onOpenBudget: budgetAction(for: month)
                 )
             }
+            // Le toggle est la dernière rangée du plan, pas une ligne nue sur le
+            // canvas : un filet le sépare des mois, la carte le contient.
+            if presentation.canToggle {
+                Divider()
+                expandToggle
+            }
         }
-        // pulpeCard() porte déjà l'inset lg — un padding ici le doublait (32pt)
-        // et désalignait cette carte de « Ton suivi » juste en dessous.
-        .pulpeCard()
+        // Les rangées portent leur propre padding vertical : la carte n'ouvre
+        // que les marges latérales, comme « Ton suivi » juste en dessous.
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.xs)
+        .pulpeRowCard()
+    }
+
+    private var expandToggle: some View {
+        Button {
+            // Même détente que « Voir plus » sur l'accueil
+            // (`TransactionSection`) : un ressort rebondissait sur la hauteur
+            // de la carte, ce qu'aucune liste iOS ne fait en se dépliant.
+            withAnimation(DesignTokens.Animation.quickEaseInOut) {
+                isExpanded.toggle()
+            }
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                if isExpanded {
+                    Text("Voir moins")
+                } else {
+                    // « Ton plan » titre déjà la section : le toggle n'a plus à
+                    // renommer le plan, seulement à dire ce qu'il ouvre.
+                    Text("Voir les \(months.count) mois")
+                }
+                Spacer()
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(PulpeTypography.caption)
+                    .contentTransition(.symbolEffect(.replace))
+                    .accessibilityHidden(true)
+            }
+            // `TextLinkButtonStyle` n'impose aucune fonte : sans ça le toggle
+            // héritait de `.body` (17 regular) et pesait autant qu'un nom de
+            // mois. C'est un lien — même rôle que « Ajuster » dans le header.
+            .font(PulpeTypography.labelLarge)
+            .foregroundStyle(Color.pulpePrimary)
+        }
+        .frame(
+            maxWidth: .infinity,
+            minHeight: DesignTokens.TapTarget.minimum,
+            alignment: .leading
+        )
+        .contentShape(Rectangle())
+        .textLinkButtonStyle()
+        .accessibilityHint(
+            isExpanded
+                ? AppLocale.string("Réduit la liste des mois")
+                : AppLocale.string("Affiche tous les mois")
+        )
     }
 
     private func budgetAction(for month: SavingsGoalPlanMonth) -> (() -> Void)? {

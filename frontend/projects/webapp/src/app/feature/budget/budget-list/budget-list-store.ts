@@ -1,4 +1,10 @@
-import { Service, computed, inject, linkedSignal } from '@angular/core';
+import {
+  Service,
+  computed,
+  inject,
+  linkedSignal,
+  LOCALE_ID,
+} from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
 import { UserSettingsStore } from '@core/user-settings';
 import {
@@ -20,6 +26,7 @@ const MAX_FUTURE_MONTHS_TO_SEARCH = 36;
 export class BudgetListStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #userSettingsStore = inject(UserSettingsStore);
+  readonly #locale = inject(LOCALE_ID);
 
   readonly budgets = cachedResource({
     cache: this.#budgetApi.cache,
@@ -92,6 +99,7 @@ export class BudgetListStore {
       this.allMonthsGroupedByYears(),
       this.#userSettingsStore.payDayOfMonth(),
       new Date().getFullYear(),
+      this.#locale,
     ),
   );
 

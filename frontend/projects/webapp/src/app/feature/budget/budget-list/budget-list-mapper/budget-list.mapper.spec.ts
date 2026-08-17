@@ -8,6 +8,8 @@ import type { Budget } from 'pulpe-shared';
 import type { CalendarYear } from '@ui/calendar/calendar-types';
 import type { BudgetPlaceholder } from './budget-list.mapper';
 
+const LOCALE = 'fr-CH';
+
 function createBudget(month: number, year: number): Budget {
   return {
     id: `budget-${year}-${month}`,
@@ -28,7 +30,7 @@ function fullYearPlaceholders(year: number): BudgetPlaceholder[] {
 
 describe('mapToCalendarYear', () => {
   it('should map empty budgets array to calendar year', () => {
-    const result = mapToCalendarYear(2025, []);
+    const result = mapToCalendarYear(2025, [], LOCALE);
 
     expect(result).toEqual({
       year: 2025,
@@ -48,7 +50,7 @@ describe('mapToCalendarYear', () => {
       updatedAt: '2025-01-01',
     };
 
-    const result = mapToCalendarYear(2025, [budget]);
+    const result = mapToCalendarYear(2025, [budget], LOCALE);
 
     expect(result.year).toBe(2025);
     expect(result.months).toHaveLength(1);
@@ -76,7 +78,7 @@ describe('mapToCalendarYear', () => {
       updatedAt: '2025-03-01',
     };
 
-    const result = mapToCalendarYear(2025, [budget]);
+    const result = mapToCalendarYear(2025, [budget], LOCALE);
 
     expect(result.months[0].value).toBeUndefined();
   });
@@ -87,7 +89,7 @@ describe('mapToCalendarYear', () => {
       year: 2025,
     };
 
-    const result = mapToCalendarYear(2025, [placeholder]);
+    const result = mapToCalendarYear(2025, [placeholder], LOCALE);
 
     expect(result.months).toHaveLength(1);
     expect(result.months[0]).toEqual({
@@ -116,7 +118,7 @@ describe('mapToCalendarYear', () => {
       year: 2025,
     };
 
-    const result = mapToCalendarYear(2025, [budget, placeholder]);
+    const result = mapToCalendarYear(2025, [budget, placeholder], LOCALE);
 
     expect(result.months).toHaveLength(2);
     expect(result.months[0].hasContent).toBe(true);
@@ -132,11 +134,23 @@ describe('mapToCalendarYear', () => {
       { month: 12, year: 2025 },
     ];
 
-    const result = mapToCalendarYear(2025, budgets);
+    const result = mapToCalendarYear(2025, budgets, LOCALE);
 
     expect(result.months[0].displayName).toBe('janvier 2025');
     expect(result.months[1].displayName).toBe('juillet 2025');
     expect(result.months[2].displayName).toBe('décembre 2025');
+  });
+
+  it('should format display names in the locale it is given', () => {
+    const budgets: BudgetPlaceholder[] = [
+      { month: 1, year: 2025 },
+      { month: 12, year: 2025 },
+    ];
+
+    const result = mapToCalendarYear(2025, budgets, 'de-CH');
+
+    expect(result.months[0].displayName).toBe('Januar 2025');
+    expect(result.months[1].displayName).toBe('Dezember 2025');
   });
 
   it('should handle year 2024 correctly', () => {
@@ -151,7 +165,7 @@ describe('mapToCalendarYear', () => {
       updatedAt: '2024-02-01',
     };
 
-    const result = mapToCalendarYear(2024, [budget]);
+    const result = mapToCalendarYear(2024, [budget], LOCALE);
 
     expect(result.year).toBe(2024);
     expect(result.months[0].year).toBe(2024);
@@ -163,7 +177,7 @@ describe('buildCalendarYears', () => {
   const CURRENT_YEAR = 2026;
 
   it('should return 8 years with empty months when no budgets exist', () => {
-    const result = buildCalendarYears(new Map(), null, CURRENT_YEAR);
+    const result = buildCalendarYears(new Map(), null, CURRENT_YEAR, LOCALE);
 
     expect(result).toHaveLength(8);
     expect(result[0].year).toBe(CURRENT_YEAR);
@@ -182,7 +196,7 @@ describe('buildCalendarYears', () => {
       [pastYear, fullYearPlaceholders(pastYear)],
     ]);
 
-    const result = buildCalendarYears(budgets, null, CURRENT_YEAR);
+    const result = buildCalendarYears(budgets, null, CURRENT_YEAR, LOCALE);
 
     expect(result[0].year).toBe(pastYear);
     expect(result).toHaveLength(9);
@@ -194,7 +208,7 @@ describe('buildCalendarYears', () => {
       [CURRENT_YEAR + 1, [createBudget(6, CURRENT_YEAR + 1)]],
     ]);
 
-    const result = buildCalendarYears(budgets, null, CURRENT_YEAR);
+    const result = buildCalendarYears(budgets, null, CURRENT_YEAR, LOCALE);
 
     const years = result.map((cy) => cy.year);
     const uniqueYears = [...new Set(years)];
@@ -208,7 +222,7 @@ describe('buildCalendarYears', () => {
       [CURRENT_YEAR - 1, fullYearPlaceholders(CURRENT_YEAR - 1)],
     ]);
 
-    const result = buildCalendarYears(budgets, null, CURRENT_YEAR);
+    const result = buildCalendarYears(budgets, null, CURRENT_YEAR, LOCALE);
 
     const years = result.map((cy) => cy.year);
     expect(years).toEqual([...years].sort((a, b) => a - b));
@@ -220,7 +234,7 @@ describe('buildCalendarYears', () => {
       [CURRENT_YEAR, [budget]],
     ]);
 
-    const result = buildCalendarYears(budgets, null, CURRENT_YEAR);
+    const result = buildCalendarYears(budgets, null, CURRENT_YEAR, LOCALE);
 
     const currentYearResult = result.find((cy) => cy.year === CURRENT_YEAR)!;
     expect(currentYearResult.months).toHaveLength(1);
@@ -229,7 +243,7 @@ describe('buildCalendarYears', () => {
   });
 
   it('should create 12 empty months for years without existing budgets', () => {
-    const result = buildCalendarYears(new Map(), null, CURRENT_YEAR);
+    const result = buildCalendarYears(new Map(), null, CURRENT_YEAR, LOCALE);
 
     const futureYear = result.find((cy) => cy.year === CURRENT_YEAR + 3)!;
     expect(futureYear.months).toHaveLength(12);
@@ -245,7 +259,7 @@ describe('buildCalendarYears', () => {
       [CURRENT_YEAR, [budget]],
     ]);
 
-    const result = buildCalendarYears(budgets, 25, CURRENT_YEAR);
+    const result = buildCalendarYears(budgets, 25, CURRENT_YEAR, LOCALE);
 
     const currentYearResult = result.find((cy) => cy.year === CURRENT_YEAR)!;
     expect(currentYearResult.months[0].period).toBeDefined();

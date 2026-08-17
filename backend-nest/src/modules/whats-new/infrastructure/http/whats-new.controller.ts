@@ -10,7 +10,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { ErrorResponseDto } from '@common/dto/response.dto';
-import type { WhatsNewResponse } from 'pulpe-shared';
+import { SUPPORTED_LOCALES, type WhatsNewResponse } from 'pulpe-shared';
 import { GetWhatsNewUseCase } from '../../application/get-whats-new.use-case';
 import {
   WhatsNewQueryDto,
@@ -54,6 +54,13 @@ export class WhatsNewController {
   })
   @ApiQuery({ name: 'currentVersion', example: '1.1.0' })
   @ApiQuery({ name: 'lastSeenVersion', example: '1.0.0' })
+  @ApiQuery({
+    name: 'locale',
+    required: false,
+    enum: SUPPORTED_LOCALES,
+    example: 'fr',
+    description: 'Product locale; defaults to French when omitted',
+  })
   @ApiResponse({
     status: 200,
     description: 'Aggregated iOS release notes',

@@ -238,13 +238,13 @@ test.describe('Financial Overview Calculations', () => {
     await expect(dialog).toBeVisible();
 
     await authenticatedPage
-      .locator('[data-testid="new-line-name"]')
-      .fill('Abonnement');
-    await authenticatedPage
       .locator(
         '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
       )
       .fill('200');
+    await authenticatedPage
+      .locator('[data-testid="new-line-name"]')
+      .fill('Abonnement');
     await authenticatedPage.getByTestId('add-new-line').click();
     await expect(dialog).not.toBeVisible();
 

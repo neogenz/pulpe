@@ -73,7 +73,7 @@ struct GoalPlanSimulatorSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                     infoBanner
-                    GoalProjectionChart(series: viewModel.chartSeries, currency: currency, height: 160)
+                    GoalProjectionChart(series: viewModel.chartSeries, currency: currency)
                     verdict
                     globalControl
                     redistributeButton
@@ -86,7 +86,7 @@ struct GoalPlanSimulatorSheet: View {
             .scrollContentBackground(.hidden)
             .accessibilityIdentifier("goalPlanSimulatorRoot")
             .background(Color.sheetBackground)
-            .navigationTitle("Ajuster mon plan")
+            .localizedNavigationTitle("Ajuster mon plan")
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) { applyFooter }
             .toolbar {
@@ -180,7 +180,7 @@ struct GoalPlanSimulatorSheet: View {
                 .accessibilityLabel("Montant mensuel pour chaque mois ouvert")
                 .accessibilityValue(
                     viewModel.hasVariableMonthlyAmounts
-                        ? "Montants variables"
+                        ? AppLocale.string("Montants variables")
                         : Decimal(viewModel.sliderValue).asCurrency(currency)
                 )
         }
@@ -238,64 +238,28 @@ struct GoalPlanSimulatorSheet: View {
     }
 
     private var timeline: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            HStack {
-                Text("Ton plan, mois par mois")
-                    .font(PulpeTypography.headline)
-                Spacer()
-                Button("Repartir du plan actuel") { viewModel.revert() }
-                    .frame(minHeight: DesignTokens.TapTarget.minimum)
-                    .contentShape(Rectangle())
-                    .textLinkButtonStyle()
-                    .disabled(!viewModel.isDirty)
+        GoalPlanSimulatorTimeline(
+            viewModel: viewModel,
+            currency: currency,
+            plannedWithdrawals: plannedWithdrawals,
+            onOpenBudget: { budgetId in
+                dismiss()
+                onOpenBudget(budgetId)
             }
-
-            Text("Montant positif : mettre de côté · montant négatif : retirer")
-                .font(PulpeTypography.listRowSubtitle)
-                .foregroundStyle(Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            LazyVStack(spacing: 0) {
-                ForEach(Array(viewModel.draft.months.enumerated()), id: \.element.id) { index, simMonth in
-                    if index > 0 {
-                        Divider().foregroundStyle(Color.textTertiary.opacity(DesignTokens.Opacity.secondary))
-                    }
-                    row(for: simMonth)
-                }
-            }
-            .padding(DesignTokens.Spacing.lg)
-            .pulpeCard()
-        }
-    }
-
-    @ViewBuilder
-    private func row(for simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
-        if SavingsPlanCalculator.isContributivePlanMonth(simMonth.month) {
-            GoalPlanSimEditRow(
-                simMonth: simMonth,
-                currency: currency,
-                amount: Binding(
-                    get: { viewModel.simulatedAmount(forKey: simMonth.id) },
-                    set: { viewModel.setMonth(key: simMonth.id, amount: $0) }
-                )
-            )
-        } else {
-            GoalPlanMonthRow(
-                month: simMonth.month,
-                amount: simMonth.simulatedAmount,
-                cumulative: simMonth.simulatedCumulative,
-                currency: currency,
-                showsCumulative: true,
-                onOpenBudget: budgetAction(for: simMonth.month)
-            )
-        }
+        )
     }
 
     private var applyFooter: some View {
         Button {
             showRecap = true
         } label: {
-            Text("Appliquer (\(viewModel.planChanges.count) mois)")
+            // Le compte n'apparaît qu'une fois qu'il y a quelque chose à
+            // compter : « Appliquer (0 mois) » sur un bouton éteint est du bruit.
+            if viewModel.planChanges.isEmpty {
+                Text("Appliquer")
+            } else {
+                Text("Appliquer · \(viewModel.planChanges.count) mois")
+            }
         }
         .primaryButtonStyle(isEnabled: viewModel.canApply)
         .disabled(!viewModel.canApply)
@@ -309,17 +273,6 @@ struct GoalPlanSimulatorSheet: View {
             showDiscardConfirm = true
         } else {
             dismiss()
-        }
-    }
-
-    private func budgetAction(for month: SavingsGoalPlanMonth) -> (() -> Void)? {
-        guard let budgetId = GoalPlanTimelinePresentation.budgetId(
-            forFrozenMonth: month,
-            plannedWithdrawals: plannedWithdrawals
-        ) else { return nil }
-        return {
-            dismiss()
-            onOpenBudget(budgetId)
         }
     }
 
@@ -446,18 +399,20 @@ final class GoalPlanSimulatorViewModel {
 
     var verdictText: String {
         guard targetAmount != nil else {
-            return "Avec ce plan, tu auras prévu \(draft.simulatedFinal.asCompactCurrency(currency))."
+            return AppLocale.string(
+                "Avec ce plan, tu auras prévu \(draft.simulatedFinal.asCompactCurrency(currency))."
+            )
         }
         guard let attained = draft.attainedPeriod else {
             let gap = draft.gapToTarget ?? 0
-            return "Avec ce plan, il te manque \(gap.asCompactCurrency(currency)) pour ta cible."
+            return AppLocale.string("Avec ce plan, il te manque \(gap.asCompactCurrency(currency)) pour ta cible.")
         }
         let label = "\(Formatters.monthName(for: attained.month)) \(attained.year)"
         if let deadlinePeriod,
            BudgetPeriodCalculator.comparePeriods(attained, deadlinePeriod) < 0 {
-            return "Avec ce plan, tu atteins ta cible dès \(label), en avance."
+            return AppLocale.string("Avec ce plan, tu atteins ta cible dès \(label), en avance.")
         }
-        return "Avec ce plan, tu atteins ta cible en \(label)."
+        return AppLocale.string("Avec ce plan, tu atteins ta cible en \(label).")
     }
 
     func simulatedAmount(forKey key: Int) -> Decimal { draft.months.first { $0.id == key }?.simulatedAmount ?? 0 }
@@ -497,7 +452,7 @@ final class GoalPlanSimulatorViewModel {
         recompute()
     }
 
-    /// « Repartir du plan actuel » — clears every edit back to the current plan.
+    /// « Réinitialiser » — clears every edit back to the current plan.
     func revert() {
         overrides = [:]
         globalAmount = nil

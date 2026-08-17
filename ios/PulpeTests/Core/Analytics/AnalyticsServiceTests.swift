@@ -54,6 +54,7 @@ struct AnalyticsServiceTests {
             "currency_changed",
             "currency_selector_toggled",
             "currency_persist_failed",
+            "language_changed",
             "savings_goals_intro_viewed",
             "savings_goals_intro_completed",
             "savings_goals_intro_skipped"
@@ -87,6 +88,7 @@ struct AnalyticsServiceTests {
         #expect(properties["environment"] as? String == AppConfiguration.environment.rawValue)
         #expect(properties["app_version"] as? String == AppConfiguration.appVersion)
         #expect(properties["build_number"] as? String == AppConfiguration.buildNumber)
+        #expect(properties["locale"] as? String == AppLocale.current.rawValue)
         #expect(properties["platform"] as? String == "ios")
     }
 

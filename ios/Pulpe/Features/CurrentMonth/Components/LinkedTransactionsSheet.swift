@@ -99,14 +99,15 @@ struct LinkedTransactionsSheet: View {
     @ViewBuilder
     private var metricsSection: some View {
         let currency = userSettingsStore.currency
-        let spentLabel = amountsHidden ? "Montant masqué" : consumption.allocated.asCurrency(currency)
-        let plannedLabel = amountsHidden ? "Montant masqué" : budgetLine.amount.asCurrency(currency)
-        let remainingLabel = amountsHidden ? "Montant masqué" : remaining.asCurrency(currency)
+        let masked = AppLocale.string("Montant masqué")
+        let spentLabel = amountsHidden ? masked : consumption.allocated.asCurrency(currency)
+        let plannedLabel = amountsHidden ? masked : budgetLine.amount.asCurrency(currency)
+        let remainingLabel = amountsHidden ? masked : remaining.asCurrency(currency)
 
         HStack(spacing: DesignTokens.Spacing.md) {
             MetricCard(
                 icon: "arrow.up.circle.fill",
-                label: "Dépensé",
+                label: AppLocale.string("Dépensé"),
                 value: consumption.allocated,
                 color: spentColor
             )
@@ -115,7 +116,7 @@ struct LinkedTransactionsSheet: View {
 
             MetricCard(
                 icon: "target",
-                label: "Prévu",
+                label: AppLocale.string("Prévu"),
                 value: budgetLine.amount,
                 color: .secondary
             )
@@ -124,7 +125,7 @@ struct LinkedTransactionsSheet: View {
 
             MetricCard(
                 icon: remaining >= 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
-                label: "Reste",
+                label: AppLocale.string("Reste"),
                 value: remaining,
                 color: remainingColor
             )

@@ -8,6 +8,7 @@ import { DemoModeService } from '../demo/demo-mode.service';
 import { STORAGE_KEYS } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
 import { readPersistedCurrency } from './currency-snapshot';
+import { resolveStartupLanguage } from '../i18n/language-resolver';
 import { UserSettingsApi } from './user-settings-api';
 
 @Service()
@@ -46,6 +47,13 @@ export class UserSettingsStore {
     () => this.settings()?.currency ?? this.#fallbackCurrency,
   );
 
+  /** Same snapshot trick for the language the app already booted in. */
+  readonly #fallbackLocale = resolveStartupLanguage(this.#storage);
+
+  readonly locale = computed(
+    () => this.settings()?.locale ?? this.#fallbackLocale,
+  );
+
   readonly showCurrencySelector = computed(
     () => this.settings()?.showCurrencySelector ?? false,
   );
@@ -61,6 +69,20 @@ export class UserSettingsStore {
       const currency = this.settings()?.currency;
       if (currency) {
         this.#storage.setString(STORAGE_KEYS.SETTINGS_CURRENCY, currency);
+      }
+    });
+
+    // Same for the language, so the next cold start loads the right catalog
+    // before the first paint — and so the signed-out screens keep it.
+    //
+    // A language chosen on another device lands here after this page already
+    // rendered. It is written down and applied on the next start rather than
+    // reloading on the spot: a reload driven by a resource that can re-resolve
+    // is one failed storage write away from looping.
+    effect(() => {
+      const locale = this.settings()?.locale;
+      if (locale) {
+        this.#storage.setString(STORAGE_KEYS.SETTINGS_LANGUAGE, locale);
       }
     });
   }

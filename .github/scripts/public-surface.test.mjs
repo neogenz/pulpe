@@ -43,11 +43,17 @@ test("a clone does not pre-authorize sensitive repository automation", () => {
 });
 
 test("public security and deletion claims describe the implemented model", () => {
+  // La copie de la landing vit dans les catalogues depuis qu'elle est traduite.
+  // Les quatre langues entrent dans le corpus : une promesse excessive glissée
+  // dans la version allemande ne se verrait nulle part ailleurs.
   const claims = [
     "docs/BUSINESS_WORKFLOW.md",
     "docs/ENCRYPTION.md",
     "ios/Pulpe/Core/Encryption/ClientKeyManager.swift",
-    "landing/app/support/page.tsx",
+    "landing/content/dictionaries/fr.ts",
+    "landing/content/dictionaries/en.ts",
+    "landing/content/dictionaries/de.ts",
+    "landing/content/dictionaries/it.ts",
     "landing/data/releases.json",
   ]
     .map(read)
@@ -55,12 +61,12 @@ test("public security and deletion claims describe the implemented model", () =>
 
   assert.doesNotMatch(
     claims,
-    /chiffr[^\s]*(?:\s+\w+){0,3}\s+de bout en bout|zero[- ]knowledge|end-to-end encryption/i,
+    /chiffr[^\s]*(?:\s+\w+){0,3}\s+de bout en bout|zero[- ]knowledge|end.to.end encryption|Ende-zu-Ende|crittografi[^\s]*(?:\s+\w+){0,3}\s+end.to.end|da un capo all'altro/i,
   );
   assert.match(claims, /AES-256-GCM/);
   assert.match(claims, /déchiffr[^\s]*\s+(?:côté\s+)?serveur/i);
 
-  const support = read("landing/app/support/page.tsx");
+  const support = read("landing/content/dictionaries/fr.ts");
   assert.doesNotMatch(support, /rien n['’]est conservé|zéro trace/i);
   assert.match(support, /systèmes actifs/i);
   assert.match(support, /sauvegardes/i);

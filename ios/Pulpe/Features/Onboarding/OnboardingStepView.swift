@@ -273,12 +273,14 @@ struct OnboardingStepView<Content: View>: View {
 
     private func ctaAccessibilityLabel(expanded: Bool) -> String {
         if expanded, state.isLoading {
-            return "Chargement"
+            return AppLocale.string("Chargement")
         }
         if expanded {
             return buttonTitle
         }
-        return isKeyboardVisible ? "Fermer le clavier" : "Voir la suite"
+        return isKeyboardVisible
+            ? AppLocale.string("Fermer le clavier")
+            : AppLocale.string("Voir la suite")
     }
 
     private func morphingCTAAction(proxy: ScrollViewProxy) {
@@ -329,10 +331,10 @@ struct OnboardingStepView<Content: View>: View {
 
     private var buttonTitle: String {
         switch step {
-        case .registration: "Créer mon compte"
+        case .registration: AppLocale.string("Créer mon compte")
         case .budgetPreview: budgetPreviewButtonTitle
-        case .welcome: "Commencer"
-        default: "Continuer"
+        case .welcome: AppLocale.string("Commencer")
+        default: AppLocale.string("Continuer")
         }
     }
 
@@ -342,9 +344,9 @@ struct OnboardingStepView<Content: View>: View {
     /// next screen (relief / validation / intent to adjust later).
     private var budgetPreviewButtonTitle: String {
         switch state.emotionState {
-        case .comfortable: "C'est parti"
-        case .tight: "Valider mon budget"
-        case .deficit: "Valider et affiner"
+        case .comfortable: AppLocale.string("C'est parti")
+        case .tight: AppLocale.string("Valider mon budget")
+        case .deficit: AppLocale.string("Valider et affiner")
         }
     }
 }
@@ -383,16 +385,8 @@ struct OnboardingCurrencySwapSheet: View {
             .foregroundStyle(Color.onSurfaceVariant)
             .fixedSize(horizontal: false, vertical: true)
 
-            CapsulePicker(selection: $draft, title: nil) { currency, isSelected in
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Text(currency.flag)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(currency.rawValue).font(PulpeTypography.labelLarge)
-                        Text(currency.nativeName)
-                            .font(PulpeTypography.caption2)
-                            .foregroundStyle(isSelected ? Color.textOnPrimaryMuted : Color.onSurfaceVariant)
-                    }
-                }
+            SegmentedPicker(selection: $draft, title: nil) { currency in
+                Text("\(currency.flag) \(currency.rawValue)")
             }
 
             Button {

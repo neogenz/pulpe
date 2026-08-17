@@ -17,9 +17,9 @@ enum IncomeOrigin: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .regular: "Revenu habituel"
-        case .savingsGoal: "Retrait d'un objectif"
-        case .repayNextMonth: "Pris sur mon épargne, à remettre le mois prochain"
+        case .regular: AppLocale.string("Revenu habituel")
+        case .savingsGoal: AppLocale.string("Retrait d'un objectif")
+        case .repayNextMonth: AppLocale.string("Pris sur mon épargne, à remettre le mois prochain")
         }
     }
 }

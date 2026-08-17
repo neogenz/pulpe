@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 import { Amount } from "@/components/ui";
+import type { Dictionary } from "@/content/dictionary";
+
+type VisualsDict = Dictionary["home"]["howItWorks"]["visuals"];
 
 // Three different reads for three different steps, instead of three tables of
 // numbers a visitor has to add up: a composition, a time series, then the same
@@ -54,11 +57,17 @@ function StepFrame({
 
 // La même barre revient à l'étape 3 : le lecteur compare directement, un bloc
 // d'impôts apparaît et la part verte se réduit.
-function CompositionBar({ segments }: { segments: Segment[] }) {
+function CompositionBar({
+  segments,
+  incomeLabel,
+}: {
+  segments: Segment[];
+  incomeLabel: string;
+}) {
   return (
     <div className="flex flex-col gap-2.5">
       <p className="flex items-baseline justify-between text-xs text-text-secondary">
-        <span>Revenu</span>
+        <span>{incomeLabel}</span>
         <Amount value={INCOME} className="font-medium text-text" showUnit />
       </p>
       <span className="flex h-3 gap-px overflow-hidden rounded-full">
@@ -99,39 +108,48 @@ function Payoff({ value, label }: { value: number; label: string }) {
   );
 }
 
-export function MonthTemplateVisual() {
+export function MonthTemplateVisual({ dict }: { dict: VisualsDict }) {
   return (
-    <StepFrame title="Ton mois type">
+    <StepFrame title={dict.templateTitle}>
       <CompositionBar
+        incomeLabel={dict.income}
         segments={[
-          { role: "recurring", label: "Récurrent", amount: 1600 },
-          { role: "saving", label: "Épargne", amount: 500 },
-          { role: "available", label: "Disponible", amount: FULL_MONTH },
+          { role: "recurring", label: dict.recurring, amount: 1600 },
+          { role: "saving", label: dict.saving, amount: 500 },
+          { role: "available", label: dict.available, amount: FULL_MONTH },
         ]}
       />
-      <Payoff value={FULL_MONTH} label="Disponible à dépenser, chaque mois" />
+      <Payoff value={FULL_MONTH} label={dict.templatePayoff} />
     </StepFrame>
   );
 }
 
-const MONTHS = [
-  { key: "jan", initial: "J", available: FULL_MONTH },
-  { key: "fev", initial: "F", available: FULL_MONTH },
-  { key: "mar", initial: "M", available: FULL_MONTH },
-  { key: "avr", initial: "A", available: FULL_MONTH },
-  { key: "mai", initial: "M", available: FULL_MONTH },
-  { key: "jun", initial: "J", available: FULL_MONTH },
-  { key: "jul", initial: "J", available: 500 },
-  { key: "aou", initial: "A", available: 700 },
-  { key: "sep", initial: "S", available: FULL_MONTH },
-  { key: "oct", initial: "O", available: FULL_MONTH },
-  { key: "nov", initial: "N", available: FULL_MONTH },
-  { key: "dec", initial: "D", available: 200 },
+// Douze mois, dont trois décrochent. Le montant est structurel, l'initiale
+// arrive du catalogue : `G` ouvre l'année en italien, pas `J`.
+const MONTH_AVAILABLE = [
+  FULL_MONTH,
+  FULL_MONTH,
+  FULL_MONTH,
+  FULL_MONTH,
+  FULL_MONTH,
+  FULL_MONTH,
+  500,
+  700,
+  FULL_MONTH,
+  FULL_MONTH,
+  FULL_MONTH,
+  200,
 ];
 
-export function YearSpreadVisual() {
+export function YearSpreadVisual({ dict }: { dict: VisualsDict }) {
+  const months = MONTH_AVAILABLE.map((available, index) => ({
+    key: index,
+    initial: dict.monthInitials[index],
+    available,
+  }));
+
   return (
-    <StepFrame title="Ton année">
+    <StepFrame title={dict.yearTitle}>
       {/* La ligne pointillée porte le mois plein, donc les barres n'ont pas
           besoin d'être étiquetées une par une : seuls les mois qui décrochent
           affichent leur montant, et ils sont exactement les trois catégories
@@ -145,7 +163,7 @@ export function YearSpreadVisual() {
         />
         <div className="relative flex min-h-28 flex-1 items-end gap-1.5">
           <span className="absolute inset-x-0 top-0 border-t border-dashed border-text/25" />
-          {MONTHS.map((month) => (
+          {months.map((month) => (
             <span
               key={month.key}
               className="flex h-full flex-1 flex-col justify-end"
@@ -164,7 +182,7 @@ export function YearSpreadVisual() {
           ))}
         </div>
         <p className="flex gap-1.5 text-[11px] leading-4 text-text-secondary">
-          {MONTHS.map((month) => (
+          {months.map((month) => (
             <span key={month.key} className="flex-1 text-center">
               {month.initial}
             </span>
@@ -175,24 +193,25 @@ export function YearSpreadVisual() {
           à 768px, donc la légende se passe des articles pour tenir sur deux
           lignes. Le figcaption sr-only porte la phrase complète. */}
       <p className="text-[11px] leading-4 text-text-secondary">
-        Juillet, impôts · Août, vacances · Décembre, gros achat
+        {dict.yearLegend}
       </p>
     </StepFrame>
   );
 }
 
-export function MonthAvailableVisual() {
+export function MonthAvailableVisual({ dict }: { dict: VisualsDict }) {
   return (
-    <StepFrame title="Juillet, à venir">
+    <StepFrame title={dict.monthTitle}>
       <CompositionBar
+        incomeLabel={dict.income}
         segments={[
-          { role: "recurring", label: "Récurrent", amount: 1600 },
-          { role: "saving", label: "Épargne", amount: 500 },
-          { role: "tax", label: "Impôts", amount: 900 },
-          { role: "available", label: "Disponible", amount: 500 },
+          { role: "recurring", label: dict.recurring, amount: 1600 },
+          { role: "saving", label: dict.saving, amount: 500 },
+          { role: "tax", label: dict.tax, amount: 900 },
+          { role: "available", label: dict.available, amount: 500 },
         ]}
       />
-      <Payoff value={500} label="Il te restera en juillet" />
+      <Payoff value={500} label={dict.monthPayoff} />
     </StepFrame>
   );
 }

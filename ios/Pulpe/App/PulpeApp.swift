@@ -126,12 +126,34 @@ struct PulpeApp: App {
                             Task { await rescheduleRemindersIfEnabled() }
                         }
                     }
+                    .onChange(of: userSettingsStore.locale) { _, _ in
+                        // The monthly reminder's copy is frozen at scheduling time, so
+                        // without this the user reads a French nudge months after switching.
+                        Task { await rescheduleRemindersIfEnabled() }
+                    }
                     .onOpenURL { url in
                         handleDeepLink(url)
                     }
                     .fullScreenCover(isPresented: forceUpdateBinding) {
                         ForceUpdateView(storeURL: forceUpdateStoreURL)
                     }
+                    .sheet(item: updateAvailableBinding) { update in
+                        UpdateAvailableSheet(
+                            version: update.version,
+                            storeURL: update.storeURL,
+                            onClose: appVersionStore.dismissUpdateAvailable
+                        )
+                        .standardSheetPresentation(detents: [.medium, .large])
+                        .onAppear { appVersionStore.markUpdatePresented() }
+                    }
+                    // The whole interface language, in one line. Body text, plural variants,
+                    // toolbar items and alerts re-resolve against it with no restart;
+                    // `.navigationTitle` is the one exception and goes through
+                    // `.localizedNavigationTitle`. Kept outermost: presentation content
+                    // inherits the environment of its attachment point, so a cover attached
+                    // outside this line — as the force-update cover once was — renders in
+                    // the device language instead of the selector's.
+                    .environment(\.locale, AppLocale.uiLocale(for: userSettingsStore.locale))
             }
         }
     }
@@ -151,6 +173,22 @@ struct PulpeApp: App {
             return url
         }
         return nil
+    }
+
+    private var updateAvailableBinding: Binding<AppVersionStore.AvailableUpdate?> {
+        Binding(
+            get: {
+                guard appState.authState == .authenticated,
+                      whatsNewStore.allowsLowerPriorityPresentation,
+                      case .updateAvailable(let update) = appVersionStore.status else {
+                    return nil
+                }
+                return update
+            },
+            set: { update in
+                if update == nil { appVersionStore.dismissUpdateAvailable() }
+            }
+        )
     }
 
     /// Refresh the monthly reminder on each foreground so it tracks a changed pay-day
@@ -176,6 +214,8 @@ struct PulpeApp: App {
             BudgetGoalSpreadUITestHarness()
         case .contextualCreationHome, .contextualCreationBudget:
             ContextualCreationUITestHarness(scenario: scenario)
+        case .loginScreen:
+            LoginFlowUITestHarness()
         case .savingsGoalForm,
              .savingsGoalFormInvalidInterval,
              .savingsGoalDetailNameOnly,
@@ -260,6 +300,7 @@ struct RootView: View {
             deepLinkDestination: deepLinkDestination,
             onAppStart: handleAppStart,
             onWhatsNewCheck: { await whatsNewStore.check() },
+            onWhatsNewSessionEnded: whatsNewStore.invalidateSession,
             onClientKeyCheckFailed: handleClientKeyCheckFailed,
             onPendingDeepLink: handlePendingDeepLink
         ))
@@ -292,7 +333,7 @@ struct RootView: View {
     private var routeContent: some View {
         switch appState.currentRoute {
         case .loading:
-            LoadingView(message: "Chargement...")
+            LoadingView(message: AppLocale.string("Chargement..."))
 
         case .maintenance:
             MaintenanceView()
@@ -366,7 +407,7 @@ struct RootView: View {
                 onSessionExpired: { appState.send(.recoverySessionExpired) }
             )
         case .loading, .unauthenticated:
-            LoadingView(message: "Chargement...")
+            LoadingView(message: AppLocale.string("Chargement..."))
         }
     }
 

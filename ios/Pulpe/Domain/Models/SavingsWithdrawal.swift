@@ -66,8 +66,8 @@ enum SavingsWithdrawalDeleteScope: String, Sendable {
     /// Success toast — describes the concrete outcome, never the concept.
     var successToast: String {
         switch self {
-        case .pair: "Les deux prévisions ont été supprimées"
-        case .repayment: "Épargne de remboursement supprimée"
+        case .pair: AppLocale.string("Les deux prévisions ont été supprimées")
+        case .repayment: AppLocale.string("Épargne de remboursement supprimée")
         }
     }
 }

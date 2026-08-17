@@ -243,6 +243,7 @@ export default class SetupVaultCode {
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
   readonly #transloco = inject(TranslocoService);
+  readonly #recoveryKeyConfirmed = signal(false);
 
   protected readonly ROUTES = ROUTES;
   protected readonly VAULT_CODE_LENGTH = VAULT_CODE_LENGTH;
@@ -275,7 +276,10 @@ export default class SetupVaultCode {
   });
 
   protected readonly canSubmit = computed(() => {
-    return this.#formStatus() === 'VALID' && !this.isSubmitting();
+    return (
+      (this.#recoveryKeyConfirmed() || this.#formStatus() === 'VALID') &&
+      !this.isSubmitting()
+    );
   });
 
   protected clearError(): void {
@@ -283,13 +287,17 @@ export default class SetupVaultCode {
   }
 
   protected async onSubmit(): Promise<void> {
-    if (!this.form.valid) {
+    if (this.isSubmitting()) return;
+
+    if (!this.#recoveryKeyConfirmed() && !this.form.valid) {
       this.form.markAllAsTouched();
       return;
     }
 
-    const parsed = setupVaultCodeFormSchema.safeParse(this.form.getRawValue());
-    if (!parsed.success) {
+    const parsed = this.#recoveryKeyConfirmed()
+      ? undefined
+      : setupVaultCodeFormSchema.safeParse(this.form.getRawValue());
+    if (parsed && !parsed.success) {
       this.form.markAllAsTouched();
       this.errorMessage.set(
         this.#transloco.translate('common.somethingWentWrong'),
@@ -301,26 +309,23 @@ export default class SetupVaultCode {
     this.form.disable();
     this.clearError();
 
-    const { vaultCode, rememberDevice } = parsed.data;
-
     try {
-      // 1. Get salt and derive client key from vault code
-      const { salt, kdfIterations } = await firstValueFrom(
-        this.#encryptionApi.getSalt$(),
-      );
-      const clientKeyHex = await this.#deriveClientKey(
-        vaultCode,
-        salt,
-        kdfIterations,
-      );
+      if (parsed?.success) {
+        const { vaultCode, rememberDevice } = parsed.data;
+        const { salt, kdfIterations } = await firstValueFrom(
+          this.#encryptionApi.getSalt$(),
+        );
+        const clientKeyHex = await this.#deriveClientKey(
+          vaultCode,
+          salt,
+          kdfIterations,
+        );
 
-      // 2. Store the candidate key so setup-recovery can send it in the header
-      this.#clientKeyService.setDirectKey(clientKeyHex, rememberDevice);
+        this.#clientKeyService.setDirectKey(clientKeyHex, rememberDevice);
+        await this.#showRecoveryKey(clientKeyHex);
+        this.#recoveryKeyConfirmed.set(true);
+      }
 
-      // 3. Atomically initialize key_check + recovery key server-side
-      await this.#showRecoveryKey(clientKeyHex);
-
-      // 4. Mark user as configured only after recovery key is saved
       const { error } = await this.#authSession
         .getClient()
         .auth.updateUser({ data: { vaultCodeConfigured: true } });
@@ -328,15 +333,14 @@ export default class SetupVaultCode {
 
       this.#postHogService.captureEvent(ANALYTICS_EVENTS.PIN_SETUP_COMPLETED);
 
-      // 5. Redirect to dashboard
-      this.#router.navigate(['/', ROUTES.DASHBOARD]);
+      await this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Setup vault code failed:', error);
       this.errorMessage.set(
         this.#transloco.translate('common.somethingWentWrong'),
       );
     } finally {
-      this.form.enable();
+      if (!this.#recoveryKeyConfirmed()) this.form.enable();
       this.isSubmitting.set(false);
     }
   }

@@ -167,6 +167,7 @@ describe('PostHogService', () => {
     expect(posthog.register).toHaveBeenCalledWith(
       expect.objectContaining({
         environment: 'test',
+        locale: 'fr',
         platform: 'web',
       }),
     );
@@ -582,6 +583,8 @@ describe('PostHogService', () => {
       {
         feature: 'budget',
       },
+      // Third argument: the pass-through capture options, absent here.
+      undefined,
     );
   });
 
@@ -606,6 +609,7 @@ describe('PostHogService', () => {
       {
         feature: 'budget',
       },
+      undefined,
     );
   });
 
@@ -740,9 +744,14 @@ describe('PostHogService', () => {
     const posthog = posthogModule.default;
 
     await service.initialize();
+    service.setLocale('de');
+    vi.mocked(posthog.register).mockClear();
     service.reset();
 
     expect(posthog.reset).toHaveBeenCalledTimes(1);
+    expect(posthog.register).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: 'de', platform: 'web' }),
+    );
   });
 
   it('sanitizes financial fields and URLs while keeping custom metadata', async () => {

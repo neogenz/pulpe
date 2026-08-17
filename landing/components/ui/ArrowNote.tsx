@@ -2,7 +2,13 @@
 
 import { useEffect, useRef } from "react";
 
-export function ArrowNote({ className = "" }: { className?: string }) {
+export function ArrowNote({
+  label,
+  className = "",
+}: {
+  label: string;
+  className?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,7 +41,7 @@ export function ArrowNote({ className = "" }: { className?: string }) {
 
   return (
     <div ref={ref} aria-hidden="true" className={`arrow-note ${className}`}>
-      <span className="arrow-note-label">Prêt à respirer&nbsp;?</span>
+      <span className="arrow-note-label">{label}</span>
       <svg
         className="arrow-note-svg"
         viewBox="0 0 112 84"

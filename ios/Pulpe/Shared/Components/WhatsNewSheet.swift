@@ -81,7 +81,7 @@ private struct WhatsNewHeader: View {
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.textTertiary)
 
-            Text("Nouveau\ndans Pulpe")
+            Text(AppLocale.string("Nouveau\ndans Pulpe"))
                 .font(PulpeTypography.brandTitle)
                 .foregroundStyle(Color.textPrimary)
 
@@ -137,7 +137,7 @@ private struct WhatsNewReleaseSection: View {
         guard let date = try? Self.publishedAtFormat.parse(entry.publishedAt) else {
             return entry.publishedAt
         }
-        return date.formatted(date: .abbreviated, time: .omitted)
+        return date.abbreviatedDateFormatted
     }
 }
 

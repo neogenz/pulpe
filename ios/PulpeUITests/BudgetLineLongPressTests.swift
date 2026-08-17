@@ -10,7 +10,14 @@ final class BudgetLineLongPressTests: XCTestCase {
 
     private static let goalSpreadScenario = "UITEST_BUDGET_GOAL_SPREAD_METADATA"
     private static let goalSpreadLineId = "goal-spread-line"
+    private static let goalSpreadBudgetId = "goal-spread-budget"
+    /// Fixture data, not display copy: the harness seeds this name, so it stays a
+    /// literal while the app is localized.
     private static let goalName = "Voyage au Japon"
+    /// The month the spread fixture plans, as the plan row identifies itself.
+    private static let goalSpreadPlanMonth = "2026-8"
+    /// Fixture amount of the August occurrence — the figure both destinations owe.
+    private static let goalSpreadAmount = "413"
 
     private var app = XCUIApplication()
 
@@ -23,10 +30,7 @@ final class BudgetLineLongPressTests: XCTestCase {
     func testLongPressWithTransactionsOpensLinkedTransactionsSheet() {
         launchScenario("UITEST_BUDGET_LONG_PRESS_WITH_TRANSACTIONS")
 
-        let row = waitForBudgetRow(
-            primaryIdentifier: "budgetLineRow-with-transactions",
-            fallbackLabel: "Prévision avec mouvements"
-        )
+        let row = waitForBudgetRow(identifier: "budgetLineRow-with-transactions")
 
         row.press(forDuration: 1.0)
 
@@ -41,10 +45,7 @@ final class BudgetLineLongPressTests: XCTestCase {
     func testLongPressWithoutTransactionsDoesNotOpenSheet() {
         launchScenario("UITEST_BUDGET_LONG_PRESS_EMPTY")
 
-        let row = waitForBudgetRow(
-            primaryIdentifier: "budgetLineRow-empty",
-            fallbackLabel: "Prévision simple"
-        )
+        let row = waitForBudgetRow(identifier: "budgetLineRow-empty")
 
         row.press(forDuration: 1.0)
 
@@ -90,10 +91,9 @@ final class BudgetLineLongPressTests: XCTestCase {
     ) {
         launchGoalSpreadScenario(mode)
 
-        let row = app.otherElements["budgetLineMixedRow-\(Self.goalSpreadLineId)"]
-        XCTAssertTrue(row.waitForExistence(timeout: 10), file: file, line: line)
-        let rowButton = goalSpreadRowButton()
-        let metadata = app.staticTexts["Lissé · objectif \(Self.goalName)"]
+        let rowButton = goalSpreadRow()
+        XCTAssertTrue(rowButton.waitForExistence(timeout: 10), file: file, line: line)
+        let metadata = app.staticTexts["budgetLineMixedRowMetadata-\(Self.goalSpreadLineId)"]
         XCTAssertTrue(metadata.waitForExistence(timeout: 10), file: file, line: line)
         scrollUntilFullyVisible(
             metadata,
@@ -109,10 +109,10 @@ final class BudgetLineLongPressTests: XCTestCase {
             .matching(identifier: "budgetLineDetailPageRoot")
             .firstMatch
         XCTAssertTrue(detailRoot.waitForExistence(timeout: 10), file: file, line: line)
-        let goal = app.buttons["Objectif d'épargne : \(Self.goalName)"]
-        let spread = app.buttons["Épargne lissée, voir les mois"]
-        let navigationBar = app.navigationBars[Self.goalName]
-        let primaryAction = app.buttons["Ajouter une transaction"]
+        let goal = app.buttons["budgetLineDetailGoalLink"]
+        let spread = app.buttons["spreadAffordanceButton"]
+        let navigationBar = app.navigationBars.firstMatch
+        let primaryAction = app.buttons["budgetLineDetailPrimaryAction"]
         XCTAssertTrue(primaryAction.waitForExistence(timeout: 10), file: file, line: line)
         scrollPairIntoView(
             goal,
@@ -132,51 +132,57 @@ final class BudgetLineLongPressTests: XCTestCase {
 
     func testGoalAndSpreadMetadataRoutesOpenExpectedDestinations() {
         launchGoalSpreadScenario(DisplayMode(name: "routes", dynamicType: false, darkMode: false))
-        let row = app.otherElements["budgetLineMixedRow-\(Self.goalSpreadLineId)"]
-        XCTAssertTrue(row.waitForExistence(timeout: 10))
-        let rowButton = goalSpreadRowButton()
+        let rowButton = goalSpreadRow()
+        XCTAssertTrue(rowButton.waitForExistence(timeout: 10))
         scrollUntilHittable(rowButton)
         rowButton.tap()
 
-        let goal = app.buttons["Objectif d'épargne : \(Self.goalName)"]
+        let goal = app.buttons["budgetLineDetailGoalLink"]
         scrollUntilHittable(goal)
         goal.tap()
+        // The bar takes the goal's own name, which the harness seeds: it says which
+        // goal was opened, where the root identifier only says that one was.
         XCTAssertTrue(app.navigationBars[Self.goalName].waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollViews["savingsGoalDetailRoot"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Montant de départ"].waitForExistence(timeout: 10))
-        XCTAssertFalse(app.staticTexts["Aucune prévision rattachée"].exists)
+        XCTAssertTrue(
+            app.descendants(matching: .any)["savingsGoalProgressCard"].waitForExistence(timeout: 10)
+        )
+        XCTAssertFalse(app.descendants(matching: .any)["savingsGoalEmptyGuidanceCard"].exists)
         let linkedPlanMonth = app.descendants(matching: .any)
-            .matching(NSPredicate(
-                format: "label CONTAINS %@ AND label CONTAINS %@", "Août 2026", "413"
-            ))
+            .matching(identifier: "savingsGoalPlanMonthRow-\(Self.goalSpreadPlanMonth)")
             .firstMatch
         XCTAssertTrue(linkedPlanMonth.waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            linkedPlanMonth.label.contains(Self.goalSpreadAmount),
+            "Plan month does not carry its amount: \(linkedPlanMonth.label)"
+        )
         scrollUntilFullyVisible(
             linkedPlanMonth,
-            below: app.navigationBars[Self.goalName].frame.maxY,
+            below: app.navigationBars.firstMatch.frame.maxY,
             above: app.windows.firstMatch.frame.maxY
         )
-        XCTAssertFalse(app.staticTexts["Connexion impossible"].exists)
+        XCTAssertFalse(app.staticTexts["networkUnavailableTitle"].exists)
         attachScreenshot("ios-goal-spread-goal-destination")
 
         app.navigationBars.buttons.firstMatch.tap()
-        let spread = app.buttons["Épargne lissée, voir les mois"]
+        let spread = app.buttons["spreadAffordanceButton"]
         scrollUntilHittable(spread)
         spread.tap()
-        XCTAssertTrue(app.navigationBars["Épargne lissée"].waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["spreadOccurrencesRoot"].waitForExistence(timeout: 10)
+        )
         let occurrence = app.descendants(matching: .any)
-            .matching(NSPredicate(
-                format: "label CONTAINS %@ AND label CONTAINS %@", "Août 2026", "413"
-            ))
+            .matching(identifier: "spreadOccurrenceRow-\(Self.goalSpreadLineId)")
             .firstMatch
         XCTAssertTrue(occurrence.waitForExistence(timeout: 10))
         scrollUntilFullyVisible(
             occurrence,
-            below: app.navigationBars["Épargne lissée"].frame.maxY,
+            below: app.navigationBars.firstMatch.frame.maxY,
             above: app.windows.firstMatch.frame.maxY
         )
+        XCTAssertTrue(occurrence.label.contains(Self.goalSpreadAmount))
         XCTAssertTrue(occurrence.label.contains("CHF"))
-        XCTAssertFalse(app.staticTexts["Connexion impossible"].exists)
+        XCTAssertFalse(app.staticTexts["networkUnavailableTitle"].exists)
         attachScreenshot("ios-goal-spread-spread-destination")
     }
 
@@ -196,9 +202,7 @@ final class BudgetLineLongPressTests: XCTestCase {
             app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = "accessibility3"
         }
         app.launch()
-        let budget = app.buttons
-            .matching(NSPredicate(format: "label BEGINSWITH %@", "Août,"))
-            .firstMatch
+        let budget = app.buttons["budgetCard-\(Self.goalSpreadBudgetId)"]
         XCTAssertTrue(budget.waitForExistence(timeout: 10))
         budget.tap()
     }
@@ -311,10 +315,10 @@ final class BudgetLineLongPressTests: XCTestCase {
             )
     }
 
-    private func goalSpreadRowButton() -> XCUIElement {
-        app.buttons
-            .matching(NSPredicate(format: "label BEGINSWITH %@", "Épargne, \(Self.goalName)"))
-            .firstMatch
+    private func goalSpreadRow() -> XCUIElement {
+        // The inner button, not the `.contain` row container: tapping the container's
+        // frame synthesizes nothing the SwiftUI button receives.
+        app.buttons["budgetLineMixedRowButton-\(Self.goalSpreadLineId)"].firstMatch
     }
 
     private func attachScreenshot(_ name: String) {
@@ -324,32 +328,27 @@ final class BudgetLineLongPressTests: XCTestCase {
         add(attachment)
     }
 
+    /// A row carries its identifier on the Button, and `accessibilityElement(children:)`
+    /// can republish it on the containing element instead — so both types are tried
+    /// rather than assuming which one the tree exposes.
     private func waitForBudgetRow(
-        primaryIdentifier: String,
-        fallbackLabel: String,
+        identifier: String,
         timeout: TimeInterval = 10
     ) -> XCUIElement {
-        let strategies: [(String, XCUIElement)] = [
-            ("buttons[\(primaryIdentifier)]", app.buttons[primaryIdentifier].firstMatch),
-            ("otherElements[\(primaryIdentifier)]", app.otherElements[primaryIdentifier].firstMatch),
-            ("buttons[\(fallbackLabel)]", app.buttons[fallbackLabel].firstMatch),
-            ("staticTexts[\(fallbackLabel)]", app.staticTexts[fallbackLabel].firstMatch),
+        let strategies = [
+            app.buttons[identifier].firstMatch,
+            app.otherElements[identifier].firstMatch,
         ]
 
-        // First strategy gets the full timeout; fallbacks get 1s each
-        for (index, (label, element)) in strategies.enumerated() {
+        // First strategy gets the full timeout; the fallback gets 1s.
+        for (index, element) in strategies.enumerated() {
             let wait: TimeInterval = index == 0 ? timeout : 1
             if element.waitForExistence(timeout: wait) {
-                if index > 0 {
-                    print("⚠️ waitForBudgetRow matched via fallback strategy '\(label)' — check accessibilityIdentifier")
-                }
                 return element
             }
         }
 
-        XCTFail(
-            "Expected row '\(primaryIdentifier)' or '\(fallbackLabel)' to exist. Debug tree:\n\(app.debugDescription)"
-        )
-        return strategies[0].1
+        XCTFail("Expected row '\(identifier)' to exist. Debug tree:\n\(app.debugDescription)")
+        return strategies[0]
     }
 }

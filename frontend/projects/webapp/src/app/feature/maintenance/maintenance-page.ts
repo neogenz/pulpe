@@ -5,12 +5,13 @@ import {
   signal,
 } from '@angular/core';
 import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { MaintenanceApi } from '@core/maintenance';
 import { LoadingButton } from '@ui/loading-button';
 
 @Component({
   selector: 'pulpe-maintenance-page',
-  imports: [LottieComponent, LoadingButton],
+  imports: [LottieComponent, LoadingButton, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="pulpe-entry-shell pulpe-gradient">
@@ -20,12 +21,11 @@ import { LoadingButton } from '@ui/loading-button';
         <ng-lottie [options]="lottieOptions" class="w-48 h-48" />
 
         <h1 class="text-headline-large text-on-surface">
-          Maintenance en cours
+          {{ 'maintenance.title' | transloco }}
         </h1>
 
         <p class="text-body-large text-on-surface-variant">
-          On améliore Pulpe pour toi — tes données sont bien au chaud, pas
-          d'inquiétude. Réessaie dans quelques instants.
+          {{ 'maintenance.message' | transloco }}
         </p>
 
         @if (statusMessage()) {
@@ -37,13 +37,13 @@ import { LoadingButton } from '@ui/loading-button';
           [disabled]="isChecking()"
           variant="filled"
           type="button"
-          loadingText="Vérification..."
+          [loadingText]="'maintenance.retryLoading' | transloco"
           icon="refresh"
           testId="maintenance-reload-button"
           class="mt-4"
           (click)="checkAndReload()"
         >
-          Réessayer
+          {{ 'maintenance.retry' | transloco }}
         </pulpe-loading-button>
       </div>
     </div>
@@ -51,6 +51,7 @@ import { LoadingButton } from '@ui/loading-button';
 })
 export default class MaintenancePage {
   readonly #maintenanceApi = inject(MaintenanceApi);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly isChecking = signal(false);
   protected readonly statusMessage = signal('');
@@ -73,10 +74,12 @@ export default class MaintenancePage {
         return;
       }
       this.statusMessage.set(
-        'Toujours en maintenance — réessaie dans un instant',
+        this.#transloco.translate('maintenance.stillDown'),
       );
     } catch {
-      this.statusMessage.set('Connexion difficile — réessaie dans un instant');
+      this.statusMessage.set(
+        this.#transloco.translate('maintenance.checkFailed'),
+      );
     } finally {
       this.isChecking.set(false);
     }

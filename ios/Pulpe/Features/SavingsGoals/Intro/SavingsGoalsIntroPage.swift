@@ -46,7 +46,7 @@ struct SavingsGoalsIntroPageView<Preview: View>: View {
                     .animation(entrance(delayIndex: 2), value: hasAppeared)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(title). \(caption)")
+            .accessibilityLabel(Text(verbatim: "\(title). \(caption)"))
         }
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -98,7 +98,7 @@ struct IntroGoalCardPreview: View {
                     .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(Color.textPrimary)
                 Spacer(minLength: DesignTokens.Spacing.sm)
-                PulpeChip(label: "En cours", style: .muted)
+                PulpeChip(label: AppLocale.string("En cours"), style: .muted)
             }
 
             Text("Échéance juin 2027")
@@ -133,7 +133,13 @@ struct IntroGoalCardPreview: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Objectif Voyage au Japon, échéance juin 2027, \(saved.asCurrency(currency)) sur \(target.asCurrency(currency))")
+        .accessibilityLabel(cardAccessibilityLabel)
+    }
+
+    private var cardAccessibilityLabel: String {
+        let savedText = saved.asCurrency(currency)
+        let targetText = target.asCurrency(currency)
+        return AppLocale.string("Objectif Voyage au Japon, échéance juin 2027, \(savedText) sur \(targetText)")
     }
 }
 
@@ -154,8 +160,12 @@ struct IntroPlanPreview: View {
 
     private let months: [IntroPlanRow] = [
         IntroPlanRow(month: 9, year: 2026, state: .past, locked: true, checked: true, planned: 300, cumulative: 900),
-        IntroPlanRow(month: 10, year: 2026, state: .current, locked: false, checked: false, planned: 300, cumulative: 1200),
-        IntroPlanRow(month: 11, year: 2026, state: .future, locked: false, checked: false, planned: 300, cumulative: 1500),
+        IntroPlanRow(
+            month: 10, year: 2026, state: .current, locked: false, checked: false, planned: 300, cumulative: 1200
+        ),
+        IntroPlanRow(
+            month: 11, year: 2026, state: .future, locked: false, checked: false, planned: 300, cumulative: 1500
+        ),
     ]
 
     var body: some View {
@@ -228,7 +238,7 @@ private struct IntroPlanRow: Identifiable {
     TabView {
         SavingsGoalsIntroPageView(
             title: "Ce projet, tu vas l'atteindre",
-            caption: "Voyage, appart, coussin de sécurité… donne-lui un montant et une date. Pulpe garde le cap avec toi.",
+            caption: "Voyage, appart, coussin de sécurité… donne-lui un montant et une date.",
             isActive: true
         ) { active in IntroGoalCardPreview(currency: .chf, animate: active) }
 

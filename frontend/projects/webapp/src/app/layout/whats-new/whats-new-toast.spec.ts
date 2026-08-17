@@ -5,6 +5,9 @@ import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { WhatsNewToast } from './whats-new-toast';
 import { CURRENT_APP_VERSION } from '@core/app-version/current-app-version';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { TranslocoService } from '@jsverse/transloco';
+import { SUPPORTED_LOCALES, type SupportedLocale } from 'pulpe-shared';
 import { LATEST_RELEASE } from './whats-new-releases';
 
 describe('WhatsNewToast', () => {
@@ -20,7 +23,10 @@ describe('WhatsNewToast', () => {
     runningVersion = LATEST_RELEASE.version;
   });
 
-  function setup(dismissedVersion: string | null = null) {
+  function setup(
+    dismissedVersion: string | null = null,
+    locale: SupportedLocale = 'fr',
+  ) {
     mockStorageService = {
       get: vi.fn().mockReturnValue(dismissedVersion),
       set: vi.fn(),
@@ -30,10 +36,12 @@ describe('WhatsNewToast', () => {
       imports: [WhatsNewToast],
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         { provide: StorageService, useValue: mockStorageService },
         { provide: CURRENT_APP_VERSION, useValue: runningVersion },
       ],
     });
+    TestBed.inject(TranslocoService).setActiveLang(locale);
 
     fixture = TestBed.createComponent(WhatsNewToast);
     fixture.detectChanges();
@@ -76,9 +84,8 @@ describe('WhatsNewToast', () => {
   });
 
   describe('content', () => {
-    beforeEach(() => setup(null));
-
     it('should display the version number', () => {
+      setup(null);
       const title = fixture.nativeElement.querySelector(
         '.text-title-small',
       ) as HTMLElement;
@@ -86,25 +93,29 @@ describe('WhatsNewToast', () => {
       expect(title.textContent).toContain(`v${LATEST_RELEASE.version}`);
     });
 
-    it('should display all release features', () => {
-      const items = fixture.nativeElement.querySelectorAll('li');
+    it.each(SUPPORTED_LOCALES)(
+      'should display the %s release copy and localized changelog link',
+      (locale) => {
+        setup(null, locale);
+        const items = fixture.nativeElement.querySelectorAll('li');
+        const features = LATEST_RELEASE.features[locale];
+        const link = fixture.nativeElement.querySelector(
+          '[data-testid="whats-new-changelog-link"]',
+        ) as HTMLAnchorElement;
 
-      expect(items.length).toBe(LATEST_RELEASE.features.length);
-      LATEST_RELEASE.features.forEach((feature, i) => {
-        expect(items[i].textContent).toContain(feature);
-      });
-    });
-
-    it('should have a changelog link opening in new tab', () => {
-      const link = fixture.nativeElement.querySelector(
-        '[data-testid="whats-new-changelog-link"]',
-      ) as HTMLAnchorElement;
-
-      expect(link).toBeTruthy();
-      expect(link.getAttribute('href')).toBe('https://pulpe.app/changelog');
-      expect(link.getAttribute('target')).toBe('_blank');
-      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
-    });
+        expect(items.length).toBe(features.length);
+        features.forEach((feature, i) => {
+          expect(items[i].textContent).toContain(feature);
+        });
+        expect(link.getAttribute('href')).toBe(
+          locale === 'fr'
+            ? 'https://pulpe.app/changelog'
+            : `https://pulpe.app/${locale}/changelog`,
+        );
+        expect(link.getAttribute('target')).toBe('_blank');
+        expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+      },
+    );
   });
 
   describe('dismiss', () => {

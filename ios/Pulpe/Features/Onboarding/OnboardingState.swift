@@ -374,8 +374,8 @@ final class OnboardingState {
 
     func createTemplateData() -> BudgetTemplateCreateFromOnboarding {
         BudgetTemplateCreateFromOnboarding(
-            name: "Mois Standard",
-            description: "Créé pendant l'inscription",
+            name: AppLocale.string("Mois Standard"),
+            description: AppLocale.string("Créé pendant l'inscription"),
             isDefault: true,
             monthlyIncome: monthlyIncome,
             housingCosts: housingCosts,
@@ -402,11 +402,11 @@ final class OnboardingState {
     /// adding or removing a fixed-charge field on the state.
     var fixedChargeLines: [FixedChargeLine] {
         [
-            FixedChargeLine(label: "Loyer", amount: housingCosts),
-            FixedChargeLine(label: "Assurance maladie", amount: healthInsurance),
-            FixedChargeLine(label: "Forfait téléphone", amount: phonePlan),
-            FixedChargeLine(label: "Transport", amount: transportCosts),
-            FixedChargeLine(label: "Leasing / crédit", amount: leasingCredit),
+            FixedChargeLine(label: AppLocale.string("Loyer"), amount: housingCosts),
+            FixedChargeLine(label: AppLocale.string("Assurance maladie"), amount: healthInsurance),
+            FixedChargeLine(label: AppLocale.string("Forfait téléphone"), amount: phonePlan),
+            FixedChargeLine(label: AppLocale.string("Transport"), amount: transportCosts),
+            FixedChargeLine(label: AppLocale.string("Leasing / crédit"), amount: leasingCredit),
         ].compactMap { $0 }
     }
 

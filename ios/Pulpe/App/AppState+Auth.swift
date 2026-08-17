@@ -169,7 +169,7 @@ extension AppState {
         case .unauthenticatedSessionExpired:
             authDebug("AUTH_POST_AUTH_DEST", "unauthenticatedSessionExpired")
             await handleSessionExpired()
-            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
+            biometricError = AppLocale.string("Ta session a expiré, connecte-toi avec ton mot de passe")
         case .vaultCheckFailed:
             recoveryFlowCoordinator.reset()
             authDebug("AUTH_POST_AUTH_DEST", "vaultCheckFailed")
@@ -195,7 +195,7 @@ extension AppState {
         let syncOK = await biometric.syncAfterAuth()
         if !syncOK {
             toastManager.show(
-                "La reconnaissance biométrique n'a pas pu être activée",
+                AppLocale.string("La reconnaissance biométrique n'a pas pu être activée"),
                 type: .error
             )
         }

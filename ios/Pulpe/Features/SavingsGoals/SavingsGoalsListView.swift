@@ -27,7 +27,7 @@ struct SavingsGoalsListView: View {
                 goalList
             }
         }
-        .navigationTitle("Objectifs d'épargne")
+        .localizedNavigationTitle("Objectifs d'épargne")
         .navigationBarTitleDisplayMode(.large)
         .pulpeBackground()
         .toolbar {
@@ -79,9 +79,9 @@ struct SavingsGoalsListView: View {
     private var emptyState: some View {
         PulpeEmptyState(
             systemImage: "target",
-            title: "Fixe ton premier objectif",
-            message: "Suis tes projets d'épargne long terme, sans recalculer à la main",
-            actionTitle: "Créer un objectif"
+            title: AppLocale.string("Fixe ton premier objectif"),
+            message: AppLocale.string("Suis tes projets d'épargne long terme, sans recalculer à la main"),
+            actionTitle: AppLocale.string("Créer un objectif")
         ) {
             isCreatingGoal = true
         }
@@ -186,14 +186,14 @@ private struct SavingsGoalRow: View {
 
     private var periodLabel: String? {
         if let start = goal.startDateValue, let end = goal.targetDateValue {
-            return "\(start.formatted(date: .abbreviated, time: .omitted))"
-                + " → \(end.formatted(date: .abbreviated, time: .omitted))"
+            return "\(start.abbreviatedDateFormatted)"
+                + " → \(end.abbreviatedDateFormatted)"
         }
         if let date = goal.targetDateValue {
-            return "Échéance \(date.formatted(date: .abbreviated, time: .omitted))"
+            return AppLocale.string("Échéance \(date.abbreviatedDateFormatted)")
         }
         if let date = goal.startDateValue {
-            return "Depuis \(date.formatted(date: .abbreviated, time: .omitted))"
+            return AppLocale.string("Depuis \(date.abbreviatedDateFormatted)")
         }
         return nil
     }

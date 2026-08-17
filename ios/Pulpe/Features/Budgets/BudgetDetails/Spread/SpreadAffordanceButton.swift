@@ -13,12 +13,22 @@ struct SpreadAffordanceButton: View {
             icon: "calendar",
             iconTint: kind.color,
             title: Self.title(for: kind),
-            accessibilityLabel: "\(Self.title(for: kind)), voir les mois",
+            accessibilityLabel: Self.accessibilityLabel(for: kind),
             action: onTap
         )
+        .accessibilityIdentifier("spreadAffordanceButton")
     }
 
+    /// Whole key per kind — "Épargne lissée" is a sentence, not "{noun} + lissée":
+    /// the accord and the word order differ per language. V1 spreads only expenses
+    /// and savings (`BudgetLineSpread`), so the noun is binary.
     static func title(for kind: TransactionKind) -> String {
-        "\(kind.label) lissée"
+        kind == .saving ? AppLocale.string("Épargne lissée") : AppLocale.string("Dépense lissée")
+    }
+
+    private static func accessibilityLabel(for kind: TransactionKind) -> String {
+        kind == .saving
+            ? AppLocale.string("Épargne lissée, voir les mois")
+            : AppLocale.string("Dépense lissée, voir les mois")
     }
 }

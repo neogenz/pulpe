@@ -3,12 +3,11 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { AccordionItem, Button, Container } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
-import {
-  angularUrl,
-  ORGANIZATION_ID,
-  SITE_URL,
-  SOCIAL_PREVIEW_IMAGE,
-} from "@/lib/config";
+import type { Dictionary } from "@/content/dictionary";
+import { angularUrl, ORGANIZATION_ID } from "@/lib/config";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { socialPreviewImage } from "@/lib/metadata";
+import { SITE_URL } from "@/lib/routes";
 import type { Guide } from "./guides";
 
 interface FaqEntry {
@@ -21,6 +20,8 @@ interface FaqEntry {
 interface ArticleLayoutProps {
   guide: Guide;
   faq?: FaqEntry[];
+  /** L'article est français, mais son chrome se lit dans le catalogue comme partout ailleurs. */
+  dict: Dictionary;
   children: ReactNode;
 }
 
@@ -35,7 +36,12 @@ function formatDate(iso: string): string {
   });
 }
 
-export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
+export function ArticleLayout({
+  guide,
+  faq,
+  dict,
+  children,
+}: ArticleLayoutProps) {
   const articleUrl = `${SITE_URL}/conseils-budget/${guide.slug}`;
   const jsonLd = {
     "@context": "https://schema.org",
@@ -47,7 +53,7 @@ export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
         description: guide.description,
         url: articleUrl,
         mainEntityOfPage: articleUrl,
-        image: `${SITE_URL}${SOCIAL_PREVIEW_IMAGE}`,
+        image: `${SITE_URL}${socialPreviewImage(DEFAULT_LOCALE)}`,
         inLanguage: "fr-CH",
         datePublished: guide.publishedAt,
         dateModified: guide.updatedAt,
@@ -89,10 +95,10 @@ export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
         href="#main-content"
         className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[60] focus-visible:rounded-lg focus-visible:bg-primary focus-visible:px-4 focus-visible:py-2 focus-visible:text-white"
       >
-        Aller au contenu
+        {dict.common.skipToContent}
       </a>
 
-      <Header />
+      <Header dict={dict.header} locale={DEFAULT_LOCALE} />
 
       <main id="main-content" tabIndex={-1} className="pt-32 pb-16 md:pb-24">
         <Container>
@@ -152,7 +158,11 @@ export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
                 Envie de voir combien il te restera chaque mois&nbsp;?
               </p>
               <Button
-                href={angularUrl("/signup", `guide_${guide.slug}`)}
+                href={angularUrl(
+                  "/signup",
+                  `guide_${guide.slug}`,
+                  DEFAULT_LOCALE,
+                )}
                 className="mt-6"
                 data-cta-name="commencer_gratuitement"
                 data-cta-location="guide_article"
@@ -165,7 +175,12 @@ export function ArticleLayout({ guide, faq, children }: ArticleLayoutProps) {
         </Container>
       </main>
 
-      <Footer />
+      <Footer
+        dict={dict.footer}
+        language={dict.language}
+        locale={DEFAULT_LOCALE}
+        route={null}
+      />
     </>
   );
 }

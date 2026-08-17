@@ -109,7 +109,7 @@ struct EditTransactionPage: View {
         .scrollDismissesKeyboard(.interactively)
         .pulpeBackground()
         .pulpeStickyBottomCTA { saveButton(for: tx) }
-        .navigationTitle("Modifier")
+        .localizedNavigationTitle("Modifier")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -213,7 +213,7 @@ struct EditTransactionPage: View {
         FormTextField(
             hint: kind.descriptionPlaceholder,
             text: $name,
-            label: "Description",
+            label: AppLocale.string("Description"),
             focusBinding: $focusedField,
             field: .description
         )
@@ -337,7 +337,7 @@ struct EditTransactionPage: View {
             _ = try await coordinator.updateTransaction(id: tx.id, data: data)
 
             submitSuccessTrigger.toggle()
-            toastManager.show("Modifié")
+            toastManager.show(AppLocale.string("Modifié"))
             dismiss()
             Task { await coordinator.dispatch(.reloadCurrentBudget) }
         } catch {

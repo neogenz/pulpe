@@ -29,34 +29,21 @@ struct IncomeStep: View {
                                 .font(PulpeTypography.caption)
                                 .foregroundStyle(Color.textTertiaryOnboarding)
                                 .fixedSize(horizontal: false, vertical: true)
-                            CapsulePicker(
+                            SegmentedPicker(
                                 selection: Binding(
                                     get: { state.currency },
                                     set: { state.selectCurrency($0) }
                                 ),
                                 title: nil
-                            ) { currency, isSelected in
-                                HStack(spacing: DesignTokens.Spacing.xs) {
-                                    Text(currency.flag)
-                                    VStack(alignment: .leading, spacing: 0) {
-                                        Text(currency.rawValue)
-                                            .font(PulpeTypography.labelLarge)
-                                        Text(currency.nativeName)
-                                            .font(PulpeTypography.caption2)
-                                            .foregroundStyle(
-                                                isSelected
-                                                    ? Color.textOnPrimaryMuted
-                                                    : Color.textSecondaryOnboarding
-                                            )
-                                    }
-                                }
+                            ) { currency in
+                                Text("\(currency.flag) \(currency.rawValue)")
                             }
                         }
 
                         CurrencyField(
                             value: $state.monthlyIncome,
                             hint: "5000",
-                            label: "Revenu mensuel net",
+                            label: AppLocale.string("Revenu mensuel net"),
                             isRequired: true,
                             currency: state.currency,
                             externalFocus: $isMonthlyIncomeFocused
@@ -80,7 +67,7 @@ struct IncomeStep: View {
 
                     if state.totalIncome > 0 {
                         OnboardingRunningTotal(
-                            label: "Total revenus",
+                            label: AppLocale.string("Total revenus"),
                             amount: state.totalIncome,
                             color: .financialIncome,
                             currency: state.currency
@@ -116,7 +103,7 @@ struct IncomeStep: View {
 
     private var customIncomesSection: some View {
         OnboardingTransactionListSection(
-            title: "Revenus supplémentaires",
+            title: AppLocale.string("Revenus supplémentaires"),
             icon: "arrow.down.circle.fill",
             transactions: customIncomes,
             state: state,

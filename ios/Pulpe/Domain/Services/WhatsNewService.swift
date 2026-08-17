@@ -22,7 +22,11 @@ struct WhatsNewEntry: Decodable, Sendable, Identifiable {
 }
 
 protocol WhatsNewServiceProtocol: Sendable {
-    func fetch(currentVersion: String, lastSeenVersion: String) async throws -> WhatsNewResponse
+    func fetch(
+        currentVersion: String,
+        lastSeenVersion: String,
+        locale: SupportedLocale
+    ) async throws -> WhatsNewResponse
 }
 
 /// Fetches the "what's new" release notes for the range between two app versions.
@@ -39,9 +43,17 @@ actor WhatsNewService: WhatsNewServiceProtocol {
         self.apiClient = apiClient
     }
 
-    func fetch(currentVersion: String, lastSeenVersion: String) async throws -> WhatsNewResponse {
+    func fetch(
+        currentVersion: String,
+        lastSeenVersion: String,
+        locale: SupportedLocale
+    ) async throws -> WhatsNewResponse {
         try await apiClient.request(
-            .whatsNewIos(currentVersion: currentVersion, lastSeenVersion: lastSeenVersion)
+            .whatsNewIos(
+                currentVersion: currentVersion,
+                lastSeenVersion: lastSeenVersion,
+                locale: locale
+            )
         )
     }
 }

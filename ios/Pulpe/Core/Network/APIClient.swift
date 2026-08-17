@@ -300,7 +300,7 @@ actor APIClient {
     private func statusCodeError(_ statusCode: Int) -> APIError {
         switch statusCode {
         case 400:
-            return .validationError(details: ["Quelque chose ne colle pas — vérifie ta saisie"])
+            return .validationError(details: [AppLocale.string("Quelque chose ne colle pas — vérifie ta saisie")])
         case 401:
             return .unauthorized
         case 403:
@@ -308,11 +308,11 @@ actor APIClient {
         case 404:
             return .notFound
         case 409:
-            return .conflict(message: "Cette action entre en conflit — réessaie")
+            return .conflict(message: AppLocale.string("Cette action entre en conflit — réessaie"))
         case 429:
             return .rateLimited
         case 500...599:
-            return .serverError(message: "Quelque chose n'a pas fonctionné — réessaie")
+            return .serverError(message: AppLocale.string("Quelque chose n'a pas fonctionné — réessaie"))
         default:
             return .unknown(statusCode: statusCode)
         }

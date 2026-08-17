@@ -13,14 +13,16 @@ struct SavingsDoneCard: View {
     private var subtitle: String {
         let formatted = amount.asCompactCurrency(userSettingsStore.currency)
         if let goalName {
-            return "\(formatted) · objectif \(goalName)"
+            return AppLocale.string("\(formatted) · objectif \(goalName)")
         }
         return formatted
     }
 
     private var accessibilityDescription: String {
-        guard !amountsHidden else { return "Épargne du mois versée — montant masqué" }
-        return "Épargne du mois versée, \(subtitle)"
+        guard !amountsHidden else {
+            return AppLocale.string("Épargne du mois versée — montant masqué")
+        }
+        return AppLocale.string("Épargne du mois versée, \(subtitle)")
     }
 
     var body: some View {

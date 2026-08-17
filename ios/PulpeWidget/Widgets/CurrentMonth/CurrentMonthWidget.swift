@@ -7,6 +7,9 @@ struct CurrentMonthWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: CurrentMonthProvider()) { entry in
             CurrentMonthWidgetView(entry: entry)
+                // The widget runs in its own process, with no store and no network of its
+                // own: the language comes from the app-group snapshot the app writes.
+                .environment(\.locale, AppLocale.currentUILocale)
         }
         .configurationDisplayName("Budget du mois")
         .description("Affiche le montant disponible à dépenser")

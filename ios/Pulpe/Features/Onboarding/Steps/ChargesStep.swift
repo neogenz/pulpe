@@ -20,17 +20,17 @@ struct ChargesStep: View {
             onNext: { state.nextStep() },
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
-                    OnboardingSectionHeader(title: "Logement", icon: "house.fill") {
+                    OnboardingSectionHeader(title: AppLocale.string("Logement"), icon: "house.fill") {
                         CurrencyField(
                             value: $state.housingCosts,
                             hint: "1500",
-                            label: "Loyer mensuel",
+                            label: AppLocale.string("Loyer mensuel"),
                             currency: state.currency
                         )
                     }
 
                     OnboardingSectionHeader(
-                        title: "Assurance & Abonnements",
+                        title: AppLocale.string("Assurance & Abonnements"),
                         icon: "shield.fill",
                         isExpanded: $isInsuranceExpanded
                     ) {
@@ -38,33 +38,33 @@ struct ChargesStep: View {
                             CurrencyField(
                                 value: $state.healthInsurance,
                                 hint: "400",
-                                label: "Assurance maladie",
+                                label: AppLocale.string("Assurance maladie"),
                                 currency: state.currency
                             )
                         }
                         CurrencyField(
                             value: $state.phonePlan,
                             hint: "50",
-                            label: "Forfait téléphone",
+                            label: AppLocale.string("Forfait téléphone"),
                             currency: state.currency
                         )
                     }
 
                     OnboardingSectionHeader(
-                        title: "Mobilité & Crédit",
+                        title: AppLocale.string("Mobilité & Crédit"),
                         icon: "car.fill",
                         isExpanded: $isMobilityExpanded
                     ) {
                         CurrencyField(
                             value: $state.transportCosts,
                             hint: "100",
-                            label: "Transport (abonnement, essence...)",
+                            label: AppLocale.string("Transport (abonnement, essence...)"),
                             currency: state.currency
                         )
                         CurrencyField(
                             value: $state.leasingCredit,
                             hint: "300",
-                            label: "Leasing ou mensualité de crédit",
+                            label: AppLocale.string("Leasing ou mensualité de crédit"),
                             currency: state.currency
                         )
                     }
@@ -79,7 +79,7 @@ struct ChargesStep: View {
 
                     if state.totalCharges > 0 {
                         OnboardingRunningTotal(
-                            label: "Total charges",
+                            label: AppLocale.string("Total charges"),
                             amount: state.totalCharges,
                             color: .financialExpense,
                             currency: state.currency
@@ -127,7 +127,7 @@ struct ChargesStep: View {
 
     private var customChargesSection: some View {
         OnboardingTransactionListSection(
-            title: "Mes prévisions",
+            title: AppLocale.string("Mes prévisions"),
             icon: "list.bullet",
             transactions: customExpenses,
             state: state,

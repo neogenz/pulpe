@@ -24,6 +24,7 @@ struct CurrentMonthSkeletonView: View {
         }
         .shimmering()
         .accessibilityLabel("Préparation de ton tableau de bord")
+        .accessibilityIdentifier("homeSkeletonRoot")
     }
 
     /// No month or avatar placeholder: both live in the navigation bar now, which is

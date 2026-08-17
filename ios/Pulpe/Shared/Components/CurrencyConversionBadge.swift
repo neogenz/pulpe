@@ -47,9 +47,9 @@ struct CurrencyConversionBadge: View {
 
     private var accessibilityLabel: String {
         guard let amount = originalAmount, let currency = originalCurrency else {
-            return String(localized: "Détails de conversion")
+            return AppLocale.string("Détails de conversion")
         }
-        return String(localized: "Détails de conversion, converti depuis \(amount.asCurrency(currency))")
+        return AppLocale.string("Détails de conversion, converti depuis \(amount.asCurrency(currency))")
     }
 
     private var popoverContent: some View {

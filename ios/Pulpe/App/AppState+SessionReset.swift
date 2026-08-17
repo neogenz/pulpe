@@ -167,7 +167,7 @@ extension AppState {
         await biometric.disable()
         await clientKeyManager.clearSession()
         resetSession(.passwordReset)
-        toastManager.show("Mot de passe réinitialisé, reconnecte-toi", type: .success)
+        toastManager.show(AppLocale.string("Mot de passe réinitialisé, reconnecte-toi"), type: .success)
     }
 
     /// Cancel password recovery flow by clearing temporary auth/encryption state
@@ -196,8 +196,10 @@ extension AppState {
         } catch {
             Logger.auth.error("server sign-out failed: \(error, privacy: .public)")
             toastManager.show(
-                "Déconnexion locale OK, mais serveur injoignable. "
-                + "Si tu suspectes un vol de session, change ton mot de passe à nouveau dans 5 min.",
+                AppLocale.string("""
+                Déconnexion locale OK, mais serveur injoignable. \
+                Si tu suspectes un vol de session, change ton mot de passe à nouveau dans 5 min.
+                """),
                 type: .error
             )
         }
@@ -209,7 +211,7 @@ extension AppState {
         do {
             _ = try await deleteAccountRequest()
         } catch {
-            toastManager.show("La suppression du compte a échoué", type: .error)
+            toastManager.show(AppLocale.string("La suppression du compte a échoué"), type: .error)
             return
         }
         await clearLocalSignupState(resetScope: .accountDeleted)
@@ -300,7 +302,7 @@ extension AppState {
 
         var errorMessage: String? {
             switch self {
-            case .sessionExpiry, .recoverySessionExpiry: "Ta session a expiré, reconnecte-toi"
+            case .sessionExpiry, .recoverySessionExpiry: AppLocale.string("Ta session a expiré, reconnecte-toi")
             default: nil
             }
         }

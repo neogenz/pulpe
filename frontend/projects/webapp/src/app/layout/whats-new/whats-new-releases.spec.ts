@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { SUPPORTED_LOCALES } from 'pulpe-shared';
 
 // eslint-disable-next-line boundaries/no-unknown -- root product metadata, not an app layer import
 import productPackage from '../../../../../../../package.json';
@@ -51,6 +52,19 @@ describe('webapp release data', () => {
 
   it('keeps the displayed release version valid', () => {
     expect(LATEST_RELEASE.version).toMatch(SEMVER_PATTERN);
+  });
+
+  it('keeps one non-empty feature list for every product locale', () => {
+    expect(Object.keys(LATEST_RELEASE.features).sort()).toEqual(
+      [...SUPPORTED_LOCALES].sort(),
+    );
+
+    const itemCounts = SUPPORTED_LOCALES.map((locale) => {
+      const features = LATEST_RELEASE.features[locale];
+      expect(features.every((feature) => feature.trim().length > 0)).toBe(true);
+      return features.length;
+    });
+    expect(new Set(itemCounts).size).toBe(1);
   });
 
   it('never marks the displayed release as silent', () => {

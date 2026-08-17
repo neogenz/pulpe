@@ -1,6 +1,7 @@
 import type { PostHog } from "posthog-js/dist/module.slim";
+import { DEFAULT_LOCALE, type Locale } from "./i18n";
 
-type PostHogClient = Pick<PostHog, "capture">;
+type PostHogClient = Pick<PostHog, "capture" | "register">;
 type PostHogLoader = () => Promise<{ default: PostHog }>;
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "";
@@ -23,6 +24,7 @@ function resolveEnvironment(): string {
 
 let posthogClient: PostHogClient | undefined;
 let initialization: Promise<void> | undefined;
+let activeLocale: Locale = DEFAULT_LOCALE;
 
 function expireLegacySharedCookie(): void {
   const expiredCookie = `ph_${POSTHOG_KEY}_posthog=; Max-Age=0; Path=/; SameSite=Lax`;
@@ -36,9 +38,12 @@ function expireLegacySharedCookie(): void {
 }
 
 export function initPostHog(
+  locale: Locale = activeLocale,
   loadPostHog: PostHogLoader = () => import("posthog-js/dist/module.slim"),
 ): Promise<void> | undefined {
+  activeLocale = locale;
   if (posthogClient) {
+    posthogClient.register({ locale });
     return Promise.resolve();
   }
   if (!POSTHOG_ENABLED || !POSTHOG_KEY || typeof window === "undefined") {
@@ -61,6 +66,7 @@ export function initPostHog(
 
       posthog.register({
         environment: resolveEnvironment(),
+        locale: activeLocale,
         platform: "landing",
       });
 

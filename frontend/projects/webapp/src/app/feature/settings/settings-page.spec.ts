@@ -7,6 +7,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { type Observable, of } from 'rxjs';
+import { type SupportedLocale } from 'pulpe-shared';
 
 import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
@@ -30,6 +31,7 @@ describe('SettingsPage', () => {
     payDayOfMonth: ReturnType<typeof signal<number | null>>;
     currency: ReturnType<typeof signal<string>>;
     showCurrencySelector: ReturnType<typeof signal<boolean>>;
+    locale: ReturnType<typeof signal<SupportedLocale>>;
     updateSettings: ReturnType<typeof vi.fn>;
     deleteAccount: ReturnType<typeof vi.fn>;
   };
@@ -63,6 +65,7 @@ describe('SettingsPage', () => {
       payDayOfMonth: signal<number | null>(null),
       currency: signal('CHF'),
       showCurrencySelector: signal(false),
+      locale: signal<SupportedLocale>('fr'),
       updateSettings: vi.fn().mockResolvedValue({}),
       deleteAccount: vi.fn().mockResolvedValue(undefined),
     };

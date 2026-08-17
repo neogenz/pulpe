@@ -119,12 +119,14 @@ struct BudgetDetailsView: View {
                 }
                 .iconButtonStyle()
                 .accessibilityLabel("Suivi du budget")
+                .accessibilityIdentifier("budgetTrackingButton")
                 if screenState.isBudgetPresent {
                     Button { router.present(.addBudgetLine) } label: {
                         Image(systemName: "plus")
                     }
                     .iconButtonStyle()
                     .accessibilityLabel("Ajouter une prévision")
+                    .accessibilityIdentifier("budgetAddLineButton")
                 }
             }
         }
@@ -235,6 +237,7 @@ struct BudgetDetailsView: View {
                 )
 
                 TipView(ProductTips.pessimisticCheck)
+                    .pulpeTipBackground()
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.bottom, DesignTokens.Spacing.sm)
 

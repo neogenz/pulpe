@@ -65,11 +65,11 @@ enum GoogleSignInError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingClientID:
-            return "Configuration Google manquante — contacte le support"
+            return AppLocale.string("Configuration Google manquante — contacte le support")
         case .noRootViewController:
-            return "Impossible d'afficher l'écran de connexion Google"
+            return AppLocale.string("Impossible d'afficher l'écran de connexion Google")
         case .missingToken:
-            return "Impossible de récupérer les informations Google — réessaie"
+            return AppLocale.string("Impossible de récupérer les informations Google — réessaie")
         case .canceled, .inProgress:
             return nil
         }

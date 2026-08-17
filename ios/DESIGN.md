@@ -150,6 +150,15 @@ components:
     textColor: "{colors.pulpe-tertiary}"
     typography: "{typography.body}"
     padding: "8px 4px"
+  segmented-picker-track:
+    backgroundColor: "rgba(118,118,128,0.12)"
+    rounded: "{rounded.pill}"
+    padding: "2px"
+  segmented-picker-thumb:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.pill}"
+    padding: "12px"
   chip-filter-selected:
     backgroundColor: "{colors.text-primary}"
     textColor: "{colors.app-background}"
@@ -215,6 +224,7 @@ iOS is the dominant Pulpe surface. SwiftUI native, iOS 18 deployment target with
 **Stack:** SwiftUI + Swift 6 strict concurrency + Xcode (XcodeGen-driven `.xcodeproj`). Tests in Swift Testing (`@Suite` / `@Test` / `#expect`). Lefthook + SwiftLint pre-commit gates.
 
 **iOS-specific characteristics:**
+
 - Deployment target iOS 18, iOS 26 features (Liquid Glass, `.contentTransition(.symbolEffect(.replace))`) gated with `#available`
 - Apple HIG 44pt tap target — `frame(minHeight:)` on the **Button**, never on the label
 - Two-zone layout implemented via `BudgetDetailHero` + neutral content zone with a `LinearGradient` 40–60pt transition stop
@@ -226,11 +236,13 @@ iOS is the dominant Pulpe surface. SwiftUI native, iOS 18 deployment target with
 The seeds in `../DESIGN.md` are abstract. The values below are the **iOS canonical hex** used in `Color+Pulpe`. Light mode unless noted; dark mode uses dynamic counterparts.
 
 ### Brand
+
 - **Pulpe Forest** (`#006E25`): `Color.pulpePrimary`. Primary CTA capsule, savings amount, savings progress fill, brand glyphs. Dark mode: `#7EDB83` (lime, AAA contrast on near-black).
 - **Sage** (`#406741`): `Color.pulpeSecondary`. Discrete labels, secondary container fills.
 - **Lake** (`#0061A6`): `Color.pulpeTertiary`. Income amounts, info chips, links, edit actions. Dark mode: `#5AA8E0`.
 
 ### Financial Accents
+
 - **Income / Lake** (`#0061A6`): `Color.financialIncome`.
 - **Savings / Forest Bright** (`#157038`): `Color.financialSavings`. Slightly brighter than `pulpePrimary`, tuned for ink contrast on warm surfaces.
 - **Expense / Amber** (`#B35800`): `Color.financialExpense`.
@@ -238,27 +250,31 @@ The seeds in `../DESIGN.md` are abstract. The values below are the **iOS canonic
 - **Hero Deficit / Sunset Coral** (`#C45028`): `Color.heroTintDeficit`. Gradient mid-stop only.
 
 ### Surface (Warm Hierarchy)
+
 - **App Background** (`#EFF3EE`): `Color.appBackground`. Dark mode: `#121611`. Warm sage canvas, shared app-wide. **iOS override** of the cross-platform neutral `#F7F6F3` (root `DESIGN.md`) — the home dashboard's calm tone is now the default on every iOS screen; webapp and landing keep the neutral.
 - **Sheet Background** (`#F5F3F0`): `Color.sheetBackground`. Slightly cooler-warm than the app, providing contrast against cards.
 - **Surface / Card** (`#FFFFFF` light, `#1A1816` dark): `Color.surface`.
 - **Surface Containers** (`#FCFAF7` → `#E8E5E1`): tonal layering. Low for resting cards, highest for pressed chip backgrounds.
 
 ### Text
+
 - **Text Primary** (`#1A1C19`): `Color.textPrimary`. Body text. Never pure `#000`.
 - **Text Secondary** (`#524D48`): `Color.textSecondary`. WCAG AAA on warm surfaces.
 - **Text Tertiary** (`#6E6762`): `Color.textTertiary`.
 
 ### Outline
+
 - **Outline / Variant** (`#6F7A6D` / `#BFCABA`): `Color.outline` / `Color.outlineVariant`. Hairline borders, dividers.
 
 ### Destructive
+
 - **True Red** (`#C62828`): `Color.destructivePrimary`. `DestructiveButtonStyle` only.
 
 ### iOS-Specific Named Rules
 
 **The Two-Zone Rule (iOS implementation).** Every screen with a hero is split. Top 30–35% is the **emotion zone** — `LinearGradient` filled, financial-state-keyed (`heroComfortable` / `heroTight` / `heroDeficit`). Below is the **content zone** — `Color.appBackground` (the warm sage canvas), lists and cards on top. Transition is a soft `LinearGradient` 40–60pt, never a hard cut. Screens without a hero (templates, settings) skip the emotion zone entirely. **The home dashboard (Tour 11)** uses a bounded variant rather than a gradient keyed to screen height: the estimated month-end balance, its two labelled metrics, the trajectory and the verdict sit on one mint surface that ends where the hero's content ends, its lower corners rounded, over `Color.appBackground` like every other content zone. The month and the account live in the native navigation bar, not in a header rebuilt inside the scroll. Coral is reserved for a globally negative estimate; better-than-plan and under-plan states retain the existing green/amber identity and always pair color with an explicit verdict.
 
-**The Home Ledger Rule.** Everything below the hero is a **titled block on a card**, never a run of rows on the bare page. A section names itself with `HomeSectionHeader` — the section title, an optional amount under it, and, when there is somewhere to go, a **named** link (`Tout voir`, `Budget`) rather than a bare chevron. That header sits on the page background, outside the card, so the card boundary marks where the section's content starts. Under it, one card (`pulpeRowCard()` — the shared card fill plus the subtle lift) carries the rows. A row opens with a `RowIcon`: a 36pt disc tinted at `Opacity.accent` in the color of what the row is about, which is what makes the list scannable without reading it. A hairline may separate rows **inside** a card and nothing else — on the bare page a rule divides nothing and reads as unfinished. Activity groups its rows by day, the day named once above its card instead of repeated under every row. `HomeSectionHeader` owns the screen's only Dynamic Type branch; the rows below it wrap rather than re-stack.
+**The Home Ledger Rule.** Everything below the hero is a **titled block on a card**, never a run of rows on the bare page. A section names itself with `SectionHeader` — the section title, an optional amount under it, and, when there is somewhere to go, a **named** link (`Tout voir`, `Budget`) rather than a bare chevron. That header sits on the page background, outside the card, so the card boundary marks where the section's content starts. Under it, one card (`pulpeRowCard()` — the shared card fill plus the subtle lift) carries the rows. A row opens with a `RowIcon`: a 36pt disc tinted at `Opacity.accent` in the color of what the row is about, which is what makes the list scannable without reading it — but only when the card's rows are of different natures. A homogeneous list (every row a contribution, every row a withdrawal) already knows what it is from its section title, and the repeated glyph reads as texture rather than information; there the row opens on its name. A hairline may separate rows **inside** a card and nothing else — on the bare page a rule divides nothing and reads as unfinished. Activity groups its rows by day, the day named once above its card instead of repeated under every row. `SectionHeader` owns the screen's only Dynamic Type branch; the rows below it wrap rather than re-stack. The rule is not the home's alone: `SectionHeader` lives in `Shared/Components/` and the savings-goal detail names every one of its sections with it.
 
 ## 3. Typography: iOS Resolved Scale
 
@@ -285,13 +301,14 @@ Live tokens: `ios/Pulpe/Shared/Styles/Typography.swift`.
 
 **The Two-Decimals Rule (Budget Detail page).** On the iOS Budget Detail page, all currency amounts render with two decimals (`1'234.56 CHF`). `asCompactCurrency` (the rounded compact format) is **prohibited** in this context. Other surfaces apply the dual aggregation/ligne policy from the project's currency-formatting rule.
 
-**The Hero Flat Rule.** The Budget Detail hero amount is `Manrope ExtraBold` rendered in `Color.textPrimary` (black on neutral). The hero is **flat** on the warm canvas — no surface, no border, no shadow. Color comes from the financial-state pill row beneath it, never from the hero number itself.
+**The Hero Flat Rule.** The Budget Detail hero amount is `Manrope ExtraBold` rendered in `Color.textPrimary` (black on neutral). The hero is **flat** on the warm canvas — no surface, no border, no shadow. Color comes from the financial-state pill row beneath it, never from the hero number itself. The savings-goal detail hero obeys the same rule: the confirmed amount is `amountHero` in `Color.textPrimary`, and the only colour on it comes from the progress bar underneath.
 
 ## 4. Elevation
 
 Pulpe iOS is **flat by default with restrained tonal layering**. Shadows are diffuse and warm-tinted; they never define structure, only state. Live tokens: `DesignTokens.Shadow`.
 
 ### Shadow Vocabulary
+
 - **Subtle** (`0 1px 2px rgba(0,0,0,0.05)`): Per-row card lift on the Budget Detail page.
 - **Card** (`0 2px 4px rgba(0,0,0,0.06)`): Default card lift.
 - **Elevated** (`0 4px 8px rgba(0,0,0,0.08)`): Hero cards, modals, dialog surfaces.
@@ -300,7 +317,7 @@ Pulpe iOS is **flat by default with restrained tonal layering**. Shadows are dif
 
 ### iOS-Specific Named Rules
 
-**The Glass Restraint Rule.** iOS 26 Liquid Glass appears on **navigation only** — toolbars, tab bars, floating buttons, sheets with partial detents. *Never* on content cards, list rows, or text. The system handles this for standard navigation components; custom views must `.glassEffect()` only on navigation chrome. Pre-auth flows (welcome, login, onboarding) may use glow / shadow for brand expressivity; the authenticated app stays restrained.
+**The Glass Restraint Rule.** iOS 26 Liquid Glass appears on **navigation only** — toolbars, tab bars, floating buttons, sheets with partial detents. _Never_ on content cards, list rows, or text. The system handles this for standard navigation components; custom views must `.glassEffect()` only on navigation chrome. Pre-auth flows (welcome, login, onboarding) may use glow / shadow for brand expressivity; the authenticated app stays restrained.
 
 **The Sheet Background Rule.** Every sheet must declare `.standardSheetPresentation()` (which bundles `.presentationBackground(Color.sheetBackground)` + detents + drag indicator + corner radius). iOS 26's Liquid Glass bleeds through any sheet without an explicit presentation background. **No exceptions.** Custom-background sheets (gradient sheets like RecoveryKey) declare `.presentationBackground { ... }` explicitly.
 
@@ -309,10 +326,11 @@ Pulpe iOS is **flat by default with restrained tonal layering**. Shadows are dif
 Live in `ios/Pulpe/Shared/Components/` and `ios/Pulpe/Shared/Design/PrimaryButtonStyle.swift`.
 
 ### Buttons
+
 - **Shape:** Capsule (`pill` rounded, `9999px`). The capsule is the brand button.
 - **Primary (`PrimaryButtonStyle`):** `Color.onboardingGradient` (forest → mint, leading→trailing) for enabled, `primaryContainerDisabled` for disabled. White text. Full-width, 54pt height. One per screen.
 - **Secondary (`SecondaryButtonStyle`):** Transparent fill, hairline `outlineVariant` border, primary text color. Same dimensions as Primary.
-- **Destructive (`DestructiveButtonStyle`):** Solid `Color.destructivePrimary` fill, white text. Same dimensions. *Only* for irreversible actions.
+- **Destructive (`DestructiveButtonStyle`):** Solid `Color.destructivePrimary` fill, white text. Same dimensions. _Only_ for irreversible actions.
 - **Icon (`IconButtonStyle`):** Transparent, 44×44pt minimum hit area, `contentShape(Rectangle())`.
 - **Icon Circle (`CircleIconButtonStyle`):** Same as Icon but `contentShape(Circle())`.
 - **Text Link (`TextLinkButtonStyle`):** Pressed-feedback only, no forced height. Container spacing provides the tap target.
@@ -335,28 +353,77 @@ The Budget Detail filter rail uses `PulpeChip` (`ios/Pulpe/Shared/Components/Pul
 
 Stat pills on hero cards use `Capsule + tint.opacity(0.15)` background keyed to financial category — currently still composed locally in `BudgetDetailHero` (legacy, audited 2026-05-09; migration to `PulpeChip.muted` is a follow-up).
 
+### Segmented Choice (SegmentedPicker)
+
+Every 1-of-N control (nature, Une seule fois / Lisser, Total / Par mois, Devise, Statut)
+goes through `SegmentedPicker` (`ios/Pulpe/Shared/Components/SegmentedPicker.swift`) — never
+free-floating pills, whose unselected options read as bare text and blur into the chip
+families around them.
+
+- **Rendering is native:** the wrapper delegates to `Picker(.segmented)`, so track, thumb,
+  ink, typography, and selection animation are the OS's and stay aligned across releases.
+  The track is still what separates segmented _choices_ from chip _actions_
+  (`QuickAmountChips`, month chips, `PulpeChip`).
+- **Labels are plain `Text`** (emoji allowed — Devise reads `🇨🇭 CHF`): `UISegmentedControl`
+  flattens any richer view into extra segments. Deliberate concession: no per-context
+  accent ink on the selected label — the native control does not expose it per instance.
+- The wrapper adds the optional form-field title (`labelMedium` / `onSurfaceVariant`) and
+  `.sensoryFeedback(.selection)`; nothing else.
+
+### Card Deck (UncheckedOperationsCard)
+
+The dashboard's "Opérations à pointer" section is a horizontal, paginated deck of
+quick-check cards, one operation per card ("C'est passé" / "Plus tard") — built from
+`ScrollView(.horizontal)` + `.viewAligned` snapping, not a carousel library
+(`ios/Pulpe/Features/CurrentMonth/Components/UncheckedOperationsCard.swift`).
+
+- **Role:** replaces a single flat pane once there is more than one operation to point,
+  so a page that used to grow with the list stays one card tall. Only the focused card is
+  interactive; VoiceOver still reaches every real card in order.
+- **Peek:** the deck escapes the page's `Spacing.xxl` content rail and re-applies the same
+  token as a scroll content margin, so the focused card sits exactly on the rail while its
+  neighbours peek at the screen edges — tucked tickets, not a hint arrow or dots.
+- **Motion (`DesignTokens.Deck`):** a tucked neighbour shrinks by `tuckScaleDrop` (0.1),
+  turns `turnDegrees` (8°) around the vertical axis anchored on its inner edge, and fades
+  by `tuckFade` (0.35) — the combination reads as a card turning away, not sliding off.
+  Anchoring on the inner edge (not centre) keeps the peek width intact through the shrink
+  and grows the 3D turn toward the screen edge instead of swelling over the focused card.
+- **Reduce Motion:** the 3D turn is suppressed (`phase.value * 0` in effect); scale and
+  fade — resting states that only track the user's own finger — still play, since they
+  read as position, not motion.
+- **Loop:** the deck is a cycle — a turn past either end comes out on the other side —
+  built from three concatenated copies of the card list so a one-cycle offset shift is
+  pixel-invisible. Confirming a card plays its exit and the deck's slide to the next
+  operation in one animated transaction.
+
 ### Kind Tag (Inline Label)
+
 - **Style:** 10pt Manrope ExtraBold, uppercased, tracking `0.7px`, semantic financial color (income blue, saving green, expense neutral `textSecondary`).
-- **Why neutral expense color:** *Le rouge n'est pas punitif*. Even the kind tag for expense lines uses neutral ink rather than amber, because the *amount column* already carries the amber.
+- **Why neutral expense color:** _Le rouge n'est pas punitif_. Even the kind tag for expense lines uses neutral ink rather than amber, because the _amount column_ already carries the amber.
 
 ### Cards / Containers
+
 - **Per-Row Card (Budget Line / Transaction Row):** `surfaceContainerLowest` background, `cornerRadius.xl` (32pt), `Shadow.subtle`. `padding.md` vertical, `padding.xs` leading (PointCircle), `padding.md` trailing. Pointed (checked) state dims to `0.62` opacity with strikethrough. Tap on circle toggles pointed; tap on row opens the detail sheet.
 - **Hero Card (Budget Detail):** **Flat** — no surface, no border, no shadow. Sits flush on `appBackground`. Content: eyebrow (`DISPONIBLE · CHF`), hero amount (Manrope 72pt black on neutral), inline progress bar + percent, horizontal scroll of stat pills.
 - **Hero Surface (Dashboard — `HomeHeroCard`):** Estimated month-end summary with no card, border or shadow, on a mint surface bounded by the hero's own content: the gradient stops at the block's measured bottom edge and its lower corners are rounded, so nothing depends on a fraction of the screen height. The estimate is unsigned unless negative, split into a dominant figure and a secondary currency suffix on one baseline. Two metrics — unchecked count, variance against plan — each carry their value over their own label. One plain-language verdict ends in the drill-in to budget detail, marked by ink and a chevron; the unchecked count is stated once per screen and never duplicated by a section header.
 
   The 120pt burn-down holds no text of its own, so its height is fixed and its two labels are capped rather than scaled. The tracked series is `homeHeroInk` at full strength; the projection is the same ink at `heroInkMuted`, with dashes as a secondary signal only — every graphic element clears 3:1 against the surface in both schemes. The plan rule is the sole named line; the anchor point names `Aujourd’hui` beneath itself, pushed back inside the plot when a late-period anchor would clip it, and the destination point carries no label. With nothing pointed the trajectory is flat, so no connector is drawn and the empty band says what it waits for. Amount masking, a spoken trajectory for VoiceOver and Dynamic Type stacking are mandatory.
+
 - **Hero Card (Previous Budget sheet):** Gradient background keyed to financial state (Comfortable / Tight / Deficit), `cornerRadius.xl` (32pt), `Shadow.elevated`.
 - **Context Link Row (`ContextLinkRow`):** Tappable card linking a detail screen to the set its subject belongs to — the occurrences of a lissage, the objectif a prévision funds. Semantic icon (`actionIcon`, financial tint) → title (`listRowTitle`, `textPrimary`, wraps rather than truncates) → `chevron.right` (`caption`, `textTertiary`). Carries its **own** surface via `pulpeCard()`, never the host's: the same row sits in a `List` and in a `ScrollView`, and a host-provided background renders it as a full-bleed system band in one and a bare line in the other. Hosting it in a `List` therefore needs `.listRowCustomStyled()` + `.listSectionSeparator(.hidden)`.
 
 ### Inputs
+
 - **Form Text Field (`FormTextField`):** `Color.inputBackgroundSoft` fill, `cornerRadius.md` (24pt), `padding.lg` (16pt all around). Optional label above (`labelMedium`, `onSurfaceVariant`). Tapping anywhere on the padded background focuses the field via `.contentShape(.interaction, Rectangle())` + `onTapGesture`.
 - **Hero Amount Field (`HeroAmountField`):** Custom amount input with display amount logic.
 
 ### Sheets
+
 - **Sheet Form Container (`SheetFormContainer`):** `NavigationStack > ScrollView > VStack`. Inline navigation title, leading close button (`SheetCloseButton`), `sheetBackground` background, `padding.xl` horizontal + `padding.lg` top + `padding.xl` bottom. Auto-focuses the first field after 200ms. Always declared with `.standardSheetPresentation()`.
 - **Detents:** Default `[.large]`; explicit `[.medium, .large]` only when partial-detent Liquid Glass is desired.
 
 ### Navigation
+
 - **NavigationStack (typed destinations):** `NavigationStack(path: $path)` with feature-scoped `enum Destination: Hashable`. Never `NavigationView` (deprecated). Never `NavigationLink` without typed destination.
 - **Tab Bar (`MainTabView`):** Native SwiftUI `TabView` with exactly four navigation destinations: Accueil, Budgets, Objectifs and Modèles. The system owns its material, safe-area reservation and keyboard adaptation. Never place a creation action in the tab bar or replace the system bar with custom chrome.
 - **Contextual creation:** The owner screen presents the action closest to the object it creates. Accueil uses a visible, labelled content action for an operation. Budget detail uses a native `topBarTrailing` toolbar action for a forecast. Root lists use their native toolbar action; local form additions stay inside their section. Every icon-only action has an explicit accessibility label and a 44pt minimum target.
@@ -374,6 +441,7 @@ Stat pills on hero cards use `Capsule + tint.opacity(0.15)` background keyed to 
 ## 6. Do's and Don'ts (iOS-specific)
 
 ### Do:
+
 - **Do** route every visual value through `DesignTokens.*` (Spacing/CornerRadius/Opacity/Animation/BorderWidth/FrameHeight/IconSize/ChipMetrics) or `Color+Pulpe` semantic colors.
 - **Do** apply `.standardSheetPresentation()` on every sheet — without it, iOS 26 Liquid Glass bleeds through.
 - **Do** put `frame(minHeight: 44)` on the **Button** (not the label) and pair with `.contentShape()`.
@@ -386,6 +454,7 @@ Stat pills on hero cards use `Capsule + tint.opacity(0.15)` background keyed to 
 - **Do** address the user with "tu", always.
 
 ### Don't:
+
 - **Don't** use raw `Color.white` or `#000` — use `Color(.systemBackground)` and `Color.textPrimary`.
 - **Don't** apply `.glassEffect()` to content cards, list rows, or text. Glass is for navigation chrome only.
 - **Don't** compose chips or pills from raw `Capsule().fill(...)` + padding ad-hoc — go through `PulpeChip`. SwiftLint will block it.

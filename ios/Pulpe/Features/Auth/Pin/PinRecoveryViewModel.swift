@@ -52,7 +52,7 @@ final class PinRecoveryViewModel {
 
     func updateRecoveryKey(_ input: String) {
         if RecoveryKeyFormatter.containsInvalidCharacters(input) {
-            errorMessage = "Ta clé contient des caractères invalides"
+            errorMessage = AppLocale.string("Ta clé contient des caractères invalides")
         } else {
             errorMessage = nil
         }
@@ -125,7 +125,7 @@ final class PinRecoveryViewModel {
             if pinString == firstPin {
                 await executeRecovery()
             } else {
-                showError("Les codes ne correspondent pas")
+                showError(AppLocale.string("Les codes ne correspondent pas"))
             }
         default:
             break
@@ -170,7 +170,7 @@ final class PinRecoveryViewModel {
             handleRecoveryError(error)
         } catch {
             retryFromCurrentStep()
-            showError("Une erreur est survenue, réessaie")
+            showError(AppLocale.string("Une erreur est survenue, réessaie"))
         }
     }
 
@@ -195,22 +195,22 @@ final class PinRecoveryViewModel {
             requiresReauthentication = true
             step = .confirmPin
             digits = []
-            showError("Ta session a expiré — reconnecte-toi")
+            showError(AppLocale.string("Ta session a expiré — reconnecte-toi"))
         case .recoveryKeyInvalid:
             resetToRecoveryKeyStep()
-            showError("Clé de récupération invalide — vérifie que tu as bien copié la clé")
+            showError(AppLocale.string("Clé de récupération invalide — vérifie que tu as bien copié la clé"))
         case .validationError:
             resetToRecoveryKeyStep()
-            showError("Clé de récupération invalide — vérifie que tu as bien copié la clé")
+            showError(AppLocale.string("Clé de récupération invalide — vérifie que tu as bien copié la clé"))
         case .rateLimited:
             retryFromCurrentStep()
-            showError("Trop de tentatives, patiente un moment")
+            showError(AppLocale.string("Trop de tentatives, patiente un moment"))
         case .networkError:
             retryFromCurrentStep()
-            showError("Erreur de connexion, réessaie")
+            showError(AppLocale.string("Erreur de connexion, réessaie"))
         default:
             retryFromCurrentStep()
-            showError("Une erreur est survenue, réessaie")
+            showError(AppLocale.string("Une erreur est survenue, réessaie"))
         }
     }
 

@@ -9,7 +9,9 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
     private(set) var updateCallCount = 0
     private(set) var lastReconciliationMode: SavingsGoalGenerationStopMode?
 
-    private let scenario: UITestLaunchScenario
+    // Not `private`: the history fixtures live in
+    // `SavingsGoalIntervalUITestHistory.swift` and branch on it.
+    let scenario: UITestLaunchScenario
 
     init(scenario: UITestLaunchScenario) {
         self.scenario = scenario
@@ -68,7 +70,7 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
     }
 
     func getContributions(id _: String) async throws -> [SavingsGoalContribution] {
-        []
+        contributionFixtures()
     }
 
     func applyPlan(
@@ -106,8 +108,8 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
             targetAmount: data.targetAmount,
             targetDate: data.targetDate,
             status: data.status,
-            createdAt: Self.now,
-            updatedAt: Self.now,
+            createdAt: Self.fixtureDate,
+            updatedAt: Self.fixtureDate,
             startDate: data.startDate,
             initialAmount: data.initialAmount
         )
@@ -127,7 +129,7 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
             targetDate: data.targetDate ?? existing.targetDate,
             status: data.status ?? existing.status,
             createdAt: existing.createdAt,
-            updatedAt: Self.now,
+            updatedAt: Self.fixtureDate,
             startDate: data.startDate ?? existing.startDate,
             initialAmount: data.initialAmount ?? existing.initialAmount
         )
@@ -171,7 +173,7 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
     }
 
     func getWithdrawals(id _: String) async throws -> SavingsGoalWithdrawalsReadModel {
-        SavingsGoalWithdrawalsReadModel(withdrawals: [])
+        withdrawalFixtures()
     }
 
     private func goal(_ id: String) throws -> SavingsGoal {
@@ -181,7 +183,7 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
         return goal
     }
 
-    private static let now = Date(timeIntervalSince1970: 1_700_000_000)
+    static let fixtureDate = Date(timeIntervalSince1970: 1_700_000_000)
 
     private static func budgetGoalSpreadProgress(goal: SavingsGoal) -> SavingsGoalProgress {
         let planMonth = SavingsGoalPlanMonth(
@@ -301,8 +303,8 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
                 targetAmount: targetAmount,
                 targetDate: targetDate,
                 status: .active,
-                createdAt: now,
-                updatedAt: now,
+                createdAt: fixtureDate,
+                updatedAt: fixtureDate,
                 startDate: startDate,
                 initialAmount: 300
             ),
@@ -320,6 +322,9 @@ struct SavingsGoalIntervalUITestHarness: View {
     @State private var currentMonthStore = CurrentMonthStore()
     @State private var budgetListStore = BudgetListStore()
     @State private var dashboardStore = DashboardStore()
+    // SavingsGoalDetailView reads AppState (budget navigation); without this
+    // injection every DETAIL_* scenario traps on the environment lookup.
+    @State private var appState = AppState()
 
     init(scenario: UITestLaunchScenario) {
         self.scenario = scenario
@@ -332,6 +337,7 @@ struct SavingsGoalIntervalUITestHarness: View {
         content
             .environment(\.dynamicTypeSize, dynamicTypeSize)
             .preferredColorScheme(preferredColorScheme)
+            .environment(appState)
             .environment(store)
             .environment(userSettingsStore)
             .environment(toastManager)
@@ -397,7 +403,8 @@ struct SavingsGoalIntervalUITestHarness: View {
              .budgetLongPressEmpty,
              .budgetGoalSpreadMetadata,
              .contextualCreationHome,
-             .contextualCreationBudget:
+             .contextualCreationBudget,
+             .loginScreen:
             EmptyView()
         }
     }

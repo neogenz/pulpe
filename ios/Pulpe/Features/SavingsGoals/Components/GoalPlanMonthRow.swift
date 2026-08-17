@@ -31,11 +31,11 @@ enum GoalPlanMonthAvailability: Equatable {
         case .linkedForecast:
             ""
         case .repairableForecast:
-            "Épargne à ajouter"
+            AppLocale.string("Épargne à ajouter")
         case .noLinkedForecast:
-            "Aucune épargne prévue"
+            AppLocale.string("Aucune épargne prévue")
         case .missingBudget:
-            "Pas de budget"
+            AppLocale.string("Pas de budget")
         }
     }
 
@@ -53,20 +53,22 @@ enum GoalPlanMonthAvailability: Equatable {
     }
 }
 
-/// One month row of « Ton plan, mois par mois » (PUL-12+, pilier B). Cloned from
+/// One month row of « Ton plan » (PUL-12+, pilier B). Cloned from
 /// `SpreadOccurrenceRow`: same grammar as the lissage timeline so there is zero new
 /// language to learn (`docs/SAVINGS.md` §10.1).
 ///
 /// `amount` / `cumulative` are injected so the same row serves read mode
 /// (`plannedAmount` / `plannedCumulative`) and the simulator (`simulatedAmount` /
 /// `simulatedCumulative`). Locked rows are dimmed + non-interactive; the current
-/// period accents its title (semibold, savings green) — a chip would read as a
+/// period accents its title (savings green) — a chip would read as a
 /// button on a passive marker; a month without a linked forecast states why. Amount
 /// is the ligne 2-decimal (`asCurrency`), cumulative the aggregation compact
 /// (`asCompactCurrency`, `→` prefix) — simulator only (`showsCumulative`): while
 /// adjusting, the running total is the feedback; in read mode it already lives in
-/// the hero (« Déjà prévu »), a per-row echo is triple-encoding. Savings green +
-/// neutrals only (RG-002).
+/// the hero (« Déjà prévu »), a per-row echo is triple-encoding. The cumulative
+/// rides the metadata line rather than a second right-hand column, so a locked
+/// month and an editable one keep the same shape in the simulator's single card.
+/// Savings green + neutrals only (RG-002).
 struct GoalPlanMonthRow: View {
     let month: SavingsGoalPlanMonth
     let amount: Decimal
@@ -74,6 +76,11 @@ struct GoalPlanMonthRow: View {
     let currency: SupportedCurrency
     var isAdjusted: Bool = false
     var showsCumulative: Bool = false
+    /// Le simulateur est un éditeur : le montant y est l'objet de l'écran et
+    /// porte l'`amountCard`. En lecture la rangée n'est qu'une ligne de ledger
+    /// parmi trois cartes voisines — le même poids qu'elles, sinon le chiffre le
+    /// plus répétitif de l'écran en devient le plus gros.
+    var emphasizesAmount: Bool = false
     var canRepair: Bool = false
     var onOpenBudget: (() -> Void)?
 
@@ -87,8 +94,11 @@ struct GoalPlanMonthRow: View {
     }
     private var isEffectivelyLocked: Bool { month.isLocked || isBlockedByRealization }
 
-    nonisolated static let realizedWithdrawalLockReason =
-        "Ce retrait est déjà réalisé en partie ou en totalité. Modifie-le depuis le budget."
+    /// Computed, not stored: a `static let` resolves once per process and would
+    /// keep serving the language the app was launched in.
+    nonisolated static var realizedWithdrawalLockReason: String {
+        AppLocale.string("Ce retrait est déjà réalisé en partie ou en totalité. Modifie-le depuis le budget.")
+    }
 
     private var allChecked: Bool {
         !month.lines.isEmpty && month.lines.allSatisfy(\.isChecked)
@@ -100,8 +110,8 @@ struct GoalPlanMonthRow: View {
     /// quand aucun mois ne portait de coche ni de cadenas (le cas commun d'un
     /// objectif qui démarre).
     private var stateText: (label: String, color: Color)? {
-        if allChecked { return ("Pointé", .financialSavings) }
-        if isEffectivelyLocked { return ("Verrouillé", .textTertiary) }
+        if allChecked { return (AppLocale.string("Pointé"), .financialSavings) }
+        if isEffectivelyLocked { return (AppLocale.string("Verrouillé"), .textTertiary) }
         return nil
     }
 
@@ -118,7 +128,9 @@ struct GoalPlanMonthRow: View {
         currency: SupportedCurrency
     ) -> String? {
         guard month.plannedWithdrawalAmount > 0 else { return nil }
-        return "Retrait prévu · \((-month.plannedWithdrawalAmount).asCompactCurrency(currency))"
+        return AppLocale.string(
+            "Retrait prévu · \((-month.plannedWithdrawalAmount).asCompactCurrency(currency))"
+        )
     }
 
     private var announcedWithdrawal: String? {
@@ -129,35 +141,44 @@ struct GoalPlanMonthRow: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    // `labelLarge` est déjà semibold : le mois courant se marque
+                    // à la couleur, pas à une graisse qui n'aurait rien à ajouter.
                     Text(monthLabel)
-                        .font(PulpeTypography.listRowTitle)
-                        .fontWeight(isCurrentPeriod ? .semibold : nil)
+                        .font(PulpeTypography.labelLarge)
                         .foregroundStyle(isCurrentPeriod ? Color.financialSavings : Color.textPrimary)
 
                     HStack(spacing: DesignTokens.Spacing.sm) {
                         if let availabilityIcon = availability.icon {
                             Label(availability.label, systemImage: availabilityIcon)
-                                .font(PulpeTypography.listRowSubtitle)
+                                .font(PulpeTypography.labelMedium)
                                 .foregroundStyle(Color.textSecondary)
                         }
 
                         if let state = stateText {
                             Text(state.label)
-                                .font(PulpeTypography.listRowSubtitle)
+                                .font(PulpeTypography.labelMedium)
                                 .foregroundStyle(state.color)
+                        }
+
+                        if showsCumulative {
+                            Text("→ \(cumulative.asCompactCurrency(currency))")
+                                .font(PulpeTypography.labelMedium)
+                                .monospacedDigit()
+                                .foregroundStyle(Color.textTertiary)
+                                .sensitiveAmount()
                         }
                     }
 
                     if let announcedWithdrawal {
                         Text(announcedWithdrawal)
-                            .font(PulpeTypography.listRowSubtitle)
+                            .font(PulpeTypography.labelMedium)
                             .foregroundStyle(Color.textSecondary)
                             .sensitiveAmount()
                     }
 
                     if isBlockedByRealization {
                         Text(Self.realizedWithdrawalLockReason)
-                            .font(PulpeTypography.listRowSubtitle)
+                            .font(PulpeTypography.labelMedium)
                             .foregroundStyle(Color.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -170,6 +191,7 @@ struct GoalPlanMonthRow: View {
             .opacity(isEffectivelyLocked ? DesignTokens.Opacity.pointedDim : 1)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel)
+            .accessibilityIdentifier("savingsGoalPlanMonthRow-\(month.year)-\(month.month)")
 
             if isBlockedByRealization, let onOpenBudget {
                 Button("Ouvrir le budget", action: onOpenBudget)
@@ -190,21 +212,13 @@ struct GoalPlanMonthRow: View {
 
     @ViewBuilder
     private var amountView: some View {
-        VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-            if hasLinkedForecast {
-                Text(amount.asCurrency(currency))
-                    .font(PulpeTypography.amountCard)
-                    .monospacedDigit()
-                    .foregroundStyle(isAdjusted ? Color.pulpePrimary : Color.textPrimary)
-            }
-            if showsCumulative {
-                Text("→ \(cumulative.asCompactCurrency(currency))")
-                    .font(PulpeTypography.metricMini)
-                    .monospacedDigit()
-                    .foregroundStyle(Color.textTertiary)
-            }
+        if hasLinkedForecast {
+            Text(amount.asCurrency(currency))
+                .font(emphasizesAmount ? PulpeTypography.amountCard : PulpeTypography.amountMedium)
+                .monospacedDigit()
+                .foregroundStyle(isAdjusted ? Color.pulpePrimary : Color.textPrimary)
+                .sensitiveAmount()
         }
-        .sensitiveAmount()
     }
 
     private var monthLabel: String {
@@ -222,12 +236,12 @@ struct GoalPlanMonthRow: View {
             parts.append(announcedWithdrawal)
         }
         if showsCumulative {
-            parts.append("cumulé \(cumulative.asCurrency(currency))")
+            parts.append(AppLocale.string("cumulé \(cumulative.asCurrency(currency))"))
         }
-        if isCurrentPeriod { parts.append("ce mois") }
-        if allChecked { parts.append("pointé") }
+        if isCurrentPeriod { parts.append(AppLocale.string("ce mois")) }
+        if allChecked { parts.append(AppLocale.string("pointé")) }
         if isBlockedByRealization { parts.append(Self.realizedWithdrawalLockReason) }
-        if isEffectivelyLocked { parts.append("verrouillé") }
+        if isEffectivelyLocked { parts.append(AppLocale.string("verrouillé")) }
         return parts.joined(separator: ", ")
     }
 }

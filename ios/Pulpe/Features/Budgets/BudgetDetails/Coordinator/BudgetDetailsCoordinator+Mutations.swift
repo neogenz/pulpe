@@ -170,7 +170,10 @@ extension BudgetDetailsCoordinator {
             applySavingsWithdrawalDeletion(line, scope: scope)
             context.toastManager.show(scope.successToast)
         } catch {
-            context.toastManager.show("La suppression n'a pas pu aboutir", type: .error)
+            context.toastManager.show(
+                AppLocale.string("La suppression n'a pas pu aboutir"),
+                type: .error
+            )
         }
     }
 
@@ -208,10 +211,10 @@ extension BudgetDetailsCoordinator {
         do {
             let response = try await budgetLineService.spreadExistingBudgetLine(id: lineId, periods: periods)
             applySpreadFromExisting(removingLineId: lineId, removingTransactionId: nil, response: response)
-            context.toastManager.show("C'est lissé sur \(periods.count) mois")
+            context.toastManager.show(AppLocale.string("C'est lissé sur \(periods.count) mois"))
         } catch {
             syncStore.setError(error)
-            context.toastManager.show("Le lissage n'a pas pu aboutir", type: .error)
+            context.toastManager.show(AppLocale.string("Le lissage n'a pas pu aboutir"), type: .error)
         }
     }
 
@@ -228,10 +231,10 @@ extension BudgetDetailsCoordinator {
         do {
             let response = try await transactionService.spreadExistingTransaction(id: txId, periods: periods)
             applySpreadFromExisting(removingLineId: nil, removingTransactionId: txId, response: response)
-            context.toastManager.show("C'est lissé sur \(periods.count) mois")
+            context.toastManager.show(AppLocale.string("C'est lissé sur \(periods.count) mois"))
         } catch {
             syncStore.setError(error)
-            context.toastManager.show("Le lissage n'a pas pu aboutir", type: .error)
+            context.toastManager.show(AppLocale.string("Le lissage n'a pas pu aboutir"), type: .error)
         }
     }
 

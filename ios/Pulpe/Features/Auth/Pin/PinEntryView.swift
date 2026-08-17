@@ -4,8 +4,10 @@ import SwiftUI
 // MARK: - View
 
 struct PinEntryView: View {
-    static let pinEntryTitle = "Saisis ton code PIN"
-    static let forgotPinLabel = "Code PIN oublié ?"
+    // Computed, not stored: a `static let` would freeze the language of the first
+    // access and survive a language change made later in the same session.
+    static var pinEntryTitle: String { AppLocale.string("Saisis ton code PIN") }
+    static var forgotPinLabel: String { AppLocale.string("Code PIN oublié ?") }
 
     let firstName: String
     let onSuccess: () -> Void
@@ -20,6 +22,7 @@ struct PinEntryView: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .pulpeBackground()
+            .accessibilityIdentifier("pinEntryRoot")
             .sensoryFeedback(.error, trigger: viewModel.hapticError)
             .sensoryFeedback(.success, trigger: viewModel.hapticSuccess)
             .onChange(of: viewModel.authenticated) { _, authenticated in
@@ -209,7 +212,7 @@ final class PinEntryViewModel {
         } catch let error as CryptoServiceError {
             handleCryptoError(error)
         } catch {
-            showError("Erreur inattendue, réessaie")
+            showError(AppLocale.string("Erreur inattendue, réessaie"))
         }
     }
 

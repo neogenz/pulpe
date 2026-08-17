@@ -13,6 +13,15 @@ struct ActivityCard: View {
     enum Window: String, CaseIterable {
         case week = "7 jours"
         case month = "Ce mois"
+
+        /// The chip's copy. The raw value is the French wording this shipped with and is
+        /// kept as the case's identity; only this reads off the catalog.
+        var label: String {
+            switch self {
+            case .week: AppLocale.string("7 jours")
+            case .month: AppLocale.string("Ce mois")
+            }
+        }
     }
 
     /// Per-window cap: the week is a chronological prefix of the month, so an equal cap
@@ -77,10 +86,10 @@ struct ActivityCard: View {
         let groups = dayGroups(for: windowed)
 
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HomeSectionHeader(
-                title: "Activité",
+            SectionHeader(
+                title: AppLocale.string("Activité"),
                 amountSubtitle: headerTotal(for: windowed),
-                link: (label: "Tout voir", action: onViewAll)
+                link: (label: AppLocale.string("Tout voir"), action: onViewAll)
             )
 
             // Its own row, full width. Squeezed into the heading it fought the title for
@@ -99,12 +108,13 @@ struct ActivityCard: View {
             }
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
+        .accessibilityIdentifier("homeActivityCard")
     }
 
     // MARK: - Window Picker
 
     /// Two `PulpeChip`s, on the model of `BudgetTypeFilter.typePill`: this is a selector,
-    /// not the filter pastille `CapsulePicker` renders, and it sat as the biggest solid
+    /// not the filter pastille `SegmentedPicker` renders, and it sat as the biggest solid
     /// green below the fold — the same ink as the CTA, for a state instead of the action
     /// the product depends on.
     private var windowPicker: some View {
@@ -127,7 +137,7 @@ struct ActivityCard: View {
                 window = option
             }
         } label: {
-            PulpeChip(label: option.rawValue, style: isSelected ? .solid : .outlined)
+            PulpeChip(label: option.label, style: isSelected ? .solid : .outlined)
         }
         .plainPressedButtonStyle()
         .accessibilityAddTraits(isSelected ? .isSelected : [])
