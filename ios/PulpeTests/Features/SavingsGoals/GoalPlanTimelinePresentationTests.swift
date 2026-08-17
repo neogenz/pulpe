@@ -168,13 +168,13 @@ struct GoalPlanTimelinePresentationTests {
     @Test("States what a contributing month announces it will take out")
     func announcedWithdrawal_readsOnTheMonthThatCarriesIt() throws {
         let announced = try #require(GoalPlanMonthRow.plannedWithdrawalText(
-            for: makeWithdrawalMonth(planned: 500, remaining: 500, withdrawn: 0),
+            for: makeWithdrawalMonth(planned: 500.55, remaining: 500.55, withdrawn: 0),
             currency: .chf
         ))
 
         #expect(announced.contains("Retrait prévu"))
         // Signed and aggregated, like every other stock exit on this screen.
-        #expect(announced.contains("500"))
+        #expect(announced.contains("500.55"))
         #expect(announced.contains("-"))
     }
 

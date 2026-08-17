@@ -175,8 +175,23 @@ describe('GoalPlanSimulatorStore', () => {
   });
 
   it('falls back to the deadline anchor when there is no open month', () => {
-    progressSig.set(makeProgress({ months: [], required: 555 }));
-    expect(store.currentMonthlyAmount()).toBe(555);
+    progressSig.set(makeProgress({ months: [], required: 555.55 }));
+    expect(store.currentMonthlyAmount()).toBe(555.55);
+  });
+
+  it('seeds cent-exact monthly amounts without whole-franc rounding', () => {
+    progressSig.set(
+      makeProgress({
+        required: 400.01,
+        months: [
+          openMonth(6, LINE_CURRENT, 200.01),
+          openMonth(7, LINE_FUTURE, 200.01),
+        ],
+      }),
+    );
+
+    expect(store.currentMonthlyAmount()).toBe(200.01);
+    expect(store.defaultMonthlyAmount()).toBe(400.01);
   });
 
   it('applies a per-month override to the draft (calculator integration)', () => {

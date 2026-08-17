@@ -554,7 +554,7 @@ describe('SavingsGoalDetailPage', () => {
     expect(stat.nativeElement.textContent).toContain('5');
   });
 
-  it('formats the target and the initial amount without decimals, apostrophe-grouped (PUL-329)', () => {
+  it('keeps target cents visible while leaving the contextual initial amount compact', () => {
     goalSig.set(makeGoal({ targetAmount: 12_345.6 }));
     progressSig.set(
       makeProgress({
@@ -565,7 +565,7 @@ describe('SavingsGoalDetailPage', () => {
     );
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('12’346 CHF');
+    expect(fixture.nativeElement.textContent).toContain('12’345.6 CHF');
     const stat = query('stat-initial-amount');
     expect(stat.nativeElement.textContent).toContain('5’001 CHF');
   });
@@ -1192,7 +1192,7 @@ describe('SavingsGoalDetailPage', () => {
     expect(mockStore.applyPlan).not.toHaveBeenCalled();
   });
 
-  it('formats the recovery projection in CHF with the same apostrophe grouping as the dialog lines, no decimals', async () => {
+  it('formats the recovery projection in CHF with actionable cents', async () => {
     progressSig.set(
       makeProgress({ required: 175.345, months: [makePlanMonth()] }),
     );
@@ -1205,12 +1205,12 @@ describe('SavingsGoalDetailPage', () => {
     expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 'creation',
-        verdict: 'Projection après création : 1’375 CHF',
+        verdict: 'Projection après création : 1’375.35 CHF',
       }),
     );
   });
 
-  it('formats the recovery projection in EUR with the symbol in suffix position, no decimals', async () => {
+  it('formats the recovery projection in EUR with actionable cents', async () => {
     currencySig.set('EUR');
     progressSig.set(
       makeProgress({ required: 175.345, months: [makePlanMonth()] }),
@@ -1224,7 +1224,7 @@ describe('SavingsGoalDetailPage', () => {
     expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 'creation',
-        verdict: 'Projection après création : 1 375 €',
+        verdict: 'Projection après création : 1 375,35 €',
       }),
     );
   });
@@ -1289,6 +1289,40 @@ describe('SavingsGoalDetailPage', () => {
     expect(mockDialogs.openApplyPlan).not.toHaveBeenCalled();
     expect(mockStore.applyPlan).not.toHaveBeenCalled();
     expect(snackBarOpen).not.toHaveBeenCalled();
+  });
+
+  it('keeps a one-cent shortfall unreached when the visual percentage rounds to 100', () => {
+    progressSig.set(
+      makeProgress({
+        targetAmount: 800.01,
+        plannedProjection: 800,
+        projected: 800,
+        months: [
+          makePlanMonth({
+            month: 6,
+            state: 'current',
+            isProvisionable: false,
+            plannedAmount: 800,
+            plannedCumulative: 800,
+            lines: [
+              {
+                budgetLineId: '11111111-1111-4111-8111-111111111111',
+                amount: 800,
+                checkedAt: null,
+                isManuallyAdjusted: false,
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+    fixture.detectChanges();
+
+    component['simulator'].enter();
+
+    expect(component['projectedPercent']()).toBe(100);
+    expect(component['targetReached']()).toBe(false);
+    expect(component['verdict']()).toContain("n'atteins pas encore");
   });
 
   it('previews and applies only the valid adjustment when a zero-valued gap creation is mixed in', async () => {

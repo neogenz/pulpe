@@ -98,7 +98,7 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
                   : {
                       amount:
                         store.defaultMonthlyAmount()
-                        | appCurrency: currency() : '1.0-0',
+                        | appCurrency: currency() : '1.0-2',
                     }
             }}
           </p>

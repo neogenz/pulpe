@@ -764,6 +764,23 @@ struct GoalPlanSimulatorViewModelTests {
         #expect(withSeed.verdictText != withoutSeed.verdictText)
     }
 
+    @Test("the client verdict keeps one missing cent distinct from exact and sub-cent targets")
+    func verdict_usesCentPrecision() {
+        let exact = makeViewModel(progress: makeProgress(targetAmount: 600))
+        let oneCentShort = makeViewModel(
+            progress: makeProgress(targetAmount: Decimal(string: "600.01"))
+        )
+        let subCent = makeViewModel(
+            progress: makeProgress(targetAmount: Decimal(string: "600.004"))
+        )
+
+        #expect(exact.draft.isTargetMet == true)
+        #expect(oneCentShort.draft.isTargetMet == false)
+        #expect(oneCentShort.draft.gapToTarget == Decimal(string: "0.01"))
+        #expect(oneCentShort.verdictText.contains("0.01"))
+        #expect(subCent.draft.isTargetMet == true)
+    }
+
     @Test("redistribution preserves a manually adjusted month")
     func redistribute_preservesPinnedMonth() {
         let viewModel = makeViewModel()

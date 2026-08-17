@@ -67,8 +67,8 @@ struct GoalProjectionSeriesTests {
         let lag = GoalTrajectorySection.gapCopy(for: 300, currency: .chf)
         let advance = GoalTrajectorySection.gapCopy(for: -150, currency: .chf)
         let onPlan = GoalTrajectorySection.gapCopy(for: 0, currency: .chf)
-        let expectedLag = Decimal(300).asCompactCurrency(.chf)
-        let expectedAdvance = Decimal(150).asCompactCurrency(.chf)
+        let expectedLag = Decimal(300).asAdaptiveCurrency(.chf)
+        let expectedAdvance = Decimal(150).asAdaptiveCurrency(.chf)
 
         #expect(lag.lead == "Il te manque")
         #expect(lag.amount == expectedLag)
@@ -76,6 +76,18 @@ struct GoalProjectionSeriesTests {
         #expect(advance.amount == expectedAdvance)
         #expect(onPlan.lead == "Pile sur ton plan")
         #expect(onPlan.amount == nil)
+    }
+
+    @Test("gap copy keeps a meaningful cent without adding noise to whole amounts")
+    func gapCopyUsesAdaptivePrecision() {
+        #expect(
+            GoalTrajectorySection.gapCopy(for: 0.01, currency: .chf).amount
+                == Decimal(string: "0.01")?.asAdaptiveCurrency(.chf)
+        )
+        #expect(
+            GoalTrajectorySection.gapCopy(for: 300, currency: .chf).amount
+                == Decimal(300).asAdaptiveCurrency(.chf)
+        )
     }
 
     @Test("a targetless series keeps its data without inventing a chart target")

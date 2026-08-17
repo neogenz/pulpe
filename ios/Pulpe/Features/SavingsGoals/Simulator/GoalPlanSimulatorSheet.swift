@@ -181,7 +181,7 @@ struct GoalPlanSimulatorSheet: View {
                 .accessibilityValue(
                     viewModel.hasVariableMonthlyAmounts
                         ? AppLocale.string("Montants variables")
-                        : Decimal(viewModel.sliderValue).asCurrency(currency)
+                        : Decimal(viewModel.sliderValue).asAdaptiveCurrency(currency)
                 )
         }
         .padding(DesignTokens.Spacing.lg)
@@ -222,7 +222,7 @@ struct GoalPlanSimulatorSheet: View {
                 viewModel.redistribute()
             } label: {
                 Label(
-                    "Répartir ce qu'il reste — \(viewModel.redistributePerMonth.asCompactCurrency(currency))/mois",
+                    "Répartir ce qu'il reste — \(viewModel.redistributePerMonth.asAdaptiveCurrency(currency))/mois",
                     systemImage: "arrow.triangle.branch"
                 )
                 .font(PulpeTypography.labelLarge)
@@ -395,7 +395,7 @@ final class GoalPlanSimulatorViewModel {
             months: [],
             simulatedFinal: 0,
             gapToTarget: progress.targetAmount,
-            isTargetMet: progress.targetAmount.map { $0 <= 0 },
+            isTargetMet: progress.targetAmount.map { $0.rounded(2) <= 0 },
             attainedPeriod: nil
         )
         syncGlobalControlFromDraft()
@@ -447,12 +447,12 @@ final class GoalPlanSimulatorViewModel {
     var verdictText: String {
         guard targetAmount != nil else {
             return AppLocale.string(
-                "Avec ce plan, tu auras prévu \(draft.simulatedFinal.asCompactCurrency(currency))."
+                "Avec ce plan, tu auras prévu \(draft.simulatedFinal.asAdaptiveCurrency(currency))."
             )
         }
         guard let attained = draft.attainedPeriod else {
             let gap = draft.gapToTarget ?? 0
-            return AppLocale.string("Avec ce plan, il te manque \(gap.asCompactCurrency(currency)) pour ta cible.")
+            return AppLocale.string("Avec ce plan, il te manque \(gap.asAdaptiveCurrency(currency)) pour ta cible.")
         }
         let label = "\(Formatters.monthName(for: attained.month)) \(attained.year)"
         if let deadlinePeriod,

@@ -152,9 +152,9 @@ struct GoalTrajectorySection: View {
     /// accounting signed value (`+300 CHF`) read as good news on a lag — the
     /// copy spells the direction out instead; zero gap carries no amount.
     static func gapCopy(for gap: Decimal, currency: SupportedCurrency) -> (lead: String, amount: String?) {
-        if gap > 0 { return (AppLocale.string("Il te manque"), gap.asCompactCurrency(currency)) }
+        if gap > 0 { return (AppLocale.string("Il te manque"), gap.asAdaptiveCurrency(currency)) }
         if gap < 0 {
-            return (AppLocale.string("Tu es en avance de"), gap.absoluteValue.asCompactCurrency(currency))
+            return (AppLocale.string("Tu es en avance de"), gap.absoluteValue.asAdaptiveCurrency(currency))
         }
         return (AppLocale.string("Pile sur ton plan"), nil)
     }

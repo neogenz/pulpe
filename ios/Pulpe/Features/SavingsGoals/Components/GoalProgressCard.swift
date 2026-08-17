@@ -16,7 +16,7 @@ struct GoalProgressCard: View {
                     Text("Épargné")
                         .font(PulpeTypography.metricLabel)
                         .foregroundStyle(Color.textSecondary)
-                    Text(progress.confirmed.asCompactCurrency(currency))
+                    Text(progress.confirmed.asAdaptiveCurrency(currency))
                         .font(PulpeTypography.amountCard)
                         .foregroundStyle(Color.financialSavings)
                         .monospacedDigit()
@@ -26,7 +26,7 @@ struct GoalProgressCard: View {
                 Spacer()
 
                 if let targetAmount = progress.targetAmount {
-                    Text("sur \(targetAmount.asCurrency(currency))")
+                    Text("sur \(targetAmount.asAdaptiveCurrency(currency))")
                         .font(PulpeTypography.metricLabel)
                         .foregroundStyle(Color.textSecondary)
                         .monospacedDigit()
@@ -60,7 +60,7 @@ struct GoalProgressCard: View {
                 )
                 statRow(
                     label: AppLocale.string("Projection du plan"),
-                    value: progress.plannedProjection.asCompactCurrency(currency),
+                    value: progress.plannedProjection.asAdaptiveCurrency(currency),
                     identifier: "savingsGoalProjectionStat"
                 )
                 if let required = progress.required, hasClosedPlanMonth {
@@ -70,7 +70,7 @@ struct GoalProgressCard: View {
                     ) {
                         statRow(
                             label: AppLocale.string("Pour tenir ton échéance"),
-                            value: AppLocale.string("\(required.asCompactCurrency(currency)) / mois"),
+                            value: AppLocale.string("\(required.asAdaptiveCurrency(currency)) / mois"),
                             identifier: "savingsGoalRequiredPaceStat"
                         )
                     } else {
@@ -135,8 +135,8 @@ struct GoalProgressCard: View {
     }
 
     private func deadlineReconciliation(required: Decimal) -> some View {
-        let pace = progress.pace.asCompactCurrency(currency)
-        let target = required.asCompactCurrency(currency)
+        let pace = progress.pace.asAdaptiveCurrency(currency)
+        let target = required.asAdaptiveCurrency(currency)
         // One whole key per variant: « pour finir le … » is a subordinate clause,
         // untranslatable on its own and glued back into the sentence.
         let copy = progress.targetDateValue.map {
@@ -164,7 +164,7 @@ struct GoalProgressCard: View {
 
     private func planReadyIndicator(_ amount: Decimal) -> some View {
         Label(
-            "Ton plan est prêt — \(amount.asCurrency(currency)) à mettre de côté ce mois.",
+            "Ton plan est prêt — \(amount.asAdaptiveCurrency(currency)) à mettre de côté ce mois.",
             systemImage: "checkmark.circle"
         )
         .font(PulpeTypography.metricLabelBold)

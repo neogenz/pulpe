@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Aligner les parcours objectifs et retraits sur les deux clients

@@ -238,7 +238,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   <span class="text-body-small text-on-surface-variant">
                     {{ 'savingsGoals.detail.target' | transloco }} :
                     <span class="ph-no-capture tabular-nums">{{
-                      g.targetAmount | appCurrency: currency() : '1.0-0'
+                      g.targetAmount | appCurrency: currency() : '1.0-2'
                     }}</span>
                   </span>
                 </div>
@@ -297,7 +297,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 <span
                   class="mt-1 text-headline-small font-bold text-financial-savings tabular-nums ph-no-capture"
                 >
-                  {{ p.confirmed | appCurrency: currency() : '1.0-0' }}
+                  {{ p.confirmed | appCurrency: currency() : '1.0-2' }}
                 </span>
                 @if (p.initialAmount > 0) {
                   <span
@@ -345,7 +345,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                     class="text-title-medium font-semibold tabular-nums ph-no-capture"
                   >
                     {{
-                      p.plannedProjection | appCurrency: currency() : '1.0-0'
+                      p.plannedProjection | appCurrency: currency() : '1.0-2'
                     }}
                   </span>
                 </div>
@@ -365,7 +365,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                     >
                       {{
                         displayedProjection()
-                          | appCurrency: currency() : '1.0-0'
+                          | appCurrency: currency() : '1.0-2'
                       }}
                     </span>
                     @if (paceChip(); as chip) {
@@ -398,7 +398,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                             : {
                                 amount:
                                   p.required
-                                  | appCurrency: currency() : '1.0-0',
+                                  | appCurrency: currency() : '1.0-2',
                               }
                       }}
                     </span>
@@ -1299,7 +1299,7 @@ export default class SavingsGoalDetailPage {
         amount: this.#currencyPipe.transform(
           projected,
           this.currency(),
-          '1.0-0',
+          '1.0-2',
         ),
       }),
     });

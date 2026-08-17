@@ -192,10 +192,10 @@ extension GoalPlanSimulatorTests {
     func recap_uniformSummaryPresentsBeforeAndAfter() throws {
         let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
 
-        #expect(source.contains("Text(before.asCompactCurrency(currency))"))
-        #expect(source.contains("Text(after.asCompactCurrency(currency))"))
+        #expect(source.contains("Text(before.asAdaptiveCurrency(currency))"))
+        #expect(source.contains("Text(after.asAdaptiveCurrency(currency))"))
         #expect(source.contains("Text(\"/mois sur \\(changes.count) mois\")"))
-        #expect(source.contains("De \\(before.asCurrency(currency)) à \\(after.asCurrency(currency)) "))
+        #expect(source.contains("De \\(before.asAdaptiveCurrency(currency)) à \\(after.asAdaptiveCurrency(currency)) "))
         #expect(source.contains("par mois sur \\(changes.count) mois"))
     }
 

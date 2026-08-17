@@ -18,9 +18,9 @@ import { cachedResource } from 'ngx-ziflux';
 import { formatDate } from 'date-fns';
 import {
   getBudgetPeriodForDate,
+  moneyDifference,
   parseIsoDateLocal,
   periodIndex,
-  WITHDRAWAL_BALANCE_TOLERANCE,
   type BudgetPeriod,
 } from 'pulpe-shared';
 
@@ -321,9 +321,8 @@ export class SavingsGoalPickerField {
       this.#api.getProgress$(params.goalId).pipe(map((r) => r.data)),
   });
 
-  // Server-filtered: only goals whose confirmed balance is above the shared
-  // withdrawal tolerance (WITHDRAWAL_BALANCE_TOLERANCE), whatever their
-  // status. The client never rebuilds that eligibility.
+  // Server-filtered: only goals with a positive confirmed balance, whatever
+  // their status. The client never rebuilds that eligibility.
   readonly #withdrawalOptionsResource = cachedResource({
     cache: this.#api.cache,
     cacheKey: ['savings-goals', 'withdrawal-options'],
@@ -346,15 +345,15 @@ export class SavingsGoalPickerField {
   protected readonly remainingAmount = computed(() => {
     const option = this.selectedOption();
     if (!option) return 0;
-    return option.availableAmount - (this.withdrawalAmount() ?? 0);
+    return moneyDifference(
+      option.availableAmount,
+      this.withdrawalAmount() ?? 0,
+    );
   });
 
-  // Même bande que le serveur : il accepte `debit <= disponible + tolérance`.
-  // Plus serré ici, le pré-contrôle refuserait des retraits que la requête
-  // aurait acceptés — vider un pot exactement, d'abord.
-  readonly hasInsufficientBalance = computed(
-    () => this.remainingAmount() < -WITHDRAWAL_BALANCE_TOLERANCE,
-  );
+  // Même écart monétaire que le serveur : plafond, aperçu et validation parlent
+  // du même centime, y compris quand une somme flottante arrive à 149.999.
+  readonly hasInsufficientBalance = computed(() => this.remainingAmount() < 0);
 
   /**
    * Planned mode: what the pot is expected to hold at the budget's own period,
@@ -377,10 +376,15 @@ export class SavingsGoalPickerField {
             month.projectedCumulative !== undefined,
         )
       : [];
-    const before =
+    const before = moneyDifference(
       upToPeriod[upToPeriod.length - 1]?.projectedCumulative ??
-      progress.confirmed;
-    return { before, after: before - (this.withdrawalAmount() ?? 0) };
+        progress.confirmed,
+      0,
+    );
+    return {
+      before,
+      after: moneyDifference(before, this.withdrawalAmount() ?? 0),
+    };
   });
 
   /**
@@ -389,7 +393,7 @@ export class SavingsGoalPickerField {
    */
   protected readonly hasInsufficientProjection = computed(() => {
     const preview = this.plannedPreview();
-    return preview !== null && preview.after < -WITHDRAWAL_BALANCE_TOLERANCE;
+    return preview !== null && preview.after < 0;
   });
 
   /**
