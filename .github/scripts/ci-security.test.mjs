@@ -103,8 +103,18 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
   assert.match(stagingProof, /actions: read/);
   assert.match(stagingProof, /deployments: read/);
   assert.match(stagingProof, /pull-requests: read/);
-  assert.match(stagingProof, /latest canonical CI run is not green/);
-  assert.match(stagingProof, /timeout-minutes: 25/);
+  assert.match(stagingProof, /timeout-minutes: 55/);
+  assert.match(stagingProof, /for iteration in \{1\.\.180\}/);
+  assert.match(stagingProof, /actions\/runs\/\$ci_run_id/);
+  assert.match(stagingProof, /queued\|in_progress/);
+  assert.match(
+    stagingProof,
+    /canonical CI run did not complete within 30 minutes/,
+  );
+  assert.match(stagingProof, /unknown canonical CI status/);
+  assert.match(stagingProof, /canonical CI run failed/);
+  assert.match(stagingProof, /if \[ "\$conclusion" != success \]/);
+  assert.match(stagingProof, /\.run_attempt \| select\(type == "number"\)/);
   assert.match(stagingProof, /for _ in \{1\.\.120\}/);
   assert.match(stagingProof, /\.tree_sha == \$tree_sha/);
   assert.match(stagingProof, /Preview – pulpe-frontend/);
@@ -116,6 +126,18 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
   assert.match(stagingProof, /git rev-parse "\$\{GITHUB_SHA\}\^1"/);
   assert.match(stagingProof, /backend-preview-34f4\.up\.railway\.app\/health/);
   assert.match(stagingProof, /name: staging-proof-\$\{\{ github\.sha \}\}/);
+  assert.ok(
+    stagingProof.indexOf("canonical CI run failed") <
+      stagingProof.indexOf("📥 Download tested-tree evidence"),
+    "canonical CI success must be checked before evidence download",
+  );
+  assert.ok(
+    stagingProof.indexOf("branches/preview") <
+      stagingProof.indexOf(
+        "canonical CI run did not complete within 30 minutes",
+      ),
+    "preview must remain fixed while canonical CI is pending",
+  );
 
   for (const actionUse of stagingProof.matchAll(/^\s*uses:\s*([^\s#]+)/gm)) {
     assert.match(

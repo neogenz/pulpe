@@ -58,6 +58,9 @@ flowchart LR
 ```
 
 `Staging Ready` is triggered by Railway's successful preview `deployment_status`.
+When an authorized bypass merges a PR before its canonical CI finishes, the proof
+waits on that exact run for at most 30 minutes and fails closed if the run fails,
+its state is unknown, the API is unavailable, or `preview` moves.
 The proof compares the tested and merged Git trees, requires exact provider SHAs, and
 runs staging health checks. A release additionally proves that the release commit and
 the merge commit share the same original `preview` base; a feature merged during the
