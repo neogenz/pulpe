@@ -68,6 +68,7 @@ export function SpreadExistingSheet({
     <Sheet
       isVisible={isVisible}
       onDismiss={onDismiss}
+      isBusy={spread.isPending}
       title={`Lisser « ${line.name} »`}
       // The month grid is a dozen rows on a long spread, and the button that
       // dissolves this forecast into them sits below it.

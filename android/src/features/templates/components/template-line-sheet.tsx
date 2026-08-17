@@ -183,6 +183,7 @@ export function TemplateLineSheet({
       <Sheet
         isVisible={isVisible && !isPropagationVisible}
         onDismiss={dismiss}
+        isBusy={mutation.isPending}
         title={isEditing ? "Modifier la prévision" : "Nouvelle prévision"}
         footer={
           <>

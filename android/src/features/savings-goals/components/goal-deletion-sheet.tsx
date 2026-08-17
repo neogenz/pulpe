@@ -97,6 +97,7 @@ export function GoalDeletionSheet({
     <Sheet
       isVisible={isVisible}
       onDismiss={dismiss}
+      isBusy={remove.isPending}
       title="Supprimer l'objectif"
       // The impact list runs to a screenful on a goal with a year of forecasts,
       // and this is the one button in the app that must never be reached by

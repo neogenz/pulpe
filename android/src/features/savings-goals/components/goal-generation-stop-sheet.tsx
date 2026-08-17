@@ -78,6 +78,7 @@ export function GoalGenerationStopSheet({
     <Sheet
       isVisible={isVisible}
       onDismiss={dismiss}
+      isBusy={stop.isPending}
       title={status === "PAUSED" ? "Objectif en pause" : "Objectif atteint"}
       // The two decisions are the point of the sheet, so they stay put while
       // the months they apply to scroll behind them — a goal paused in January

@@ -44,6 +44,7 @@ export function GoalPlanApplyRecap({
     <Sheet
       isVisible={isVisible}
       onDismiss={onDismiss}
+      isBusy={isApplying}
       title="Appliquer ce plan"
       // The month-by-month list is the whole point of the recap and runs long,
       // so the button that commits the write stays out of it.

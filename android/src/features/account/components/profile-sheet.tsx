@@ -53,6 +53,7 @@ export function ProfileSheet({
     <Sheet
       isVisible={isVisible}
       onDismiss={onDismiss}
+      isBusy={update.isPending}
       title="Ton profil"
       footer={
         <>

@@ -180,6 +180,7 @@ export function BudgetLineSheet({
     <Sheet
       isVisible={isVisible}
       onDismiss={dismiss}
+      isBusy={mutation.isPending}
       title={isEditing ? "Modifier la prévision" : "Nouvelle prévision"}
       footer={
         <>

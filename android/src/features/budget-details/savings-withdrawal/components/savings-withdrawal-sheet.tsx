@@ -105,6 +105,7 @@ export function SavingsWithdrawalSheet({
     <Sheet
       isVisible={isVisible}
       onDismiss={dismiss}
+      isBusy={withdraw.isPending}
       title={
         isPreviewing
           ? "Voici ce qu'on met en place"

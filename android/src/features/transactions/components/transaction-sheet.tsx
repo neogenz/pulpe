@@ -207,6 +207,7 @@ export function TransactionSheet({
       <Sheet
         isVisible={isVisible}
         onDismiss={dismiss}
+        isBusy={mutation.isPending}
         title={isEditing ? "Modifier l'opération" : "Ajouter une opération"}
         subtitle={
           envelope === undefined

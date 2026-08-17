@@ -64,6 +64,7 @@ export function ChangePasswordSheet({
     <Sheet
       isVisible={isVisible}
       onDismiss={onDismiss}
+      isBusy={isSubmitting}
       title="Changer le mot de passe"
       subtitle="Confirme ton identité pour modifier ton accès."
       footer={

@@ -1,19 +1,23 @@
 import type { ReactNode } from "react";
 import {
+  Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
 } from "react-native";
-import { Divider, Modal, Portal, Text, useTheme } from "react-native-paper";
+import { Divider, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { sheetBox, useKeyboardHeight } from "./keyboard-inset";
+import { useRipple } from "./ripple";
 import { RADIUS, SPACING } from "./theme";
 
 interface SheetProps {
   isVisible: boolean;
   onDismiss: () => void;
+  isBusy?: boolean;
   title: string;
   /** Sits under the title, for the one line of context a form sometimes needs. */
   subtitle?: string;
@@ -39,6 +43,7 @@ interface SheetProps {
 export function Sheet({
   isVisible,
   onDismiss,
+  isBusy = false,
   title,
   subtitle,
   footer,
@@ -47,6 +52,7 @@ export function Sheet({
   const theme = useTheme();
   const { height } = useWindowDimensions();
   const keyboardHeight = useKeyboardHeight();
+  const ripple = useRipple();
   const { bottom } = useSafeAreaInsets();
   const box = sheetBox({
     windowHeight: height,
@@ -55,47 +61,62 @@ export function Sheet({
   });
 
   return (
-    <Portal>
-      <Modal
-        visible={isVisible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.sheet,
-          { backgroundColor: theme.colors.surface },
-          box,
-        ]}
+    <Modal
+      visible={isVisible}
+      transparent
+      animationType="fade"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      onRequestClose={isBusy ? () => undefined : onDismiss}
+    >
+      <View
+        style={[styles.backdrop, { backgroundColor: theme.colors.backdrop }]}
       >
-        <View style={styles.header}>
-          <Text variant="titleMedium">{title}</Text>
-          {subtitle !== undefined && (
-            <Text
-              variant="labelMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              {subtitle}
-            </Text>
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={isBusy ? undefined : onDismiss}
+          android_ripple={ripple}
+          accessible={!isBusy}
+          accessibilityRole="button"
+          accessibilityLabel="Fermer"
+        />
+        <View
+          accessibilityViewIsModal
+          style={[styles.sheet, { backgroundColor: theme.colors.surface }, box]}
+        >
+          <View style={styles.header}>
+            <Text variant="titleMedium">{title}</Text>
+            {subtitle !== undefined && (
+              <Text
+                variant="labelMedium"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {subtitle}
+              </Text>
+            )}
+          </View>
+
+          <ScrollView
+            contentContainerStyle={styles.body}
+            keyboardShouldPersistTaps="handled"
+          >
+            {children}
+          </ScrollView>
+
+          {footer !== undefined && (
+            <>
+              <Divider />
+              <View style={styles.footer}>{footer}</View>
+            </>
           )}
         </View>
-
-        <ScrollView
-          contentContainerStyle={styles.body}
-          keyboardShouldPersistTaps="handled"
-        >
-          {children}
-        </ScrollView>
-
-        {footer !== undefined && (
-          <>
-            <Divider />
-            <View style={styles.footer}>{footer}</View>
-          </>
-        )}
-      </Modal>
-    </Portal>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  backdrop: { flex: 1, justifyContent: "center" },
   sheet: {
     marginHorizontal: SPACING.md,
     borderRadius: RADIUS.md,

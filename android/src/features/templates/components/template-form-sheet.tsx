@@ -90,6 +90,7 @@ export function TemplateFormSheet({
     <Sheet
       isVisible={isVisible}
       onDismiss={dismiss}
+      isBusy={mutation.isPending}
       title={isEditing ? "Modifier le modèle" : "Nouveau modèle"}
       footer={
         <>

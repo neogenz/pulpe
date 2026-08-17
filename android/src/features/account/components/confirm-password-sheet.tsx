@@ -54,6 +54,7 @@ export function ConfirmPasswordSheet({
     <Sheet
       isVisible={isVisible}
       onDismiss={onDismiss}
+      isBusy={isSubmitting}
       title={title}
       subtitle={message}
       footer={

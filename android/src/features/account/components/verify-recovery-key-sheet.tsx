@@ -58,6 +58,7 @@ export function VerifyRecoveryKeySheet({
     <Sheet
       isVisible={isVisible}
       onDismiss={onDismiss}
+      isBusy={isSubmitting}
       title="Vérifier ma clé de récupération"
       subtitle="Saisis la clé que tu as notée. Elle reste valable après la vérification."
       footer={

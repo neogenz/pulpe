@@ -138,6 +138,7 @@ export function GoalFormSheet({
       <Sheet
         isVisible={isVisible}
         onDismiss={dismiss}
+        isBusy={mutation.isPending}
         title={isEditing ? "Modifier l'objectif" : "Nouvel objectif"}
         // The longest form in the app — name, two amounts, two dates, a toggle
         // and a monthly amount. Scrolled with the body, its own button would sit

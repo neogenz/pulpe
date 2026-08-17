@@ -1,6 +1,8 @@
 import { Stack } from "expo-router";
 import { useTheme } from "react-native-paper";
 
+import { RequiredSettingsGate } from "@/core/user-settings/required-settings-gate";
+
 /**
  * The tab bar and everything that covers it. A detail screen pushes over the
  * bar rather than living inside it: on Android a pushed destination owns the
@@ -17,11 +19,13 @@ export default function MainLayout() {
   const theme = useTheme();
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: theme.colors.background },
-      }}
-    />
+    <RequiredSettingsGate>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.colors.background },
+        }}
+      />
+    </RequiredSettingsGate>
   );
 }

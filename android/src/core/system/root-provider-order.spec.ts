@@ -10,6 +10,10 @@ const { readFileSync } = jest.requireActual<{
 }>("node:fs");
 
 const layout = readFileSync("src/app/_layout.tsx", "utf8");
+const systemGate = readFileSync(
+  "src/core/system/system-gate-screen.tsx",
+  "utf8",
+);
 
 describe("root provider order", () => {
   it("should keep QueryClientProvider outside PaperProvider", () => {
@@ -25,5 +29,15 @@ describe("root provider order", () => {
     expect(query).toBeGreaterThan(-1);
     expect(paper).toBeGreaterThan(-1);
     expect(query).toBeLessThan(paper);
+  });
+
+  it("should keep the system gate above Paper portals", () => {
+    expect(systemGate).toContain(
+      'import { Linking, Modal, StyleSheet, View } from "react-native"',
+    );
+    expect(systemGate).toContain("onRequestClose={() => undefined}");
+    expect(layout.indexOf("<SystemGateScreen")).toBeGreaterThan(
+      layout.indexOf("<WhatsNewSheet"),
+    );
   });
 });
