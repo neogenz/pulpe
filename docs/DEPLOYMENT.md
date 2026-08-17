@@ -6,11 +6,14 @@
 # 1. Quality check
 pnpm quality && pnpm test && pnpm test:e2e
 
-# 2. Run the agent release workflow from a synchronized preview or main
+# 2. Run the agent release workflow from a clean, synchronized preview
 /release
 ```
 
-`/release` validates one SHA on `preview`, promotes that exact SHA to `main`, and waits for the production proofs. The resulting `main` push starts the production webhooks immediately. The release is published only after the `main` CI, Vercel, Railway, and public health checks all validate that exact SHA.
+`/release` prepares one `release/vX.Y.Z` branch and one version commit. GitHub then
+promotes the same candidate through a preparation PR to `preview` and a production
+PR to `main`. A human approves production; the protected workflow publishes the tag
+and GitHub Release only after the exact production tree and deployments are proven.
 
 ## Prerequisites
 
@@ -22,26 +25,31 @@ pnpm quality && pnpm test && pnpm test:e2e
 
 ## Architecture
 
-| Domain | Content | Vercel Project | Framework |
-|--------|---------|----------------|-----------|
-| `pulpe.app` / `www.pulpe.app` | Landing page | `pulpe-landing` | Next.js (static export) |
-| `app.pulpe.app` | Angular webapp | `pulpe-frontend` | Angular |
-| `api.pulpe.app` | Backend NestJS | Railway | - |
+| Domain                        | Content        | Vercel Project   | Framework               |
+| ----------------------------- | -------------- | ---------------- | ----------------------- |
+| `pulpe.app` / `www.pulpe.app` | Landing page   | `pulpe-landing`  | Next.js (static export) |
+| `app.pulpe.app`               | Angular webapp | `pulpe-frontend` | Angular                 |
+| `api.pulpe.app`               | Backend NestJS | Railway          | -                       |
 
 ## Branch Model
 
-| Branch | Role | Environment |
-|--------|------|-------------|
+| Branch    | Role                                                                    | Environment                                     |
+| --------- | ----------------------------------------------------------------------- | ----------------------------------------------- |
 | `preview` | **Default branch** — sprint integration + QA. Feature branches PR here. | Staging (Vercel Preview, Railway `preview` env) |
-| `main` | **Release / production** — fed by `preview` at release time. | Production |
+| `main`    | **Release / production** — fed by `preview` at release time.            | Production                                      |
 
-Day-to-day work branches off `preview` and merges back via PR. A **release promotes one commit validated on `preview` to `main`**; `/release` may start from a synchronized `preview` or `main`, but always validates the release SHA on `preview` first. Both branches are protected (PR + 1 review + `✅ CI Success`, no force-push, no deletion); release tags `v*` are immutable. Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
+Day-to-day work branches off `preview` and merges back via PR. A release starts from
+the current `preview` head, adds one version commit on `release/vX.Y.Z`, validates its
+merge commit in staging, freezes that proven candidate, then promotes it to `main`
+without another version change. `preview` and production remain independent
+environments. Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Initial Setup
 
 ### Database (Supabase)
 
 #### Create project
+
 1. Go to https://supabase.com/dashboard
 2. **New Project** > `pulpe-production` > Region: `eu-central-1`
 3. Get credentials from **Settings > API**: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
@@ -70,6 +78,7 @@ supabase unlink
 ```bash
 supabase migration up
 ```
+
 Then `db push` will apply new migrations to the remote database.
 
 #### Pre-rollout data gates
@@ -171,12 +180,12 @@ railway domain  # Get the public URL
 
 Configure Production environment variables in Vercel:
 
-| Variable | Value | Description |
-|----------|-------|-------------|
-| `PUBLIC_SUPABASE_URL` | `https://[PROJECT_REF].supabase.co` | Supabase project URL |
-| `PUBLIC_SUPABASE_ANON_KEY` | `[ANON_KEY]` | Supabase anonymous key |
-| `PUBLIC_BACKEND_API_URL` | `https://[RAILWAY_URL]/api/v1` | Railway backend URL |
-| `PUBLIC_ENVIRONMENT` | `production` | Current environment |
+| Variable                   | Value                               | Description            |
+| -------------------------- | ----------------------------------- | ---------------------- |
+| `PUBLIC_SUPABASE_URL`      | `https://[PROJECT_REF].supabase.co` | Supabase project URL   |
+| `PUBLIC_SUPABASE_ANON_KEY` | `[ANON_KEY]`                        | Supabase anonymous key |
+| `PUBLIC_BACKEND_API_URL`   | `https://[RAILWAY_URL]/api/v1`      | Railway backend URL    |
+| `PUBLIC_ENVIRONMENT`       | `production`                        | Current environment    |
 
 The Vercel build runs `frontend/scripts/generate-config.ts` (via `pnpm generate:config`), which reads `PUBLIC_*` variables, validates with Zod, and generates `config.json`.
 
@@ -192,6 +201,7 @@ POSTHOG_HOST=https://eu.i.posthog.com            # Sourcemaps upload (CI, direct
 > **Note**: `PUBLIC_POSTHOG_HOST=/ph` routes analytics traffic via the Vercel reverse proxy (`/ph/*` > `eu.i.posthog.com`), bypassing ad-blockers.
 
 **Ignored Build Step** (skip build when only landing changed):
+
 ```
 git diff --quiet HEAD^ HEAD -- frontend/ shared/
 ```
@@ -209,18 +219,19 @@ git diff --quiet HEAD^ HEAD -- frontend/ shared/
 
 Environment variables:
 
-| Variable | Value | Description |
-|----------|-------|-------------|
-| `NEXT_PUBLIC_ANGULAR_APP_URL` | `https://app.pulpe.app` | Webapp URL for CTA links |
-| `NEXT_PUBLIC_SUPABASE_URL` | (same as frontend project) | Auth redirect detection |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (same as frontend project) | Auth redirect detection |
-| `PUBLIC_POSTHOG_API_KEY` | `phc_...` | PostHog project key (Pulpe Webapp, ID 87621) |
-| `PUBLIC_POSTHOG_HOST` | `/ph` | Reverse proxy (see landing/vercel.json) |
-| `PUBLIC_POSTHOG_ENABLED` | `true` | Enable analytics |
-| `POSTHOG_PERSONAL_API_KEY` | `phx_...` | Release creation on deploy (see [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md)) |
-| `POSTHOG_CLI_ENV_ID` | `87621` | PostHog project ID (same as webapp) |
+| Variable                        | Value                      | Description                                                                   |
+| ------------------------------- | -------------------------- | ----------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_ANGULAR_APP_URL`   | `https://app.pulpe.app`    | Webapp URL for CTA links                                                      |
+| `NEXT_PUBLIC_SUPABASE_URL`      | (same as frontend project) | Auth redirect detection                                                       |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (same as frontend project) | Auth redirect detection                                                       |
+| `PUBLIC_POSTHOG_API_KEY`        | `phc_...`                  | PostHog project key (Pulpe Webapp, ID 87621)                                  |
+| `PUBLIC_POSTHOG_HOST`           | `/ph`                      | Reverse proxy (see landing/vercel.json)                                       |
+| `PUBLIC_POSTHOG_ENABLED`        | `true`                     | Enable analytics                                                              |
+| `POSTHOG_PERSONAL_API_KEY`      | `phx_...`                  | Release creation on deploy (see [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md)) |
+| `POSTHOG_CLI_ENV_ID`            | `87621`                    | PostHog project ID (same as webapp)                                           |
 
 **Ignored Build Step** (skip build when only frontend changed):
+
 ```
 git diff --quiet HEAD^ HEAD -- landing/ shared/
 ```
@@ -261,12 +272,12 @@ Domain purchased at **Infomaniak**.
 
 #### DNS Configuration (Infomaniak)
 
-| Type | Name | Value |
-|------|------|-------|
-| A | @ | `76.76.21.21` |
-| CNAME | www | `cname.vercel-dns.com` |
-| CNAME | app | `cname.vercel-dns.com` |
-| CNAME | api | `backend-production-e7df.up.railway.app` |
+| Type  | Name | Value                                    |
+| ----- | ---- | ---------------------------------------- |
+| A     | @    | `76.76.21.21`                            |
+| CNAME | www  | `cname.vercel-dns.com`                   |
+| CNAME | app  | `cname.vercel-dns.com`                   |
+| CNAME | api  | `backend-production-e7df.up.railway.app` |
 
 #### Vercel — Angular App (`pulpe-frontend`)
 
@@ -291,6 +302,7 @@ Domain purchased at **Infomaniak**.
 #### Supabase (Auth)
 
 **Dashboard > Authentication > URL Configuration**:
+
 - **Site URL**: `https://app.pulpe.app`
 - **Redirect URLs**:
   - `https://app.pulpe.app/**`
@@ -313,17 +325,20 @@ borné au slug réel de l’équipe propriétaire, puis le consigner ici.
 #### Google OAuth (Cloud Console)
 
 **APIs & Services > Credentials > OAuth 2.0 Client IDs**:
+
 - **Authorized JavaScript origins**: `https://app.pulpe.app`, `https://pulpe.app`
 - **Redirect URI**: `https://[PROJECT_ID].supabase.co/auth/v1/callback` (unchanged)
 
 #### Cloudflare Turnstile
 
 **Dashboard > Turnstile > Widget**:
+
 - Domains: `pulpe.app`, `app.pulpe.app`
 
 #### PostHog
 
 **Settings > Toolbar Authorized URLs**:
+
 - `https://pulpe.app`
 - `https://app.pulpe.app`
 
@@ -343,70 +358,75 @@ borné au slug réel de l’équipe propriétaire, puis le consigner ici.
 
 > Repository Settings → Secrets and variables → Actions → New repository secret
 
-| Secret | Value | Used by |
-|--------|-------|---------|
-| `SUPABASE_ACCESS_TOKEN` | Supabase CLI token | Migration CI |
-| `PRODUCTION_DB_PASSWORD` | Supabase DB password | Migration CI |
-| `PRODUCTION_PROJECT_ID` | Supabase project ref | Migration CI |
-| `POSTHOG_PERSONAL_API_KEY` | PostHog personal API key | CI annotations + iOS releases |
-| `POSTHOG_WEBAPP_PROJECT_ID` | `87621` | CI annotations + iOS releases (single project for all apps) |
+| Secret                          | Value                    | Used by                                                     |
+| ------------------------------- | ------------------------ | ----------------------------------------------------------- |
+| `SUPABASE_ACCESS_TOKEN`         | Supabase CLI token       | Migration CI                                                |
+| `PRODUCTION_DB_PASSWORD`        | Supabase DB password     | Migration CI                                                |
+| `PRODUCTION_PROJECT_ID`         | Supabase project ref     | Migration CI                                                |
+| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | CI annotations + iOS releases                               |
+| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | CI annotations + iOS releases (single project for all apps) |
+| `PULPE_RELEASE_APP_ID`          | GitHub App ID            | Opens protected release PRs                                 |
+| `PULPE_RELEASE_APP_PRIVATE_KEY` | GitHub App private key   | Creates short-lived release tokens                          |
+| `RAILWAY_PREVIEW_TOKEN`         | Railway project token    | Verifies and synchronizes the preview web-version gate      |
+| `RAILWAY_PRODUCTION_TOKEN`      | Railway project token    | Verifies and synchronizes the production web-version gate   |
 
 See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release architecture.
 
 ## Release Process
 
-### 1. Pre-Release Checks
+### 1. Prepare one release candidate
 
-```bash
-# Local checks
-pnpm build                # Everything builds without error
-pnpm quality              # Lint + format + type-check
-pnpm test                 # Unit tests
-(cd backend-nest && bun run test:integration)
-pnpm test:e2e             # E2E tests (Playwright)
-```
-
-### 2. Versioning (Changesets)
-
-Run `/release` from a clean, synchronized `preview` or `main`. The skill analyzes the diff, obtains approval for the version and release notes, applies the lockstep Changesets bump, updates the relevant What's New surfaces, and creates the release commit without a tag.
+Run `/release` from a clean, synchronized local `preview`. The skill analyzes the
+changes, asks approval for the version and multilingual product copy, applies the
+Changesets fixed-mode bump, validates the release surfaces, then creates exactly one
+commit on `release/vX.Y.Z`. A second explicit approval publishes only that branch and
+dispatches `🚦 Release Promotion`.
 
 Detailed versioning and force-update gate rules: [VERSIONING.md](./VERSIONING.md).
 
-### 3. Production Deployment
+### 2. Validate the candidate in preview
 
-Let `SHA` be the release commit created by `/release`.
+1. The GitHub App opens `release/vX.Y.Z → preview`.
+2. The preparation PR runs the complete CI matrix and is merged with a merge commit.
+3. The current post-merge CI finishes, then Vercel and Railway deploy the independent
+   preview environment. Railway's successful `deployment_status` starts
+   `✅ Staging Ready (shadow)`; starting it earlier would deadlock with Railway's
+   `Wait for CI` setting.
+4. `Staging Ready` verifies the canonical PR artifact, identical Git tree, exact
+   provider SHAs/statuses and staging health checks.
+5. Until that proof is green, do not merge another PR into `preview`. Afterwards,
+   normal feature merges may resume: the release branch is advanced to the proven
+   merge commit and frozen, so later `preview` changes cannot enter the release.
 
-```bash
-# Validate the exact release object on preview
-git push origin "$SHA:refs/heads/preview"
-# Wait for ci.yml: event push, branch preview, head SHA == $SHA
+### 3. Approve and publish production
 
-# Refetch after green CI and reject drift
-git fetch origin main preview
-test "$(git rev-parse origin/preview)" = "$SHA"
-git merge-base --is-ancestor origin/main "$SHA"
+1. `🚦 Release Promotion` opens `release/vX.Y.Z → main` only for an App-authored
+   preparation PR with a valid staging proof. A normal feature PR stops here.
+2. `✅ Release Gate` checks the frozen candidate, version, ancestry, absent tag and
+   immutable proof without executing untrusted PR code or receiving production secrets.
+3. A human other than the App approves and merges the production PR. This is the
+   release decision; no administrator push is part of the normal process.
+4. `🏭 Production Release` revalidates the approval and proofs, waits for the exact
+   `main` CI plus Vercel/Railway production deployments, checks the three public
+   endpoints, and records an immutable production proof.
+5. Only then does the workflow create `vX.Y.Z`, publish the French GitHub Release and
+   synchronize Railway `LATEST_WEB_VERSION` in preview and production. iOS remains
+   governed by App Store distribution; the backend resolves its published version
+   from Apple.
 
-# The admin bypass documented in CONTRIBUTING.md permits this direct fast-forward
-git push --dry-run origin "$SHA:refs/heads/main"
-git push origin "$SHA:refs/heads/main"
-```
+### 4. Current canary state
 
-Never promote `origin/preview` directly: that ref can advance after its validated CI run. Never use a force push.
-
-The `main` push starts Vercel and Railway production deployments immediately through their GitHub integrations. Those webhooks are not delayed by `ci-success`. In GitHub Actions, the main-only `migrate`, `posthog-annotate`, and `verify-prod-csp` jobs do depend on `ci-success`. The migration job performs its production dry-run immediately before applying changes; pull requests never receive those credentials.
-
-Before creating the immutable tag or GitHub Release:
-
-1. Require the `ci.yml` run for event `push`, branch `main`, and exact `SHA` to finish successfully.
-2. Require both Vercel production projects and the Railway production deployment to report that same Git SHA and a ready/successful status.
-3. Run the three public health checks below.
-4. Refetch and confirm `origin/main` still equals `SHA`.
-
-Only then create the tag and GitHub Release. Update Railway `LATEST_WEB_VERSION` after the web release is public and verify `/api/v1/app/version`. Leave `LATEST_IOS_VERSION` alone: the backend resolves the published iOS version from the App Store (see [VERSIONING.md](VERSIONING.md)), so no post-App-Store operation is pending.
+The protected workflows are deployed, and the post-Railway staging proof has passed
+on a normal preview PR. The first real release still serves as the end-to-end canary.
+Until it succeeds, the full `push` CI on `preview` and `main`, the existing required
+`✅ CI Success` check and the legacy administrator bypass remain available. They are
+not used by the normal release path and are removed only during the documented
+cutover in the [release-promotion plan](../aidd_docs/tasks/2026_08/2026_08_16_protected-release-promotion/plan.md).
 
 ## Post-Deployment Monitoring
 
 ### Automatic Health Checks
+
 - **Frontend (Vercel)**: built-in monitoring
 - **Landing (Vercel)**: built-in monitoring
 - **Backend (Railway)**: endpoint `/health`

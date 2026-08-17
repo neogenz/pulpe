@@ -40,6 +40,33 @@ flowchart LR
 There is no performance-test job: the former job selected a deleted test file, so Bun ran
 zero tests while reporting success.
 
+## Release proofs
+
+The release path reuses the complete CI result from the App-authored preparation PR
+instead of treating a second build as the identity of the candidate:
+
+```mermaid
+flowchart LR
+    PR["release/vX.Y.Z → preview"] --> CI["Complete PR CI"]
+    CI --> Merge["Merge commit P on preview"]
+    Merge --> PushCI["Current push CI"]
+    PushCI --> Deploy["Vercel and Railway preview"]
+    Deploy --> Proof["Staging Ready from Railway deployment_status"]
+    Proof --> Gate["release/vX.Y.Z → main · Release Gate"]
+    Gate --> Human["Human approval"]
+    Human --> Production["Production CI, deployments, proof and publication"]
+```
+
+`Staging Ready` is deliberately triggered by Railway's successful preview
+`deployment_status`. Railway waits for GitHub CI before deploying, so a workflow that
+started on the `preview` push and waited for Railway would create a circular wait.
+The proof compares the tested and merged Git trees, requires exact provider SHAs, and
+runs staging health checks. Normal preview PRs produce a proof but are not promoted.
+
+The complete `push` matrices remain active during the first real-release canary. The
+cutover may remove proven-redundant runs only after that canary succeeds; the executable
+truth remains the workflow triggers in this directory.
+
 ## Quality boundary
 
 ```bash

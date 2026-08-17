@@ -555,7 +555,9 @@ Only after "oui":
 
 After the preparation PR is reviewed and merged with a merge commit:
 
-- `✅ Staging Ready (shadow)` proves the exact merged commit and deployments;
+- the current push CI completes and the preview providers deploy that merge commit;
+- Railway's successful preview `deployment_status` triggers `✅ Staging Ready (shadow)`, avoiding a circular wait with Railway `Wait for CI`;
+- `✅ Staging Ready (shadow)` proves the canonical PR tree, exact merged commit, provider deployments and health checks;
 - the trusted promotion workflow fast-forwards the same release branch to that proven commit;
 - the App opens the production PR to `main`;
 - new feature PRs may then continue merging into `preview` without changing the frozen candidate;

@@ -24,28 +24,17 @@ Les commits techniques (`chore:`, `refactor:`, `test:`, `ci:`, `docs:`, `style:`
 
 ## Sous-packages
 
-Chaque sous-package JS/TS conserve sa propre version dans son `package.json` (gérée par [changesets](https://github.com/changesets/changesets)). Ces versions internes :
-
-- **Sont bumpées uniquement quand le package est impacté**
-- **Ne génèrent PAS de tags git** — seul le tag produit `vX.Y.Z` existe
-- Servent à tracer les changements par package dans les `CHANGELOG.md` locaux
+Les quatre sous-packages JS/TS sont dans le groupe `fixed` de
+[Changesets](https://github.com/changesets/changesets). À chaque release, frontend,
+landing, backend et shared prennent tous la version produit racine, même si un seul
+package a changé. Ils ne génèrent aucun tag séparé ; seul `vX.Y.Z` existe.
 
 ## iOS
 
-iOS conserve sa version dans `ios/project.yml` (`MARKETING_VERSION`). Voir [IOS_VERSIONING.md](./IOS_VERSIONING.md) pour les détails Apple.
-
-**Règle d'alignement :** iOS n'est bumpé que quand du code iOS est modifié. À ce moment, `MARKETING_VERSION` s'aligne sur la version produit courante. iOS peut donc sauter des versions.
-
-**Exemple :**
-
-| Release | Changements         | Tag       | Frontend | Backend    | iOS                |
-| ------- | ------------------- | --------- | -------- | ---------- | ------------------ |
-| v1.7.0  | web + iOS + backend | `v1.7.0`  | 0.19.0   | 0.12.0     | **1.7.0**          |
-| v1.8.0  | web only            | `v1.8.0`  | 0.20.0   | _inchangé_ | _inchangé (1.7.0)_ |
-| v1.9.0  | web + backend       | `v1.9.0`  | 0.21.0   | 0.13.0     | _inchangé (1.7.0)_ |
-| v1.10.0 | iOS + web           | `v1.10.0` | 0.22.0   | _inchangé_ | **1.10.0**         |
-
-iOS saute de 1.7.0 à 1.10.0 — c'est voulu. Apple impose des versions strictement croissantes, et la version produit garantit cette contrainte.
+iOS conserve sa propre SemVer dans `ios/project.yml`, indépendante de la version
+produit. Une modification iOS purement technique augmente seulement le build ; une
+fonctionnalité ou correction visible approuvée augmente sa version marketing. Une
+release web/backend ne la modifie pas. Voir [IOS_VERSIONING.md](./IOS_VERSIONING.md).
 
 ## Format des notes de release
 
@@ -76,8 +65,10 @@ Règles :
 
 ## Workflow
 
-```
-git log → analyser commits → proposer version → changeset + bump root (+iOS si impacté) → tag vX.Y.Z → GitHub Release
+```text
+git log → proposition approuvée → branche release/vX.Y.Z → bump fixed-mode
+→ PR preview + preuve staging → PR main approuvée → preuve production
+→ tag vX.Y.Z + GitHub Release
 ```
 
 Automatisé via le skill `/release`.
