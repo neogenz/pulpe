@@ -70,6 +70,45 @@ const months: SavingsGoalPlanMonth[] = [
   }),
 ];
 
+/**
+ * A 200 withdrawal announced on the third month: the server subtracts it inside
+ * `projectedCumulative` (280 → 280 → 80 → 180), and that is where the curve has
+ * to dip.
+ */
+const monthsWithWithdrawal: SavingsGoalPlanMonth[] = [
+  makeMonth({
+    month: 1,
+    confirmedCumulative: 180,
+    projectedCumulative: 280,
+  }),
+  makeMonth({
+    month: 2,
+    state: 'current',
+    isLocked: false,
+    confirmedAmount: 20,
+    confirmedCumulative: 180,
+    projectedCumulative: 280,
+  }),
+  makeMonth({
+    month: 3,
+    state: 'future',
+    isLocked: false,
+    confirmedAmount: 0,
+    confirmedCumulative: 180,
+    plannedWithdrawalAmount: 200,
+    remainingPlannedWithdrawalAmount: 200,
+    projectedCumulative: 80,
+  }),
+  makeMonth({
+    month: 4,
+    state: 'future',
+    isLocked: false,
+    confirmedAmount: 0,
+    confirmedCumulative: 180,
+    projectedCumulative: 180,
+  }),
+];
+
 describe('buildGoalProjectionChartData', () => {
   it('returns empty datasets when there are no months', () => {
     const data = buildGoalProjectionChartData({
@@ -166,50 +205,36 @@ describe('buildGoalProjectionChartData', () => {
   });
 
   it('digs the planned projection into the month that announces a retrait', () => {
-    // Un retrait annoncé de 200 sur le troisième mois : le serveur le retranche
-    // dans `projectedCumulative` (280 → 80 → 180), et c'est là que la courbe
-    // doit plonger. En sommant les seules contributions elle lisait 280 et ne
-    // redescendait qu'au tout dernier point, réécrit par `projected`.
-    const withWithdrawal: SavingsGoalPlanMonth[] = [
-      makeMonth({
-        month: 1,
-        confirmedCumulative: 180,
-        projectedCumulative: 280,
-      }),
-      makeMonth({
-        month: 2,
-        state: 'current',
-        isLocked: false,
-        confirmedAmount: 20,
-        confirmedCumulative: 180,
-        projectedCumulative: 280,
-      }),
-      makeMonth({
-        month: 3,
-        state: 'future',
-        isLocked: false,
-        confirmedAmount: 0,
-        confirmedCumulative: 180,
-        plannedWithdrawalAmount: 200,
-        remainingPlannedWithdrawalAmount: 200,
-        projectedCumulative: 80,
-      }),
-      makeMonth({
-        month: 4,
-        state: 'future',
-        isLocked: false,
-        confirmedAmount: 0,
-        confirmedCumulative: 180,
-        projectedCumulative: 180,
-      }),
-    ];
-
+    // Summing contributions alone, the curve read 280 and only came back down
+    // on the very last point, rewritten by `projected`.
     const data = buildGoalProjectionChartData({
-      months: withWithdrawal,
+      months: monthsWithWithdrawal,
       draft: null,
       targetAmount: 300,
       confirmed: 180,
       projected: 180,
+      theme,
+      locale: 'fr-CH',
+      labels,
+    });
+
+    const projection = data.datasets.find(
+      (d) => d.label === 'Projection planifiée',
+    );
+    expect(projection?.data).toEqual([null, 180, 80, 180]);
+  });
+
+  it('closes a targetless curve on the net balance, not the gross plan', () => {
+    // With no target amount and no deadline the server stops computing
+    // `projected`, so the page falls back on `plannedProjection`, which ignores
+    // withdrawals by design. Handing it over as the endpoint made the curve
+    // climb back on the last month with no money moving: 380 gross, 180 net.
+    const data = buildGoalProjectionChartData({
+      months: monthsWithWithdrawal,
+      draft: null,
+      targetAmount: null,
+      confirmed: 180,
+      projected: 380,
       theme,
       locale: 'fr-CH',
       labels,
@@ -253,9 +278,9 @@ describe('buildGoalProjectionChartData', () => {
   });
 
   it('follows the sandbox down through a retrait too', () => {
-    // Même contrat côté simulation : `simulatedCumulative` nette déjà les
-    // retraits, et c'est le chiffre que chaque rangée éditable affiche — la
-    // courbe ne doit pas en dériver un second.
+    // Same contract on the simulation side: `simulatedCumulative` already nets
+    // the withdrawals out, and it is the figure each editable row prints — the
+    // curve must not derive a second one.
     const fourMonths: SavingsGoalPlanMonth[] = [
       ...months,
       makeMonth({

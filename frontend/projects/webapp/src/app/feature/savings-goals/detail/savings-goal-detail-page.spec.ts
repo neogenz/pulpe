@@ -421,6 +421,31 @@ describe('SavingsGoalDetailPage', () => {
       .triggerEventHandler('previewRequested');
   }
 
+  it('falls back on the net balance, not the gross plan, when the server has no projection', () => {
+    // A goal with a target but no deadline: the server stops computing
+    // `projected`, and `plannedProjection` sums contributions without ever
+    // subtracting a withdrawal. The last `projectedCumulative` is the balance
+    // the curve reaches, so the bar quotes it too: 2400/3000 = 80%, not
+    // 3600/3000 clamped to 100%. iOS mirror:
+    // `SavingsGoalProgress.displayedProjection`.
+    progressSig.set(
+      makeProgress({
+        targetDate: null,
+        projected: null,
+        plannedProjection: 3600,
+        months: [
+          makePlanMonth({ month: 5, projectedCumulative: 2700 }),
+          makePlanMonth({ month: 6, projectedCumulative: 2400 }),
+        ],
+      }),
+    );
+    fixture.detectChanges();
+
+    expect(query('progress-projected-layer').nativeElement.style.width).toBe(
+      '80%',
+    );
+  });
+
   it('renders the projected balance and confirmed layers from the progress response', () => {
     progressSig.set(makeProgress({ projected: 2400 }));
     fixture.detectChanges();

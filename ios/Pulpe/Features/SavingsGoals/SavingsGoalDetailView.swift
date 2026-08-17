@@ -303,11 +303,16 @@ struct SavingsGoalDetailView: View {
         }
     }
 
+    /// Base `displayedProjection`, not `plannedProjection`: the sentence answers
+    /// the same question as the hero and the chart endpoint, so it has to start
+    /// from the same figure. `plannedProjection` never subtracts a withdrawal,
+    /// so on a goal without a target amount it quoted an « après création » above
+    /// what the curve reaches — two projections for one plan.
     private func recoveryVerdict(_ progress: SavingsGoalProgress) -> String {
         let changes = recoveryChanges(progress)
         let added = changes.reduce(Decimal.zero) { $0 + $1.simulatedAmount }
         return AppLocale.string(
-            "Projection après création : \((progress.plannedProjection + added).asCompactCurrency(currency))"
+            "Projection après création : \((progress.displayedProjection + added).asCompactCurrency(currency))"
         )
     }
 }

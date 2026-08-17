@@ -120,11 +120,19 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
     }
 
     /// The one projection the UI shows: deadline-aware when the server computed
-    /// it, full known plan otherwise. Miroir web `displayedProjection`
-    /// (`savings-goal-detail-page.ts`) — both clients name a single figure, so
-    /// the bar, the sentence and the verdict can never quote three different ones.
+    /// it, the timeline's own end-of-month balance otherwise. Miroir web
+    /// `displayedProjection` (`savings-goal-detail-page.ts`) — both clients name
+    /// a single figure, so the bar, the sentence and the verdict can never quote
+    /// three different ones.
+    ///
+    /// `projected` is nil without a target amount or a deadline, and both are
+    /// optional at creation — a goal with neither is a supported path, not an
+    /// edge case. The last `projectedCumulative` closes the same curve the chart
+    /// draws; `plannedProjection` only closes a payload that predates the field,
+    /// and it sums contributions without ever subtracting a withdrawal, so on
+    /// its own it made the sentence quote more than the curve ever reached.
     var displayedProjection: Decimal {
-        projected ?? plannedProjection
+        projected ?? months.last?.projectedCumulative ?? plannedProjection
     }
 
     /// Progress fraction (0…1) of `displayedProjection` against the target.

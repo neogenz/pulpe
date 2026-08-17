@@ -121,6 +121,24 @@ struct GoalProjectionSeriesTests {
         #expect(series.projection.map(\.value) == [500, 0, 500])
     }
 
+    /// Sans montant cible le serveur ne calcule plus `projected`, et le repli
+    /// `plannedProjection` n'est pas un solde : il ignore les retraits par
+    /// construction (`savings-goal-progress.ts`). Le lui donner comme point final
+    /// faisait plonger la courbe au mois du retrait puis remonter au dernier mois
+    /// sans qu'un franc bouge. Ici 87 000 bruts contre 84 000 nets.
+    @Test("a targetless goal closes its curve on the net balance, not the gross plan")
+    func targetlessProjection_closesOnTheNetBalance() {
+        let series = GoalProjectionSeries.read(
+            from: makeProgressWithWithdrawal(
+                targetAmount: nil,
+                projected: nil,
+                plannedProjection: 87_000
+            )
+        )
+
+        #expect(series.projection.map(\.value) == [85_000, 83_500, 84_000])
+    }
+
     @Test("a targetless series keeps its data without inventing a chart target")
     func targetlessSeries_hasNoTargetRuleValue() {
         let series = GoalProjectionSeries.read(from: makeProgress(currentIndex: 1, targetAmount: nil))
@@ -156,10 +174,14 @@ struct GoalProjectionSeriesTests {
     /// Four months, the current one at index 1, and a 2 000 retrait announced on
     /// index 2 — so the server's own `projectedCumulative` falls before it climbs
     /// back: 85 000 → 83 500 → 84 000.
-    private func makeProgressWithWithdrawal() -> SavingsGoalProgress {
+    private func makeProgressWithWithdrawal(
+        targetAmount: Decimal? = 2_000,
+        projected: Decimal? = 84_000,
+        plannedProjection: Decimal? = nil
+    ) -> SavingsGoalProgress {
         let months: [SavingsGoalPlanMonth] = (0..<4).map { offset in
             let withdrawal: Decimal = offset == 2 ? 2_000 : 0
-            let projected: Decimal = switch offset {
+            let cumulative: Decimal = switch offset {
             case 2: 83_500
             case 3: 84_000
             default: 85_000
@@ -176,16 +198,17 @@ struct GoalProjectionSeriesTests {
                 planLinkedWithdrawalAmount: withdrawal,
                 plannedCumulative: Decimal(500 * (offset + 1)),
                 confirmedCumulative: offset <= 1 ? 85_000 : 0,
-                projectedCumulative: projected,
+                projectedCumulative: cumulative,
                 lines: []
             )
         }
         return SavingsGoalProgress(
             goalId: "g1",
             status: .active,
-            targetAmount: 2_000,
+            targetAmount: targetAmount,
             targetDate: "2099-04-01",
             plannedCumulative: 500,
+            plannedProjection: plannedProjection,
             confirmed: 85_000,
             achievementPercent: 43,
             monthsElapsed: 2,
@@ -194,7 +217,7 @@ struct GoalProjectionSeriesTests {
             pace: 500,
             confirmedPace: 0,
             required: 500,
-            projected: 84_000,
+            projected: projected,
             paceStatus: .behind,
             suggestCompletion: false,
             linkedLineCount: 1,

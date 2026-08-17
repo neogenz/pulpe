@@ -308,8 +308,18 @@ struct GoalProjectionSeries: Equatable {
                     ))
                 }
             }
-            // The API owns the canonical endpoint and absorbs decimal rounding.
-            projection[projection.count - 1] = Point(index: lastIndex, value: double(projected))
+            // The endpoint stays in the same net family as every other point.
+            // `projected` collapses to `plannedProjection` on a goal with no
+            // target amount or no deadline, and that figure ignores retraits by
+            // design — closing a net curve with it made the line dip on the
+            // retrait month then climb back on the last one with no money
+            // moving. It now only closes a legacy curve, which has no net
+            // balance to close with; there the API still owns the endpoint and
+            // absorbs decimal rounding.
+            projection[projection.count - 1] = Point(
+                index: lastIndex,
+                value: double(months[lastIndex].projectedCumulative ?? projected)
+            )
         }
 
         return GoalProjectionSeries(

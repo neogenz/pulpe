@@ -125,12 +125,12 @@ function buildPlannedProjection(
   confirmed: number,
   projected: number,
   /**
-   * Solde de fin de mois faisant autorité, un par mois : `projectedCumulative`
-   * (serveur) en lecture, `simulatedCumulative` (calculateur) en simulation.
-   * Les deux retranchent déjà les retraits réels et annoncés — ce que la somme
-   * de repli, qui n'additionne que des contributions, ne peut pas voir : un
-   * mois portant un retrait continuait de grimper et seul le dernier point,
-   * réécrit plus bas, redescendait.
+   * The authoritative end-of-month balance, one per month: `projectedCumulative`
+   * (server) in read mode, `simulatedCumulative` (calculator) in simulation.
+   * Both already subtract real and announced withdrawals — which the fallback
+   * running sum, adding contributions only, cannot see: a month carrying a
+   * withdrawal kept climbing, and only the last point, rewritten below, came
+   * back down.
    */
   cumulatives?: readonly (number | undefined)[],
 ): (number | null)[] {
@@ -150,8 +150,15 @@ function buildPlannedProjection(
     cumulative += Math.max(0, month.plannedAmount - month.confirmedAmount);
     if (index > currentIndex) data[index] = cumulatives?.[index] ?? cumulative;
   }
-  // The server owns the canonical endpoint; this also absorbs float rounding.
-  data[lastIndex] = projected;
+  // The endpoint stays in the same net family as every other point: the net
+  // balance wins whenever there is one. `projected` collapses to
+  // `plannedProjection` on a goal with no target amount or no deadline, and
+  // that figure ignores withdrawals by design — closing a net curve with it
+  // made the line dip on the withdrawal month then climb back on the last one
+  // with no money moving. It now only closes a legacy curve, which carries no
+  // net balance; there the server still owns the endpoint and absorbs float
+  // rounding.
+  data[lastIndex] = cumulatives?.[lastIndex] ?? projected;
   return data;
 }
 

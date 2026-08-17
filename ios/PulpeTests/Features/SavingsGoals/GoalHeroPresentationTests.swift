@@ -13,7 +13,8 @@ struct GoalHeroPresentationTests {
         month: Int,
         state: SavingsPlanMonthState,
         isLocked: Bool,
-        planned: Decimal = 300
+        planned: Decimal = 300,
+        projectedCumulative: Decimal? = nil
     ) -> SavingsGoalPlanMonth {
         SavingsGoalPlanMonth(
             month: month,
@@ -24,6 +25,7 @@ struct GoalHeroPresentationTests {
             confirmedAmount: 0,
             plannedCumulative: planned,
             confirmedCumulative: 0,
+            projectedCumulative: projectedCumulative,
             lines: []
         )
     }
@@ -119,6 +121,27 @@ struct GoalHeroPresentationTests {
 
         #expect(presentation.projection == AppLocale.string(
             "Ton plan te mène à \(Decimal(3_600).asCompactCurrency(currency)) à l'échéance."
+        ))
+    }
+
+    /// Sans cible ni échéance le serveur ne calcule plus `projected`, et le repli
+    /// historique `plannedProjection` somme les contributions sans jamais
+    /// retrancher un retrait : la phrase annonçait 3 600 quand la courbe finissait
+    /// à 2 900. Le dernier `projectedCumulative` ferme la même courbe que le chart.
+    @Test("a targetless plan quotes the balance the curve reaches, not the gross plan")
+    func projection_quotesTheNetBalanceWhenTheServerHasNoProjection() {
+        let presentation = makePresentation(makeProgress(
+            targetAmount: nil,
+            targetDate: nil,
+            projected: nil,
+            months: [
+                makeMonth(month: 5, state: .past, isLocked: true, projectedCumulative: 3_200),
+                makeMonth(month: 6, state: .current, isLocked: false, projectedCumulative: 2_900),
+            ]
+        ))
+
+        #expect(presentation.projection == AppLocale.string(
+            "Ton plan te mène à \(Decimal(2_900).asCompactCurrency(currency)) au total."
         ))
     }
 
