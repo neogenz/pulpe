@@ -16,7 +16,7 @@ jobs:
       github.event.deployment.environment == 'pulpe-backend / preview' &&
       github.event.deployment.creator.login == 'railway-app[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 55
     env:
       PREVIEW_BACKEND_HEALTH_URL: https://backend-preview-34f4.up.railway.app/health
     steps:
@@ -69,11 +69,11 @@ jobs:
           pr_number=$(jq -r .pr_number "$RUNNER_TEMP/merged-pr.json")
           gh api --paginate -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" -f event=pull_request -f branch="$head_ref" -f per_page=100 --jq '.workflow_runs[]' > "$RUNNER_TEMP/ci-runs.jsonl"
 
-          python3 - "$RUNNER_TEMP/ci-runs.jsonl" "$pr_number" "$head_ref" "$head_sha" "$GITHUB_REPOSITORY" "$GITHUB_OUTPUT" <<'PY'
+          python3 - "$RUNNER_TEMP/ci-runs.jsonl" "$pr_number" "$head_ref" "$head_sha" "$GITHUB_REPOSITORY" "$RUNNER_TEMP/canonical-ci-run-id" <<'PY'
           import json
           import sys
 
-          path, pr_number, head_ref, head_sha, repository, output = sys.argv[1:]
+          path, pr_number, head_ref, head_sha, repository, run_id_path = sys.argv[1:]
           pr_number = int(pr_number)
           with open(path, encoding="utf-8") as handle:
               runs = [json.loads(line) for line in handle if line.strip()]
@@ -89,15 +89,49 @@ jobs:
           if not canonical:
               raise SystemExit(f"canonical CI run missing for PR #{pr_number}")
           latest = max(canonical, key=lambda run: int(run["id"]))
-          if latest.get("status") != "completed" or latest.get("conclusion") != "success":
-              raise SystemExit(
-                  "latest canonical CI run is not green: "
-                  f"{latest.get('status')}/{latest.get('conclusion')}"
-              )
-          with open(output, "a", encoding="utf-8") as handle:
-              handle.write(f"ci_run_id={latest['id']}\n")
-              handle.write(f"ci_run_attempt={latest['run_attempt']}\n")
+          with open(run_id_path, "w", encoding="utf-8") as handle:
+              handle.write(str(latest["id"]))
           PY
+
+          ci_run_id=$(cat "$RUNNER_TEMP/canonical-ci-run-id")
+          canonical_ci="$RUNNER_TEMP/canonical-ci-run.json"
+          for iteration in {1..180}; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ci_run_id" > "$canonical_ci"
+            jq -e --argjson run_id "$ci_run_id" '.id == $run_id' "$canonical_ci" >/dev/null
+            status=$(jq -r '.status // empty' "$canonical_ci")
+            conclusion=$(jq -r '.conclusion // empty' "$canonical_ci")
+
+            case "$status" in
+              completed)
+                if [ "$conclusion" != success ]; then
+                  echo "::error::canonical CI run failed: $status/$conclusion"
+                  exit 1
+                fi
+                ci_run_attempt=$(jq -er '.run_attempt | select(type == "number")' "$canonical_ci")
+                break
+                ;;
+              queued|in_progress)
+                current_sha=$(gh api "repos/$GITHUB_REPOSITORY/branches/preview" --jq .commit.sha)
+                if [ "$current_sha" != "$GITHUB_SHA" ]; then
+                  echo "::error::preview moved from $GITHUB_SHA to $current_sha while waiting for CI"
+                  exit 1
+                fi
+                if [ "$iteration" -eq 180 ]; then
+                  echo "::error::canonical CI run did not complete within 30 minutes"
+                  exit 1
+                fi
+                sleep 10
+                ;;
+              *)
+                echo "::error::unknown canonical CI status: ${status:-missing}"
+                exit 1
+                ;;
+            esac
+          done
+          {
+            echo "ci_run_id=$ci_run_id"
+            echo "ci_run_attempt=$ci_run_attempt"
+          } >> "$GITHUB_OUTPUT"
 
       - name: 📥 Download tested-tree evidence
         env:
