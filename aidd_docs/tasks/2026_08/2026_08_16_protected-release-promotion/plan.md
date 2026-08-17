@@ -27,6 +27,12 @@ Audit GitHub Actions du 17 juillet au 16 août 2026 :
 
 La décision de cutover reste réversible : le nouveau flux est implémenté à côté du flux actuel, puis validé par la première vraie release utilisée comme canary. Aucun merge artificiel n'est requis et la CI post-merge actuelle n'est retirée qu'après le succès complet de cette canary.
 
+État au 17 août 2026 : les workflows de préparation, preuve staging,
+promotion, gate et publication production sont fusionnés. Le déclenchement
+post-Railway a passé une canary sur une PR normale. Restent la première vraie release
+de bout en bout, puis le cutover des checks requis, de la CI `push` redondante et du
+bypass administrateur historique ; le plan demeure donc `in-progress`.
+
 ## Phases
 
 | #   | Phase                                            | File                         |
@@ -55,9 +61,9 @@ La décision de cutover reste réversible : le nouveau flux est implémenté à 
 | Valider complètement les PR vers `preview`, puis prouver l'identité de l'arbre et des déploiements après fusion. | La seconde compilation du même contenu apporte peu ; l'arbre Git et les SHA fournisseurs répondent précisément au risque de drift.                                               |
 | Valider `Staging Ready` sur la première vraie release canary avant de retirer la CI `push`.                      | Les échecs fermés déjà observés couvrent le drift et la preuve absente ; une canary réelle valide le chemin heureux sans imposer de merges artificiels.                          |
 | Utiliser une seule branche logique `release/vX.Y.Z` et un seul commit de version.                                | La PR vers `preview` valide le candidat ; après son merge commit, la branche avance en fast-forward sur ce commit puis sert sans nouvelle modification à la PR vers `main`.      |
-| Suspendre les merges vers `preview` de la création de la branche release jusqu'à sa preuve `Staging Ready`.       | Une feature arrivée pendant la CI manquerait aux notes ou changerait le tree ; après la preuve, `preview` peut avancer sans modifier le candidat figé.                            |
+| Suspendre les merges vers `preview` de la création de la branche release jusqu'à sa preuve `Staging Ready`.      | Une feature arrivée pendant la CI manquerait aux notes ou changerait le tree ; après la preuve, `preview` peut avancer sans modifier le candidat figé.                           |
 | Garder exactement deux environnements permanents : preview et production.                                        | Un environnement release-candidate dédié complexifierait Vercel, Railway, Supabase et les secrets pour un besoin couvert par une courte fenêtre de stabilisation.                |
 | Exiger une approbation humaine uniquement sur la PR de production, l'App n'ayant aucun bypass de `main`.         | Les agents peuvent préparer et corriger ; la décision irréversible reste explicite, séparée de l'identité qui a créé la PR et auditée dans GitHub.                               |
 | Conserver les rebuilds fournisseurs propres à preview et production.                                             | Vercel et Railway ont des variables et secrets d'environnement distincts ; un « build once, promote everywhere » uniforme n'existe pas pour l'ensemble web/backend/iOS de Pulpe. |
 | Ne pas introduire de merge queue ni automatiser l'auto-merge de toutes les feature PR.                           | Le flux de release n'a besoin d'automatiser que sa PR de préparation ; étendre la politique aux contributions publiques serait un autre chantier.                                |
-| Installer `Pulpe Release` uniquement sur `neogenz/pulpe`, avec Contents et Pull requests en lecture/écriture.     | Son jeton est court, ses deux secrets restent dans GitHub et l'App n'a ni webhook, ni permission Actions, ni bypass de ruleset.                                                   |
+| Installer `Pulpe Release` uniquement sur `neogenz/pulpe`, avec Contents et Pull requests en lecture/écriture.    | Son jeton est court, ses deux secrets restent dans GitHub et l'App n'a ni webhook, ni permission Actions, ni bypass de ruleset.                                                  |
