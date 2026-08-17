@@ -1170,6 +1170,10 @@ describe('SavingsGoalDetailPage', () => {
     mockDialogs.openApplyPlan.mockResolvedValueOnce(true);
     fixture.detectChanges();
 
+    expect(query('stat-required').nativeElement.textContent).toContain(
+      '0.01 CHF',
+    );
+
     triggerRepairPreview();
     await fixture.whenStable();
 

@@ -397,7 +397,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                           | transloco
                             : {
                                 amount:
-                                  p.required
+                                  repairAmount()
                                   | appCurrency: currency() : '1.0-2',
                               }
                       }}

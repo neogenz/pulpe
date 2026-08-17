@@ -190,13 +190,14 @@ struct GoalHeroPresentationTests {
         #expect(presentation.requiredPace == nil)
     }
 
-    @Test("a one-cent projection gap still advises the exact pace")
-    func requiredPace_shownForAOneCentGap() throws {
+    @Test("a one-cent projection gap rounds a sub-cent pace up to one cent")
+    func requiredPace_roundsUpForAOneCentGap() throws {
         let oneCent = try #require(Decimal(string: "0.01"))
+        let subCentRequired = try #require(Decimal(string: "0.001"))
         let presentation = makePresentation(makeProgress(
             targetAmount: 3_000,
             projected: Decimal(string: "2999.99"),
-            required: oneCent
+            required: subCentRequired
         ))
 
         #expect(presentation.requiredPace?.contains(oneCent.asAdaptiveCurrency(currency)) == true)

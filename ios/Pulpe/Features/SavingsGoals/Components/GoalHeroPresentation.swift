@@ -126,8 +126,9 @@ struct GoalHeroPresentation: Equatable {
               let targetAmount = progress.targetAmount,
               progress.displayedProjection.rounded(2) < targetAmount.rounded(2),
               let deadline = progress.targetDateValue else { return nil }
+        let amount = required.rounded(2, .up).asAdaptiveCurrency(currency)
         return AppLocale.string(
-            "Vise \(required.asAdaptiveCurrency(currency))/mois pour finir le \(deadline.abbreviatedDateFormatted)."
+            "Vise \(amount)/mois pour finir le \(deadline.abbreviatedDateFormatted)."
         )
     }
 }
