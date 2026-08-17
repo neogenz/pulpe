@@ -1,6 +1,6 @@
 ---
 objective: "PostHog is the sole Android telemetry and error-tracking vendor, with no Sentry runtime, dependency, configuration, generated native integration, artifact, or actionable setup left outside this removal record."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Remove Sentry from Android observability
