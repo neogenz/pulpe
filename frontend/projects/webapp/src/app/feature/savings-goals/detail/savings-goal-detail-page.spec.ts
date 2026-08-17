@@ -1230,7 +1230,7 @@ describe('SavingsGoalDetailPage', () => {
     expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 'creation',
-        verdict: 'Projection après création : 1’375 CHF',
+        verdict: 'Projection après création : 4’675 CHF',
       }),
     );
   });
@@ -1249,7 +1249,7 @@ describe('SavingsGoalDetailPage', () => {
     expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 'creation',
-        verdict: 'Projection après création : 1 375 €',
+        verdict: 'Projection après création : 4 675 €',
       }),
     );
   });
