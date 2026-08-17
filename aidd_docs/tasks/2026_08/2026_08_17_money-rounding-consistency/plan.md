@@ -1,6 +1,6 @@
 ---
 objective: "Toute décision financière et tout montant qui la justifie restent cohérents au centime sur Web, backend partagé et iOS, sans bruit décimal sur les agrégats purement visuels."
-status: implemented
+status: reviewed
 ---
 
 # Plan: Rendre les arrondis monétaires cohérents dans tout le produit

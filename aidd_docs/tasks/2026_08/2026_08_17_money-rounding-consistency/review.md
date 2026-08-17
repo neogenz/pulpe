@@ -1,10 +1,10 @@
 # Review: Money rounding consistency
 
-- **Verdict**: changes-requested
+- **Verdict**: approve
 - **Diff**: `origin/preview...HEAD`
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_08_17
-- **Findings**: 0 critical, 1 warning, 0 minor
+- **Findings**: 0 critical, 0 warning, 0 minor
 
 ## Phases
 
@@ -41,8 +41,8 @@
 ### Phase 5 — Aligner les parcours objectifs et retraits sur les deux clients
 
 - [x] Web et iOS autorisent le plafond exact, bloquent `+0.01` et conservent le serveur comme autorité finale — `ios/PulpeTests/Shared/Components/SavingsGoalPickerFieldTests.swift:189`
-- [x] Une cible à `0.01` de son but n'est pas annoncée atteinte, même si son pourcentage visuel vaut 100 — `ios/PulpeTests/Features/SavingsGoals/GoalHeroPresentationTests.swift:207`
-- [ ] Tout manque, plafond ou projection qui guide une action montre jusqu'à deux décimales ; une valeur ronde reste sans décimales inutiles — un manque total de `0.01` réparti sur plusieurs mois produit un `required` sous-centime que le hero iOS conserve mais affiche encore comme « Vise 0 CHF/mois » — `shared/src/calculators/savings-goal-progress.ts:394`<br>`ios/Pulpe/Features/SavingsGoals/Components/GoalHeroPresentation.swift:127`<br>`ios/Pulpe/Features/SavingsGoals/Components/GoalHeroPresentation.swift:130`
+- [x] Une cible à `0.01` de son but n'est pas annoncée atteinte, même si son pourcentage visuel vaut 100 — `ios/PulpeTests/Features/SavingsGoals/GoalHeroPresentationTests.swift:208`
+- [x] Tout manque, plafond ou projection qui guide une action montre jusqu'à deux décimales ; une valeur ronde reste sans décimales inutiles — `frontend/projects/webapp/src/app/feature/savings-goals/detail/savings-goal-detail-page.spec.ts:1166`<br>`ios/PulpeTests/Features/SavingsGoals/GoalHeroPresentationTests.swift:182`<br>`ios/PulpeTests/Features/SavingsGoals/GoalHeroPresentationTests.swift:193`
 - [x] Les fixtures jumelles produisent le même verdict, la même valeur après retrait et le même payload normalisé sur les deux clients — `ios/PulpeTests/Shared/Components/SavingsGoalPlannedWithdrawalPickerTests.swift:132`
 
 ### Phase 6 — Prouver la non-régression transversale
@@ -55,15 +55,13 @@
 
 ## Findings
 
-| Sev        | Kind       | Phase | Location                                                                                                                                                                                                                                    | Issue                                                                                                                                                                                                                                                                                                                                                     | Fix                                                                                                                                                                                                                                                                                        |
-| ---------- | ---------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 🟡 warning | functional | 5     | `shared/src/calculators/savings-goal-progress.ts:394`<br>`ios/Pulpe/Features/SavingsGoals/Components/GoalHeroPresentation.swift:127`<br>`ios/Pulpe/Features/SavingsGoals/Components/GoalHeroPresentation.swift:130`<br>`frontend/projects/webapp/src/app/feature/savings-goals/detail/savings-goal-detail-page.ts:400` | Pour `target - confirmed = 0.01` et plusieurs mois restants, le domaine renvoie `required < 0.01`. La projection arrondie reste réellement un centime sous la cible, donc le nouveau garde iOS conserve le conseil, mais `asAdaptiveCurrency` l'affiche « Vise 0 CHF/mois » ; le détail Web formate le même `required` brut à deux décimales. Le test ajouté contourne ce chemin en injectant directement `required = 0.01`. | Quantifier vers le haut le montant mensuel présenté à `0.01` minimum lorsqu'un manque réel subsiste, en réutilisant la convention de récupération déjà documentée, puis tester `target - confirmed = 0.01` avec plusieurs mois restants sur Web et iOS tout en conservant le masquage du résidu sous-centime. |
+None.
 
 ## Verification
 
 | Metric        | Value                                                                                                                                                                                                                                                                                                          |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Verified      | 96% (26/27)                                                                                                                                                                                                                                                                                                    |
+| Verified      | 100% (27/27)                                                                                                                                                                                                                                                                                                   |
 | Files checked | `origin/preview...HEAD` — 123 fichiers dans `shared/`, `backend-nest/`, `frontend/`, `ios/`, la documentation et les tâches AIDD                                                                                                                                                                               |
-| Unchecked     | Phase 5 — un manque réel d'un centime peut encore être conseillé comme `0 CHF/mois` lorsque `required` est sous-centime — fix                                                                                                                                                                                |
+| Unchecked     | none                                                                                                                                                                                                                                                                                                          |
 | Unplanned     | `DESIGN.md`, `frontend/DESIGN.md`, `frontend/.impeccable/design.json`, `ios/DESIGN.md` — rafraîchissement Impeccable demandé<br>`aidd_docs/tasks/2026_08/2026_08_17_forecast-overage-rounding/` — plan précurseur de PUL-335<br>`aidd_docs/memory/testing.md` — apprentissage QA demandé et approuvé |
