@@ -1,5 +1,4 @@
 import { captureEvent } from "@/core/observability/analytics";
-import { readFileSync, sourceFiles } from "@/core/testing/source-files";
 
 import {
   clearDraft,
@@ -24,6 +23,7 @@ import {
   markPinSetupCompleted,
   MAX_CUSTOM_TRANSACTIONS,
   removeCustomTransaction,
+  reconcileOnboardingWithVault,
   resetOnboarding,
   restoreOnboardingDraft,
   selectCurrency,
@@ -276,6 +276,27 @@ describe("draft", () => {
     expect(useOnboardingStore.getState().currentStep).toBe("welcome");
   });
 
+  it("resumes at the preview when the PIN ceremony already completed", () => {
+    useOnboardingStore.setState({
+      isFlowActive: true,
+      currentStep: "pinSetup",
+    });
+    markPinSetupCompleted();
+
+    useOnboardingStore.setState({
+      isFlowActive: false,
+      currentStep: "welcome",
+      hasCompletedPinSetup: false,
+    });
+    restoreOnboardingDraft();
+
+    expect(useOnboardingStore.getState()).toMatchObject({
+      isFlowActive: true,
+      currentStep: "budgetPreview",
+      hasCompletedPinSetup: true,
+    });
+  });
+
   it("leaves the flow at welcome when there is nothing to resume", () => {
     mocked.readDraft.mockReturnValueOnce(null);
 
@@ -366,6 +387,62 @@ describe("draft", () => {
     // And opens one of its own immediately: the account exists from here on,
     // and a signed-in user with no draft is one the flow can no longer claim.
     expect(mocked.readDraft()).toMatchObject({ isSocialAuth: true });
+  });
+
+  it("starts Google onboarding only when the server vault needs setup", () => {
+    configureSocialUser("Maxime");
+
+    reconcileOnboardingWithVault("setupRequired");
+
+    expect(useOnboardingStore.getState()).toMatchObject({
+      isFlowActive: true,
+      currentStep: "income",
+      isSocialAuth: true,
+    });
+    expect(propertiesOf("signup_completed")).toEqual({ method: "google" });
+  });
+
+  it("discards a Google signup draft for a configured returning account", () => {
+    configureSocialUser("Maxime");
+
+    reconcileOnboardingWithVault("locked");
+
+    expect(useOnboardingStore.getState()).toMatchObject({
+      isFlowActive: false,
+      currentStep: "welcome",
+      isSocialAuth: false,
+    });
+    expect(mocked.readDraft()).toBeNull();
+    expect(propertiesOf("signup_completed")).toBeNull();
+  });
+
+  it("keeps an interrupted PIN run and requires the existing PIN", () => {
+    useOnboardingStore.setState({
+      isFlowActive: true,
+      currentStep: "pinSetup",
+      hasCompletedPinSetup: false,
+    });
+
+    reconcileOnboardingWithVault("locked");
+
+    expect(useOnboardingStore.getState()).toMatchObject({
+      isFlowActive: true,
+      currentStep: "budgetPreview",
+      hasCompletedPinSetup: true,
+    });
+  });
+
+  it("keeps Google classification pending when vault bootstrap fails", () => {
+    configureSocialUser("Maxime");
+
+    reconcileOnboardingWithVault("unknown");
+
+    expect(useOnboardingStore.getState()).toMatchObject({
+      isFlowActive: true,
+      currentStep: "welcome",
+      isSocialAuth: true,
+    });
+    expect(propertiesOf("signup_completed")).toBeNull();
   });
 });
 
@@ -513,28 +590,5 @@ describe("the funnel", () => {
     beginOnboarding();
 
     expect(timesCaptured("onboarding_started")).toBe(1);
-  });
-});
-
-/**
- * `configureSocialUser` records who signed in; it does not move the flow on.
- * Called alone it left the Google button authenticating the user and then
- * re-rendering the pitch they had just tapped — the one way out of welcome that
- * led straight back to welcome, and nothing on screen said why.
- */
-describe("the Google entry point", () => {
-  it("advances the flow wherever it configures the user", () => {
-    const stranded = sourceFiles("src").filter((path) => {
-      const source = readFileSync(path, "utf8");
-      return (
-        source.includes("configureSocialUser(") &&
-        !source.includes("export function configureSocialUser") &&
-        // The call, not the import: deleting one and leaving the other is
-        // exactly the shape this guard has to keep catching.
-        !source.includes("startAfterWelcome(")
-      );
-    });
-
-    expect(stranded).toEqual([]);
   });
 });

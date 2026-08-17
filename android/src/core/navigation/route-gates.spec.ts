@@ -143,4 +143,35 @@ describe("landing contract", () => {
     expect(landingRoute(midFlow)).toBe("/(onboarding)");
     expect(openGroups(midFlow)).toEqual(["(onboarding)"]);
   });
+
+  it("unlocks a configured vault before resuming an interrupted run", () => {
+    const interrupted: GateState = {
+      status: "authenticated",
+      vaultStatus: "locked",
+      isOnboarding: true,
+      hasCompletedOnboarding: false,
+      hasSeenHandoff: false,
+      prefersSignIn: null,
+    };
+
+    expect(landingRoute(interrupted)).toBe("/vault-unlock");
+    expect(openGroups(interrupted)).toEqual(["(vault)"]);
+    expect(landingRoute({ ...interrupted, vaultStatus: "unlocked" })).toBe(
+      "/(onboarding)",
+    );
+  });
+
+  it("waits for the server vault before trusting an authenticated draft", () => {
+    const unresolved: GateState = {
+      status: "authenticated",
+      vaultStatus: "unknown",
+      isOnboarding: true,
+      hasCompletedOnboarding: false,
+      hasSeenHandoff: false,
+      prefersSignIn: null,
+    };
+
+    expect(landingRoute(unresolved)).toBeNull();
+    expect(openGroups(unresolved)).toEqual([]);
+  });
 });

@@ -79,7 +79,7 @@ async function deriveAndHold(pin: string): Promise<string> {
  * positioned to catch would leave it on a blank screen with no way forward.
  * A failure becomes `bootstrapError`, which the retry screen reads.
  */
-export async function bootstrapVault(): Promise<void> {
+export async function bootstrapVault(): Promise<VaultStatus> {
   setState({ bootstrapError: null });
 
   try {
@@ -88,18 +88,20 @@ export async function bootstrapVault(): Promise<void> {
 
     if (!status.pinCodeConfigured) {
       setState({ status: "setupRequired", isBiometricAvailable: false });
-      return;
+      return "setupRequired";
     }
 
     setState({
       status: "locked",
       isBiometricAvailable: await hasBiometricKey(),
     });
+    return "locked";
   } catch (error) {
     setState({
       status: "unknown",
       bootstrapError: normalizeApiError(error).message,
     });
+    return "unknown";
   }
 }
 

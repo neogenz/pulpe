@@ -27,6 +27,7 @@ import { armAutoLock } from "@/core/vault/auto-lock";
 import { observeVaultKeyRejection } from "@/core/vault/key-invalidation";
 import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
 import {
+  reconcileOnboardingWithVault,
   restoreOnboardingDraft,
   useOnboardingStore,
 } from "@/features/onboarding/onboarding-store";
@@ -74,6 +75,11 @@ function RootLayout() {
     void bootstrapVault();
   }, [status]);
 
+  useEffect(() => {
+    if (status !== "authenticated" || vaultStatus === "unknown") return;
+    reconcileOnboardingWithVault(vaultStatus);
+  }, [status, vaultStatus, isOnboarding]);
+
   // A font that fails to load must not hold the splash forever: the system
   // font is a perfectly usable fallback, a permanently blank screen is not.
   const isReady =
@@ -100,10 +106,8 @@ function RootLayout() {
         >
           <StatusBar style="auto" />
           <Stack screenOptions={{ headerShown: false }}>
-            {/* A run in progress outranks the session gates: the user turns
-                authenticated at the registration step and would otherwise be
-                pulled out of the flow into the vault setup, four steps early.
-                Which groups these are, and why, lives in `openGroups`. */}
+            {/* The server vault may temporarily outrank an interrupted run.
+                Which groups are open, and why, lives in `openGroups`. */}
             <Stack.Protected guard={groups.includes("(onboarding)")}>
               <Stack.Screen name="(onboarding)" />
             </Stack.Protected>

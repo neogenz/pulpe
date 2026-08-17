@@ -105,7 +105,7 @@ describe("bootstrapVault", () => {
   it("should ask for setup when no PIN is configured", async () => {
     mocked.fetchVaultStatus.mockResolvedValue(vaultStatus(false));
 
-    await bootstrapVault();
+    await expect(bootstrapVault()).resolves.toBe("setupRequired");
 
     expect(useVaultStore.getState().status).toBe("setupRequired");
   });
@@ -113,7 +113,7 @@ describe("bootstrapVault", () => {
   it("should delete a legacy key and land locked after a cold start", async () => {
     mocked.fetchVaultStatus.mockResolvedValue(vaultStatus(true));
 
-    await bootstrapVault();
+    await expect(bootstrapVault()).resolves.toBe("locked");
 
     expect(mocked.clearLegacyClientKey).toHaveBeenCalled();
     expect(useVaultStore.getState().status).toBe("locked");
@@ -123,7 +123,7 @@ describe("bootstrapVault", () => {
     mocked.fetchVaultStatus.mockResolvedValue(vaultStatus(true));
     mocked.hasBiometricKey.mockResolvedValue(true);
 
-    await bootstrapVault();
+    await expect(bootstrapVault()).resolves.toBe("locked");
 
     expect(useVaultStore.getState()).toMatchObject({
       status: "locked",
@@ -136,7 +136,7 @@ describe("bootstrapVault", () => {
     // it on a blank screen with no way forward.
     mocked.fetchVaultStatus.mockRejectedValue(new Error("offline"));
 
-    await expect(bootstrapVault()).resolves.toBeUndefined();
+    await expect(bootstrapVault()).resolves.toBe("unknown");
 
     expect(useVaultStore.getState()).toMatchObject({
       status: "unknown",

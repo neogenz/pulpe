@@ -14,12 +14,7 @@ import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 
 import { LegalConsent } from "../components/legal-consent";
-import { captureSignupCompleted } from "../onboarding-analytics";
-import {
-  beginOnboarding,
-  configureSocialUser,
-  startAfterWelcome,
-} from "../onboarding-store";
+import { beginOnboarding, configureSocialUser } from "../onboarding-store";
 
 const BRAND_MARK_SIZE = 88;
 
@@ -46,13 +41,9 @@ export function WelcomeStep() {
     try {
       const result = await signInWithGoogle();
       if (result === null) return;
-      // Both halves, always: `configureSocialUser` records who signed in but
-      // leaves the flow on this very screen, so without the second call the
-      // Google button authenticated the user and then showed them the pitch
-      // again — the one path out of welcome that led back to welcome.
-      captureSignupCompleted("google");
+      // The vault bootstrap decides whether this is a signup or a returning
+      // account. Until then, keep only the provider data needed by either path.
       configureSocialUser(result.firstName);
-      startAfterWelcome();
     } catch (error) {
       setErrorMessage(
         error instanceof Error

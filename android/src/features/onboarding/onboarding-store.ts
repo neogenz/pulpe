@@ -1,6 +1,8 @@
 import type { SupportedCurrency } from "pulpe-shared";
 import { create } from "zustand";
 
+import type { VaultStatus } from "@/core/vault/vault-store";
+
 import {
   clearDraft,
   readDraft,
@@ -11,9 +13,10 @@ import {
   writeOnboardingCompleted,
 } from "./draft-storage";
 import {
-  capturePinSetupCompleted,
   captureOnboardingResumed,
   captureOnboardingStarted,
+  capturePinSetupCompleted,
+  captureSignupCompleted,
   captureStepCompleted,
   resetOnboardingAnalytics,
 } from "./onboarding-analytics";
@@ -188,9 +191,15 @@ export function restoreOnboardingDraft(): void {
   const draft = readDraft();
   if (draft === null) return;
 
+  const hasCompletedPinSetup = draft.hasCompletedPinSetup ?? false;
+  const currentStep = draft.currentStep ?? INITIAL_STATE.currentStep;
+
   useOnboardingStore.setState({
     isFlowActive: true,
-    currentStep: draft.currentStep ?? INITIAL_STATE.currentStep,
+    currentStep:
+      hasCompletedPinSetup && currentStep === "pinSetup"
+        ? "budgetPreview"
+        : currentStep,
     firstName: draft.firstName ?? INITIAL_STATE.firstName,
     currency: draft.currency ?? INITIAL_STATE.currency,
     monthlyIncome: draft.monthlyIncome ?? null,
@@ -207,7 +216,7 @@ export function restoreOnboardingDraft(): void {
     isSocialAuth: draft.isSocialAuth ?? false,
     socialProvidedName: draft.socialProvidedName ?? false,
     wasEmailRegistered: draft.wasEmailRegistered ?? false,
-    hasCompletedPinSetup: draft.hasCompletedPinSetup ?? false,
+    hasCompletedPinSetup,
   });
 
   captureOnboardingResumed(useOnboardingStore.getState());
@@ -256,7 +265,7 @@ export function resetOnboarding(): void {
 // MARK: - Auth paths
 
 /**
- * A Google signup starts from a blank slate. Wiping the draft first is what
+ * A Google authentication starts from a blank slate. Wiping the draft first is what
  * keeps a half-finished e-mail attempt from bleeding its amounts into the
  * social one — restoring it happens at flow entry, before this runs.
  */
@@ -284,6 +293,29 @@ export function configureEmailUser(): void {
     socialProvidedName: false,
     wasEmailRegistered: true,
   });
+}
+
+/** Reconciles a local draft with the authenticated server-side vault. */
+export function reconcileOnboardingWithVault(status: VaultStatus): void {
+  const state = useOnboardingStore.getState();
+  if (!state.isFlowActive || status === "unknown") return;
+
+  if (status === "setupRequired") {
+    if (state.isSocialAuth && state.currentStep === "welcome") {
+      captureSignupCompleted("google");
+      startAfterWelcome();
+    }
+    return;
+  }
+
+  if (state.hasCompletedPinSetup || state.currentStep === "pinSetup") {
+    patch({ currentStep: "budgetPreview", hasCompletedPinSetup: true });
+    return;
+  }
+
+  // A configured vault cannot belong to an onboarding run that has not reached
+  // PIN setup. This is a stale draft from a returning account.
+  resetOnboarding();
 }
 
 export function markPinSetupCompleted(): void {

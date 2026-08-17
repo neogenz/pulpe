@@ -29,9 +29,8 @@ export function landingRoute(state: GateState): string | null {
   const { status, vaultStatus, isOnboarding, hasCompletedOnboarding } = state;
 
   if (status === "loading") return null;
-  // An unfinished run decides for itself which step to show, signed in or not.
-  if (isOnboarding) return "/(onboarding)";
   if (status === "unauthenticated") {
+    if (isOnboarding) return "/(onboarding)";
     // A device that has never been through the flow gets the pitch; one that
     // has gets the sign-in form it is coming back to. That is only the default,
     // though: the two screens send the user at each other, and this decision is
@@ -42,19 +41,19 @@ export function landingRoute(state: GateState): string | null {
       : "/(onboarding)";
   }
 
+  // The authenticated server vault outranks a local draft. In particular, a
+  // configured vault must be unlocked before an interrupted run can resume.
+  if (vaultStatus === "unknown") return null;
+  if (vaultStatus === "locked") return "/vault-unlock";
+  if (isOnboarding) return "/(onboarding)";
+
   switch (vaultStatus) {
     case "setupRequired":
       return "/vault-setup";
-    case "locked":
-      return "/vault-unlock";
     case "unlocked":
       // The handoff is the first thing a freshly onboarded user sees, and the
       // only thing that ever explains the pointing ritual from scratch.
       return state.hasSeenHandoff ? "/home" : "/post-onboarding";
-    // Signed in, but the vault has not answered yet. Everything past this point
-    // reads encrypted amounts, so there is nothing to show meanwhile.
-    case "unknown":
-      return null;
   }
 }
 
@@ -65,14 +64,16 @@ export function openGroups(state: GateState): RouteGroup[] {
 
   // The pitch is the first thing a new device sees, and it is also what starts
   // the run — so this group has to be open before `isOnboarding` is ever true.
-  if (isOnboarding || status === "unauthenticated") groups.push("(onboarding)");
-  if (!isOnboarding && status === "authenticated") {
-    if (vaultStatus === "unlocked") groups.push("(main)");
-    if (vaultStatus === "setupRequired" || vaultStatus === "locked") {
-      groups.push("(vault)");
-    }
+  if (status === "unauthenticated") {
+    groups.push("(onboarding)");
+    if (!isOnboarding) groups.push("(auth)");
   }
-  if (!isOnboarding && status === "unauthenticated") groups.push("(auth)");
+  if (status === "authenticated" && vaultStatus !== "unknown") {
+    if (vaultStatus === "locked") groups.push("(vault)");
+    else if (isOnboarding) groups.push("(onboarding)");
+    else if (vaultStatus === "unlocked") groups.push("(main)");
+    else groups.push("(vault)");
+  }
 
   return groups;
 }
