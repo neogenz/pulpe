@@ -382,6 +382,7 @@ describe('SetupVaultCode', () => {
 
       expect(mockUpdateUser).not.toHaveBeenCalled();
       expect(mockClientKeyService.clear).toHaveBeenCalledOnce();
+      expect(component['form'].enabled).toBe(true);
     });
 
     it('should not navigate when updateUser fails', async () => {
@@ -426,8 +427,18 @@ describe('SetupVaultCode', () => {
         .mockResolvedValueOnce({ data: {}, error: null });
 
       await component['onSubmit']();
+
+      expect(component['form'].disabled).toBe(true);
+      expect(component['form'].get('vaultCode')?.disabled).toBe(true);
+      expect(component['form'].get('confirmCode')?.disabled).toBe(true);
+      expect(component['form'].get('rememberDevice')?.disabled).toBe(true);
+      expect(component['canSubmit']()).toBe(true);
+
       await component['onSubmit']();
 
+      expect(mockEncryptionApi.getSalt$).toHaveBeenCalledOnce();
+      expect(deriveClientKeySpy).toHaveBeenCalledOnce();
+      expect(mockClientKeyService.setDirectKey).toHaveBeenCalledOnce();
       expect(mockEncryptionApi.setupRecoveryKey$).toHaveBeenCalledOnce();
       expect(mockDialog.open).toHaveBeenCalledOnce();
       expect(mockEncryptionApi.validateKey$).not.toHaveBeenCalled();

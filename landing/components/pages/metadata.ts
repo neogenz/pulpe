@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getDictionary } from "@/content/dictionary";
 import type { Locale } from "@/lib/i18n";
-import { articleSocialMetadata, rootMetadata } from "@/lib/metadata";
+import { rootMetadata, socialMetadata } from "@/lib/metadata";
 import { alternatesFor, GUIDE_ROUTE } from "@/lib/routes";
 
 // Les métadonnées de chaque page sont écrites une fois et appelées par les deux
@@ -15,22 +15,40 @@ export async function homeMetadata(locale: Locale): Promise<Metadata> {
 }
 
 export async function changelogMetadata(locale: Locale): Promise<Metadata> {
-  const { changelog } = await getDictionary(locale);
+  const { changelog, site } = await getDictionary(locale);
+  const alternates = alternatesFor(locale, "/changelog");
 
   return {
     title: changelog.metaTitle,
     description: changelog.metaDescription,
-    alternates: alternatesFor(locale, "/changelog"),
+    alternates,
+    ...socialMetadata({
+      locale,
+      path: alternates.canonical,
+      title: `${changelog.metaTitle} | Pulpe`,
+      description: changelog.metaDescription,
+      imageAlt: site.socialImageAlt,
+      type: "website",
+    }),
   };
 }
 
 export async function supportMetadata(locale: Locale): Promise<Metadata> {
-  const { support } = await getDictionary(locale);
+  const { site, support } = await getDictionary(locale);
+  const alternates = alternatesFor(locale, "/support");
 
   return {
     title: support.metaTitle,
     description: support.metaDescription,
-    alternates: alternatesFor(locale, "/support"),
+    alternates,
+    ...socialMetadata({
+      locale,
+      path: alternates.canonical,
+      title: `${support.metaTitle} | Pulpe`,
+      description: support.metaDescription,
+      imageAlt: site.socialImageAlt,
+      type: "website",
+    }),
   };
 }
 
@@ -42,12 +60,13 @@ export async function supportGuideMetadata(locale: Locale): Promise<Metadata> {
     title: guide.metaTitle,
     description: guide.metaDescription,
     alternates,
-    ...articleSocialMetadata({
+    ...socialMetadata({
       locale,
       path: alternates.canonical,
       title: `${guide.metaTitle} | Pulpe`,
       description: guide.metaDescription,
       imageAlt: site.socialImageAlt,
+      type: "article",
     }),
   };
 }

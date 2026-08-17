@@ -2164,18 +2164,27 @@ export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 /**
  * Schema pour mettre à jour les préférences utilisateur
  */
-export const updateUserSettingsSchema = z.strictObject({
-  payDayOfMonth: z
-    .number()
-    .int()
-    .min(PAY_DAY_MIN)
-    .max(PAY_DAY_MAX)
-    .nullable()
-    .optional(),
-  currency: supportedCurrencySchema.optional(),
-  showCurrencySelector: z.boolean().optional(),
-  locale: supportedLocaleSchema.optional(),
-});
+export const updateUserSettingsSchema = z
+  .strictObject({
+    payDayOfMonth: z
+      .number()
+      .int()
+      .min(PAY_DAY_MIN)
+      .max(PAY_DAY_MAX)
+      .nullable()
+      .optional(),
+    currency: supportedCurrencySchema.optional(),
+    showCurrencySelector: z.boolean().optional(),
+    locale: supportedLocaleSchema.optional(),
+  })
+  .refine(
+    ({ locale, payDayOfMonth, currency, showCurrencySelector }) =>
+      locale === undefined ||
+      (payDayOfMonth === undefined &&
+        currency === undefined &&
+        showCurrencySelector === undefined),
+    { message: 'Locale must be updated separately from other settings' },
+  );
 export type UpdateUserSettings = z.infer<typeof updateUserSettingsSchema>;
 
 export const userSettingsSchema = z.object({

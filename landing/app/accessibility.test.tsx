@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
-import { describe, it } from "node:test";
+import { describe, it, mock } from "node:test";
 import { LOCALES } from "../lib/i18n";
 import { angularUrl } from "../lib/config";
-import { socialPreviewFile } from "../lib/metadata";
+import { socialPreviewFile, socialPreviewImage } from "../lib/metadata";
+import { OPEN_GRAPH_LOCALE, openGraphAlternates } from "../lib/routes";
+import {
+  changelogMetadata,
+  supportMetadata,
+} from "../components/pages/metadata";
 import type { PostHog } from "posthog-js/dist/module.slim";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -60,6 +65,16 @@ function supportFaq(catalog: (typeof CATALOGS)[keyof typeof CATALOGS]) {
 }
 
 Object.assign(globalThis, { React });
+
+const nextImageMock = {
+  cache: false,
+  exports: {
+    default: (props: Record<string, unknown>) =>
+      React.createElement("img", { src: props.src, alt: props.alt }),
+  },
+};
+mock.module("next/image", nextImageMock);
+const { Footer } = await import("../components/sections/Footer");
 
 const globalsCss = readFileSync(
   new URL("./globals.css", import.meta.url),
@@ -1511,7 +1526,7 @@ describe("landing accessibility contracts", () => {
   it("owns the guide social metadata instead of inheriting the homepage", () => {
     assert.match(
       componentSources.pageMetadata,
-      /supportGuideMetadata[\s\S]*articleSocialMetadata\(\{[\s\S]*path: alternates\.canonical/,
+      /supportGuideMetadata[\s\S]*socialMetadata\(\{[\s\S]*path: alternates\.canonical/,
     );
     assert.match(
       componentSources.metadata,
@@ -1521,6 +1536,43 @@ describe("landing accessibility contracts", () => {
       componentSources.metadata,
       /twitter:\s*\{[\s\S]*card: "summary_large_image"/,
     );
+  });
+
+  it("owns support and changelog social metadata in every locale", async () => {
+    for (const locale of LOCALES) {
+      for (const [route, section, generate] of [
+        ["/support", CATALOGS[locale].support, supportMetadata],
+        ["/changelog", CATALOGS[locale].changelog, changelogMetadata],
+      ] as const) {
+        const metadata = await generate(locale);
+        const title = `${section.metaTitle} | Pulpe`;
+        const canonical = locale === "fr" ? route : `/${locale}${route}`;
+        const images = [
+          {
+            url: socialPreviewImage(locale),
+            width: 1200,
+            height: 630,
+            alt: CATALOGS[locale].site.socialImageAlt,
+            type: "image/png",
+          },
+        ];
+
+        assert.ok(metadata.openGraph && "type" in metadata.openGraph);
+        assert.equal(metadata.openGraph.type, "website");
+        assert.equal(metadata.openGraph?.title, title);
+        assert.equal(metadata.openGraph?.description, section.metaDescription);
+        assert.equal(metadata.openGraph?.url, canonical);
+        assert.equal(metadata.openGraph?.locale, OPEN_GRAPH_LOCALE[locale]);
+        assert.deepEqual(
+          metadata.openGraph?.alternateLocale,
+          openGraphAlternates(locale),
+        );
+        assert.deepEqual(metadata.openGraph?.images, images);
+        assert.equal(metadata.twitter?.title, title);
+        assert.equal(metadata.twitter?.description, section.metaDescription);
+        assert.deepEqual(metadata.twitter?.images, images);
+      }
+    }
   });
 
   it("links the first help journey from support and navigation", () => {
@@ -1780,5 +1832,31 @@ describe("landing accessibility contracts", () => {
     }
     assert.match(componentSources.footer, /\{dict\.groups\[group\.id\]\}/);
     assert.match(componentSources.footer, /min-h-11 items-center/);
+  });
+
+  it("propagates the landing locale through both legal links", () => {
+    for (const locale of LOCALES) {
+      const catalog = CATALOGS[locale];
+      const html = renderToStaticMarkup(
+        <Footer
+          dict={catalog.footer}
+          language={catalog.language}
+          locale={locale}
+          route={null}
+        />,
+      );
+      const legalHrefs = [
+        ...html.matchAll(/href="([^"]*\/legal\/[^"]+)"/g),
+      ].map(([, href]) => href.replaceAll("&amp;", "&"));
+
+      assert.deepEqual(legalHrefs, [
+        angularUrl("/legal/cgu", "footer_terms", locale),
+        angularUrl("/legal/confidentialite", "footer_privacy", locale),
+      ]);
+      for (const href of legalHrefs) {
+        assert.equal(href.match(/[?&]lang=/g)?.length, 1);
+        assert.match(href, new RegExp(`[?&]lang=${locale}$`));
+      }
+    }
   });
 });

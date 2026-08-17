@@ -64,6 +64,26 @@ describe('user settings locale field', () => {
     });
   });
 
+  it.each([
+    { payDayOfMonth: null },
+    { currency: 'EUR' },
+    { showCurrencySelector: true },
+  ])('should reject locale combined with other settings: %o', (settings) => {
+    expect(
+      updateUserSettingsSchema.safeParse({ locale: 'de', ...settings }).success,
+    ).toBe(false);
+  });
+
+  it('should accept historical settings together without locale', () => {
+    const settings = {
+      payDayOfMonth: null,
+      currency: 'EUR',
+      showCurrencySelector: true,
+    } as const;
+
+    expect(updateUserSettingsSchema.parse(settings)).toEqual(settings);
+  });
+
   it('should reject an unsupported locale on update', () => {
     expect(updateUserSettingsSchema.safeParse({ locale: 'es' }).success).toBe(
       false,
