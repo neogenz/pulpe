@@ -3,14 +3,14 @@ import { forgetLandingPreference } from "@/core/navigation/landing-preference";
 import { queryClient } from "@/core/query/query-client";
 import { resetVault } from "@/core/vault/vault-store";
 
-import { signOutThisDevice } from "./supabase";
-import { useSessionStore } from "./session-store";
+import { signOutEverywhere, signOutThisDevice } from "./supabase";
+import { endRecoverySession, useSessionStore } from "./session-store";
 
 const events: string[] = [];
 
 jest.mock("./supabase", () => ({
   signOutThisDevice: jest.fn(async () => events.push("signed-out")),
-  signOutEverywhere: jest.fn(),
+  signOutEverywhere: jest.fn(async () => events.push("sessions-revoked")),
   supabase: { auth: {} },
 }));
 jest.mock("@/core/query/query-client", () => ({
@@ -58,5 +58,25 @@ describe("session sign-out", () => {
     expect(resetVault).toHaveBeenCalled();
     expect(forgetLandingPreference).toHaveBeenCalled();
     expect(clearAllKeys).toHaveBeenCalled();
+  });
+
+  it("purges the recovery session locally even when global revocation fails", async () => {
+    jest
+      .mocked(signOutEverywhere)
+      .mockRejectedValueOnce(new Error("revocation failed"));
+
+    await expect(endRecoverySession()).rejects.toThrow("revocation failed");
+
+    expect(events).toEqual([
+      "cache-cleared",
+      "vault-reset",
+      "landing-reset",
+      "keys-cleared",
+    ]);
+    expect(useSessionStore.getState()).toMatchObject({
+      status: "unauthenticated",
+      session: null,
+      user: null,
+    });
   });
 });

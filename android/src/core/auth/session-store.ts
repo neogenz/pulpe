@@ -49,9 +49,15 @@ export const useSessionStore = create<SessionState>((set) => ({
  * resolves and would otherwise race the vault reset.
  */
 export async function endRecoverySession(): Promise<void> {
-  await signOutEverywhere();
-  await purgeLocalAccountData();
-  useSessionStore.setState(applySession(null));
+  try {
+    await signOutEverywhere();
+  } finally {
+    try {
+      await purgeLocalAccountData();
+    } finally {
+      useSessionStore.setState(applySession(null));
+    }
+  }
 }
 
 /**

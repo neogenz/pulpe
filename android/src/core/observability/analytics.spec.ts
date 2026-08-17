@@ -62,6 +62,7 @@ describe("PostHog startup", () => {
     expect(mockPostHog).toHaveBeenCalledWith("ph_test", {
       host: "https://eu.i.posthog.com",
       defaultOptIn: true,
+      captureAppLifecycleEvents: false,
       enableSessionReplay: false,
       errorTracking: {
         autocapture: {

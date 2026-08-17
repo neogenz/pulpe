@@ -1,7 +1,7 @@
 import { useLinkingURL } from "expo-linking";
 import { Redirect, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BackHandler, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Appbar,
@@ -63,12 +63,47 @@ export default function ResetPasswordScreen() {
   // The flow authenticates the user on purpose, so `status` stops being a
   // usable signal the moment it starts. Only the arrival state decides, once.
   const hasDecided = useRef(false);
+  const hasRecoverySession = useRef(false);
+  const isLeaving = useRef(false);
+  const endingRecovery = useRef<Promise<void> | null>(null);
+
+  const endRecovery = useCallback(async () => {
+    if (!hasRecoverySession.current) return;
+
+    endingRecovery.current ??= endRecoverySession().finally(() => {
+      hasRecoverySession.current = false;
+      endingRecovery.current = null;
+    });
+    await endingRecovery.current;
+  }, []);
+
+  const leave = useCallback(async () => {
+    if (isLeaving.current) return;
+    isLeaving.current = true;
+    try {
+      await endRecovery();
+    } finally {
+      router.replace("/");
+    }
+  }, [endRecovery, router]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        void leave();
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [leave]);
 
   useEffect(() => {
     if (hasDecided.current) return;
     if (status === "loading" || url === null) return;
     hasDecided.current = true;
     const wasSignedIn = status === "authenticated";
+    let cancelled = false;
 
     void (async () => {
       if (wasSignedIn) {
@@ -84,21 +119,36 @@ export default function ResetPasswordScreen() {
 
       try {
         await beginPasswordRecovery(tokens);
+        hasRecoverySession.current = true;
+        if (cancelled || isLeaving.current) {
+          await endRecovery();
+          return;
+        }
         setPhase({ kind: "form" });
       } catch {
-        setPhase({ kind: "invalid" });
+        if (!cancelled && !isLeaving.current) setPhase({ kind: "invalid" });
       }
     })();
-  }, [status, url]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [endRecovery, status, url]);
 
   if (phase.kind === "dropped") return <Redirect href="/" />;
 
-  async function leave() {
-    // Whether the password changed or the user backed out, the recovery
-    // session must not survive the screen.
-    await endRecoverySession();
-    router.replace("/");
-  }
+  const complete = async (password: string) => {
+    await updatePassword(password);
+    if (isLeaving.current) return;
+    try {
+      await endRecovery();
+    } catch {
+      throw new Error(
+        "Ton mot de passe a été modifié, mais la déconnexion de sécurité a échoué. Retourne à la connexion.",
+      );
+    }
+    if (!isLeaving.current) setPhase({ kind: "done" });
+  };
 
   return (
     <SafeAreaView
@@ -125,9 +175,7 @@ export default function ResetPasswordScreen() {
         {phase.kind === "invalid" && (
           <InvalidState onLeave={() => void leave()} />
         )}
-        {phase.kind === "form" && (
-          <PasswordForm onDone={() => setPhase({ kind: "done" })} />
-        )}
+        {phase.kind === "form" && <PasswordForm onSubmit={complete} />}
         {phase.kind === "done" && <DoneState onLeave={() => void leave()} />}
       </ScrollView>
     </SafeAreaView>
@@ -175,7 +223,11 @@ function DoneState({ onLeave }: { onLeave: () => void }) {
   );
 }
 
-function PasswordForm({ onDone }: { onDone: () => void }) {
+function PasswordForm({
+  onSubmit,
+}: {
+  onSubmit: (password: string) => Promise<void>;
+}) {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -196,8 +248,7 @@ function PasswordForm({ onDone }: { onDone: () => void }) {
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
-      await updatePassword(password);
-      onDone();
+      await onSubmit(password);
     } catch (error) {
       setErrorMessage(
         error instanceof Error

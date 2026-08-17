@@ -57,6 +57,11 @@ export function startAnalytics(): () => void {
       // previous run holds from the very first lifecycle event rather than from
       // the moment the subscription below first fires.
       defaultOptIn: isDiagnosticSharingEnabled(),
+      // The SDK attaches Linking.getInitialURL() to "Application Opened". A
+      // recovery App Link carries Supabase tokens in its fragment, so lifecycle
+      // capture must stay off; our manual events already pass through the
+      // property sanitizer below.
+      captureAppLifecycleEvents: false,
       enableSessionReplay: false,
       errorTracking: {
         autocapture: {
@@ -67,9 +72,7 @@ export function startAnalytics(): () => void {
         },
       },
     });
-    // Registered with the client rather than added at each call site: a super
-    // property reaches the SDK's own lifecycle events too, which no caller here
-    // ever sees.
+    // Registered once so every manual event carries the same app identity.
     void client.register(appContextProperties());
   }
 

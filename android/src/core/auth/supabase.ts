@@ -93,5 +93,6 @@ export async function signOutThisDevice(): Promise<void> {
  * would not be a reset. Mirrors `cancelPasswordResetFlow` on iOS.
  */
 export async function signOutEverywhere(): Promise<void> {
-  await supabase.auth.signOut({ scope: "global" });
+  const { error } = await supabase.auth.signOut({ scope: "global" });
+  if (error) throw error;
 }
