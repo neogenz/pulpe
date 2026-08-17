@@ -17,6 +17,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Router } from '@angular/router';
+import { calculateBudgetLineConsumption } from '@core/budget/budget-line-consumption';
 import { ROUTES } from '@core/routing';
 import { type Transaction } from 'pulpe-shared';
 import {
@@ -343,16 +344,9 @@ export class AllocatedTransactionsBottomSheet {
     return this.#tagStore.resolveNames(tagIds);
   }
 
-  protected readonly consumption = computed(() => {
-    const consumed = this.transactions().reduce(
-      (sum, tx) => sum + tx.amount,
-      0,
-    );
-    return {
-      consumed,
-      remaining: this.data.budgetLine.amount - consumed,
-    };
-  });
+  protected readonly consumption = computed(() =>
+    calculateBudgetLineConsumption(this.data.budgetLine, this.transactions()),
+  );
 
   // PUL-17 — spread occurrences/tracker derived once in the store (single source
   // for every detail surface); thin aliases for the template. The caller
