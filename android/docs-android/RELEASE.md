@@ -33,19 +33,27 @@ Link the GitHub repository from the EAS project. In the GitHub `Preview`
 environment, create `MAESTRO_EMAIL`, `MAESTRO_PASSWORD` and `MAESTRO_PIN`
 secrets for a deterministic account containing an unchecked `Loyer` operation.
 
-Then the signing key. Let EAS generate and hold it — a keystore on a laptop is
-a keystore that gets lost, and Play App Signing means losing the upload key is
+Then the upload key. Let EAS generate and hold it — a keystore on a laptop is a
+keystore that gets lost, and Play App Signing means losing the upload key is
 recoverable while losing a self-managed app-signing key is not:
 
 ```bash
 pnpm dlx eas-cli@latest credentials --platform android
 ```
 
-Record the resulting **SHA-256** fingerprint: it goes into the Android OAuth
-client (item 4) and into `assetlinks.json` (item 7). The debug fingerprint,
-already used for local Google sign-in, is
-`FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C`
-— it is not the release one, and both need registering.
+This certificate signs APKs installed directly and authenticates AAB uploads;
+it does **not** sign the APK Play delivers. Keep its SHA-1 in the Android OAuth
+client only if direct production APKs must support Google sign-in, and its
+SHA-256 in `assetlinks.json` only if those APKs must verify App Links.
+
+After the first AAB is accepted, open **Play Console → Play app signing → App
+signing key certificate** (under App integrity / Play Store distribution). That
+is the certificate seen by an internal tester. Register its **SHA-1** in the
+Android OAuth client and its **SHA-256** in `assetlinks.json`. Repeat for every
+active Play app-signing certificate during a signing-key rotation. Debug and
+EAS upload certificates remain separate identities; obtain their SHA-1/SHA-256
+from the tool that owns each keystore and register them only for the
+distributions that still use them.
 
 ## The three profiles
 
@@ -153,10 +161,25 @@ rather than a verification.
 - Feature graphic and screenshots: no Android sources exist yet. The iOS store
   slides live in `~/Desktop/pulpe-marketing/slides/` (a Next.js project) and
   are the obvious starting point, at Android's aspect ratios.
-- **Data safety**: the app collects an email address and financial amounts.
-  The amounts are encrypted client-side (AES-256-GCM, see `docs/ENCRYPTION.md`)
-  and the server never holds the key, which is worth declaring accurately —
-  "encrypted in transit" alone understates it.
+- **Data safety**: internal-only releases are currently exempt from publishing
+  the form, but complete it before any closed, open or production track. Audit
+  the current build and privacy policy against this inventory — do not reduce
+  the declaration to email and amounts:
+
+  | Play data family         | Current Android flow                                                                                                         | Purpose and control                                                      |
+  | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+  | Personal info            | Supabase/backend receive account email, user ID and profile name.                                                            | Account management, authentication and app functionality.                |
+  | Financial info           | User-entered amounts, balances and savings goals reach the backend as AES-256-GCM ciphertext.                                | Core app functionality; TLS in transit, server has no vault key.         |
+  | Other user content       | Budget, operation and goal names, tags, descriptions and dates support the user's records.                                   | Core app functionality; review each field's encryption before declaring. |
+  | App activity             | PostHog receives screen names and allow-listed onboarding/auth interaction events, without route IDs, typed text or amounts. | Analytics; production only, controlled by “Partager les diagnostics”.    |
+  | App info and performance | PostHog receives uncaught JavaScript exceptions and unhandled rejections, plus app version, build, platform and environment. | Diagnostics; no native crash/session replay, same user control.          |
+  | Device or other IDs      | PostHog assigns a distinct/device identifier and SDK device/app/OS properties.                                               | Analytics and diagnostics; same user control.                            |
+
+  Verify the final Play answers against the PostHog/Supabase processor terms,
+  retention, deletion path and whether each transfer qualifies as “sharing”
+  under Play's definitions. The encryption note in `docs/ENCRYPTION.md` is
+  stronger than transport encryption, but it does not remove these collection
+  categories.
 
 Once the listing is published, its URL becomes `ANDROID_STORE_URL` on the
 backend (item 7). Until that variable is set, the force-update gate has no
@@ -185,8 +208,8 @@ where iOS reads `iosVersion`, so no separate Android numbering is needed.
 `https://app.pulpe.app/reset-password` with `autoVerify`. Verification fails
 today — `adb shell pm get-app-links app.pulpe.android` reports state `1024`,
 meaning no `assetlinks.json` was found. Publish this at
-`https://app.pulpe.app/.well-known/assetlinks.json`, with the release SHA-256
-from the credentials step:
+`https://app.pulpe.app/.well-known/assetlinks.json`, with the **Play app-signing
+SHA-256** from Play Console after the first AAB upload:
 
 ```json
 [
@@ -195,7 +218,7 @@ from the credentials step:
     "target": {
       "namespace": "android_app",
       "package_name": "app.pulpe.android",
-      "sha256_cert_fingerprints": ["<release SHA-256>"]
+      "sha256_cert_fingerprints": ["<Play app-signing SHA-256>"]
     }
   }
 ]

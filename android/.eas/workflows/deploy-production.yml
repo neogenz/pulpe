@@ -7,11 +7,7 @@ name: Android production
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-
-concurrency:
-  group: android-production
-  cancel_in_progress: false
+  workflow_dispatch: {}
 
 jobs:
   build:
