@@ -212,6 +212,9 @@ export { API_ERROR_CODES, type ApiErrorCode } from './src/error-codes.js';
 // Export HTTP header constants
 export { REQUEST_ID_HEADER } from './src/http-headers.js';
 
+// Export monetary comparison primitive
+export { moneyDifference } from './src/money.js';
+
 // Export analytics contracts
 export {
   ANALYTICS_PROPERTIES,
