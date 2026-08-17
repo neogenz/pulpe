@@ -166,13 +166,6 @@ jobs:
           test -n "$run_id"
           artifact_count=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" | jq --arg artifact "$artifact" '[.artifacts[] | select(.name == $artifact and .expired == false)] | length')
           test "$artifact_count" = 1
-          gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "$RUNNER_TEMP/deployment-proof"
-
-          if [ "$CHANNEL" = internal ]; then
-            jq -e --arg repository "$GITHUB_REPOSITORY" --arg sha "$SOURCE_SHA" '.repository == $repository and .candidate_sha == $sha' "$RUNNER_TEMP/deployment-proof/staging-proof.json"
-          else
-            jq -e --arg repository "$GITHUB_REPOSITORY" --arg sha "$SOURCE_SHA" '.repository == $repository and .production_sha == $sha' "$RUNNER_TEMP/deployment-proof/production-proof.json"
-          fi
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1

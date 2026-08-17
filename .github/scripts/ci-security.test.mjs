@@ -248,6 +248,7 @@ test("iOS distribution consumes staging or production proofs, never push CI", ()
   assert.match(iosDistribution, /staging-proof-\$SOURCE_SHA/);
   assert.match(iosDistribution, /production-proof-\$SOURCE_SHA/);
   assert.doesNotMatch(iosDistribution, /actions\/workflows\/ci\.yml\/runs/);
+  assert.doesNotMatch(iosDistribution, /gh run download/);
 });
 
 test("the backend image does not install Bun", () => {
