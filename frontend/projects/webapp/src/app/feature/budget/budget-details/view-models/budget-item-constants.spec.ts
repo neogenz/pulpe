@@ -66,7 +66,18 @@ describe('consumptionProgressMessage', () => {
     if (message.key !== 'budgetLine.exceededBy') {
       throw new Error('Expected the exact amounts to produce an overage');
     }
-    expect(message.params.amount).toBeCloseTo(0.05);
+    expect(message.params.amount).toBe(0.05);
+  });
+
+  it('ignores float dust but preserves a real cent', () => {
+    expect(consumptionProgressMessage(0.3, 0.1 + 0.2, 100)).toEqual({
+      key: 'budgetLine.usedPercent',
+      params: { percent: 100 },
+    });
+    expect(consumptionProgressMessage(58.5, 58.51, 100)).toEqual({
+      key: 'budgetLine.exceededBy',
+      params: { amount: 0.01 },
+    });
   });
 });
 

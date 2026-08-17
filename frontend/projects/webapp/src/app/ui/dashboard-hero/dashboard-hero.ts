@@ -13,6 +13,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import {
   CURRENCY_METADATA,
+  moneyDifference,
   type BudgetPeriodDates,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -90,7 +91,7 @@ let heroInstanceCount = 0;
             class="font-extrabold text-display-medium sm:text-display-large tracking-tighter leading-none tabular-nums ph-no-capture"
             data-testid="hero-remaining-amount"
           >
-            {{ displayedRemaining() | number: '1.0-0' : locale() }}
+            {{ displayedRemaining() | number: '1.0-2' : locale() }}
           </span>
           <!-- 80%, not 70%: at 22px/600 the suffix is too small and too light
                to earn WCAG's large-text exemption, and 70% white over the
@@ -655,7 +656,7 @@ export class DashboardHero {
   // its ceiling reads 100% consumed — and a franc left is worth a sliver, not
   // a key dropped under a headline still printing it as available.
   protected readonly freeShare = computed(() => {
-    if (this.available() <= 0 || this.remaining() <= 0) return 0;
+    if (this.available() <= 0 || this.remainingDifference() <= 0) return 0;
     return Math.max(
       1,
       FULL_BAR_PERCENT -
@@ -670,6 +671,10 @@ export class DashboardHero {
   // against PRODUCT.md's soulagement avant la pression. The plan stays on the
   // card as the "Engagé" key and as the ceiling beside the headline.
   readonly planExceedsAvailable = input(false);
+
+  readonly remainingDifference = computed(() =>
+    moneyDifference(this.remaining(), 0),
+  );
 
   // Red is for a month where something really went past its envelope, which is
   // reachable only when the plan itself fits: an affordable plan carried over
@@ -697,12 +702,12 @@ export class DashboardHero {
   // a first-class product concept and puts a budget here on its own, which is
   // why the card carries a caption, a colour and a verdict for it rather than
   // rendering a negative number on the calm gradient.
-  readonly isPlanOverAvailable = computed(() => this.remaining() < 0);
+  readonly isPlanOverAvailable = computed(() => this.remainingDifference() < 0);
 
   // The caption carries the sign as a word, so the digits do not carry it again:
   // "il manque" over "−500" is a double negative, which reads as a surplus.
   protected readonly displayedRemaining = computed(() =>
-    Math.abs(this.remaining()),
+    Math.abs(this.remainingDifference()),
   );
 
   readonly isWarning = computed(
@@ -781,7 +786,7 @@ export class DashboardHero {
     if (this.isPlanOverAvailable()) {
       if (this.planExceedsAvailable())
         return 'dashboard.status.planOverAvailable';
-      return this.realizedExpenses() > this.available()
+      return moneyDifference(this.realizedExpenses(), this.available()) > 0
         ? 'dashboard.status.outflowBeyondIncome'
         : 'dashboard.status.recordedBeyondIncome';
     }

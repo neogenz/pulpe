@@ -236,18 +236,18 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
   });
 
   describe('savingsWithdrawalDeficit', () => {
-    it('rounds a float-noisy deficit up to the whole amount the chip displays', async () => {
+    it('keeps a float-noisy deficit exact to the cent', async () => {
       // remaining = -196.96000000000004
       await reloadWith(detailsWithDeficitFrom(5000.04, 5197));
 
-      expect(store.savingsWithdrawalDeficit()).toBe(197);
+      expect(store.savingsWithdrawalDeficit()).toBe(196.96);
     });
 
-    it('rounds a float-noisy deficit down to the whole amount the chip displays', async () => {
-      // remaining = -197.39999999999964 — the half `Math.ceil` would send to 198
+    it('keeps a second decimal instead of rounding it away', async () => {
+      // remaining = -197.39999999999964
       await reloadWith(detailsWithDeficitFrom(5000.04, 5197.44));
 
-      expect(store.savingsWithdrawalDeficit()).toBe(197);
+      expect(store.savingsWithdrawalDeficit()).toBe(197.4);
     });
   });
 
@@ -286,9 +286,22 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
       expect(store.shouldShowSavingsWithdrawalAction()).toBe(true);
     });
 
-    it('hides the action when the deficit rounds away to nothing to pre-fill', async () => {
-      // remaining = -0.2999999999999545 — a month balanced to the cent
+    it('shows the action for a real sub-unit deficit', async () => {
       await reloadWith(detailsWithDeficitFrom(1000, 1000.3));
+
+      expect(store.savingsWithdrawalDeficit()).toBe(0.3);
+      expect(store.shouldShowSavingsWithdrawalAction()).toBe(true);
+    });
+
+    it('shows the action for a one-cent deficit', async () => {
+      await reloadWith(detailsWithDeficitFrom(1000, 1000.01));
+
+      expect(store.savingsWithdrawalDeficit()).toBe(0.01);
+      expect(store.shouldShowSavingsWithdrawalAction()).toBe(true);
+    });
+
+    it('hides the action when only binary float dust remains', async () => {
+      await reloadWith(detailsWithDeficitFrom(1000, 1000 + 9e-13));
 
       expect(store.savingsWithdrawalDeficit()).toBe(0);
       expect(store.shouldShowSavingsWithdrawalAction()).toBe(false);
