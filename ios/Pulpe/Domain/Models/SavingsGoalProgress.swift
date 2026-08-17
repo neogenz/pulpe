@@ -145,6 +145,22 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
         return min(max(ratio, 0), 1)
     }
 
+    /// No pace verdict before the first plan month has closed: a fresh goal has
+    /// nothing to be judged on yet. Closed = server-locked (strictly-past cycle
+    /// or everything pointé — same signal the timeline dims rows on).
+    var hasClosedPlanMonth: Bool {
+        months.contains { $0.isContributionEligible && $0.isLocked }
+    }
+
+    /// Amount for the day-1 « plan prêt » beat: the current month's planned
+    /// amount. `nil` (beat hidden) when the timeline has no funded current
+    /// month — legacy payload without `months`, or a gap month.
+    var currentMonthPlannedAmount: Decimal? {
+        guard let amount = months.first(where: { $0.state == .current })?.plannedAmount,
+              amount > 0 else { return nil }
+        return amount
+    }
+
     // MARK: - Init
 
     /// Memberwise init kept explicit (a custom `init(from:)` would otherwise

@@ -38,7 +38,7 @@ struct GoalHeroPresentation: Equatable {
     let requiredPace: String?
 
     init(progress: SavingsGoalProgress, status: SavingsGoalStatus, currency: SupportedCurrency) {
-        let hasClosedPlanMonth = SavingsGoalDetailViewModel.hasClosedPlanMonth(progress.months)
+        let hasClosedPlanMonth = progress.hasClosedPlanMonth
 
         showsStatusChip = status != .active
         amount = progress.confirmed.asCompactCurrency(currency)
@@ -56,7 +56,7 @@ struct GoalHeroPresentation: Equatable {
         verdict = progress.paceStatus.flatMap { hasClosedPlanMonth ? Self.makeVerdict($0) : nil }
         dayOneBeat = progress.paceStatus == nil || hasClosedPlanMonth
             ? nil
-            : SavingsGoalDetailViewModel.currentMonthPlannedAmount(progress.months).map {
+            : progress.currentMonthPlannedAmount.map {
                 AppLocale.string("Ton plan est prêt : \($0.asCurrency(currency)) à mettre de côté ce mois.")
             }
 

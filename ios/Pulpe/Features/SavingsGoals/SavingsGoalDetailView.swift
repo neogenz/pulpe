@@ -586,24 +586,6 @@ final class SavingsGoalDetailViewModel {
         self.service = service
     }
 
-    // MARK: - Day-1 verdict gate
-
-    /// No pace verdict before the first plan month has closed: a fresh goal has
-    /// nothing to be judged on yet. Closed = server-locked (strictly-past cycle
-    /// or everything pointé — same signal the timeline dims rows on).
-    nonisolated static func hasClosedPlanMonth(_ months: [SavingsGoalPlanMonth]) -> Bool {
-        months.contains { $0.isContributionEligible && $0.isLocked }
-    }
-
-    /// Amount for the day-1 « plan prêt » beat: the current month's planned
-    /// amount. `nil` (beat hidden) when the timeline has no funded current
-    /// month — legacy payload without `months`, or a gap month.
-    nonisolated static func currentMonthPlannedAmount(_ months: [SavingsGoalPlanMonth]) -> Decimal? {
-        guard let amount = months.first(where: { $0.state == .current })?.plannedAmount,
-              amount > 0 else { return nil }
-        return amount
-    }
-
     static func recoveryAmount(_ progress: SavingsGoalProgress) -> Decimal? {
         guard let amount = progress.required?.rounded(2, .up), amount > 0 else { return nil }
         return amount
