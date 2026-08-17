@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 private actor ControlledUserSettingsService: UserSettingsServicing {
-    private var getContinuation: CheckedContinuation<UserSettings, Never>?
+    private var getContinuation: CheckedContinuation<UserSettings, any Error>?
     private var getWaiters: [Int: CheckedContinuation<Void, Never>] = [:]
     private var continuations: [SupportedLocale: CheckedContinuation<UserSettings, any Error>] = [:]
     private var waiters: [Int: CheckedContinuation<Void, Never>] = [:]
@@ -16,7 +16,7 @@ private actor ControlledUserSettingsService: UserSettingsServicing {
         for expected in getWaiters.keys.filter({ $0 <= getCallCount }) {
             getWaiters.removeValue(forKey: expected)?.resume()
         }
-        return await withCheckedContinuation { getContinuation = $0 }
+        return try await withCheckedThrowingContinuation { getContinuation = $0 }
     }
 
     func updateSettings(_ settings: UpdateUserSettings) async throws -> UserSettings {
@@ -47,6 +47,11 @@ private actor ControlledUserSettingsService: UserSettingsServicing {
                 locale: locale
             )
         )
+        getContinuation = nil
+    }
+
+    func cancelGet() {
+        getContinuation?.resume(throwing: APIError.networkError(URLError(.cancelled)))
         getContinuation = nil
     }
 
@@ -212,6 +217,29 @@ struct UserSettingsStoreLocaleTests {
         #expect(store.payDayOfMonth == 27)
         #expect(store.locale == .it)
         #expect(AppLocale.current == .it)
+
+        store.reset()
+    }
+
+    @Test("A cancelled locale load cannot publish an error after a successful update")
+    func updateLocale_discardsCancelledLoadError() async {
+        let service = ControlledUserSettingsService()
+        let store = UserSettingsStore(service: service)
+
+        let staleLoad = Task { await store.forceRefresh() }
+        await service.waitForGetCallCount(1)
+
+        let update = Task { await store.updateLocale(.it) }
+        await service.waitForCallCount(1)
+        await service.cancelGet()
+        await staleLoad.value
+        await service.succeed(.it)
+        await update.value
+
+        #expect(await service.remoteLocale == .it)
+        #expect(store.locale == .it)
+        #expect(AppLocale.current == .it)
+        #expect(store.error == nil)
 
         store.reset()
     }

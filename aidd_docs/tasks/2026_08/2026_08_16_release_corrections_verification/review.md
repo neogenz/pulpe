@@ -1,7 +1,7 @@
 # Review: Corrections pré-release vérifiées
 
 - **Verdict**: approve
-- **Diff**: `f127a4e29a668750eda14179d128dfa4cd204c2c...4e073cd1243f204f8f1b2a369b65da0647d29157`
+- **Diff**: `27015f8848168853be84f8aac80cdb54a10b19ee...working-tree`
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_08_17
 - **Findings**: 0 critical, 0 warning, 0 minor
@@ -24,10 +24,10 @@
 
 ### Phase 3 — Dernier choix de langue gagnant sur iOS
 
-- [x] Aucune complétion obsolète ne modifie `locale`, `AppLocale`, `error` ni le timestamp, y compris après `reset` — `ios/Pulpe/Domain/Store/UserSettingsStore.swift:60`, `ios/Pulpe/Domain/Store/UserSettingsStore.swift:110`, `ios/Pulpe/Domain/Store/UserSettingsStore.swift:153`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:178`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:252`
-- [x] Le service contrôlé suspend les écritures et les lectures sans délai temporel fragile — `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:5`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:123`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:178`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:219`
-- [x] Les PUT sont sérialisés, les échecs restaurent la dernière locale confirmée et les deux ordres GET/PUT gardent `.it` publié et distant — `ios/Pulpe/Domain/Store/UserSettingsStore.swift:166`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:123`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:153`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:178`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:219`
-- [x] Swift Testing exécute la suite ciblée et Xcode réussit — validation fournie : 10/10 et `** TEST SUCCEEDED **`; SwiftLint strict réussi
+- [x] Aucune complétion obsolète ne modifie `locale`, `AppLocale`, `error` ni le timestamp, y compris après `reset` — `ios/Pulpe/Domain/Store/UserSettingsStore.swift:60`, `ios/Pulpe/Domain/Store/UserSettingsStore.swift:91`, `ios/Pulpe/Domain/Store/UserSettingsStore.swift:110`, `ios/Pulpe/Domain/Store/UserSettingsStore.swift:153`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:183`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:224`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:280`
+- [x] Le service contrôlé suspend les écritures et les lectures, y compris une annulation URLSession encapsulée, sans délai temporel fragile — `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:5`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:53`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:128`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:224`
+- [x] Les PUT sont sérialisés, les échecs restaurent la dernière locale confirmée et les deux ordres GET/PUT gardent `.it` publié et distant sans erreur obsolète — `ios/Pulpe/Domain/Store/UserSettingsStore.swift:166`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:128`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:158`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:183`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:224`, `ios/PulpeTests/Domain/Store/UserSettingsStoreTests.swift:247`
+- [x] Swift Testing exécute la suite ciblée et Xcode réussit — validation fournie : 11/11 et `** TEST SUCCEEDED **`; SwiftLint ciblé strict réussi
 
 ### Phase 4 — Contrat atomique des mises à jour de paramètres
 
@@ -44,6 +44,6 @@ None.
 | Metric        | Value |
 | ------------- | ----- |
 | Verified      | 100% (15/15) |
-| Files checked | Les 17 fichiers modifiés ; appelants et contrats vérifiés dans `PulpeApp.swift`, `RootViewModifiers.swift`, `SessionDataResetting.swift`, `AppState+SessionReset.swift`, `CurrentMonthView.swift`, `LanguageSettingView.swift`, `UserSettingsService.swift`, `APIClient.swift`, `language.service.ts`, `settings-page.ts`, `user-profile.dto.ts`, `user.controller.ts`, `update-user-settings.use-case.ts` et `supabase-user.repository.ts` |
+| Files checked | Les 18 fichiers modifiés ; appelants et contrats vérifiés dans `PulpeApp.swift`, `RootViewModifiers.swift`, `SessionDataResetting.swift`, `AppState+SessionReset.swift`, `CurrentMonthView.swift`, `LanguageSettingView.swift`, `UserSettingsService.swift`, `APIClient.swift`, `APIError.swift`, `language.service.ts`, `settings-page.ts`, `user-profile.dto.ts`, `user.controller.ts`, `update-user-settings.use-case.ts` et `supabase-user.repository.ts` |
 | Unchecked     | none |
 | Unplanned     | none |

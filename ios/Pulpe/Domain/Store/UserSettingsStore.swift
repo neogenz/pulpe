@@ -88,12 +88,12 @@ final class UserSettingsStore: StoreProtocol {
                     locale = AppLocale.current
                 }
                 lastLoadTime = Date()
-            } catch is CancellationError {
-                // Task was cancelled, don't update error state
+            } catch where error.isCancellationOrURLCancellation {
+                // A superseded URLSession request surfaces as APIError.networkError(-999).
             } catch let apiError as APIError {
-                self.error = apiError
+                if loadGeneration == currentGeneration { self.error = apiError }
             } catch {
-                self.error = .networkError(error)
+                if loadGeneration == currentGeneration { self.error = .networkError(error) }
             }
         }
 
