@@ -1,6 +1,6 @@
 ---
 objective: "Android routes returning users through PIN or biometric unlock, keeps existing Google users out of onboarding, and exposes password visibility on sign-in."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Correct Android auth and resume routing
