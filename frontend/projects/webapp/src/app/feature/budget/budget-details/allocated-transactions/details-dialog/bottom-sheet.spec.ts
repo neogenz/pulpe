@@ -166,15 +166,34 @@ describe('AllocatedTransactionsBottomSheet', () => {
       expect(el.textContent).toContain('% utilisé');
     });
 
-    it('should show 0% when budget amount is 0', () => {
+    it('should show a round overage when the budget amount is 0', () => {
       setup({
         budgetLine: { amount: 0 },
         consumption: { consumed: 50 },
       });
 
       const el: HTMLElement = fixture.nativeElement;
-      expect(el.textContent).toContain('0');
-      expect(el.textContent).toContain('% utilisé');
+      expect(el.textContent).toContain('Dépassé de 80 CHF');
+      expect(el.textContent).not.toContain('80.00 CHF');
+    });
+
+    it('should show a cent-level overage instead of rounded zeroes', () => {
+      setup({
+        budgetLine: { amount: 58.5 },
+        transactions: [
+          buildTransaction({ id: 'tx-1', amount: 39.9 }),
+          buildTransaction({ id: 'tx-2', amount: 18.65 }),
+        ],
+      });
+
+      const text = (fixture.nativeElement.textContent as string).replace(
+        /\s+/g,
+        ' ',
+      );
+      expect(text).toContain('58.55 CHF');
+      expect(text).toContain('-0.05 CHF');
+      expect(text).toContain('Dépassé de 0.05 CHF');
+      expect(text).not.toContain('Dépassé de 0 CHF');
     });
   });
 
