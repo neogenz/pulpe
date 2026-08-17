@@ -15,17 +15,21 @@ permissions:
   pull-requests: read
 
 jobs:
-  publish:
-    name: 🏭 Production Release
+  authorize:
+    name: 🔐 Authorize proven release
     runs-on: ubuntu-latest
-    timeout-minutes: 90
-    env:
-      RAILWAY_CLI_VERSION: "5.15.0"
-      RAILWAY_CLI_SHA256: d302113b772b8f34d28ed2242c1d258953de989c282d4cc72291239ccb0fb041
-      RAILWAY_PROJECT: 33ba829c-d4d6-4096-b0dc-57c89c367063
-      RAILWAY_SERVICE: b1f9b1c0-7eca-4c58-b203-cdbbed8ae0a4
+    timeout-minutes: 10
+    outputs:
+      candidate_sha: ${{ steps.release.outputs.candidate_sha }}
+      migration_changed: ${{ steps.migrations.outputs.changed }}
+      preparation_pr: ${{ steps.release.outputs.preparation_pr }}
+      production_pr: ${{ steps.release.outputs.production_pr }}
+      production_tree: ${{ steps.release.outputs.production_tree }}
+      staging_run_id: ${{ steps.release.outputs.staging_run_id }}
+      version: ${{ steps.release.outputs.version }}
     steps:
       - name: Verify the approved release and staging proof
+        id: release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -54,7 +58,8 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/git/commits/$GITHUB_SHA" > "$RUNNER_TEMP/production-commit.json"
           jq -e --arg candidate "$candidate_sha" '(.parents | length) == 2 and .parents[1].sha == $candidate' "$RUNNER_TEMP/production-commit.json"
           production_tree=$(jq -r .tree.sha "$RUNNER_TEMP/production-commit.json")
-          candidate_tree=$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$candidate_sha" --jq .tree.sha)
+          gh api "repos/$GITHUB_REPOSITORY/git/commits/$candidate_sha" > "$RUNNER_TEMP/candidate.json"
+          candidate_tree=$(jq -r .tree.sha "$RUNNER_TEMP/candidate.json")
           test "$production_tree" = "$candidate_tree"
           encoded_branch=$(jq -rn --arg value "$release_branch" '$value | @uri')
           test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$encoded_branch" --jq .object.sha)" = "$candidate_sha"
@@ -63,6 +68,8 @@ jobs:
           release_sha=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$preparation_pr/commits?per_page=100" --jq '.[].sha' | tail -n 1)
           jq -e --arg candidate "$candidate_sha" --arg branch "$release_branch" '.user.login == "pulpe-release[bot]" and .base.ref == "preview" and .head.ref == $branch and .merged_at != null and .merge_commit_sha == $candidate' "$RUNNER_TEMP/preparation-pr.json"
           test "$(jq -r '.body | split("\n")[0]' "$RUNNER_TEMP/preparation-pr.json")" = "<!-- pulpe-release:v$version:$release_sha -->"
+          release_base=$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$release_sha" --jq '.parents[0].sha')
+          jq -e --arg release "$release_sha" --arg base "$release_base" '(.parents | length) == 2 and .parents[0].sha == $base and .parents[1].sha == $release' "$RUNNER_TEMP/candidate.json"
 
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$staging_run_id" > "$RUNNER_TEMP/staging-run.json"
           jq -e --arg candidate "$candidate_sha" '.path == ".github/workflows/staging-proof.yml" and .event == "deployment_status" and .head_sha == $candidate and .conclusion == "success"' "$RUNNER_TEMP/staging-run.json"
@@ -74,39 +81,101 @@ jobs:
           test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$GITHUB_SHA"
 
           {
-            echo "PRODUCTION_PR=$production_pr"
-            echo "PREPARATION_PR=$preparation_pr"
-            echo "CANDIDATE_SHA=$candidate_sha"
-            echo "PRODUCTION_TREE=$production_tree"
-            echo "STAGING_RUN_ID=$staging_run_id"
-            echo "VERSION=$version"
-          } >> "$GITHUB_ENV"
+            echo "production_pr=$production_pr"
+            echo "preparation_pr=$preparation_pr"
+            echo "candidate_sha=$candidate_sha"
+            echo "production_tree=$production_tree"
+            echo "staging_run_id=$staging_run_id"
+            echo "version=$version"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Wait for exact CI and production deployments
+      - name: 📥 Checkout authorized production tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: 🔍 Detect migration changes
+        id: migrations
+        run: |
+          set -euo pipefail
+          if git diff --quiet "${GITHUB_SHA}^1" "$GITHUB_SHA" -- backend-nest/supabase/migrations/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  migrate:
+    name: 🗄️ Apply production migrations
+    needs: authorize
+    if: needs.authorize.outputs.migration_changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - name: 📥 Checkout authorized production tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 🗄️ Setup Supabase CLI
+        uses: ./.github/actions/setup-supabase-cli
+        with:
+          version: "2.113.0"
+
+      - name: 🔗 Link Supabase project
+        working-directory: backend-nest
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+          SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_PROJECT_ID }}
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: 🧪 Dry-run migrations
+        working-directory: backend-nest
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+        run: supabase db push --dry-run
+
+      - name: 🚀 Apply migrations
+        working-directory: backend-nest
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+        run: supabase db push
+
+  publish:
+    name: 🏭 Publish proven release
+    needs: [authorize, migrate]
+    if: ${{ always() && needs.authorize.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CANDIDATE_SHA: ${{ needs.authorize.outputs.candidate_sha }}
+      MIGRATION_CHANGED: ${{ needs.authorize.outputs.migration_changed }}
+      PREPARATION_PR: ${{ needs.authorize.outputs.preparation_pr }}
+      PRODUCTION_PR: ${{ needs.authorize.outputs.production_pr }}
+      PRODUCTION_TREE: ${{ needs.authorize.outputs.production_tree }}
+      STAGING_RUN_ID: ${{ needs.authorize.outputs.staging_run_id }}
+      VERSION: ${{ needs.authorize.outputs.version }}
+      RAILWAY_CLI_VERSION: "5.15.0"
+      RAILWAY_CLI_SHA256: d302113b772b8f34d28ed2242c1d258953de989c282d4cc72291239ccb0fb041
+      RAILWAY_PROJECT: 33ba829c-d4d6-4096-b0dc-57c89c367063
+      RAILWAY_SERVICE: b1f9b1c0-7eca-4c58-b203-cdbbed8ae0a4
+    steps:
+      - name: Wait for exact production deployments
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          ci_run_id=
-          for _ in {1..120}; do
-            gh api -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" -f branch=main -f event=push -f head_sha="$GITHUB_SHA" -f per_page=20 > "$RUNNER_TEMP/ci-runs.json"
-            ci_run_id=$(jq -r --arg sha "$GITHUB_SHA" '[.workflow_runs[] | select(.path == ".github/workflows/ci.yml" and .head_sha == $sha)] | max_by(.id) | .id // empty' "$RUNNER_TEMP/ci-runs.json")
-            conclusion=$(jq -r --argjson id "${ci_run_id:-0}" '.workflow_runs[] | select(.id == $id) | .conclusion // empty' "$RUNNER_TEMP/ci-runs.json")
-            test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$GITHUB_SHA"
-            case "$conclusion" in
-              success) break ;;
-              failure|cancelled|timed_out|action_required|stale) exit 1 ;;
-            esac
-            sleep 10
-          done
-          test "$conclusion" = success
-
           deployment() {
             gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f environment="$1" -f sha="$GITHUB_SHA" -f per_page=100 | jq -r --arg creator "$2" '[.[] | select(.creator.login == $creator)] | max_by(.id) | .id // empty'
           }
           state() { gh api "repos/$GITHUB_REPOSITORY/deployments/$1/statuses" --jq 'max_by(.id) | .state // empty'; }
 
           for _ in {1..120}; do
+            test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$GITHUB_SHA"
             frontend_id=$(deployment "Production – pulpe-frontend" "vercel[bot]")
             landing_id=$(deployment "Production – pulpe-landing" "vercel[bot]")
             railway_id=$(deployment "pulpe-backend / production" "railway-app[bot]")
@@ -123,15 +192,43 @@ jobs:
           curl --fail --silent --show-error --location --max-time 20 https://api.pulpe.app/health >/dev/null
           test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$GITHUB_SHA"
           {
-            echo "CI_RUN_ID=$ci_run_id"
             echo "FRONTEND_DEPLOYMENT_ID=$frontend_id"
             echo "LANDING_DEPLOYMENT_ID=$landing_id"
             echo "RAILWAY_DEPLOYMENT_ID=$railway_id"
           } >> "$GITHUB_ENV"
 
+      - name: 📥 Checkout proven production tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 🔒 Verify production CSP headers
+        run: |
+          set -euo pipefail
+          expected=$(python3 -c "
+          import json, re
+          v = json.load(open('vercel.json'))
+          for block in v['headers']:
+              for cond in block.get('has', []):
+                  if cond.get('type') == 'host' and re.match('^(?:' + cond['value'] + ')$', 'app.pulpe.app'):
+                      for header in block['headers']:
+                          if header['key'] == 'Content-Security-Policy':
+                              print(header['value'])
+                              raise SystemExit
+          ")
+          test -n "$expected"
+          for host in app.pulpe.app pulpe-frontend.vercel.app; do
+            for attempt in {1..10}; do
+              served=$(curl -s --max-time 10 -o /dev/null -D - "https://${host}/" | grep -i '^content-security-policy:' | sed 's/^[^:]*: *//' | tr -d '\r')
+              if [ "$served" = "$expected" ]; then break; fi
+              if [ "$attempt" = 10 ]; then exit 1; fi
+              sleep 30
+            done
+          done
+
       - name: Record immutable production proof
         run: |
-          jq -n --arg repository "$GITHUB_REPOSITORY" --arg candidate "$CANDIDATE_SHA" --arg production "$GITHUB_SHA" --arg tree "$PRODUCTION_TREE" --arg version "$VERSION" --argjson production_pr "$PRODUCTION_PR" --argjson preparation_pr "$PREPARATION_PR" --argjson staging_run "$STAGING_RUN_ID" --argjson ci_run "$CI_RUN_ID" --argjson frontend "$FRONTEND_DEPLOYMENT_ID" --argjson landing "$LANDING_DEPLOYMENT_ID" --argjson railway "$RAILWAY_DEPLOYMENT_ID" '{repository:$repository,version:$version,production_pr:$production_pr,preparation_pr:$preparation_pr,candidate_sha:$candidate,production_sha:$production,tree_sha:$tree,staging_run_id:$staging_run,ci_run_id:$ci_run,deployments:{frontend:$frontend,landing:$landing,railway:$railway}}' > production-proof.json
+          jq -n --arg repository "$GITHUB_REPOSITORY" --arg candidate "$CANDIDATE_SHA" --arg production "$GITHUB_SHA" --arg tree "$PRODUCTION_TREE" --arg version "$VERSION" --argjson production_pr "$PRODUCTION_PR" --argjson preparation_pr "$PREPARATION_PR" --argjson staging_run "$STAGING_RUN_ID" --argjson migrations "$MIGRATION_CHANGED" --argjson frontend "$FRONTEND_DEPLOYMENT_ID" --argjson landing "$LANDING_DEPLOYMENT_ID" --argjson railway "$RAILWAY_DEPLOYMENT_ID" '{repository:$repository,version:$version,production_pr:$production_pr,preparation_pr:$preparation_pr,candidate_sha:$candidate,production_sha:$production,tree_sha:$tree,staging_run_id:$staging_run,migrations_applied:$migrations,deployments:{frontend:$frontend,landing:$landing,railway:$railway}}' > production-proof.json
 
       - name: Upload production proof
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -182,6 +279,7 @@ jobs:
           # shellcheck disable=SC2016
           set -euo pipefail
           test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$GITHUB_SHA"
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PREPARATION_PR" > "$RUNNER_TEMP/preparation-pr.json"
           notes="$RUNNER_TEMP/release-notes.md"
           jq -r .body "$RUNNER_TEMP/preparation-pr.json" | sed -n "/^## v$VERSION$/,$ p" > "$notes"
           test "$(sed -n '1p' "$notes")" = "## v$VERSION"
@@ -208,6 +306,20 @@ jobs:
           else
             jq -se --arg tag "v$VERSION" --arg target "$GITHUB_SHA" --rawfile body "$notes" '[.[] | select(.tag_name == $tag)] | length == 1 and .[0].target_commitish == $target and .[0].name == $tag and .[0].body == $body and .[0].draft == false and .[0].prerelease == false' "$RUNNER_TEMP/releases.jsonl"
           fi
+
+      - name: 📊 Create PostHog annotation
+        env:
+          POSTHOG_HOST: https://eu.i.posthog.com
+          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_WEBAPP_PROJECT_ID }}
+        run: |
+          commit="${GITHUB_SHA::7}"
+          date=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          curl -sf -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/annotations/" \
+            -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\":\"v${VERSION} (${commit})\",\"scope\":\"project\",\"date_marker\":\"${date}\"}" \
+            || echo "::warning::PostHog annotation failed"
 
       - name: Synchronize the web version gate
         env:

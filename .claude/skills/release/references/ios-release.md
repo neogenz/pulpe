@@ -11,12 +11,12 @@ The releaser decides build-only vs. marketing-bump per release. Propose `build` 
 
 Resolve this decision before changelog data is written. A release with a marketing bump records that exact value as `iosVersion` in `landing/data/releases.json`. It must then choose exactly one persistent backend mode: a curated entry in `RELEASES` when at least one item qualifies for the iOS dialog, or a motivated entry in `SILENT_IOS_RELEASES` when none qualifies. A build-only release records no `iosVersion` and cannot trigger the one-shot what's-new dialog because the bundle marketing version did not change.
 
-| Mode         | iOS version           | Public changelog           | Persistent backend record                 |
-| ------------ | --------------------- | -------------------------- | ----------------------------------------- |
-| `projection` | Marketing bump        | Entry with `iosVersion`    | `RELEASES`: 1–4 curated items             |
+| Mode         | iOS version           | Public changelog           | Persistent backend record                  |
+| ------------ | --------------------- | -------------------------- | ------------------------------------------ |
+| `projection` | Marketing bump        | Entry with `iosVersion`    | `RELEASES`: 1–4 curated items              |
 | `silent`     | Marketing bump        | Entry with `iosVersion`    | `SILENT_IOS_RELEASES`: one concrete reason |
-| `build`      | Build number only     | Entry without `iosVersion` | None                                      |
-| `skip`       | Approved iOS decision | None                       | None                                      |
+| `build`      | Build number only     | Entry without `iosVersion` | None                                       |
+| `skip`       | Approved iOS decision | None                       | None                                       |
 
 ## Curate iOS What's New
 
@@ -79,7 +79,9 @@ Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
 
 - `internal`: dispatch from `preview`, archive `PulpePreview` / `Preview`, and use an unused ASC build number supplied by Alfred. The source file is not changed for these temporary builds.
 - `release`: dispatch from `main`, archive `PulpeProd` / `Prod`, and use the exact build number recorded in the approved release changes.
-- Both modes require the exact branch-head SHA and a successful `✅ CI Success` check for that SHA.
+- Both modes require the exact branch-head SHA. Internal distribution consumes its
+  immutable `Staging Ready` proof; release distribution consumes the successful
+  `Production Release` proof for the exact `main` SHA.
 - Signing credentials live only in the `ios-distribution` GitHub Environment. The workflow uses an ephemeral keychain and removes certificates, API keys, archives, and exported IPA files in an `always()` cleanup step.
 - GitHub Actions only uploads the IPA. Alfred verifies ASC processing and performs the separately approved TestFlight or App Store operation.
 

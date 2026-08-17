@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: completed
 ---
 
 # Instruction: Prouver le staging en observation
