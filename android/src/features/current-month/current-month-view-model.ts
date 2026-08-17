@@ -260,7 +260,10 @@ function countUnchecked(
 ): number {
   const uncheckedTransactions = transactions.filter(isUnchecked).length;
   const uncheckedLines = budgetLines.filter(
-    (line) => isUnchecked(line) && line.isRollover !== true,
+    (line) =>
+      isUnchecked(line) &&
+      line.isRollover !== true &&
+      line.sourceSavingsGoalId == null,
   ).length;
   return uncheckedTransactions + uncheckedLines;
 }
@@ -293,7 +296,12 @@ function selectUncheckedItems(
     });
 
   const uncheckedLines = budgetLines
-    .filter((line) => isUnchecked(line) && line.isRollover !== true)
+    .filter(
+      (line) =>
+        isUnchecked(line) &&
+        line.isRollover !== true &&
+        line.sourceSavingsGoalId == null,
+    )
     .sort(byKindThenNewest)
     .map((line) => ({
       id: `bl-${line.id}`,

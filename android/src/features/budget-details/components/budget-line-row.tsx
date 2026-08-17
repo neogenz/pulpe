@@ -60,13 +60,15 @@ export function BudgetLineRow({
       accessibilityRole="button"
       accessibilityHint="Ouvre le détail de la prévision"
     >
-      <PointCircle
-        isChecked={item.isChecked}
-        color={dotColor}
-        isSyncing={isSyncing}
-        label={item.line.name}
-        onToggle={onToggle}
-      />
+      {item.line.sourceSavingsGoalId == null && (
+        <PointCircle
+          isChecked={item.isChecked}
+          color={dotColor}
+          isSyncing={isSyncing}
+          label={item.line.name}
+          onToggle={onToggle}
+        />
+      )}
 
       <View style={styles.labels}>
         <View style={styles.eyebrow}>

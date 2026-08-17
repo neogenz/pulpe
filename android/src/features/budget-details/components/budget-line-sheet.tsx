@@ -108,6 +108,7 @@ export function BudgetLineSheet({
   // after the rows were written must not leave a second group behind.
   const [spreadGroupId, setSpreadGroupId] = useState(() => randomUUID());
   const isEditing = line !== undefined;
+  const isPlannedWithdrawal = line?.sourceSavingsGoalId != null;
   // A spread is a shape of expense, and a revenue has no shape to spread.
   const canSpread = !isEditing && draft.kind !== "income";
   const cells = spreadWindow(anchor, spreadLength, deselected);
@@ -217,7 +218,10 @@ export function BudgetLineSheet({
       <SegmentedButtons
         value={draft.kind}
         onValueChange={(kind) => change({ kind: kind as TransactionKind })}
-        buttons={KIND_BUTTONS}
+        buttons={KIND_BUTTONS.map((button) => ({
+          ...button,
+          disabled: isPlannedWithdrawal,
+        }))}
       />
 
       <AmountField
@@ -250,7 +254,10 @@ export function BudgetLineSheet({
             onValueChange={(recurrence) =>
               change({ recurrence: recurrence as TransactionRecurrence })
             }
-            buttons={RECURRENCE_OPTIONS}
+            buttons={RECURRENCE_OPTIONS.map((button) => ({
+              ...button,
+              disabled: isPlannedWithdrawal,
+            }))}
           />
 
           <Text

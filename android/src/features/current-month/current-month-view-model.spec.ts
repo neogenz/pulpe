@@ -246,6 +246,20 @@ describe("unchecked", () => {
     expect(model.uncheckedItems).toHaveLength(0);
   });
 
+  it("never asks the user to point a planned savings withdrawal", () => {
+    const model = viewModelOf([
+      line({
+        id: "withdrawal",
+        kind: "income",
+        recurrence: "one_off",
+        sourceSavingsGoalId: "goal-1",
+      }),
+    ]);
+
+    expect(model.uncheckedCount).toBe(0);
+    expect(model.uncheckedItems).toHaveLength(0);
+  });
+
   it("carries the envelope state on an allocated transaction", () => {
     const model = viewModelOf(
       [line({ id: "groceries", amount: 400 })],

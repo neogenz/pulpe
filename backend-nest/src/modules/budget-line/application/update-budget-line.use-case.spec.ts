@@ -143,12 +143,12 @@ describe('UpdateBudgetLineUseCase', () => {
     );
   });
 
-  it('should untag (savingsGoalId null) without fetching the current line', async () => {
+  it('should untag (savingsGoalId null) after validating the current line', async () => {
     const dto: BudgetLineUpdate = { id: mockEntity.id, savingsGoalId: null };
 
     await useCase.execute(mockEntity.id, dto, mockUser);
 
-    expect(mockRepo.findById).not.toHaveBeenCalled();
+    expect(mockRepo.findById).toHaveBeenCalledWith(mockEntity.id);
     expect(mockRepo.update).toHaveBeenCalledWith(
       mockEntity.id,
       expect.objectContaining({ savingsGoalId: null }),
@@ -172,6 +172,55 @@ describe('UpdateBudgetLineUseCase', () => {
       BusinessException,
     );
     expect(mockRepo.update).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['kind', { kind: 'expense' }],
+    ['recurrence', { recurrence: 'fixed' }],
+  ])(
+    'should reject a planned withdrawal structural %s change',
+    async (_label, changes) => {
+      mockRepo.findById.mockResolvedValueOnce({
+        ...mockEntity,
+        kind: 'income',
+        recurrence: 'one_off',
+        sourceSavingsGoalId: 'goal-1',
+      });
+
+      await expect(
+        useCase.execute(
+          mockEntity.id,
+          { id: mockEntity.id, ...changes } as BudgetLineUpdate,
+          mockUser,
+        ),
+      ).rejects.toThrow(BusinessException);
+
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('should allow planned withdrawal metadata changes', async () => {
+    const plannedWithdrawal = {
+      ...mockEntity,
+      kind: 'income' as const,
+      recurrence: 'one_off' as const,
+      sourceSavingsGoalId: 'goal-1',
+    };
+    mockRepo.findById.mockResolvedValueOnce(plannedWithdrawal);
+    mockRepo.update.mockResolvedValueOnce({
+      ...plannedWithdrawal,
+      name: 'Retrait vacances',
+    });
+
+    await useCase.execute(
+      mockEntity.id,
+      { id: mockEntity.id, name: 'Retrait vacances' },
+      mockUser,
+    );
+
+    expect(mockRepo.update).toHaveBeenCalledWith(mockEntity.id, {
+      name: 'Retrait vacances',
+    });
   });
 
   it('should propagate repo.update errors without recalculation', async () => {

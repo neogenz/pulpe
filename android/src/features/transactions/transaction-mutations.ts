@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { budgetKeys } from "@/features/budgets/budget-queries";
+import { goalKeys } from "@/features/savings-goals/goals-queries";
 
 import {
   createTransaction,
@@ -21,8 +22,10 @@ function useTransactionMutation<TInput, TResult>(
 
   return useMutation({
     mutationFn,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: budgetKeys.all });
+      void queryClient.invalidateQueries({ queryKey: goalKeys.all });
+    },
   });
 }
 
