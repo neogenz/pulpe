@@ -402,6 +402,7 @@ struct SavingsGoalIntervalUITestHarness: View {
         case .budgetLongPressWithTransactions,
              .budgetLongPressEmpty,
              .budgetGoalSpreadMetadata,
+             .budgetLinkedForecastDelete,
              .contextualCreationHome,
              .contextualCreationBudget,
              .loginScreen:
