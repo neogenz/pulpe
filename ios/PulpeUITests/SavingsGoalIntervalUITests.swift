@@ -26,7 +26,9 @@ final class SavingsGoalIntervalUITests: XCTestCase {
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_NAME_ONLY",
             hasTarget: false,
             deadlineIdentifier: nil,
-            hasProjection: true,
+            // No linked prévision: there is no plan to project, so the hero
+            // stays silent instead of quoting a figure nothing feeds.
+            hasProjection: false,
             hasRequiredAmount: false,
             hasEstimation: false,
             hasSuggestion: false,
@@ -50,7 +52,7 @@ final class SavingsGoalIntervalUITests: XCTestCase {
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_DEADLINE_ONLY",
             hasTarget: false,
             deadlineIdentifier: "savingsGoalDeadlineDate",
-            hasProjection: true,
+            hasProjection: false,
             hasRequiredAmount: false,
             hasEstimation: false,
             hasSuggestion: false,
@@ -63,7 +65,9 @@ final class SavingsGoalIntervalUITests: XCTestCase {
             hasTarget: true,
             deadlineIdentifier: "savingsGoalDeadlineRange",
             hasProjection: true,
-            hasRequiredAmount: true,
+            // The plan lands on 3 600 for a 3 000 target: advising a required
+            // pace here would only restate the plan under another name.
+            hasRequiredAmount: false,
             hasEstimation: true,
             hasSuggestion: false,
             hasTrajectory: true,
@@ -207,6 +211,29 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         attachScreenshot("ios-template-linked-goal-light-large")
     }
 
+    /// The two history sections are below the fold, so nothing ever photographed
+    /// them: the ledger rewrite (one card per group, hairlines inside) is only
+    /// verifiable on a capture taken after scrolling there.
+    func testHistorySectionsRenderBelowTheFold() {
+        launch("UITEST_SAVINGS_GOAL_DETAIL_FULL")
+
+        let contributions = identified("savingsGoalContributionsSection")
+        XCTAssertTrue(contributions.waitForExistence(timeout: 10))
+        scrollUntilHittable(contributions)
+        attachScreenshot("ios-detail-full-contributions-light-large")
+
+        let withdrawals = identified("savingsGoalWithdrawalsSection")
+        XCTAssertTrue(withdrawals.waitForExistence(timeout: 10))
+        scrollUntilHittable(withdrawals)
+        attachScreenshot("ios-detail-full-withdrawals-light-large")
+
+        // A withdrawal linked to a budget stays a button; the plan-only one has
+        // nowhere to go and must not pretend otherwise. Both names are harness
+        // fixtures, matched on their prefix so the amounts stay out of the test.
+        XCTAssertTrue(button(startingWith: "Billets d'avion").exists)
+        XCTAssertFalse(button(startingWith: "Hôtel").exists)
+    }
+
     private func openDeadlineReconciliation(darkMode: Bool = false) {
         launch("UITEST_SAVINGS_GOAL_DEADLINE_RECONCILIATION", darkMode: darkMode)
 
@@ -281,6 +308,10 @@ final class SavingsGoalIntervalUITests: XCTestCase {
 
     private func identified(_ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    private func button(startingWith prefix: String) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
     }
 
     private func attachScreenshot(_ name: String) {

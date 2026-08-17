@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// « Ton suivi » section of `SavingsGoalDetailView` — one card per linked
-/// forecast with its real transactions. Extracted from the detail view to
-/// keep both files under the `file_length`/`type_body_length` ceilings.
+/// « Ton suivi » section of `SavingsGoalDetailView` — the goal's linked
+/// forecasts, each with its real transactions, in one ledger card. Extracted
+/// from the detail view to keep both files under the
+/// `file_length`/`type_body_length` ceilings.
 struct GoalContributionsSection: View {
     let contributions: [SavingsGoalContribution]
     let currency: SupportedCurrency
@@ -14,9 +15,7 @@ struct GoalContributionsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Ton suivi")
-                .font(PulpeTypography.title2)
-                .foregroundStyle(Color.textPrimary)
+            SectionHeader(title: AppLocale.string("Ton suivi"))
 
             if isLoading, contributions.isEmpty {
                 ProgressView("Chargement du suivi…")
@@ -31,20 +30,30 @@ struct GoalContributionsSection: View {
                     Button("Réessayer", action: onRetry)
                         .secondaryButtonStyle()
                 }
-            } else {
-                ForEach(contributions) { contribution in
-                    contributionCard(contribution)
+            } else if !contributions.isEmpty {
+                // One card holds the whole list, hairlines inside it: a card per
+                // month turned a plan of twelve into twelve floating blocks. The
+                // card is what needs the emptiness guard, not the list: an empty
+                // `ForEach` drew nothing, an empty card draws a hollow block.
+                VStack(spacing: DesignTokens.Spacing.none) {
+                    ForEach(Array(contributions.enumerated()), id: \.element.id) { index, contribution in
+                        if index > 0 { Divider() }
+                        contributionRow(contribution)
+                    }
                 }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.xs)
+                .pulpeRowCard()
             }
         }
     }
 
-    private func contributionCard(_ contribution: SavingsGoalContribution) -> some View {
+    private func contributionRow(_ contribution: SavingsGoalContribution) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     Text(contribution.name)
-                        .font(PulpeTypography.listRowTitle)
+                        .font(PulpeTypography.labelLarge)
                         .foregroundStyle(Color.textPrimary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                     // Statut en texte, pas en glyphe : le cercle vide est le
@@ -62,7 +71,7 @@ struct GoalContributionsSection: View {
                 Spacer(minLength: DesignTokens.Spacing.sm)
 
                 Text(contribution.amount.asCurrency(currency))
-                    .font(PulpeTypography.amountCard)
+                    .font(PulpeTypography.amountMedium)
                     .monospacedDigit()
                     .foregroundStyle(Color.textPrimary)
                     .sensitiveAmount()
@@ -71,9 +80,11 @@ struct GoalContributionsSection: View {
 
             if !contribution.transactions.isEmpty {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    // Même rôle que « Retraits planifiés » : une étiquette qui
+                    // nomme un groupe, pas un titre de rangée.
                     Text("Réel")
-                        .font(PulpeTypography.metricLabel)
-                        .foregroundStyle(Color.textSecondary)
+                        .font(PulpeTypography.labelMedium)
+                        .foregroundStyle(Color.textTertiary)
 
                     ForEach(Array(contribution.transactions.enumerated()), id: \.element.id) { index, transaction in
                         if index > 0 { Divider() }
@@ -83,14 +94,14 @@ struct GoalContributionsSection: View {
                 .padding(.leading, DesignTokens.Spacing.md)
             }
         }
-        .pulpeCard()
+        .padding(.vertical, DesignTokens.Spacing.md)
     }
 
     private func contributionTransactionRow(_ transaction: Transaction) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text(transaction.name)
-                    .font(PulpeTypography.listRowSubtitle)
+                    .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 statusSubtitle(
@@ -122,6 +133,6 @@ struct GoalContributionsSection: View {
                 .foregroundStyle(Color.textTertiary)
             + status
         )
-        .font(PulpeTypography.listRowSubtitle)
+        .font(PulpeTypography.labelMedium)
     }
 }

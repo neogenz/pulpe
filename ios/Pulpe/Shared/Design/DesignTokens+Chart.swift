@@ -11,6 +11,10 @@ extension DesignTokens {
         static let markerDash: [CGFloat] = [3, 3]
         static let pointSymbolArea: CGFloat = 100
         static let dashboardHeight: CGFloat = 120
+        /// A savings goal spans ~24 months and is read for its shape, not for a
+        /// value at a date — it needs more room than the dashboard's 120pt strip,
+        /// and the same room in the detail and in the simulator.
+        static let goalHeight: CGFloat = 160
         static let domainPaddingRatio = 0.12
         static let minimumDomainPadding = 1.0
 

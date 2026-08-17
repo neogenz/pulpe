@@ -124,7 +124,15 @@ function buildPlannedProjection(
   currentIndex: number,
   confirmed: number,
   projected: number,
-  monthlyAmounts = months.map((month) => month.plannedAmount),
+  /**
+   * The authoritative end-of-month balance, one per month: `projectedCumulative`
+   * (server) in read mode, `simulatedCumulative` (calculator) in simulation.
+   * Both already subtract real and announced withdrawals — which the fallback
+   * running sum, adding contributions only, cannot see: a month carrying a
+   * withdrawal kept climbing, and only the last point, rewritten below, came
+   * back down.
+   */
+  cumulatives?: readonly (number | undefined)[],
 ): (number | null)[] {
   const data: (number | null)[] = months.map(() => null);
   if (currentIndex < 0) return data;
@@ -139,11 +147,18 @@ function buildPlannedProjection(
   let cumulative = confirmed;
   for (let index = currentIndex; index <= lastIndex; index++) {
     const month = months[index];
-    cumulative += Math.max(0, monthlyAmounts[index] - month.confirmedAmount);
-    if (index > currentIndex) data[index] = cumulative;
+    cumulative += Math.max(0, month.plannedAmount - month.confirmedAmount);
+    if (index > currentIndex) data[index] = cumulatives?.[index] ?? cumulative;
   }
-  // The server owns the canonical endpoint; this also absorbs float rounding.
-  data[lastIndex] = projected;
+  // The endpoint stays in the same net family as every other point: the net
+  // balance wins whenever there is one. `projected` collapses to
+  // `plannedProjection` on a goal with no target amount or no deadline, and
+  // that figure ignores withdrawals by design — closing a net curve with it
+  // made the line dip on the withdrawal month then climb back on the last one
+  // with no money moving. It now only closes a legacy curve, which carries no
+  // net balance; there the server still owns the endpoint and absorbs float
+  // rounding.
+  data[lastIndex] = cumulatives?.[lastIndex] ?? projected;
   return data;
 }
 
@@ -185,9 +200,15 @@ export function buildGoalProjectionChartData(
         currentIndex,
         confirmed,
         draft.simulatedFinal,
-        draft.months.map((month) => month.simulatedAmount),
+        draft.months.map((month) => month.simulatedCumulative),
       )
-    : buildPlannedProjection(months, currentIndex, confirmed, projected);
+    : buildPlannedProjection(
+        months,
+        currentIndex,
+        confirmed,
+        projected,
+        months.map((month) => month.projectedCumulative),
+      );
 
   // Reality stops at the current month — a null tail keeps the line from
   // implying pointé data exists in the future.

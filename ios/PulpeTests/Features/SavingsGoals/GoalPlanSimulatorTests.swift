@@ -202,11 +202,11 @@ extension GoalPlanSimulatorTests {
     @Test("simulator states the signed amount legend once, outside editable rows")
     func simulator_showsOneSignedAmountLegend() throws {
         let rowSource = try Self.simulatorSource("GoalPlanSimEditRow.swift")
-        let sheetSource = try Self.simulatorSource("GoalPlanSimulatorSheet.swift")
-        let legend = "Montant positif : mettre de côté · montant négatif : retirer"
+        let timelineSource = try Self.simulatorSource("GoalPlanSimulatorTimeline.swift")
+        let legend = "Un montant négatif retire de l'objectif."
 
         #expect(!rowSource.contains(legend))
-        #expect(sheetSource.components(separatedBy: legend).count == 2)
+        #expect(timelineSource.components(separatedBy: legend).count == 2)
     }
 
     @Test("withdrawal destination exposes selection without announcing its symbol")
@@ -236,14 +236,19 @@ extension GoalPlanSimulatorTests {
         let rowSource = try Self.simulatorSource("GoalPlanSimEditRow.swift")
         let sheetSource = try Self.simulatorSource("GoalPlanSimulatorSheet.swift")
         let recapSource = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
+        let timelineSource = try Self.simulatorSource("GoalPlanSimulatorTimeline.swift")
         let resetButtonStart = try #require(
-            sheetSource.range(of: "Button(\"Repartir du plan actuel\")")
+            timelineSource.range(of: "Button(\"Réinitialiser\")")
         )
-        let resetButtonSource = sheetSource[resetButtonStart.lowerBound...].prefix(400)
+        let resetButtonSource = timelineSource[resetButtonStart.lowerBound...].prefix(400)
 
-        #expect(resetButtonSource.contains(".frame(minHeight: DesignTokens.TapTarget.minimum)"))
+        // The reset link shares its row with the section title, so it buys its tap
+        // target by padding out and back in — a `minHeight` frame would grow the
+        // whole header (`swiftui-hit-areas.md`).
+        #expect(resetButtonSource.contains(".padding(.vertical, DesignTokens.TapTarget.minimum / 2)"))
+        #expect(resetButtonSource.contains(".padding(.vertical, -DesignTokens.TapTarget.minimum / 2)"))
         #expect(rowSource.contains("ViewThatFits(in: .horizontal)"))
-        #expect(rowSource.contains("amountEditor(width: 88)"))
+        #expect(rowSource.contains("amountEditor(width: 104)"))
         #expect(rowSource.contains("amountEditor(width: nil)"))
         #expect(rowSource.contains(".frame(maxWidth: width == nil ? .infinity : nil)"))
         #expect(!rowSource.contains("amountEditor(width: nil).frame(width: 88)"))
