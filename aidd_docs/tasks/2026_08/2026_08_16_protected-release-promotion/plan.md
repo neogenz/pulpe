@@ -1,6 +1,6 @@
 ---
 objective: "Remplacer le push de release administrateur par la promotion protégée d'un candidat unique, sans doubler la CI ni bloquer l'intégration continue sur preview."
-status: in-progress
+status: completed
 ---
 
 # Plan: Promotion de release Pulpe protégée et agentique
@@ -25,13 +25,15 @@ Audit GitHub Actions du 17 juillet au 16 août 2026 :
 | Consommation observée | Échantillon de 11 runs réussis : médiane 36,1 runner-min, dont 11,4 macOS                            | Ordre de grandeur évitable : ~2 800 runner-min et ~880 min macOS par mois, avant le faible coût des gates légers.        |
 | Coût monétaire        | Dépôt public, runners GitHub standard                                                                | Gain direct actuel : 0 USD ; le bénéfice porte sur les files, le feedback, la lisibilité et la sécurité du processus.    |
 
-La décision de cutover reste réversible : le nouveau flux est implémenté à côté du flux actuel, puis validé par la première vraie release utilisée comme canary. Aucun merge artificiel n'est requis et la CI post-merge actuelle n'est retirée qu'après le succès complet de cette canary.
+La décision de cutover reste réversible par PR : la CI complète demeure la preuve des PR
+vers `preview`, tandis que les pushes consomment ses artefacts immuables. Aucun merge
+artificiel ni nettoyage différé après la première release n'est requis.
 
-État au 17 août 2026 : les workflows de préparation, preuve staging,
-promotion, gate et publication production sont fusionnés. Le déclenchement
-post-Railway a passé une canary sur une PR normale. Restent la première vraie release
-de bout en bout, puis le cutover des checks requis, de la CI `push` redondante et du
-bypass administrateur historique ; le plan demeure donc `in-progress`.
+État au 17 août 2026 : les workflows de préparation, preuve staging, promotion, gate
+et publication production sont fusionnés. Le cutover supprime les matrices `push`,
+sépare les rulesets et retire le bypass de `main`. Le bypass de `preview` reste
+volontairement limité au mainteneur solo pour ses propres PR. L'invariant de base Git
+empêche une release d'absorber silencieusement une feature fusionnée pendant sa fenêtre.
 
 ## Phases
 
@@ -59,9 +61,9 @@ bypass administrateur historique ; le plan demeure donc `in-progress`.
 | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Conserver Changesets CLI en mode `fixed` et la logique produit actuelle de `/release`.                           | Pulpe publie une seule version cohérente sur cinq packages, quatre langues et iOS ; `changesets/action` ne couvre pas seul ce contrat.                                           |
 | Valider complètement les PR vers `preview`, puis prouver l'identité de l'arbre et des déploiements après fusion. | La seconde compilation du même contenu apporte peu ; l'arbre Git et les SHA fournisseurs répondent précisément au risque de drift.                                               |
-| Valider `Staging Ready` sur la première vraie release canary avant de retirer la CI `push`.                      | Les échecs fermés déjà observés couvrent le drift et la preuve absente ; une canary réelle valide le chemin heureux sans imposer de merges artificiels.                          |
+| Retirer la CI `push` dès le cutover et corriger le premier incident réel dans le flux protégé.                   | Le mainteneur solo préfère un état final sans nettoyage différé ; la restauration reste une PR ciblée si une hypothèse fournisseur échoue.                                       |
 | Utiliser une seule branche logique `release/vX.Y.Z` et un seul commit de version.                                | La PR vers `preview` valide le candidat ; après son merge commit, la branche avance en fast-forward sur ce commit puis sert sans nouvelle modification à la PR vers `main`.      |
-| Suspendre les merges vers `preview` de la création de la branche release jusqu'à sa preuve `Staging Ready`.      | Une feature arrivée pendant la CI manquerait aux notes ou changerait le tree ; après la preuve, `preview` peut avancer sans modifier le candidat figé.                           |
+| Vérifier que la branche release et son merge commit partagent la même base `preview`.                            | Une feature arrivée pendant la courte fenêtre fait échouer la preuve et ne peut pas être promue silencieusement ; aucun verrou dynamique ni merge queue n'est nécessaire.        |
 | Garder exactement deux environnements permanents : preview et production.                                        | Un environnement release-candidate dédié complexifierait Vercel, Railway, Supabase et les secrets pour un besoin couvert par une courte fenêtre de stabilisation.                |
 | Exiger une approbation humaine uniquement sur la PR de production, l'App n'ayant aucun bypass de `main`.         | Les agents peuvent préparer et corriger ; la décision irréversible reste explicite, séparée de l'identité qui a créé la PR et auditée dans GitHub.                               |
 | Conserver les rebuilds fournisseurs propres à preview et production.                                             | Vercel et Railway ont des variables et secrets d'environnement distincts ; un « build once, promote everywhere » uniforme n'existe pas pour l'ensemble web/backend/iOS de Pulpe. |

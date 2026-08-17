@@ -1,10 +1,8 @@
 name: 🚀 CI Pipeline
 
 on:
-  push:
-    branches: [main, preview] # Seulement sur les branches principales
   pull_request:
-    branches: [main, preview] # Tests sur toutes les PRs vers ces branches
+    branches: [preview]
 
 # Éviter les runs multiples pour la même ref
 concurrency:
@@ -680,40 +678,6 @@ jobs:
         if: always()
         run: xcrun simctl shutdown all 2>/dev/null || true
 
-  # 🔍 DETECT MIGRATION CHANGES — main only. Pull-request code never enters a
-  # job with the production environment or its secrets.
-  detect-migrations:
-    name: 🔍 Detect Migration Changes
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    outputs:
-      changed: ${{ steps.filter.outputs.changed }}
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: 🔍 Any migration file touched?
-        id: filter
-        env:
-          BEFORE_SHA: ${{ github.event.before }}
-        run: |
-          MIGRATIONS_PATH='backend-nest/supabase/migrations/'
-          if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            # New branch / unknown base — can't diff safely, so gate the migrate
-            # job (fail-safe: never silently skip applying a real migration).
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          else
-            DIFF=$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- "$MIGRATIONS_PATH")
-          fi
-          if [ -n "$DIFF" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
   # ✅ SUCCESS JOB pour status checks
   ci-success:
     name: ✅ CI Success
@@ -765,14 +729,15 @@ jobs:
           exit 1
 
       - name: 📥 Checkout tested tree
-        if: github.event_name == 'pull_request' && github.base_ref == 'preview'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: 🧾 Record tested tree
-        if: github.event_name == 'pull_request' && github.base_ref == 'preview'
         env:
           BASE_REF: ${{ github.base_ref }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.head_ref }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           MERGE_SHA: ${{ github.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -780,6 +745,9 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           set -euo pipefail
+          if [[ "$HEAD_REF" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            test "$(git rev-parse "${HEAD_SHA}^")" = "$BASE_SHA"
+          fi
           tree_sha=$(git rev-parse "${GITHUB_SHA}^{tree}")
           TREE_SHA="$tree_sha" python3 - <<'PY'
           import json
@@ -804,131 +772,9 @@ jobs:
           PY
 
       - name: 📤 Upload tested-tree evidence
-        if: github.event_name == 'pull_request' && github.base_ref == 'preview'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ci-evidence-pr-${{ github.event.pull_request.number }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: ci-evidence.json
           retention-days: 14
           if-no-files-found: error
-
-  # 🗄️ MIGRATION PRODUCTION (push main only — applique les migrations après CI verte)
-  # Gated on detect-migrations so a code-only release applies nothing and never
-  # waits for approval; only a release that actually changes migration files
-  # runs this job and trips the Environment's required-reviewer gate.
-  migrate:
-    name: 🗄️ Apply Migrations (Production)
-    if: always() && needs.ci-success.result == 'success' && needs.detect-migrations.outputs.changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [ci-success, detect-migrations]
-    environment: production
-    permissions:
-      contents: read
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 🗄️ Setup Supabase CLI
-        uses: ./.github/actions/setup-supabase-cli
-        with:
-          version: ${{ env.SUPABASE_CLI_VERSION }}
-
-      - name: 🔗 Link Supabase Project
-        working-directory: backend-nest
-        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
-          SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_PROJECT_ID }}
-
-      - name: 🧪 Dry-Run Migrations
-        working-directory: backend-nest
-        run: supabase db push --dry-run
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
-
-      - name: 🚀 Push Migrations
-        working-directory: backend-nest
-        run: supabase db push
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
-
-  # 📊 POSTHOG RELEASE ANNOTATIONS (push main only — marks deploys on PostHog graphs)
-  posthog-annotate:
-    name: 📊 PostHog Release Annotations
-    if: always() && needs.ci-success.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    needs: [ci-success]
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 📊 Create PostHog annotation
-        run: |
-          VERSION=$(jq -r .version frontend/package.json)
-          COMMIT="${GITHUB_SHA::7}"
-          DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-
-          echo "📊 Creating annotation for v${VERSION} (${COMMIT})..."
-          curl -sf -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/annotations/" \
-            -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
-            -H "Content-Type: application/json" \
-            -d "{\"content\":\"v${VERSION} (${COMMIT})\",\"scope\":\"project\",\"date_marker\":\"${DATE}\"}" \
-            && echo "✅ PostHog annotation created" \
-            || echo "⚠️  Annotation failed (non-blocking)"
-        env:
-          POSTHOG_HOST: https://eu.i.posthog.com
-          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
-          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_WEBAPP_PROJECT_ID }}
-
-  # 🔒 CSP CONFORMANCE (push main only — verifies prod hosts serve the host-conditioned CSP from vercel.json, PUL-236)
-  # ${{ !cancelled() }} (not always()): an always() job survives workflow cancellation and would keep
-  # polling prod against a stale vercel.json while the superseding run deploys — spurious red on main.
-  verify-prod-csp:
-    name: 🔒 Verify Production CSP Headers
-    if: ${{ !cancelled() && needs.ci-success.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [ci-success]
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 🔒 Compare served CSP against vercel.json
-        run: |
-          EXPECTED=$(python3 -c "
-          import json, re
-          v = json.load(open('vercel.json'))
-          for block in v['headers']:
-              for cond in block.get('has', []):
-                  if cond.get('type') == 'host' and re.match('^(?:' + cond['value'] + ')$', 'app.pulpe.app'):
-                      for h in block['headers']:
-                          if h['key'] == 'Content-Security-Policy':
-                              print(h['value'])
-                              raise SystemExit
-          ")
-          if [ -z "$EXPECTED" ]; then
-            echo "❌ No host-conditioned production CSP entry found in vercel.json"
-            exit 1
-          fi
-          for HOST in app.pulpe.app pulpe-frontend.vercel.app; do
-            for ATTEMPT in $(seq 1 10); do
-              SERVED=$(curl -s --max-time 10 -o /dev/null -D - "https://${HOST}/" | grep -i '^content-security-policy:' | sed 's/^[^:]*: *//' | tr -d '\r')
-              if [ "$SERVED" = "$EXPECTED" ]; then
-                echo "✅ ${HOST} serves the expected production CSP"
-                break
-              fi
-              if [ "$ATTEMPT" = "10" ]; then
-                echo "❌ ${HOST} still serves a CSP that differs from vercel.json after 10 attempts"
-                echo "expected: $EXPECTED"
-                echo "served:   $SERVED"
-                exit 1
-              fi
-              echo "⏳ ${HOST} attempt ${ATTEMPT}/10: CSP not conformant yet, retrying in 30s (deploy may be rolling out)"
-              sleep 30
-            done
-          done

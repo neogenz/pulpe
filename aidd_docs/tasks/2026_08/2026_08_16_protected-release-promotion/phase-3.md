@@ -1,10 +1,11 @@
 ---
-status: in-progress
+status: completed
 ---
 
-# Instruction: Publier depuis GitHub et retirer l'ancien bypass
+# Instruction: Publier depuis GitHub et retirer le bypass de production
 
-The canary slice adds `production.yml` beside the current main CI. It does not move migrations, PostHog, CSP, or iOS distribution yet: those removals happen only after one real release proves the complete happy path.
+The final cutover makes `production.yml` the only workflow for a `main` push. It owns
+migrations, PostHog, CSP and the immutable proof consumed by iOS distribution.
 
 ## Architecture projection
 
@@ -93,13 +94,13 @@ journey
 2. Pour le canal release, exiger la preuve `production.yml` de `M`, la version iOS approuvée et l'identité du candidat `P`; conserver signature, build number, notarisation et upload.
 3. Garder TestFlight automatisable et la soumission App Store humaine, séparée de la release web et de son approbation GitHub.
 4. Transformer `/release` en orchestrateur/moniteur des workflows : après publication de sa branche, aucune étape ne dépend d'un fichier Git local ou d'une session encore ouverte.
-5. Retirer seulement après une canary réussie le fast-forward administrateur, le stockage `pulpe-release-sha` local et la publication locale du tag/Release.
+5. Retirer le fast-forward administrateur, le stockage `pulpe-release-sha` local et la publication locale du tag/Release pendant le cutover.
 
 ### `4)` Finaliser le cutover et mesurer le gain
 
 > Le dépôt ne doit décrire qu'un chemin normal, avec une procédure d'urgence clairement hors flux.
 
-1. Après une release canary complète, retirer la matrice `ci.yml` sur push `main`; `production.yml` devient l'unique workflow de ce push.
+1. Retirer la matrice `ci.yml` sur les pushes protégés ; `production.yml` devient l'unique workflow du push `main`.
 2. Mettre à jour CI, déploiement, versioning, contribution et mémoires avec PR feature → preview, PR release → preview, preuve P, PR P → main, production M.
 3. Étendre `ci-security.test.mjs` et `public-surface.test.mjs` pour interdire le retour du bypass, d'une seconde version de release ou d'une publication avant preuve.
 4. Documenter un break-glass manuel, audité et sans force-push ; il ne doit pas être utilisable automatiquement par l'App.

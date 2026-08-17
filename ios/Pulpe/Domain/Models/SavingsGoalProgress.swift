@@ -111,23 +111,47 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
         achievementPercent.map { Double($0) / 100 }
     }
 
-    /// Progress fraction (0…1) of the full known plan against the target.
-    /// against a zero / undecrypted target (never divide by it — §4.3).
-    var plannedFraction: Double? {
+    /// The one projection the UI shows: deadline-aware when the server computed
+    /// it, the timeline's own end-of-month balance otherwise. Miroir web
+    /// `displayedProjection` (`savings-goal-detail-page.ts`) — both clients name
+    /// a single figure, so the bar, the sentence and the verdict can never quote
+    /// three different ones.
+    ///
+    /// `projected` is nil without a target amount or a deadline, and both are
+    /// optional at creation — a goal with neither is a supported path, not an
+    /// edge case. The last `projectedCumulative` closes the same curve the chart
+    /// draws; `plannedProjection` only closes a payload that predates the field,
+    /// and it sums contributions without ever subtracting a withdrawal, so on
+    /// its own it made the sentence quote more than the curve ever reached.
+    var displayedProjection: Decimal {
+        projected ?? months.last?.projectedCumulative ?? plannedProjection
+    }
+
+    /// Progress fraction (0…1) of `displayedProjection` against the target.
+    /// `nil` without a target, 0 against a zero / undecrypted one (never divide
+    /// by it — §4.3).
+    var displayedProjectionFraction: Double? {
         guard let targetAmount else { return nil }
         let roundedTarget = targetAmount.rounded(2)
         guard roundedTarget > 0 else { return 0 }
-        let ratio = ((plannedProjection.rounded(2) / roundedTarget) as NSDecimalNumber).doubleValue
+        let ratio = ((displayedProjection.rounded(2) / roundedTarget) as NSDecimalNumber).doubleValue
         return min(max(ratio, 0), 1)
     }
 
-    /// Deadline projection fraction used by the current progress card.
-    var projectedFraction: Double {
-        guard let targetAmount, let projected else { return 0 }
-        let roundedTarget = targetAmount.rounded(2)
-        guard roundedTarget > 0 else { return 0 }
-        let ratio = ((projected.rounded(2) / roundedTarget) as NSDecimalNumber).doubleValue
-        return min(max(ratio, 0), 1)
+    /// No pace verdict before the first plan month has closed: a fresh goal has
+    /// nothing to be judged on yet. Closed = server-locked (strictly-past cycle
+    /// or everything pointé — same signal the timeline dims rows on).
+    var hasClosedPlanMonth: Bool {
+        months.contains { $0.isContributionEligible && $0.isLocked }
+    }
+
+    /// Amount for the day-1 « plan prêt » beat: the current month's planned
+    /// amount. `nil` (beat hidden) when the timeline has no funded current
+    /// month — legacy payload without `months`, or a gap month.
+    var currentMonthPlannedAmount: Decimal? {
+        guard let amount = months.first(where: { $0.state == .current })?.plannedAmount,
+              amount > 0 else { return nil }
+        return amount
     }
 
     // MARK: - Init

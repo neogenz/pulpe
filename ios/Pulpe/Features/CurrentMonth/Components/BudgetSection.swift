@@ -101,7 +101,7 @@ struct BudgetSection: View {
 
             expandCollapseButton
         } header: {
-            SectionHeader(
+            CountedSectionHeader(
                 title: title,
                 count: items.count,
                 totalAmount: totalAmount,

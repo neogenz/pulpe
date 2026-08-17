@@ -141,10 +141,11 @@ struct SavingsGoalDetailView: View {
     @ViewBuilder
     private func content(progress: SavingsGoalProgress) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                header(progress: progress)
-
-                GoalProgressCard(progress: progress, currency: currency)
+            // Section rhythm of the home: `xxl` between sections, `md` from a
+            // title to the card it introduces — the 2:1 ratio that tells which
+            // block a header belongs to.
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                hero(progress)
                 if progress.linkedLineCount == 0 {
                     GoalEmptyGuidanceCard()
                 }
@@ -193,6 +194,17 @@ struct SavingsGoalDetailView: View {
         .sheet(isPresented: $isSimulating, onDismiss: openPendingSimulatorBudget) {
             simulator(progress: progress)
         }
+    }
+
+    private func hero(_ progress: SavingsGoalProgress) -> some View {
+        GoalProgressHero(
+            presentation: GoalHeroPresentation(
+                progress: progress,
+                status: currentGoal.status,
+                currency: currency
+            ),
+            status: currentGoal.status
+        )
     }
 
     private func simulator(progress: SavingsGoalProgress) -> some View {
@@ -291,42 +303,17 @@ struct SavingsGoalDetailView: View {
         }
     }
 
+    /// Base `displayedProjection`, not `plannedProjection`: the sentence answers
+    /// the same question as the hero and the chart endpoint, so it has to start
+    /// from the same figure. `plannedProjection` never subtracts a withdrawal,
+    /// so on a goal without a target amount it quoted an « après création » above
+    /// what the curve reaches — two projections for one plan.
     private func recoveryVerdict(_ progress: SavingsGoalProgress) -> String {
         let changes = recoveryChanges(progress)
         let added = changes.reduce(Decimal.zero) { $0 + $1.simulatedAmount }
         return AppLocale.string(
-            "Projection après création : \((progress.plannedProjection + added).asAdaptiveCurrency(currency))"
+            "Projection après création : \((progress.displayedProjection + added).asAdaptiveCurrency(currency))"
         )
-    }
-
-    // MARK: - Header
-
-    @ViewBuilder
-    private func header(progress: SavingsGoalProgress) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            SavingsGoalStatusBadge(status: currentGoal.status, showsIcon: true)
-
-            if let start = progress.startDateValue, let end = progress.targetDateValue {
-                Text(
-                    "\(start.abbreviatedDateFormatted)"
-                        + " → \(end.abbreviatedDateFormatted)"
-                )
-                .font(PulpeTypography.listRowSubtitle)
-                .foregroundStyle(Color.textTertiary)
-                .accessibilityIdentifier("savingsGoalDeadlineRange")
-            } else if let date = progress.targetDateValue {
-                Text("Échéance \(date.abbreviatedDateFormatted)")
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(Color.textTertiary)
-                    .accessibilityIdentifier("savingsGoalDeadlineDate")
-            } else if let date = progress.startDateValue {
-                Text("Depuis \(date.abbreviatedDateFormatted)")
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(Color.textTertiary)
-            }
-
-            Spacer(minLength: 0)
-        }
     }
 }
 
@@ -597,33 +584,6 @@ final class SavingsGoalDetailViewModel {
     init(goalId: String, service: any SavingsGoalServicing = SavingsGoalService.shared) {
         self.goalId = goalId
         self.service = service
-    }
-
-    // MARK: - Day-1 verdict gate
-
-    /// No pace verdict before the first plan month has closed: a fresh goal has
-    /// nothing to be judged on yet. Closed = server-locked (strictly-past cycle
-    /// or everything pointé — same signal the timeline dims rows on).
-    static func hasClosedPlanMonth(_ months: [SavingsGoalPlanMonth]) -> Bool {
-        months.contains { $0.isContributionEligible && $0.isLocked }
-    }
-
-    /// Amount for the day-1 « plan prêt » beat: the current month's planned
-    /// amount. `nil` (beat hidden) when the timeline has no funded current
-    /// month — legacy payload without `months`, or a gap month.
-    static func currentMonthPlannedAmount(_ months: [SavingsGoalPlanMonth]) -> Decimal? {
-        guard let amount = months.first(where: { $0.state == .current })?.plannedAmount,
-              amount > 0 else { return nil }
-        return amount
-    }
-
-    /// « requis ≈ prévu » band for the deadline stat — same ±5 % relative
-    /// tolerance as the server's pace verdict (`PACE_TOLERANCE_PERCENT`), so
-    /// the stat never contradicts the verdict shown above it. Outside the band
-    /// the stat becomes one sentence relating both rhythms.
-    static func requiredMatchesPlannedPace(planned: Decimal, required: Decimal) -> Bool {
-        guard planned > 0 else { return required <= 0 }
-        return abs(required - planned) <= planned * SavingsGoalProgress.paceTolerancePercent / 100
     }
 
     static func recoveryAmount(_ progress: SavingsGoalProgress) -> Decimal? {

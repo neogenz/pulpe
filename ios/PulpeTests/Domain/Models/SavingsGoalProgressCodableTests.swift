@@ -147,9 +147,10 @@ struct SavingsGoalProgressCodableTests {
         #expect(progress.linkedLineCount == 2)
         #expect(progress.originalTargetAmount == nil)
         #expect(progress.targetDateValue == SavingsGoalDateFormatter.parse("2027-12-31"))
-        // Bar fractions: confirmed from the server %, projected vs target.
+        // Bar fractions: confirmed from the server %, displayed projection vs target.
         #expect(progress.confirmedFraction == 0.18)
-        #expect(progress.projectedFraction == 0.72)
+        #expect(progress.displayedProjection == 36000, "the deadline projection wins over the plan's")
+        #expect(progress.displayedProjectionFraction == 0.72)
     }
 
     @Test("SavingsGoalProgress decodes a targetless open pot without fictitious metrics")
@@ -190,7 +191,8 @@ struct SavingsGoalProgressCodableTests {
         #expect(progress.projected == nil)
         #expect(progress.suggestCompletion == nil)
         #expect(progress.confirmedFraction == nil)
-        #expect(progress.plannedFraction == nil)
+        #expect(progress.displayedProjection == 600, "no deadline projection: the plan's stands in")
+        #expect(progress.displayedProjectionFraction == nil)
     }
 
     @Test("SavingsGoalProgress decodes the overdue null shape (required/paceStatus null)")
@@ -238,8 +240,8 @@ struct SavingsGoalProgressCodableTests {
         #expect(SavingsGoalPaceStatus(rawValue: "ahead") == .ahead)
     }
 
-    @Test("projectedFraction guards against a zero / undecrypted target")
-    func projectedFraction_zeroTargetGuard() throws {
+    @Test("displayedProjectionFraction guards against a zero / undecrypted target")
+    func displayedProjectionFraction_zeroTargetGuard() throws {
         let json = Data("""
         {
             "goalId": "33333333-3333-3333-3333-333333333333",
@@ -268,7 +270,7 @@ struct SavingsGoalProgressCodableTests {
 
         let progress = try JSONDecoder().decode(SavingsGoalProgress.self, from: json)
 
-        #expect(progress.projectedFraction == 0)
+        #expect(progress.displayedProjectionFraction == 0)
         #expect(progress.confirmedFraction == 0)
     }
 

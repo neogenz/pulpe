@@ -10,14 +10,9 @@ import SwiftUI
 /// canvas and card alike.
 struct SavingsGoalStatusBadge: View {
     let status: SavingsGoalStatus
-    var showsIcon = false
 
     var body: some View {
-        PulpeChip(
-            icon: showsIcon ? icon : nil,
-            label: status.label,
-            style: style
-        )
+        PulpeChip(label: status.label, style: style)
     }
 
     /// ACTIVE / COMPLETED share one savings color for wash and ink, so they take the
@@ -32,14 +27,6 @@ struct SavingsGoalStatusBadge: View {
                 surface: Color.textTertiary.opacity(DesignTokens.Opacity.badgeBackground),
                 foreground: Color.textSecondary
             )
-        }
-    }
-
-    private var icon: String {
-        switch status {
-        case .active: "target"
-        case .completed: "checkmark.circle.fill"
-        case .paused: "pause.circle"
         }
     }
 }

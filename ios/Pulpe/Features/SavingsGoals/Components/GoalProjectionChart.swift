@@ -6,36 +6,24 @@ import SwiftUI
 /// Three balance series anchored → target (`docs/SAVINGS.md` §10.1):
 /// **Épargné** (reality, stops at current month), **Projection planifiée**
 /// (confirmed balance + remaining planned contributions), and a flat **Cible**
-/// rule. Confirmed savings stay green; the planned future uses the existing
-/// blue income/information token. Cloned from `RealizedBalanceSheet.BalanceTrendChart`.
+/// rule. One ink throughout — savings green, muted and dashed for the planned
+/// future. Cloned from `RealizedBalanceSheet.BalanceTrendChart`.
 struct GoalProjectionChart: View {
     let series: GoalProjectionSeries
     let currency: SupportedCurrency
-    var height: CGFloat = 200
+    var height: CGFloat = DesignTokens.Chart.goalHeight
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var yMin: Double { 0 }
-
-    private var yMax: Double {
-        let seriesMax = (series.confirmed + series.projection)
-            .map(\.value)
-            .max() ?? 0
-        let candidate = max(seriesMax, series.target ?? 0)
-        // Swift Charts crashes on a zero-height domain — guarantee a positive range.
-        return candidate <= 0 ? 1 : candidate
-    }
-
-    private var yPadding: Double {
-        max((yMax - yMin) * 0.08, 1)
-    }
 
     var body: some View {
         Chart {
             if let target = series.target {
                 RuleMark(y: .value("Cible", target))
                     .foregroundStyle(Color.textTertiary.opacity(DesignTokens.Opacity.heavy))
-                    .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin, dash: [4]))
+                    .lineStyle(StrokeStyle(
+                        lineWidth: DesignTokens.BorderWidth.thin,
+                        dash: DesignTokens.Chart.markerDash
+                    ))
                     .annotation(position: .top, alignment: .leading) {
                         Text("Cible")
                             .font(PulpeTypography.caption2)
@@ -71,15 +59,21 @@ struct GoalProjectionChart: View {
                 .lineStyle(StrokeStyle(
                     lineWidth: DesignTokens.BorderWidth.medium,
                     lineCap: .round,
-                    dash: [5, 4]
+                    dash: DesignTokens.Chart.dash
                 ))
-                .foregroundStyle(Color.financialIncome)
+                // Une seule encre pour un seul objet : le prolongement du plan est
+                // la même épargne, en pointillé et atténuée. Le bleu revenu disait
+                // « autre nature d'argent » et la ligne future volait la vedette.
+                .foregroundStyle(Color.financialSavings.opacity(DesignTokens.Opacity.heroInkMuted))
             }
         }
         .chartXAxis {
             AxisMarks(values: series.ticks.map(\.index)) { value in
                 if let index = value.as(Int.self), let tick = series.ticks.first(where: { $0.index == index }) {
-                    AxisValueLabel {
+                    // Le tick d'échéance tombe sur le bord droit : centré, la moitié
+                    // du libellé sort du cadre et Swift Charts le supprime — c'est
+                    // le seul repère qui compte, il s'ancre donc par sa fin.
+                    AxisValueLabel(anchor: index == series.ticks.last?.index ? .topTrailing : .top) {
                         Text(tick.label)
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.textTertiary)
@@ -100,7 +94,7 @@ struct GoalProjectionChart: View {
             }
         }
         .chartLegend(.hidden)
-        .chartYScale(domain: yMin ... (yMax + yPadding))
+        .chartYScale(domain: series.valueDomain)
         .frame(height: height)
         .animation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring, value: series)
         .sensitiveAmount()
@@ -152,44 +146,45 @@ struct GoalTrajectorySection: View {
     /// accounting signed value (`+300 CHF`) read as good news on a lag — the
     /// copy spells the direction out instead; zero gap carries no amount.
     static func gapCopy(for gap: Decimal, currency: SupportedCurrency) -> (lead: String, amount: String?) {
-        if gap > 0 { return (AppLocale.string("Il te manque"), gap.asAdaptiveCurrency(currency)) }
+        // Le référent est dans le libellé : le hero juge la CIBLE, cette métrique
+        // juge le PLAN. Sans le mot, les deux verdicts se lisaient comme un doublon.
+        if gap > 0 { return (AppLocale.string("En retard sur ton plan"), gap.asAdaptiveCurrency(currency)) }
         if gap < 0 {
-            return (AppLocale.string("Tu es en avance de"), gap.absoluteValue.asAdaptiveCurrency(currency))
+            return (AppLocale.string("En avance sur ton plan"), gap.absoluteValue.asAdaptiveCurrency(currency))
         }
         return (AppLocale.string("Pile sur ton plan"), nil)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            Text("Ta trajectoire")
-                .font(PulpeTypography.title2)
-                .foregroundStyle(Color.textPrimary)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            SectionHeader(title: AppLocale.string("Ta trajectoire"))
                 .accessibilityIdentifier("savingsGoalTrajectoryTitle")
 
-            GoalProjectionChart(series: series, currency: currency)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                GoalProjectionChart(series: series, currency: currency)
 
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
-                let gap = Self.gapCopy(for: progress.cumulativeGap, currency: currency)
-                metric(
-                    label: gap.lead,
-                    value: gap.amount,
-                    isSensitive: true
-                )
-
-                Spacer(minLength: DesignTokens.Spacing.md)
-
-                if let completion = progress.estimatedCompletion {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
+                    let gap = Self.gapCopy(for: progress.cumulativeGap, currency: currency)
                     metric(
-                        label: AppLocale.string("Atteinte estimée"),
-                        value: periodLabel(completion),
-                        isSensitive: false,
-                        identifier: "savingsGoalEstimatedCompletion"
+                        label: gap.lead,
+                        value: gap.amount,
+                        isSensitive: true
                     )
+
+                    Spacer(minLength: DesignTokens.Spacing.md)
+
+                    if let completion = progress.estimatedCompletion {
+                        metric(
+                            label: AppLocale.string("Atteinte estimée"),
+                            value: periodLabel(completion),
+                            isSensitive: false,
+                            identifier: "savingsGoalEstimatedCompletion"
+                        )
+                    }
                 }
             }
+            .pulpeCard()
         }
-        .padding(DesignTokens.Spacing.lg)
-        .pulpeCardBackground()
     }
 
     @ViewBuilder
@@ -263,6 +258,24 @@ struct GoalProjectionSeries: Equatable {
     /// a current month locked by pointage still has no trend to draw.
     var hasConfirmedTrend: Bool { confirmed.count >= 2 }
 
+    /// Vertical domain of the chart, padded on whichever ends are in play.
+    ///
+    /// The floor stays at 0 on a normal goal — an épargne curve reads from
+    /// zero, and starting the axis at the first balance would fake a slope.
+    /// It only drops below when a balance genuinely goes negative: the server
+    /// never clamps one to 0 (`docs/SAVINGS.md`), so a negative has to dig.
+    /// Pinned at 0 it flattened against the axis and read as zero, hiding the
+    /// very incoherence the negative is there to signal.
+    var valueDomain: ClosedRange<Double> {
+        let values = (confirmed + projection).map(\.value)
+        let low = min(values.min() ?? 0, 0)
+        let candidate = max(values.max() ?? 0, target ?? 0)
+        // Swift Charts crashes on a zero-height domain — guarantee a positive range.
+        let high = candidate <= low ? low + 1 : candidate
+        let padding = max((high - low) * 0.08, 1)
+        return (low < 0 ? low - padding : low) ... (high + padding)
+    }
+
     /// Read mode: confirmed balance through the current month, then the planned
     /// balance projection through the deadline.
     static func read(from progress: SavingsGoalProgress) -> GoalProjectionSeries {
@@ -281,15 +294,35 @@ struct GoalProjectionSeries: Equatable {
         if currentIndex == lastIndex {
             projection[0] = Point(index: currentIndex, value: double(projected))
         } else {
+            // `projectedCumulative` is the server's own end-of-month balance:
+            // confirmed acquired, remaining plan added, real AND announced
+            // withdrawals subtracted. The running sum below only ever adds
+            // contributions, so on its own a withdrawal month never dug into the
+            // curve — the line ran above the truth from that month on and the
+            // last point snapped down onto the API's endpoint. It survives as the
+            // fallback for a payload served before the field existed.
             var cumulative = progress.confirmed
             for index in currentIndex ... lastIndex {
                 cumulative += max(0, months[index].plannedAmount - months[index].confirmedAmount)
                 if index > currentIndex {
-                    projection.append(Point(index: index, value: double(cumulative)))
+                    projection.append(Point(
+                        index: index,
+                        value: double(months[index].projectedCumulative ?? cumulative)
+                    ))
                 }
             }
-            // The API owns the canonical endpoint and absorbs decimal rounding.
-            projection[projection.count - 1] = Point(index: lastIndex, value: double(projected))
+            // The endpoint stays in the same net family as every other point.
+            // `projected` collapses to `plannedProjection` on a goal with no
+            // target amount or no deadline, and that figure ignores retraits by
+            // design — closing a net curve with it made the line dip on the
+            // retrait month then climb back on the last one with no money
+            // moving. It now only closes a legacy curve, which has no net
+            // balance to close with; there the API still owns the endpoint and
+            // absorbs decimal rounding.
+            projection[projection.count - 1] = Point(
+                index: lastIndex,
+                value: double(months[lastIndex].projectedCumulative ?? projected)
+            )
         }
 
         return GoalProjectionSeries(
@@ -320,12 +353,13 @@ struct GoalProjectionSeries: Equatable {
         if currentIndex == lastIndex {
             projection[0] = Point(index: currentIndex, value: double(result.simulatedFinal))
         } else {
-            var cumulative = confirmedAmount
-            for index in currentIndex ... lastIndex {
-                cumulative += max(0, months[index].simulatedAmount - months[index].month.confirmedAmount)
-                if index > currentIndex {
-                    projection.append(Point(index: index, value: double(cumulative)))
-                }
+            // Same rule as read mode: `simulatedCumulative` is the calculator's
+            // own end-of-month balance and already subtracts real and announced
+            // withdrawals, which a running sum of movements cannot see. It is
+            // also the figure each editable row displays, so the curve and the
+            // rows now quote one number instead of two.
+            for index in (currentIndex + 1) ... lastIndex {
+                projection.append(Point(index: index, value: double(months[index].simulatedCumulative)))
             }
             projection[projection.count - 1] = Point(index: lastIndex, value: double(result.simulatedFinal))
         }

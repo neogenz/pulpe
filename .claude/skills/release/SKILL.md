@@ -555,15 +555,15 @@ Only after "oui":
 
 After the preparation PR is reviewed and merged with a merge commit:
 
-- the current push CI completes and the preview providers deploy that merge commit;
-- Railway's successful preview `deployment_status` triggers `✅ Staging Ready (shadow)`, avoiding a circular wait with Railway `Wait for CI`;
-- `✅ Staging Ready (shadow)` proves the canonical PR tree, exact merged commit, provider deployments and health checks;
+- the preview providers deploy that merge commit without rebuilding the complete CI matrix;
+- Railway's successful preview `deployment_status` triggers `✅ Staging Ready (shadow)`;
+- `✅ Staging Ready (shadow)` proves the canonical PR tree, exact merged commit, unchanged release base, provider deployments and health checks; if `preview` advanced after the release branch was created, promotion stops and the release must be reprepared;
 - the trusted promotion workflow fast-forwards the same release branch to that proven commit;
 - the App opens the production PR to `main`;
 - new feature PRs may then continue merging into `preview` without changing the frozen candidate;
 - `✅ Release Gate` validates the production PR without secrets or executing PR code;
 - a human other than the App approves production.
-- `🏭 Production Release` revalidates every proof, waits for exact production CI and deployments, publishes the tag and GitHub Release, then synchronizes Railway's web version gate.
+- `🏭 Production Release` revalidates every proof, applies migrations when present, waits for exact production deployments, verifies CSP, publishes the tag and GitHub Release, then synchronizes Railway's web version gate.
 
 This skill does not push `preview` or `main`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release. Those production operations belong to the protected GitHub workflow after the approved production PR is merged.
 

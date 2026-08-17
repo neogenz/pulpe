@@ -13,4 +13,4 @@
 ## Commits
 
 - Conventional Commits, commonly `feat`, `fix`, `chore`, `refactor`, `test`, and `docs`, optionally scoped.
-- `preview`/`main` require PR, approval and resolved threads. Production additionally requires the App-authored release lineage, `✅ Release Gate`, exact staging proof and a human approval; `v*` tags are immutable. See `CONTRIBUTING.md`.
+- `preview` requires PR, approval, resolved threads and `✅ CI Success`; its admin bypass remains for the solo maintainer's own ordinary PRs. `main` has no bypass and requires the App-authored release lineage, `✅ Release Gate`, exact staging proof and a human approval. `v*` tags are immutable. See `CONTRIBUTING.md`.

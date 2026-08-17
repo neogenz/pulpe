@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: completed
 ---
 
 # Instruction: Promouvoir un candidat unique avec deux PR

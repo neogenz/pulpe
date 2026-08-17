@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// Revolut-style section header with title, count badge, and total amount
-struct SectionHeader: View {
+/// Inline list header with title, count badge, and total amount — the header of
+/// a grouped list, not of a page section. `Shared/Components/SectionHeader`
+/// names a page section; this one counts what a group holds.
+struct CountedSectionHeader: View {
     let title: String
     let count: Int
     let totalAmount: Decimal?
@@ -47,21 +49,21 @@ struct SectionHeader: View {
 
 #Preview {
     VStack(spacing: 24) {
-        SectionHeader(
+        CountedSectionHeader(
             title: "Dépenses récurrentes",
             count: 5,
             totalAmount: 2500,
             totalColor: .financialExpense
         )
 
-        SectionHeader(
+        CountedSectionHeader(
             title: "Autres dépenses",
             count: 3,
             totalAmount: 450.50,
             totalColor: .financialExpense
         )
 
-        SectionHeader(
+        CountedSectionHeader(
             title: "Sans total",
             count: 0,
             totalAmount: nil

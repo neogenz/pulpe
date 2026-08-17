@@ -159,7 +159,8 @@ jobs:
           test "$(jq -r .body "$RUNNER_TEMP/preparation-pr.json" | sed -n '1p')" = "<!-- pulpe-release:v$version:$release_sha -->"
 
           gh api "repos/$GITHUB_REPOSITORY/git/commits/$CANDIDATE_SHA" > "$RUNNER_TEMP/candidate.json"
-          jq -e --arg release "$release_sha" --arg tree "$(jq -r .tree_sha "$proof")" '(.parents | length) == 2 and .parents[1].sha == $release and .tree.sha == $tree' "$RUNNER_TEMP/candidate.json"
+          release_base=$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$release_sha" --jq '.parents[0].sha')
+          jq -e --arg release "$release_sha" --arg base "$release_base" --arg tree "$(jq -r .tree_sha "$proof")" '(.parents | length) == 2 and .parents[0].sha == $base and .parents[1].sha == $release and .tree.sha == $tree' "$RUNNER_TEMP/candidate.json"
 
           encoded_branch=$(jq -rn --arg value "$release_branch" '$value | @uri')
           gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/$encoded_branch" > "$RUNNER_TEMP/refs.json"
