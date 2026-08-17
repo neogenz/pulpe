@@ -1,6 +1,6 @@
 ---
 objective: "Depuis le détail d’une prévision liée, un seul tap affiche immédiatement un choix de suppression dont chaque action nomme exactement les mois concernés."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger le dialogue iOS de suppression des prévisions liées
