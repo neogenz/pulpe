@@ -114,6 +114,7 @@ jobs:
         id: identity
         env:
           PR_NUMBER: ${{ steps.canonical.outputs.pr_number }}
+          HEAD_REF: ${{ steps.canonical.outputs.head_ref }}
           HEAD_SHA: ${{ steps.canonical.outputs.head_sha }}
           CI_RUN_ID: ${{ steps.canonical.outputs.ci_run_id }}
           CI_RUN_ATTEMPT: ${{ steps.canonical.outputs.ci_run_attempt }}
@@ -121,6 +122,11 @@ jobs:
           set -euo pipefail
           merged_tree=$(git rev-parse "${GITHUB_SHA}^{tree}")
           jq -e --arg repository "$GITHUB_REPOSITORY" --argjson pr_number "$PR_NUMBER" --argjson run_id "$CI_RUN_ID" --argjson run_attempt "$CI_RUN_ATTEMPT" --arg head_sha "$HEAD_SHA" --arg tree_sha "$merged_tree" '.repository == $repository and .pr_number == $pr_number and .run_id == $run_id and .run_attempt == $run_attempt and .workflow_path == ".github/workflows/ci.yml" and .base_ref == "preview" and .head_sha == $head_sha and .tree_sha == $tree_sha' "$RUNNER_TEMP/ci-evidence/ci-evidence.json"
+          if [[ "$HEAD_REF" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            tested_base=$(jq -r .base_sha "$RUNNER_TEMP/ci-evidence/ci-evidence.json")
+            test "$(git rev-parse "${HEAD_SHA}^")" = "$tested_base"
+            test "$(git rev-parse "${GITHUB_SHA}^1")" = "$tested_base"
+          fi
           echo "tree_sha=$merged_tree" >> "$GITHUB_OUTPUT"
 
       - name: 🚦 Wait for exact preview deployments

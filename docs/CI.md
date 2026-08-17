@@ -1,7 +1,8 @@
 # Continuous Integration
 
-`.github/workflows/ci.yml` is the executable source of truth. It runs for pushes and pull
-requests targeting `preview` or `main`, with one active run per ref.
+`.github/workflows/ci.yml` is the executable source of truth. It runs once for pull
+requests targeting `preview`, with one active run per ref. Pushes and production PRs
+reuse immutable evidence instead of rebuilding the same tree.
 
 Security-sensitive workflow contracts are explicit: `pull-requests: write`,
 `NODE_VERSION: "24"`, and CLI Supabase 2.113.0.
@@ -49,23 +50,19 @@ instead of treating a second build as the identity of the candidate:
 flowchart LR
     PR["release/vX.Y.Z → preview"] --> CI["Complete PR CI"]
     CI --> Merge["Merge commit P on preview"]
-    Merge --> PushCI["Current push CI"]
-    PushCI --> Deploy["Vercel and Railway preview"]
+    Merge --> Deploy["Vercel and Railway preview"]
     Deploy --> Proof["Staging Ready from Railway deployment_status"]
     Proof --> Gate["release/vX.Y.Z → main · Release Gate"]
     Gate --> Human["Human approval"]
-    Human --> Production["Production CI, deployments, proof and publication"]
+    Human --> Production["Production deployments, proof and publication"]
 ```
 
-`Staging Ready` is deliberately triggered by Railway's successful preview
-`deployment_status`. Railway waits for GitHub CI before deploying, so a workflow that
-started on the `preview` push and waited for Railway would create a circular wait.
+`Staging Ready` is triggered by Railway's successful preview `deployment_status`.
 The proof compares the tested and merged Git trees, requires exact provider SHAs, and
-runs staging health checks. Normal preview PRs produce a proof but are not promoted.
-
-The complete `push` matrices remain active during the first real-release canary. The
-cutover may remove proven-redundant runs only after that canary succeeds; the executable
-truth remains the workflow triggers in this directory.
+runs staging health checks. A release additionally proves that the release commit and
+the merge commit share the same original `preview` base; a feature merged during the
+short release freeze therefore stops promotion. Normal preview PRs produce a proof but
+are not promoted.
 
 ## Quality boundary
 
@@ -82,13 +79,11 @@ rebase. CI always runs the complete gate.
 
 ## Migrations and production
 
-`detect-migrations` records whether a production release changes
-`backend-nest/supabase/migrations/`. On a push to `main`, `migrate` runs only after
-`ci-success` and only when that detector is true; the production environment approval remains
-the human gate.
-
-After CI, `posthog-annotate` records the deployment and `verify-prod-csp` checks the deployed
-Content Security Policy.
+`production.yml` authenticates the App-authored and approved release PR before checking
+out repository code. It detects migration changes against the previous `main`; only a
+release containing migrations enters the protected `production` environment for dry-run
+and apply. After exact provider deployments, the same workflow verifies CSP, records the
+production proof, publishes the tag/Release, annotates PostHog and updates the web gate.
 
 ## Local equivalents
 

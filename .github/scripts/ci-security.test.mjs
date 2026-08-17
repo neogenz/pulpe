@@ -14,6 +14,7 @@ const stagingProof = read(".github/workflows/staging-proof.yml");
 const releasePromotion = read(".github/workflows/release-promotion.yml");
 const releaseGate = read(".github/workflows/release-gate.yml");
 const production = read(".github/workflows/production.yml");
+const iosDistribution = read(".github/workflows/ios-distribute.yml");
 const dockerfile = read("backend-nest/Dockerfile");
 const rootPackage = JSON.parse(read("package.json"));
 const backendPackage = JSON.parse(read("backend-nest/package.json"));
@@ -53,18 +54,13 @@ test("Supabase CLI version stays aligned across CI, local tooling, and docs", ()
   );
 });
 
-test("pull requests cannot execute production migration credentials", () => {
-  assert.doesNotMatch(workflow, /^\s{2}migrate-dryrun:/m);
-
-  const successStart = workflow.indexOf("\n  ci-success:");
-  const migrateStart = workflow.indexOf("\n  migrate:");
-  const annotateStart = workflow.indexOf("\n  posthog-annotate:");
-  const success = workflow.slice(successStart, migrateStart);
-  const migrate = workflow.slice(migrateStart, annotateStart);
-
-  assert.doesNotMatch(success, /migrate-dryrun/);
-  const dryRun = migrate.indexOf("run: supabase db push --dry-run");
-  const apply = migrate.indexOf("run: supabase db push\n");
+test("CI is PR-only and production owns migration credentials", () => {
+  assert.match(workflow, /pull_request:\n\s+branches: \[preview\]/);
+  assert.doesNotMatch(workflow, /^\s{2}push:|branches: \[main/m);
+  assert.doesNotMatch(workflow, /secrets\.|supabase db push/);
+  assert.match(production, /environment: production/);
+  const dryRun = production.indexOf("run: supabase db push --dry-run");
+  const apply = production.indexOf("run: supabase db push\n");
   assert.notEqual(dryRun, -1);
   assert.notEqual(apply, -1);
   assert.ok(
@@ -75,14 +71,11 @@ test("pull requests cannot execute production migration credentials", () => {
 
 test("successful preview PRs emit one immutable tested-tree proof", () => {
   const successStart = workflow.indexOf("\n  ci-success:");
-  const migrateStart = workflow.indexOf("\n  migrate:");
-  const success = workflow.slice(successStart, migrateStart);
+  const success = workflow.slice(successStart);
 
   assert.match(success, /permissions:\n\s+contents: read/);
-  assert.match(
-    success,
-    /github\.event_name == 'pull_request' && github\.base_ref == 'preview'/,
-  );
+  assert.match(success, /HEAD_REF:.*github\.head_ref/);
+  assert.match(success, /git rev-parse "\$\{HEAD_SHA\}\^".*BASE_SHA/s);
   assert.match(success, /tree_sha.*git rev-parse/s);
   assert.match(success, /"run_attempt": int\(os\.environ\["RUN_ATTEMPT"\]\)/);
   assert.match(
@@ -120,6 +113,7 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
   assert.match(stagingProof, /vercel\[bot\]/);
   assert.match(stagingProof, /railway-app\[bot\]/);
   assert.match(stagingProof, /preview moved from/);
+  assert.match(stagingProof, /git rev-parse "\$\{GITHUB_SHA\}\^1"/);
   assert.match(stagingProof, /backend-preview-34f4\.up\.railway\.app\/health/);
   assert.match(stagingProof, /name: staging-proof-\$\{\{ github\.sha \}\}/);
 
@@ -152,6 +146,7 @@ test("release promotion writes only after a trusted immutable proof", () => {
   );
   assert.match(releasePromotion, /\.user\.login == "pulpe-release\[bot\]"/);
   assert.match(releasePromotion, /\.parents\[1\]\.sha == \$release/);
+  assert.match(releasePromotion, /\.parents\[0\]\.sha == \$base/);
   assert.match(releasePromotion, /staging-proof-\$CANDIDATE_SHA/);
   assert.match(releasePromotion, /artifact_count.*\.expired == false/s);
   assert.match(
@@ -188,6 +183,7 @@ test("the production PR gate is read-only and proof-bound", () => {
   assert.match(releaseGate, /release\/v\(\[0-9\]/);
   assert.match(releaseGate, /\.merge_commit_sha == \$candidate/);
   assert.match(releaseGate, /\.parents\[1\]\.sha == \$release/);
+  assert.match(releaseGate, /\.parents\[0\]\.sha == \$base/);
   assert.match(releaseGate, /\.tree_sha == \$tree/);
   assert.match(releaseGate, /\.conclusion == "success"/);
   assert.match(releaseGate, /staging-proof-\$CANDIDATE_SHA/);
@@ -201,11 +197,12 @@ test("production publishes only an approved and proven release", () => {
   assert.match(production, /contents: read/);
   assert.match(production, /deployments: read/);
   assert.match(production, /pull-requests: read/);
-  assert.doesNotMatch(production, /:\s*write\b|actions\/checkout|--force/);
+  assert.doesNotMatch(production, /:\s*write\b|--force/);
   assert.match(production, /.user\.login == "pulpe-release\[bot\]"/);
   assert.match(production, /.state == "APPROVED"/);
   assert.match(production, /release-gate\.yml/);
   assert.match(production, /.parents\[1\]\.sha == \$candidate/);
+  assert.match(production, /.parents\[0\]\.sha == \$base/);
   assert.match(production, /staging-proof-\$candidate_sha/);
   assert.match(production, /Production – pulpe-frontend/);
   assert.match(production, /Production – pulpe-landing/);
@@ -228,6 +225,12 @@ test("production publishes only an approved and proven release", () => {
   assert.match(production, /LATEST_WEB_VERSION=\$VERSION/);
   assert.match(production, /railway redeploy --project "\$RAILWAY_PROJECT"/);
   assert.doesNotMatch(production, /LATEST_IOS_VERSION|MIN_WEB_VERSION/);
+  assert.doesNotMatch(production, /actions\/workflows\/ci\.yml\/runs/);
+  assert.ok(
+    production.indexOf("Verify the approved release and staging proof") <
+      production.indexOf("Checkout authorized production tree"),
+    "repository code must only be checked out after authorization",
+  );
   assert.ok(
     production.indexOf("Upload production proof") <
       production.indexOf("secrets.RAILWAY_PREVIEW_TOKEN"),
@@ -235,8 +238,16 @@ test("production publishes only an approved and proven release", () => {
   );
 
   for (const actionUse of production.matchAll(/^\s*uses:\s*([^\s#]+)/gm)) {
-    assert.match(actionUse[1], /@[0-9a-f]{40}$/);
+    assert.match(actionUse[1], /^(?:\.\/|.*@[0-9a-f]{40}$)/);
   }
+});
+
+test("iOS distribution consumes staging or production proofs, never push CI", () => {
+  assert.match(iosDistribution, /workflow=staging-proof\.yml/);
+  assert.match(iosDistribution, /workflow=production\.yml/);
+  assert.match(iosDistribution, /staging-proof-\$SOURCE_SHA/);
+  assert.match(iosDistribution, /production-proof-\$SOURCE_SHA/);
+  assert.doesNotMatch(iosDistribution, /actions\/workflows\/ci\.yml\/runs/);
 });
 
 test("the backend image does not install Bun", () => {
