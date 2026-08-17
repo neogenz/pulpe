@@ -40,7 +40,7 @@ enum BudgetFormulas {
 
         /// Whether the budget is in deficit
         var isDeficit: Bool {
-            remaining < 0
+            remaining.rounded(2) < 0
         }
 
         /// DA §3.1: 3-state emotion zone — comfortable (<80%), tight (80-100%), deficit (>100%)
@@ -68,7 +68,7 @@ enum BudgetFormulas {
         rollover: Decimal?
     ) -> EmotionState {
         guard let remaining else { return .comfortable }
-        if remaining < 0 { return .deficit }
+        if remaining.rounded(2) < 0 { return .deficit }
         let available = (totalIncome ?? 0) + (rollover ?? 0)
         guard available > 0 else { return .comfortable }
         let usagePercentage = Double(truncating: ((totalExpenses ?? 0) / available * 100) as NSDecimalNumber)
@@ -305,7 +305,7 @@ enum BudgetFormulas {
     /// Calculate ending balance
     /// Formula: endingBalance = available - totalExpenses
     static func calculateEndingBalance(available: Decimal, totalExpenses: Decimal) -> Decimal {
-        available - totalExpenses
+        available.rounded(2) - totalExpenses.rounded(2)
     }
 
     /// Calculate remaining (same as ending balance per SPECS)
@@ -331,8 +331,8 @@ enum BudgetFormulas {
         let available: Decimal
         let percentage: Double
 
-        var isOverBudget: Bool { percentage > 100 }
-        var isNearLimit: Bool { percentage >= BudgetFormulas.tightBudgetThreshold && percentage <= 100 }
+        var isOverBudget: Bool { available.rounded(2) < 0 }
+        var isNearLimit: Bool { !isOverBudget && percentage >= BudgetFormulas.tightBudgetThreshold }
     }
 
     /// Calculate consumption for a budget line based on allocated transactions
@@ -344,7 +344,7 @@ enum BudgetFormulas {
             .filter { $0.budgetLineId == budgetLine.id }
             .reduce(Decimal.zero) { $0 + $1.amount }
 
-        let available = budgetLine.amount - allocated
+        let available = (budgetLine.amount - allocated).rounded(2)
         let percentage = budgetLine.amount > 0
             ? Double(truncating: (allocated / budgetLine.amount * 100) as NSDecimalNumber)
             : 0
@@ -425,10 +425,10 @@ enum BudgetFormulas {
         let projectedTotalExpenses = dailySpendingRate * Decimal(totalDaysInMonth)
 
         // Calculate projected end-of-month balance
-        let projectedEndOfMonthBalance = available - projectedTotalExpenses
+        let projectedEndOfMonthBalance = (available - projectedTotalExpenses).rounded(2)
 
         // Determine if on track (projected balance >= planned remaining)
-        let plannedRemaining = available - totalBudgetedExpenses
+        let plannedRemaining = (available - totalBudgetedExpenses).rounded(2)
         let isOnTrack = projectedEndOfMonthBalance >= plannedRemaining
 
         return Projection(

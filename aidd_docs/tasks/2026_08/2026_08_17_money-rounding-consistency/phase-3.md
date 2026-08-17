@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Aligner les états budgétaires iOS et les formules miroirs

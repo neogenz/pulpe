@@ -121,7 +121,7 @@ struct HomeHeroCard: View {
     /// Dominant figure and its currency suffix on one baseline. Only a negative balance
     /// carries a sign — a `+` on money you still have reads as a variation, not a sum.
     private var heroAmount: Text {
-        Text(presentation.estimatedBalance.asCompactAmount(for: currency))
+        Text(presentation.estimatedBalance.asAdaptiveAmount(for: currency))
             .font(PulpeTypography.dashboardHeroAmount)
             .tracking(DesignTokens.Tracking.hero)
             + Text(verbatim: " \(currency.symbol)")
@@ -262,14 +262,14 @@ extension HomeHeroCard {
             estimatedBalance: Decimal,
             driftDate: Date? = nil
         ) {
-            self.plannedBalance = plannedBalance
-            self.estimatedBalance = estimatedBalance
+            self.plannedBalance = plannedBalance.rounded(2)
+            self.estimatedBalance = estimatedBalance.rounded(2)
             self.driftDate = driftDate
 
-            let difference = estimatedBalance - plannedBalance
+            let difference = (self.estimatedBalance - self.plannedBalance).rounded(2)
             variance = difference
             verdict = difference > 0 ? .gain : difference < 0 ? .overrun : .onPlan
-            tone = estimatedBalance < 0 ? .deficit : difference < 0 ? .caution : .favorable
+            tone = self.estimatedBalance < 0 ? .deficit : difference < 0 ? .caution : .favorable
         }
 
         /// Whether an envelope that ran past its plan was paid for elsewhere in the month.
@@ -311,7 +311,7 @@ extension HomeHeroCard {
         /// the pair is a count of operations, and two figures set in the same type on the
         /// same row have nothing else to say which of them is money.
         func varianceText(for currency: SupportedCurrency) -> String {
-            variance.asArithmeticSignedCompactCurrency(currency)
+            "\(variance > 0 ? "+" : "")\(variance.asAdaptiveCurrency(currency))"
         }
 
         func accessibilityDescription(
@@ -335,7 +335,7 @@ extension HomeHeroCard {
 
             // Mirrors `verdictText`: VoiceOver and the sentence on screen say the same thing
             // about the same month, down to the day it left its plan.
-            let gap = abs(variance).asCurrency(currency)
+            let gap = abs(variance).asAdaptiveCurrency(currency)
             let comparison = switch (verdict, driftDay) {
             case (.gain, let day?): AppLocale.string("\(gap) de mieux que prévu depuis le \(day)")
             case (.gain, nil): AppLocale.string("\(gap) de mieux que prévu")
@@ -344,9 +344,10 @@ extension HomeHeroCard {
             case (.onPlan, _): AppLocale.string("Pile sur ton plan")
             }
 
+            let formattedEstimate = "\(estimatedBalance > 0 ? "+" : "")\(estimatedBalance.asAdaptiveCurrency(currency))"
             return AppLocale.string("""
                 \(month). Solde estimé fin de mois \
-                \(estimatedBalance.asArithmeticSignedCurrency(currency)). \(comparison). \(unchecked)
+                \(formattedEstimate). \(comparison). \(unchecked)
                 """)
         }
     }

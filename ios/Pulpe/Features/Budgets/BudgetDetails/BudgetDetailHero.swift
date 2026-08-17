@@ -46,7 +46,7 @@ struct BudgetDetailHero: View {
     }
 
     private var formattedBalance: String {
-        let amount = abs(metrics.remaining).asAmount(for: userSettingsStore.currency)
+        let amount = abs(metrics.remaining).asAdaptiveAmount(for: userSettingsStore.currency)
         let sign: String
         if metrics.remaining > 0 {
             sign = "+"
@@ -83,15 +83,16 @@ struct BudgetDetailHero: View {
         }
         let currency = userSettingsStore.currency
         var desc = AppLocale.string("""
-        \(contextLabelForVoiceOver) \(abs(metrics.remaining).asCurrency(currency)). \
+        \(contextLabelForVoiceOver) \(abs(metrics.remaining).asAdaptiveCurrency(currency)). \
         \(Int(metrics.usagePercentage))% utilisé. \
         Revenus \(metrics.totalIncome.asCurrency(currency)). \
         Dépenses \(metrics.totalExpenses.asCurrency(currency)), \
         dont \(metrics.totalSavings.asCurrency(currency)) d'épargne
         """)
         if hasRollover, let rolloverAmount {
-            let formatted = abs(rolloverAmount).asCurrency(currency)
-            desc += ". " + (rolloverAmount >= 0
+            let roundedAmount = rolloverAmount.rounded(2)
+            let formatted = abs(roundedAmount).asAdaptiveCurrency(currency)
+            desc += ". " + (roundedAmount >= 0
                 ? AppLocale.string("Excédent reporté de \(formatted)")
                 : AppLocale.string("Déficit reporté de \(formatted)"))
         }
@@ -241,7 +242,8 @@ struct BudgetDetailHero: View {
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textTertiary)
 
-            Text(amount.asArithmeticSignedCurrency(userSettingsStore.currency))
+            let roundedAmount = amount.rounded(2)
+            Text("\(roundedAmount > 0 ? "+" : "")\(roundedAmount.asAdaptiveCurrency(userSettingsStore.currency))")
                 .font(PulpeTypography.metricLabelBold)
                 .foregroundStyle(Color.textSecondary)
                 .monospacedDigit()

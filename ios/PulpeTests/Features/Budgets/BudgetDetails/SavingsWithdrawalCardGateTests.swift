@@ -7,7 +7,7 @@ import Testing
 struct SavingsWithdrawalCardGateTests {
     @Test func presentsOnCurrentOrFutureDeficit() {
         #expect(SavingsWithdrawalCardGate.shouldPresent(
-            available: -500,
+            balance: -500,
             isCurrentOrFutureMonth: true,
             isDismissed: false
         ))
@@ -15,7 +15,20 @@ struct SavingsWithdrawalCardGateTests {
 
     @Test func hiddenWithoutDeficit() {
         #expect(!SavingsWithdrawalCardGate.shouldPresent(
-            available: 0,
+            balance: 0,
+            isCurrentOrFutureMonth: true,
+            isDismissed: false
+        ))
+    }
+
+    @Test func deficitGateUsesCentPrecision() {
+        #expect(!SavingsWithdrawalCardGate.shouldPresent(
+            balance: -0.004,
+            isCurrentOrFutureMonth: true,
+            isDismissed: false
+        ))
+        #expect(SavingsWithdrawalCardGate.shouldPresent(
+            balance: -0.01,
             isCurrentOrFutureMonth: true,
             isDismissed: false
         ))
@@ -23,7 +36,7 @@ struct SavingsWithdrawalCardGateTests {
 
     @Test func hiddenOnPastMonth() {
         #expect(!SavingsWithdrawalCardGate.shouldPresent(
-            available: -500,
+            balance: -500,
             isCurrentOrFutureMonth: false,
             isDismissed: false
         ))
@@ -31,7 +44,7 @@ struct SavingsWithdrawalCardGateTests {
 
     @Test func hiddenOnceDismissed() {
         #expect(!SavingsWithdrawalCardGate.shouldPresent(
-            available: -500,
+            balance: -500,
             isCurrentOrFutureMonth: true,
             isDismissed: true
         ))

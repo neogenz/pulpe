@@ -358,3 +358,49 @@ struct BudgetFormulasExtendedTests {
         #expect(result == .tight)
     }
 }
+
+@Suite("Budget money rounding")
+struct BudgetMoneyRoundingTests {
+    @Test func consumptionQuantizesAvailableToCents() {
+        let line = TestDataFactory.createBudgetLine(id: "1", amount: 58.50, kind: .expense)
+        let dust = TestDataFactory.createTransaction(
+            id: "tx-dust", budgetLineId: "1", amount: 58.504, kind: .expense
+        )
+        let cent = TestDataFactory.createTransaction(
+            id: "tx-cent", budgetLineId: "1", amount: 58.55, kind: .expense
+        )
+
+        let dustConsumption = BudgetFormulas.calculateConsumption(for: line, transactions: [dust])
+        let centConsumption = BudgetFormulas.calculateConsumption(for: line, transactions: [cent])
+        #expect(dustConsumption.available == 0)
+        #expect(!dustConsumption.isOverBudget)
+        #expect(dustConsumption.isNearLimit)
+        #expect(centConsumption.available == -0.05)
+        #expect(centConsumption.isOverBudget)
+    }
+
+    @Test func endingBalanceUsesCentPrecisionForBudgetState() {
+        #expect(BudgetFormulas.calculateEndingBalance(available: 58.50, totalExpenses: 58.50) == 0)
+        #expect(BudgetFormulas.calculateEndingBalance(available: 58.50, totalExpenses: 58.504) == 0)
+        #expect(BudgetFormulas.calculateEndingBalance(available: 58.50, totalExpenses: 58.51) == -0.01)
+        #expect(BudgetFormulas.calculateEndingBalance(available: 58.50, totalExpenses: 58.55) == -0.05)
+    }
+
+    @Test func metricsQuantizeSubCentDustBeforeChoosingDeficitState() {
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "income", amount: 58.50, kind: .income),
+            TestDataFactory.createBudgetLine(id: "expense", amount: 58.504, kind: .expense)
+        ]
+        let metrics = BudgetFormulas.calculateAllMetrics(budgetLines: lines)
+
+        #expect(metrics.remaining == 0)
+        #expect(!metrics.isDeficit)
+        #expect(metrics.emotionState == .tight)
+        #expect(BudgetFormulas.emotionState(
+            remaining: -0.004, totalIncome: 100, totalExpenses: 100.004, rollover: nil
+        ) == .tight)
+        #expect(BudgetFormulas.emotionState(
+            remaining: -0.01, totalIncome: 100, totalExpenses: 100.01, rollover: nil
+        ) == .deficit)
+    }
+}
