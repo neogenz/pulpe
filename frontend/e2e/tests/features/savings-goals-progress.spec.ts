@@ -272,6 +272,94 @@ test.describe('Savings goal progression (PUL-8)', () => {
     }
   });
 
+  for (const scenario of [
+    {
+      label: 'exact target',
+      amount: 1000,
+      verdict: /atteins ta cible/i,
+    },
+    {
+      label: 'one cent short despite a rounded 100 percent',
+      amount: 999.99,
+      verdict: /n'atteins pas encore/i,
+    },
+  ]) {
+    test(`keeps the ${scenario.label} verdict consistent with displayed amounts`, async ({
+      authenticatedPage: page,
+    }) => {
+      const targetGoal = { ...goal, targetAmount: 1000 } satisfies SavingsGoal;
+      const targetProgress = {
+        ...progress,
+        targetAmount: 1000,
+        plannedCumulative: scenario.amount,
+        plannedProjection: scenario.amount,
+        confirmed: scenario.amount,
+        achievementPercent: 100,
+        required: scenario.amount === 1000 ? 0 : 0.01,
+        projected: scenario.amount,
+        linkedLineCount: 1,
+        months: [
+          {
+            month: 8,
+            year: 2026,
+            state: 'current',
+            isLocked: false,
+            plannedAmount: scenario.amount,
+            confirmedAmount: 0,
+            plannedCumulative: scenario.amount,
+            confirmedCumulative: scenario.amount,
+            lines: [
+              {
+                budgetLineId: '00000000-0000-4000-a000-000000000499',
+                amount: scenario.amount,
+                checkedAt: null,
+                isManuallyAdjusted: false,
+              },
+            ],
+          },
+        ],
+      } satisfies SavingsGoalProgress;
+
+      await page.route('**/api/v1/savings-goals/*/progress', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: targetProgress }),
+        }),
+      );
+      await page.route('**/api/v1/savings-goals/*/contributions', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: [] }),
+        }),
+      );
+      await page.route('**/api/v1/savings-goals', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: [targetGoal] }),
+        }),
+      );
+
+      await page.goto('/savings-goals');
+      await page.getByTestId(`savings-goal-${GOAL_ID}`).click();
+      const detail = page.getByTestId('savings-goal-detail-page');
+      await expect(detail).toBeVisible();
+      await expect(
+        page.getByTestId('savings-goal-progress-bar'),
+      ).toHaveAttribute('aria-valuenow', '100');
+      await expect(page.getByTestId('stat-confirmed')).toContainText(
+        scenario.amount === 1000 ? '1’000 CHF' : '999.99 CHF',
+      );
+
+      await page.getByTestId('goal-plan-adjust-button').click();
+      await expect(page.getByTestId('goal-plan-verdict')).toContainText(
+        scenario.verdict,
+      );
+    });
+  }
+
   test('explains the projection and starts the monthly plan at the goal start', async ({
     authenticatedPage: page,
   }) => {

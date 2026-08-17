@@ -928,25 +928,35 @@ test.describe('Announcing a withdrawal, then realizing it', () => {
     await expect(savingsGoalsPage.plannedWithdrawalRows()).toHaveCount(0);
   });
 
-  test('a real income over the balance is refused with the entry left intact', async ({
+  test('a real income one cent over the balance keeps display, input and payload aligned', async ({
     authenticatedPage,
     budgetDetailsPage,
   }) => {
     const world = await installPlannedGoalWorld(authenticatedPage, {
+      stock: 499.99,
       line: announcedLine(),
     });
 
     await budgetDetailsPage.goto(CURRENT_BUDGET.id);
     await budgetDetailsPage.realizeWithdrawal(TEST_UUIDS.LINE_2);
     const amountInput = realizationAmountInput(authenticatedPage);
-    await amountInput.fill('4000');
+    const context = authenticatedPage.getByTestId('realize-withdrawal-context');
+    await expect(context).toContainText('499.99 CHF');
+    await expect(context).toContainText('500 CHF');
+    await expect(amountInput).toHaveValue('500');
+    const submitted = authenticatedPage.waitForRequest(
+      (request) =>
+        request.method() === 'POST' && request.url().endsWith('/transactions'),
+    );
     await authenticatedPage.getByTestId('save-transaction').click();
+
+    expect((await submitted).postDataJSON()).toMatchObject({ amount: 500 });
 
     await expect(
       authenticatedPage.getByTestId('transaction-submit-error'),
     ).toBeVisible();
     // La saisie reste à l'écran : le refus porte justement sur ce montant.
-    await expect(amountInput).toHaveValue('4000');
+    await expect(amountInput).toHaveValue('500');
     expect(world.realized).toHaveLength(0);
   });
 
