@@ -1,6 +1,7 @@
 ---
 objective: "PR #608 is conflict-free, secure on password recovery, correct on savings flows, green through Android delivery checks, and installable by one Google Play internal tester."
-status: in-progress
+status: blocked
+blocked_by: "PR approval from another reviewer, then Play Console identity and physical non-root Android 10+ device verification."
 ---
 
 # Plan: Android PR #608 and Play internal-test readiness

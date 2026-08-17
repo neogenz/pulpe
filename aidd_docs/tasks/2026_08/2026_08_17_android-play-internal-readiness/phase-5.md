@@ -1,5 +1,6 @@
 ---
-status: in-progress
+status: blocked
+blocked_by: "PR approval from another reviewer, then Play Console identity and physical non-root Android 10+ device verification."
 ---
 
 # Instruction: Prove the delivery path and publish internally
@@ -81,3 +82,10 @@ journey
 | 1    | EAS accepts the workflow, and the AAB reports the same user-facing version as the repository release.                                                              |
 | 2    | PR checks represent applicable code, preview build and device smoke results with no pending or irrelevant Python gate.                                             |
 | 3    | The exact merged `preview` build installs through the friend's Play opt-in link; OAuth, App Links and the critical smoke journey pass before any `main` promotion. |
+
+## Execution result
+
+- Release workflow syntax, Android version alignment, release documentation, CodeQL language selection and Expo SDK patch alignment are complete.
+- The PR is ready and conflict-free; its preview APK and Maestro checks were relaunched from the final Android commit.
+- Merge is blocked by the required approval from another GitHub reviewer.
+- Play publication is blocked until the account holder completes identity verification and validates the account from a physical, non-root Android 10+ device. App creation, the Play service account, app-signing fingerprints, tester enrollment and the Play-installed smoke test follow that verification.
