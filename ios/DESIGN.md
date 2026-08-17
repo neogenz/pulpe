@@ -9,7 +9,7 @@ colors:
   financial-income: "#0061A6"
   financial-expense: "#B35800"
   financial-savings: "#157038"
-  financial-over-budget: "#A86800"
+  financial-over-budget: "#905800"
   app-background: "#EFF3EE"
   sheet-background: "#F5F3F0"
   surface: "#FFFFFF"
@@ -246,7 +246,7 @@ The seeds in `../DESIGN.md` are abstract. The values below are the **iOS canonic
 - **Income / Lake** (`#0061A6`): `Color.financialIncome`.
 - **Savings / Forest Bright** (`#157038`): `Color.financialSavings`. Slightly brighter than `pulpePrimary`, tuned for ink contrast on warm surfaces.
 - **Expense / Amber** (`#B35800`): `Color.financialExpense`.
-- **Over-Budget / Burnt Amber** (`#A86800`): `Color.financialOverBudget`.
+- **Over-Budget / Burnt Amber** (`#905800` light, `#E5A33A` dark): `Color.financialOverBudget`.
 - **Hero Deficit / Sunset Coral** (`#C45028`): `Color.heroTintDeficit`. Gradient mid-stop only.
 
 ### Surface (Warm Hierarchy)
