@@ -8,8 +8,11 @@ import {
   CALCULATOR_CHIPS,
   EMPTY_BUDGET,
   availableToSpend,
+  chipLabel,
   committedExpenses,
+  removeLine,
   toggleChip,
+  updateLineAmount,
   type BudgetInputs,
   type FixedField,
 } from "@/lib/budgetCalculator";
@@ -25,6 +28,9 @@ const FIELDS: { key: FixedField; label: string }[] = [
   { key: "transport", label: "Transport" },
   { key: "leasing", label: "Leasing" },
 ];
+
+const fieldClassName =
+  "mt-1 w-full min-h-11 rounded-[var(--radius-card)] border border-text/10 bg-surface px-4 py-3 tabular-nums text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 function parseAmount(value: string): number {
   const parsed = Number(value.replace(",", "."));
@@ -57,25 +63,77 @@ export function BudgetCalculator() {
               step="1"
               value={inputs[field.key] || ""}
               onChange={(event) => setField(field.key, event.target.value)}
-              className="mt-1 w-full rounded-[var(--radius-card)] border border-text/10 bg-surface px-4 py-3 tabular-nums text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className={fieldClassName}
             />
           </label>
         ))}
         <p className="text-sm font-semibold text-text">Ajouter d’un geste</p>
         <div className="flex flex-wrap gap-2">
-          {CALCULATOR_CHIPS.map((chip) => (
-            <button
-              key={chip.id}
-              type="button"
-              onClick={() =>
-                setInputs((current) => toggleChip(current, chip, currency))
-              }
-              className="min-h-11 rounded-full border border-text/10 bg-surface px-4 text-sm font-semibold text-text hover:border-primary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              +{chip.amount} {chip.label}
-            </button>
-          ))}
+          {CALCULATOR_CHIPS.map((chip) => {
+            const selected = inputs.addedLines.some(
+              (line) => line.id === chip.id,
+            );
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() =>
+                  setInputs((current) => toggleChip(current, chip, currency))
+                }
+                className={`min-h-11 rounded-full border px-4 text-sm font-semibold text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                  selected
+                    ? "border-primary bg-primary/8"
+                    : "border-text/10 bg-surface hover:border-primary/40"
+                }`}
+              >
+                +{chip.amount} {chipLabel(chip, currency)}
+              </button>
+            );
+          })}
         </div>
+        {inputs.addedLines.length > 0 ? (
+          <ul className="space-y-2">
+            {inputs.addedLines.map((line) => (
+              <li
+                key={line.id}
+                className="flex items-center gap-2 rounded-[var(--radius-card)] border border-text/10 bg-surface px-3 py-2"
+              >
+                <span className="min-w-0 flex-1 text-sm font-semibold text-text">
+                  {line.label}
+                </span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="1"
+                  value={line.amount || ""}
+                  aria-label={`Montant de ${line.label}`}
+                  onChange={(event) =>
+                    setInputs((current) =>
+                      updateLineAmount(
+                        current,
+                        line.id,
+                        parseAmount(event.target.value),
+                      ),
+                    )
+                  }
+                  className="min-h-11 w-28 rounded-[var(--radius-card)] border border-text/10 bg-surface px-3 tabular-nums text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                />
+                <button
+                  type="button"
+                  aria-label={`Retirer ${line.label}`}
+                  onClick={() =>
+                    setInputs((current) => removeLine(current, line.id))
+                  }
+                  className="min-h-11 shrink-0 rounded-full px-3 text-sm font-semibold text-text-secondary hover:text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  Retirer
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </form>
 
       <div className="rounded-[var(--radius-large)] border border-text/10 bg-surface p-6 sm:p-8">

@@ -87,8 +87,9 @@ export default async function CalculatorPage() {
                 >
                   pilier 3a
                 </a>
-                . Ici, ces postes ont une ligne ou un bouton. Pour un jeune de
-                19 à 25 ans, la prime moyenne 2026 est à 326.30 CHF (OFSP).
+                . Ici, ces postes ont une ligne : tu l’ajoutes d’un geste, tu
+                peux la modifier ou la retirer. Pour un jeune de 19 à 25 ans, la
+                prime moyenne 2026 est à 326.30 CHF (OFSP).
               </p>
               <p>
                 Le calculateur reste volontairement statique : un mois, pas une
