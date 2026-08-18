@@ -9,12 +9,14 @@ import {
   EMPTY_BUDGET,
   availableToSpend,
   committedExpenses,
+  toggleChip,
   type BudgetInputs,
+  type FixedField,
 } from "@/lib/budgetCalculator";
 import { DEFAULT_LOCALE } from "@/lib/i18n";
 import { useVisitorCurrency } from "@/lib/visitorCurrency";
 
-const FIELDS: { key: keyof BudgetInputs; label: string }[] = [
+const FIELDS: { key: FixedField; label: string }[] = [
   { key: "income", label: "Revenus mensuels" },
   { key: "rent", label: "Loyer / Crédit" },
   { key: "insurance", label: "Assurance maladie" },
@@ -36,12 +38,8 @@ export function BudgetCalculator() {
   const available = useMemo(() => availableToSpend(inputs), [inputs]);
   const isDeficit = available < 0;
 
-  const setField = (key: keyof BudgetInputs, value: string) => {
+  const setField = (key: FixedField, value: string) => {
     setInputs((current) => ({ ...current, [key]: parseAmount(value) }));
-  };
-
-  const addChip = (field: "extra" | "savings", amount: number) => {
-    setInputs((current) => ({ ...current, [field]: current[field] + amount }));
   };
 
   return (
@@ -69,7 +67,9 @@ export function BudgetCalculator() {
             <button
               key={chip.id}
               type="button"
-              onClick={() => addChip(chip.field, chip.amount)}
+              onClick={() =>
+                setInputs((current) => toggleChip(current, chip, currency))
+              }
               className="min-h-11 rounded-full border border-text/10 bg-surface px-4 text-sm font-semibold text-text hover:border-primary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               +{chip.amount} {chip.label}
