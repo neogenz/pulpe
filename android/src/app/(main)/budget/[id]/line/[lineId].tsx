@@ -28,6 +28,7 @@ import { tagSummary } from "@/features/tags/tag-selection";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName, ofMonth } from "@/core/ui/date-format";
+import { InlineQueryError } from "@/core/ui/inline-query-error";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
@@ -106,6 +107,20 @@ export default function BudgetLineDetailScreen() {
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
         <ActivityIndicator accessibilityLabel="Chargement" />
+      </SafeAreaView>
+    );
+  }
+
+  if (details.isError) {
+    return (
+      <SafeAreaView
+        edges={["bottom"]}
+        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      >
+        <InlineQueryError
+          message="Impossible de charger cette prévision."
+          onRetry={() => void details.refetch()}
+        />
       </SafeAreaView>
     );
   }

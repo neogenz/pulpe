@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: rafraîchir les objectifs et distinguer erreur de donnée absente

@@ -4,6 +4,10 @@ const { readFileSync } = jest.requireActual<{
 
 const template = readFileSync("src/app/(main)/template/[id].tsx", "utf8");
 const goal = readFileSync("src/app/(main)/goal/[id].tsx", "utf8");
+const budgetLine = readFileSync(
+  "src/app/(main)/budget/[id]/line/[lineId].tsx",
+  "utf8",
+);
 const systemGate = readFileSync(
   "src/core/system/system-gate-screen.tsx",
   "utf8",
@@ -19,6 +23,15 @@ describe("detail query states", () => {
     );
     expect(template).toContain("<InlineQueryError");
     expect(goal).toContain("<InlineQueryError");
+  });
+
+  it("keeps a budget-line query failure distinct from a deleted line", () => {
+    expect(budgetLine.indexOf("if (details.isError)")).toBeLessThan(
+      budgetLine.indexOf("const budget = details.data?.budget"),
+    );
+    expect(budgetLine).toContain("<InlineQueryError");
+    expect(budgetLine).toContain("onRetry={() => void details.refetch()}");
+    expect(budgetLine).toContain("Cette prévision n'existe plus");
   });
 
   it("keeps dependent actions unavailable until optional impact data loads", () => {

@@ -1,6 +1,11 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  type QueryClient,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { budgetKeys } from "@/features/budgets/budget-queries";
+import { goalKeys } from "@/features/savings-goals/goals-queries";
 
 import {
   createBudgetLine,
@@ -8,6 +13,15 @@ import {
   postponeBudgetLine,
   updateBudgetLine,
 } from "./budget-line-api";
+
+export async function invalidateBudgetLineData(
+  queryClient: QueryClient,
+): Promise<void> {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: budgetKeys.all }),
+    queryClient.invalidateQueries({ queryKey: goalKeys.all }),
+  ]);
+}
 
 /**
  * Every forecast write moves the month's totals, and a postpone moves two
@@ -25,8 +39,7 @@ function useBudgetDataMutation<TInput>(
 
   return useMutation({
     mutationFn,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all }),
+    onSuccess: () => invalidateBudgetLineData(queryClient),
   });
 }
 

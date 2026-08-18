@@ -1,14 +1,31 @@
-import { readFileSync } from "@/core/testing/source-files";
+import { queryClient } from "@/core/query/query-client";
+import { budgetKeys } from "@/features/budgets/budget-queries";
+import { invalidateBudgetLineData } from "@/features/budget-details/budget-line-mutations";
 
-const mutationSources = [
-  "src/features/transactions/transaction-mutations.ts",
-  "src/features/budget-details/savings-withdrawal/withdrawal-mutations.ts",
-];
+import { goalKeys } from "./goals-queries";
+
+jest.mock("@/core/vault/vault-store", () => ({ useVaultStore: () => false }));
+jest.mock("@/features/budgets/budget-api", () => ({}));
+jest.mock("@/features/budget-details/budget-line-api", () => ({
+  createBudgetLine: jest.fn(),
+  deleteBudgetLine: jest.fn(),
+  postponeBudgetLine: jest.fn(),
+  updateBudgetLine: jest.fn(),
+}));
+jest.mock("./goals-api", () => ({}));
 
 describe("goal cache invalidation", () => {
-  it.each(mutationSources)("refreshes goals after writes in %s", (path) => {
-    const source = readFileSync(path, "utf8");
+  it("refreshes budgets and goals after every budget-line write", async () => {
+    const invalidate = jest
+      .spyOn(queryClient, "invalidateQueries")
+      .mockResolvedValue(undefined);
 
-    expect(source).toContain("queryKey: goalKeys.all");
+    await invalidateBudgetLineData(queryClient);
+
+    expect(invalidate.mock.calls.map(([options]) => options?.queryKey)).toEqual(
+      [budgetKeys.all, goalKeys.all],
+    );
+
+    invalidate.mockRestore();
   });
 });
