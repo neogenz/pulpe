@@ -299,6 +299,10 @@ test("release promotion writes only after a trusted immutable proof", () => {
   );
   assert.match(releasePromotion, /-F force=false/);
   assert.match(releasePromotion, /base=preview/);
+  assert.match(
+    releasePromotion,
+    /pulls" -f state=open -f base=preview -f head=/,
+  );
   assert.match(releasePromotion, /base=main/);
 
   for (const actionUse of releasePromotion.matchAll(
