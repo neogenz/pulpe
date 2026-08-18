@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.45.0
+
+### Minor Changes
+
+- Pulpe devient disponible en quatre langues et améliore le suivi des objectifs, la précision des montants et la fiabilité des parcours.
+
+### Patch Changes
+
+- pulpe-shared@0.45.0
+
 ## 0.44.0
 
 ### Minor Changes
