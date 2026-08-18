@@ -561,9 +561,9 @@ After the preparation PR is reviewed and merged with a merge commit:
 - the trusted promotion workflow fast-forwards the same release branch to that proven commit;
 - the App opens the production PR to `main`;
 - new feature PRs may then continue merging into `preview` without changing the frozen candidate;
-- `✅ Release Gate` validates the production PR without secrets or executing PR code;
+- `✅ Release Gate` validates the production PR without secrets or executing PR code; production correlates that gate through the exact PR head branch and SHA, then checks every immutable run attempt and its named job. It never relies on `workflow_run.pull_requests[]`, and a later failed rerun does not erase an earlier successful attempt;
 - a human other than the App approves production.
-- `🏭 Production Release` revalidates every proof, applies migrations when present, waits for exact production deployments, verifies CSP, publishes the tag and GitHub Release, then synchronizes Railway's web version gate.
+- `🏭 Production Release` revalidates every proof, applies migrations when present, waits for exact production deployments, deploys the exact production commit through Railway when its active deployment differs, verifies Railway directly rather than trusting only GitHub's deployment status, verifies CSP, publishes the tag and GitHub Release, then synchronizes Railway's web version gate.
 
 This skill does not push `preview` or `main`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release. Those production operations belong to the protected GitHub workflow after the approved production PR is merged.
 

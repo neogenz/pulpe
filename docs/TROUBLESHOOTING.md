@@ -62,6 +62,11 @@ pnpm quality
 `✅ CI Success` aggregates the required jobs. Diagnose the named failing job; rerunning the
 aggregate status does not repair its dependency. Workflow syntax is checked by `actionlint`.
 
+For a production Release Gate mismatch, correlate the merged PR's exact head branch and SHA
+with the workflow run, then inspect `/actions/runs/{run_id}/attempts/{attempt}` and that
+attempt's `/jobs` endpoint. Do not use `workflow_run.pull_requests[]` as the sole PR identity
+and do not let a failed rerun hide an earlier immutable successful attempt.
+
 ## Deployments
 
 - Vercel: inspect the deployment attached to `landing/` or `frontend/` and its build logs.
