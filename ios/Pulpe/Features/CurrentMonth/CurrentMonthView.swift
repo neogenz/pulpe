@@ -19,9 +19,8 @@ struct CurrentMonthView: View {
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
-    /// Screen-space bottom edge of the hero block, published by whichever state is on screen.
-    /// The mint stops here instead of at a fixed fraction of the screen height.
-    @State private var heroSurfaceBottom: CGFloat = 0
+    /// Screen-space bottom edge of the hero, owned here and read only by the mint layer.
+    @State private var heroSurfaceTracker = HomeHeroSurfaceTracker()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var animationPhase: Int {
@@ -61,7 +60,7 @@ struct CurrentMonthView: View {
         ZStack {
             switch store.contentState {
             case .idle, .loading:
-                CurrentMonthSkeletonView(onHeroSurfaceBottomChange: { heroSurfaceBottom = $0 })
+                CurrentMonthSkeletonView(onHeroSurfaceBottomChange: { heroSurfaceTracker.update($0) })
                     .transition(.opacity)
             case .failed:
                 ErrorView(error: store.error ?? .networkError(URLError(.unknown))) {
@@ -222,7 +221,7 @@ struct CurrentMonthView: View {
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xxl)
                 .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
-                    heroSurfaceBottom = $0
+                    heroSurfaceTracker.update($0)
                 }
 
                 dashboardDetails
@@ -337,31 +336,13 @@ struct CurrentMonthView: View {
 // type-length budget while still reaching the view's `private` state (same-file
 // access), rather than loosening encapsulation to move it to another file.
 extension CurrentMonthView {
-    /// The mint is a surface, not a wash: it runs full-bleed from the top of the screen down
-    /// to the hero's own bottom edge, and stops there on a curve. A hard edge would read as
-    /// banding at this contrast — the curve is what lets a pale tint hold a boundary.
-    /// The curve alone still read as a die-cut, two flat planes meeting; the shadow is what
-    /// puts the emotion zone *in front of* the ledger instead of beside it.
+    /// Failed and empty keep a flat canvas. Loaded and skeleton paint the mint through
+    /// `HomeHeroSurfaceBackground`, which is the only reader of `tracker.height`.
     @ViewBuilder
     fileprivate var dashboardBackground: some View {
         switch store.contentState {
         case .idle, .loading, .loaded:
-            ZStack(alignment: .top) {
-                Color.appBackground
-                LinearGradient(
-                    colors: [.homeHeroSurfaceTop, .homeHeroSurface],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: max(0, heroSurfaceBottom))
-                .clipShape(
-                    .rect(
-                        bottomLeadingRadius: DesignTokens.CornerRadius.zone,
-                        bottomTrailingRadius: DesignTokens.CornerRadius.zone
-                    )
-                )
-                .shadow(DesignTokens.Shadow.zoneBoundary)
-            }
+            HomeHeroSurfaceBackground(tracker: heroSurfaceTracker)
         case .failed, .empty:
             Color.appBackground
         }
