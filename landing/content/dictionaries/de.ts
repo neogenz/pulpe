@@ -6,14 +6,19 @@ import type { Dictionary } from "../dictionary";
 // die Kurzform. Produktbegriffe folgen dem Lexikon in `docs/I18N.md`.
 const de: Dictionary = {
   site: {
-    titleDefault: "Pulpe | Du weisst Monate im Voraus, was dir bleibt",
+    titleDefault: "Pulpe – Budget-App | Plane dein Jahr, sieh, was dir bleibt",
     titleTemplate: "%s | Pulpe",
     description:
-      "Plane deine Einnahmen, deine Ausgaben und dein Sparen. Pulpe zeigt dir, was dir jeden Monat bleibt — ohne Bankverbindung.",
+      "Eine Budget-App, um Einnahmen, Ausgaben und Sparen zu planen. Pulpe zeigt dir, was dir jeden Monat bleibt — ohne Bankverbindung.",
     socialImageAlt:
       "Pulpe projiziert dein Budget über das Jahr und zeigt, was dir bleibt",
     graphDescription:
-      "Pulpe berechnet Monat für Monat, was dir zur Verfügung steht — aus deinen Einnahmen, deinen Ausgaben und deinem Sparen, ohne Bankverbindung.",
+      "Pulpe ist eine Budget-App, um dein Jahr zu planen — ohne Bankverbindung.",
+    featureList: [
+      "Jahresplanung",
+      "Verfügbar zum Ausgeben jeden Monat",
+      "Ohne Bankverbindung",
+    ],
     socialCard: {
       subhead: "Plane dein Jahr. Sieh jeden Monat, was dir bleibt.",
       badge: "Kostenlos · Ohne Bankverbindung",
@@ -270,6 +275,11 @@ const de: Dictionary = {
     faq: {
       heading: "Die Fragen, die mir am häufigsten gestellt werden.",
       items: [
+        {
+          question: "Ist Pulpe eine Budget-App?",
+          answer:
+            "Ja. So suchen die Leute danach. Pulpe dient vor allem der Jahresplanung: Du siehst, was dir jeden Monat bleibt, statt nur zu erfassen, was schon ausgegeben ist.",
+        },
         {
           question: "Warum Pulpe statt Excel?",
           answer:

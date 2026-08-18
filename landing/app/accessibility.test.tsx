@@ -1467,10 +1467,9 @@ describe("landing accessibility contracts", () => {
     for (const catalog of Object.values(CATALOGS)) {
       assert.match(joined(catalog.home.whyFree), /AES-256-GCM/);
     }
-    assert.match(
-      frDict.site.titleDefault,
-      /des mois d’avance combien il te restera/i,
-    );
+    assert.match(frDict.site.titleDefault, /App de budget/i);
+    assert.match(frDict.site.titleDefault, /combien il te restera/i);
+    assert.doesNotMatch(frDict.site.titleDefault, /suisse/i);
     assert.match(
       joined(frDict.home.finalCta),
       /Prépare ton année[\s\S]*Vois combien il te restera chaque mois/i,

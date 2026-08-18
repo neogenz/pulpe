@@ -164,7 +164,8 @@ describe("guide article layout contract", async () => {
       assert.doesNotMatch(source, /pulpe-social-preview/);
     }
     assert.match(sources.articleLayout, /socialPreviewImage\(DEFAULT_LOCALE\)/);
-    assert.doesNotMatch(sources.rootDocument, /\bsameAs\s*:/);
+    assert.match(sources.rootDocument, /sameAs: \[GITHUB_URL, IOS_APP_URL\]/);
+    assert.match(sources.rootDocument, /countriesSupported: \["FR", "CH"\]/);
   });
 
   it("keeps article links interactive and the Pulpe pull quote semantic", () => {

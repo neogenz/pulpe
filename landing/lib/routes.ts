@@ -32,6 +32,8 @@ export const GUIDE_ROUTE = "/support/modeles-et-budgets" satisfies Route;
  */
 export const ADVICE_INDEX_ROUTE = "/conseils-budget";
 export const ADVICE_LABEL_FR = "Conseils budget";
+export const CALCULATOR_ROUTE = "/calculateur-budget";
+export const CALCULATOR_LABEL_FR = "Calculateur de budget";
 
 /**
  * Le chemin d'un lien dans une langue donnée. Le français reste à la racine :

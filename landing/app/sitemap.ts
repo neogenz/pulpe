@@ -3,6 +3,7 @@ import { GUIDES } from "@/components/guides/guides";
 import { LOCALES } from "@/lib/i18n";
 import {
   ADVICE_INDEX_ROUTE,
+  CALCULATOR_ROUTE,
   alternatesFor,
   ROUTES,
   SITE_URL,
@@ -15,7 +16,7 @@ export const dynamic = "force-static";
 const absolute = (path: string) => `${SITE_URL}${path === "/" ? "" : path}`;
 
 /**
- * Les 16 URLs du site, une par page et par langue, chacune listant ses trois
+ * Les URLs du site, une par page et par langue, chacune listant ses trois
  * sœurs. `metadataBase` ne s'applique pas ici : les alternates d'un sitemap
  * doivent être des URLs absolues, sans quoi les robots les ignorent.
  */
@@ -46,6 +47,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: absolute(`${ADVICE_INDEX_ROUTE}/${guide.slug}`),
       lastModified: guide.updatedAt,
     })),
+    { url: absolute(CALCULATOR_ROUTE) },
   ];
 
   return [...localized, ...advice];

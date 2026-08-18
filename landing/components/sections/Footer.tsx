@@ -8,6 +8,8 @@ import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n";
 import {
   ADVICE_LABEL_FR,
   ADVICE_INDEX_ROUTE,
+  CALCULATOR_LABEL_FR,
+  CALCULATOR_ROUTE,
   localizedPath,
   type Route,
 } from "@/lib/routes";
@@ -23,6 +25,12 @@ const FOOTER_GROUPS = [
       {
         id: "guides",
         href: ADVICE_INDEX_ROUTE,
+        internal: true,
+        frenchOnly: true,
+      },
+      {
+        id: "calculator",
+        href: CALCULATOR_ROUTE,
         internal: true,
         frenchOnly: true,
       },
@@ -74,8 +82,11 @@ export function Footer({
   // Le libellé des guides ne vit pas dans les dictionnaires : la page qu'il
   // ouvre n'existe qu'en français, donc le lien ne s'affiche qu'en français et
   // une traduction resterait inatteignable.
-  const labelOf = (id: string) =>
-    id === "guides" ? ADVICE_LABEL_FR : dict.links[id as FooterLinkId];
+  const labelOf = (id: string) => {
+    if (id === "guides") return ADVICE_LABEL_FR;
+    if (id === "calculator") return CALCULATOR_LABEL_FR;
+    return dict.links[id as FooterLinkId];
+  };
   return (
     <footer className="border-t border-text/10 bg-transparent py-12">
       <Container>
