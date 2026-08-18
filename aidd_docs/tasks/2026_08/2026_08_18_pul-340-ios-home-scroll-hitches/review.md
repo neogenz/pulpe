@@ -37,6 +37,6 @@ None.
 | Metric        | Value                                             |
 | ------------- | ------------------------------------------------- |
 | Verified      | 64% (7/11)                                        |
-| Files checked | CurrentMonthView.swift, HomeHeroSurfaceTracker.swift, HomeHeroSurfaceBackground.swift, CurrentMonthSkeletonView.swift, HomeHeroSurfaceTrackerTests.swift, phase-1.md, phase-2.md, phase-3.md |
+| Files checked | CurrentMonthView.swift, HomeHeroSurfaceTracker.swift, HomeHeroSurfaceBackground.swift, CurrentMonthSkeletonView.swift, HomeHeroSurfaceTrackerTests.swift, HomeHeroCardTests.swift, phase-1.md, phase-2.md, phase-3.md |
 | Unchecked     | Phase 1 AC1 — not-applicable; Phase 1 AC2 — not-applicable; Phase 1 AC5 — not-applicable; Phase 3 AC1 — not-applicable |
 | Unplanned     | none                                              |
