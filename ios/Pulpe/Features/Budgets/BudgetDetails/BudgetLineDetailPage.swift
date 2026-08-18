@@ -79,9 +79,7 @@ struct BudgetLineDetailPage: View {
             Button("Ne rien supprimer", role: .cancel) {
                 coordinator.syncStore.resetSavingsWithdrawalDeleteChoice()
             }
-        } message: { line in
-            Text(savingsWithdrawalDeleteMessage(for: line))
-        }
+        } message: { line in Text(savingsWithdrawalDeleteMessage(for: line)) }
     }
 
     @ViewBuilder
