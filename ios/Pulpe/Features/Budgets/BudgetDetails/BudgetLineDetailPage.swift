@@ -51,7 +51,9 @@ struct BudgetLineDetailPage: View {
     // MARK: - Body
 
     var body: some View {
-        Group {
+        @Bindable var syncStore = coordinator.syncStore
+
+        return Group {
             if let line = budgetLine {
                 pageContent(for: line, transactions: transactions)
             } else {
@@ -63,6 +65,21 @@ struct BudgetLineDetailPage: View {
         .pulpeBackground()
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle(budgetLine?.name ?? "")
+        .alert(
+            "Quelles prévisions supprimer ?",
+            isPresented: $syncStore.showSavingsWithdrawalDeleteChoice,
+            presenting: syncStore.budgetLineToDeleteWithdrawal
+        ) { line in
+            Button(savingsWithdrawalRepaymentDeleteLabel(for: line), role: .destructive) {
+                dispatchDeleteSavingsWithdrawal(line, scope: .repayment)
+            }
+            Button(savingsWithdrawalPairDeleteLabel(for: line), role: .destructive) {
+                dispatchDeleteSavingsWithdrawal(line, scope: .pair)
+            }
+            Button("Ne rien supprimer", role: .cancel) {
+                coordinator.syncStore.resetSavingsWithdrawalDeleteChoice()
+            }
+        } message: { line in Text(savingsWithdrawalDeleteMessage(for: line)) }
     }
 
     @ViewBuilder

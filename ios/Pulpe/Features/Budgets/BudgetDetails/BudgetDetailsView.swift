@@ -195,23 +195,6 @@ struct BudgetDetailsView: View {
         } message: { _ in
             Text("Cette prévision a des mouvements encore à pointer.")
         }
-        .alert(
-            "Deux prévisions liées",
-            isPresented: $syncStore.showSavingsWithdrawalDeleteChoice,
-            presenting: syncStore.budgetLineToDeleteWithdrawal
-        ) { line in
-            Button(savingsWithdrawalKeepIncomeLabel(for: line)) {
-                dispatchDeleteSavingsWithdrawal(line, scope: .repayment)
-            }
-            Button("Tout annuler", role: .destructive) {
-                dispatchDeleteSavingsWithdrawal(line, scope: .pair)
-            }
-            Button("Annuler", role: .cancel) {
-                coordinator.syncStore.resetSavingsWithdrawalDeleteChoice()
-            }
-        } message: { line in
-            Text(savingsWithdrawalDeleteMessage(for: line))
-        }
     }
 
     private var content: some View {
