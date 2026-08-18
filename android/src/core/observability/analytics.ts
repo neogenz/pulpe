@@ -1,9 +1,11 @@
 import * as Application from "expo-application";
+import type { User } from "@supabase/supabase-js";
 import { useSegments } from "expo-router";
 import { PostHog } from "posthog-react-native";
-import type { AnalyticsEventName } from "pulpe-shared";
+import { ANALYTICS_PROPERTIES, type AnalyticsEventName } from "pulpe-shared";
 import { useEffect } from "react";
 
+import { useSessionStore } from "@/core/auth/session-store";
 import { ENV } from "@/core/config/env";
 
 import {
@@ -16,6 +18,8 @@ import {
 } from "./diagnostics-consent";
 
 let client: PostHog | null = null;
+let identifiedUserId: string | null = null;
+let identitySignature: string | null = null;
 
 /**
  * Which app is reporting, on every event. Without it an Android event is
@@ -32,6 +36,59 @@ function appContextProperties(): AnalyticsProperties {
     app_version: Application.nativeApplicationVersion ?? "unknown",
     build_number: Application.nativeBuildVersion ?? "unknown",
   };
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed === "" ? undefined : trimmed;
+}
+
+function identityProperties(user: User): AnalyticsProperties {
+  const email = nonEmptyString(user.email);
+  const firstName = nonEmptyString(user.user_metadata?.firstName);
+
+  return {
+    [ANALYTICS_PROPERTIES.SUPABASE_USER_ID]: user.id,
+    [ANALYTICS_PROPERTIES.EARLY_ADOPTER]:
+      user.app_metadata?.early_adopter === true,
+    ...(email && { [ANALYTICS_PROPERTIES.EMAIL]: email }),
+    ...(firstName && { [ANALYTICS_PROPERTIES.NAME]: firstName }),
+  };
+}
+
+function resetIdentity(): void {
+  if (client === null || identifiedUserId === null) return;
+
+  client.reset();
+  void client.register(appContextProperties());
+  identifiedUserId = null;
+  identitySignature = null;
+}
+
+function syncIdentity(): void {
+  if (client === null || !isDiagnosticSharingEnabled()) return;
+
+  const { status, user } = useSessionStore.getState();
+  if (status === "unauthenticated") {
+    resetIdentity();
+    return;
+  }
+  if (status !== "authenticated" || user === null) return;
+
+  const properties = identityProperties(user);
+  const signature = JSON.stringify(properties);
+  if (identifiedUserId === user.id && identitySignature === signature) return;
+
+  // Identifying B while A is still current aliases both accounts in PostHog.
+  // Reset first so a shared device never merges two Pulpe users.
+  if (identifiedUserId !== null && identifiedUserId !== user.id) {
+    resetIdentity();
+  }
+
+  client.identify(user.id, properties);
+  identifiedUserId = user.id;
+  identitySignature = signature;
 }
 
 /**
@@ -76,11 +133,24 @@ export function startAnalytics(): () => void {
     void client.register(appContextProperties());
   }
 
-  return useDiagnosticsConsent.subscribe((state) => {
-    void (state.isDiagnosticSharingEnabled
-      ? client?.optIn()
-      : client?.optOut());
+  syncIdentity();
+  const stopSessionListening = useSessionStore.subscribe(syncIdentity);
+  const stopConsentListening = useDiagnosticsConsent.subscribe((state) => {
+    if (state.isDiagnosticSharingEnabled) {
+      void client?.optIn();
+      syncIdentity();
+      return;
+    }
+
+    // reset() clears the SDK's persisted opt-out bit, so reset before optOut.
+    resetIdentity();
+    void client?.optOut();
   });
+
+  return () => {
+    stopSessionListening();
+    stopConsentListening();
+  };
 }
 
 /**

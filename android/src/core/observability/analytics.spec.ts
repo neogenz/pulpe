@@ -1,17 +1,26 @@
 const mockClient = {
+  identify: jest.fn(),
   register: jest.fn(),
+  reset: jest.fn(),
   optIn: jest.fn(),
   optOut: jest.fn(),
 };
 const mockPostHog = jest.fn(() => mockClient);
 const mockStopListening = jest.fn();
 const mockSubscribe = jest.fn();
+const mockStopSessionListening = jest.fn();
+const mockSessionSubscribe = jest.fn();
 
 let mockConfig: { apiKey: string; host: string } | null;
 let mockIsSharingEnabled: boolean;
+let mockSessionState: {
+  status: "loading" | "unauthenticated" | "authenticated";
+  user: Record<string, unknown> | null;
+};
 let mockConsentListener:
   | ((state: { isDiagnosticSharingEnabled: boolean }) => void)
   | null;
+let mockSessionListener: (() => void) | null;
 
 jest.mock("posthog-react-native", () => ({ PostHog: mockPostHog }));
 jest.mock("expo-application", () => ({
@@ -19,6 +28,12 @@ jest.mock("expo-application", () => ({
   nativeBuildVersion: "42",
 }));
 jest.mock("expo-router", () => ({ useSegments: () => [] }));
+jest.mock("@/core/auth/session-store", () => ({
+  useSessionStore: {
+    getState: () => mockSessionState,
+    subscribe: mockSessionSubscribe,
+  },
+}));
 jest.mock("@/core/config/env", () => ({
   ENV: {
     environment: "production",
@@ -49,10 +64,16 @@ describe("PostHog startup", () => {
     jest.clearAllMocks();
     mockConfig = { apiKey: "ph_test", host: "https://eu.i.posthog.com" };
     mockIsSharingEnabled = true;
+    mockSessionState = { status: "unauthenticated", user: null };
     mockConsentListener = null;
+    mockSessionListener = null;
     mockSubscribe.mockImplementation((listener) => {
       mockConsentListener = listener;
       return mockStopListening;
+    });
+    mockSessionSubscribe.mockImplementation((listener) => {
+      mockSessionListener = listener;
+      return mockStopSessionListening;
     });
   });
 
@@ -79,7 +100,9 @@ describe("PostHog startup", () => {
       app_version: "1.2.3",
       build_number: "42",
     });
-    expect(stop).toBe(mockStopListening);
+    stop();
+    expect(mockStopListening).toHaveBeenCalledTimes(1);
+    expect(mockStopSessionListening).toHaveBeenCalledTimes(1);
   });
 
   it("does not create or subscribe a client outside production", () => {
@@ -106,5 +129,80 @@ describe("PostHog startup", () => {
 
     expect(mockClient.optIn).toHaveBeenCalledTimes(1);
     expect(mockClient.optOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("identifies a restored session with the shared Supabase identity", () => {
+    mockSessionState = {
+      status: "authenticated",
+      user: {
+        id: "supabase-user-id",
+        email: " ismael@example.com ",
+        app_metadata: { early_adopter: true },
+        user_metadata: { firstName: " Ismael " },
+      },
+    };
+
+    loadStartAnalytics()();
+    mockSessionListener?.();
+
+    expect(mockClient.identify).toHaveBeenCalledTimes(1);
+    expect(mockClient.identify).toHaveBeenCalledWith("supabase-user-id", {
+      supabase_user_id: "supabase-user-id",
+      early_adopter: true,
+      email: "ismael@example.com",
+      name: "Ismael",
+    });
+  });
+
+  it("resets PostHog when the authenticated session signs out", () => {
+    mockSessionState = {
+      status: "authenticated",
+      user: {
+        id: "user-a",
+        email: "a@example.com",
+        app_metadata: {},
+        user_metadata: {},
+      },
+    };
+    loadStartAnalytics()();
+
+    mockSessionState = { status: "unauthenticated", user: null };
+    mockSessionListener?.();
+
+    expect(mockClient.reset).toHaveBeenCalledTimes(1);
+    expect(mockClient.register).toHaveBeenCalledTimes(2);
+  });
+
+  it("resets before identifying a different account on the same device", () => {
+    mockSessionState = {
+      status: "authenticated",
+      user: {
+        id: "user-a",
+        email: "a@example.com",
+        app_metadata: {},
+        user_metadata: {},
+      },
+    };
+    loadStartAnalytics()();
+
+    mockSessionState = {
+      status: "authenticated",
+      user: {
+        id: "user-b",
+        email: "b@example.com",
+        app_metadata: {},
+        user_metadata: {},
+      },
+    };
+    mockSessionListener?.();
+
+    expect(mockClient.identify).toHaveBeenCalledTimes(2);
+    expect(mockClient.identify).toHaveBeenLastCalledWith(
+      "user-b",
+      expect.objectContaining({ supabase_user_id: "user-b" }),
+    );
+    expect(mockClient.reset.mock.invocationCallOrder[0]).toBeLessThan(
+      mockClient.identify.mock.invocationCallOrder[1],
+    );
   });
 });
