@@ -1,6 +1,6 @@
 ---
 objective: "L’accueil iOS 1.4.0 scrolle verticalement sans micro-saccades, la surface mint s’arrête toujours au bas mesuré du hero, et le diagnostic comme le correctif sont vérifiés sur un build Release."
-status: in-progress
+status: implemented
 ---
 
 # Plan: corriger les micro-saccades du scroll vertical de l’accueil iOS
