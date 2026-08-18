@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-13T08:15:41Z",
+  "generatedAt": "2026-08-17T08:22:44Z",
   "title": "Design System: Pulpe Webapp",
   "extensions": {
     "colorMeta": {
@@ -17,21 +17,6 @@
           "#7EDB83",
           "#C7FFC4",
           "#F6FFF0"
-        ]
-      },
-      "primary-hover": {
-        "role": "primary",
-        "displayName": "Forêt vive",
-        "canonical": "#2B883B",
-        "tonalRamp": [
-          "#002106",
-          "#00390F",
-          "#00531A",
-          "#006E25",
-          "#2B883B",
-          "#63BF6B",
-          "#99F89D",
-          "#EBFFE6"
         ]
       },
       "on-primary": {
@@ -82,13 +67,13 @@
       "expense": {
         "role": "secondary",
         "displayName": "Ambre dépense",
-        "canonical": "#B35800",
+        "canonical": "#AF5600",
         "tonalRamp": [
-          "#321400",
-          "#572300",
-          "#7C3900",
-          "#B35800",
-          "#D77B2E",
+          "#351900",
+          "#552700",
+          "#743700",
+          "#AF5600",
+          "#D67A23",
           "#F0A050",
           "#FFDCC2",
           "#FFF8F4"
@@ -202,16 +187,16 @@
       "text-secondary": {
         "role": "neutral",
         "displayName": "Encre secondaire",
-        "canonical": "#434841",
+        "canonical": "#3F493E",
         "tonalRamp": [
-          "#10150F",
-          "#262B25",
-          "#434841",
-          "#5A6058",
-          "#8D9289",
-          "#C3C8BE",
-          "#E5EAE0",
-          "#F9FEF3"
+          "#151E14",
+          "#293328",
+          "#3F493E",
+          "#576154",
+          "#6F7A6D",
+          "#A3AE9F",
+          "#DBE6D6",
+          "#F1FDEC"
         ]
       }
     },
@@ -293,17 +278,16 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Action dominante Material, capsule de 48px avec relief teinté.",
+      "description": "Action dominante Material, capsule visuelle de 40px sur une cible tactile de 48px, avec relief teinté.",
       "html": "<button class=\"ds-btn-primary\">Créer mon budget</button>",
-      "css": ".ds-btn-primary{min-height:48px;padding:0 24px;border:0;border-radius:9999px;background:var(--mat-sys-primary,#006e25);color:var(--mat-sys-on-primary,#fff);font:600 14px/1.25 'DM Sans',sans-serif;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 10px 24px -10px rgba(0,110,37,.3);transition:transform 220ms cubic-bezier(.2,0,0,1),box-shadow 220ms cubic-bezier(.2,0,0,1);cursor:pointer}.ds-btn-primary:hover{transform:translateY(-1px);background:#2b883b}.ds-btn-primary:active{transform:none}.ds-btn-primary:focus-visible{outline:3px solid color-mix(in srgb,var(--mat-sys-primary,#006e25) 35%,transparent);outline-offset:3px}"
+      "css": ".ds-btn-primary{min-height:40px;padding:0 24px;border:0;border-radius:9999px;background:var(--mat-sys-primary,#006e25);color:var(--mat-sys-on-primary,#fff);font:600 14px/1.25 'DM Sans',sans-serif;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 10px 24px -10px rgba(0,110,37,.3);transition:transform 220ms cubic-bezier(.2,0,0,1),box-shadow 220ms cubic-bezier(.2,0,0,1);cursor:pointer}.ds-btn-primary:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 16px 32px -10px rgba(0,110,37,.42)}.ds-btn-primary:active{transform:none}.ds-btn-primary:focus-visible{outline:2px solid var(--mat-sys-primary,#006e25);outline-offset:2px}"
     },
     {
       "name": "Outlined Button",
       "kind": "button",
-      "refersTo": "button-primary",
       "description": "Action secondaire calme, sans concurrencer le CTA rempli.",
       "html": "<button class=\"ds-btn-outlined\">Voir le détail</button>",
-      "css": ".ds-btn-outlined{min-height:48px;padding:0 24px;border:1px solid var(--mat-sys-outline,#6f7a6d);border-radius:9999px;background:transparent;color:var(--mat-sys-primary,#006e25);font:600 14px/1.25 'DM Sans',sans-serif;transition:background 150ms cubic-bezier(.2,0,0,1),transform 150ms cubic-bezier(.2,0,0,1);cursor:pointer}.ds-btn-outlined:hover{background:color-mix(in srgb,var(--mat-sys-primary,#006e25) 7%,transparent)}.ds-btn-outlined:active{transform:scale(.98)}.ds-btn-outlined:focus-visible{outline:3px solid color-mix(in srgb,var(--mat-sys-primary,#006e25) 35%,transparent);outline-offset:3px}"
+      "css": ".ds-btn-outlined{min-height:40px;padding:0 24px;border:1px solid var(--mat-sys-outline,#6f7a6d);border-radius:9999px;background:transparent;color:var(--mat-sys-primary,#006e25);font:600 14px/1.25 'DM Sans',sans-serif;transition:background 150ms cubic-bezier(.2,0,0,1),transform 150ms cubic-bezier(.2,0,0,1);cursor:pointer}.ds-btn-outlined:hover{background:color-mix(in srgb,var(--mat-sys-primary,#006e25) 7%,transparent)}.ds-btn-outlined:active{transform:scale(.98)}.ds-btn-outlined:focus-visible{outline:2px solid var(--mat-sys-primary,#006e25);outline-offset:2px}"
     },
     {
       "name": "Search Field",
@@ -311,7 +295,7 @@
       "refersTo": "search-field",
       "description": "Recherche immédiate de 56px, tonale et entièrement arrondie.",
       "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-4-4\"/></svg><input type=\"search\" placeholder=\"Rechercher…\"></label>",
-      "css": ".ds-search{height:56px;padding:0 16px;display:flex;align-items:center;gap:12px;border-radius:9999px;background:var(--mat-sys-surface-container-high,#e5eae0);color:var(--mat-sys-on-surface-variant,#434841);border:1px solid transparent}.ds-search:focus-within{border-color:var(--mat-sys-primary,#006e25);box-shadow:0 0 0 3px color-mix(in srgb,var(--mat-sys-primary,#006e25) 15%,transparent)}.ds-search svg{width:22px;fill:none;stroke:currentColor;stroke-width:1.8}.ds-search input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--mat-sys-on-surface,#181d17);font:400 16px/1.5 'DM Sans',sans-serif}.ds-search input::placeholder{color:var(--mat-sys-on-surface-variant,#434841)}"
+      "css": ".ds-search{height:56px;padding:0 16px;display:flex;align-items:center;gap:12px;border-radius:9999px;background:var(--mat-sys-surface-container-high,#e5eae0);color:var(--mat-sys-on-surface-variant,#3f493e)}.ds-search svg{width:22px;fill:none;stroke:currentColor;stroke-width:1.8}.ds-search input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--mat-sys-on-surface,#181d17);font:400 16px/1.5 'DM Sans',sans-serif}.ds-search input::placeholder{color:var(--mat-sys-on-surface-variant,#3f493e)}"
     },
     {
       "name": "Financial Pill",
@@ -326,24 +310,22 @@
       "kind": "card",
       "refersTo": "content-card",
       "description": "Carte scannable d'une prévision, avec type, libellé et montant aligné.",
-      "html": "<article class=\"ds-line-card\"><div class=\"ds-line-kind\">DÉPENSE</div><div class=\"ds-line-row\"><strong>Loyer</strong><span>1’850 CHF</span></div><div class=\"ds-line-meta\">Récurrent · À pointer</div></article>",
-      "css": ".ds-line-card{padding:16px;border:1px solid var(--mat-sys-outline-variant,#bfcaba);border-radius:16px;background:var(--mat-sys-surface,#f6fbf1);color:var(--mat-sys-on-surface,#181d17);font-family:'DM Sans',sans-serif}.ds-line-kind{margin-bottom:8px;color:#b35800;font-size:11px;font-weight:700;letter-spacing:.08em}.ds-line-row{display:flex;align-items:baseline;justify-content:space-between;gap:20px}.ds-line-row strong{font:600 18px/1.25 Manrope,sans-serif}.ds-line-row span{font-weight:700;font-variant-numeric:tabular-nums}.ds-line-meta{margin-top:10px;color:var(--mat-sys-on-surface-variant,#434841);font-size:13px}"
+      "html": "<article class=\"ds-line-card\"><header class=\"ds-line-header\"><span class=\"ds-line-indicator\" aria-hidden=\"true\"></span><strong>Téléphone</strong><button class=\"ds-line-menu\" aria-label=\"Plus d'actions\">•••</button></header><div class=\"ds-line-amount\">58.50 <small>CHF</small></div><footer class=\"ds-line-footer\"><span class=\"ds-line-chip\">Récurrent</span><span>Issu du modèle</span></footer></article>",
+      "css": ".ds-line-card{padding:16px;border:1px solid var(--mat-sys-outline-variant,#bfcaba);border-radius:16px;background:var(--mat-sys-surface,#f6fbf1);color:var(--mat-sys-on-surface,#181d17);font-family:'DM Sans',sans-serif}.ds-line-header{display:flex;align-items:center;gap:10px}.ds-line-header strong{flex:1;min-width:0;font:600 18px/1.25 Manrope,sans-serif}.ds-line-indicator{width:10px;height:10px;border-radius:50%;background:var(--pulpe-financial-expense,#af5600)}.ds-line-menu{width:40px;height:40px;border:0;border-radius:50%;background:transparent;color:var(--mat-sys-on-surface-variant,#3f493e)}.ds-line-menu:hover{background:var(--mat-sys-surface-container-high,#e5eae0)}.ds-line-menu:focus-visible{outline:2px solid var(--mat-sys-primary,#006e25);outline-offset:2px}.ds-line-menu:active{transform:scale(.96)}.ds-line-amount{margin:16px 0;color:var(--pulpe-financial-expense,#af5600);font:700 28px/1 Manrope,sans-serif;font-variant-numeric:tabular-nums}.ds-line-amount small{font-size:14px}.ds-line-footer{display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--mat-sys-outline-variant,#bfcaba) 30%,transparent);color:var(--mat-sys-on-surface-variant,#3f493e);font-size:12px}.ds-line-chip{padding:4px 10px;border-radius:9999px;background:var(--mat-sys-surface-container,#eaf0e5);color:var(--mat-sys-on-surface,#181d17)}"
     },
     {
       "name": "Dashboard Hero",
       "kind": "custom",
-      "refersTo": "content-card",
       "description": "Signature opérationnelle : état financier, montant disponible et progression.",
-      "html": "<section class=\"ds-hero\"><span class=\"ds-hero-kicker\">MOIS EN COURS</span><strong class=\"ds-hero-amount\">2’430 <small>CHF</small></strong><div class=\"ds-progress\"><span></span></div><p>Dépensé 2’570 CHF sur 5’000 CHF</p></section>",
-      "css": ".ds-hero{padding:24px;border-radius:32px;background:linear-gradient(145deg,var(--pulpe-hero-primary,#006e25),#00390f);color:var(--pulpe-hero-primary-text,#fff);box-shadow:var(--mat-sys-level2,0 2px 8px rgba(0,0,0,.14));font-family:'DM Sans',sans-serif}.ds-hero-kicker{font-size:12px;font-weight:700;letter-spacing:.1em}.ds-hero-amount{display:block;margin:22px 0 26px;font:800 48px/1 Manrope,sans-serif;font-variant-numeric:tabular-nums}.ds-hero-amount small{font-size:18px;opacity:.72}.ds-progress{height:12px;overflow:hidden;border-radius:9999px;background:rgba(0,0,0,.12)}.ds-progress span{display:block;width:51%;height:100%;border-radius:inherit;background:currentColor}.ds-hero p{margin:9px 0 0;font-size:12px;opacity:.8}"
+      "html": "<section class=\"ds-hero\"><button class=\"ds-hero-action\" aria-label=\"Ouvrir le budget d'août\"></button><h2 class=\"ds-hero-title\">août</h2><div class=\"ds-hero-amount\">2’430 <small>CHF</small></div><p class=\"ds-hero-caption\">disponible à dépenser sur 5’000 CHF</p><p class=\"ds-hero-verdict\">Tu gardes une marge confortable</p><div class=\"ds-hero-segments\"><span class=\"ds-hero-spent\"></span><span class=\"ds-hero-engaged\"></span><span class=\"ds-hero-free\"></span></div></section>",
+      "css": ".ds-hero{position:relative;padding:24px 24px 20px;border-radius:32px;background:linear-gradient(145deg,var(--pulpe-hero-primary,#006e25),color-mix(in srgb,var(--pulpe-hero-primary,#006e25) 75%,black));color:var(--pulpe-hero-primary-text,#fff);box-shadow:0 3px 3px -2px rgb(0 0 0 / 20%),0 3px 4px rgb(0 0 0 / 14%),0 1px 8px rgb(0 0 0 / 12%);font-family:'DM Sans',sans-serif;transition:transform 220ms cubic-bezier(.2,0,0,1)}.ds-hero-action{position:absolute;inset:0;z-index:2;border:0;background:none;cursor:pointer}.ds-hero:hover{transform:scale(.99)}.ds-hero:has(.ds-hero-action:focus-visible){outline:3px solid var(--pulpe-hero-primary-text,#fff);outline-offset:3px;box-shadow:0 3px 3px -2px rgb(0 0 0 / 20%),0 3px 4px rgb(0 0 0 / 14%),0 1px 8px rgb(0 0 0 / 12%),0 0 0 6px color-mix(in srgb,var(--pulpe-hero-primary,#006e25) 60%,black)}.ds-hero-action:focus-visible{outline:none}.ds-hero:has(.ds-hero-action:active){transform:scale(.985)}.ds-hero-title{margin:0 0 24px;font:700 28px/1 Manrope,sans-serif;text-transform:capitalize}.ds-hero-amount{font:800 57px/1 Manrope,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.04em}.ds-hero-amount small{font-size:22px;font-weight:600;opacity:.8}.ds-hero-caption{margin:6px 0 24px;font-size:12px}.ds-hero-verdict{margin:0 0 12px;font-size:14px;font-weight:700}.ds-hero-segments{display:flex;height:14px;gap:3px}.ds-hero-segments span{min-width:3px;border-radius:9999px}.ds-hero-spent{flex:42;background:currentColor}.ds-hero-engaged{flex:23;background:color-mix(in srgb,currentColor 55%,var(--pulpe-hero-primary,#006e25))}.ds-hero-free{flex:35;box-shadow:inset 0 0 0 1.5px currentColor}"
     },
     {
       "name": "Navigation Rail Item",
       "kind": "nav",
-      "refersTo": "financial-pill",
       "description": "Item desktop compact, actif par capsule et libellé explicite.",
       "html": "<a class=\"ds-rail-item\" href=\"#\"><span><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 10.5 12 4l8 6.5V20H4Z\"/></svg></span><strong>Accueil</strong></a>",
-      "css": ".ds-rail-item{display:inline-flex;flex-direction:column;align-items:center;gap:5px;color:var(--mat-sys-on-surface,#181d17);font:500 12px/1.2 'DM Sans',sans-serif;text-decoration:none}.ds-rail-item span{width:64px;height:36px;display:grid;place-items:center;border-radius:9999px;background:var(--mat-sys-secondary-container,#c1eebe);color:var(--mat-sys-on-secondary-container,#113817);transition:transform 200ms,background 200ms}.ds-rail-item svg{width:24px;fill:currentColor}.ds-rail-item:hover span{transform:scale(1.05)}.ds-rail-item:focus-visible{outline:3px solid var(--mat-sys-primary,#006e25);outline-offset:4px;border-radius:8px}"
+      "css": ".ds-rail-item{display:inline-flex;flex-direction:column;align-items:center;gap:5px;color:var(--mat-sys-on-surface,#181d17);font:500 12px/1.2 'DM Sans',sans-serif;text-decoration:none}.ds-rail-item span{width:64px;height:36px;display:grid;place-items:center;border-radius:9999px;background:var(--mat-sys-secondary-container,#c1eebe);color:var(--mat-sys-on-secondary-container,#113817);transition:transform 200ms,background 200ms}.ds-rail-item svg{width:24px;fill:currentColor}.ds-rail-item:hover span{transform:scale(1.05)}.ds-rail-item:focus-visible{outline:2px solid var(--mat-sys-primary,#006e25);outline-offset:2px;border-radius:8px}.ds-rail-item:active span{transform:scale(.98)}"
     },
     {
       "name": "State Card",
@@ -351,23 +333,21 @@
       "refersTo": "content-card",
       "description": "État vide ou erreur guidé, centré sur une explication et une seule action.",
       "html": "<section class=\"ds-state\"><strong>Rien à pointer</strong><p>Tes prévisions sont à jour pour ce mois.</p><button>Voir le budget</button></section>",
-      "css": ".ds-state{max-width:520px;padding:32px;border:1px solid var(--mat-sys-outline-variant,#bfcaba);border-radius:16px;background:var(--mat-sys-surface,#f6fbf1);color:var(--mat-sys-on-surface,#181d17);text-align:center;font-family:'DM Sans',sans-serif}.ds-state strong{font:600 22px/1.25 Manrope,sans-serif}.ds-state p{margin:10px 0 22px;color:var(--mat-sys-on-surface-variant,#434841)}.ds-state button{min-height:44px;padding:0 20px;border:0;border-radius:9999px;background:var(--mat-sys-secondary-container,#c1eebe);color:var(--mat-sys-on-secondary-container,#113817);font-weight:600}.ds-state button:hover{filter:brightness(.97)}.ds-state button:focus-visible{outline:3px solid var(--mat-sys-primary,#006e25);outline-offset:3px}"
+      "css": ".ds-state{max-width:576px;padding:32px;border:1px solid var(--mat-sys-outline-variant,#bfcaba);border-radius:16px;background:var(--mat-sys-surface,#f6fbf1);color:var(--mat-sys-on-surface,#181d17);text-align:center;font-family:'DM Sans',sans-serif}.ds-state strong{font:600 22px/1.25 Manrope,sans-serif}.ds-state p{margin:10px 0 22px;color:var(--mat-sys-on-surface-variant,#3f493e)}.ds-state button{min-height:40px;padding:0 20px;border:0;border-radius:9999px;background:var(--mat-sys-secondary-container,#c1eebe);color:var(--mat-sys-on-secondary-container,#113817);font-weight:600}.ds-state button:hover{filter:brightness(.97)}.ds-state button:focus-visible{outline:2px solid var(--mat-sys-primary,#006e25);outline-offset:2px}.ds-state button:active{transform:scale(.98)}"
     },
     {
       "name": "Onboarding Progress",
       "kind": "custom",
-      "refersTo": "financial-pill",
       "description": "Progression centrée à trois étapes pour compte, sécurité et premier budget.",
-      "html": "<ol class=\"ds-journey\" aria-label=\"Création de ton espace : étape 2 sur 3\"><li class=\"done\"><span>✓</span><strong>Compte</strong></li><li class=\"current\"><span>2</span><strong>Sécurité</strong></li><li><span>3</span><strong>Budget</strong></li></ol>",
-      "css": ".ds-journey{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0;padding:0;list-style:none;font:600 12px/1.2 'DM Sans',sans-serif}.ds-journey li{position:relative;display:grid;justify-items:center;gap:8px;color:var(--mat-sys-on-surface-variant,#434841)}.ds-journey li:not(:last-child)::after{content:'';position:absolute;top:15px;left:calc(50% + 18px);right:calc(-50% + 18px);height:2px;background:var(--mat-sys-outline-variant,#bfcaba)}.ds-journey span{z-index:1;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:var(--mat-sys-surface-container-high,#e5eae0)}.ds-journey .done,.ds-journey .current{color:var(--mat-sys-primary,#006e25)}.ds-journey .done span{background:var(--mat-sys-primary-container,#99f89d)}.ds-journey .current span{background:var(--mat-sys-primary,#006e25);color:var(--mat-sys-on-primary,#fff)}.ds-journey .done::after{background:var(--mat-sys-primary,#006e25);transform-origin:left;animation:ds-progress 500ms cubic-bezier(.16,1,.3,1)}@keyframes ds-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}@media(prefers-reduced-motion:reduce){.ds-journey .done::after{animation:none}}"
+      "html": "<ol class=\"ds-journey\" aria-label=\"Création de ton espace : étape 2 sur 3\"><li class=\"ds-journey-done\"><span>✓</span><strong>Compte</strong></li><li class=\"ds-journey-current\"><span>2</span><strong>Sécurité</strong></li><li><span>3</span><strong>Budget</strong></li></ol>",
+      "css": ".ds-journey{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0;padding:0;list-style:none;font:600 12px/1.2 'DM Sans',sans-serif}.ds-journey li{position:relative;display:grid;justify-items:center;gap:8px;color:var(--mat-sys-on-surface-variant,#3f493e)}.ds-journey li:not(:last-child)::after{content:'';position:absolute;top:15px;left:calc(50% + 18px);right:calc(-50% + 18px);height:2px;background:var(--mat-sys-outline-variant,#bfcaba)}.ds-journey span{z-index:1;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:var(--mat-sys-surface-container-high,#e5eae0)}.ds-journey .ds-journey-done,.ds-journey .ds-journey-current{color:var(--mat-sys-primary,#006e25)}.ds-journey .ds-journey-done span{background:var(--mat-sys-primary-container,#99f89d)}.ds-journey .ds-journey-current span{background:var(--mat-sys-primary,#006e25);color:var(--mat-sys-on-primary,#fff)}.ds-journey .ds-journey-done::after{background:var(--mat-sys-primary,#006e25);transform-origin:left;animation:ds-progress 500ms cubic-bezier(.16,1,.3,1)}@keyframes ds-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}@media(prefers-reduced-motion:reduce){.ds-journey .ds-journey-done::after{animation:none}}"
     },
     {
       "name": "Dashboard Check-off Row",
       "kind": "custom",
-      "refersTo": "content-card",
       "description": "Ligne non cliquable dont le contrôle primaire isolé confirme une prévision.",
       "html": "<div class=\"ds-check-row\"><button aria-label=\"Pointer Loisirs\">○</button><strong>Loisirs</strong><span>↓ Dépense&nbsp;&nbsp;100 CHF</span></div>",
-      "css": ".ds-check-row{min-height:48px;display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:8px;padding:2px 12px;color:var(--mat-sys-on-surface,#181d17);font:500 14px/1.25 'DM Sans',sans-serif}.ds-check-row button{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:var(--mat-sys-primary,#006e25);font-size:27px;cursor:pointer}.ds-check-row button:hover{background:var(--mat-sys-primary-container,#99f89d)}.ds-check-row button:focus-visible{outline:3px solid color-mix(in srgb,var(--mat-sys-primary,#006e25) 35%,transparent)}.ds-check-row span{color:#b35800;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}"
+      "css": ".ds-check-row{min-height:48px;display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:8px;padding:2px 12px;color:var(--mat-sys-on-surface,#181d17);font:500 14px/1.25 'DM Sans',sans-serif}.ds-check-row button{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:var(--mat-sys-primary,#006e25);font-size:27px;cursor:pointer}.ds-check-row button:hover{background:var(--mat-sys-primary-container,#99f89d)}.ds-check-row button:focus-visible{outline:2px solid var(--mat-sys-primary,#006e25);outline-offset:2px}.ds-check-row button:active{transform:scale(.96)}.ds-check-row span{color:var(--pulpe-financial-expense,#af5600);font-weight:700;font-variant-numeric:tabular-nums;text-align:right}"
     }
   ],
   "narrative": {
@@ -403,7 +383,7 @@
       },
       {
         "name": "The Stable Amount Rule",
-        "body": "Tout montant utilise des chiffres tabulaires et conserve son unité à un niveau visuel secondaire.",
+        "body": "Tout montant utilise des chiffres tabulaires et conserve son unité à un niveau visuel secondaire. Une valeur qui explique un état monétaire affiche jusqu'aux centimes nécessaires : un reliquat ou un dépassement non nul ne devient jamais `0` par arrondi.",
         "section": "typography"
       },
       {
@@ -438,6 +418,7 @@
       "Do utiliser les mixins `mat.*-overrides()` pour adapter Material.",
       "Do respecter `prefers-reduced-motion` et conserver le contenu final visible sans animation.",
       "Do aligner les montants avec des chiffres tabulaires et des unités discrètes.",
+      "Do afficher la précision nécessaire pour que le montant et son état restent cohérents, jusqu'à deux décimales.",
       "Do garder les cartes d'entrée centrées et les marqueurs d'étapes alignés à toutes les largeurs.",
       "Do limiter le feedback interactif du dashboard au contrôle qui déclenche réellement l'action."
     ],
@@ -445,6 +426,7 @@
       "Don't utiliser `::ng-deep`, les anciens attributs `mat-flat-button` ou une surcharge CSS globale improvisée.",
       "Don't lire directement `--mat-sys-*` depuis une fonctionnalité lorsqu'un token `--pulpe-*` décrit le besoin.",
       "Don't appliquer du rouge à une dépense ou un dépassement local.",
+      "Don't afficher `0` pour un reliquat ou un dépassement non nul après arrondi.",
       "Don't ajouter une ombre à une surface qui peut être hiérarchisée par son ton.",
       "Don't recréer un chip, un état vide ou un bouton de chargement déjà présent dans `app/ui` ou `app/pattern`.",
       "Don't donner un hover de carte à une ligne de dashboard qui n'est pas elle-même cliquable.",

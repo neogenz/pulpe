@@ -82,6 +82,8 @@ test.describe('Budget Line Creation', () => {
     // Wait for the dialog to appear
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveClass(/\bmdc-dialog--open\b/);
+    await expect(dialog).not.toHaveClass(/mdc-dialog--opening/);
 
     // Fill form: name
     const nameInput = authenticatedPage.locator(
@@ -165,6 +167,8 @@ test.describe('Budget Line Creation', () => {
 
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveClass(/\bmdc-dialog--open\b/);
+    await expect(dialog).not.toHaveClass(/mdc-dialog--opening/);
 
     // Fill form
     await authenticatedPage
@@ -243,6 +247,8 @@ test.describe('Budget Line Creation', () => {
 
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveClass(/\bmdc-dialog--open\b/);
+    await expect(dialog).not.toHaveClass(/mdc-dialog--opening/);
 
     await authenticatedPage
       .locator('[data-testid="new-line-name"]')
@@ -308,6 +314,8 @@ test.describe('Budget Line Creation', () => {
     await authenticatedPage.getByTestId('budget-items-add-line-button').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveClass(/\bmdc-dialog--open\b/);
+    await expect(dialog).not.toHaveClass(/mdc-dialog--opening/);
 
     await authenticatedPage
       .locator('[data-testid="new-line-name"]')
@@ -363,6 +371,8 @@ test.describe('Budget Line Creation', () => {
     await authenticatedPage.getByTestId('budget-items-add-line-button').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveClass(/\bmdc-dialog--open\b/);
+    await expect(dialog).not.toHaveClass(/mdc-dialog--opening/);
 
     const submitButton = authenticatedPage.getByTestId('add-new-line');
 
@@ -443,6 +453,8 @@ test.describe('Budget Line Creation', () => {
     await authenticatedPage.getByTestId('budget-items-add-line-button').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveClass(/\bmdc-dialog--open\b/);
+    await expect(dialog).not.toHaveClass(/mdc-dialog--opening/);
 
     await authenticatedPage
       .locator('[data-testid="new-line-name"]')

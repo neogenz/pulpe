@@ -148,9 +148,9 @@ struct GoalTrajectorySection: View {
     static func gapCopy(for gap: Decimal, currency: SupportedCurrency) -> (lead: String, amount: String?) {
         // Le référent est dans le libellé : le hero juge la CIBLE, cette métrique
         // juge le PLAN. Sans le mot, les deux verdicts se lisaient comme un doublon.
-        if gap > 0 { return (AppLocale.string("En retard sur ton plan"), gap.asCompactCurrency(currency)) }
+        if gap > 0 { return (AppLocale.string("En retard sur ton plan"), gap.asAdaptiveCurrency(currency)) }
         if gap < 0 {
-            return (AppLocale.string("En avance sur ton plan"), gap.absoluteValue.asCompactCurrency(currency))
+            return (AppLocale.string("En avance sur ton plan"), gap.absoluteValue.asAdaptiveCurrency(currency))
         }
         return (AppLocale.string("Pile sur ton plan"), nil)
     }

@@ -38,7 +38,7 @@ extension HomeHeroCard {
                     ) {
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
                             Text("Prévu")
-                            Text(trajectory.plannedBalance.asCompactCurrency(currency))
+                            Text(trajectory.plannedBalance.asAdaptiveCurrency(currency))
                         }
                         .font(PulpeTypography.caption2)
                         .foregroundStyle(Color.homeHeroSupport)
@@ -80,7 +80,7 @@ extension HomeHeroCard {
                 // The subtraction, drawn: plan at the top of the stroke, forecast at the
                 // bottom of it. Saying "801 de moins" in words asks the reader to hold two
                 // numbers; this asks them to look at one distance.
-                if let current = trajectory.landing.last, trajectory.drift != 0 {
+                if let current = trajectory.landing.last, trajectory.drift.rounded(2) != 0 {
                     RuleMark(
                         x: .value("Aujourd’hui", current.day),
                         yStart: .value("Prévu", Self.decimalValue(trajectory.plannedBalance)),
@@ -165,19 +165,19 @@ extension HomeHeroCard {
     static func ruleLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> AnnotationPosition {
-        trajectory.drift > 0 ? .bottom : .top
+        trajectory.drift.rounded(2) > 0 ? .bottom : .top
     }
 
     static func gapLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> AnnotationPosition {
-        trajectory.drift > 0 ? .top : .bottom
+        trajectory.drift.rounded(2) > 0 ? .top : .bottom
     }
 
     /// A gap wide enough to be seen gets named; anything narrower would print a figure over
     /// its own rule, and the `vs prévu` metric above the plot already carries it.
     static func showsGapLabel(for trajectory: BudgetFormulas.BalanceTrajectory) -> Bool {
-        guard trajectory.drift != 0 else { return false }
+        guard trajectory.drift.rounded(2) != 0 else { return false }
         let gap = abs(decimalValue(trajectory.drift))
         return gap >= span(for: trajectory) * DesignTokens.Chart.gapLabelMinimumRatio
     }
@@ -187,7 +187,8 @@ extension HomeHeroCard {
         currency: SupportedCurrency
     ) -> String {
         guard showsGapLabel(for: trajectory) else { return AppLocale.string("Aujourd’hui") }
-        return trajectory.drift.asArithmeticSignedCompactCurrency(currency)
+        let drift = trajectory.drift.rounded(2)
+        return "\(drift > 0 ? "+" : "")\(drift.asAdaptiveCurrency(currency))"
     }
 
     /// Speaks the subtraction VoiceOver cannot see, in the drawing's own order: the plan the
@@ -203,14 +204,15 @@ extension HomeHeroCard {
         }
         // Three self-contained sentences joined by a space, never one template: each is
         // translated whole, and only the order they are spoken in is fixed here.
-        let plan = AppLocale.string("Prévu \(trajectory.plannedBalance.asCompactCurrency(currency)).")
+        let plan = AppLocale.string("Prévu \(trajectory.plannedBalance.asAdaptiveCurrency(currency)).")
         let estimate = AppLocale.string(
-            "Atterrissage estimé \(trajectory.estimatedBalance.asCompactCurrency(currency))."
+            "Atterrissage estimé \(trajectory.estimatedBalance.asAdaptiveCurrency(currency))."
         )
-        guard trajectory.drift != 0 else {
+        let roundedDrift = trajectory.drift.rounded(2)
+        guard roundedDrift != 0 else {
             return "\(plan) \(estimate) " + AppLocale.string("Aucun écart au plan.")
         }
-        let drift = trajectory.drift.asArithmeticSignedCompactCurrency(currency)
+        let drift = "\(roundedDrift > 0 ? "+" : "")\(roundedDrift.asAdaptiveCurrency(currency))"
         // A gap with no date is a period whose drift predates its own first reading — the
         // figure still holds, so the sentence drops the clause rather than the fact.
         guard let since = trajectory.driftDate else {
@@ -250,12 +252,12 @@ extension HomeHeroCard {
         // draw time, because pushing a label back inside a full frame lands it on the line.
         let planBand = span * DesignTokens.Chart.planLabelBandRatio
         let anchorBand = span * DesignTokens.Chart.anchorLabelBandRatio
-        let above = trajectory.drift > 0 ? anchorBand : planBand
-        let below = trajectory.drift > 0 ? planBand : anchorBand
+        let above = trajectory.drift.rounded(2) > 0 ? anchorBand : planBand
+        let below = trajectory.drift.rounded(2) > 0 ? planBand : anchorBand
         return (lower - slack - padding - below) ... (upper + slack + padding + above)
     }
 
     private static func decimalValue(_ value: Decimal) -> Double {
-        Double(truncating: value as NSDecimalNumber)
+        Double(truncating: value.rounded(2) as NSDecimalNumber)
     }
 }

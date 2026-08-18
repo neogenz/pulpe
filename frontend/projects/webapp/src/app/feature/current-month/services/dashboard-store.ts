@@ -27,6 +27,7 @@ import {
   getBudgetPeriodDates,
   getBudgetPeriodForDate,
   isOutflowKind,
+  moneyDifference,
 } from 'pulpe-shared';
 import { isApiError } from '@core/api/api-error';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
@@ -367,9 +368,9 @@ export class DashboardStore {
     // answer, and the common one. Said out loud, never folded into a
     // "cannot tell yet".
     const unplanned = this.#unplannedSpending();
-    if (unplanned === 0) return 'within-plan';
+    if (moneyDifference(unplanned, 0) === 0) return 'within-plan';
     const margin = this.#plannedMargin();
-    if (margin <= 0) return 'tight';
+    if (moneyDifference(margin, 0) <= 0) return 'tight';
     const share = Math.round(Math.min(100, (unplanned / margin) * 100));
     const elapsed = this.timeElapsedPercentage();
     const tolerance =
@@ -384,7 +385,7 @@ export class DashboardStore {
   // asking for more than the month brings is a planning problem with nothing
   // gone wrong yet, and only the other one is real overspending.
   readonly isPlanBeyondAvailable = computed<boolean>(
-    () => this.#plannedMargin() < 0,
+    () => moneyDifference(this.#plannedMargin(), 0) < 0,
   );
 
   // Whether the month has anything in its ledger at all — not whether anything

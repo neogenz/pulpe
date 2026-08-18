@@ -169,6 +169,20 @@ describe('BudgetFormulas', () => {
       expect(BudgetFormulas.calculateEndingBalance(1000, 0)).toBe(1000);
       expect(BudgetFormulas.calculateEndingBalance(0, 1000)).toBe(-1000);
     });
+
+    it.each([
+      [58.5, 58.5, 0],
+      [58.5, 58.504, 0],
+      [58.5, 58.51, -0.01],
+      [58.5, 58.55, -0.05],
+    ])(
+      'compares %s and %s at cent precision',
+      (available, expenses, expected) => {
+        expect(BudgetFormulas.calculateEndingBalance(available, expenses)).toBe(
+          expected,
+        );
+      },
+    );
   });
 
   describe('calculateRemaining', () => {

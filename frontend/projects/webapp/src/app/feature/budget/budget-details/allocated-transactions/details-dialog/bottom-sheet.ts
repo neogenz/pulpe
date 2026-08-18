@@ -17,6 +17,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Router } from '@angular/router';
+import { calculateBudgetLineConsumption } from '@core/budget/budget-line-consumption';
 import { ROUTES } from '@core/routing';
 import { type Transaction } from 'pulpe-shared';
 import {
@@ -34,6 +35,7 @@ import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
 import { TagIndicator } from '@ui/tag-indicator';
 import { CheckRewardDirective } from '@ui/check-reward';
 import { BudgetDetailsStore } from '../../store/budget-details-store';
+import { consumptionProgressMessage } from '../../view-models/budget-item-constants';
 import type {
   AllocatedTransactionsDialogData,
   AllocatedTransactionsDialogResult,
@@ -113,7 +115,7 @@ import type {
             [class.text-financial-expense]="data.budgetLine.kind === 'expense'"
             [class.text-financial-savings]="data.budgetLine.kind === 'saving'"
           >
-            {{ consumption().consumed | appCurrency: currency() : '1.0-0' }}
+            {{ consumption().consumed | appCurrency: currency() : '1.0-2' }}
           </div>
         </div>
         <!-- Prévu -->
@@ -141,21 +143,36 @@ import type {
             [class.text-error]="consumption().remaining < 0"
             [class.text-financial-income]="consumption().remaining >= 0"
           >
-            {{ consumption().remaining | appCurrency: currency() : '1.0-0' }}
+            {{ consumption().remaining | appCurrency: currency() : '1.0-2' }}
           </div>
         </div>
       </div>
 
       <!-- Progress bar -->
       <div>
+        @let progress = progressMessage();
         <mat-progress-bar
           mode="determinate"
           [value]="consumptionPercentage()"
-          [class.warn-bar]="consumptionPercentage() > 100"
+          [class.warn-bar]="progress.key === 'budgetLine.exceededBy'"
         />
         <div class="text-label-small text-on-surface-variant text-center mt-1">
-          {{ consumptionPercentage() | number: '1.0-0'
-          }}{{ 'budgetLine.consumed' | transloco }}
+          @if (progress.key === 'budgetLine.exceededBy') {
+            <span class="text-financial-over-budget">
+              {{
+                progress.key
+                  | transloco
+                    : {
+                        amount:
+                          (progress.params.amount
+                          | appCurrency: currency() : '1.0-2'),
+                      }
+              }}
+            </span>
+          } @else {
+            {{ consumptionPercentage() | number: '1.0-0'
+            }}{{ 'budgetLine.consumed' | transloco }}
+          }
         </div>
       </div>
 
@@ -327,16 +344,9 @@ export class AllocatedTransactionsBottomSheet {
     return this.#tagStore.resolveNames(tagIds);
   }
 
-  protected readonly consumption = computed(() => {
-    const consumed = this.transactions().reduce(
-      (sum, tx) => sum + tx.amount,
-      0,
-    );
-    return {
-      consumed,
-      remaining: this.data.budgetLine.amount - consumed,
-    };
-  });
+  protected readonly consumption = computed(() =>
+    calculateBudgetLineConsumption(this.data.budgetLine, this.transactions()),
+  );
 
   // PUL-17 — spread occurrences/tracker derived once in the store (single source
   // for every detail surface); thin aliases for the template. The caller
@@ -351,6 +361,14 @@ export class AllocatedTransactionsBottomSheet {
           (this.consumption().consumed / this.data.budgetLine.amount) * 100,
         )
       : 0,
+  );
+
+  protected readonly progressMessage = computed(() =>
+    consumptionProgressMessage(
+      this.data.budgetLine.amount,
+      this.consumption().consumed,
+      this.consumptionPercentage(),
+    ),
   );
 
   // PUL-12 — the savings goal this envelope is linked to, resolved from the

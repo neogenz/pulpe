@@ -247,12 +247,10 @@ struct BudgetLineRow: View {
     }
 
     private var remainingAmountText: String {
-        // Income & savings: show planned amount with sign (+/-)
-        guard line.kind == .expense else {
-            return line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency)
-        }
-        // Expenses: always show with - sign (money going out)
-        return consumption.available.asSignedAmount(for: line.kind, in: userSettingsStore.currency)
+        let amount = (line.kind == .expense ? consumption.available : line.amount).rounded(2)
+        guard amount != 0 else { return amount.asAdaptiveAmount(for: userSettingsStore.currency) }
+        let sign = line.kind == .income ? "+" : "-"
+        return "\(sign)\(amount.absoluteValue.asAdaptiveAmount(for: userSettingsStore.currency))"
     }
 
     private var linkedTransactions: [Transaction] {
@@ -265,9 +263,10 @@ struct BudgetLineRow: View {
         consumption: BudgetFormulas.Consumption,
         currency: SupportedCurrency
     ) -> String {
-        let spent = consumption.allocated.asCurrency(currency)
-        if consumption.available < 0 {
-            let overrun = (-consumption.available).asCompactCurrency(currency)
+        let spent = consumption.allocated.rounded(2).asAdaptiveCurrency(currency)
+        let available = consumption.available.rounded(2)
+        if available < 0 {
+            let overrun = (-available).asAdaptiveCurrency(currency)
             return AppLocale.string("\(spent) dépensés · Dépassé de \(overrun)")
         }
         return AppLocale.string("\(spent) dépensés · \(Int(consumption.percentage.rounded()))% utilisé")

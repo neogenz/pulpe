@@ -19,6 +19,7 @@
  */
 
 import type { TransactionKind } from '../types.js';
+import { moneyDifference } from '../money.js';
 
 /**
  * Interface d'abstraction pour les entités financières
@@ -333,7 +334,7 @@ export class BudgetFormulas {
     available: number,
     totalExpenses: number,
   ): number {
-    return available - totalExpenses;
+    return moneyDifference(available, totalExpenses);
   }
 
   /**

@@ -2,6 +2,7 @@ import { Service, computed, inject, signal } from '@angular/core';
 import {
   allocateMonthAmountToLines,
   isContributivePlanMonth,
+  moneyDifference,
   redistributeRemainingEffort,
   simulateSavingsPlan,
   type RedistributeRemainingEffortResult,
@@ -93,7 +94,7 @@ export class GoalPlanSimulatorStore {
   /** Slider anchor (ancrage DA) — the amount that holds the deadline. */
   readonly defaultMonthlyAmount = computed(() => {
     const progress = this.#store.progress();
-    return Math.round(progress?.required ?? progress?.pace ?? 0);
+    return moneyDifference(progress?.required ?? progress?.pace ?? 0, 0);
   });
 
   /** `niceCeil(2 × max(required, pace, plannedAmount))` — docs/SAVINGS.md §10.3. */
@@ -117,7 +118,7 @@ export class GoalPlanSimulatorStore {
       isContributivePlanMonth(month),
     );
     return firstOpen
-      ? Math.round(firstOpen.plannedAmount)
+      ? moneyDifference(firstOpen.plannedAmount, 0)
       : this.defaultMonthlyAmount();
   });
 

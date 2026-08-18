@@ -34,7 +34,6 @@ export { splitTotalPreserving } from './spread-split.js';
 export {
   PACE_TOLERANCE_PERCENT,
   MAX_ESTIMATED_HORIZON_MONTHS,
-  WITHDRAWAL_BALANCE_TOLERANCE,
   calculatePaceStatus,
   computeSavingsGoalProgress,
   remainingPlannedWithdrawal,

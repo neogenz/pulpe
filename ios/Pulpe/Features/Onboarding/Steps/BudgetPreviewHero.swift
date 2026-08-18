@@ -53,13 +53,13 @@ struct BudgetPreviewHero: View {
     /// Animated hero amount — reads `displayAmount` so the digits roll from
     /// zero to the target via `.contentTransition(.numericText())`.
     private var heroAmountText: String {
-        displayAmount.magnitude.asCompactCurrency(state.currency)
+        displayAmount.rounded(2).magnitude.asAdaptiveCurrency(state.currency)
     }
 
     /// Final amount used for VoiceOver so it doesn't read every frame of the
     /// count-up animation.
     private var finalHeroAmountText: String {
-        state.availableToSpend.magnitude.asCompactCurrency(state.currency)
+        state.availableToSpend.rounded(2).magnitude.asAdaptiveCurrency(state.currency)
     }
 
     var body: some View {
@@ -105,10 +105,10 @@ struct BudgetPreviewHero: View {
     /// "extract actions and side effects out of `body`".
     private func startCountUp() {
         if reduceMotion {
-            displayAmount = state.availableToSpend
+            displayAmount = state.availableToSpend.rounded(2)
         } else {
             withAnimation(.smooth(duration: 0.7)) {
-                displayAmount = state.availableToSpend
+                displayAmount = state.availableToSpend.rounded(2)
             }
         }
     }

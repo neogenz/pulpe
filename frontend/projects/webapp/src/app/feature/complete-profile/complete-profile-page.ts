@@ -39,6 +39,7 @@ import {
   CURRENCY_METADATA,
   PAY_DAY_MAX,
   SUPPORTED_CURRENCIES,
+  moneyDifference,
   type SupportedCurrency,
 } from 'pulpe-shared';
 
@@ -981,7 +982,7 @@ export default class CompleteProfilePage {
   protected formatAmount(value: number): string {
     if (!Number.isFinite(value)) return '0';
     const locale = CURRENCY_CONFIG[this.selectedCurrency()].numberLocale;
-    return value.toLocaleString(locale, { maximumFractionDigits: 0 });
+    return value.toLocaleString(locale, { maximumFractionDigits: 2 });
   }
 
   protected labelKeyForType(type: 'income' | 'expense' | 'saving'): string {
@@ -996,7 +997,7 @@ export default class CompleteProfilePage {
   protected readonly liveBudgetAnnouncement = computed(() => {
     const { available } = this.store.budgetSummary();
     const amount = this.formatAmount(Math.abs(available));
-    return available < 0
+    return moneyDifference(available, 0) < 0
       ? this.#transloco.translate(
           'completeProfile.summary.liveDeficitAnnouncement',
           { amount, currency: this.selectedCurrency() },
@@ -1048,7 +1049,7 @@ export default class CompleteProfilePage {
   });
 
   protected readonly hasAvailableSurplus = computed(
-    () => this.store.budgetSummary().available >= 0,
+    () => moneyDifference(this.store.budgetSummary().available, 0) >= 0,
   );
 
   protected readonly currencySymbol = computed(

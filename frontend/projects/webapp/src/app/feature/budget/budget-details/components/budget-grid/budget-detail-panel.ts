@@ -38,6 +38,7 @@ import { TagIndicator } from '@ui/tag-indicator';
 import { CheckRewardDirective } from '@ui/check-reward';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { createBudgetLineTableItem } from '../../view-models/budget-item-data-builder';
+import { consumptionProgressMessage } from '../../view-models/budget-item-constants';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
 import { BudgetDetailsStore } from '../../store/budget-details-store';
@@ -351,7 +352,7 @@ const DETAIL_SEGMENT_COUNT = 12;
             <div class="ph-no-capture text-title-medium font-semibold">
               {{
                 envelope.consumption?.consumed ?? 0
-                  | appCurrency: currency() : '1.0-0'
+                  | appCurrency: currency() : '1.0-2'
               }}
             </div>
           </div>
@@ -373,7 +374,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                 envelope.consumption?.consumptionState === 'over-budget'
               "
             >
-              {{ remaining | appCurrency: currency() : '1.0-0' }}
+              {{ remaining | appCurrency: currency() : '1.0-2' }}
             </div>
           </div>
         </div>
@@ -381,6 +382,12 @@ const DETAIL_SEGMENT_COUNT = 12;
         <!-- Progress Bar (12 segments for more detail) -->
         @let consumption = envelope.consumption;
         @if (consumption && consumption.hasTransactions) {
+          @let progressMessage =
+            consumptionProgressMessage(
+              envelope.data.amount,
+              consumption.consumed,
+              consumption.percentage
+            );
           <pulpe-segmented-budget-progress
             [percentage]="consumption.percentage"
             [segmentCount]="detailSegmentCount"
@@ -389,15 +396,15 @@ const DETAIL_SEGMENT_COUNT = 12;
             class="mb-2"
           />
           <div class="text-center text-label-medium">
-            @if (consumption.consumptionState === 'over-budget') {
+            @if (progressMessage.key === 'budgetLine.exceededBy') {
               <span class="ph-no-capture text-financial-over-budget">
                 {{
-                  'budgetLine.exceededBy'
+                  progressMessage.key
                     | transloco
                       : {
                           amount:
-                            (consumption.consumed - envelope.data.amount
-                            | appCurrency: currency() : '1.0-0'),
+                            (progressMessage.params.amount
+                            | appCurrency: currency() : '1.0-2'),
                         }
                 }}
               </span>
@@ -625,6 +632,7 @@ const DETAIL_SEGMENT_COUNT = 12;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetDetailPanel {
+  protected readonly consumptionProgressMessage = consumptionProgressMessage;
   readonly #dialogRef = inject(MatDialogRef<BudgetDetailPanel>);
   readonly #router = inject(Router);
   readonly #store = inject(BudgetDetailsStore);

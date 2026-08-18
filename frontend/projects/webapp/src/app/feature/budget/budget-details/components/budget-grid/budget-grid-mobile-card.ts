@@ -133,7 +133,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
               item().consumption!.consumptionState === 'over-budget'
             "
           >
-            {{ remaining | appCurrency: currency() : '1.0-0' }}
+            {{ remaining | appCurrency: currency() : '1.0-2' }}
           </div>
           <span class="text-label-small text-on-surface-variant">{{
             'budgetLine.available.' + item().data.kind | transloco
@@ -234,7 +234,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
               >
                 {{
                   item().consumption!.consumed
-                    | appCurrency: currency() : '1.0-0'
+                    | appCurrency: currency() : '1.0-2'
                 }}
                 {{ 'budgetLine.spent.' + item().data.kind | transloco }}
               </span>
@@ -246,7 +246,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
                         : {
                             amount:
                               (progressMessage.params.amount
-                              | appCurrency: currency() : '1.0-0'),
+                              | appCurrency: currency() : '1.0-2'),
                           }
                   }}</span>
                 } @else if (

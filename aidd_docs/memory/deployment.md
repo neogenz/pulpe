@@ -3,6 +3,7 @@
 ## Pipeline
 
 - Complete CI validates PRs to `preview`; no complete matrix runs on protected-branch pushes. Vercel/Railway Git integrations deploy the merged commits, and Railway preview success emits the `deployment_status` that starts the exact staging proof. An authorized early merge makes the proof wait at most 30 minutes for that same canonical CI run; timeout, failure, unknown state, API error, or a moved `preview` fails closed.
+- Rerun a staging proof after a transient provider or GitHub failure only while `preview` still points to the candidate SHA and the exact canonical CI evidence artifact remains unexpired; never certify a historical SHA after `preview` moves.
 
 ## Environments
 

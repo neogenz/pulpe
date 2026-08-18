@@ -4,9 +4,11 @@ import { DashboardHero } from './dashboard-hero';
 import { setTestInput } from '@app/testing/signal-test-utils';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
+import localeFR from '@angular/common/locales/fr';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 registerLocaleData(localeDE);
+registerLocaleData(localeFR);
 
 describe('DashboardHero', () => {
   let component: DashboardHero;
@@ -105,6 +107,51 @@ describe('DashboardHero', () => {
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('.segment-free'),
     ).toBeNull();
+  });
+
+  it('should ignore a sub-cent residual when choosing the hero state', () => {
+    setTestInput(component.available, 1000);
+    setTestInput(component.remaining, -9e-13);
+    fixture.detectChanges();
+
+    expect(component.isPlanOverAvailable()).toBe(false);
+    expect(component.isOverBudget()).toBe(false);
+    expect(component.isWarning()).toBe(false);
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="hero-remaining-amount"]',
+      ).textContent,
+    ).toContain('0');
+  });
+
+  it('should show a real cent-level CHF deficit', () => {
+    setTestInput(component.available, 1000);
+    setTestInput(component.remaining, -0.05);
+    setTestInput(component.paceStatus, 'within-plan');
+    fixture.detectChanges();
+
+    expect(component.isPlanOverAvailable()).toBe(true);
+    expect(component.isWarning()).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="hero-remaining-amount"]',
+      ).textContent,
+    ).toContain('0.05');
+  });
+
+  it('should localize a one-cent EUR deficit with a comma', () => {
+    setTestInput(component.currency, 'EUR');
+    setTestInput(component.locale, 'fr-FR');
+    setTestInput(component.available, 1000);
+    setTestInput(component.remaining, -0.01);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="hero-remaining-amount"]',
+      ).textContent,
+    ).toContain('0,01');
+    expect(fixture.nativeElement.textContent).toContain('€');
   });
 
   it('should call the month over budget once more has gone out than came in', () => {

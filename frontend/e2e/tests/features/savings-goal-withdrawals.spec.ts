@@ -193,6 +193,40 @@ async function installGoalWorld(
         }),
       );
     }
+    if (
+      path.endsWith('/budget-lines/savings-withdrawal') &&
+      method === 'POST'
+    ) {
+      const payload = request.postDataJSON() as {
+        amount: number;
+        groupId: string;
+      };
+      return json({
+        success: true,
+        data: {
+          groupId: payload.groupId,
+          incomeLine: createBudgetLineMock(
+            TEST_UUIDS.LINE_2,
+            CURRENT_BUDGET.id,
+            {
+              amount: payload.amount,
+              kind: 'income',
+              savingsWithdrawalGroupId: payload.groupId,
+            },
+          ),
+          savingLine: createBudgetLineMock(
+            TEST_UUIDS.LINE_3,
+            TEST_UUIDS.BUDGET_2,
+            {
+              amount: payload.amount,
+              kind: 'saving',
+              savingsWithdrawalGroupId: payload.groupId,
+            },
+          ),
+          createdBudget: null,
+        },
+      });
+    }
     if (path.endsWith('/transactions') && method === 'POST') {
       const payload = request.postDataJSON() as {
         amount: number;
@@ -353,6 +387,51 @@ test.describe('Savings goal as the source of an income', () => {
       currentMonthPage.withdrawalInsufficientWarning(),
     ).toBeVisible();
     await expect(currentMonthPage.submitButton()).toBeDisabled();
+  });
+
+  test('a small deficit keeps the displayed, prefilled and submitted amount aligned', async ({
+    authenticatedPage,
+    budgetDetailsPage,
+  }) => {
+    await installGoalWorld(authenticatedPage, {
+      transactions: [
+        createTransactionMock(TEST_UUIDS.TRANSACTION_2, CURRENT_BUDGET.id, {
+          name: 'Dépense libre',
+          amount: 5000.3,
+          kind: 'expense',
+          budgetLineId: null,
+          transactionDate: new Date().toISOString(),
+        }),
+      ],
+    });
+
+    await budgetDetailsPage.goto(CURRENT_BUDGET.id);
+    const recoveryAction = authenticatedPage.getByTestId(
+      'financial-overview-cover-with-savings',
+    );
+    await expect(
+      recoveryAction.locator('xpath=ancestor::section'),
+    ).toContainText('0.3 CHF');
+    await recoveryAction.click();
+
+    const dialog = authenticatedPage.getByTestId('savings-withdrawal-dialog');
+    const deficitChip = dialog.getByTestId('withdrawal-deficit-chip');
+    await expect(deficitChip).toContainText('0.3 CHF');
+    await deficitChip.click();
+    await expect(dialog.getByTestId('amount-input-value')).toHaveValue('0.3');
+    await dialog.getByTestId('withdrawal-continue').click();
+    await expect(dialog.getByTestId('withdrawal-step-preview')).toContainText(
+      '0.30 CHF',
+    );
+
+    const submitted = authenticatedPage.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        request.url().endsWith('/budget-lines/savings-withdrawal'),
+    );
+    await dialog.getByTestId('withdrawal-confirm').click();
+
+    expect((await submitted).postDataJSON()).toMatchObject({ amount: 0.3 });
   });
 
   test('a goal emptied to the last franc is no longer offered', async ({
@@ -928,25 +1007,35 @@ test.describe('Announcing a withdrawal, then realizing it', () => {
     await expect(savingsGoalsPage.plannedWithdrawalRows()).toHaveCount(0);
   });
 
-  test('a real income over the balance is refused with the entry left intact', async ({
+  test('a real income one cent over the balance keeps display, input and payload aligned', async ({
     authenticatedPage,
     budgetDetailsPage,
   }) => {
     const world = await installPlannedGoalWorld(authenticatedPage, {
+      stock: 499.99,
       line: announcedLine(),
     });
 
     await budgetDetailsPage.goto(CURRENT_BUDGET.id);
     await budgetDetailsPage.realizeWithdrawal(TEST_UUIDS.LINE_2);
     const amountInput = realizationAmountInput(authenticatedPage);
-    await amountInput.fill('4000');
+    const context = authenticatedPage.getByTestId('realize-withdrawal-context');
+    await expect(context).toContainText('499.99 CHF');
+    await expect(context).toContainText('500 CHF');
+    await expect(amountInput).toHaveValue('500');
+    const submitted = authenticatedPage.waitForRequest(
+      (request) =>
+        request.method() === 'POST' && request.url().endsWith('/transactions'),
+    );
     await authenticatedPage.getByTestId('save-transaction').click();
+
+    expect((await submitted).postDataJSON()).toMatchObject({ amount: 500 });
 
     await expect(
       authenticatedPage.getByTestId('transaction-submit-error'),
     ).toBeVisible();
     // La saisie reste à l'écran : le refus porte justement sur ce montant.
-    await expect(amountInput).toHaveValue('4000');
+    await expect(amountInput).toHaveValue('500');
     expect(world.realized).toHaveLength(0);
   });
 

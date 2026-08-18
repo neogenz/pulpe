@@ -75,5 +75,19 @@ describe('SavingsGoalFormDialog', () => {
         payDayOfMonth: null,
       }),
     );
+
+    change('savings-goal-initial-amount', '1199.999');
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="savings-goal-decompose-toggle"]',
+      ),
+    ).toBeNull();
+
+    change('savings-goal-initial-amount', '1199.99');
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="savings-goal-decompose-toggle"]',
+      ),
+    ).not.toBeNull();
   });
 });

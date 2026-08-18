@@ -312,7 +312,7 @@ struct SavingsGoalDetailView: View {
         let changes = recoveryChanges(progress)
         let added = changes.reduce(Decimal.zero) { $0 + $1.simulatedAmount }
         return AppLocale.string(
-            "Projection après création : \((progress.displayedProjection + added).asCompactCurrency(currency))"
+            "Projection après création : \((progress.displayedProjection + added).asAdaptiveCurrency(currency))"
         )
     }
 }

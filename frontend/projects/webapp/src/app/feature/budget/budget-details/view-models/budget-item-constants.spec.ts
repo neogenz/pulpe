@@ -56,16 +56,34 @@ describe('consumptionProgressMessage', () => {
   });
 
   it('detects an overflow hidden by a rounded percentage', () => {
-    expect(consumptionProgressMessage(1000, 1001, 100)).toEqual({
+    const planned = 58.5;
+    const consumed = 58.55;
+    const percentage = calculatePercentage(planned, consumed);
+    const message = consumptionProgressMessage(planned, consumed, percentage);
+
+    expect(percentage).toBe(100);
+    expect(message.key).toBe('budgetLine.exceededBy');
+    if (message.key !== 'budgetLine.exceededBy') {
+      throw new Error('Expected the exact amounts to produce an overage');
+    }
+    expect(message.params.amount).toBe(0.05);
+  });
+
+  it('ignores float dust but preserves a real cent', () => {
+    expect(consumptionProgressMessage(0.3, 0.1 + 0.2, 100)).toEqual({
+      key: 'budgetLine.usedPercent',
+      params: { percent: 100 },
+    });
+    expect(consumptionProgressMessage(58.5, 58.51, 100)).toEqual({
       key: 'budgetLine.exceededBy',
-      params: { amount: 1 },
+      params: { amount: 0.01 },
     });
   });
 });
 
 describe('getBudgetConsumptionState', () => {
   it('returns no-transactions when hasTransactions is false', () => {
-    expect(getBudgetConsumptionState(50, false, 'expense')).toBe(
+    expect(getBudgetConsumptionState(50, false, 'expense', false)).toBe(
       'no-transactions',
     );
   });
@@ -73,28 +91,35 @@ describe('getBudgetConsumptionState', () => {
   describe('expense lines', () => {
     it('returns healthy below near-limit threshold', () => {
       expect(
-        getBudgetConsumptionState(NEAR_LIMIT_THRESHOLD - 1, true, 'expense'),
+        getBudgetConsumptionState(
+          NEAR_LIMIT_THRESHOLD - 1,
+          true,
+          'expense',
+          false,
+        ),
       ).toBe('healthy');
     });
 
     it('returns near-limit at threshold', () => {
       expect(
-        getBudgetConsumptionState(NEAR_LIMIT_THRESHOLD, true, 'expense'),
+        getBudgetConsumptionState(NEAR_LIMIT_THRESHOLD, true, 'expense', false),
       ).toBe('near-limit');
     });
 
     it('returns near-limit between threshold and 100', () => {
-      expect(getBudgetConsumptionState(99, true, 'expense')).toBe('near-limit');
-    });
-
-    it('returns near-limit at exactly 100', () => {
-      expect(getBudgetConsumptionState(100, true, 'expense')).toBe(
+      expect(getBudgetConsumptionState(99, true, 'expense', false)).toBe(
         'near-limit',
       );
     });
 
-    it('returns over-budget above 100', () => {
-      expect(getBudgetConsumptionState(101, true, 'expense')).toBe(
+    it('returns near-limit at exactly 100', () => {
+      expect(getBudgetConsumptionState(100, true, 'expense', false)).toBe(
+        'near-limit',
+      );
+    });
+
+    it('returns over-budget when the exact amounts exceed the forecast', () => {
+      expect(getBudgetConsumptionState(100, true, 'expense', true)).toBe(
         'over-budget',
       );
     });
@@ -102,15 +127,21 @@ describe('getBudgetConsumptionState', () => {
 
   describe('non-expense lines (income, saving)', () => {
     it('returns healthy for income regardless of percentage', () => {
-      expect(getBudgetConsumptionState(200, true, 'income')).toBe('healthy');
+      expect(getBudgetConsumptionState(200, true, 'income', true)).toBe(
+        'healthy',
+      );
     });
 
     it('returns healthy for saving regardless of percentage', () => {
-      expect(getBudgetConsumptionState(150, true, 'saving')).toBe('healthy');
+      expect(getBudgetConsumptionState(150, true, 'saving', true)).toBe(
+        'healthy',
+      );
     });
 
     it('returns healthy for income at 0%', () => {
-      expect(getBudgetConsumptionState(0, true, 'income')).toBe('healthy');
+      expect(getBudgetConsumptionState(0, true, 'income', false)).toBe(
+        'healthy',
+      );
     });
   });
 });

@@ -243,7 +243,7 @@ private extension GoalPlanApplyRecapSheet {
                 .monospacedDigit()
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(AppLocale.string("""
-                    De \(before.asCurrency(currency)) à \(after.asCurrency(currency)) \
+                    De \(before.asAdaptiveCurrency(currency)) à \(after.asAdaptiveCurrency(currency)) \
                     par mois sur \(changes.count) mois
                     """))
                 .sensitiveAmount()
@@ -288,13 +288,13 @@ private extension GoalPlanApplyRecapSheet {
     }
 
     private func uniformBeforeAmount(_ before: Decimal) -> some View {
-        Text(before.asCompactCurrency(currency))
+        Text(before.asAdaptiveCurrency(currency))
             .foregroundStyle(Color.textTertiary)
             .strikethrough(true, color: Color.textTertiary)
     }
 
     private func uniformAfterAmount(_ after: Decimal) -> some View {
-        Text(after.asCompactCurrency(currency))
+        Text(after.asAdaptiveCurrency(currency))
             .foregroundStyle(Color.financialSavings)
     }
 
@@ -331,9 +331,9 @@ private extension GoalPlanApplyRecapSheet {
         _ simMonth: SavingsPlanCalculator.SimulatedMonth
     ) -> String {
         let period = "\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year)"
-        let after = simMonth.simulatedAmount.asCompactCurrency(currency)
+        let after = simMonth.simulatedAmount.asAdaptiveCurrency(currency)
         guard mode == .adjustment else { return AppLocale.string("\(period), \(after)") }
-        let before = SavingsPlanCalculator.currentPlanMovement(simMonth.month).asCompactCurrency(currency)
+        let before = SavingsPlanCalculator.currentPlanMovement(simMonth.month).asAdaptiveCurrency(currency)
         return AppLocale.string("\(period), de \(before) à \(after)")
     }
 
@@ -366,13 +366,13 @@ private extension GoalPlanApplyRecapSheet {
     }
 
     private func diffRowBeforeAmount(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
-        Text(SavingsPlanCalculator.currentPlanMovement(simMonth.month).asCompactCurrency(currency))
+        Text(SavingsPlanCalculator.currentPlanMovement(simMonth.month).asAdaptiveCurrency(currency))
             .foregroundStyle(Color.textTertiary)
             .strikethrough(true, color: Color.textTertiary)
     }
 
     private func diffRowAfterAmount(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
-        Text(simMonth.simulatedAmount.asCompactCurrency(currency))
+        Text(simMonth.simulatedAmount.asAdaptiveCurrency(currency))
             .foregroundStyle(Color.financialSavings)
     }
 
@@ -565,7 +565,7 @@ private extension GoalPlanApplyRecapSheet {
     }
 
     private func signedCurrency(_ amount: Decimal) -> String {
-        let formatted = amount.asCompactCurrency(currency)
+        let formatted = amount.asAdaptiveCurrency(currency)
         return amount > 0 ? "+\(formatted)" : formatted
     }
 

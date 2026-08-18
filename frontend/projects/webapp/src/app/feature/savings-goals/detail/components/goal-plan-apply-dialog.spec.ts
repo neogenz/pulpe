@@ -41,7 +41,7 @@ describe('GoalPlanApplyDialog', () => {
       currency: 'CHF',
       locale: 'fr-CH',
       payDayOfMonth: 25,
-      verdict: 'Projection après création : 1’375 CHF',
+      verdict: 'Projection après création : 1’375.35 CHF',
     });
 
     const verdict = query(fixture, 'goal-plan-apply-verdict').query(
@@ -78,7 +78,7 @@ describe('GoalPlanApplyDialog', () => {
       currency: 'CHF',
       locale: 'fr-CH',
       payDayOfMonth: 25,
-      verdict: 'Projection après création : 1’375 CHF',
+      verdict: 'Projection après création : 1’375.35 CHF',
     });
 
     query(fixture, 'goal-plan-apply-confirm').nativeElement.click();
@@ -141,12 +141,12 @@ describe('GoalPlanApplyDialog', () => {
 
     const row = query(fixture, 'goal-plan-withdrawal-breakdown');
     expect(row.nativeElement.textContent).toContain('Épargne prévue conservée');
-    expect(row.nativeElement.textContent).toContain('+200.00 CHF');
+    expect(row.nativeElement.textContent).toContain('+200 CHF');
     expect(row.nativeElement.textContent).toContain('Retrait planifié');
-    expect(row.nativeElement.textContent).toContain('-500.00 CHF');
+    expect(row.nativeElement.textContent).toContain('-500 CHF');
     expect(row.nativeElement.textContent).toContain('Effet net ce mois');
-    expect(row.nativeElement.textContent).toContain('-300.00 CHF');
-    expect(row.nativeElement.textContent).not.toContain('200.00 CHF →');
+    expect(row.nativeElement.textContent).toContain('-300 CHF');
+    expect(row.nativeElement.textContent).not.toContain('200 CHF →');
     expect(
       query(fixture, 'goal-plan-apply-confirm').nativeElement.textContent,
     ).toContain('Planifier le retrait');
@@ -155,10 +155,10 @@ describe('GoalPlanApplyDialog', () => {
   it.each([
     {
       after: 100,
-      contribution: '+200.00 CHF → +100.00 CHF',
-      net: '+100.00 CHF',
+      contribution: '+200 CHF → +100 CHF',
+      net: '+100 CHF',
     },
-    { after: 0, contribution: '+200.00 CHF → 0.00 CHF', net: '0.00 CHF' },
+    { after: 0, contribution: '+200 CHF → 0 CHF', net: '0 CHF' },
   ])(
     'recaps a linked withdrawal removal ending at $after without requesting a destination',
     ({ after, contribution, net }) => {
@@ -194,7 +194,7 @@ describe('GoalPlanApplyDialog', () => {
       expect(contributionRow).not.toContain('conservée');
       expect(contributionRow).toContain(contribution);
       expect(withdrawalRow).toContain('Retrait planifié');
-      expect(withdrawalRow).toContain('-500.00 CHF → 0.00 CHF');
+      expect(withdrawalRow).toContain('-500 CHF → 0 CHF');
       expect(netRow).toContain('Effet net ce mois');
       expect(netRow).toContain(net);
       expect(
@@ -296,7 +296,7 @@ describe('GoalPlanApplyDialog', () => {
     });
 
     const recap = query(fixture, 'goal-plan-apply-diff').nativeElement;
-    expect(recap.textContent).not.toContain('106.00 CHF');
+    expect(recap.textContent).not.toContain('106 CHF');
     expect(recap.textContent).toContain('et 1 autre');
     expect(
       fixture.debugElement.queryAll(

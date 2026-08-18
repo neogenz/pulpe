@@ -53,15 +53,17 @@ struct SavingsGoalPickerField: View {
         /// What the goal holds once this income is taken out.
         var remainingAmount: Decimal? {
             guard let selectedOption, let withdrawalAmount else { return nil }
-            return selectedOption.availableAmount - withdrawalAmount
+            return (
+                selectedOption.availableAmount.rounded(2)
+                    - withdrawalAmount.rounded(2)
+            ).rounded(2)
         }
 
-        /// Même bande que le serveur, qui accepte `debit <= disponible +
-        /// tolérance`. Plus serré ici, le pré-contrôle refuserait des retraits
-        /// que la requête aurait acceptés — vider un pot exactement, d'abord.
+        /// Même écart au centime que le serveur : plafond, aperçu et validation
+        /// décrivent exactement le même solde.
         var hasInsufficientBalance: Bool {
             guard let remainingAmount else { return false }
-            return remainingAmount < -SavingsGoalProgress.withdrawalBalanceTolerance
+            return remainingAmount < 0
         }
 
         var isReady: Bool {

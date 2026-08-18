@@ -41,10 +41,8 @@ struct GoalHeroPresentation: Equatable {
         let hasClosedPlanMonth = progress.hasClosedPlanMonth
 
         showsStatusChip = status != .active
-        amount = progress.confirmed.asCompactCurrency(currency)
-        // Compact like the hero above it: two decimals on the target beside a
-        // rounded balance reads as two different figures of the same money.
-        targetLine = progress.targetAmount.map { AppLocale.string("sur \($0.asCompactCurrency(currency))") }
+        amount = progress.confirmed.asAdaptiveCurrency(currency)
+        targetLine = progress.targetAmount.map { AppLocale.string("sur \($0.asAdaptiveCurrency(currency))") }
         dateLine = Self.makeDateLine(progress)
         initialAmountLine = progress.initialAmount > 0
             ? AppLocale.string("Dont \(progress.initialAmount.asCompactCurrency(currency)) de départ")
@@ -57,7 +55,7 @@ struct GoalHeroPresentation: Equatable {
         dayOneBeat = progress.paceStatus == nil || hasClosedPlanMonth
             ? nil
             : progress.currentMonthPlannedAmount.map {
-                AppLocale.string("Ton plan est prêt : \($0.asCurrency(currency)) à mettre de côté ce mois.")
+                AppLocale.string("Ton plan est prêt : \($0.asAdaptiveCurrency(currency)) à mettre de côté ce mois.")
             }
 
         projection = progress.linkedLineCount > 0
@@ -106,7 +104,7 @@ struct GoalHeroPresentation: Equatable {
     }
 
     private static func makeProjection(_ progress: SavingsGoalProgress, currency: SupportedCurrency) -> String {
-        let amount = progress.displayedProjection.asCompactCurrency(currency)
+        let amount = progress.displayedProjection.asAdaptiveCurrency(currency)
         // One whole key per variant: « à l'échéance » is a subordinate clause,
         // untranslatable on its own and glued back into the sentence.
         return progress.targetDateValue == nil
@@ -126,10 +124,11 @@ struct GoalHeroPresentation: Equatable {
         guard hasClosedPlanMonth,
               let required = progress.required,
               let targetAmount = progress.targetAmount,
-              progress.displayedProjection < targetAmount,
+              progress.displayedProjection.rounded(2) < targetAmount.rounded(2),
               let deadline = progress.targetDateValue else { return nil }
+        let amount = required.rounded(2, .up).asAdaptiveCurrency(currency)
         return AppLocale.string(
-            "Vise \(required.asCompactCurrency(currency))/mois pour finir le \(deadline.abbreviatedDateFormatted)."
+            "Vise \(amount)/mois pour finir le \(deadline.abbreviatedDateFormatted)."
         )
     }
 }

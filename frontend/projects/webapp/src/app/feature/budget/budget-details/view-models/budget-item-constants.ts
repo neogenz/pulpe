@@ -1,4 +1,8 @@
-import type { TransactionKind, TransactionRecurrence } from 'pulpe-shared';
+import {
+  moneyDifference,
+  type TransactionKind,
+  type TransactionRecurrence,
+} from 'pulpe-shared';
 
 export type BudgetConsumptionState =
   | 'no-transactions'
@@ -75,8 +79,9 @@ export function consumptionProgressMessage(
 ):
   | { key: 'budgetLine.exceededBy'; params: { amount: number } }
   | { key: 'budgetLine.usedPercent'; params: { percent: number } } {
-  return consumed > planned
-    ? { key: 'budgetLine.exceededBy', params: { amount: consumed - planned } }
+  const difference = moneyDifference(consumed, planned);
+  return difference > 0
+    ? { key: 'budgetLine.exceededBy', params: { amount: difference } }
     : { key: 'budgetLine.usedPercent', params: { percent: percentage } };
 }
 
@@ -84,10 +89,11 @@ export function getBudgetConsumptionState(
   percentage: number,
   hasTransactions: boolean,
   kind: TransactionKind,
+  isOverBudget: boolean,
 ): BudgetConsumptionState {
   if (!hasTransactions) return 'no-transactions';
   if (kind !== 'expense') return 'healthy';
-  if (percentage > 100) return 'over-budget';
+  if (isOverBudget) return 'over-budget';
   if (percentage >= NEAR_LIMIT_THRESHOLD) return 'near-limit';
   return 'healthy';
 }

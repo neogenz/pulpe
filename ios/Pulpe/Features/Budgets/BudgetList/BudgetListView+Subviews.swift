@@ -9,7 +9,7 @@ private func availabilityLabel(
 ) -> String {
     if amountsHidden { return AppLocale.string("montant masqué") }
     guard let remaining else { return AppLocale.string("disponible non défini") }
-    return AppLocale.string("disponible \(remaining.asCompactCurrency(currency))")
+    return AppLocale.string("disponible \(remaining.rounded(2).asAdaptiveCurrency(currency))")
 }
 
 // MARK: - Current Month Hero Card
@@ -160,14 +160,17 @@ struct BudgetAmountBlock: View {
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
+    private var roundedRemaining: Decimal { (remaining ?? 0).rounded(2) }
+
     private var amountLabel: String {
-        (remaining ?? 0) >= 0 ? AppLocale.string("Potentiel") : AppLocale.string("Ajustement")
+        roundedRemaining >= 0 ? AppLocale.string("Potentiel") : AppLocale.string("Ajustement")
     }
 
     var body: some View {
         VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
             if let remaining {
-                Text(remaining.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
+                let amount = remaining.rounded(2)
+                Text("\(amount > 0 ? "+" : "")\(amount.asAdaptiveCurrency(userSettingsStore.currency))")
                     .font(PulpeTypography.amountXL)
                     .monospacedDigit()
                     .foregroundStyle(isPast ? .secondary : emotionColor)
@@ -199,7 +202,7 @@ struct NextMonthPlaceholder: View {
 
     private var isNegative: Bool {
         guard let adjustment else { return false }
-        return adjustment < 0
+        return adjustment.rounded(2) < 0
     }
 
     private var adjustmentColor: Color {
@@ -254,9 +257,10 @@ struct NextMonthPlaceholder: View {
                     .foregroundStyle(Color.secondary)
             }
             Spacer()
-            if let adjustment, adjustment != 0 {
+            if let adjustment, adjustment.rounded(2) != 0 {
                 VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                    Text(adjustment.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
+                    let amount = adjustment.rounded(2)
+                    Text("\(amount > 0 ? "+" : "")\(amount.asAdaptiveCurrency(userSettingsStore.currency))")
                         .font(PulpeTypography.amountXL)
                         .monospacedDigit()
                         .foregroundStyle(adjustmentColor)

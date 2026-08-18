@@ -34,6 +34,7 @@ import { TagStore } from '@core/tag';
 import { UserSettingsStore } from '@core/user-settings';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { BudgetDetailsStore } from '../../store/budget-details-store';
+import { consumptionProgressMessage } from '../../view-models/budget-item-constants';
 
 export interface AllocatedTransactionsDialogData {
   budgetLine: BudgetLine;
@@ -116,7 +117,7 @@ export interface AllocatedTransactionsDialogResult {
             </div>
             <div class="text-title-medium font-semibold ph-no-capture">
               {{
-                data.consumption.consumed | appCurrency: currency() : '1.0-0'
+                data.consumption.consumed | appCurrency: currency() : '1.0-2'
               }}
             </div>
           </div>
@@ -130,7 +131,7 @@ export interface AllocatedTransactionsDialogResult {
               [class.text-financial-income]="data.consumption.remaining >= 0"
             >
               {{
-                data.consumption.remaining | appCurrency: currency() : '1.0-0'
+                data.consumption.remaining | appCurrency: currency() : '1.0-2'
               }}
             </div>
           </div>
@@ -138,16 +139,31 @@ export interface AllocatedTransactionsDialogResult {
 
         <!-- Progress bar -->
         <div class="px-2">
+          @let progress = progressMessage();
           <mat-progress-bar
             mode="determinate"
             [value]="consumptionPercentage()"
-            [class.warn-bar]="consumptionPercentage() > 100"
+            [class.warn-bar]="progress.key === 'budgetLine.exceededBy'"
           />
           <div
             class="text-label-small text-on-surface-variant text-center mt-1"
           >
-            {{ consumptionPercentage() | number: '1.0-0'
-            }}{{ 'budgetLine.consumed' | transloco }}
+            @if (progress.key === 'budgetLine.exceededBy') {
+              <span class="text-financial-over-budget">
+                {{
+                  progress.key
+                    | transloco
+                      : {
+                          amount:
+                            (progress.params.amount
+                            | appCurrency: currency() : '1.0-2'),
+                        }
+                }}
+              </span>
+            } @else {
+              {{ consumptionPercentage() | number: '1.0-0'
+              }}{{ 'budgetLine.consumed' | transloco }}
+            }
           </div>
         </div>
 
@@ -335,6 +351,14 @@ export class AllocatedTransactionsDialog {
           (this.data.consumption.consumed / this.data.budgetLine.amount) * 100,
         )
       : 0,
+  );
+
+  protected readonly progressMessage = computed(() =>
+    consumptionProgressMessage(
+      this.data.budgetLine.amount,
+      this.data.consumption.consumed,
+      this.consumptionPercentage(),
+    ),
   );
 
   // PUL-12 — the savings goal this envelope is linked to, resolved from the

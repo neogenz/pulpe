@@ -212,6 +212,9 @@ export { API_ERROR_CODES, type ApiErrorCode } from './src/error-codes.js';
 // Export HTTP header constants
 export { REQUEST_ID_HEADER } from './src/http-headers.js';
 
+// Export monetary comparison primitive
+export { moneyDifference } from './src/money.js';
+
 // Export analytics contracts
 export {
   ANALYTICS_PROPERTIES,
@@ -251,7 +254,6 @@ export { splitTotalPreserving } from './src/calculators/index.js';
 export {
   PACE_TOLERANCE_PERCENT,
   MAX_ESTIMATED_HORIZON_MONTHS,
-  WITHDRAWAL_BALANCE_TOLERANCE,
   calculatePaceStatus,
   computeSavingsGoalProgress,
   remainingPlannedWithdrawal,
