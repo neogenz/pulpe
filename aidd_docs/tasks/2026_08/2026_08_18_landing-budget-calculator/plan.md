@@ -1,6 +1,6 @@
 ---
 objective: "Sur /calculateur-budget, chaque poste ajouté par une puce apparaît comme une ligne nommée, éditable et retirable, et le disponible ne compte chaque poste qu’une fois."
-status: in-progress
+status: implemented
 ---
 
 # Plan: retaper le calculateur landing en lignes nommées
