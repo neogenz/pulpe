@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: rendre le signal Expo/EAS et la documentation exacts

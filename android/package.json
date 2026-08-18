@@ -50,6 +50,7 @@
     "posthog-react-native": "^4.63.0",
     "pulpe-shared": "workspace:*",
     "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-native": "0.86.2",
     "react-native-gesture-handler": "~2.32.0",
     "react-native-mmkv": "4.3.2",

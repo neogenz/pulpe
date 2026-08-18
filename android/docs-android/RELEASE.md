@@ -1,8 +1,8 @@
 # Releasing Pulpe on Android
 
-The Expo project is linked and a preview-configured release APK has compiled
-locally. Play signing, submission, OTA and the GitHub Maestro journey still need
-their first successful remote run, so keep treating those sections as a
+The Expo project is linked. PR #608 has produced both a successful EAS preview
+APK and a successful GitHub Maestro smoke run. Play signing, submission and OTA
+still need their first successful run, so keep treating those sections as a
 checklist rather than a description of a finished release pipeline.
 
 ## What must exist before any of this runs
@@ -91,6 +91,12 @@ plan. It generates a release APK for x86_64, boots an API 35 emulator, verifies
 the pinned Maestro archive before installing it, and keeps a screenshot plus
 logcat when the journey fails.
 
+Android declares React and ReactDOM 19.2.3 together even though it does not ship
+a web build. `expo-router` has an optional ReactDOM peer; without the local
+declaration, Expo Doctor traverses the monorepo and borrows Landing's 19.2.8,
+then reports a duplicate React installation. Landing deliberately remains on
+React/ReactDOM 19.2.8.
+
 ## OTA vs a new binary
 
 `runtimeVersion` uses the `appVersion` policy, so an update only reaches builds
@@ -148,11 +154,10 @@ the screen plus logcat on failure.
 Run five consecutive green pull-request checks before making the Maestro smoke
 status required in branch protection.
 
-**These flows have never been executed.** The selectors were read out of the
-source — `sign-in-email`, `sign-in-password` and `sign-in-submit` are testIDs
-added for exactly this purpose, the rest are visible French copy — but no run
-has confirmed them, and the first one should be budgeted as a debugging pass
-rather than a verification.
+PR #608 has successfully executed the composed smoke journey on GitHub, which
+covers `login-vault.yaml` and `check-operation.yaml`. `onboarding.yaml` remains
+manual because it registers a real account; run it with a disposable address
+before promoting the first Play build.
 
 ## Play Console listing
 
