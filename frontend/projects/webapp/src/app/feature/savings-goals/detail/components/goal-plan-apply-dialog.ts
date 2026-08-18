@@ -79,10 +79,10 @@ const MAX_DIFF_ROWS = 5;
           data-testid="goal-plan-apply-uniform"
         >
           <span class="text-on-surface-variant"
-            >{{ u.before | appCurrency: data.currency : '1.2-2' }} &rarr;
+            >{{ u.before | appCurrency: data.currency : '1.0-2' }} &rarr;
           </span>
           <span class="font-semibold">{{
-            u.after | appCurrency: data.currency : '1.2-2'
+            u.after | appCurrency: data.currency : '1.0-2'
           }}</span>
           <span class="text-on-surface-variant">
             {{
@@ -117,7 +117,7 @@ const MAX_DIFF_ROWS = 5;
                       <span class="text-on-surface-variant"
                         >+{{
                           contributionBefore(row)
-                            | appCurrency: data.currency : '1.2-2'
+                            | appCurrency: data.currency : '1.0-2'
                         }}
                         &rarr;
                       </span>
@@ -127,7 +127,7 @@ const MAX_DIFF_ROWS = 5;
                     }
                     <span>{{
                       contributionAfter(row)
-                        | appCurrency: data.currency : '1.2-2'
+                        | appCurrency: data.currency : '1.0-2'
                     }}</span>
                   </span>
                 </div>
@@ -142,13 +142,13 @@ const MAX_DIFF_ROWS = 5;
                     <span class="text-on-surface-variant"
                       >{{
                         withdrawalBefore(row)
-                          | appCurrency: data.currency : '1.2-2'
+                          | appCurrency: data.currency : '1.0-2'
                       }}
                       &rarr;
                     </span>
                     <span class="font-semibold text-on-surface">{{
                       (row.after < 0 ? row.after : 0)
-                        | appCurrency: data.currency : '1.2-2'
+                        | appCurrency: data.currency : '1.0-2'
                     }}</span>
                   </span>
                 </div>
@@ -166,7 +166,7 @@ const MAX_DIFF_ROWS = 5;
                       <span>+</span>
                     }
                     <span>{{
-                      net(row) | appCurrency: data.currency : '1.2-2'
+                      net(row) | appCurrency: data.currency : '1.0-2'
                     }}</span>
                   </span>
                 </div>
@@ -196,12 +196,12 @@ const MAX_DIFF_ROWS = 5;
                 <span class="ph-no-capture shrink-0 tabular-nums">
                   @if (!isCreation()) {
                     <span class="text-on-surface-variant"
-                      >{{ row.before | appCurrency: data.currency : '1.2-2' }}
+                      >{{ row.before | appCurrency: data.currency : '1.0-2' }}
                       &rarr;
                     </span>
                   }
                   <span class="font-semibold text-on-surface">{{
-                    row.after | appCurrency: data.currency : '1.2-2'
+                    row.after | appCurrency: data.currency : '1.0-2'
                   }}</span>
                 </span>
               </li>

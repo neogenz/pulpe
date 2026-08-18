@@ -250,6 +250,47 @@ describe('BudgetDetailPanel forecast actions', () => {
   });
 });
 
+describe('BudgetDetailPanel consumption summary', () => {
+  async function renderConsumption(
+    planned: number,
+    consumed: number,
+  ): Promise<string> {
+    const fixture = await setup([], { amount: planned, kind: 'expense' });
+    const data = TestBed.inject(MAT_DIALOG_DATA) as BudgetDetailPanelData;
+    budgetDetailsSignal.set({
+      budgetLines: [data.item.data],
+      transactions: [
+        createMockTransaction({
+          id: 'consumption-transaction',
+          budgetLineId: data.item.data.id,
+          kind: 'expense',
+          amount: consumed,
+        }),
+      ],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return (fixture.nativeElement.textContent as string).replace(/\s+/g, ' ');
+  }
+
+  it('should show a cent-level overage consistently', async () => {
+    const text = await renderConsumption(58.5, 58.55);
+
+    expect(text).toContain('58.55 CHF');
+    expect(text).toContain('-0.05 CHF');
+    expect(text).toContain('Dépassé de 0.05 CHF');
+    expect(text).not.toContain('Dépassé de 0 CHF');
+  });
+
+  it('should keep exact equality at 100% without an overage', async () => {
+    const text = await renderConsumption(58.5, 58.5);
+
+    expect(text).toContain('100% utilisé');
+    expect(text).not.toContain('Dépassé de');
+  });
+});
+
 describe('BudgetDetailPanel transaction tags', () => {
   it('should resolve allocated transaction tags for its compact indicator', async () => {
     const fixture = await setup(['tag-assurance', 'tag-bureau']);

@@ -41,7 +41,7 @@ extension BudgetFormulas {
         }
 
         let available = totalIncome + rollover
-        let endingBalance = available - totalExpenses
+        let endingBalance = calculateEndingBalance(available: available, totalExpenses: totalExpenses)
         return Metrics(
             totalIncome: totalIncome, totalExpenses: totalExpenses, totalSavings: totalSavings,
             available: available, endingBalance: endingBalance, remaining: endingBalance,

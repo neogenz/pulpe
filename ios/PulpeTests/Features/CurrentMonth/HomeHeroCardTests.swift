@@ -25,6 +25,18 @@ struct HomeHeroCardTests {
         #expect(onPlan.verdict == .onPlan)
     }
 
+    @Test func estimateComparison_usesCentPrecision() {
+        let dust = HomeHeroCard.PresentationState(plannedBalance: 58.50, estimatedBalance: 58.504)
+        #expect(dust.estimatedBalance == 58.50)
+        #expect(dust.variance == 0)
+        #expect(dust.verdict == .onPlan)
+
+        let cent = HomeHeroCard.PresentationState(plannedBalance: 58.50, estimatedBalance: 58.49)
+        #expect(cent.variance == -0.01)
+        #expect(cent.verdict == .overrun)
+        #expect(cent.varianceText(for: .chf) == "-0.01 CHF")
+    }
+
     @Test func envelopeOverrun_countsAsAbsorbedWhenTheMonthLandsExactlyOnPlan() {
         // A 200 overrun cancelled by 200 of free income lands the month exactly on plan.
         // `DriftCard` gates its "compensé ailleurs ce mois" clause on this: without the
@@ -206,7 +218,7 @@ struct HomeHeroCardTests {
             currency: .chf,
             amountsHidden: false,
             uncheckedCount: 2
-        ).contains("350.00 CHF de mieux que prévu"))
+        ).contains("350 CHF de mieux que prévu"))
         // Mirrors the sentence on screen, date included: the two must not describe the same
         // month differently depending on who is reading it.
         #expect(overrun.accessibilityDescription(
@@ -214,7 +226,7 @@ struct HomeHeroCardTests {
             currency: .chf,
             amountsHidden: false,
             uncheckedCount: 0
-        ).contains("150.00 CHF de moins que prévu depuis le 6 juillet"))
+        ).contains("150 CHF de moins que prévu depuis le 6 juillet"))
         #expect(onPlan.accessibilityDescription(
             monthName: "juillet",
             currency: .chf,

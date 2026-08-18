@@ -9,7 +9,11 @@
  * - Only the OVERAGE (consumed > envelope.amount) impacts the budget
  * - Free transactions (no budgetLineId) impact the budget directly
  */
-import type { BudgetLine, Transaction } from 'pulpe-shared';
+import {
+  moneyDifference,
+  type BudgetLine,
+  type Transaction,
+} from 'pulpe-shared';
 
 /**
  * Represents the consumption state of a budget line.
@@ -40,7 +44,7 @@ export function calculateBudgetLineConsumption(
     0,
   );
 
-  const remaining = budgetLine.amount - consumed;
+  const remaining = moneyDifference(budgetLine.amount, consumed);
 
   return {
     budgetLine,

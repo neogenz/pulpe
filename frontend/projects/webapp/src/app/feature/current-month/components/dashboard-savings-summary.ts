@@ -8,7 +8,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { TranslocoPipe } from '@jsverse/transloco';
-import type { SupportedCurrency } from 'pulpe-shared';
+import { moneyDifference, type SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 
 @Component({
@@ -223,7 +223,7 @@ export class DashboardSavingsSummary {
   protected readonly isComplete = computed(
     () =>
       this.totalPlanned() > 0 &&
-      this.totalRealized() >= this.totalPlanned() &&
+      moneyDifference(this.totalRealized(), this.totalPlanned()) >= 0 &&
       this.allLinesPointed(),
   );
 }

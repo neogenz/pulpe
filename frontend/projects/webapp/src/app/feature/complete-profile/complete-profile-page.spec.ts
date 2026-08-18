@@ -26,6 +26,7 @@ describe('CompleteProfilePage', () => {
     initialCurrency: SupportedCurrency,
     hasAnyCharge = false,
     hasOptionalCharge = false,
+    available = 0,
   ): CompleteProfilePage {
     updateHealthInsurance = vi.fn();
     captureEvent = vi.fn();
@@ -42,6 +43,7 @@ describe('CompleteProfilePage', () => {
       transportCosts: signal<number | null>(null),
       leasingCredit: signal<number | null>(null),
       customTransactions: signal([]),
+      budgetSummary: signal({ income: 1000, committed: 1000, available }),
       updateHealthInsurance,
       updateCurrency: vi.fn((value: SupportedCurrency) => currency.set(value)),
       updateCurrentStep: vi.fn((value: 1 | 2) => currentStep.set(value)),
@@ -194,5 +196,25 @@ describe('CompleteProfilePage', () => {
     };
 
     expect(page.showOptionalCharges()).toBe(true);
+  });
+
+  it('keeps a real cent-level deficit visible in the live announcement', () => {
+    const page = createPage('CHF', false, false, -0.3) as unknown as {
+      hasAvailableSurplus: () => boolean;
+      liveBudgetAnnouncement: () => string;
+    };
+
+    expect(page.hasAvailableSurplus()).toBe(false);
+    expect(page.liveBudgetAnnouncement()).toContain('0.3');
+  });
+
+  it('treats binary dust as a zero surplus', () => {
+    const page = createPage('CHF', false, false, -9e-13) as unknown as {
+      hasAvailableSurplus: () => boolean;
+      liveBudgetAnnouncement: () => string;
+    };
+
+    expect(page.hasAvailableSurplus()).toBe(true);
+    expect(page.liveBudgetAnnouncement()).toContain('0');
   });
 });

@@ -243,6 +243,35 @@ describe('GetSavingsGoalWithdrawalsUseCase', () => {
     expect(result.planned[0]?.realizedAmount).toBeCloseTo(10.05);
   });
 
+  it('keeps a real one-cent planned remainder', async () => {
+    mockRepo.findPlannedWithdrawalRecords.mockResolvedValueOnce([
+      {
+        budgetLineId: '223e4567-e89b-12d3-a456-426614174010',
+        budgetId: '123e4567-e89b-12d3-a456-426614174001',
+        name: 'Un centime',
+        month: 9,
+        year: 2026,
+        amount: 10.05,
+      },
+    ]);
+    mockRepo.findWithdrawals.mockResolvedValueOnce([
+      {
+        ...withdrawal,
+        budgetLineId: '223e4567-e89b-12d3-a456-426614174010',
+        amount: 10.04,
+      },
+    ]);
+
+    const result = await useCase.execute('goal-1');
+
+    expect(result.planned[0]).toEqual(
+      expect.objectContaining({
+        remainingAmount: 0.01,
+        status: 'partially_realized',
+      }),
+    );
+  });
+
   it('recomputes after an edit or deletion and ignores pointing state', async () => {
     mockRepo.findWithdrawals.mockResolvedValueOnce([
       {

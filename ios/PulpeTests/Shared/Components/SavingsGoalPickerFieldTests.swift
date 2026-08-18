@@ -210,20 +210,19 @@ struct SavingsGoalPickerFieldTests {
         #expect(!state(option: option(available: 10000), amount: 10, hasError: true).isReady)
     }
 
-    // Same fixture as the webapp suite (savings-goal-picker-field.spec.ts): the
-    // pre-check must open the same band as the server, which accepts
-    // `debit <= available + WITHDRAWAL_BALANCE_TOLERANCE`. The balance arrives
-    // as a server-side sum, so emptying a goal lands a hair under zero.
+    // Same fixture as the webapp suite: both clients and the server compare the
+    // same cent-rounded difference. The balance can arrive a hair under zero.
     @Test("a balance a hair under the amount still empties the goal")
     func withdrawalState_absorbsRoundingUnderTheTolerance() {
         let inBand = state(option: option(available: 149.999), amount: 150)
 
+        #expect(inBand.remainingAmount == 0)
         #expect(!inBand.hasInsufficientBalance)
         #expect(inBand.isReady)
     }
 
-    @Test("an overshoot past the tolerance still blocks")
-    func withdrawalState_blocksPastTheTolerance() {
+    @Test("an overshoot of one cent blocks")
+    func withdrawalState_blocksOneCentOver() {
         let outOfBand = state(option: option(available: 150), amount: 150.01)
 
         #expect(outOfBand.hasInsufficientBalance)

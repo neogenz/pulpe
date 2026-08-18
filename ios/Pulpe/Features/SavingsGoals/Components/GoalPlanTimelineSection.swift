@@ -51,7 +51,7 @@ struct GoalPlanTimelinePresentation {
         forFrozenMonth month: SavingsGoalPlanMonth,
         plannedWithdrawals: [SavingsGoalPlannedWithdrawal]
     ) -> String? {
-        guard month.planWithdrawalConsumedAmount > SavingsGoalProgress.withdrawalBalanceTolerance else {
+        guard month.planWithdrawalConsumedAmount.rounded(2) > 0 else {
             return nil
         }
         return plannedWithdrawals.first {

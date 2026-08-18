@@ -17,6 +17,7 @@ import {
   getTransactionCountLabel,
   getSignedAmount,
   calculatePercentage,
+  consumptionProgressMessage,
   safeParseDate,
   normalizeText,
   getBudgetConsumptionState,
@@ -224,6 +225,11 @@ function createBudgetLineViewModel(
   const consumed = consumption?.consumed ?? 0;
   const transactionCount = consumption?.transactionCount ?? 0;
   const percentage = calculatePercentage(budgetLine.amount, consumed);
+  const progressMessage = consumptionProgressMessage(
+    budgetLine.amount,
+    consumed,
+    percentage,
+  );
   const hasTransactions = transactionCount > 0;
   // A one-off forecast with no allocated transactions can be reported; a
   // recurring line, a consumed envelope, or a spread occurrence cannot (those
@@ -302,6 +308,7 @@ function createBudgetLineViewModel(
         percentage,
         hasTransactions,
         budgetLine.kind,
+        progressMessage.key === 'budgetLine.exceededBy',
       ),
     },
   };

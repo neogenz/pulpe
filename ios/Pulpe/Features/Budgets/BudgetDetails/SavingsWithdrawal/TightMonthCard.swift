@@ -10,11 +10,11 @@ enum SavingsWithdrawalCardGate {
     static let storageKey = "dismissedSavingsWithdrawalCardBudgetIds"
 
     static func shouldPresent(
-        available: Decimal,
+        balance: Decimal,
         isCurrentOrFutureMonth: Bool,
         isDismissed: Bool
     ) -> Bool {
-        available < 0 && isCurrentOrFutureMonth && !isDismissed
+        balance.rounded(2) < 0 && isCurrentOrFutureMonth && !isDismissed
     }
 
     static func isDismissed(budgetId: String, in raw: String) -> Bool {

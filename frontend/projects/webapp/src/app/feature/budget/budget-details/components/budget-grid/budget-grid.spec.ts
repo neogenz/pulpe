@@ -6,6 +6,11 @@ import {
 } from './budget-grid';
 import { createMockTransaction } from '../../../../../testing/mock-factories';
 import type { Transaction } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
+import {
+  calculatePercentage,
+  consumptionProgressMessage,
+} from '../../view-models/budget-item-constants';
 
 /**
  * BudgetGrid — unit tests for extracted pure logic functions.
@@ -128,6 +133,28 @@ describe('BudgetGrid', () => {
 
       expect(result).toContain('15');
       expect(result).toContain('000');
+    });
+
+    it('should preserve a state-driving overage without adding decimals to round amounts', () => {
+      const currencyPipe = new AppCurrencyPipe();
+      const planned = 58.5;
+      const consumed = 58.55;
+      const message = consumptionProgressMessage(
+        planned,
+        consumed,
+        calculatePercentage(planned, consumed),
+      );
+      if (message.key !== 'budgetLine.exceededBy') {
+        throw new Error('Expected the exact amounts to produce an overage');
+      }
+
+      expect(currencyPipe.transform(planned - consumed, 'CHF', '1.0-2')).toBe(
+        '-0.05 CHF',
+      );
+      expect(
+        currencyPipe.transform(message.params.amount, 'CHF', '1.0-2'),
+      ).toBe('0.05 CHF');
+      expect(currencyPipe.transform(3, 'CHF', '1.0-2')).toBe('3 CHF');
     });
   });
 });

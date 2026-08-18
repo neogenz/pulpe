@@ -120,6 +120,27 @@ struct SavingsPlanSuggestedContributionTests {
         ) == nil)
     }
 
+    @Test("uses the cent gap when the initial amount nearly covers the target")
+    func suggestion_usesCentGap() {
+        let targetDate = Self.date(2026, 6, 15)
+        let now = Self.date(2026, 6, 15)
+
+        #expect(SavingsPlanCalculator.suggestedMonthlyContribution(
+            targetAmount: 100,
+            targetDate: targetDate,
+            payDayOfMonth: nil,
+            initialAmount: Decimal(string: "99.99") ?? 0,
+            now: now
+        ) == Decimal(string: "0.01"))
+        #expect(SavingsPlanCalculator.suggestedMonthlyContribution(
+            targetAmount: 100,
+            targetDate: targetDate,
+            payDayOfMonth: nil,
+            initialAmount: Decimal(string: "99.999") ?? 0,
+            now: now
+        ) == nil)
+    }
+
     @Test("starts the contribution window at the later explicit start period")
     func suggestion_anchorsAtExplicitStartDate() {
         let suggestion = SavingsPlanCalculator.suggestedMonthlyContribution(

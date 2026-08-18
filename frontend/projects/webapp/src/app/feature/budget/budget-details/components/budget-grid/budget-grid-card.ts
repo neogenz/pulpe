@@ -159,7 +159,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
                  truncate leading-tight"
           [pulpeFinancialKind]="item().data.kind"
         >
-          {{ remaining | appCurrency: currency() : '1.0-0' }}
+          {{ remaining | appCurrency: currency() : '1.0-2' }}
         </p>
         <pulpe-original-amount-line
           [originalAmount]="item().data.originalAmount"
@@ -180,7 +180,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
           class="mt-1 ph-no-capture text-label-small text-on-surface-variant
                  truncate"
         >
-          {{ consumed | appCurrency: currency() : '1.0-0' }}
+          {{ consumed | appCurrency: currency() : '1.0-2' }}
           {{ 'budgetLine.spent.' + item().data.kind | transloco }}
           ·
           @if (progressMessage.key === 'budgetLine.exceededBy') {
@@ -190,7 +190,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
                   : {
                       amount:
                         (progressMessage.params.amount
-                        | appCurrency: currency() : '1.0-0'),
+                        | appCurrency: currency() : '1.0-2'),
                     }
             }}
           } @else {

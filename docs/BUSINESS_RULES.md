@@ -28,5 +28,7 @@ Ce fichier contient uniquement les invariants qui traversent plusieurs fonctionn
 
 ## Montants et devises
 
+- Toute décision financière compare un écart quantifié au centime. La présentation dépend du rôle du montant : jusqu'à deux décimales lorsqu'il justifie un état ou une action, format compact pour un agrégat de lecture rapide. Les pourcentages entiers restent indicatifs et ne décident jamais seuls d'un état monétaire.
+- Les arrondis intentionnels restent inchangés : répartition au plus grand reste, lissage à somme conservée, conversion FX à deux décimales, mensualité arrondie au centime supérieur et agrégats visuels compacts.
 - Tous les montants financiers persistés, dont `amount`, `target_amount`, `initial_amount`, `original_amount`, `original_target_amount` et `ending_balance`, passent par `ENCRYPTION_PORT` et sont stockés chiffrés en AES-256-GCM. Voir [`docs/ENCRYPTION.md`](./ENCRYPTION.md).
 - Une conversion conserve avec l'écriture son montant d'origine, ses devises et son taux. Ce taux est historique : il n'est pas rafraîchi ensuite. Les métadonnées FX sont absentes ensemble ou cohérentes ensemble, conformément aux schémas partagés et à la contrainte [`fx_metadata_coherent`](../backend-nest/supabase/migrations/20260420120000_fx_metadata_coherent.sql).

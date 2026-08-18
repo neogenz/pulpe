@@ -35,7 +35,7 @@ struct HeroBalanceCard: View {
     }
 
     private var formattedBalance: String {
-        abs(metrics.remaining).asCompactAmount(for: userSettingsStore.currency)
+        abs(metrics.remaining).asAdaptiveAmount(for: userSettingsStore.currency)
     }
 
     private var formattedSpent: String {
@@ -44,6 +44,11 @@ struct HeroBalanceCard: View {
 
     private var formattedAvailable: String {
         metrics.available.asCompactAmount(for: userSettingsStore.currency)
+    }
+
+    private var displayedRollover: Decimal? {
+        guard let amount = rolloverAmount?.rounded(2), amount != 0 else { return nil }
+        return amount
     }
 
     private var usagePercentageText: String {
@@ -84,13 +89,14 @@ struct HeroBalanceCard: View {
         }
         let currency = userSettingsStore.currency
         var desc = AppLocale.string("""
-            \(contextLabelForVoiceOver) \(abs(metrics.remaining).asCurrency(currency)). \
+            \(contextLabelForVoiceOver) \(abs(metrics.remaining).asAdaptiveCurrency(currency)). \
             Dépensé \(metrics.totalExpenses.asCurrency(currency)) \
             sur \(metrics.available.asCurrency(currency))
             """)
-        if let rolloverAmount {
-            let formatted = abs(rolloverAmount).asCurrency(currency)
-            desc += ". " + (rolloverAmount >= 0
+        if let rolloverAmount = displayedRollover {
+            let roundedAmount = rolloverAmount.rounded(2)
+            let formatted = abs(roundedAmount).asAdaptiveCurrency(currency)
+            desc += ". " + (roundedAmount >= 0
                 ? AppLocale.string("Excédent reporté de \(formatted)")
                 : AppLocale.string("Déficit reporté de \(formatted)"))
         }
@@ -152,7 +158,7 @@ struct HeroBalanceCard: View {
             spentRatio
 
             // Chunk 5 — Rollover (optional)
-            if let rolloverAmount {
+            if let rolloverAmount = displayedRollover {
                 rolloverFooter(amount: rolloverAmount)
             }
         }
@@ -204,7 +210,7 @@ struct HeroBalanceCard: View {
             Text("Report")
                 .font(PulpeTypography.labelMedium)
 
-            Text(abs(amount).asCompactCurrency(userSettingsStore.currency))
+            Text(abs(amount.rounded(2)).asAdaptiveCurrency(userSettingsStore.currency))
                 .font(PulpeTypography.labelLargeBold)
                 .monospacedDigit()
                 .sensitiveAmount()

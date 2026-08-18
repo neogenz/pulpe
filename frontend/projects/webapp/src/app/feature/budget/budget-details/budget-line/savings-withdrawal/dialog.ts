@@ -309,7 +309,7 @@ export class SavingsWithdrawalDialog {
       this.#currencyPipe.transform(
         this.deficitChipAmount(),
         this.currency(),
-        '1.0-0',
+        '1.0-2',
       ) ?? '',
   );
 

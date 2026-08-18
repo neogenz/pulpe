@@ -17,6 +17,7 @@
  */
 
 import { BudgetFormulas } from './budget-formulas.js';
+import { moneyDifference } from '../money.js';
 import {
   getBudgetPeriodForDate,
   parseIsoDateLocal,
@@ -31,10 +32,7 @@ import type {
   LinkedSavingTransaction,
   LinkedSavingWithdrawal,
 } from './savings-goal-progress.js';
-import {
-  remainingPlannedWithdrawal,
-  WITHDRAWAL_BALANCE_TOLERANCE,
-} from './savings-goal-progress.js';
+import { remainingPlannedWithdrawal } from './savings-goal-progress.js';
 import { splitTotalPreserving } from './spread-split.js';
 import { MAX_SAVINGS_GOAL_PLAN_PERIODS } from '../../schemas.js';
 
@@ -137,9 +135,7 @@ export function isOpenPlanMonth(month: SavingsPlanTimelineMonth): boolean {
 export function isPlanWithdrawalFrozenMonth(
   month: SavingsPlanTimelineMonth,
 ): boolean {
-  return (
-    (month.planWithdrawalConsumedAmount ?? 0) > WITHDRAWAL_BALANCE_TOLERANCE
-  );
+  return moneyDifference(month.planWithdrawalConsumedAmount ?? 0, 0) > 0;
 }
 
 /** Mois participant aux simulations globales et à la redistribution. */
@@ -450,7 +446,7 @@ function managedPlanWithdrawalAmount(month: SavingsPlanTimelineMonth): number {
 }
 
 function normalizedWithdrawalRemainder(amount: number): number {
-  return amount > WITHDRAWAL_BALANCE_TOLERANCE ? amount : 0;
+  return Math.max(0, moneyDifference(amount, 0));
 }
 
 /** Mouvement réellement affiché avant édition : retrait géré, sinon contribution. */
@@ -555,8 +551,8 @@ export function simulateSavingsPlan(input: {
       attainedPeriod == null &&
       month.isContributionEligible !== false &&
       input.targetAmount != null &&
-      input.targetAmount > 0 &&
-      simulatedCumulative >= input.targetAmount
+      moneyDifference(input.targetAmount, 0) > 0 &&
+      moneyDifference(simulatedCumulative, input.targetAmount) >= 0
     ) {
       attainedPeriod = { month: month.month, year: month.year };
     }
@@ -574,12 +570,15 @@ export function simulateSavingsPlan(input: {
   const isTargetMet =
     input.targetAmount == null
       ? null
-      : input.targetAmount > 0 && simulatedFinal >= input.targetAmount;
+      : moneyDifference(input.targetAmount, 0) > 0 &&
+        moneyDifference(simulatedFinal, input.targetAmount) >= 0;
   return {
     months,
     simulatedFinal,
     gapToTarget:
-      input.targetAmount == null ? null : input.targetAmount - simulatedFinal,
+      input.targetAmount == null
+        ? null
+        : moneyDifference(input.targetAmount, simulatedFinal),
     isTargetMet,
     // Un retrait rend la courbe non monotone : un cumul peut franchir la cible
     // puis repasser dessous. Annoncer « atteint en mars » sous un final
@@ -686,11 +685,13 @@ export function redistributeRemainingEffort(input: {
 
   const remaining = Math.max(
     0,
-    input.targetAmount -
-      (input.initialAmount ?? 0) -
-      lockedConfirmedSum +
-      withdrawnSum +
-      pinnedEffect,
+    moneyDifference(
+      input.targetAmount,
+      (input.initialAmount ?? 0) +
+        lockedConfirmedSum -
+        withdrawnSum -
+        pinnedEffect,
+    ),
   );
 
   if (hasUnavailablePeriod || openUnpinned.length === 0) {

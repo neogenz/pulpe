@@ -68,7 +68,7 @@ describe('GoalPlanTimeline', () => {
     );
   }
 
-  it('renders a row per month with amount (1.2-2) and cumulative (1.0-0)', () => {
+  it('renders an adaptive monthly amount and a compact cumulative', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({ month: 2, plannedAmount: 450, plannedCumulative: 450 }),
       makeMonth({ month: 3, plannedAmount: 450, plannedCumulative: 900 }),
@@ -78,8 +78,9 @@ describe('GoalPlanTimeline', () => {
 
     const rows = rowsQuery();
     expect(rows.length).toBe(2);
-    // Ligne amount keeps decimals; cumulative aggregation drops them.
-    expect(rows[0].nativeElement.textContent).toContain('450.00');
+    // A whole monthly amount stays quiet; cumulative aggregation stays compact.
+    expect(rows[0].nativeElement.textContent).toContain('450');
+    expect(rows[0].nativeElement.textContent).not.toContain('450.00');
     expect(rows[1].nativeElement.textContent).toContain('900');
   });
 
@@ -115,7 +116,7 @@ describe('GoalPlanTimeline', () => {
       'span[aria-label]',
     ) as HTMLSpanElement;
     expect(amount.getAttribute('aria-label')).toBe(
-      '450.00 CHF, pointé, verrouillé',
+      '450 CHF, pointé, verrouillé',
     );
   });
 

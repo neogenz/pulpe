@@ -62,7 +62,7 @@ enum GoalPlanMonthAvailability: Equatable {
 /// `simulatedCumulative`). Locked rows are dimmed + non-interactive; the current
 /// period accents its title (savings green) — a chip would read as a
 /// button on a passive marker; a month without a linked forecast states why. Amount
-/// is the ligne 2-decimal (`asCurrency`), cumulative the aggregation compact
+/// is adaptive to cents (`asAdaptiveCurrency`), cumulative the aggregation compact
 /// (`asCompactCurrency`, `→` prefix) — simulator only (`showsCumulative`): while
 /// adjusting, the running total is the feedback; in read mode it already lives in
 /// the hero (« Déjà prévu »), a per-row echo is triple-encoding. The cumulative
@@ -90,7 +90,7 @@ struct GoalPlanMonthRow: View {
     }
     private var hasLinkedForecast: Bool { availability == .linkedForecast }
     private var isBlockedByRealization: Bool {
-        month.planWithdrawalConsumedAmount > SavingsGoalProgress.withdrawalBalanceTolerance
+        month.planWithdrawalConsumedAmount.rounded(2) > 0
     }
     private var isEffectivelyLocked: Bool { month.isLocked || isBlockedByRealization }
 
@@ -129,7 +129,7 @@ struct GoalPlanMonthRow: View {
     ) -> String? {
         guard month.plannedWithdrawalAmount > 0 else { return nil }
         return AppLocale.string(
-            "Retrait prévu · \((-month.plannedWithdrawalAmount).asCompactCurrency(currency))"
+            "Retrait prévu · \((-month.plannedWithdrawalAmount).asAdaptiveCurrency(currency))"
         )
     }
 
@@ -213,7 +213,7 @@ struct GoalPlanMonthRow: View {
     @ViewBuilder
     private var amountView: some View {
         if hasLinkedForecast {
-            Text(amount.asCurrency(currency))
+            Text(amount.asAdaptiveCurrency(currency))
                 .font(emphasizesAmount ? PulpeTypography.amountCard : PulpeTypography.amountMedium)
                 .monospacedDigit()
                 .foregroundStyle(isAdjusted ? Color.pulpePrimary : Color.textPrimary)
@@ -228,7 +228,7 @@ struct GoalPlanMonthRow: View {
     private var accessibilityLabel: String {
         var parts = [monthLabel]
         if hasLinkedForecast {
-            parts.append(amount.asCurrency(currency))
+            parts.append(amount.asAdaptiveCurrency(currency))
         } else {
             parts.append(availability.label)
         }
@@ -236,7 +236,7 @@ struct GoalPlanMonthRow: View {
             parts.append(announcedWithdrawal)
         }
         if showsCumulative {
-            parts.append(AppLocale.string("cumulé \(cumulative.asCurrency(currency))"))
+            parts.append(AppLocale.string("cumulé \(cumulative.asCompactCurrency(currency))"))
         }
         if isCurrentPeriod { parts.append(AppLocale.string("ce mois")) }
         if allChecked { parts.append(AppLocale.string("pointé")) }

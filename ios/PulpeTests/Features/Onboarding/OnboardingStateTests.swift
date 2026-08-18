@@ -1145,6 +1145,17 @@ struct OnboardingStateTests {
     }
 
     @Test
+    func emotionState_usesCentPrecision() {
+        let state = OnboardingState()
+        state.monthlyIncome = 58.50
+        state.housingCosts = 58.504
+        #expect(state.emotionState == .tight)
+
+        state.housingCosts = 58.51
+        #expect(state.emotionState == .deficit)
+    }
+
+    @Test
     func emotionState_withoutExpenses_isComfortable() {
         let state = OnboardingState()
         state.monthlyIncome = 3000

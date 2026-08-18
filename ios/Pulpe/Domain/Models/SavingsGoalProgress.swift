@@ -43,14 +43,6 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
     /// affichage doit pointer ici, jamais un littéral.
     static let paceTolerancePercent: Decimal = 5
 
-    /// Miroir Swift de `WITHDRAWAL_BALANCE_TOLERANCE`
-    /// (`shared/src/calculators/savings-goal-progress.ts`) — la bande d'un
-    /// centime sous laquelle deux soldes sont le même solde. Le solde confirmé
-    /// arrive comme une SOMME calculée serveur : vider un pot de 150 peut se
-    /// comparer à 149.99999999999997. Tout pré-contrôle client doit ouvrir la
-    /// même bande, sinon il bloque ce que le serveur accepte.
-    static let withdrawalBalanceTolerance: Decimal = 0.005
-
     let goalId: String
     let status: SavingsGoalStatus
     let startDate: String?
@@ -140,8 +132,9 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
     /// by it — §4.3).
     var displayedProjectionFraction: Double? {
         guard let targetAmount else { return nil }
-        guard targetAmount > 0 else { return 0 }
-        let ratio = ((displayedProjection / targetAmount) as NSDecimalNumber).doubleValue
+        let roundedTarget = targetAmount.rounded(2)
+        guard roundedTarget > 0 else { return 0 }
+        let ratio = ((displayedProjection.rounded(2) / roundedTarget) as NSDecimalNumber).doubleValue
         return min(max(ratio, 0), 1)
     }
 

@@ -14,6 +14,7 @@ import type {
   SavingsGoalStatus,
   TransactionKind,
 } from '../../schemas.js';
+import { moneyDifference } from '../money.js';
 import { BudgetFormulas } from './budget-formulas.js';
 import {
   getBudgetPeriodForDate,
@@ -31,15 +32,6 @@ export const PACE_TOLERANCE_PERCENT = 5;
  * rythme confirmé quasi nul projetterait une date absurde (« an 2200 ») ⇒ null.
  */
 export const MAX_ESTIMATED_HORIZON_MONTHS = 600;
-
-/**
- * Un centime : sous ce seuil, deux soldes sont le même solde. Le solde confirmé
- * est une SOMME de flottants, donc vider un pot de 150 peut se comparer à
- * 149.99999999999997 — sans cette marge, le geste le plus légitime de la
- * feature serait refusé. L'arbitre est le serveur, mais tout pré-contrôle
- * client doit ouvrir la même bande, sinon il bloque ce que le serveur accepte.
- */
-export const WITHDRAWAL_BALANCE_TOLERANCE = 0.005;
 
 /**
  * Prévision Épargne liée à l'objectif, avec la période budgétaire (month/year)
@@ -121,8 +113,7 @@ export function remainingPlannedWithdrawal(
   const realized = withdrawals
     .filter((withdrawal) => withdrawal.budgetLineId === planned.id)
     .reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
-  const remaining = planned.amount - realized;
-  return remaining > WITHDRAWAL_BALANCE_TOLERANCE ? remaining : 0;
+  return Math.max(0, moneyDifference(planned.amount, realized));
 }
 
 export interface SavingsGoalProgressInput {
@@ -210,16 +201,16 @@ function computeEstimatedCompletion(input: {
   if (
     input.status === 'PAUSED' ||
     input.targetAmount == null ||
-    input.targetAmount <= 0
+    moneyDifference(input.targetAmount, 0) <= 0
   ) {
     return null;
   }
-  if (input.confirmed >= input.targetAmount) {
+  if (moneyDifference(input.confirmed, input.targetAmount) >= 0) {
     return periodFromIndex(input.indexCurrent);
   }
   if (input.confirmedPace <= 0) return null;
   const monthsNeeded = Math.ceil(
-    (input.targetAmount - input.confirmed) / input.confirmedPace,
+    moneyDifference(input.targetAmount, input.confirmed) / input.confirmedPace,
   );
   if (monthsNeeded > MAX_ESTIMATED_HORIZON_MONTHS) return null;
   return periodFromIndex(input.indexCurrent + monthsNeeded);
@@ -292,7 +283,10 @@ export function suggestedMonthlyContribution(
   );
   const monthsRemaining = indexTarget - effectiveStartIndex + 1;
   if (monthsRemaining <= 0 || input.targetAmount <= 0) return null;
-  const remaining = input.targetAmount - (input.initialAmount ?? 0);
+  const remaining = moneyDifference(
+    input.targetAmount,
+    input.initialAmount ?? 0,
+  );
   if (remaining <= 0) return null;
   // Le pré-round au 1/100 de centime neutralise l'artefact float binaire :
   // sans lui, un quotient tombant PILE sur un centime (500.05) peut flotter
@@ -376,12 +370,15 @@ export function computeSavingsGoalProgress(
   // stock négatif — dépointer une ligne déjà retirée y suffit — ne peut pas
   // sortir en pourcentage négatif. Le contrat le refuse (`min(0)`) et le client
   // web parse la réponse : un retrait ferait tomber TOUT l'écran de progression.
+  const targetAmount =
+    input.targetAmount == null ? null : moneyDifference(input.targetAmount, 0);
+  const confirmedAtCents = moneyDifference(confirmed, 0);
   const achievementPercent =
-    input.targetAmount == null
+    targetAmount == null
       ? null
-      : input.targetAmount > 0
+      : targetAmount > 0
         ? Math.round(
-            Math.max(0, Math.min(confirmed / input.targetAmount, 1)) * 100,
+            Math.max(0, Math.min(confirmedAtCents / targetAmount, 1)) * 100,
           )
         : 0;
 
@@ -394,7 +391,8 @@ export function computeSavingsGoalProgress(
   const required =
     input.targetAmount == null || monthsRemaining == null || isOverdue
       ? null
-      : Math.max(0, input.targetAmount - confirmed) / monthsRemaining;
+      : Math.max(0, moneyDifference(input.targetAmount, confirmed)) /
+        monthsRemaining;
 
   // 6. Projection à l'échéance — actif confirmé + reliquat du plan courant/futur.
   // Le max mensuel évite de recompter une contribution déjà pointée et conserve
@@ -416,7 +414,7 @@ export function computeSavingsGoalProgress(
         periodLines,
         input.transactions,
       );
-      return total + Math.max(0, planned - realized);
+      return total + Math.max(0, moneyDifference(planned, realized));
     },
     0,
   );
@@ -458,15 +456,17 @@ export function computeSavingsGoalProgress(
     input.targetAmount == null
       ? null
       : input.status === 'ACTIVE' &&
-        input.targetAmount > 0 &&
-        confirmed >= input.targetAmount;
+        moneyDifference(input.targetAmount, 0) > 0 &&
+        moneyDifference(confirmed, input.targetAmount) >= 0;
 
   // 10. Écart cumulé — signé, jamais clampé (négatif = pointage anticipé/avance).
   // Adhérence au plan de pointage (FLUX) ⇒ exclut le montant de départ, mais
   // retranche les retraits DÉJÀ survenus : l'argent repris creuse le retard sur
   // le cumul prévu. Un retrait daté d'un mois futur n'y compte pas encore.
-  const cumulativeGap =
-    plannedCumulative - (linesConfirmed - withdrawnUntilNow);
+  const cumulativeGap = moneyDifference(
+    plannedCumulative,
+    linesConfirmed - withdrawnUntilNow,
+  );
 
   // 11. Date d'atteinte estimée au rythme confirmé (payDay-aware).
   const estimatedCompletion = computeEstimatedCompletion({

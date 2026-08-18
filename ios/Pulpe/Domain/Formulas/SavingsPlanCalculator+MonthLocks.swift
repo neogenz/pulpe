@@ -16,7 +16,7 @@ extension SavingsPlanCalculator {
     /// `isLocked` — a frozen month may still owe its unchecked forecast, which is
     /// why it must not be mistaken for an unavailable period.
     static func isPlanWithdrawalFrozenMonth(_ month: SavingsGoalPlanMonth) -> Bool {
-        month.planWithdrawalConsumedAmount > SavingsGoalProgress.withdrawalBalanceTolerance
+        month.planWithdrawalConsumedAmount.rounded(2) > 0
     }
 
     /// A month participates in global simulation and redistribution when it is

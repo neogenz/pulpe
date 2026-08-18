@@ -9,7 +9,10 @@ import {
 import { Router } from '@angular/router';
 import { describe, it, expect, vi } from 'vitest';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
-import type { BudgetLineConsumption } from '@core/budget';
+import {
+  calculateBudgetLineConsumption,
+  type BudgetLineConsumption,
+} from '@core/budget';
 import type { AllocatedTransactionsDialogData } from './dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { UserSettingsStore } from '@core/user-settings';
@@ -166,15 +169,55 @@ describe('AllocatedTransactionsBottomSheet', () => {
       expect(el.textContent).toContain('% utilisé');
     });
 
-    it('should show 0% when budget amount is 0', () => {
+    it('should show a round overage when the budget amount is 0', () => {
       setup({
         budgetLine: { amount: 0 },
         consumption: { consumed: 50 },
       });
 
       const el: HTMLElement = fixture.nativeElement;
-      expect(el.textContent).toContain('0');
-      expect(el.textContent).toContain('% utilisé');
+      expect(el.textContent).toContain('Dépassé de 80 CHF');
+      expect(el.textContent).not.toContain('80.00 CHF');
+    });
+
+    it('should show a cent-level overage instead of rounded zeroes', () => {
+      setup({
+        budgetLine: { amount: 58.5 },
+        transactions: [
+          buildTransaction({ id: 'tx-1', amount: 39.9 }),
+          buildTransaction({ id: 'tx-2', amount: 18.65 }),
+        ],
+      });
+
+      const text = (fixture.nativeElement.textContent as string).replace(
+        /\s+/g,
+        ' ',
+      );
+      expect(text).toContain('58.55 CHF');
+      expect(text).toContain('-0.05 CHF');
+      expect(text).toContain('Dépassé de 0.05 CHF');
+      expect(text).not.toContain('Dépassé de 0 CHF');
+    });
+
+    it('keeps a float-noisy equality visually neutral', () => {
+      const budgetLine = buildBudgetLine({ amount: 0.3 });
+      const transactions = [
+        buildTransaction({ id: 'tx-1', amount: 0.1 }),
+        buildTransaction({ id: 'tx-2', amount: 0.2 }),
+      ];
+
+      setup({
+        budgetLine,
+        transactions,
+        consumption: calculateBudgetLineConsumption(budgetLine, transactions),
+      });
+
+      const remaining: HTMLElement = fixture.nativeElement.querySelector(
+        '.grid.grid-cols-3 > div:last-child .ph-no-capture',
+      );
+      expect(remaining.textContent).toContain('0 CHF');
+      expect(remaining.classList.contains('text-error')).toBe(false);
+      expect(fixture.nativeElement.textContent).not.toContain('Dépassé');
     });
   });
 
