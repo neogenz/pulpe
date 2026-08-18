@@ -11,31 +11,27 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.44.0',
+  version: '0.45.0',
   features: {
     fr: [
-      'Ajoute l’argent d’un objectif comme revenu ce mois ou plus tard',
-      'Vois ce qui est déjà passé sur ton compte et ce qu’il te reste pour le mois',
-      'Annule aussitôt ce que tu viens de pointer ou de noter',
-      'Ajoute aux budgets déjà créés les versements prévus pour ton objectif',
+      'Pulpe dans quatre langues',
+      'Des montants exacts au centime',
+      'Connexion et préférences plus fiables',
     ],
     en: [
-      'Add money from a goal as income now or later',
-      'See what has already cleared and what remains for the month',
-      'Immediately undo the item you just checked off or added',
-      'Add planned goal contributions to budgets already created',
+      'Pulpe in four languages',
+      'Amounts accurate to the cent',
+      'More reliable sign-in and preferences',
     ],
     de: [
-      'Füge Geld aus einem Ziel jetzt oder später als Einnahme hinzu',
-      'Sieh, was bereits vom Konto abgegangen ist und was für den Monat bleibt',
-      'Mache einen gerade abgehakten oder erfassten Eintrag sofort rückgängig',
-      'Ergänze geplante Zielbeiträge in bereits erstellten Budgets',
+      'Pulpe in vier Sprachen',
+      'Beträge auf den Rappen genau',
+      'Zuverlässigere Anmeldung und Einstellungen',
     ],
     it: [
-      'Aggiungi il denaro di un obiettivo come entrata, ora o più avanti',
-      'Vedi ciò che è già passato sul conto e quanto resta per il mese',
-      'Annulla subito una voce appena spuntata o aggiunta',
-      'Aggiungi i versamenti previsti per un obiettivo ai budget già creati',
+      'Pulpe in quattro lingue',
+      'Importi precisi al centesimo',
+      'Accesso e preferenze più affidabili',
     ],
   },
 };
