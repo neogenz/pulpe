@@ -11,6 +11,7 @@ import { assertPrefixedLocale } from "@/lib/i18n";
 import { DE_ADVICE_SECTION_PATH } from "@/lib/routes";
 
 const COMPARISON_SLUG = "beste-budget-app-schweiz";
+const PREMIUMS_SLUG = "krankenkassenpraemien-budgetieren";
 
 type PageParams = { lang: string; slug: string };
 type LangParams = { params: { lang: string } | Promise<{ lang: string }> };
@@ -19,7 +20,7 @@ type GuidePageParams = { params: Promise<PageParams> };
 export async function generateStaticParams({ params }: LangParams) {
   const { lang } = await params;
   if (lang !== "de") return [];
-  return [{ slug: COMPARISON_SLUG }];
+  return DE_GUIDES.map((guide) => ({ slug: guide.slug }));
 }
 
 function resolveDeGuide(lang: string, slug: string) {
@@ -36,6 +37,18 @@ export async function generateMetadata({
   return guideMetadata(resolveDeGuide(lang, slug), DE_GUIDE_CHROME);
 }
 
+function DeRelatedGuides({ slugs }: { slugs: readonly string[] }) {
+  return (
+    <RelatedGuides
+      slugs={slugs}
+      resolve={getDeGuide}
+      sectionPath={DE_ADVICE_SECTION_PATH}
+      locale="de"
+      heading={DE_GUIDE_CHROME.relatedHeading}
+    />
+  );
+}
+
 const comparisonFaq = [
   {
     question: "Welche ist die beste Budget-App für die Schweiz?",
@@ -49,18 +62,28 @@ const comparisonFaq = [
   },
 ];
 
-export default async function DeBudgetGuidePage({ params }: GuidePageParams) {
-  const { lang, slug } = await params;
-  const guide = resolveDeGuide(lang, slug);
-  if (guide.slug !== COMPARISON_SLUG) notFound();
+const premiumsFaq = [
+  {
+    question: "Wie bildest du eine Rückstellung für die Prämienerhöhung?",
+    answer:
+      "Nimm die heutige Prämie, rechne die bekannte Erhöhung dazu, teile die Differenz durch die Monate bis Januar, und setze diesen Betrag als Planposten. Der Jahresbetrag bleibt gleich: du verteilst ihn nur.",
+  },
+  {
+    question: "Wie hoch ist die mittlere Krankenkassenprämie 2026?",
+    answer:
+      "393.30 CHF im Monat für Erwachsene und 326.30 CHF für 19- bis 25-Jährige, laut Bundesamt für Gesundheit. Die Erhöhung gegenüber 2025 beträgt 4,4 %.",
+  },
+  {
+    question:
+      "Musst du die Krankenkasse wechseln, um die Erhöhung aufzufangen?",
+    answer:
+      "Nein, das ist nicht das Thema dieser Seite. Ein Wechsel kann helfen, aber hier geht es um die Rückstellung in deiner Planung, damit Januar keine Überraschung wird.",
+  },
+];
 
+function ComparisonArticle() {
   return (
-    <ArticleLayout
-      guide={guide}
-      faq={comparisonFaq}
-      dict={await getDictionary("de")}
-      chrome={DE_GUIDE_CHROME}
-    >
+    <>
       <p>
         Welche Budget-App in der Schweiz zu dir passt, hängt davon ab, ob du das
         Jahr planen, den Haushalt führen oder Dateien importieren willst. Ein
@@ -156,13 +179,105 @@ export default async function DeBudgetGuidePage({ params }: GuidePageParams) {
         Ranking.
       </p>
 
-      <RelatedGuides
-        slugs={["krankenkassenpraemien-budgetieren"]}
-        resolve={getDeGuide}
-        sectionPath={DE_ADVICE_SECTION_PATH}
-        locale="de"
-        heading={DE_GUIDE_CHROME.relatedHeading}
-      />
+      <DeRelatedGuides slugs={[PREMIUMS_SLUG]} />
+    </>
+  );
+}
+
+function PremiumsArticle() {
+  return (
+    <>
+      <p>
+        Eine Prämienerhöhung verteilst du auf die Monate, die vor Januar noch
+        bleiben. Der Jahresbetrag bleibt gleich: du entscheidest nur, wann du
+        ihn zurücklegst.
+      </p>
+      <p>
+        Für 2026 liegt die mittlere Prämie der obligatorischen
+        Krankenversicherung bei{" "}
+        <mark className="marker-highlight tabular-nums">393.30&nbsp;CHF</mark>{" "}
+        im Monat für Erwachsene und bei{" "}
+        <mark className="marker-highlight tabular-nums">326.30&nbsp;CHF</mark>{" "}
+        für 19- bis 25-Jährige, laut{" "}
+        <a
+          href="https://www.bag.admin.ch/de/praemien-und-kosten-antworten-auf-haeufige-fragen"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Bundesamt für Gesundheit
+        </a>
+        . Die Erhöhung gegenüber 2025 beträgt 4,4&nbsp;%. Für junge Erwachsene
+        nennt das BAG die{" "}
+        <a
+          href="https://www.bag.admin.ch/de/newnsb/d2okh_kUK_OFhmMDfpyiy"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          326.30&nbsp;CHF
+        </a>{" "}
+        im Communiqué vom 23.09.2025.
+      </p>
+
+      <h2>So bildest du die Rückstellung</h2>
+      <p>
+        Nimm deine heutige Prämie. Rechne die bekannte Erhöhung dazu. Die
+        Differenz teilst du durch die Monate bis Januar. Dieser Betrag wird ein
+        Planposten, wie die Miete.
+      </p>
+      <p>
+        Beispiel: deine Prämie steigt von{" "}
+        <strong className="tabular-nums">380&nbsp;CHF</strong> auf{" "}
+        <strong className="tabular-nums">397&nbsp;CHF</strong>, also{" "}
+        <strong className="tabular-nums">17&nbsp;CHF</strong> mehr im Monat.
+        Startest du im September, bleiben vier Monate. 17 × 4 ={" "}
+        <strong className="tabular-nums">68&nbsp;CHF</strong> zum Verteilen,
+        oder du setzt ab sofort 17&nbsp;CHF mehr auf die Linie. Dann siehst du
+        das Verfügbar zum Ausgeben von Oktober bis Dezember schon mit dem
+        Januar-Niveau.
+      </p>
+      <p>
+        Dasselbe gilt für Steuern: eine bekannte Ausgabe, im Voraus gesetzt,
+        statt einer Rechnung, die auf einmal kommt.
+      </p>
+
+      <h2>Was diese Seite nicht behandelt</h2>
+      <p>
+        Prämienverbilligung und Priminfo sind nützlich, wenn du subventioniert
+        wirst oder die Kasse vergleichen willst. Das ist hier nicht das Thema:
+        es geht nur um die Rückstellung in deiner Planung.
+      </p>
+
+      <h2>Wo das in Pulpe landet</h2>
+      <p>
+        In Pulpe ist die Prämie ein wiederkehrender Planposten. Passt du den
+        Betrag an, rechnen die nächsten Monate neu. Du siehst das Verfügbar zum
+        Ausgeben von Januar, ohne auf Januar zu warten.
+      </p>
+
+      <DeRelatedGuides slugs={[COMPARISON_SLUG]} />
+    </>
+  );
+}
+
+export default async function DeBudgetGuidePage({ params }: GuidePageParams) {
+  const { lang, slug } = await params;
+  const guide = resolveDeGuide(lang, slug);
+  const faq = guide.slug === COMPARISON_SLUG ? comparisonFaq : premiumsFaq;
+  const body =
+    guide.slug === COMPARISON_SLUG ? (
+      <ComparisonArticle />
+    ) : (
+      <PremiumsArticle />
+    );
+
+  return (
+    <ArticleLayout
+      guide={guide}
+      faq={faq}
+      dict={await getDictionary("de")}
+      chrome={DE_GUIDE_CHROME}
+    >
+      {body}
     </ArticleLayout>
   );
 }

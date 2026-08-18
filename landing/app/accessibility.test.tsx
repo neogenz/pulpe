@@ -1469,7 +1469,12 @@ describe("landing accessibility contracts", () => {
     }
     assert.match(frDict.site.titleDefault, /App de budget/i);
     assert.match(frDict.site.titleDefault, /combien il te restera/i);
-    assert.doesNotMatch(frDict.site.titleDefault, /suisse/i);
+    for (const catalog of Object.values(CATALOGS)) {
+      assert.doesNotMatch(
+        catalog.site.titleDefault,
+        /suisse|schweiz|swiss|svizzera/i,
+      );
+    }
     assert.match(
       joined(frDict.home.finalCta),
       /Prépare ton année[\s\S]*Vois combien il te restera chaque mois/i,
@@ -1857,5 +1862,48 @@ describe("landing accessibility contracts", () => {
         assert.match(href, new RegExp(`[?&]lang=${locale}$`));
       }
     }
+  });
+
+  it("shows German guide links only on the German footer", () => {
+    for (const locale of LOCALES) {
+      const catalog = CATALOGS[locale];
+      const html = renderToStaticMarkup(
+        <Footer
+          dict={catalog.footer}
+          language={catalog.language}
+          locale={locale}
+          route={null}
+        />,
+      );
+      const hasComparison = html.includes("Beste Budget-App Schweiz");
+      const hasPremiums = html.includes("Krankenkassenprämien budgetieren");
+      if (locale === "de") {
+        assert.ok(hasComparison);
+        assert.ok(hasPremiums);
+        assert.match(
+          html,
+          /href="\/de\/budget-ratgeber\/beste-budget-app-schweiz"/,
+        );
+        assert.match(
+          html,
+          /href="\/de\/budget-ratgeber\/krankenkassenpraemien-budgetieren"/,
+        );
+        assert.ok(!html.includes("Conseils budget"));
+        assert.ok(!html.includes("Calculateur de budget"));
+      } else {
+        assert.ok(!hasComparison);
+        assert.ok(!hasPremiums);
+      }
+    }
+    const frenchFooter = renderToStaticMarkup(
+      <Footer
+        dict={frDict.footer}
+        language={frDict.language}
+        locale="fr"
+        route={null}
+      />,
+    );
+    assert.ok(frenchFooter.includes("Conseils budget"));
+    assert.ok(frenchFooter.includes("Calculateur de budget"));
   });
 });

@@ -9,6 +9,7 @@ import { socialPreviewImage } from "../../lib/metadata";
 import { DE_GUIDE_CHROME } from "./chrome";
 import { DE_GUIDES, getDeGuide } from "./guides.de";
 import { GUIDES, guideMetadata, type Guide } from "./guides";
+import sitemap from "../../app/sitemap";
 
 Object.assign(globalThis, { React });
 
@@ -355,7 +356,7 @@ describe("German budget comparison page", async () => {
   const graph = extractJsonLd(pageHtml)["@graph"];
   const articleLd = graph.find((node) => node["@type"] === "Article");
 
-  it("emits only the comparison slug for de, nothing for en or it", async () => {
+  it("emits every German registry slug for de, nothing for en or it", async () => {
     assert.deepEqual(
       await generateDeGuideStaticParams({ params: { lang: "en" } }),
       [],
@@ -367,9 +368,10 @@ describe("German budget comparison page", async () => {
     const deParams = await generateDeGuideStaticParams({
       params: { lang: "de" },
     });
-    assert.ok(
-      deParams.some((entry) => entry.slug === "beste-budget-app-schweiz"),
-    );
+    const emitted = new Set(deParams.map((entry) => entry.slug));
+    for (const entry of DE_GUIDES) {
+      assert.ok(emitted.has(entry.slug), entry.slug);
+    }
   });
 
   it("keeps a de-CH canonical without four-language alternates", async () => {
@@ -403,6 +405,7 @@ describe("German budget comparison page", async () => {
     );
     assert.doesNotMatch(pageHtml, /Transaktion/);
     assert.ok(!pageHtml.includes("Publié le"));
+    assert.match(pageHtml, /krankenkassenpraemien-budgetieren/);
   });
 
   it("emits Article JSON-LD in de-CH", () => {
@@ -412,5 +415,72 @@ describe("German budget comparison page", async () => {
       articleLd.url,
       "https://pulpe.app/de/budget-ratgeber/beste-budget-app-schweiz",
     );
+  });
+});
+
+describe("German health-premiums guide", async () => {
+  const pageHtml = renderToStaticMarkup(
+    await DeComparisonPage({
+      params: Promise.resolve({
+        lang: "de",
+        slug: "krankenkassenpraemien-budgetieren",
+      }),
+    }),
+  );
+  const articleHtml = pageHtml.match(/<article[\s\S]*<\/article>/)?.[0];
+  const graph = extractJsonLd(pageHtml)["@graph"];
+  const articleLd = graph.find((node) => node["@type"] === "Article");
+
+  it("cites BAG 2026 figures next to a bag.admin.ch source", () => {
+    assert.ok(articleHtml, "the page must render an <article>");
+    assert.ok(articleHtml.includes("393.30"));
+    assert.ok(articleHtml.includes("326.30"));
+    assert.ok(articleHtml.includes("4,4"));
+    assert.match(articleHtml, /bag\.admin\.ch/);
+    assert.match(articleHtml, /Rückstellung/);
+    assert.ok(articleHtml.includes("380"));
+    assert.ok(articleHtml.includes("397"));
+    assert.ok(articleHtml.includes("17"));
+    assert.match(articleHtml, /vier Monate|17 × 4|17 × 4/);
+    assert.doesNotMatch(pageHtml, /Transaktion/);
+    assert.doesNotMatch(articleHtml, /\bSie\b/);
+    assert.match(articleHtml, /\b[Dd]u\b|\bdein/);
+  });
+
+  it("keeps de-CH chrome, links the comparison, and omits French hreflang", async () => {
+    assert.equal(pageHtml.match(/<h1[\s>]/g)?.length, 1);
+    assert.ok(articleLd, "Article node is missing from the JSON-LD graph");
+    assert.equal(articleLd.inLanguage, "de-CH");
+    assert.ok(!pageHtml.includes("Publié le"));
+    assert.ok(!pageHtml.includes("Conseils budget"));
+    assert.match(pageHtml, /\/de\/budget-ratgeber\/beste-budget-app-schweiz/);
+    const metadata = await generateDeGuideMetadata({
+      params: Promise.resolve({
+        lang: "de",
+        slug: "krankenkassenpraemien-budgetieren",
+      }),
+    });
+    assert.equal(
+      metadata.alternates?.canonical,
+      "/de/budget-ratgeber/krankenkassenpraemien-budgetieren",
+    );
+    assert.equal(metadata.alternates?.languages, undefined);
+  });
+});
+
+describe("German advice discovery", () => {
+  it("lists both German URLs in the sitemap without alternates", () => {
+    const entries = sitemap();
+    for (const slug of [
+      "beste-budget-app-schweiz",
+      "krankenkassenpraemien-budgetieren",
+    ]) {
+      const entry = entries.find(
+        (candidate) =>
+          candidate.url === `https://pulpe.app/de/budget-ratgeber/${slug}`,
+      );
+      assert.ok(entry, slug);
+      assert.equal(entry.alternates, undefined);
+    }
   });
 });
