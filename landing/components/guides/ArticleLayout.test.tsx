@@ -28,6 +28,11 @@ const { default: BudgetSuisseGuidePage } =
   await import("../../app/(fr)/conseils-budget/comment-faire-son-budget-en-suisse/page");
 const { generateMetadata: guidesIndexMetadata } =
   await import("../../app/(fr)/conseils-budget/page");
+const {
+  default: DeComparisonPage,
+  generateStaticParams: generateDeGuideStaticParams,
+  generateMetadata: generateDeGuideMetadata,
+} = await import("../../app/[lang]/budget-ratgeber/[slug]/page");
 
 const sources = {
   articleLayout: readFileSync(
@@ -334,5 +339,78 @@ describe("guide article layout contract", async () => {
     ].join(" ");
     assert.doesNotMatch(chromeCopy, /\bSie\b/);
     assert.doesNotMatch(chromeCopy, /Transaktion/);
+  });
+});
+
+describe("German budget comparison page", async () => {
+  const pageHtml = renderToStaticMarkup(
+    await DeComparisonPage({
+      params: Promise.resolve({
+        lang: "de",
+        slug: "beste-budget-app-schweiz",
+      }),
+    }),
+  );
+  const articleHtml = pageHtml.match(/<article[\s\S]*<\/article>/)?.[0];
+  const graph = extractJsonLd(pageHtml)["@graph"];
+  const articleLd = graph.find((node) => node["@type"] === "Article");
+
+  it("emits only the comparison slug for de, nothing for en or it", async () => {
+    assert.deepEqual(
+      await generateDeGuideStaticParams({ params: { lang: "en" } }),
+      [],
+    );
+    assert.deepEqual(
+      await generateDeGuideStaticParams({ params: { lang: "it" } }),
+      [],
+    );
+    const deParams = await generateDeGuideStaticParams({
+      params: { lang: "de" },
+    });
+    assert.ok(
+      deParams.some((entry) => entry.slug === "beste-budget-app-schweiz"),
+    );
+  });
+
+  it("keeps a de-CH canonical without four-language alternates", async () => {
+    const metadata = await generateDeGuideMetadata({
+      params: Promise.resolve({
+        lang: "de",
+        slug: "beste-budget-app-schweiz",
+      }),
+    });
+    assert.equal(
+      metadata.alternates?.canonical,
+      "/de/budget-ratgeber/beste-budget-app-schweiz",
+    );
+    assert.equal(metadata.alternates?.languages, undefined);
+  });
+
+  it("answers with Budget-App Schweiz, a Deutsch column, and a Pulpe limit", () => {
+    assert.equal(pageHtml.match(/<h1[\s>]/g)?.length, 1);
+    assert.match(
+      pageHtml,
+      /<h1[^>]*>[\s\S]*Budget-App[\s\S]*Schweiz[\s\S]*<\/h1>/,
+    );
+    assert.ok(articleHtml, "the page must render an <article>");
+    assert.match(articleHtml, /<th[^>]*>Deutsch<\/th>/);
+    assert.doesNotMatch(articleHtml, /Français/);
+    assert.ok(articleHtml.includes("Pulpe"));
+    assert.ok(articleHtml.includes("BudgetCH") || articleHtml.includes("YNAB"));
+    assert.match(
+      articleHtml,
+      /Bankensynchronisation|Haushaltsbudget|junges Produkt/,
+    );
+    assert.doesNotMatch(pageHtml, /Transaktion/);
+    assert.ok(!pageHtml.includes("Publié le"));
+  });
+
+  it("emits Article JSON-LD in de-CH", () => {
+    assert.ok(articleLd, "Article node is missing from the JSON-LD graph");
+    assert.equal(articleLd.inLanguage, "de-CH");
+    assert.equal(
+      articleLd.url,
+      "https://pulpe.app/de/budget-ratgeber/beste-budget-app-schweiz",
+    );
   });
 });
