@@ -644,6 +644,11 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
  */
 export const SILENT_IOS_RELEASES: readonly SilentIosReleaseEntry[] = [
   {
+    version: '0.45.1',
+    reason:
+      'Hotfix 1.4.1 limité à la fluidité du scroll vertical de l’accueil : ne pas interrompre à nouveau les utilisateurs et conserver la feuille complète des nouveautés 1.4.0 pour ceux qui ne l’ont pas encore vue',
+  },
+  {
     version: '0.42.0',
     reason:
       'Décision éditoriale : la seule correction iOS visible est le lien de réinitialisation du mot de passe qui ouvre désormais l’app, publiée sur le changelog public mais trop ponctuelle pour interrompre les utilisateurs au lancement ; le reste de la release est du durcissement invisible',
