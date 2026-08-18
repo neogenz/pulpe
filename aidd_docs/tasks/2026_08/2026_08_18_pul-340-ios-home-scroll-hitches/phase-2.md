@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: isoler la hauteur mint hors du body de l’accueil
@@ -101,3 +101,9 @@ flowchart TD
 | 1 | Aucune lecture de `tracker.height` (ni d’un `@State` équivalent) dans `CurrentMonthView.body`. |
 | 2 | Au scroll, la mint s’arrête toujours au bas du hero, coins et ombre inchangés ; le carrousel n’est pas modifié. |
 | 3 | Les tests du tracker passent sous `PulpeTests`. |
+
+## Outcome
+
+- `CurrentMonthView` possède `HomeHeroSurfaceTracker` en `@State` et ne lit plus `height` (seul un commentaire le nomme). Loaded et skeleton appellent `tracker.update` depuis `onGeometryChange`.
+- `HomeHeroSurfaceBackground` est le seul lecteur : gradient, coins `zone`, ombre `zoneBoundary`. `UncheckedOperationsCard` n’est pas modifié.
+- `PulpeTests/HomeHeroSurfaceTrackerTests` : 3 tests passés (`update` publie, no-op sans notification Observation, hauteur négative clampée à 0).
