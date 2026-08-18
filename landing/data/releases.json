@@ -1,5 +1,62 @@
 [
   {
+    "version": "0.45.1",
+    "iosVersion": "1.4.1",
+    "date": "2026-08-18",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.45.1",
+    "platforms": [
+      "ios"
+    ],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Accueil plus fluide",
+          "description": "Le défilement vertical de l’accueil est désormais plus fluide."
+        }
+      ],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Smoother home screen",
+              "description": "Vertical scrolling on the home screen is now smoother."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Flüssigere Startseite",
+              "description": "Das vertikale Scrollen auf der Startseite ist jetzt flüssiger."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Home più fluida",
+              "description": "Lo scorrimento verticale della schermata Home è ora più fluido."
+            }
+          ],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
     "version": "0.45.0",
     "iosVersion": "1.4.0",
     "date": "2026-08-18",

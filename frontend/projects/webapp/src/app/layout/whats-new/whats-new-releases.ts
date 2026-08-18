@@ -45,6 +45,11 @@ export function featuresForLocale(locale: string): readonly string[] {
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {
+    version: '0.45.1',
+    reason:
+      'Hotfix exclusivement iOS pour la fluidité du scroll vertical de l’accueil, sans changement visible dans la webapp',
+  },
+  {
     version: '0.37.1',
     reason:
       'Omission historique acceptée après publication, sans rejouer le toast',
