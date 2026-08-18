@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: vérifier l’absence de hitch et consigner le non-régression
@@ -58,3 +58,9 @@ flowchart TD
 | 1 | La trace Release post-fix montre le vertical au niveau du témoin horizontal, sur le même scénario qu’en phase 1. |
 | 2 | Aucun changement hors du calque mint / tracker sauf si Instruments le désigne nommément. |
 | 3 | PUL-340 contient le diagnostic, le correctif retenu et le scénario de non-régression ; aucune télémétrie permanente n’a été ajoutée. |
+
+## Outcome
+
+- Diff borné au tracker, au calque mint, au callback skeleton, et aux tests du tracker. `UncheckedOperationsCard`, `HomeHeroCard`, Chart, TipKit, Activity : inchangés. Aucun compteur DEBUG, aucun event PostHog.
+- Scénario de non-régression et résumé du correctif collés sur [PUL-340](https://linear.app/pulpe/issue/PUL-340/diagnostiquer-les-micro-saccades-du-scroll-vertical-de-laccueil-ios).
+- Hitch count Release sur appareil : à coller sur le ticket après replay (pas d’iPhone depuis l’agent). Les tests du tracker couvrent la politique d’écriture.
