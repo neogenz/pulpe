@@ -200,7 +200,7 @@ jobs:
       RAILWAY_PRODUCTION_ENVIRONMENT: a28b6826-ecbe-4c0f-9856-e0ba3ce14e93
       RAILWAY_SERVICE: b1f9b1c0-7eca-4c58-b203-cdbbed8ae0a4
     steps:
-      - name: Wait for exact production deployments
+      - name: Wait for exact Vercel production deployments
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -214,23 +214,19 @@ jobs:
             test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$GITHUB_SHA"
             frontend_id=$(deployment "Production – pulpe-frontend" "vercel[bot]")
             landing_id=$(deployment "Production – pulpe-landing" "vercel[bot]")
-            railway_id=$(deployment "pulpe-backend / production" "railway-app[bot]")
             frontend_state=${frontend_id:+$(state "$frontend_id")}
             landing_state=${landing_id:+$(state "$landing_id")}
-            railway_state=${railway_id:+$(state "$railway_id")}
-            case "$frontend_state $landing_state $railway_state" in *error*|*failure*) exit 1 ;; esac
-            if [ "$frontend_state" = success ] && [ "$landing_state" = success ] && [ "$railway_state" = success ]; then break; fi
+            case "$frontend_state $landing_state" in *error*|*failure*) exit 1 ;; esac
+            if [ "$frontend_state" = success ] && [ "$landing_state" = success ]; then break; fi
             sleep 10
           done
-          test "$frontend_state $landing_state $railway_state" = "success success success"
+          test "$frontend_state $landing_state" = "success success"
           curl --fail --silent --show-error --location --max-time 20 https://app.pulpe.app/ >/dev/null
           curl --fail --silent --show-error --location --max-time 20 https://pulpe.app/ >/dev/null
-          curl --fail --silent --show-error --location --max-time 20 https://api.pulpe.app/health >/dev/null
           test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$GITHUB_SHA"
           {
             echo "FRONTEND_DEPLOYMENT_ID=$frontend_id"
             echo "LANDING_DEPLOYMENT_ID=$landing_id"
-            echo "RAILWAY_DEPLOYMENT_ID=$railway_id"
           } >> "$GITHUB_ENV"
 
       - name: 📥 Checkout proven production tree
@@ -276,6 +272,7 @@ jobs:
 
       - name: Verify Railway credentials and active production deployment
         env:
+          GH_TOKEN: ${{ github.token }}
           PREVIEW_TOKEN: ${{ secrets.RAILWAY_PREVIEW_TOKEN }}
           PRODUCTION_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
@@ -288,13 +285,13 @@ jobs:
             jq -e 'type == "object"' "$RUNNER_TEMP/railway-$environment.json" >/dev/null
           done
           deployments="$RUNNER_TEMP/railway-active-production.json"
-          railway deployment list --project "$RAILWAY_PROJECT" --environment production --service "$RAILWAY_SERVICE" --limit 10 --json > "$deployments"
+          railway deployment list --project "$RAILWAY_PROJECT" --environment production --service "$RAILWAY_SERVICE" --limit 50 --json > "$deployments"
           if jq -e --arg sha "$GITHUB_SHA" '.[0].status == "SUCCESS" and .[0].meta.commitHash == $sha and .[0].meta.branch == "main"' "$deployments" >/dev/null; then
             active_id=$(jq -r '.[0].id' "$deployments")
           else
             active_id=$(jq -n --arg sha "$GITHUB_SHA" --arg environment "$RAILWAY_PRODUCTION_ENVIRONMENT" --arg service "$RAILWAY_SERVICE" '{query:"mutation($sha:String!,$environment:String!,$service:String!){serviceInstanceDeployV2(commitSha:$sha,environmentId:$environment,serviceId:$service)}",variables:{sha:$sha,environment:$environment,service:$service}}' | curl --fail --silent --show-error --connect-timeout 5 --max-time 20 -A "railwayapp/$RAILWAY_CLI_VERSION" https://backboard.railway.app/graphql/v2 -H "project-access-token: $RAILWAY_TOKEN" -H 'x-source: railway-cli' -H 'Content-Type: application/json' --data-binary @- | jq -er 'if .errors then error(.errors | tostring) else .data.serviceInstanceDeployV2 end')
             for _ in {1..90}; do
-              railway deployment list --project "$RAILWAY_PROJECT" --environment production --service "$RAILWAY_SERVICE" --limit 10 --json > "$deployments"
+              railway deployment list --project "$RAILWAY_PROJECT" --environment production --service "$RAILWAY_SERVICE" --limit 50 --json > "$deployments"
               status=$(jq -r --arg id "$active_id" '.[] | select(.id == $id) | .status // empty' "$deployments")
               case "$status" in FAILED|CRASHED|REMOVED|CANCELED|SKIPPED) exit 1 ;; SUCCESS) break ;; esac
               sleep 10
@@ -302,7 +299,13 @@ jobs:
           fi
           test -n "$active_id"
           jq -e --arg id "$active_id" --arg sha "$GITHUB_SHA" '.[0].id == $id and .[0].status == "SUCCESS" and .[0].meta.commitHash == $sha and .[0].meta.branch == "main"' "$deployments" >/dev/null
-          echo "ACTIVE_RAILWAY_DEPLOYMENT_ID=$active_id" >> "$GITHUB_ENV"
+          railway_status_id=$(gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f environment="pulpe-backend / production" -f sha="$GITHUB_SHA" -f per_page=100 | jq -r '[.[] | select(.creator.login == "railway-app[bot]")] | max_by(.id) | .id // empty')
+          test -n "$railway_status_id"
+          curl --fail --silent --show-error --location --max-time 20 https://api.pulpe.app/health >/dev/null
+          {
+            echo "ACTIVE_RAILWAY_DEPLOYMENT_ID=$active_id"
+            echo "RAILWAY_DEPLOYMENT_ID=$railway_status_id"
+          } >> "$GITHUB_ENV"
 
       - name: Record immutable production proof
         run: |
