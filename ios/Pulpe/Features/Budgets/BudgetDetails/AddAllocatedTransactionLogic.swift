@@ -70,8 +70,10 @@ enum AddAllocatedTransactionLogic {
         name: String
     ) -> String? {
         guard !canSubmit, !isLoading, hasStartedFilling else { return nil }
-        if (amount ?? 0) <= 0 { return "Ajoute un montant" }
-        if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Ajoute une description" }
+        if (amount ?? 0) <= 0 { return AppLocale.string("Ajoute un montant") }
+        if name.trimmingCharacters(in: .whitespaces).isEmpty {
+            return AppLocale.string("Ajoute une description")
+        }
         return nil
     }
 

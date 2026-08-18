@@ -71,9 +71,9 @@ struct CurrentMonthView: View {
             case .empty:
                 PulpeEmptyState(
                     systemImage: "calendar.badge.plus",
-                    title: "Pas encore de budget ce mois-ci",
-                    message: "Crée-le pour voir ton tableau de bord",
-                    actionTitle: "Créer un budget",
+                    title: AppLocale.string("Pas encore de budget ce mois-ci"),
+                    message: AppLocale.string("Crée-le pour voir ton tableau de bord"),
+                    actionTitle: AppLocale.string("Créer un budget"),
                     isActionEnabled: canCreateBudget
                 ) {
                     activeSheet = .createBudget
@@ -104,6 +104,7 @@ struct CurrentMonthView: View {
                     )
                 }
                 .accessibilityLabel("Mon compte")
+                .accessibilityIdentifier("homeAccountButton")
             }
         }
         .sheet(item: $activeSheet) { sheet in
@@ -263,14 +264,14 @@ struct CurrentMonthView: View {
                             }
                             if didSucceed {
                                 toastManager.showWithUndo(
-                                    "\(item.name) pointé",
+                                    AppLocale.string("\(item.name) pointé"),
                                     undo: { await undoToggle(item) },
                                     onFinishedWithoutUndo: {}
                                 )
                                 await maybePrimeReminders()
                             } else {
                                 toastManager.show(
-                                    "\(item.name) n'a pas pu être pointé — réessaie",
+                                    AppLocale.string("\(item.name) n'a pas pu être pointé — réessaie"),
                                     type: .error
                                 )
                             }
@@ -326,6 +327,7 @@ struct CurrentMonthView: View {
         }
         .primaryButtonStyle()
         .accessibilityLabel("Ajouter une opération")
+        .accessibilityIdentifier("homeAddOperationButton")
     }
 }
 
@@ -354,8 +356,8 @@ extension CurrentMonthView {
                 .frame(height: max(0, heroSurfaceBottom))
                 .clipShape(
                     .rect(
-                        bottomLeadingRadius: DesignTokens.CornerRadius.lg,
-                        bottomTrailingRadius: DesignTokens.CornerRadius.lg
+                        bottomLeadingRadius: DesignTokens.CornerRadius.zone,
+                        bottomTrailingRadius: DesignTokens.CornerRadius.zone
                     )
                 )
                 .shadow(DesignTokens.Shadow.zoneBoundary)
@@ -382,7 +384,7 @@ extension CurrentMonthView {
         }
         if !didSucceed {
             toastManager.show(
-                "\(item.name) n'a pas pu être annulé — réessaie depuis le budget",
+                AppLocale.string("\(item.name) n'a pas pu être annulé — réessaie depuis le budget"),
                 type: .error
             )
         }

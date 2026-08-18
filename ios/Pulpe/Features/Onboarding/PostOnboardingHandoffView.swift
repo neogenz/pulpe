@@ -38,15 +38,23 @@ struct PostOnboardingHandoffView: View {
             VStack(spacing: DesignTokens.Spacing.lg) {
                 handoffRow(
                     icon: "checkmark.circle",
-                    title: "Pointe tes dépenses",
-                    message: "Dès que tu dépenses, pointe-le en un tap. 10 secondes, "
-                        + "et ton « disponible à dépenser » reste toujours juste."
+                    title: AppLocale.string("Pointe tes dépenses"),
+                    message: AppLocale.string(
+                        """
+                        Dès que tu dépenses, pointe-le en un tap. 10 secondes, \
+                        et ton « disponible à dépenser » reste toujours juste.
+                        """
+                    )
                 )
                 handoffRow(
                     icon: "lock.rectangle.on.rectangle",
-                    title: "Garde-le sous les yeux",
-                    message: "Ajoute le widget Pulpe à ton écran verrouillé : "
-                        + "tu vois ton disponible sans même ouvrir l'app."
+                    title: AppLocale.string("Garde-le sous les yeux"),
+                    message: AppLocale.string(
+                        """
+                        Ajoute le widget Pulpe à ton écran verrouillé : \
+                        tu vois ton disponible sans même ouvrir l'app.
+                        """
+                    )
                 )
             }
 

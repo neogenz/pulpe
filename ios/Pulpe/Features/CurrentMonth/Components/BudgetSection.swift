@@ -77,6 +77,7 @@ struct BudgetSection: View {
         Section {
             if let tip {
                 TipView(tip)
+                    .pulpeTipBackground()
                     .listRowSeparator(.hidden)
             }
 
@@ -100,7 +101,7 @@ struct BudgetSection: View {
 
             expandCollapseButton
         } header: {
-            SectionHeader(
+            CountedSectionHeader(
                 title: title,
                 count: items.count,
                 totalAmount: totalAmount,
@@ -246,12 +247,10 @@ struct BudgetLineRow: View {
     }
 
     private var remainingAmountText: String {
-        // Income & savings: show planned amount with sign (+/-)
-        guard line.kind == .expense else {
-            return line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency)
-        }
-        // Expenses: always show with - sign (money going out)
-        return consumption.available.asSignedAmount(for: line.kind, in: userSettingsStore.currency)
+        let amount = (line.kind == .expense ? consumption.available : line.amount).rounded(2)
+        guard amount != 0 else { return amount.asAdaptiveAmount(for: userSettingsStore.currency) }
+        let sign = line.kind == .income ? "+" : "-"
+        return "\(sign)\(amount.absoluteValue.asAdaptiveAmount(for: userSettingsStore.currency))"
     }
 
     private var linkedTransactions: [Transaction] {
@@ -264,11 +263,13 @@ struct BudgetLineRow: View {
         consumption: BudgetFormulas.Consumption,
         currency: SupportedCurrency
     ) -> String {
-        let spent = consumption.allocated.asCurrency(currency)
-        if consumption.available < 0 {
-            return "\(spent) dépensés · Dépassé de \((-consumption.available).asCompactCurrency(currency))"
+        let spent = consumption.allocated.rounded(2).asAdaptiveCurrency(currency)
+        let available = consumption.available.rounded(2)
+        if available < 0 {
+            let overrun = (-available).asAdaptiveCurrency(currency)
+            return AppLocale.string("\(spent) dépensés · Dépassé de \(overrun)")
         }
-        return "\(spent) dépensés · \(Int(consumption.percentage.rounded()))% utilisé"
+        return AppLocale.string("\(spent) dépensés · \(Int(consumption.percentage.rounded()))% utilisé")
     }
 
     var body: some View {
@@ -347,13 +348,17 @@ struct BudgetLineRow: View {
             view
                 .accessibilityAddTraits(.isButton)
                 .accessibilityAction { onAdd() }
-                .accessibilityHint(
-                    hasConsumption
-                        ? "Montant restant: \(consumption.available.asCurrency(userSettingsStore.currency)). " +
-                          "Touche pour noter un montant, maintiens pour voir les mouvements"
-                        : "Touche pour noter un montant, maintiens pour voir les mouvements"
-                )
+                .accessibilityHint(addTransactionHint)
         }
+    }
+
+    /// Whole sentences per variant rather than a concatenation: `+` on two literals binds
+    /// the verbatim `Text`/hint overload, which the string extractor never sees.
+    private var addTransactionHint: String {
+        let gesture = AppLocale.string("Touche pour noter un montant, maintiens pour voir les mouvements")
+        guard hasConsumption else { return gesture }
+        let remaining = consumption.available.asCurrency(userSettingsStore.currency)
+        return AppLocale.string("Montant restant: \(remaining).") + " " + gesture
     }
 
     // MARK: - Kind Icon Circle (Revolut-style)

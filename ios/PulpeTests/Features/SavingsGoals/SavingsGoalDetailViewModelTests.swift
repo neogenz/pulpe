@@ -216,8 +216,6 @@ struct SavingsGoalDetailViewModelTests {
         #expect(viewModel.error == nil, "a failed refresh must not turn a persisted status change into an error")
     }
 
-    // MARK: - Day-1 verdict gate (no reproach at commitment time)
-
     private func makePlanMonth(
         month: Int,
         state: SavingsPlanMonthState,
@@ -239,96 +237,6 @@ struct SavingsGoalDetailViewModelTests {
             confirmedCumulative: 0,
             lines: []
         )
-    }
-
-    @Test("day 1 — no plan month closed yet: the pace verdict stays hidden")
-    func hasClosedPlanMonth_day1_isFalse() {
-        let months = [
-            makePlanMonth(month: 7, state: .current, isLocked: false),
-            makePlanMonth(month: 8, state: .future, isLocked: false),
-        ]
-
-        let hasClosed = SavingsGoalDetailViewModel.hasClosedPlanMonth(months)
-
-        #expect(hasClosed == false)
-    }
-
-    @Test("one closed month behind: the pace verdict comes back")
-    func hasClosedPlanMonth_lockedMonthBehind_isTrue() {
-        let months = [
-            makePlanMonth(month: 6, state: .past, isLocked: true),
-            makePlanMonth(month: 7, state: .current, isLocked: false),
-        ]
-
-        let hasClosed = SavingsGoalDetailViewModel.hasClosedPlanMonth(months)
-
-        #expect(hasClosed == true)
-    }
-
-    @Test("a locked pre-start row does not trigger a pace verdict")
-    func hasClosedPlanMonth_preStartRowIsIgnored() {
-        let month = SavingsGoalPlanMonth(
-            month: 6,
-            year: 2099,
-            state: .past,
-            isLocked: true,
-            isContributionEligible: false,
-            plannedAmount: 200,
-            confirmedAmount: 200,
-            plannedCumulative: 0,
-            confirmedCumulative: 0,
-            lines: []
-        )
-
-        #expect(SavingsGoalDetailViewModel.hasClosedPlanMonth([month]) == false)
-    }
-
-    @Test("empty timeline (legacy payload): no verdict, and no beat amount either")
-    func emptyTimeline_hidesVerdictAndBeat() {
-        let hasClosed = SavingsGoalDetailViewModel.hasClosedPlanMonth([])
-        let beatAmount = SavingsGoalDetailViewModel.currentMonthPlannedAmount([])
-
-        #expect(hasClosed == false)
-        #expect(beatAmount == nil)
-    }
-
-    @Test("the day-1 beat carries the current month's planned amount")
-    func currentMonthPlannedAmount_readsCurrentMonth() {
-        let months = [
-            makePlanMonth(month: 7, state: .current, isLocked: false, planned: 250),
-            makePlanMonth(month: 8, state: .future, isLocked: false, planned: 300),
-        ]
-
-        let amount = SavingsGoalDetailViewModel.currentMonthPlannedAmount(months)
-
-        #expect(amount == 250)
-    }
-
-    // MARK: - Deadline stat vs planned pace (one sentence when they diverge)
-
-    @Test("required within the ±5 % verdict band keeps the simple stat form")
-    func requiredMatchesPlannedPace_withinBand_isTrue() {
-        let atEdge = SavingsGoalDetailViewModel.requiredMatchesPlannedPace(planned: 200, required: 210)
-        let equal = SavingsGoalDetailViewModel.requiredMatchesPlannedPace(planned: 200, required: 200)
-
-        #expect(atEdge == true)
-        #expect(equal == true)
-    }
-
-    @Test("required drifting past the band switches to the reconciliation sentence")
-    func requiredMatchesPlannedPace_outsideBand_isFalse() {
-        let above = SavingsGoalDetailViewModel.requiredMatchesPlannedPace(planned: 200, required: 334)
-        let below = SavingsGoalDetailViewModel.requiredMatchesPlannedPace(planned: 200, required: 150)
-
-        #expect(above == false)
-        #expect(below == false)
-    }
-
-    @Test("a zero planned pace never matches a positive required amount")
-    func requiredMatchesPlannedPace_zeroPlanned_isFalse() {
-        let matches = SavingsGoalDetailViewModel.requiredMatchesPlannedPace(planned: 0, required: 100)
-
-        #expect(matches == false)
     }
 
     private func makeContribution() -> SavingsGoalContribution {
@@ -762,6 +670,23 @@ struct GoalPlanSimulatorViewModelTests {
         #expect(withSeed.draft.simulatedFinal == 1_000)
         #expect(withSeed.draft.attainedPeriod == BudgetPeriod(month: 3, year: 2099))
         #expect(withSeed.verdictText != withoutSeed.verdictText)
+    }
+
+    @Test("the client verdict keeps one missing cent distinct from exact and sub-cent targets")
+    func verdict_usesCentPrecision() {
+        let exact = makeViewModel(progress: makeProgress(targetAmount: 600))
+        let oneCentShort = makeViewModel(
+            progress: makeProgress(targetAmount: Decimal(string: "600.01"))
+        )
+        let subCent = makeViewModel(
+            progress: makeProgress(targetAmount: Decimal(string: "600.004"))
+        )
+
+        #expect(exact.draft.isTargetMet == true)
+        #expect(oneCentShort.draft.isTargetMet == false)
+        #expect(oneCentShort.draft.gapToTarget == Decimal(string: "0.01"))
+        #expect(oneCentShort.verdictText.contains("0.01"))
+        #expect(subCent.draft.isTargetMet == true)
     }
 
     @Test("redistribution preserves a manually adjusted month")

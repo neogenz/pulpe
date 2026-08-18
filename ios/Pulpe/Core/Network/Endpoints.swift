@@ -86,7 +86,7 @@ enum Endpoint {
 
     // MARK: - What's New
 
-    case whatsNewIos(currentVersion: String, lastSeenVersion: String)
+    case whatsNewIos(currentVersion: String, lastSeenVersion: String, locale: SupportedLocale)
 
     // MARK: - Encryption
 
@@ -254,11 +254,12 @@ enum Endpoint {
                 components?.queryItems = [URLQueryItem(name: "targetDate", value: targetDate)]
                 url = components?.url ?? url
             }
-        case let .whatsNewIos(currentVersion, lastSeenVersion):
+        case let .whatsNewIos(currentVersion, lastSeenVersion, locale):
             var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             components?.queryItems = [
                 URLQueryItem(name: "currentVersion", value: currentVersion),
                 URLQueryItem(name: "lastSeenVersion", value: lastSeenVersion),
+                URLQueryItem(name: "locale", value: locale.rawValue),
             ]
             url = components?.url ?? url
         default:

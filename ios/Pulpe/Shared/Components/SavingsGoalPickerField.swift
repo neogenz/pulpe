@@ -53,15 +53,17 @@ struct SavingsGoalPickerField: View {
         /// What the goal holds once this income is taken out.
         var remainingAmount: Decimal? {
             guard let selectedOption, let withdrawalAmount else { return nil }
-            return selectedOption.availableAmount - withdrawalAmount
+            return (
+                selectedOption.availableAmount.rounded(2)
+                    - withdrawalAmount.rounded(2)
+            ).rounded(2)
         }
 
-        /// Même bande que le serveur, qui accepte `debit <= disponible +
-        /// tolérance`. Plus serré ici, le pré-contrôle refuserait des retraits
-        /// que la requête aurait acceptés — vider un pot exactement, d'abord.
+        /// Même écart au centime que le serveur : plafond, aperçu et validation
+        /// décrivent exactement le même solde.
         var hasInsufficientBalance: Bool {
             guard let remainingAmount else { return false }
-            return remainingAmount < -SavingsGoalProgress.withdrawalBalanceTolerance
+            return remainingAmount < 0
         }
 
         var isReady: Bool {
@@ -218,7 +220,7 @@ struct SavingsGoalPickerField: View {
 
     private var menuContent: some View {
         Menu {
-            savingsGoalPickerButton(title: "Aucun objectif", isSelected: selection == nil) {
+            savingsGoalPickerButton(title: AppLocale.string("Aucun objectif"), isSelected: selection == nil) {
                 pickedHere = true
                 selection = nil
             }
@@ -227,7 +229,9 @@ struct SavingsGoalPickerField: View {
                 if let deadline = exceededDeadline(for: goal) {
                     savingsGoalPickerButton(
                         title: goal.name,
-                        subtitle: "Échéance dépassée · \(Formatters.monthName(for: deadline.month)) \(deadline.year)",
+                        subtitle: AppLocale.string(
+                            "Échéance dépassée · \(Formatters.monthName(for: deadline.month)) \(deadline.year)"
+                        ),
                         isSelected: goal.id == selection
                     ) {}
                     .disabled(true)
@@ -240,7 +244,7 @@ struct SavingsGoalPickerField: View {
             }
         } label: {
             savingsGoalFieldSurface {
-                Text(selectedGoal?.name ?? "Aucun objectif")
+                Text(selectedGoal?.name ?? AppLocale.string("Aucun objectif"))
                     .foregroundStyle(selectedGoal == nil ? Color.onSurfaceVariant : Color.textPrimary)
                 Spacer()
                 Image(systemName: "chevron.up.chevron.down")
@@ -249,7 +253,7 @@ struct SavingsGoalPickerField: View {
             }
         }
         .accessibilityLabel("Objectif d'épargne")
-        .accessibilityValue(selectedGoal?.name ?? "Aucun objectif")
+        .accessibilityValue(selectedGoal?.name ?? AppLocale.string("Aucun objectif"))
     }
 }
 
@@ -323,7 +327,7 @@ private struct SavingsGoalWithdrawalPicker: View {
             }
         } label: {
             savingsGoalFieldSurface {
-                Text(state.selectedOption?.name ?? "Choisis un objectif")
+                Text(state.selectedOption?.name ?? AppLocale.string("Choisis un objectif"))
                     .foregroundStyle(state.selectedOption == nil ? Color.onSurfaceVariant : Color.textPrimary)
                 Spacer()
                 Image(systemName: "chevron.up.chevron.down")
@@ -332,7 +336,7 @@ private struct SavingsGoalWithdrawalPicker: View {
             }
         }
         .accessibilityLabel("Objectif utilisé")
-        .accessibilityValue(state.selectedOption?.name ?? "Aucun objectif choisi")
+        .accessibilityValue(state.selectedOption?.name ?? AppLocale.string("Aucun objectif choisi"))
     }
 
     @ViewBuilder

@@ -132,7 +132,7 @@ enum AppleSignInError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingToken:
-            return "Impossible de récupérer les informations Apple — réessaie"
+            return AppLocale.string("Impossible de récupérer les informations Apple — réessaie")
         case .canceled, .inProgress:
             return nil
         }

@@ -2,13 +2,16 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
+  LOCALE_ID,
 } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   CURRENCY_METADATA,
   getCurrencyFormatter,
+  parseIsoDateLocal,
   type SupportedCurrency,
 } from 'pulpe-shared';
 
@@ -116,6 +119,8 @@ function getRateFormatter(locale: string): Intl.NumberFormat {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConversionPreviewLine {
+  readonly #locale = inject(LOCALE_ID);
+
   readonly amount = input<number | null | undefined>(null);
   readonly inputCurrency = input<SupportedCurrency | null | undefined>(null);
   readonly displayCurrency = input<SupportedCurrency>('CHF');
@@ -142,10 +147,9 @@ export class ConversionPreviewLine {
   protected readonly formattedDate = computed(() => {
     const raw = this.cachedDate();
     if (!raw) return '';
-    const parsed = new Date(raw);
+    const parsed = parseIsoDateLocal(raw);
     if (Number.isNaN(parsed.getTime())) return raw;
-    const locale = CURRENCY_METADATA[this.displayCurrency()].locale;
-    return getDateFormatter(locale).format(parsed);
+    return getDateFormatter(this.#locale).format(parsed);
   });
 
   protected readonly ariaLabel = computed(() => this.formattedAmount());

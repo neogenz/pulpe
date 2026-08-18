@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "bundle_id": "app.pulpe.ios",
+  "device_name": "Pulpe App Store Captures",
+  "device_type": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max",
+  "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
+  "width": 1320,
+  "height": 2868,
+  "screens": {
+    "01-accueil.png": {
+      "launch_args": ["-UITEST_CONTEXTUAL_CREATION_HOME"],
+      "launch_env": {
+        "UITEST_COLOR_SCHEME": "light",
+        "UITEST_HOME_MARKETING_GAIN": "1"
+      },
+      "actions": [],
+      "expect": "home-balance-chart"
+    },
+    "02-vue-annuelle.png": {
+      "launch_env": { "UITEST_CAPTURE_TAB": "budgets" },
+      "actions": [],
+      "expect": "budgetCard-22222222-0008-4026-a008-888888888888"
+    },
+    "03-modeles.png": {
+      "launch_env": { "UITEST_CAPTURE_TAB": "templates" },
+      "actions": [],
+      "expect": "templateRow-aaaa1111-aaaa-1111-aaaa-111111111111"
+    },
+    "04-modele-budget-mensuel-standard.png": {
+      "launch_env": { "UITEST_CAPTURE_TAB": "templates" },
+      "ready": "templateRow-aaaa1111-aaaa-1111-aaaa-111111111111",
+      "actions": [{ "tap_id": "templateRow-aaaa1111-aaaa-1111-aaaa-111111111111" }],
+      "expect": "templateDetailsRoot"
+    },
+    "05-prevu-vs-reel.png": {
+      "launch_env": { "UITEST_CAPTURE_TAB": "budgets" },
+      "ready": "budgetCard-22222222-0008-4026-a008-888888888888",
+      "actions": [{ "tap_id": "budgetCard-22222222-0008-4026-a008-888888888888" }],
+      "expect": "budgetTrackingButton"
+    },
+    "06-nouvelle-depense.png": {
+      "ready": "home-balance-chart",
+      "actions": [
+        { "tap_id": "homeAddOperationButton" },
+        { "tap_id": "keyboardDismissButton", "optional": true }
+      ],
+      "expect": "addTransactionSubmit"
+    },
+    "07-objectifs-epargne.png": {
+      "launch_args": ["-hasSeenSavingsGoalsIntro", "YES"],
+      "launch_env": { "UITEST_CAPTURE_TAB": "savings-goals" },
+      "actions": [],
+      "expect": "savingsGoalsListRoot"
+    },
+    "08-objectif-macbook-pro.png": {
+      "launch_args": ["-hasSeenSavingsGoalsIntro", "YES"],
+      "launch_env": { "UITEST_CAPTURE_TAB": "savings-goals" },
+      "ready": "savingsGoalsListRoot",
+      "actions": [{ "tap_id": "savingsGoalRow-aaaaaaaa-2222-2222-8222-222222222222" }],
+      "expect": "savingsGoalDetailRoot"
+    }
+  }
+}

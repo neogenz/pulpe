@@ -76,6 +76,12 @@ struct BudgetListAccessibilityTests {
         #expect(!formatted.isEmpty)
     }
 
+    @Test func adaptiveBudgetAmountKeepsCentsWithoutNoisyZeros() {
+        #expect(Decimal(5_000).asAdaptiveCurrency(.chf) == "5’000 CHF")
+        #expect(Decimal(string: "0.05")?.asAdaptiveCurrency(.chf) == "0.05 CHF")
+        #expect(Decimal(string: "0.05")?.asAdaptiveCurrency(.eur) == "0,05 €")
+    }
+
     // MARK: - Date.isPast (used for month row styling)
 
     @Test func isPastWithPastMonthReturnsTrue() {

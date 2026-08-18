@@ -32,10 +32,10 @@ struct RootViewAlerts: ViewModifier {
                     appState.send(.recoveryKeyConsentDeclined)
                 }
             } message: {
-                Text(
-                    "Ton coffre est configuré sans clé de récupération. " +
-                    "Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées."
-                )
+                Text("""
+                    Ton coffre est configuré sans clé de récupération. \
+                    Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées.
+                    """)
             }
             .onShake {
                 guard appState.authState == .authenticated else { return }
@@ -120,6 +120,7 @@ struct RootViewLifecycle: ViewModifier {
     let deepLinkDestination: DeepLinkDestination?
     let onAppStart: () async -> Void
     let onWhatsNewCheck: () async -> Void
+    let onWhatsNewSessionEnded: () -> Void
     let onClientKeyCheckFailed: () -> Void
     let onPendingDeepLink: () -> Void
 
@@ -147,6 +148,9 @@ struct RootViewLifecycle: ViewModifier {
                 logAuthTransition(label: "AUTH_ROUTE", from: oldRoute, to: newRoute)
             }
             .onChange(of: appState.authState) { oldAuth, newAuth in
+                if Self.shouldInvalidateWhatsNewSession(from: oldAuth, to: newAuth) {
+                    onWhatsNewSessionEnded()
+                }
                 logAuthTransition(label: "AUTH_STATE_UI", from: oldAuth, to: newAuth)
                 onPendingDeepLink()
             }
@@ -161,6 +165,13 @@ struct RootViewLifecycle: ViewModifier {
 
     static func shouldCheckWhatsNew(for authState: AppState.AuthStatus) -> Bool {
         authState == .authenticated
+    }
+
+    static func shouldInvalidateWhatsNewSession(
+        from oldAuthState: AppState.AuthStatus,
+        to newAuthState: AppState.AuthStatus
+    ) -> Bool {
+        oldAuthState == .authenticated && newAuthState != .authenticated
     }
 
     private func logAuthTransition<T>(label: String, from old: T, to new: T) {

@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// Mirrors currency-related state to PostHog as person properties.
+/// Mirrors the user's display preferences to PostHog as person properties.
 ///
 /// Applied once near the authenticated app root. The modifier observes the
-/// canonical sources of truth — `UserSettingsStore` for `currency` and
-/// `showCurrencySelector` — and pushes a `$set` whenever either changes.
+/// canonical source of truth — `UserSettingsStore` for `currency`,
+/// `showCurrencySelector` and `locale` — and pushes a `$set` whenever any changes.
 /// `AnalyticsService.setPersonProperties` caches the current values before
 /// identification and republishes them after a later opt-in, so the modifier
 /// is safe to mount before authentication completes.
@@ -24,12 +24,16 @@ struct CurrencyAnalyticsSyncModifier: ViewModifier {
             .onChange(of: userSettingsStore.showCurrencySelector) { _, _ in
                 pushPersonProperties()
             }
+            .onChange(of: userSettingsStore.locale) { _, _ in
+                pushPersonProperties()
+            }
     }
 
     private func pushPersonProperties() {
         AnalyticsService.shared.setPersonProperties([
             AnalyticsService.currencyProperty: userSettingsStore.currency.rawValue,
-            AnalyticsService.showCurrencySelectorProperty: userSettingsStore.showCurrencySelector
+            AnalyticsService.showCurrencySelectorProperty: userSettingsStore.showCurrencySelector,
+            AnalyticsService.localeProperty: userSettingsStore.locale.rawValue
         ])
     }
 }

@@ -14,7 +14,10 @@ import SwiftUI
 /// by staying silent, so the whole section disappears rather than announcing an
 /// emptiness the user never asked about.
 struct GoalWithdrawalsSection: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    // Not `private`: the rows live in `GoalWithdrawalsSection+Rows.swift`, and a
+    // private property there resolves to SwiftUI's `dynamicTypeSize(_:)` modifier
+    // instead — an error that names the closure, never the access level.
+    @Environment(\.dynamicTypeSize) var dynamicTypeSize
 
     let withdrawals: [SavingsGoalWithdrawal]
     let planned: [SavingsGoalPlannedWithdrawal]
@@ -82,10 +85,17 @@ struct GoalWithdrawalsSection: View {
             }
         }
 
-        var primaryAmountDetail: String? {
+        /// Un retrait entamé est le seul qui ait deux montants à raconter. Tant
+        /// que rien n'est sorti, « Prévu … · Réalisé 0 » répète le montant de la
+        /// rangée et lui ajoute un zéro.
+        var isPartiallyRealized: Bool {
             guard case .linked(let withdrawal) = self,
-                  case .partiallyRealized = withdrawal.status else { return nil }
-            return "restant"
+                  case .partiallyRealized = withdrawal.status else { return false }
+            return true
+        }
+
+        var primaryAmountDetail: String? {
+            isPartiallyRealized ? AppLocale.string("restant") : nil
         }
 
         var remainingAmount: Decimal {
@@ -106,33 +116,37 @@ struct GoalWithdrawalsSection: View {
         }
 
         var statusLabel: String {
-            guard case .linked(let withdrawal) = self else { return "À réaliser" }
+            guard case .linked(let withdrawal) = self else { return AppLocale.string("À réaliser") }
             return switch withdrawal.status {
-            case .planned: "À réaliser"
-            case .partiallyRealized: "Partiellement réalisé"
-            case .realized: "Réalisé"
+            case .planned: AppLocale.string("À réaliser")
+            case .partiallyRealized: AppLocale.string("Partiellement réalisé")
+            case .realized: AppLocale.string("Réalisé")
             }
         }
 
+        /// `String(year)`: interpolating an `Int` would apply localized grouping
+        /// ("2'026" in de-CH) — never on a year.
         var periodLabel: String {
-            let components = DateComponents(year: year, month: month, day: 1)
-            return (Calendar.current.date(from: components) ?? .now)
-                .formatted(.dateTime.month(.wide).year())
+            "\(Formatters.monthName(for: month)) " + String(year)
         }
 
         func contextLabel(currency: SupportedCurrency) -> String {
-            "Prévu \(plannedAmount.asCurrency(currency)) · Réalisé \(realizedAmount.asCurrency(currency))"
+            AppLocale.string("Prévu \(plannedAmount.asCurrency(currency))")
+                + " · " + AppLocale.string("Réalisé \(realizedAmount.asCurrency(currency))")
         }
 
+        /// Comma-joined independent segments, each its own key: the destination
+        /// segment only exists off-budget, and no language has to reorder them.
         func accessibilityLabel(currency: SupportedCurrency) -> String {
-            let destination = isPlanOnly ? ", hors budget" : ""
-            return "\(name), \(periodLabel), \(statusLabel)\(destination), "
-                + "prévu \(plannedAmount.asCurrency(currency)), "
-                + "réalisé \(realizedAmount.asCurrency(currency)), "
-                + "reste \(remainingAmount.asCurrency(currency))"
+            var parts = ["\(name), \(periodLabel), \(statusLabel)"]
+            if isPlanOnly { parts.append(AppLocale.string("hors budget")) }
+            parts.append(AppLocale.string("prévu \(plannedAmount.asCurrency(currency))"))
+            parts.append(AppLocale.string("réalisé \(realizedAmount.asCurrency(currency))"))
+            parts.append(AppLocale.string("reste \(remainingAmount.asCurrency(currency))"))
+            return parts.joined(separator: ", ")
         }
 
-        var accessibilityHint: String? { budgetId == nil ? nil : "Ouvre le budget" }
+        var accessibilityHint: String? { budgetId == nil ? nil : AppLocale.string("Ouvre le budget") }
     }
 
     nonisolated static func plannedItems(
@@ -159,9 +173,7 @@ struct GoalWithdrawalsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Retraits")
-                .font(PulpeTypography.title2)
-                .foregroundStyle(Color.textPrimary)
+            SectionHeader(title: AppLocale.string("Retraits"))
 
             if isLoading, withdrawals.isEmpty, planned.isEmpty, planOnly.isEmpty {
                 ProgressView("Chargement des retraits…")
@@ -170,8 +182,8 @@ struct GoalWithdrawalsSection: View {
             } else if error != nil, withdrawals.isEmpty, planned.isEmpty, planOnly.isEmpty {
                 GoalInfoCard(
                     icon: "arrow.clockwise",
-                    title: "Retraits indisponibles",
-                    message: "Impossible de charger les retraits pour le moment."
+                    title: AppLocale.string("Retraits indisponibles"),
+                    message: AppLocale.string("Impossible de charger les retraits pour le moment.")
                 ) {
                     Button("Réessayer", action: onRetry)
                         .secondaryButtonStyle()
@@ -179,187 +191,44 @@ struct GoalWithdrawalsSection: View {
             } else {
                 let plannedItems = Self.plannedItems(planned: planned, planOnly: planOnly)
                 if !plannedItems.isEmpty {
-                    Text("Retraits planifiés")
-                        .font(PulpeTypography.headline)
-                        .foregroundStyle(Color.textPrimary)
-                    ForEach(plannedItems) { item in
-                        plannedRow(item)
+                    group(AppLocale.string("Retraits planifiés")) {
+                        ForEach(Array(plannedItems.enumerated()), id: \.element.id) { index, item in
+                            if index > 0 { Divider() }
+                            plannedRow(item)
+                        }
                     }
                 }
 
                 if !withdrawals.isEmpty {
-                    Text("Retraits réalisés")
-                        .font(PulpeTypography.headline)
-                        .foregroundStyle(Color.textPrimary)
-                    ForEach(withdrawals) { withdrawal in
-                        realizedRow(withdrawal)
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func plannedRow(_ item: PlannedItem) -> some View {
-        if let budgetId = item.budgetId {
-            Button {
-                onOpenBudget(budgetId)
-            } label: {
-                plannedRowContent(item)
-            }
-            .plainPressedButtonStyle()
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(item.accessibilityLabel(currency: currency))
-            .accessibilityHint(item.accessibilityHint ?? "")
-        } else {
-            plannedRowContent(item)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(item.accessibilityLabel(currency: currency))
-        }
-    }
-
-    private func plannedRowContent(_ item: PlannedItem) -> some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: item.isPlanOnly ? "calendar.badge.minus" : "calendar")
-                .font(PulpeTypography.actionIcon)
-                .foregroundStyle(Color.textTertiary)
-
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    plannedDescription(item)
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Spacer(minLength: DesignTokens.Spacing.none)
-                        plannedAmount(item)
-                        if item.budgetId != nil { plannedChevron }
-                    }
-                }
-            } else {
-                plannedDescription(item)
-                Spacer(minLength: DesignTokens.Spacing.sm)
-                plannedAmount(item)
-                if item.budgetId != nil { plannedChevron }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .pulpeCard()
-    }
-
-    private func plannedDescription(_ item: PlannedItem) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-            Text(item.name)
-                .font(PulpeTypography.listRowTitle)
-                .foregroundStyle(Color.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("\(item.periodLabel) · \(item.statusLabel)\(item.isPlanOnly ? " · Hors budget" : "")")
-                .font(PulpeTypography.listRowSubtitle)
-                .foregroundStyle(Color.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-            if !item.isPlanOnly {
-                Text(item.contextLabel(currency: currency))
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(Color.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .sensitiveAmount()
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var plannedChevron: some View {
-        Image(systemName: "chevron.right")
-            .font(PulpeTypography.caption)
-            .foregroundStyle(Color.textTertiary)
-            .accessibilityHidden(true)
-    }
-
-    private func realizedRow(_ withdrawal: SavingsGoalWithdrawal) -> some View {
-        Button {
-            onOpenBudget(withdrawal.budgetId)
-        } label: {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                Image(systemName: "arrow.up.right")
-                    .font(PulpeTypography.actionIcon)
-                    .foregroundStyle(Color.textTertiary)
-
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        realizedDescription(withdrawal)
-                        HStack(spacing: DesignTokens.Spacing.sm) {
-                            Spacer(minLength: DesignTokens.Spacing.none)
-                            realizedAmount(withdrawal)
-                            plannedChevron
+                    group(AppLocale.string("Retraits réalisés")) {
+                        ForEach(Array(withdrawals.enumerated()), id: \.element.id) { index, withdrawal in
+                            if index > 0 { Divider() }
+                            realizedRow(withdrawal)
                         }
                     }
-                } else {
-                    realizedDescription(withdrawal)
-                    Spacer(minLength: DesignTokens.Spacing.sm)
-                    realizedAmount(withdrawal)
-                    plannedChevron
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .pulpeCard()
         }
-        .plainPressedButtonStyle()
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(realizedAccessibilityLabel(withdrawal))
-        .accessibilityHint("Ouvre le budget")
     }
 
-    private func realizedDescription(_ withdrawal: SavingsGoalWithdrawal) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-            Text(withdrawal.name)
-                .font(PulpeTypography.listRowTitle)
-                .foregroundStyle(Color.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(realizedStatus(withdrawal))
-                .font(PulpeTypography.listRowSubtitle)
+    /// The grammar of the home's activity: the group is named once on the canvas,
+    /// its rows share one card, and the only rules are the hairlines inside it.
+    private func group<Rows: View>(
+        _ label: String,
+        @ViewBuilder rows: () -> Rows
+    ) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(label)
+                .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
+                .accessibilityAddTraits(.isHeader)
 
-    private func realizedAmount(_ withdrawal: SavingsGoalWithdrawal) -> some View {
-        Text((-withdrawal.amount).asCurrency(currency))
-            .font(PulpeTypography.amountCard)
-            .monospacedDigit()
-            .foregroundStyle(Color.textPrimary)
-            .fixedSize(horizontal: false, vertical: true)
-            .sensitiveAmount()
-    }
-
-    private func realizedStatus(_ withdrawal: SavingsGoalWithdrawal) -> String {
-        "\(withdrawal.transactionDate.formatted(date: .abbreviated, time: .omitted)) · "
-            + (withdrawal.checkedAt == nil ? "À pointer" : "Pointé")
-    }
-
-    private func realizedAccessibilityLabel(_ withdrawal: SavingsGoalWithdrawal) -> String {
-        "\(withdrawal.name), \(realizedStatus(withdrawal)), retrait réalisé "
-            + withdrawal.amount.asCurrency(currency)
-    }
-}
-
-private extension GoalWithdrawalsSection {
-    func plannedAmount(_ item: PlannedItem) -> some View {
-        VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-            Text((-item.primaryAmount).asCurrency(currency))
-                .font(PulpeTypography.amountCard)
-                .monospacedDigit()
-                .foregroundStyle(Color.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-                .sensitiveAmount()
-
-            if let detail = item.primaryAmountDetail {
-                Text(detail)
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(Color.textSecondary)
-                    .accessibilityHidden(true)
+            VStack(spacing: DesignTokens.Spacing.none) {
+                rows()
             }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.xs)
+            .pulpeRowCard()
         }
     }
 }

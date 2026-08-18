@@ -154,6 +154,15 @@ describe('remainingPlannedWithdrawal', () => {
       ),
     ).toBe(0);
   });
+
+  it('keeps a real one-cent remainder', () => {
+    expect(
+      remainingPlannedWithdrawal(
+        { id: 'planned', amount: 10.05, month: 6, year: 2026 },
+        [{ budgetLineId: 'planned', amount: 10.04, month: 6, year: 2026 }],
+      ),
+    ).toBe(0.01);
+  });
 });
 
 describe('computeSavingsGoalProgress — les deux couches', () => {
@@ -381,6 +390,19 @@ describe('computeSavingsGoalProgress — statuts (D2, PAUSED)', () => {
     const result = computeSavingsGoalProgress(baseInput({ lines: [line] }));
     expect(result.suggestCompletion).toBe(true);
     expect(result.achievementPercent).toBe(100);
+  });
+
+  it('D2 : un centime manquant reste non atteint malgré 100 % affiché', () => {
+    const missingCent = computeSavingsGoalProgress(
+      baseInput({ initialAmount: 11_999.99 }),
+    );
+    const exact = computeSavingsGoalProgress(
+      baseInput({ initialAmount: 12_000 }),
+    );
+
+    expect(missingCent.achievementPercent).toBe(100);
+    expect(missingCent.suggestCompletion).toBe(false);
+    expect(exact.suggestCompletion).toBe(true);
   });
 
   it('D2 : pas de suggestion sur le PRÉVU seul (CA13) ni sur un objectif déjà COMPLETED', () => {
@@ -699,6 +721,22 @@ describe('suggestedMonthlyContribution (PUL-285 CA1/CA6)', () => {
     });
 
     expect(suggestion).toBeNull();
+  });
+
+  it('uses the cent gap when the initial amount nearly covers the target', () => {
+    const args = {
+      targetAmount: 100,
+      targetDate: '2026-06-15',
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    };
+
+    expect(
+      suggestedMonthlyContribution({ ...args, initialAmount: 99.99 }),
+    ).toBe(0.01);
+    expect(
+      suggestedMonthlyContribution({ ...args, initialAmount: 99.999 }),
+    ).toBeNull();
   });
 
   it('should keep matching the required formula once the initial amount feeds the confirmed (PUL-293)', () => {

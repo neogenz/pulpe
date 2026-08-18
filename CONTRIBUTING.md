@@ -6,15 +6,16 @@ Pulpe is a pnpm + Turborepo monorepo (Angular frontend, NestJS backend, SwiftUI 
 
 Pulpe uses a two-branch flow: one integration branch for the sprint, one release branch for production.
 
-| Branch | Role | Deploys to |
-|--------|------|------------|
-| `preview` | **Default branch.** Sprint integration + QA. All feature branches merge here. | Staging / QA (Vercel Preview, Railway `preview` env) |
-| `main` | **Release / production.** Fed by `preview` at release time only. | Production (`pulpe.app`, `app.pulpe.app`, `api.pulpe.app`) |
-| `feature/*`, `fix/*` (and Linear-generated names) | Day-to-day work. Branch off `preview`. | Per-branch Vercel preview |
+| Branch                                            | Role                                                                          | Deploys to                                                 |
+| ------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `preview`                                         | **Default branch.** Sprint integration + QA. All feature branches merge here. | Staging / QA (Vercel Preview, Railway `preview` env)       |
+| `main`                                            | **Release / production.** Fed by `preview` at release time only.              | Production (`pulpe.app`, `app.pulpe.app`, `api.pulpe.app`) |
+| `feature/*`, `fix/*` (and Linear-generated names) | Day-to-day work. Branch off `preview`.                                        | Per-branch Vercel preview                                  |
 
-```
-feature/* ──PR──▶ preview ──(sprint validated on QA)──▶ main
-                  (default, QA)                          (release, prod)
+```text
+feature/* ──PR──▶ preview
+                     │
+              release/vX.Y.Z ──PR──▶ preview ──proof──▶ same frozen branch ──PR──▶ main
 ```
 
 ## Workflow
@@ -24,19 +25,26 @@ feature/* ──PR──▶ preview ──(sprint validated on QA)──▶ main
 3. **Quality gate before pushing**: `pnpm quality` (type-check + lint + format) plus the relevant tests (`pnpm test`, `pnpm test:e2e`).
 4. **Open a PR into `preview`** (not `main`). The `✅ CI Success` check must pass, and the PR needs 1 approving review with all review threads resolved.
 5. **Validate on the QA environment.** Once merged, `preview` deploys to staging — verify the change there.
-6. **Release** when the sprint's work is validated: promote `preview` → `main` (see [Release](#release)).
+6. **Release** from a synchronized `preview` with `/release`; the protected two-PR flow promotes one frozen candidate to `main` (see [Release](#release)).
 
 ## Protected branches
 
-Enforced by GitHub rulesets (`main-protection` + `tag-protection`):
+Enforced by GitHub rulesets (`preview-protection`, `main-protection` and `tag-protection`):
 
-- `main` **and** `preview`: no deletion, no force-push, PR required with 1 approving review + thread resolution + dismiss-stale-on-push, required status check `✅ CI Success`.
+- `preview`: no deletion or force-push; PR, one approval, resolved threads and `✅ CI Success` are required. The solo maintainer keeps the administrator bypass for ordinary PRs authored with the maintainer account.
+- `main`: no deletion, force-push or administrator bypass; the App-authored release PR requires one human approval, resolved threads and `✅ Release Gate`.
 - Release tags `v*`: immutable (no deletion, no force-move).
-- The repository admin can bypass branch rules — required so a solo maintainer can merge, since GitHub does not allow approving your own PR.
 
 ## Release
 
-A release is cut on `main`: promote `preview` → `main`, which triggers production CI/CD (Vercel frontend + landing, Railway backend, Supabase migrations). Versioning is single-version lockstep via Changesets.
+A release uses one `release/vX.Y.Z` branch and one version commit. The App first opens
+that branch toward `preview`; after complete CI, merge, exact staging deployments and
+QA, it advances the same branch to the proven merge commit and opens the production PR
+toward `main`. A human approves that PR. GitHub then verifies production, creates the
+single tag and GitHub Release, and synchronizes the web version gate. Later feature
+merges into `preview` do not alter the frozen candidate. If `preview` advances before
+the preparation merge, the immutable-base check stops promotion and the release is
+reprepared rather than silently absorbing extra features.
 
 - Full steps: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md#release-process)
 - Versioning rules: [docs/VERSIONING.md](./docs/VERSIONING.md)

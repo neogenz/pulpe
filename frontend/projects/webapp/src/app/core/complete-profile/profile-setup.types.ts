@@ -1,4 +1,4 @@
-import type { z } from 'zod';
+import type * as z from 'zod';
 import type { onboardingTransactionSchema } from 'pulpe-shared';
 
 export type OnboardingTransaction = z.infer<typeof onboardingTransactionSchema>;

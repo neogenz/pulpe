@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  ApplicationRef,
+  provideZonelessChangeDetection,
+  signal,
+} from '@angular/core';
 import { UserSettingsStore } from './user-settings-store';
 import { UserSettingsApi } from './user-settings-api';
 import { STORAGE_KEYS } from '../storage/storage-keys';
@@ -22,6 +26,7 @@ describe('UserSettingsStore', () => {
     payDayOfMonth: 25,
     currency: 'CHF',
     showCurrencySelector: false,
+    locale: 'fr',
   };
 
   beforeEach(() => {
@@ -109,6 +114,7 @@ describe('UserSettingsStore', () => {
         payDayOfMonth: 15,
         currency: 'CHF',
         showCurrencySelector: false,
+        locale: 'fr',
       };
       mockApi.updateSettings$ = vi
         .fn()
@@ -127,6 +133,7 @@ describe('UserSettingsStore', () => {
         payDayOfMonth: 15,
         currency: 'CHF',
         showCurrencySelector: false,
+        locale: 'fr',
       };
       mockApi.updateSettings$ = vi
         .fn()
@@ -160,6 +167,7 @@ describe('UserSettingsStore', () => {
         payDayOfMonth: 25,
         currency: 'EUR',
         showCurrencySelector: false,
+        locale: 'fr',
       };
       mockApi.getSettings$ = vi
         .fn()
@@ -189,6 +197,7 @@ describe('UserSettingsStore', () => {
         payDayOfMonth: 10,
         currency: 'CHF',
         showCurrencySelector: false,
+        locale: 'fr',
       };
       mockApi.getSettings$ = vi
         .fn()
@@ -247,6 +256,140 @@ describe('UserSettingsStore — loading conditions', () => {
 
     expect(store.settings()).toBeUndefined();
     expect(store.currency()).toBe('EUR');
+  });
+
+  it('should fall back to the persisted language snapshot while settings are not loaded', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        UserSettingsStore,
+        {
+          provide: UserSettingsApi,
+          useValue: { getSettings$: vi.fn(), cache: mockCache },
+        },
+        {
+          provide: StorageService,
+          useValue: {
+            get: vi.fn((key: string) =>
+              key === STORAGE_KEYS.SETTINGS_LANGUAGE ? 'de' : null,
+            ),
+            setString: vi.fn(),
+          },
+        },
+        { provide: AuthStore, useValue: { isAuthenticated: signal(false) } },
+        {
+          provide: ClientKeyService,
+          useValue: { hasClientKey: signal(false) },
+        },
+        { provide: DemoModeService, useValue: { isDemoMode: signal(false) } },
+      ],
+    });
+
+    const store = TestBed.inject(UserSettingsStore);
+
+    // Signed out, so the settings resource never resolves. The sign-in screen
+    // still has to render in the language the user chose — which is why the
+    // storage key is `app`-scoped and not purged on logout.
+    expect(store.settings()).toBeUndefined();
+    expect(store.locale()).toBe('de');
+  });
+
+  it('should write the language snapshot once server settings arrive', async () => {
+    const setString = vi.fn();
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        UserSettingsStore,
+        {
+          provide: UserSettingsApi,
+          useValue: {
+            getSettings$: vi.fn().mockReturnValue(
+              of({
+                success: true,
+                data: {
+                  payDayOfMonth: 25,
+                  currency: 'CHF',
+                  showCurrencySelector: false,
+                  locale: 'it',
+                } satisfies UserSettings,
+              }),
+            ),
+            cache: mockCache,
+          },
+        },
+        {
+          provide: StorageService,
+          useValue: { get: vi.fn(() => null), setString },
+        },
+        { provide: AuthStore, useValue: { isAuthenticated: signal(true) } },
+        {
+          provide: ClientKeyService,
+          useValue: { hasClientKey: signal(true) },
+        },
+        { provide: DemoModeService, useValue: { isDemoMode: signal(false) } },
+      ],
+    });
+
+    const store = TestBed.inject(UserSettingsStore);
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(store.locale()).toBe('it');
+    expect(setString).toHaveBeenCalledWith(
+      STORAGE_KEYS.SETTINGS_LANGUAGE,
+      'it',
+    );
+  });
+
+  it('should keep the startup language when the server has no preference', async () => {
+    const setString = vi.fn();
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        UserSettingsStore,
+        {
+          provide: UserSettingsApi,
+          useValue: {
+            getSettings$: vi.fn().mockReturnValue(
+              of({
+                success: true,
+                data: {
+                  payDayOfMonth: null,
+                  currency: 'CHF',
+                  showCurrencySelector: false,
+                } satisfies UserSettings,
+              }),
+            ),
+            cache: mockCache,
+          },
+        },
+        {
+          provide: StorageService,
+          useValue: {
+            get: vi.fn((key: string) =>
+              key === STORAGE_KEYS.SETTINGS_LANGUAGE ? 'de' : null,
+            ),
+            setString,
+          },
+        },
+        { provide: AuthStore, useValue: { isAuthenticated: signal(true) } },
+        {
+          provide: ClientKeyService,
+          useValue: { hasClientKey: signal(true) },
+        },
+        { provide: DemoModeService, useValue: { isDemoMode: signal(false) } },
+      ],
+    });
+
+    const store = TestBed.inject(UserSettingsStore);
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(store.locale()).toBe('de');
+    expect(setString).not.toHaveBeenCalledWith(
+      STORAGE_KEYS.SETTINGS_LANGUAGE,
+      expect.anything(),
+    );
   });
 
   it('should not load settings when user is not authenticated', async () => {
@@ -320,6 +463,7 @@ describe('UserSettingsStore — loading conditions', () => {
       payDayOfMonth: 25,
       currency: 'CHF',
       showCurrencySelector: false,
+      locale: 'fr',
     };
 
     TestBed.configureTestingModule({

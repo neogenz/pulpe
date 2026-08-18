@@ -89,6 +89,6 @@ struct TagCodableTests {
     func duplicateNameError_isLocalized() {
         let error = APIError.from(code: "ERR_TAG_ALREADY_EXISTS", message: nil)
 
-        #expect(error.errorDescription == "Un tag porte déjà ce nom — choisis-en un autre")
+        #expect(error.message(in: AppLocale.uiLocale(for: .fr)) == "Un tag porte déjà ce nom — choisis-en un autre")
     }
 }

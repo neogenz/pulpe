@@ -2,18 +2,18 @@ import { Service, inject, signal, computed } from '@angular/core';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
 import { type E2EWindow } from '@core/auth';
+import { TranslocoService } from '@jsverse/transloco';
 import type { NgxTurnstileComponent } from 'ngx-turnstile';
 
 const TURNSTILE_TIMEOUT_MS = 5000;
 
-const ERROR_MESSAGES = {
-  TURNSTILE_FAILED: 'La vérification de sécurité a échoué — réessaie',
-} as const;
+const TURNSTILE_FAILED_KEY = 'errors.securityCheckFailed';
 
 @Service()
 export class TurnstileService {
   readonly #config = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
+  readonly #transloco = inject(TranslocoService);
 
   #timeoutId: ReturnType<typeof setTimeout> | null = null;
   #resolutionHandled = false;
@@ -80,7 +80,7 @@ export class TurnstileService {
 
     if (!token) {
       this.#logger.error('Turnstile resolved with null token');
-      this.#handleError(ERROR_MESSAGES.TURNSTILE_FAILED);
+      this.#handleError(this.#transloco.translate(TURNSTILE_FAILED_KEY));
       return;
     }
 
@@ -91,7 +91,7 @@ export class TurnstileService {
   handleError(): void {
     this.#clearTimeout();
     this.#logger.error('Turnstile verification failed');
-    this.#handleError(ERROR_MESSAGES.TURNSTILE_FAILED);
+    this.#handleError(this.#transloco.translate(TURNSTILE_FAILED_KEY));
   }
 
   reset(): void {

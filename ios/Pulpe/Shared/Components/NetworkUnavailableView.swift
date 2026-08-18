@@ -20,11 +20,19 @@ struct NetworkUnavailableView: View {
                 Text("Connexion impossible")
                     .font(PulpeTypography.onboardingTitle)
                     .foregroundStyle(Color.textPrimaryOnboarding)
+                    .accessibilityIdentifier("networkUnavailableTitle")
 
                 Text("Impossible de joindre le serveur — vérifie ta connexion internet et réessaie.")
                     .font(PulpeTypography.bodyLarge)
                     .foregroundStyle(Color.textSecondaryOnboarding)
                     .multilineTextAlignment(.center)
+
+                if AppConfiguration.environment == .local {
+                    Text("Build Local : le serveur est peut-être éteint — lance pnpm dev.")
+                        .font(PulpeTypography.bodyLarge)
+                        .foregroundStyle(Color.textSecondaryOnboarding)
+                        .multilineTextAlignment(.center)
+                }
             }
 
             Button {
@@ -49,6 +57,7 @@ struct NetworkUnavailableView: View {
             }
             .textLinkButtonStyle()
             .disabled(isRetrying)
+            .accessibilityIdentifier("networkReturnToLoginButton")
 
             Spacer()
         }

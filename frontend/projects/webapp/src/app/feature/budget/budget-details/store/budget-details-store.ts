@@ -42,6 +42,7 @@ import {
   BudgetFormulas,
   compareBudgetPeriods,
   getBudgetPeriodForDate,
+  moneyDifference,
 } from 'pulpe-shared';
 import type {
   SpreadOccurrenceViewModel,
@@ -504,24 +505,19 @@ export class BudgetDetailsStore {
 
   // The recovery action shows whenever the viewed current/future month runs a
   // deficit worth acting on. An existing pioche does not hide it: a month can
-  // dip back into deficit after a first withdrawal. Gated on the rounded deficit rather than on raw
-  // `remaining`: a month balanced to the cent leaves float dust (-9e-13) that
-  // would nudge the user towards a dialog with nothing to pre-fill.
+  // dip back into deficit after a first withdrawal. Gated on the cent-level
+  // deficit rather than raw `remaining`, so float dust cannot open the dialog.
   readonly shouldShowSavingsWithdrawalAction = computed<boolean>(() => {
     if (!this.budgetDetails()) return false;
     if (this.savingsWithdrawalDeficit() <= 0) return false;
     return this.#isViewedMonthCurrentOrFuture();
   });
 
-  // The deficit to pre-fill the withdrawal amount chip (positive magnitude, 0
-  // when the month is not in deficit). Rounded to the whole unit here, at the
-  // single producer: `remaining` is a float sum, so its magnitude carries IEEE
-  // noise (196.95999999999913). The hero and the chip both display it via
-  // '1.0-0', so rounding once keeps what the chip shows, what the input gets
-  // and what the payload carries the same number.
+  // The deficit to display, pre-fill and submit (positive magnitude, 0 when the
+  // month is not in deficit). Quantizing once keeps those surfaces identical.
   readonly savingsWithdrawalDeficit = computed<number>(() => {
     const remaining = this.financialTotals().remaining;
-    return remaining < 0 ? Math.round(Math.abs(remaining)) : 0;
+    return Math.max(0, moneyDifference(0, remaining));
   });
 
   // PUL-292 — origin month label (month − 1, with year rollover) shared by every

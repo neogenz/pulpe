@@ -14,9 +14,9 @@ enum CheckedFilterOption: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .unchecked: "À pointer"
-        case .checked: "Pointé"
-        case .all: "Tout voir"
+        case .unchecked: AppLocale.string("À pointer")
+        case .checked: AppLocale.string("Pointé")
+        case .all: AppLocale.string("Tout voir")
         }
     }
 
@@ -30,9 +30,9 @@ enum CheckedFilterOption: String, CaseIterable, Identifiable {
 
     var accessibilityLabel: String {
         switch self {
-        case .unchecked: "Afficher uniquement les éléments à pointer"
-        case .checked: "Afficher uniquement les éléments pointés"
-        case .all: "Afficher tous les éléments"
+        case .unchecked: AppLocale.string("Afficher uniquement les éléments à pointer")
+        case .checked: AppLocale.string("Afficher uniquement les éléments pointés")
+        case .all: AppLocale.string("Afficher tous les éléments")
         }
     }
 }
@@ -51,19 +51,19 @@ enum BudgetLineKindFilter: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .all: "Tout"
-        case .income: "Revenus"
-        case .saving: "Épargne"
-        case .expense: "Dépenses"
+        case .all: AppLocale.string("Tout")
+        case .income: AppLocale.string("Revenus")
+        case .saving: AppLocale.string("Épargne")
+        case .expense: AppLocale.string("Dépenses")
         }
     }
 
     var accessibilityLabel: String {
         switch self {
-        case .all: "Afficher tous les types"
-        case .income: "Afficher uniquement les revenus"
-        case .saving: "Afficher uniquement l'épargne"
-        case .expense: "Afficher uniquement les dépenses"
+        case .all: AppLocale.string("Afficher tous les types")
+        case .income: AppLocale.string("Afficher uniquement les revenus")
+        case .saving: AppLocale.string("Afficher uniquement l'épargne")
+        case .expense: AppLocale.string("Afficher uniquement les dépenses")
         }
     }
 }

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { signal, type WritableSignal } from '@angular/core';
+import { LOCALE_ID, signal, type WritableSignal } from '@angular/core';
 import { describe, it, expect, beforeEach } from 'vitest';
 import type {
   BudgetExportResponse,
@@ -14,6 +14,7 @@ import {
   createMockBudgetLine,
   createMockTransaction,
 } from '@app/testing/mock-factories';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { ExcelExportService } from './excel-export.service';
 
 const CHF_FORMAT = '"CHF" #,##0.00';
@@ -49,6 +50,10 @@ describe('ExcelExportService', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        ...provideTranslocoForTest(),
+        // Pinned: the sheet header carries a month name straight out of CLDR,
+        // and jsdom would otherwise resolve `LOCALE_ID` from its own `en-US`.
+        { provide: LOCALE_ID, useValue: 'fr-CH' },
         ExcelExportService,
         { provide: UserSettingsStore, useValue: { currency } },
         { provide: TagStore, useValue: createMockTagStore() },
@@ -128,7 +133,7 @@ describe('ExcelExportService', () => {
       const sheets = await service.buildSheets(response);
       const totalRow = sheets[0].data[13];
 
-      expect(totalRow[1]).toBe('Total transactions');
+      expect(totalRow[1]).toBe('Total mouvements');
       expect(totalRow[2]).toEqual({
         type: 'Formula',
         value: 'SUM(C12:C13)',
@@ -141,7 +146,7 @@ describe('ExcelExportService', () => {
 
       const cells = sheets[0].data.flat();
       expect(cells).not.toContain('Total prévisions');
-      expect(cells).not.toContain('Total transactions');
+      expect(cells).not.toContain('Total mouvements');
     });
 
     it('should neutralise a name Excel would otherwise evaluate as a formula', async () => {

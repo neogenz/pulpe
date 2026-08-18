@@ -122,7 +122,7 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
               >
                 <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
                 <span class="ph-no-capture">{{
-                  line.consumption.consumed | appCurrency: currency() : '1.0-0'
+                  line.consumption.consumed | appCurrency: currency() : '1.0-2'
                 }}</span>
               </button>
             }

@@ -37,8 +37,8 @@ settings:
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
     EAGER_LINKING: YES
     ONLY_ACTIVE_ARCH: YES
-    MARKETING_VERSION: "1.3.2"
-    CURRENT_PROJECT_VERSION: "3"
+    MARKETING_VERSION: "1.4.0"
+    CURRENT_PROJECT_VERSION: "1"
     DEVELOPMENT_TEAM: AJ37X7C82G
     CODE_SIGN_STYLE: Automatic
   configs:
@@ -114,6 +114,17 @@ targets:
         CFBundlePackageType: APPL
         CFBundleExecutable: $(EXECUTABLE_NAME)
         LSRequiresIPhoneOS: true
+        # Declared explicitly rather than left to .lproj discovery, so the App Store
+        # listing and the system language picker both name the four we actually ship.
+        CFBundleLocalizations:
+          - fr
+          - en
+          - de
+          - it
+        # Surfaces Pulpe's own entry in iOS Settings › Pulpe › Language. That path also
+        # translates the system prompts — Face ID, photo picker, share sheet — which the
+        # in-app selector cannot reach, at the cost of restarting the app.
+        UIPrefersShowingLanguageSettings: true
         UILaunchStoryboardName: LaunchScreen
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
@@ -165,6 +176,13 @@ targets:
       - path: Pulpe/Shared/Formatters
         excludes:
           - "**/.DS_Store"
+      - path: Pulpe/Shared/Localization
+        excludes:
+          - "**/.DS_Store"
+      # Same catalog file compiled into both bundles rather than a second one for the
+      # widget: an extension resolves against its own bundle, and a separate catalog
+      # would drift the moment a shared string is reworded on one side only.
+      - path: Pulpe/Resources/Localizable.xcstrings
       - path: Pulpe/Shared/Design
         excludes:
           - "**/.DS_Store"
@@ -244,6 +262,10 @@ schemes:
         PulpeWidget: all
     test:
       config: Local
+      # Pin the test process to French: `AppLocale` resolves the device language
+      # when nothing is persisted, and dozens of suites assert the French copy
+      # literally — on an English simulator they would compare EN against FR.
+      language: fr
       targets:
         - name: PulpeTests
     run:
@@ -303,6 +325,8 @@ schemes:
         PulpeTests: all
     test:
       config: Local
+      # Same French pin as PulpeLocal — see the comment there.
+      language: fr
       targets:
         - name: PulpeTests
 

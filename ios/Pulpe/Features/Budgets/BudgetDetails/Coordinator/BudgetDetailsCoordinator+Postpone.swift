@@ -53,7 +53,7 @@ extension BudgetDetailsCoordinator {
             syncStore.setError(error)
             // `syncStore.error` only renders for terminal LOAD errors — surface
             // the rolled-back move with a toast, mirroring the spread path.
-            context.toastManager.show("Le report n'a pas pu aboutir", type: .error)
+            context.toastManager.show(AppLocale.string("Le report n'a pas pu aboutir"), type: .error)
             return false
         }
     }
@@ -80,16 +80,16 @@ extension BudgetDetailsCoordinator {
             syncStore.setError(error)
             // `syncStore.error` only renders for terminal LOAD errors — surface
             // the rolled-back move with a toast, mirroring the spread path.
-            context.toastManager.show("Le report n'a pas pu aboutir", type: .error)
+            context.toastManager.show(AppLocale.string("Le report n'a pas pu aboutir"), type: .error)
             return false
         }
     }
 
     private func showPostponeToast(context: ToastContext, targetMonth: String?) {
         if let targetMonth {
-            context.toastManager.show("Reporté en \(targetMonth)")
+            context.toastManager.show(AppLocale.string("Reporté en \(targetMonth)"))
         } else {
-            context.toastManager.show("Reporté au mois suivant")
+            context.toastManager.show(AppLocale.string("Reporté au mois suivant"))
         }
     }
 }

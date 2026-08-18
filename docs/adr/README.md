@@ -23,6 +23,7 @@ trade-offs; current inventories belong in code or living architecture documentat
 | [0016](0016-mirror-interactive-formulas-typescript-swift.md) | Mirror interactive formulas            | Accepted | duplicate only formulas that must run under the user's finger  |
 | [0017](0017-server-driven-minimum-version-gate.md)           | Server-driven minimum-version gate     | Accepted | clients fail open until the backend confirms a hard floor      |
 | [0018](0018-android-with-expo-react-native.md)               | Android with Expo and React Native     | Proposed | reuse shared TypeScript contracts without a third formula port |
+| [0019](0019-zod-diagnostics-and-tree-shakable-imports.md)    | Zod diagnostics and imports            | Accepted | keep technical errors English without unused locale bundles    |
 
 ## Conventions
 

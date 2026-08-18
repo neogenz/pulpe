@@ -1,7 +1,14 @@
 import { Section } from "@/components/ui";
+import type { Dictionary } from "@/content/dictionary";
 import { HowItWorks } from "./HowItWorks";
 
-export function Solution() {
+export function Solution({
+  dict,
+  howItWorksDict,
+}: {
+  dict: Dictionary["home"]["solution"];
+  howItWorksDict: Dictionary["home"]["howItWorks"];
+}) {
   return (
     <Section id="solution">
       <div
@@ -9,19 +16,17 @@ export function Solution() {
         className="mx-auto max-w-3xl scroll-mt-24 text-center lg:scroll-mt-28"
       >
         <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">
-          Pars d&apos;un mois type.{" "}
+          {dict.headingLead}
           <mark className="marker-highlight marker-highlight-strong">
-            Pulpe projette la suite.
+            {dict.headingHighlight}
           </mark>
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-text-secondary sm:text-xl">
-          Tu pars d&apos;un mois habituel. Pulpe s&apos;en sert pour préparer
-          les suivants. Ensuite, tu places les impôts, les vacances et les gros
-          achats dans les mois concernés.
+          {dict.intro}
         </p>
       </div>
 
-      <HowItWorks />
+      <HowItWorks dict={howItWorksDict} />
     </Section>
   );
 }

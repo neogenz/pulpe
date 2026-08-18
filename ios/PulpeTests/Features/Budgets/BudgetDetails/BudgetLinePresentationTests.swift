@@ -57,7 +57,7 @@ struct BudgetLinePresentationTests {
 
         #expect(
             BudgetLineRow.consumptionSummary(consumption: consumption, currency: .chf)
-                == "100.00 CHF dépensés · 100% utilisé"
+                == "100 CHF dépensés · 100% utilisé"
         )
     }
 
@@ -71,7 +71,35 @@ struct BudgetLinePresentationTests {
 
         #expect(
             BudgetLineRow.consumptionSummary(consumption: consumption, currency: .chf)
-                == "343.00 CHF dépensés · Dépassé de 304 CHF"
+                == "343 CHF dépensés · Dépassé de 304 CHF"
+        )
+    }
+
+    @Test("a real fractional overrun keeps its cents")
+    func consumptionSummary_whenOverBudgetByFiveCents_showsFiveCents() {
+        let consumption = BudgetFormulas.Consumption(
+            allocated: 58.55,
+            available: -0.05,
+            percentage: 100.09
+        )
+
+        #expect(
+            BudgetLineRow.consumptionSummary(consumption: consumption, currency: .chf)
+                == "58.55 CHF dépensés · Dépassé de 0.05 CHF"
+        )
+    }
+
+    @Test("sub-cent dust stays neutral")
+    func consumptionSummary_whenSubCentNegative_doesNotClaimAnOverrun() {
+        let consumption = BudgetFormulas.Consumption(
+            allocated: 58.504,
+            available: -0.004,
+            percentage: 100.006
+        )
+
+        #expect(
+            BudgetLineRow.consumptionSummary(consumption: consumption, currency: .chf)
+                == "58.5 CHF dépensés · 100% utilisé"
         )
     }
 }

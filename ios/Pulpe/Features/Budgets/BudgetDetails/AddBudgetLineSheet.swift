@@ -92,7 +92,9 @@ struct AddBudgetLineSheet: View {
 
     private var amountFieldHint: String? {
         guard isSpreadMode else { return nil }
-        return amountMode == .total ? "Montant total" : "Montant par mois"
+        return amountMode == .total
+            ? AppLocale.string("Montant total")
+            : AppLocale.string("Montant par mois")
     }
 
     private var canSubmit: Bool {
@@ -111,9 +113,11 @@ struct AddBudgetLineSheet: View {
 
     private var validationHint: String? {
         guard !canSubmit, !isLoading, hasStartedFilling else { return nil }
-        if (amount ?? 0) <= 0 { return "Ajoute un montant" }
-        if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Ajoute une description" }
-        if isPlannedWithdrawalMode { return "Choisis l'objectif à retirer" }
+        if (amount ?? 0) <= 0 { return AppLocale.string("Ajoute un montant") }
+        if name.trimmingCharacters(in: .whitespaces).isEmpty {
+            return AppLocale.string("Ajoute une description")
+        }
+        if isPlannedWithdrawalMode { return AppLocale.string("Choisis l'objectif à retirer") }
         return nil
     }
 
@@ -133,10 +137,10 @@ struct AddBudgetLineSheet: View {
             // be spread, so raising it higher would make it flicker in answer to
             // a control further down.
             if kind != .income {
-                SpreadModeToggle(selection: $mode, accentColor: kind.color)
+                SpreadModeToggle(selection: $mode)
             }
             if isSpreadMode {
-                SpreadAmountModeToggle(mode: $amountMode, accentColor: kind.color)
+                SpreadAmountModeToggle(mode: $amountMode)
             }
 
             if userSettingsStore.showCurrencySelector {
@@ -235,8 +239,8 @@ struct AddBudgetLineSheet: View {
         FormTextField(
             hint: kind.descriptionPlaceholder,
             text: $name,
-            label: "Description",
-            accessibilityLabel: "Description de la prévision",
+            label: AppLocale.string("Description"),
+            accessibilityLabel: AppLocale.string("Description de la prévision"),
             focusBinding: $focusedField,
             field: .description
         )
@@ -245,9 +249,11 @@ struct AddBudgetLineSheet: View {
     // MARK: - Add Button
 
     private var ctaTitle: String {
-        if isSavingsWithdrawalMode { return "Continuer" }
-        if isPlannedWithdrawalMode { return "Planifier le retrait" }
-        return isSpreadMode ? AddBudgetLineSpreadLogic.ctaTitle(for: kind) : "Ajouter"
+        if isSavingsWithdrawalMode { return AppLocale.string("Continuer") }
+        if isPlannedWithdrawalMode { return AppLocale.string("Planifier le retrait") }
+        return isSpreadMode
+            ? AddBudgetLineSpreadLogic.ctaTitle(for: kind)
+            : AppLocale.string("Ajouter")
     }
 
     private var addButton: some View {
@@ -257,6 +263,7 @@ struct AddBudgetLineSheet: View {
             }
             .disabled(!canSubmit)
             .primaryButtonStyle(isEnabled: canSubmit)
+            .accessibilityIdentifier("addBudgetLineSubmit")
 
             if let hint = validationHint {
                 Text(hint)

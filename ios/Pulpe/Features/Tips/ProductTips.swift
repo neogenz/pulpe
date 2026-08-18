@@ -128,10 +128,10 @@ enum ProductTips {
         }
 
         var message: Text? {
-            Text(
-                "Toutes les actions sur les modèles ne sont pas encore dispos ici. "
-                + "Pour aller au bout, l'app web fait tout — n'hésite pas à y faire un tour."
-            )
+            Text("""
+                Toutes les actions sur les modèles ne sont pas encore dispos ici. \
+                Pour aller au bout, l'app web fait tout — n'hésite pas à y faire un tour.
+                """)
         }
 
         var image: Image? {
@@ -139,7 +139,7 @@ enum ProductTips {
         }
 
         var actions: [Action] {
-            [Action(id: "open-web", title: "Ouvrir sur le web")]
+            [Action(id: "open-web", title: AppLocale.string("Ouvrir sur le web"))]
         }
 
         var rules: [Rule] {
@@ -185,5 +185,12 @@ extension View {
     /// `ProductTips.isSheetPresented` only reflects modals that call this.
     func suppressesTips() -> some View {
         modifier(SuppressesTipsModifier())
+    }
+
+    /// Shared surface for inline `TipView`s: the row-card token, so education
+    /// banners lift off the canvas like every other card. TipKit's default
+    /// gray fill is near-indistinguishable from `appBackground`.
+    func pulpeTipBackground() -> some View {
+        tipBackground(Color.surfaceContainerLowest)
     }
 }

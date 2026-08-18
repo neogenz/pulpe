@@ -129,10 +129,10 @@ struct SavingsGoalPlannedWithdrawalPickerTests {
         #expect(!result.isOverProjection)
     }
 
-    /// The warning is an aid, not a gate — and it opens the same rounding band the
-    /// server does, so a projection a hair under zero is not an overdraft.
-    @Test("Warns past the projection, tolerating the server's rounding band")
-    func projection_overdraftUsesTheServerTolerance() {
+    /// The warning is an aid, not a gate, using the same cent difference as the
+    /// server: a sub-cent residue is zero and one cent is still meaningful.
+    @Test("Warns only when the cent-rounded projection is negative")
+    func projection_overdraftUsesCentPrecision() {
         let plan = progress(confirmed: 0, months: [month(8, 2026, projected: 500)])
         let period = BudgetPeriod(month: 8, year: 2026)
 
@@ -142,9 +142,15 @@ struct SavingsGoalPlannedWithdrawalPickerTests {
         let roundingHair = SavingsGoalPlannedWithdrawalPicker.projection(
             from: plan, at: period, withdrawing: Decimal(string: "500.001") ?? 0
         )
+        let oneCentOver = SavingsGoalPlannedWithdrawalPicker.projection(
+            from: plan, at: period, withdrawing: Decimal(string: "500.01") ?? 0
+        )
 
         #expect(over.after == -300)
         #expect(over.isOverProjection)
+        #expect(roundingHair.after == 0)
         #expect(!roundingHair.isOverProjection)
+        #expect(oneCentOver.after == Decimal(string: "-0.01"))
+        #expect(oneCentOver.isOverProjection)
     }
 }

@@ -264,7 +264,7 @@ extension AppState {
             await ensureReturningUserFlagLoaded()
             authState = .unauthenticated
         case .biometricSessionExpired:
-            biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
+            biometricError = AppLocale.string("Ta session a expiré, connecte-toi avec ton mot de passe")
             await ensureReturningUserFlagLoaded()
             authState = .unauthenticated
         }

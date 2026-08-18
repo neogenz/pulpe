@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod';
 import { PASSWORD_MIN_LENGTH } from '@core/auth';
 
 export interface ResetPasswordSubmit {

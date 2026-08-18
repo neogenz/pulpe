@@ -23,7 +23,7 @@ struct ForgotPasswordSheet: View {
             .padding(DesignTokens.Spacing.xl)
             .background(Color.sheetBackground)
             .dismissKeyboardOnTap()
-            .navigationTitle("Mot de passe oublié")
+            .localizedNavigationTitle("Mot de passe oublié")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -54,7 +54,7 @@ struct ForgotPasswordSheet: View {
                     .foregroundStyle(Color.textPrimaryOnboarding)
 
                 AuthTextField(
-                    prompt: "ton@email.com",
+                    prompt: AppLocale.string("ton@email.com"),
                     text: $viewModel.email,
                     systemImage: "envelope",
                     hasError: viewModel.errorMessage != nil,
@@ -147,7 +147,7 @@ final class ForgotPasswordViewModel {
 
     func submit() async {
         guard isEmailValid else {
-            errorMessage = "Cette adresse email ne semble pas valide"
+            errorMessage = AppLocale.string("Cette adresse email ne semble pas valide")
             return
         }
 

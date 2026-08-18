@@ -77,7 +77,11 @@ describe('SavingsGoalPickerField', () => {
         },
         {
           provide: UserSettingsStore,
-          useValue: { currency: signal('CHF'), payDayOfMonth },
+          useValue: {
+            currency: signal('CHF'),
+            locale: signal('fr'),
+            payDayOfMonth,
+          },
         },
       ],
     }).compileComponents();
@@ -298,9 +302,8 @@ describe('SavingsGoalPickerField', () => {
     });
   });
 
-  // PUL-329 — the pre-check must open the same band as the server, which accepts
-  // `debit <= available + WITHDRAWAL_BALANCE_TOLERANCE`. The balance arrives as a
-  // server-side SUM of floats, so emptying a goal lands a hair under zero.
+  // PUL-329 — both sides compare the same cent-rounded difference. The balance
+  // arrives as a server-side sum, so emptying a goal can land a hair under zero.
   describe('withdrawal balance', () => {
     const withdrawalPicker = async (
       availableAmount: number,
@@ -337,6 +340,7 @@ describe('SavingsGoalPickerField', () => {
     it('still allows emptying a goal whose balance rounds a hair under the amount', async () => {
       const fixture = await withdrawalPicker(149.999, 150);
 
+      expect(fixture.componentInstance['remainingAmount']()).toBe(0);
       expect(fixture.componentInstance.hasInsufficientBalance()).toBe(false);
       expect(fixture.componentInstance.isWithdrawalBlocked()).toBe(false);
     });
@@ -465,6 +469,31 @@ describe('SavingsGoalPickerField', () => {
           By.css('[data-testid="savings-goal-planned-withdrawal-warning"]'),
         ),
       ).toBeTruthy();
+    });
+
+    it('uses the same cent-rounded projection for preview and warning', async () => {
+      const roundingHair = await plannedPicker(
+        progressWith(
+          [{ year: 2026, month: 8, projectedCumulative: 499.999 }],
+          0,
+        ),
+        500,
+      );
+      const oneCentOver = await plannedPicker(
+        progressWith([{ year: 2026, month: 8, projectedCumulative: 500 }], 0),
+        500.01,
+      );
+
+      expect(roundingHair.componentInstance['plannedPreview']()?.after).toBe(0);
+      expect(
+        roundingHair.componentInstance['hasInsufficientProjection'](),
+      ).toBe(false);
+      expect(oneCentOver.componentInstance['plannedPreview']()?.after).toBe(
+        -0.01,
+      );
+      expect(oneCentOver.componentInstance['hasInsufficientProjection']()).toBe(
+        true,
+      );
     });
 
     it('lists a goal the real withdrawal would hide for lack of funds today', async () => {

@@ -32,9 +32,9 @@ struct PinDotsErrorView: View {
     }
 
     private var accessibilityDescription: String {
-        var description = "\(enteredCount) chiffres sur \(maxDigits) saisis"
+        var description = AppLocale.string("\(enteredCount) chiffres sur \(maxDigits) saisis")
         if isValidating {
-            description += ". Vérification en cours"
+            description += ". " + AppLocale.string("Vérification en cours")
         }
         if let errorMessage {
             description += ". \(errorMessage)"

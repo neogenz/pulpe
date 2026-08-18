@@ -1,5 +1,6 @@
 import { Service, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import {
   type DemoSessionCreate,
@@ -30,6 +31,7 @@ export class DemoInitializerService {
   readonly #authSession = inject(AuthSessionService);
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #demoModeService = inject(DemoModeService);
+  readonly #transloco = inject(TranslocoService);
 
   readonly #isInitializing = signal(false);
   readonly isInitializing = this.#isInitializing.asReadonly();
@@ -110,14 +112,12 @@ export class DemoInitializerService {
       if (isApiError(error)) {
         if (error.status === 0) {
           throw new Error(
-            'Impossible de contacter le serveur. Vérifiez votre connexion internet.',
+            this.#transloco.translate('errors.serverUnreachable'),
           );
         } else if (error.status >= 500) {
-          throw new Error(
-            'Le serveur rencontre un problème — réessaie dans quelques instants',
-          );
+          throw new Error(this.#transloco.translate('errors.serverProblem'));
         } else if (error.status === 429) {
-          throw new Error('Trop de tentatives — patiente avant de réessayer');
+          throw new Error(this.#transloco.translate('errors.tooManyAttempts'));
         }
       }
 

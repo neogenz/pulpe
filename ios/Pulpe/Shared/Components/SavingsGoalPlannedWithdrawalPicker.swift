@@ -38,11 +38,10 @@ struct SavingsGoalPlannedWithdrawalPicker: View {
         /// rate hides the "après" instead of blocking anything.
         let after: Decimal?
 
-        /// Same band as the server's own withdrawal tolerance: a projection that
-        /// lands a rounding hair under zero is not an overdraft.
+        /// Same cent-level decision as the server: a sub-cent residue is zero.
         var isOverProjection: Bool {
             guard let after else { return false }
-            return after < -SavingsGoalProgress.withdrawalBalanceTolerance
+            return after < 0
         }
     }
 
@@ -60,8 +59,11 @@ struct SavingsGoalPlannedWithdrawalPicker: View {
                     && month.projectedCumulative != nil
             }
         } ?? []
-        let before = upToPeriod.last?.projectedCumulative ?? progress.confirmed
-        return Projection(before: before, after: amount.map { before - $0 })
+        let before = (upToPeriod.last?.projectedCumulative ?? progress.confirmed).rounded(2)
+        return Projection(
+            before: before,
+            after: amount.map { (before - $0.rounded(2)).rounded(2) }
+        )
     }
 
     private var projection: Projection? {
@@ -113,7 +115,7 @@ struct SavingsGoalPlannedWithdrawalPicker: View {
             }
         } label: {
             savingsGoalFieldSurface {
-                Text(selectedGoal?.name ?? "Choisis un objectif")
+                Text(selectedGoal?.name ?? AppLocale.string("Choisis un objectif"))
                     .foregroundStyle(selectedGoal == nil ? Color.onSurfaceVariant : Color.textPrimary)
                 Spacer()
                 Image(systemName: "chevron.up.chevron.down")
@@ -122,7 +124,7 @@ struct SavingsGoalPlannedWithdrawalPicker: View {
             }
         }
         .accessibilityLabel("Objectif utilisé")
-        .accessibilityValue(selectedGoal?.name ?? "Aucun objectif choisi")
+        .accessibilityValue(selectedGoal?.name ?? AppLocale.string("Aucun objectif choisi"))
     }
 
     @ViewBuilder
@@ -137,10 +139,10 @@ struct SavingsGoalPlannedWithdrawalPicker: View {
                     .sensitiveAmount()
 
                 if projection.isOverProjection {
-                    Text(
-                        "Ce montant dépasse ce que l'objectif devrait contenir ce mois-là. "
-                            + "Tu peux quand même le planifier."
-                    )
+                    Text("""
+                        Ce montant dépasse ce que l'objectif devrait contenir ce mois-là. \
+                        Tu peux quand même le planifier.
+                        """)
                     .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.onSurfaceVariant)
                 }

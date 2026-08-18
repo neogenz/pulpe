@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import Supabase
 
 /// Thread-safe API client with token management
 actor APIClient {
@@ -299,7 +300,7 @@ actor APIClient {
     private func statusCodeError(_ statusCode: Int) -> APIError {
         switch statusCode {
         case 400:
-            return .validationError(details: ["Quelque chose ne colle pas — vérifie ta saisie"])
+            return .validationError(details: [AppLocale.string("Quelque chose ne colle pas — vérifie ta saisie")])
         case 401:
             return .unauthorized
         case 403:
@@ -307,11 +308,11 @@ actor APIClient {
         case 404:
             return .notFound
         case 409:
-            return .conflict(message: "Cette action entre en conflit — réessaie")
+            return .conflict(message: AppLocale.string("Cette action entre en conflit — réessaie"))
         case 429:
             return .rateLimited
         case 500...599:
-            return .serverError(message: "Quelque chose n'a pas fonctionné — réessaie")
+            return .serverError(message: AppLocale.string("Quelque chose n'a pas fonctionné — réessaie"))
         default:
             return .unknown(statusCode: statusCode)
         }
@@ -327,6 +328,15 @@ actor APIClient {
         do {
             token = try await forceRefreshAccessToken()
         } catch {
+            // A definitive 4xx from the auth server means the refresh token itself was
+            // rejected — retrying can never succeed, so end the session instead of
+            // looping on the network-error screen. Unconfirmed `sessionMissing`,
+            // URLError, 5xx, 408 and 429 stay retryable (PUL-278: no logout on
+            // transient failures).
+            if Self.isDefinitiveRefreshRejection(error) {
+                await invalidateSession()
+                throw APIError.unauthorized
+            }
             throw APIError.networkError(error)
         }
 
@@ -338,6 +348,22 @@ actor APIClient {
             throw APIError.invalidResponse
         }
         return token
+    }
+}
+
+// MARK: - Error Classification
+
+extension APIClient {
+    /// True when the auth server processed the refresh request and refused it.
+    /// The SDK already maps its four terminal codes to `sessionMissing` after
+    /// clearing storage (handled upstream via the `nil` return), so any `.api`
+    /// 4xx reaching here is a rejection outside that list — except 408/429,
+    /// which are load conditions, not verdicts on the token.
+    private static func isDefinitiveRefreshRejection(_ error: Error) -> Bool {
+        guard case .api(_, _, _, let response) = error as? AuthError else { return false }
+        return (400..<500).contains(response.statusCode)
+            && response.statusCode != 408
+            && response.statusCode != 429
     }
 
     /// Transient network errors that are worth retrying once

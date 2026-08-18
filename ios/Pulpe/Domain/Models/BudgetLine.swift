@@ -246,7 +246,7 @@ extension BudgetLine {
             budgetId: budgetId,
             templateLineId: nil,
             savingsGoalId: nil,
-            name: "Report du mois précédent",
+            name: AppLocale.string("Report du mois précédent"),
             amount: abs(amount),
             kind: amount >= 0 ? .income : .expense,
             recurrence: .oneOff,

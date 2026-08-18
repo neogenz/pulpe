@@ -15,8 +15,12 @@ export const HERO_SPENT_PERCENT = Math.round((HERO_SPENT / HERO_BUDGET) * 100);
 // `ticks` est la ligne qui se coche pendant l'animation de la page. L'aperçu
 // social est une image fixe : il la montre déjà cochée, donc tout ce qui n'est
 // pas `unchecked` y est rendu coché.
+//
+// Le libellé n'est pas ici : il change de langue, et ces trois lignes sont des
+// montants. Les deux surfaces le lisent dans `dashboard.previsions` du
+// catalogue, à cette clé.
 export const HERO_PREVISIONS = [
-  { label: "Loyer", amount: 1200, state: "checked" },
-  { label: "Assurance", amount: 25, state: "ticks" },
-  { label: "Électricité", amount: 85, state: "unchecked" },
+  { id: "rent", amount: 1200, state: "checked" },
+  { id: "insurance", amount: 25, state: "ticks" },
+  { id: "electricity", amount: 85, state: "unchecked" },
 ] as const;

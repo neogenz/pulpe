@@ -49,7 +49,7 @@ struct CreateBudgetView: View {
             }
             .scrollIndicators(.hidden)
             .background(Color.sheetBackground)
-            .navigationTitle("Nouveau budget")
+            .localizedNavigationTitle("Nouveau budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -60,7 +60,7 @@ struct CreateBudgetView: View {
                     createButton
                 }
             }
-            .loadingOverlay(viewModel.isCreating, message: "Création...")
+            .loadingOverlay(viewModel.isCreating, message: AppLocale.string("Création..."))
             .task {
                 await viewModel.loadTemplates()
                 withAnimation(.easeOut(duration: 0.4).delay(0.1)) {
@@ -292,8 +292,16 @@ struct TemplateSelectionCard: View {
         .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
             isPressed = pressing
         }, perform: {})
-        .accessibilityLabel("\(template.name)\(template.isDefaultTemplate ? ", modèle par défaut" : "")")
-        .accessibilityHint(isSelected ? "Sélectionné" : "Appuie pour sélectionner")
+        .accessibilityLabel(
+            template.isDefaultTemplate
+                ? AppLocale.string("\(template.name), modèle par défaut")
+                : template.name
+        )
+        .accessibilityHint(
+            isSelected
+                ? AppLocale.string("Sélectionné")
+                : AppLocale.string("Appuie pour sélectionner")
+        )
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 

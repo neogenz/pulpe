@@ -1,6 +1,8 @@
+import type { SupportedLocale } from 'pulpe-shared';
+
 export interface WhatsNewRelease {
   readonly version: string;
-  readonly features: readonly string[];
+  readonly features: Readonly<Record<SupportedLocale, readonly string[]>>;
 }
 
 export interface SkippedWhatsNewRelease {
@@ -9,14 +11,37 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.44.0',
-  features: [
-    'Ajoute l’argent d’un objectif comme revenu ce mois ou plus tard',
-    'Vois ce qui est déjà passé sur ton compte et ce qu’il te reste pour le mois',
-    'Annule aussitôt ce que tu viens de pointer ou de noter',
-    'Ajoute aux budgets déjà créés les versements prévus pour ton objectif',
-  ],
+  version: '0.45.0',
+  features: {
+    fr: [
+      'Pulpe dans quatre langues',
+      'Des montants exacts au centime',
+      'Connexion et préférences plus fiables',
+    ],
+    en: [
+      'Pulpe in four languages',
+      'Amounts accurate to the cent',
+      'More reliable sign-in and preferences',
+    ],
+    de: [
+      'Pulpe in vier Sprachen',
+      'Beträge auf den Rappen genau',
+      'Zuverlässigere Anmeldung und Einstellungen',
+    ],
+    it: [
+      'Pulpe in quattro lingue',
+      'Importi precisi al centesimo',
+      'Accesso e preferenze più affidabili',
+    ],
+  },
 };
+
+export function featuresForLocale(locale: string): readonly string[] {
+  return (
+    LATEST_RELEASE.features[locale as SupportedLocale] ??
+    LATEST_RELEASE.features.fr
+  );
+}
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {

@@ -13,11 +13,12 @@ import { IosVersionGateService } from './ios-version-gate.service';
 import { AppVersionResponseDto } from './dto/app-version-swagger.dto';
 
 /**
- * Public, unauthenticated force-update gate.
+ * Public, unauthenticated app-version policy.
  *
  * Clients hit this endpoint on launch + foreground, compare the returned
  * `minVersion` against their bundle version, and block the UI behind an
- * update wall when below the floor. **No `AuthGuard`** — must work pre-login.
+ * update wall when below the floor. iOS also uses `latestVersion` for a
+ * dismissible App Store prompt. **No `AuthGuard`** — must work pre-login.
  * Rate-limited by the global `UserThrottlerGuard` via the `public` throttler
  * (20 req/min/IP in prod). Response is cacheable for 5 minutes — version
  * values change rarely and an old cached payload is harmless. iOS values come
@@ -43,7 +44,8 @@ export class AppVersionController {
       'Public endpoint consumed by clients on launch and foreground. ' +
       'Returns the platform-specific minimum supported version, latest ' +
       'published version, and store URL. Clients render a forced-update ' +
-      'wall when their bundle version falls below `minVersion`.',
+      'wall below `minVersion`; iOS offers a dismissible App Store prompt ' +
+      'below `latestVersion`.',
   })
   @ApiResponse({
     status: 200,

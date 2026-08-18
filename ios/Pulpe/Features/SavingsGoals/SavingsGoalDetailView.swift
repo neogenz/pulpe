@@ -79,6 +79,7 @@ struct SavingsGoalDetailView: View {
                     Image(systemName: "pencil")
                 }
                 .accessibilityLabel("Modifier l'objectif")
+                .accessibilityIdentifier("savingsGoalEditButton")
             }
         }
         .sheet(item: $editTarget, onDismiss: handleEditDismiss) { goal in
@@ -140,10 +141,11 @@ struct SavingsGoalDetailView: View {
     @ViewBuilder
     private func content(progress: SavingsGoalProgress) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                header(progress: progress)
-
-                GoalProgressCard(progress: progress, currency: currency)
+            // Section rhythm of the home: `xxl` between sections, `md` from a
+            // title to the card it introduces — the 2:1 ratio that tells which
+            // block a header belongs to.
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                hero(progress)
                 if progress.linkedLineCount == 0 {
                     GoalEmptyGuidanceCard()
                 }
@@ -192,6 +194,17 @@ struct SavingsGoalDetailView: View {
         .sheet(isPresented: $isSimulating, onDismiss: openPendingSimulatorBudget) {
             simulator(progress: progress)
         }
+    }
+
+    private func hero(_ progress: SavingsGoalProgress) -> some View {
+        GoalProgressHero(
+            presentation: GoalHeroPresentation(
+                progress: progress,
+                status: currentGoal.status,
+                currency: currency
+            ),
+            status: currentGoal.status
+        )
     }
 
     private func simulator(progress: SavingsGoalProgress) -> some View {
@@ -290,39 +303,17 @@ struct SavingsGoalDetailView: View {
         }
     }
 
+    /// Base `displayedProjection`, not `plannedProjection`: the sentence answers
+    /// the same question as the hero and the chart endpoint, so it has to start
+    /// from the same figure. `plannedProjection` never subtracts a withdrawal,
+    /// so on a goal without a target amount it quoted an « après création » above
+    /// what the curve reaches — two projections for one plan.
     private func recoveryVerdict(_ progress: SavingsGoalProgress) -> String {
         let changes = recoveryChanges(progress)
         let added = changes.reduce(Decimal.zero) { $0 + $1.simulatedAmount }
-        return "Projection après création : "
-            + (progress.plannedProjection + added).asCompactCurrency(currency)
-    }
-
-    // MARK: - Header
-
-    @ViewBuilder
-    private func header(progress: SavingsGoalProgress) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            SavingsGoalStatusBadge(status: currentGoal.status, showsIcon: true)
-
-            if let start = progress.startDateValue, let end = progress.targetDateValue {
-                Text(
-                    "\(start.formatted(date: .abbreviated, time: .omitted))"
-                        + " → \(end.formatted(date: .abbreviated, time: .omitted))"
-                )
-                .font(PulpeTypography.listRowSubtitle)
-                .foregroundStyle(Color.textTertiary)
-            } else if let date = progress.targetDateValue {
-                Text("Échéance \(date.formatted(date: .abbreviated, time: .omitted))")
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(Color.textTertiary)
-            } else if let date = progress.startDateValue {
-                Text("Depuis \(date.formatted(date: .abbreviated, time: .omitted))")
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(Color.textTertiary)
-            }
-
-            Spacer(minLength: 0)
-        }
+        return AppLocale.string(
+            "Projection après création : \((progress.displayedProjection + added).asAdaptiveCurrency(currency))"
+        )
     }
 }
 
@@ -340,7 +331,7 @@ private extension SavingsGoalDetailView {
         BudgetDetailCache.shared.invalidateAll()
         store.invalidateCache()
         await viewModel.load()
-        toastManager.show("Ton plan est à jour")
+        toastManager.show(AppLocale.string("Ton plan est à jour"))
     }
 
     /// A 409 means the recap's baseline is stale. The simulator has already
@@ -357,7 +348,11 @@ private extension SavingsGoalDetailView {
             toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
             return
         }
-        toastManager.show(status == .completed ? "Objectif marqué comme atteint" : "Objectif ré-ouvert")
+        toastManager.show(
+            status == .completed
+                ? AppLocale.string("Objectif marqué comme atteint")
+                : AppLocale.string("Objectif ré-ouvert")
+        )
         if status != .active {
             await proposeGenerationStop()
         }
@@ -410,7 +405,7 @@ private extension SavingsGoalDetailView {
             _ = try await store.update(id: goal.id, data: update)
             await viewModel.load()
             await refreshFutureLinesIfStopped()
-            toastManager.show("Objectif modifié")
+            toastManager.show(AppLocale.string("Objectif modifié"))
         } catch let error as APIError where error.requiresSavingsGoalReconciliationRefresh {
             guard case .some(let updatedTarget) = update.targetDate,
                   let targetDate = updatedTarget else {
@@ -471,7 +466,7 @@ private extension SavingsGoalDetailView {
             _ = try await store.update(id: goal.id, data: update)
             await viewModel.load()
             await refreshFutureLinesIfStopped()
-            toastManager.show("Objectif modifié")
+            toastManager.show(AppLocale.string("Objectif modifié"))
         } catch let error as APIError where error.requiresSavingsGoalReconciliationRefresh {
             try await refreshDeadlineDecision(
                 update,
@@ -523,8 +518,8 @@ private extension SavingsGoalDetailView {
         await viewModel.loadFutureLines()
         toastManager.show(
             mode == .freeze
-                ? "\(result.affectedCount) prévision(s) conservée(s) sans objectif"
-                : "\(result.affectedCount) prévision(s) retirée(s) de tes mois futurs"
+                ? AppLocale.string("\(result.affectedCount) prévision(s) conservée(s) sans objectif")
+                : AppLocale.string("\(result.affectedCount) prévision(s) retirée(s) de tes mois futurs")
         )
     }
 }
@@ -589,33 +584,6 @@ final class SavingsGoalDetailViewModel {
     init(goalId: String, service: any SavingsGoalServicing = SavingsGoalService.shared) {
         self.goalId = goalId
         self.service = service
-    }
-
-    // MARK: - Day-1 verdict gate
-
-    /// No pace verdict before the first plan month has closed: a fresh goal has
-    /// nothing to be judged on yet. Closed = server-locked (strictly-past cycle
-    /// or everything pointé — same signal the timeline dims rows on).
-    static func hasClosedPlanMonth(_ months: [SavingsGoalPlanMonth]) -> Bool {
-        months.contains { $0.isContributionEligible && $0.isLocked }
-    }
-
-    /// Amount for the day-1 « plan prêt » beat: the current month's planned
-    /// amount. `nil` (beat hidden) when the timeline has no funded current
-    /// month — legacy payload without `months`, or a gap month.
-    static func currentMonthPlannedAmount(_ months: [SavingsGoalPlanMonth]) -> Decimal? {
-        guard let amount = months.first(where: { $0.state == .current })?.plannedAmount,
-              amount > 0 else { return nil }
-        return amount
-    }
-
-    /// « requis ≈ prévu » band for the deadline stat — same ±5 % relative
-    /// tolerance as the server's pace verdict (`PACE_TOLERANCE_PERCENT`), so
-    /// the stat never contradicts the verdict shown above it. Outside the band
-    /// the stat becomes one sentence relating both rhythms.
-    static func requiredMatchesPlannedPace(planned: Decimal, required: Decimal) -> Bool {
-        guard planned > 0 else { return required <= 0 }
-        return abs(required - planned) <= planned * SavingsGoalProgress.paceTolerancePercent / 100
     }
 
     static func recoveryAmount(_ progress: SavingsGoalProgress) -> Decimal? {

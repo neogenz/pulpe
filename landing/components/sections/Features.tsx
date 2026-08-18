@@ -1,13 +1,14 @@
 import { Flag, WalletCards } from "lucide-react";
 import { Amount, Money, Section } from "@/components/ui";
-
-const MONTHS = ["Mai", "Juin", "Juil.", "Août"] as const;
+import type { Dictionary } from "@/content/dictionary";
 
 // Une assurance de 1 200 répartie sur les quatre mois affichés, soit 300 par
 // mois : les montants de la maquette dérivent du total au lieu d'être écrits à
-// côté de lui.
+// côté de lui. Le diviseur est le nombre de mois, pas la longueur du libellé
+// traduit : un catalogue mal rempli fausserait la maquette en silence.
+const INSURANCE_MONTH_COUNT = 4;
 const INSURANCE_TOTAL = 1200;
-const INSURANCE_SHARE = INSURANCE_TOTAL / MONTHS.length;
+const INSURANCE_SHARE = INSURANCE_TOTAL / INSURANCE_MONTH_COUNT;
 
 // Même règle que l'assurance au-dessus : la carte objectif ne porte que sa
 // cible, ce qui est déjà épargné et les mois où le reste tombe. La part
@@ -16,20 +17,20 @@ const GOAL_TARGET = 2400;
 const GOAL_SAVED = 1560;
 // Deux, et pas « au moins deux » : la grille sous la barre est en deux colonnes
 // et ses gouttières sont portées par `first:`/`last:`. Un troisième mois se
-// diviserait juste et s'afficherait faux, donc le type refuse de le laisser
-// passer.
-const GOAL_MONTHS: readonly [string, string] = ["Août", "Sept."];
-const GOAL_REMAINING_SHARE = (GOAL_TARGET - GOAL_SAVED) / GOAL_MONTHS.length;
+// diviserait juste et s'afficherait faux, donc le catalogue type ces deux mois
+// en paire et non en liste.
+const GOAL_MONTH_COUNT = 2;
+const GOAL_REMAINING_SHARE = (GOAL_TARGET - GOAL_SAVED) / GOAL_MONTH_COUNT;
 const GOAL_PROGRESS = Math.round((GOAL_SAVED / GOAL_TARGET) * 100);
 
-export function Features() {
+export function Features({ dict }: { dict: Dictionary["home"]["features"] }) {
   return (
     <Section id="features">
       <header className="max-w-4xl">
         <h2 className="text-[clamp(2rem,9vw,3rem)] font-bold leading-[1.08] tracking-[-0.035em] text-text sm:text-5xl">
-          Quand tes plans changent,{" "}
+          {dict.headingLead}
           <mark className="marker-highlight marker-highlight-strong">
-            Pulpe recalcule la suite.
+            {dict.headingHighlight}
           </mark>
         </h2>
       </header>
@@ -47,14 +48,13 @@ export function Features() {
               aria-hidden="true"
             />
             <h3 className="mt-5 max-w-xl text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
-              Répartis une grosse dépense sur plusieurs mois.
+              {dict.spread.title}
             </h3>
             <p className="pretty mt-4 max-w-xl leading-relaxed text-text-secondary">
               <strong className="font-semibold text-text">
-                Le total ne change pas.
-              </strong>{" "}
-              Tu choisis les mois, Pulpe calcule la part de chacun et te montre
-              ce qu’il reste à mettre de côté.
+                {dict.spread.bodyEmphasis}
+              </strong>
+              {dict.spread.bodyTail}
             </p>
           </div>
 
@@ -64,14 +64,14 @@ export function Features() {
           >
             <div className="flex items-baseline justify-between gap-4">
               <span className="text-sm font-medium text-text-secondary">
-                Assurance annuelle
+                {dict.spread.mockLabel}
               </span>
               <strong className="tabular-nums text-lg font-semibold text-text">
                 <Money value={INSURANCE_TOTAL} />
               </strong>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-4 min-[360px]:grid-cols-4 min-[360px]:gap-2 sm:gap-3">
-              {MONTHS.map((month) => (
+              {dict.spread.mockMonths.map((month) => (
                 <div key={month} className="min-w-0">
                   <div className="h-2 rounded-full bg-primary/75" />
                   <p className="tabular-nums mt-2 truncate text-xs font-semibold text-text sm:text-sm">
@@ -92,11 +92,10 @@ export function Features() {
               aria-hidden="true"
             />
             <h3 className="mt-5 max-w-md text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
-              Avance vers ton objectif, même si un mois change.
+              {dict.goal.title}
             </h3>
             <p className="pretty mt-4 max-w-md leading-relaxed text-text-secondary">
-              Fixe une cible et une date. Tu vois les épargnes qui y contribuent
-              et peux répartir le reste sur les mois suivants.
+              {dict.goal.body}
             </p>
           </div>
 
@@ -106,9 +105,9 @@ export function Features() {
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="font-semibold text-text">Vacances</p>
+                <p className="font-semibold text-text">{dict.goal.mockLabel}</p>
                 <p className="mt-1 text-sm text-text-secondary">
-                  Pour septembre
+                  {dict.goal.mockDeadline}
                 </p>
               </div>
               <p className="tabular-nums shrink-0 text-right text-sm font-semibold text-text">
@@ -128,10 +127,12 @@ export function Features() {
             </div>
             <div className="mt-4 border-t border-primary/15 pt-3">
               <div className="text-xs">
-                <span className="font-medium text-primary">Reste réparti</span>
+                <span className="font-medium text-primary">
+                  {dict.goal.mockRemaining}
+                </span>
               </div>
               <div className="mt-2 grid grid-cols-2 divide-x divide-primary/15">
-                {GOAL_MONTHS.map((month) => (
+                {dict.goal.mockMonths.map((month) => (
                   <div
                     key={month}
                     className="flex items-baseline justify-between gap-2 first:pr-3 last:pl-3"

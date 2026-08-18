@@ -10,9 +10,9 @@ enum SavingsGoalStatus: String, Codable, Sendable, CaseIterable {
 
     var label: String {
         switch self {
-        case .active: "Actif"
-        case .completed: "Atteint"
-        case .paused: "En pause"
+        case .active: AppLocale.string("Actif")
+        case .completed: AppLocale.string("Atteint")
+        case .paused: AppLocale.string("En pause")
         }
     }
 }

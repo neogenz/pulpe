@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import {
   createSuccessResponse,
   createListResponse,
@@ -56,6 +56,17 @@ export const supportedCurrencySchema = z.enum(['CHF', 'EUR']);
 export type SupportedCurrency = z.infer<typeof supportedCurrencySchema>;
 export const SUPPORTED_CURRENCIES: readonly SupportedCurrency[] =
   supportedCurrencySchema.options;
+
+/**
+ * UI languages Pulpe ships. ISO 639-1 codes only, never a regional variant:
+ * the region already comes from the currency (`CHF` → `de-CH`, `EUR` → `fr-FR`),
+ * and a `de-CH` here would create a second, contradictory regional axis.
+ * A browser reporting `de-CH` collapses to `de`.
+ */
+export const supportedLocaleSchema = z.enum(['fr', 'en', 'de', 'it']);
+export type SupportedLocale = z.infer<typeof supportedLocaleSchema>;
+export const SUPPORTED_LOCALES: readonly SupportedLocale[] =
+  supportedLocaleSchema.options;
 
 export const currencyRateQuerySchema = z.object({
   base: supportedCurrencySchema,
@@ -2153,23 +2164,34 @@ export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 /**
  * Schema pour mettre à jour les préférences utilisateur
  */
-export const updateUserSettingsSchema = z.strictObject({
-  payDayOfMonth: z
-    .number()
-    .int()
-    .min(PAY_DAY_MIN)
-    .max(PAY_DAY_MAX)
-    .nullable()
-    .optional(),
-  currency: supportedCurrencySchema.optional(),
-  showCurrencySelector: z.boolean().optional(),
-});
+export const updateUserSettingsSchema = z
+  .strictObject({
+    payDayOfMonth: z
+      .number()
+      .int()
+      .min(PAY_DAY_MIN)
+      .max(PAY_DAY_MAX)
+      .nullable()
+      .optional(),
+    currency: supportedCurrencySchema.optional(),
+    showCurrencySelector: z.boolean().optional(),
+    locale: supportedLocaleSchema.optional(),
+  })
+  .refine(
+    ({ locale, payDayOfMonth, currency, showCurrencySelector }) =>
+      locale === undefined ||
+      (payDayOfMonth === undefined &&
+        currency === undefined &&
+        showCurrencySelector === undefined),
+    { message: 'Locale must be updated separately from other settings' },
+  );
 export type UpdateUserSettings = z.infer<typeof updateUserSettingsSchema>;
 
 export const userSettingsSchema = z.object({
   payDayOfMonth: payDayOfMonthSchema,
   currency: supportedCurrencySchema.default('CHF'),
   showCurrencySelector: z.boolean().default(false),
+  locale: supportedLocaleSchema.optional(),
 });
 export type UserSettings = z.infer<typeof userSettingsSchema>;
 
@@ -2480,7 +2502,7 @@ export type EncryptionChangePinResponse = z.infer<
 >;
 
 /**
- * APP VERSION — Force update gate
+ * APP VERSION — Update policy
  *
  * Server-published minimum-supported-version per platform. Clients fetch on
  * launch + foreground, compare against their bundle version, and gate the UI
@@ -2488,8 +2510,9 @@ export type EncryptionChangePinResponse = z.infer<
  *
  * Endpoint: `GET /api/v1/app/version` (public, unauthenticated, cacheable).
  *
- * `latestVersion` is informational today (reserved for an optional soft-update
- * prompt). `storeUrl` is the platform store deep link (App Store for `ios`).
+ * iOS uses `latestVersion` for a dismissible soft-update prompt; the web client
+ * still ignores it. `storeUrl` is the platform store deep link (App Store for
+ * `ios`).
  */
 const semverString = z.string().regex(/^\d+\.\d+\.\d+$/);
 
@@ -2537,5 +2560,6 @@ export type WhatsNewResponse = z.infer<typeof whatsNewResponseSchema>;
 export const whatsNewQuerySchema = z.object({
   currentVersion: semverString,
   lastSeenVersion: semverString,
+  locale: supportedLocaleSchema.optional(),
 });
 export type WhatsNewQuery = z.infer<typeof whatsNewQuerySchema>;

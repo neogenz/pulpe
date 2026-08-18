@@ -27,27 +27,30 @@ struct DriftCard: View {
     /// its plan says the excess is absorbed elsewhere instead of asserting the hero's
     /// opposite — a month exactly on plan covered it as surely as one that came out ahead.
     private var subtitle: String {
-        let base = "\(totalOver.asCompactCurrency(currency)) au-delà du plan"
-        guard overrunIsAbsorbed else { return base }
-        return "\(base), compensé ailleurs ce mois"
+        let total = totalOver.rounded(2).asAdaptiveCurrency(currency)
+        guard overrunIsAbsorbed else { return AppLocale.string("\(total) au-delà du plan") }
+        return AppLocale.string("\(total) au-delà du plan, compensé ailleurs ce mois")
     }
 
-    /// Residual count when more envelopes drift than the card shows.
+    /// Residual count when more envelopes drift than the card shows. One key for every
+    /// count — the singular is a plural variant of it in the catalog.
     private var overflowLabel: String {
         let hidden = drifts.count - Self.maxRows
-        return "+\(hidden) autre\(hidden > 1 ? "s" : "") enveloppe\(hidden > 1 ? "s" : "")"
+        return AppLocale.string("+\(hidden) autres enveloppes")
     }
 
     private var catchUpAccessibilityLabel: String {
-        guard !amountsHidden else { return "Rattraper le dépassement" }
-        return "Rattraper ces \(totalOver.asCompactCurrency(currency)) en trop"
+        guard !amountsHidden else { return AppLocale.string("Rattraper le dépassement") }
+        return AppLocale.string("Rattraper ces \(totalOver.rounded(2).asAdaptiveCurrency(currency)) en trop")
     }
 
     private func rowAccessibilityLabel(_ line: BudgetLine, overBy: Decimal) -> String {
+        let base = amountsHidden
+            ? AppLocale.string("\(line.name), au-delà du plan")
+            : AppLocale.string("\(line.name), \(overBy.asAdaptiveCurrency(currency)) au-delà du plan")
         let names = TagChips.names(for: line.tagIds, namesById: tagNamesById)
-        let tags = names.isEmpty ? "" : ", tags : \(names.joined(separator: ", "))"
-        guard !amountsHidden else { return "\(line.name), au-delà du plan\(tags)" }
-        return "\(line.name), \(overBy.asCompactCurrency(currency)) au-delà du plan\(tags)"
+        guard !names.isEmpty else { return base }
+        return base + AppLocale.string(", tags : \(names.joined(separator: ", "))")
     }
 
     var body: some View {
@@ -55,8 +58,8 @@ struct DriftCard: View {
             // No link on this heading: the card ends on "Rattraper", which goes to the
             // same place and names the remedy. Two ways into the budget, one of them
             // unnamed, is the arrangement this screen is getting rid of.
-            HomeSectionHeader(
-                title: "Ça dérive",
+            SectionHeader(
+                title: AppLocale.string("Ça dérive"),
                 amountSubtitle: subtitle
             )
 
@@ -94,6 +97,7 @@ struct DriftCard: View {
             .padding(.vertical, DesignTokens.Spacing.xs)
             .pulpeRowCard()
         }
+        .accessibilityIdentifier("homeDriftCard")
     }
 
     // MARK: - Drift Row
@@ -102,11 +106,11 @@ struct DriftCard: View {
     /// so a row's length compares its francs to the worst one on the card instead of
     /// shrinking against its own envelope size.
     private var maxOver: Decimal {
-        drifts.prefix(Self.maxRows).map { -$0.consumption.available }.max() ?? 0
+        drifts.prefix(Self.maxRows).map { (-$0.consumption.available).rounded(2) }.max() ?? 0
     }
 
     private func driftRow(_ line: BudgetLine, _ consumption: BudgetFormulas.Consumption) -> some View {
-        let overBy = -consumption.available
+        let overBy = (-consumption.available).rounded(2)
         let fraction = maxOver > 0
             ? min(Double(truncating: (overBy / maxOver) as NSDecimalNumber), 1)
             : 0
@@ -127,7 +131,7 @@ struct DriftCard: View {
 
                 // Compact 0-décimale: a drift overrun is a derived envelope delta —
                 // aggregation category per the currency policy, like the header above it.
-                Text("+\(overBy.asCompactAmount(for: currency)) en trop")
+                Text("+\(overBy.asAdaptiveAmount(for: currency)) en trop")
                     .font(PulpeTypography.metricLabel)
                     .foregroundStyle(Color.driftAccent)
                     .monospacedDigit()
@@ -156,7 +160,7 @@ struct DriftCard: View {
     private var catchUpRow: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text("Rattraper ces \(totalOver.asCompactCurrency(currency)) en trop")
+                Text("Rattraper ces \(totalOver.rounded(2).asAdaptiveCurrency(currency)) en trop")
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(Color.pulpePrimary)
                     .monospacedDigit()

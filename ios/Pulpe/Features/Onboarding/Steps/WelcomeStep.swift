@@ -7,11 +7,11 @@ struct WelcomeStep: View {
     @State private var isBreathing = false
     @Bindable var state: OnboardingState
 
-    private static let consentMarkdown = AppURLs.legalDisclosure(
-        prefix: "En continuant, tu acceptes nos",
-        connector: "notre",
-        suffix: "."
-    )
+    /// Computed, not `static let`: a stored constant would freeze the language the app
+    /// happened to be in when the type was first touched.
+    private static var consentMarkdown: AttributedString {
+        AppURLs.legalDisclosure(for: .welcome)
+    }
 
     var body: some View {
         ZStack {
@@ -64,9 +64,18 @@ struct WelcomeStep: View {
 
                 // Benefits — concrete value props, left-aligned for scannability
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    benefitRow(icon: "list.bullet.rectangle", text: "Un plan clair pour chaque mois")
-                    benefitRow(icon: "checkmark.circle", text: "Tes dépenses pointées en un geste")
-                    benefitRow(icon: "lock", text: "Chiffré — tes montants restent privés")
+                    benefitRow(
+                        icon: "list.bullet.rectangle",
+                        text: AppLocale.string("Un plan clair pour chaque mois")
+                    )
+                    benefitRow(
+                        icon: "checkmark.circle",
+                        text: AppLocale.string("Tes dépenses pointées en un geste")
+                    )
+                    benefitRow(
+                        icon: "lock",
+                        text: AppLocale.string("Chiffré — tes montants restent privés")
+                    )
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, DesignTokens.Spacing.xxxl)
@@ -114,6 +123,7 @@ struct WelcomeStep: View {
                     .textLinkButtonStyle()
                     .frame(minHeight: DesignTokens.TapTarget.minimum)
                     .contentShape(Rectangle())
+                    .accessibilityIdentifier("existingAccountButton")
 
                     // Implicit consent — covers all auth methods (foundation of the stack)
                     OnboardingConsentText(attributed: Self.consentMarkdown)

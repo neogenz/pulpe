@@ -167,7 +167,7 @@ const WINDOW_OPEN_ROWS = 3;
                 data-testid="goal-plan-row-planned-withdrawal"
               >
                 {{ 'savingsGoals.plan.plannedWithdrawal' | transloco }} ·
-                {{ -row.plannedWithdrawal | appCurrency: currency() : '1.0-0' }}
+                {{ -row.plannedWithdrawal | appCurrency: currency() : '1.0-2' }}
               </span>
             }
             @if (row.blockedByRealization) {
@@ -200,7 +200,7 @@ const WINDOW_OPEN_ROWS = 3;
                      tabular-nums text-on-surface-variant"
               data-testid="goal-plan-row-withdrawn"
             >
-              {{ -row.withdrawn | appCurrency: currency() : '1.0-0' }}
+              {{ -row.withdrawn | appCurrency: currency() : '1.0-2' }}
             </span>
           } @else if (
             editable() && row.isOpen && editingKey() === row.periodKey
@@ -251,7 +251,7 @@ const WINDOW_OPEN_ROWS = 3;
                 class="ph-no-capture text-body-medium font-semibold tabular-nums"
                 [class.text-financial-savings]="row.isAdjusted"
               >
-                {{ row.amount | appCurrency: currency() : '1.2-2' }}
+                {{ row.amount | appCurrency: currency() : '1.0-2' }}
               </span>
               <mat-icon class="text-base! w-auto! h-auto! leading-none ml-1"
                 >edit</mat-icon
@@ -263,7 +263,7 @@ const WINDOW_OPEN_ROWS = 3;
               [class.text-financial-savings]="row.isAdjusted"
               [attr.aria-label]="lockedAmountLabel(row)"
             >
-              {{ row.amount | appCurrency: currency() : '1.2-2' }}
+              {{ row.amount | appCurrency: currency() : '1.0-2' }}
             </span>
           }
         </div>
@@ -462,7 +462,7 @@ export class GoalPlanTimeline {
       );
     }
     if (!row.isChecked) return null;
-    const amount = `${formatNumber(row.amount, this.locale(), '1.2-2')} ${this.currency()}`;
+    const amount = `${formatNumber(row.amount, this.locale(), '1.0-2')} ${this.currency()}`;
     return this.#transloco.translate('savingsGoals.detail.lockedAmountAria', {
       amount,
     });

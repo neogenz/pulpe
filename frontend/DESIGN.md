@@ -3,11 +3,10 @@ name: Pulpe Webapp
 description: Une application budgétaire calme et précise, où la rigueur suisse reste chaleureuse.
 colors:
   primary: "#006E25"
-  primary-hover: "#2B883B"
   on-primary: "#FFFFFF"
   secondary: "#406741"
   tertiary: "#0061A6"
-  expense: "#B35800"
+  expense: "#AF5600"
   warning: "#B8860B"
   critical: "#BA1A1A"
   warm-canvas: "#F7F6F3"
@@ -15,7 +14,7 @@ colors:
   surface-container: "#EAF0E5"
   surface-container-high: "#E5EAE0"
   text: "#181D17"
-  text-secondary: "#434841"
+  text-secondary: "#3F493E"
 typography:
   display:
     fontFamily: "Manrope, sans-serif"
@@ -63,14 +62,7 @@ components:
     typography: "{typography.label}"
     rounded: "{rounded.full}"
     padding: "0 24px"
-    height: "48px"
-  button-primary-hover:
-    backgroundColor: "{colors.primary-hover}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.label}"
-    rounded: "{rounded.full}"
-    padding: "0 24px"
-    height: "48px"
+    height: "40px"
   search-field:
     backgroundColor: "{colors.surface-container-high}"
     textColor: "{colors.text}"
@@ -79,7 +71,6 @@ components:
     padding: "0 16px"
     height: "56px"
   financial-pill:
-    backgroundColor: "{colors.surface-container}"
     textColor: "{colors.text}"
     typography: "{typography.label}"
     rounded: "{rounded.full}"
@@ -118,7 +109,6 @@ La palette combine les graines communes de Pulpe avec une rampe Material 3 réel
 ### Primary
 
 - **Forêt Pulpe** : actions principales, épargne, sélection et progression positive.
-- **Forêt vive** : état de survol d'une action principale, jamais un second accent décoratif.
 
 ### Secondary
 
@@ -168,7 +158,7 @@ La palette combine les graines communes de Pulpe avec une rampe Material 3 réel
 
 **The Two-Family Rule.** Manrope porte la hiérarchie de marque ; DM Sans porte l'interface. Aucune troisième famille n'entre dans le chrome.
 
-**The Stable Amount Rule.** Tout montant utilise des chiffres tabulaires et conserve son unité à un niveau visuel secondaire.
+**The Stable Amount Rule.** Tout montant utilise des chiffres tabulaires et conserve son unité à un niveau visuel secondaire. Une valeur qui explique un état monétaire affiche jusqu'aux centimes nécessaires : un reliquat ou un dépassement non nul ne devient jamais `0` par arrondi.
 
 ## Layout
 
@@ -215,8 +205,8 @@ Les bordures sont fines, continues et sémantiques. Les bandes latérales décor
 ### Buttons
 
 - Les variantes Material 22 sont `filled`, `outlined`, `tonal` et texte ; `pulpe-loading-button` conserve la même géométrie pendant le chargement.
-- La hauteur standard est `48px`, avec une cible tactile minimale de `44px`.
-- Le CTA principal peut recevoir l'élévation verte dédiée ; au survol il monte d'un pixel, à l'activation il revient au plan.
+- Un bouton Material standard mesure `40px` visuellement avec une cible tactile de `48px`. `pulpe-loading-button` force une hauteur visible de `48px` ; le CTA de démonstration atteint `52px`.
+- Le CTA principal garde le vert primaire et peut recevoir l'élévation dédiée ; au survol il monte d'un pixel et renforce son ombre, puis revient au plan à l'activation.
 - Le focus reste celui de Material et le libellé de chargement est annoncé avec `aria-live`.
 
 ### Inputs
@@ -267,6 +257,7 @@ Une prévision à pointer reste une ligne de lecture, pas une fausse carte cliqu
 - **Do** utiliser les mixins `mat.*-overrides()` pour adapter Material.
 - **Do** respecter `prefers-reduced-motion` et conserver le contenu final visible sans animation.
 - **Do** aligner les montants avec des chiffres tabulaires et des unités discrètes.
+- **Do** afficher la précision nécessaire pour que le montant et son état restent cohérents, jusqu'à deux décimales.
 - **Do** garder les cartes d'entrée centrées et les marqueurs d'étapes alignés à toutes les largeurs.
 - **Do** limiter le feedback interactif du dashboard au contrôle qui déclenche réellement l'action.
 
@@ -275,6 +266,7 @@ Une prévision à pointer reste une ligne de lecture, pas une fausse carte cliqu
 - **Don't** utiliser `::ng-deep`, les anciens attributs `mat-flat-button` ou une surcharge CSS globale improvisée.
 - **Don't** lire directement `--mat-sys-*` depuis une fonctionnalité lorsqu'un token `--pulpe-*` décrit le besoin.
 - **Don't** appliquer du rouge à une dépense ou un dépassement local.
+- **Don't** afficher `0` pour un reliquat ou un dépassement non nul après arrondi.
 - **Don't** ajouter une ombre à une surface qui peut être hiérarchisée par son ton.
 - **Don't** recréer un chip, un état vide ou un bouton de chargement déjà présent dans `app/ui` ou `app/pattern`.
 - **Don't** donner un hover de carte à une ligne de dashboard qui n'est pas elle-même cliquable.

@@ -12,11 +12,11 @@ enum AuthServiceError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .signupFailed(let message):
-            return "L'inscription n'a pas abouti — \(message)"
+            return AppLocale.string("L'inscription n'a pas abouti — \(message)")
         case .loginFailed(let message):
-            return "La connexion n'a pas abouti — \(message)"
+            return AppLocale.string("La connexion n'a pas abouti — \(message)")
         case .sessionExpired:
-            return "Ta session a expiré — reconnecte-toi"
+            return AppLocale.string("Ta session a expiré — reconnecte-toi")
         }
     }
 }

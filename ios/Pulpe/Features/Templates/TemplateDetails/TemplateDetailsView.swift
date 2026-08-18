@@ -1,8 +1,27 @@
 import SwiftUI
 
+@MainActor
+struct TemplateBudgetProjectionStores {
+    let budgetList: BudgetListStore
+    let dashboard: DashboardStore
+    let currentMonth: CurrentMonthStore
+    let savingsGoal: SavingsGoalStore
+
+    func invalidate() {
+        budgetList.invalidateCache()
+        dashboard.invalidateCache()
+        currentMonth.invalidateCache()
+        BudgetDetailCache.shared.invalidateAll()
+        savingsGoal.invalidateFromBudgetMutation()
+    }
+}
+
 struct TemplateDetailsView: View {
     let templateId: String
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(BudgetListStore.self) private var budgetListStore
+    @Environment(DashboardStore.self) private var dashboardStore
+    @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(SavingsGoalStore.self) private var savingsGoalStore
     @Environment(TagStore.self) private var tagStore
     @State private var viewModel: TemplateDetailsViewModel
@@ -29,12 +48,21 @@ struct TemplateDetailsView: View {
             }
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
-        .navigationTitle(viewModel.template?.name ?? "Modèle")
+        .navigationTitle(viewModel.template?.name ?? AppLocale.string("Modèle"))
         .navigationBarTitleDisplayMode(.inline)
         .task(id: savingsGoalStore.templateDataVersion) {
             await viewModel.loadDetails()
         }
         .task {
+            let projectionStores = TemplateBudgetProjectionStores(
+                budgetList: budgetListStore,
+                dashboard: dashboardStore,
+                currentMonth: currentMonthStore,
+                savingsGoal: savingsGoalStore
+            )
+            viewModel.onBudgetDataMutation = {
+                projectionStores.invalidate()
+            }
             await savingsGoalStore.loadIfNeeded()
         }
         .task(id: referencedTagIds) {
@@ -44,8 +72,9 @@ struct TemplateDetailsView: View {
             EditTemplateLineSheet(
                 templateLine: line,
                 userCurrency: userSettingsStore.currency
-            ) { updatedLine in
+            ) { updatedLine, impact in
                 Task { await viewModel.updateTemplateLine(updatedLine) }
+                viewModel.announceBudgetDataMutation(for: impact)
             }
         }
     }
@@ -86,15 +115,19 @@ struct TemplateDetailsView: View {
 
             // Lines by kind
             if !viewModel.incomeLines.isEmpty {
-                templateLineSection(title: "Revenus", lines: viewModel.incomeLines, kind: .income)
+                templateLineSection(title: AppLocale.string("Revenus"), lines: viewModel.incomeLines, kind: .income)
             }
 
             if !viewModel.expenseLines.isEmpty {
-                templateLineSection(title: "Dépenses", lines: viewModel.expenseLines, kind: .expense)
+                templateLineSection(
+                    title: AppLocale.string("Dépenses"),
+                    lines: viewModel.expenseLines,
+                    kind: .expense
+                )
             }
 
             if !viewModel.savingLines.isEmpty {
-                templateLineSection(title: "Épargne", lines: viewModel.savingLines, kind: .saving)
+                templateLineSection(title: AppLocale.string("Épargne"), lines: viewModel.savingLines, kind: .saving)
             }
         }
         .listStyle(.insetGrouped)
@@ -236,10 +269,11 @@ struct TemplateLineRow: View {
                     if let goalName {
                         PulpeChip(
                             icon: "target",
-                            label: "Objectif : \(goalName)",
+                            label: AppLocale.string("Objectif : \(goalName)"),
                             style: .semantic(.financialSavings)
                         )
                         .lineLimit(1)
+                        .accessibilityIdentifier("templateLineGoalChip-\(line.id)")
                     }
 
                     HStack(spacing: DesignTokens.Spacing.sm) {
@@ -282,6 +316,7 @@ final class TemplateDetailsViewModel {
     private var hasLoadedOnce = false
 
     private let templateService = TemplateService.shared
+    @ObservationIgnored var onBudgetDataMutation: (@MainActor () -> Void)?
 
     init(templateId: String) {
         self.templateId = templateId
@@ -343,6 +378,11 @@ final class TemplateDetailsViewModel {
 
         // Reload to sync with server
         await loadDetails()
+    }
+
+    func announceBudgetDataMutation(for impact: EditTemplateLineSaveImpact) {
+        guard impact == .budgetsChanged else { return }
+        onBudgetDataMutation?()
     }
 }
 
@@ -457,6 +497,9 @@ private struct TemplateDetailsSkeletonView: View {
         TemplateDetailsView(templateId: "test")
     }
     .environment(UserSettingsStore())
+    .environment(BudgetListStore())
+    .environment(DashboardStore())
+    .environment(CurrentMonthStore())
     .environment(SavingsGoalStore())
     .environment(TagStore())
 }

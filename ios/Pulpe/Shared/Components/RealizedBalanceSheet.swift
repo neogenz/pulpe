@@ -30,7 +30,7 @@ struct RealizedBalanceSheet: View {
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .background(Color.sheetBackground)
-            .navigationTitle("Suivi du budget")
+            .localizedNavigationTitle("Suivi du budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -196,10 +196,10 @@ struct RealizedBalanceSheet: View {
                 Text("Astuce")
                     .font(PulpeTypography.labelLarge)
 
-                Text(
-                    "Compare ce solde avec ton compte bancaire. S'il y a un écart, " +
-                    "vérifie que toutes tes dépenses sont bien pointées."
-                )
+                Text("""
+                    Compare ce solde avec ton compte bancaire. S'il y a un écart, \
+                    vérifie que toutes tes dépenses sont bien pointées.
+                    """)
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textSecondary)
             }
@@ -289,7 +289,7 @@ private struct BalanceTrendChart: View {
                     .foregroundStyle(.secondary.opacity(0.2))
                 AxisValueLabel {
                     if let amount = value.as(Double.self) {
-                        Text(Self.formatAxisLabel(amount, currency: userSettingsStore.currency))
+                        Text(Formatters.compactAxisLabel(amount, currency: userSettingsStore.currency))
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -299,15 +299,6 @@ private struct BalanceTrendChart: View {
         .chartLegend(.hidden)
         .chartYScale(domain: (yMin - yPadding) ... (yMax + yPadding))
         .frame(height: 150)
-    }
-
-    private static func formatAxisLabel(_ value: Double, currency: SupportedCurrency) -> String {
-        let abs = abs(value), sign = value < 0 ? "-" : ""
-        guard abs >= 1000 else { return "\(Int(value))" }
-        let k = abs / 1000
-        if k.truncatingRemainder(dividingBy: 1) == 0 { return "\(sign)\(Int(k))K" }
-        let kText = k.formatted(.number.precision(.fractionLength(1)).locale(Formatters.locale(for: currency)))
-        return "\(sign)\(kText)K"
     }
 
     private var areaGradient: LinearGradient {

@@ -30,6 +30,23 @@ module.exports = tseslint.config(
     },
   },
   {
+    files: ["projects/**/src/app/**/*.ts"],
+    ignores: ["**/*.spec.ts"],
+    rules: {
+      // Zod's named `z` export reifies every locale under esbuild. The ESM
+      // namespace keeps default English errors and lets unused locales shake.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            ":matches(ImportDeclaration[source.value='zod'], ImportDeclaration[source.value='zod/v4']) > ImportSpecifier[imported.name='z']",
+          message:
+            "Use `import * as z from 'zod'` to keep default English errors without bundling every Zod locale.",
+        },
+      ],
+    },
+  },
+  {
     files: ["**/*.ts"],
     plugins: { boundaries },
     extends: [boundaries.configs.strict],
@@ -343,7 +360,10 @@ module.exports = tseslint.config(
             },
             {
               from: { type: "test-config" },
-              allow: [{ to: { type: "lib-api" } }],
+              // `testing` for the stubs the suite needs installed before any
+              // spec runs — the pinned browser language, whose only other home
+              // would be a copy of itself inside test-setup.ts.
+              allow: [{ to: { type: ["lib-api", "testing"] } }],
             },
             {
               from: { type: "e2e-config" },

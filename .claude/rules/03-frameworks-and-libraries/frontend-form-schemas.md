@@ -37,7 +37,7 @@ Raisons valides de divergence:
 ## Pattern example (divergent)
 
 ```typescript
-import { z } from "zod/v4";
+import * as z from "zod";
 import { type TransactionCreate } from "pulpe-shared";
 
 export const transactionCreateFromFormSchema = z

@@ -416,10 +416,10 @@ enum Tab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .currentMonth: "Accueil"
-        case .budgets: "Budgets"
-        case .savingsGoals: "Objectifs"
-        case .templates: "Modèles"
+        case .currentMonth: AppLocale.string("Accueil")
+        case .budgets: AppLocale.string("Budgets")
+        case .savingsGoals: AppLocale.string("Objectifs")
+        case .templates: AppLocale.string("Modèles")
         }
     }
 

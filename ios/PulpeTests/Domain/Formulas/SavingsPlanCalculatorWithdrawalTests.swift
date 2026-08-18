@@ -462,9 +462,9 @@ struct SavingsPlanCalculatorWithdrawalTests {
     /// reach the client with `remaining = 0`: the announcement is still readable
     /// but weighs nothing. Reading the gross amount instead would keep charging
     /// the goal for a retrait that never happened.
-    @Test("ignores an announcement whose remainder the server zeroed")
+    @Test("ignores an announcement whose remainder rounds to zero cents")
     func plannedWithdrawal_lapsedAnnouncementWeighsNothing() throws {
-        let timeline = announcedTimeline(withdrawnInMay: 0, remainingInMay: 0)
+        let timeline = announcedTimeline(withdrawnInMay: 0, remainingInMay: Decimal(string: "0.004") ?? 0)
         let redistribution = SavingsPlanCalculator.redistributeRemainingEffort(
             timeline: timeline,
             targetAmount: 3000

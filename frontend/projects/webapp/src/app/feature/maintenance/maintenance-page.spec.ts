@@ -10,6 +10,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import MaintenancePage from './maintenance-page';
 import { MaintenanceApi } from '@core/maintenance';
 import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 // Mock LottieComponent to avoid loading lottie-web in tests
 @Component({
@@ -49,6 +50,7 @@ describe('MaintenancePage', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
+        ...provideTranslocoForTest(),
         { provide: MaintenanceApi, useValue: mockMaintenanceApi },
       ],
     })

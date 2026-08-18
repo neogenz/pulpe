@@ -1,6 +1,15 @@
+import type { SupportedLocale } from 'pulpe-shared';
+
 export interface WhatsNewReleaseChangeItem {
   title: string;
   description: string;
+}
+
+export type WhatsNewTranslatedLocale = Exclude<SupportedLocale, 'fr'>;
+
+export interface WhatsNewLocalizedChanges {
+  features: WhatsNewReleaseChangeItem[];
+  fixes: WhatsNewReleaseChangeItem[];
 }
 
 export interface WhatsNewReleaseEntry {
@@ -18,6 +27,9 @@ export interface WhatsNewReleaseEntry {
     fixes: WhatsNewReleaseChangeItem[];
     technical: WhatsNewReleaseChangeItem[];
   };
+  translations?: Partial<
+    Record<WhatsNewTranslatedLocale, WhatsNewLocalizedChanges>
+  >;
 }
 
 export interface SilentIosReleaseEntry {
@@ -35,6 +47,119 @@ export interface SilentIosReleaseEntry {
  * dropped.
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
+  {
+    version: '0.45.0',
+    iosVersion: '1.4.0',
+    date: '2026-08-18',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Pulpe dans quatre langues',
+          description:
+            'Utilise Pulpe en français, anglais, allemand ou italien sur le web, le site et l’app iOS.',
+        },
+        {
+          title: 'Objectifs plus lisibles sur iOS',
+          description:
+            'Le détail d’un objectif réunit une progression claire, une trajectoire simplifiée et un historique regroupé.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Des montants exacts au centime',
+          description:
+            'Soldes, dépassements, objectifs et retraits restent cohérents jusque dans les petits écarts.',
+        },
+        {
+          title: 'Suppression des prévisions liées',
+          description:
+            'Sur iOS, le choix attendu apparaît désormais depuis le détail de la prévision.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Pulpe in four languages',
+            description:
+              'Use Pulpe in French, English, German or Italian across the web, website and iOS app.',
+          },
+          {
+            title: 'Clearer goals on iOS',
+            description:
+              'Goal details now combine clear progress, a simpler trajectory and a grouped history.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Amounts accurate to the cent',
+            description:
+              'Balances, overruns, goals and withdrawals remain consistent down to small differences.',
+          },
+          {
+            title: 'Deleting linked forecasts',
+            description:
+              'On iOS, the expected choice now appears from the forecast details.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Pulpe in vier Sprachen',
+            description:
+              'Nutze Pulpe auf der Webapp, der Website und in der iOS-App auf Französisch, Englisch, Deutsch oder Italienisch.',
+          },
+          {
+            title: 'Übersichtlichere Ziele auf iOS',
+            description:
+              'Die Zieldetails verbinden einen klaren Fortschritt, einen vereinfachten Verlauf und eine gruppierte Historie.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Beträge auf den Rappen genau',
+            description:
+              'Salden, Überschreitungen, Ziele und Auszahlungen bleiben auch bei kleinen Differenzen konsistent.',
+          },
+          {
+            title: 'Verknüpfte Prognosen löschen',
+            description:
+              'Auf iOS erscheint die erwartete Auswahl nun direkt in den Prognosedetails.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Pulpe in quattro lingue',
+            description:
+              'Usa Pulpe in francese, inglese, tedesco o italiano sul web, sul sito e nell’app iOS.',
+          },
+          {
+            title: 'Obiettivi più chiari su iOS',
+            description:
+              'Il dettaglio di un obiettivo riunisce progressi chiari, un andamento semplificato e una cronologia raggruppata.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Importi precisi al centesimo',
+            description:
+              'Saldi, sforamenti, obiettivi e prelievi restano coerenti anche nelle differenze minime.',
+          },
+          {
+            title: 'Eliminazione delle previsioni collegate',
+            description:
+              'Su iOS, la scelta prevista appare ora direttamente nel dettaglio della previsione.',
+          },
+        ],
+      },
+    },
+  },
   {
     version: '0.44.0',
     iosVersion: '1.3.2',
@@ -66,6 +191,86 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
         },
       ],
       technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Monthly trajectory',
+            description:
+              'The home page separates completed activity from what is still planned and estimates the end-of-month balance',
+          },
+          {
+            title: 'Withdrawals from a goal',
+            description:
+              'A withdrawal can be added to the budget as income immediately or scheduled for a future month',
+          },
+          {
+            title: 'Goal-linked smoothed savings',
+            description:
+              'Savings spread over several months remain linked to the goal they fund',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Completed savings plans',
+            description:
+              'Pulpe finds contributions missing from budgets already created and lets you add them after review',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Monatsverlauf',
+            description:
+              'Die Startseite trennt erledigte Bewegungen von den noch geplanten und schätzt den Saldo zum Monatsende',
+          },
+          {
+            title: 'Auszahlungen aus einem Ziel',
+            description:
+              'Eine Auszahlung kann sofort als Einnahme zum Budget hinzugefügt oder für einen späteren Monat geplant werden',
+          },
+          {
+            title: 'Verteiltes Sparen bleibt mit Zielen verknüpft',
+            description:
+              'Über mehrere Monate verteiltes Sparen behält die Verknüpfung mit dem finanzierten Ziel',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Vervollständigte Sparpläne',
+            description:
+              'Pulpe erkennt fehlende Beiträge in bereits erstellten Budgets und lässt dich diese nach einer Prüfung ergänzen',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Andamento mensile',
+            description:
+              'La pagina iniziale separa ciò che è già avvenuto da ciò che resta pianificato e stima il saldo di fine mese',
+          },
+          {
+            title: 'Prelievi da un obiettivo',
+            description:
+              'Un prelievo può essere aggiunto subito al budget come entrata o pianificato per un mese futuro',
+          },
+          {
+            title: 'Risparmi distribuiti collegati agli obiettivi',
+            description:
+              'I risparmi distribuiti su più mesi restano collegati all’obiettivo che finanziano',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Piani di risparmio completati',
+            description:
+              'Pulpe individua i versamenti mancanti nei budget già creati e ti permette di aggiungerli dopo una verifica',
+          },
+        ],
+      },
     },
   },
   {

@@ -619,7 +619,7 @@ export class AddBudgetLineDialog {
   });
 
   readonly #dateFnsLocale = computed(() =>
-    dateFnsLocaleFor(this.#settings.currency()),
+    dateFnsLocaleFor(this.#settings.locale(), this.#settings.currency()),
   );
 
   // 36-month horizon from the start budget month for the De/À pickers.

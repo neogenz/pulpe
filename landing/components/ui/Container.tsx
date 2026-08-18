@@ -1,13 +1,13 @@
-import { memo } from 'react'
-import type { HTMLAttributes, ReactNode } from 'react'
+import { memo } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 interface ContainerProps extends HTMLAttributes<HTMLDivElement> {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export const Container = memo(function Container({
   children,
-  className = '',
+  className = "",
   ...props
 }: ContainerProps) {
   return (
@@ -17,5 +17,5 @@ export const Container = memo(function Container({
     >
       {children}
     </div>
-  )
-})
+  );
+});

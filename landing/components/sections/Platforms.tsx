@@ -1,8 +1,8 @@
 import { Globe, Smartphone } from "lucide-react";
 import { Badge, Button, Section } from "@/components/ui";
-import { angularUrl } from "@/lib/config";
-
-const IOS_APP_URL = "https://apps.apple.com/app/pulpe/id6758464920";
+import type { Dictionary } from "@/content/dictionary";
+import { angularUrl, IOS_APP_URL } from "@/lib/config";
+import type { Locale } from "@/lib/i18n";
 
 function AppleLogo({ className }: { className?: string }) {
   return (
@@ -17,16 +17,21 @@ function AppleLogo({ className }: { className?: string }) {
   );
 }
 
-export function Platforms() {
+export function Platforms({
+  dict,
+  locale,
+}: {
+  dict: Dictionary["home"]["platforms"];
+  locale: Locale;
+}) {
   return (
     <Section id="platforms">
       <div className="mx-auto max-w-3xl text-center">
         <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">
-          Ton budget te suit. Pas l&apos;inverse.
+          {dict.heading}
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg text-text-secondary">
-          Sur iPhone ou dans ton navigateur, tu retrouves la même année et les
-          mêmes chiffres.
+          {dict.intro}
         </p>
       </div>
 
@@ -44,7 +49,7 @@ export function Platforms() {
                 <AppleLogo className="size-8" />
               </span>
               <span className="rounded-full bg-white/12 px-3 py-1 text-sm font-medium">
-                Disponible
+                {dict.ios.badge}
               </span>
             </div>
             {/* Même taille que « Dans ton navigateur » : les deux cartes sont
@@ -52,25 +57,24 @@ export function Platforms() {
                 de même niveau se lit comme un raté, pas comme une hiérarchie.
                 La carte iPhone garde son poids par sa largeur et son fond. */}
             <h3 className="mt-10 text-3xl font-semibold tracking-[-0.03em]">
-              Pulpe pour iPhone
+              {dict.ios.title}
             </h3>
             <p className="mt-4 max-w-md text-lg leading-relaxed text-white/80">
-              Une app native avec notifications, widgets et Face ID, pensée pour
-              consulter et mettre à jour ton budget partout.
+              {dict.ios.text}
             </p>
             <a
               href={IOS_APP_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-10 inline-flex w-fit rounded-xl transition-opacity duration-200 hover:opacity-85 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary motion-reduce:transition-none"
-              aria-label="Télécharger Pulpe sur l’App Store"
+              aria-label={dict.ios.storeAriaLabel}
               data-cta-name="download_app_store"
               data-cta-location="platforms"
               data-cta-destination={IOS_APP_URL}
             >
               <img
                 src="/app-store-badge.svg"
-                alt="Télécharger sur l’App Store"
+                alt={dict.ios.storeBadgeAlt}
                 width={156}
                 height={52}
                 loading="lazy"
@@ -82,21 +86,20 @@ export function Platforms() {
         <div className="flex flex-col rounded-[var(--radius-large)] bg-surface p-7 shadow-[var(--shadow-organic)] outline outline-1 -outline-offset-1 outline-black/5 sm:p-9 lg:col-span-2">
           <Globe className="size-7 text-primary" strokeWidth={1.7} />
           <h3 className="mt-6 text-3xl font-semibold tracking-[-0.025em]">
-            Dans ton navigateur
+            {dict.web.title}
           </h3>
           <p className="mt-3 leading-relaxed text-text-secondary">
-            Ouvre Pulpe dans ton navigateur, sur ordinateur ou mobile. Rien à
-            installer.
+            {dict.web.text}
           </p>
           <Button
-            href={angularUrl("/welcome", "platforms_ouvrir")}
+            href={angularUrl("/welcome", "platforms_ouvrir", locale)}
             variant="secondary"
             className="mt-7 w-full"
             data-cta-name="ouvrir_navigateur"
             data-cta-location="platforms"
             data-cta-destination="/welcome"
           >
-            Ouvrir l&apos;app web
+            {dict.web.cta}
           </Button>
 
           <div className="mt-8 border-t border-text/10 pt-7">
@@ -109,12 +112,11 @@ export function Platforms() {
                   pair de « Dans ton navigateur ». En h3 il annonçait au plan du
                   document une troisième plateforme au même rang que les deux
                   autres, et il apportait au rôle h3 une troisième taille. */}
-              <h4 className="font-semibold">Android</h4>
-              <Badge>Bientôt</Badge>
+              <h4 className="font-semibold">{dict.android.title}</h4>
+              <Badge>{dict.android.badge}</Badge>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              L&apos;app native est en cours. La version Web fonctionne déjà sur
-              mobile Android.
+              {dict.android.text}
             </p>
           </div>
         </div>

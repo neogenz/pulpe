@@ -2,38 +2,36 @@
 
 ## Clés Apple
 
-| Clé Info.plist | Variable Xcode | Affichage |
-|----------------|----------------|-----------|
-| `CFBundleShortVersionString` | `MARKETING_VERSION` | App Store, utilisateur |
-| `CFBundleVersion` | `CURRENT_PROJECT_VERSION` | TestFlight, interne |
+| Clé Info.plist               | Variable Xcode            | Affichage              |
+| ---------------------------- | ------------------------- | ---------------------- |
+| `CFBundleShortVersionString` | `MARKETING_VERSION`       | App Store, utilisateur |
+| `CFBundleVersion`            | `CURRENT_PROJECT_VERSION` | TestFlight, interne    |
 
-## Alignement avec la version produit
+## Indépendance de la version produit
 
-iOS `MARKETING_VERSION` s'aligne sur la **version produit** (root `package.json`) quand du code iOS est modifié.
+iOS `MARKETING_VERSION` suit la SemVer propre à l'app publiée sur l'App Store ; elle
+ne copie jamais la version produit du `package.json` racine. Une release web/backend
+laisse iOS inchangé. Pour du code iOS, `/release` propose :
 
-Si seul le web ou le backend change, iOS ne bouge pas. iOS peut donc sauter des versions :
+- `build` pour un changement technique sans nouvelle version visible ;
+- `patch` pour une correction utilisateur ;
+- `minor` pour une fonctionnalité utilisateur.
 
-```
-Produit v1.7.0 → iOS bumpé à 1.7.0 (code iOS modifié)
-Produit v1.8.0 → iOS inchangé (web only)
-Produit v1.9.0 → iOS inchangé (backend only)
-Produit v1.10.0 → iOS bumpé à 1.10.0 (code iOS modifié)
-```
-
-Apple impose des versions strictement croissantes — la version produit garantit cette contrainte puisqu'elle ne fait qu'avancer.
+La décision et le numéro de build exact sont approuvés avant toute modification.
 
 ## Convention
 
 ```
-MARKETING_VERSION = 1.7.0    # Alignée sur la version produit
-CURRENT_PROJECT_VERSION = 1  # Entier, reset à 1 pour chaque nouvelle version
+MARKETING_VERSION = 1.3.2    # Version App Store indépendante
+CURRENT_PROJECT_VERSION = 3  # Build ; supérieur à tout build déjà uploadé
 ```
 
 **Cycle type :**
+
 ```
-1.7.0 build 1 → build 2 → build 3 (release)
+1.3.2 build 1 → build 2 → build 3 (release)
                               ↓
-                        1.10.0 build 1 (prochaine release iOS)
+                         1.3.3 build 1 (prochaine correction iOS)
 ```
 
 ## Script
@@ -46,12 +44,14 @@ cd ios
 ./scripts/bump-version.sh minor     # X.Y.0, build reset à 1
 ./scripts/bump-version.sh patch     # X.Y.Z, build reset à 1
 ./scripts/bump-version.sh build     # build N+1
-./scripts/bump-version.sh set X.Y.Z # Aligner sur une version produit spécifique
+./scripts/bump-version.sh set X.Y.Z # Définir une version iOS explicite
 
 xcodegen generate                   # Après bump, régénérer le projet
 ```
 
-**Note :** Le bump iOS lors d'une release ne se fait pas via major/minor/patch mais via `set` pour s'aligner directement sur la version produit.
+Avant un bump de build, consulter App Store Connect : le dépôt peut être en retard sur
+un build TestFlight déjà uploadé. `/release` applique le numéro exact approuvé, puis
+régénère le projet avec `xcodegen`.
 
 ## Règles App Store Connect
 

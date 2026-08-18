@@ -20,7 +20,7 @@ extension EditTransactionPage {
                     iconTint: .financialSavings,
                     title: source.label,
                     accessibilityLabel: source.accessibilityLabel,
-                    accessibilityHint: "Touche pour ouvrir l'objectif",
+                    accessibilityHint: AppLocale.string("Touche pour ouvrir l'objectif"),
                     action: { openSavingsGoal(id: goalId) }
                 )
                 // The push needs the goal itself, so warm the cache while the

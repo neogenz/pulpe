@@ -70,10 +70,10 @@ struct RecoveryKeySheet: View {
                     .font(PulpeTypography.onboardingTitle)
                     .multilineTextAlignment(.center)
 
-                Text(
-                    "Note cette clé dans un endroit sûr. Elle te permettra de " +
-                    "retrouver l'accès à tes données si tu oublies ton code PIN."
-                )
+                Text(AppLocale.string("""
+                Note cette clé dans un endroit sûr. Elle te permettra de \
+                retrouver l'accès à tes données si tu oublies ton code PIN.
+                """))
                     .font(PulpeTypography.subheadline)
                     .foregroundStyle(Color.textSecondary)
                     .multilineTextAlignment(.center)
@@ -153,10 +153,10 @@ struct RecoveryKeySheet: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.warningPrimary)
-            Text(
-                "Sans cette clé et sans ton code PIN, tes données " +
-                "financières seront définitivement inaccessibles."
-            )
+            Text(AppLocale.string("""
+            Sans cette clé et sans ton code PIN, tes données \
+            financières seront définitivement inaccessibles.
+            """))
                 .font(PulpeTypography.footnote)
                 .foregroundStyle(Color.textPrimary)
         }

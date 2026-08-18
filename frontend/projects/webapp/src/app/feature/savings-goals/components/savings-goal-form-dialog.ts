@@ -33,6 +33,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import {
   CURRENCY_METADATA,
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
+  moneyDifference,
   savingsGoalStatusSchema,
   suggestedMonthlyContribution,
   type SavingsGoal,
@@ -433,7 +434,10 @@ export class SavingsGoalFormDialog {
   protected readonly hasRemainingToSave = computed(() => {
     const { targetAmount, initialAmount } = this.model();
     const target = inputNumber(targetAmount);
-    return target == null || target - (inputNumber(initialAmount) ?? 0) > 0;
+    return (
+      target == null ||
+      moneyDifference(target, inputNumber(initialAmount) ?? 0) > 0
+    );
   });
   protected readonly monthlyContribution = computed(
     () => this.#monthlyContributionOverride() ?? this.#suggestedMonthly(),

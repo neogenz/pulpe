@@ -210,6 +210,9 @@ describe('GoalPlanSimulatorToolbar', () => {
   });
 
   it('shows the deadline target hint until the goal is reached', async () => {
+    progressSig.set(makeProgress({ required: 200.01 }));
+    await fixture.whenStable();
+
     // targetReached defaults to false → « Vise X/mois pour atteindre ta cible ».
     const hint = fixture.nativeElement.querySelector(
       '[data-testid="goal-plan-target-hint"]',
@@ -217,9 +220,9 @@ describe('GoalPlanSimulatorToolbar', () => {
     expect(hint).not.toBeNull();
     expect(hint?.classList).toContain('ph-no-capture');
     // The suggested amount is the deadline rhythm — « pour tenir l'échéance » =
-    // required = 200 — NOT the plan-horizon spread (target 800 / 2 months = 400).
+    // required = 200.01 — NOT the plan-horizon spread (800 / 2 = 400).
     // Guards that the hint stays anchored on the deadline, not the plan length.
-    expect(hint?.textContent).toContain('200');
+    expect(hint?.textContent).toContain('200.01');
     expect(hint?.textContent).not.toContain('400');
 
     setTestInput(fixture.componentInstance.targetReached, true);

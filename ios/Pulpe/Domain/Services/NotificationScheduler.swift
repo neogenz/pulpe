@@ -46,9 +46,13 @@ actor NotificationScheduler {
     func scheduleMonthlyReminder(payDay: Int) async {
         guard await authorizationStatus() == .authorized else { return }
 
+        // Resolved here, not at delivery: the trigger repeats, so its content is frozen
+        // the moment it is scheduled. `NSString.localizedUserNotificationString` would
+        // follow the *device* language, not the one chosen in the app. Hence the
+        // reschedule on language change, wired in `PulpeApp`.
         let content = UNMutableNotificationContent()
-        content.title = "Nouveau mois"
-        content.body = "Ton budget du mois t'attend. Fais le point en 30 secondes."
+        content.title = AppLocale.string("Nouveau mois")
+        content.body = AppLocale.string("Ton budget du mois t'attend. Fais le point en 30 secondes.")
         content.sound = .default
 
         var dateComponents = DateComponents()

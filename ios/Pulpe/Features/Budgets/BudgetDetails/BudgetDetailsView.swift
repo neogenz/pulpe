@@ -119,12 +119,14 @@ struct BudgetDetailsView: View {
                 }
                 .iconButtonStyle()
                 .accessibilityLabel("Suivi du budget")
+                .accessibilityIdentifier("budgetTrackingButton")
                 if screenState.isBudgetPresent {
                     Button { router.present(.addBudgetLine) } label: {
                         Image(systemName: "plus")
                     }
                     .iconButtonStyle()
                     .accessibilityLabel("Ajouter une prévision")
+                    .accessibilityIdentifier("budgetAddLineButton")
                 }
             }
         }
@@ -193,23 +195,6 @@ struct BudgetDetailsView: View {
         } message: { _ in
             Text("Cette prévision a des mouvements encore à pointer.")
         }
-        .alert(
-            "Deux prévisions liées",
-            isPresented: $syncStore.showSavingsWithdrawalDeleteChoice,
-            presenting: syncStore.budgetLineToDeleteWithdrawal
-        ) { line in
-            Button(savingsWithdrawalKeepIncomeLabel(for: line)) {
-                dispatchDeleteSavingsWithdrawal(line, scope: .repayment)
-            }
-            Button("Tout annuler", role: .destructive) {
-                dispatchDeleteSavingsWithdrawal(line, scope: .pair)
-            }
-            Button("Annuler", role: .cancel) {
-                coordinator.syncStore.resetSavingsWithdrawalDeleteChoice()
-            }
-        } message: { line in
-            Text(savingsWithdrawalDeleteMessage(for: line))
-        }
     }
 
     private var content: some View {
@@ -235,6 +220,7 @@ struct BudgetDetailsView: View {
                 )
 
                 TipView(ProductTips.pessimisticCheck)
+                    .pulpeTipBackground()
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.bottom, DesignTokens.Spacing.sm)
 

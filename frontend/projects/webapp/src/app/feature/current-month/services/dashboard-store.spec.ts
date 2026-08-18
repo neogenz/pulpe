@@ -1243,6 +1243,34 @@ describe('DashboardStore - Business Scenarios', () => {
       );
 
       expect(affordableStore.isPlanBeyondAvailable()).toBe(false);
+
+      const noisyEquality = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 0.3 }),
+        createMockBudgetLine({
+          id: 'exp-1',
+          kind: 'expense',
+          amount: 0.1 + 0.2,
+        }),
+      ];
+      const { store: noisyStore } = await setupWithBudgetAndWait(
+        budget,
+        noisyEquality,
+        [],
+      );
+
+      expect(noisyStore.isPlanBeyondAvailable()).toBe(false);
+
+      const oneCentOver = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 1000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 1000.01 }),
+      ];
+      const { store: oneCentOverStore } = await setupWithBudgetAndWait(
+        budget,
+        oneCentOver,
+        [],
+      );
+
+      expect(oneCentOverStore.isPlanBeyondAvailable()).toBe(true);
     });
 
     // "Rien de saisi ce mois" keyed on realized outflow, which counts neither

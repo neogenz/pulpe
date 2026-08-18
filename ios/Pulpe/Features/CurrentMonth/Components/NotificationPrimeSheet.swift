@@ -24,10 +24,12 @@ struct NotificationPrimeSheet: View {
                 .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text(
-                "Un rappel par mois pour pointer tes dépenses et voir ton disponible. "
-                    + "C'est tout — jamais de spam, et tu coupes quand tu veux."
-            )
+            // One literal, not two joined by `+`: a concatenation binds the verbatim `Text`
+            // overload, so neither half ever reaches the string catalog.
+            Text("""
+                Un rappel par mois pour pointer tes dépenses et voir ton disponible. \
+                C'est tout — jamais de spam, et tu coupes quand tu veux.
+                """)
                 .font(PulpeTypography.bodyLarge)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)

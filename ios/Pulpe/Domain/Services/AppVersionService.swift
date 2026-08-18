@@ -23,12 +23,12 @@ protocol AppVersionServiceProtocol: Sendable {
     func fetch() async throws -> AppVersionResponse
 }
 
-/// Fetches the server-published version floor for the current platform.
+/// Fetches the server-published version policy for the current platform.
 ///
 /// Uses `URLSession` directly (not `APIClient`) because the endpoint is
-/// public and pre-auth — the app must be able to discover a forced update
-/// before the user is signed in. A short 3s timeout keeps the launch path
-/// fast; callers are expected to treat any error as fail-open.
+/// public and pre-auth — the app must discover both forced and optional updates
+/// independently of the session. A short 3s timeout keeps the launch path fast;
+/// callers are expected to treat any error as fail-open.
 actor AppVersionService: AppVersionServiceProtocol {
     static let shared = AppVersionService()
 
@@ -59,7 +59,7 @@ actor AppVersionService: AppVersionServiceProtocol {
         } catch {
             Logger.network.warning(
                 """
-                [FORCE-UPDATE] version endpoint unreachable — gate cannot refresh, fails open. \
+                [APP-VERSION] version endpoint unreachable — policy cannot refresh, fails open. \
                 url=\(url.absoluteString, privacy: .public) \
                 error=\(error.localizedDescription, privacy: .public)
                 """
@@ -73,7 +73,7 @@ actor AppVersionService: AppVersionServiceProtocol {
         } catch {
             Logger.network.warning(
                 """
-                [FORCE-UPDATE] version response unusable (HTTP \(statusCode)) — gate cannot refresh, fails open. \
+                [APP-VERSION] version response unusable (HTTP \(statusCode)) — policy cannot refresh, fails open. \
                 url=\(url.absoluteString, privacy: .public) \
                 error=\(error.localizedDescription, privacy: .public)
                 """

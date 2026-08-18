@@ -34,9 +34,9 @@ struct BudgetPreviewHero: View {
 
     private var heroSubtitleText: String {
         switch emotionState {
-        case .comfortable: "disponible à dépenser"
-        case .tight: "disponible, mais serré"
-        case .deficit: "à combler"
+        case .comfortable: AppLocale.string("disponible à dépenser")
+        case .tight: AppLocale.string("disponible, mais serré")
+        case .deficit: AppLocale.string("à combler")
         }
     }
 
@@ -44,22 +44,22 @@ struct BudgetPreviewHero: View {
     /// otherwise has no way to infer the chromatic signal.
     private var heroAccessibilityPrefix: String {
         switch emotionState {
-        case .comfortable: "Disponible à dépenser"
-        case .tight: "Disponible mais serré"
-        case .deficit: "À combler"
+        case .comfortable: AppLocale.string("Disponible à dépenser")
+        case .tight: AppLocale.string("Disponible mais serré")
+        case .deficit: AppLocale.string("À combler")
         }
     }
 
     /// Animated hero amount — reads `displayAmount` so the digits roll from
     /// zero to the target via `.contentTransition(.numericText())`.
     private var heroAmountText: String {
-        displayAmount.magnitude.asCompactCurrency(state.currency)
+        displayAmount.rounded(2).magnitude.asAdaptiveCurrency(state.currency)
     }
 
     /// Final amount used for VoiceOver so it doesn't read every frame of the
     /// count-up animation.
     private var finalHeroAmountText: String {
-        state.availableToSpend.magnitude.asCompactCurrency(state.currency)
+        state.availableToSpend.rounded(2).magnitude.asAdaptiveCurrency(state.currency)
     }
 
     var body: some View {
@@ -105,10 +105,10 @@ struct BudgetPreviewHero: View {
     /// "extract actions and side effects out of `body`".
     private func startCountUp() {
         if reduceMotion {
-            displayAmount = state.availableToSpend
+            displayAmount = state.availableToSpend.rounded(2)
         } else {
             withAnimation(.smooth(duration: 0.7)) {
-                displayAmount = state.availableToSpend
+                displayAmount = state.availableToSpend.rounded(2)
             }
         }
     }

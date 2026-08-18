@@ -12,12 +12,12 @@ Architecture de tracking multi-plateforme pour le monorepo Pulpe — sourcemaps,
 
 Toutes les apps utilisent le **même projet PostHog** : **Pulpe Webapp** (ID `87621`).
 
-| App | Domaine | Plateforme (super property) | Release format |
-|-----|---------|---------------------------|----------------|
-| Angular Webapp | app.pulpe.app | `web` | `pulpe-webapp` vX.Y.Z |
-| Landing (Next.js) | pulpe.app | `landing` | `landing-X.Y.Z` |
-| iOS (SwiftUI) | App Store | `ios` | `ios-X.Y.Z+BUILD` |
-| Backend (NestJS) | api.pulpe.app | — | Non concerné |
+| App               | Domaine       | Plateforme (super property) | Release format        |
+| ----------------- | ------------- | --------------------------- | --------------------- |
+| Angular Webapp    | app.pulpe.app | `web`                       | `pulpe-webapp` vX.Y.Z |
+| Landing (Next.js) | pulpe.app     | `landing`                   | `landing-X.Y.Z`       |
+| iOS (SwiftUI)     | App Store     | `ios`                       | `ios-X.Y.Z+BUILD`     |
+| Backend (NestJS)  | api.pulpe.app | —                           | Non concerné          |
 
 Les events se distinguent via la super property `platform`. Les releases se distinguent par leur préfixe de nom.
 
@@ -39,12 +39,12 @@ Les events se distinguent via la super property `platform`. Les releases se dist
 ### Flux
 
 ```
-Push main → CI verte → Vercel deploy → Build Angular →
+Release PR → preuve immuable → Vercel deploy → Build Angular →
   1. posthog-cli sourcemap inject --directory ./dist/webapp/browser
   2. posthog-cli sourcemap upload --directory ./dist/webapp/browser \
        --release-name pulpe-webapp \
        --release-version 0.30.0
-  3. CI job posthog-annotate → annotation sur projet 87621
+  3. Production Release → annotation sur projet 87621
 ```
 
 ### Fonctionnement
@@ -55,11 +55,11 @@ Chaque frame de stack trace dans PostHog Error Tracking devient cliquable vers l
 
 ### Variables d'environnement requises (Vercel — projet Webapp)
 
-| Variable | Description |
-|----------|-------------|
-| `POSTHOG_PERSONAL_API_KEY` | Clé API personnelle PostHog (pas la clé projet) |
-| `POSTHOG_CLI_ENV_ID` | ID du projet PostHog (87621) |
-| `POSTHOG_HOST` | `https://eu.i.posthog.com` (optionnel, défaut EU) |
+| Variable                   | Description                                       |
+| -------------------------- | ------------------------------------------------- |
+| `POSTHOG_PERSONAL_API_KEY` | Clé API personnelle PostHog (pas la clé projet)   |
+| `POSTHOG_CLI_ENV_ID`       | ID du projet PostHog (87621)                      |
+| `POSTHOG_HOST`             | `https://eu.i.posthog.com` (optionnel, défaut EU) |
 
 ---
 
@@ -71,9 +71,9 @@ Chaque frame de stack trace dans PostHog Error Tracking devient cliquable vers l
 ### Flux
 
 ```
-Push main → CI verte → Vercel deploy → Build Next.js →
+Release PR → preuve immuable → Vercel deploy → Build Next.js →
   1. node scripts/create-release.js → Release "landing-X.Y.Z" créée via API REST (même projet 87621)
-  2. CI job posthog-annotate → annotation sur projet 87621
+  2. Production Release → annotation sur projet 87621
 ```
 
 ### Fonctionnement
@@ -82,11 +82,11 @@ La landing utilise `output: 'export'` (site statique) — pas de sourcemaps. Le 
 
 ### Variables d'environnement requises (Vercel — projet Landing)
 
-| Variable | Description |
-|----------|-------------|
-| `POSTHOG_PERSONAL_API_KEY` | Clé API personnelle PostHog |
-| `POSTHOG_CLI_ENV_ID` | ID du projet PostHog (`87621`, même que webapp) |
-| `POSTHOG_HOST` | `https://eu.i.posthog.com` (optionnel, défaut EU) |
+| Variable                   | Description                                       |
+| -------------------------- | ------------------------------------------------- |
+| `POSTHOG_PERSONAL_API_KEY` | Clé API personnelle PostHog                       |
+| `POSTHOG_CLI_ENV_ID`       | ID du projet PostHog (`87621`, même que webapp)   |
+| `POSTHOG_HOST`             | `https://eu.i.posthog.com` (optionnel, défaut EU) |
 
 ---
 
@@ -116,16 +116,16 @@ PostHog supporte l'upload de dSYMs via `posthog-cli` pour la symbolication des c
 
 ---
 
-## CI — Annotations automatiques
+## Production — Annotations automatiques
 
-**Fichier** : `.github/workflows/ci.yml`
-**Job** : `posthog-annotate`
-**Condition** : `push main` + CI success
+**Fichier** : `.github/workflows/production.yml`
+**Étape** : `Create PostHog annotation`
+**Condition** : preuve de production et publication réussies
 
 ### Flux
 
 ```
-CI verte sur main →
+Production exacte et prouvée →
   1. Lecture de la version webapp (frontend/package.json)
   2. Annotation "v0.30.0 (abc1234)" sur projet 87621
 ```
@@ -142,47 +142,47 @@ Les annotations créent des markers verticaux sur tous les graphiques PostHog. Q
 
 > Repository Settings → Secrets and variables → Actions → New repository secret
 
-| Secret | Valeur | Utilisé par |
-|--------|--------|------------|
-| `POSTHOG_PERSONAL_API_KEY` | Clé API personnelle PostHog | CI annotations, iOS release |
-| `POSTHOG_WEBAPP_PROJECT_ID` | `87621` | CI annotations + iOS releases |
+| Secret                      | Valeur                      | Utilisé par                           |
+| --------------------------- | --------------------------- | ------------------------------------- |
+| `POSTHOG_PERSONAL_API_KEY`  | Clé API personnelle PostHog | Production annotations, iOS release   |
+| `POSTHOG_WEBAPP_PROJECT_ID` | `87621`                     | Production annotations + iOS releases |
 
 ### Variables Vercel — projet Webapp (déjà configurées)
 
-| Variable | Valeur |
-|----------|--------|
-| `POSTHOG_PERSONAL_API_KEY` | Clé API personnelle |
-| `POSTHOG_CLI_ENV_ID` | `87621` |
-| `POSTHOG_HOST` | `https://eu.i.posthog.com` |
+| Variable                   | Valeur                     |
+| -------------------------- | -------------------------- |
+| `POSTHOG_PERSONAL_API_KEY` | Clé API personnelle        |
+| `POSTHOG_CLI_ENV_ID`       | `87621`                    |
+| `POSTHOG_HOST`             | `https://eu.i.posthog.com` |
 
 ### Variables Vercel — projet Landing
 
 > Vercel Dashboard → Projet Landing → Settings → Environment Variables
 
-| Variable | Valeur |
-|----------|--------|
-| `POSTHOG_PERSONAL_API_KEY` | Même clé que GitHub |
-| `POSTHOG_CLI_ENV_ID` | `87621` (même projet que webapp) |
+| Variable                   | Valeur                           |
+| -------------------------- | -------------------------------- |
+| `POSTHOG_PERSONAL_API_KEY` | Même clé que GitHub              |
+| `POSTHOG_CLI_ENV_ID`       | `87621` (même projet que webapp) |
 
 ---
 
 ## Ce que ça débloque
 
-| Feature | Description |
-|---------|-------------|
-| **Source linking** | Chaque frame de stack trace → lien cliquable vers le fichier exact dans GitHub au bon commit |
-| **Annotations** | Markers visuels sur tous les graphiques PostHog → corrélation deploy/métriques |
-| **Releases** | Filtrage des erreurs par version, tracking des régressions |
-| **Multi-plateforme** | iOS + Web + Landing avec releases indépendantes dans le même écosystème |
+| Feature                    | Description                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
+| **Source linking**         | Chaque frame de stack trace → lien cliquable vers le fichier exact dans GitHub au bon commit  |
+| **Annotations**            | Markers visuels sur tous les graphiques PostHog → corrélation deploy/métriques                |
+| **Releases**               | Filtrage des erreurs par version, tracking des régressions                                    |
+| **Multi-plateforme**       | iOS + Web + Landing avec releases indépendantes dans le même écosystème                       |
 | **Status pending_release** | Marquer un bug "résolu au prochain deploy" → détection auto de régression si l'erreur revient |
 
 ---
 
 ## Future work
 
-| Sujet | Description | Priorité |
-|-------|-------------|----------|
-| dSYM upload iOS | Symbolication des crash reports natifs via `posthog-cli` | Medium |
-| Feature flags | 0 flags configurés, SDK prêt web + iOS. Gradual rollouts, kill switches | Medium |
-| Workflow pending_release | Marquer les bugs résolus, vérifier au prochain deploy | Low |
-| Tri des issues | 281 issues actives dans Error Tracking à trier | Low |
+| Sujet                    | Description                                                             | Priorité |
+| ------------------------ | ----------------------------------------------------------------------- | -------- |
+| dSYM upload iOS          | Symbolication des crash reports natifs via `posthog-cli`                | Medium   |
+| Feature flags            | 0 flags configurés, SDK prêt web + iOS. Gradual rollouts, kill switches | Medium   |
+| Workflow pending_release | Marquer les bugs résolus, vérifier au prochain deploy                   | Low      |
+| Tri des issues           | 281 issues actives dans Error Tracking à trier                          | Low      |

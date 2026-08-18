@@ -196,6 +196,28 @@ describe('DashboardSavingsSummary', () => {
     expect(text).toContain('Tu as mis de côté');
   });
 
+  it('should ignore float dust when deciding completion', () => {
+    setTestInput(component.totalPlanned, 0.3);
+    setTestInput(component.totalRealized, 0.1 + 0.2);
+    setTestInput(component.allLinesPointed, true);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      "C'est fait pour ce mois",
+    );
+  });
+
+  it('should keep one missing cent in progress', () => {
+    setTestInput(component.totalPlanned, 500);
+    setTestInput(component.totalRealized, 499.99);
+    setTestInput(component.allLinesPointed, true);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain(
+      "C'est fait pour ce mois",
+    );
+  });
+
   it('should render the count in the singular against a plan of one', () => {
     setTestInput(component.totalPlanned, 1000);
     setTestInput(component.totalRealized, 400);

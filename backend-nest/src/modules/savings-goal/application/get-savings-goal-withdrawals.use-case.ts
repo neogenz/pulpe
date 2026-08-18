@@ -4,7 +4,7 @@ import {
   type SavingsGoalRepositoryPort,
 } from '../domain/ports/savings-goal-repository.port';
 import {
-  WITHDRAWAL_BALANCE_TOLERANCE,
+  moneyDifference,
   type SavingsGoalPlannedWithdrawal,
   type SavingsGoalPlanOnlyWithdrawal,
   type SavingsGoalWithdrawal,
@@ -74,9 +74,10 @@ export class GetSavingsGoalWithdrawalsUseCase {
     realizedByLine: ReadonlyMap<string, number>,
   ): SavingsGoalPlannedWithdrawal {
     const realizedAmount = realizedByLine.get(record.budgetLineId) ?? 0;
-    const remaining = record.amount - realizedAmount;
-    const remainingAmount =
-      remaining > WITHDRAWAL_BALANCE_TOLERANCE ? remaining : 0;
+    const remainingAmount = Math.max(
+      0,
+      moneyDifference(record.amount, realizedAmount),
+    );
     return {
       budgetLineId: record.budgetLineId,
       budgetId: record.budgetId,

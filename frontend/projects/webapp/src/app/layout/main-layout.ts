@@ -283,7 +283,7 @@ interface NavigationItem {
               <button
                 matIconButton
                 (click)="drawer.toggle()"
-                aria-label="Toggle navigation"
+                [attr.aria-label]="'layout.toggleNavigation' | transloco"
                 data-testid="menu-toggle"
                 data-tour="navigation"
               >
@@ -367,7 +367,7 @@ interface NavigationItem {
                   data-testid="user-menu-trigger"
                   class="inline-flex items-center"
                 >
-                  <span class="inline-flex min-w-0 items-center gap-2">
+                  <span class="flex min-w-0 items-center gap-2">
                     @if (userAvatarUrl(); as avatarUrl) {
                       <img
                         [src]="avatarUrl"

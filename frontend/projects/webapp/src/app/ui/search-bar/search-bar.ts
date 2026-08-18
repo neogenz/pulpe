@@ -6,10 +6,11 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
   selector: 'pulpe-search-bar',
-  imports: [MatButtonModule, MatIconModule],
+  imports: [MatButtonModule, MatIconModule, TranslocoPipe],
   host: { class: 'block' },
   template: `
     <div
@@ -26,7 +27,7 @@ import { MatIconModule } from '@angular/material/icon';
       @if (value()) {
         <button
           matIconButton
-          aria-label="Effacer la recherche"
+          [attr.aria-label]="'common.clearSearch' | transloco"
           (click)="value.set('')"
         >
           <mat-icon>close</mat-icon>
@@ -37,6 +38,9 @@ import { MatIconModule } from '@angular/material/icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SearchBar {
-  readonly placeholder = input('Rechercher...');
+  // Required rather than defaulted: a default would be a hardcoded French
+  // string, and a caller that forgot to pass one would render it inside the
+  // German app without anything failing.
+  readonly placeholder = input.required<string>();
   readonly value = model('');
 }

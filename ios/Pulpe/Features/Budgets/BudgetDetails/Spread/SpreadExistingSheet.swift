@@ -36,7 +36,7 @@ struct SpreadExistingSheet: View {
     // Source kind drives the noun — a spread saving must read "épargne", not
     // "dépense" (same accord as the `disclosure` body and the additive flow).
     private var spreadTitle: String {
-        source.kind == .saving ? "Lisser l'épargne" : "Lisser la dépense"
+        source.kind == .saving ? AppLocale.string("Lisser l’épargne") : AppLocale.string("Lisser la dépense")
     }
     // M0 is locked, so the window is [M0, M0+35] at most (36-month cap). The
     // worst case (M0 = December) ends in `start.year + 3`; +4 over-exposed a year
@@ -72,10 +72,10 @@ struct SpreadExistingSheet: View {
             // Blocking overlay while the spread runs server-side (delete source +
             // fan out N tranches) — parity with the additive flow. The message
             // matters: a bare spinner on a multi-month fan-out reads as frozen.
-            .loadingOverlay(isSubmitting, message: "Lissage en cours…")
+            .loadingOverlay(isSubmitting, message: AppLocale.string("Lissage en cours…"))
             .sheet(isPresented: $isPickingEnd) {
                 SpreadMonthPickerSheet(
-                    title: "Dernier mois",
+                    title: AppLocale.string("Dernier mois"),
                     initial: calculator.end,
                     yearRange: yearRange,
                     accentColor: accentColor
@@ -111,10 +111,10 @@ struct SpreadExistingSheet: View {
     }
 
     private var helpText: some View {
-        Text(
-            "On répartit ce montant à parts égales sur les mois que tu choisis, "
-                + "à partir de ce mois-ci. Désélectionne ceux à sauter."
-        )
+        Text("""
+            On répartit ce montant à parts égales sur les mois que tu choisis, \
+            à partir de ce mois-ci. Désélectionne ceux à sauter.
+            """)
             .font(PulpeTypography.caption)
             .foregroundStyle(Color.onSurfaceVariant)
             .fixedSize(horizontal: false, vertical: true)
@@ -200,8 +200,10 @@ struct SpreadExistingSheet: View {
         .disabled(calculator.isLocked(month))
         .plainPressedButtonStyle()
         .accessibilityLabel(month.longName)
-        .accessibilityValue(isOn ? "Sélectionné" : "Désélectionné")
-        .accessibilityHint(calculator.isLocked(month) ? "Mois de départ, non modifiable" : "")
+        .accessibilityValue(isOn ? Text("Sélectionné") : Text("Désélectionné"))
+        .accessibilityHint(
+            calculator.isLocked(month) ? Text("Mois de départ, non modifiable") : Text(verbatim: "")
+        )
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
@@ -237,15 +239,24 @@ struct SpreadExistingSheet: View {
         let count = calculator.selectedCount
         let perMonth = calculator.perMonth(total: source.total).asCurrency(currency)
         let total = source.total.asCurrency(currency)
-        switch source.sourceType {
-        case .transaction:
-            // Source kind drives the noun — a spread saving must read "épargne",
-            // not "dépense" (same accord as the additive successMessage).
-            let noun = source.kind == .saving ? "épargne" : "dépense"
-            return "On transforme cette \(noun) de \(total) en un plan lissé : "
-                + "\(perMonth) par mois sur \(count) mois. Le réel est remplacé par le plan."
-        case .budgetLine:
-            return "On répartit cette prévision de \(total) en \(perMonth) par mois sur \(count) mois."
+        // Source kind drives the noun — a spread saving must read "épargne", not
+        // "dépense" (same accord as the additive successMessage). One whole key per
+        // noun: the sentence can't be assembled around a translated fragment.
+        switch (source.sourceType, source.kind) {
+        case (.transaction, .saving):
+            return AppLocale.string("""
+                On transforme cette épargne de \(total) en un plan lissé : \
+                \(perMonth) par mois sur \(count) mois. Le réel est remplacé par le plan.
+                """)
+        case (.transaction, _):
+            return AppLocale.string("""
+                On transforme cette dépense de \(total) en un plan lissé : \
+                \(perMonth) par mois sur \(count) mois. Le réel est remplacé par le plan.
+                """)
+        case (.budgetLine, _):
+            return AppLocale.string(
+                "On répartit cette prévision de \(total) en \(perMonth) par mois sur \(count) mois."
+            )
         }
     }
 

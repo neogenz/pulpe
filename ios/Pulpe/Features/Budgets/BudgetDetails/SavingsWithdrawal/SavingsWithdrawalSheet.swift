@@ -81,7 +81,7 @@ struct SavingsWithdrawalSheet: View {
                 }
         }
         .standardSheetPresentation(detents: [.large])
-        .loadingOverlay(isSubmitting, message: "On met ça en place…")
+        .loadingOverlay(isSubmitting, message: AppLocale.string("On met ça en place…"))
         // Block swipe-to-dismiss while the couple is created server-side so the
         // sheet can't tear down mid-request (parity with SpreadExistingSheet).
         .interactiveDismissDisabled(isSubmitting)
@@ -107,16 +107,16 @@ struct SavingsWithdrawalSheet: View {
                     amountText: $amountText,
                     focus: $focusedField,
                     field: .amount,
-                    hint: "Combien te manque-t-il ?",
+                    hint: AppLocale.string("Combien te manque-t-il ?"),
                     currency: inputCurrency,
                     accentColor: .financialSavings
                 )
                 deficitChip
                 FormTextField(
-                    hint: "Mon épargne",
+                    hint: AppLocale.string("Mon épargne"),
                     text: $source,
-                    label: "D'où vient l'argent ? (optionnel)",
-                    accessibilityLabel: "Source de l'épargne",
+                    label: AppLocale.string("D'où vient l'argent ? (optionnel)"),
+                    accessibilityLabel: AppLocale.string("Source de l'épargne"),
                     focusBinding: $focusedField,
                     field: .source
                 )
@@ -128,7 +128,7 @@ struct SavingsWithdrawalSheet: View {
         .scrollDismissesKeyboard(.interactively)
         .pulpeBackground()
         .pulpeStickyBottomCTA { continueButton }
-        .navigationTitle("Couvrir ce mois avec mon épargne")
+        .localizedNavigationTitle("Couvrir ce mois avec mon épargne")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -153,7 +153,7 @@ struct SavingsWithdrawalSheet: View {
             } label: {
                 PulpeChip(
                     icon: TransactionKind.savingsIcon,
-                    label: "Il te manque \(missing.asCurrency(userSettingsStore.currency))",
+                    label: AppLocale.string("Il te manque \(missing.asCurrency(userSettingsStore.currency))"),
                     style: .outlined
                 )
             }
@@ -192,8 +192,8 @@ struct SavingsWithdrawalSheet: View {
             let data = SavingsWithdrawalCreate(
                 budgetId: prefill.budgetId,
                 amount: conversion?.convertedAmount ?? amount,
-                incomeName: trimmedSource.isEmpty ? "Mon épargne" : trimmedSource,
-                savingName: "Remettre sur ton épargne",
+                incomeName: trimmedSource.isEmpty ? AppLocale.string("Mon épargne") : trimmedSource,
+                savingName: AppLocale.string("Remettre sur ton épargne"),
                 groupId: groupId,
                 originalAmount: conversion?.originalAmount,
                 originalCurrency: conversion?.originalCurrency,
@@ -203,7 +203,7 @@ struct SavingsWithdrawalSheet: View {
             let response = try await dependencies.createSavingsWithdrawal(data)
             submitSuccessTrigger.toggle()
             onAdd(response.incomeLine)
-            toastManager.show("C'est réglé pour ce mois")
+            toastManager.show(AppLocale.string("C'est réglé pour ce mois"))
             dismiss()
         } catch {
             toastManager.show(DomainErrorLocalizer.localize(error), type: .error)

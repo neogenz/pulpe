@@ -161,7 +161,9 @@ struct SavingsGoalFormSheet: View {
 
     var body: some View {
         SheetFormContainer(
-            title: isEditing ? "Modifier l'objectif" : "Nouvel objectif",
+            title: isEditing
+                ? AppLocale.string("Modifier l'objectif")
+                : AppLocale.string("Nouvel objectif"),
             isLoading: isLoading,
             focus: $focusedField,
             focusOrder: [.description]
@@ -181,7 +183,7 @@ struct SavingsGoalFormSheet: View {
                 manualMonthlySection
             }
             if isEditing {
-                CapsulePicker(selection: $status, title: "Statut") { item, _ in
+                SegmentedPicker(selection: $status, title: AppLocale.string("Statut")) { item in
                     Text(item.label)
                 }
             }
@@ -214,13 +216,14 @@ struct SavingsGoalFormSheet: View {
 
     private var nameField: some View {
         FormTextField(
-            hint: "Maison, vacances, voiture…",
+            hint: AppLocale.string("Maison, vacances, voiture…"),
             text: $name,
-            label: "Nom de l'objectif",
-            accessibilityLabel: "Nom de l'objectif d'épargne",
+            label: AppLocale.string("Nom de l'objectif"),
+            accessibilityLabel: AppLocale.string("Nom de l'objectif d'épargne"),
             focusBinding: $focusedField,
             field: .description
         )
+        .accessibilityIdentifier("savingsGoalNameField")
     }
 
     /// Second amount field (PUL-293), same `CurrencyField` component already
@@ -229,7 +232,7 @@ struct SavingsGoalFormSheet: View {
     private var initialAmountField: some View {
         CurrencyField(
             value: $initialAmount,
-            label: "Montant de départ (optionnel)",
+            label: AppLocale.string("Montant de départ (optionnel)"),
             currency: currency,
             visualStyle: .flat
         )
@@ -238,7 +241,7 @@ struct SavingsGoalFormSheet: View {
     private var targetAmountField: some View {
         CurrencyField(
             value: $amount,
-            label: "Cible (optionnelle)",
+            label: AppLocale.string("Cible (optionnelle)"),
             currency: currency,
             visualStyle: .flat
         )
@@ -323,14 +326,11 @@ struct SavingsGoalFormSheet: View {
                                 (newValue == nil || newValue == suggestedMonthly) ? nil : newValue
                         }
                     ),
-                    label: "Épargne mensuelle",
+                    label: AppLocale.string("Épargne mensuelle"),
                     currency: currency,
                     visualStyle: .flat
                 )
-                Text(
-                    "Pré-rempli avec cible ÷ mois restants. Ce montant sera prévu"
-                        + " sur chacun de tes budgets, jusqu'à l'échéance."
-                )
+                Text(Self.decomposeContributionHint)
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.onSurfaceVariant)
             }
@@ -342,7 +342,7 @@ struct SavingsGoalFormSheet: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             CurrencyField(
                 value: $monthlyContributionOverride,
-                label: "Épargne mensuelle (optionnelle)",
+                label: AppLocale.string("Épargne mensuelle (optionnelle)"),
                 currency: currency,
                 visualStyle: .flat
             )
@@ -359,10 +359,11 @@ struct SavingsGoalFormSheet: View {
         Button {
             Task { await save() }
         } label: {
-            Text(isEditing ? "Enregistrer" : "Créer l'objectif")
+            isEditing ? Text("Enregistrer") : Text("Créer l'objectif")
         }
         .disabled(!canSubmit)
         .primaryButtonStyle(isEnabled: canSubmit)
+        .accessibilityIdentifier("savingsGoalFormSubmit")
     }
 
     private var deleteButton: some View {
@@ -428,7 +429,7 @@ private extension SavingsGoalFormSheet {
                     startDate: startDateString
                 )
             )
-            toastManager.show("Objectif créé")
+            toastManager.show(AppLocale.string("Objectif créé"))
             submitSuccessTrigger += 1
             dismiss()
         } catch {
@@ -441,7 +442,7 @@ private extension SavingsGoalFormSheet {
         if let warning {
             toastManager.show(warning, type: .error)
         } else {
-            toastManager.show("Objectif supprimé")
+            toastManager.show(AppLocale.string("Objectif supprimé"))
             submitSuccessTrigger += 1
         }
         dismiss()
@@ -481,8 +482,15 @@ extension SavingsGoalFormSheet {
 
     nonisolated static func manualMonthlyContributionHint(hasTargetDate: Bool) -> String {
         hasTargetDate
-            ? "Ce montant sera prévu chaque mois, jusqu'à l'échéance."
-            : "Ce montant alimentera ton pot chaque mois, sans échéance imposée."
+            ? AppLocale.string("Ce montant sera prévu chaque mois, jusqu'à l'échéance.")
+            : AppLocale.string("Ce montant alimentera ton pot chaque mois, sans échéance imposée.")
+    }
+
+    /// Two complete sentences, keyed separately: neither is a fragment a
+    /// translator has to reassemble, and each fits the line budget.
+    static var decomposeContributionHint: String {
+        AppLocale.string("Pré-rempli avec cible ÷ mois restants.")
+            + " " + AppLocale.string("Ce montant sera prévu sur chacun de tes budgets, jusqu'à l'échéance.")
     }
 }
 

@@ -44,7 +44,7 @@ The rule above holds only when the Button owns its row. `frame(minHeight:)` grow
 Button's **own reported size**, and a stack takes the height of its tallest child — so on a
 Button that shares an `HStack` (or `VStack`) with siblings, the frame silently grows the
 whole row and pushes everything below it down. This is invisible in a single screenshot and
-only shows in a pixel diff; it shipped once as a 24pt regression on `HomeSectionHeader`.
+only shows in a pixel diff; it shipped once as a 24pt regression on `SectionHeader`.
 
 Those 24pt are not cosmetic. They took the header→card gap from 13.7pt to 37.7pt while the
 section gap above stayed at `Spacing.xxl` = 24pt — so the header read as belonging to the

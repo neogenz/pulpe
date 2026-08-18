@@ -14,14 +14,7 @@
     "add": "Ajouter",
     "search": "Rechercher",
     "error": "Erreur",
-    "success": "Succès",
     "retry": "Réessayer",
-    "send": "Envoyer",
-    "copied": "Copié !",
-    "copy": "Copier",
-    "exit": "Quitter",
-    "yes": "Oui",
-    "no": "Non",
     "somethingWentWrong": "Quelque chose n'a pas fonctionné — réessaie",
     "formErrors": "Quelques champs à vérifier avant de continuer",
     "conversionError": "Pas de taux dispo pour l'instant — ton montant sera enregistré tel quel.",
@@ -29,14 +22,14 @@
     "networkError": "Erreur réseau — vérifie ta connexion",
     "clear": "Effacer",
     "currencySelector": "Devise",
-    "viewAll": "Voir tout",
     "undo": "Annuler",
     "financialPills": {
       "ariaLabel": "Résumé financier",
       "income": "Revenus",
       "expenses": "Dépenses",
       "savings": "Épargne"
-    }
+    },
+    "clearSearch": "Effacer la recherche"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -48,7 +41,6 @@
     "savingsGoalsShort": "Objectifs",
     "settings": "Paramètres",
     "about": "À propos",
-    "newFeatures": "Nouveautés",
     "discoverPage": "Aide sur cette page",
     "dashboardTooltip": "Ta vue d'ensemble du mois",
     "budgetsTooltip": "Planifie tous tes mois",
@@ -208,8 +200,6 @@
       "pinsMismatch": "Les deux codes ne sont pas identiques — réessaie",
       "rememberDevice": "Ne plus me demander sur cet appareil",
       "rememberDeviceHint": "Si tu coches cette case, ta clé de déchiffrement sera stockée sur cet appareil. À éviter sur un ordinateur partagé.",
-      "submitting": "Vérification...",
-      "continue": "Continuer",
       "lostCode": "Code perdu ?",
       "setupSubmitting": "On prépare ton espace...",
       "setupSubmit": "Créer mon code PIN",
@@ -290,7 +280,10 @@
     "logoutAction": "Se déconnecter",
     "previousMonth": "Mois précédent",
     "nextMonth": "Mois suivant",
-    "earlyAdopter": "VIP"
+    "earlyAdopter": "VIP",
+    "toggleNavigation": "Ouvrir le menu",
+    "whatsNewTitle": "Nouveautés v{{ version }}",
+    "whatsNewSeeAll": "Voir les nouveautés"
   },
   "earlyAdopter": {
     "title": "Merci d'être là depuis le début ✨",
@@ -350,6 +343,8 @@
     "payDayHintStandard": "Ton budget commence le {{ day }} de chaque mois",
     "payDayHintDefault": "Ton budget suit le calendrier standard",
     "currencyLabel": "Devise",
+    "languageLabel": "Langue",
+    "languageReloadHint": "Changer de langue recharge la page.",
     "currencySelectorLabel": "Sélecteur de devise",
     "currencySelectorDescription": "Afficher un sélecteur de devise sur les champs montant",
     "currencyChangeTitle": "Changer la devise d'affichage ?",
@@ -430,7 +425,7 @@
     "pinCode": "Code PIN",
     "pinCodeDescription": "Modifier ton code de chiffrement.",
     "pinChanged": "Code PIN modifié",
-    "pinChangedNoRecovery": "Code PIN modifié — régénère ta clé de secours dans les réglages",
+    "pinChangedNoRecovery": "Code PIN modifié — régénère ta clé de récupération dans les réglages",
     "changePin": {
       "title": "Modifier le code PIN",
       "titleNewPin": "Nouveau code PIN",
@@ -483,7 +478,6 @@
     "transactionCreateError": "L'ajout a échoué — réessaie",
     "transactionToggleError": "Le pointage a échoué — réessaie",
     "checkAllError": "Certaines lignes n'ont pas pu être pointées — réessaie",
-    "concurrentModification": "Cette prévision a été modifiée par un autre utilisateur",
     "deleteForecast": "Supprimer cette prévision ?",
     "deleteTransaction": "Supprimer « {{ name }} » ?",
     "irreversibleAction": "Cette action est irréversible.",
@@ -496,7 +490,6 @@
     "createdAt": "Créé le",
     "lastModified": "Dernière modification",
     "budgetId": "ID du budget",
-    "infoSection": "Budget",
     "created": "Ton budget est prêt",
     "descriptionTooLong": "La description ne peut pas dépasser 100 caractères",
     "createTitle": "Créer un budget",
@@ -530,8 +523,6 @@
     "transactionAdded": "Enregistré",
     "envelopes": "Tes prévisions",
     "forecastsThisMonth": "{{ count }} prévisions ce mois",
-    "forecastsLabel": "Prévisions",
-    "forecastsPeriod": "Ce mois",
     "noEnvelopesYet": "Pas encore de prévision",
     "createFirstEnvelope": "Crée ta première prévision pour commencer à voir clair",
     "createEnvelope": "Créer une prévision",
@@ -540,12 +531,9 @@
     "allChecked": "Tout est pointé",
     "allCheckedFilterEmpty": "Tout est pointé",
     "allCheckedFilterDescription": "Toutes tes prévisions ont déjà été pointées.",
-    "checkingLabel": "Pointage",
     "checkedSummary": "{{ checked }} sur {{ total }} pointés",
-    "checkingScope": "Prévisions et mouvements",
     "accountBalanceLabel": "Solde du compte à ce jour ≈",
     "accountBalance": "{{ amount }}",
-    "accountBalanceBasis": "D’après ton pointage actuel",
     "transactions": "Mouvements",
     "freeTransactions": "Hors prévisions",
     "viewGrid": "Grille",
@@ -574,8 +562,6 @@
     "reset": "Réinitialiser",
     "openDialogError": "Impossible d'ouvrir le dialogue — réessaie",
     "searchPlaceholder": "Rechercher par nom...",
-    "details": "Détails",
-    "createdFromTemplate": "Créer depuis le modèle",
     "newForecast": "Prévoir {{ nature }}",
     "editForecast": "Modifier la prévision",
     "forecastNameLabel": "Nom",
@@ -583,13 +569,11 @@
     "forecastNameRequired": "Le nom est requis",
     "forecastNameMinLength": "Le nom doit contenir au moins 2 caractères",
     "forecastTypeLabel": "Nature",
-    "forecastAmountRequired": "Le montant est requis",
     "forecastTypeRequired": "Le type est requis",
     "newTransactionTitle": "Noter un montant sur {{ name }}",
     "newTransactionButton": "Noter un montant",
     "descriptionRequired": "La description est requise",
     "descriptionMaxLength": "100 caractères maximum",
-    "amountMinError": "Le montant doit être supérieur à 0",
     "dateLabel": "Date",
     "dateOutOfBudgetPeriod": "La date doit être dans la période du budget",
     "transactionCreateButton": "Créer",
@@ -605,7 +589,6 @@
     "checkTransactionsTitle": "Pointer aussi les mouvements ?",
     "checkAllConfirm": "Oui, tout pointer",
     "checkOnlyEnvelope": "Non, juste la prévision",
-    "closePanelLabel": "Fermer le panneau",
     "searchTitle": "Rechercher dans tes budgets",
     "searchInputPlaceholder": "Nom ou description...",
     "filterByYear": "Filtrer par année",
@@ -656,8 +639,7 @@
       "rolloverIncluded": "Report du mois précédent inclus",
       "rolloverIncludedSurplusAria": "Report positif du mois précédent inclus : {{ amount }} {{ currency }}",
       "rolloverIncludedDeficitAria": "Report négatif du mois précédent inclus : {{ amount }} {{ currency }}",
-      "deficitThisMonth": "Déficit ce mois",
-      "uncoveredOverrun": "dépassement non couvert"
+      "deficitThisMonth": "Déficit ce mois"
     },
     "incomeOrigin": {
       "label": "Origine du revenu",
@@ -668,17 +650,12 @@
     "savingsGoalSource": {
       "activeLabel": "Pris sur",
       "brokenLabel": "Objectif supprimé",
-      "brokenTooltip": "Cet objectif a été supprimé. Le revenu reste dans ton budget.",
-      "openGoal": "Voir l'objectif"
+      "brokenTooltip": "Cet objectif a été supprimé. Le revenu reste dans ton budget."
     },
     "savingsWithdrawal": {
-      "cardTitle": "Un mois un peu juste ?",
-      "cardLine1": "Tu peux couvrir ce mois avec ton épargne.",
-      "cardLine2": "À remettre le mois prochain : je te le rappellerai.",
       "cta": "Couvrir ce mois avec mon épargne",
       "overviewHelp": "Couvre ce déficit avec ton épargne, puis reconstitue-la le mois prochain.",
       "overviewCta": "Couvrir avec mon épargne",
-      "later": "Plus tard",
       "amountLabel": "Combien te manque-t-il ?",
       "deficitChip": "Il te manque {{ amount }}",
       "sourceLabel": "D'où vient l'argent ? (optionnel)",
@@ -697,7 +674,6 @@
       "editAmount": "Modifier le montant",
       "defaultSource": "Mon épargne",
       "savingLineName": "Remettre sur ton épargne",
-      "repayToggle": "Je remets cet argent le mois prochain",
       "badgeLabel": "pris sur ton épargne",
       "badgeAria": "Revenu pris sur ton épargne",
       "originSubtitle": "pris en {{ month }}",
@@ -710,7 +686,9 @@
       "deletedRepayment": "Seule la remise sur ton épargne a été supprimée. La somme ajoutée au mois précédent reste dans ton budget.",
       "success": "C'est réglé pour ce mois.",
       "error": "La pioche n'a pas marché — rien n'a changé, tu peux réessayer."
-    }
+    },
+    "viewModeLabel": "Mode d'affichage",
+    "transactionActions": "Actions"
   },
   "budgetLine": {
     "checkLabel": "Pointer {{ name }}",
@@ -721,20 +699,16 @@
     "realizeWithdrawalBalance": "Saisir le solde",
     "withdrawalRealized": "Revenu saisi",
     "realizationPointed": "Ce revenu sera ajouté à tes mouvements et marqué « Pointé », donc confirmé comme reçu.",
-    "forecastActions": "Actions de la prévision",
     "remainingPlannedWithdrawal": "Montant restant prévu",
     "checked": "Déjà pointé",
     "savings": "Épargne",
     "expenses": "Dépenses",
     "consumed": "% utilisé",
-    "noForecast": "Aucune prévision",
-    "amountMustBePositive": "Le montant doit être positif",
     "available": {
       "expense": "disponible",
       "income": "à recevoir",
       "saving": "à transférer"
     },
-    "availableOf": "disponible sur {{ amount }}",
     "planned": "prévu",
     "spent": {
       "expense": "dépensés",
@@ -795,12 +769,7 @@
     }
   },
   "transaction": {
-    "deleted": "Supprimé",
-    "updateError": "La mise à jour a échoué — vérifie ta connexion et réessaie",
-    "noResults": "Pas de résultat",
-    "checkLabel": "Pointer {{ name }}",
-    "uncheckLabel": "Dépointer {{ name }}",
-    "frequency": "fréquence"
+    "deleted": "Supprimé"
   },
   "template": {
     "createTitle": "Créer un nouveau modèle",
@@ -815,18 +784,9 @@
     "loadErrorShort": "Erreur lors du chargement des modèles",
     "noResultsFor": "Pas de modèle pour \"{{ term }}\"",
     "loadError": "Impossible de charger les modèles de budget",
-    "loadOneError": "Impossible de charger le modèle de budget",
-    "loadDetailsError": "Impossible de charger les détails du modèle",
-    "loadTransactionsError": "Impossible de charger les prévisions du modèle",
-    "createError": "Impossible de créer le modèle de budget",
-    "updateError": "Impossible de mettre à jour le modèle de budget",
-    "deleteError": "Impossible de supprimer le modèle de budget",
     "deleted": "Modèle supprimé",
     "updatedWithBudgetsSingular": "Modèle et budgets futurs mis à jour ({{ count }} budget ajusté)",
     "updatedWithBudgetsPlural": "Modèle et budgets futurs mis à jour ({{ count }} budgets ajustés)",
-    "updatedWithoutBudgets": "Modèle mis à jour (budgets non modifiés).",
-    "noChanges": "Aucune modification à enregistrer",
-    "verificationError": "Une erreur est survenue lors de la vérification",
     "verificationCheckError": "Une erreur est survenue lors de la vérification",
     "deleteCheckError": "Une erreur est survenue lors de la suppression",
     "loading": "Préparation du modèle...",
@@ -837,13 +797,11 @@
     "open": "Ouvrir le modèle",
     "openAriaLabel": "Ouvrir le modèle {{ name }}",
     "isDefault": "Modèle par défaut",
-    "defaultLabel": "Modèle",
     "emptyTitle": "Tu n'as pas encore de modèle",
     "emptyMessage": "Crée ton premier modèle pour réutiliser ta structure chaque mois.",
     "netBalance": "Solde net du modèle",
     "deficit": "Déficit du modèle",
     "forecastsHeading": "Prévisions du modèle",
-    "forecastsTableLabel": "Prévisions du modèle",
     "rateLimitTitle": "Trop de requêtes pour le moment",
     "rateLimitMessage": "Le serveur est temporairement surchargé — réessaie dans un instant",
     "loadFailTitle": "Impossible de charger tes modèles",
@@ -868,14 +826,7 @@
     "propagateNote": "Les saisies modifiées manuellement (marquées avec un cadenas) sont protégées et ne seront pas affectées par la mise à jour. Seules les lignes non modifiées seront automatiquement mises à jour.",
     "propagateFooter": "Tu pourras toujours ajuster un budget mensuel manuellement après coup.",
     "propagateRadioLabel": "Options de mise à jour",
-    "editTitle": "Modifier les prévisions",
-    "saveLoading": "Sauvegarde en cours",
-    "descriptionPlaceholder": "Description de la prévision",
-    "amountPositive": "Le montant doit être positif",
-    "minLineRequired": "Au moins une ligne est requise",
     "deleteLine": "Supprimer cette ligne",
-    "confirmDeleteLine": "Confirmer la suppression",
-    "confirmDeleteLineMessage": "Supprimer cette ligne ?",
     "newTitle": "Nouveau modèle de budget",
     "backLabel": "Retour à la liste des modèles",
     "creating": "Création en cours...",
@@ -899,8 +850,6 @@
     "createValidationError": "Données invalides. Vérifie les informations saisies.",
     "createGenericError": "Erreur lors de la création du modèle",
     "financialSummary": "Résumé financier du modèle",
-    "colType": "Type",
-    "colActions": "Actions",
     "saveError": "Une erreur est survenue lors de la sauvegarde",
     "totalIncome": "Total des revenus :",
     "totalExpenses": "Total des dépenses :",
@@ -920,9 +869,6 @@
     "incomeGroupLabel": "Revenus",
     "savingsGroupLabel": "Épargne",
     "expensesGroupLabel": "Dépenses",
-    "lineAmountLabel": "Montant",
-    "lineKindLabel": "Type",
-    "linesCount": "{{count}} prévision(s)",
     "lineCreateSuccess": "Prévision ajoutée",
     "lineUpdateSuccess": "Prévision modifiée",
     "lineDeleteSuccess": "Prévision supprimée",
@@ -1052,8 +998,6 @@
     "addTransactionNoBudget": "Ta saisie n'a pas pu être enregistrée : le budget du mois vient d'être rechargé. Réessaie dans un instant."
   },
   "currency": {
-    "conversionTooltip": "Converti depuis {{ amount }}\nTaux : {{ rate }}",
-    "conversionTooltipNoRate": "Converti depuis {{ amount }}",
     "swissFranc": "Franc suisse",
     "euro": "Euro",
     "convertedFromInline": "converti depuis {{ amount }}",
@@ -1067,8 +1011,7 @@
     "originalAmountLabel": "Montant d'origine {{ amount }}",
     "livePreviewApprox": "≈ {{ amount }} · taux {{ rate }}",
     "livePreviewLoading": "Calcul du taux…",
-    "livePreviewError": "Taux indisponible",
-    "livePreviewAriaLabel": "Aperçu converti : {{ amount }}"
+    "livePreviewError": "Taux indisponible"
   },
   "savingsGoals": {
     "addGoal": "Nouvel objectif",
@@ -1158,7 +1101,6 @@
     "targetAmountRequired": "Le montant cible doit être positif",
     "initialAmountNegative": "Le montant de départ ne peut pas être négatif",
     "startDateAfterTarget": "Le début doit précéder l'échéance",
-    "targetDateRequired": "L'échéance est requise",
     "targetDatePast": "L'échéance ne peut pas être dans le passé",
     "targetDateTooFar": "L'échéance ne peut pas dépasser la 120e période",
     "detail": {
@@ -1315,14 +1257,12 @@
     "loading": "Préparation de ton espace de liberté...",
     "greetingWithName": "Salut {{ name }} 👋",
     "greetingNoName": "Salut 👋",
-    "step1Subtitle": "On va personnaliser ton espace ensemble en deux petites étapes.",
     "firstName": "Ton prénom",
     "firstNamePlaceholder": "Comment t'appeler ?",
     "firstNameRequired": "Indique ton prénom",
     "monthlyIncome": "Revenus mensuels",
     "monthlyIncomeRequired": "Indique un revenu mensuel supérieur à 0",
     "optional": "Facultatif",
-    "next": "Suivant",
     "privateData": "Tes données restent privées et sécurisées",
     "step2Title": "Presque terminé",
     "step2Subtitle": "Ajoute uniquement les charges que tu connais déjà.",
@@ -1334,15 +1274,12 @@
     "payDay": "Quand reçois-tu ton salaire ?",
     "payDayPlaceholder": "Choisis ton jour",
     "payDayOption": "Le {{ day }}",
-    "charges": "Charges mensuelles",
-    "chargesOptional": "Facultatif — tu pourras ajuster plus tard",
     "housing": "Loyer / Crédit",
     "health": "Assurance maladie",
     "phone": "Abonnement téléphonique",
     "internet": "Abonnement internet",
     "transport": "Transport",
     "leasing": "Leasing",
-    "chargesFooter": "Tu pourras ajouter d'autres dépenses depuis ton modèle",
     "submit": "C'est parti",
     "loadingSubmit": "Préparation de ton espace...",
     "back": "Retour",
@@ -1350,7 +1287,6 @@
     "validationError": "Ton prénom et tes revenus sont nécessaires",
     "missingDataError": "Ton prénom et ton revenu mensuel sont nécessaires pour continuer",
     "templateCreateError": "Erreur lors de la création de ton modèle de budget.",
-    "budgetCreateError": "Erreur lors de la création de ton budget initial.",
     "createBudgetError": "Erreur lors de la création du budget",
     "unexpectedError": "Quelque chose n'a pas fonctionné — réessaie",
     "firstNameTooLong": "50 caractères maximum",
@@ -1361,7 +1297,13 @@
       "mobilityCredit": "Mobilité & Crédit"
     },
     "suggestions": {
-      "sectionTitle": "Ajouter en un clic"
+      "sectionTitle": "Ajouter en un clic",
+      "groceries": "Courses / alimentation",
+      "diningOut": "Restaurants & sorties",
+      "leisureSport": "Loisirs & sport",
+      "saving": "Épargne",
+      "retirement": "Épargne retraite",
+      "retirementSwiss": "3ème pilier"
     },
     "summary": {
       "income": "Revenu",
@@ -1374,7 +1316,6 @@
     "stepperAriaLabel": "Étape {{ current }} sur {{ total }}",
     "stepYou": "Toi",
     "stepYourExpenses": "Tes charges",
-    "stepIndicator": "Étape {{ current }} / {{ total }}",
     "step1Intro": "Trois infos pour démarrer. On s'occupe du reste.",
     "currencyLabel": "Ta devise",
     "currencyHint": "Modifiable plus tard depuis les paramètres",
@@ -1403,7 +1344,6 @@
       "amountLabel": "Montant",
       "amountRequired": "Saisis un montant",
       "amountMin": "Le montant doit être supérieur à 0",
-      "sectionTitle": "Prévisions personnalisées",
       "addButton": "Ajouter une prévision",
       "limitReached": "Limite atteinte ({{ max }} prévisions max). Supprime-en une pour en ajouter une autre.",
       "kindExpense": "Dépense",
@@ -1421,7 +1361,233 @@
     "termsLink": "Conditions d'Utilisation",
     "privacyLink": "Politique de Confidentialité",
     "termsFooter": "En utilisant Pulpe, tu acceptes ces conditions d'utilisation ainsi que ma",
-    "privacyFooter": "Cette politique fait partie intégrante de mes"
+    "privacyFooter": "Cette politique fait partie intégrante de mes",
+    "privacy": {
+      "introduction": {
+        "title": "1. Introduction",
+        "body": "Je prends ta vie privée au sérieux. Cette politique explique comment je collecte, utilise et protège tes données personnelles dans le cadre du service Pulpe, accessible via l'application web et l'application iOS."
+      },
+      "collected": {
+        "title": "2. Données collectées",
+        "providedTitle": "Données que tu fournis :",
+        "provided": {
+          "email": "Email et mot de passe (pour ton compte)",
+          "google": "Si tu t'inscris via Google : email, nom et photo de profil transmis par Google",
+          "financial": "Informations financières (revenus, dépenses, épargne)",
+          "preferences": "Préférences et paramètres de l'application"
+        },
+        "automaticTitle": "Données collectées automatiquement :",
+        "automatic": {
+          "pages": "Pages visitées et fonctionnalités utilisées",
+          "duration": "Durée d'utilisation et fréquence",
+          "errors": "Erreurs et problèmes techniques rencontrés",
+          "device": "Type d'appareil et navigateur"
+        }
+      },
+      "use": {
+        "title": "3. Utilisation de tes données",
+        "intro": "J'utilise tes données pour :",
+        "items": {
+          "service": "Fournir le service de gestion budgétaire",
+          "sync": "Sauvegarder et synchroniser tes budgets",
+          "improve": "Améliorer l'application et corriger les bugs",
+          "communication": "Communiquer des informations importantes sur le service",
+          "security": "Assurer la sécurité de ton compte"
+        }
+      },
+      "analytics": {
+        "title": "4. Outils d'analyse",
+        "intro": " est hébergé en Europe (eu.posthog.com). Je l'utilise pour analyser l'utilisation de l'application. Cet outil m'aide à :",
+        "goals": {
+          "understand": "Comprendre comment tu utilises Pulpe",
+          "resolve": "Identifier et résoudre les problèmes techniques",
+          "improve": "Améliorer l'expérience utilisateur"
+        },
+        "sentTitle": "Données envoyées à PostHog :",
+        "sent": {
+          "user": "Identifiant utilisateur (UUID Supabase) et email",
+          "firstName": "Prénom (si renseigné lors de l'inscription)",
+          "preferences": "Préférences produit : langue, devise et paramètres d'affichage",
+          "earlyAdopter": "Statut early-adopter (utilisateur ayant activé son compte avant une date de référence)",
+          "pages": "Pages visitées et interactions (clics, navigation)",
+          "errors": "Traces d'erreur techniques (sans contenu sensible)"
+        },
+        "notSentTitle": "Données jamais envoyées à PostHog :",
+        "notSent": {
+          "amounts": "Tes montants financiers : masqués automatiquement avant envoi, jamais transmis",
+          "auth": "Mots de passe et tokens d'authentification",
+          "recovery": "Clés de récupération",
+          "content": "Libellés financiers, identifiants de mouvements et contenus saisis"
+        },
+        "replayTitle": "Enregistrements de session :",
+        "replayBody": "le replay est désactivé en production. Il peut être activé par configuration dans les environnements local et preview utilisés pour tester et diagnostiquer une version avant sa publication.",
+        "legalBasisTitle": "Base légale :",
+        "legalBasisBody": "intérêt légitime (article 6.1.f du RGPD) : analyses produit nécessaires à l'amélioration du service, avec données minimisées et hébergement en Europe.",
+        "dpaTitle": "Accord de traitement (DPA) :",
+        "dpaBody": "un Data Processing Agreement a été signé avec PostHog Inc., conformément à l'article 28 du RGPD. PostHog agit comme sous-traitant (processor) pour les données collectées via Pulpe.",
+        "optOutBefore": "Tu peux arrêter immédiatement cette collecte sur cet appareil depuis Paramètres → Données de diagnostic, en désactivant ",
+        "optOutSetting": "« Partager les diagnostics »",
+        "optOutAfter": ". Ce choix efface l'association locale à ton identité PostHog et reste mémorisé sur cet appareil."
+      },
+      "infrastructure": {
+        "title": "5. Infrastructure et hébergement",
+        "intro": "Pulpe utilise plusieurs services cloud pour fonctionner :",
+        "supabase": " (Europe - Frankfurt) : stockage de tes données",
+        "railway": " (USA - Oregon) : API backend",
+        "vercel": " (CDN global) : interface web",
+        "posthog": " (Europe) : analyses",
+        "cloudflare": " : vérification anti-bot utilisée uniquement en mode démo (aucun cookie stocké)",
+        "google": " (OAuth) : connexion via ton compte Google (si tu choisis cette méthode d'inscription)",
+        "noteTitle": "Note :",
+        "noteBody": "tes données sont principalement stockées en Europe (Supabase). Le backend Railway ne fait que les faire transiter, sans stockage permanent."
+      },
+      "security": {
+        "title": "6. Sécurité",
+        "items": {
+          "https": "Toutes les connexions sont chiffrées (HTTPS)",
+          "passwords": "Mots de passe hachés de manière sécurisée par Supabase (mon fournisseur d'authentification)",
+          "jwt": "Authentification JWT sécurisée",
+          "rls": "Accès aux données limité par utilisateur (Row Level Security)",
+          "backups": "Sauvegardes automatiques par Supabase"
+        }
+      },
+      "sharing": {
+        "title": "7. Partage des données",
+        "neverSell": "Je ne vends jamais tes données personnelles.",
+        "privateBody": "Tes données transitent uniquement par les services mentionnés ci-dessus. Le code source est open source sur GitHub, mais tes données restent privées.",
+        "processors": "Les services tiers listés (Supabase, Railway, Vercel, PostHog, Cloudflare et Google) agissent comme sous-traitants au sens de l'article 28 du RGPD. Un Data Processing Agreement (DPA) dédié a été signé avec PostHog Inc. Pour les autres sous-traitants, les engagements de traitement sont fournis via leurs conditions de service standard, conformément à l'article 28 du RGPD."
+      },
+      "retention": {
+        "title": "8. Durée de conservation",
+        "items": {
+          "account": "Données de compte : tant que ton compte est actif",
+          "financial": "Données financières : conservées avec ton compte",
+          "analytics": "Données d'analyse : maximum 12 mois",
+          "deletion": "Après suppression du compte : effacement sous 3 jours",
+          "demo": "Données de session démo : supprimées automatiquement après 24 heures"
+        },
+        "analyticsDeletionTitle": "Suppression des données d'analyse :",
+        "analyticsDeletionBody": "la suppression de ton compte Pulpe déclenche automatiquement celle de ton profil PostHog, événements et enregistrements de session inclus. L'effacement chez PostHog est asynchrone et finalisé sous quelques jours après la fin du délai de grâce de ton compte."
+      },
+      "rights": {
+        "title": "9. Tes droits (RGPD/LPD)",
+        "introTitle": "Conformément au RGPD et à la LPD suisse,",
+        "introBody": "tu disposes des droits suivants :",
+        "items": {
+          "access": "Droit d'accès à tes données personnelles",
+          "rectification": "Droit de rectification de tes données",
+          "erasure": "Droit à l'effacement (suppression du compte)",
+          "portability": "Droit à la portabilité (export JSON)",
+          "objection": "Droit d'opposition (article 21 du RGPD) : tu peux t'opposer à tout traitement fondé sur l'intérêt légitime, notamment l'analyse d'utilisation"
+        },
+        "contactBefore": "Pour exercer ces droits, contacte-moi à l'adresse ",
+        "contactAfter": ". Je m'engage à te répondre dans un délai d'un mois.",
+        "controller": "Je suis responsable du traitement de tes données dès la création de ton compte."
+      },
+      "cookies": {
+        "title": "10. Cookies et suivi",
+        "intro": "J'utilise des cookies strictement nécessaires pour :",
+        "items": {
+          "session": "Maintenir ta session connectée (authentification)",
+          "preferences": "Mémoriser tes préférences d'interface",
+          "security": "Assurer la sécurité du service"
+        },
+        "trackersTitle": "Traceurs d'analyse (PostHog) :",
+        "trackers": {
+          "automatic": "Activés automatiquement sur la base de l'intérêt légitime (article 6.1.f du RGPD). Tu peux exercer ton droit d'opposition à tout moment via le réglage « Partager les diagnostics ».",
+          "identifiable": "Données identifiables (email, identifiant utilisateur, prénom) : consulte la section 4 pour le détail des données envoyées à PostHog",
+          "perDevice": "Le choix est propre à chaque appareil et à chaque plateforme. Il n'affecte pas les données nécessaires au fonctionnement du compte."
+        }
+      },
+      "children": {
+        "title": "11. Enfants",
+        "body": "Pulpe n'est pas destiné aux enfants de moins de 16 ans. Je ne collecte pas sciemment de données d'enfants."
+      },
+      "changes": {
+        "title": "12. Modifications",
+        "body": "Cette politique peut être mise à jour occasionnellement. Les changements importants seront notifiés par email."
+      },
+      "contact": {
+        "title": "13. Contact",
+        "intro": "Pour toute question sur tes données personnelles :",
+        "emailLabel": "Email :",
+        "githubLabel": "GitHub :",
+        "githubText": "Issues et discussions",
+        "location": "Localisation : Suisse"
+      }
+    },
+    "terms": {
+      "acceptance": {
+        "title": "1. Acceptation des conditions",
+        "body": "En créant un compte sur Pulpe, tu acceptes les présentes conditions d'utilisation. Si tu n'acceptes pas ces conditions, n'utilise pas le service."
+      },
+      "service": {
+        "title": "2. Description du service",
+        "intro": "Pulpe est une application de gestion budgétaire personnelle qui te permet de :",
+        "items": {
+          "plan": "Planifier tes budgets mensuels",
+          "track": "Suivre tes dépenses et revenus",
+          "savings": "Gérer ton épargne",
+          "templates": "Créer des modèles de budget réutilisables",
+          "demo": "Tester le service en mode démo (données éphémères, supprimées après 24 heures)"
+        }
+      },
+      "account": {
+        "title": "3. Compte utilisateur",
+        "intro": "Tu es responsable de :",
+        "items": {
+          "password": "Maintenir la confidentialité de ton mot de passe",
+          "activity": "Toutes les activités effectuées avec ton compte",
+          "unauthorized": "M'informer immédiatement de tout accès non autorisé"
+        }
+      },
+      "data": {
+        "title": "4. Utilisation des données",
+        "intro": "Je collecte et utilise tes données pour :",
+        "items": {
+          "improve": "Fournir et améliorer le service",
+          "security": "Assurer la sécurité de ton compte",
+          "bugs": "Corriger les bugs et problèmes techniques",
+          "analytics": "Analyser l'utilisation pour améliorer l'expérience"
+        },
+        "analyticsLabel": "Important :",
+        "analyticsBody": "J'utilise PostHog pour suivre l'utilisation de l'application. Cela inclut les pages visitées, les fonctionnalités utilisées, les erreurs rencontrées et l'enregistrement de sessions (replay des interactions). Tes données financières sont toujours masquées dans ces analyses et enregistrements."
+      },
+      "source": {
+        "title": "5. Open Source et propriété",
+        "body": "Le code source de Pulpe est disponible sous licence MIT sur GitHub. Tu peux le consulter, le modifier et l'héberger toi-même. Tes données personnelles t'appartiennent et restent privées."
+      },
+      "liability": {
+        "title": "6. Limitation de responsabilité",
+        "intro": "Pulpe est un projet personnel maintenu sur mon temps libre. Le service est fourni « tel quel » et je ne peux pas garantir :",
+        "warning": "Avertissement important :",
+        "items": {
+          "availability": "Une disponibilité continue du service",
+          "errors": "L'absence totale d'erreurs ou de bugs",
+          "accuracy": "L'exactitude des calculs (vérifie toujours tes données)",
+          "advice": "Pulpe est un outil d'aide à la gestion budgétaire et ne constitue pas un conseil financier professionnel",
+          "loss": "Je décline toute responsabilité en cas de perte financière liée à l'utilisation de Pulpe",
+          "decisions": "Tu es seul responsable de tes décisions financières",
+          "advisor": "En cas de doute, consulte un conseiller financier qualifié"
+        }
+      },
+      "termination": {
+        "title": "7. Résiliation",
+        "body": "Tu peux supprimer ton compte à tout moment depuis les paramètres. Je me réserve le droit de suspendre ou supprimer ton compte en cas de violation de ces conditions ou d'utilisation abusive."
+      },
+      "changes": {
+        "title": "8. Modifications des CGU",
+        "body": "Je peux modifier ces conditions si nécessaire. Les modifications importantes seront notifiées par email. L'utilisation continue du service après modification vaut acceptation des nouvelles conditions."
+      },
+      "law": {
+        "title": "9. Droit applicable",
+        "body": "Ces conditions sont régies par le droit suisse. Tout litige sera soumis aux tribunaux compétents de Genève, Suisse."
+      },
+      "contact": {
+        "title": "10. Contact",
+        "body": "Pour toute question concernant ces conditions, contacte-moi à :"
+      }
+    }
   },
   "dashboard": {
     "available": "Disponible",
@@ -1465,7 +1631,6 @@
     "passwordMinLength": "8 caractères minimum",
     "passwordLabel": "Mot de passe",
     "passwordPlaceholder": "Mot de passe",
-    "passwordHint": "8 caractères minimum pour sécuriser ton compte",
     "passwordMinLengthHint": "8 caractères minimum",
     "passwordCriteria": {
       "minLength": "{{count}} caractères minimum",
@@ -1487,19 +1652,35 @@
     "amountRequired": "Indique un montant",
     "amountTooLow": "Le montant doit être supérieur à 0"
   },
+  "export": {
+    "budgetTitle": "BUDGET",
+    "rollover": "Report",
+    "remaining": "Reste",
+    "endingBalance": "Solde final",
+    "budgetLinesTitle": "PRÉVISIONS",
+    "budgetLinesTotal": "Total prévisions",
+    "transactionsTitle": "MOUVEMENTS",
+    "transactionsTotal": "Total mouvements",
+    "name": "Nom",
+    "amount": "Montant",
+    "type": "Type",
+    "recurrence": "Récurrence",
+    "date": "Date",
+    "tags": "Tags"
+  },
   "errors": {
-    "generic": "Quelque chose n'a pas fonctionné — réessaie",
-    "network": "Erreur réseau — vérifie ta connexion",
-    "formValidation": "Quelques champs à vérifier avant de continuer",
-    "loginFailed": "Email ou mot de passe incorrect — réessaie",
-    "signupFailed": "La création du compte a échoué — réessaie",
-    "emailAlreadyUsed": "Email déjà utilisé",
-    "passwordUpdateFailed": "La mise à jour du mot de passe a échoué — réessaie",
-    "sendFailed": "L'envoi a échoué — réessaie dans quelques instants"
+    "securityCheckFailed": "La vérification de sécurité a échoué — réessaie",
+    "serverUnreachable": "Impossible de contacter le serveur — vérifie ta connexion internet",
+    "serverProblem": "Le serveur rencontre un problème — réessaie dans quelques instants",
+    "tooManyAttempts": "Trop de tentatives — patiente avant de réessayer"
   },
   "maintenance": {
     "title": "Maintenance en cours",
-    "message": "Le service est temporairement indisponible. Réessaie dans quelques instants."
+    "message": "On améliore Pulpe pour toi — tes données sont bien au chaud, pas d'inquiétude. Réessaie dans quelques instants.",
+    "retry": "Réessayer",
+    "retryLoading": "Vérification...",
+    "stillDown": "Toujours en maintenance — réessaie dans un instant",
+    "checkFailed": "Connexion difficile — réessaie dans un instant"
   },
   "forceUpdate": {
     "title": "Mise à jour requise",
@@ -1622,7 +1803,6 @@
     "validationFailed": "Les données envoyées ne sont pas valides",
     "clientValidationFailed": "Les données saisies ne sont pas valides — vérifie tes champs",
     "unauthorized": "Tu dois te connecter pour continuer",
-    "forbidden": "Tu n'as pas accès à cette ressource",
     "rateLimited": "Trop de tentatives — patiente une minute avant de réessayer",
     "recoveryKeyInvalid": "Cette clé ne correspond pas — vérifie ta saisie",
     "recoveryKeyNotConfigured": "Aucune clé de récupération n'est enregistrée — génère-en une avec « Régénérer »"
@@ -1632,7 +1812,7 @@
     "seeYouSoon": "À bientôt !"
   },
   "recoveryKey": {
-    "title": "Ta clé de secours",
+    "title": "Ta clé de récupération",
     "description": "Cette clé est ton filet de sécurité. Si tu oublies ton code PIN, elle sera le seul moyen de retrouver tes données. Copie-la dans un endroit sûr : personne d'autre n'y a accès, et on ne pourra pas la retrouver pour toi.",
     "copied": "Copié !",
     "copyKey": "Copier la clé",
@@ -1665,7 +1845,6 @@
     "nameMinLength": "Le nom doit contenir au moins 2 caractères",
     "nameMaxLength": "Le nom ne peut pas dépasser 100 caractères",
     "amountLabel": "Montant",
-    "amountRequired": "Le montant est requis",
     "typeLabel": "Nature",
     "dateLabel": "Date",
     "datePlaceholder": "jj{{separator}}mm{{separator}}aaaa",
@@ -1722,5 +1901,9 @@
     "create": "Créer",
     "availableSuffixAriaLabel": "disponible",
     "createBudgetAriaLabel": "créer un budget"
+  },
+  "yearCalendar": {
+    "budgetCountOne": "{{ count }} budget",
+    "budgetCountMany": "{{ count }} budgets"
   }
 }

@@ -29,6 +29,7 @@ function buildController() {
       payDayOfMonth: 15,
       currency: 'EUR' as const,
       showCurrencySelector: true,
+      locale: 'de' as const,
     })),
   };
   const updateSettings = {
@@ -36,6 +37,7 @@ function buildController() {
       payDayOfMonth: 20,
       currency: 'CHF' as const,
       showCurrencySelector: false,
+      locale: 'it' as const,
     })),
   };
   const scheduleDeletion = {
@@ -112,6 +114,7 @@ describe('UserController (HTTP wiring)', () => {
         payDayOfMonth: 15,
         currency: 'EUR',
         showCurrencySelector: true,
+        locale: 'de',
       });
     });
   });
@@ -128,6 +131,20 @@ describe('UserController (HTTP wiring)', () => {
       expect(response.data.payDayOfMonth).toBe(20);
       expect(helpers.updateSettings.execute).toHaveBeenCalledWith(
         { payDayOfMonth: 20 },
+        user,
+      );
+    });
+
+    it('forwards a locale-only patch and returns it', async () => {
+      const user = createMockAuthenticatedUser();
+      const response = await helpers.controller.updateSettings(
+        { locale: 'it' } as any,
+        user,
+      );
+
+      expect(response.data.locale).toBe('it');
+      expect(helpers.updateSettings.execute).toHaveBeenCalledWith(
+        { locale: 'it' },
         user,
       );
     });

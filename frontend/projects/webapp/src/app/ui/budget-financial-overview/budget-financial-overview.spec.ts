@@ -2,6 +2,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
+import localeFR from '@angular/common/locales/fr';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { setTestInput } from '@app/testing/signal-test-utils';
 import { FinancialPills } from '../financial-pills/financial-pills';
@@ -11,6 +12,7 @@ import {
 } from './budget-financial-overview';
 
 registerLocaleData(localeDE);
+registerLocaleData(localeFR);
 
 const COMFORTABLE_TOTALS: FinancialTotals = {
   income: 5000,
@@ -158,6 +160,50 @@ describe('BudgetFinancialOverview', () => {
           '[data-testid="financial-overview-cover-with-savings"]',
         ),
       ).toBeNull();
+    });
+  });
+
+  describe('cent-level state', () => {
+    it('ignores binary dust instead of announcing a zero deficit', () => {
+      setTestInput(fixture.componentInstance.totals, {
+        ...COMFORTABLE_TOTALS,
+        remaining: -9e-13,
+      });
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.budgetState()).toBe('warning');
+      expect(fixture.nativeElement.textContent).not.toContain('Déficit');
+    });
+
+    it('shows a real cent in CHF and keeps an integer compact', () => {
+      setTestInput(fixture.componentInstance.totals, {
+        ...DEFICIT_TOTALS,
+        remaining: -0.01,
+      });
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.budgetState()).toBe('deficit');
+      expect(fixture.nativeElement.textContent).toContain('0.01');
+
+      setTestInput(fixture.componentInstance.totals, {
+        ...COMFORTABLE_TOTALS,
+        remaining: 5000,
+      });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('5000.00');
+    });
+
+    it('localizes a one-cent EUR deficit with a comma', () => {
+      setTestInput(fixture.componentInstance.currency, 'EUR');
+      setTestInput(fixture.componentInstance.locale, 'fr-FR');
+      setTestInput(fixture.componentInstance.totals, {
+        ...DEFICIT_TOTALS,
+        remaining: -0.01,
+      });
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('0,01');
+      expect(fixture.nativeElement.textContent).toContain('€');
     });
   });
 });

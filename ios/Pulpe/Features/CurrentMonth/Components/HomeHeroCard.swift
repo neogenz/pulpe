@@ -91,6 +91,7 @@ struct HomeHeroCard: View {
                     // has no digits to animate.
                     .contentTransition(.numericText())
                     .sensitiveAmount()
+                    .accessibilityIdentifier("homeProjectedBalanceAmount")
 
                 Text("estimé fin \(monthName)")
                     .font(PulpeTypography.labelMedium)
@@ -108,6 +109,7 @@ struct HomeHeroCard: View {
             .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
             .accessibilityLabel(accessibilityDescription)
             .accessibilityHint("Ouvrir le suivi du réalisé")
+            .accessibilityIdentifier("homeHeroMetrics")
 
             balanceChart
         }
@@ -119,10 +121,10 @@ struct HomeHeroCard: View {
     /// Dominant figure and its currency suffix on one baseline. Only a negative balance
     /// carries a sign — a `+` on money you still have reads as a variation, not a sum.
     private var heroAmount: Text {
-        Text(presentation.estimatedBalance.asCompactAmount(for: currency))
+        Text(presentation.estimatedBalance.asAdaptiveAmount(for: currency))
             .font(PulpeTypography.dashboardHeroAmount)
             .tracking(DesignTokens.Tracking.hero)
-            + Text(" \(currency.symbol)")
+            + Text(verbatim: " \(currency.symbol)")
             .font(PulpeTypography.dashboardHeroCurrency)
     }
 
@@ -132,19 +134,19 @@ struct HomeHeroCard: View {
     private var summaryMetrics: some View {
         if dynamicTypeSize >= .xxLarge {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                metric(value: uncheckedValue, label: "à pointer", tint: Color.homeHeroInk)
-                metric(value: varianceValue, label: "vs prévu", tint: accentColor, showsChevron: true)
+                metric(value: uncheckedValue, label: uncheckedLabel, tint: Color.homeHeroInk)
+                metric(value: varianceValue, label: varianceLabel, tint: accentColor, showsChevron: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } else {
             HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                metric(value: uncheckedValue, label: "à pointer", tint: Color.homeHeroInk)
+                metric(value: uncheckedValue, label: uncheckedLabel, tint: Color.homeHeroInk)
                 Spacer(minLength: DesignTokens.Spacing.sm)
                 // Bookends of the hero: the right-hand pair hangs off the trailing margin
                 // so both metrics share the hero's own edges.
                 metric(
                     value: varianceValue,
-                    label: "vs prévu",
+                    label: varianceLabel,
                     tint: accentColor,
                     alignment: .trailing,
                     showsChevron: true
@@ -155,7 +157,11 @@ struct HomeHeroCard: View {
 
     private var uncheckedValue: String { "\(uncheckedCount)" }
 
+    private var uncheckedLabel: String { AppLocale.string("à pointer") }
+
     private var varianceValue: String { presentation.varianceText(for: currency) }
+
+    private var varianceLabel: String { AppLocale.string("vs prévu") }
 
     /// Value over its own label, so neither depends on the copy around it to be read.
     private func metric(
@@ -187,7 +193,8 @@ struct HomeHeroCard: View {
     /// the value's, so the mark never competes with the figure it points away from.
     private static func metricLabelText(_ label: String, showsChevron: Bool) -> Text {
         guard showsChevron else { return Text(label) }
-        return Text("\(label) ") + Text(Image(systemName: "chevron.right")).font(PulpeTypography.metricLabel)
+        return Text(verbatim: "\(label) ")
+            + Text(Image(systemName: "chevron.right")).font(PulpeTypography.metricLabel)
     }
 
     // MARK: - Verdict
@@ -198,12 +205,12 @@ struct HomeHeroCard: View {
     /// marks a drill-in; an underline here would be a web idiom on an iOS surface.
     ///
     /// Standalone-row variant of the 44pt text link: this Button owns its row, so a frame
-    /// can carry the tap target outright. `HomeSectionHeader` reaches the same 44pt through
+    /// can carry the tap target outright. `SectionHeader` reaches the same 44pt through
     /// a padding sandwich instead, because there the link shares an HStack and a frame would
     /// grow the whole row — see `swiftui-hit-areas.md`. Two shapes, one rule, on purpose.
     private var verdictSentence: some View {
         Button(action: onTapDetail) {
-            Text("\(presentation.verdictText) ")
+            Text(verbatim: "\(presentation.verdictText) ")
                 .foregroundStyle(accentColor)
                 + Text("Voir le détail ")
                 .foregroundStyle(Color.homeHeroInk)
@@ -219,6 +226,7 @@ struct HomeHeroCard: View {
         // The verdict is already spoken by the metrics element above; repeating it here
         // would make VoiceOver say it twice in a row.
         .accessibilityLabel("Voir le détail du budget")
+        .accessibilityIdentifier("homeBudgetDetailLink")
     }
 }
 
@@ -254,14 +262,14 @@ extension HomeHeroCard {
             estimatedBalance: Decimal,
             driftDate: Date? = nil
         ) {
-            self.plannedBalance = plannedBalance
-            self.estimatedBalance = estimatedBalance
+            self.plannedBalance = plannedBalance.rounded(2)
+            self.estimatedBalance = estimatedBalance.rounded(2)
             self.driftDate = driftDate
 
-            let difference = estimatedBalance - plannedBalance
+            let difference = (self.estimatedBalance - self.plannedBalance).rounded(2)
             variance = difference
             verdict = difference > 0 ? .gain : difference < 0 ? .overrun : .onPlan
-            tone = estimatedBalance < 0 ? .deficit : difference < 0 ? .caution : .favorable
+            tone = self.estimatedBalance < 0 ? .deficit : difference < 0 ? .caution : .favorable
         }
 
         /// Whether an envelope that ran past its plan was paid for elsewhere in the month.
@@ -276,21 +284,34 @@ extension HomeHeroCard {
         /// line, so repeating either here would spend the sentence on something already said.
         var verdictText: String {
             switch verdict {
-            case .onPlan: "Tu es pile sur ton plan."
-            case .overrun: dated("Sous ton plan") ?? "Il te reste moins que prévu."
-            case .gain: dated("Au-dessus de ton plan") ?? "Il te reste plus que prévu."
+            case .onPlan:
+                AppLocale.string("Tu es pile sur ton plan.")
+            case .overrun:
+                if let day = driftDay {
+                    AppLocale.string("Sous ton plan depuis le \(day).")
+                } else {
+                    AppLocale.string("Il te reste moins que prévu.")
+                }
+            case .gain:
+                if let day = driftDay {
+                    AppLocale.string("Au-dessus de ton plan depuis le \(day).")
+                } else {
+                    AppLocale.string("Il te reste plus que prévu.")
+                }
             }
         }
 
-        private func dated(_ lead: String) -> String? {
-            driftDate.map { "\(lead) depuis le \(Formatters.dayMonthLabel(for: $0))." }
+        /// The drift day, already formatted. Whole sentences carry it rather than a
+        /// "\(lead) depuis le …" template: only French puts the clause in that order.
+        private var driftDay: String? {
+            driftDate.map { Formatters.dayMonthLabel(for: $0) }
         }
 
         /// Carries its unit even though the hero above already shows one: its neighbour in
         /// the pair is a count of operations, and two figures set in the same type on the
         /// same row have nothing else to say which of them is money.
         func varianceText(for currency: SupportedCurrency) -> String {
-            variance.asArithmeticSignedCompactCurrency(currency)
+            "\(variance > 0 ? "+" : "")\(variance.asAdaptiveCurrency(currency))"
         }
 
         func accessibilityDescription(
@@ -300,31 +321,34 @@ extension HomeHeroCard {
             uncheckedCount: Int
         ) -> String {
             let month = monthName.capitalized
-            let unchecked = switch uncheckedCount {
-            case 0: "Aucune opération à pointer."
-            case 1: "1 opération à pointer."
-            default: "\(uncheckedCount) opérations à pointer."
-            }
+            // One key for every non-zero count: the singular is a plural variant of it in
+            // the catalog, not a second sentence assembled here.
+            let unchecked = uncheckedCount == 0
+                ? AppLocale.string("Aucune opération à pointer.")
+                : AppLocale.string("\(uncheckedCount) opérations à pointer.")
             guard !amountsHidden else {
-                return """
-                \(month). Solde estimé fin de mois, montant masqué. \
-                Comparaison au budget masquée. \(unchecked)
-                """
+                return AppLocale.string("""
+                    \(month). Solde estimé fin de mois, montant masqué. \
+                    Comparaison au budget masquée. \(unchecked)
+                    """)
             }
 
             // Mirrors `verdictText`: VoiceOver and the sentence on screen say the same thing
             // about the same month, down to the day it left its plan.
-            let since = driftDate.map { " depuis le \(Formatters.dayMonthLabel(for: $0))" } ?? ""
-            let comparison = switch verdict {
-            case .gain: "\(abs(variance).asCurrency(currency)) de mieux que prévu\(since)"
-            case .overrun: "\(abs(variance).asCurrency(currency)) de moins que prévu\(since)"
-            case .onPlan: "Pile sur ton plan"
+            let gap = abs(variance).asAdaptiveCurrency(currency)
+            let comparison = switch (verdict, driftDay) {
+            case (.gain, let day?): AppLocale.string("\(gap) de mieux que prévu depuis le \(day)")
+            case (.gain, nil): AppLocale.string("\(gap) de mieux que prévu")
+            case (.overrun, let day?): AppLocale.string("\(gap) de moins que prévu depuis le \(day)")
+            case (.overrun, nil): AppLocale.string("\(gap) de moins que prévu")
+            case (.onPlan, _): AppLocale.string("Pile sur ton plan")
             }
 
-            return """
-            \(month). Solde estimé fin de mois \
-            \(estimatedBalance.asArithmeticSignedCurrency(currency)). \(comparison). \(unchecked)
-            """
+            let formattedEstimate = "\(estimatedBalance > 0 ? "+" : "")\(estimatedBalance.asAdaptiveCurrency(currency))"
+            return AppLocale.string("""
+                \(month). Solde estimé fin de mois \
+                \(formattedEstimate). \(comparison). \(unchecked)
+                """)
         }
     }
 }

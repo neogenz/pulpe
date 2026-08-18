@@ -1,10 +1,171 @@
 [
   {
+    "version": "0.45.0",
+    "iosVersion": "1.4.0",
+    "date": "2026-08-18",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.45.0",
+    "platforms": [
+      "web",
+      "ios"
+    ],
+    "changes": {
+      "features": [
+        {
+          "title": "Pulpe dans quatre langues",
+          "description": "Utilise Pulpe en français, anglais, allemand ou italien sur le web, le site et l’app iOS."
+        },
+        {
+          "title": "Objectifs plus lisibles sur iOS",
+          "description": "Le détail d’un objectif réunit une progression claire, une trajectoire simplifiée et un historique regroupé."
+        },
+        {
+          "title": "Conseils pour construire son budget",
+          "description": "Un nouveau guide explique comment organiser un budget adapté à la vie en Suisse."
+        },
+        {
+          "title": "Mises à jour iOS plus faciles à trouver",
+          "description": "Pulpe peut maintenant signaler discrètement qu’une nouvelle version est disponible."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Des montants exacts au centime",
+          "description": "Soldes, dépassements, objectifs et retraits restent cohérents jusque dans les petits écarts."
+        },
+        {
+          "title": "Suppression des prévisions liées",
+          "description": "Sur iOS, le choix attendu apparaît désormais depuis le détail de la prévision."
+        },
+        {
+          "title": "Connexion et préférences plus fiables",
+          "description": "Une session expirée revient correctement à la connexion et les changements de langue ne sont plus écrasés."
+        }
+      ],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Pulpe in four languages",
+              "description": "Use Pulpe in French, English, German or Italian across the web, website and iOS app."
+            },
+            {
+              "title": "Clearer goals on iOS",
+              "description": "Goal details now combine clear progress, a simpler trajectory and a grouped history."
+            },
+            {
+              "title": "Guidance for building your budget",
+              "description": "A new guide explains how to organise a budget suited to life in Switzerland."
+            },
+            {
+              "title": "Easier-to-find iOS updates",
+              "description": "Pulpe can now discreetly let you know when a new version is available."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Amounts accurate to the cent",
+              "description": "Balances, overruns, goals and withdrawals remain consistent down to small differences."
+            },
+            {
+              "title": "Deleting linked forecasts",
+              "description": "On iOS, the expected choice now appears from the forecast details."
+            },
+            {
+              "title": "More reliable sign-in and preferences",
+              "description": "Expired sessions return to sign-in correctly, and language changes are no longer overwritten."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Pulpe in vier Sprachen",
+              "description": "Nutze Pulpe auf der Webapp, der Website und in der iOS-App auf Französisch, Englisch, Deutsch oder Italienisch."
+            },
+            {
+              "title": "Übersichtlichere Ziele auf iOS",
+              "description": "Die Zieldetails verbinden einen klaren Fortschritt, einen vereinfachten Verlauf und eine gruppierte Historie."
+            },
+            {
+              "title": "Hilfe beim Erstellen deines Budgets",
+              "description": "Ein neuer Leitfaden erklärt, wie du ein Budget für das Leben in der Schweiz organisierst."
+            },
+            {
+              "title": "iOS-Aktualisierungen leichter finden",
+              "description": "Pulpe kann dich jetzt dezent informieren, wenn eine neue Version verfügbar ist."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Beträge auf den Rappen genau",
+              "description": "Salden, Überschreitungen, Ziele und Auszahlungen bleiben auch bei kleinen Differenzen konsistent."
+            },
+            {
+              "title": "Verknüpfte Prognosen löschen",
+              "description": "Auf iOS erscheint die erwartete Auswahl nun direkt in den Prognosedetails."
+            },
+            {
+              "title": "Zuverlässigere Anmeldung und Einstellungen",
+              "description": "Abgelaufene Sitzungen führen korrekt zur Anmeldung zurück und Sprachänderungen werden nicht mehr überschrieben."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Pulpe in quattro lingue",
+              "description": "Usa Pulpe in francese, inglese, tedesco o italiano sul web, sul sito e nell’app iOS."
+            },
+            {
+              "title": "Obiettivi più chiari su iOS",
+              "description": "Il dettaglio di un obiettivo riunisce progressi chiari, un andamento semplificato e una cronologia raggruppata."
+            },
+            {
+              "title": "Consigli per creare il tuo budget",
+              "description": "Una nuova guida spiega come organizzare un budget adatto alla vita in Svizzera."
+            },
+            {
+              "title": "Aggiornamenti iOS più facili da trovare",
+              "description": "Pulpe può ora avvisarti con discrezione quando è disponibile una nuova versione."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Importi precisi al centesimo",
+              "description": "Saldi, sforamenti, obiettivi e prelievi restano coerenti anche nelle differenze minime."
+            },
+            {
+              "title": "Eliminazione delle previsioni collegate",
+              "description": "Su iOS, la scelta prevista appare ora direttamente nel dettaglio della previsione."
+            },
+            {
+              "title": "Accesso e preferenze più affidabili",
+              "description": "Le sessioni scadute tornano correttamente all’accesso e le modifiche della lingua non vengono più sovrascritte."
+            }
+          ],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
     "version": "0.44.0",
     "iosVersion": "1.3.2",
     "date": "2026-08-14",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.44.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -56,13 +217,180 @@
           "description": "Les événements PostHog sont assainis et les fonctions sensibles de Supabase ont des droits plus stricts"
         }
       ]
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Withdrawals from a goal",
+              "description": "A withdrawal can be added to the budget as income immediately or scheduled for a future month"
+            },
+            {
+              "title": "Monthly trajectory",
+              "description": "The home page separates completed activity from what is still planned and estimates the end-of-month balance"
+            },
+            {
+              "title": "Undo check-offs and additions",
+              "description": "From the home page, a checked-off or newly added item can be undone for a few seconds"
+            },
+            {
+              "title": "Goal-linked smoothed savings",
+              "description": "Savings spread over several months remain linked to the goal they fund"
+            },
+            {
+              "title": "Templates and budgets guide",
+              "description": "The help centre explains what to edit depending on whether a change concerns one month or your usual months"
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Completed savings plans",
+              "description": "Pulpe finds contributions missing from budgets already created and lets you add them after review"
+            },
+            {
+              "title": "Home aligned with actual activity",
+              "description": "The monthly summary includes checked-off activity without counting savings twice"
+            },
+            {
+              "title": "Budget kept open after an error",
+              "description": "If an action fails, the budget page stays open and displays the problem"
+            },
+            {
+              "title": "Simpler sign-up",
+              "description": "The password is no longer requested a second time, and the flow resumes after an interruption"
+            },
+            {
+              "title": "Sign-out limited to this device",
+              "description": "Signing out of Pulpe no longer ends your other open sessions"
+            }
+          ],
+          "technical": [
+            {
+              "title": "Tighter diagnostics and data access",
+              "description": "PostHog events are sanitised, and sensitive Supabase functions have stricter permissions"
+            }
+          ]
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Auszahlungen aus einem Ziel",
+              "description": "Eine Auszahlung kann sofort als Einnahme zum Budget hinzugefügt oder für einen späteren Monat geplant werden"
+            },
+            {
+              "title": "Monatsverlauf",
+              "description": "Die Startseite trennt erledigte Bewegungen von den noch geplanten und schätzt den Saldo zum Monatsende"
+            },
+            {
+              "title": "Abhaken und Hinzufügen rückgängig machen",
+              "description": "Auf der Startseite lässt sich ein gerade abgehakter oder hinzugefügter Eintrag einige Sekunden lang rückgängig machen"
+            },
+            {
+              "title": "Verteiltes Sparen bleibt mit Zielen verknüpft",
+              "description": "Über mehrere Monate verteiltes Sparen behält die Verknüpfung mit dem finanzierten Ziel"
+            },
+            {
+              "title": "Leitfaden für Vorlagen und Budgets",
+              "description": "Die Hilfe erklärt, was du ändern musst, je nachdem, ob die Änderung einen einzelnen oder deine gewöhnlichen Monate betrifft"
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Vervollständigte Sparpläne",
+              "description": "Pulpe erkennt fehlende Beiträge in bereits erstellten Budgets und lässt dich diese nach einer Prüfung ergänzen"
+            },
+            {
+              "title": "Startseite am tatsächlichen Verlauf ausgerichtet",
+              "description": "Die Monatsbilanz berücksichtigt abgehakte Bewegungen, ohne das Sparen doppelt zu zählen"
+            },
+            {
+              "title": "Budget bleibt bei einem Fehler geöffnet",
+              "description": "Wenn eine Aktion fehlschlägt, bleibt die Budgetseite geöffnet und zeigt das Problem an"
+            },
+            {
+              "title": "Einfachere Registrierung",
+              "description": "Das Passwort wird nicht mehr ein zweites Mal verlangt und der Ablauf wird nach einer Unterbrechung fortgesetzt"
+            },
+            {
+              "title": "Abmeldung nur auf diesem Gerät",
+              "description": "Wenn du dich bei Pulpe abmeldest, bleiben deine anderen offenen Sitzungen bestehen"
+            }
+          ],
+          "technical": [
+            {
+              "title": "Strengere Diagnosen und Datenzugriffe",
+              "description": "PostHog-Ereignisse werden bereinigt und sensible Supabase-Funktionen erhalten strengere Berechtigungen"
+            }
+          ]
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Prelievi da un obiettivo",
+              "description": "Un prelievo può essere aggiunto subito al budget come entrata o pianificato per un mese futuro"
+            },
+            {
+              "title": "Andamento mensile",
+              "description": "La pagina iniziale separa ciò che è già avvenuto da ciò che resta pianificato e stima il saldo di fine mese"
+            },
+            {
+              "title": "Spunte e aggiunte annullabili",
+              "description": "Dalla pagina iniziale, una voce appena spuntata o aggiunta può essere annullata per alcuni secondi"
+            },
+            {
+              "title": "Risparmi distribuiti collegati agli obiettivi",
+              "description": "I risparmi distribuiti su più mesi restano collegati all’obiettivo che finanziano"
+            },
+            {
+              "title": "Guida a modelli e budget",
+              "description": "Il centro assistenza spiega cosa modificare a seconda che il cambiamento riguardi un solo mese o i mesi abituali"
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Piani di risparmio completati",
+              "description": "Pulpe individua i versamenti mancanti nei budget già creati e ti permette di aggiungerli dopo una verifica"
+            },
+            {
+              "title": "Pagina iniziale allineata ai dati effettivi",
+              "description": "Il riepilogo del mese include i movimenti spuntati senza contare due volte i risparmi"
+            },
+            {
+              "title": "Budget mantenuto aperto in caso di errore",
+              "description": "Se un’azione non riesce, la pagina del budget resta aperta e mostra il problema"
+            },
+            {
+              "title": "Registrazione semplificata",
+              "description": "La password non viene più richiesta una seconda volta e il percorso riprende dopo un’interruzione"
+            },
+            {
+              "title": "Disconnessione limitata al dispositivo",
+              "description": "Uscire da Pulpe non interrompe più le altre sessioni aperte"
+            }
+          ],
+          "technical": [
+            {
+              "title": "Diagnostica e accesso ai dati più rigorosi",
+              "description": "Gli eventi PostHog vengono ripuliti e le funzioni sensibili di Supabase hanno autorizzazioni più restrittive"
+            }
+          ]
+        }
+      }
     }
   },
   {
     "version": "0.43.0",
     "date": "2026-08-01",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.43.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -108,7 +436,10 @@
     "iosVersion": "1.3.1",
     "date": "2026-07-30",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.42.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -142,7 +473,9 @@
     "version": "0.41.0",
     "date": "2026-07-29",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.41.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -172,7 +505,10 @@
     "iosVersion": "1.3.0",
     "date": "2026-07-28",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.40.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -214,7 +550,10 @@
     "iosVersion": "1.2.2",
     "date": "2026-07-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.39.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -240,7 +579,10 @@
     "iosVersion": "1.2.1",
     "date": "2026-07-26",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.38.3",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -268,7 +610,9 @@
     "version": "0.38.1",
     "date": "2026-07-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.38.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -294,7 +638,10 @@
     "iosVersion": "1.2.0",
     "date": "2026-07-24",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.38.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -368,7 +715,9 @@
     "version": "0.37.1",
     "date": "2026-07-01",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.37.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -385,7 +734,10 @@
     "iosVersion": "1.1.0",
     "date": "2026-07-01",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.37.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -420,7 +772,10 @@
     "iosVersion": "1.0.4",
     "date": "2026-06-19",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.36.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -471,7 +826,10 @@
     "iosVersion": "1.0.3",
     "date": "2026-05-14",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.35.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -521,7 +879,9 @@
     "version": "0.34.1",
     "date": "2026-05-06",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.34.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -547,7 +907,10 @@
     "iosVersion": "1.0.0",
     "date": "2026-05-05",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.34.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -649,7 +1012,9 @@
     "version": "0.33.1",
     "date": "2026-04-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.33.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -675,7 +1040,9 @@
     "iosVersion": "1.0.0",
     "date": "2026-04-08",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.33.0",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -700,7 +1067,10 @@
     "version": "0.32.1",
     "date": "2026-04-03",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.32.1",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -724,7 +1094,10 @@
     "version": "0.32.0",
     "date": "2026-04-02",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.32.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -774,7 +1147,9 @@
     "version": "0.31.2",
     "date": "2026-03-29",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.2",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -802,7 +1177,9 @@
     "version": "0.31.1",
     "date": "2026-03-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.1",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -838,7 +1215,10 @@
     "version": "0.31.0",
     "date": "2026-03-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -912,7 +1292,10 @@
     "version": "0.30.0",
     "date": "2026-03-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.30.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -986,7 +1369,10 @@
     "version": "0.29.0",
     "date": "2026-03-04",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.29.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -1040,7 +1426,10 @@
     "version": "0.28.0",
     "date": "2026-02-28",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.28.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -1081,7 +1470,10 @@
     "version": "0.27.0",
     "date": "2026-02-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.27.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -1134,7 +1526,9 @@
     "version": "0.26.0",
     "date": "2026-02-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.26.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -1172,7 +1566,9 @@
     "version": "0.25.0",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.25.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -1192,7 +1588,9 @@
     "version": "0.24.0",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.24.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -1217,7 +1615,9 @@
     "version": "0.23.1",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.23.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -1237,7 +1637,9 @@
     "version": "0.23.0",
     "date": "2026-02-20",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.23.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -1270,7 +1672,10 @@
     "version": "0.22.0",
     "date": "2026-02-15",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.22.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -1332,7 +1737,9 @@
     "version": "0.21.0",
     "date": "2026-02-14",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.21.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -1366,7 +1773,10 @@
     "version": "0.20.0",
     "date": "2026-02-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.20.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -1390,7 +1800,9 @@
     "version": "0.19.1",
     "date": "2026-02-11",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.19.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -1406,7 +1818,10 @@
     "version": "0.19.0",
     "date": "2026-02-10",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.19.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -1458,7 +1873,10 @@
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.18.0",
     "headline": "Premiere release officielle",
     "description": "Pulpe est une application de gestion budgetaire personnelle pour le marche suisse. Cette premiere release regroupe l'ensemble des fonctionnalites developpees depuis la creation du projet.",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {

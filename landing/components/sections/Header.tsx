@@ -2,34 +2,39 @@ import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui";
-import {
-  MOBILE_NAV_ID,
-  MOBILE_NAV_PANEL_ID,
-  SCROLL_SENTINEL_ID,
-  angularUrl,
-} from "@/lib/config";
+import type { Dictionary } from "@/content/dictionary";
+import { MOBILE_NAV_ID, MOBILE_NAV_PANEL_ID, angularUrl } from "@/lib/config";
+import type { Locale } from "@/lib/i18n";
+import { localizedPath } from "@/lib/routes";
 
-const navLinks = [
-  { href: "/#pain-points", label: "Pourquoi Pulpe" },
-  { href: "/#how-it-works", label: "Comment ça marche" },
-  { href: "/#platforms", label: "Applications" },
-  { href: "/support", label: "Aide" },
-  { href: "/#why-free", label: "Pourquoi c’est gratuit" },
-];
+// La destination est structurelle et reste ici ; seul le libellé change de
+// langue. L'ordre du tableau est l'ordre affiché.
+const NAV_ITEMS = [
+  { id: "painPoints", href: "/#pain-points" },
+  { id: "howItWorks", href: "/#how-it-works" },
+  { id: "platforms", href: "/#platforms" },
+  { id: "support", href: "/support" },
+  { id: "whyFree", href: "/#why-free" },
+] as const satisfies readonly {
+  id: keyof Dictionary["header"]["nav"];
+  href: string;
+}[];
 
-const SCROLL_THRESHOLD_PX = 20;
+export function Header({
+  dict,
+  locale,
+}: {
+  dict: Dictionary["header"];
+  locale: Locale;
+}) {
+  const navLinks = NAV_ITEMS.map((item) => ({
+    href: localizedPath(locale, item.href),
+    label: dict.nav[item.id],
+  }));
+  const homeHref = localizedPath(locale, "/");
 
-export function Header() {
   return (
     <>
-      {/* Rendue côté serveur : le script inline du layout l'observe dès la fin du
-          parsing, sans attendre React. */}
-      <div
-        id={SCROLL_SENTINEL_ID}
-        aria-hidden="true"
-        className="pointer-events-none absolute left-0 top-0 w-px"
-        style={{ height: SCROLL_THRESHOLD_PX }}
-      />
       <header className="fixed left-[calc(env(safe-area-inset-left)+0.625rem)] right-[calc(env(safe-area-inset-right)+0.625rem)] top-[calc(env(safe-area-inset-top)+0.625rem)] z-50">
         <nav
           // `backdrop-filter` est volontairement hors de la transition : Safari
@@ -38,12 +43,12 @@ export function Header() {
           // seul le fondu du rayon disparaît — et il était de toute façon
           // masqué par le fond qui se fond sur la même durée.
           className="relative z-20 flex h-14 items-center justify-between gap-3 rounded-2xl bg-white/40 px-6 shadow-none ring-1 ring-transparent backdrop-blur-none transition-[background-color,box-shadow] duration-500 scrolled:bg-surface/80 scrolled:shadow-[0_4px_30px_rgba(0,0,0,0.1)] scrolled:ring-white/60 scrolled:backdrop-blur-[14px] scrolled:backdrop-saturate-150 lg:h-[72px] motion-reduce:transition-none"
-          aria-label="Navigation principale"
+          aria-label={dict.navAriaLabel}
         >
           <Link
-            href="/"
+            href={homeHref}
             className="relative z-10 flex min-h-11 items-center gap-2 font-bold text-lg text-text"
-            aria-label="Pulpe, accueil"
+            aria-label={dict.homeAriaLabel}
           >
             <Image
               src="/icon-64.webp"
@@ -71,14 +76,14 @@ export function Header() {
           <div className="relative z-10 flex items-center gap-2">
             <div className="hidden lg:block">
               <Button
-                href={angularUrl("/signup", "header_commencer")}
+                href={angularUrl("/signup", "header_commencer", locale)}
                 size="sm"
                 className="shrink-0"
                 data-cta-name="commencer"
                 data-cta-location="header"
                 data-cta-destination="/signup"
               >
-                Créer mon budget
+                {dict.cta}
               </Button>
             </div>
           </div>
@@ -92,7 +97,7 @@ export function Header() {
             conteneur et casserait le `fixed inset-0` du panneau. */}
         <details id={MOBILE_NAV_ID} className="group peer">
           <summary
-            aria-label="Menu"
+            aria-label={dict.menuLabel}
             aria-controls={MOBILE_NAV_PANEL_ID}
             className="absolute right-6 top-0 z-30 grid h-14 min-h-11 min-w-11 cursor-pointer list-none place-items-center rounded-lg text-text-secondary transition-[color,background-color,scale] duration-200 hover:bg-primary/8 hover:text-text active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 lg:hidden motion-reduce:transition-none motion-reduce:scale-100 [&::-webkit-details-marker]:hidden"
           >
@@ -120,7 +125,7 @@ export function Header() {
             le script couvre les navigateurs qui l'ignorent encore. */}
         <nav
           id={MOBILE_NAV_PANEL_ID}
-          aria-label="Navigation mobile"
+          aria-label={dict.mobileNavAriaLabel}
           aria-hidden="true"
           inert
           className="pointer-events-none fixed inset-x-0 top-0 z-10 hidden h-screen overflow-y-auto bg-surface pt-24 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] opacity-0 transition-[opacity,display] transition-discrete duration-300 peer-open:pointer-events-auto peer-open:opacity-100 peer-open:starting:opacity-0 max-lg:peer-open:flex lg:hidden motion-reduce:transition-none"
@@ -140,14 +145,14 @@ export function Header() {
               </Link>
             ))}
             <Button
-              href={angularUrl("/signup", "mobile_menu_commencer")}
+              href={angularUrl("/signup", "mobile_menu_commencer", locale)}
               tabIndex={-1}
               className="mt-auto w-full"
               data-cta-name="commencer"
               data-cta-location="mobile_menu"
               data-cta-destination="/signup"
             >
-              Créer mon budget
+              {dict.cta}
             </Button>
           </div>
         </nav>

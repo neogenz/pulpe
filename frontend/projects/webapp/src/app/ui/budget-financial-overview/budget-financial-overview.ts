@@ -10,7 +10,11 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
+import {
+  CURRENCY_METADATA,
+  moneyDifference,
+  type SupportedCurrency,
+} from 'pulpe-shared';
 import { FinancialPills } from '../financial-pills/financial-pills';
 
 export interface FinancialTotals {
@@ -47,7 +51,7 @@ export interface FinancialTotals {
         <div
           class="mt-2 text-display-medium font-bold tracking-tight tabular-nums ph-no-capture sm:text-display-large"
         >
-          {{ remainingAbsolute() | number: '1.0-0' : locale() }}
+          {{ remainingAbsolute() | number: '1.0-2' : locale() }}
           <span class="text-headline-small font-normal">{{
             currencySymbol()
           }}</span>
@@ -150,11 +154,15 @@ export class BudgetFinancialOverview {
     () => CURRENCY_METADATA[this.currency()].symbol,
   );
 
-  readonly isPositive = computed(() => this.totals().remaining >= 0);
+  readonly remainingDifference = computed(() =>
+    moneyDifference(this.totals().remaining, 0),
+  );
+
+  readonly isPositive = computed(() => this.remainingDifference() >= 0);
 
   readonly isComfortable = computed(() => {
     const { remaining, income } = this.totals();
-    if (income <= 0) return remaining >= 0;
+    if (income <= 0) return moneyDifference(remaining, 0) >= 0;
     const consumedPercent = ((income - remaining) / income) * 100;
     return consumedPercent <= this.warningThreshold();
   });
@@ -172,7 +180,7 @@ export class BudgetFinancialOverview {
   );
 
   readonly remainingAbsolute = computed(() =>
-    Math.abs(this.totals().remaining),
+    Math.abs(this.remainingDifference()),
   );
 
   // `rollover` is only non-zero when a previous budget exists — the backend derives

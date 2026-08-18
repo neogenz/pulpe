@@ -255,4 +255,104 @@ test.describe('Envelope Overage Reste Impact', () => {
     // 250/200 = 125% — component shows "dépassé" instead of percentage when > 100%
     await expect(envelopeCard).toContainText(/dépassé/i);
   });
+
+  test('a five-cent overage stays visible and reduces Reste by the same amount', async ({
+    authenticatedPage,
+    budgetDetailsPage,
+  }) => {
+    const mockResponse = createBudgetDetailsMock(budgetId, {
+      budget: { rollover: 0 },
+      budgetLines: [
+        createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
+          name: 'Salaire',
+          amount: 100,
+          kind: 'income',
+        }),
+        createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, {
+          name: 'Téléphone',
+          amount: 58.5,
+          kind: 'expense',
+        }),
+      ],
+      transactions: [
+        createTransactionMock(TEST_UUIDS.TRANSACTION_1, budgetId, {
+          name: 'Sunrise',
+          amount: 58.55,
+          kind: 'expense',
+          budgetLineId: TEST_UUIDS.LINE_2,
+        }),
+      ],
+    });
+
+    await authenticatedPage.route('**/api/v1/budgets/*/details', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockResponse),
+      }),
+    );
+    await budgetDetailsPage.goto(budgetId);
+
+    const envelopeCard = authenticatedPage.getByTestId(
+      `envelope-card-${TEST_UUIDS.LINE_2}`,
+    );
+    await expect(envelopeCard).toContainText('58.55 CHF');
+    await expect(envelopeCard).toContainText(/Dépassé de 0\.05 CHF/i);
+    await expect(
+      authenticatedPage.locator('pulpe-budget-financial-overview'),
+    ).toContainText('41.45 CHF');
+  });
+
+  test('exact and floating-noise equality never create an overage state', async ({
+    authenticatedPage,
+    budgetDetailsPage,
+  }) => {
+    let planned = 58.5;
+    let consumed = 58.5;
+    await authenticatedPage.route('**/api/v1/budgets/*/details', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          createBudgetDetailsMock(budgetId, {
+            budget: { rollover: 0 },
+            budgetLines: [
+              createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
+                name: 'Salaire',
+                amount: 100,
+                kind: 'income',
+              }),
+              createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, {
+                name: 'Téléphone',
+                amount: planned,
+                kind: 'expense',
+              }),
+            ],
+            transactions: [
+              createTransactionMock(TEST_UUIDS.TRANSACTION_1, budgetId, {
+                name: 'Sunrise',
+                amount: consumed,
+                kind: 'expense',
+                budgetLineId: TEST_UUIDS.LINE_2,
+              }),
+            ],
+          }),
+        ),
+      }),
+    );
+
+    for (const values of [
+      { planned: 58.5, consumed: 58.5 },
+      { planned: 0.3, consumed: 0.1 + 0.2 },
+    ]) {
+      planned = values.planned;
+      consumed = values.consumed;
+      await budgetDetailsPage.goto(budgetId);
+      const envelopeCard = authenticatedPage.getByTestId(
+        `envelope-card-${TEST_UUIDS.LINE_2}`,
+      );
+      await expect(envelopeCard).not.toContainText(/dépassé/i);
+      await expect(envelopeCard).toContainText('100%');
+    }
+  });
 });

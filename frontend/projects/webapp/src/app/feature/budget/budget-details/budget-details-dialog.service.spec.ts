@@ -8,6 +8,7 @@ import type { TransactionUpdate } from 'pulpe-shared';
 import { describe, expect, it, vi } from 'vitest';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
 import { EditTransactionDialog } from './components/edit-transaction-form';
+import { SavingsWithdrawalDialog } from './budget-line/savings-withdrawal/dialog';
 
 describe('BudgetDetailsDialogService', () => {
   it('locks the allocated transaction kind but keeps tags editable', async () => {
@@ -57,5 +58,32 @@ describe('BudgetDetailsDialogService', () => {
       }),
     );
     expect(result).toEqual(update);
+  });
+
+  it('passes the exact cent-level deficit to the withdrawal dialog', async () => {
+    const open = vi.fn().mockReturnValue({ afterClosed: () => of(undefined) });
+    TestBed.configureTestingModule({
+      providers: [
+        ...provideTranslocoForTest(),
+        BudgetDetailsDialogService,
+        { provide: MatDialog, useValue: { open } },
+        { provide: MatBottomSheet, useValue: { open: vi.fn() } },
+      ],
+    });
+    const data = {
+      budgetId: '00000000-0000-4000-8000-000000000123',
+      budgetMonth: 8,
+      budgetYear: 2026,
+      deficitAmount: 0.3,
+    };
+
+    await TestBed.inject(
+      BudgetDetailsDialogService,
+    ).openSavingsWithdrawalDialog(data);
+
+    expect(open).toHaveBeenCalledWith(
+      SavingsWithdrawalDialog,
+      expect.objectContaining({ data }),
+    );
   });
 });

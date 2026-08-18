@@ -155,9 +155,11 @@ struct CurrentMonthWidgetView: View {
     }
 
     private var rectangularAccessibilityLabel: String {
-        guard entry.hasData else { return "Pulpe, ouvre l'app" }
-        guard let amount = spokenAvailable else { return "Disponible à dépenser, \(entry.monthName)" }
-        return "Disponible à dépenser \(amount), \(entry.monthName)"
+        guard entry.hasData else { return AppLocale.string("Pulpe, ouvre l'app") }
+        guard let amount = spokenAvailable else {
+            return AppLocale.string("Disponible à dépenser, \(entry.monthName)")
+        }
+        return AppLocale.string("Disponible à dépenser \(amount), \(entry.monthName)")
     }
 
     private var accessoryCircularView: some View {
@@ -186,8 +188,8 @@ struct CurrentMonthWidgetView: View {
 
     private var circularAccessibilityLabel: String {
         guard entry.hasData else { return "Pulpe" }
-        guard let amount = spokenAvailable else { return "Disponible" }
-        return "Disponible \(amount)"
+        guard let amount = spokenAvailable else { return AppLocale.string("Disponible") }
+        return AppLocale.string("Disponible \(amount)")
     }
 
     private var accessoryInlineView: some View {
@@ -207,9 +209,9 @@ struct CurrentMonthWidgetView: View {
     }
 
     private var inlineAccessibilityLabel: String {
-        guard entry.hasData else { return "Pulpe, ouvre l'app" }
-        guard let amount = spokenAvailable else { return "Disponible" }
-        return "Disponible \(amount)"
+        guard entry.hasData else { return AppLocale.string("Pulpe, ouvre l'app") }
+        guard let amount = spokenAvailable else { return AppLocale.string("Disponible") }
+        return AppLocale.string("Disponible \(amount)")
     }
 
     private var emptyView: some View {

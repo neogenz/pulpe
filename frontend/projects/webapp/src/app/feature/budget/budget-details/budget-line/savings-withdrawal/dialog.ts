@@ -284,7 +284,7 @@ export class SavingsWithdrawalDialog {
   protected readonly isSubmitting = signal(false);
 
   readonly #dateFnsLocale = computed(() =>
-    dateFnsLocaleFor(this.#settings.currency()),
+    dateFnsLocaleFor(this.#settings.locale(), this.#settings.currency()),
   );
 
   protected readonly monthName = computed(() =>
@@ -309,7 +309,7 @@ export class SavingsWithdrawalDialog {
       this.#currencyPipe.transform(
         this.deficitChipAmount(),
         this.currency(),
-        '1.0-0',
+        '1.0-2',
       ) ?? '',
   );
 

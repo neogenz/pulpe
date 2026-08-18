@@ -2,6 +2,10 @@ import XCTest
 
 @MainActor
 final class ContextualCreationUITests: XCTestCase {
+    /// Every amount on this screen is printed with its currency, and nothing else is —
+    /// so the code is what tells an announced figure from a masked one, in any language.
+    private static let currencyCode = "CHF"
+
     private var app = XCUIApplication()
 
     override func setUp() {
@@ -12,21 +16,21 @@ final class ContextualCreationUITests: XCTestCase {
     func testHomeCreationActionRemainsAccessibleAtLargeText() {
         launch("UITEST_CONTEXTUAL_CREATION_HOME")
 
-        let addOperation = app.buttons["Ajouter une opération"]
+        let addOperation = app.buttons["homeAddOperationButton"]
         XCTAssertTrue(addOperation.waitForExistence(timeout: 10), app.debugDescription)
         scrollUntilHittable(addOperation)
         assertMinimumHitArea(addOperation)
         attachScreenshot("contextual-creation-home-accessibility3")
 
         addOperation.tap()
-        XCTAssertTrue(app.buttons["Ajouter"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["addTransactionSubmit"].firstMatch.waitForExistence(timeout: 5))
     }
 
     func testBudgetToolbarActionsRemainDistinctAtLargeText() {
         launch("UITEST_CONTEXTUAL_CREATION_BUDGET")
 
-        let tracking = app.buttons["Suivi du budget"]
-        let addForecast = app.buttons["Ajouter une prévision"]
+        let tracking = app.buttons["budgetTrackingButton"]
+        let addForecast = app.buttons["budgetAddLineButton"]
         XCTAssertTrue(tracking.waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertTrue(addForecast.waitForExistence(timeout: 10), app.debugDescription)
         attachScreenshot("contextual-creation-budget-accessibility3")
@@ -35,7 +39,7 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertFalse(tracking.frame.intersects(addForecast.frame))
 
         addForecast.tap()
-        XCTAssertTrue(app.buttons["Ajouter"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["addBudgetLineSubmit"].firstMatch.waitForExistence(timeout: 5))
     }
 
     /// One plot has to carry every shape a month can take. Each state gets a screenshot so
@@ -91,15 +95,15 @@ final class ContextualCreationUITests: XCTestCase {
             homeSkeleton: true
         )
 
-        let skeleton = app.descendants(matching: .any)["Préparation de ton tableau de bord"]
+        let skeleton = app.descendants(matching: .any)["homeSkeletonRoot"]
         XCTAssertTrue(skeleton.waitForExistence(timeout: 10), app.debugDescription)
-        XCTAssertTrue(app.buttons["Mon compte"].exists, app.debugDescription)
+        XCTAssertTrue(app.buttons["homeAccountButton"].exists, app.debugDescription)
 
+        // `SwiftUI.Tab` gives no seam for an identifier on the bar button it builds, so
+        // the production container is asserted by its four tabs rather than their titles.
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.exists, app.debugDescription)
-        for title in ["Accueil", "Budgets", "Objectifs", "Modèles"] {
-            XCTAssertTrue(tabBar.buttons[title].exists, app.debugDescription)
-        }
+        XCTAssertEqual(tabBar.buttons.count, 4, app.debugDescription)
 
         attachScreenshot("home-skeleton-production-container")
     }
@@ -115,25 +119,32 @@ final class ContextualCreationUITests: XCTestCase {
         // assertable proof of it — the marks themselves are a graphic.
         let chart = app.descendants(matching: .any)["home-balance-chart"]
         XCTAssertTrue(chart.waitForExistence(timeout: 10), app.debugDescription)
-        // The identifier lands on the view element, whose label is empty; the spoken one is
-        // a sibling node — so scrape the tree, as the masking test does.
-        let labels = app.descendants(matching: .any).allElementsBoundByIndex.map(\.label)
         XCTAssertTrue(
-            labels.contains { $0.contains("Atterrissage estimé") },
-            labels.joined(separator: " | ")
+            chart.label.contains(Self.currencyCode),
+            "The plot announces no figure: \(chart.label)"
         )
 
         // The verdict sentence's own copy is asserted in `HomeHeroCardTests`: it lives in a
         // Button whose accessibility label is its action, so its text reaches no query here.
 
         // The one thing to do, and the card listing what is waiting to be pointed.
-        XCTAssertTrue(app.buttons["Ajouter une opération"].exists, app.debugDescription)
-        XCTAssertTrue(app.staticTexts["Opérations à pointer"].exists, app.debugDescription)
-        XCTAssertTrue(app.staticTexts["Revenu"].exists, app.debugDescription)
+        XCTAssertTrue(app.buttons["homeAddOperationButton"].exists, app.debugDescription)
+        XCTAssertTrue(
+            app.descendants(matching: .any)["homeUncheckedOperationsCard"].exists,
+            app.debugDescription
+        )
+        // The income the template opened the budget with — the harness names it, so the
+        // row proves the card is showing the line and not an empty frame.
+        let uncheckedRow = app.descendants(matching: .any)["homeUncheckedOperationRow"].firstMatch
+        XCTAssertTrue(uncheckedRow.exists, app.debugDescription)
+        XCTAssertTrue(uncheckedRow.label.contains("Revenu"), uncheckedRow.label)
 
         // Nothing has happened yet, so no card may report activity or drift.
-        XCTAssertFalse(app.staticTexts["Activité"].exists, app.debugDescription)
-        XCTAssertFalse(app.staticTexts["Ça dérive"].exists, app.debugDescription)
+        XCTAssertFalse(
+            app.descendants(matching: .any)["homeActivityCard"].exists,
+            app.debugDescription
+        )
+        XCTAssertFalse(app.descendants(matching: .any)["homeDriftCard"].exists, app.debugDescription)
 
         attachScreenshot("home-fresh-signup")
     }
@@ -145,12 +156,12 @@ final class ContextualCreationUITests: XCTestCase {
     func testHomeShortcutPushesTheBudgetDetail() {
         launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large")
 
-        let seeDetail = app.buttons["Voir le détail du budget"]
+        let seeDetail = app.buttons["homeBudgetDetailLink"]
         XCTAssertTrue(seeDetail.waitForExistence(timeout: 10), app.debugDescription)
         seeDetail.tap()
 
         XCTAssertTrue(
-            app.buttons["Ajouter une prévision"].waitForExistence(timeout: 10),
+            app.buttons["budgetAddLineButton"].waitForExistence(timeout: 10),
             "Le tap n'a rien poussé — écran après le tap : "
                 + "\(app.descendants(matching: .any).allElementsBoundByIndex.map(\.label))"
         )
@@ -163,28 +174,28 @@ final class ContextualCreationUITests: XCTestCase {
     func testHiddenAmountsAreSpokenAsMaskedAcrossTheHome() {
         launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", amountsHidden: true)
 
-        XCTAssertTrue(
-            app.descendants(matching: .any)["home-balance-chart"].waitForExistence(timeout: 10),
-            app.debugDescription
-        )
-
-        let labels = app.descendants(matching: .any).allElementsBoundByIndex.map(\.label)
+        let chart = app.descendants(matching: .any)["home-balance-chart"]
+        XCTAssertTrue(chart.waitForExistence(timeout: 10), app.debugDescription)
 
         // The hero speaks neither its estimate nor its comparison.
-        XCTAssertTrue(
-            labels.contains { $0.contains("montant masqué") && $0.contains("Comparaison au budget masquée") },
-            "Le héros annonce encore un montant : \(labels)"
+        let hero = app.buttons["homeHeroMetrics"]
+        XCTAssertTrue(hero.exists, app.debugDescription)
+        XCTAssertFalse(
+            hero.label.contains(Self.currencyCode),
+            "Le héros annonce encore un montant : \(hero.label)"
         )
         // The plot too — it is one accessibility element with its whole trajectory inside.
-        XCTAssertTrue(
-            labels.contains { $0.contains("Trajectoire d’atterrissage de la période, montants masqués") },
-            "Le graphe annonce encore sa trajectoire : \(labels)"
+        XCTAssertFalse(
+            chart.label.contains(Self.currencyCode),
+            "Le graphe annonce encore sa trajectoire : \(chart.label)"
         )
         // And the card below, whose rows each carry an amount of their own.
-        XCTAssertEqual(
-            labels.first { $0.hasPrefix("Logement,") },
-            "Logement, récurrent",
-            "La ligne à pointer annonce son montant : \(labels)"
+        let uncheckedRow = app.descendants(matching: .any)["homeUncheckedOperationRow"].firstMatch
+        XCTAssertTrue(uncheckedRow.exists, app.debugDescription)
+        XCTAssertTrue(uncheckedRow.label.contains("Logement"), uncheckedRow.label)
+        XCTAssertFalse(
+            uncheckedRow.label.contains(Self.currencyCode),
+            "La ligne à pointer annonce son montant : \(uncheckedRow.label)"
         )
 
         attachScreenshot("home-amounts-hidden")

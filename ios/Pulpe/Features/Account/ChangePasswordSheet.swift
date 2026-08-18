@@ -66,7 +66,7 @@ struct ChangePasswordSheet: View {
             }
             .contentMargins(.bottom, DesignTokens.Spacing.xxl, for: .scrollContent)
             .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("Changer le mot de passe")
+            .localizedNavigationTitle("Changer le mot de passe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -88,7 +88,7 @@ struct ChangePasswordSheet: View {
                 .foregroundStyle(Color.onSurfaceVariant)
 
             AuthSecureField(
-                prompt: "Ton mot de passe actuel",
+                prompt: AppLocale.string("Ton mot de passe actuel"),
                 text: $viewModel.currentPassword,
                 isVisible: $showCurrentPassword,
                 systemImage: "lock",
@@ -107,7 +107,7 @@ struct ChangePasswordSheet: View {
                 .foregroundStyle(Color.onSurfaceVariant)
 
             AuthSecureField(
-                prompt: "Ton nouveau mot de passe",
+                prompt: AppLocale.string("Ton nouveau mot de passe"),
                 text: $viewModel.newPassword,
                 isVisible: $showNewPassword,
                 systemImage: "lock",
@@ -133,7 +133,7 @@ struct ChangePasswordSheet: View {
                 .foregroundStyle(Color.onSurfaceVariant)
 
             AuthSecureField(
-                prompt: "Confirme ton nouveau mot de passe",
+                prompt: AppLocale.string("Confirme ton nouveau mot de passe"),
                 text: $viewModel.confirmPassword,
                 isVisible: $showConfirmPassword,
                 systemImage: "lock",
@@ -183,17 +183,17 @@ final class ChangePasswordViewModel {
     func submit(email: String?) async {
         guard canSubmit else {
             if !isCurrentPasswordValid {
-                errorMessage = "Le mot de passe actuel est requis"
+                errorMessage = AppLocale.string("Le mot de passe actuel est requis")
             } else if !isNewPasswordValid {
-                errorMessage = "8 caractères minimum"
+                errorMessage = AppLocale.string("8 caractères minimum")
             } else if !isPasswordConfirmed {
-                errorMessage = "Les mots de passe ne correspondent pas"
+                errorMessage = AppLocale.string("Les mots de passe ne correspondent pas")
             }
             return
         }
 
         guard let email, !email.isEmpty else {
-            errorMessage = "Utilisateur non connecté"
+            errorMessage = AppLocale.string("Utilisateur non connecté")
             return
         }
 
@@ -207,7 +207,7 @@ final class ChangePasswordViewModel {
             isCompleted = true
         } catch {
             if AuthErrorLocalizer.isInvalidCredentials(error) {
-                errorMessage = "Mot de passe actuel incorrect"
+                errorMessage = AppLocale.string("Mot de passe actuel incorrect")
             } else {
                 errorMessage = AuthErrorLocalizer.localize(error)
             }

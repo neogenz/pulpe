@@ -9,12 +9,22 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { NavigationEnd, Router } from '@angular/router';
 import type { Subscription } from 'rxjs';
-import type { PostHog, Properties, CaptureResult } from 'posthog-js';
-import { ANALYTICS_EVENTS, type AnalyticsEventName } from 'pulpe-shared';
+import type {
+  CaptureOptions,
+  CaptureResult,
+  PostHog,
+  Properties,
+} from 'posthog-js';
+import {
+  ANALYTICS_EVENTS,
+  type AnalyticsEventName,
+  type SupportedLocale,
+} from 'pulpe-shared';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { StorageService } from '../storage/storage.service';
 import { STORAGE_KEYS } from '../storage/storage-keys';
+import { resolveStartupLanguage } from '../i18n/language-resolver';
 import { buildInfo } from '@env/build-info';
 import {
   AUTOCAPTURE_TAG_PATTERN,
@@ -59,6 +69,7 @@ export class PostHogService implements OnDestroy {
   #sessionReplayEnabled = false;
   #autocaptureClickListener?: (event: MouseEvent) => void;
   #navigationSubscription?: Subscription;
+  #activeLocale = resolveStartupLanguage(this.#storageService);
 
   constructor() {
     const overrides = this.#readFlagOverrides();
@@ -407,8 +418,16 @@ export class PostHogService implements OnDestroy {
    * Capture an explicitly designed business event. Sanitize before invoking
    * PostHog because `$set` fields mutate feature-flag person state before the
    * SDK's `before_send` hook runs.
+   *
+   * `options` reaches posthog-js untouched. The one that matters here is
+   * `send_instantly`, for an event fired right before the page goes away: the
+   * batched queue would never get its turn.
    */
-  captureEvent(event: AnalyticsEventName, properties?: Properties): void {
+  captureEvent(
+    event: AnalyticsEventName,
+    properties?: Properties,
+    options?: CaptureOptions,
+  ): void {
     if (!this.#canCapture()) return;
 
     try {
@@ -419,7 +438,7 @@ export class PostHogService implements OnDestroy {
         delete sanitizedProperties['$set'];
         delete sanitizedProperties['$set_once'];
       }
-      this.#posthog?.capture(event, sanitizedProperties);
+      this.#posthog?.capture(event, sanitizedProperties, options);
       this.#logger.debug('PostHog event captured', { event });
     } catch (error) {
       this.#logger.error('Failed to capture event', error);
@@ -491,6 +510,13 @@ export class PostHogService implements OnDestroy {
       this.#logger.debug('PostHog person properties set');
     } catch (error) {
       this.#logger.error('Failed to set person properties', error);
+    }
+  }
+
+  setLocale(locale: SupportedLocale): void {
+    this.#activeLocale = locale;
+    if (this.#canCapture()) {
+      this.#posthog?.register({ locale });
     }
   }
 
@@ -569,6 +595,7 @@ export class PostHogService implements OnDestroy {
         environment: this.#applicationConfiguration.environment(),
         app_version: buildInfo.version,
         app_commit: buildInfo.shortCommitHash,
+        locale: this.#activeLocale,
         platform: 'web',
       };
 

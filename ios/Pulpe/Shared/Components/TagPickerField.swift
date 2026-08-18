@@ -54,9 +54,11 @@ struct TagPickerField: View {
     }
 
     static func summary(selectedNames: [String], selectionCount: Int) -> String {
-        guard selectionCount > 0 else { return "Aucun tag" }
+        guard selectionCount > 0 else { return AppLocale.string("Aucun tag") }
         guard !selectedNames.isEmpty else {
-            return "\(selectionCount) \(selectionCount == 1 ? "tag" : "tags")"
+            // Plural variations live in the catalog, one rule set per language —
+            // a `== 1` ternary only ever encodes the French rule.
+            return AppLocale.string("\(selectionCount) tags")
         }
 
         let visibleNames = selectedNames.prefix(2)
@@ -74,7 +76,7 @@ struct TagPickerField: View {
     }
 
     static func hasValidLength(_ name: String) -> Bool {
-        (1...30).contains(normalizedName(name).count)
+        (1...AppConfiguration.maxTagNameLength).contains(normalizedName(name).count)
     }
 
     static func createdTagIds(from selection: Set<String>) -> [String]? {
@@ -115,12 +117,14 @@ private struct TagPickerSheet: View {
     }
 
     private var validationMessage: String? {
-        if normalizedName.count > 30 { return "30 caractères maximum" }
+        if normalizedName.count > AppConfiguration.maxTagNameLength {
+            return AppLocale.string("\(AppConfiguration.maxTagNameLength) caractères maximum")
+        }
         if TagPickerField.duplicate(named: normalizedName, in: store.tags) != nil {
-            return "Ce tag existe déjà"
+            return AppLocale.string("Ce tag existe déjà")
         }
         if !normalizedName.isEmpty, selection.count >= AppConfiguration.maxTagsPerTransaction {
-            return "\(AppConfiguration.maxTagsPerTransaction) tags maximum"
+            return AppLocale.string("\(AppConfiguration.maxTagsPerTransaction) tags maximum")
         }
         return createError
     }
@@ -141,7 +145,7 @@ private struct TagPickerSheet: View {
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(Color.sheetBackground)
-            .navigationTitle("Tags")
+            .localizedNavigationTitle("Tags")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -250,7 +254,7 @@ private struct TagPickerSheet: View {
                 Text(validationMessage)
                     .foregroundStyle(Color.destructivePrimary)
             } else {
-                Text("1 à 30 caractères · ajouté à la sélection")
+                Text("1 à \(AppConfiguration.maxTagNameLength) caractères · ajouté à la sélection")
             }
         }
     }

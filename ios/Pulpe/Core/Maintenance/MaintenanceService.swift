@@ -26,7 +26,7 @@ actor MaintenanceService {
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
         else {
-            throw APIError.serverError(message: "Impossible de vérifier le statut")
+            throw APIError.serverError(message: AppLocale.string("Impossible de vérifier le statut"))
         }
 
         let status = try JSONDecoder().decode(StatusResponse.self, from: data)

@@ -111,6 +111,7 @@ struct AuthSecureField<Field: Hashable>: View {
     @Binding var isVisible: Bool
     var systemImage: String?
     var hasError: Bool = false
+    var fieldAccessibilityIdentifier: String?
     var focusBinding: FocusState<Field?>.Binding
     var focusField: Field
 
@@ -132,6 +133,9 @@ struct AuthSecureField<Field: Hashable>: View {
                 .font(PulpeTypography.body)
                 .foregroundStyle(Color.authInputText)
                 .focused(focusBinding, equals: focusField)
+                .ifLet(fieldAccessibilityIdentifier) { view, identifier in
+                    view.accessibilityIdentifier(identifier)
+                }
 
                 Button {
                     withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {

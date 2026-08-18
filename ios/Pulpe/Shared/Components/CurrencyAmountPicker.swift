@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Capsule pill selector for choosing input currency in amount forms.
+/// Currency selector for amount forms.
 /// When `isReadOnly` is `true`, renders a non-interactive capsule.
 struct CurrencyAmountPicker: View {
     @Binding var selectedCurrency: SupportedCurrency
@@ -10,12 +10,12 @@ struct CurrencyAmountPicker: View {
         if isReadOnly {
             readOnlyCapsule
         } else {
-            CapsulePicker(selection: $selectedCurrency, title: "Devise") { currency, _ in
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Text(currency.flag)
-                    Text(currency.rawValue)
-                }
+            SegmentedPicker(selection: $selectedCurrency, title: AppLocale.string("Devise")) { currency in
+                Text("\(currency.flag) \(currency.rawValue)")
             }
+            // `.contain` before the label: without it, it propagates onto the segments
+            // themselves and VoiceOver loses each currency's own name.
+            .accessibilityElement(children: .contain)
             .accessibilityLabel("Sélection de la devise")
         }
     }

@@ -52,13 +52,13 @@ final class SpreadCalculator {
     /// `nil` when the window is valid; otherwise the inline message to surface.
     var validationMessage: String? {
         if end.ordinal < start.ordinal {
-            return "Le mois de fin précède le mois de début"
+            return AppLocale.string("Le mois de fin précède le mois de début")
         }
         if windowMonths.count > Self.maxMonths {
-            return "36 mois maximum"
+            return AppLocale.string("36 mois maximum")
         }
         if selectedCount == 0 {
-            return "Sélectionne au moins un mois"
+            return AppLocale.string("Sélectionne au moins un mois")
         }
         return nil
     }

@@ -1,6 +1,6 @@
 import { test, expect } from '../../fixtures/test-fixtures';
 import { setupAuthBypass } from '../../utils/auth-bypass';
-import type { Page, Route } from '@playwright/test';
+import type { Locator, Page, Route } from '@playwright/test';
 
 const injectClientKey = async (page: Page): Promise<void> => {
   await page.addInitScript(() => {
@@ -14,6 +14,24 @@ const injectClientKey = async (page: Page): Promise<void> => {
       JSON.stringify(entry),
     );
   });
+};
+
+const fillPasswordForm = async (
+  dialog: Locator,
+  currentPassword: string,
+): Promise<void> => {
+  const currentInput = dialog.getByTestId('current-password-input');
+  const newInput = dialog.getByTestId('new-password-input');
+  const confirmInput = dialog.getByTestId('confirm-password-input');
+
+  await expect(async () => {
+    await currentInput.fill(currentPassword);
+    await newInput.fill('new-password-123');
+    await confirmInput.fill('new-password-123');
+    expect(await currentInput.inputValue()).toBe(currentPassword);
+    expect(await newInput.inputValue()).toBe('new-password-123');
+    expect(await confirmInput.inputValue()).toBe('new-password-123');
+  }).toPass();
 };
 
 test.describe('Settings Change Password', () => {
@@ -55,7 +73,7 @@ test.describe('Settings Change Password', () => {
       .fill('different-password');
     await expect(submitButton).toBeDisabled();
 
-    await dialog.getByTestId('confirm-password-input').fill('new-password-123');
+    await fillPasswordForm(dialog, 'current-password');
     await expect(submitButton).toBeEnabled();
   });
 
@@ -90,14 +108,10 @@ test.describe('Settings Change Password', () => {
     });
     await expect(dialog).toBeVisible();
 
-    await dialog.getByTestId('current-password-input').fill('wrong-password');
-    await dialog.getByTestId('new-password-input').fill('new-password-123');
-    await dialog.getByTestId('confirm-password-input').fill('new-password-123');
+    await fillPasswordForm(dialog, 'wrong-password');
 
     const submitButton = dialog.getByTestId('submit-password-button');
-    // Password form uses async cross-field validators that can be slow in CI.
-    // Widen the enabled-state wait so the click isn't blocked by a 10s race.
-    await expect(submitButton).toBeEnabled({ timeout: 20000 });
+    await expect(submitButton).toBeEnabled();
     await submitButton.click();
 
     await expect(page.getByTestId('change-password-error')).toContainText(
@@ -155,9 +169,7 @@ test.describe('Settings Change Password', () => {
     });
     await expect(dialog).toBeVisible();
 
-    await dialog.getByTestId('current-password-input').fill('current-password');
-    await dialog.getByTestId('new-password-input').fill('new-password-123');
-    await dialog.getByTestId('confirm-password-input').fill('new-password-123');
+    await fillPasswordForm(dialog, 'current-password');
 
     const submitButton = dialog.getByTestId('submit-password-button');
     await expect(submitButton).toBeEnabled();

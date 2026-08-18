@@ -158,6 +158,10 @@ export {
   exchangeRateWire,
   exchangeRateWirePositive,
 
+  // Locale schemas
+  supportedLocaleSchema,
+  SUPPORTED_LOCALES,
+
   // User schemas
   userProfileSchema,
   updateProfileSchema,
@@ -208,6 +212,9 @@ export { API_ERROR_CODES, type ApiErrorCode } from './src/error-codes.js';
 // Export HTTP header constants
 export { REQUEST_ID_HEADER } from './src/http-headers.js';
 
+// Export monetary comparison primitive
+export { moneyDifference } from './src/money.js';
+
 // Export analytics contracts
 export {
   ANALYTICS_PROPERTIES,
@@ -227,7 +234,6 @@ export { splitTotalPreserving } from './src/calculators/index.js';
 export {
   PACE_TOLERANCE_PERCENT,
   MAX_ESTIMATED_HORIZON_MONTHS,
-  WITHDRAWAL_BALANCE_TOLERANCE,
   calculatePaceStatus,
   computeSavingsGoalProgress,
   remainingPlannedWithdrawal,
@@ -281,6 +287,13 @@ export {
 
 // Export shared currency formatter factory
 export { getCurrencyFormatter } from './src/currency-format.js';
+
+// Export locale display metadata
+export {
+  DEFAULT_LOCALE,
+  LOCALE_METADATA,
+  type LocaleMetadataEntry,
+} from './src/locale.js';
 
 // Export all types from types.ts
 export type {
@@ -430,6 +443,9 @@ export type {
   SupportedCurrency,
   CurrencyRateQuery,
   CurrencyRateResponse,
+
+  // Locale types
+  SupportedLocale,
 
   // User types
   UserProfile,

@@ -2,10 +2,16 @@ import XCTest
 
 @MainActor
 final class SavingsGoalIntervalUITests: XCTestCase {
+    /// Fixture identifiers seeded by `SavingsGoalIntervalUITestHarness`.
+    private static let linkedTemplateLineId = "linked-line"
+    private static let freeTemplateLineId = "free-line"
+
     private struct DetailExpectation {
         let scenario: String
         let hasTarget: Bool
-        let deadlineMarker: String?
+        /// Identifier of the header variant expected for this scenario, `nil` when
+        /// the goal has no dates at all.
+        let deadlineIdentifier: String?
         let hasProjection: Bool
         let hasRequiredAmount: Bool
         let hasEstimation: Bool
@@ -19,8 +25,10 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         DetailExpectation(
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_NAME_ONLY",
             hasTarget: false,
-            deadlineMarker: nil,
-            hasProjection: true,
+            deadlineIdentifier: nil,
+            // No linked prévision: there is no plan to project, so the hero
+            // stays silent instead of quoting a figure nothing feeds.
+            hasProjection: false,
             hasRequiredAmount: false,
             hasEstimation: false,
             hasSuggestion: false,
@@ -31,7 +39,7 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         DetailExpectation(
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_TARGET_ONLY",
             hasTarget: true,
-            deadlineMarker: nil,
+            deadlineIdentifier: nil,
             hasProjection: true,
             hasRequiredAmount: false,
             hasEstimation: true,
@@ -43,8 +51,8 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         DetailExpectation(
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_DEADLINE_ONLY",
             hasTarget: false,
-            deadlineMarker: "Échéance",
-            hasProjection: true,
+            deadlineIdentifier: "savingsGoalDeadlineDate",
+            hasProjection: false,
             hasRequiredAmount: false,
             hasEstimation: false,
             hasSuggestion: false,
@@ -55,9 +63,11 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         DetailExpectation(
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_FULL",
             hasTarget: true,
-            deadlineMarker: "→",
+            deadlineIdentifier: "savingsGoalDeadlineRange",
             hasProjection: true,
-            hasRequiredAmount: true,
+            // The plan lands on 3 600 for a 3 000 target: advising a required
+            // pace here would only restate the plan under another name.
+            hasRequiredAmount: false,
             hasEstimation: true,
             hasSuggestion: false,
             hasTrajectory: true,
@@ -77,13 +87,13 @@ final class SavingsGoalIntervalUITests: XCTestCase {
     func testNameOnlyGoalCanBeCreated() {
         launch("UITEST_SAVINGS_GOAL_FORM")
 
-        let name = app.textFields["Nom de l'objectif d'épargne"]
+        let name = app.textFields["savingsGoalNameField"]
         XCTAssertTrue(name.waitForExistence(timeout: 10))
         name.tap()
         name.typeText("Coussin de sécurité")
-        app.buttons["Fermer le clavier"].tap()
+        app.buttons["keyboardDismissButton"].tap()
 
-        let create = app.buttons["Créer l'objectif"]
+        let create = app.buttons["savingsGoalFormSubmit"]
         XCTAssertTrue(create.isEnabled)
         create.tap()
 
@@ -95,7 +105,7 @@ final class SavingsGoalIntervalUITests: XCTestCase {
     func testInvalidIntervalCannotBeSaved() {
         launch("UITEST_SAVINGS_GOAL_FORM_INVALID_INTERVAL")
 
-        let save = app.buttons["Enregistrer"]
+        let save = app.buttons["savingsGoalFormSubmit"]
         XCTAssertTrue(save.waitForExistence(timeout: 10))
         XCTAssertFalse(save.isEnabled)
         assertProbe("savingsGoalUITestUpdateCount", equals: "0")
@@ -106,23 +116,26 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         for expectation in Self.detailExpectations {
             launch(expectation.scenario)
             XCTAssertTrue(app.scrollViews["savingsGoalDetailRoot"].waitForExistence(timeout: 10))
-            XCTAssertEqual(element(labelContaining: "% de la cible épargné").exists, expectation.hasTarget)
-            if let deadlineMarker = expectation.deadlineMarker {
-                XCTAssertTrue(element(labelContaining: deadlineMarker).exists)
+            XCTAssertEqual(identified("savingsGoalTargetProgressBar").exists, expectation.hasTarget)
+            if let deadlineIdentifier = expectation.deadlineIdentifier {
+                XCTAssertTrue(identified(deadlineIdentifier).exists)
             } else {
-                XCTAssertFalse(element(labelContaining: "Échéance").exists)
-                XCTAssertFalse(element(labelContaining: "→").exists)
+                XCTAssertFalse(identified("savingsGoalDeadlineDate").exists)
+                XCTAssertFalse(identified("savingsGoalDeadlineRange").exists)
             }
-            XCTAssertEqual(app.staticTexts["Projection du plan"].exists, expectation.hasProjection)
+            XCTAssertEqual(identified("savingsGoalProjectionStat").exists, expectation.hasProjection)
             XCTAssertEqual(
-                app.staticTexts["Pour tenir ton échéance"].exists,
+                identified("savingsGoalRequiredPaceStat").exists,
                 expectation.hasRequiredAmount
             )
-            XCTAssertEqual(app.staticTexts["Atteinte estimée"].exists, expectation.hasEstimation)
-            XCTAssertEqual(app.staticTexts["Objectif atteint"].exists, expectation.hasSuggestion)
-            XCTAssertEqual(app.staticTexts["Ta trajectoire"].exists, expectation.hasTrajectory)
-            XCTAssertEqual(app.buttons["Ajuster le plan"].exists, expectation.canAdjust)
-            XCTAssertEqual(element(labelContaining: "Rythme :").exists, expectation.hasPace)
+            XCTAssertEqual(identified("savingsGoalEstimatedCompletion").exists, expectation.hasEstimation)
+            XCTAssertEqual(
+                identified("savingsGoalCompletionSuggestionCard").exists,
+                expectation.hasSuggestion
+            )
+            XCTAssertEqual(identified("savingsGoalTrajectoryTitle").exists, expectation.hasTrajectory)
+            XCTAssertEqual(app.buttons["savingsGoalAdjustPlanButton"].exists, expectation.canAdjust)
+            XCTAssertEqual(identified("savingsGoalPaceIndicator").exists, expectation.hasPace)
             attachScreenshot("\(expectation.scenario.lowercased())-light-large")
             app.terminate()
         }
@@ -131,13 +144,13 @@ final class SavingsGoalIntervalUITests: XCTestCase {
     func testAccessibilityDynamicTypeKeepsFormAndDetailActionable() {
         launch("UITEST_SAVINGS_GOAL_FORM", dynamicType: true)
 
-        let name = app.textFields["Nom de l'objectif d'épargne"]
+        let name = app.textFields["savingsGoalNameField"]
         XCTAssertTrue(name.waitForExistence(timeout: 10))
         name.tap()
         name.typeText("Projet accessible")
-        app.buttons["Fermer le clavier"].tap()
+        app.buttons["keyboardDismissButton"].tap()
 
-        let create = app.buttons["Créer l'objectif"]
+        let create = app.buttons["savingsGoalFormSubmit"]
         scrollUntilHittable(create)
         attachScreenshot("ios-form-light-accessibility3")
         create.tap()
@@ -146,7 +159,7 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         app.terminate()
         launch("UITEST_SAVINGS_GOAL_DETAIL_FULL", dynamicType: true)
 
-        let adjust = app.buttons["Ajuster le plan"]
+        let adjust = app.buttons["savingsGoalAdjustPlanButton"]
         XCTAssertTrue(adjust.waitForExistence(timeout: 10))
         scrollUntilHittable(adjust)
         attachScreenshot("ios-detail-full-light-accessibility3")
@@ -157,10 +170,10 @@ final class SavingsGoalIntervalUITests: XCTestCase {
     func testDeadlineReconciliationCancelWritesNothing() {
         openDeadlineReconciliation(darkMode: true)
 
-        XCTAssertTrue(app.buttons["Garder sans objectif"].exists)
-        XCTAssertTrue(app.buttons["Supprimer les prévisions"].exists)
+        XCTAssertTrue(app.buttons["goalGenerationStopFreezeButton"].exists)
+        XCTAssertTrue(app.buttons["goalGenerationStopRemoveButton"].exists)
         attachScreenshot("ios-deadline-confirmation-dark-large")
-        app.buttons["Ne rien changer"].tap()
+        app.buttons["goalGenerationStopCancelButton"].tap()
 
         assertProbe("savingsGoalUITestUpdateCount", equals: "0")
     }
@@ -168,7 +181,7 @@ final class SavingsGoalIntervalUITests: XCTestCase {
     func testDeadlineReconciliationFreezeWritesOnce() {
         openDeadlineReconciliation()
 
-        app.buttons["Garder sans objectif"].tap()
+        app.buttons["goalGenerationStopFreezeButton"].tap()
 
         assertProbe("savingsGoalUITestUpdateCount", equals: "1")
         assertProbe("savingsGoalUITestReconciliationMode", equals: "freeze")
@@ -178,7 +191,7 @@ final class SavingsGoalIntervalUITests: XCTestCase {
     func testDeadlineReconciliationRemoveWritesOnce() {
         openDeadlineReconciliation()
 
-        app.buttons["Supprimer les prévisions"].tap()
+        app.buttons["goalGenerationStopRemoveButton"].tap()
 
         assertProbe("savingsGoalUITestUpdateCount", equals: "1")
         assertProbe("savingsGoalUITestReconciliationMode", equals: "remove")
@@ -188,21 +201,47 @@ final class SavingsGoalIntervalUITests: XCTestCase {
     func testTemplateLineShowsGoalChipOnlyWhenLinked() {
         launch("UITEST_SAVINGS_GOAL_TEMPLATE_LINES")
 
+        // Both line names are harness fixtures, not product copy.
         XCTAssertTrue(app.staticTexts["Épargne voyage"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Objectif : Voyage au Japon"].waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            identified("templateLineGoalChip-\(Self.linkedTemplateLineId)").waitForExistence(timeout: 10)
+        )
         XCTAssertTrue(app.staticTexts["Épargne libre"].exists)
-        XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Objectif :")).count, 1)
+        XCTAssertFalse(identified("templateLineGoalChip-\(Self.freeTemplateLineId)").exists)
         attachScreenshot("ios-template-linked-goal-light-large")
+    }
+
+    /// The two history sections are below the fold, so nothing ever photographed
+    /// them: the ledger rewrite (one card per group, hairlines inside) is only
+    /// verifiable on a capture taken after scrolling there.
+    func testHistorySectionsRenderBelowTheFold() {
+        launch("UITEST_SAVINGS_GOAL_DETAIL_FULL")
+
+        let contributions = identified("savingsGoalContributionsSection")
+        XCTAssertTrue(contributions.waitForExistence(timeout: 10))
+        scrollUntilHittable(contributions)
+        attachScreenshot("ios-detail-full-contributions-light-large")
+
+        let withdrawals = identified("savingsGoalWithdrawalsSection")
+        XCTAssertTrue(withdrawals.waitForExistence(timeout: 10))
+        scrollUntilHittable(withdrawals)
+        attachScreenshot("ios-detail-full-withdrawals-light-large")
+
+        // A withdrawal linked to a budget stays a button; the plan-only one has
+        // nowhere to go and must not pretend otherwise. Both names are harness
+        // fixtures, matched on their prefix so the amounts stay out of the test.
+        XCTAssertTrue(button(startingWith: "Billets d'avion").exists)
+        XCTAssertFalse(button(startingWith: "Hôtel").exists)
     }
 
     private func openDeadlineReconciliation(darkMode: Bool = false) {
         launch("UITEST_SAVINGS_GOAL_DEADLINE_RECONCILIATION", darkMode: darkMode)
 
-        let edit = app.buttons["Modifier l'objectif"]
+        let edit = app.buttons["savingsGoalEditButton"]
         XCTAssertTrue(edit.waitForExistence(timeout: 10))
         edit.tap()
 
-        let closeKeyboard = app.buttons["Fermer le clavier"]
+        let closeKeyboard = app.buttons["keyboardDismissButton"]
         if closeKeyboard.waitForExistence(timeout: 2) {
             closeKeyboard.tap()
         }
@@ -218,13 +257,15 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         )
         previousMonth.tap()
 
+        // System calendar cell: its label comes from the simulator's language, not
+        // from the app's copy, and it carries no identifier we can set.
         let day = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "15 juillet")).firstMatch
         XCTAssertTrue(day.waitForExistence(timeout: 3))
         day.tap()
 
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.2)).tap()
-        app.buttons["Enregistrer"].tap()
-        XCTAssertTrue(app.navigationBars["Échéance avancée"].waitForExistence(timeout: 10))
+        app.buttons["savingsGoalFormSubmit"].tap()
+        XCTAssertTrue(identified("goalGenerationStopDeadlineRoot").waitForExistence(timeout: 10))
     }
 
     private func launch(
@@ -233,7 +274,9 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         darkMode: Bool = false
     ) {
         app = XCUIApplication()
-        app.launchArguments = ["-\(scenario)"]
+        // Pin the app process to French: the deadline flow taps a system calendar
+        // cell by its label, which follows the process language, not the app's copy.
+        app.launchArguments = ["-\(scenario)", "-AppleLanguages", "(fr)"]
         app.launchEnvironment["UITEST_SCENARIO"] = scenario
         if dynamicType {
             app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = "accessibility3"
@@ -263,13 +306,12 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: timeout), .completed)
     }
 
-    private func element(
-        labelContaining fragment: String,
-        type: XCUIElement.ElementType = .any
-    ) -> XCUIElement {
-        app.descendants(matching: type)
-            .matching(NSPredicate(format: "label CONTAINS[c] %@", fragment))
-            .firstMatch
+    private func identified(_ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    private func button(startingWith prefix: String) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
     }
 
     private func attachScreenshot(_ name: String) {

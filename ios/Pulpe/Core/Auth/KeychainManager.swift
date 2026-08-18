@@ -359,13 +359,14 @@ enum KeychainError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notAvailable:
-            return "Le trousseau n'est pas disponible sur cet appareil"
+            return AppLocale.string("Le trousseau n'est pas disponible sur cet appareil")
         case .userCanceled:
-            return "Authentification annulée"
+            return AppLocale.string("Authentification annulée")
         case .authFailed:
-            return "L'authentification n'a pas fonctionné — réessaie"
+            return AppLocale.string("L'authentification n'a pas fonctionné — réessaie")
         case .unknown(let status):
-            return "Quelque chose n'a pas fonctionné (code: \(status))"
+            // `Int(...)` so this shares APIError's key instead of forking one on `%d`.
+            return AppLocale.string("Quelque chose n'a pas fonctionné (code: \(Int(status)))")
         }
     }
 }

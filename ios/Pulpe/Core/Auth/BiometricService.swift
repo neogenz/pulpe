@@ -24,9 +24,9 @@ final class BiometricService: Sendable {
         case .opticID:
             return "Optic ID"
         case .none:
-            return "Biométrie"
+            return AppLocale.string("Biométrie")
         @unknown default:
-            return "Biométrie"
+            return AppLocale.string("Biométrie")
         }
     }
 
@@ -53,7 +53,10 @@ final class BiometricService: Sendable {
         return context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
     }
 
-    func authenticate(reason: String = "Activer l'authentification biométrique") async throws {
+    func authenticate() async throws {
+        // Resolved when the prompt is raised: a stored default would freeze the language
+        // of the very first call.
+        let reason = AppLocale.string("Activer l'authentification biométrique")
         let context = LAContext()
         try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason)
     }

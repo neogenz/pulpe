@@ -105,7 +105,10 @@ struct YearOverviewWidgetView: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(month.shortName)
-        .accessibilityValue(month.available.map { $0.asCompactCurrency(entry.currency) } ?? "Pas de données")
+        .accessibilityValue(
+            month.available.map { $0.asCompactCurrency(entry.currency) }
+                ?? AppLocale.string("Pas de données")
+        )
         .accessibilityAddTraits(month.isCurrentMonth ? .isSelected : [])
     }
 

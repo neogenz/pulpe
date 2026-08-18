@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test } from '@nestjs/testing';
 import { Buffer } from 'node:buffer';
-import { WITHDRAWAL_BALANCE_TOLERANCE } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { USER_REPOSITORY } from '@modules/user/domain/ports/user-repository.port';
 import type { UserSettings } from '@modules/user/domain/user.entity';
@@ -23,6 +22,7 @@ const settings: UserSettings = {
   payDayOfMonth: null,
   currency: 'CHF',
   showCurrencySelector: false,
+  locale: 'fr',
 };
 
 function makeGoal(overrides: Partial<SavingsGoal>): SavingsGoal {
@@ -108,15 +108,9 @@ describe('GetSavingsGoalWithdrawalOptionsUseCase', () => {
     expect(options.map((option) => option.goalId)).toEqual(['funded']);
   });
 
-  it('drops a goal whose confirmed balance is a floating residual under the tolerance', async () => {
-    // Reproduces the QA trap: 112.22999999999999 withdrawn down to a residue
-    // like 0.22999999999998977 stays above 0 but under WITHDRAWAL_BALANCE_TOLERANCE
-    // — no client can ever withdraw it, so it must not be offered again.
+  it('drops a goal whose confirmed balance rounds to zero cents', async () => {
     mockRepo.findAllBalanceInputs.mockResolvedValue([
-      makeInputs({
-        id: 'residue',
-        initialAmount: WITHDRAWAL_BALANCE_TOLERANCE / 2,
-      }),
+      makeInputs({ id: 'residue', initialAmount: 0.004 }),
       makeInputs({ id: 'funded', initialAmount: 100 }),
     ]);
 

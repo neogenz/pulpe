@@ -157,20 +157,26 @@ private struct BudgetPreviewBreakdownCard: View {
 
     /// Full sentence read by VoiceOver for the whole card — preserves the
     /// Entrées / Sorties / dont / et structure so the summary flows.
+    ///
+    /// The trailing clause is one key per shape rather than fragments glued
+    /// together: "dont" and "et" don't sit in the same place in every language,
+    /// so a translator needs the whole clause to work with.
     private var breakdownAccessibilityLabel: String {
         let income = state.totalIncome.asCompactCurrency(state.currency)
         let outflows = state.totalExpenses.asCompactCurrency(state.currency)
-        var label = "Résumé du budget. Entrées \(income), sorties \(outflows)"
-        let charges = state.totalCharges
-        let savings = state.totalSavings
-        if charges > 0 {
-            label += " dont \(charges.asCompactCurrency(state.currency)) de charges"
+        let base = AppLocale.string("Résumé du budget. Entrées \(income), sorties \(outflows)")
+        let charges = state.totalCharges.asCompactCurrency(state.currency)
+        let savings = state.totalSavings.asCompactCurrency(state.currency)
+        switch (state.totalCharges > 0, state.totalSavings > 0) {
+        case (true, true):
+            return base + " " + AppLocale.string("dont \(charges) de charges et \(savings) d'épargne")
+        case (true, false):
+            return base + " " + AppLocale.string("dont \(charges) de charges")
+        case (false, true):
+            return base + " " + AppLocale.string("dont \(savings) d'épargne")
+        case (false, false):
+            return base
         }
-        if savings > 0 {
-            let connector = charges > 0 ? " et" : " dont"
-            label += "\(connector) \(savings.asCompactCurrency(state.currency)) d'épargne"
-        }
-        return label
     }
 
     var body: some View {
@@ -194,7 +200,7 @@ private struct BudgetPreviewBreakdownCard: View {
             categoryBlock {
                 breakdownRow(
                     icon: "arrow.down.circle",
-                    label: "Revenus",
+                    label: AppLocale.string("Revenus"),
                     amount: state.totalIncome,
                     kind: .income,
                     onEdit: { state.jumpToStepForEdit(.income) }
@@ -209,7 +215,7 @@ private struct BudgetPreviewBreakdownCard: View {
                 categoryBlock {
                     breakdownRow(
                         icon: "arrow.up.circle",
-                        label: "Charges fixes",
+                        label: AppLocale.string("Charges fixes"),
                         amount: charges,
                         kind: .expense,
                         onEdit: { state.jumpToStepForEdit(.charges) }
@@ -229,7 +235,7 @@ private struct BudgetPreviewBreakdownCard: View {
                 categoryBlock {
                     breakdownRow(
                         icon: "building.columns",
-                        label: "Épargne prévue",
+                        label: AppLocale.string("Épargne prévue"),
                         amount: savings,
                         kind: .saving,
                         onEdit: { state.jumpToStepForEdit(.savings) }
@@ -373,9 +379,9 @@ private struct BudgetPreviewEncouragingMessage: View {
     private var title: String {
         let base: String
         switch emotionState {
-        case .comfortable: base = "Ton budget respire"
-        case .tight: base = "Ton budget tient debout"
-        case .deficit: base = "Tu vois clairement où tu en es"
+        case .comfortable: base = AppLocale.string("Ton budget respire")
+        case .tight: base = AppLocale.string("Ton budget tient debout")
+        case .deficit: base = AppLocale.string("Tu vois clairement où tu en es")
         }
         let trimmedName = state.firstName.trimmingCharacters(in: .whitespaces)
         return trimmedName.isEmpty ? "\(base)." : "\(base), \(trimmedName)."
@@ -383,9 +389,12 @@ private struct BudgetPreviewEncouragingMessage: View {
 
     private var subtitle: String {
         switch emotionState {
-        case .comfortable: "Belle marge pour le mois. Tu pourras affiner plus tard."
-        case .tight: "C'est équilibré mais serré. Tu pourras affiner plus tard."
-        case .deficit: "Rien n'est figé — tu pourras ajuster ton budget quand tu veux."
+        case .comfortable:
+            AppLocale.string("Belle marge pour le mois. Tu pourras affiner plus tard.")
+        case .tight:
+            AppLocale.string("C'est équilibré mais serré. Tu pourras affiner plus tard.")
+        case .deficit:
+            AppLocale.string("Rien n'est figé — tu pourras ajuster ton budget quand tu veux.")
         }
     }
 
