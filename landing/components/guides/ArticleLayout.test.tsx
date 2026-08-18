@@ -6,6 +6,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { getDictionary } from "../../content/dictionary";
 import { DEFAULT_LOCALE } from "../../lib/i18n";
 import { socialPreviewImage } from "../../lib/metadata";
+import { DE_GUIDE_CHROME } from "./chrome";
+import { DE_GUIDES, getDeGuide } from "./guides.de";
 import { GUIDES, guideMetadata, type Guide } from "./guides";
 
 Object.assign(globalThis, { React });
@@ -121,6 +123,7 @@ describe("guide article layout contract", async () => {
       article.url,
       `https://pulpe.app/conseils-budget/${guide.slug}`,
     );
+    assert.equal(article.inLanguage, "fr-CH");
   });
 
   it("keeps route-specific social metadata tied to the shared preview", async () => {
@@ -149,12 +152,19 @@ describe("guide article layout contract", async () => {
       assert.equal(social.images?.[0]?.alt, dict.site.socialImageAlt);
     }
 
-    const articleOpenGraph = (await guideMetadata(guide)).openGraph as {
+    const articleMetadata = await guideMetadata(guide);
+    const articleOpenGraph = articleMetadata.openGraph as {
       publishedTime?: unknown;
       modifiedTime?: unknown;
+      locale?: unknown;
     };
     assert.equal(articleOpenGraph.publishedTime, guide.publishedAt);
     assert.equal(articleOpenGraph.modifiedTime, guide.updatedAt);
+    assert.equal(articleOpenGraph.locale, "fr_CH");
+    assert.equal(
+      articleMetadata.alternates?.canonical,
+      `/conseils-budget/${guide.slug}`,
+    );
   });
 
   it("centralizes social data and keeps Organization claims accurate", () => {
@@ -163,7 +173,7 @@ describe("guide article layout contract", async () => {
     for (const source of Object.values(sources)) {
       assert.doesNotMatch(source, /pulpe-social-preview/);
     }
-    assert.match(sources.articleLayout, /socialPreviewImage\(DEFAULT_LOCALE\)/);
+    assert.match(sources.articleLayout, /socialPreviewImage\(/);
     assert.match(sources.rootDocument, /sameAs: \[GITHUB_URL, IOS_APP_URL\]/);
     assert.match(sources.rootDocument, /countriesSupported: \["FR", "CH"\]/);
   });
@@ -268,5 +278,61 @@ describe("guide article layout contract", async () => {
         `app/(fr)/conseils-budget/${entry.slug}/page.tsx is missing: the index card and sitemap would point to a 404`,
       );
     }
+  });
+
+  it("keeps the German registry out of GUIDES and fails on unknown slugs", () => {
+    assert.equal(DE_GUIDES.length, 2);
+    const frenchSlugs = new Set(GUIDES.map((entry) => entry.slug));
+    const germanSlugs = new Set<string>();
+    for (const entry of DE_GUIDES) {
+      assert.ok(!frenchSlugs.has(entry.slug), entry.slug);
+      assert.ok(!germanSlugs.has(entry.slug), entry.slug);
+      germanSlugs.add(entry.slug);
+    }
+    assert.throws(() => getDeGuide("slug-inconnu"));
+  });
+
+  it("renders German chrome without French chrome copy", async () => {
+    const deDict = await getDictionary("de");
+    const html = renderToStaticMarkup(
+      <ArticleLayout
+        guide={guide}
+        faq={faq}
+        dict={deDict}
+        chrome={DE_GUIDE_CHROME}
+      >
+        <p>Deutscher Artikelkörper.</p>
+      </ArticleLayout>,
+    );
+    const graph = extractJsonLd(html)["@graph"];
+    const article = graph.find((node) => node["@type"] === "Article");
+    assert.ok(article, "Article node is missing from the JSON-LD graph");
+    assert.equal(article.inLanguage, "de-CH");
+    assert.equal(typeof article.url, "string");
+    assert.ok(
+      String(article.url).includes("/de/budget-ratgeber/"),
+      String(article.url),
+    );
+    assert.ok(!html.includes("Publié le"));
+    assert.ok(!html.includes("Conseils budget"));
+    assert.ok(!html.includes("Questions fréquentes"));
+    assert.ok(html.includes("Startseite"));
+    assert.ok(html.includes("Veröffentlicht am"));
+    assert.ok(html.includes("Häufige Fragen"));
+    assert.ok(html.includes("Budget kostenlos erstellen"));
+    assert.ok(html.includes("Budget erstellen"));
+    assert.doesNotMatch(html, /Transaktion/);
+    const chromeCopy = [
+      DE_GUIDE_CHROME.backLabel,
+      DE_GUIDE_CHROME.publishedPrefix,
+      DE_GUIDE_CHROME.updatedPrefix,
+      DE_GUIDE_CHROME.faqHeading,
+      DE_GUIDE_CHROME.relatedHeading,
+      DE_GUIDE_CHROME.ctaLead,
+      DE_GUIDE_CHROME.ctaButton,
+      DE_GUIDE_CHROME.readingTime(6),
+    ].join(" ");
+    assert.doesNotMatch(chromeCopy, /\bSie\b/);
+    assert.doesNotMatch(chromeCopy, /Transaktion/);
   });
 });

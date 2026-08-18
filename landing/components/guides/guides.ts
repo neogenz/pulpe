@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getDictionary } from "@/content/dictionary";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
 import { socialPreviewImage } from "@/lib/metadata";
+import { localizedPath } from "@/lib/routes";
+import { FR_GUIDE_CHROME, type GuideChrome } from "./chrome";
 
 // Single source of truth: the /conseils-budget index, sitemap, and article
 // metadata all read this registry. Publishing requires an entry here and a
@@ -103,13 +104,20 @@ export function getGuide(slug: string): Guide {
 
 // Shared metadata keeps an article page to `guideMetadata(guide)`.
 //
-// These pages only exist in French, so they carry the French social card rather
-// than resolving one per language.
-export async function guideMetadata(guide: Guide): Promise<Metadata> {
-  const path = `/conseils-budget/${guide.slug}`;
+// Without chrome, the French social card and canonical stay as they are:
+// these pages only exist in French. Passing chrome switches path, locale,
+// and vignette together so a DE article cannot keep a FR card.
+export async function guideMetadata(
+  guide: Guide,
+  chrome: GuideChrome = FR_GUIDE_CHROME,
+): Promise<Metadata> {
+  const path = localizedPath(
+    chrome.locale,
+    `${chrome.sectionPath}/${guide.slug}`,
+  );
   const socialTitle = `${guide.title} | Pulpe`;
-  const image = socialPreviewImage(DEFAULT_LOCALE);
-  const imageAlt = (await getDictionary(DEFAULT_LOCALE)).site.socialImageAlt;
+  const image = socialPreviewImage(chrome.locale);
+  const imageAlt = (await getDictionary(chrome.locale)).site.socialImageAlt;
   return {
     title: guide.title,
     description: guide.description,
@@ -124,8 +132,10 @@ export async function guideMetadata(guide: Guide): Promise<Metadata> {
       url: path,
       publishedTime: guide.publishedAt,
       modifiedTime: guide.updatedAt,
-      locale: "fr_CH",
-      alternateLocale: ["fr_FR"],
+      locale: chrome.ogLocale,
+      ...(chrome.alternateLocale
+        ? { alternateLocale: [...chrome.alternateLocale] }
+        : {}),
       images: [
         {
           url: image,

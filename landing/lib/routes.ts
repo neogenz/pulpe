@@ -36,6 +36,16 @@ export const CALCULATOR_ROUTE = "/calculateur-budget";
 export const CALCULATOR_LABEL_FR = "Calculateur de budget";
 
 /**
+ * Conseils allemands, hors de `ROUTES`. Ce ne sont pas des pages des quatre
+ * langues, et les slugs ne traduisent pas le français : les y mettre ferait
+ * pointer chaque `hreflang` vers un 404. Le footer DE les affiche via ces
+ * libellés, jamais via `dict.links`.
+ */
+export const DE_ADVICE_SECTION_PATH = "/budget-ratgeber";
+export const DE_COMPARISON_GUIDE_LABEL = "Beste Budget-App Schweiz";
+export const DE_PREMIUMS_GUIDE_LABEL = "Krankenkassenprämien budgetieren";
+
+/**
  * Le chemin d'un lien dans une langue donnée. Le français reste à la racine :
  * ses URL sont indexées, et `/fr/…` les dédoublerait.
  *
