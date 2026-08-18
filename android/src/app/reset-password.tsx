@@ -36,6 +36,7 @@ type Phase =
   | { kind: "dropped" }
   | { kind: "invalid" }
   | { kind: "form" }
+  | { kind: "securityError" }
   | { kind: "done" };
 
 /**
@@ -65,16 +66,22 @@ export default function ResetPasswordScreen() {
   const hasDecided = useRef(false);
   const hasRecoverySession = useRef(false);
   const isLeaving = useRef(false);
-  const endingRecovery = useRef<Promise<void> | null>(null);
+  const hasChangedPassword = useRef(false);
+  const endingRecovery = useRef<ReturnType<typeof endRecoverySession> | null>(
+    null,
+  );
 
   const endRecovery = useCallback(async () => {
-    if (!hasRecoverySession.current) return;
+    if (!hasRecoverySession.current) return null;
 
-    endingRecovery.current ??= endRecoverySession().finally(() => {
+    const ending = (endingRecovery.current ??= endRecoverySession());
+    try {
+      const { providerError } = await ending;
       hasRecoverySession.current = false;
-      endingRecovery.current = null;
-    });
-    await endingRecovery.current;
+      return providerError;
+    } finally {
+      if (endingRecovery.current === ending) endingRecovery.current = null;
+    }
   }, []);
 
   const leave = useCallback(async () => {
@@ -82,8 +89,10 @@ export default function ResetPasswordScreen() {
     isLeaving.current = true;
     try {
       await endRecovery();
-    } finally {
       router.replace("/");
+    } catch {
+      isLeaving.current = false;
+      setPhase({ kind: "securityError" });
     }
   }, [endRecovery, router]);
 
@@ -138,16 +147,16 @@ export default function ResetPasswordScreen() {
   if (phase.kind === "dropped") return <Redirect href="/" />;
 
   const complete = async (password: string) => {
+    if (hasChangedPassword.current) return;
     await updatePassword(password);
+    hasChangedPassword.current = true;
     if (isLeaving.current) return;
     try {
-      await endRecovery();
+      const providerError = await endRecovery();
+      setPhase({ kind: providerError === null ? "done" : "securityError" });
     } catch {
-      throw new Error(
-        "Ton mot de passe a été modifié, mais la déconnexion de sécurité a échoué. Retourne à la connexion.",
-      );
+      setPhase({ kind: "securityError" });
     }
-    if (!isLeaving.current) setPhase({ kind: "done" });
   };
 
   return (
@@ -176,9 +185,29 @@ export default function ResetPasswordScreen() {
           <InvalidState onLeave={() => void leave()} />
         )}
         {phase.kind === "form" && <PasswordForm onSubmit={complete} />}
+        {phase.kind === "securityError" && (
+          <SecurityErrorState onLeave={() => void leave()} />
+        )}
         {phase.kind === "done" && <DoneState onLeave={() => void leave()} />}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function SecurityErrorState({ onLeave }: { onLeave: () => void }) {
+  return (
+    <View style={styles.centered}>
+      <Text variant="titleLarge" style={styles.title}>
+        Mot de passe modifié
+      </Text>
+      <Text variant="bodyMedium" style={styles.title}>
+        La déconnexion de sécurité n&apos;a pas pu être confirmée.
+        Reconnecte-toi avec ton nouveau mot de passe.
+      </Text>
+      <Button mode="contained" onPress={onLeave}>
+        Retour à la connexion
+      </Button>
+    </View>
   );
 }
 

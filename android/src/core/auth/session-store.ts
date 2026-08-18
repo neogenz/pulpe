@@ -23,6 +23,10 @@ interface SessionState {
   signOut: () => Promise<void>;
 }
 
+interface AccountTeardownResult {
+  providerError: unknown | null;
+}
+
 function applySession(session: Session | null): Partial<SessionState> {
   return {
     status: session ? "authenticated" : "unauthenticated",
@@ -37,9 +41,8 @@ export const useSessionStore = create<SessionState>((set) => ({
   user: null,
 
   signOut: async () => {
-    await signOutThisDevice();
-    await purgeLocalAccountData();
-    set(applySession(null));
+    const { providerError } = await teardownAccount(signOutThisDevice);
+    if (providerError !== null) throw providerError;
   },
 }));
 
@@ -48,30 +51,80 @@ export const useSessionStore = create<SessionState>((set) => ({
  * to the `SIGNED_OUT` listener, because the caller navigates as soon as this
  * resolves and would otherwise race the vault reset.
  */
-export async function endRecoverySession(): Promise<void> {
-  try {
-    await signOutEverywhere();
-  } finally {
-    try {
-      await purgeLocalAccountData();
-    } finally {
-      useSessionStore.setState(applySession(null));
-    }
-  }
+export async function endRecoverySession(): Promise<AccountTeardownResult> {
+  return teardownAccount(signOutEverywhere);
 }
 
 /**
- * Everything the departing account left behind. Idempotent, because it runs
- * both from the explicit sign-out — where the caller awaits it before the UI
- * moves on — and from the `SIGNED_OUT` listener, which also fires when the
- * server revokes the session under us.
+ * The provider call and local teardown are deliberately separate. Supabase can
+ * reject a revocation while still removing its local session; conversely, a
+ * storage failure must never be hidden by publishing the anonymous state.
+ */
+async function teardownAccount(
+  providerSignOut: () => Promise<void>,
+): Promise<AccountTeardownResult> {
+  let providerError: unknown | null = null;
+  let localError: unknown | null = null;
+
+  try {
+    await providerSignOut();
+  } catch (error) {
+    providerError = error;
+  }
+
+  // A global sign-out can fail before supabase-js removes its stored session.
+  // The public local API is idempotent, so run it unconditionally and then ask
+  // the client to read its own adapter instead of depending on its private key.
+  try {
+    await signOutThisDevice();
+  } catch (error) {
+    providerError ??= error;
+  }
+
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data.session !== null) {
+      throw new Error("The persisted Supabase session could not be removed");
+    }
+  } catch (error) {
+    localError = error;
+  }
+
+  try {
+    await purgeLocalAccountData();
+  } catch (error) {
+    localError ??= error;
+  } finally {
+    useSessionStore.setState(applySession(null));
+  }
+
+  if (localError !== null) throw providerError ?? localError;
+  return { providerError };
+}
+
+/**
+ * Everything the departing account left behind. Every cleanup is attempted so
+ * one failing storage backend cannot keep the later vault or key purge from
+ * running. The first failure is retained for the caller.
  */
 async function purgeLocalAccountData(): Promise<void> {
-  // Cached budget data belongs to the account that just left the device.
-  queryClient.clear();
-  resetVault();
-  forgetLandingPreference();
-  await clearAllKeys();
+  let firstError: unknown | null = null;
+  const cleanupSteps: (() => void | Promise<void>)[] = [
+    () => queryClient.clear(),
+    () => resetVault(),
+    () => forgetLandingPreference(),
+    () => clearAllKeys(),
+  ];
+
+  for (const cleanup of cleanupSteps) {
+    try {
+      await cleanup();
+    } catch (error) {
+      firstError ??= error;
+    }
+  }
+
+  if (firstError !== null) throw firstError;
 }
 
 /**
@@ -85,7 +138,7 @@ export function observeSession(): () => void {
     .then(({ data }) => useSessionStore.setState(applySession(data.session)));
 
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
-    if (event === "SIGNED_OUT") void purgeLocalAccountData();
+    if (event === "SIGNED_OUT") void purgeLocalAccountData().catch(() => {});
     useSessionStore.setState(applySession(session));
   });
 

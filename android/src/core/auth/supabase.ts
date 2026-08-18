@@ -83,7 +83,8 @@ export async function updatePassword(newPassword: string): Promise<void> {
  * incident once by signing out globally.
  */
 export async function signOutThisDevice(): Promise<void> {
-  await supabase.auth.signOut({ scope: "local" });
+  const { error } = await supabase.auth.signOut({ scope: "local" });
+  if (error) throw error;
 }
 
 /**
