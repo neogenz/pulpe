@@ -1,6 +1,6 @@
 ---
 objective: "Une personne germanophone en Suisse peut lire, sur Pulpe, deux pages de conseils originales en allemand standard suisse : l’une répond à la recherche d’une app de budget utilisable en Suisse, l’autre explique comment provisionner les primes maladie 2026 dans l’année."
-status: in-progress
+status: implemented
 ---
 
 # Plan: deux pages de conseils en allemand suisse
