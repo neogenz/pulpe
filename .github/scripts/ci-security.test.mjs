@@ -21,6 +21,128 @@ const backendPackage = JSON.parse(read("backend-nest/package.json"));
 const ciGuide = read("docs/CI.md");
 const frontendEslintConfig = require("../../frontend/eslint.config.js");
 
+function selectReleaseGateProof({ runs, attempts, jobs }, branch, candidate) {
+  const matchingRuns = runs
+    .filter(
+      (run) =>
+        run.path === ".github/workflows/release-gate.yml" &&
+        run.event === "pull_request" &&
+        run.head_branch === branch &&
+        run.head_sha === candidate,
+    )
+    .toSorted((left, right) => right.id - left.id);
+
+  const candidates = [];
+  for (const run of matchingRuns) {
+    const runAttempts = attempts[run.id];
+    if (!runAttempts) return null;
+    for (const attempt of runAttempts) {
+      const exactIdentity =
+        attempt.path === ".github/workflows/release-gate.yml" &&
+        attempt.event === "pull_request" &&
+        attempt.head_branch === branch &&
+        attempt.head_sha === candidate &&
+        attempt.status === "completed";
+      if (!exactIdentity) return null;
+
+      const attemptJobs = jobs[`${run.id}:${attempt.run_attempt}`];
+      if (!attemptJobs) return null;
+      const namedJobs = attemptJobs.filter(
+        (job) => job.name === "✅ Release Gate",
+      );
+      if (namedJobs.length > 1) return null;
+      if (attempt.conclusion === "success") {
+        if (
+          namedJobs.length !== 1 ||
+          namedJobs[0].status !== "completed" ||
+          namedJobs[0].conclusion !== "success"
+        ) {
+          return null;
+        }
+        candidates.push({
+          runId: run.id,
+          attempt: attempt.run_attempt,
+          jobId: namedJobs[0].id,
+        });
+      }
+    }
+  }
+  return (
+    candidates.toSorted(
+      (left, right) => right.runId - left.runId || right.attempt - left.attempt,
+    )[0] ?? null
+  );
+}
+
+test("release proof keeps a successful immutable attempt after a failed rerun", () => {
+  const identity = {
+    path: ".github/workflows/release-gate.yml",
+    event: "pull_request",
+    head_branch: "release/v1.2.3",
+    head_sha: "a".repeat(40),
+  };
+  const evidence = {
+    runs: [{ id: 42, ...identity, pull_requests: [] }],
+    attempts: {
+      42: [
+        {
+          ...identity,
+          run_attempt: 1,
+          status: "completed",
+          conclusion: "success",
+        },
+        {
+          ...identity,
+          run_attempt: 2,
+          status: "completed",
+          conclusion: "failure",
+        },
+      ],
+    },
+    jobs: {
+      "42:1": [
+        {
+          id: 99,
+          name: "✅ Release Gate",
+          status: "completed",
+          conclusion: "success",
+        },
+      ],
+      "42:2": [
+        {
+          id: 101,
+          name: "✅ Release Gate",
+          status: "completed",
+          conclusion: "failure",
+        },
+      ],
+    },
+  };
+
+  assert.deepEqual(
+    selectReleaseGateProof(evidence, identity.head_branch, identity.head_sha),
+    { runId: 42, attempt: 1, jobId: 99 },
+  );
+  evidence.jobs["42:1"].push({ ...evidence.jobs["42:1"][0], id: 100 });
+  assert.equal(
+    selectReleaseGateProof(evidence, identity.head_branch, identity.head_sha),
+    null,
+    "ambiguous named jobs must fail closed",
+  );
+  evidence.jobs["42:1"].pop();
+  assert.equal(
+    selectReleaseGateProof(evidence, "release/v9.9.9", identity.head_sha),
+    null,
+    "branch drift must fail closed",
+  );
+  evidence.attempts[42][1].head_sha = "b".repeat(40);
+  assert.equal(
+    selectReleaseGateProof(evidence, identity.head_branch, identity.head_sha),
+    null,
+    "identity drift in a later attempt must fail closed",
+  );
+});
+
 test("Supabase archives are pinned and verified before extraction", () => {
   assert.match(
     action,
@@ -177,6 +299,10 @@ test("release promotion writes only after a trusted immutable proof", () => {
   );
   assert.match(releasePromotion, /-F force=false/);
   assert.match(releasePromotion, /base=preview/);
+  assert.match(
+    releasePromotion,
+    /pulls" -f state=open -f base=preview -f head=/,
+  );
   assert.match(releasePromotion, /base=main/);
 
   for (const actionUse of releasePromotion.matchAll(
@@ -223,6 +349,29 @@ test("production publishes only an approved and proven release", () => {
   assert.match(production, /.user\.login == "pulpe-release\[bot\]"/);
   assert.match(production, /.state == "APPROVED"/);
   assert.match(production, /release-gate\.yml/);
+  assert.doesNotMatch(production, /\.pull_requests\[\]|\.pull_requests\[\]\?/);
+  assert.match(
+    production,
+    /\.head_branch == \$branch and \.head_sha == \$candidate/,
+  );
+  assert.match(production, /actions\/runs\/\$run_id\/attempts\/\$attempt"/);
+  assert.match(
+    production,
+    /actions\/runs\/\$run_id\/attempts\/\$attempt\/jobs/,
+  );
+  assert.match(production, /\.run_attempt == \$attempt/);
+  assert.match(production, /gate-candidates\.jsonl/);
+  assert.doesNotMatch(production, /break 2/);
+  assert.match(production, /\.name == "✅ Release Gate"/);
+  assert.match(
+    production,
+    /release_gate:\{run_id:\$gate_run,attempt:\$gate_attempt,job_id:\$gate_job\}/,
+  );
+  assert.match(production, /railway_active:\$active_railway/);
+  assert.doesNotMatch(
+    production,
+    /max_by\(\.id\) \| \.conclusion == "success"/,
+  );
   assert.match(production, /.parents\[1\]\.sha == \$candidate/);
   assert.match(production, /.parents\[0\]\.sha == \$base/);
   assert.match(production, /staging-proof-\$candidate_sha/);
@@ -246,6 +395,15 @@ test("production publishes only an approved and proven release", () => {
   assert.doesNotMatch(production, /npx --yes "@railway\/cli/);
   assert.match(production, /LATEST_WEB_VERSION=\$VERSION/);
   assert.match(production, /railway redeploy --project "\$RAILWAY_PROJECT"/);
+  assert.match(
+    production,
+    /railway deployment list.*--environment production.*--limit 10 --json/,
+  );
+  assert.match(production, /serviceInstanceDeployV2\(commitSha:\$sha/);
+  assert.match(
+    production,
+    /\.\[0\]\.id == \$id and \.\[0\]\.status == "SUCCESS" and \.\[0\]\.meta\.commitHash == \$sha and \.\[0\]\.meta\.branch == "main"/,
+  );
   assert.doesNotMatch(production, /LATEST_IOS_VERSION|MIN_WEB_VERSION/);
   assert.doesNotMatch(production, /actions\/workflows\/ci\.yml\/runs/);
   assert.ok(
@@ -253,10 +411,17 @@ test("production publishes only an approved and proven release", () => {
       production.indexOf("Checkout authorized production tree"),
     "repository code must only be checked out after authorization",
   );
+  const railwayProof = production.indexOf(
+    "Verify Railway credentials and active production deployment",
+  );
+  const recordProof = production.indexOf("Record immutable production proof");
+  const uploadProof = production.indexOf("Upload production proof");
+  const appToken = production.indexOf("Create short-lived GitHub App token");
   assert.ok(
-    production.indexOf("Upload production proof") <
-      production.indexOf("secrets.RAILWAY_PREVIEW_TOKEN"),
-    "persistent credentials must only be consumed after the immutable proof",
+    railwayProof < recordProof &&
+      recordProof < uploadProof &&
+      uploadProof < appToken,
+    "the final proof must include direct Railway evidence before publication credentials",
   );
 
   for (const actionUse of production.matchAll(/^\s*uses:\s*([^\s#]+)/gm)) {

@@ -44,6 +44,27 @@ merge commit in staging, freezes that proven candidate, then promotes it to `mai
 without another version change. `preview` and production remain independent
 environments. Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
 
+### Production release evidence
+
+The production workflow authorizes a release from the merged production PR, its
+exact release branch and candidate SHA. It discovers matching `✅ Release Gate`
+runs without relying on the optional `pull_requests[]` field, then inspects every
+immutable run attempt and its named job. A successful historical attempt remains
+valid evidence even if a later rerun fails; API errors, identity drift, or the
+absence of one exact successful job fail closed.
+
+Before publication, GitHub deployment statuses prove the expected provider events,
+but Railway is also queried directly. If its latest production deployment is not
+the exact production commit, the workflow deploys that commit through
+`serviceInstanceDeployV2`. The resulting deployment must be the latest, `SUCCESS`
+and on `main`. The immutable production proof records the selected Release Gate
+run, attempt and job IDs plus the directly verified active Railway deployment ID.
+
+Recovery is forward-only and idempotent. Keep maintenance enabled while migrations,
+the exact backend deployment, version gates and public health are validated. If a
+check fails after maintenance starts to lift, restore maintenance and revalidate
+`503 MAINTENANCE`; do not automate migration rollback.
+
 ## Initial Setup
 
 ### Database (Supabase)

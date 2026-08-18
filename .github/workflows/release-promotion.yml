@@ -95,7 +95,7 @@ jobs:
         run: |
           # shellcheck disable=SC2016
           set -euo pipefail
-          gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=all -f base=preview -f head="$OWNER:$RELEASE_BRANCH" -f per_page=100 > "$RUNNER_TEMP/pulls.json"
+          gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=open -f base=preview -f head="$OWNER:$RELEASE_BRANCH" -f per_page=100 > "$RUNNER_TEMP/pulls.json"
           count=$(jq 'length' "$RUNNER_TEMP/pulls.json")
           if [ "$count" -gt 0 ]; then
             jq -e --arg sha "$RELEASE_SHA" 'length == 1 and .[0].state == "open" and .[0].head.sha == $sha' "$RUNNER_TEMP/pulls.json"

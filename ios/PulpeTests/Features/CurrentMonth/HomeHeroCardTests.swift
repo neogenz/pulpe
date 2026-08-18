@@ -236,17 +236,27 @@ struct HomeHeroCardTests {
     }
 
     @Test func loadedDashboardUsesOneFullScreenGradientBackground() throws {
-        let sourceFile = URL(fileURLWithPath: #filePath)
+        let iosRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appending(path: "Pulpe/Features/CurrentMonth/CurrentMonthView.swift")
-        let source = try String(contentsOf: sourceFile, encoding: .utf8)
+        let viewSource = try String(
+            contentsOf: iosRoot.appending(path: "Pulpe/Features/CurrentMonth/CurrentMonthView.swift"),
+            encoding: .utf8
+        )
+        let backgroundSource = try String(
+            contentsOf: iosRoot.appending(
+                path: "Pulpe/Features/CurrentMonth/Components/HomeHeroSurfaceBackground.swift"
+            ),
+            encoding: .utf8
+        )
 
-        #expect(source.contains(".background { dashboardBackground.ignoresSafeArea() }"))
-        #expect(!source.contains(".background(Color.homeBackground)"))
-        #expect(source.components(separatedBy: "LinearGradient(").count == 2)
+        #expect(viewSource.contains(".background { dashboardBackground.ignoresSafeArea() }"))
+        #expect(!viewSource.contains(".background(Color.homeBackground)"))
+        #expect(viewSource.contains("HomeHeroSurfaceBackground(tracker:"))
+        #expect(!viewSource.contains("LinearGradient("))
+        #expect(backgroundSource.components(separatedBy: "LinearGradient(").count == 2)
     }
 
     /// The row used to state the tag count twice, in the same ink and the same size: once

@@ -3,8 +3,8 @@ import SwiftUI
 /// Loading state for the dashboard. Its regions deliberately follow the loaded
 /// screen so the transition keeps the same visual anchors.
 struct CurrentMonthSkeletonView: View {
-    /// Reports the hero zone's bottom edge in screen space so the dashboard's mint surface
-    /// stops at the same place while loading as it does once loaded.
+    /// Reports the hero zone's bottom edge in screen space so the dashboard mint
+    /// tracker can stop the surface at the same place while loading as once loaded.
     var onHeroSurfaceBottomChange: (CGFloat) -> Void = { _ in }
 
     var body: some View {
