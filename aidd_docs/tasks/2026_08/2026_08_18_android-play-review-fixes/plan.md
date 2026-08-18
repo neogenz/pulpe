@@ -1,6 +1,6 @@
 ---
 objective: "Les huit findings de la revue Android sont soldés, les contrôles locaux et distants sont verts, et le SHA revu passe un smoke test depuis la piste interne Google Play."
-status: in-progress
+status: blocked
 ---
 
 # Plan: corriger les findings de la revue Android et prouver la livraison Play
