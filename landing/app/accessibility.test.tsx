@@ -1236,7 +1236,7 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.testimonials, /background="primary"/);
   });
 
-  it("uses one scannable emphasis per testimonial without card chrome", () => {
+  it("keeps the classic quote signifiers with one proof emphasis each", () => {
     const testimonialMarkup = renderToStaticMarkup(
       <Testimonials dict={frDict.home.testimonials} />,
     );
@@ -1270,8 +1270,8 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /\.marker-highlight-proof\s*\{[\s\S]*?--marker-color:\s*var\(--color-marker-highlight-proof\);[\s\S]*?color:\s*var\(--color-text\);/,
     );
-    // Un seul passage surligné par témoignage, dans les quatre langues : la
-    // traduction ne peut ni en ajouter un second ni laisser la marque vide.
+    // Un seul extrait mis en avant par témoignage, dans les quatre langues.
+    // Le feutre preuve suit les glyphes, comme les autres marques du landing.
     for (const catalog of Object.values(CATALOGS)) {
       assert.equal(catalog.home.testimonials.items.length, 3);
       for (const item of catalog.home.testimonials.items) {
@@ -1289,6 +1289,12 @@ describe("landing accessibility contracts", () => {
       componentSources.testimonials,
       /dict\.items\.map[\s\S]*marker-highlight[\s\S]*font-semibold/,
     );
+    // Le grand guillemet jaune preuve est le signifiant de la citation :
+    // purement décoratif, il n'ajoute ni texte ni donnée inventée. Le
+    // médaillon dérive son initiale du nom — jamais de photo fabriquée.
+    assert.match(componentSources.testimonials, /testimonial-glyph/);
+    assert.match(componentSources.testimonials, /name\.charAt\(0\)/);
+    assert.equal(testimonialMarkup.match(/testimonial-glyph/g)?.length, 3);
     assert.doesNotMatch(componentSources.testimonials, /leadTestimonial/);
     assert.doesNotMatch(
       componentSources.testimonials,

@@ -200,6 +200,31 @@ h3,
   }
 }
 
+/* Le guillemet des témoignages se pose comme un cachet de feutre à l'entrée
+   dans le viewport. Progressivement amélioré : sans timeline de scroll ou
+   avec réduction de mouvement, il est déjà là, posé. */
+@keyframes testimonial-glyph-in {
+  from {
+    opacity: 0;
+    transform: scale(0.55) rotate(-10deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .testimonial-glyph {
+      transform-origin: 20% 80%;
+      animation: testimonial-glyph-in linear both;
+      animation-timeline: view();
+      animation-range: entry 10% entry 70%;
+    }
+  }
+}
+
 /* CTA annotation: centered on mobile, offset to the button edge on desktop. */
 .arrow-note {
   display: flex;
