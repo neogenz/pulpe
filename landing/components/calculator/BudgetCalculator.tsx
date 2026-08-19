@@ -9,7 +9,6 @@ import {
   EMPTY_BUDGET,
   availableToSpend,
   chipLabel,
-  committedExpenses,
   removeLine,
   toggleChip,
   updateLineAmount,
@@ -37,10 +36,26 @@ function parseAmount(value: string): number {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }
 
+function RecapHighlightLine({
+  label,
+  amount,
+}: {
+  label: string;
+  amount: string;
+}) {
+  return (
+    <p className="flex justify-between gap-4 py-1.5 text-sm font-semibold text-text">
+      <mark className="marker-highlight marker-highlight-drawn">{label}</mark>
+      <mark className="marker-highlight marker-highlight-drawn tabular-nums">
+        {amount}
+      </mark>
+    </p>
+  );
+}
+
 export function BudgetCalculator() {
   const currency = useVisitorCurrency();
   const [inputs, setInputs] = useState<BudgetInputs>(EMPTY_BUDGET);
-  const committed = useMemo(() => committedExpenses(inputs), [inputs]);
   const available = useMemo(() => availableToSpend(inputs), [inputs]);
   const isDeficit = available < 0;
 
@@ -48,8 +63,19 @@ export function BudgetCalculator() {
     setInputs((current) => ({ ...current, [key]: parseAmount(value) }));
   };
 
+  const recapLines = [
+    ...FIELDS.filter(
+      (field) => field.key !== "income" && inputs[field.key] > 0,
+    ).map((field) => ({
+      id: field.key,
+      label: field.label,
+      amount: inputs[field.key],
+    })),
+    ...inputs.addedLines.filter((line) => line.amount > 0),
+  ];
+
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
+    <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
       <form className="space-y-4" onSubmit={(event) => event.preventDefault()}>
         {FIELDS.map((field) => (
           <label key={field.key} className="block">
@@ -136,18 +162,37 @@ export function BudgetCalculator() {
         ) : null}
       </form>
 
-      <div className="rounded-[var(--radius-large)] border border-text/10 bg-surface p-6 sm:p-8">
+      <div className="rounded-[var(--radius-large)] border border-text/10 bg-surface p-6 sm:p-8 lg:sticky lg:top-32">
         <p className="text-sm font-semibold text-text-secondary">Disponible</p>
         <p
           className={`mt-2 text-4xl font-bold tabular-nums tracking-[-0.035em] ${isDeficit ? "text-accent" : "text-primary"}`}
         >
           {formatMoney(available, currency)}
         </p>
-        <p className="mt-6 text-sm text-text-secondary">
-          Revenu {formatMoney(inputs.income, currency)} · Dépenses{" "}
-          {formatMoney(committed, currency)} · Disponible{" "}
-          {formatMoney(available, currency)}
-        </p>
+        {inputs.income > 0 || recapLines.length > 0 ? (
+          <div className="mt-8">
+            {inputs.income > 0 ? (
+              <p className="flex justify-between gap-4 py-1.5 text-sm text-text-secondary">
+                <span>Revenu</span>
+                <span className="tabular-nums">
+                  {formatMoney(inputs.income, currency)}
+                </span>
+              </p>
+            ) : null}
+            {recapLines.length > 0 ? (
+              <ul className="mt-1" aria-label="Postes renseignés">
+                {recapLines.map((line) => (
+                  <li key={line.id}>
+                    <RecapHighlightLine
+                      label={line.label}
+                      amount={formatMoney(line.amount, currency)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
         {isDeficit ? (
           <p className="mt-4 text-sm text-text-secondary">
             Pas d’inquiétude — tu pourras ajuster tout ça après.
