@@ -304,6 +304,7 @@ test("release promotion writes only after a trusted immutable proof", () => {
     /pulls" -f state=open -f base=preview -f head=/,
   );
   assert.match(releasePromotion, /base=main/);
+  assert.match(releasePromotion, /pulls" -f state=open -f base=main -f head=/);
 
   for (const actionUse of releasePromotion.matchAll(
     /^\s*uses:\s*([^\s#]+)/gm,
@@ -368,6 +369,15 @@ test("production publishes only an approved and proven release", () => {
     /release_gate:\{run_id:\$gate_run,attempt:\$gate_attempt,job_id:\$gate_job\}/,
   );
   assert.match(production, /railway_active:\$active_railway/);
+  const vercelDeploymentGate = production.match(
+    /- name: Wait for exact Vercel production deployments[\s\S]*?(?=\n\s+- name:)/,
+  )?.[0];
+  assert.ok(vercelDeploymentGate);
+  assert.doesNotMatch(
+    vercelDeploymentGate,
+    /pulpe-backend|railway_state|api\.pulpe\.app/,
+  );
+  assert.match(production, /serviceInstanceDeployV2/);
   assert.doesNotMatch(
     production,
     /max_by\(\.id\) \| \.conclusion == "success"/,
@@ -397,7 +407,7 @@ test("production publishes only an approved and proven release", () => {
   assert.match(production, /railway redeploy --project "\$RAILWAY_PROJECT"/);
   assert.match(
     production,
-    /railway deployment list.*--environment production.*--limit 10 --json/,
+    /railway deployment list.*--environment production.*--limit 50 --json/,
   );
   assert.match(production, /serviceInstanceDeployV2\(commitSha:\$sha/);
   assert.match(
