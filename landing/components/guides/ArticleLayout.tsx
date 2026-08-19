@@ -5,9 +5,9 @@ import { AccordionItem, Button, Container } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
 import type { Dictionary } from "@/content/dictionary";
 import { angularUrl, ORGANIZATION_ID } from "@/lib/config";
-import { DEFAULT_LOCALE } from "@/lib/i18n";
 import { socialPreviewImage } from "@/lib/metadata";
-import { SITE_URL } from "@/lib/routes";
+import { localizedPath, SITE_URL } from "@/lib/routes";
+import { FR_GUIDE_CHROME, type GuideChrome } from "./chrome";
 import type { Guide } from "./guides";
 
 interface FaqEntry {
@@ -20,13 +20,14 @@ interface FaqEntry {
 interface ArticleLayoutProps {
   guide: Guide;
   faq?: FaqEntry[];
-  /** L'article est français, mais son chrome se lit dans le catalogue comme partout ailleurs. */
+  /** Skip link, header et footer : le catalogue de la locale du chrome, pas toujours le français. */
   dict: Dictionary;
   children: ReactNode;
+  chrome?: GuideChrome;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fr-CH", {
+function formatDate(iso: string, dateLocale: string): string {
+  return new Date(iso).toLocaleDateString(dateLocale, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -41,8 +42,9 @@ export function ArticleLayout({
   faq,
   dict,
   children,
+  chrome = FR_GUIDE_CHROME,
 }: ArticleLayoutProps) {
-  const articleUrl = `${SITE_URL}/conseils-budget/${guide.slug}`;
+  const articleUrl = `${SITE_URL}${localizedPath(chrome.locale, `${chrome.sectionPath}/${guide.slug}`)}`;
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -53,8 +55,8 @@ export function ArticleLayout({
         description: guide.description,
         url: articleUrl,
         mainEntityOfPage: articleUrl,
-        image: `${SITE_URL}${socialPreviewImage(DEFAULT_LOCALE)}`,
-        inLanguage: "fr-CH",
+        image: `${SITE_URL}${socialPreviewImage(chrome.locale)}`,
+        inLanguage: chrome.inLanguage,
         datePublished: guide.publishedAt,
         dateModified: guide.updatedAt,
         author: { "@type": "Person", name: "Maxime De Sogus" },
@@ -98,17 +100,17 @@ export function ArticleLayout({
         {dict.common.skipToContent}
       </a>
 
-      <Header dict={dict.header} locale={DEFAULT_LOCALE} />
+      <Header dict={dict.header} locale={chrome.locale} />
 
       <main id="main-content" tabIndex={-1} className="pt-32 pb-16 md:pb-24">
         <Container>
           <article className="mx-auto max-w-3xl">
             <Link
-              href="/conseils-budget"
+              href={chrome.backHref}
               className="inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-semibold text-primary hover:underline hover:decoration-2 hover:underline-offset-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ArrowLeft aria-hidden="true" size={17} />
-              Conseils budget
+              {chrome.backLabel}
             </Link>
             <header className="mt-8">
               <h1 className="text-4xl font-bold leading-[1.12] tracking-[-0.035em] text-text sm:text-5xl">
@@ -116,18 +118,20 @@ export function ArticleLayout({
               </h1>
               <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-secondary">
                 <time dateTime={guide.publishedAt}>
-                  Publié le {formatDate(guide.publishedAt)}
+                  {chrome.publishedPrefix}{" "}
+                  {formatDate(guide.publishedAt, chrome.dateLocale)}
                 </time>
                 {guide.updatedAt !== guide.publishedAt && (
                   <>
                     <span aria-hidden="true">·</span>
                     <time dateTime={guide.updatedAt}>
-                      Mis à jour le {formatDate(guide.updatedAt)}
+                      {chrome.updatedPrefix}{" "}
+                      {formatDate(guide.updatedAt, chrome.dateLocale)}
                     </time>
                   </>
                 )}
                 <span aria-hidden="true">·</span>
-                <span>{guide.readingMinutes} min de lecture</span>
+                <span>{chrome.readingTime(guide.readingMinutes)}</span>
               </p>
             </header>
 
@@ -139,7 +143,7 @@ export function ArticleLayout({
                   id="guide-faq-heading"
                   className="text-2xl font-semibold leading-tight tracking-[-0.025em] text-text"
                 >
-                  Questions fréquentes
+                  {chrome.faqHeading}
                 </h2>
                 <div className="mt-6 space-y-3">
                   {faq.map((entry) => (
@@ -155,20 +159,20 @@ export function ArticleLayout({
 
             <div className="mt-14 border-t border-text/10 pt-10 text-center">
               <p className="text-xl font-semibold leading-snug text-text">
-                Envie de voir combien il te restera chaque mois&nbsp;?
+                {chrome.ctaLead}
               </p>
               <Button
                 href={angularUrl(
                   "/signup",
                   `guide_${guide.slug}`,
-                  DEFAULT_LOCALE,
+                  chrome.locale,
                 )}
                 className="mt-6"
                 data-cta-name="commencer_gratuitement"
                 data-cta-location="guide_article"
                 data-cta-destination="/signup"
               >
-                Créer mon budget gratuitement
+                {chrome.ctaButton}
               </Button>
             </div>
           </article>
@@ -178,7 +182,7 @@ export function ArticleLayout({
       <Footer
         dict={dict.footer}
         language={dict.language}
-        locale={DEFAULT_LOCALE}
+        locale={chrome.locale}
         route={null}
       />
     </>

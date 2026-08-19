@@ -33,6 +33,7 @@ export default async function GlobalNotFound() {
     <RootDocument
       locale={DEFAULT_LOCALE}
       graphDescription={site.graphDescription}
+      featureList={site.featureList}
     >
       <div className="min-h-svh flex items-center justify-center bg-background relative overflow-hidden">
         <GrainOverlay />

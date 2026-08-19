@@ -38,7 +38,11 @@ export default async function LocalizedRootLayout({
   const { site } = await getDictionary(locale);
 
   return (
-    <RootDocument locale={locale} graphDescription={site.graphDescription}>
+    <RootDocument
+      locale={locale}
+      graphDescription={site.graphDescription}
+      featureList={site.featureList}
+    >
       {children}
     </RootDocument>
   );

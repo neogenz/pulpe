@@ -88,6 +88,19 @@ export default async function GuidesPage() {
             </header>
 
             <div className="mt-10 space-y-4">
+              <Link
+                href="/calculateur-budget"
+                className="block rounded-[var(--radius-large)] border border-primary/20 bg-surface-alt p-6 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-primary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transform-none motion-reduce:transition-none sm:p-8"
+              >
+                <p className="text-sm font-semibold text-primary">Outil</p>
+                <h2 className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.025em] text-text">
+                  Calculateur de budget
+                </h2>
+                <p className="mt-3 max-w-2xl leading-relaxed text-text-secondary">
+                  Calcule ton disponible en deux minutes, sans créer de compte.
+                  Les montants restent sur ta machine.
+                </p>
+              </Link>
               {guides.map((guide) => (
                 <Link
                   key={guide.slug}
