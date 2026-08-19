@@ -6,6 +6,10 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { angularUrl, CONTACT_EMAIL, GITHUB_URL } from "@/lib/config";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n";
 import {
+  DE_COMPARISON_SLUG,
+  DE_PREMIUMS_SLUG,
+} from "@/components/guides/guides.de";
+import {
   ADVICE_LABEL_FR,
   ADVICE_INDEX_ROUTE,
   CALCULATOR_LABEL_FR,
@@ -39,13 +43,13 @@ const FOOTER_GROUPS = [
       },
       {
         id: "deComparison",
-        href: `${DE_ADVICE_SECTION_PATH}/beste-budget-app-schweiz`,
+        href: `${DE_ADVICE_SECTION_PATH}/${DE_COMPARISON_SLUG}`,
         internal: true,
         germanOnly: true,
       },
       {
         id: "dePremiums",
-        href: `${DE_ADVICE_SECTION_PATH}/krankenkassenpraemien-budgetieren`,
+        href: `${DE_ADVICE_SECTION_PATH}/${DE_PREMIUMS_SLUG}`,
         internal: true,
         germanOnly: true,
       },

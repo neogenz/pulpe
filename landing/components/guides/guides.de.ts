@@ -1,8 +1,11 @@
 import type { Guide } from "./guides";
 
+export const DE_COMPARISON_SLUG = "beste-budget-app-schweiz";
+export const DE_PREMIUMS_SLUG = "krankenkassenpraemien-budgetieren";
+
 export const DE_GUIDES: readonly Guide[] = [
   {
-    slug: "beste-budget-app-schweiz",
+    slug: DE_COMPARISON_SLUG,
     title: "Beste Budget-App Schweiz: Vergleich 2026",
     description:
       "Budget-Apps, die du in der Schweiz nutzen kannst, verglichen nach Deutsch, CHF, Preis und Bankanschluss. Ohne bezahltes Ranking.",
@@ -11,7 +14,7 @@ export const DE_GUIDES: readonly Guide[] = [
     readingMinutes: 9,
   },
   {
-    slug: "krankenkassenpraemien-budgetieren",
+    slug: DE_PREMIUMS_SLUG,
     title: "Krankenkassenprämien 2026 budgetieren",
     description:
       "So verteilst du die Prämienerhöhung 2026 auf die restlichen Monate, mit den offiziellen BAG-Zahlen neben der Quelle.",

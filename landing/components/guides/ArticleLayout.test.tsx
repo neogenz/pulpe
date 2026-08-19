@@ -7,7 +7,12 @@ import { getDictionary } from "../../content/dictionary";
 import { DEFAULT_LOCALE } from "../../lib/i18n";
 import { socialPreviewImage } from "../../lib/metadata";
 import { DE_GUIDE_CHROME } from "./chrome";
-import { DE_GUIDES, getDeGuide } from "./guides.de";
+import {
+  DE_COMPARISON_SLUG,
+  DE_GUIDES,
+  DE_PREMIUMS_SLUG,
+  getDeGuide,
+} from "./guides.de";
 import { GUIDES, guideMetadata, type Guide } from "./guides";
 import sitemap from "../../app/sitemap";
 
@@ -27,6 +32,8 @@ mock.module("next/image", nextImageMock);
 const { ArticleLayout } = await import("./ArticleLayout");
 const { default: BudgetSuisseGuidePage } =
   await import("../../app/(fr)/conseils-budget/comment-faire-son-budget-en-suisse/page");
+const { default: PrimesMaladieGuidePage } =
+  await import("../../app/(fr)/conseils-budget/budgeter-primes-maladie/page");
 const { generateMetadata: guidesIndexMetadata } =
   await import("../../app/(fr)/conseils-budget/page");
 const {
@@ -431,12 +438,15 @@ describe("German health-premiums guide", async () => {
     assert.ok(articleHtml.includes("393.30"));
     assert.ok(articleHtml.includes("326.30"));
     assert.ok(articleHtml.includes("4,4"));
+    assert.ok(articleHtml.includes("4,2"));
     assert.match(articleHtml, /bag\.admin\.ch/);
     assert.match(articleHtml, /Rückstellung/);
     assert.ok(articleHtml.includes("380"));
     assert.ok(articleHtml.includes("397"));
     assert.ok(articleHtml.includes("17"));
-    assert.match(articleHtml, /vier Monate|17 × 4|17 × 4/);
+    assert.match(articleHtml, /vier Monate|17 × 4/);
+    assert.doesNotMatch(pageHtml, /teile die Differenz durch die Monate/);
+    assert.match(pageHtml, /multiplizierst/);
     assert.doesNotMatch(pageHtml, /Transaktion/);
     assert.doesNotMatch(articleHtml, /\bSie\b/);
     assert.match(articleHtml, /\b[Dd]u\b|\bdein/);
@@ -463,13 +473,35 @@ describe("German health-premiums guide", async () => {
   });
 });
 
+describe("French health-premiums guide", async () => {
+  const pageHtml = renderToStaticMarkup(await PrimesMaladieGuidePage());
+  const articleHtml = pageHtml.match(/<article[\s\S]*<\/article>/)?.[0];
+
+  it("aligns the provision formula with the worked example", () => {
+    assert.ok(articleHtml, "the page must render an <article>");
+    assert.doesNotMatch(pageHtml, /divise la différence par le nombre de mois/);
+    assert.match(pageHtml, /multiplies par les mois/);
+    assert.match(articleHtml, /17 × 4/);
+  });
+
+  it("uses the product label instead of English available", () => {
+    assert.doesNotMatch(pageHtml, /\bavailable\b/i);
+    assert.match(pageHtml, /disponible à dépenser/);
+  });
+
+  it("sources the young-adult 4,2 % on the OFSP communiqué", () => {
+    assert.match(articleHtml ?? "", /4,2/);
+    assert.match(
+      articleHtml ?? "",
+      /bag\.admin\.ch\/fr\/newnsb\/d2okh_kUK_OFhmMDfpyiy/,
+    );
+  });
+});
+
 describe("German advice discovery", () => {
   it("lists both German URLs in the sitemap without alternates", () => {
     const entries = sitemap();
-    for (const slug of [
-      "beste-budget-app-schweiz",
-      "krankenkassenpraemien-budgetieren",
-    ]) {
+    for (const slug of [DE_COMPARISON_SLUG, DE_PREMIUMS_SLUG]) {
       const entry = entries.find(
         (candidate) =>
           candidate.url === `https://pulpe.app/de/budget-ratgeber/${slug}`,

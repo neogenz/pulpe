@@ -6,6 +6,10 @@ import { angularUrl } from "../lib/config";
 import { socialPreviewFile, socialPreviewImage } from "../lib/metadata";
 import { OPEN_GRAPH_LOCALE, openGraphAlternates } from "../lib/routes";
 import {
+  DE_COMPARISON_SLUG,
+  DE_PREMIUMS_SLUG,
+} from "../components/guides/guides.de";
+import {
   changelogMetadata,
   supportMetadata,
 } from "../components/pages/metadata";
@@ -1882,11 +1886,11 @@ describe("landing accessibility contracts", () => {
         assert.ok(hasPremiums);
         assert.match(
           html,
-          /href="\/de\/budget-ratgeber\/beste-budget-app-schweiz"/,
+          new RegExp(`href="/de/budget-ratgeber/${DE_COMPARISON_SLUG}"`),
         );
         assert.match(
           html,
-          /href="\/de\/budget-ratgeber\/krankenkassenpraemien-budgetieren"/,
+          new RegExp(`href="/de/budget-ratgeber/${DE_PREMIUMS_SLUG}"`),
         );
         assert.ok(!html.includes("Conseils budget"));
         assert.ok(!html.includes("Calculateur de budget"));

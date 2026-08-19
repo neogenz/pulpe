@@ -4,14 +4,16 @@ import { ArticleLayout } from "@/components/guides/ArticleLayout";
 import { ComparisonTable } from "@/components/guides/ComparisonTable";
 import { RelatedGuides } from "@/components/guides/RelatedGuides";
 import { DE_GUIDE_CHROME } from "@/components/guides/chrome";
-import { DE_GUIDES, getDeGuide } from "@/components/guides/guides.de";
+import {
+  DE_COMPARISON_SLUG,
+  DE_GUIDES,
+  DE_PREMIUMS_SLUG,
+  getDeGuide,
+} from "@/components/guides/guides.de";
 import { guideMetadata } from "@/components/guides/guides";
 import { getDictionary } from "@/content/dictionary";
 import { assertPrefixedLocale } from "@/lib/i18n";
 import { DE_ADVICE_SECTION_PATH } from "@/lib/routes";
-
-const COMPARISON_SLUG = "beste-budget-app-schweiz";
-const PREMIUMS_SLUG = "krankenkassenpraemien-budgetieren";
 
 type PageParams = { lang: string; slug: string };
 type GuidePageParams = { params: Promise<PageParams> };
@@ -66,7 +68,7 @@ const premiumsFaq = [
   {
     question: "Wie bildest du eine Rückstellung für die Prämienerhöhung?",
     answer:
-      "Nimm die heutige Prämie, rechne die bekannte Erhöhung dazu, teile die Differenz durch die Monate bis Januar, und setze diesen Betrag als Planposten. Der Jahresbetrag bleibt gleich: du verteilst ihn nur.",
+      "Nimm die heutige Prämie, rechne die bekannte Erhöhung dazu. Die monatliche Differenz setzt du sofort auf die Linie, oder du multiplizierst sie mit den Monaten bis Januar. Der Jahresbetrag bleibt gleich: du verteilst ihn nur.",
   },
   {
     question: "Wie hoch ist die mittlere Krankenkassenprämie 2026?",
@@ -179,7 +181,7 @@ function ComparisonArticle() {
         Ranking.
       </p>
 
-      <DeRelatedGuides slugs={[PREMIUMS_SLUG]} />
+      <DeRelatedGuides slugs={[DE_PREMIUMS_SLUG]} />
     </>
   );
 }
@@ -213,7 +215,7 @@ function PremiumsArticle() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          326.30&nbsp;CHF
+          326.30&nbsp;CHF (+4,2&nbsp;%)
         </a>{" "}
         im Communiqué vom 23.09.2025.
       </p>
@@ -221,8 +223,9 @@ function PremiumsArticle() {
       <h2>So bildest du die Rückstellung</h2>
       <p>
         Nimm deine heutige Prämie. Rechne die bekannte Erhöhung dazu. Die
-        Differenz teilst du durch die Monate bis Januar. Dieser Betrag wird ein
-        Planposten, wie die Miete.
+        monatliche Differenz setzt du sofort auf die Linie, wie die Miete. Wenn
+        du bis Januar glättest, multiplizierst du diesen Betrag mit den
+        restlichen Monaten: das ist die Summe zum Verteilen.
       </p>
       <p>
         Beispiel: deine Prämie steigt von{" "}
@@ -254,16 +257,16 @@ function PremiumsArticle() {
         Ausgeben von Januar, ohne auf Januar zu warten.
       </p>
 
-      <DeRelatedGuides slugs={[COMPARISON_SLUG]} />
+      <DeRelatedGuides slugs={[DE_COMPARISON_SLUG]} />
     </>
   );
 }
 
 function articleFor(slug: string) {
-  if (slug === COMPARISON_SLUG) {
+  if (slug === DE_COMPARISON_SLUG) {
     return { faq: comparisonFaq, body: <ComparisonArticle /> };
   }
-  if (slug === PREMIUMS_SLUG) {
+  if (slug === DE_PREMIUMS_SLUG) {
     return { faq: premiumsFaq, body: <PremiumsArticle /> };
   }
   return null;

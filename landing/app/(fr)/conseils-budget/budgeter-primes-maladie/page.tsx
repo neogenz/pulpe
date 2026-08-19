@@ -13,7 +13,7 @@ const faq = [
   {
     question: "Comment provisionner une hausse de prime dans mon budget ?",
     answer:
-      "Prends la prime actuelle, applique la hausse connue, divise la différence par le nombre de mois qui restent avant janvier, et mets ce montant de côté chaque mois. Le total ne change pas : tu le répartis.",
+      "Prends la prime actuelle, applique la hausse connue. La différence mensuelle, tu l'ajoutes à ta ligne dès maintenant, ou tu la multiplies par les mois qui restent avant janvier. Le total ne change pas : tu le répartis.",
   },
   {
     question: "Quel est le montant moyen d’une prime maladie en 2026 ?",
@@ -58,8 +58,10 @@ export default async function PrimesMaladieGuidePage() {
       <h2>Comment provisionner la hausse, mois par mois ?</h2>
       <p>
         Tu prends ta prime actuelle. Tu appliques le pourcentage annoncé. La
-        différence, tu la divises par les mois qui restent avant le nouvel avis
-        de prime. Ce montant devient une prévision, comme le loyer.
+        différence mensuelle, tu l'ajoutes à ta ligne tout de suite : ce montant
+        devient une prévision, comme le loyer. Si tu lisses jusqu'à janvier, tu
+        multiplies cet écart par les mois qui restent — c'est le total à
+        répartir.
       </p>
       <p>
         Exemple : ta prime passe de 380 à 397 CHF, soit 17 CHF de plus par mois.
@@ -81,7 +83,15 @@ export default async function PrimesMaladieGuidePage() {
         </li>
         <li>
           Prime 19-25 ans : <strong className="tabular-nums">326.30 CHF</strong>{" "}
-          / mois, +4,2&nbsp;% (OFSP).
+          / mois,{" "}
+          <a
+            href="https://www.bag.admin.ch/fr/newnsb/d2okh_kUK_OFhmMDfpyiy"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            +4,2&nbsp;% (OFSP)
+          </a>
+          .
         </li>
         <li>
           Hausses récentes, relayées par l’OFSP via la{" "}
@@ -122,8 +132,8 @@ export default async function PrimesMaladieGuidePage() {
         environ 5&nbsp;% signalé par l’OFSP. Ce ne sont pas encore les primes
         officielles. Quand l’annonce paraîtra, cette section reprendra les
         montants exacts. En attendant, tu peux déjà poser une provision sur la
-        fourchette haute : si la hausse est plus basse, tu récupères de
-        l’available.
+        fourchette haute : si la hausse est plus basse, tu récupères du
+        disponible à dépenser.
       </p>
 
       <h2>Où ça se place dans Pulpe ?</h2>
