@@ -20,7 +20,7 @@ interface FaqEntry {
 interface ArticleLayoutProps {
   guide: Guide;
   faq?: FaqEntry[];
-  /** L'article est français, mais son chrome se lit dans le catalogue comme partout ailleurs. */
+  /** Skip link, header et footer : le catalogue de la locale du chrome, pas toujours le français. */
   dict: Dictionary;
   children: ReactNode;
   chrome?: GuideChrome;

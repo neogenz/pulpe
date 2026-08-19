@@ -259,25 +259,30 @@ function PremiumsArticle() {
   );
 }
 
+function articleFor(slug: string) {
+  if (slug === COMPARISON_SLUG) {
+    return { faq: comparisonFaq, body: <ComparisonArticle /> };
+  }
+  if (slug === PREMIUMS_SLUG) {
+    return { faq: premiumsFaq, body: <PremiumsArticle /> };
+  }
+  return null;
+}
+
 export default async function DeBudgetGuidePage({ params }: GuidePageParams) {
   const { lang, slug } = await params;
   const guide = resolveDeGuide(lang, slug);
-  const faq = guide.slug === COMPARISON_SLUG ? comparisonFaq : premiumsFaq;
-  const body =
-    guide.slug === COMPARISON_SLUG ? (
-      <ComparisonArticle />
-    ) : (
-      <PremiumsArticle />
-    );
+  const article = articleFor(guide.slug);
+  if (!article) notFound();
 
   return (
     <ArticleLayout
       guide={guide}
-      faq={faq}
+      faq={article.faq}
       dict={await getDictionary("de")}
       chrome={DE_GUIDE_CHROME}
     >
-      {body}
+      {article.body}
     </ArticleLayout>
   );
 }
