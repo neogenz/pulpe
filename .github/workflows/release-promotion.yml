@@ -217,7 +217,7 @@ jobs:
           test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$ENCODED_BRANCH" --jq .object.sha)" = "$CANDIDATE_SHA"
 
           owner="${GITHUB_REPOSITORY%%/*}"
-          gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=all -f base=main -f head="$owner:$RELEASE_BRANCH" -f per_page=100 > "$RUNNER_TEMP/pulls.json"
+          gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=open -f base=main -f head="$owner:$RELEASE_BRANCH" -f per_page=100 > "$RUNNER_TEMP/pulls.json"
           count=$(jq 'length' "$RUNNER_TEMP/pulls.json")
           if [ "$count" -gt 0 ]; then
             # shellcheck disable=SC2016
