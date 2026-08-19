@@ -304,6 +304,7 @@ test("release promotion writes only after a trusted immutable proof", () => {
     /pulls" -f state=open -f base=preview -f head=/,
   );
   assert.match(releasePromotion, /base=main/);
+  assert.match(releasePromotion, /pulls" -f state=open -f base=main -f head=/);
 
   for (const actionUse of releasePromotion.matchAll(
     /^\s*uses:\s*([^\s#]+)/gm,
