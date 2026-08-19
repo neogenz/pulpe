@@ -200,6 +200,8 @@ jobs:
       RAILWAY_PRODUCTION_ENVIRONMENT: a28b6826-ecbe-4c0f-9856-e0ba3ce14e93
       RAILWAY_SERVICE: b1f9b1c0-7eca-4c58-b203-cdbbed8ae0a4
     steps:
+      # Railway's Wait for CI keeps its GitHub deployment pending while this
+      # workflow runs. Verify Vercel here; Railway is proven explicitly below.
       - name: Wait for exact Vercel production deployments
         env:
           GH_TOKEN: ${{ github.token }}
