@@ -14,13 +14,13 @@ const COMPARISON_SLUG = "beste-budget-app-schweiz";
 const PREMIUMS_SLUG = "krankenkassenpraemien-budgetieren";
 
 type PageParams = { lang: string; slug: string };
-type LangParams = { params: { lang: string } | Promise<{ lang: string }> };
 type GuidePageParams = { params: Promise<PageParams> };
 
-export async function generateStaticParams({ params }: LangParams) {
-  const { lang } = await params;
-  if (lang !== "de") return [];
-  return DE_GUIDES.map((guide) => ({ slug: guide.slug }));
+// L'export statique refuse un tableau vide : Next le signale comme une
+// fonction absente. Cette page n'existe qu'en allemand, donc on émet
+// `[lang]` et `[slug]` d'ici, sans renvoyer [] pour en/it.
+export function generateStaticParams() {
+  return DE_GUIDES.map((guide) => ({ lang: "de", slug: guide.slug }));
 }
 
 function resolveDeGuide(lang: string, slug: string) {

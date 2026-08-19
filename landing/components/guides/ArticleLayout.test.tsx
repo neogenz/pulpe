@@ -356,22 +356,17 @@ describe("German budget comparison page", async () => {
   const graph = extractJsonLd(pageHtml)["@graph"];
   const articleLd = graph.find((node) => node["@type"] === "Article");
 
-  it("emits every German registry slug for de, nothing for en or it", async () => {
+  it("emits de + slug for every German registry entry", () => {
+    const deParams = generateDeGuideStaticParams();
     assert.deepEqual(
-      await generateDeGuideStaticParams({ params: { lang: "en" } }),
-      [],
+      deParams,
+      DE_GUIDES.map((entry) => ({ lang: "de", slug: entry.slug })),
     );
-    assert.deepEqual(
-      await generateDeGuideStaticParams({ params: { lang: "it" } }),
-      [],
+    assert.ok(deParams.length > 0);
+    assert.equal(
+      deParams.every((entry) => entry.lang === "de"),
+      true,
     );
-    const deParams = await generateDeGuideStaticParams({
-      params: { lang: "de" },
-    });
-    const emitted = new Set(deParams.map((entry) => entry.slug));
-    for (const entry of DE_GUIDES) {
-      assert.ok(emitted.has(entry.slug), entry.slug);
-    }
   });
 
   it("keeps a de-CH canonical without four-language alternates", async () => {
