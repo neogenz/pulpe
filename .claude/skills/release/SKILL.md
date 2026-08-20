@@ -55,10 +55,14 @@ Run this before modifying release files. A failed check stops the workflow witho
 
    test "$(git branch --show-current)" = preview
    test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
-   git merge-base --is-ancestor origin/main HEAD
+   MAIN_SHA=$(git rev-parse 'origin/main^{commit}')
+   CANDIDATE_SHA=$(git rev-parse 'HEAD^{commit}')
+   CANDIDATE_TREE=$(git rev-parse "$CANDIDATE_SHA^{tree}")
+   MERGED_TREE=$(git merge-tree --write-tree --no-messages "$CANDIDATE_SHA" "$MAIN_SHA")
+   test "$MERGED_TREE" = "$CANDIDATE_TREE"
    ```
 
-   A feature branch must reach `preview` through its normal PR first. A hotfix present only on `main` must be reconciled through the normal branch flow before releasing.
+   GitHub production merge commits need not be ancestors of `preview`. The frozen `main` snapshot must instead merge into `preview` as a conflict-free tree no-op. A main-only hotfix or content change blocks release until reconciled through the normal preview branch flow.
 
 2. Require both trusted release workflows and their four credential names. Secret values are never readable and must not be requested:
 
@@ -520,7 +524,11 @@ Only after "oui":
    test "$(git branch --show-current)" = "$BRANCH"
    git fetch origin main preview --tags
    test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
-   git merge-base --is-ancestor origin/main HEAD
+   MAIN_SHA=$(git rev-parse 'origin/main^{commit}')
+   CANDIDATE_SHA=$(git rev-parse 'HEAD^{commit}')
+   CANDIDATE_TREE=$(git rev-parse "$CANDIDATE_SHA^{tree}")
+   MERGED_TREE=$(git merge-tree --write-tree --no-messages "$CANDIDATE_SHA" "$MAIN_SHA")
+   test "$MERGED_TREE" = "$CANDIDATE_TREE"
    test -z "$(git tag -l "v${VERSION}")"
    test -z "$(git ls-remote --tags origin "refs/tags/v${VERSION}")"
    git commit -m "chore(release): v${VERSION}"

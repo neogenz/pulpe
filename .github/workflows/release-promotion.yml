@@ -31,6 +31,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Checkout immutable release topology
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
       - name: Validate the prepared release branch
         id: release
         env:
@@ -62,8 +68,16 @@ jobs:
             exit 1
           fi
 
-          gh api "repos/$GITHUB_REPOSITORY/compare/main...$release_sha" > "$RUNNER_TEMP/main-compare.json"
-          jq -e '.behind_by == 0' "$RUNNER_TEMP/main-compare.json"
+          main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          candidate_tree=$(git rev-parse "$release_sha^{tree}")
+          if ! merged_tree=$(git merge-tree --write-tree --no-messages "$release_sha" "$main_sha"); then
+            echo "::error::main cannot be cleanly merged into candidate"
+            exit 1
+          fi
+          if [ "$merged_tree" != "$candidate_tree" ]; then
+            echo "::error::main contains tracked content absent from candidate"
+            exit 1
+          fi
           encoded_tag=$(jq -rn --arg value "v$version" '$value | @uri')
           tag_count=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$encoded_tag" | jq --arg ref "refs/tags/v$version" '[.[] | select(.ref == $ref)] | length')
           test "$tag_count" = 0
@@ -121,6 +135,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Checkout immutable release topology
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Validate the immutable staging proof
         id: release
         env:
@@ -168,8 +188,16 @@ jobs:
           branch_sha=$(jq -r --arg ref "refs/heads/$release_branch" '.[] | select(.ref == $ref) | .object.sha' "$RUNNER_TEMP/refs.json")
           test "$branch_sha" = "$release_sha" || test "$branch_sha" = "$CANDIDATE_SHA"
 
-          gh api "repos/$GITHUB_REPOSITORY/compare/main...$CANDIDATE_SHA" > "$RUNNER_TEMP/main-compare.json"
-          jq -e '.behind_by == 0' "$RUNNER_TEMP/main-compare.json"
+          main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          candidate_tree=$(git rev-parse "$CANDIDATE_SHA^{tree}")
+          if ! merged_tree=$(git merge-tree --write-tree --no-messages "$CANDIDATE_SHA" "$main_sha"); then
+            echo "::error::main cannot be cleanly merged into candidate"
+            exit 1
+          fi
+          if [ "$merged_tree" != "$candidate_tree" ]; then
+            echo "::error::main contains tracked content absent from candidate"
+            exit 1
+          fi
           encoded_tag=$(jq -rn --arg value "v$version" '$value | @uri')
           tag_count=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$encoded_tag" | jq --arg ref "refs/tags/v$version" '[.[] | select(.ref == $ref)] | length')
           test "$tag_count" = 0

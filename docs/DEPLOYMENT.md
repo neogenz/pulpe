@@ -425,8 +425,12 @@ Detailed versioning and force-update gate rules: [VERSIONING.md](./VERSIONING.md
 
 1. `🚦 Release Promotion` opens `release/vX.Y.Z → main` only for an App-authored
    preparation PR with a valid staging proof. A normal feature PR stops here.
-2. `✅ Release Gate` checks the frozen candidate, version, ancestry, absent tag and
-   immutable proof without executing untrusted PR code or receiving production secrets.
+2. `✅ Release Gate` checks the frozen candidate, version, content lineage,
+   absent tag and immutable proof without executing untrusted PR code or receiving
+   production secrets. `main` need not be a commit ancestor of `preview`: promotion
+   is allowed only when merging the frozen `main` snapshot into the candidate is
+   conflict-free and leaves the candidate tree unchanged. Any main-only hotfix or
+   tracked content therefore blocks until reconciled through `preview`.
 3. A human other than the App approves and merges the production PR. This is the
    release decision; no administrator push is part of the normal process.
 4. `🏭 Production Release` revalidates the approval and proofs, applies any migration

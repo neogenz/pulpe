@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 const require = createRequire(import.meta.url);
@@ -20,6 +23,7 @@ const dockerfile = read("backend-nest/Dockerfile");
 const rootPackage = JSON.parse(read("package.json"));
 const backendPackage = JSON.parse(read("backend-nest/package.json"));
 const ciGuide = read("docs/CI.md");
+const releaseSkill = read(".claude/skills/release/SKILL.md");
 const frontendEslintConfig = require("../../frontend/eslint.config.js");
 
 function selectReleaseGateProof({ runs, attempts, jobs }, branch, candidate) {
@@ -116,6 +120,116 @@ function reduceReleaseEvent(release, event) {
     publishCount: release.publishCount + (transition === "published" ? 1 : 0),
   };
 }
+
+const gitEnvironment = { ...process.env };
+for (const variable of [
+  "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+  "GIT_COMMON_DIR",
+  "GIT_DIR",
+  "GIT_INDEX_FILE",
+  "GIT_OBJECT_DIRECTORY",
+  "GIT_WORK_TREE",
+]) {
+  delete gitEnvironment[variable];
+}
+Object.assign(gitEnvironment, {
+  GIT_CONFIG_COUNT: "1",
+  GIT_CONFIG_KEY_0: "core.hooksPath",
+  GIT_CONFIG_VALUE_0: "/dev/null",
+});
+
+const git = (repository, ...args) =>
+  execFileSync("git", args, {
+    cwd: repository,
+    encoding: "utf8",
+    env: gitEnvironment,
+  }).trim();
+
+const commitFile = (repository, path, content, message) => {
+  writeFileSync(join(repository, path), content);
+  git(repository, "add", path);
+  git(repository, "commit", "-m", message);
+  return git(repository, "rev-parse", "HEAD");
+};
+
+const mainMergeLeavesCandidateUnchanged = (repository, candidate, main) => {
+  try {
+    const candidateTree = git(repository, "rev-parse", `${candidate}^{tree}`);
+    const mergedTree = git(
+      repository,
+      "merge-tree",
+      "--write-tree",
+      "--no-messages",
+      candidate,
+      main,
+    );
+    return mergedTree === candidateTree;
+  } catch {
+    return false;
+  }
+};
+
+test("release lineage accepts content-integrated main and rejects main-only changes", () => {
+  const repository = mkdtempSync(join(tmpdir(), "pulpe-release-lineage-"));
+  try {
+    git(repository, "init", "--initial-branch=preview");
+    git(repository, "config", "user.name", "Pulpe Test");
+    git(repository, "config", "user.email", "test@pulpe.local");
+    commitFile(repository, "base.txt", "base\n", "base");
+    const base = git(repository, "rev-parse", "HEAD");
+    commitFile(repository, "release.txt", "released\n", "release candidate");
+    const previousCandidate = git(repository, "rev-parse", "HEAD");
+
+    git(repository, "switch", "-c", "main", base);
+    git(
+      repository,
+      "merge",
+      "--no-ff",
+      previousCandidate,
+      "-m",
+      "release merge",
+    );
+    const releaseMerge = git(repository, "rev-parse", "HEAD");
+
+    git(repository, "switch", "preview");
+    const candidate = commitFile(
+      repository,
+      "feature.txt",
+      "next\n",
+      "next preview feature",
+    );
+    assert.equal(
+      mainMergeLeavesCandidateUnchanged(repository, candidate, releaseMerge),
+      true,
+    );
+
+    git(repository, "switch", "main");
+    const hotfix = commitFile(
+      repository,
+      "hotfix.txt",
+      "hotfix\n",
+      "main hotfix",
+    );
+    assert.equal(
+      mainMergeLeavesCandidateUnchanged(repository, candidate, hotfix),
+      false,
+    );
+
+    git(repository, "switch", "preview");
+    const reconciled = commitFile(
+      repository,
+      "hotfix.txt",
+      "hotfix\n",
+      "reconcile hotfix",
+    );
+    assert.equal(
+      mainMergeLeavesCandidateUnchanged(repository, reconciled, hotfix),
+      true,
+    );
+  } finally {
+    rmSync(repository, { recursive: true, force: true });
+  }
+});
 
 const validReleaseEvents = [
   { type: "staging_proven", exactSha: true },
@@ -456,6 +570,25 @@ test("release promotion writes only after a trusted immutable proof", () => {
   );
   assert.match(releasePromotion, /base=main/);
   assert.match(releasePromotion, /pulls" -f state=open -f base=main -f head=/);
+  assert.equal(
+    releasePromotion.match(/merge-tree --write-tree --no-messages/g)?.length,
+    2,
+    "prepare and promote must prove the same no-op main merge",
+  );
+  assert.doesNotMatch(
+    releasePromotion,
+    /compare\/main\.\.\.|main-compare\.json/,
+  );
+  assert.match(
+    releasePromotion,
+    /main contains tracked content absent from candidate/,
+  );
+  assert.equal(
+    releaseSkill.match(/merge-tree --write-tree --no-messages/g)?.length,
+    2,
+    "release preparation and handoff must use the workflow lineage invariant",
+  );
+  assert.doesNotMatch(releaseSkill, /merge-base --is-ancestor origin\/main/);
 
   for (const actionUse of releasePromotion.matchAll(
     /^\s*uses:\s*([^\s#]+)/gm,
