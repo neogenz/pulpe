@@ -126,11 +126,12 @@ Hors ces cas, `MIN_*` reste figé. Une release "classique" ne bouge que `LATEST_
 ### Procédure de rollout
 
 1. **Publier la release webapp AVANT le bump `MIN_WEB_VERSION`.** La version cible doit déjà être **publique et disponible** sur Vercel. Côté iOS, aucune précaution : le plancher servi est borné par la version App Store.
-2. **Bump `LATEST_WEB_VERSION` sur Railway** dès la release publiée :
-   ```bash
-   railway variables --set "LATEST_WEB_VERSION=0.36.0" --service backend
-   ```
-   Railway redémarre le service à chaque mise à jour de variable — `ConfigService` relit l'env au boot. `LATEST_IOS_VERSION` ne se bump pas : le backend suit l'App Store.
+2. **Laisser le preflight production synchroniser `LATEST_WEB_VERSION`.** Après preuve
+   que le frontend exact est public, `production.yml` écrit la valeur en production
+   avec `--skip-deploys`, publie son contexte immuable, puis se termine. Railway déploie
+   ensuite `main` en tant qu'unique owner du backend. Aucun opérateur ne modifie cette
+   variable ni ne redéploie le service dans le chemin normal. `LATEST_IOS_VERSION` ne se
+   bump pas : le backend suit l'App Store.
 3. **Bump `MIN_*` (force-update)** uniquement quand l'éjection est nécessaire :
    ```bash
    railway variables --set "MIN_IOS_VERSION=1.2.0" --service backend
