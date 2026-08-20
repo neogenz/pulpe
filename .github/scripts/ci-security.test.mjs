@@ -75,6 +75,118 @@ function selectReleaseGateProof({ runs, attempts, jobs }, branch, candidate) {
   );
 }
 
+function reduceReleaseEvent(release, event) {
+  if (release.state === "published") return release;
+
+  const transition = {
+    candidate_prepared:
+      event.type === "staging_proven" && event.exactSha
+        ? "staging_proven"
+        : null,
+    staging_proven:
+      event.type === "production_approved" && event.humanApproval
+        ? "production_approved"
+        : null,
+    production_approved:
+      event.type === "predeploy_succeeded" && event.exactRunAttempt
+        ? "predeploy_authorized"
+        : null,
+    predeploy_authorized:
+      event.type === "railway_succeeded" &&
+      event.trustedDeployment &&
+      event.trustedStatus &&
+      event.exactSha &&
+      event.activeDeployment
+        ? "railway_deployed"
+        : null,
+    railway_deployed:
+      event.type === "providers_correlated" && event.exactSha
+        ? "providers_correlated"
+        : null,
+    providers_correlated:
+      event.type === "proof_uploaded" && event.exactRunAttempt
+        ? "production_proven"
+        : null,
+    production_proven: event.type === "publish" ? "published" : null,
+  }[release.state];
+
+  if (!transition) return release;
+  return {
+    state: transition,
+    publishCount: release.publishCount + (transition === "published" ? 1 : 0),
+  };
+}
+
+const validReleaseEvents = [
+  { type: "staging_proven", exactSha: true },
+  { type: "production_approved", humanApproval: true },
+  { type: "predeploy_succeeded", exactRunAttempt: true },
+  {
+    type: "railway_succeeded",
+    trustedDeployment: true,
+    trustedStatus: true,
+    exactSha: true,
+    activeDeployment: true,
+  },
+  { type: "providers_correlated", exactSha: true },
+  { type: "proof_uploaded", exactRunAttempt: true },
+  { type: "publish" },
+];
+
+const runReleaseScenario = (events) =>
+  events.reduce(reduceReleaseEvent, {
+    state: "candidate_prepared",
+    publishCount: 0,
+  });
+
+test("release state machine publishes only after every trusted exact proof", () => {
+  assert.deepEqual(runReleaseScenario(validReleaseEvents), {
+    state: "published",
+    publishCount: 1,
+  });
+
+  for (const blockedEvent of [
+    {
+      type: "railway_succeeded",
+      trustedDeployment: true,
+      trustedStatus: false,
+      exactSha: true,
+      activeDeployment: true,
+    },
+    {
+      type: "railway_succeeded",
+      trustedDeployment: true,
+      trustedStatus: true,
+      exactSha: false,
+      activeDeployment: true,
+    },
+    { type: "providers_correlated", exactSha: false },
+    { type: "proof_uploaded", exactRunAttempt: false },
+  ]) {
+    const events = validReleaseEvents.map((event) =>
+      event.type === blockedEvent.type ? blockedEvent : event,
+    );
+    assert.notEqual(runReleaseScenario(events).state, "published");
+  }
+});
+
+test("release state machine recovers on a new same-SHA attempt and publishes once", () => {
+  const beforeRailway = validReleaseEvents.slice(0, 3);
+  const afterRailway = validReleaseEvents.slice(4);
+  const result = runReleaseScenario([
+    ...beforeRailway,
+    { type: "railway_failed", exactSha: true },
+    { type: "finalizer_skipped" },
+    validReleaseEvents[3],
+    { type: "railway_succeeded", ...validReleaseEvents[3] },
+    ...afterRailway,
+    { type: "proof_failed" },
+    { type: "publish" },
+  ]);
+
+  assert.deepEqual(result, { state: "published", publishCount: 1 });
+});
+
 test("release proof keeps a successful immutable attempt after a failed rerun", () => {
   const identity = {
     path: ".github/workflows/release-gate.yml",
