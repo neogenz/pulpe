@@ -16,6 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Checkout trusted release automation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
       - name: Verify App author, frozen candidate, and staging proof
         env:
           GH_TOKEN: ${{ github.token }}
@@ -39,6 +46,9 @@ jobs:
 
           current_main=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)
           test "$current_main" = "$BASE_SHA"
+          node .github/scripts/resolve-workflow-proof.mjs --published-main "$current_main" > "$RUNNER_TEMP/published-main.json"
+
+          node .github/scripts/check-release-lineage.mjs "$current_main" "$CANDIDATE_SHA"
           encoded_branch=$(jq -rn --arg value "$RELEASE_BRANCH" '$value | @uri')
           test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$encoded_branch" --jq .object.sha)" = "$CANDIDATE_SHA"
 
@@ -57,8 +67,6 @@ jobs:
           gh api -X GET "repos/$GITHUB_REPOSITORY/contents/package.json" -f ref="$CANDIDATE_SHA" --jq .content |
             tr -d '\n' | base64 --decode > "$RUNNER_TEMP/package.json"
           test "$(jq -r .version "$RUNNER_TEMP/package.json")" = "$version"
-          gh api "repos/$GITHUB_REPOSITORY/compare/$current_main...$CANDIDATE_SHA" > "$RUNNER_TEMP/main-compare.json"
-          jq -e '.behind_by == 0' "$RUNNER_TEMP/main-compare.json"
           encoded_tag=$(jq -rn --arg value "v$version" '$value | @uri')
           tag_count=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$encoded_tag" | jq --arg ref "refs/tags/v$version" '[.[] | select(.ref == $ref)] | length')
           test "$tag_count" = 0

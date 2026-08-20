@@ -55,7 +55,7 @@ Run this before modifying release files. A failed check stops the workflow witho
 
    test "$(git branch --show-current)" = preview
    test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
-   git merge-base --is-ancestor origin/main HEAD
+   node .github/scripts/check-release-lineage.mjs "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
    ```
 
    A feature branch must reach `preview` through its normal PR first. A hotfix present only on `main` must be reconciled through the normal branch flow before releasing.
@@ -520,7 +520,7 @@ Only after "oui":
    test "$(git branch --show-current)" = "$BRANCH"
    git fetch origin main preview --tags
    test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
-   git merge-base --is-ancestor origin/main HEAD
+   node .github/scripts/check-release-lineage.mjs "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
    test -z "$(git tag -l "v${VERSION}")"
    test -z "$(git ls-remote --tags origin "refs/tags/v${VERSION}")"
    git commit -m "chore(release): v${VERSION}"
@@ -561,9 +561,10 @@ After the preparation PR is reviewed and merged with a merge commit:
 - the trusted promotion workflow fast-forwards the same release branch to that proven commit;
 - the App opens the production PR to `main`;
 - new feature PRs may then continue merging into `preview` without changing the frozen candidate;
-- `✅ Release Gate` validates the production PR without secrets or executing PR code; production correlates that gate through the exact PR head branch and SHA, then checks every immutable run attempt and its named job. It never relies on `workflow_run.pull_requests[]`, and a later failed rerun does not erase an earlier successful attempt;
-- a human other than the App approves production.
-- `🏭 Production Release` revalidates every proof, applies migrations when present, waits for exact production deployments, deploys the exact production commit through Railway when its active deployment differs, verifies Railway directly rather than trusting only GitHub's deployment status, verifies CSP, publishes the tag and GitHub Release, then synchronizes Railway's web version gate.
+- `✅ Release Gate` validates the production PR without secrets or executing candidate code, resolves the exact immutable workflow attempt and proves that current `main` is already fully published;
+- a human other than the App approves production; this is the only human release approval;
+- `🏭 Production Preflight` revalidates provenance, applies migrations when present and uploads the exact context; Railway waits for this workflow, then remains the sole backend deployer;
+- Railway's successful production `deployment_status` triggers `✅ Production Finalized`, which verifies the exact active Railway/Vercel deployments and public services before idempotently creating the annotated tag and GitHub Release. The finalizer is never a Railway-required check.
 
 This skill does not push `preview` or `main`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release. Those production operations belong to the protected GitHub workflow after the approved production PR is merged.
 

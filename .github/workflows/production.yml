@@ -11,7 +11,6 @@ concurrency:
 permissions:
   actions: read
   contents: read
-  deployments: read
   pull-requests: read
 
 jobs:
@@ -31,6 +30,12 @@ jobs:
       staging_run_id: ${{ steps.release.outputs.staging_run_id }}
       version: ${{ steps.release.outputs.version }}
     steps:
+      - name: Checkout release automation without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
       - name: Verify the approved release and staging proof
         id: release
         env:
@@ -56,30 +61,12 @@ jobs:
           gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$production_pr/reviews?per_page=100" --jq '.[]' > "$RUNNER_TEMP/reviews.jsonl"
           jq -se 'any(.state == "APPROVED" and .user.type == "User" and .user.login != "pulpe-release[bot]")' "$RUNNER_TEMP/reviews.jsonl"
 
-          gh api --paginate -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/release-gate.yml/runs" -f event=pull_request -f branch="$release_branch" -f per_page=100 --jq '.workflow_runs[]' > "$RUNNER_TEMP/gate-runs.jsonl"
-          mapfile -t gate_run_ids < <(jq -sr --arg candidate "$candidate_sha" --arg branch "$release_branch" '[.[] | select(.path == ".github/workflows/release-gate.yml" and .event == "pull_request" and .head_branch == $branch and .head_sha == $candidate)] | sort_by(.id) | reverse | .[].id' "$RUNNER_TEMP/gate-runs.jsonl")
-          test "${#gate_run_ids[@]}" -gt 0
-          gate_candidates="$RUNNER_TEMP/gate-candidates.jsonl"
-          : > "$gate_candidates"
-          for run_id in "${gate_run_ids[@]}"; do
-            attempt_count=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq .run_attempt)
-            for attempt in $(seq 1 "$attempt_count"); do
-              attempt_file="$RUNNER_TEMP/gate-$run_id-attempt-$attempt.json"
-              gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/attempts/$attempt" > "$attempt_file"
-              jq -e --arg candidate "$candidate_sha" --arg branch "$release_branch" --argjson attempt "$attempt" '.path == ".github/workflows/release-gate.yml" and .event == "pull_request" and .head_branch == $branch and .head_sha == $candidate and .run_attempt == $attempt and .status == "completed"' "$attempt_file" >/dev/null
-              jobs_file="$RUNNER_TEMP/gate-$run_id-attempt-$attempt-jobs.jsonl"
-              gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/attempts/$attempt/jobs?per_page=100" --jq '.jobs[]' > "$jobs_file"
-              named_jobs=$(jq -s '[.[] | select(.name == "✅ Release Gate")] | length' "$jobs_file")
-              test "$named_jobs" -le 1
-              if jq -e '.conclusion == "success"' "$attempt_file" >/dev/null; then
-                job_id=$(jq -sr '[.[] | select(.name == "✅ Release Gate" and .status == "completed" and .conclusion == "success")] | if length == 1 then .[0].id else empty end' "$jobs_file")
-                test -n "$job_id"
-                jq -cn --argjson run_id "$run_id" --argjson attempt "$attempt" --argjson job_id "$job_id" '{run_id:$run_id,attempt:$attempt,job_id:$job_id}' >> "$gate_candidates"
-              fi
-            done
-          done
-          jq -se 'length > 0' "$gate_candidates" >/dev/null
-          selected_gate=$(jq -sc 'sort_by([.run_id, .attempt]) | last' "$gate_candidates")
+          selected_gate=$(node .github/scripts/resolve-workflow-proof.mjs \
+            --workflow release-gate.yml \
+            --event pull_request \
+            --branch "$release_branch" \
+            --sha "$candidate_sha" \
+            --job "✅ Release Gate")
           gate_run_id=$(jq -r .run_id <<< "$selected_gate")
           gate_attempt=$(jq -r .attempt <<< "$selected_gate")
           gate_job_id=$(jq -r .job_id <<< "$selected_gate")
@@ -101,7 +88,7 @@ jobs:
           jq -e --arg release "$release_sha" --arg base "$release_base" '(.parents | length) == 2 and .parents[0].sha == $base and .parents[1].sha == $release' "$RUNNER_TEMP/candidate.json"
 
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$staging_run_id" > "$RUNNER_TEMP/staging-run.json"
-          jq -e --arg candidate "$candidate_sha" '.path == ".github/workflows/staging-proof.yml" and .event == "deployment_status" and .head_sha == $candidate and .conclusion == "success"' "$RUNNER_TEMP/staging-run.json"
+          jq -e --arg candidate "$candidate_sha" '.path == ".github/workflows/staging-proof.yml" and .event == "deployment_status" and .head_sha == $candidate and .status == "completed" and .conclusion == "success"' "$RUNNER_TEMP/staging-run.json"
           gh run download "$staging_run_id" --repo "$GITHUB_REPOSITORY" --name "staging-proof-$candidate_sha" --dir "$RUNNER_TEMP/staging-proof"
           jq -e --arg repository "$GITHUB_REPOSITORY" --arg candidate "$candidate_sha" --arg tree "$candidate_tree" --argjson pr "$preparation_pr" --argjson run "$staging_run_id" '.repository == $repository and .candidate_sha == $candidate and .tree_sha == $tree and .pr_number == $pr and .staging_run_id == $run' "$RUNNER_TEMP/staging-proof/staging-proof.json"
 
@@ -121,11 +108,12 @@ jobs:
             echo "version=$version"
           } >> "$GITHUB_OUTPUT"
 
-      - name: 📥 Checkout authorized production tree
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 2
-          persist-credentials: false
+      - name: Verify candidate contains trusted main
+        env:
+          CANDIDATE_SHA: ${{ steps.release.outputs.candidate_sha }}
+        run: |
+          trusted_main_sha=$(git rev-parse "${GITHUB_SHA}^1")
+          node .github/scripts/check-release-lineage.mjs "$trusted_main_sha" "$CANDIDATE_SHA"
 
       - name: 🔍 Detect migration changes
         id: migrations
@@ -177,237 +165,56 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
         run: supabase db push
 
-  publish:
-    name: 🏭 Publish proven release
+  prepare:
+    name: 🚦 Record production authorization
     needs: [authorize, migrate]
     if: ${{ always() && needs.authorize.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 15
+    environment: production
     env:
-      CANDIDATE_SHA: ${{ needs.authorize.outputs.candidate_sha }}
-      GATE_ATTEMPT: ${{ needs.authorize.outputs.gate_attempt }}
-      GATE_JOB_ID: ${{ needs.authorize.outputs.gate_job_id }}
-      GATE_RUN_ID: ${{ needs.authorize.outputs.gate_run_id }}
-      MIGRATION_CHANGED: ${{ needs.authorize.outputs.migration_changed }}
-      PREPARATION_PR: ${{ needs.authorize.outputs.preparation_pr }}
-      PRODUCTION_PR: ${{ needs.authorize.outputs.production_pr }}
-      PRODUCTION_TREE: ${{ needs.authorize.outputs.production_tree }}
-      STAGING_RUN_ID: ${{ needs.authorize.outputs.staging_run_id }}
       VERSION: ${{ needs.authorize.outputs.version }}
       RAILWAY_CLI_VERSION: "5.15.0"
       RAILWAY_CLI_SHA256: d302113b772b8f34d28ed2242c1d258953de989c282d4cc72291239ccb0fb041
       RAILWAY_PROJECT: 33ba829c-d4d6-4096-b0dc-57c89c367063
-      RAILWAY_PRODUCTION_ENVIRONMENT: a28b6826-ecbe-4c0f-9856-e0ba3ce14e93
       RAILWAY_SERVICE: b1f9b1c0-7eca-4c58-b203-cdbbed8ae0a4
     steps:
-      # Railway's Wait for CI keeps its GitHub deployment pending while this
-      # workflow runs. Verify Vercel here; Railway is proven explicitly below.
-      - name: Wait for exact Vercel production deployments
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          deployment() {
-            gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f environment="$1" -f sha="$GITHUB_SHA" -f per_page=100 | jq -r --arg creator "$2" '[.[] | select(.creator.login == $creator)] | max_by(.id) | .id // empty'
-          }
-          state() { gh api "repos/$GITHUB_REPOSITORY/deployments/$1/statuses" --jq 'max_by(.id) | .state // empty'; }
-
-          for _ in {1..120}; do
-            test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$GITHUB_SHA"
-            frontend_id=$(deployment "Production – pulpe-frontend" "vercel[bot]")
-            landing_id=$(deployment "Production – pulpe-landing" "vercel[bot]")
-            frontend_state=${frontend_id:+$(state "$frontend_id")}
-            landing_state=${landing_id:+$(state "$landing_id")}
-            case "$frontend_state $landing_state" in *error*|*failure*) exit 1 ;; esac
-            if [ "$frontend_state" = success ] && [ "$landing_state" = success ]; then break; fi
-            sleep 10
-          done
-          test "$frontend_state $landing_state" = "success success"
-          curl --fail --silent --show-error --location --max-time 20 https://app.pulpe.app/ >/dev/null
-          curl --fail --silent --show-error --location --max-time 20 https://pulpe.app/ >/dev/null
-          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$GITHUB_SHA"
-          {
-            echo "FRONTEND_DEPLOYMENT_ID=$frontend_id"
-            echo "LANDING_DEPLOYMENT_ID=$landing_id"
-          } >> "$GITHUB_ENV"
-
-      - name: 📥 Checkout proven production tree
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: 🔒 Verify production CSP headers
-        run: |
-          set -euo pipefail
-          expected=$(python3 -c "
-          import json, re
-          v = json.load(open('vercel.json'))
-          for block in v['headers']:
-              for cond in block.get('has', []):
-                  if cond.get('type') == 'host' and re.match('^(?:' + cond['value'] + ')$', 'app.pulpe.app'):
-                      for header in block['headers']:
-                          if header['key'] == 'Content-Security-Policy':
-                              print(header['value'])
-                              raise SystemExit
-          ")
-          test -n "$expected"
-          for host in app.pulpe.app pulpe-frontend.vercel.app; do
-            for attempt in {1..10}; do
-              served=$(curl -s --max-time 10 -o /dev/null -D - "https://${host}/" | grep -i '^content-security-policy:' | sed 's/^[^:]*: *//' | tr -d '\r')
-              if [ "$served" = "$expected" ]; then break; fi
-              if [ "$attempt" = 10 ]; then exit 1; fi
-              sleep 30
-            done
-          done
-
       - name: Install verified Railway CLI
         run: |
-          set -euo pipefail
           archive="$RUNNER_TEMP/railway.tar.gz"
           bin_dir="$RUNNER_TEMP/railway-cli"
-          curl --fail --silent --show-error --connect-timeout 5 --max-time 60 --location "https://github.com/railwayapp/cli/releases/download/v$RAILWAY_CLI_VERSION/railway-v$RAILWAY_CLI_VERSION-x86_64-unknown-linux-gnu.tar.gz" --output "$archive"
+          curl --fail --silent --show-error --location "https://github.com/railwayapp/cli/releases/download/v$RAILWAY_CLI_VERSION/railway-v$RAILWAY_CLI_VERSION-x86_64-unknown-linux-gnu.tar.gz" --output "$archive"
           echo "$RAILWAY_CLI_SHA256  $archive" | sha256sum --check
           mkdir -p "$bin_dir"
           tar --extract --gzip --file "$archive" --directory "$bin_dir"
           test -x "$bin_dir/railway"
           echo "$bin_dir" >> "$GITHUB_PATH"
 
-      - name: Verify Railway credentials and active production deployment
+      - name: Wait for exact web client
         env:
           GH_TOKEN: ${{ github.token }}
-          PREVIEW_TOKEN: ${{ secrets.RAILWAY_PREVIEW_TOKEN }}
-          PRODUCTION_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
         run: |
-          set -euo pipefail
-          for environment in preview production; do
-            if [ "$environment" = preview ]; then token="$PREVIEW_TOKEN"; else token="$PRODUCTION_TOKEN"; fi
-            test -n "$token"
-            RAILWAY_TOKEN="$token" railway variable list --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --json > "$RUNNER_TEMP/railway-$environment.json"
-            jq -e 'type == "object"' "$RUNNER_TEMP/railway-$environment.json" >/dev/null
+          for _ in {1..60}; do
+            deployment_id=$(gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f environment="Production – pulpe-frontend" -f sha="$GITHUB_SHA" -f per_page=100 | jq -r --arg sha "$GITHUB_SHA" '[.[] | select(.sha == $sha and .ref == $sha and .creator.login == "vercel[bot]")] | max_by(.id) | .id // empty')
+            state=${deployment_id:+$(gh api "repos/$GITHUB_REPOSITORY/deployments/$deployment_id/statuses" --jq 'max_by(.id) | .state // empty')}
+            case "$state" in error|failure) exit 1 ;; success) break ;; esac
+            sleep 10
           done
-          deployments="$RUNNER_TEMP/railway-active-production.json"
-          railway deployment list --project "$RAILWAY_PROJECT" --environment production --service "$RAILWAY_SERVICE" --limit 50 --json > "$deployments"
-          if jq -e --arg sha "$GITHUB_SHA" '.[0].status == "SUCCESS" and .[0].meta.commitHash == $sha and .[0].meta.branch == "main"' "$deployments" >/dev/null; then
-            active_id=$(jq -r '.[0].id' "$deployments")
-          else
-            active_id=$(jq -n --arg sha "$GITHUB_SHA" --arg environment "$RAILWAY_PRODUCTION_ENVIRONMENT" --arg service "$RAILWAY_SERVICE" '{query:"mutation($sha:String!,$environment:String!,$service:String!){serviceInstanceDeployV2(commitSha:$sha,environmentId:$environment,serviceId:$service)}",variables:{sha:$sha,environment:$environment,service:$service}}' | curl --fail --silent --show-error --connect-timeout 5 --max-time 20 -A "railwayapp/$RAILWAY_CLI_VERSION" https://backboard.railway.app/graphql/v2 -H "project-access-token: $RAILWAY_TOKEN" -H 'x-source: railway-cli' -H 'Content-Type: application/json' --data-binary @- | jq -er 'if .errors then error(.errors | tostring) else .data.serviceInstanceDeployV2 end')
-            for _ in {1..90}; do
-              railway deployment list --project "$RAILWAY_PROJECT" --environment production --service "$RAILWAY_SERVICE" --limit 50 --json > "$deployments"
-              status=$(jq -r --arg id "$active_id" '.[] | select(.id == $id) | .status // empty' "$deployments")
-              case "$status" in FAILED|CRASHED|REMOVED|CANCELED|SKIPPED) exit 1 ;; SUCCESS) break ;; esac
-              sleep 10
-            done
-          fi
-          test -n "$active_id"
-          jq -e --arg id "$active_id" --arg sha "$GITHUB_SHA" '.[0].id == $id and .[0].status == "SUCCESS" and .[0].meta.commitHash == $sha and .[0].meta.branch == "main"' "$deployments" >/dev/null
-          railway_status_id=$(gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f environment="pulpe-backend / production" -f sha="$GITHUB_SHA" -f per_page=100 | jq -r '[.[] | select(.creator.login == "railway-app[bot]")] | max_by(.id) | .id // empty')
-          test -n "$railway_status_id"
-          curl --fail --silent --show-error --location --max-time 20 https://api.pulpe.app/health >/dev/null
-          {
-            echo "ACTIVE_RAILWAY_DEPLOYMENT_ID=$active_id"
-            echo "RAILWAY_DEPLOYMENT_ID=$railway_status_id"
-          } >> "$GITHUB_ENV"
+          test "$state" = success
 
-      - name: Record immutable production proof
+      - name: Synchronize current backend version without deploying
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
+        run: railway variable set "LATEST_WEB_VERSION=$VERSION" --project "$RAILWAY_PROJECT" --environment production --service "$RAILWAY_SERVICE" --skip-deploys --json >/dev/null
+
+      - name: Record authorized production context
         run: |
-          jq -n --arg repository "$GITHUB_REPOSITORY" --arg candidate "$CANDIDATE_SHA" --arg production "$GITHUB_SHA" --arg tree "$PRODUCTION_TREE" --arg version "$VERSION" --arg active_railway "$ACTIVE_RAILWAY_DEPLOYMENT_ID" --argjson production_pr "$PRODUCTION_PR" --argjson preparation_pr "$PREPARATION_PR" --argjson staging_run "$STAGING_RUN_ID" --argjson gate_run "$GATE_RUN_ID" --argjson gate_attempt "$GATE_ATTEMPT" --argjson gate_job "$GATE_JOB_ID" --argjson migrations "$MIGRATION_CHANGED" --argjson frontend "$FRONTEND_DEPLOYMENT_ID" --argjson landing "$LANDING_DEPLOYMENT_ID" --argjson railway_status "$RAILWAY_DEPLOYMENT_ID" '{repository:$repository,version:$version,production_pr:$production_pr,preparation_pr:$preparation_pr,candidate_sha:$candidate,production_sha:$production,tree_sha:$tree,staging_run_id:$staging_run,release_gate:{run_id:$gate_run,attempt:$gate_attempt,job_id:$gate_job},migrations_applied:$migrations,deployments:{frontend:$frontend,landing:$landing,railway_status:$railway_status,railway_active:$active_railway}}' > production-proof.json
+          jq -n --arg repository "$GITHUB_REPOSITORY" --arg production "$GITHUB_SHA" --arg candidate "${{ needs.authorize.outputs.candidate_sha }}" --arg tree "${{ needs.authorize.outputs.production_tree }}" --arg version "$VERSION" --argjson workflow_run_id "$GITHUB_RUN_ID" --argjson run_attempt "$GITHUB_RUN_ATTEMPT" --argjson production_pr "${{ needs.authorize.outputs.production_pr }}" --argjson preparation_pr "${{ needs.authorize.outputs.preparation_pr }}" --argjson staging_run_id "${{ needs.authorize.outputs.staging_run_id }}" --argjson gate_run_id "${{ needs.authorize.outputs.gate_run_id }}" --argjson gate_attempt "${{ needs.authorize.outputs.gate_attempt }}" --argjson gate_job_id "${{ needs.authorize.outputs.gate_job_id }}" --argjson migrations_applied "${{ needs.authorize.outputs.migration_changed }}" '{repository:$repository,production_sha:$production,candidate_sha:$candidate,tree_sha:$tree,version:$version,workflow_run_id:$workflow_run_id,run_attempt:$run_attempt,production_pr:$production_pr,preparation_pr:$preparation_pr,staging_run_id:$staging_run_id,release_gate:{run_id:$gate_run_id,attempt:$gate_attempt,job_id:$gate_job_id},migration_changed:$migrations_applied}' > production-context.json
 
-      - name: Upload production proof
+      - name: Upload authorized production context
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: production-proof-${{ github.sha }}
-          path: production-proof.json
+          name: production-context-${{ github.sha }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: production-context.json
           retention-days: 90
           if-no-files-found: error
-
-      - name: Create short-lived GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
-        with:
-          app-id: ${{ secrets.PULPE_RELEASE_APP_ID }}
-          private-key: ${{ secrets.PULPE_RELEASE_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: pulpe
-
-      - name: Publish the immutable tag and GitHub Release
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          # shellcheck disable=SC2016
-          set -euo pipefail
-          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$GITHUB_SHA"
-          gh api "repos/$GITHUB_REPOSITORY/pulls/$PREPARATION_PR" > "$RUNNER_TEMP/preparation-pr.json"
-          notes="$RUNNER_TEMP/release-notes.md"
-          jq -r .body "$RUNNER_TEMP/preparation-pr.json" | sed -n "/^## v$VERSION$/,$ p" > "$notes"
-          test "$(sed -n '1p' "$notes")" = "## v$VERSION"
-
-          encoded_tag=$(jq -rn --arg value "v$VERSION" '$value | @uri')
-          gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$encoded_tag" > "$RUNNER_TEMP/tags.json"
-          tag_count=$(jq --arg ref "refs/tags/v$VERSION" '[.[] | select(.ref == $ref)] | length' "$RUNNER_TEMP/tags.json")
-          if [ "$tag_count" = 0 ]; then
-            jq -n --arg tag "v$VERSION" --arg message "v$VERSION" --arg object "$GITHUB_SHA" '{tag:$tag,message:$message,object:$object,type:"commit"}' > "$RUNNER_TEMP/tag.json"
-            tag_sha=$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/tags" --input "$RUNNER_TEMP/tag.json" --jq .sha)
-            jq -n --arg ref "refs/tags/v$VERSION" --arg sha "$tag_sha" '{ref:$ref,sha:$sha}' > "$RUNNER_TEMP/ref.json"
-            gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" --input "$RUNNER_TEMP/ref.json" >/dev/null
-          else
-            test "$tag_count" = 1
-            tag_sha=$(jq -r --arg ref "refs/tags/v$VERSION" '.[] | select(.ref == $ref) | .object.sha' "$RUNNER_TEMP/tags.json")
-            test "$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$tag_sha" --jq .object.sha)" = "$GITHUB_SHA"
-          fi
-
-          gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[]' > "$RUNNER_TEMP/releases.jsonl"
-          release_count=$(jq -s --arg tag "v$VERSION" '[.[] | select(.tag_name == $tag)] | length' "$RUNNER_TEMP/releases.jsonl")
-          if [ "$release_count" = 0 ]; then
-            jq -n --arg tag "v$VERSION" --arg target "$GITHUB_SHA" --arg name "v$VERSION" --rawfile body "$notes" '{tag_name:$tag,target_commitish:$target,name:$name,body:$body,draft:false,prerelease:false,generate_release_notes:false}' > "$RUNNER_TEMP/release.json"
-            gh api -X POST "repos/$GITHUB_REPOSITORY/releases" --input "$RUNNER_TEMP/release.json" --jq .html_url
-          else
-            jq -se --arg tag "v$VERSION" --arg target "$GITHUB_SHA" --rawfile body "$notes" '[.[] | select(.tag_name == $tag)] | length == 1 and .[0].target_commitish == $target and .[0].name == $tag and .[0].body == $body and .[0].draft == false and .[0].prerelease == false' "$RUNNER_TEMP/releases.jsonl"
-          fi
-
-      - name: 📊 Create PostHog annotation
-        env:
-          POSTHOG_HOST: https://eu.i.posthog.com
-          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
-          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_WEBAPP_PROJECT_ID }}
-        run: |
-          commit="${GITHUB_SHA::7}"
-          date=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          curl -sf -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/annotations/" \
-            -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
-            -H "Content-Type: application/json" \
-            -d "{\"content\":\"v${VERSION} (${commit})\",\"scope\":\"project\",\"date_marker\":\"${date}\"}" \
-            || echo "::warning::PostHog annotation failed"
-
-      - name: Synchronize the web version gate
-        env:
-          PREVIEW_TOKEN: ${{ secrets.RAILWAY_PREVIEW_TOKEN }}
-          PRODUCTION_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
-        run: |
-          set -euo pipefail
-          update_gate() {
-            local environment="$1" token="$2" endpoint="$3"
-            local vars="$RUNNER_TEMP/railway-$environment.json"
-            local live_version before id status
-            live_version=$(curl --fail --silent --show-error --location --max-time 20 "$endpoint" | jq -r .data.web.latestVersion || true)
-            if [ "$live_version" != "$VERSION" ]; then
-              before=$(RAILWAY_TOKEN="$token" railway deployment list --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --limit 1 --json | jq -r '.[0].id // empty')
-              if jq -e --arg version "$VERSION" '.LATEST_WEB_VERSION == $version' "$vars" >/dev/null; then
-                RAILWAY_TOKEN="$token" railway redeploy --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --yes --json >/dev/null
-              else
-                RAILWAY_TOKEN="$token" railway variable set "LATEST_WEB_VERSION=$VERSION" --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --json >/dev/null
-              fi
-              for _ in {1..120}; do
-                RAILWAY_TOKEN="$token" railway deployment list --project "$RAILWAY_PROJECT" --environment "$environment" --service "$RAILWAY_SERVICE" --limit 1 --json > "$RUNNER_TEMP/deployment-$environment.json"
-                id=$(jq -r '.[0].id // empty' "$RUNNER_TEMP/deployment-$environment.json")
-                status=$(jq -r '.[0].status // empty' "$RUNNER_TEMP/deployment-$environment.json")
-                case "$status" in FAILED|CRASHED|REMOVED|CANCELED) exit 1 ;; esac
-                if [ -n "$id" ] && [ "$id" != "$before" ] && [ "$status" = SUCCESS ]; then break; fi
-                sleep 10
-              done
-              test "$status" = SUCCESS
-            fi
-            test "$(curl --fail --silent --show-error --location --max-time 20 "$endpoint" | jq -r .data.web.latestVersion)" = "$VERSION"
-          }
-          update_gate preview "$PREVIEW_TOKEN" https://backend-preview-34f4.up.railway.app/api/v1/app/version
-          update_gate production "$PRODUCTION_TOKEN" https://api.pulpe.app/api/v1/app/version
