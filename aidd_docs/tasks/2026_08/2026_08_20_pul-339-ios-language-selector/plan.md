@@ -1,6 +1,6 @@
 ---
 objective: "Le sélecteur de langue iOS reprend la carte native des Préférences, reste lisible et accessible sur les configurations supportées, et conserve sa sélection et ses effets existants."
-status: implemented
+status: reviewed
 ---
 
 # Plan: harmoniser le sélecteur de langue des Préférences iOS
