@@ -210,7 +210,7 @@ jobs:
           commit="${PRODUCTION_SHA::7}"
           date=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           curl -sf -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/annotations/" \
-            -H "Authorization: Bearer ${POST...KEY}" \
+            -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "{\"content\":\"v${VERSION} (${commit})\",\"scope\":\"project\",\"date_marker\":\"${date}\"}" \
             || echo "::warning::PostHog annotation failed"

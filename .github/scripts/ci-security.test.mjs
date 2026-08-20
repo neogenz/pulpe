@@ -444,6 +444,11 @@ test("production finalization is event-driven, active and idempotent", () => {
   assert.match(productionFinalize, /Production – pulpe-frontend/);
   assert.match(productionFinalize, /Production – pulpe-landing/);
   assert.match(productionFinalize, /sha256sum --check/);
+  assert.match(
+    productionFinalize,
+    /Authorization: Bearer \$\{POSTHOG_PERSONAL_API_KEY\}/,
+  );
+  assert.doesNotMatch(productionFinalize, /POST\.\.\.KEY/);
   assert.doesNotMatch(productionFinalize, /LATEST_IOS_VERSION|MIN_WEB_VERSION/);
   const railwayProof = productionFinalize.indexOf(
     "Verify active Railway production deployment",
