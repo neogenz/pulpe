@@ -119,6 +119,20 @@ test("CI is PR-only and production owns migration credentials", () => {
   );
 });
 
+test("the migration contract is required and replayed before production apply", () => {
+  assert.match(
+    workflow,
+    /\n  migration-contract:[\s\S]*migration-contract\.test\.cjs[\s\S]*github\.event\.pull_request\.base\.sha[\s\S]*github\.event\.pull_request\.head\.sha[\s\S]*check-migration-contract\.cjs[\s\S]*\n  ci-success:[\s\S]*migration-contract[\s\S]*needs\.migration-contract\.result\s*==\s*'success'[\s\S]*needs\.migration-contract\.result\s*!=\s*'success'/,
+  );
+  const replay = production.indexOf("Verify migration contract");
+  const dryRun = production.indexOf("run: supabase db push --dry-run");
+  assert.ok(replay >= 0 && replay < dryRun);
+  assert.match(
+    production.slice(replay, dryRun),
+    /check-migration-contract\.cjs "\$\{GITHUB_SHA\}\^1" "\$GITHUB_SHA"/,
+  );
+});
+
 test("successful preview PRs emit one immutable tested-tree proof", () => {
   const successStart = workflow.indexOf("\n  ci-success:");
   const success = workflow.slice(successStart);
