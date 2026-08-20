@@ -275,7 +275,6 @@ async function bootstrap() {
     LATEST_IOS_VERSION: configService.get('LATEST_IOS_VERSION')!,
     IOS_STORE_URL: configService.get('IOS_STORE_URL')!,
     MIN_WEB_VERSION: configService.get('MIN_WEB_VERSION')!,
-    LATEST_WEB_VERSION: configService.get('LATEST_WEB_VERSION')!,
   };
 
   app.useLogger(app.get(Logger));

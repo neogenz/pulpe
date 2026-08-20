@@ -34,6 +34,9 @@ const releaseSkill = read(".claude/skills/release/SKILL.md");
 const jstsRelease = read(".claude/skills/release/references/jsts-release.md");
 const deploymentGuide = read("docs/DEPLOYMENT.md");
 const versioningGuide = read("docs/VERSIONING.md");
+const backendEnvironment = read("backend-nest/src/config/environment.ts");
+const backendMain = read("backend-nest/src/main.ts");
+const backendEnvExample = read("backend-nest/.env.example");
 const frontendEslintConfig = require("../../frontend/eslint.config.js");
 
 test("release instructions use only the Railway-owned production path", () => {
@@ -47,6 +50,18 @@ test("release instructions use only the Railway-owned production path", () => {
     versioningGuide,
     /railway variables --set "LATEST_WEB_VERSION/,
   );
+  for (const artifactVersionSurface of [
+    production,
+    releaseSkill,
+    jstsRelease,
+    deploymentGuide,
+    versioningGuide,
+    backendEnvironment,
+    backendMain,
+    backendEnvExample,
+  ]) {
+    assert.doesNotMatch(artifactVersionSurface, /LATEST_WEB_VERSION/);
+  }
   for (const recovery of [
     "tag exists but the GitHub Release is missing",
     "duplicate Railway success",
@@ -337,10 +352,9 @@ test("production finishes preflight before Railway deploys", () => {
   assert.match(production, /environment: production/);
   assert.match(production, /run: supabase db push --dry-run/);
   assert.match(production, /run: supabase db push\n/);
-  assert.match(production, /RAILWAY_PRODUCTION_TOKEN/);
-  assert.match(
+  assert.doesNotMatch(
     production,
-    /railway variable set "LATEST_WEB_VERSION=\$VERSION"[\s\S]*--skip-deploys/,
+    /RAILWAY_PRODUCTION_TOKEN|RAILWAY_CLI_VERSION|railway variable set/,
   );
   assert.match(
     production,
@@ -371,13 +385,8 @@ test("production finishes preflight before Railway deploys", () => {
   );
   assert.ok(
     production.indexOf("Production – pulpe-frontend") <
-      production.indexOf("--skip-deploys"),
-    "the web client must be public before its version gate advances",
-  );
-  assert.ok(
-    production.indexOf("--skip-deploys") <
       production.indexOf("Upload authorized production context"),
-    "the current version contract must be synchronized before Railway deploys",
+    "the web client must be public before Railway receives its context",
   );
 
   for (const actionUse of production.matchAll(/^\s*uses:\s*([^\s#]+)/gm)) {

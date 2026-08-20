@@ -2,6 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { type INestApplication, VersioningType } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { appVersionResponseSchema } from 'pulpe-shared';
 import request from 'supertest';
 import { AppVersionController } from './app-version.controller';
@@ -10,8 +12,14 @@ import { IosVersionGateService } from './ios-version-gate.service';
 const STUB_ENV = {
   IOS_STORE_URL: 'https://apps.apple.com/app/pulpe',
   MIN_WEB_VERSION: '0.0.1',
-  LATEST_WEB_VERSION: '0.34.1',
 };
+const PRODUCT_VERSION = (
+  JSON.parse(
+    readFileSync(join(__dirname, '../../../package.json'), 'utf8'),
+  ) as {
+    version: string;
+  }
+).version;
 
 const STUB_IOS_GATE = {
   minVersion: '1.0.0',
@@ -83,5 +91,6 @@ describe('GET /api/v1/app/version', () => {
       STUB_IOS_GATE.latestVersion,
     );
     expect(response.body.data.ios.storeUrl).toBe(STUB_ENV.IOS_STORE_URL);
+    expect(response.body.data.web.latestVersion).toBe(PRODUCT_VERSION);
   });
 });

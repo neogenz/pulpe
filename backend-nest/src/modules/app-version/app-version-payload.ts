@@ -3,6 +3,7 @@ import {
   appVersionResponseSchema,
   type AppVersionResponse,
 } from 'pulpe-shared';
+import { PRODUCT_VERSION } from '../../config/product-version';
 import type { IosVersionGate } from './ios-version-gate.service';
 
 /**
@@ -28,7 +29,7 @@ export function buildAppVersionResponse(
       },
       web: {
         minVersion: configService.get('MIN_WEB_VERSION'),
-        latestVersion: configService.get('LATEST_WEB_VERSION'),
+        latestVersion: PRODUCT_VERSION,
       },
     },
   });

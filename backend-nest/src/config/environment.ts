@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SEMVER_PATTERN, isVersionAtMost } from '@common/utils/semver-compare';
+import { SEMVER_PATTERN } from '@common/utils/semver-compare';
 
 const envSchema = z
   .object({
@@ -62,15 +62,8 @@ const envSchema = z
     LATEST_IOS_VERSION: z.string().regex(SEMVER_PATTERN).default('1.0.0'),
     IOS_STORE_URL: z.url().default('https://apps.apple.com/app/id6758464920'),
     MIN_WEB_VERSION: z.string().regex(SEMVER_PATTERN).default('0.0.1'),
-    LATEST_WEB_VERSION: z.string().regex(SEMVER_PATTERN).default('0.0.1'),
   })
-  .refine(
-    (env) => isVersionAtMost(env.MIN_WEB_VERSION, env.LATEST_WEB_VERSION),
-    {
-      message: 'LATEST_WEB_VERSION must be >= MIN_WEB_VERSION',
-      path: ['LATEST_WEB_VERSION'],
-    },
-  );
+  .strip();
 
 export type Environment = z.infer<typeof envSchema>;
 
