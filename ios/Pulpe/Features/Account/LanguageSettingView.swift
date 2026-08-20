@@ -26,31 +26,50 @@ struct LanguageSettingView: View {
                 pas celle-ci. Les régler redémarre Pulpe.
                 """)
         }
-        .listRowBackground(Color.surfaceContainerHigh)
+        .listRowSettingsBackground()
     }
 
     // MARK: - Language Picker
 
     private var languagePicker: some View {
-        HStack {
-            Text("Langue de l'app")
-            Spacer()
-            Menu {
-                Picker("Langue de l'app", selection: languageBinding) {
-                    ForEach(SupportedLocale.allCases) { locale in
-                        // Verbatim: "Deutsch" is a name, not a key to translate.
-                        Text(verbatim: locale.nativeName).tag(locale)
-                    }
+        Menu {
+            Picker("Langue de l'app", selection: languageBinding) {
+                ForEach(SupportedLocale.allCases) { locale in
+                    // Verbatim: "Deutsch" is a name, not a key to translate.
+                    Text(verbatim: locale.nativeName).tag(locale)
                 }
-            } label: {
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Text(verbatim: userSettingsStore.locale.nativeName)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(PulpeTypography.caption)
-                }
-                .foregroundStyle(Color.onSurfaceVariant)
             }
+        } label: {
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text("Langue de l'app")
+                    Spacer(minLength: DesignTokens.Spacing.md)
+                    selectedLanguage
+                }
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text("Langue de l'app")
+                    selectedLanguage
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("languageSettingPicker")
+        .accessibilityLabel("Langue de l'app")
+        .accessibilityValue(Text(verbatim: userSettingsStore.locale.nativeName))
+        .accessibilityHint("Ouvre le choix de la langue de l'app")
+    }
+
+    private var selectedLanguage: some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            Text(verbatim: userSettingsStore.locale.nativeName)
+            Image(systemName: "chevron.down")
+                .font(PulpeTypography.caption)
+                .accessibilityHidden(true)
+        }
+        .foregroundStyle(Color.onSurfaceVariant)
     }
 
     private var languageBinding: Binding<SupportedLocale> {
@@ -91,6 +110,9 @@ struct LanguageSettingView: View {
             }
             .contentShape(Rectangle())
         }
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
         .buttonStyle(.plain)
+        .accessibilityIdentifier("systemLanguageLink")
+        .accessibilityHint("Ouvre les réglages de langue d'iOS")
     }
 }
