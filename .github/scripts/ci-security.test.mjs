@@ -278,6 +278,11 @@ test("the production PR gate is read-only and proof-bound", () => {
     /node \.github\/scripts\/resolve-workflow-proof\.mjs --published-main "\$current_main"/,
   );
   assert.match(releaseGate, /matching-refs\/tags/);
+  assert.ok(
+    releaseGate.includes(
+      'gh api -X GET "repos/$GITHUB_REPOSITORY/contents/package.json" -f ref="$CANDIDATE_SHA"',
+    ),
+  );
 });
 
 test("production finishes preflight before Railway deploys", () => {
@@ -363,6 +368,14 @@ test("production finalizer proves exact providers before idempotent publication"
   assert.doesNotMatch(
     productionFinalize,
     /github\.event\.deployment\.ref \}\}" = main|\.ref == "main"/,
+  );
+  const vercelState = productionFinalize.slice(
+    productionFinalize.indexOf("state() {"),
+    productionFinalize.indexOf("for _ in {1..60}"),
+  );
+  assert.ok(
+    vercelState.indexOf("max_by(.id)") < vercelState.indexOf("environment_url"),
+    "Vercel URL checks must apply to the latest bot status",
   );
   assert.match(
     productionFinalize,

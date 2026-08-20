@@ -76,7 +76,7 @@ jobs:
           deployment() {
             gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f environment="$1" -f sha="$PRODUCTION_SHA" -f per_page=100 | jq -r --arg sha "$PRODUCTION_SHA" '[.[] | select(.sha == $sha and .ref == $sha and .creator.login == "vercel[bot]")] | max_by(.id) | .id // empty'
           }
-          state() { gh api "repos/$GITHUB_REPOSITORY/deployments/$1/statuses" --jq '[.[] | select(.creator.login == "vercel[bot]" and (.environment_url | startswith("https://")) and .log_url == .environment_url and .target_url == .environment_url)] | max_by(.id) | .state // empty'; }
+          state() { gh api "repos/$GITHUB_REPOSITORY/deployments/$1/statuses" --jq '[.[] | select(.creator.login == "vercel[bot]")] | max_by(.id) | select((.environment_url // "" | startswith("https://")) and .log_url == .environment_url and .target_url == .environment_url) | .state // empty'; }
           for _ in {1..60}; do
             frontend_id=$(deployment "Production – pulpe-frontend")
             landing_id=$(deployment "Production – pulpe-landing")
