@@ -89,7 +89,7 @@ l'ignore encore et ne compare que `minVersion`. Seules les versions iOS qui
 embarquent ce mécanisme peuvent afficher la suggestion : il n'existe aucun
 moyen rétroactif de la déclencher dans la 1.0.0.
 
-Cinq variables d'env pilotent ce gate côté backend, validées par Zod (`backend-nest/src/config/environment.ts`) :
+Quatre variables d'env pilotent ce gate côté backend, validées par Zod (`backend-nest/src/config/environment.ts`) :
 
 | Variable             | Rôle                                                                                 | Format         |
 | -------------------- | ------------------------------------------------------------------------------------ | -------------- |
@@ -97,9 +97,8 @@ Cinq variables d'env pilotent ce gate côté backend, validées par Zod (`backen
 | `LATEST_IOS_VERSION` | Repli hors-ligne / override manuel — la valeur servie vient de l'App Store           | SemVer `X.Y.Z` |
 | `IOS_STORE_URL`      | Deep link App Store (CTA "Mettre à jour") — porte aussi l'ID interrogé par le lookup | URL absolue    |
 | `MIN_WEB_VERSION`    | Plancher webapp                                                                      | SemVer `X.Y.Z` |
-| `LATEST_WEB_VERSION` | Dernière version webapp publiée                                                      | SemVer `X.Y.Z` |
 
-Source de vérité : Railway (env Production). Les valeurs locales restent celles de `backend-nest/.env.example`.
+`web.latestVersion` est dérivée de `backend-nest/package.json` embarqué dans l'artifact ; elle est donc identique en preview et production pour un SHA donné, sans état Railway mutable. Les planchers et le fallback iOS restent configurés dans Railway.
 
 ### iOS : la version publiée se résout toute seule
 
@@ -121,16 +120,12 @@ Bumper `MIN_IOS_VERSION` / `MIN_WEB_VERSION` **uniquement** quand on doit éject
 - Breaking change d'API que les anciens clients ne savent pas négocier.
 - Bug data-corrupting fixé dans une release ultérieure.
 
-Hors ces cas, `MIN_*` reste figé. Une release "classique" ne bouge que `LATEST_*`.
+Hors ces cas, `MIN_*` reste figé. Une release web classique ne modifie aucune variable : le bump de l'artifact devient automatiquement `web.latestVersion`.
 
 ### Procédure de rollout
 
-1. **Publier la release webapp AVANT le bump `MIN_WEB_VERSION`.** La version cible doit déjà être **publique et disponible** sur Vercel. Côté iOS, aucune précaution : le plancher servi est borné par la version App Store.
-2. **Bump `LATEST_WEB_VERSION` sur Railway** dès la release publiée :
-   ```bash
-   railway variables --set "LATEST_WEB_VERSION=0.36.0" --service backend
-   ```
-   Railway redémarre le service à chaque mise à jour de variable — `ConfigService` relit l'env au boot. `LATEST_IOS_VERSION` ne se bump pas : le backend suit l'App Store.
+1. **Publier la release webapp avant le bump `MIN_WEB_VERSION`.** La version cible doit déjà être publique sur Vercel. Le finalizer vérifie que l'endpoint sert la version du backend autorisé avant de publier le tag.
+2. **Ne synchroniser aucune version web dans Railway.** Le backend sert la version de son propre artifact. `LATEST_IOS_VERSION` ne se bump pas non plus : le backend suit l'App Store.
 3. **Bump `MIN_*` (force-update)** uniquement quand l'éjection est nécessaire :
    ```bash
    railway variables --set "MIN_IOS_VERSION=1.2.0" --service backend
@@ -154,4 +149,5 @@ Hors ces cas, `MIN_*` reste figé. Une release "classique" ne bouge que `LATEST_
 
 - Bumper `MIN_IOS_VERSION` avant l'approbation App Store → users bloqués sur une version inexistante.
 - Bumper `LATEST_IOS_VERSION` sans avoir publié la build iOS → suggestion iOS qui pointe vers du vide.
-- Modifier l'env Railway sans tracer la raison (PR description, run book) — l'audit disparaît.
+- Réintroduire une variable de dernière version web — elle peut diverger de l'artifact réellement déployé.
+- Modifier un plancher Railway sans tracer la raison (PR description, run book) — l'audit disparaît.

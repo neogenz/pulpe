@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { ConfigService } from '@nestjs/config';
 import { buildAppVersionResponse } from './app-version-payload';
 import type { IosVersionGate } from './ios-version-gate.service';
@@ -7,6 +9,9 @@ const IOS_VERSIONS: IosVersionGate = {
   minVersion: '1.0.0',
   latestVersion: '1.0.2',
 };
+const PRODUCT_VERSION = JSON.parse(
+  readFileSync(join(__dirname, '../../../package.json'), 'utf8'),
+).version as string;
 
 function createMockConfig(values: Record<string, string>): ConfigService {
   return {
@@ -19,7 +24,7 @@ describe('buildAppVersionResponse', () => {
     const config = createMockConfig({
       IOS_STORE_URL: 'https://apps.apple.com/app/pulpe',
       MIN_WEB_VERSION: '0.0.1',
-      LATEST_WEB_VERSION: '0.34.1',
+      LATEST_WEB_VERSION: '9.9.9',
     });
 
     const result = buildAppVersionResponse(config, IOS_VERSIONS);
@@ -29,14 +34,25 @@ describe('buildAppVersionResponse', () => {
     expect(result.data.ios.latestVersion).toBe('1.0.2');
     expect(result.data.ios.storeUrl).toBe('https://apps.apple.com/app/pulpe');
     expect(result.data.web.minVersion).toBe('0.0.1');
-    expect(result.data.web.latestVersion).toBe('0.34.1');
+    expect(result.data.web.latestVersion).toBe(PRODUCT_VERSION);
+  });
+
+  it('clamps the web floor to the version shipped in the backend artifact', () => {
+    const config = createMockConfig({
+      IOS_STORE_URL: 'https://apps.apple.com/app/pulpe',
+      MIN_WEB_VERSION: '9.9.9',
+    });
+
+    const result = buildAppVersionResponse(config, IOS_VERSIONS);
+
+    expect(result.data.web.minVersion).toBe(PRODUCT_VERSION);
+    expect(result.data.web.latestVersion).toBe(PRODUCT_VERSION);
   });
 
   it('should throw when a version is not semver-shaped', () => {
     const config = createMockConfig({
       IOS_STORE_URL: 'https://apps.apple.com/app/pulpe',
       MIN_WEB_VERSION: '0.0.1',
-      LATEST_WEB_VERSION: '0.0.1',
     });
 
     expect(() =>
@@ -51,7 +67,6 @@ describe('buildAppVersionResponse', () => {
     const config = createMockConfig({
       IOS_STORE_URL: 'not-a-url',
       MIN_WEB_VERSION: '0.0.1',
-      LATEST_WEB_VERSION: '0.0.1',
     });
 
     expect(() => buildAppVersionResponse(config, IOS_VERSIONS)).toThrow();

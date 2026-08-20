@@ -144,6 +144,8 @@ jobs:
           echo "ACTIVE_RAILWAY_DEPLOYMENT_ID=$(jq -r '.[0].id' "$RUNNER_TEMP/railway.json")" >> "$GITHUB_ENV"
           echo "RAILWAY_DEPLOYMENT_ID=${{ github.event.deployment.id }}" >> "$GITHUB_ENV"
           curl --fail --silent --show-error --location --max-time 20 https://api.pulpe.app/health >/dev/null
+          curl --fail --silent --show-error --location --max-time 20 https://api.pulpe.app/api/v1/app/version > "$RUNNER_TEMP/app-version.json"
+          jq -e --arg version "$VERSION" '.success == true and .data.web.latestVersion == $version' "$RUNNER_TEMP/app-version.json"
 
       - name: Record immutable production proof
         run: |

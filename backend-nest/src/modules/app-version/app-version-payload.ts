@@ -3,6 +3,8 @@ import {
   appVersionResponseSchema,
   type AppVersionResponse,
 } from 'pulpe-shared';
+import { PRODUCT_VERSION } from '@config/product-version';
+import { isVersionAtMost } from '@common/utils/semver-compare';
 import type { IosVersionGate } from './ios-version-gate.service';
 
 /**
@@ -18,6 +20,11 @@ export function buildAppVersionResponse(
   configService: ConfigService,
   iosVersions: IosVersionGate,
 ): AppVersionResponse {
+  const configuredWebMinimum = configService.get<string>('MIN_WEB_VERSION')!;
+  const webMinimum = isVersionAtMost(configuredWebMinimum, PRODUCT_VERSION)
+    ? configuredWebMinimum
+    : PRODUCT_VERSION;
+
   return appVersionResponseSchema.parse({
     success: true,
     data: {
@@ -27,8 +34,8 @@ export function buildAppVersionResponse(
         storeUrl: configService.get('IOS_STORE_URL'),
       },
       web: {
-        minVersion: configService.get('MIN_WEB_VERSION'),
-        latestVersion: configService.get('LATEST_WEB_VERSION'),
+        minVersion: webMinimum,
+        latestVersion: PRODUCT_VERSION,
       },
     },
   });

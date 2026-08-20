@@ -638,8 +638,10 @@ test("production prepares Railway without waiting for or forcing it", () => {
   assert.match(production, /.parents\[1\]\.sha == \$candidate/);
   assert.match(production, /.parents\[0\]\.sha == \$base/);
   assert.match(production, /staging-proof-\$candidate_sha/);
-  assert.match(production, /LATEST_WEB_VERSION=\$VERSION/);
-  assert.match(production, /--skip-deploys/);
+  assert.doesNotMatch(
+    production,
+    /LATEST_WEB_VERSION|railway variable set|RAILWAY_PRODUCTION_TOKEN/,
+  );
   assert.match(production, /production-context-\$\{\{ github\.sha \}\}/);
   assert.doesNotMatch(
     production,
@@ -670,6 +672,8 @@ test("production finalization is event-driven, active and idempotent", () => {
   assert.match(productionFinalize, /\.id == \$id and \.state == "success"/);
   assert.match(productionFinalize, /\.\[0\]\.status == "SUCCESS"/);
   assert.match(productionFinalize, /\.\[0\]\.meta\.commitHash == \$sha/);
+  assert.match(productionFinalize, /api\/v1\/app\/version/);
+  assert.match(productionFinalize, /\.data\.web\.latestVersion == \$version/);
   assert.doesNotMatch(
     productionFinalize,
     /serviceInstanceDeployV2|railway redeploy/,

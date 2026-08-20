@@ -47,16 +47,17 @@ environments. Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md
 ### Production deployment ownership and evidence
 
 Railway owns the production backend deployment. `production.yml` authorizes the
-release, applies migrations, stages `LATEST_WEB_VERSION` with `--skip-deploys`,
-then exits successfully. Railway `Wait for CI` deploys that exact `main` SHA only
+release, applies migrations and records an immutable context, then exits
+successfully. Railway `Wait for CI` deploys that exact `main` SHA only
 after those prerequisites pass. The subsequent `deployment_status=success` starts
 `production-finalize.yml`, which verifies the still-active Railway deployment and
-the exact Vercel deployments before creating the proof, tag and GitHub Release.
+the exact Vercel deployments and artifact-derived public version before creating
+the proof, tag and GitHub Release.
 
 `production.yml` must never wait for Railway, call `railway redeploy`, or invoke
 `serviceInstanceDeployV2`; those operations create a second deployment owner and
-reintroduce the CI/deployment cycle. Preview version-gate synchronization is not
-part of the production proof or the iOS distribution contract.
+reintroduce the CI/deployment cycle. `web.latestVersion` comes from the deployed
+backend package version; no preview or production synchronization is required.
 
 Proof and context artifacts include SHA, workflow run and immutable attempt. A
 successful historical attempt remains usable after a failed rerun, but its JSON
@@ -381,17 +382,17 @@ borné au slug réel de l’équipe propriétaire, puis le consigner ici.
 
 > Repository Settings → Secrets and variables → Actions → New repository secret
 
-| Secret                          | Value                    | Used by                                                   |
-| ------------------------------- | ------------------------ | --------------------------------------------------------- |
-| `SUPABASE_ACCESS_TOKEN`         | Supabase CLI token       | Production Release migrations                             |
-| `PRODUCTION_DB_PASSWORD`        | Supabase DB password     | Production Release migrations                             |
-| `PRODUCTION_PROJECT_ID`         | Supabase project ref     | Production Release migrations                             |
-| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | Production annotations + iOS releases                     |
-| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | Production annotations + iOS releases                     |
-| `PULPE_RELEASE_APP_ID`          | GitHub App ID            | Opens protected release PRs                               |
-| `PULPE_RELEASE_APP_PRIVATE_KEY` | GitHub App private key   | Creates short-lived release tokens                        |
-| `RAILWAY_PREVIEW_TOKEN`         | Railway project token    | Verifies and synchronizes the preview web-version gate    |
-| `RAILWAY_PRODUCTION_TOKEN`      | Railway project token    | Verifies and synchronizes the production web-version gate |
+| Secret                          | Value                    | Used by                                   |
+| ------------------------------- | ------------------------ | ----------------------------------------- |
+| `SUPABASE_ACCESS_TOKEN`         | Supabase CLI token       | Production Release migrations             |
+| `PRODUCTION_DB_PASSWORD`        | Supabase DB password     | Production Release migrations             |
+| `PRODUCTION_PROJECT_ID`         | Supabase project ref     | Production Release migrations             |
+| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | Production annotations + iOS releases     |
+| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | Production annotations + iOS releases     |
+| `PULPE_RELEASE_APP_ID`          | GitHub App ID            | Opens protected release PRs               |
+| `PULPE_RELEASE_APP_PRIVATE_KEY` | GitHub App private key   | Creates short-lived release tokens        |
+| `RAILWAY_PREVIEW_TOKEN`         | Railway project token    | Verifies the active preview deployment    |
+| `RAILWAY_PRODUCTION_TOKEN`      | Railway project token    | Verifies the active production deployment |
 
 See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release architecture.
 
@@ -434,10 +435,11 @@ Detailed versioning and force-update gate rules: [VERSIONING.md](./VERSIONING.md
 3. A human other than the App approves and merges the production PR. This is the
    release decision; no administrator push is part of the normal process.
 4. `🏭 Production Release` revalidates the approval and proofs, applies any migration
-   behind the protected environment gate, waits for exact Vercel/Railway production
-   deployments, checks the public endpoints and CSP, and records an immutable proof.
-5. Only then does the workflow create `vX.Y.Z`, publish the French GitHub Release and
-   synchronize Railway `LATEST_WEB_VERSION` in preview and production. iOS remains
+   behind the protected environment gate and records an immutable authorization
+   context. It then finishes so Railway `Wait for CI` can deploy the exact SHA.
+5. Railway success starts `production-finalize.yml`, which correlates Railway and
+   Vercel to that SHA, verifies that the public web version equals the backend artifact,
+   records the proof, then creates `vX.Y.Z` and the French GitHub Release. iOS remains
    governed by App Store distribution; the backend resolves its published version
    from Apple.
 
