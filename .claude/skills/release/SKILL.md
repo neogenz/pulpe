@@ -571,7 +571,7 @@ After the preparation PR is reviewed and merged with a merge commit:
 - new feature PRs may then continue merging into `preview` without changing the frozen candidate;
 - `✅ Release Gate` validates the production PR without secrets or executing PR code; production correlates that gate through the exact PR head branch and SHA, then checks every immutable run attempt and its named job. It never relies on `workflow_run.pull_requests[]`, and a later failed rerun does not erase an earlier successful attempt;
 - a human other than the App approves production.
-- `🏭 Production Release` revalidates every proof, applies migrations when present, waits for exact production deployments, deploys the exact production commit through Railway when its active deployment differs, verifies Railway directly rather than trusting only GitHub's deployment status, verifies CSP, publishes the tag and GitHub Release, then synchronizes Railway's web version gate.
+- `🏭 Production Release` revalidates every proof, enforces the expand/contract migration contract and applies pending migrations, records the exact authorization context, then exits successfully so Railway `Wait for CI` can deploy the production SHA. Railway remains the only backend deployment owner. A trusted Railway success starts the separate finalizer, which correlates Railway and Vercel, verifies the artifact-derived public version, records the immutable proof, and only then publishes the tag and GitHub Release.
 
 This skill does not push `preview` or `main`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release. Those production operations belong to the protected GitHub workflow after the approved production PR is merged.
 

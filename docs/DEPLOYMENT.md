@@ -95,7 +95,19 @@ supabase unlink
 - Only when migrations changed, the protected `production` environment approves a
   job that verifies its pinned Supabase CLI archive, runs `supabase db push --dry-run`,
   then applies from the authorized production commit.
-- To create a new migration: `supabase migration new [description]` then `supabase db push` after editing the generated SQL. Warning: this pushes to the linked (prod) project.
+- Every new migration declares `-- pulpe:migration-phase expand` or `contract`.
+  Migration releases are schema-only: they cannot modify runtime backend, frontend,
+  landing or shared sources. `expand` rejects destructive SQL; application consumers
+  ship in a later release, after the schema exists. `contract` removes the obsolete
+  schema in another schema-only release and must declare
+  `-- pulpe:safe-after vX.Y.Z`, where that published ancestor is the application
+  release that stopped using it. Existing migration files are immutable.
+- PR CI checks this contract on the candidate diff, and `production.yml` rechecks
+  the exact production merge before `supabase db push`. Provider deployment order
+  is therefore tolerated through compatibility, not synchronized by timing.
+- To create a new migration: `supabase migration new [description]`, add the phase
+  header, then edit the generated SQL. Do not run `db push` against production;
+  production mutations are owned by the protected workflow.
 
 ##### Apply migrations locally
 

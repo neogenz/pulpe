@@ -445,7 +445,19 @@ test("CI is PR-only and production owns migration credentials", () => {
   assert.match(workflow, /pull_request:\n\s+branches: \[preview\]/);
   assert.doesNotMatch(workflow, /^\s{2}push:|branches: \[main/m);
   assert.doesNotMatch(workflow, /secrets\.|supabase db push/);
+  assert.match(
+    workflow,
+    /node --test \.github\/scripts\/migration-contract\.test\.mjs/,
+  );
+  assert.match(
+    workflow,
+    /check-migration-contract\.mjs "\$BASE_SHA" "\$HEAD_SHA"/,
+  );
   assert.match(production, /environment: production/);
+  assert.match(
+    production,
+    /check-migration-contract\.mjs "\$\{GITHUB_SHA\}\^1" "\$GITHUB_SHA"/,
+  );
   const dryRun = production.indexOf("run: supabase db push --dry-run");
   const apply = production.indexOf("run: supabase db push\n");
   assert.notEqual(dryRun, -1);
@@ -589,6 +601,11 @@ test("release promotion writes only after a trusted immutable proof", () => {
     "release preparation and handoff must use the workflow lineage invariant",
   );
   assert.doesNotMatch(releaseSkill, /merge-base --is-ancestor origin\/main/);
+  assert.match(releaseSkill, /expand\/contract migration contract/);
+  assert.doesNotMatch(
+    releaseSkill,
+    /deploys the exact production commit through Railway|synchronizes Railway's web version gate/,
+  );
 
   for (const actionUse of releasePromotion.matchAll(
     /^\s*uses:\s*([^\s#]+)/gm,

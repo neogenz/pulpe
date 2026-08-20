@@ -124,8 +124,11 @@ jobs:
       - name: 📥 Checkout authorized production tree
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 2
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: 🔐 Verify migration compatibility contract
+        run: node .github/scripts/check-migration-contract.mjs "${GITHUB_SHA}^1" "$GITHUB_SHA"
 
       - name: 🔍 Detect migration changes
         id: migrations
