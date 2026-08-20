@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Preserve returning-user identity when Keychain is unavailable

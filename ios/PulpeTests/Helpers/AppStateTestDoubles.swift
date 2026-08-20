@@ -129,16 +129,21 @@ final class MockWidgetSync: WidgetSyncing, @unchecked Sendable {
 // MARK: - Mock KeychainEmailStoring
 
 actor MockKeychainStore: KeychainEmailStoring {
-    private var lastUsedEmail: String?
+    private var readResult: LastUsedEmailReadResult
 
-    init(lastUsedEmail: String? = nil) {
-        self.lastUsedEmail = lastUsedEmail
+    init(lastUsedEmail: String? = nil, readResult: LastUsedEmailReadResult? = nil) {
+        self.readResult = readResult ?? lastUsedEmail.map(LastUsedEmailReadResult.available) ?? .missing
     }
 
-    func getLastUsedEmail() -> String? { lastUsedEmail }
-    func saveLastUsedEmail(_ email: String) { lastUsedEmail = email }
-    func clearLastUsedEmail() { lastUsedEmail = nil }
-    func clearAllData() { lastUsedEmail = nil }
+    func getLastUsedEmail() -> String? {
+        guard case .available(let email) = readResult else { return nil }
+        return email
+    }
+
+    func readLastUsedEmail() -> LastUsedEmailReadResult { readResult }
+    func saveLastUsedEmail(_ email: String) { readResult = .available(email) }
+    func clearLastUsedEmail() { readResult = .missing }
+    func clearAllData() { readResult = .missing }
 }
 
 // MARK: - Shared BiometricPreference Stubs
