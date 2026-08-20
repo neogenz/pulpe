@@ -483,6 +483,14 @@ test("production finalizer proves exact providers before idempotent publication"
 });
 
 test("iOS distribution consumes staging or finalized production proofs", () => {
+  assert.equal(
+    [
+      ...iosDistribution.matchAll(
+        /node \.\.\/\.github\/scripts\/resolve-workflow-proof\.mjs/g,
+      ),
+    ].length,
+    2,
+  );
   assert.match(iosDistribution, /--workflow staging-proof\.yml/);
   assert.match(iosDistribution, /--workflow production-finalize\.yml/);
   assert.match(
