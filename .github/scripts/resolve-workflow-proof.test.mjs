@@ -73,6 +73,68 @@ test("keeps an immutable successful attempt after a failed rerun", () => {
   });
 });
 
+test("selects a successful rerun after a failed first attempt", () => {
+  const base = workflowApi();
+  const api = (path, paginate) => {
+    if (path.endsWith("/attempts/1"))
+      return {
+        ...identity,
+        run_attempt: 1,
+        status: "completed",
+        conclusion: "failure",
+      };
+    if (path.endsWith("/attempts/2"))
+      return {
+        ...identity,
+        run_attempt: 2,
+        status: "completed",
+        conclusion: "success",
+      };
+    if (path.includes("/attempts/2/jobs?")) return [{ jobs: [job] }];
+    return base(path, paginate);
+  };
+  assert.deepEqual(resolveWorkflowProof(options, api), {
+    run_id: 42,
+    attempt: 2,
+    job_id: 99,
+  });
+});
+
+test("ignores a newer skipped run for the same identity", () => {
+  const base = workflowApi();
+  const api = (path, paginate) => {
+    if (path.includes("/workflows/release-gate.yml/runs?"))
+      return [
+        {
+          workflow_runs: [
+            { id: 43, ...identity },
+            { id: 42, ...identity },
+          ],
+        },
+      ];
+    if (path.endsWith("/actions/runs/43")) return { run_attempt: 1 };
+    if (path.endsWith("/actions/runs/43/attempts/1"))
+      return {
+        ...identity,
+        run_attempt: 1,
+        status: "completed",
+        conclusion: "skipped",
+      };
+    return base(path, paginate);
+  };
+  assert.equal(resolveWorkflowProof(options, api).run_id, 42);
+});
+
+for (const field of ["sha", "event", "workflow", "job"]) {
+  test(`fails closed on wrong ${field}`, () => {
+    const invalid = {
+      ...options,
+      [field]: field === "sha" ? "b".repeat(40) : `wrong-${field}`,
+    };
+    assert.throws(() => resolveWorkflowProof(invalid, workflowApi()));
+  });
+}
+
 test("fails closed when the named successful job is ambiguous", () => {
   assert.throws(
     () => resolveWorkflowProof(options, workflowApi({ duplicateJob: true })),
@@ -96,6 +158,24 @@ test("binds one unexpired artifact to SHA, run, and attempt", () => {
     () => resolveWorkflowProof(exact, workflowApi({ duplicateArtifact: true })),
     /exactly one unexpired artifact/,
   );
+  for (const artifact of [
+    null,
+    {
+      id: 7,
+      name: `proof-${sha}-run-42-attempt-1`,
+      expired: true,
+    },
+  ]) {
+    const base = workflowApi();
+    const api = (path, paginate) =>
+      path.includes("/artifacts?")
+        ? [{ artifacts: artifact ? [artifact] : [] }]
+        : base(path, paginate);
+    assert.throws(
+      () => resolveWorkflowProof(exact, api),
+      /exactly one unexpired artifact/,
+    );
+  }
 });
 
 const main = "b".repeat(40);

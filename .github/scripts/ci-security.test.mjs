@@ -31,7 +31,30 @@ const rootPackage = JSON.parse(read("package.json"));
 const backendPackage = JSON.parse(read("backend-nest/package.json"));
 const ciGuide = read("docs/CI.md");
 const releaseSkill = read(".claude/skills/release/SKILL.md");
+const jstsRelease = read(".claude/skills/release/references/jsts-release.md");
+const deploymentGuide = read("docs/DEPLOYMENT.md");
+const versioningGuide = read("docs/VERSIONING.md");
 const frontendEslintConfig = require("../../frontend/eslint.config.js");
+
+test("release instructions use only the Railway-owned production path", () => {
+  assert.match(releaseSkill, /production-finalize\.yml/);
+  assert.doesNotMatch(releaseSkill, /RAILWAY_PREVIEW_TOKEN/);
+  assert.doesNotMatch(
+    jstsRelease,
+    /skip deploy: false|environment: preview, then production/,
+  );
+  assert.doesNotMatch(
+    versioningGuide,
+    /railway variables --set "LATEST_WEB_VERSION/,
+  );
+  for (const recovery of [
+    "tag exists but the GitHub Release is missing",
+    "duplicate Railway success",
+    "main advances",
+  ]) {
+    assert.match(deploymentGuide, new RegExp(recovery, "i"));
+  }
+});
 
 test("Supabase archives are pinned and verified before extraction", () => {
   assert.match(

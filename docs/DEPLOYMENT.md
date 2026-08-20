@@ -165,13 +165,9 @@ CORS_ORIGIN=https://app.pulpe.app
 
 > **SUPABASE_SERVICE_ROLE_KEY is mandatory** in production/preview for automatic demo user cleanup. The application **will not start** without this variable.
 
-Deploy:
-
-```bash
-railway link
-railway up --detach
-railway domain  # Get the public URL
-```
+Initial bootstrap only: `railway link`, `railway up --detach`, then
+`railway domain`. Normal production releases always use the event-driven flow
+below; operators never run `railway up` for a release.
 
 ### Frontend — Angular App (Vercel project: `pulpe-frontend`)
 
@@ -362,8 +358,8 @@ borné au slug réel de l’équipe propriétaire, puis le consigner ici.
 | `SUPABASE_ACCESS_TOKEN`         | Supabase CLI token       | Production Release migrations                             |
 | `PRODUCTION_DB_PASSWORD`        | Supabase DB password     | Production Release migrations                             |
 | `PRODUCTION_PROJECT_ID`         | Supabase project ref     | Production Release migrations                             |
-| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | Production annotations + iOS releases                     |
-| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | Production annotations + iOS releases                     |
+| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | iOS releases                                              |
+| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | iOS releases                                              |
 | `PULPE_RELEASE_APP_ID`          | GitHub App ID            | Opens protected release PRs                               |
 | `PULPE_RELEASE_APP_PRIVATE_KEY` | GitHub App private key   | Creates short-lived release tokens                        |
 | `RAILWAY_PRODUCTION_TOKEN`      | Railway project token    | Syncs version without deploy, then verifies active SHA     |
@@ -398,6 +394,13 @@ reviewers; adding one would reintroduce a second approval after the production P
   the normal workflow.
 - Finalizer failure: rerun it after the provider issue is fixed. An identical tag or
   release is accepted; any contradictory existing object fails closed.
+- **Tag exists but the GitHub Release is missing**: rerun the finalizer. It accepts the
+  exact annotated tag and creates only the missing Release; a mismatch fails closed.
+- **Duplicate Railway success**: duplicate events for the same SHA are serialized and
+  idempotent. Let the existing finalizer finish or rerun its failed attempt; do not deploy.
+- **Main advances**: strict checks block a stale production PR. If a prior `main` is not
+  fully tagged and published, the next promotion remains blocked until its finalizer
+  completes successfully.
 - Migration failure: keep recovery forward-only and ship a corrective migration; do
   not automate rollback.
 - PostHog and CSP diagnostics are useful monitoring signals, not publication gates.

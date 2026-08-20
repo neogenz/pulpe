@@ -60,15 +60,15 @@ Run this before modifying release files. A failed check stops the workflow witho
 
    A feature branch must reach `preview` through its normal PR first. A hotfix present only on `main` must be reconciled through the normal branch flow before releasing.
 
-2. Require both trusted release workflows and their four credential names. Secret values are never readable and must not be requested:
+2. Require all three trusted production workflows and their three credential names. Secret values are never readable and must not be requested:
 
    ```bash
    gh workflow view release-promotion.yml --repo neogenz/pulpe >/dev/null
    gh workflow view production.yml --repo neogenz/pulpe >/dev/null
+   gh workflow view production-finalize.yml --repo neogenz/pulpe >/dev/null
    SECRET_NAMES=$(gh secret list --repo neogenz/pulpe --json name --jq '.[].name')
    grep -qx PULPE_RELEASE_APP_ID <<< "$SECRET_NAMES"
    grep -qx PULPE_RELEASE_APP_PRIVATE_KEY <<< "$SECRET_NAMES"
-   grep -qx RAILWAY_PREVIEW_TOKEN <<< "$SECRET_NAMES"
    grep -qx RAILWAY_PRODUCTION_TOKEN <<< "$SECRET_NAMES"
    ```
 

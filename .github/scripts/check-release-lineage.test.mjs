@@ -110,4 +110,5 @@ test("rejects abbreviated SHAs and non-commit objects", (t) => {
   const blob = git(path, "rev-parse", `${candidate}:feature.txt`);
   assert.notEqual(check(path, main, candidate.slice(0, 12)), 0);
   assert.notEqual(check(path, main, blob), 0);
+  assert.notEqual(check(path, main, "0".repeat(40)), 0);
 });
