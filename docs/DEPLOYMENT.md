@@ -67,10 +67,19 @@ supabase unlink
 
 - `🏭 Production Release` detects changes in `backend-nest/supabase/migrations/`
   against the previous `main`. No pull-request job receives production secrets.
-- Only when migrations changed, the protected `production` environment approves a
-  job that verifies its pinned Supabase CLI archive, runs `supabase db push --dry-run`,
-  then applies from the authorized production commit.
-- To create a new migration: `supabase migration new [description]` then `supabase db push` after editing the generated SQL. Warning: this pushes to the linked (prod) project.
+- Published migration files are immutable. Every new file starts, before any SQL, with
+  `-- pulpe:migration-phase expand` or `-- pulpe:migration-phase contract`. Contract
+  files also require `-- pulpe:safe-after vX.Y.Z`; that release tag must already be an
+  ancestor of, or content-integrated into, the release baseline.
+- Expand migrations reject destructive/security-weakening SQL, `DO`, dynamic `EXECUTE`, unsafe required
+  columns and unclassified procedural bodies. Prefer additive tables, columns with a
+  default, indexes, policies and explicit `CREATE OR REPLACE FUNCTION` definitions.
+- The checker is deliberately conservative and heuristic, not a PostgreSQL parser or
+  a substitute for SQL review. Split ambiguous changes or classify them as contract.
+- CI checks the PR range and includes the result in `ci-success`. Production replays
+  the exact merge range before the protected Supabase dry-run and apply.
+- Create locally with `supabase migration new [description]`. Never run `db push`
+  against the linked production project outside the protected workflow.
 
 ##### Apply migrations locally
 
