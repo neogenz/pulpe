@@ -353,16 +353,16 @@ borné au slug réel de l’équipe propriétaire, puis le consigner ici.
 
 > Repository Settings → Secrets and variables → Actions → New repository secret
 
-| Secret                          | Value                    | Used by                                                   |
-| ------------------------------- | ------------------------ | --------------------------------------------------------- |
-| `SUPABASE_ACCESS_TOKEN`         | Supabase CLI token       | Production Release migrations                             |
-| `PRODUCTION_DB_PASSWORD`        | Supabase DB password     | Production Release migrations                             |
-| `PRODUCTION_PROJECT_ID`         | Supabase project ref     | Production Release migrations                             |
-| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | iOS releases                                              |
-| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | iOS releases                                              |
-| `PULPE_RELEASE_APP_ID`          | GitHub App ID            | Opens protected release PRs                               |
-| `PULPE_RELEASE_APP_PRIVATE_KEY` | GitHub App private key   | Creates short-lived release tokens                        |
-| `RAILWAY_PRODUCTION_TOKEN`      | Railway project token    | Syncs version without deploy, then verifies active SHA     |
+| Secret                          | Value                    | Used by                            |
+| ------------------------------- | ------------------------ | ---------------------------------- |
+| `SUPABASE_ACCESS_TOKEN`         | Supabase CLI token       | Production Release migrations      |
+| `PRODUCTION_DB_PASSWORD`        | Supabase DB password     | Production Release migrations      |
+| `PRODUCTION_PROJECT_ID`         | Supabase project ref     | Production Release migrations      |
+| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | iOS releases                       |
+| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | iOS releases                       |
+| `PULPE_RELEASE_APP_ID`          | GitHub App ID            | Opens protected release PRs        |
+| `PULPE_RELEASE_APP_PRIVATE_KEY` | GitHub App private key   | Creates short-lived release tokens |
+| `RAILWAY_PRODUCTION_TOKEN`      | Railway project token    | Verifies the active production SHA |
 
 See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release architecture.
 
@@ -378,8 +378,8 @@ See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release ar
    and that current `main` already has its exact annotated tag and published release.
 4. Approve and merge the production PR. **This is the single human release approval.**
 5. `🏭 Production Preflight` revalidates provenance and migrations, waits for the
-   exact frontend, synchronizes `LATEST_WEB_VERSION` with `--skip-deploys`, then
-   uploads the immutable context. Railway `Wait for CI` waits for this workflow only.
+   exact frontend, then uploads the immutable context. Railway `Wait for CI` waits for
+   this workflow only; the backend version is embedded in the artifact.
 6. Railway deploys `main`. Its exact successful status starts `✅ Production Finalized`;
    that workflow must never be a Railway-required check. It proves Railway, Vercel,
    `/health` and `/api/v1/app/version`, then idempotently publishes `vX.Y.Z` and the

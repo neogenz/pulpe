@@ -64,19 +64,16 @@ After running `pnpm changeset version`:
 
 All must be staged in the release commit, alongside the manually-bumped root `package.json`.
 
-## Sync Railway `LATEST_WEB_VERSION` (force-update gate)
+## Artifact-derived web version
 
-The preparation skill never mutates Railway. After the production PR merges, the
-protected `production.yml` preflight first proves the exact frontend SHA is public,
-then synchronizes `LATEST_WEB_VERSION=<new root version>` in **production only** with
-`railway variable set ... --skip-deploys`. This write must not trigger or replace a
-backend deployment.
-
-Only after that synchronization does the preflight publish its immutable context and
-finish. Railway `Wait for CI` then deploys `main` as the sole backend deployment owner.
+The backend embeds `backend-nest/package.json` in its build artifact and serves that
+version as `web.latestVersion`; no Railway variable is synchronized during release.
+The protected `production.yml` preflight proves the exact frontend SHA is public,
+publishes its immutable context, and finishes. Railway `Wait for CI` then deploys
+`main` as the sole backend deployment owner.
 `production-finalize.yml` verifies the exact active Railway SHA and the public
 `GET /api/v1/app/version` payload before publishing the tag and GitHub Release. A
-missing Railway credential or any contradictory provider state fails closed; operators
-must not substitute a local variable write or redeploy.
+contradictory provider state fails closed; operators must not substitute a local
+variable write or redeploy.
 
 > **Never** touch `MIN_WEB_VERSION` from this skill. That value is a deliberate kill switch — only bumped when a release contains a breaking change or critical fix that must force users off old binaries. Always require explicit user confirmation before changing it.
