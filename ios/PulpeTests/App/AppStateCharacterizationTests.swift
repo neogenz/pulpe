@@ -722,6 +722,11 @@ private actor SpyKeychainStore: KeychainEmailStoring {
         return lastUsedEmail
     }
 
+    func readLastUsedEmail() -> LastUsedEmailReadResult {
+        guard let email = getLastUsedEmail() else { return .missing }
+        return .available(email)
+    }
+
     func saveLastUsedEmail(_ email: String) { lastUsedEmail = email }
     func clearLastUsedEmail() { lastUsedEmail = nil }
     func clearAllData() { lastUsedEmail = nil }

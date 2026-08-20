@@ -16,10 +16,3 @@ protocol KeychainEmailStoring: Sendable {
     func clearLastUsedEmail() async
     func clearAllData() async
 }
-
-extension KeychainEmailStoring {
-    func readLastUsedEmail() async -> LastUsedEmailReadResult {
-        guard let email = await getLastUsedEmail() else { return .missing }
-        return .available(email)
-    }
-}
