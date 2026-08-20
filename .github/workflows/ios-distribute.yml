@@ -153,19 +153,49 @@ jobs:
             workflow=staging-proof.yml
             event=deployment_status
             artifact="staging-proof-$SOURCE_SHA"
+            expected_job="✅ Staging Ready (shadow)"
           else
-            workflow=production.yml
-            event=push
-            artifact="production-proof-$SOURCE_SHA"
+            workflow=production-finalize.yml
+            event=deployment_status
+            expected_job="✅ Finalize proven production"
           fi
 
           gh api -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs" \
             -f event="$event" -f branch="$EXPECTED_BRANCH" -f head_sha="$SOURCE_SHA" -f per_page=100 \
             > "$RUNNER_TEMP/proof-runs.json"
-          run_id=$(jq -r --arg path ".github/workflows/$workflow" --arg event "$event" --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.path == $path and .event == $event and .head_sha == $sha and .status == "completed" and .conclusion == "success")] | max_by(.id) | .id // empty' "$RUNNER_TEMP/proof-runs.json")
+          candidates="$RUNNER_TEMP/proof-attempts.jsonl"
+          : > "$candidates"
+          while read -r run_id attempt_count; do
+            for run_attempt in $(seq 1 "$attempt_count"); do
+              attempt="$RUNNER_TEMP/run-$run_id-attempt-$run_attempt.json"
+              gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/attempts/$run_attempt" > "$attempt"
+              jq -e --arg path ".github/workflows/$workflow" --arg event "$event" --arg sha "$SOURCE_SHA" --argjson attempt "$run_attempt" '.path == $path and .event == $event and .head_sha == $sha and .run_attempt == $attempt and .status == "completed" and .conclusion == "success"' "$attempt" >/dev/null || continue
+              jobs="$RUNNER_TEMP/run-$run_id-attempt-$run_attempt-jobs.json"
+              gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/attempts/$run_attempt/jobs?per_page=100" > "$jobs"
+              test "$(jq --arg name "$expected_job" '[.jobs[] | select(.name == $name and .status == "completed" and .conclusion == "success")] | length' "$jobs")" = 1 || continue
+              candidate_artifact=$artifact
+              if [ "$CHANNEL" = release ]; then
+                candidate_artifact="production-proof-$SOURCE_SHA-run-$run_id-attempt-$run_attempt"
+              fi
+              artifacts="$RUNNER_TEMP/run-$run_id-artifacts.json"
+              gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts?per_page=100" > "$artifacts"
+              test "$(jq --arg name "$candidate_artifact" '[.artifacts[] | select(.name == $name and .expired == false)] | length' "$artifacts")" = 1 || continue
+              jq -cn --argjson run "$run_id" --argjson attempt "$run_attempt" --arg artifact "$candidate_artifact" '{run:$run,attempt:$attempt,artifact:$artifact}' >> "$candidates"
+            done
+          done < <(jq -r --arg path ".github/workflows/$workflow" --arg event "$event" --arg sha "$SOURCE_SHA" '.workflow_runs[] | select(.path == $path and .event == $event and .head_sha == $sha) | [.id,.run_attempt] | @tsv' "$RUNNER_TEMP/proof-runs.json")
+          selected=$(jq -sc 'sort_by([.run,.attempt]) | last // empty' "$candidates")
+          run_id=$(jq -r .run <<< "$selected")
+          run_attempt=$(jq -r .attempt <<< "$selected")
+          artifact=$(jq -r .artifact <<< "$selected")
           test -n "$run_id"
-          artifact_count=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" | jq --arg artifact "$artifact" '[.artifacts[] | select(.name == $artifact and .expired == false)] | length')
-          test "$artifact_count" = 1
+          gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "$RUNNER_TEMP/deployment-proof"
+          if [ "$CHANNEL" = release ]; then
+            product_version=$(jq -r .version ../package.json)
+            jq -e --arg sha "$SOURCE_SHA" --arg version "$product_version" --argjson run "$run_id" --argjson attempt "$run_attempt" '.production_sha == $sha and .version == $version and .workflow_run_id == $run and .run_attempt == $attempt and (.deployments.frontend | type == "number") and (.deployments.landing | type == "number") and (.deployments.railway_active | type == "string")' "$RUNNER_TEMP/deployment-proof/production-proof.json"
+          else
+            tree_sha=$(git rev-parse "$SOURCE_SHA^{tree}")
+            jq -e --arg repository "$GITHUB_REPOSITORY" --arg sha "$SOURCE_SHA" --arg tree "$tree_sha" --argjson run "$run_id" '.repository == $repository and .candidate_sha == $sha and .tree_sha == $tree and .staging_run_id == $run and (.pr_number | type == "number") and (.ci_run_id | type == "number") and (.ci_run_attempt | type == "number") and (.deployments.frontend | type == "number") and (.deployments.landing | type == "number") and (.deployments.railway | type == "number")' "$RUNNER_TEMP/deployment-proof/staging-proof.json"
+          fi
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1

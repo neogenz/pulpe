@@ -44,26 +44,29 @@ merge commit in staging, freezes that proven candidate, then promotes it to `mai
 without another version change. `preview` and production remain independent
 environments. Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
 
-### Production release evidence
+### Production deployment ownership and evidence
 
-The production workflow authorizes a release from the merged production PR, its
-exact release branch and candidate SHA. It discovers matching `✅ Release Gate`
-runs without relying on the optional `pull_requests[]` field, then inspects every
-immutable run attempt and its named job. A successful historical attempt remains
-valid evidence even if a later rerun fails; API errors, identity drift, or the
-absence of one exact successful job fail closed.
+Railway owns the production backend deployment. `production.yml` authorizes the
+release, applies migrations, stages `LATEST_WEB_VERSION` with `--skip-deploys`,
+then exits successfully. Railway `Wait for CI` deploys that exact `main` SHA only
+after those prerequisites pass. The subsequent `deployment_status=success` starts
+`production-finalize.yml`, which verifies the still-active Railway deployment and
+the exact Vercel deployments before creating the proof, tag and GitHub Release.
 
-Before publication, GitHub deployment statuses prove the expected provider events,
-but Railway is also queried directly. If its latest production deployment is not
-the exact production commit, the workflow deploys that commit through
-`serviceInstanceDeployV2`. The resulting deployment must be the latest, `SUCCESS`
-and on `main`. The immutable production proof records the selected Release Gate
-run, attempt and job IDs plus the directly verified active Railway deployment ID.
+`production.yml` must never wait for Railway, call `railway redeploy`, or invoke
+`serviceInstanceDeployV2`; those operations create a second deployment owner and
+reintroduce the CI/deployment cycle. Preview version-gate synchronization is not
+part of the production proof or the iOS distribution contract.
 
-Recovery is forward-only and idempotent. Keep maintenance enabled while migrations,
-the exact backend deployment, version gates and public health are validated. If a
-check fails after maintenance starts to lift, restore maintenance and revalidate
-`503 MAINTENANCE`; do not automate migration rollback.
+Proof and context artifacts include SHA, workflow run and immutable attempt. A
+successful historical attempt remains usable after a failed rerun, but its JSON
+content is downloaded and checked before use. Tag and Release publication accepts
+an existing exact match and rejects contradictory immutable objects.
+
+If Railway fails after `production.yml` is green, investigate the failed build.
+Recovery is an explicit Railway redeploy of the same SHA (its CI prerequisites are
+already green) or a new corrective commit—not a rerun loop or a variable mutation.
+Keep maintenance enabled during migration recovery; do not automate rollback.
 
 ## Initial Setup
 
