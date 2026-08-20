@@ -1,6 +1,6 @@
 ---
 objective: "Pulpe starts its UI authentication flow exactly once on the first active scene, never mistakes an unavailable returning-user Keychain marker for an absent user, and exposes enough non-PII telemetry to prove the behavior in production."
-status: in-progress
+status: blocked
 ---
 
 # Plan: Prevent background launches from misrouting authenticated iOS users
@@ -37,3 +37,7 @@ status: in-progress
 | Put the one-shot startup gate in the existing `AppRuntimeCoordinator` | It already owns scene transitions and process-lifetime flags, so no new coordinator or SwiftUI-only state machine is needed. |
 | Keep `last_used_email` at `WhenUnlockedThisDeviceOnly` and model read outcomes explicitly | The fix should not weaken or migrate Keychain accessibility; an unavailable item is an unknown returning-user state, not proof of absence. |
 | Reuse `auth_session_observed` with bounded `source` and `outcome` values | Existing diagnostics, privacy controls, app/build properties, and PostHog queries remain valid without a new event or any email value. |
+
+## Delivery status
+
+Phases 1 and 2 are implemented and validated. Phase 3 reporting is installed, while completion remains blocked on physical-device locked-background evidence and a deployed fixed-build sequence.

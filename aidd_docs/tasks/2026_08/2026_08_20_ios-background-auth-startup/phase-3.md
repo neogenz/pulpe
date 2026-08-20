@@ -1,5 +1,5 @@
 ---
-status: pending
+status: blocked
 ---
 
 # Instruction: Prove the locked-device path and install production reporting
@@ -79,3 +79,11 @@ journey
 | 2 | Normal cold start, warm foreground lock, retries, real terminal logout, fresh install, and genuine interrupted onboarding retain their intended routes. |
 | 3 | One saved PostHog report separates lifecycle deferral, marker-read outcomes, false onboarding routing, and true terminal session failures by version/build without PII. |
 | 4 | The fixed build has a captured background-to-active event sequence with no false-routing sentinel, while any genuine logout remains attributable to a terminal auth outcome. |
+
+## Execution status
+
+| Scope | Status | Evidence |
+| ----- | ------ | -------- |
+| Saved reporting | Done | [PostHog `iOS — Auth startup health`](https://eu.posthog.com/project/87621/dashboard/906791) contains four executable, aggregate insights for lifecycle, marker/OSStatus, same-session false routing, and terminal outcomes. No notification was enabled. |
+| Locked-device path and release-risk matrix | Blocked | Requires a signed debug build and a physical iPhone; no simulator result is represented as locked-device evidence. |
+| Fixed-build rollout validation | Blocked | The fix is not deployed, so `ui_startup` and `returning_user_marker` production series correctly contain no fixed-build evidence yet. |
