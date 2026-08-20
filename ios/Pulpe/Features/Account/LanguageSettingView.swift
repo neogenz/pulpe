@@ -52,9 +52,10 @@ struct LanguageSettingView: View {
                     selectedLanguage
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
-            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Rectangle())
         .buttonStyle(.plain)
         .accessibilityIdentifier("languageSettingPicker")
         .accessibilityLabel("Langue de l'app")
@@ -108,9 +109,9 @@ struct LanguageSettingView: View {
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textTertiary)
             }
-            .contentShape(Rectangle())
         }
         .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Rectangle())
         .buttonStyle(.plain)
         .accessibilityIdentifier("systemLanguageLink")
         .accessibilityHint("Ouvre les réglages de langue d'iOS")

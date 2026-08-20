@@ -10,6 +10,11 @@ final class LanguageSettingUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    override func tearDown() async throws {
+        Self.restorePersistedLocale()
+        try await super.tearDown()
+    }
+
     func testMenuOffersNativeNamesAndConfirmsSelection() {
         launch()
 
@@ -43,10 +48,10 @@ final class LanguageSettingUITests: XCTestCase {
             let systemLanguage = app.buttons["systemLanguageLink"]
             scrollUntilHittable(language)
             scrollUntilHittable(systemLanguage)
+            attachScreenshot("language-settings-\(scheme)-\(dynamicType)")
             assertMinimumHitArea(language)
             assertMinimumHitArea(systemLanguage)
             XCTAssertFalse(language.frame.intersects(systemLanguage.frame))
-            attachScreenshot("language-settings-\(scheme)-\(dynamicType)")
             app.terminate()
         }
     }
@@ -78,5 +83,20 @@ final class LanguageSettingUITests: XCTestCase {
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    private static func restorePersistedLocale() {
+        let cleanupApp = XCUIApplication()
+        cleanupApp.terminate()
+        cleanupApp.launchArguments = ["-\(scenario)"]
+        cleanupApp.launchEnvironment["UITEST_SCENARIO"] = scenario
+        cleanupApp.launch()
+        let language = cleanupApp.buttons["languageSettingPicker"]
+        let exists = language.waitForExistence(timeout: 5)
+        let restoredValue = language.value as? String
+        let debugDescription = cleanupApp.debugDescription
+        cleanupApp.terminate()
+        XCTAssertTrue(exists, debugDescription)
+        XCTAssertEqual(restoredValue, "Français")
     }
 }

@@ -17,9 +17,11 @@ status: done
     │   │   ├── PreferencesUITestHarness.swift ✅ rendre l’écran réel avec des préférences locales déterministes
     │   │   ├── PulpeApp.swift ✏️ router le scénario vers son harness
     │   │   └── SavingsGoalIntervalUITestHarness.swift ✏️ accepter le scénario additionnel dans le switch exhaustif
-    │   └── Features
-    │       └── Account
-    │           └── LanguageSettingView.swift ✏️ surface commune, Menu + Picker natifs adaptatifs et accessibilité
+    │   ├── Features
+    │   │   └── Account
+    │   │       └── LanguageSettingView.swift ✏️ surface commune, Menu + Picker natifs adaptatifs et accessibilité
+    │   └── Resources
+    │       └── Localizable.xcstrings ✏️ traduire les indications VoiceOver du sélecteur
     └── PulpeUITests
         └── LanguageSettingUITests.swift ✅ verrouiller le menu, la sélection, les cibles et la matrice visuelle
 ```
