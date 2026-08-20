@@ -87,10 +87,19 @@ jobs:
           release_base=$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$release_sha" --jq '.parents[0].sha')
           jq -e --arg release "$release_sha" --arg base "$release_base" '(.parents | length) == 2 and .parents[0].sha == $base and .parents[1].sha == $release' "$RUNNER_TEMP/candidate.json"
 
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$staging_run_id" > "$RUNNER_TEMP/staging-run.json"
-          jq -e --arg candidate "$candidate_sha" '.path == ".github/workflows/staging-proof.yml" and .event == "deployment_status" and .head_sha == $candidate and .status == "completed" and .conclusion == "success"' "$RUNNER_TEMP/staging-run.json"
-          gh run download "$staging_run_id" --repo "$GITHUB_REPOSITORY" --name "staging-proof-$candidate_sha" --dir "$RUNNER_TEMP/staging-proof"
-          jq -e --arg repository "$GITHUB_REPOSITORY" --arg candidate "$candidate_sha" --arg tree "$candidate_tree" --argjson pr "$preparation_pr" --argjson run "$staging_run_id" '.repository == $repository and .candidate_sha == $candidate and .tree_sha == $tree and .pr_number == $pr and .staging_run_id == $run' "$RUNNER_TEMP/staging-proof/staging-proof.json"
+          staging=$(node .github/scripts/resolve-workflow-proof.mjs \
+            --workflow staging-proof.yml \
+            --event deployment_status \
+            --branch preview \
+            --sha "$candidate_sha" \
+            --job "✅ Staging Ready (shadow)" \
+            --artifact-template "staging-proof-{sha}-run-{run_id}-attempt-{attempt}")
+          proof_run_id=$(jq -r .run_id <<< "$staging")
+          proof_attempt=$(jq -r .attempt <<< "$staging")
+          artifact=$(jq -r .artifact_name <<< "$staging")
+          test "$proof_run_id" = "$staging_run_id"
+          gh run download "$proof_run_id" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "$RUNNER_TEMP/staging-proof"
+          jq -e --arg repository "$GITHUB_REPOSITORY" --arg candidate "$candidate_sha" --arg tree "$candidate_tree" --argjson pr "$preparation_pr" --argjson run "$proof_run_id" --argjson attempt "$proof_attempt" '.repository == $repository and .candidate_sha == $candidate and .tree_sha == $tree and .pr_number == $pr and .staging_run_id == $run and .staging_run_attempt == $attempt' "$RUNNER_TEMP/staging-proof/staging-proof.json"
 
           gh api -X GET "repos/$GITHUB_REPOSITORY/contents/package.json" -f ref="$GITHUB_SHA" --jq .content | tr -d '\n' | base64 --decode > "$RUNNER_TEMP/package.json"
           test "$(jq -r .version "$RUNNER_TEMP/package.json")" = "$version"

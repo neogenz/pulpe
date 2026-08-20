@@ -160,7 +160,10 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
   assert.match(stagingProof, /preview moved from/);
   assert.match(stagingProof, /git rev-parse "\$\{GITHUB_SHA\}\^1"/);
   assert.match(stagingProof, /backend-preview-34f4\.up\.railway\.app\/health/);
-  assert.match(stagingProof, /name: staging-proof-\$\{\{ github\.sha \}\}/);
+  assert.match(
+    stagingProof,
+    /name: staging-proof-\$\{\{ github\.sha \}\}-run-\$\{\{ github\.run_id \}\}-attempt-\$\{\{ github\.run_attempt \}\}/,
+  );
   assert.ok(
     stagingProof.indexOf("canonical CI run failed") <
       stagingProof.indexOf("📥 Download tested-tree evidence"),
@@ -226,11 +229,9 @@ test("release promotion writes only after a trusted immutable proof", () => {
   assert.match(releasePromotion, /\.user\.login == "pulpe-release\[bot\]"/);
   assert.match(releasePromotion, /\.parents\[1\]\.sha == \$release/);
   assert.match(releasePromotion, /\.parents\[0\]\.sha == \$base/);
-  assert.match(releasePromotion, /staging-proof-\$CANDIDATE_SHA/);
-  assert.match(releasePromotion, /artifact_count.*\.expired == false/s);
   assert.match(
     releasePromotion,
-    /completed staging workflow has no proof artifact/,
+    /--workflow staging-proof\.yml[\s\S]*--job "✅ Staging Ready \(shadow\)"[\s\S]*--artifact-template "staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
   );
   assert.match(releasePromotion, /-F force=false/);
   assert.match(releasePromotion, /base=preview/);
@@ -240,6 +241,10 @@ test("release promotion writes only after a trusted immutable proof", () => {
   );
   assert.match(releasePromotion, /base=main/);
   assert.match(releasePromotion, /pulls" -f state=open -f base=main -f head=/);
+  assert.match(
+    releasePromotion,
+    /pulls" -f state=open -f base=main -f per_page=100[\s\S]*pulpe-release\[bot\][\s\S]*startswith\("release\/"\)/,
+  );
 
   for (const actionUse of releasePromotion.matchAll(
     /^\s*uses:\s*([^\s#]+)/gm,
@@ -284,7 +289,7 @@ test("the production PR gate is read-only and proof-bound", () => {
   );
   assert.match(
     releaseGate,
-    /ref: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/,
+    /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/,
   );
   assert.match(releaseGate, /persist-credentials: false/);
   assert.match(releaseGate, /PR_AUTHOR.*pull_request\.user\.login/);
@@ -294,8 +299,10 @@ test("the production PR gate is read-only and proof-bound", () => {
   assert.match(releaseGate, /\.parents\[1\]\.sha == \$release/);
   assert.match(releaseGate, /\.parents\[0\]\.sha == \$base/);
   assert.match(releaseGate, /\.tree_sha == \$tree/);
-  assert.match(releaseGate, /\.conclusion == "success"/);
-  assert.match(releaseGate, /staging-proof-\$CANDIDATE_SHA/);
+  assert.match(
+    releaseGate,
+    /--workflow staging-proof\.yml[\s\S]*--job "✅ Staging Ready \(shadow\)"[\s\S]*--artifact-template "staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
+  );
   assert.match(
     releaseGate,
     /node \.github\/scripts\/resolve-workflow-proof\.mjs --published-main "\$current_main"/,
@@ -321,6 +328,10 @@ test("production finishes preflight before Railway deploys", () => {
   assert.match(
     production,
     /node \.github\/scripts\/resolve-workflow-proof\.mjs[\s\S]*--workflow release-gate\.yml[\s\S]*--sha "\$candidate_sha"[\s\S]*--job "✅ Release Gate"/,
+  );
+  assert.match(
+    production,
+    /--workflow staging-proof\.yml[\s\S]*--job "✅ Staging Ready \(shadow\)"[\s\S]*--artifact-template "staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
   );
   assert.doesNotMatch(production, /gate-candidates|for run_id in/);
   assert.match(production, /environment: production/);
@@ -382,6 +393,18 @@ test("production finalizer proves exact providers before idempotent publication"
   );
   assert.match(productionFinalize, /railway-app\[bot\]/);
   assert.match(productionFinalize, /pulpe-backend \/ production/);
+  assert.match(
+    productionFinalize,
+    /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/,
+  );
+  assert.match(
+    productionFinalize,
+    /DEPLOYMENT_REF: \$\{\{ github\.event\.deployment\.ref \}\}/,
+  );
+  assert.doesNotMatch(
+    productionFinalize,
+    /test "\$\{\{ github\.event\.deployment\.ref \}\}"/,
+  );
   assert.match(productionFinalize, /deployments\/\$DEPLOYMENT_ID\/statuses/);
   assert.match(productionFinalize, /\.ref == \$sha/);
   assert.match(
@@ -460,9 +483,12 @@ test("production finalizer proves exact providers before idempotent publication"
 });
 
 test("iOS distribution consumes staging or finalized production proofs", () => {
-  assert.match(iosDistribution, /workflow=staging-proof\.yml/);
+  assert.match(iosDistribution, /--workflow staging-proof\.yml/);
   assert.match(iosDistribution, /--workflow production-finalize\.yml/);
-  assert.match(iosDistribution, /staging-proof-\$SOURCE_SHA/);
+  assert.match(
+    iosDistribution,
+    /staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}/,
+  );
   assert.match(
     iosDistribution,
     /production-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}/,

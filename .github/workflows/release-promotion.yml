@@ -155,17 +155,20 @@ jobs:
         run: |
           # shellcheck disable=SC2016 # jq programs use their own $variables.
           set -euo pipefail
-          artifact="staging-proof-$CANDIDATE_SHA"
-          artifact_count=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$STAGING_RUN_ID/artifacts" | jq --arg artifact "$artifact" '[.artifacts[] | select(.name == $artifact and .expired == false)] | length')
-          if [ "$artifact_count" = 0 ]; then
-            echo "is_release=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::completed staging workflow has no proof artifact; no release promotion requested"
-            exit 0
-          fi
-          test "$artifact_count" = 1
-          gh run download "$STAGING_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "$RUNNER_TEMP/staging-proof"
+          selected=$(node .github/scripts/resolve-workflow-proof.mjs \
+            --workflow staging-proof.yml \
+            --event deployment_status \
+            --branch preview \
+            --sha "$CANDIDATE_SHA" \
+            --job "✅ Staging Ready (shadow)" \
+            --artifact-template "staging-proof-{sha}-run-{run_id}-attempt-{attempt}")
+          proof_run_id=$(jq -r .run_id <<< "$selected")
+          proof_attempt=$(jq -r .attempt <<< "$selected")
+          artifact=$(jq -r .artifact_name <<< "$selected")
+          test "$proof_run_id" = "$STAGING_RUN_ID"
+          gh run download "$proof_run_id" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "$RUNNER_TEMP/staging-proof"
           proof="$RUNNER_TEMP/staging-proof/staging-proof.json"
-          jq -e --arg repository "$GITHUB_REPOSITORY" --arg candidate "$CANDIDATE_SHA" --argjson run "$STAGING_RUN_ID" '.repository == $repository and .candidate_sha == $candidate and .staging_run_id == $run' "$proof"
+          jq -e --arg repository "$GITHUB_REPOSITORY" --arg candidate "$CANDIDATE_SHA" --argjson run "$proof_run_id" --argjson attempt "$proof_attempt" '.repository == $repository and .candidate_sha == $candidate and .staging_run_id == $run and .staging_run_attempt == $attempt' "$proof"
 
           pr_number=$(jq -r .pr_number "$proof")
           gh api "repos/$GITHUB_REPOSITORY/pulls/$pr_number" > "$RUNNER_TEMP/preparation-pr.json"
@@ -241,6 +244,9 @@ jobs:
         run: |
           # shellcheck disable=SC2016
           set -euo pipefail
+          gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=open -f base=main -f per_page=100 > "$RUNNER_TEMP/open-main-prs.json"
+          jq -e --arg branch "$RELEASE_BRANCH" '[.[] | select(.user.login == "pulpe-release[bot]" and (.head.ref | startswith("release/")) and .head.ref != $branch)] | length == 0' "$RUNNER_TEMP/open-main-prs.json"
+
           if [ "$BRANCH_SHA" = "$RELEASE_SHA" ]; then
             gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/$ENCODED_BRANCH" -f sha="$CANDIDATE_SHA" -F force=false >/dev/null
           fi

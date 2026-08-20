@@ -21,6 +21,7 @@ jobs:
     timeout-minutes: 20
     env:
       PRODUCTION_SHA: ${{ github.event.deployment.sha }}
+      DEPLOYMENT_REF: ${{ github.event.deployment.ref }}
       DEPLOYMENT_ID: ${{ github.event.deployment.id }}
       DEPLOYMENT_STATUS_ID: ${{ github.event.deployment_status.id }}
     outputs:
@@ -28,10 +29,10 @@ jobs:
       frontend_deployment_id: ${{ steps.providers.outputs.frontend_deployment_id }}
       landing_deployment_id: ${{ steps.providers.outputs.landing_deployment_id }}
     steps:
-      - name: Checkout exact production automation without credentials
+      - name: Checkout trusted production automation without credentials
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.deployment.sha }}
+          ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 1
           persist-credentials: false
 
@@ -41,7 +42,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "${{ github.event.deployment.ref }}" = "$PRODUCTION_SHA"
+          test "$DEPLOYMENT_REF" = "$PRODUCTION_SHA"
           [[ "$PRODUCTION_SHA" =~ ^[0-9a-f]{40}$ ]]
 
           gh api "repos/$GITHUB_REPOSITORY/deployments/$DEPLOYMENT_ID" > "$RUNNER_TEMP/deployment.json"

@@ -371,7 +371,9 @@ See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release ar
 1. Run `/release` from a clean synchronized `preview`. It creates one
    `release/vX.Y.Z` commit and opens the preparation PR to `preview`.
 2. Merge only after CI, staging provider SHAs and `✅ Staging Ready (shadow)` are green.
-   Promotion freezes that proven merge commit and opens `release/vX.Y.Z → main`.
+   Its proof is bound to the exact workflow run, attempt, successful job and artifact.
+   Promotion freezes that proven merge commit and opens `release/vX.Y.Z → main`; while
+   that PR is open, no other release PR can be opened toward `main`.
 3. `✅ Release Gate` verifies the frozen candidate, content lineage, absent future tag,
    and that current `main` already has its exact annotated tag and published release.
 4. Approve and merge the production PR. **This is the single human release approval.**
