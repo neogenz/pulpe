@@ -46,6 +46,7 @@
     "expo-system-ui": "~57.0.2",
     "expo-updates": "~57.0.15",
     "expo-web-browser": "~57.0.2",
+    "i18n-js": "^4.5.3",
     "lottie-react-native": "~7.3.8",
     "posthog-react-native": "^4.63.0",
     "pulpe-shared": "workspace:*",

@@ -50,7 +50,14 @@
           }
         }
       ],
-      "expo-localization",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "android": ["fr", "en", "de", "it"]
+          }
+        }
+      ],
       "expo-web-browser",
       [
         "expo-notifications",

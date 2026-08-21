@@ -1,4 +1,5 @@
 import { clearAllKeys } from "@/core/crypto/client-key-manager";
+import { clearLocaleSnapshot } from "@/core/i18n/locale-store";
 import { forgetLandingPreference } from "@/core/navigation/landing-preference";
 import { queryClient } from "@/core/query/query-client";
 import { resetVault } from "@/core/vault/vault-store";
@@ -19,6 +20,9 @@ jest.mock("./supabase", () => ({
 }));
 jest.mock("@/core/query/query-client", () => ({
   queryClient: { clear: jest.fn(() => events.push("cache-cleared")) },
+}));
+jest.mock("@/core/i18n/locale-store", () => ({
+  clearLocaleSnapshot: jest.fn(() => events.push("locale-reset")),
 }));
 jest.mock("@/core/vault/vault-store", () => ({
   resetVault: jest.fn(() => events.push("vault-reset")),
@@ -53,6 +57,7 @@ describe("session sign-out", () => {
       "signed-out",
       "signed-out",
       "cache-cleared",
+      "locale-reset",
       "vault-reset",
       "landing-reset",
       "keys-cleared",
@@ -60,6 +65,7 @@ describe("session sign-out", () => {
     ]);
     expect(signOutThisDevice).toHaveBeenCalled();
     expect(queryClient.clear).toHaveBeenCalled();
+    expect(clearLocaleSnapshot).toHaveBeenCalled();
     expect(resetVault).toHaveBeenCalled();
     expect(forgetLandingPreference).toHaveBeenCalled();
     expect(clearAllKeys).toHaveBeenCalled();
@@ -76,6 +82,7 @@ describe("session sign-out", () => {
     expect(events).toEqual([
       "signed-out",
       "cache-cleared",
+      "locale-reset",
       "vault-reset",
       "landing-reset",
       "keys-cleared",

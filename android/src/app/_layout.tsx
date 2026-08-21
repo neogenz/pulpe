@@ -10,6 +10,7 @@ import { PaperProvider } from "react-native-paper";
 
 import { observeSession, useSessionStore } from "@/core/auth/session-store";
 import { startSupabaseAutoRefresh } from "@/core/auth/supabase";
+import { LocaleSync } from "@/core/i18n/locale-sync";
 import { DeepLinkRouter } from "@/core/linking/deep-link-router";
 import { useLandingPreference } from "@/core/navigation/landing-preference";
 import { openGroups } from "@/core/navigation/route-gates";
@@ -101,6 +102,7 @@ function RootLayout() {
           the tree, not of where they were written. With Paper on the outside,
           every sheet calling a query hook threw "No QueryClient set". */}
       <QueryClientProvider client={queryClient}>
+        <LocaleSync />
         <PaperProvider
           theme={colorScheme === "dark" ? pulpeDarkTheme : pulpeLightTheme}
         >

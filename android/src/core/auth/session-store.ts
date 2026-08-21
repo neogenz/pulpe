@@ -2,6 +2,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { create } from "zustand";
 
 import { clearAllKeys } from "@/core/crypto/client-key-manager";
+import { clearLocaleSnapshot } from "@/core/i18n/locale-store";
 import { forgetLandingPreference } from "@/core/navigation/landing-preference";
 import { queryClient } from "@/core/query/query-client";
 import { resetVault } from "@/core/vault/vault-store";
@@ -111,6 +112,7 @@ async function purgeLocalAccountData(): Promise<void> {
   let firstError: unknown | null = null;
   const cleanupSteps: (() => void | Promise<void>)[] = [
     () => queryClient.clear(),
+    () => clearLocaleSnapshot(),
     () => resetVault(),
     () => forgetLandingPreference(),
     () => clearAllKeys(),
