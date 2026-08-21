@@ -21,6 +21,17 @@ struct AddTransactionSheetTests {
         )
     }
 
+    @Test("the date defaults to today")
+    func defaults_dateIsToday() {
+        let now = Date(timeIntervalSince1970: 1_755_800_000)
+        #expect(AddTransactionSheet.Defaults.transactionDate(now: now) == now)
+    }
+
+    @Test("the operation is checked by default")
+    func defaults_isChecked() {
+        #expect(AddTransactionSheet.Defaults.isChecked)
+    }
+
     @Test("the origin is offered to an income only", arguments: TransactionKind.allCases)
     func origin_isOfferedToIncomeOnly(kind: TransactionKind) {
         #expect(origin(kind: kind).isOffered == (kind == .income))
