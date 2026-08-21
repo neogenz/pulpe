@@ -112,6 +112,13 @@ export class BudgetController {
     type: Number,
   })
   @ApiQuery({
+    name: 'offset',
+    required: false,
+    description: 'Zero-based offset; requires limit',
+    example: 36,
+    type: Number,
+  })
+  @ApiQuery({
     name: 'year',
     required: false,
     description: 'Filter budgets by year',

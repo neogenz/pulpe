@@ -1,6 +1,10 @@
 import { queryClient } from "@/core/query/query-client";
 
-import { refreshCurrentMonth, resolveStatus } from "./current-month-queries";
+import {
+  currentBudgetPeriod,
+  refreshCurrentMonth,
+  resolveStatus,
+} from "./current-month-queries";
 
 /**
  * The two query hooks reach the vault store and the HTTP layer, and with them
@@ -61,5 +65,14 @@ describe("resolveStatus", () => {
 
   it("reads no budget for the period as empty, not as a failure", () => {
     expect(resolveStatus(statusInput({ budgetId: null }))).toBe("empty");
+  });
+});
+
+describe("currentBudgetPeriod", () => {
+  it("selects the previous year before a January pay day", () => {
+    expect(currentBudgetPeriod(3, new Date("2026-01-02T12:00:00Z"))).toEqual({
+      month: 12,
+      year: 2025,
+    });
   });
 });

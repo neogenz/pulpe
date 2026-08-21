@@ -840,3 +840,34 @@ describe('SupabaseBudgetRepository toTransactionDecrypted (PUL-329)', () => {
     expect(result.transactions[0].sourceSavingsGoalName).toBeNull();
   });
 });
+
+describe('SupabaseBudgetRepository sparse pagination', () => {
+  it('orders deterministically before applying non-overlapping ranges', async () => {
+    const result = Promise.resolve({ data: [budgetRow], error: null });
+    const order = jest.fn();
+    const range = jest.fn();
+    const query = {
+      order,
+      range,
+      then: result.then.bind(result),
+    };
+    order.mockReturnValue(query);
+    range.mockReturnValue(query);
+    const provider = createMockProvider(() => ({ select: () => query }));
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    await repo.fetchBudgetsWithFilters({ limit: 36, offset: 0 });
+    await repo.fetchBudgetsWithFilters({ limit: 36, offset: 36 });
+
+    expect(order.mock.calls).toEqual([
+      ['year', { ascending: false }],
+      ['month', { ascending: false }],
+      ['year', { ascending: false }],
+      ['month', { ascending: false }],
+    ]);
+    expect(range.mock.calls).toEqual([
+      [0, 35],
+      [36, 71],
+    ]);
+  });
+});

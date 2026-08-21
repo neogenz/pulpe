@@ -1,24 +1,56 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 import { queryClient } from "@/core/query/query-client";
 import { useVaultStore } from "@/core/vault/vault-store";
 
-import { fetchBudgetDetails, fetchBudgetList } from "./budget-api";
+import {
+  BUDGET_PAGE_SIZE,
+  fetchBudgetDetails,
+  fetchBudgetListPage,
+  fetchBudgetPeriods,
+} from "./budget-api";
 
 export const budgetKeys = {
   all: ["budgets"] as const,
   list: () => [...budgetKeys.all, "list"] as const,
+  periods: (year: number) => [...budgetKeys.all, "periods", year] as const,
   detail: (budgetId: string) =>
     [...budgetKeys.all, "detail", budgetId] as const,
 };
 
+export function nextBudgetPageOffset(
+  loadedCount: number,
+  lastOffset: number,
+): number | undefined {
+  return loadedCount < BUDGET_PAGE_SIZE
+    ? undefined
+    : lastOffset + BUDGET_PAGE_SIZE;
+}
+
 export function useBudgetList() {
   const isVaultUnlocked = useVaultStore((state) => state.status === "unlocked");
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: budgetKeys.list(),
-    queryFn: fetchBudgetList,
+    queryFn: ({ pageParam }) => fetchBudgetListPage(pageParam),
     enabled: isVaultUnlocked,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, _pages, lastOffset) =>
+      nextBudgetPageOffset(lastPage.length, lastOffset),
+    select: (data) => data.pages.flat(),
+  });
+}
+
+export function useBudgetPeriods(year: number | null) {
+  const isVaultUnlocked = useVaultStore((state) => state.status === "unlocked");
+
+  return useQuery({
+    queryKey: budgetKeys.periods(year ?? 0),
+    queryFn: () =>
+      year === null
+        ? Promise.reject(new Error("No budget year to load"))
+        : fetchBudgetPeriods(year),
+    enabled: isVaultUnlocked && year !== null,
   });
 }
 

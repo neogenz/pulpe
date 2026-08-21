@@ -1967,25 +1967,31 @@ export const budgetFieldsEnum = z.enum(VALID_SPARSE_FIELDS);
 export type BudgetField = z.infer<typeof budgetFieldsEnum>;
 
 // Query parameters for sparse fieldsets
-export const listBudgetsQuerySchema = z.object({
-  fields: z
-    .string()
-    .optional()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        const requestedFields = val.split(',').map((f) => f.trim());
-        return requestedFields.every((f) =>
-          (VALID_SPARSE_FIELDS as readonly string[]).includes(f),
-        );
-      },
-      {
-        message: `Invalid fields. Valid options: ${VALID_SPARSE_FIELDS.join(', ')}`,
-      },
-    ),
-  limit: z.coerce.number().int().min(1).max(36).optional(),
-  year: z.coerce.number().int().min(MIN_YEAR).max(MAX_YEAR).optional(),
-});
+export const listBudgetsQuerySchema = z
+  .object({
+    fields: z
+      .string()
+      .optional()
+      .refine(
+        (val) => {
+          if (!val) return true;
+          const requestedFields = val.split(',').map((f) => f.trim());
+          return requestedFields.every((f) =>
+            (VALID_SPARSE_FIELDS as readonly string[]).includes(f),
+          );
+        },
+        {
+          message: `Invalid fields. Valid options: ${VALID_SPARSE_FIELDS.join(', ')}`,
+        },
+      ),
+    limit: z.coerce.number().int().min(1).max(36).optional(),
+    offset: z.coerce.number().int().nonnegative().optional(),
+    year: z.coerce.number().int().min(MIN_YEAR).max(MAX_YEAR).optional(),
+  })
+  .refine((query) => query.offset === undefined || query.limit !== undefined, {
+    message: 'offset requires limit',
+    path: ['offset'],
+  });
 export type ListBudgetsQuery = z.infer<typeof listBudgetsQuerySchema>;
 
 // Sparse budget response with optional aggregate fields

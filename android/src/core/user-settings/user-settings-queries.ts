@@ -12,7 +12,6 @@ export const userSettingsKeys = {
 
 export function cacheUserSettings(settings: UserSettings): void {
   queryClient.setQueryData(userSettingsKeys.all, settings);
-  void queryClient.invalidateQueries();
 }
 
 /**

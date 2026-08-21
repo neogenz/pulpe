@@ -9,7 +9,7 @@ import type { BudgetDetails } from "@/features/budgets/budget-api";
 import {
   invalidateBudgetData,
   useBudgetDetails,
-  useBudgetList,
+  useBudgetPeriods,
 } from "@/features/budgets/budget-queries";
 
 import {
@@ -38,6 +38,10 @@ export interface CurrentMonthQuery {
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 
+export function currentBudgetPeriod(payDayOfMonth: number, now = new Date()) {
+  return getBudgetPeriodForDate(now, payDayOfMonth);
+}
+
 /**
  * Retry and pull-to-refresh both come here because the settings query is fatal
  * to this screen: invalidating the budgets alone leaves a settings query that
@@ -52,16 +56,17 @@ export function useCurrentMonth(): CurrentMonthQuery {
   const settings = useUserSettings();
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
 
-  const periods = useBudgetList();
+  const currentPeriod = useMemo(
+    () => (payDayOfMonth === null ? null : currentBudgetPeriod(payDayOfMonth)),
+    [payDayOfMonth],
+  );
+  const periods = useBudgetPeriods(currentPeriod?.year ?? null);
   const budgetId = useMemo(
     () =>
-      periods.data
-        ? selectBudgetIdForPeriod(
-            periods.data,
-            getBudgetPeriodForDate(new Date(), payDayOfMonth),
-          )
+      periods.data && currentPeriod
+        ? selectBudgetIdForPeriod(periods.data, currentPeriod)
         : null,
-    [periods.data, payDayOfMonth],
+    [periods.data, currentPeriod],
   );
 
   const details = useBudgetDetails(budgetId);
