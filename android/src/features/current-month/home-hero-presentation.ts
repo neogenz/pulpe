@@ -1,4 +1,5 @@
 import type { BalanceTrajectory, SupportedCurrency } from "pulpe-shared";
+import type { TranslateOptions } from "i18n-js";
 
 import { formatSignedCompactCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth } from "@/core/ui/date-format";
@@ -11,6 +12,7 @@ import { formatDayMonth } from "@/core/ui/date-format";
  */
 export type HeroVerdict = "gain" | "overrun" | "onPlan";
 export type HeroTone = "favorable" | "caution" | "deficit";
+type Translate = (key: string, options?: TranslateOptions) => string;
 
 export interface HeroPresentation {
   plannedBalance: number;
@@ -63,20 +65,18 @@ export function heroPresentation({
  * month left its plan. The size of the gap is in `vs prévu` and its shape is in
  * the line, so repeating either here would waste the sentence.
  */
-export function verdictSentence(presentation: HeroPresentation): string {
+export function verdictSentence(
+  t: Translate,
+  locale: string,
+  presentation: HeroPresentation,
+): string {
   switch (presentation.verdict) {
     case "onPlan":
-      return "Tu es pile sur ton plan.";
+      return t("home.hero.verdict.onPlan");
     case "overrun":
-      return (
-        dated("Sous ton plan", presentation.driftDate) ??
-        "Il te reste moins que prévu."
-      );
+      return datedVerdict(t, locale, "overrun", presentation.driftDate);
     case "gain":
-      return (
-        dated("Au-dessus de ton plan", presentation.driftDate) ??
-        "Il te reste plus que prévu."
-      );
+      return datedVerdict(t, locale, "gain", presentation.driftDate);
   }
 }
 
@@ -92,14 +92,15 @@ export function varianceLabel(
   return formatSignedCompactCurrency(presentation.variance, currency);
 }
 
-export function uncheckedSentence(count: number): string {
-  if (count === 0) return "Aucune opération à pointer.";
-  if (count === 1) return "1 opération à pointer.";
-  return `${count} opérations à pointer.`;
-}
-
-function dated(lead: string, driftDate: Date | null): string | null {
+function datedVerdict(
+  t: Translate,
+  locale: string,
+  verdict: "gain" | "overrun",
+  driftDate: Date | null,
+): string {
   return driftDate === null
-    ? null
-    : `${lead} depuis le ${formatDayMonth(driftDate)}.`;
+    ? t(`home.hero.verdict.${verdict}`)
+    : t(`home.hero.verdict.${verdict}Dated`, {
+        date: formatDayMonth(driftDate, locale),
+      });
 }

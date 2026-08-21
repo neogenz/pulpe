@@ -14,6 +14,7 @@ import { useFinancialColors, useHeroColors } from "@/core/ui/scheme-colors";
 import { formatCompactAmount } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
 import { ICON_SIZE, RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
+import { useTranslation } from "@/core/i18n/locale-store";
 
 import {
   varianceLabel,
@@ -59,6 +60,7 @@ export function HomeHeroCard({
   const hero = useHeroColors();
   const accent = useAccentColor(presentation);
   const ripple = useRipple();
+  const { locale, t } = useTranslation();
 
   function handlePressMetrics() {
     hapticCommit();
@@ -72,7 +74,10 @@ export function HomeHeroCard({
           up here, rather than trailing the number at a size of its own. */}
       <View style={styles.amountBlock}>
         <Eyebrow style={{ color: hero.support }}>
-          {`Estimé fin ${monthName} · ${CURRENCY_METADATA[currency].symbol}`}
+          {t("home.hero.estimate", {
+            month: monthName,
+            currency: CURRENCY_METADATA[currency].symbol,
+          })}
         </Eyebrow>
         <Amount size="hero" style={[styles.amount, { color: hero.ink }]}>
           {formatCompactAmount(presentation.estimatedBalance, currency)}
@@ -83,19 +88,22 @@ export function HomeHeroCard({
         onPress={handlePressMetrics}
         android_ripple={ripple}
         accessibilityRole="button"
-        accessibilityLabel={`${uncheckedCount} à pointer, ${varianceLabel(presentation, currency)} par rapport au prévu`}
-        accessibilityHint="Ouvrir le suivi du réalisé"
+        accessibilityLabel={t("home.hero.metricsAccessibility", {
+          count: uncheckedCount,
+          variance: varianceLabel(presentation, currency),
+        })}
+        accessibilityHint={t("home.hero.metricsHint")}
         style={styles.metrics}
       >
         <Metric
           value={String(uncheckedCount)}
-          label="à pointer"
+          label={t("home.hero.toCheck")}
           tint={hero.ink}
           supportColor={hero.support}
         />
         <Metric
           value={varianceLabel(presentation, currency)}
-          label="vs prévu"
+          label={t("home.hero.vsPlanned")}
           tint={accent}
           supportColor={hero.support}
           alignEnd
@@ -113,19 +121,21 @@ export function HomeHeroCard({
 
       {onPressDetail === undefined ? (
         <Text variant="labelLarge" style={{ color: accent }}>
-          {verdictSentence(presentation)}
+          {verdictSentence(t, locale, presentation)}
         </Text>
       ) : (
         <Pressable
           onPress={onPressDetail}
           android_ripple={ripple}
           accessibilityRole="button"
-          accessibilityLabel="Voir le détail du budget"
+          accessibilityLabel={t("home.hero.detailAccessibility")}
           style={styles.verdict}
         >
           <Text variant="labelLarge" style={{ color: accent }}>
-            {verdictSentence(presentation)}
-            <Text style={{ color: hero.ink }}> Voir le détail </Text>
+            {verdictSentence(t, locale, presentation)}
+            <Text style={{ color: hero.ink }}>
+              {` ${t("home.hero.detail")} `}
+            </Text>
             <MaterialCommunityIcons
               name="chevron-right"
               size={ICON_SIZE.sm}

@@ -132,6 +132,33 @@
     "retry": "Try again",
     "signOut": "Sign out"
   },
+  "home": {
+    "accountAccessibility": "My account",
+    "hero": {
+      "chartAccessibility": "Estimated balance over the month compared with the plan",
+      "detail": "View details",
+      "detailAccessibility": "View budget details",
+      "estimate": "Estimated at end of %{month} · %{currency}",
+      "metricsAccessibility": "%{count} to check off, %{variance} versus planned",
+      "metricsHint": "Open actual balance details",
+      "toCheck": "to check off",
+      "verdict": {
+        "gain": "You have more left than planned.",
+        "gainDated": "Above your plan since %{date}.",
+        "onPlan": "You are right on plan.",
+        "overrun": "You have less left than planned.",
+        "overrunDated": "Below your plan since %{date}."
+      },
+      "vsPlanned": "vs planned"
+    },
+    "states": {
+      "createBudget": "Create my budget",
+      "emptyHint": "Create it to see your dashboard.",
+      "emptyTitle": "No budget for this month yet",
+      "loadErrorHint": "Try again — if it continues, check your connection.",
+      "loadErrorTitle": "We couldn't load your month"
+    }
+  },
   "main": {
     "handoff": {
       "future": {

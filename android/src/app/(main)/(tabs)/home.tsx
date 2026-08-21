@@ -24,6 +24,7 @@ import { hapticFailure, hapticSuccess } from "@/core/ui/haptics";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { Notice } from "@/core/ui/notice";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { useBudgetList } from "@/features/budgets/budget-queries";
 import { hasAvailableMonth } from "@/features/budgets/available-months";
 import { ActivityCard } from "@/features/current-month/components/activity-card";
@@ -44,6 +45,7 @@ export default function HomeScreen() {
   // itself lives in the formatters.
   useAmountMasking();
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const currentMonth = useCurrentMonth();
   const [isRealizedVisible, setRealizedVisible] = useState(false);
   const [isAddOpen, setAddOpen] = useState(false);
@@ -75,7 +77,7 @@ export default function HomeScreen() {
         edges={["top"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator accessibilityLabel="Chargement" />
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
       </SafeAreaView>
     );
   }
@@ -84,10 +86,10 @@ export default function HomeScreen() {
     return (
       <PlaceholderScreen
         icon="cloud-off-outline"
-        title="On n'a pas pu charger ton mois"
-        hint="Réessaie — si ça persiste, vérifie ta connexion."
+        title={t("home.states.loadErrorTitle")}
+        hint={t("home.states.loadErrorHint")}
         action={{
-          label: "Réessayer",
+          label: t("common.retry"),
           onPress: () => void currentMonth.refresh(),
         }}
       />
@@ -98,10 +100,10 @@ export default function HomeScreen() {
     return (
       <PlaceholderScreen
         icon="calendar-blank-outline"
-        title="Pas encore de budget ce mois-ci"
-        hint="Crée-le pour voir ton tableau de bord."
+        title={t("home.states.emptyTitle")}
+        hint={t("home.states.emptyHint")}
         action={{
-          label: "Créer mon budget",
+          label: t("home.states.createBudget"),
           onPress: () => router.push("/budget/create"),
         }}
       />
@@ -125,6 +127,7 @@ export default function HomeScreen() {
   const monthName = formatMonthName(
     currentMonth.details?.budget.month ?? new Date().getMonth() + 1,
     currentMonth.details?.budget.year ?? new Date().getFullYear(),
+    locale,
   );
 
   return (
@@ -148,7 +151,7 @@ export default function HomeScreen() {
           <IconButton
             icon="account-circle-outline"
             onPress={() => router.push("/settings")}
-            accessibilityLabel="Mon compte"
+            accessibilityLabel={t("home.accountAccessibility")}
             // Paper's own margin would push the glyph six points past the
             // right gutter every card below it lines up against. The target
             // stays 48 without it — `IconButton` supplies its own hitSlop.

@@ -132,6 +132,33 @@
     "retry": "Riprova",
     "signOut": "Esci"
   },
+  "home": {
+    "accountAccessibility": "Il mio account",
+    "hero": {
+      "chartAccessibility": "Andamento del saldo stimato nel mese rispetto al piano",
+      "detail": "Vedi i dettagli",
+      "detailAccessibility": "Vedi i dettagli del budget",
+      "estimate": "Stima a fine %{month} · %{currency}",
+      "metricsAccessibility": "%{count} da segnare, %{variance} rispetto al previsto",
+      "metricsHint": "Apri il dettaglio del saldo reale",
+      "toCheck": "da segnare",
+      "verdict": {
+        "gain": "Ti resta più del previsto.",
+        "gainDated": "Sopra il tuo piano dal %{date}.",
+        "onPlan": "Sei esattamente in linea con il piano.",
+        "overrun": "Ti resta meno del previsto.",
+        "overrunDated": "Sotto il tuo piano dal %{date}."
+      },
+      "vsPlanned": "vs previsto"
+    },
+    "states": {
+      "createBudget": "Crea il mio budget",
+      "emptyHint": "Crealo per vedere la tua panoramica.",
+      "emptyTitle": "Nessun budget per questo mese",
+      "loadErrorHint": "Riprova. Se il problema continua, controlla la connessione.",
+      "loadErrorTitle": "Non è stato possibile caricare il tuo mese"
+    }
+  },
   "main": {
     "handoff": {
       "future": {

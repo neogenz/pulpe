@@ -1,8 +1,8 @@
 import type { BalanceTrajectory } from "pulpe-shared";
+import { i18n, translate } from "@/core/i18n/i18n";
 
 import {
   heroPresentation,
-  uncheckedSentence,
   varianceLabel,
   verdictSentence,
 } from "./home-hero-presentation";
@@ -76,8 +76,16 @@ describe("heroPresentation", () => {
 });
 
 describe("verdictSentence", () => {
-  it("dates the day the month left its plan", () => {
+  it.each([
+    ["fr", "Sous ton plan depuis le 5 juillet."],
+    ["en", "Below your plan since July 5."],
+    ["de", "Seit 5. Juli unter deinem Plan."],
+    ["it", "Sotto il tuo piano dal 5 luglio."],
+  ])("dates the drift in %s", (locale, expected) => {
+    i18n.locale = locale;
     const sentence = verdictSentence(
+      translate,
+      locale,
       heroPresentation({
         estimatedBalance: 2200,
         fallbackPlannedBalance: 2500,
@@ -85,11 +93,14 @@ describe("verdictSentence", () => {
       }),
     );
 
-    expect(sentence).toBe("Sous ton plan depuis le 5 juillet.");
+    expect(sentence).toBe(expected);
   });
 
   it("drops the date rather than inventing one", () => {
+    i18n.locale = "fr";
     const sentence = verdictSentence(
+      translate,
+      "fr",
       heroPresentation({
         estimatedBalance: 2900,
         fallbackPlannedBalance: 2500,
@@ -101,7 +112,10 @@ describe("verdictSentence", () => {
   });
 
   it("says so plainly when nothing moved", () => {
+    i18n.locale = "fr";
     const sentence = verdictSentence(
+      translate,
+      "fr",
       heroPresentation({
         estimatedBalance: 2500,
         fallbackPlannedBalance: 2500,
@@ -128,13 +142,5 @@ describe("varianceLabel", () => {
 
     expect(varianceLabel(gain, "CHF")).toBe("+400 CHF");
     expect(varianceLabel(loss, "CHF")).toBe("-300 CHF");
-  });
-});
-
-describe("uncheckedSentence", () => {
-  it("agrees in number", () => {
-    expect(uncheckedSentence(0)).toBe("Aucune opération à pointer.");
-    expect(uncheckedSentence(1)).toBe("1 opération à pointer.");
-    expect(uncheckedSentence(4)).toBe("4 opérations à pointer.");
   });
 });

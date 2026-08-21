@@ -9,6 +9,7 @@ import { View } from "react-native";
 import { CartesianChart, Line } from "victory-native";
 
 import { chartSeries, chartYDomain } from "../balance-chart-scale";
+import { useTranslation } from "@/core/i18n/locale-store";
 
 const CHART_HEIGHT = 120;
 const LINE_WIDTH = 3;
@@ -39,11 +40,17 @@ export function BalanceTrajectoryChart({
   accent,
   ruleColor,
 }: BalanceTrajectoryChartProps) {
+  const { t } = useTranslation();
   const data = chartSeries(trajectory);
   const domain = chartYDomain(trajectory);
 
   return (
-    <View style={{ height: CHART_HEIGHT }}>
+    <View
+      style={{ height: CHART_HEIGHT }}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={t("home.hero.chartAccessibility")}
+    >
       <CartesianChart
         data={data}
         xKey="day"

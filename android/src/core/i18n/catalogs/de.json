@@ -132,6 +132,33 @@
     "retry": "Erneut versuchen",
     "signOut": "Abmelden"
   },
+  "home": {
+    "accountAccessibility": "Mein Konto",
+    "hero": {
+      "chartAccessibility": "Geschätzter Saldo im Monatsverlauf im Vergleich zum Plan",
+      "detail": "Details ansehen",
+      "detailAccessibility": "Budgetdetails ansehen",
+      "estimate": "Geschätzt Ende %{month} · %{currency}",
+      "metricsAccessibility": "%{count} offen, %{variance} gegenüber dem Plan",
+      "metricsHint": "Übersicht der Ist-Werte öffnen",
+      "toCheck": "offen",
+      "verdict": {
+        "gain": "Dir bleibt mehr als geplant.",
+        "gainDated": "Seit %{date} über deinem Plan.",
+        "onPlan": "Du liegst genau im Plan.",
+        "overrun": "Dir bleibt weniger als geplant.",
+        "overrunDated": "Seit %{date} unter deinem Plan."
+      },
+      "vsPlanned": "ggü. Plan"
+    },
+    "states": {
+      "createBudget": "Budget erstellen",
+      "emptyHint": "Erstelle es, um deine Übersicht zu sehen.",
+      "emptyTitle": "Noch kein Budget für diesen Monat",
+      "loadErrorHint": "Versuche es erneut. Falls es weiter nicht klappt, prüfe deine Verbindung.",
+      "loadErrorTitle": "Dein Monat konnte nicht geladen werden"
+    }
+  },
   "main": {
     "handoff": {
       "future": {
