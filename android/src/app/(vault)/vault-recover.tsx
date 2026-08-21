@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { Linking, StyleSheet, View } from "react-native";
 import { Button, Text, TextInput } from "react-native-paper";
+import { API_ERROR_CODES } from "pulpe-shared";
 
 import { hapticCommit, hapticSuccess } from "@/core/ui/haptics";
 import { normalizeApiError } from "@/core/api/api-error";
@@ -43,8 +44,6 @@ export default function VaultRecoverScreen() {
     <NewPinStep
       recoveryKey={recoveryKey}
       onBack={() => backToKeyStep(null)}
-      // The PIN step unmounts with this call, so its own error slot cannot
-      // carry the reason — the step the user lands on has to.
       onKeyRejected={backToKeyStep}
     />
   ) : (
@@ -75,16 +74,13 @@ function RecoveryKeyStep({
 }: RecoveryKeyStepProps) {
   const { t } = useTranslation();
   const [hasInvalidCharacters, setHasInvalidCharacters] = useState(false);
-
   function update(input: string) {
     setHasInvalidCharacters(hasInvalidRecoveryKeyCharacters(input));
     onChange(formatRecoveryKey(input));
   }
-
   const message = hasInvalidCharacters
     ? t("vault.recovery.invalidCharacters")
     : rejectionMessage;
-
   return (
     <PinScreen
       title={t("vault.recovery.title")}
@@ -113,7 +109,6 @@ function RecoveryKeyStep({
           style={styles.input}
         />
         <FieldError visible={message !== null}>{message}</FieldError>
-
         <Button
           mode="contained"
           disabled={!isCompleteRecoveryKey(value)}
@@ -160,15 +155,16 @@ function NewPinStep({ recoveryKey, onBack, onKeyRejected }: NewPinStepProps) {
       } catch (error) {
         const apiError = normalizeApiError(error);
         if (apiError.status === HTTP_UNAUTHORIZED) {
-          // Rewrapping needs an authenticated call, and this session no longer
-          // is one. Signing in again is the only way through.
           void signOut();
           return null;
         }
-
-        // The key is what the server rejected, so sending the same one again
-        // under a different PIN would only repeat the failure.
-        onKeyRejected(t("vault.recovery.rejected"));
+        const message =
+          apiError.code === API_ERROR_CODES.RECOVERY_KEY_INVALID
+            ? t("vault.recovery.rejected")
+            : apiError.code === API_ERROR_CODES.RECOVERY_KEY_NOT_CONFIGURED
+              ? t("vault.recovery.notConfigured")
+              : t("vault.error");
+        onKeyRejected(message);
         return null;
       }
     },

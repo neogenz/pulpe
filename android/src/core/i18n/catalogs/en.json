@@ -114,11 +114,12 @@
     "error": "Unable to access your secure data — try again.",
     "pinLength": "%{count} digits",
     "pinMismatch": "The codes do not match",
-    "pinProgress": "%{filled} digit of %{total}",
+    "pinProgress": "Digits entered: %{filled} of %{total}",
     "recovery": {
       "invalidCharacters": "Your key contains invalid characters",
       "lostKey": "Lost your key?",
       "newPin": "New code",
+      "notConfigured": "No recovery key is configured for this account.",
       "placeholder": "XXXX-XXXX-XXXX-…",
       "rejected": "This recovery key is not valid.",
       "subtitle": "Enter the key you saved when setting up your code",

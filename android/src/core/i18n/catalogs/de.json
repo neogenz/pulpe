@@ -114,11 +114,12 @@
     "error": "Zugriff auf deine geschützten Daten nicht möglich — versuche es erneut.",
     "pinLength": "%{count} Ziffern",
     "pinMismatch": "Die Codes stimmen nicht überein",
-    "pinProgress": "%{filled} von %{total} Ziffern",
+    "pinProgress": "Eingegebene Ziffern: %{filled} von %{total}",
     "recovery": {
       "invalidCharacters": "Dein Schlüssel enthält ungültige Zeichen",
       "lostKey": "Du hast deinen Schlüssel nicht mehr?",
       "newPin": "Neuer Code",
+      "notConfigured": "Für dieses Konto ist kein Wiederherstellungsschlüssel eingerichtet.",
       "placeholder": "XXXX-XXXX-XXXX-…",
       "rejected": "Dieser Wiederherstellungsschlüssel ist ungültig.",
       "subtitle": "Gib den Schlüssel ein, den du beim Einrichten deines Codes gespeichert hast",

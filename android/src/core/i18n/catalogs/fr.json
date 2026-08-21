@@ -114,11 +114,12 @@
     "error": "Impossible d'accéder à tes données sécurisées — réessaie.",
     "pinLength": "%{count} chiffres",
     "pinMismatch": "Les codes ne correspondent pas",
-    "pinProgress": "%{filled} chiffre sur %{total}",
+    "pinProgress": "Chiffres saisis : %{filled} sur %{total}",
     "recovery": {
       "invalidCharacters": "Ta clé contient des caractères invalides",
       "lostKey": "Tu n'as plus ta clé ?",
       "newPin": "Nouveau code",
+      "notConfigured": "Aucune clé de récupération n'est configurée pour ce compte.",
       "placeholder": "XXXX-XXXX-XXXX-…",
       "rejected": "Cette clé de récupération n'est pas valide.",
       "subtitle": "Entre la clé que tu as notée en configurant ton code",

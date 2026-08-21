@@ -114,11 +114,12 @@
     "error": "Impossibile accedere ai tuoi dati protetti — riprova.",
     "pinLength": "%{count} cifre",
     "pinMismatch": "I codici non corrispondono",
-    "pinProgress": "%{filled} cifra su %{total}",
+    "pinProgress": "Cifre inserite: %{filled} su %{total}",
     "recovery": {
       "invalidCharacters": "La chiave contiene caratteri non validi",
       "lostKey": "Non hai più la tua chiave?",
       "newPin": "Nuovo codice",
+      "notConfigured": "Nessuna chiave di recupero è configurata per questo account.",
       "placeholder": "XXXX-XXXX-XXXX-…",
       "rejected": "Questa chiave di recupero non è valida.",
       "subtitle": "Inserisci la chiave salvata quando hai configurato il codice",
