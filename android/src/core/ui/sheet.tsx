@@ -10,6 +10,8 @@ import {
 import { Divider, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useTranslation } from "@/core/i18n/locale-store";
+
 import { sheetBox, useKeyboardHeight } from "./keyboard-inset";
 import { useRipple } from "./ripple";
 import { RADIUS, SPACING } from "./theme";
@@ -49,6 +51,7 @@ export function Sheet({
   footer,
   children,
 }: SheetProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { height } = useWindowDimensions();
   const keyboardHeight = useKeyboardHeight();
@@ -78,7 +81,7 @@ export function Sheet({
           android_ripple={ripple}
           accessible={!isBusy}
           accessibilityRole="button"
-          accessibilityLabel="Fermer"
+          accessibilityLabel={t("common.close")}
         />
         <View
           accessibilityViewIsModal

@@ -24,8 +24,6 @@ import {
   useOnboardingStore,
 } from "../onboarding-store";
 
-const CRITERIA_KEYS = ["minimum", "letter", "number"] as const;
-
 /**
  * Where the account is created. Everything answered before this point lives in
  * the draft; everything after it needs a session, which is why the flow can
@@ -113,9 +111,9 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
         />
 
         <View style={styles.criteria}>
-          {PASSWORD_CRITERIA.map((criterion, index) => {
+          {PASSWORD_CRITERIA.map((criterion) => {
             const isMet = criterion.isMet(password);
-            const key = CRITERIA_KEYS[index]!;
+            const key = criterion.key;
             const label = t(`onboarding.registration.criteria.${key}`, {
               count: PASSWORD_MIN_LENGTH,
             });

@@ -7,7 +7,9 @@ import * as LocalAuthentication from "expo-local-authentication";
  * enrolled on it, and offering a switch that can only fail is worse than
  * offering nothing.
  */
-export async function describeBiometrics(): Promise<string | null> {
+export type BiometricKind = "face" | "fingerprint" | "generic";
+
+export async function describeBiometrics(): Promise<BiometricKind | null> {
   const [hasHardware, isEnrolled, types] = await Promise.all([
     LocalAuthentication.hasHardwareAsync(),
     LocalAuthentication.isEnrolledAsync(),
@@ -18,10 +20,10 @@ export async function describeBiometrics(): Promise<string | null> {
   if (
     types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)
   ) {
-    return "Reconnaissance faciale";
+    return "face";
   }
   if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
-    return "Empreinte digitale";
+    return "fingerprint";
   }
-  return "Déverrouillage biométrique";
+  return "generic";
 }

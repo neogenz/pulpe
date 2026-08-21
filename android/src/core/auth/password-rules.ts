@@ -15,16 +15,16 @@ export function isAcceptablePassword(password: string): boolean {
 
 /** The three rules, in the order the screens list them. */
 export const PASSWORD_CRITERIA: readonly {
-  label: string;
+  key: "minimum" | "letter" | "number";
   isMet: (password: string) => boolean;
 }[] = [
   {
-    label: `${PASSWORD_MIN_LENGTH} caractères minimum`,
+    key: "minimum",
     isMet: (password) => password.length >= PASSWORD_MIN_LENGTH,
   },
   {
-    label: "Au moins une lettre",
+    key: "letter",
     isMet: (password) => /[a-zA-Z]/.test(password),
   },
-  { label: "Au moins un chiffre", isMet: (password) => /\d/.test(password) },
+  { key: "number", isMet: (password) => /\d/.test(password) },
 ];

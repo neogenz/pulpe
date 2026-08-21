@@ -6,7 +6,10 @@ import { Button, Text, TextInput, useTheme } from "react-native-paper";
 import {
   isAcceptablePassword,
   PASSWORD_CRITERIA,
+  PASSWORD_MIN_LENGTH,
 } from "@/core/auth/password-rules";
+import { isInvalidCredentials } from "@/core/auth/auth-error";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { updatePassword, verifyPassword } from "@/core/auth/supabase";
 import { Sheet } from "@/core/ui/sheet";
@@ -30,6 +33,7 @@ export function ChangePasswordSheet({
   onChanged: () => void;
 }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -54,7 +58,13 @@ export function ChangePasswordSheet({
       hapticSuccess();
       onChanged();
     } catch (error) {
-      setErrorMessage(describeFailure(error));
+      setErrorMessage(
+        t(
+          isInvalidCredentials(error)
+            ? "settings.security.changePasswordCurrentIncorrect"
+            : "settings.security.changePasswordError",
+        ),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -65,8 +75,8 @@ export function ChangePasswordSheet({
       isVisible={isVisible}
       onDismiss={onDismiss}
       isBusy={isSubmitting}
-      title="Changer le mot de passe"
-      subtitle="Confirme ton identité pour modifier ton accès."
+      title={t("settings.security.changePasswordTitle")}
+      subtitle={t("settings.security.changePasswordSubtitle")}
       footer={
         <>
           {errorMessage !== null && (
@@ -79,17 +89,17 @@ export function ChangePasswordSheet({
             disabled={!isSubmittable}
             loading={isSubmitting}
           >
-            Confirmer
+            {t("settings.security.changePasswordAction")}
           </Button>
           <Button mode="text" onPress={onDismiss} disabled={isSubmitting}>
-            Annuler
+            {t("common.cancel")}
           </Button>
         </>
       }
     >
       <TextInput
         mode="outlined"
-        label="Mot de passe actuel"
+        label={t("settings.security.changePasswordCurrent")}
         value={currentPassword}
         onChangeText={setCurrentPassword}
         secureTextEntry
@@ -99,7 +109,7 @@ export function ChangePasswordSheet({
 
       <TextInput
         mode="outlined"
-        label="Nouveau mot de passe"
+        label={t("settings.security.changePasswordNew")}
         value={newPassword}
         onChangeText={setNewPassword}
         secureTextEntry
@@ -115,14 +125,16 @@ export function ChangePasswordSheet({
             : theme.colors.onSurfaceVariant;
 
           return (
-            <View key={criterion.label} style={styles.criterion}>
+            <View key={criterion.key} style={styles.criterion}>
               <MaterialCommunityIcons
                 name={isMet ? "check-circle" : "circle-outline"}
                 size={ICON_SIZE.sm}
                 color={color}
               />
               <Text variant="labelMedium" style={{ color }}>
-                {criterion.label}
+                {t(`onboarding.registration.criteria.${criterion.key}`, {
+                  count: PASSWORD_MIN_LENGTH,
+                })}
               </Text>
             </View>
           );
@@ -131,7 +143,7 @@ export function ChangePasswordSheet({
 
       <TextInput
         mode="outlined"
-        label="Confirme le nouveau mot de passe"
+        label={t("settings.security.changePasswordConfirm")}
         value={confirmation}
         onChangeText={setConfirmation}
         secureTextEntry
@@ -140,21 +152,10 @@ export function ChangePasswordSheet({
         error={confirmation.length > 0 && !isConfirmed}
       />
       {confirmation.length > 0 && !isConfirmed && (
-        <FieldError visible>Les mots de passe ne correspondent pas.</FieldError>
+        <FieldError visible>{t("auth.reset.mismatch")}</FieldError>
       )}
     </Sheet>
   );
-}
-
-/** The one failure worth naming: the rest reads better in Supabase's words. */
-function describeFailure(error: unknown): string {
-  const message = error instanceof Error ? error.message : "";
-  if (message.toLowerCase().includes("invalid login credentials")) {
-    return "Mot de passe actuel incorrect.";
-  }
-  return message.length > 0
-    ? message
-    : "Le mot de passe n'a pas pu être modifié.";
 }
 
 const styles = StyleSheet.create({

@@ -1,5 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 
+import { translate } from "@/core/i18n/i18n";
+
 import { isValidClientKeyHex } from "./client-key-format";
 
 /**
@@ -20,8 +22,6 @@ import { isValidClientKeyHex } from "./client-key-format";
 
 const STANDARD_KEY_SLOT = "pulpe.clientKey";
 const BIOMETRIC_KEY_SLOT = "pulpe.clientKey.biometric";
-
-const BIOMETRIC_PROMPT = "Déverrouille Pulpe";
 
 /**
  * Read synchronously by `ApiClient` on every request, so it cannot be a
@@ -72,7 +72,7 @@ export async function hasBiometricKey(): Promise<boolean> {
 export async function resolveViaBiometric(): Promise<string | null> {
   const hex = await readSlot(BIOMETRIC_KEY_SLOT, {
     requireAuthentication: true,
-    authenticationPrompt: BIOMETRIC_PROMPT,
+    authenticationPrompt: translate("settings.security.biometricPrompt"),
   });
   if (hex === null) return null;
 
@@ -103,7 +103,7 @@ export async function enableBiometricUnlock(): Promise<boolean> {
   try {
     await SecureStore.setItemAsync(BIOMETRIC_KEY_SLOT, cachedClientKeyHex, {
       requireAuthentication: true,
-      authenticationPrompt: BIOMETRIC_PROMPT,
+      authenticationPrompt: translate("settings.security.biometricPrompt"),
     });
     return true;
   } catch {

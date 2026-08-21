@@ -306,6 +306,48 @@
       "reminderTitle": "Promemoria mensile",
       "title": "Preferenze"
     },
+    "security": {
+      "accessSection": "Accesso",
+      "biometric": {
+        "face": "Riconoscimento facciale",
+        "fingerprint": "Impronta digitale",
+        "generic": "Sblocco biometrico"
+      },
+      "biometricDescription": "Sblocca Pulpe senza inserire il codice PIN.",
+      "biometricDisableAction": "Disattiva",
+      "biometricDisableDescription": "Dovrai inserire il codice PIN a ogni sblocco.",
+      "biometricDisableError": "Non è stato possibile disattivare lo sblocco biometrico. Riprova.",
+      "biometricDisableTitle": "Disattivare %{label}?",
+      "biometricDisabled": "%{label} disattivato",
+      "biometricEnableError": "Non è stato possibile attivare lo sblocco biometrico. Riprova.",
+      "biometricEnabled": "%{label} attivato",
+      "biometricPrompt": "Sblocca Pulpe",
+      "biometricSection": "Biometria",
+      "changePasswordAction": "Conferma",
+      "changePasswordConfirm": "Conferma la nuova password",
+      "changePasswordCurrent": "Password attuale",
+      "changePasswordCurrentIncorrect": "La password attuale non è corretta.",
+      "changePasswordError": "Non è stato possibile modificare la password.",
+      "changePasswordNew": "Nuova password",
+      "changePasswordSubtitle": "Conferma la tua identità per modificare l'accesso.",
+      "changePasswordTitle": "Cambia password",
+      "changePinCurrentSubtitle": "Inseriscilo per confermare la tua identità. Una nuova chiave di recupero sostituirà quella attuale.",
+      "changePinError": "Non è stato possibile modificare il codice PIN. Riprova.",
+      "changePinSame": "Scegli un codice PIN diverso da quello attuale",
+      "changePinTitle": {
+        "confirm": "Conferma il nuovo codice PIN",
+        "current": "Il tuo codice PIN attuale",
+        "next": "Scegli il nuovo codice PIN"
+      },
+      "changePinWrongCurrent": "Il codice PIN attuale non è corretto.",
+      "lockDescription": "Altrimenti, dopo %{count} minuti in background",
+      "lockTitle": "Blocca ora",
+      "passwordChanged": "Password modificata",
+      "passwordDescription": "La tua password di accesso",
+      "pinDescription": "Il codice che decifra i tuoi importi",
+      "pinTitle": "Codice PIN",
+      "title": "Sicurezza"
+    },
     "tags": {
       "add": "Aggiungi",
       "available": "Tag disponibili",

@@ -306,6 +306,48 @@
       "reminderTitle": "Monatliche Erinnerung",
       "title": "Einstellungen"
     },
+    "security": {
+      "accessSection": "Zugriff",
+      "biometric": {
+        "face": "Gesichtserkennung",
+        "fingerprint": "Fingerabdruck",
+        "generic": "Biometrische Entsperrung"
+      },
+      "biometricDescription": "Entsperre Pulpe, ohne deinen PIN-Code einzugeben.",
+      "biometricDisableAction": "Deaktivieren",
+      "biometricDisableDescription": "Du musst deinen PIN-Code bei jeder Entsperrung eingeben.",
+      "biometricDisableError": "Die biometrische Entsperrung konnte nicht deaktiviert werden. Versuche es erneut.",
+      "biometricDisableTitle": "%{label} deaktivieren?",
+      "biometricDisabled": "%{label} deaktiviert",
+      "biometricEnableError": "Die biometrische Entsperrung konnte nicht aktiviert werden. Versuche es erneut.",
+      "biometricEnabled": "%{label} aktiviert",
+      "biometricPrompt": "Pulpe entsperren",
+      "biometricSection": "Biometrie",
+      "changePasswordAction": "Bestätigen",
+      "changePasswordConfirm": "Neues Passwort bestätigen",
+      "changePasswordCurrent": "Aktuelles Passwort",
+      "changePasswordCurrentIncorrect": "Das aktuelle Passwort ist falsch.",
+      "changePasswordError": "Das Passwort konnte nicht geändert werden.",
+      "changePasswordNew": "Neues Passwort",
+      "changePasswordSubtitle": "Bestätige deine Identität, um deinen Zugriff zu ändern.",
+      "changePasswordTitle": "Passwort ändern",
+      "changePinCurrentSubtitle": "Gib ihn ein, um deine Identität zu bestätigen. Ein neuer Wiederherstellungsschlüssel ersetzt deinen bisherigen.",
+      "changePinError": "Der PIN-Code konnte nicht geändert werden. Versuche es erneut.",
+      "changePinSame": "Wähle einen anderen als deinen aktuellen PIN-Code",
+      "changePinTitle": {
+        "confirm": "Neuen PIN-Code bestätigen",
+        "current": "Dein aktueller PIN-Code",
+        "next": "Neuen PIN-Code wählen"
+      },
+      "changePinWrongCurrent": "Der aktuelle PIN-Code ist falsch.",
+      "lockDescription": "Andernfalls nach %{count} Minuten im Hintergrund",
+      "lockTitle": "Jetzt sperren",
+      "passwordChanged": "Passwort geändert",
+      "passwordDescription": "Dein Anmeldepasswort",
+      "pinDescription": "Der Code, der deine Beträge entschlüsselt",
+      "pinTitle": "PIN-Code",
+      "title": "Sicherheit"
+    },
     "tags": {
       "add": "Hinzufügen",
       "available": "Verfügbare Tags",

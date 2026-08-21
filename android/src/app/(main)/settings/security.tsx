@@ -19,6 +19,7 @@ import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useSessionStore } from "@/core/auth/session-store";
 import { describeBiometrics } from "@/core/crypto/biometrics";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
 import { Notice } from "@/core/ui/notice";
@@ -50,6 +51,7 @@ type OpenSheet = "password" | "regenerate" | "verify" | null;
  */
 export default function SecuritySettingsScreen() {
   const theme = useTheme();
+  const { t } = useTranslation();
   // `theme.colors.error` is the app's amber, deliberately: a form error is not a
   // punishment. Deleting an account is the other thing, so it wears the red the
   // palette keeps for what cannot be undone.
@@ -70,30 +72,50 @@ export default function SecuritySettingsScreen() {
   // A device capability, asked once and cached: it cannot change while the
   // screen is up without the user leaving the app to enrol a finger.
   const biometrics = useQuery({
-    queryKey: ["biometrics", "label"],
+    queryKey: ["biometrics", "kind"],
     queryFn: describeBiometrics,
     staleTime: Infinity,
   });
-  const biometricLabel = biometrics.data ?? null;
+  const biometricKind = biometrics.data ?? null;
+  const biometricLabel =
+    biometricKind === null
+      ? null
+      : t(`settings.security.biometric.${biometricKind}`);
   const email = profile.data?.email ?? sessionEmail ?? "";
 
   async function enableBiometrics() {
     setBiometricBusy(true);
-    const isEnabled = await enableVaultBiometrics();
-    setBiometricBusy(false);
-    setNotice(
-      isEnabled
-        ? `${biometricLabel ?? "Déverrouillage biométrique"} activé`
-        : "L'activation a échoué. Réessaie.",
-    );
+    try {
+      const isEnabled = await enableVaultBiometrics();
+      setNotice(
+        isEnabled
+          ? t("settings.security.biometricEnabled", {
+              label: biometricLabel ?? t("settings.security.biometric.generic"),
+            })
+          : t("settings.security.biometricEnableError"),
+      );
+    } catch {
+      setNotice(t("settings.security.biometricEnableError"));
+    } finally {
+      setBiometricBusy(false);
+    }
   }
 
   async function disableBiometrics() {
     setBiometricBusy(true);
-    await disableVaultBiometrics();
-    setBiometricBusy(false);
-    setDisablingBiometrics(false);
-    setNotice(`${biometricLabel ?? "Déverrouillage biométrique"} désactivé`);
+    try {
+      await disableVaultBiometrics();
+      setNotice(
+        t("settings.security.biometricDisabled", {
+          label: biometricLabel ?? t("settings.security.biometric.generic"),
+        }),
+      );
+    } catch {
+      setNotice(t("settings.security.biometricDisableError"));
+    } finally {
+      setBiometricBusy(false);
+      setDisablingBiometrics(false);
+    }
   }
 
   return (
@@ -103,21 +125,21 @@ export default function SecuritySettingsScreen() {
     >
       <ScreenAppBar>
         <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content title="Sécurité" />
+        <Appbar.Content title={t("settings.security.title")} />
       </ScreenAppBar>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <SettingsSection title="Accès">
+        <SettingsSection title={t("settings.security.accessSection")}>
           <SettingsRow
             icon="dialpad"
-            title="Code PIN"
-            description="Le code qui déchiffre tes montants"
+            title={t("settings.security.pinTitle")}
+            description={t("settings.security.pinDescription")}
             onPress={() => router.push("/settings/change-pin")}
           />
           <SettingsRow
             icon="lock-outline"
-            title="Mot de passe"
-            description="Ton mot de passe de connexion"
+            title={t("common.password")}
+            description={t("settings.security.passwordDescription")}
             isDisabled={email.length === 0}
             onPress={() => setSheet("password")}
           />
@@ -126,8 +148,10 @@ export default function SecuritySettingsScreen() {
               and does not want to wait it out. */}
           <SettingsRow
             icon="lock-clock"
-            title="Verrouiller maintenant"
-            description={`Sinon, après ${AUTO_LOCK_DELAY_MINUTES} minutes en arrière-plan`}
+            title={t("settings.security.lockTitle")}
+            description={t("settings.security.lockDescription", {
+              count: AUTO_LOCK_DELAY_MINUTES,
+            })}
             onPress={() => void lockVault()}
           />
         </SettingsSection>
@@ -149,7 +173,7 @@ export default function SecuritySettingsScreen() {
         </SettingsSection>
 
         {biometricLabel !== null && (
-          <SettingsSection title="Biométrie">
+          <SettingsSection title={t("settings.security.biometricSection")}>
             <View style={styles.switchRow}>
               <View style={styles.switchLabels}>
                 <Text variant="bodyLarge">{biometricLabel}</Text>
@@ -157,7 +181,7 @@ export default function SecuritySettingsScreen() {
                   variant="labelMedium"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  Déverrouille Pulpe sans saisir ton code PIN.
+                  {t("settings.security.biometricDescription")}
                 </Text>
               </View>
               <Switch
@@ -209,7 +233,7 @@ export default function SecuritySettingsScreen() {
           email={email}
           onChanged={() => {
             setSheet(null);
-            setNotice("Mot de passe modifié");
+            setNotice(t("settings.security.passwordChanged"));
           }}
         />
       )}
@@ -244,24 +268,33 @@ export default function SecuritySettingsScreen() {
       <Portal>
         <Dialog
           visible={isDisablingBiometrics}
-          onDismiss={() => setDisablingBiometrics(false)}
+          onDismiss={() => {
+            if (!isBiometricBusy) setDisablingBiometrics(false);
+          }}
         >
-          <Dialog.Title>Désactiver {biometricLabel} ?</Dialog.Title>
+          <Dialog.Title>
+            {t("settings.security.biometricDisableTitle", {
+              label: biometricLabel,
+            })}
+          </Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              Tu devras saisir ton code PIN à chaque déverrouillage.
+              {t("settings.security.biometricDisableDescription")}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setDisablingBiometrics(false)}>
-              Annuler
+            <Button
+              onPress={() => setDisablingBiometrics(false)}
+              disabled={isBiometricBusy}
+            >
+              {t("common.cancel")}
             </Button>
             <Button
               textColor={theme.colors.error}
               onPress={() => void disableBiometrics()}
               disabled={isBiometricBusy}
             >
-              Désactiver
+              {t("settings.security.biometricDisableAction")}
             </Button>
           </Dialog.Actions>
         </Dialog>

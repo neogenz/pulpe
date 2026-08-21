@@ -306,6 +306,48 @@
       "reminderTitle": "Rappel mensuel",
       "title": "Préférences"
     },
+    "security": {
+      "accessSection": "Accès",
+      "biometric": {
+        "face": "Reconnaissance faciale",
+        "fingerprint": "Empreinte digitale",
+        "generic": "Déverrouillage biométrique"
+      },
+      "biometricDescription": "Déverrouille Pulpe sans saisir ton code PIN.",
+      "biometricDisableAction": "Désactiver",
+      "biometricDisableDescription": "Tu devras saisir ton code PIN à chaque déverrouillage.",
+      "biometricDisableError": "La désactivation a échoué. Réessaie.",
+      "biometricDisableTitle": "Désactiver %{label} ?",
+      "biometricDisabled": "%{label} désactivé",
+      "biometricEnableError": "L'activation a échoué. Réessaie.",
+      "biometricEnabled": "%{label} activé",
+      "biometricPrompt": "Déverrouille Pulpe",
+      "biometricSection": "Biométrie",
+      "changePasswordAction": "Confirmer",
+      "changePasswordConfirm": "Confirme le nouveau mot de passe",
+      "changePasswordCurrent": "Mot de passe actuel",
+      "changePasswordCurrentIncorrect": "Mot de passe actuel incorrect.",
+      "changePasswordError": "Le mot de passe n'a pas pu être modifié.",
+      "changePasswordNew": "Nouveau mot de passe",
+      "changePasswordSubtitle": "Confirme ton identité pour modifier ton accès.",
+      "changePasswordTitle": "Changer le mot de passe",
+      "changePinCurrentSubtitle": "Saisis-le pour prouver que c'est bien toi. Une nouvelle clé de récupération remplacera la tienne.",
+      "changePinError": "Le code PIN n'a pas pu être modifié. Réessaie.",
+      "changePinSame": "Choisis un code différent de l'actuel",
+      "changePinTitle": {
+        "confirm": "Confirme ton nouveau code",
+        "current": "Ton code actuel",
+        "next": "Choisis ton nouveau code"
+      },
+      "changePinWrongCurrent": "Le code PIN actuel est incorrect.",
+      "lockDescription": "Sinon, après %{count} minutes en arrière-plan",
+      "lockTitle": "Verrouiller maintenant",
+      "passwordChanged": "Mot de passe modifié",
+      "passwordDescription": "Ton mot de passe de connexion",
+      "pinDescription": "Le code qui déchiffre tes montants",
+      "pinTitle": "Code PIN",
+      "title": "Sécurité"
+    },
     "tags": {
       "add": "Ajouter",
       "available": "Tags disponibles",

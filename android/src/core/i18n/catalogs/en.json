@@ -306,6 +306,48 @@
       "reminderTitle": "Monthly reminder",
       "title": "Preferences"
     },
+    "security": {
+      "accessSection": "Access",
+      "biometric": {
+        "face": "Face recognition",
+        "fingerprint": "Fingerprint",
+        "generic": "Biometric unlock"
+      },
+      "biometricDescription": "Unlock Pulpe without entering your PIN.",
+      "biometricDisableAction": "Disable",
+      "biometricDisableDescription": "You will need to enter your PIN each time you unlock.",
+      "biometricDisableError": "Biometric unlock could not be disabled. Try again.",
+      "biometricDisableTitle": "Disable %{label}?",
+      "biometricDisabled": "%{label} disabled",
+      "biometricEnableError": "Biometric unlock could not be enabled. Try again.",
+      "biometricEnabled": "%{label} enabled",
+      "biometricPrompt": "Unlock Pulpe",
+      "biometricSection": "Biometrics",
+      "changePasswordAction": "Confirm",
+      "changePasswordConfirm": "Confirm the new password",
+      "changePasswordCurrent": "Current password",
+      "changePasswordCurrentIncorrect": "The current password is incorrect.",
+      "changePasswordError": "The password could not be changed.",
+      "changePasswordNew": "New password",
+      "changePasswordSubtitle": "Confirm your identity to change your access.",
+      "changePasswordTitle": "Change password",
+      "changePinCurrentSubtitle": "Enter it to prove it is you. A new recovery key will replace your current one.",
+      "changePinError": "The PIN could not be changed. Try again.",
+      "changePinSame": "Choose a different PIN from your current one",
+      "changePinTitle": {
+        "confirm": "Confirm your new PIN",
+        "current": "Your current PIN",
+        "next": "Choose your new PIN"
+      },
+      "changePinWrongCurrent": "The current PIN is incorrect.",
+      "lockDescription": "Otherwise, after %{count} minutes in the background",
+      "lockTitle": "Lock now",
+      "passwordChanged": "Password changed",
+      "passwordDescription": "Your sign-in password",
+      "pinDescription": "The code that decrypts your amounts",
+      "pinTitle": "PIN",
+      "title": "Security"
+    },
     "tags": {
       "add": "Add",
       "available": "Available tags",
