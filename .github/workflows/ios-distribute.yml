@@ -156,6 +156,21 @@ jobs:
             exit 1
           fi
 
+          case "$CHANNEL" in
+            internal)
+              if [ $((BUILD_NUMBER % 10)) -eq 8 ]; then
+                echo "::error::Internal Preview builds must not use the internal production build-number namespace ending in 8"
+                exit 1
+              fi
+              ;;
+            internal-prod)
+              if [ $((BUILD_NUMBER % 10)) -ne 8 ]; then
+                echo "::error::Internal production builds must use a build number ending in 8"
+                exit 1
+              fi
+              ;;
+          esac
+
           echo "branch=$expected_branch" >> "$GITHUB_OUTPUT"
           echo "scheme=$scheme" >> "$GITHUB_OUTPUT"
           echo "configuration=$configuration" >> "$GITHUB_OUTPUT"

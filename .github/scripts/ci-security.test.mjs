@@ -549,6 +549,10 @@ test("internal production-config builds stay bound to preview staging proof", ()
     iosDistribution,
     /if \[ "\$CHANNEL" != "release" \] && \[ "\$BUILD_NUMBER" -lt "\$project_build" \]/,
   );
+  assert.match(
+    iosDistribution,
+    /internal\)[\s\S]*BUILD_NUMBER % 10[\s\S]*-eq 8[\s\S]*internal-prod\)[\s\S]*BUILD_NUMBER % 10[\s\S]*-ne 8/,
+  );
   assert.doesNotMatch(iosDistribution, /--submit|MVP/);
 });
 
