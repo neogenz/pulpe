@@ -234,7 +234,7 @@ test("release promotion writes only after a trusted immutable proof", () => {
   );
   assert.match(
     releasePromotion,
-    /actions\/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349/,
+    /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/,
   );
   assert.match(releasePromotion, /permissions:[\s\S]*pull-requests: read/);
   assert.doesNotMatch(releasePromotion, /pull-requests: write/);
@@ -478,7 +478,7 @@ test("production finalizer proves exact providers before idempotent publication"
   assert.match(productionFinalize, /api\/v1\/app\/version/);
   assert.match(
     publishJob,
-    /actions\/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349/,
+    /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/,
   );
   assert.match(publishJob, /git\/tags/);
   assert.match(
@@ -530,6 +530,26 @@ test("iOS distribution consumes staging or finalized production proofs", () => {
   assert.doesNotMatch(iosDistribution, /workflow=production\.yml/);
   assert.doesNotMatch(iosDistribution, /actions\/workflows\/ci\.yml\/runs/);
   assert.doesNotMatch(iosDistribution, /gh run download/);
+});
+
+test("internal production-config builds stay bound to preview staging proof", () => {
+  assert.match(
+    iosDistribution,
+    /options:\n\s+- internal\n\s+- internal-prod\n\s+- release/,
+  );
+  assert.match(
+    iosDistribution,
+    /internal-prod\)\n\s+expected_branch="preview"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
+  );
+  assert.match(
+    iosDistribution,
+    /internal\|internal-prod\)[\s\S]*--workflow staging-proof\.yml/,
+  );
+  assert.match(
+    iosDistribution,
+    /if \[ "\$CHANNEL" != "release" \] && \[ "\$BUILD_NUMBER" -lt "\$project_build" \]/,
+  );
+  assert.doesNotMatch(iosDistribution, /--submit|MVP/);
 });
 
 test("iOS distribution resumes the exact App Store build idempotently", () => {
