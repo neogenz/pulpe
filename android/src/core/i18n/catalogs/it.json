@@ -52,15 +52,52 @@
   },
   "common": {
     "and": "e",
+    "back": "Indietro",
     "backToSignIn": "Torna all'accesso",
+    "cancel": "Annulla",
     "close": "Chiudi",
+    "contactSupport": "Contatta l'assistenza",
+    "continue": "Continua",
+    "delete": "Cancella",
     "email": "Indirizzo email",
     "emailExample": "tu@esempio.it",
     "error": "Si è verificato un errore",
     "loading": "Caricamento…",
     "or": "o",
     "password": "Password",
-    "retry": "Riprova"
+    "retry": "Riprova",
+    "signOut": "Esci"
+  },
+  "onboarding": {
+    "back": "Torna al passaggio precedente",
+    "firstName": {
+      "accessibility": "Nome, obbligatorio",
+      "label": "Nome",
+      "placeholder": "Il tuo nome",
+      "subtitle": "Solo il tuo nome",
+      "title": "Come ti chiami?"
+    },
+    "legal": {
+      "possessive": "i nostri",
+      "possessiveSingular": "la nostra",
+      "privacy": "informativa sulla privacy",
+      "terms": "termini e condizioni"
+    },
+    "skip": "Salta questo passaggio",
+    "welcome": {
+      "benefits": {
+        "plan": "Un piano chiaro per ogni mese",
+        "privacy": "Crittografato — i tuoi importi restano privati",
+        "tracking": "Spese spuntate con un solo tocco"
+      },
+      "emailSignup": "Registrati con l'email",
+      "google": "Continua con Google",
+      "googleError": "Accesso con Google non riuscito — riprova.",
+      "legalPrefix": "Continuando, accetti",
+      "signIn": "Ho già un account",
+      "subtitle": "Il tuo budget è pronto in 2 minuti",
+      "title": "Fai chiarezza sulle tue finanze"
+    }
   },
   "settings": {
     "language": {
@@ -71,5 +108,32 @@
   },
   "startup": {
     "vaultError": "Non è stato possibile preparare i tuoi dati protetti."
+  },
+  "vault": {
+    "confirmPin": "Conferma il tuo codice",
+    "error": "Impossibile accedere ai tuoi dati protetti — riprova.",
+    "pinLength": "%{count} cifre",
+    "pinMismatch": "I codici non corrispondono",
+    "pinProgress": "%{filled} cifra su %{total}",
+    "recovery": {
+      "invalidCharacters": "La chiave contiene caratteri non validi",
+      "lostKey": "Non hai più la tua chiave?",
+      "newPin": "Nuovo codice",
+      "placeholder": "XXXX-XXXX-XXXX-…",
+      "rejected": "Questa chiave di recupero non è valida.",
+      "subtitle": "Inserisci la chiave salvata quando hai configurato il codice",
+      "title": "Chiave di recupero"
+    },
+    "repeatPin": "Inseriscilo una seconda volta",
+    "setup": {
+      "subtitle": "%{count} cifre — i tuoi importi sono crittografati con questo codice",
+      "title": "Scegli il tuo codice"
+    },
+    "unlock": {
+      "biometric": "Sblocca con la biometria",
+      "forgot": "Codice dimenticato?",
+      "subtitle": "Sblocca i tuoi importi",
+      "title": "Il tuo codice"
+    }
   }
 }

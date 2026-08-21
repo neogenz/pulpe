@@ -6,6 +6,7 @@ import { Button, Text, TextInput } from "react-native-paper";
 import { hapticCommit, hapticSuccess } from "@/core/ui/haptics";
 import { normalizeApiError } from "@/core/api/api-error";
 import { useSessionStore } from "@/core/auth/session-store";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
@@ -72,6 +73,7 @@ function RecoveryKeyStep({
   onChange,
   onSubmit,
 }: RecoveryKeyStepProps) {
+  const { t } = useTranslation();
   const [hasInvalidCharacters, setHasInvalidCharacters] = useState(false);
 
   function update(input: string) {
@@ -80,19 +82,19 @@ function RecoveryKeyStep({
   }
 
   const message = hasInvalidCharacters
-    ? "Ta clé contient des caractères invalides"
+    ? t("vault.recovery.invalidCharacters")
     : rejectionMessage;
 
   return (
     <PinScreen
-      title="Clé de récupération"
-      subtitle="Entre la clé que tu as notée en configurant ton code"
+      title={t("vault.recovery.title")}
+      subtitle={t("vault.recovery.subtitle")}
       footer={
         <>
-          <Button onPress={() => router.back()}>Annuler</Button>
-          <Text variant="bodySmall">Tu n&apos;as plus ta clé ?</Text>
+          <Button onPress={() => router.back()}>{t("common.cancel")}</Button>
+          <Text variant="bodySmall">{t("vault.recovery.lostKey")}</Text>
           <Button onPress={() => void Linking.openURL(APP_URLS.support)}>
-            Contacter le support
+            {t("common.contactSupport")}
           </Button>
         </>
       }
@@ -100,8 +102,8 @@ function RecoveryKeyStep({
       <View style={styles.form}>
         <TextInput
           mode="outlined"
-          label="Clé de récupération"
-          placeholder="XXXX-XXXX-XXXX-…"
+          label={t("vault.recovery.title")}
+          placeholder={t("vault.recovery.placeholder")}
           value={value}
           onChangeText={update}
           autoCapitalize="characters"
@@ -117,7 +119,7 @@ function RecoveryKeyStep({
           disabled={!isCompleteRecoveryKey(value)}
           onPress={onSubmit}
         >
-          Continuer
+          {t("common.continue")}
         </Button>
       </View>
     </PinScreen>
@@ -131,6 +133,7 @@ interface NewPinStepProps {
 }
 
 function NewPinStep({ recoveryKey, onBack, onKeyRejected }: NewPinStepProps) {
+  const { t } = useTranslation();
   const [isConfirming, setIsConfirming] = useState(false);
   const firstPin = useRef<string | null>(null);
   const signOut = useSessionStore((state) => state.signOut);
@@ -147,7 +150,7 @@ function NewPinStep({ recoveryKey, onBack, onKeyRejected }: NewPinStepProps) {
       if (candidate !== firstPin.current) {
         firstPin.current = null;
         setIsConfirming(false);
-        return "Les codes ne correspondent pas";
+        return t("vault.pinMismatch");
       }
 
       try {
@@ -165,7 +168,7 @@ function NewPinStep({ recoveryKey, onBack, onKeyRejected }: NewPinStepProps) {
 
         // The key is what the server rejected, so sending the same one again
         // under a different PIN would only repeat the failure.
-        onKeyRejected(apiError.message);
+        onKeyRejected(t("vault.recovery.rejected"));
         return null;
       }
     },
@@ -173,11 +176,13 @@ function NewPinStep({ recoveryKey, onBack, onKeyRejected }: NewPinStepProps) {
 
   return (
     <PinScreen
-      title={isConfirming ? "Confirme ton code" : "Nouveau code"}
+      title={t(isConfirming ? "vault.confirmPin" : "vault.recovery.newPin")}
       subtitle={
-        isConfirming ? "Saisis-le une seconde fois" : `${PIN_LENGTH} chiffres`
+        isConfirming
+          ? t("vault.repeatPin")
+          : t("vault.pinLength", { count: PIN_LENGTH })
       }
-      footer={<Button onPress={onBack}>Revenir</Button>}
+      footer={<Button onPress={onBack}>{t("common.back")}</Button>}
     >
       <PinPad
         value={pin}

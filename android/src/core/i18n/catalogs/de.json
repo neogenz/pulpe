@@ -52,15 +52,52 @@
   },
   "common": {
     "and": "und",
+    "back": "Zurück",
     "backToSignIn": "Zurück zur Anmeldung",
+    "cancel": "Abbrechen",
     "close": "Schliessen",
+    "contactSupport": "Support kontaktieren",
+    "continue": "Weiter",
+    "delete": "Löschen",
     "email": "E-Mail-Adresse",
     "emailExample": "du@beispiel.de",
     "error": "Ein Fehler ist aufgetreten",
     "loading": "Wird geladen…",
     "or": "oder",
     "password": "Passwort",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "signOut": "Abmelden"
+  },
+  "onboarding": {
+    "back": "Zum vorherigen Schritt zurückkehren",
+    "firstName": {
+      "accessibility": "Vorname, erforderlich",
+      "label": "Vorname",
+      "placeholder": "Dein Vorname",
+      "subtitle": "Nur dein Vorname",
+      "title": "Wie heisst du?"
+    },
+    "legal": {
+      "possessive": "unsere",
+      "possessiveSingular": "unsere",
+      "privacy": "Datenschutzrichtlinie",
+      "terms": "Nutzungsbedingungen"
+    },
+    "skip": "Diesen Schritt überspringen",
+    "welcome": {
+      "benefits": {
+        "plan": "Ein klarer Plan für jeden Monat",
+        "privacy": "Verschlüsselt — deine Beträge bleiben privat",
+        "tracking": "Ausgaben mit einem Tippen abhaken"
+      },
+      "emailSignup": "Mit E-Mail registrieren",
+      "google": "Mit Google fortfahren",
+      "googleError": "Google-Anmeldung nicht möglich — versuche es erneut.",
+      "legalPrefix": "Wenn du fortfährst, akzeptierst du",
+      "signIn": "Ich habe bereits ein Konto",
+      "subtitle": "Dein Budget ist in 2 Minuten bereit",
+      "title": "Behalte den Überblick über deine Finanzen"
+    }
   },
   "settings": {
     "language": {
@@ -71,5 +108,32 @@
   },
   "startup": {
     "vaultError": "Deine geschützten Daten konnten nicht vorbereitet werden."
+  },
+  "vault": {
+    "confirmPin": "Bestätige deinen Code",
+    "error": "Zugriff auf deine geschützten Daten nicht möglich — versuche es erneut.",
+    "pinLength": "%{count} Ziffern",
+    "pinMismatch": "Die Codes stimmen nicht überein",
+    "pinProgress": "%{filled} von %{total} Ziffern",
+    "recovery": {
+      "invalidCharacters": "Dein Schlüssel enthält ungültige Zeichen",
+      "lostKey": "Du hast deinen Schlüssel nicht mehr?",
+      "newPin": "Neuer Code",
+      "placeholder": "XXXX-XXXX-XXXX-…",
+      "rejected": "Dieser Wiederherstellungsschlüssel ist ungültig.",
+      "subtitle": "Gib den Schlüssel ein, den du beim Einrichten deines Codes gespeichert hast",
+      "title": "Wiederherstellungsschlüssel"
+    },
+    "repeatPin": "Gib ihn ein zweites Mal ein",
+    "setup": {
+      "subtitle": "%{count} Ziffern — deine Beträge werden mit diesem Code verschlüsselt",
+      "title": "Wähle deinen Code"
+    },
+    "unlock": {
+      "biometric": "Mit Biometrie entsperren",
+      "forgot": "Code vergessen?",
+      "subtitle": "Er entsperrt deine Beträge",
+      "title": "Dein Code"
+    }
   }
 }

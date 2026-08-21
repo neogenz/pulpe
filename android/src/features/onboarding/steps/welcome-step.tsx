@@ -10,6 +10,7 @@ import {
   signInWithGoogle,
 } from "@/core/auth/google-sign-in";
 import { preferSignIn } from "@/core/navigation/landing-preference";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 
@@ -19,9 +20,9 @@ import { beginOnboarding, configureSocialUser } from "../onboarding-store";
 const BRAND_MARK_SIZE = 88;
 
 const BENEFITS = [
-  { icon: "format-list-bulleted", text: "Un plan clair pour chaque mois" },
-  { icon: "check-circle-outline", text: "Tes dépenses pointées en un geste" },
-  { icon: "lock-outline", text: "Chiffré — tes montants restent privés" },
+  { icon: "format-list-bulleted", key: "plan" },
+  { icon: "check-circle-outline", key: "tracking" },
+  { icon: "lock-outline", key: "privacy" },
 ] as const;
 
 /**
@@ -32,6 +33,7 @@ const BENEFITS = [
 export function WelcomeStep() {
   const theme = useTheme();
   const router = useRouter();
+  const { t } = useTranslation();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
@@ -44,12 +46,8 @@ export function WelcomeStep() {
       // The vault bootstrap decides whether this is a signup or a returning
       // account. Until then, keep only the provider data needed by either path.
       configureSocialUser(result.firstName);
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Connexion Google impossible — réessaie.",
-      );
+    } catch {
+      setErrorMessage(t("onboarding.welcome.googleError"));
     } finally {
       setIsSigningIn(false);
     }
@@ -68,19 +66,19 @@ export function WelcomeStep() {
             accessible={false}
           />
           <Text variant="headlineLarge" style={styles.headline}>
-            Vois clair dans tes finances
+            {t("onboarding.welcome.title")}
           </Text>
           <Text
             variant="bodyLarge"
             style={[styles.headline, { color: theme.colors.onSurfaceVariant }]}
           >
-            Ton budget est prêt en 2 minutes
+            {t("onboarding.welcome.subtitle")}
           </Text>
         </View>
 
         <View style={styles.benefits}>
           {BENEFITS.map((benefit) => (
-            <View key={benefit.text} style={styles.benefitRow}>
+            <View key={benefit.key} style={styles.benefitRow}>
               <MaterialCommunityIcons
                 name={benefit.icon}
                 size={ICON_SIZE.lg}
@@ -90,7 +88,7 @@ export function WelcomeStep() {
                 variant="bodyMedium"
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
-                {benefit.text}
+                {t(`onboarding.welcome.benefits.${benefit.key}`)}
               </Text>
             </View>
           ))}
@@ -111,7 +109,7 @@ export function WelcomeStep() {
               disabled={isSigningIn}
               onPress={() => void continueWithGoogle()}
             >
-              Continuer avec Google
+              {t("onboarding.welcome.google")}
             </Button>
             <View style={styles.divider}>
               <Divider style={styles.dividerLine} />
@@ -119,7 +117,7 @@ export function WelcomeStep() {
                 variant="bodySmall"
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
-                ou
+                {t("common.or")}
               </Text>
               <Divider style={styles.dividerLine} />
             </View>
@@ -131,7 +129,7 @@ export function WelcomeStep() {
           disabled={isSigningIn}
           onPress={beginOnboarding}
         >
-          S&apos;inscrire avec un e-mail
+          {t("onboarding.welcome.emailSignup")}
         </Button>
 
         <Button
@@ -146,10 +144,10 @@ export function WelcomeStep() {
             router.replace("/sign-in");
           }}
         >
-          J&apos;ai déjà un compte
+          {t("onboarding.welcome.signIn")}
         </Button>
 
-        <LegalConsent prefix="En continuant, tu acceptes" />
+        <LegalConsent localized prefix={t("onboarding.welcome.legalPrefix")} />
       </View>
     </SafeAreaView>
   );

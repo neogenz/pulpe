@@ -52,15 +52,52 @@
   },
   "common": {
     "and": "et",
+    "back": "Revenir",
     "backToSignIn": "Retour à la connexion",
+    "cancel": "Annuler",
     "close": "Fermer",
+    "contactSupport": "Contacter le support",
+    "continue": "Continuer",
+    "delete": "Effacer",
     "email": "Adresse e-mail",
     "emailExample": "ton@email.com",
     "error": "Une erreur est survenue",
     "loading": "Chargement…",
     "or": "ou",
     "password": "Mot de passe",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "signOut": "Se déconnecter"
+  },
+  "onboarding": {
+    "back": "Revenir à l'étape précédente",
+    "firstName": {
+      "accessibility": "Prénom, requis",
+      "label": "Prénom",
+      "placeholder": "Ton prénom",
+      "subtitle": "Juste ton prénom",
+      "title": "Comment tu t'appelles ?"
+    },
+    "legal": {
+      "possessive": "nos",
+      "possessiveSingular": "notre",
+      "privacy": "politique de confidentialité",
+      "terms": "conditions générales"
+    },
+    "skip": "Passer cette étape",
+    "welcome": {
+      "benefits": {
+        "plan": "Un plan clair pour chaque mois",
+        "privacy": "Chiffré — tes montants restent privés",
+        "tracking": "Tes dépenses pointées en un geste"
+      },
+      "emailSignup": "S'inscrire avec un e-mail",
+      "google": "Continuer avec Google",
+      "googleError": "Connexion Google impossible — réessaie.",
+      "legalPrefix": "En continuant, tu acceptes",
+      "signIn": "J'ai déjà un compte",
+      "subtitle": "Ton budget est prêt en 2 minutes",
+      "title": "Vois clair dans tes finances"
+    }
   },
   "settings": {
     "language": {
@@ -71,5 +108,32 @@
   },
   "startup": {
     "vaultError": "Impossible de préparer tes données sécurisées."
+  },
+  "vault": {
+    "confirmPin": "Confirme ton code",
+    "error": "Impossible d'accéder à tes données sécurisées — réessaie.",
+    "pinLength": "%{count} chiffres",
+    "pinMismatch": "Les codes ne correspondent pas",
+    "pinProgress": "%{filled} chiffre sur %{total}",
+    "recovery": {
+      "invalidCharacters": "Ta clé contient des caractères invalides",
+      "lostKey": "Tu n'as plus ta clé ?",
+      "newPin": "Nouveau code",
+      "placeholder": "XXXX-XXXX-XXXX-…",
+      "rejected": "Cette clé de récupération n'est pas valide.",
+      "subtitle": "Entre la clé que tu as notée en configurant ton code",
+      "title": "Clé de récupération"
+    },
+    "repeatPin": "Saisis-le une seconde fois",
+    "setup": {
+      "subtitle": "%{count} chiffres — tes montants sont chiffrés avec ce code",
+      "title": "Choisis ton code"
+    },
+    "unlock": {
+      "biometric": "Déverrouiller avec la biométrie",
+      "forgot": "Code oublié ?",
+      "subtitle": "Il déverrouille tes montants",
+      "title": "Ton code"
+    }
   }
 }

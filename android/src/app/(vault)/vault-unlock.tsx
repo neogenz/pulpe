@@ -1,11 +1,11 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Link } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { Button, useTheme } from "react-native-paper";
 
-import { normalizeApiError } from "@/core/api/api-error";
 import { useSessionStore } from "@/core/auth/session-store";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { useRipple } from "@/core/ui/ripple";
 import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 import {
@@ -20,6 +20,7 @@ import { usePinEntry } from "@/ui/use-pin-entry";
 export default function VaultUnlockScreen() {
   const theme = useTheme();
   const ripple = useRipple();
+  const { t } = useTranslation();
   const isBiometricAvailable = useVaultStore(
     (state) => state.isBiometricAvailable,
   );
@@ -33,14 +34,14 @@ export default function VaultUnlockScreen() {
     },
   );
 
-  async function promptBiometric() {
+  const promptBiometric = useCallback(async () => {
     setBiometricError(null);
     try {
       await unlockVaultWithBiometrics();
-    } catch (error) {
-      setBiometricError(normalizeApiError(error).message);
+    } catch {
+      setBiometricError(t("vault.error"));
     }
-  }
+  }, [t]);
 
   // Once per mount: a returning user should meet the sensor, not the keypad.
   // Dismissing it falls through to the PIN, which is always available.
@@ -49,18 +50,18 @@ export default function VaultUnlockScreen() {
     if (!isBiometricAvailable || hasPrompted.current) return;
     hasPrompted.current = true;
     void promptBiometric();
-  }, [isBiometricAvailable]);
+  }, [isBiometricAvailable, promptBiometric]);
 
   return (
     <PinScreen
-      title="Ton code"
-      subtitle="Il déverrouille tes montants"
+      title={t("vault.unlock.title")}
+      subtitle={t("vault.unlock.subtitle")}
       footer={
         <>
           <Link href="/vault-recover" asChild>
-            <Button>Code oublié ?</Button>
+            <Button>{t("vault.unlock.forgot")}</Button>
           </Link>
-          <Button onPress={() => void signOut()}>Se déconnecter</Button>
+          <Button onPress={() => void signOut()}>{t("common.signOut")}</Button>
         </>
       }
     >
@@ -75,7 +76,7 @@ export default function VaultUnlockScreen() {
               onPress={() => void promptBiometric()}
               android_ripple={ripple}
               accessibilityRole="button"
-              accessibilityLabel="Déverrouiller avec la biométrie"
+              accessibilityLabel={t("vault.unlock.biometric")}
               style={styles.biometric}
             >
               <MaterialCommunityIcons

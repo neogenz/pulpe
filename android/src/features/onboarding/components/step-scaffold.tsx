@@ -10,6 +10,7 @@ import {
   SCREEN_PADDING,
   SPACING,
 } from "@/core/ui/theme";
+import { useTranslation } from "@/core/i18n/locale-store";
 
 import {
   isStepInProgressBar,
@@ -29,7 +30,9 @@ import { hapticCommit } from "@/core/ui/haptics";
  */
 export function StepScaffold({
   children,
-  ctaLabel = "Continuer",
+  ctaLabel,
+  title,
+  subtitle,
   isCtaEnabled,
   isCtaBusy = false,
   onContinue,
@@ -39,6 +42,8 @@ export function StepScaffold({
 }: {
   children: ReactNode;
   ctaLabel?: string;
+  title?: string;
+  subtitle?: string;
   isCtaEnabled: boolean;
   isCtaBusy?: boolean;
   onContinue: () => void;
@@ -49,11 +54,13 @@ export function StepScaffold({
   footer?: ReactNode;
 }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const state = useOnboardingStore();
 
   const step = state.currentStep;
   const copy = STEP_COPY[step];
   const bar = progressBarSteps(state);
+  const localized = title !== undefined;
 
   function handleBack() {
     if (state.editReturnStep === null && wouldExitOnBack(state)) {
@@ -82,7 +89,9 @@ export function StepScaffold({
             />
           )}
           onPress={handleBack}
-          accessibilityLabel="Revenir à l'étape précédente"
+          accessibilityLabel={
+            localized ? t("onboarding.back") : "Revenir à l'étape précédente"
+          }
         />
         <View style={styles.progress}>
           {isStepInProgressBar(state, step) && (
@@ -106,12 +115,12 @@ export function StepScaffold({
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.titles}>
-            <Text variant="headlineMedium">{copy.title}</Text>
+            <Text variant="headlineMedium">{title ?? copy.title}</Text>
             <Text
               variant="bodyMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              {copy.subtitle}
+              {subtitle ?? copy.subtitle}
             </Text>
           </View>
 
@@ -127,11 +136,11 @@ export function StepScaffold({
           loading={isCtaBusy}
           onPress={handleContinue}
         >
-          {ctaLabel}
+          {ctaLabel ?? (localized ? t("common.continue") : "Continuer")}
         </Button>
         {onSkip !== undefined && (
           <Button mode="text" disabled={isCtaBusy} onPress={onSkip}>
-            Passer cette étape
+            {localized ? t("onboarding.skip") : "Passer cette étape"}
           </Button>
         )}
       </View>

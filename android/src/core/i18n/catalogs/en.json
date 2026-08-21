@@ -52,15 +52,52 @@
   },
   "common": {
     "and": "and",
+    "back": "Back",
     "backToSignIn": "Back to sign in",
+    "cancel": "Cancel",
     "close": "Close",
+    "contactSupport": "Contact support",
+    "continue": "Continue",
+    "delete": "Delete",
     "email": "Email address",
     "emailExample": "you@example.com",
     "error": "Something went wrong",
     "loading": "Loading…",
     "or": "or",
     "password": "Password",
-    "retry": "Try again"
+    "retry": "Try again",
+    "signOut": "Sign out"
+  },
+  "onboarding": {
+    "back": "Go back to the previous step",
+    "firstName": {
+      "accessibility": "First name, required",
+      "label": "First name",
+      "placeholder": "Your first name",
+      "subtitle": "Just your first name",
+      "title": "What's your name?"
+    },
+    "legal": {
+      "possessive": "our",
+      "possessiveSingular": "our",
+      "privacy": "privacy policy",
+      "terms": "terms and conditions"
+    },
+    "skip": "Skip this step",
+    "welcome": {
+      "benefits": {
+        "plan": "A clear plan for every month",
+        "privacy": "Encrypted — your amounts stay private",
+        "tracking": "Check off expenses in one tap"
+      },
+      "emailSignup": "Sign up with email",
+      "google": "Continue with Google",
+      "googleError": "Unable to sign in with Google — try again.",
+      "legalPrefix": "By continuing, you accept",
+      "signIn": "I already have an account",
+      "subtitle": "Your budget is ready in 2 minutes",
+      "title": "See your finances clearly"
+    }
   },
   "settings": {
     "language": {
@@ -71,5 +108,32 @@
   },
   "startup": {
     "vaultError": "Unable to prepare your secure data."
+  },
+  "vault": {
+    "confirmPin": "Confirm your code",
+    "error": "Unable to access your secure data — try again.",
+    "pinLength": "%{count} digits",
+    "pinMismatch": "The codes do not match",
+    "pinProgress": "%{filled} digit of %{total}",
+    "recovery": {
+      "invalidCharacters": "Your key contains invalid characters",
+      "lostKey": "Lost your key?",
+      "newPin": "New code",
+      "placeholder": "XXXX-XXXX-XXXX-…",
+      "rejected": "This recovery key is not valid.",
+      "subtitle": "Enter the key you saved when setting up your code",
+      "title": "Recovery key"
+    },
+    "repeatPin": "Enter it one more time",
+    "setup": {
+      "subtitle": "%{count} digits — your amounts are encrypted with this code",
+      "title": "Choose your code"
+    },
+    "unlock": {
+      "biometric": "Unlock with biometrics",
+      "forgot": "Forgot your code?",
+      "subtitle": "It unlocks your amounts",
+      "title": "Your code"
+    }
   }
 }

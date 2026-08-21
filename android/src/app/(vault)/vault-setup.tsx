@@ -2,8 +2,8 @@ import { useRef, useState } from "react";
 import { Button } from "react-native-paper";
 
 import { hapticCommit, hapticSuccess } from "@/core/ui/haptics";
-import { normalizeApiError } from "@/core/api/api-error";
 import { useSessionStore } from "@/core/auth/session-store";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { setupVaultPin } from "@/core/vault/vault-store";
 import { PIN_LENGTH, PinPad } from "@/ui/pin-pad";
 import { PinScreen } from "@/ui/pin-screen";
@@ -14,6 +14,7 @@ import { usePinEntry } from "@/ui/use-pin-entry";
  * account gets encrypted under, so it is typed twice before it counts.
  */
 export default function VaultSetupScreen() {
+  const { t } = useTranslation();
   const [isConfirming, setIsConfirming] = useState(false);
   const firstPin = useRef<string | null>(null);
   const signOut = useSessionStore((state) => state.signOut);
@@ -34,31 +35,33 @@ export default function VaultSetupScreen() {
 
       if (candidate !== firstPin.current) {
         restart();
-        return "Les codes ne correspondent pas";
+        return t("vault.pinMismatch");
       }
 
       try {
         await setupVaultPin(candidate);
         hapticSuccess();
         return null;
-      } catch (error) {
+      } catch {
         // A failed setup leaves nothing behind, so the next attempt starts
         // from the first digit rather than from a confirmation of nothing.
         restart();
-        return normalizeApiError(error).message;
+        return t("vault.error");
       }
     },
   );
 
   return (
     <PinScreen
-      title={isConfirming ? "Confirme ton code" : "Choisis ton code"}
+      title={t(isConfirming ? "vault.confirmPin" : "vault.setup.title")}
       subtitle={
         isConfirming
-          ? "Saisis-le une seconde fois"
-          : `${PIN_LENGTH} chiffres — tes montants sont chiffrés avec ce code`
+          ? t("vault.repeatPin")
+          : t("vault.setup.subtitle", { count: PIN_LENGTH })
       }
-      footer={<Button onPress={() => void signOut()}>Se déconnecter</Button>}
+      footer={
+        <Button onPress={() => void signOut()}>{t("common.signOut")}</Button>
+      }
     >
       <PinPad
         value={pin}

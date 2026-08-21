@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
 import { hapticSelection } from "@/core/ui/haptics";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { useRipple } from "@/core/ui/ripple";
 import { EMPHASIS, ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 
@@ -40,13 +41,17 @@ interface PinDotsProps {
  */
 const PinDots = memo(function PinDots({ filled, hasError }: PinDotsProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const activeColor = hasError ? theme.colors.error : theme.colors.primary;
 
   return (
     <View
       style={styles.dots}
       accessibilityRole="progressbar"
-      accessibilityLabel={`${filled} chiffre sur ${PIN_LENGTH}`}
+      accessibilityLabel={t("vault.pinProgress", {
+        filled,
+        total: PIN_LENGTH,
+      })}
     >
       {Array.from({ length: PIN_LENGTH }, (_, index) => (
         <View
@@ -81,6 +86,7 @@ export function PinPad({
   accessory,
 }: PinPadProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const ripple = useRipple({ radius: KEY_SIZE / 2 });
   const hasError = errorMessage !== null;
 
@@ -130,7 +136,7 @@ export function PinPad({
               disabled={isDisabled}
               android_ripple={ripple}
               accessibilityRole="button"
-              accessibilityLabel={isBackspace ? "Effacer" : key.digit}
+              accessibilityLabel={isBackspace ? t("common.delete") : key.digit}
               style={({ pressed }) => [
                 styles.key,
                 {

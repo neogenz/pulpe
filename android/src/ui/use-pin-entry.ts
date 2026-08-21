@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { hapticFailure } from "@/core/ui/haptics";
-import { normalizeApiError } from "@/core/api/api-error";
+import { translate } from "@/core/i18n/i18n";
 
 import { PIN_LENGTH } from "./pin-pad";
 
@@ -71,8 +71,8 @@ export function usePinEntry(handle: PinStepHandler): PinEntry {
       let message: string | null;
       try {
         message = await handleRef.current(pin);
-      } catch (error) {
-        message = normalizeApiError(error).message;
+      } catch {
+        message = translate("vault.error");
       }
 
       isRunning.current = false;
