@@ -38,7 +38,10 @@ export interface CurrentMonthQuery {
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 
-export function currentBudgetPeriod(payDayOfMonth: number, now = new Date()) {
+export function currentBudgetPeriod(
+  payDayOfMonth: number | null,
+  now = new Date(),
+) {
   return getBudgetPeriodForDate(now, payDayOfMonth);
 }
 
@@ -57,8 +60,9 @@ export function useCurrentMonth(): CurrentMonthQuery {
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
 
   const currentPeriod = useMemo(
-    () => (payDayOfMonth === null ? null : currentBudgetPeriod(payDayOfMonth)),
-    [payDayOfMonth],
+    () =>
+      settings.data === undefined ? null : currentBudgetPeriod(payDayOfMonth),
+    [payDayOfMonth, settings.data],
   );
   const periods = useBudgetPeriods(currentPeriod?.year ?? null);
   const budgetId = useMemo(

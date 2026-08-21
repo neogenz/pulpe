@@ -21,7 +21,7 @@ import { Card } from "@/core/ui/card";
 import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
@@ -90,7 +90,7 @@ export function GoalDeletionSheet({
   }
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={dismiss}
       isBusy={remove.isPending}
@@ -192,7 +192,7 @@ export function GoalDeletionSheet({
           <ImpactDetails impact={impact.data} currency={currency} />
         </>
       )}
-    </Sheet>
+    </FormModal>
   );
 }
 

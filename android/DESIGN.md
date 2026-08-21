@@ -78,6 +78,16 @@ accents lighten so they still clear contrast on it. Anything that reads a color 
 through the theme or through the scheme-keyed export — a hard-coded hex is a dark-mode bug
 that only shows up on someone else's phone.
 
+## Form modals
+
+Android forms open in the native `Modal`-based `FormModal`: a centered,
+height-capped surface whose body scrolls above the keyboard and whose footer
+stays pinned. Its header always exposes a translated close button. While a
+write is pending, that button, the backdrop and the Android back action all
+refuse dismissal so partially applied changes cannot disappear. This is a
+modal form, not a bottom sheet: do not add a drag handle, swipe dismissal or a
+bottom-sheet dependency.
+
 ## Icon and splash
 
 One brand mark, four renderings. `assets/images/brand-mark.png` is byte-for-byte the file iOS

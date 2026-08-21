@@ -4,7 +4,7 @@ import { Button, HelperText, TextInput } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
 import { useTranslation } from "@/core/i18n/locale-store";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { FieldError } from "@/core/ui/field-error";
 
 import { useUpdateUserProfile } from "../account-queries";
@@ -52,7 +52,7 @@ export function ProfileSheet({
   }
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={onDismiss}
       isBusy={update.isPending}
@@ -106,6 +106,6 @@ export function ProfileSheet({
       <HelperText type="info" visible>
         {t("settings.account.profile.emailHint")}
       </HelperText>
-    </Sheet>
+    </FormModal>
   );
 }

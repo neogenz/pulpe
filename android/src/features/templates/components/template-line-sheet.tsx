@@ -21,7 +21,7 @@ import { kindOptions, recurrenceOptions } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 import { useSavingsGoals } from "@/features/savings-goals/goals-queries";
@@ -181,7 +181,7 @@ export function TemplateLineSheet({
 
   return (
     <>
-      <Sheet
+      <FormModal
         isVisible={isVisible && !isPropagationVisible}
         onDismiss={dismiss}
         isBusy={mutation.isPending}
@@ -263,7 +263,7 @@ export function TemplateLineSheet({
             </View>
           </View>
         )}
-      </Sheet>
+      </FormModal>
 
       <Portal>
         <Dialog

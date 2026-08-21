@@ -9,7 +9,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
@@ -108,7 +108,7 @@ export function SavingsWithdrawalSheet({
   }
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={dismiss}
       isBusy={withdraw.isPending}
@@ -228,7 +228,7 @@ export function SavingsWithdrawalSheet({
           />
         </>
       )}
-    </Sheet>
+    </FormModal>
   );
 }
 

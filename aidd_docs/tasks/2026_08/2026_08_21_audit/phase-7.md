@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Assumer le formulaire modal et terminer l’accessibilité
@@ -24,13 +24,15 @@ android/
     ├── features/budget-details/savings-withdrawal/components/savings-withdrawal-sheet.tsx ✏️ consommer FormModal
     ├── features/budget-details/spread/components/spread-existing-sheet.tsx ✏️ consommer FormModal
     ├── features/budget-details/spread/components/spread-occurrences-sheet.tsx ✏️ consommer FormModal
-    ├── features/current-month/components/realized-balance-sheet.tsx ✏️ consommer FormModal
+    ├── features/current-month/
+    │   ├── current-month-queries.ts                           ✏️ accepter le mois calendaire sans jour de paie
+    │   ├── current-month-queries.spec.ts                      ✏️ couvrir le jour de paie nul
+    │   └── components/realized-balance-sheet.tsx              ✏️ consommer FormModal
     ├── features/savings-goals/components/goal-deletion-sheet.tsx ✏️ consommer FormModal
     ├── features/savings-goals/components/goal-form-sheet.tsx ✏️ consommer FormModal
     ├── features/savings-goals/components/goal-generation-stop-sheet.tsx ✏️ consommer FormModal
     ├── features/savings-goals/components/simulator/goal-plan-apply-recap.tsx ✏️ consommer FormModal
     ├── features/savings-goals/components/simulator/goal-plan-simulator-sheet.tsx ✏️ consommer FormModal
-    ├── features/tags/tag-picker.tsx                          ✏️ consommer FormModal
     ├── features/templates/components/template-form-sheet.tsx ✏️ consommer FormModal
     ├── features/templates/components/template-line-sheet.tsx ✏️ consommer FormModal
     └── features/transactions/components/transaction-sheet.tsx ✏️ consommer FormModal
@@ -105,6 +107,11 @@ journey
 2. Croiser clavier, retour Android, TalkBack, font scale 1,3, paysage, clair/sombre et réduction de mouvement.
 3. Rejouer le smoke Maestro et l’export de production après la migration partagée.
 
+### `4)` Corriger la régression révélée par le smoke test
+
+1. Distinguer des réglages encore absents de la valeur métier valide `payDayOfMonth: null`.
+2. Calculer le mois calendaire dans ce cas et le verrouiller par un test de régression.
+
 ## Test acceptance criteria
 
 | Task | Acceptance criteria                                                                                                                          |
@@ -113,3 +120,4 @@ journey
 | 2    | TalkBack annonce la fermeture du conseil dans chacune des quatre langues.                                                                    |
 | 3    | Aucun champ, footer ou action ne passe sous le clavier ; retour, backdrop et bouton fermer suivent la même règle de dismissal.               |
 | 3    | Quality, couverture, audit, export Expo et smoke Maestro sont verts sur la version Android synchronisée.                                     |
+| 4    | Un compte sans jour de paie configuré quitte le chargement et affiche son mois calendaire.                                                    |

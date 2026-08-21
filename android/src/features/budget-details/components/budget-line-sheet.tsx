@@ -20,7 +20,7 @@ import { kindOptions, recurrenceOptions } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 
@@ -172,7 +172,7 @@ export function BudgetLineSheet({
   const problem = budgetLineDraftHint(draft);
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={dismiss}
       isBusy={mutation.isPending}
@@ -311,7 +311,7 @@ export function BudgetLineSheet({
           }
         />
       )}
-    </Sheet>
+    </FormModal>
   );
 }
 

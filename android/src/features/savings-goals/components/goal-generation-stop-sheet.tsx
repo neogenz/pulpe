@@ -12,7 +12,7 @@ import { Card } from "@/core/ui/card";
 import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 
@@ -77,7 +77,7 @@ export function GoalGenerationStopSheet({
   }
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={dismiss}
       isBusy={stop.isPending}
@@ -170,7 +170,7 @@ export function GoalGenerationStopSheet({
           </View>
         </Card.Content>
       </Card>
-    </Sheet>
+    </FormModal>
   );
 }
 

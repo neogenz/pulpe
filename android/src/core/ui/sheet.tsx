@@ -7,7 +7,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { Divider, Text, useTheme } from "react-native-paper";
+import { Divider, IconButton, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";
@@ -16,7 +16,7 @@ import { sheetBox, useKeyboardHeight } from "./keyboard-inset";
 import { useRipple } from "./ripple";
 import { RADIUS, SPACING } from "./theme";
 
-interface SheetProps {
+interface FormModalProps {
   isVisible: boolean;
   onDismiss: () => void;
   isBusy?: boolean;
@@ -29,12 +29,12 @@ interface SheetProps {
    * off the bottom of the screen, which is exactly where it must never be.
    */
   footer?: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 /**
- * The one shape every sheet in the app takes: a capped card, a scrolling body,
- * and actions that stay put.
+ * The one shape every form modal in the app takes: a capped card, a scrolling
+ * body, and actions that stay put.
  *
  * Getting out of the keyboard's way is this component's job alone, which is why
  * no call site owns a `KeyboardAvoidingView`: eleven of the seventeen sheets
@@ -42,7 +42,7 @@ interface SheetProps {
  * keys is the one place it must never be. `sheetBox` says how, and why the
  * window's own height cannot be asked.
  */
-export function Sheet({
+export function FormModal({
   isVisible,
   onDismiss,
   isBusy = false,
@@ -50,7 +50,7 @@ export function Sheet({
   subtitle,
   footer,
   children,
-}: SheetProps) {
+}: FormModalProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const { height } = useWindowDimensions();
@@ -65,6 +65,7 @@ export function Sheet({
 
   return (
     <Modal
+      testID="form-modal"
       visible={isVisible}
       transparent
       animationType="fade"
@@ -76,6 +77,7 @@ export function Sheet({
         style={[styles.backdrop, { backgroundColor: theme.colors.backdrop }]}
       >
         <Pressable
+          testID="form-modal-backdrop"
           style={StyleSheet.absoluteFill}
           onPress={isBusy ? undefined : onDismiss}
           android_ripple={ripple}
@@ -88,15 +90,24 @@ export function Sheet({
           style={[styles.sheet, { backgroundColor: theme.colors.surface }, box]}
         >
           <View style={styles.header}>
-            <Text variant="titleMedium">{title}</Text>
-            {subtitle !== undefined && (
-              <Text
-                variant="labelMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                {subtitle}
-              </Text>
-            )}
+            <View style={styles.heading}>
+              <Text variant="titleMedium">{title}</Text>
+              {subtitle !== undefined && (
+                <Text
+                  variant="labelMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {subtitle}
+                </Text>
+              )}
+            </View>
+            <IconButton
+              icon="close"
+              disabled={isBusy}
+              onPress={onDismiss}
+              accessibilityLabel={t("common.close")}
+              style={styles.close}
+            />
           </View>
 
           <ScrollView
@@ -126,11 +137,16 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   header: {
-    paddingHorizontal: SPACING.lg,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingLeft: SPACING.lg,
+    paddingRight: SPACING.sm,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.sm,
-    gap: SPACING.xxs,
+    gap: SPACING.sm,
   },
+  heading: { flex: 1, gap: SPACING.xxs },
+  close: { margin: 0 },
   body: {
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.lg,

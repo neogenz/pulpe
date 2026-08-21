@@ -69,6 +69,15 @@ describe("resolveStatus", () => {
 });
 
 describe("currentBudgetPeriod", () => {
+  it("uses the calendar month when no custom pay day is configured", () => {
+    expect(currentBudgetPeriod(null, new Date("2026-08-22T12:00:00Z"))).toEqual(
+      {
+        month: 8,
+        year: 2026,
+      },
+    );
+  });
+
   it("selects the previous year before a January pay day", () => {
     expect(currentBudgetPeriod(3, new Date("2026-01-02T12:00:00Z"))).toEqual({
       month: 12,
