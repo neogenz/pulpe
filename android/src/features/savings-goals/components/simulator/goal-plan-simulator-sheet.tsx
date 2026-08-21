@@ -8,6 +8,7 @@ import { StyleSheet, View } from "react-native";
 import { Button, Chip, Divider, Text, useTheme } from "react-native-paper";
 
 import { hapticSelection, hapticSuccess } from "@/core/ui/haptics";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Card } from "@/core/ui/card";
 import { Amount } from "@/core/ui/amount";
 import { AmountField } from "@/core/ui/amount-field";
@@ -56,6 +57,7 @@ export function GoalPlanSimulatorSheet({
   onApplied,
 }: GoalPlanSimulatorSheetProps) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const apply = useApplySavingsGoalPlan();
   const [overrides, setOverrides] = useState<PlanOverrides>({});
   // Bumped whenever the whole plan is rewritten at once, to re-seed the fields:
@@ -69,6 +71,15 @@ export function GoalPlanSimulatorSheet({
   );
   const changes = useMemo(() => planChanges(simulation), [simulation]);
   const editableMonths = simulation.months.filter(isEditablePlanMonth);
+  const verdict = planVerdict(simulation);
+  const verdictText =
+    verdict.kind === "attained"
+      ? t("goals.simulator.verdict.attained", {
+          period: formatMonthLabel(verdict.month, verdict.year, locale),
+        })
+      : t(`goals.simulator.verdict.${verdict.kind}`, {
+          amount: formatCompactCurrency(verdict.amount, currency),
+        });
 
   function rewrite(next: PlanOverrides) {
     setOverrides(next);
@@ -120,7 +131,7 @@ export function GoalPlanSimulatorSheet({
       <Sheet
         isVisible={isVisible && !isRecapVisible}
         onDismiss={dismiss}
-        title="Simuler ton plan"
+        title={t("goals.simulator.title")}
         // One amount field per editable month: a year-long plan is twelve of
         // them, and the count on the button is the feedback the user is typing
         // against — both have to stay in sight.
@@ -131,28 +142,24 @@ export function GoalPlanSimulatorSheet({
               onPress={() => setRecapVisible(true)}
               disabled={changes.length === 0}
             >
-              Appliquer ({changes.length} mois)
+              {t("goals.simulator.apply", { count: changes.length })}
             </Button>
             <Button mode="text" onPress={dismiss}>
-              Annuler
+              {t("common.cancel")}
             </Button>
           </>
         }
       >
         <Card mode="contained">
           <Card.Content style={styles.verdict}>
-            <Text variant="bodyLarge">
-              {planVerdict(
-                simulation,
-                (amount) => formatCompactCurrency(amount, currency),
-                (period) => formatMonthLabel(period.month, period.year),
-              )}
-            </Text>
+            <Text variant="bodyLarge">{verdictText}</Text>
             <Text
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              Total simulé {formatCurrency(simulation.simulatedFinal, currency)}
+              {t("goals.simulator.total", {
+                amount: formatCurrency(simulation.simulatedFinal, currency),
+              })}
             </Text>
           </Card.Content>
         </Card>
@@ -162,13 +169,13 @@ export function GoalPlanSimulatorSheet({
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Aucun mois de ce plan n&apos;est encore modifiable.
+            {t("goals.simulator.noEditableMonth")}
           </Text>
         ) : (
           <>
             <AmountField
               key={`uniform-${generation}`}
-              label="Même montant chaque mois"
+              label={t("goals.simulator.uniformAmount")}
               amount={null}
               currency={currency}
               onChange={setUniformAmount}
@@ -176,11 +183,11 @@ export function GoalPlanSimulatorSheet({
 
             <View style={styles.actions}>
               <Button mode="outlined" onPress={redistribute} compact>
-                Réajuster la suite
+                {t("goals.simulator.redistribute")}
               </Button>
               {changes.length > 0 && (
                 <Button mode="text" onPress={() => rewrite({})} compact>
-                  Repartir du plan actuel
+                  {t("goals.simulator.reset")}
                 </Button>
               )}
             </View>
@@ -228,7 +235,8 @@ function MonthRow({
   onChange: (amount: number | null) => void;
 }) {
   const theme = useTheme();
-  const label = formatMonthLabel(month.month, month.year);
+  const { locale, t } = useTranslation();
+  const label = formatMonthLabel(month.month, month.year, locale);
 
   if (!isEditablePlanMonth(month)) {
     return (
@@ -239,7 +247,9 @@ function MonthRow({
             variant="labelSmall"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            {month.isLocked ? "Déjà joué" : "Non modifiable"}
+            {t(
+              `goals.simulator.${month.isLocked ? "alreadyClosed" : "notEditable"}`,
+            )}
           </Text>
         </View>
         <Amount size="meta" tone="muted">
@@ -255,12 +265,12 @@ function MonthRow({
         <Text variant="labelLarge">{label}</Text>
         {month.isProvisionable === true && (
           <Chip compact icon="plus">
-            À créer
+            {t("goals.simulator.toCreate")}
           </Chip>
         )}
       </View>
       <AmountField
-        label="Montant du mois"
+        label={t("goals.simulator.monthAmount")}
         amount={month.simulatedAmount}
         currency={currency}
         onChange={onChange}

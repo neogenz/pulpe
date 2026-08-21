@@ -455,6 +455,102 @@
       "openBudget": "Apri il budget di %{period}",
       "title": "Il tuo monitoraggio"
     },
+    "states": {
+      "complete": "Segna come raggiunto",
+      "futureBody": {
+        "one": "Questo obiettivo è stato fermato, ma %{count} previsione di risparmio resta riservata per un mese futuro.",
+        "other": "Questo obiettivo è stato fermato, ma %{count} previsioni di risparmio restano riservate per i mesi futuri."
+      },
+      "futureTitle": "Previsioni collegate ai mesi futuri",
+      "manage": "Gestisci le previsioni",
+      "overdueBody": "La scadenza è passata. Puoi spostarla per continuare al tuo ritmo.",
+      "overdueTitle": "Scadenza superata",
+      "postpone": "Sposta la data",
+      "reachedPrompt": "Hai risparmiato l'equivalente del tuo obiettivo. Lo segniamo come raggiunto?",
+      "reachedTitle": "Obiettivo raggiunto",
+      "reopen": "Riapri",
+      "reopenBody": "Puoi riaprirlo se vuoi continuare a risparmiare per questo obiettivo."
+    },
+    "stop": {
+      "cancel": "Non cambiare nulla",
+      "completedTitle": "Obiettivo raggiunto",
+      "error": "Non è stato possibile applicare la decisione. Ricarica e riprova.",
+      "freeze": "Mantieni senza obiettivo",
+      "freezeHint": "Le previsioni restano nei tuoi budget, semplicemente scollegate dall'obiettivo.",
+      "intro": {
+        "one": "%{count} previsione di risparmio resta collegata a questo obiettivo in un mese futuro. Cosa vuoi farne?",
+        "other": "%{count} previsioni di risparmio restano collegate a questo obiettivo nei mesi futuri. Cosa vuoi farne?"
+      },
+      "pausedTitle": "Obiettivo in pausa",
+      "remove": "Rimuovi dai mesi futuri",
+      "removeAccessibility": "Elimina le previsioni mostrate e libera i loro importi",
+      "removeHint": "Le previsioni vengono eliminate e l'importo torna disponibile ogni mese.",
+      "total": "Totale"
+    },
+    "simulator": {
+      "alreadyClosed": "Già concluso",
+      "apply": {
+        "one": "Applica (%{count} mese)",
+        "other": "Applica (%{count} mesi)"
+      },
+      "monthAmount": "Importo del mese",
+      "noEditableMonth": "Nessun mese di questo piano è ancora modificabile.",
+      "notEditable": "Non modificabile",
+      "redistribute": "Ricalcola il resto",
+      "reset": "Riparti dal piano attuale",
+      "title": "Simula il tuo piano",
+      "toCreate": "Da creare",
+      "total": "Totale simulato %{amount}",
+      "uniformAmount": "Stesso importo ogni mese",
+      "verdict": {
+        "attained": "Con questo piano raggiungi l'obiettivo a %{period}.",
+        "missing": "Con questo piano ti mancano %{amount} per l'obiettivo.",
+        "total": "Con questo piano avrai previsto %{amount}."
+      }
+    },
+    "recap": {
+      "applying": "Applicazione…",
+      "back": "Torna al simulatore",
+      "confirm": "Conferma",
+      "error": "Non è stato possibile applicare il piano. Non è cambiato nulla — ricarica l'obiettivo e riprova.",
+      "intro": {
+        "one": "%{count} mese cambierà. Gli importi già spuntati non cambieranno.",
+        "other": "%{count} mesi cambieranno. Gli importi già spuntati non cambieranno."
+      },
+      "title": "Applica questo piano"
+    },
+    "deletion": {
+      "actual": "Reale",
+      "budgetCount": { "one": "%{count} budget", "other": "%{count} budget" },
+      "confirm": {
+        "goal_and_forecasts": "Elimina obiettivo e previsioni",
+        "goal_forecasts_and_transactions": "Elimina tutto",
+        "goal_only": "Elimina solo l'obiettivo"
+      },
+      "empty": "Nessuna previsione o movimento è collegato a questo obiettivo.",
+      "error": "Eliminazione non riuscita. Non è stato eliminato nulla.",
+      "forecastCount": {
+        "one": "%{count} previsione",
+        "other": "%{count} previsioni"
+      },
+      "forecasts": "Elimina anche tutte le previsioni collegate",
+      "goalOnlyHint": "Verrà eliminato solo l'obiettivo. Tutto il resto sarà conservato.",
+      "impactError": "Non è stato possibile calcolare l'impatto. Non è stato eliminato nulla.",
+      "impactLoading": "Calcolo dell'impatto…",
+      "impactLoadingAccessibility": "Calcolo dell'impatto dell'eliminazione",
+      "intro": "Controlla tutto ciò che è collegato a «%{name}» prima di scegliere.",
+      "movements": "Elimina anche i movimenti collegati a queste previsioni",
+      "movementsLabel": "Movimenti",
+      "pending": "Eliminazione…",
+      "question": "Cosa vuoi eliminare?",
+      "summaryAccessibility": "Riepilogo dell'impatto",
+      "template": "Mese Tipo",
+      "templateLines": "Previsioni del Mese Tipo",
+      "title": "Elimina obiettivo",
+      "withdrawals": "Prelievi verso i tuoi budget",
+      "withdrawalsHint": "Queste entrate restano nei rispettivi budget qualunque sia la tua scelta.",
+      "withdrawnTotal": "Totale prelevato"
+    },
     "withdrawals": {
       "detail": "%{status} · Previsto %{planned} · Realizzato %{realized}",
       "inPlan": "Previsto nel piano",

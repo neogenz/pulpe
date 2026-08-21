@@ -158,14 +158,15 @@ export function buildPlanApply(
 
 export function planVerdict(
   result: SavingsPlanSimulationResult,
-  formatAmount: (amount: number) => string,
-  formatPeriod: (period: { month: number; year: number }) => string,
-): string {
+):
+  | { kind: "total"; amount: number }
+  | { kind: "missing"; amount: number }
+  | { kind: "attained"; month: number; year: number } {
   if (result.gapToTarget === null) {
-    return `Avec ce plan, tu auras prévu ${formatAmount(result.simulatedFinal)}.`;
+    return { kind: "total", amount: result.simulatedFinal };
   }
   if (result.attainedPeriod === null) {
-    return `Avec ce plan, il te manque ${formatAmount(Math.max(0, result.gapToTarget))} pour ta cible.`;
+    return { kind: "missing", amount: Math.max(0, result.gapToTarget) };
   }
-  return `Avec ce plan, tu atteins ta cible en ${formatPeriod(result.attainedPeriod)}.`;
+  return { kind: "attained", ...result.attainedPeriod };
 }

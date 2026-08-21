@@ -7,6 +7,7 @@ import { StyleSheet, View } from "react-native";
 import { Button, Divider, Text, useTheme } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Card } from "@/core/ui/card";
 import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
@@ -46,6 +47,7 @@ export function GoalGenerationStopSheet({
   onApplied,
 }: GoalGenerationStopSheetProps) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const stop = useStopSavingsGoalGeneration();
 
   const total = lines.reduce((sum, line) => sum + line.amount, 0);
@@ -79,16 +81,16 @@ export function GoalGenerationStopSheet({
       isVisible={isVisible}
       onDismiss={dismiss}
       isBusy={stop.isPending}
-      title={status === "PAUSED" ? "Objectif en pause" : "Objectif atteint"}
+      title={t(
+        `goals.stop.${status === "PAUSED" ? "pausedTitle" : "completedTitle"}`,
+      )}
       // The two decisions are the point of the sheet, so they stay put while
       // the months they apply to scroll behind them — a goal paused in January
       // lists eleven of them.
       footer={
         <>
           {stop.isError && (
-            <FieldError visible>
-              La décision n&apos;a pas pu être appliquée. Recharge et réessaie.
-            </FieldError>
+            <FieldError visible>{t("goals.stop.error")}</FieldError>
           )}
 
           <View style={styles.decision}>
@@ -98,14 +100,13 @@ export function GoalGenerationStopSheet({
               disabled={stop.isPending}
               loading={stop.isPending}
             >
-              Garder sans objectif
+              {t("goals.stop.freeze")}
             </Button>
             <Text
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              Les prévisions restent dans tes budgets, simplement déliées de
-              l&apos;objectif.
+              {t("goals.stop.freezeHint")}
             </Text>
           </View>
 
@@ -118,21 +119,20 @@ export function GoalGenerationStopSheet({
               textColor={theme.colors.error}
               onPress={() => apply("remove")}
               disabled={stop.isPending}
-              accessibilityHint="Supprime les prévisions affichées et libère leur montant"
+              accessibilityHint={t("goals.stop.removeAccessibility")}
             >
-              Retirer des mois futurs
+              {t("goals.stop.remove")}
             </Button>
             <Text
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              Les prévisions sont supprimées : le montant redevient disponible
-              chaque mois.
+              {t("goals.stop.removeHint")}
             </Text>
           </View>
 
           <Button mode="text" onPress={dismiss} disabled={stop.isPending}>
-            Ne rien changer
+            {t("goals.stop.cancel")}
           </Button>
         </>
       }
@@ -141,8 +141,7 @@ export function GoalGenerationStopSheet({
         variant="bodyMedium"
         style={{ color: theme.colors.onSurfaceVariant }}
       >
-        {lines.length} prévision(s) Épargne restent liées à cet objectif sur tes
-        mois futurs. Que veux-tu en faire ?
+        {t("goals.stop.intro", { count: lines.length })}
       </Text>
 
       <Card mode="contained">
@@ -153,7 +152,7 @@ export function GoalGenerationStopSheet({
                 variant="bodyMedium"
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
-                {formatMonthLabel(line.month, line.year)}
+                {formatMonthLabel(line.month, line.year, locale)}
               </Text>
               <Amount size="meta">
                 {formatCurrency(line.amount, currency)}
@@ -164,7 +163,7 @@ export function GoalGenerationStopSheet({
           <Divider />
 
           <View style={styles.row}>
-            <Text variant="labelLarge">Total</Text>
+            <Text variant="labelLarge">{t("goals.stop.total")}</Text>
             <Amount size="meta">
               {formatCompactCurrency(total, currency)}
             </Amount>

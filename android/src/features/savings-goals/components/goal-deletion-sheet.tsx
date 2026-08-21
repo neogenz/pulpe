@@ -16,6 +16,7 @@ import {
 } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Card } from "@/core/ui/card";
 import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
@@ -29,12 +30,6 @@ import {
   useDeleteSavingsGoal,
   useSavingsGoalDeletionImpact,
 } from "../goals-queries";
-
-const CONFIRMATION_LABELS: Record<SavingsGoalDeletionMode, string> = {
-  goal_only: "Supprimer seulement l'objectif",
-  goal_and_forecasts: "Supprimer l'objectif et les prévisions",
-  goal_forecasts_and_transactions: "Tout supprimer",
-};
 
 interface GoalDeletionSheetProps {
   isVisible: boolean;
@@ -61,6 +56,7 @@ export function GoalDeletionSheet({
   onDeleted,
 }: GoalDeletionSheetProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const financial = useFinancialColors();
   const impact = useSavingsGoalDeletionImpact(isVisible ? goal.id : null);
   const remove = useDeleteSavingsGoal();
@@ -98,16 +94,14 @@ export function GoalDeletionSheet({
       isVisible={isVisible}
       onDismiss={dismiss}
       isBusy={remove.isPending}
-      title="Supprimer l'objectif"
+      title={t("goals.deletion.title")}
       // The impact list runs to a screenful on a goal with a year of forecasts,
       // and this is the one button in the app that must never be reached by
       // accident or missed by scrolling.
       footer={
         <>
           {remove.isError && (
-            <FieldError visible>
-              La suppression a échoué. Rien n&apos;a été supprimé.
-            </FieldError>
+            <FieldError visible>{t("goals.deletion.error")}</FieldError>
           )}
 
           {impact.data !== undefined && (
@@ -118,35 +112,37 @@ export function GoalDeletionSheet({
               disabled={remove.isPending}
               loading={remove.isPending}
             >
-              {remove.isPending ? "Suppression…" : CONFIRMATION_LABELS[mode]}
+              {remove.isPending
+                ? t("goals.deletion.pending")
+                : t(`goals.deletion.confirm.${mode}`)}
             </Button>
           )}
 
           <Button mode="text" onPress={dismiss} disabled={remove.isPending}>
-            Annuler
+            {t("common.cancel")}
           </Button>
         </>
       }
     >
       {impact.isPending && (
         <View style={styles.centered}>
-          <ActivityIndicator accessibilityLabel="Calcul de l'impact de la suppression" />
+          <ActivityIndicator
+            accessibilityLabel={t("goals.deletion.impactLoadingAccessibility")}
+          />
           <Text
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Calcul de l&apos;impact…
+            {t("goals.deletion.impactLoading")}
           </Text>
         </View>
       )}
 
       {impact.isError && (
         <>
-          <Text variant="bodyMedium">
-            Impossible de calculer l&apos;impact. Rien n&apos;a été supprimé.
-          </Text>
+          <Text variant="bodyMedium">{t("goals.deletion.impactError")}</Text>
           <Button mode="outlined" onPress={() => void impact.refetch()}>
-            Réessayer
+            {t("common.retry")}
           </Button>
         </>
       )}
@@ -157,15 +153,15 @@ export function GoalDeletionSheet({
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Vérifie tout ce qui est rattaché à « {goal.name} » avant de choisir.
+            {t("goals.deletion.intro", { name: goal.name })}
           </Text>
 
           <ImpactSummary impact={impact.data} currency={currency} />
 
-          <Text variant="titleSmall">Que veux-tu supprimer ?</Text>
+          <Text variant="titleSmall">{t("goals.deletion.question")}</Text>
 
           <Checkbox.Item
-            label="Supprimer aussi toutes les prévisions rattachées"
+            label={t("goals.deletion.forecasts")}
             position="leading"
             status={deletesForecasts ? "checked" : "unchecked"}
             onPress={() =>
@@ -179,7 +175,7 @@ export function GoalDeletionSheet({
 
           {deletesForecasts ? (
             <Checkbox.Item
-              label="Supprimer aussi les mouvements rattachés à ces prévisions"
+              label={t("goals.deletion.movements")}
               position="leading"
               status={deletesTransactions ? "checked" : "unchecked"}
               onPress={() => setDeletesTransactions((current) => !current)}
@@ -189,7 +185,7 @@ export function GoalDeletionSheet({
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              Seul l&apos;objectif sera supprimé. Tout le reste sera conservé.
+              {t("goals.deletion.goalOnlyHint")}
             </Text>
           )}
 
@@ -207,28 +203,33 @@ function ImpactSummary({
   impact: SavingsGoalDeletionImpact;
   currency: SupportedCurrency;
 }) {
+  const { t } = useTranslation();
   const { summary } = impact;
 
   return (
     <View
       style={styles.summary}
       accessible
-      accessibilityLabel="Résumé de l'impact"
+      accessibilityLabel={t("goals.deletion.summaryAccessibility")}
     >
       <SummaryCard
-        label="Mois Type"
+        label={t("goals.deletion.template")}
         count={`${summary.templateLineCount}`}
         amount={summary.templateLineTotal}
         currency={currency}
       />
       <SummaryCard
-        label={`${summary.budgetLineCount} prévision(s)`}
-        count={`${summary.budgetCount} budget(s)`}
+        label={t("goals.deletion.forecastCount", {
+          count: summary.budgetLineCount,
+        })}
+        count={t("goals.deletion.budgetCount", {
+          count: summary.budgetCount,
+        })}
         amount={summary.budgetLineTotal}
         currency={currency}
       />
       <SummaryCard
-        label="Mouvements"
+        label={t("goals.deletion.movementsLabel")}
         count={`${summary.transactionCount}`}
         amount={summary.transactionTotal}
         currency={currency}
@@ -274,6 +275,7 @@ function ImpactDetails({
   currency: SupportedCurrency;
 }) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const hasNothing =
     impact.templateLines.length === 0 && impact.budgets.length === 0;
 
@@ -283,7 +285,7 @@ function ImpactDetails({
         variant="bodyMedium"
         style={{ color: theme.colors.onSurfaceVariant }}
       >
-        Aucune prévision ni transaction n&apos;est rattachée à cet objectif.
+        {t("goals.deletion.empty")}
       </Text>
     );
   }
@@ -297,7 +299,7 @@ function ImpactDetails({
     <>
       {impact.templateLines.length > 0 && (
         <View style={styles.group}>
-          <Text variant="titleSmall">Prévisions du Mois Type</Text>
+          <Text variant="titleSmall">{t("goals.deletion.templateLines")}</Text>
           <Card mode="contained">
             <Card.Content style={styles.groupCard}>
               {impact.templateLines.map((line, index) => (
@@ -319,7 +321,7 @@ function ImpactDetails({
       {impact.budgets.map((budget) => (
         <View key={budget.budgetId} style={styles.group}>
           <Text variant="titleSmall">
-            {formatMonthLabel(budget.month, budget.year)}
+            {formatMonthLabel(budget.month, budget.year, locale)}
           </Text>
           <Card mode="contained">
             <Card.Content style={styles.groupCard}>
@@ -335,7 +337,7 @@ function ImpactDetails({
                     <ImpactRow
                       key={transaction.id}
                       title={transaction.name}
-                      subtitle="Réel"
+                      subtitle={t("goals.deletion.actual")}
                       amount={transaction.amount}
                       currency={currency}
                       isNested
@@ -350,12 +352,12 @@ function ImpactDetails({
 
       {impact.withdrawals.length > 0 && (
         <View style={styles.group}>
-          <Text variant="titleSmall">Retraits vers tes budgets</Text>
+          <Text variant="titleSmall">{t("goals.deletion.withdrawals")}</Text>
           <Text
             variant="labelMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Ces revenus restent dans leurs budgets, quel que soit ton choix.
+            {t("goals.deletion.withdrawalsHint")}
           </Text>
           <Card mode="contained">
             <Card.Content style={styles.groupCard}>
@@ -371,7 +373,7 @@ function ImpactDetails({
               ))}
               <Divider />
               <ImpactRow
-                title="Total retiré"
+                title={t("goals.deletion.withdrawnTotal")}
                 amount={withdrawnTotal}
                 currency={currency}
               />

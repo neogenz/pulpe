@@ -455,6 +455,102 @@
       "openBudget": "Open the budget for %{period}",
       "title": "Your tracking"
     },
+    "states": {
+      "complete": "Mark as reached",
+      "futureBody": {
+        "one": "This goal has stopped, but %{count} savings forecast is still reserved for it in a future month.",
+        "other": "This goal has stopped, but %{count} savings forecasts are still reserved for it in future months."
+      },
+      "futureTitle": "Forecasts linked to future months",
+      "manage": "Manage forecasts",
+      "overdueBody": "Your deadline has passed. You can move it to keep going at your pace.",
+      "overdueTitle": "Deadline passed",
+      "postpone": "Move the date",
+      "reachedPrompt": "You have saved the equivalent of your target. Mark it as reached?",
+      "reachedTitle": "Goal reached",
+      "reopen": "Reopen",
+      "reopenBody": "You can reopen it if you want to keep saving toward it."
+    },
+    "stop": {
+      "cancel": "Change nothing",
+      "completedTitle": "Goal reached",
+      "error": "The decision couldn't be applied. Reload and try again.",
+      "freeze": "Keep without goal",
+      "freezeHint": "The forecasts stay in your budgets, simply unlinked from the goal.",
+      "intro": {
+        "one": "%{count} savings forecast remains linked to this goal in a future month. What do you want to do with it?",
+        "other": "%{count} savings forecasts remain linked to this goal in future months. What do you want to do with them?"
+      },
+      "pausedTitle": "Goal paused",
+      "remove": "Remove from future months",
+      "removeAccessibility": "Deletes the displayed forecasts and frees their amounts",
+      "removeHint": "The forecasts are deleted, making the amount available again each month.",
+      "total": "Total"
+    },
+    "simulator": {
+      "alreadyClosed": "Already closed",
+      "apply": {
+        "one": "Apply (%{count} month)",
+        "other": "Apply (%{count} months)"
+      },
+      "monthAmount": "Amount for the month",
+      "noEditableMonth": "No month in this plan can be changed yet.",
+      "notEditable": "Not editable",
+      "redistribute": "Readjust the rest",
+      "reset": "Start from the current plan",
+      "title": "Simulate your plan",
+      "toCreate": "To create",
+      "total": "Simulated total %{amount}",
+      "uniformAmount": "Same amount each month",
+      "verdict": {
+        "attained": "With this plan, you reach your target in %{period}.",
+        "missing": "With this plan, you are %{amount} short of your target.",
+        "total": "With this plan, you will have planned %{amount}."
+      }
+    },
+    "recap": {
+      "applying": "Applying…",
+      "back": "Back to simulator",
+      "confirm": "Confirm",
+      "error": "The plan couldn't be applied. Nothing changed — reload the goal and try again.",
+      "intro": {
+        "one": "%{count} month will change. Already checked amounts won't move.",
+        "other": "%{count} months will change. Already checked amounts won't move."
+      },
+      "title": "Apply this plan"
+    },
+    "deletion": {
+      "actual": "Actual",
+      "budgetCount": { "one": "%{count} budget", "other": "%{count} budgets" },
+      "confirm": {
+        "goal_and_forecasts": "Delete goal and forecasts",
+        "goal_forecasts_and_transactions": "Delete everything",
+        "goal_only": "Delete goal only"
+      },
+      "empty": "No forecast or movement is linked to this goal.",
+      "error": "Deletion failed. Nothing was deleted.",
+      "forecastCount": {
+        "one": "%{count} forecast",
+        "other": "%{count} forecasts"
+      },
+      "forecasts": "Also delete all linked forecasts",
+      "goalOnlyHint": "Only the goal will be deleted. Everything else will be kept.",
+      "impactError": "Couldn't calculate the impact. Nothing was deleted.",
+      "impactLoading": "Calculating impact…",
+      "impactLoadingAccessibility": "Calculating deletion impact",
+      "intro": "Check everything linked to “%{name}” before choosing.",
+      "movements": "Also delete movements linked to these forecasts",
+      "movementsLabel": "Movements",
+      "pending": "Deleting…",
+      "question": "What do you want to delete?",
+      "summaryAccessibility": "Impact summary",
+      "template": "Typical Month",
+      "templateLines": "Typical Month forecasts",
+      "title": "Delete goal",
+      "withdrawals": "Withdrawals to your budgets",
+      "withdrawalsHint": "This income stays in its budget whatever you choose.",
+      "withdrawnTotal": "Total withdrawn"
+    },
     "withdrawals": {
       "detail": "%{status} · Planned %{planned} · Realized %{realized}",
       "inPlan": "Planned in the plan",

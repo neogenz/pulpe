@@ -455,6 +455,102 @@
       "openBudget": "Budget für %{period} öffnen",
       "title": "Dein Verlauf"
     },
+    "states": {
+      "complete": "Als erreicht markieren",
+      "futureBody": {
+        "one": "Dieses Ziel wurde gestoppt, aber %{count} Sparprognose ist noch für einen zukünftigen Monat reserviert.",
+        "other": "Dieses Ziel wurde gestoppt, aber %{count} Sparprognosen sind noch für zukünftige Monate reserviert."
+      },
+      "futureTitle": "Mit zukünftigen Monaten verknüpfte Prognosen",
+      "manage": "Prognosen verwalten",
+      "overdueBody": "Dein Zieldatum ist vorbei. Verschiebe es, um in deinem Tempo weiterzumachen.",
+      "overdueTitle": "Zieldatum überschritten",
+      "postpone": "Datum verschieben",
+      "reachedPrompt": "Du hast den Gegenwert deines Ziels gespart. Als erreicht markieren?",
+      "reachedTitle": "Ziel erreicht",
+      "reopen": "Wieder öffnen",
+      "reopenBody": "Du kannst es wieder öffnen, wenn du weiter dafür sparen möchtest."
+    },
+    "stop": {
+      "cancel": "Nichts ändern",
+      "completedTitle": "Ziel erreicht",
+      "error": "Die Entscheidung konnte nicht angewendet werden. Lade neu und versuche es erneut.",
+      "freeze": "Ohne Ziel behalten",
+      "freezeHint": "Die Prognosen bleiben in deinen Budgets und werden nur vom Ziel getrennt.",
+      "intro": {
+        "one": "%{count} Sparprognose bleibt in einem zukünftigen Monat mit diesem Ziel verknüpft. Was möchtest du damit tun?",
+        "other": "%{count} Sparprognosen bleiben in zukünftigen Monaten mit diesem Ziel verknüpft. Was möchtest du damit tun?"
+      },
+      "pausedTitle": "Ziel pausiert",
+      "remove": "Aus zukünftigen Monaten entfernen",
+      "removeAccessibility": "Löscht die angezeigten Prognosen und gibt ihre Beträge frei",
+      "removeHint": "Die Prognosen werden gelöscht und der Betrag wird jeden Monat wieder verfügbar.",
+      "total": "Gesamt"
+    },
+    "simulator": {
+      "alreadyClosed": "Bereits abgeschlossen",
+      "apply": {
+        "one": "Anwenden (%{count} Monat)",
+        "other": "Anwenden (%{count} Monate)"
+      },
+      "monthAmount": "Monatsbetrag",
+      "noEditableMonth": "Noch kein Monat in diesem Plan kann geändert werden.",
+      "notEditable": "Nicht änderbar",
+      "redistribute": "Rest neu verteilen",
+      "reset": "Vom aktuellen Plan ausgehen",
+      "title": "Plan simulieren",
+      "toCreate": "Zu erstellen",
+      "total": "Simulierte Summe %{amount}",
+      "uniformAmount": "Jeden Monat derselbe Betrag",
+      "verdict": {
+        "attained": "Mit diesem Plan erreichst du dein Ziel im %{period}.",
+        "missing": "Mit diesem Plan fehlen dir %{amount} bis zum Ziel.",
+        "total": "Mit diesem Plan hast du %{amount} eingeplant."
+      }
+    },
+    "recap": {
+      "applying": "Wird angewendet…",
+      "back": "Zurück zum Simulator",
+      "confirm": "Bestätigen",
+      "error": "Der Plan konnte nicht angewendet werden. Nichts wurde geändert — lade das Ziel neu und versuche es erneut.",
+      "intro": {
+        "one": "%{count} Monat wird geändert. Bereits abgehakte Beträge bleiben unverändert.",
+        "other": "%{count} Monate werden geändert. Bereits abgehakte Beträge bleiben unverändert."
+      },
+      "title": "Diesen Plan anwenden"
+    },
+    "deletion": {
+      "actual": "Tatsächlich",
+      "budgetCount": { "one": "%{count} Budget", "other": "%{count} Budgets" },
+      "confirm": {
+        "goal_and_forecasts": "Ziel und Prognosen löschen",
+        "goal_forecasts_and_transactions": "Alles löschen",
+        "goal_only": "Nur das Ziel löschen"
+      },
+      "empty": "Mit diesem Ziel ist keine Prognose oder Bewegung verknüpft.",
+      "error": "Löschen fehlgeschlagen. Nichts wurde gelöscht.",
+      "forecastCount": {
+        "one": "%{count} Prognose",
+        "other": "%{count} Prognosen"
+      },
+      "forecasts": "Auch alle verknüpften Prognosen löschen",
+      "goalOnlyHint": "Nur das Ziel wird gelöscht. Alles andere bleibt erhalten.",
+      "impactError": "Die Auswirkungen konnten nicht berechnet werden. Nichts wurde gelöscht.",
+      "impactLoading": "Auswirkungen werden berechnet…",
+      "impactLoadingAccessibility": "Auswirkungen der Löschung werden berechnet",
+      "intro": "Prüfe vor der Auswahl alles, was mit „%{name}“ verknüpft ist.",
+      "movements": "Auch Bewegungen löschen, die mit diesen Prognosen verknüpft sind",
+      "movementsLabel": "Bewegungen",
+      "pending": "Wird gelöscht…",
+      "question": "Was möchtest du löschen?",
+      "summaryAccessibility": "Zusammenfassung der Auswirkungen",
+      "template": "Typischer Monat",
+      "templateLines": "Prognosen des typischen Monats",
+      "title": "Ziel löschen",
+      "withdrawals": "Entnahmen in deine Budgets",
+      "withdrawalsHint": "Diese Einnahmen bleiben unabhängig von deiner Auswahl in ihren Budgets.",
+      "withdrawnTotal": "Gesamt entnommen"
+    },
     "withdrawals": {
       "detail": "%{status} · Geplant %{planned} · Realisiert %{realized}",
       "inPlan": "Im Plan vorgesehen",

@@ -7,6 +7,7 @@ import { StyleSheet, View } from "react-native";
 import { Button, Icon, Text, useTheme } from "react-native-paper";
 
 import { Card } from "@/core/ui/card";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
@@ -39,22 +40,20 @@ export function GoalPlanApplyRecap({
   onConfirm,
 }: GoalPlanApplyRecapProps) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
 
   return (
     <Sheet
       isVisible={isVisible}
       onDismiss={onDismiss}
       isBusy={isApplying}
-      title="Appliquer ce plan"
+      title={t("goals.recap.title")}
       // The month-by-month list is the whole point of the recap and runs long,
       // so the button that commits the write stays out of it.
       footer={
         <>
           {hasFailed && (
-            <FieldError visible>
-              Le plan n&apos;a pas pu être appliqué. Rien n&apos;a changé —
-              recharge l&apos;objectif et réessaie.
-            </FieldError>
+            <FieldError visible>{t("goals.recap.error")}</FieldError>
           )}
 
           <Button
@@ -63,10 +62,10 @@ export function GoalPlanApplyRecap({
             disabled={isApplying}
             loading={isApplying}
           >
-            {isApplying ? "Application…" : "Confirmer"}
+            {t(`goals.recap.${isApplying ? "applying" : "confirm"}`)}
           </Button>
           <Button mode="text" onPress={onDismiss} disabled={isApplying}>
-            Revenir au simulateur
+            {t("goals.recap.back")}
           </Button>
         </>
       }
@@ -75,8 +74,7 @@ export function GoalPlanApplyRecap({
         variant="bodyMedium"
         style={{ color: theme.colors.onSurfaceVariant }}
       >
-        {changes.length} mois {changes.length > 1 ? "vont" : "va"} changer. Les
-        montants déjà pointés ne bougent pas.
+        {t("goals.recap.intro", { count: changes.length })}
       </Text>
 
       <Card mode="contained">
@@ -85,14 +83,14 @@ export function GoalPlanApplyRecap({
             <View key={`${month.year}-${month.month}`} style={styles.row}>
               <View style={styles.label}>
                 <Text variant="bodyLarge">
-                  {formatMonthLabel(month.month, month.year)}
+                  {formatMonthLabel(month.month, month.year, locale)}
                 </Text>
                 {month.isProvisionable === true && (
                   <Text
                     variant="labelSmall"
                     style={{ color: theme.colors.onSurfaceVariant }}
                   >
-                    Prévision à créer
+                    {t("goals.simulator.toCreate")}
                   </Text>
                 )}
               </View>

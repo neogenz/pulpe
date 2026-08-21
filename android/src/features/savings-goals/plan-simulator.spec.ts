@@ -73,10 +73,6 @@ function progress(
   };
 }
 
-const formatAmount = (amount: number) => `${amount} CHF`;
-const formatPeriod = (period: { month: number; year: number }) =>
-  `${period.month}/${period.year}`;
-
 describe("isEditablePlanMonth", () => {
   it("keeps a past cycle out of reach", () => {
     expect(isEditablePlanMonth(month({ isLocked: true }))).toBe(false);
@@ -221,18 +217,18 @@ describe("planVerdict", () => {
       [monthKey({ month: 8, year: 2026 })]: 1000,
     });
 
-    expect(planVerdict(result, formatAmount, formatPeriod)).toBe(
-      "Avec ce plan, tu atteins ta cible en 8/2026.",
-    );
+    expect(planVerdict(result)).toEqual({
+      kind: "attained",
+      month: 8,
+      year: 2026,
+    });
   });
 
   it("names what is missing when the plan falls short", () => {
     const months = [month()];
     const result = simulatePlan(months, progress(months), {});
 
-    expect(planVerdict(result, formatAmount, formatPeriod)).toBe(
-      "Avec ce plan, il te manque 800 CHF pour ta cible.",
-    );
+    expect(planVerdict(result)).toEqual({ kind: "missing", amount: 800 });
   });
 
   it("states the total when there is no target", () => {
@@ -243,8 +239,6 @@ describe("planVerdict", () => {
       {},
     );
 
-    expect(planVerdict(result, formatAmount, formatPeriod)).toBe(
-      "Avec ce plan, tu auras prévu 200 CHF.",
-    );
+    expect(planVerdict(result)).toEqual({ kind: "total", amount: 200 });
   });
 });

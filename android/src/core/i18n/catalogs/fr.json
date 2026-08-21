@@ -455,6 +455,102 @@
       "openBudget": "Ouvrir le budget de %{period}",
       "title": "Ton suivi"
     },
+    "states": {
+      "complete": "Marquer comme atteint",
+      "futureBody": {
+        "one": "Cet objectif est arrêté, mais %{count} prévision Épargne lui reste réservée sur les mois à venir.",
+        "other": "Cet objectif est arrêté, mais %{count} prévisions Épargne lui restent réservées sur les mois à venir."
+      },
+      "futureTitle": "Prévisions liées sur tes mois futurs",
+      "manage": "Gérer ces prévisions",
+      "overdueBody": "Ton échéance est passée. Tu peux la repousser pour continuer à ton rythme.",
+      "overdueTitle": "Échéance dépassée",
+      "postpone": "Repousser la date",
+      "reachedPrompt": "Tu as mis de côté l'équivalent de ta cible. On le marque comme atteint ?",
+      "reachedTitle": "Objectif atteint",
+      "reopen": "Ré-ouvrir",
+      "reopenBody": "Tu peux le ré-ouvrir si tu veux continuer à épargner dessus."
+    },
+    "stop": {
+      "cancel": "Ne rien changer",
+      "completedTitle": "Objectif atteint",
+      "error": "La décision n'a pas pu être appliquée. Recharge et réessaie.",
+      "freeze": "Garder sans objectif",
+      "freezeHint": "Les prévisions restent dans tes budgets, simplement déliées de l'objectif.",
+      "intro": {
+        "one": "%{count} prévision Épargne reste liée à cet objectif sur tes mois futurs. Que veux-tu en faire ?",
+        "other": "%{count} prévisions Épargne restent liées à cet objectif sur tes mois futurs. Que veux-tu en faire ?"
+      },
+      "pausedTitle": "Objectif en pause",
+      "remove": "Retirer des mois futurs",
+      "removeAccessibility": "Supprime les prévisions affichées et libère leur montant",
+      "removeHint": "Les prévisions sont supprimées : le montant redevient disponible chaque mois.",
+      "total": "Total"
+    },
+    "simulator": {
+      "alreadyClosed": "Déjà joué",
+      "apply": {
+        "one": "Appliquer (%{count} mois)",
+        "other": "Appliquer (%{count} mois)"
+      },
+      "monthAmount": "Montant du mois",
+      "noEditableMonth": "Aucun mois de ce plan n'est encore modifiable.",
+      "notEditable": "Non modifiable",
+      "redistribute": "Réajuster la suite",
+      "reset": "Repartir du plan actuel",
+      "title": "Simuler ton plan",
+      "toCreate": "À créer",
+      "total": "Total simulé %{amount}",
+      "uniformAmount": "Même montant chaque mois",
+      "verdict": {
+        "attained": "Avec ce plan, tu atteins ta cible en %{period}.",
+        "missing": "Avec ce plan, il te manque %{amount} pour ta cible.",
+        "total": "Avec ce plan, tu auras prévu %{amount}."
+      }
+    },
+    "recap": {
+      "applying": "Application…",
+      "back": "Revenir au simulateur",
+      "confirm": "Confirmer",
+      "error": "Le plan n'a pas pu être appliqué. Rien n'a changé — recharge l'objectif et réessaie.",
+      "intro": {
+        "one": "%{count} mois va changer. Les montants déjà pointés ne bougent pas.",
+        "other": "%{count} mois vont changer. Les montants déjà pointés ne bougent pas."
+      },
+      "title": "Appliquer ce plan"
+    },
+    "deletion": {
+      "actual": "Réel",
+      "budgetCount": { "one": "%{count} budget", "other": "%{count} budgets" },
+      "confirm": {
+        "goal_and_forecasts": "Supprimer l'objectif et les prévisions",
+        "goal_forecasts_and_transactions": "Tout supprimer",
+        "goal_only": "Supprimer seulement l'objectif"
+      },
+      "empty": "Aucune prévision ni aucun mouvement n'est rattaché à cet objectif.",
+      "error": "La suppression a échoué. Rien n'a été supprimé.",
+      "forecastCount": {
+        "one": "%{count} prévision",
+        "other": "%{count} prévisions"
+      },
+      "forecasts": "Supprimer aussi toutes les prévisions rattachées",
+      "goalOnlyHint": "Seul l'objectif sera supprimé. Tout le reste sera conservé.",
+      "impactError": "Impossible de calculer l'impact. Rien n'a été supprimé.",
+      "impactLoading": "Calcul de l'impact…",
+      "impactLoadingAccessibility": "Calcul de l'impact de la suppression",
+      "intro": "Vérifie tout ce qui est rattaché à « %{name} » avant de choisir.",
+      "movements": "Supprimer aussi les mouvements rattachés à ces prévisions",
+      "movementsLabel": "Mouvements",
+      "pending": "Suppression…",
+      "question": "Que veux-tu supprimer ?",
+      "summaryAccessibility": "Résumé de l'impact",
+      "template": "Mois Type",
+      "templateLines": "Prévisions du Mois Type",
+      "title": "Supprimer l'objectif",
+      "withdrawals": "Retraits vers tes budgets",
+      "withdrawalsHint": "Ces revenus restent dans leurs budgets, quel que soit ton choix.",
+      "withdrawnTotal": "Total retiré"
+    },
     "withdrawals": {
       "detail": "%{status} · Prévu %{planned} · Réalisé %{realized}",
       "inPlan": "Prévu dans le plan",

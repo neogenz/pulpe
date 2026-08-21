@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { Button, Icon, Text, useTheme } from "react-native-paper";
 
 import { Card } from "@/core/ui/card";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 
 interface GoalStateCardsProps {
@@ -33,6 +34,7 @@ export function GoalStateCards({
   onReopen,
   onManageFutureLines,
 }: GoalStateCardsProps) {
+  const { t } = useTranslation();
   const isActive = status === "ACTIVE";
 
   return (
@@ -40,9 +42,9 @@ export function GoalStateCards({
       {isActive && progress.isOverdue && (
         <StateCard
           icon="calendar"
-          title="Échéance dépassée"
-          message="Ton échéance est passée. Tu peux la repousser pour continuer à ton rythme."
-          actionLabel="Repousser la date"
+          title={t("goals.states.overdueTitle")}
+          message={t("goals.states.overdueBody")}
+          actionLabel={t("goals.states.postpone")}
           onPress={onEdit}
         />
       )}
@@ -50,9 +52,9 @@ export function GoalStateCards({
       {isActive && progress.suggestCompletion === true && (
         <StateCard
           icon="check-decagram"
-          title="Objectif atteint"
-          message="Tu as mis de côté l'équivalent de ta cible. On le marque comme atteint ?"
-          actionLabel="Marquer comme atteint"
+          title={t("goals.states.reachedTitle")}
+          message={t("goals.states.reachedPrompt")}
+          actionLabel={t("goals.states.complete")}
           onPress={onComplete}
           isDisabled={isMutating}
         />
@@ -61,9 +63,9 @@ export function GoalStateCards({
       {status === "COMPLETED" && (
         <StateCard
           icon="flag-checkered"
-          title="Objectif atteint"
-          message="Tu peux le ré-ouvrir si tu veux continuer à épargner dessus."
-          actionLabel="Ré-ouvrir"
+          title={t("goals.states.reachedTitle")}
+          message={t("goals.states.reopenBody")}
+          actionLabel={t("goals.states.reopen")}
           onPress={onReopen}
           isDisabled={isMutating}
         />
@@ -72,9 +74,9 @@ export function GoalStateCards({
       {!isActive && futureLineCount > 0 && (
         <StateCard
           icon="calendar-clock"
-          title="Prévisions liées sur tes mois futurs"
-          message={`Cet objectif est arrêté, mais ${futureLineCount} prévision(s) Épargne lui restent réservées sur les mois à venir.`}
-          actionLabel="Gérer ces prévisions"
+          title={t("goals.states.futureTitle")}
+          message={t("goals.states.futureBody", { count: futureLineCount })}
+          actionLabel={t("goals.states.manage")}
           onPress={onManageFutureLines}
         />
       )}
