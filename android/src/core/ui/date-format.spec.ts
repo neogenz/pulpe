@@ -1,9 +1,35 @@
 import {
+  formatDayMonth,
   formatMonthLabel,
   formatMonthName,
   formatMonthYearShort,
+  formatRelativeDay,
   ofMonth,
 } from "./date-format";
+
+describe("localized day labels", () => {
+  it.each([
+    ["fr", "5 août", "aujourd'hui", "hier"],
+    ["en", "August 5", "today", "yesterday"],
+    ["de", "5. August", "heute", "gestern"],
+    ["it", "5 agosto", "oggi", "ieri"],
+  ])(
+    "formats calendar and relative days in %s",
+    (locale, day, today, yesterday) => {
+      const now = new Date(2026, 7, 5, 12);
+      expect(formatDayMonth(now, locale)).toBe(day);
+      expect(formatRelativeDay(now, now, locale)).toBe(today);
+      expect(formatRelativeDay(new Date(2026, 7, 4), now, locale)).toBe(
+        yesterday,
+      );
+    },
+  );
+
+  it("keeps the French first-day ordinal by default", () => {
+    expect(formatDayMonth(new Date(2026, 7, 1))).toBe("1er août");
+    expect(formatDayMonth(new Date(2026, 7, 1), "en")).toBe("August 1");
+  });
+});
 
 describe("formatMonthYearShort", () => {
   it("abbreviates the long month names", () => {

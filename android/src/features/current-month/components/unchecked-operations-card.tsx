@@ -9,6 +9,9 @@ import { Amount } from "@/core/ui/amount";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { EMPHASIS, RADIUS, SPACING } from "@/core/ui/theme";
+import { useTranslation } from "@/core/i18n/locale-store";
+import { formatDayMonth } from "@/core/ui/date-format";
+import { recurrenceLabel } from "@/core/ui/vocabulary";
 
 import type { CheckableItem } from "../current-month-view-model";
 
@@ -45,6 +48,7 @@ export function UncheckedOperationsCard({
 }: UncheckedOperationsCardProps) {
   const theme = useTheme();
   const financial = useFinancialColors();
+  const { locale, t } = useTranslation();
   const [skippedIds, setSkippedIds] = useState<string[]>([]);
 
   // Pruned at render rather than in an effect: an operation that was deferred
@@ -98,7 +102,9 @@ export function UncheckedOperationsCard({
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              {current.subtitle}
+              {current.subtitle.kind === "date"
+                ? formatDayMonth(new Date(current.subtitle.value), locale)
+                : recurrenceLabel(t, current.subtitle.value)}
             </Text>
           </View>
 

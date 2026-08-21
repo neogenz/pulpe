@@ -492,5 +492,8 @@
       "subtitle": "It unlocks your amounts",
       "title": "Your code"
     }
+  },
+  "vocabulary": {
+    "recurrence": { "fixed": "Recurring", "one_off": "Planned" }
   }
 }

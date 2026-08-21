@@ -206,6 +206,15 @@ describe("drift", () => {
 });
 
 describe("unchecked", () => {
+  it("keeps subtitle data semantic until presentation", () => {
+    const model = viewModelOf([line()], [transaction()]);
+
+    expect(model.uncheckedItems.map((item) => item.subtitle)).toEqual([
+      { kind: "date", value: "2026-08-10T00:00:00.000Z" },
+      { kind: "recurrence", value: "fixed" },
+    ]);
+  });
+
   it("puts what was spent ahead of what was planned", () => {
     const model = viewModelOf(
       [line({ id: "rent", name: "Loyer" })],

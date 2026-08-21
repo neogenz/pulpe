@@ -2,7 +2,8 @@ import type { SupportedCurrency, TemplateLine } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
 import { Divider, IconButton, Text, useTheme } from "react-native-paper";
 
-import { RECURRENCE_LABELS } from "@/core/ui/vocabulary";
+import { recurrenceLabel } from "@/core/ui/vocabulary";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Card } from "@/core/ui/card";
 import { Amount } from "@/core/ui/amount";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
@@ -80,6 +81,7 @@ function LineRow({
 }) {
   const theme = useTheme();
   const financial = useFinancialColors();
+  const { t } = useTranslation();
 
   return (
     <View style={styles.row}>
@@ -88,7 +90,7 @@ function LineRow({
           variant="labelSmall"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          {RECURRENCE_LABELS[line.recurrence]}
+          {recurrenceLabel(t, line.recurrence)}
         </Text>
         <Text variant="bodyLarge" numberOfLines={1}>
           {line.name}

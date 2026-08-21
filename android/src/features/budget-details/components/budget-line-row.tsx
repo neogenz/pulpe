@@ -3,7 +3,8 @@ import type { SupportedCurrency } from "pulpe-shared";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
-import { RECURRENCE_LABELS } from "@/core/ui/vocabulary";
+import { recurrenceLabel } from "@/core/ui/vocabulary";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCurrency } from "@/core/ui/amount-format";
@@ -37,6 +38,7 @@ export function BudgetLineRow({
   onToggle,
 }: BudgetLineRowProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const ripple = useRipple();
   const financial = useFinancialColors();
   const accent = accentColor(
@@ -76,7 +78,7 @@ export function BudgetLineRow({
             variant="labelSmall"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            {RECURRENCE_LABELS[item.line.recurrence]}
+            {recurrenceLabel(t, item.line.recurrence)}
           </Text>
           {/* A calendar, never a repeat arrow: a spread month is one of a
               window, not something that comes back forever. */}

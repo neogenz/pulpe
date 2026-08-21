@@ -70,9 +70,22 @@ export function formatMonthYearShort(month: number, year: number): string {
 }
 
 /** `5 juillet`, and `1er juillet` on the one day French does not say "1". */
-export function formatDayMonth(date: Date): string {
-  if (date.getDate() !== 1) return dayMonthFormatter.format(date);
-  return `1er ${monthFormatter.format(date)}`;
+export function formatDayMonth(
+  date: Date,
+  locale: string = DATE_LOCALE,
+): string {
+  const formatter =
+    locale === DATE_LOCALE
+      ? dayMonthFormatter
+      : new Intl.DateTimeFormat(locale, { day: "numeric", month: "long" });
+  if (date.getDate() !== 1 || !locale.toLowerCase().startsWith("fr")) {
+    return formatter.format(date);
+  }
+  const month =
+    locale === DATE_LOCALE
+      ? monthFormatter.format(date)
+      : new Intl.DateTimeFormat(locale, { month: "long" }).format(date);
+  return `1er ${month}`;
 }
 
 /**
@@ -80,11 +93,24 @@ export function formatDayMonth(date: Date): string {
  * is a parameter so a caller that already has "now" does not create a second
  * one — and so the behaviour can be asserted on a fixed day.
  */
-export function formatRelativeDay(date: Date, now: Date): string {
+export function formatRelativeDay(
+  date: Date,
+  now: Date,
+  locale: string = DATE_LOCALE,
+): string {
   const days = countDaysBetween(startOfDay(date), startOfDay(now));
-  if (days === 0) return "aujourd'hui";
-  if (days === 1) return "hier";
-  return formatDayMonth(date);
+  if (days === 0 || days === 1) {
+    // Keep the established French apostrophe byte-for-byte for persisted
+    // snapshots and tests; Intl uses a typographic apostrophe instead.
+    if (locale.toLowerCase().startsWith("fr")) {
+      return days === 0 ? "aujourd'hui" : "hier";
+    }
+    return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+      -days,
+      "day",
+    );
+  }
+  return formatDayMonth(date, locale);
 }
 
 /**

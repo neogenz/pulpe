@@ -492,5 +492,8 @@
       "subtitle": "Il déverrouille tes montants",
       "title": "Ton code"
     }
+  },
+  "vocabulary": {
+    "recurrence": { "fixed": "Récurrent", "one_off": "Prévu" }
   }
 }

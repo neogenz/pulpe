@@ -492,5 +492,8 @@
       "subtitle": "Sblocca i tuoi importi",
       "title": "Il tuo codice"
     }
+  },
+  "vocabulary": {
+    "recurrence": { "fixed": "Ricorrente", "one_off": "Pianificato" }
   }
 }

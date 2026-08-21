@@ -16,7 +16,8 @@ import {
   useTheme,
 } from "react-native-paper";
 
-import { RECURRENCE_OPTIONS } from "@/core/ui/vocabulary";
+import { recurrenceOptions } from "@/core/ui/vocabulary";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
 import { Sheet } from "@/core/ui/sheet";
@@ -91,6 +92,7 @@ export function BudgetLineSheet({
   onSaved,
 }: BudgetLineSheetProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const create = useCreateBudgetLine();
   const update = useUpdateBudgetLine();
   const spread = useCreateSpread();
@@ -255,7 +257,7 @@ export function BudgetLineSheet({
             onValueChange={(recurrence) =>
               change({ recurrence: recurrence as TransactionRecurrence })
             }
-            buttons={RECURRENCE_OPTIONS.map((button) => ({
+            buttons={recurrenceOptions(t).map((button) => ({
               ...button,
               disabled: isPlannedWithdrawal,
             }))}

@@ -19,7 +19,8 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { RECURRENCE_LABELS } from "@/core/ui/vocabulary";
+import { recurrenceLabel } from "@/core/ui/vocabulary";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
@@ -77,6 +78,7 @@ export default function BudgetLineDetailScreen() {
   useAmountMasking();
   const { id, lineId } = useLocalSearchParams<{ id: string; lineId: string }>();
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const financial = useFinancialColors();
   const settings = useUserSettings();
   const details = useBudgetDetails(id);
@@ -286,7 +288,7 @@ export default function BudgetLineDetailScreen() {
             style={{ color: theme.colors.onSurfaceVariant }}
           >
             {KIND_LABELS[line.kind]} ·{" "}
-            {RECURRENCE_LABELS[line.recurrence].toLocaleLowerCase()}
+            {recurrenceLabel(t, line.recurrence).toLocaleLowerCase(locale)}
           </Text>
 
           <Amount size="hero" style={{ color: accent }} numberOfLines={1}>

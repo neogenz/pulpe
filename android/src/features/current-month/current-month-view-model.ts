@@ -13,8 +13,6 @@ import {
   type TransactionKind,
 } from "pulpe-shared";
 
-import { RECURRENCE_LABELS } from "@/core/ui/vocabulary";
-import { formatDayMonth } from "@/core/ui/date-format";
 import type { BudgetDetails } from "@/features/budgets/budget-api";
 import type { CheckTarget } from "@/features/budgets/toggle-check-api";
 
@@ -45,8 +43,10 @@ export interface CheckableItem extends CheckTarget {
   amount: number;
   /** Present when the item is, or belongs to, an envelope with a plan. */
   consumption: Consumption | null;
-  /** What the row says under the name: a date for a spend, a frequency for a plan. */
-  subtitle: string;
+  /** Stable data rendered as a localized date or recurrence by the card. */
+  subtitle:
+    | { kind: "date"; value: string }
+    | { kind: "recurrence"; value: BudgetLine["recurrence"] };
 }
 
 export interface SavingsSummary {
@@ -311,7 +311,7 @@ function selectUncheckedItems(
       kind: line.kind,
       amount: line.amount,
       consumption: BudgetFormulas.calculateConsumption(line, transactions),
-      subtitle: RECURRENCE_LABELS[line.recurrence],
+      subtitle: { kind: "recurrence" as const, value: line.recurrence },
     }));
 
   return [
@@ -410,7 +410,7 @@ function toCheckableItem(
     kind: transaction.kind,
     amount: transaction.amount,
     consumption,
-    subtitle: formatDayMonth(new Date(transaction.transactionDate)),
+    subtitle: { kind: "date", value: transaction.transactionDate },
   };
 }
 

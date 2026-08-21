@@ -1,18 +1,25 @@
 import type { BudgetLine } from "pulpe-shared";
 
+type Translate = (key: string) => string;
+
+const RECURRENCES: readonly BudgetLine["recurrence"][] = ["fixed", "one_off"];
+
 /**
  * The words the product uses for the things the schema names differently, in
- * one place. `fixed` and `one_off` are database values; "Récurrent" and "Prévu"
- * are what a person reads, and the app had six copies of that translation —
- * four label maps and two sets of segmented-button captions. Six copies of a
- * word is six chances for one screen to rename it alone.
+ * one place. The database values stay stable; only their presentation is
+ * resolved, at render time, through the active catalog.
  */
-export const RECURRENCE_LABELS: Record<BudgetLine["recurrence"], string> = {
-  fixed: "Récurrent",
-  one_off: "Prévu",
-};
+export function recurrenceLabel(
+  t: Translate,
+  value: BudgetLine["recurrence"],
+): string {
+  return t(`vocabulary.recurrence.${value}`);
+}
 
 /** The same two words, in the order the pickers offer them. */
-export const RECURRENCE_OPTIONS = (
-  Object.keys(RECURRENCE_LABELS) as BudgetLine["recurrence"][]
-).map((value) => ({ value, label: RECURRENCE_LABELS[value] }));
+export function recurrenceOptions(t: Translate) {
+  return RECURRENCES.map((value) => ({
+    value,
+    label: recurrenceLabel(t, value),
+  }));
+}

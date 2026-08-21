@@ -17,7 +17,8 @@ import {
   useTheme,
 } from "react-native-paper";
 
-import { RECURRENCE_OPTIONS } from "@/core/ui/vocabulary";
+import { recurrenceOptions } from "@/core/ui/vocabulary";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
 import { Sheet } from "@/core/ui/sheet";
@@ -71,6 +72,7 @@ export function TemplateLineSheet({
   onSaved,
 }: TemplateLineSheetProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const goals = useSavingsGoals();
   const create = useCreateTemplateLine();
   const update = useUpdateTemplateLine();
@@ -231,7 +233,7 @@ export function TemplateLineSheet({
         <SegmentedButtons
           value={recurrence}
           onValueChange={(next) => setRecurrence(next as TransactionRecurrence)}
-          buttons={RECURRENCE_OPTIONS}
+          buttons={recurrenceOptions(t)}
         />
 
         {kind === "saving" && (goals.data ?? []).length > 0 && (
