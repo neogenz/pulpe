@@ -398,6 +398,33 @@
       }
     }
   },
+  "system": {
+    "gate": {
+      "forceUpdate": {
+        "action": "Aktualisieren",
+        "hint": "Diese Version wird nicht mehr unterstützt. Installiere die neueste Version, um auf deine Budgets zuzugreifen.",
+        "title": "Ein Update ist verfügbar"
+      },
+      "maintenance": {
+        "hint": "Wir bringen gerade alles wieder in Ordnung. Komm in ein paar Minuten zurück.",
+        "title": "Pulpe wird gewartet"
+      },
+      "offline": {
+        "hint": "Deine Budgets sind auf dem Server verschlüsselt. Ohne Verbindung kann Pulpe sie nicht anzeigen.",
+        "title": "Keine Verbindung"
+      }
+    },
+    "queryError": "Dieser Bereich konnte nicht geladen werden.",
+    "requiredSettings": {
+      "hint": "Versuche erneut, deine Währung und deinen Zahltag zu laden.",
+      "loading": "Deine Einstellungen werden geladen",
+      "title": "Deine Einstellungen sind nicht verfügbar"
+    },
+    "whatsNew": {
+      "acknowledge": "Verstanden",
+      "title": "Neuigkeiten"
+    }
+  },
   "startup": {
     "vaultError": "Deine geschützten Daten konnten nicht vorbereitet werden."
   },

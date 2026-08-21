@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet } from "react-native";
 import { useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useTranslation } from "@/core/i18n/locale-store";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 
 import { useUserSettings } from "./user-settings-queries";
@@ -10,6 +11,7 @@ import { useUserSettings } from "./user-settings-queries";
 export function RequiredSettingsGate({ children }: { children: ReactNode }) {
   const settings = useUserSettings();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   if (settings.data !== undefined) return children;
 
@@ -17,10 +19,10 @@ export function RequiredSettingsGate({ children }: { children: ReactNode }) {
     return (
       <PlaceholderScreen
         icon="cloud-alert-outline"
-        title="Tes préférences sont indisponibles"
-        hint="Réessaie pour charger ta devise et ton jour de paie."
+        title={t("system.requiredSettings.title")}
+        hint={t("system.requiredSettings.hint")}
         action={{
-          label: "Réessayer",
+          label: t("common.retry"),
           onPress: () => void settings.refetch(),
         }}
       />
@@ -31,7 +33,9 @@ export function RequiredSettingsGate({ children }: { children: ReactNode }) {
     <SafeAreaView
       style={[styles.loading, { backgroundColor: theme.colors.background }]}
     >
-      <ActivityIndicator accessibilityLabel="Chargement de tes préférences" />
+      <ActivityIndicator
+        accessibilityLabel={t("system.requiredSettings.loading")}
+      />
     </SafeAreaView>
   );
 }

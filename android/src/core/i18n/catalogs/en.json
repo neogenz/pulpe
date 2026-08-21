@@ -398,6 +398,33 @@
       }
     }
   },
+  "system": {
+    "gate": {
+      "forceUpdate": {
+        "action": "Update",
+        "hint": "This version is no longer supported. Install the latest one to access your budgets.",
+        "title": "An update is waiting"
+      },
+      "maintenance": {
+        "hint": "We're getting everything back in shape. Come back in a few minutes.",
+        "title": "Pulpe is under maintenance"
+      },
+      "offline": {
+        "hint": "Your budgets are encrypted on the server. Without a connection, Pulpe cannot display them.",
+        "title": "No connection"
+      }
+    },
+    "queryError": "This section could not be loaded.",
+    "requiredSettings": {
+      "hint": "Try again to load your currency and pay day.",
+      "loading": "Loading your preferences",
+      "title": "Your preferences are unavailable"
+    },
+    "whatsNew": {
+      "acknowledge": "Got it",
+      "title": "What's new"
+    }
+  },
   "startup": {
     "vaultError": "Unable to prepare your secure data."
   },

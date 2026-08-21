@@ -3,12 +3,14 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
 
 import { useSessionStore } from "@/core/auth/session-store";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { SPACING } from "@/core/ui/theme";
 import { useVaultStore } from "@/core/vault/vault-store";
 
 import {
   acknowledgeWhatsNew,
   checkWhatsNew,
+  clearWhatsNewSession,
   useWhatsNewStore,
 } from "./whats-new-store";
 
@@ -21,6 +23,7 @@ import {
  * to land on.
  */
 export function WhatsNewSheet() {
+  const { locale, t } = useTranslation();
   const isAuthenticated = useSessionStore(
     (state) => state.status === "authenticated",
   );
@@ -28,9 +31,12 @@ export function WhatsNewSheet() {
   const entries = useWhatsNewStore((state) => state.entries);
 
   useEffect(() => {
-    if (!isAuthenticated || !isUnlocked) return;
-    void checkWhatsNew();
-  }, [isAuthenticated, isUnlocked]);
+    if (!isAuthenticated || !isUnlocked) {
+      clearWhatsNewSession();
+      return;
+    }
+    void checkWhatsNew(locale);
+  }, [isAuthenticated, isUnlocked, locale]);
 
   if (entries.length === 0) return null;
 
@@ -38,7 +44,9 @@ export function WhatsNewSheet() {
     <Portal>
       <Dialog visible onDismiss={acknowledgeWhatsNew}>
         <Dialog.Icon icon="party-popper" />
-        <Dialog.Title style={styles.centered}>Quoi de neuf</Dialog.Title>
+        <Dialog.Title style={styles.centered}>
+          {t("system.whatsNew.title")}
+        </Dialog.Title>
 
         <Dialog.ScrollArea>
           <ScrollView contentContainerStyle={styles.content}>
@@ -50,7 +58,7 @@ export function WhatsNewSheet() {
 
         <Dialog.Actions>
           <Button mode="contained" onPress={acknowledgeWhatsNew}>
-            J&apos;ai vu
+            {t("system.whatsNew.acknowledge")}
           </Button>
         </Dialog.Actions>
       </Dialog>

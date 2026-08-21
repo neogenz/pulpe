@@ -3,6 +3,7 @@ import { api } from "@/core/api/api";
 import {
   acknowledgeWhatsNew,
   checkWhatsNew,
+  clearWhatsNewSession,
   useWhatsNewStore,
 } from "./whats-new-store";
 
@@ -36,12 +37,12 @@ function answerWith(entries: unknown[]) {
 beforeEach(() => {
   jest.clearAllMocks();
   mockStorage.clear();
-  useWhatsNewStore.setState({ entries: [] });
+  clearWhatsNewSession();
 });
 
 describe("checkWhatsNew", () => {
   it("should say nothing on a fresh install", async () => {
-    await checkWhatsNew();
+    await checkWhatsNew("fr");
 
     // "Everything is new" is not news — record where we are and stay quiet.
     expect(mockedGet).not.toHaveBeenCalled();
@@ -52,12 +53,12 @@ describe("checkWhatsNew", () => {
     mockStorage.set(LAST_SEEN_KEY, "1.1.0");
     answerWith([ENTRY]);
 
-    await checkWhatsNew();
+    await checkWhatsNew("fr");
 
     expect(mockedGet).toHaveBeenCalledWith(
       "/whats-new/android",
       expect.anything(),
-      { currentVersion: "1.2.0", lastSeenVersion: "1.1.0" },
+      { currentVersion: "1.2.0", lastSeenVersion: "1.1.0", locale: "fr" },
     );
     expect(useWhatsNewStore.getState().entries).toEqual([ENTRY]);
   });
@@ -65,7 +66,7 @@ describe("checkWhatsNew", () => {
   it("should not ask twice for a version already seen", async () => {
     mockStorage.set(LAST_SEEN_KEY, "1.2.0");
 
-    await checkWhatsNew();
+    await checkWhatsNew("fr");
 
     expect(mockedGet).not.toHaveBeenCalled();
   });
@@ -74,7 +75,7 @@ describe("checkWhatsNew", () => {
     // A debug build installed over a release one.
     mockStorage.set(LAST_SEEN_KEY, "1.3.0");
 
-    await checkWhatsNew();
+    await checkWhatsNew("fr");
 
     expect(mockedGet).not.toHaveBeenCalled();
   });
@@ -83,7 +84,7 @@ describe("checkWhatsNew", () => {
     mockStorage.set(LAST_SEEN_KEY, "1.1.0");
     answerWith([]);
 
-    await checkWhatsNew();
+    await checkWhatsNew("fr");
 
     expect(useWhatsNewStore.getState().entries).toEqual([]);
     // Moved, or the empty answer is re-fetched on every single launch.
@@ -94,7 +95,7 @@ describe("checkWhatsNew", () => {
     mockStorage.set(LAST_SEEN_KEY, "1.1.0");
     mockedGet.mockRejectedValue(new Error("offline"));
 
-    await checkWhatsNew();
+    await checkWhatsNew("fr");
 
     // Fails open and retries next launch, rather than eating the notes.
     expect(useWhatsNewStore.getState().entries).toEqual([]);
@@ -110,4 +111,39 @@ describe("checkWhatsNew", () => {
     expect(mockStorage.get(LAST_SEEN_KEY)).toBe("1.2.0");
     expect(useWhatsNewStore.getState().entries).toEqual([]);
   });
+
+  it("keeps only the latest locale response", async () => {
+    mockStorage.set(LAST_SEEN_KEY, "1.1.0");
+    let resolveFrench!: (value: never) => void;
+    const french = new Promise<never>((resolve) => (resolveFrench = resolve));
+    mockedGet.mockReturnValueOnce(french).mockResolvedValueOnce({
+      success: true,
+      data: { entries: [{ ...ENTRY, title: "Neuigkeiten" }] },
+    } as never);
+
+    const oldCheck = checkWhatsNew("fr");
+    await checkWhatsNew("de");
+    resolveFrench({ success: true, data: { entries: [ENTRY] } } as never);
+    await oldCheck;
+
+    expect(useWhatsNewStore.getState().entries[0]?.title).toBe("Neuigkeiten");
+  });
+
+  it.each([acknowledgeWhatsNew, clearWhatsNewSession])(
+    "invalidates a late response",
+    async (invalidate) => {
+      mockStorage.set(LAST_SEEN_KEY, "1.1.0");
+      let resolveRequest!: (value: never) => void;
+      mockedGet.mockReturnValue(
+        new Promise<never>((resolve) => (resolveRequest = resolve)),
+      );
+
+      const request = checkWhatsNew("it");
+      invalidate();
+      resolveRequest({ success: true, data: { entries: [ENTRY] } } as never);
+      await request;
+
+      expect(useWhatsNewStore.getState().entries).toEqual([]);
+    },
+  );
 });

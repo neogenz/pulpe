@@ -1,16 +1,20 @@
 import { StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 
+import { useTranslation } from "@/core/i18n/locale-store";
+
 import { SPACING } from "./theme";
 
 export function InlineQueryError({
   onRetry,
-  message = "Impossible de charger cette section.",
+  message,
 }: {
   onRetry: () => void;
   message?: string;
 }) {
   const theme = useTheme();
+  const { t } = useTranslation();
+  const resolvedMessage = message ?? t("system.queryError");
 
   return (
     <View
@@ -23,10 +27,10 @@ export function InlineQueryError({
         variant="bodyMedium"
         style={{ color: theme.colors.onSurfaceVariant }}
       >
-        {message}
+        {resolvedMessage}
       </Text>
       <Button mode="outlined" compact onPress={onRetry}>
-        Réessayer
+        {t("common.retry")}
       </Button>
     </View>
   );

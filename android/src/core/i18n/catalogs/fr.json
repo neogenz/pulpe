@@ -398,6 +398,33 @@
       }
     }
   },
+  "system": {
+    "gate": {
+      "forceUpdate": {
+        "action": "Mettre à jour",
+        "hint": "Cette version n'est plus prise en charge. Installe la dernière pour retrouver tes budgets.",
+        "title": "Une mise à jour t'attend"
+      },
+      "maintenance": {
+        "hint": "On remet les compteurs d'aplomb. Reviens dans quelques minutes.",
+        "title": "Pulpe est en maintenance"
+      },
+      "offline": {
+        "hint": "Tes budgets sont chiffrés côté serveur : sans réseau, Pulpe ne peut rien afficher.",
+        "title": "Pas de connexion"
+      }
+    },
+    "queryError": "Impossible de charger cette section.",
+    "requiredSettings": {
+      "hint": "Réessaie pour charger ta devise et ton jour de paie.",
+      "loading": "Chargement de tes préférences",
+      "title": "Tes préférences sont indisponibles"
+    },
+    "whatsNew": {
+      "acknowledge": "J'ai vu",
+      "title": "Quoi de neuf"
+    }
+  },
   "startup": {
     "vaultError": "Impossible de préparer tes données sécurisées."
   },

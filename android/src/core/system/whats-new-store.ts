@@ -1,4 +1,8 @@
-import { type WhatsNewEntry, whatsNewResponseSchema } from "pulpe-shared";
+import {
+  type SupportedLocale,
+  type WhatsNewEntry,
+  whatsNewResponseSchema,
+} from "pulpe-shared";
 import { createMMKV } from "react-native-mmkv";
 import { create } from "zustand";
 
@@ -11,6 +15,7 @@ import { CURRENT_APP_VERSION } from "./system-store";
 const LAST_SEEN_KEY = "pulpe-whats-new-last-seen";
 
 const storage = createMMKV({ id: "pulpe-whats-new" });
+let requestGeneration = 0;
 
 interface WhatsNewState {
   entries: WhatsNewEntry[];
@@ -32,7 +37,9 @@ export const useWhatsNewStore = create<WhatsNewState>(() => ({
  * Fails open, like the version gate: an outage leaves the marker untouched so
  * the next launch retries, and never holds up a launch.
  */
-export async function checkWhatsNew(): Promise<void> {
+export async function checkWhatsNew(locale: SupportedLocale): Promise<void> {
+  const generation = ++requestGeneration;
+  useWhatsNewStore.setState({ entries: [] });
   const lastSeenVersion = storage.getString(LAST_SEEN_KEY);
   if (lastSeenVersion === undefined) {
     // First run of a version-aware build: record where we are and say nothing.
@@ -47,8 +54,9 @@ export async function checkWhatsNew(): Promise<void> {
     const response = await api.get(
       ENDPOINTS.whatsNewAndroid,
       whatsNewResponseSchema,
-      { currentVersion: CURRENT_APP_VERSION, lastSeenVersion },
+      { currentVersion: CURRENT_APP_VERSION, lastSeenVersion, locale },
     );
+    if (generation !== requestGeneration) return;
 
     if (response.data.entries.length === 0) {
       // Nothing to say, but the version was still reached: move the marker so
@@ -65,6 +73,13 @@ export async function checkWhatsNew(): Promise<void> {
 
 /** Dismissing is what marks the version as seen — not showing it. */
 export function acknowledgeWhatsNew(): void {
+  requestGeneration += 1;
   storage.set(LAST_SEEN_KEY, CURRENT_APP_VERSION);
+  useWhatsNewStore.setState({ entries: [] });
+}
+
+/** Session teardown also makes every pending locale response obsolete. */
+export function clearWhatsNewSession(): void {
+  requestGeneration += 1;
   useWhatsNewStore.setState({ entries: [] });
 }

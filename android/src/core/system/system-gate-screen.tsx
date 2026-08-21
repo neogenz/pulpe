@@ -4,6 +4,7 @@ import { Linking, Modal, StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useTranslation } from "@/core/i18n/locale-store";
 import { SPACING } from "@/core/ui/theme";
 
 import {
@@ -14,28 +15,10 @@ import {
 
 const ANIMATION_SIZE = 220;
 
-interface GateCopy {
-  title: string;
-  hint: string;
-  actionLabel: string;
-}
-
-const COPY: Record<Exclude<SystemGate, "ok">, GateCopy> = {
-  maintenance: {
-    title: "Pulpe est en maintenance",
-    hint: "On remet les compteurs d'aplomb. Reviens dans quelques minutes.",
-    actionLabel: "Réessayer",
-  },
-  forceUpdate: {
-    title: "Une mise à jour t'attend",
-    hint: "Cette version n'est plus prise en charge. Installe la dernière pour retrouver tes budgets.",
-    actionLabel: "Mettre à jour",
-  },
-  offline: {
-    title: "Pas de connexion",
-    hint: "Tes budgets sont chiffrés côté serveur : sans réseau, Pulpe ne peut rien afficher.",
-    actionLabel: "Réessayer",
-  },
+const COPY_KEYS: Record<Exclude<SystemGate, "ok">, string> = {
+  maintenance: "maintenance",
+  forceUpdate: "forceUpdate",
+  offline: "offline",
 };
 
 /**
@@ -47,6 +30,7 @@ const COPY: Record<Exclude<SystemGate, "ok">, GateCopy> = {
  * is a route the router can leave.
  */
 export function SystemGateScreen() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const gate = useSystemStore((state) => state.gate);
   const storeUrl = useSystemStore((state) => state.storeUrl);
@@ -55,7 +39,7 @@ export function SystemGateScreen() {
 
   if (gate === "ok") return null;
 
-  const copy = COPY[gate];
+  const copyKey = `system.gate.${COPY_KEYS[gate]}`;
   const isUpdate = gate === "forceUpdate";
   // Without a published store URL there is nothing to send the user to, so the
   // button falls back to re-asking — the backend may have moved the floor.
@@ -82,13 +66,13 @@ export function SystemGateScreen() {
 
         <View style={styles.copy}>
           <Text variant="headlineSmall" style={styles.centered}>
-            {copy.title}
+            {t(`${copyKey}.title`)}
           </Text>
           <Text
             variant="bodyMedium"
             style={[styles.centered, { color: theme.colors.onSurfaceVariant }]}
           >
-            {copy.hint}
+            {t(`${copyKey}.hint`)}
           </Text>
         </View>
 
@@ -104,7 +88,7 @@ export function SystemGateScreen() {
             void checkSystemGate();
           }}
         >
-          {canOpenStore ? copy.actionLabel : "Réessayer"}
+          {canOpenStore ? t(`${copyKey}.action`) : t("common.retry")}
         </Button>
       </SafeAreaView>
     </Modal>
