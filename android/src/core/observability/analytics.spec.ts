@@ -10,6 +10,8 @@ const mockStopListening = jest.fn();
 const mockSubscribe = jest.fn();
 const mockStopSessionListening = jest.fn();
 const mockSessionSubscribe = jest.fn();
+const mockStopLocaleListening = jest.fn();
+const mockLocaleSubscribe = jest.fn();
 
 let mockConfig: { apiKey: string; host: string } | null;
 let mockIsSharingEnabled: boolean;
@@ -21,6 +23,7 @@ let mockConsentListener:
   | ((state: { isDiagnosticSharingEnabled: boolean }) => void)
   | null;
 let mockSessionListener: (() => void) | null;
+let mockLocaleListener: (() => void) | null;
 
 jest.mock("posthog-react-native", () => ({ PostHog: mockPostHog }));
 jest.mock("expo-application", () => ({
@@ -40,6 +43,12 @@ jest.mock("@/core/config/env", () => ({
     get posthog() {
       return mockConfig;
     },
+  },
+}));
+jest.mock("@/core/i18n/locale-store", () => ({
+  useLocaleStore: {
+    getState: () => ({ locale: "de" }),
+    subscribe: mockLocaleSubscribe,
   },
 }));
 jest.mock("./diagnostics-consent", () => ({
@@ -67,6 +76,7 @@ describe("PostHog startup", () => {
     mockSessionState = { status: "unauthenticated", user: null };
     mockConsentListener = null;
     mockSessionListener = null;
+    mockLocaleListener = null;
     mockSubscribe.mockImplementation((listener) => {
       mockConsentListener = listener;
       return mockStopListening;
@@ -74,6 +84,10 @@ describe("PostHog startup", () => {
     mockSessionSubscribe.mockImplementation((listener) => {
       mockSessionListener = listener;
       return mockStopSessionListening;
+    });
+    mockLocaleSubscribe.mockImplementation((listener) => {
+      mockLocaleListener = listener;
+      return mockStopLocaleListening;
     });
   });
 
@@ -99,10 +113,12 @@ describe("PostHog startup", () => {
       environment: "production",
       app_version: "1.2.3",
       build_number: "42",
+      locale: "de",
     });
     stop();
     expect(mockStopListening).toHaveBeenCalledTimes(1);
     expect(mockStopSessionListening).toHaveBeenCalledTimes(1);
+    expect(mockStopLocaleListening).toHaveBeenCalledTimes(1);
   });
 
   it("does not create or subscribe a client outside production", () => {
@@ -113,6 +129,17 @@ describe("PostHog startup", () => {
     expect(mockPostHog).not.toHaveBeenCalled();
     expect(mockSubscribe).not.toHaveBeenCalled();
     expect(stop()).toBeUndefined();
+  });
+
+  it("registers only the normalized supported locale when it changes", () => {
+    loadStartAnalytics()();
+    mockClient.register.mockClear();
+
+    mockLocaleListener?.();
+
+    expect(mockClient.register).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: "de" }),
+    );
   });
 
   it("applies the persisted and live diagnostic consent", () => {

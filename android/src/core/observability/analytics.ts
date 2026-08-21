@@ -7,6 +7,7 @@ import { useEffect } from "react";
 
 import { useSessionStore } from "@/core/auth/session-store";
 import { ENV } from "@/core/config/env";
+import { useLocaleStore } from "@/core/i18n/locale-store";
 
 import {
   sanitizeProperties,
@@ -35,6 +36,7 @@ function appContextProperties(): AnalyticsProperties {
     environment: ENV.environment,
     app_version: Application.nativeApplicationVersion ?? "unknown",
     build_number: Application.nativeBuildVersion ?? "unknown",
+    locale: useLocaleStore.getState().locale,
   };
 }
 
@@ -135,6 +137,9 @@ export function startAnalytics(): () => void {
 
   syncIdentity();
   const stopSessionListening = useSessionStore.subscribe(syncIdentity);
+  const stopLocaleListening = useLocaleStore.subscribe(() => {
+    void client?.register(appContextProperties());
+  });
   const stopConsentListening = useDiagnosticsConsent.subscribe((state) => {
     if (state.isDiagnosticSharingEnabled) {
       void client?.optIn();
@@ -149,6 +154,7 @@ export function startAnalytics(): () => void {
 
   return () => {
     stopSessionListening();
+    stopLocaleListening();
     stopConsentListening();
   };
 }

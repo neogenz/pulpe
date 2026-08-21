@@ -26,6 +26,8 @@ import {
   useUserSettings,
 } from "@/core/user-settings/user-settings-queries";
 import { SettingsSection } from "@/features/account/components/settings-section";
+import { readRemindersEnabled } from "@/core/notifications/reminder-flags";
+import { scheduleMonthlyReminder } from "@/core/notifications/scheduler";
 
 export default function LanguageScreen() {
   const theme = useTheme();
@@ -41,6 +43,9 @@ export default function LanguageScreen() {
       setPending: setLocaleWritePending,
       onConfirmed: (from, to, confirmedSettings) => {
         cacheUserSettings(confirmedSettings);
+        if (readRemindersEnabled()) {
+          void scheduleMonthlyReminder(confirmedSettings.payDayOfMonth ?? null);
+        }
         captureEvent(ANALYTICS_EVENTS.LANGUAGE_CHANGED, {
           from,
           to,
