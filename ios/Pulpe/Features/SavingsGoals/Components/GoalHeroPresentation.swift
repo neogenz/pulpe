@@ -24,10 +24,27 @@ struct GoalHeroPresentation: Equatable {
         let identifier: String?
     }
 
+    /// One `HeroMetricTile` of the hero: the required pace, the estimated date.
+    struct Tile: Equatable {
+        let label: String
+        let value: String
+        let identifier: String
+    }
+
+    /// The verdict ink (ios/DESIGN.md, Three Families): épargne is never an alert, so
+    /// `behind` is caution at most and everything else stays in hero ink.
+    enum Accent: Equatable {
+        case positive
+        case caution
+        case neutral
+    }
+
     /// « Actif » is the state of every goal at creation — a chip that is always
     /// there says nothing. It comes back the moment it carries information.
     let showsStatusChip: Bool
     let amount: String
+    /// The figure itself, for `HeroFigure`; `amount` keeps the formatted copy for labels.
+    let confirmedAmount: Decimal
     let targetLine: String?
     let dateLine: DateLine?
     let initialAmountLine: String?
@@ -36,12 +53,15 @@ struct GoalHeroPresentation: Equatable {
     let dayOneBeat: String?
     let projection: String?
     let requiredPace: String?
+    let tiles: [Tile]
+    let accent: Accent
 
     init(progress: SavingsGoalProgress, status: SavingsGoalStatus, currency: SupportedCurrency) {
         let hasClosedPlanMonth = progress.hasClosedPlanMonth
 
         showsStatusChip = status != .active
         amount = progress.confirmed.asAdaptiveCurrency(currency)
+        confirmedAmount = progress.confirmed
         targetLine = progress.targetAmount.map { AppLocale.string("sur \($0.asAdaptiveCurrency(currency))") }
         dateLine = Self.makeDateLine(progress)
         initialAmountLine = progress.initialAmount > 0
@@ -62,6 +82,44 @@ struct GoalHeroPresentation: Equatable {
             ? Self.makeProjection(progress, currency: currency)
             : nil
         requiredPace = Self.makeRequiredPace(progress, currency: currency, hasClosedPlanMonth: hasClosedPlanMonth)
+        tiles = Self.makeTiles(progress, currency: currency, hasClosedPlanMonth: hasClosedPlanMonth)
+        accent = Self.makeAccent(progress.paceStatus, hasClosedPlanMonth: hasClosedPlanMonth)
+    }
+
+    /// Pace tile only while the plan falls short (same gate as `requiredPace`); date
+    /// tile only once a plan month has closed and the goal carries a deadline.
+    private static func makeTiles(
+        _ progress: SavingsGoalProgress,
+        currency: SupportedCurrency,
+        hasClosedPlanMonth: Bool
+    ) -> [Tile] {
+        var tiles: [Tile] = []
+        if hasClosedPlanMonth,
+           let required = progress.required,
+           let targetAmount = progress.targetAmount,
+           progress.displayedProjection.rounded(2) < targetAmount.rounded(2) {
+            tiles.append(Tile(
+                label: AppLocale.string("rythme requis"),
+                value: AppLocale.string("\(required.rounded(2, .up).asAdaptiveCurrency(currency))/mois"),
+                identifier: "savingsGoalPaceTile"
+            ))
+        }
+        if hasClosedPlanMonth, let deadline = progress.targetDateValue {
+            tiles.append(Tile(
+                label: AppLocale.string("échéance"),
+                value: deadline.abbreviatedDateFormatted,
+                identifier: "savingsGoalDateTile"
+            ))
+        }
+        return tiles
+    }
+
+    private static func makeAccent(_ pace: SavingsGoalPaceStatus?, hasClosedPlanMonth: Bool) -> Accent {
+        guard hasClosedPlanMonth, let pace else { return .neutral }
+        switch pace {
+        case .behind: return .caution
+        case .onTrack, .ahead: return .positive
+        }
     }
 
     private static func makeDateLine(_ progress: SavingsGoalProgress) -> DateLine? {

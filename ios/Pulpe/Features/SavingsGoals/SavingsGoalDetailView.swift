@@ -1,11 +1,4 @@
-// swiftlint:disable file_length
 import SwiftUI
-
-struct SavingsGoalDeadlineDecision {
-    var update: SavingsGoalUpdate
-    let targetDate: String
-    let lines: [SavingsGoalFutureLine]
-}
 
 /// Progression detail for a single savings goal (PUL-8, CA7–CA9). Pushed from the
 /// goals list row; the edit form now opens from here (toolbar + the D1 CTA),
@@ -29,8 +22,9 @@ struct SavingsGoalDetailView: View {
     @Environment(DashboardStore.self) private var dashboardStore
     @Environment(\.dismiss) private var dismiss
 
-    @State private var viewModel: SavingsGoalDetailViewModel
+    @State var viewModel: SavingsGoalDetailViewModel
     @State private var editTarget: SavingsGoal?
+    @State private var heroSurfaceTracker = HeroZoneTracker()
     @State private var isSimulating = false
     @State private var pendingSimulatorBudgetId: String?
     @State private var showRecoveryRecap = false
@@ -51,11 +45,11 @@ struct SavingsGoalDetailView: View {
 
     /// Latest goal from the cache so name/status edits reflect after the form
     /// dismisses; falls back to the pushed value before the store refreshes.
-    private var currentGoal: SavingsGoal {
+    var currentGoal: SavingsGoal {
         store.goals.first { $0.id == goal.id } ?? goal
     }
 
-    private var currency: SupportedCurrency { userSettingsStore.currency }
+    var currency: SupportedCurrency { userSettingsStore.currency }
 
     var body: some View {
         Group {
@@ -70,7 +64,9 @@ struct SavingsGoalDetailView: View {
         }
         .navigationTitle(currentGoal.name)
         .navigationBarTitleDisplayMode(.inline)
-        .pulpeBackground()
+        .background { HeroZoneSurface(tracker: heroSurfaceTracker).ignoresSafeArea() }
+        .toolbarColorScheme(viewModel.progress != nil ? .dark : nil, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -146,6 +142,9 @@ struct SavingsGoalDetailView: View {
             // block a header belongs to.
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
                 hero(progress)
+                    .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
+                        heroSurfaceTracker.update($0)
+                    }
                 if progress.linkedLineCount == 0 {
                     GoalEmptyGuidanceCard()
                 }
@@ -196,17 +195,6 @@ struct SavingsGoalDetailView: View {
         }
     }
 
-    private func hero(_ progress: SavingsGoalProgress) -> some View {
-        GoalProgressHero(
-            presentation: GoalHeroPresentation(
-                progress: progress,
-                status: currentGoal.status,
-                currency: currency
-            ),
-            status: currentGoal.status
-        )
-    }
-
     private func simulator(progress: SavingsGoalProgress) -> some View {
         GoalPlanSimulatorSheet(
             goal: currentGoal,
@@ -217,20 +205,6 @@ struct SavingsGoalDetailView: View {
             onOpenBudget: queueBudgetFromSimulator,
             onPlanConflict: { await handlePlanConflict() }
         )
-    }
-
-    @ViewBuilder
-    private func contributionsSection(_ progress: SavingsGoalProgress) -> some View {
-        if progress.linkedLineCount > 0 {
-            GoalContributionsSection(
-                contributions: viewModel.contributions,
-                currency: currency,
-                isLoading: viewModel.isLoadingContributions,
-                error: viewModel.contributionsError,
-                onRetry: { Task { await viewModel.loadContributions() } }
-            )
-            .accessibilityIdentifier("savingsGoalContributionsSection")
-        }
     }
 
     /// Survives an empty plan on purpose: a goal can lose every linked prévision
@@ -521,186 +495,5 @@ private extension SavingsGoalDetailView {
                 ? AppLocale.string("\(result.affectedCount) prévision(s) conservée(s) sans objectif")
                 : AppLocale.string("\(result.affectedCount) prévision(s) retirée(s) de tes mois futurs")
         )
-    }
-}
-
-extension SavingsGoalDetailView {
-    @MainActor
-    static func refreshedDeadlineDecision(
-        id: String,
-        update: SavingsGoalUpdate,
-        targetDate: String,
-        store: SavingsGoalStore
-    ) async throws -> SavingsGoalDeadlineDecision? {
-        let lines = try await store.getFutureLines(id: id, targetDate: targetDate)
-        guard !lines.isEmpty else { return nil }
-        var update = update
-        update.reconciliation = nil
-        return SavingsGoalDeadlineDecision(update: update, targetDate: targetDate, lines: lines)
-    }
-
-    nonisolated static func deadlinePreviewTarget(
-        previous: String?,
-        update: String??,
-        payDayOfMonth: Int?
-    ) -> String? {
-        guard let previous,
-              case .some(let updatedValue) = update,
-              let updated = updatedValue,
-              let previousDate = SavingsGoalDateFormatter.parse(previous),
-              let updatedDate = SavingsGoalDateFormatter.parse(updated) else { return nil }
-        let previousPeriod = BudgetPeriodCalculator.periodForDate(previousDate, payDayOfMonth: payDayOfMonth)
-        let updatedPeriod = BudgetPeriodCalculator.periodForDate(updatedDate, payDayOfMonth: payDayOfMonth)
-        return BudgetPeriodCalculator.comparePeriods(updatedPeriod, previousPeriod) < 0 ? updated : nil
-    }
-}
-
-// MARK: - ViewModel
-
-/// Drives `SavingsGoalDetailView`: fetches the derived progression and routes
-/// status changes through `SavingsGoalStore` (so the goals list stays fresh),
-/// refetching progress after each change. The server owns every figure; this
-/// object only loads and mutates status.
-@Observable @MainActor
-final class SavingsGoalDetailViewModel {
-    let goalId: String
-
-    private(set) var progress: SavingsGoalProgress?
-    private(set) var contributions: [SavingsGoalContribution] = []
-    private(set) var withdrawals: [SavingsGoalWithdrawal] = []
-    private(set) var plannedWithdrawals: [SavingsGoalPlannedWithdrawal] = []
-    private(set) var planOnlyWithdrawals: [SavingsGoalPlanOnlyWithdrawal] = []
-    private(set) var futureLines: [SavingsGoalFutureLine] = []
-    private(set) var isLoading = true
-    private(set) var isLoadingContributions = false
-    private(set) var isLoadingWithdrawals = false
-    private(set) var isMutatingStatus = false
-    private(set) var error: Error?
-    private(set) var contributionsError: Error?
-    private(set) var withdrawalsError: Error?
-
-    private let service: any SavingsGoalServicing
-
-    init(goalId: String, service: any SavingsGoalServicing = SavingsGoalService.shared) {
-        self.goalId = goalId
-        self.service = service
-    }
-
-    static func recoveryAmount(_ progress: SavingsGoalProgress) -> Decimal? {
-        guard let amount = progress.required?.rounded(2, .up), amount > 0 else { return nil }
-        return amount
-    }
-
-    static func canRepairPlan(_ progress: SavingsGoalProgress, status: SavingsGoalStatus) -> Bool {
-        status == .active
-            && recoveryAmount(progress) != nil
-            && progress.months.contains(where: \.isRepairable)
-    }
-
-    static func shouldShowPlanTimeline(_ progress: SavingsGoalProgress) -> Bool {
-        !progress.months.isEmpty
-    }
-
-    /// Initial / pull-to-refresh load. Shows the full-screen spinner while the
-    /// first fetch is in flight (progress still nil). The three reads carry
-    /// their own state: a history that fails must not blank out a progression
-    /// that loaded, so none of them can speak for the others.
-    func load() async {
-        isLoading = true
-        defer { isLoading = false }
-        async let progressLoad: Void = fetchProgress()
-        async let contributionsLoad: Void = loadContributions()
-        async let withdrawalsLoad: Void = loadWithdrawals()
-        await progressLoad
-        await contributionsLoad
-        await withdrawalsLoad
-    }
-
-    func loadContributions() async {
-        isLoadingContributions = true
-        contributionsError = nil
-        defer { isLoadingContributions = false }
-        do {
-            contributions = try await service.getContributions(id: goalId)
-        } catch {
-            contributionsError = error
-        }
-    }
-
-    /// Incomes drawn from this goal (PUL-329), newest first — the server's order
-    /// is the displayed order.
-    func loadWithdrawals() async {
-        isLoadingWithdrawals = true
-        withdrawalsError = nil
-        defer { isLoadingWithdrawals = false }
-        do {
-            let readModel = try await service.getWithdrawals(id: goalId)
-            withdrawals = readModel.withdrawals
-            plannedWithdrawals = readModel.planned
-            planOnlyWithdrawals = readModel.planOnly
-        } catch {
-            withdrawalsError = error
-        }
-    }
-
-    /// Changes status via the store (keeps the cached list in sync) then
-    /// refetches progress so `suggestCompletion` and the status flip are
-    /// reflected. Never auto-flips — always user-initiated (pilier Contrôle).
-    func changeStatus(to status: SavingsGoalStatus, via store: SavingsGoalStore) async {
-        isMutatingStatus = true
-        defer { isMutatingStatus = false }
-        error = nil
-        do {
-            _ = try await store.update(id: goalId, data: SavingsGoalUpdate(status: status))
-            await fetchProgress(reportError: false)
-        } catch {
-            self.error = error
-        }
-    }
-
-    func applyMissingForecasts(from progress: SavingsGoalProgress) async -> Bool {
-        error = nil
-        guard let amount = Self.recoveryAmount(progress) else { return false }
-        let adjustments = progress.months
-            .filter(\.isRepairable)
-            .map {
-                SavingsGoalPlanApply.MissingMonthAdjustment(
-                    month: $0.month,
-                    year: $0.year,
-                    amount: amount
-                )
-            }
-        guard !adjustments.isEmpty else { return false }
-
-        do {
-            _ = try await service.applyPlan(
-                id: goalId,
-                SavingsGoalPlanApply(
-                    monthAdjustments: [],
-                    missingMonthAdjustments: adjustments
-                )
-            )
-            return true
-        } catch {
-            self.error = error
-            return false
-        }
-    }
-
-    private func fetchProgress(reportError: Bool = true) async {
-        error = nil
-        do {
-            progress = try await service.getProgress(id: goalId)
-        } catch {
-            if reportError { self.error = error }
-        }
-    }
-
-    // MARK: - Generation stop (PUL-285 CA8)
-
-    /// Advisory candidates: the goal's future linked lines. Read is advisory —
-    /// a failure just leaves the card hidden (the user can pull-to-refresh).
-    func loadFutureLines() async {
-        futureLines = (try? await service.getFutureLines(id: goalId)) ?? []
     }
 }

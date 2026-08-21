@@ -90,19 +90,27 @@ struct SavingsGoalsListView: View {
     // MARK: - List
 
     private var goalList: some View {
-        List {
-            ForEach(store.goals) { goal in
-                NavigationLink(value: SavingsGoalDestination.detail(goal)) {
-                    SavingsGoalRow(goal: goal, currency: userSettingsStore.currency)
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                SectionHeader(title: AppLocale.string("Objectifs"), count: store.goals.count)
+
+                VStack(spacing: 0) {
+                    ForEach(store.goals) { goal in
+                        if goal.id != store.goals.first?.id {
+                            Divider().padding(.leading, DesignTokens.ListRow.dividerInset)
+                        }
+                        NavigationLink(value: SavingsGoalDestination.detail(goal)) {
+                            SavingsGoalRow(goal: goal, currency: userSettingsStore.currency)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("savingsGoalRow-\(goal.id)")
+                    }
                 }
-                .buttonStyle(.plain)
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .accessibilityIdentifier("savingsGoalRow-\(goal.id)")
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .pulpeCard()
             }
+            .padding(DesignTokens.Spacing.lg)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
         .refreshable { await store.forceRefresh() }
         .accessibilityIdentifier("savingsGoalsListRoot")
     }
@@ -110,74 +118,48 @@ struct SavingsGoalsListView: View {
 
 // MARK: - Row
 
+/// One ledger row (The One Ledger Rule): nature disc, name and period, then the target
+/// amount — or the status chip when the status carries information.
 private struct SavingsGoalRow: View {
     let goal: SavingsGoal
     let currency: SupportedCurrency
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
     var body: some View {
-        Group {
-            // Aux tailles d'accessibilité, le nom, le badge et le montant ne
-            // tiennent plus côte à côte : la rangée passe en colonne au lieu
-            // d'écraser le montant contre le bord de la carte.
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    infoColumn
-                    amountText
-                }
-            } else {
-                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                    infoColumn
-                    Spacer()
-                    amountText
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
+            RowIcon(systemName: "target", tint: .financialSavings)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(goal.name)
+                    .font(PulpeTypography.listRowTitle)
+                    .foregroundStyle(Color.textPrimary)
+                if let periodLabel {
+                    Text(periodLabel)
+                        .font(PulpeTypography.listRowSubtitle)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
-        }
-        .padding(DesignTokens.Spacing.lg)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .pulpeCard()
-        .padding(.vertical, DesignTokens.Spacing.xs)
-    }
 
-    private var infoColumn: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text(goal.name)
-                .font(PulpeTypography.listRowTitle)
-                .foregroundStyle(Color.textPrimary)
-            statusLine
-        }
-    }
+            Spacer(minLength: DesignTokens.Spacing.sm)
 
-    @ViewBuilder
-    private var statusLine: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                SavingsGoalStatusBadge(status: goal.status)
-                periodText
-            }
-        } else {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                SavingsGoalStatusBadge(status: goal.status)
-                periodText
-            }
-        }
-    }
+            trailing
 
-    @ViewBuilder
-    private var periodText: some View {
-        if let periodLabel = periodLabel {
-            Text(periodLabel)
-                .font(PulpeTypography.listRowSubtitle)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.textTertiary)
+                .accessibilityHidden(true)
         }
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder
-    private var amountText: some View {
-        if let targetAmount = goal.targetAmount {
+    private var trailing: some View {
+        if goal.status != .active {
+            SavingsGoalStatusBadge(status: goal.status)
+        } else if let targetAmount = goal.targetAmount {
             Text(targetAmount.asCurrency(currency))
-                .font(PulpeTypography.amountCard)
+                .font(PulpeTypography.listRowTitle)
                 .monospacedDigit()
                 .foregroundStyle(Color.textPrimary)
                 .sensitiveAmount()

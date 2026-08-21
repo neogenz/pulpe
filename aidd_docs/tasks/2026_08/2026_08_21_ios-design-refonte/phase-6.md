@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: objectifs d'épargne, liste en ledger et détail sur hero
