@@ -125,6 +125,76 @@
       },
       "withdrawnFrom": "Withdrawn from: %{name}"
     },
+    "mutations": {
+      "activity": {
+        "allocatedIn": "Counted in “%{name}”",
+        "alreadyChecked": "Already checked off",
+        "alreadyCheckedAccessibility": "Entry already checked off",
+        "alreadyCheckedHint": "Included in your balance to date",
+        "createTitle": "Add an entry",
+        "date": "Entry date",
+        "editTitle": "Edit entry",
+        "error": "The entry could not be saved. Try again.",
+        "goalsAvailable": "Available goals",
+        "noGoals": "No goal has money available right now.",
+        "originAccessibility": "Income from a savings goal",
+        "originHint": "The amount will be withdrawn from the selected goal.",
+        "originTitle": "This income comes from a savings goal",
+        "placeholders": {
+          "expense": "Restaurant, fuel…",
+          "income": "Bonus, refund…",
+          "saving": "Savings transfer…"
+        }
+      },
+      "activityAction": "An entry",
+      "add": "Add",
+      "amount": "Amount",
+      "delete": "Delete",
+      "description": "Description",
+      "edit": "Edit",
+      "forecast": {
+        "createTitle": "New forecast",
+        "editTitle": "Edit forecast",
+        "error": "The forecast could not be saved. Try again.",
+        "monthlyAmount": "Amount per month",
+        "oneOffHint": "Only exists in this month.",
+        "placeholders": {
+          "expense": "Rent, groceries…",
+          "income": "Salary, allowance…",
+          "saving": "Holiday savings…"
+        },
+        "plannedAmount": "Planned amount",
+        "recurringHint": "Returns every month in your next budgets.",
+        "spreadHint": "A large expense that does not distort a single month",
+        "spreadTitle": "Spread across several months",
+        "totalAmount": "Total amount"
+      },
+      "forecastAction": "A forecast",
+      "name": "Name",
+      "outcome": {
+        "activityAdded": "Entry added",
+        "activityUpdated": "Entry updated",
+        "forecastAdded": "Forecast added",
+        "withdrawalReady": "All set"
+      },
+      "removal": {
+        "deleteError": "The entry could not be deleted. Try again.",
+        "removedMany": "%{count} entries deleted",
+        "removedOne": "“%{name}” deleted",
+        "undoError": "Undo failed. Try again."
+      },
+      "save": "Save",
+      "spread": "Spread",
+      "toggleError": "The check-off could not be saved. Try again.",
+      "undo": "Undo",
+      "validation": {
+        "amount": "Add an amount",
+        "description": "Add a description",
+        "exceedsGoal": "This amount exceeds what the goal contains.",
+        "goal": "Choose the goal used",
+        "name": "Give it a name"
+      }
+    },
     "list": {
       "adjustment": "Adjustment",
       "create": "Create my budget",
@@ -704,6 +774,7 @@
     }
   },
   "vocabulary": {
+    "kind": { "expense": "Expense", "income": "Income", "saving": "Savings" },
     "recurrence": { "fixed": "Recurring", "one_off": "Planned" }
   }
 }

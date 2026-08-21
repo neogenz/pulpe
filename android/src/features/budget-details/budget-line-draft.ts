@@ -38,9 +38,13 @@ export function isBudgetLineDraftSubmittable(draft: BudgetLineDraft): boolean {
 }
 
 /** What is still missing, one thing at a time — the amount before the name. */
-export function budgetLineDraftHint(draft: BudgetLineDraft): string | null {
-  if (draft.amount === null || draft.amount <= 0) return "Indique un montant";
-  if (draft.name.trim() === "") return "Donne-lui un nom";
+export type BudgetLineDraftProblem = "amount" | "name";
+
+export function budgetLineDraftHint(
+  draft: BudgetLineDraft,
+): BudgetLineDraftProblem | null {
+  if (draft.amount === null || draft.amount <= 0) return "amount";
+  if (draft.name.trim() === "") return "name";
   return null;
 }
 
@@ -49,7 +53,7 @@ export function buildBudgetLineCreate(
   budgetId: string,
 ): BudgetLineCreate {
   if (draft.amount === null || draft.amount <= 0) {
-    throw new Error("Un montant strictement positif est requis.");
+    throw new Error("A positive amount is required.");
   }
 
   return {
@@ -74,7 +78,7 @@ export function buildBudgetLineUpdate(
   line: BudgetLine,
 ): BudgetLineUpdate {
   if (draft.amount === null || draft.amount <= 0) {
-    throw new Error("Un montant strictement positif est requis.");
+    throw new Error("A positive amount is required.");
   }
 
   const name = draft.name.trim();

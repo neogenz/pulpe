@@ -125,6 +125,76 @@
       },
       "withdrawnFrom": "Prelevato da: %{name}"
     },
+    "mutations": {
+      "activity": {
+        "allocatedIn": "Conteggiato in «%{name}»",
+        "alreadyChecked": "Già spuntato",
+        "alreadyCheckedAccessibility": "Movimento già spuntato",
+        "alreadyCheckedHint": "Incluso nel saldo a oggi",
+        "createTitle": "Aggiungi un movimento",
+        "date": "Data del movimento",
+        "editTitle": "Modifica movimento",
+        "error": "Non è stato possibile salvare il movimento. Riprova.",
+        "goalsAvailable": "Obiettivi disponibili",
+        "noGoals": "Nessun obiettivo ha denaro disponibile al momento.",
+        "originAccessibility": "Entrata proveniente da un obiettivo di risparmio",
+        "originHint": "L'importo verrà prelevato dall'obiettivo scelto.",
+        "originTitle": "Questa entrata proviene da un obiettivo di risparmio",
+        "placeholders": {
+          "expense": "Ristorante, benzina…",
+          "income": "Bonus, rimborso…",
+          "saving": "Trasferimento risparmio…"
+        }
+      },
+      "activityAction": "Un movimento",
+      "add": "Aggiungi",
+      "amount": "Importo",
+      "delete": "Elimina",
+      "description": "Descrizione",
+      "edit": "Modifica",
+      "forecast": {
+        "createTitle": "Nuova previsione",
+        "editTitle": "Modifica previsione",
+        "error": "Non è stato possibile salvare la previsione. Riprova.",
+        "monthlyAmount": "Importo mensile",
+        "oneOffHint": "Esiste solo in questo mese.",
+        "placeholders": {
+          "expense": "Affitto, spesa…",
+          "income": "Stipendio, assegno…",
+          "saving": "Risparmio vacanze…"
+        },
+        "plannedAmount": "Importo previsto",
+        "recurringHint": "Ritorna ogni mese nei tuoi budget successivi.",
+        "spreadHint": "Una spesa importante che non pesa su un solo mese",
+        "spreadTitle": "Distribuisci su più mesi",
+        "totalAmount": "Importo totale"
+      },
+      "forecastAction": "Una previsione",
+      "name": "Nome",
+      "outcome": {
+        "activityAdded": "Movimento aggiunto",
+        "activityUpdated": "Movimento modificato",
+        "forecastAdded": "Previsione aggiunta",
+        "withdrawalReady": "Tutto pronto"
+      },
+      "removal": {
+        "deleteError": "Non è stato possibile eliminare il movimento. Riprova.",
+        "removedMany": "%{count} movimenti eliminati",
+        "removedOne": "«%{name}» eliminato",
+        "undoError": "Annullamento non riuscito. Riprova."
+      },
+      "save": "Salva",
+      "spread": "Distribuisci",
+      "toggleError": "Non è stato possibile salvare la spunta. Riprova.",
+      "undo": "Annulla",
+      "validation": {
+        "amount": "Aggiungi un importo",
+        "description": "Aggiungi una descrizione",
+        "exceedsGoal": "L'importo supera ciò che contiene l'obiettivo.",
+        "goal": "Scegli l'obiettivo usato",
+        "name": "Assegnagli un nome"
+      }
+    },
     "list": {
       "adjustment": "Aggiustamento",
       "create": "Crea il mio budget",
@@ -704,6 +774,7 @@
     }
   },
   "vocabulary": {
+    "kind": { "expense": "Spesa", "income": "Entrata", "saving": "Risparmio" },
     "recurrence": { "fixed": "Ricorrente", "one_off": "Pianificato" }
   }
 }

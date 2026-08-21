@@ -16,7 +16,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
-import { recurrenceOptions } from "@/core/ui/vocabulary";
+import { kindOptions, recurrenceOptions } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
@@ -52,18 +52,11 @@ import {
 
 const NAME_MAX_LENGTH = 100;
 
-const KIND_BUTTONS: { value: TransactionKind; label: string; icon: string }[] =
-  [
-    { value: "expense", label: "Dépense", icon: "arrow-up" },
-    { value: "income", label: "Revenu", icon: "arrow-down" },
-    { value: "saving", label: "Épargne", icon: "piggy-bank-outline" },
-  ];
-
-const NAME_PLACEHOLDERS: Record<TransactionKind, string> = {
-  expense: "Loyer, courses…",
-  income: "Salaire, allocation…",
-  saving: "Épargne vacances…",
-};
+const KIND_ICONS = {
+  expense: "arrow-up",
+  income: "arrow-down",
+  saving: "piggy-bank-outline",
+} as const;
 
 interface BudgetLineSheetProps {
   isVisible: boolean;
@@ -176,19 +169,21 @@ export function BudgetLineSheet({
     update.mutate(buildBudgetLineUpdate(draft, line), { onSuccess });
   }
 
-  const hint = budgetLineDraftHint(draft);
+  const problem = budgetLineDraftHint(draft);
 
   return (
     <Sheet
       isVisible={isVisible}
       onDismiss={dismiss}
       isBusy={mutation.isPending}
-      title={isEditing ? "Modifier la prévision" : "Nouvelle prévision"}
+      title={t(
+        `budgets.mutations.forecast.${isEditing ? "editTitle" : "createTitle"}`,
+      )}
       footer={
         <>
           {mutation.isError && (
             <FieldError visible>
-              La prévision n&apos;a pas pu être enregistrée. Réessaie.
+              {t("budgets.mutations.forecast.error")}
             </FieldError>
           )}
 
@@ -200,15 +195,17 @@ export function BudgetLineSheet({
             }
             loading={mutation.isPending}
           >
-            {isEditing ? "Enregistrer" : isSpreading ? "Lisser" : "Ajouter"}
+            {t(
+              `budgets.mutations.${isEditing ? "save" : isSpreading ? "spread" : "add"}`,
+            )}
           </Button>
 
-          {hint !== null && (
+          {problem !== null && (
             <Text
               variant="labelMedium"
               style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}
             >
-              {hint}
+              {t(`budgets.mutations.validation.${problem}`)}
             </Text>
           )}
         </>
@@ -221,8 +218,9 @@ export function BudgetLineSheet({
       <SegmentedButtons
         value={draft.kind}
         onValueChange={(kind) => change({ kind: kind as TransactionKind })}
-        buttons={KIND_BUTTONS.map((button) => ({
+        buttons={kindOptions(t).map((button) => ({
           ...button,
+          icon: KIND_ICONS[button.value],
           disabled: isPlannedWithdrawal,
         }))}
       />
@@ -231,10 +229,10 @@ export function BudgetLineSheet({
         key={generation}
         label={
           isSpreading && spreadMode === "total"
-            ? "Montant total"
+            ? t("budgets.mutations.forecast.totalAmount")
             : isSpreading
-              ? "Montant par mois"
-              : "Montant prévu"
+              ? t("budgets.mutations.forecast.monthlyAmount")
+              : t("budgets.mutations.forecast.plannedAmount")
         }
         amount={draft.amount}
         currency={currency}
@@ -243,8 +241,8 @@ export function BudgetLineSheet({
 
       <TextInput
         mode="outlined"
-        label="Nom"
-        placeholder={NAME_PLACEHOLDERS[draft.kind]}
+        label={t("budgets.mutations.name")}
+        placeholder={t(`budgets.mutations.forecast.placeholders.${draft.kind}`)}
         value={draft.name}
         onChangeText={(name) => change({ name })}
         maxLength={NAME_MAX_LENGTH}
@@ -268,8 +266,8 @@ export function BudgetLineSheet({
             style={{ color: theme.colors.onSurfaceVariant }}
           >
             {draft.recurrence === "fixed"
-              ? "Revient chaque mois dans tes budgets suivants."
-              : "N'existe que dans ce mois-ci."}
+              ? t("budgets.mutations.forecast.recurringHint")
+              : t("budgets.mutations.forecast.oneOffHint")}
           </Text>
         </>
       )}
@@ -277,18 +275,20 @@ export function BudgetLineSheet({
       {canSpread && (
         <View style={styles.spreadRow}>
           <View style={styles.spreadLabels}>
-            <Text variant="bodyLarge">Lisser sur plusieurs mois</Text>
+            <Text variant="bodyLarge">
+              {t("budgets.mutations.forecast.spreadTitle")}
+            </Text>
             <Text
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              Une grosse dépense qui ne déforme pas un seul mois
+              {t("budgets.mutations.forecast.spreadHint")}
             </Text>
           </View>
           <Switch
             value={isSpread}
             onValueChange={setSpread}
-            accessibilityLabel="Lisser sur plusieurs mois"
+            accessibilityLabel={t("budgets.mutations.forecast.spreadTitle")}
           />
         </View>
       )}

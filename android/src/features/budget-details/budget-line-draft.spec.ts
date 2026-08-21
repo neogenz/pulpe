@@ -103,14 +103,12 @@ describe("buildBudgetLineUpdate", () => {
 
 describe("budgetLineDraftHint", () => {
   it("asks for the amount first", () => {
-    expect(budgetLineDraftHint(emptyBudgetLineDraft())).toBe(
-      "Indique un montant",
-    );
+    expect(budgetLineDraftHint(emptyBudgetLineDraft())).toBe("amount");
   });
 
   it("then asks for the name", () => {
     expect(budgetLineDraftHint({ ...emptyBudgetLineDraft(), amount: 10 })).toBe(
-      "Donne-lui un nom",
+      "name",
     );
   });
 

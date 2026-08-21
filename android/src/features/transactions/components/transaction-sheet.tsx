@@ -17,6 +17,8 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { hapticSuccess } from "@/core/ui/haptics";
+import { useTranslation } from "@/core/i18n/locale-store";
+import { kindOptions } from "@/core/ui/vocabulary";
 import { TagPicker } from "@/features/tags/tag-picker";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
@@ -46,18 +48,11 @@ const NAME_MAX_LENGTH = 100;
 /** The gutter `core/ui/sheet` keeps, and so the one the rail has to give back. */
 const SHEET_PADDING = SPACING.lg;
 
-const KIND_BUTTONS: { value: TransactionKind; label: string; icon: string }[] =
-  [
-    { value: "expense", label: "Dépense", icon: "arrow-up" },
-    { value: "income", label: "Revenu", icon: "arrow-down" },
-    { value: "saving", label: "Épargne", icon: "piggy-bank-outline" },
-  ];
-
-const NAME_PLACEHOLDERS: Record<TransactionKind, string> = {
-  expense: "Restaurant, essence…",
-  income: "Prime, remboursement…",
-  saving: "Virement épargne…",
-};
+const KIND_ICONS = {
+  expense: "arrow-up",
+  income: "arrow-down",
+  saving: "piggy-bank-outline",
+} as const;
 
 /** What an operation can be attached to, as far as this form is concerned. */
 export interface EnvelopeTarget {
@@ -100,6 +95,7 @@ export function TransactionSheet({
   onDelete,
 }: TransactionSheetProps) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const create = useCreateTransaction();
   const update = useUpdateTransaction();
   // The budget is not part of the draft: it belongs to the screen, and holding
@@ -200,7 +196,7 @@ export function TransactionSheet({
     );
   }
 
-  const hint = draftHint(draft) ?? originProblem;
+  const problem = draftHint(draft) ?? originProblem;
 
   return (
     <>
@@ -208,17 +204,21 @@ export function TransactionSheet({
         isVisible={isVisible}
         onDismiss={dismiss}
         isBusy={mutation.isPending}
-        title={isEditing ? "Modifier l'opération" : "Ajouter une opération"}
+        title={t(
+          `budgets.mutations.activity.${isEditing ? "editTitle" : "createTitle"}`,
+        )}
         subtitle={
           envelope === undefined
             ? undefined
-            : `Comptée dans « ${envelope.name} »`
+            : t("budgets.mutations.activity.allocatedIn", {
+                name: envelope.name,
+              })
         }
         footer={
           <>
             {mutation.isError && (
               <FieldError visible>
-                L&apos;opération n&apos;a pas pu être enregistrée. Réessaie.
+                {t("budgets.mutations.activity.error")}
               </FieldError>
             )}
 
@@ -232,15 +232,15 @@ export function TransactionSheet({
               }
               loading={mutation.isPending}
             >
-              {isEditing ? "Enregistrer" : "Ajouter"}
+              {t(`budgets.mutations.${isEditing ? "save" : "add"}`)}
             </Button>
 
-            {hint !== null && (
+            {problem !== null && (
               <Text
                 variant="labelMedium"
                 style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}
               >
-                {hint}
+                {t(`budgets.mutations.validation.${problem}`)}
               </Text>
             )}
 
@@ -251,7 +251,7 @@ export function TransactionSheet({
                 textColor={theme.colors.error}
                 onPress={onDelete}
               >
-                Supprimer
+                {t("budgets.mutations.delete")}
               </Button>
             )}
           </>
@@ -261,13 +261,16 @@ export function TransactionSheet({
           <SegmentedButtons
             value={draft.kind}
             onValueChange={(kind) => changeKind(kind as TransactionKind)}
-            buttons={KIND_BUTTONS}
+            buttons={kindOptions(t).map((button) => ({
+              ...button,
+              icon: KIND_ICONS[button.value],
+            }))}
           />
         )}
 
         <AmountField
           key={generation}
-          label="Montant"
+          label={t("budgets.mutations.amount")}
           amount={draft.amount}
           currency={currency}
           onChange={(amount) => change({ amount })}
@@ -275,8 +278,10 @@ export function TransactionSheet({
 
         <TextInput
           mode="outlined"
-          label="Description"
-          placeholder={NAME_PLACEHOLDERS[draft.kind]}
+          label={t("budgets.mutations.description")}
+          placeholder={t(
+            `budgets.mutations.activity.placeholders.${draft.kind}`,
+          )}
           value={draft.name}
           onChangeText={(name) => change({ name })}
           maxLength={NAME_MAX_LENGTH}
@@ -286,9 +291,9 @@ export function TransactionSheet({
           mode="outlined"
           icon="calendar"
           onPress={() => setDatePickerVisible(true)}
-          accessibilityLabel="Date de l'opération"
+          accessibilityLabel={t("budgets.mutations.activity.date")}
         >
-          {formatRelativeDay(draft.day, new Date())}
+          {formatRelativeDay(draft.day, new Date(), locale)}
         </Button>
 
         {/* An income can be money coming in, or money coming back out of a pot
@@ -299,14 +304,14 @@ export function TransactionSheet({
             <View style={styles.checkedRow}>
               <View style={styles.checkedLabels}>
                 <Text variant="bodyLarge">
-                  Ce revenu vient d&apos;un objectif d&apos;épargne
+                  {t("budgets.mutations.activity.originTitle")}
                 </Text>
                 {isFromSavingsGoal && (
                   <Text
                     variant="labelMedium"
                     style={{ color: theme.colors.onSurfaceVariant }}
                   >
-                    Le montant sera retiré de l&apos;objectif choisi.
+                    {t("budgets.mutations.activity.originHint")}
                   </Text>
                 )}
               </View>
@@ -316,26 +321,29 @@ export function TransactionSheet({
                   setFromSavingsGoal(isOn);
                   if (!isOn) change({ sourceSavingsGoalId: null });
                 }}
-                accessibilityLabel="Revenu venant d'un objectif d'épargne"
+                accessibilityLabel={t(
+                  "budgets.mutations.activity.originAccessibility",
+                )}
               />
             </View>
 
             {isFromSavingsGoal &&
               (options.isPending ? (
-                <ActivityIndicator accessibilityLabel="Chargement" />
+                <ActivityIndicator accessibilityLabel={t("common.loading")} />
               ) : (options.data ?? []).length === 0 ? (
                 <Text
                   variant="labelMedium"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  Aucun objectif n&apos;a d&apos;argent disponible pour
-                  l&apos;instant.
+                  {t("budgets.mutations.activity.noGoals")}
                 </Text>
               ) : (
                 <FadingRail
                   inset={SHEET_PADDING}
                   background={theme.colors.surface}
-                  accessibilityLabel="Objectifs disponibles"
+                  accessibilityLabel={t(
+                    "budgets.mutations.activity.goalsAvailable",
+                  )}
                 >
                   {(options.data ?? []).map((option) => (
                     <FilterChip
@@ -382,18 +390,22 @@ export function TransactionSheet({
         {!isEditing && (
           <View style={styles.checkedRow}>
             <View style={styles.checkedLabels}>
-              <Text variant="bodyLarge">Déjà pointée</Text>
+              <Text variant="bodyLarge">
+                {t("budgets.mutations.activity.alreadyChecked")}
+              </Text>
               <Text
                 variant="labelMedium"
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
-                Compte dans ton solde à date
+                {t("budgets.mutations.activity.alreadyCheckedHint")}
               </Text>
             </View>
             <Switch
               value={draft.isChecked}
               onValueChange={(isChecked) => change({ isChecked })}
-              accessibilityLabel="Opération déjà pointée"
+              accessibilityLabel={t(
+                "budgets.mutations.activity.alreadyCheckedAccessibility",
+              )}
             />
           </View>
         )}
@@ -432,14 +444,14 @@ function originProblemOf(input: {
   isActive: boolean;
   hasChosenGoal: boolean;
   remainingAfterWithdrawal: number | null;
-}): string | null {
+}): "goal" | "exceedsGoal" | null {
   if (!input.isActive) return null;
-  if (!input.hasChosenGoal) return "Choisis l'objectif utilisé";
+  if (!input.hasChosenGoal) return "goal";
   if (
     input.remainingAfterWithdrawal !== null &&
     input.remainingAfterWithdrawal < 0
   ) {
-    return "Ce montant dépasse ce que contient l'objectif.";
+    return "exceedsGoal";
   }
   return null;
 }

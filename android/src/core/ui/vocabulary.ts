@@ -1,8 +1,9 @@
-import type { BudgetLine } from "pulpe-shared";
+import type { BudgetLine, TransactionKind } from "pulpe-shared";
 
 type Translate = (key: string) => string;
 
 const RECURRENCES: readonly BudgetLine["recurrence"][] = ["fixed", "one_off"];
+const KINDS: readonly TransactionKind[] = ["expense", "income", "saving"];
 
 /**
  * The words the product uses for the things the schema names differently, in
@@ -21,5 +22,12 @@ export function recurrenceOptions(t: Translate) {
   return RECURRENCES.map((value) => ({
     value,
     label: recurrenceLabel(t, value),
+  }));
+}
+
+export function kindOptions(t: Translate) {
+  return KINDS.map((value) => ({
+    value,
+    label: t(`vocabulary.kind.${value}`),
   }));
 }

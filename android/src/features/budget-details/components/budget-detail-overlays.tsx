@@ -7,6 +7,7 @@ import { forwardRef, useImperativeHandle, useState } from "react";
 import { FAB, Menu, useTheme } from "react-native-paper";
 
 import { Notice } from "@/core/ui/notice";
+import { useTranslation } from "@/core/i18n/locale-store";
 import type { CurrentMonthViewModel } from "@/features/current-month/current-month-view-model";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
@@ -43,6 +44,7 @@ export const BudgetDetailOverlays = forwardRef<
   ref,
 ) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [isFabOpen, setFabOpen] = useState(false);
   const [isLineSheetVisible, setLineSheetVisible] = useState(false);
   const [isTransactionSheetVisible, setTransactionSheetVisible] =
@@ -54,7 +56,13 @@ export const BudgetDetailOverlays = forwardRef<
   } | null>(null);
   const [isWithdrawalVisible, setWithdrawalVisible] = useState(false);
   const [isRealizedVisible, setRealizedVisible] = useState(false);
-  const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [savedMessage, setSavedMessage] = useState<
+    | "forecastAdded"
+    | "activityAdded"
+    | "activityUpdated"
+    | "withdrawalReady"
+    | null
+  >(null);
   const [hasToggleFailed, setToggleFailed] = useState(false);
   const removal = useTransactionRemoval();
 
@@ -80,16 +88,16 @@ export const BudgetDetailOverlays = forwardRef<
         actions={[
           {
             icon: "calendar-check",
-            label: "Une prévision",
+            label: t("budgets.mutations.forecastAction"),
             onPress: () => setLineSheetVisible(true),
           },
           {
             icon: "cash",
-            label: "Une opération",
+            label: t("budgets.mutations.activityAction"),
             onPress: () => setTransactionSheetVisible(true),
           },
         ]}
-        accessibilityLabel="Ajouter"
+        accessibilityLabel={t("budgets.mutations.add")}
       />
 
       <Notice
@@ -97,16 +105,21 @@ export const BudgetDetailOverlays = forwardRef<
         visible={savedMessage !== null}
         onDismiss={() => setSavedMessage(null)}
       >
-        {savedMessage ?? ""}
+        {savedMessage === null
+          ? ""
+          : t(`budgets.mutations.outcome.${savedMessage}`)}
       </Notice>
 
       <Notice
         clearsFab
         visible={hasToggleFailed}
         onDismiss={() => setToggleFailed(false)}
-        action={{ label: "Fermer", onPress: () => setToggleFailed(false) }}
+        action={{
+          label: t("common.close"),
+          onPress: () => setToggleFailed(false),
+        }}
       >
-        Le pointage n&apos;a pas été enregistré. Réessaie.
+        {t("budgets.mutations.toggleError")}
       </Notice>
 
       <BudgetLineSheet
@@ -117,7 +130,7 @@ export const BudgetDetailOverlays = forwardRef<
         currency={currency}
         onSaved={() => {
           setLineSheetVisible(false);
-          setSavedMessage("Prévision ajoutée");
+          setSavedMessage("forecastAdded");
         }}
       />
 
@@ -128,7 +141,7 @@ export const BudgetDetailOverlays = forwardRef<
         currency={currency}
         onSaved={() => {
           setTransactionSheetVisible(false);
-          setSavedMessage("Opération ajoutée");
+          setSavedMessage("activityAdded");
         }}
       />
 
@@ -142,7 +155,7 @@ export const BudgetDetailOverlays = forwardRef<
           transaction={edited}
           onSaved={() => {
             setEdited(null);
-            setSavedMessage("Opération modifiée");
+            setSavedMessage("activityUpdated");
           }}
           onDelete={() => removal.remove(edited, () => setEdited(null))}
         />
@@ -155,7 +168,7 @@ export const BudgetDetailOverlays = forwardRef<
       >
         <Menu.Item
           leadingIcon="pencil-outline"
-          title="Modifier"
+          title={t("budgets.mutations.edit")}
           onPress={() => {
             setEdited(contextual?.transaction ?? null);
             setContextual(null);
@@ -163,7 +176,7 @@ export const BudgetDetailOverlays = forwardRef<
         />
         <Menu.Item
           leadingIcon="trash-can-outline"
-          title="Supprimer"
+          title={t("budgets.mutations.delete")}
           titleStyle={{ color: theme.colors.error }}
           onPress={() => {
             if (contextual !== null) removal.remove(contextual.transaction);
@@ -176,19 +189,25 @@ export const BudgetDetailOverlays = forwardRef<
         clearsFab
         visible={removal.last !== null}
         onDismiss={removal.forget}
-        action={{ label: "Annuler", onPress: removal.undo }}
+        action={{ label: t("budgets.mutations.undo"), onPress: removal.undo }}
       >
         {removal.undoable.length === 1
-          ? `« ${removal.last?.name} » supprimée`
-          : `${removal.undoable.length} opérations supprimées`}
+          ? t("budgets.mutations.removal.removedOne", {
+              name: removal.last?.name,
+            })
+          : t("budgets.mutations.removal.removedMany", {
+              count: removal.undoable.length,
+            })}
       </Notice>
 
       <Notice
         clearsFab
-        visible={removal.failureMessage !== null}
+        visible={removal.failure !== null}
         onDismiss={removal.dismissFailure}
       >
-        {removal.failureMessage}
+        {removal.failure === null
+          ? ""
+          : t(`budgets.mutations.removal.${removal.failure}Error`)}
       </Notice>
 
       <SavingsWithdrawalSheet
@@ -200,7 +219,7 @@ export const BudgetDetailOverlays = forwardRef<
         currency={currency}
         onWithdrawn={() => {
           setWithdrawalVisible(false);
-          setSavedMessage("C'est en place");
+          setSavedMessage("withdrawalReady");
         }}
       />
 

@@ -33,7 +33,7 @@ export function buildTransactionPayload(
   now: Date,
 ): TransactionCreate {
   if (draft.amount === null || draft.amount <= 0) {
-    throw new Error("Un montant strictement positif est requis.");
+    throw new Error("A positive amount is required.");
   }
 
   return {
@@ -79,9 +79,13 @@ export function isDraftSubmittable(draft: TransactionDraft): boolean {
 }
 
 /** What the form is still missing, in the order the user would fix it. */
-export function draftHint(draft: TransactionDraft): string | null {
-  if (draft.amount === null || draft.amount <= 0) return "Ajoute un montant";
-  if (draft.name.trim().length === 0) return "Ajoute une description";
+export type TransactionDraftProblem = "amount" | "description";
+
+export function draftHint(
+  draft: TransactionDraft,
+): TransactionDraftProblem | null {
+  if (draft.amount === null || draft.amount <= 0) return "amount";
+  if (draft.name.trim().length === 0) return "description";
   return null;
 }
 
@@ -114,7 +118,7 @@ export function buildTransactionUpdate(
   transaction: Transaction,
 ): TransactionUpdate {
   if (draft.amount === null || draft.amount <= 0) {
-    throw new Error("Un montant strictement positif est requis.");
+    throw new Error("A positive amount is required.");
   }
 
   const name = draft.name.trim();

@@ -125,6 +125,76 @@
       },
       "withdrawnFrom": "Puisé dans : %{name}"
     },
+    "mutations": {
+      "activity": {
+        "allocatedIn": "Comptée dans « %{name} »",
+        "alreadyChecked": "Déjà pointée",
+        "alreadyCheckedAccessibility": "Opération déjà pointée",
+        "alreadyCheckedHint": "Compte dans ton solde à date",
+        "createTitle": "Ajouter une opération",
+        "date": "Date de l'opération",
+        "editTitle": "Modifier l'opération",
+        "error": "L'opération n'a pas pu être enregistrée. Réessaie.",
+        "goalsAvailable": "Objectifs disponibles",
+        "noGoals": "Aucun objectif n'a d'argent disponible pour l'instant.",
+        "originAccessibility": "Revenu venant d'un objectif d'épargne",
+        "originHint": "Le montant sera retiré de l'objectif choisi.",
+        "originTitle": "Ce revenu vient d'un objectif d'épargne",
+        "placeholders": {
+          "expense": "Restaurant, essence…",
+          "income": "Prime, remboursement…",
+          "saving": "Virement épargne…"
+        }
+      },
+      "activityAction": "Une opération",
+      "add": "Ajouter",
+      "amount": "Montant",
+      "delete": "Effacer",
+      "description": "Description",
+      "edit": "Modifier",
+      "forecast": {
+        "createTitle": "Nouvelle prévision",
+        "editTitle": "Modifier la prévision",
+        "error": "La prévision n'a pas pu être enregistrée. Réessaie.",
+        "monthlyAmount": "Montant par mois",
+        "oneOffHint": "N'existe que dans ce mois-ci.",
+        "placeholders": {
+          "expense": "Loyer, courses…",
+          "income": "Salaire, allocation…",
+          "saving": "Épargne vacances…"
+        },
+        "plannedAmount": "Montant prévu",
+        "recurringHint": "Revient chaque mois dans tes budgets suivants.",
+        "spreadHint": "Une grosse dépense qui ne déforme pas un seul mois",
+        "spreadTitle": "Lisser sur plusieurs mois",
+        "totalAmount": "Montant total"
+      },
+      "forecastAction": "Une prévision",
+      "name": "Nom",
+      "outcome": {
+        "activityAdded": "Opération ajoutée",
+        "activityUpdated": "Opération modifiée",
+        "forecastAdded": "Prévision ajoutée",
+        "withdrawalReady": "C'est en place"
+      },
+      "removal": {
+        "deleteError": "L'opération n'a pas pu être effacée. Réessaie.",
+        "removedMany": "%{count} opérations effacées",
+        "removedOne": "« %{name} » effacée",
+        "undoError": "L'annulation n'a pas abouti. Réessaie."
+      },
+      "save": "Enregistrer",
+      "spread": "Lisser",
+      "toggleError": "Le pointage n'a pas été enregistré. Réessaie.",
+      "undo": "Annuler",
+      "validation": {
+        "amount": "Ajoute un montant",
+        "description": "Ajoute une description",
+        "exceedsGoal": "Ce montant dépasse ce que contient l'objectif.",
+        "goal": "Choisis l'objectif utilisé",
+        "name": "Donne-lui un nom"
+      }
+    },
     "list": {
       "adjustment": "Ajustement",
       "create": "Créer mon budget",
@@ -701,6 +771,7 @@
     }
   },
   "vocabulary": {
+    "kind": { "expense": "Dépense", "income": "Revenu", "saving": "Épargne" },
     "recurrence": { "fixed": "Récurrent", "one_off": "Prévu" }
   }
 }

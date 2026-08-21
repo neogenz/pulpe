@@ -125,6 +125,76 @@
       },
       "withdrawnFrom": "Entnommen aus: %{name}"
     },
+    "mutations": {
+      "activity": {
+        "allocatedIn": "In „%{name}“ berücksichtigt",
+        "alreadyChecked": "Bereits abgehakt",
+        "alreadyCheckedAccessibility": "Vorgang bereits abgehakt",
+        "alreadyCheckedHint": "Im bisherigen Kontostand enthalten",
+        "createTitle": "Vorgang hinzufügen",
+        "date": "Datum des Vorgangs",
+        "editTitle": "Vorgang bearbeiten",
+        "error": "Der Vorgang konnte nicht gespeichert werden. Versuche es erneut.",
+        "goalsAvailable": "Verfügbare Ziele",
+        "noGoals": "Derzeit ist in keinem Ziel Geld verfügbar.",
+        "originAccessibility": "Einnahme aus einem Sparziel",
+        "originHint": "Der Betrag wird aus dem gewählten Ziel entnommen.",
+        "originTitle": "Diese Einnahme stammt aus einem Sparziel",
+        "placeholders": {
+          "expense": "Restaurant, Benzin…",
+          "income": "Bonus, Erstattung…",
+          "saving": "Überweisung zum Sparen…"
+        }
+      },
+      "activityAction": "Ein Vorgang",
+      "add": "Hinzufügen",
+      "amount": "Betrag",
+      "delete": "Löschen",
+      "description": "Beschreibung",
+      "edit": "Bearbeiten",
+      "forecast": {
+        "createTitle": "Neue Planung",
+        "editTitle": "Planung bearbeiten",
+        "error": "Die Planung konnte nicht gespeichert werden. Versuche es erneut.",
+        "monthlyAmount": "Betrag pro Monat",
+        "oneOffHint": "Existiert nur in diesem Monat.",
+        "placeholders": {
+          "expense": "Miete, Einkäufe…",
+          "income": "Gehalt, Zulage…",
+          "saving": "Urlaubssparen…"
+        },
+        "plannedAmount": "Geplanter Betrag",
+        "recurringHint": "Kehrt jeden Monat in deinen nächsten Budgets zurück.",
+        "spreadHint": "Eine grosse Ausgabe, die nicht nur einen Monat verzerrt",
+        "spreadTitle": "Auf mehrere Monate verteilen",
+        "totalAmount": "Gesamtbetrag"
+      },
+      "forecastAction": "Eine Planung",
+      "name": "Name",
+      "outcome": {
+        "activityAdded": "Vorgang hinzugefügt",
+        "activityUpdated": "Vorgang geändert",
+        "forecastAdded": "Planung hinzugefügt",
+        "withdrawalReady": "Alles erledigt"
+      },
+      "removal": {
+        "deleteError": "Der Vorgang konnte nicht gelöscht werden. Versuche es erneut.",
+        "removedMany": "%{count} Vorgänge gelöscht",
+        "removedOne": "„%{name}“ gelöscht",
+        "undoError": "Rückgängig machen fehlgeschlagen. Versuche es erneut."
+      },
+      "save": "Speichern",
+      "spread": "Verteilen",
+      "toggleError": "Das Abhaken konnte nicht gespeichert werden. Versuche es erneut.",
+      "undo": "Rückgängig",
+      "validation": {
+        "amount": "Füge einen Betrag hinzu",
+        "description": "Füge eine Beschreibung hinzu",
+        "exceedsGoal": "Dieser Betrag übersteigt den Inhalt des Ziels.",
+        "goal": "Wähle das verwendete Ziel",
+        "name": "Gib ihm einen Namen"
+      }
+    },
     "list": {
       "adjustment": "Anpassung",
       "create": "Budget erstellen",
@@ -704,6 +774,7 @@
     }
   },
   "vocabulary": {
+    "kind": { "expense": "Ausgabe", "income": "Einnahme", "saving": "Sparen" },
     "recurrence": { "fixed": "Regelmäßig", "one_off": "Geplant" }
   }
 }

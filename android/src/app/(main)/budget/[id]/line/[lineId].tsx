@@ -390,18 +390,24 @@ export default function BudgetLineDetailScreen() {
       <Notice
         visible={removal.last !== null}
         onDismiss={removal.forget}
-        action={{ label: "Annuler", onPress: removal.undo }}
+        action={{ label: t("budgets.mutations.undo"), onPress: removal.undo }}
       >
         {removal.undoable.length === 1
-          ? `« ${removal.last?.name} » supprimée`
-          : `${removal.undoable.length} opérations supprimées`}
+          ? t("budgets.mutations.removal.removedOne", {
+              name: removal.last?.name,
+            })
+          : t("budgets.mutations.removal.removedMany", {
+              count: removal.undoable.length,
+            })}
       </Notice>
 
       <Notice
-        visible={removal.failureMessage !== null}
+        visible={removal.failure !== null}
         onDismiss={removal.dismissFailure}
       >
-        {removal.failureMessage}
+        {removal.failure === null
+          ? ""
+          : t(`budgets.mutations.removal.${removal.failure}Error`)}
       </Notice>
 
       <TransactionSheet

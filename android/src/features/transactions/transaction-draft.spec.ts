@@ -124,13 +124,11 @@ describe("isDraftSubmittable", () => {
 
 describe("draftHint", () => {
   it("asks for the amount first", () => {
-    expect(draftHint(draft({ amount: null, name: "" }))).toBe(
-      "Ajoute un montant",
-    );
+    expect(draftHint(draft({ amount: null, name: "" }))).toBe("amount");
   });
 
   it("asks for the description once the amount is there", () => {
-    expect(draftHint(draft({ name: "" }))).toBe("Ajoute une description");
+    expect(draftHint(draft({ name: "" }))).toBe("description");
   });
 
   it("says nothing about a complete draft", () => {
