@@ -5,6 +5,11 @@ private enum OnboardingStepScrollAnchor: Hashable {
     case cta
 }
 
+/// The flow's back action, read by the step's bottom zone. `nil` on the welcome step.
+extension EnvironmentValues {
+    @Entry var onboardingBack: (@MainActor () -> Void)?
+}
+
 /// Label content swaps instantly while the outer capsule animates width — avoids overlapping “mid-morph” layouts.
 private struct MorphingOnboardingCTALabel: View {
     let expanded: Bool
@@ -68,6 +73,7 @@ struct OnboardingStepView<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.onboardingBack) private var onboardingBack
     @State private var showContent = false
     @State private var isAtBottom = false
     @State private var contentOverflows = false
@@ -125,11 +131,8 @@ struct OnboardingStepView<Content: View>: View {
                         .padding(.horizontal, DesignTokens.Spacing.xxl)
                     }
 
-                    OnboardingStepHeader(
-                        step: step,
-                        onSkip: step.isOptional ? onNext : nil
-                    )
-                    .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    OnboardingStepHeader(step: step)
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
 
                     content()
                         .padding(.horizontal, DesignTokens.Spacing.xxl)
@@ -146,7 +149,7 @@ struct OnboardingStepView<Content: View>: View {
 
                     // Scroll anchor only — primary CTA is pinned in overlay (morphs FAB ↔ full width).
                     Color.clear
-                        .frame(height: DesignTokens.FrameHeight.button)
+                        .frame(height: DesignTokens.FrameHeight.button + DesignTokens.Spacing.xl)
                         .id(OnboardingStepScrollAnchor.cta)
                 }
                 .padding(.top, DesignTokens.Spacing.stepHeaderTop)
@@ -183,7 +186,7 @@ struct OnboardingStepView<Content: View>: View {
                 }
             }
             .overlay(alignment: .bottom) {
-                onboardingMorphingCTA(proxy: proxy)
+                bottomZone(proxy: proxy)
                     .padding(.bottom, ctaOverlayBottomPadding)
             }
         }
@@ -220,6 +223,35 @@ struct OnboardingStepView<Content: View>: View {
         }
     }
 
+    // MARK: - Bottom zone (back · CTA · progress)
+
+    /// Where the thumb is: the back circle, the morphing CTA and, under them, the thin
+    /// progress bar — all above the keyboard.
+    private func bottomZone(proxy: ScrollViewProxy) -> some View {
+        VStack(spacing: DesignTokens.Spacing.md) {
+            onboardingMorphingCTA(proxy: proxy)
+            if step.showProgressBar {
+                OnboardingProgressIndicator(currentStep: step, progressSteps: state.progressBarSteps)
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var backButton: some View {
+        if let onboardingBack {
+            Button(action: onboardingBack) {
+                Image(systemName: "chevron.left")
+                    .font(PulpeTypography.labelLarge)
+                    .foregroundStyle(Color.textPrimaryOnboarding)
+                    .frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
+                    .background(Color.surfaceContainerLow, in: Circle())
+            }
+            .iconButtonStyle()
+            .accessibilityLabel(state.editReturnStep != nil ? "Retour au résumé" : "Retour")
+        }
+    }
+
     // MARK: - Morphing CTA (single control: frame animates circle ↔ full-width pill)
 
     private func onboardingMorphingCTA(proxy: ScrollViewProxy) -> some View {
@@ -227,7 +259,10 @@ struct OnboardingStepView<Content: View>: View {
         let buttonHeight = DesignTokens.FrameHeight.button
         let fabShadow = DesignTokens.Shadow.elevated
         let isDisabled = expanded && !isEnabled
-        return HStack(spacing: 0) {
+        return HStack(spacing: DesignTokens.Spacing.md) {
+            if expanded {
+                backButton
+            }
             Spacer(minLength: 0)
             Button {
                 // Apple docs: `.plain` ButtonStyle "may apply a visual effect to indicate the
@@ -315,7 +350,7 @@ struct OnboardingStepView<Content: View>: View {
     private func ctaBackground(expanded: Bool) -> some View {
         let showDisabled = expanded && !isEnabled
         ZStack {
-            Color.onboardingGradient
+            Color.pulpePrimary
             Color.primaryContainerDisabled
                 .opacity(showDisabled ? 1 : 0)
         }

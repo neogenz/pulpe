@@ -1162,4 +1162,24 @@ struct OnboardingStateTests {
 
         #expect(state.emotionState == .comfortable)
     }
+
+    // MARK: - Skipped optional steps
+
+    @Test func isStepSkipped_optionalStepWithoutAmountsIsSkipped() {
+        let state = OnboardingState()
+        #expect(state.isStepSkipped(.charges))
+        #expect(state.isStepSkipped(.savings))
+    }
+
+    @Test func isStepSkipped_chargesWithAnAmountIsAnswered() {
+        let state = OnboardingState()
+        state.housingCosts = 1_200
+        #expect(!state.isStepSkipped(.charges))
+    }
+
+    @Test func isStepSkipped_requiredStepsNeverReportSkipped() {
+        let state = OnboardingState()
+        #expect(!state.isStepSkipped(.income))
+        #expect(!state.isStepSkipped(.firstName))
+    }
 }
