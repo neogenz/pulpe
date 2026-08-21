@@ -414,6 +414,7 @@ reviewers; adding one would reintroduce a second approval after the production P
   completes successfully.
 - Migration failure: keep recovery forward-only and ship a corrective migration; do
   not automate rollback.
+- iOS build already valid succeeds without archive/upload; processing polls the same version/build without allocating or uploading another.
 - PostHog and CSP diagnostics are useful monitoring signals, not publication gates.
 
 Detailed versioning and force-update rules: [VERSIONING.md](./VERSIONING.md).
