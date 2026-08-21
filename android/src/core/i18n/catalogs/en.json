@@ -118,6 +118,24 @@
       "title": "Your income",
       "total": "Total income"
     },
+    "pin": {
+      "back": "Back to preview"
+    },
+    "preview": {
+      "available": "Available to spend · %{currency}",
+      "edit": "Edit the %{label} section",
+      "emotion": {
+        "comfortable": "You have room. This is what remains after everything else.",
+        "deficit": "Your expenses are higher than your income — we'll look at it together.",
+        "tight": "It works, but it's tight. You can adjust it at any time."
+      },
+      "expenses": "Expenses",
+      "income": "Income",
+      "savings": "Savings",
+      "start": "Let's go",
+      "subtitle": "Here is how it looks",
+      "title": "Your budget"
+    },
     "registration": {
       "criteria": {
         "letter": "At least one letter",
@@ -150,6 +168,17 @@
       "retirementSwiss": "Third pillar",
       "saving": "Savings",
       "title": "Suggestions"
+    },
+    "submission": {
+      "back": "Back to my answers",
+      "creating": "Creating your budget",
+      "failedBody": "Nothing was lost. Try again in a moment.",
+      "failedTitle": "Your budget could not be created",
+      "progress": "We're preparing your next thirteen months…"
+    },
+    "template": {
+      "description": "%{name}'s personal template",
+      "name": "Standard Month"
     },
     "transaction": {
       "add": "Add",

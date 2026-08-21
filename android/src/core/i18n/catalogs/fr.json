@@ -118,6 +118,24 @@
       "title": "Tes revenus",
       "total": "Total revenus"
     },
+    "pin": {
+      "back": "Revenir à l'aperçu"
+    },
+    "preview": {
+      "available": "Disponible à dépenser · %{currency}",
+      "edit": "Modifier la section %{label}",
+      "emotion": {
+        "comfortable": "Tu as de la marge. C'est ce qu'il te reste après tout le reste.",
+        "deficit": "Tes dépenses passent devant tes revenus — on va regarder ça ensemble.",
+        "tight": "Ça passe, mais c'est serré. Tu pourras ajuster à tout moment."
+      },
+      "expenses": "Dépenses",
+      "income": "Revenus",
+      "savings": "Épargne",
+      "start": "C'est parti",
+      "subtitle": "Voici ce que ça donne",
+      "title": "Ton budget"
+    },
     "registration": {
       "criteria": {
         "letter": "Au moins une lettre",
@@ -150,6 +168,17 @@
       "retirementSwiss": "3ème pilier",
       "saving": "Épargne",
       "title": "Suggestions"
+    },
+    "submission": {
+      "back": "Revenir à mes réponses",
+      "creating": "Création de ton budget",
+      "failedBody": "Rien n'est perdu. Réessaie dans un instant.",
+      "failedTitle": "Ton budget n'a pas pu être créé",
+      "progress": "On prépare tes treize prochains mois…"
+    },
+    "template": {
+      "description": "Modèle personnel de %{name}",
+      "name": "Mois Standard"
     },
     "transaction": {
       "add": "Ajouter",

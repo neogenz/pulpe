@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Button } from "react-native-paper";
 
 import { hapticCommit, hapticSuccess } from "@/core/ui/haptics";
-import { normalizeApiError } from "@/core/api/api-error";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { setupVaultPin } from "@/core/vault/vault-store";
 import { PIN_LENGTH, PinPad } from "@/ui/pin-pad";
 import { PinScreen } from "@/ui/pin-screen";
@@ -19,6 +19,7 @@ import { submitOnboarding } from "../onboarding-submission";
  * would drop the user into a screen with no way back to the preview.
  */
 export function PinSetupStep() {
+  const { t } = useTranslation();
   const [isConfirming, setIsConfirming] = useState(false);
   const firstPin = useRef<string | null>(null);
 
@@ -38,16 +39,16 @@ export function PinSetupStep() {
 
       if (candidate !== firstPin.current) {
         restart();
-        return "Les codes ne correspondent pas";
+        return t("vault.pinMismatch");
       }
 
       try {
         await setupVaultPin(candidate);
-      } catch (error) {
+      } catch {
         // A failed setup leaves no key behind, so the next attempt starts from
         // the first digit rather than confirming a code that never took.
         restart();
-        return normalizeApiError(error).message;
+        return t("vault.error");
       }
 
       markPinSetupCompleted();
@@ -61,15 +62,15 @@ export function PinSetupStep() {
 
   return (
     <PinScreen
-      title={isConfirming ? "Confirme ton code" : "Choisis ton code"}
+      title={t(isConfirming ? "vault.confirmPin" : "vault.setup.title")}
       subtitle={
         isConfirming
-          ? "Saisis-le une seconde fois"
-          : `${PIN_LENGTH} chiffres — tes montants sont chiffrés avec ce code`
+          ? t("vault.repeatPin")
+          : t("vault.setup.subtitle", { count: PIN_LENGTH })
       }
       footer={
         <Button disabled={isBusy} onPress={() => goToPreviousStep()}>
-          Revenir à l&apos;aperçu
+          {t("onboarding.pin.back")}
         </Button>
       }
     >

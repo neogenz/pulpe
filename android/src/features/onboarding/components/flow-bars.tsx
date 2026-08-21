@@ -34,9 +34,11 @@ interface Flow {
 export function FlowBars({
   flows,
   currency,
+  editHint,
 }: {
   flows: Flow[];
   currency: SupportedCurrency;
+  editHint: (label: string) => string;
 }) {
   const theme = useTheme();
   const financial = useFinancialColors();
@@ -54,9 +56,7 @@ export function FlowBars({
           disabled={flow.onPress === undefined}
           accessibilityRole={flow.onPress === undefined ? undefined : "button"}
           accessibilityHint={
-            flow.onPress === undefined
-              ? undefined
-              : `Revenir à l'étape ${flow.label.toLowerCase()}`
+            flow.onPress === undefined ? undefined : editHint(flow.label)
           }
         >
           <View style={styles.labels}>

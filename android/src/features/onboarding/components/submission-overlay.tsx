@@ -1,6 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import { ActivityIndicator, Button, Text, useTheme } from "react-native-paper";
 
+import { useTranslation } from "@/core/i18n/locale-store";
 import { SPACING } from "@/core/ui/theme";
 
 import {
@@ -16,8 +17,8 @@ import {
  */
 export function SubmissionOverlay() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const status = useSubmissionStore((state) => state.status);
-  const errorMessage = useSubmissionStore((state) => state.errorMessage);
 
   if (status === "idle") return null;
 
@@ -28,29 +29,31 @@ export function SubmissionOverlay() {
     >
       {status === "submitting" ? (
         <>
-          <ActivityIndicator accessibilityLabel="Création de ton budget" />
+          <ActivityIndicator
+            accessibilityLabel={t("onboarding.submission.creating")}
+          />
           <Text variant="bodyMedium" style={styles.centered}>
-            On prépare tes treize prochains mois…
+            {t("onboarding.submission.progress")}
           </Text>
         </>
       ) : (
         <>
           <Text variant="titleMedium" style={styles.centered}>
-            Ton budget n&apos;a pas pu être créé
+            {t("onboarding.submission.failedTitle")}
           </Text>
           <Text
             variant="bodyMedium"
             style={[styles.centered, { color: theme.colors.onSurfaceVariant }]}
           >
-            {errorMessage}
+            {t("onboarding.submission.failedBody")}
           </Text>
           <Button mode="contained" onPress={() => void submitOnboarding()}>
-            Réessayer
+            {t("common.retry")}
           </Button>
           {/* Nothing is lost by backing out: the answers are still in the
               draft, and the code chosen a moment ago still opens the vault. */}
           <Button onPress={dismissSubmissionError}>
-            Revenir à mes réponses
+            {t("onboarding.submission.back")}
           </Button>
         </>
       )}

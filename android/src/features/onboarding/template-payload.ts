@@ -3,7 +3,10 @@ import type { BudgetTemplateCreateFromOnboarding } from "pulpe-shared";
 import type { OnboardingState } from "./onboarding-store";
 import { toWire } from "./onboarding-transaction";
 
-const DEFAULT_TEMPLATE_NAME = "Mois Standard";
+interface TemplateCopy {
+  name: string;
+  description: string;
+}
 
 /**
  * Turns the answers into the payload the server expects. Kept apart from the
@@ -17,10 +20,11 @@ const DEFAULT_TEMPLATE_NAME = "Mois Standard";
  */
 export function toTemplatePayload(
   state: OnboardingState,
+  copy: TemplateCopy,
 ): BudgetTemplateCreateFromOnboarding {
   return {
-    name: DEFAULT_TEMPLATE_NAME,
-    description: `Template personnel de ${state.firstName.trim()}`,
+    name: copy.name,
+    description: copy.description,
     isDefault: true,
     monthlyIncome: state.monthlyIncome ?? 0,
     housingCosts: state.housingCosts ?? 0,

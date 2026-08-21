@@ -7,7 +7,7 @@ import {
   hasAccount,
   progressBarSteps,
 } from "./onboarding-selectors";
-import { STEP_COPY, type OnboardingStep } from "./onboarding-step";
+import { STEP_ANALYTICS_NAMES, type OnboardingStep } from "./onboarding-step";
 import type { OnboardingState } from "./onboarding-store";
 
 /**
@@ -63,7 +63,7 @@ export function captureOnboardingResumed(state: OnboardingState): void {
   captureEvent(ANALYTICS_EVENTS.ONBOARDING_RESUMED, {
     method: authMethod(state),
     source: "draft",
-    resumed_at_step: STEP_COPY[state.currentStep].analyticsName,
+    resumed_at_step: STEP_ANALYTICS_NAMES[state.currentStep],
   });
 }
 
@@ -80,7 +80,7 @@ export function captureStepCompleted(
 ): void {
   const bar = progressBarSteps(state);
   captureEvent(ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED, {
-    step: STEP_COPY[step].analyticsName,
+    step: STEP_ANALYTICS_NAMES[step],
     step_index: bar.indexOf(step) + 1,
     step_count: bar.length,
     auth_method: authMethod(state),
@@ -123,7 +123,7 @@ export function captureOnboardingAbandoned(state: OnboardingState): void {
   if (hasEmittedAbandoned) return;
   hasEmittedAbandoned = true;
   captureEvent(ANALYTICS_EVENTS.ONBOARDING_ABANDONED, {
-    last_step: STEP_COPY[state.currentStep].analyticsName,
+    last_step: STEP_ANALYTICS_NAMES[state.currentStep],
     exit_method: "quit_button",
     was_authenticated: hasAccount(state),
     auth_method: authMethod(state),

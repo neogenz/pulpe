@@ -118,6 +118,24 @@
       "title": "Dein Einkommen",
       "total": "Gesamteinkommen"
     },
+    "pin": {
+      "back": "Zurück zur Vorschau"
+    },
+    "preview": {
+      "available": "Zum Ausgeben verfügbar · %{currency}",
+      "edit": "Bereich %{label} bearbeiten",
+      "emotion": {
+        "comfortable": "Du hast Spielraum. Das bleibt nach allem anderen übrig.",
+        "deficit": "Deine Ausgaben übersteigen dein Einkommen — wir schauen uns das gemeinsam an.",
+        "tight": "Es geht auf, aber knapp. Du kannst jederzeit nachjustieren."
+      },
+      "expenses": "Ausgaben",
+      "income": "Einkommen",
+      "savings": "Sparen",
+      "start": "Los geht's",
+      "subtitle": "So sieht es aus",
+      "title": "Dein Budget"
+    },
     "registration": {
       "criteria": {
         "letter": "Mindestens ein Buchstabe",
@@ -150,6 +168,17 @@
       "retirementSwiss": "Säule 3a",
       "saving": "Sparen",
       "title": "Vorschläge"
+    },
+    "submission": {
+      "back": "Zurück zu meinen Angaben",
+      "creating": "Dein Budget wird erstellt",
+      "failedBody": "Nichts ist verloren. Versuche es gleich noch einmal.",
+      "failedTitle": "Dein Budget konnte nicht erstellt werden",
+      "progress": "Wir bereiten deine nächsten dreizehn Monate vor…"
+    },
+    "template": {
+      "description": "Persönliche Vorlage von %{name}",
+      "name": "Standardmonat"
     },
     "transaction": {
       "add": "Hinzufügen",

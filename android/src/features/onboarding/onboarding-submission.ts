@@ -1,7 +1,7 @@
 import type { SupportedCurrency } from "pulpe-shared";
 import { create } from "zustand";
 
-import { normalizeApiError } from "@/core/api/api-error";
+import { translate } from "@/core/i18n/i18n";
 import { updateUserSettings } from "@/core/user-settings/user-settings-api";
 
 import {
@@ -23,12 +23,10 @@ export type SubmissionStatus = "idle" | "submitting" | "failed";
 
 interface SubmissionState {
   status: SubmissionStatus;
-  errorMessage: string | null;
 }
 
 export const useSubmissionStore = create<SubmissionState>(() => ({
   status: "idle",
-  errorMessage: null,
 }));
 
 /**
@@ -37,22 +35,26 @@ export const useSubmissionStore = create<SubmissionState>(() => ({
  * earlier fails with `AUTH_CLIENT_KEY_MISSING`.
  */
 export async function submitOnboarding(): Promise<void> {
-  useSubmissionStore.setState({ status: "submitting", errorMessage: null });
+  useSubmissionStore.setState({ status: "submitting" });
 
   const state = useOnboardingStore.getState();
   let templateId: string | null = null;
 
   try {
-    templateId = await createTemplateFromOnboarding(toTemplatePayload(state));
+    templateId = await createTemplateFromOnboarding(
+      toTemplatePayload(state, {
+        name: translate("onboarding.template.name"),
+        description: translate("onboarding.template.description", {
+          name: state.firstName.trim(),
+        }),
+      }),
+    );
     await generateInitialBudgets(templateId, new Date());
-  } catch (error) {
+  } catch {
     // A template with no budgets is not something the user can see or delete,
     // and leaving it behind would make the retry create a second one.
     if (templateId !== null) await discardTemplate(templateId);
-    useSubmissionStore.setState({
-      status: "failed",
-      errorMessage: normalizeApiError(error).message,
-    });
+    useSubmissionStore.setState({ status: "failed" });
     return;
   }
 
@@ -65,11 +67,11 @@ export async function submitOnboarding(): Promise<void> {
   // answers this event counts.
   captureFirstBudgetCreated(state);
   completeOnboarding();
-  useSubmissionStore.setState({ status: "idle", errorMessage: null });
+  useSubmissionStore.setState({ status: "idle" });
 }
 
 export function dismissSubmissionError(): void {
-  useSubmissionStore.setState({ status: "idle", errorMessage: null });
+  useSubmissionStore.setState({ status: "idle" });
 }
 
 async function discardTemplate(templateId: string): Promise<void> {

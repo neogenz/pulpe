@@ -118,6 +118,24 @@
       "title": "I tuoi redditi",
       "total": "Redditi totali"
     },
+    "pin": {
+      "back": "Torna all'anteprima"
+    },
+    "preview": {
+      "available": "Disponibile da spendere · %{currency}",
+      "edit": "Modifica la sezione %{label}",
+      "emotion": {
+        "comfortable": "Hai un buon margine. È ciò che resta dopo tutto il resto.",
+        "deficit": "Le tue spese superano i redditi — vediamo insieme come sistemarle.",
+        "tight": "Ci stai dentro, ma di poco. Potrai modificare tutto in qualsiasi momento."
+      },
+      "expenses": "Spese",
+      "income": "Redditi",
+      "savings": "Risparmi",
+      "start": "Iniziamo",
+      "subtitle": "Ecco come si presenta",
+      "title": "Il tuo budget"
+    },
     "registration": {
       "criteria": {
         "letter": "Almeno una lettera",
@@ -150,6 +168,17 @@
       "retirementSwiss": "Terzo pilastro",
       "saving": "Risparmio",
       "title": "Suggerimenti"
+    },
+    "submission": {
+      "back": "Torna alle mie risposte",
+      "creating": "Creazione del tuo budget",
+      "failedBody": "Non hai perso nulla. Riprova tra poco.",
+      "failedTitle": "Non è stato possibile creare il tuo budget",
+      "progress": "Stiamo preparando i tuoi prossimi tredici mesi…"
+    },
+    "template": {
+      "description": "Modello personale di %{name}",
+      "name": "Mese standard"
     },
     "transaction": {
       "add": "Aggiungi",

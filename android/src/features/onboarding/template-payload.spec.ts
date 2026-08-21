@@ -34,6 +34,10 @@ const ANSWERS: OnboardingState = {
   leasingCredit: null,
   customTransactions: [],
 };
+const COPY = {
+  name: "Standard Month",
+  description: "Maxime's personal template",
+};
 
 function customTransaction(
   overrides: Partial<OnboardingTransaction> = {},
@@ -51,23 +55,21 @@ function customTransaction(
 
 describe("toTemplatePayload", () => {
   it("sends zero for a charge the user left empty", () => {
-    const payload = toTemplatePayload(ANSWERS);
+    const payload = toTemplatePayload(ANSWERS, COPY);
 
     expect(payload.phonePlan).toBe(0);
     expect(payload.leasingCredit).toBe(0);
   });
 
   it("names the template after the user", () => {
-    expect(toTemplatePayload(ANSWERS).description).toBe(
-      "Template personnel de Maxime",
-    );
+    expect(toTemplatePayload(ANSWERS, COPY)).toMatchObject(COPY);
   });
 
   it("strips the client-side id from every custom line", () => {
-    const payload = toTemplatePayload({
-      ...ANSWERS,
-      customTransactions: [customTransaction()],
-    });
+    const payload = toTemplatePayload(
+      { ...ANSWERS, customTransactions: [customTransaction()] },
+      COPY,
+    );
 
     expect(payload.customTransactions).toEqual([
       {
@@ -83,10 +85,10 @@ describe("toTemplatePayload", () => {
   // The wire schema is strict, so an extra field is a rejected payload after
   // seven steps of work rather than a warning.
   it("produces a payload the wire schema accepts", () => {
-    const payload = toTemplatePayload({
-      ...ANSWERS,
-      customTransactions: [customTransaction()],
-    });
+    const payload = toTemplatePayload(
+      { ...ANSWERS, customTransactions: [customTransaction()] },
+      COPY,
+    );
 
     expect(
       budgetTemplateCreateFromOnboardingSchema.safeParse(payload).success,

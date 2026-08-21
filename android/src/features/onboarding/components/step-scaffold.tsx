@@ -4,24 +4,22 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { Button, IconButton, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useTranslation } from "@/core/i18n/locale-store";
+import { hapticCommit } from "@/core/ui/haptics";
 import {
   ICON_BUTTON_INSET,
   ICON_SIZE,
   SCREEN_PADDING,
   SPACING,
 } from "@/core/ui/theme";
-import { useTranslation } from "@/core/i18n/locale-store";
 
 import {
   isStepInProgressBar,
   progressBarSteps,
   wouldExitOnBack,
 } from "../onboarding-selectors";
-import { STEP_COPY } from "../onboarding-step";
 import { goToPreviousStep, useOnboardingStore } from "../onboarding-store";
 import { ProgressDots } from "./progress-dots";
-
-import { hapticCommit } from "@/core/ui/haptics";
 
 /**
  * The frame every step is drawn in: where the user is, what the step asks, and
@@ -42,8 +40,8 @@ export function StepScaffold({
 }: {
   children: ReactNode;
   ctaLabel?: string;
-  title?: string;
-  subtitle?: string;
+  title: string;
+  subtitle: string;
   isCtaEnabled: boolean;
   isCtaBusy?: boolean;
   onContinue: () => void;
@@ -58,9 +56,7 @@ export function StepScaffold({
   const state = useOnboardingStore();
 
   const step = state.currentStep;
-  const copy = STEP_COPY[step];
   const bar = progressBarSteps(state);
-  const localized = title !== undefined;
 
   function handleBack() {
     if (state.editReturnStep === null && wouldExitOnBack(state)) {
@@ -89,9 +85,7 @@ export function StepScaffold({
             />
           )}
           onPress={handleBack}
-          accessibilityLabel={
-            localized ? t("onboarding.back") : "Revenir à l'étape précédente"
-          }
+          accessibilityLabel={t("onboarding.back")}
         />
         <View style={styles.progress}>
           {isStepInProgressBar(state, step) && (
@@ -115,12 +109,12 @@ export function StepScaffold({
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.titles}>
-            <Text variant="headlineMedium">{title ?? copy.title}</Text>
+            <Text variant="headlineMedium">{title}</Text>
             <Text
               variant="bodyMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              {subtitle ?? copy.subtitle}
+              {subtitle}
             </Text>
           </View>
 
@@ -136,11 +130,11 @@ export function StepScaffold({
           loading={isCtaBusy}
           onPress={handleContinue}
         >
-          {ctaLabel ?? (localized ? t("common.continue") : "Continuer")}
+          {ctaLabel ?? t("common.continue")}
         </Button>
         {onSkip !== undefined && (
           <Button mode="text" disabled={isCtaBusy} onPress={onSkip}>
-            {localized ? t("onboarding.skip") : "Passer cette étape"}
+            {t("onboarding.skip")}
           </Button>
         )}
       </View>
