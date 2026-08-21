@@ -25,6 +25,7 @@ export function SettingsSection({
 }
 
 export function SettingsRow({
+  testID,
   title,
   description,
   icon,
@@ -35,6 +36,7 @@ export function SettingsRow({
   isDisabled = false,
   onPress,
 }: {
+  testID?: string;
   title: string;
   description?: string;
   icon: string;
@@ -49,6 +51,7 @@ export function SettingsRow({
 
   return (
     <List.Item
+      testID={testID}
       title={title}
       description={description}
       titleStyle={tint === undefined ? undefined : { color: tint }}

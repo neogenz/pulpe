@@ -6,6 +6,7 @@ import { Text, useTheme } from "react-native-paper";
 import { SPACING } from "@/core/ui/theme";
 
 interface PinScreenProps {
+  testID?: string;
   title: string;
   subtitle?: string;
   /** The pad, or whatever the step asks for instead. */
@@ -20,6 +21,7 @@ interface PinScreenProps {
  * screens — the user meets them as one moment.
  */
 export function PinScreen({
+  testID,
   title,
   subtitle,
   children,
@@ -29,6 +31,7 @@ export function PinScreen({
 
   return (
     <SafeAreaView
+      testID={testID}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <View style={styles.header}>

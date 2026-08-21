@@ -111,12 +111,15 @@ jobs:
           api-level: 35
           target: google_apis
           arch: x86_64
-          profile: pixel_6
+          profile: pixel_2
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: >-
             mkdir -p android/maestro-artifacts &&
+            adb shell settings put system font_scale 1.3 &&
             adb install -r android/android/app/build/outputs/apk/release/app-release.apk &&
+            adb shell pm clear app.pulpe.android &&
+            adb shell cmd locale set-app-locales app.pulpe.android --user current --locales fr-FR &&
             maestro test android/maestro/smoke.yaml ||
             { status=$?; adb exec-out screencap -p > android/maestro-artifacts/failure.png || true; adb logcat -d > android/maestro-artifacts/logcat.txt || true; cp -R "$HOME/.maestro/tests" android/maestro-artifacts/maestro-tests || true; exit "$status"; }
 

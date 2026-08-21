@@ -151,6 +151,7 @@ export default function HomeScreen() {
             {monthName}
           </Text>
           <IconButton
+            testID="home-account"
             icon="account-circle-outline"
             onPress={() => router.push("/settings")}
             accessibilityLabel={t("home.accountAccessibility")}
@@ -258,6 +259,7 @@ export default function HomeScreen() {
           and would otherwise sit on top of the form it just opened. */}
       {!isAddVisible && !isRealizedVisible && !reminders.isVisible && (
         <FAB
+          testID="home-add-entry"
           icon="plus"
           label={t("home.add")}
           style={styles.fab}

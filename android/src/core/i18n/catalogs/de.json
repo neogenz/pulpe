@@ -133,7 +133,7 @@
         "activityOne": "1 Vorgang",
         "cancelPair": "Beide stornieren",
         "createTargetBudget": "Erstelle zuerst das Budget für %{month}",
-        "deleteEmpty": "Sie verschwindet aus diesem Monat.",
+        "deleteEmpty": "Danach verschwindet sie aus diesem Monat.",
         "deleteTitle": "Diese Planung löschen?",
         "deleteWithMany": "Die %{count} verknüpften Vorgänge bleiben erhalten, aber ohne Planung.",
         "deleteWithOne": "Der verknüpfte Vorgang bleibt erhalten, aber ohne Planung.",
@@ -145,7 +145,7 @@
         },
         "keepIncome": "Einnahme aus %{month} behalten",
         "loadError": "Diese Planung konnte nicht geladen werden.",
-        "missingHint": "Sie wurde möglicherweise auf einem anderen Gerät gelöscht.",
+        "missingHint": "Möglicherweise wurde sie auf einem anderen Gerät gelöscht.",
         "missingTitle": "Diese Planung existiert nicht mehr",
         "overrun": "%{amount} über dem Budget",
         "pairDescription": "+%{amount} in %{incomeMonth} ist mit -%{amount} in %{repaymentMonth} verknüpft.",
@@ -1011,7 +1011,7 @@
       "deleteDescription": "„%{name}“ wird von den Prognosen und Vorgängen entfernt, die ihn verwenden. Diese bleiben bestehen.",
       "deleteError": "Der Tag konnte nicht gelöscht werden. Versuche es erneut.",
       "deleteTitle": "Diesen Tag löschen?",
-      "description": "Mit Tags gruppierst du Prognosen und Vorgänge. Sie werden mit der Web- und der iOS-App geteilt.",
+      "description": "Mit Tags gruppierst du Prognosen und Vorgänge. Die Tags werden mit der Web- und der iOS-App geteilt.",
       "empty": "Noch keine Tags.",
       "loadError": "Deine Tags konnten nicht geladen werden.",
       "name": "Name",
@@ -1125,7 +1125,7 @@
       "empty": "Diese Vorlage ist noch leer. Füge Einnahmen, Ausgaben und Ersparnisse hinzu, damit sie als typischer Monat dienen kann.",
       "income": "Einnahmen",
       "loadErrorTitle": "Diese Vorlage konnte nicht geladen werden",
-      "missingHint": "Sie wurde vielleicht auf einem anderen Gerät gelöscht.",
+      "missingHint": "Vielleicht wurde sie auf einem anderen Gerät gelöscht.",
       "missingTitle": "Diese Vorlage existiert nicht mehr",
       "outgoing": "Ausgaben und Ersparnisse",
       "rename": "Umbenennen",
@@ -1178,6 +1178,6 @@
   },
   "vocabulary": {
     "kind": { "expense": "Ausgabe", "income": "Einnahme", "saving": "Sparen" },
-    "recurrence": { "fixed": "Regelmäßig", "one_off": "Geplant" }
+    "recurrence": { "fixed": "Regelmässig", "one_off": "Geplant" }
   }
 }

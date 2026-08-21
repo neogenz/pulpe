@@ -25,6 +25,24 @@ describe("localized day labels", () => {
     },
   );
 
+  it("does not require Intl.RelativeTimeFormat on Hermes", () => {
+    const relativeTimeFormat = Intl.RelativeTimeFormat;
+    Object.defineProperty(Intl, "RelativeTimeFormat", {
+      configurable: true,
+      value: undefined,
+    });
+
+    try {
+      const now = new Date(2026, 7, 5, 12);
+      expect(formatRelativeDay(now, now, "en")).toBe("today");
+    } finally {
+      Object.defineProperty(Intl, "RelativeTimeFormat", {
+        configurable: true,
+        value: relativeTimeFormat,
+      });
+    }
+  });
+
   it("keeps the French first-day ordinal by default", () => {
     expect(formatDayMonth(new Date(2026, 7, 1))).toBe("1er août");
     expect(formatDayMonth(new Date(2026, 7, 1), "en")).toBe("August 1");

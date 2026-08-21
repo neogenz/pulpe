@@ -6,6 +6,7 @@ const read = (path) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 const I18N_ROOT = "frontend/projects/webapp/public/i18n";
+const ANDROID_I18N_ROOT = "android/src/core/i18n/catalogs";
 const SWIFT_ROOT = "ios/Pulpe";
 const TSX_ROOT = "android/src";
 
@@ -236,11 +237,54 @@ test("aucune chaîne affichée par l'app iOS ne dit « transaction »", () => {
   );
 });
 
-// L'app Android n'a pas plus de catalogue que l'iOS : la copie vit en dur dans
-// les composants. Mais le mot y désigne aussi un type, une clé d'union
-// discriminée et une demi-douzaine de fonctions — `kind: "transaction"` et
-// `useCreateTransaction` sont du domaine, et les régenter rendrait le garde
-// inutilisable.
+const androidCatalogs = () =>
+  readdirSync(new URL(`../../${ANDROID_I18N_ROOT}`, import.meta.url))
+    .filter((file) => file.endsWith(".json"))
+    .sort()
+    .map((file) => ({ file, lang: file.replace(/\.json$/, "") }));
+
+const androidTranslations = () =>
+  androidCatalogs().flatMap(({ file, lang }) =>
+    flatten(JSON.parse(read(`${ANDROID_I18N_ROOT}/${file}`))).map(
+      ([key, value]) => ({ key, lang, value }),
+    ),
+  );
+
+test("aucune traduction du catalogue Android ne dit « transaction »", () => {
+  const translations = androidTranslations();
+  assert.notEqual(
+    translations.length,
+    0,
+    `Aucune traduction lue dans ${ANDROID_I18N_ROOT}. Le garde ne prouverait rien.`,
+  );
+
+  const offenders = translations
+    .filter(({ lang, value }) => BANNED_WORD_BY_LANG[lang]?.test(value))
+    .map(({ key, lang, value }) => `  ${lang} → ${key} = ${value}`);
+
+  assert.equal(
+    offenders.length,
+    0,
+    `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${ANDROID_I18N_ROOT} :\n${offenders.join("\n")}`,
+  );
+});
+
+test("aucune traduction du catalogue Android ne vouvoie", () => {
+  const offenders = androidTranslations()
+    .filter(({ lang, value }) => FORMAL_ADDRESS_BY_LANG[lang]?.test(value))
+    .map(({ key, lang, value }) => `  ${lang} → ${key} = ${value}`);
+
+  assert.equal(
+    offenders.length,
+    0,
+    "Pulpe tutoie dans les quatre langues (docs/I18N.md).\n" +
+      `Dans ${ANDROID_I18N_ROOT} :\n${offenders.join("\n")}`,
+  );
+});
+
+// Le mot désigne aussi un type et une demi-douzaine de fonctions dans les
+// sources Android. `kind: "transaction"` et `useCreateTransaction` sont du
+// domaine, et les régenter rendrait le garde inutilisable.
 //
 // Ce qui est lu est donc uniquement ce qui ne peut être que de l'affichage :
 //
@@ -389,6 +433,12 @@ const everyTranslation = () => [
   ),
   ...iosTranslations().map(({ key, lang, value }) => ({
     source: IOS_CATALOG,
+    lang,
+    key,
+    value,
+  })),
+  ...androidTranslations().map(({ key, lang, value }) => ({
+    source: ANDROID_I18N_ROOT,
     lang,
     key,
     value,

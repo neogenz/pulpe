@@ -4,10 +4,11 @@ import {
   supportedLocaleSchema,
   type SupportedLocale,
 } from "pulpe-shared";
+import { useCallback } from "react";
 import { createMMKV } from "react-native-mmkv";
 import { create } from "zustand";
 
-import { i18n, translate } from "./i18n";
+import { i18n, translate, translateForLocale } from "./i18n";
 import { languageWriter } from "./language-writer";
 
 const SNAPSHOT_KEY = "pulpe-settings-language";
@@ -75,5 +76,9 @@ export function clearLocaleSnapshot(): void {
 
 export function useTranslation() {
   const locale = useLocaleStore((state) => state.locale);
-  return { locale, t: translate };
+  const t = useCallback<typeof translate>(
+    (key, options) => translateForLocale(locale, key, options),
+    [locale],
+  );
+  return { locale, t };
 }

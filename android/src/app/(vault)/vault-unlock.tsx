@@ -54,6 +54,7 @@ export default function VaultUnlockScreen() {
 
   return (
     <PinScreen
+      testID="vault-unlock"
       title={t("vault.unlock.title")}
       subtitle={t("vault.unlock.subtitle")}
       footer={

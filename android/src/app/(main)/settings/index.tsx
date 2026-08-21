@@ -110,6 +110,7 @@ export default function SettingsScreen() {
             onPress={() => router.push("/settings/security")}
           />
           <SettingsRow
+            testID="settings-preferences"
             icon="cog-outline"
             title={t("settings.account.rows.preferences.title")}
             description={t("settings.account.rows.preferences.description")}

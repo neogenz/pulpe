@@ -1,4 +1,5 @@
 appId: app.pulpe.android
 ---
 - runFlow: login-vault.yaml
+- runFlow: i18n.yaml
 - runFlow: check-operation.yaml

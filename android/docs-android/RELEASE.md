@@ -126,18 +126,20 @@ pnpm dlx eas-cli@latest update:republish --group <previous-group-id>
 
 ## Maestro journeys
 
-Four flows in `maestro/`, covering what must never break:
+Five flows in `maestro/`, covering what must never break:
 
 | Flow                   | Proves                                              |
 | ---------------------- | --------------------------------------------------- |
 | `login-vault.yaml`     | sign in, unlock the vault, reach the month          |
 | `check-operation.yaml` | pointing persists, and un-pointing undoes it        |
 | `onboarding.yaml`      | the eight onboarding screens chain to a real budget |
-| `smoke.yaml`           | composes login/unlock, pointing and undo            |
+| `i18n.yaml`            | switches FR/EN/DE/IT and proves restart persistence |
+| `smoke.yaml`           | composes login, localization, pointing and undo     |
 
-Only the first two run in CI. `onboarding.yaml` registers a real account, so
-running it per push would fill the database with throwaway users; run it by
-hand before a release with a disposable address.
+The CI runs `smoke.yaml`, which composes login, localization and pointing.
+`onboarding.yaml` registers a real account, so running it per push would fill
+the database with throwaway users; run it by hand before a release with a
+disposable address.
 
 Install Maestro, boot an emulator, install the preview APK and start the local
 backend/Supabase seed, then run:
@@ -154,10 +156,16 @@ the screen plus logcat on failure.
 Run five consecutive green pull-request checks before making the Maestro smoke
 status required in branch protection.
 
-PR #608 has successfully executed the composed smoke journey on GitHub, which
-covers `login-vault.yaml` and `check-operation.yaml`. `onboarding.yaml` remains
+PR #608 established the original login and pointing smoke on GitHub. The i18n
+integration adds `i18n.yaml` to that composition. `onboarding.yaml` remains
 manual because it registers a real account; run it with a disposable address
 before promoting the first Play build.
+
+Every release candidate must be generated after the `expo-localization` plugin
+has declared `fr`, `en`, `de` and `it` in `app.json`; changing that list requires
+a new binary, not an OTA update. Before promotion, run the composed smoke on a
+narrow emulator with Android font scale 1.3 so the German actions and TalkBack
+labels are exercised on the exact candidate head.
 
 ## Play Console listing
 

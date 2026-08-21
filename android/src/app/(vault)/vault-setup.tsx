@@ -53,6 +53,7 @@ export default function VaultSetupScreen() {
 
   return (
     <PinScreen
+      testID="vault-setup"
       title={t(isConfirming ? "vault.confirmPin" : "vault.setup.title")}
       subtitle={
         isConfirming

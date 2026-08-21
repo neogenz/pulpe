@@ -11,11 +11,10 @@ env:
   PASSWORD: ${MAESTRO_PASSWORD || "local-demo-only"}
   PIN: ${MAESTRO_PIN || "1234"}
 ---
-- launchApp:
-    clearState: true
+- launchApp
 
-# Clearing the app state always restores the pitch before the form. Wait for
-# React Native's first frame instead of treating a slow cold start as a skip.
+# CI clears the app state before applying the French app locale. Wait for React
+# Native's first frame instead of treating a slow cold start as a skip.
 - extendedWaitUntil:
     visible: "J'ai déjà un compte"
     timeout: 30000
@@ -39,7 +38,8 @@ env:
 
 # The vault status comes from the server, so this is the slow step.
 - extendedWaitUntil:
-    visible: "Ton code"
+    visible:
+      id: "vault-unlock"
     timeout: 30000
 
 # One tap per digit — the pad has no submit, the fourth digit validates.
@@ -50,20 +50,24 @@ env:
 
 # The FAB is on the month screen and nowhere before it.
 - extendedWaitUntil:
-    visible: "Ajouter"
+    visible:
+      id: "home-add-entry"
     timeout: 30000
 
 # A restart keeps the session and must ask for the existing PIN, never a new one.
 - stopApp
 - launchApp
 - extendedWaitUntil:
-    visible: "Ton code"
+    visible:
+      id: "vault-unlock"
     timeout: 30000
-- assertNotVisible: "Choisis ton code"
+- assertNotVisible:
+    id: "vault-setup"
 - tapOn: ${PIN.charAt(0)}
 - tapOn: ${PIN.charAt(1)}
 - tapOn: ${PIN.charAt(2)}
 - tapOn: ${PIN.charAt(3)}
 - extendedWaitUntil:
-    visible: "Ajouter"
+    visible:
+      id: "home-add-entry"
     timeout: 30000

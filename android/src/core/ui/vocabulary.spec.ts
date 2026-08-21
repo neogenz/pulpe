@@ -6,7 +6,7 @@ describe("localized product vocabulary", () => {
   it.each([
     ["fr", ["Récurrent", "Prévu"]],
     ["en", ["Recurring", "Planned"]],
-    ["de", ["Regelmäßig", "Geplant"]],
+    ["de", ["Regelmässig", "Geplant"]],
     ["it", ["Ricorrente", "Pianificato"]],
   ])(
     "resolves recurrence labels from the live %s catalog",

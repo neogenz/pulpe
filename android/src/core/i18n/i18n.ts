@@ -1,5 +1,5 @@
 import { I18n, type TranslateOptions } from "i18n-js";
-import { DEFAULT_LOCALE } from "pulpe-shared";
+import { DEFAULT_LOCALE, type SupportedLocale } from "pulpe-shared";
 
 import de from "./catalogs/de.json";
 import en from "./catalogs/en.json";
@@ -13,4 +13,12 @@ i18n.locale = DEFAULT_LOCALE;
 
 export function translate(key: string, options?: TranslateOptions): string {
   return i18n.t(key, options);
+}
+
+export function translateForLocale(
+  locale: SupportedLocale,
+  key: string,
+  options?: TranslateOptions,
+): string {
+  return i18n.t(key, { ...options, locale });
 }

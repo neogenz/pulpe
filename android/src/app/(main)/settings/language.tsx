@@ -72,6 +72,7 @@ export default function LanguageScreen() {
             {SUPPORTED_LOCALES.map((candidate) => (
               <RadioButton.Item
                 key={candidate}
+                testID={`settings-language-${candidate}`}
                 value={candidate}
                 label={LOCALE_METADATA[candidate].nativeName}
                 accessibilityLabel={LOCALE_METADATA[candidate].nativeName}

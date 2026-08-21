@@ -17,6 +17,14 @@ env:
 - tapOn: "Voir le détail du budget"
 - tapOn: "Tout"
 
+# On the Pixel 2 at 130% font scale, the expense section starts below the
+# viewport. Bring the stable test line into view before reading its state.
+- scrollUntilVisible:
+    element: ".*${LINE}.*"
+    direction: DOWN
+    timeout: 30000
+    centerElement: true
+
 # The circle carries the state in its accessibility label, which is the only
 # place the two states are named in words.
 - runFlow:

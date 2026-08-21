@@ -1,4 +1,4 @@
-import { i18n, translate } from "./i18n";
+import { i18n, translate, translateForLocale } from "./i18n";
 import {
   applyServerLocale,
   clearLocaleSnapshot,
@@ -79,5 +79,12 @@ describe("locale store", () => {
 
     i18n.translations.en = english;
     unsubscribe();
+  });
+
+  it("translates from the subscribed locale instead of mutable global state", () => {
+    i18n.locale = "fr";
+
+    expect(translateForLocale("en", "common.loading")).toBe("Loading…");
+    expect(i18n.locale).toBe("fr");
   });
 });

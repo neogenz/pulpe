@@ -134,6 +134,7 @@ export default function PreferencesScreen() {
       >
         <SettingsSection title={t("settings.language.title")}>
           <SettingsRow
+            testID="settings-language"
             icon="translate"
             title={t("settings.language.title")}
             description={t("settings.language.description")}

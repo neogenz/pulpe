@@ -4,6 +4,12 @@
  */
 const DATE_LOCALE = "fr-FR";
 const MILLISECONDS_PER_DAY = 86_400_000;
+const RELATIVE_DAY_LABELS: Record<string, readonly [string, string]> = {
+  de: ["heute", "gestern"],
+  en: ["today", "yesterday"],
+  fr: ["aujourd'hui", "hier"],
+  it: ["oggi", "ieri"],
+};
 
 const monthFormatter = new Intl.DateTimeFormat(DATE_LOCALE, { month: "long" });
 const dayMonthFormatter = new Intl.DateTimeFormat(DATE_LOCALE, {
@@ -105,15 +111,8 @@ export function formatRelativeDay(
 ): string {
   const days = countDaysBetween(startOfDay(date), startOfDay(now));
   if (days === 0 || days === 1) {
-    // Keep the established French apostrophe byte-for-byte for persisted
-    // snapshots and tests; Intl uses a typographic apostrophe instead.
-    if (locale.toLowerCase().startsWith("fr")) {
-      return days === 0 ? "aujourd'hui" : "hier";
-    }
-    return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
-      -days,
-      "day",
-    );
+    const language = locale.toLowerCase().split("-")[0];
+    return (RELATIVE_DAY_LABELS[language] ?? RELATIVE_DAY_LABELS.fr)[days];
   }
   return formatDayMonth(date, locale);
 }
