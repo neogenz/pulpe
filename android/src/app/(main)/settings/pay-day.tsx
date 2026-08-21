@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Card } from "@/core/ui/card";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
+import { useTranslation } from "@/core/i18n/locale-store";
 import { scheduleMonthlyReminder } from "@/core/notifications/scheduler";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { useRipple } from "@/core/ui/ripple";
@@ -33,6 +34,7 @@ const CELL_SLOP = (TOUCH_TARGET - CELL_SIZE) / 2;
  */
 export default function PayDayScreen() {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const ripple = useRipple({ radius: CELL_SIZE / 2 });
   const settings = useUserSettings();
   const update = useUpdateUserSettings();
@@ -45,6 +47,7 @@ export default function PayDayScreen() {
     now.getMonth() + 1,
     now.getFullYear(),
     selectedDay === 1 ? null : selectedDay,
+    `${locale}-CH`,
   );
 
   function submit() {
@@ -69,17 +72,16 @@ export default function PayDayScreen() {
     >
       <ScreenAppBar>
         <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content title="Jour de paie" />
+        <Appbar.Content title={t("settings.payDay.title")} />
       </ScreenAppBar>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text variant="titleMedium">Le mois commencera un…</Text>
+        <Text variant="titleMedium">{t("settings.payDay.startTitle")}</Text>
         <Text
           variant="bodyMedium"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          Choisis la date à laquelle tu souhaites commencer à suivre tes
-          dépenses et revenus — ton jour de paie, par exemple.
+          {t("settings.payDay.description")}
         </Text>
 
         <View style={styles.grid}>
@@ -94,7 +96,7 @@ export default function PayDayScreen() {
                 hitSlop={CELL_SLOP}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSelected }}
-                accessibilityLabel={`Le ${day}`}
+                accessibilityLabel={t("settings.payDay.dayLabel", { day })}
                 style={[
                   styles.cell,
                   {
@@ -121,28 +123,31 @@ export default function PayDayScreen() {
 
         <Card mode="contained">
           <Card.Content style={styles.hint}>
-            <Text variant="labelLarge">Ton mois budgétaire</Text>
+            <Text variant="labelLarge">{t("settings.payDay.budgetTitle")}</Text>
             <Text
               variant="bodyMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              Ton budget «&nbsp;
-              {formatMonthLabel(now.getMonth() + 1, now.getFullYear())}
-              &nbsp;» couvrira du {period}.
+              {t("settings.payDay.budgetDescription", {
+                month: formatMonthLabel(
+                  now.getMonth() + 1,
+                  now.getFullYear(),
+                  `${locale}-CH`,
+                ),
+                period,
+              })}
             </Text>
           </Card.Content>
         </Card>
 
         {selectedDay > 28 && (
           <HelperText type="info" visible>
-            Les mois plus courts démarreront leur dernier jour.
+            {t("settings.payDay.shortMonths")}
           </HelperText>
         )}
 
         {update.isError && (
-          <FieldError visible>
-            Le jour de paie n&apos;a pas pu être enregistré. Réessaie.
-          </FieldError>
+          <FieldError visible>{t("settings.payDay.saveError")}</FieldError>
         )}
 
         <Button
@@ -151,7 +156,7 @@ export default function PayDayScreen() {
           disabled={update.isPending}
           loading={update.isPending}
         >
-          Enregistrer
+          {t("settings.payDay.save")}
         </Button>
       </ScrollView>
     </SafeAreaView>

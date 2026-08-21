@@ -269,6 +269,42 @@
       "description": "Wähle die Sprache der App",
       "saveError": "Die Sprache konnte nicht gespeichert werden.",
       "title": "Sprache"
+    },
+    "payDay": {
+      "budgetDescription": "Dein Budget „%{month}“ läuft vom %{period}.",
+      "budgetTitle": "Dein Budgetmonat",
+      "dayLabel": "Tag %{day}",
+      "description": "Wähle das Datum, an dem du deine Ausgaben und Einnahmen verfolgen möchtest — zum Beispiel deinen Zahltag.",
+      "save": "Speichern",
+      "saveError": "Dein Zahltag konnte nicht gespeichert werden. Versuche es erneut.",
+      "shortMonths": "Kürzere Monate beginnen an ihrem letzten Tag.",
+      "startTitle": "Der Monat beginnt am …",
+      "title": "Zahltag"
+    },
+    "preferences": {
+      "currencyDescription": "Damit werden alle deine Beträge angezeigt.",
+      "currencyDialogAction": "Ändern",
+      "currencyDialogDescription": "Deine bestehenden Beträge werden nicht umgerechnet — 100 bleibt 100 und wird in %{currency} angezeigt. Nur die Anzeigewährung ändert sich.",
+      "currencyDialogTitle": "Anzeigewährung ändern?",
+      "currencyRate": "Richtkurs: 1 %{base} = %{rate} %{target}",
+      "currencySaveError": "Die Währung konnte nicht gespeichert werden.",
+      "currencyTitle": "Währung",
+      "dataPrivacySection": "Daten und Datenschutz",
+      "diagnosticsDescription": "Verknüpft technische Ereignisse und Fehler mit deinem Konto, damit wir Probleme verstehen und dir schneller helfen können. Es werden keine Beträge oder eingegebenen Inhalte erfasst.",
+      "diagnosticsTitle": "Diagnosedaten teilen",
+      "hideAmountsDescription": "Ersetzt jeden Betrag durch ••• — praktisch im Zug.",
+      "hideAmountsTitle": "Beträge ausblenden",
+      "payDayDescription": "Der Tag, an dem dein Budgetmonat neu beginnt",
+      "payDayFirst": "Am 1.",
+      "payDayValue": "Am %{day}.",
+      "privacySection": "Datenschutz",
+      "reminderDescription": "Eine Erinnerung pro Monat am Zahltag, damit du deine Ausgaben abhaken kannst. Du kannst sie jederzeit deaktivieren.",
+      "reminderNotificationBody": "Dein Monatsbudget wartet auf dich. Verschaffe dir in 30 Sekunden einen Überblick.",
+      "reminderNotificationTitle": "Neuer Monat",
+      "reminderPermissionBlocked": "Benachrichtigungen sind in den Android-Einstellungen blockiert.",
+      "remindersSection": "Erinnerungen",
+      "reminderTitle": "Monatliche Erinnerung",
+      "title": "Einstellungen"
     }
   },
   "startup": {

@@ -19,6 +19,17 @@ describe("formatMonthYearShort", () => {
   });
 });
 
+describe("formatMonthLabel", () => {
+  it.each([
+    ["fr-CH", "Août 2026"],
+    ["en-CH", "August 2026"],
+    ["de-CH", "August 2026"],
+    ["it-CH", "Agosto 2026"],
+  ])("formats the month in %s", (locale, expected) => {
+    expect(formatMonthLabel(8, 2026, locale)).toBe(expected);
+  });
+});
+
 describe("ofMonth", () => {
   it("elides before the three months that start with a vowel", () => {
     expect(ofMonth(formatMonthName(4, 2026))).toBe("d'avril");

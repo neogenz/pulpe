@@ -85,7 +85,9 @@ export default function PreferencesScreen() {
     setPendingCurrency(null);
     update.mutate(
       { currency: next },
-      { onError: () => setNotice("La devise n'a pas pu être enregistrée.") },
+      {
+        onError: () => setNotice(t("settings.preferences.currencySaveError")),
+      },
     );
   }
 
@@ -104,7 +106,7 @@ export default function PreferencesScreen() {
     if (!isGranted) {
       setRemindersEnabled(false);
       writeRemindersEnabled(false);
-      setNotice("Les notifications sont bloquées dans les réglages Android.");
+      setNotice(t("settings.preferences.reminderPermissionBlocked"));
       return;
     }
     writeRemindersEnabled(true);
@@ -118,7 +120,7 @@ export default function PreferencesScreen() {
     >
       <ScreenAppBar>
         <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content title="Préférences" />
+        <Appbar.Content title={t("settings.preferences.title")} />
       </ScreenAppBar>
 
       <ScrollView
@@ -141,14 +143,14 @@ export default function PreferencesScreen() {
         </SettingsSection>
 
         <View style={styles.section}>
-          <Eyebrow>Devise</Eyebrow>
+          <Eyebrow>{t("settings.preferences.currencyTitle")}</Eyebrow>
           <Card mode="contained">
             <Card.Content style={styles.card}>
               <Text
                 variant="bodyMedium"
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
-                On l&apos;utilise pour afficher tous tes montants.
+                {t("settings.preferences.currencyDescription")}
               </Text>
               <SegmentedButtons
                 value={currency}
@@ -166,74 +168,75 @@ export default function PreferencesScreen() {
                   variant="labelMedium"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  Cours indicatif : 1 {rate.data.base} ={" "}
-                  {rate.data.rate.toFixed(RATE_DECIMALS)} {rate.data.target}
+                  {t("settings.preferences.currencyRate", {
+                    base: rate.data.base,
+                    rate: rate.data.rate.toFixed(RATE_DECIMALS),
+                    target: rate.data.target,
+                  })}
                 </Text>
               )}
             </Card.Content>
           </Card>
         </View>
 
-        <SettingsSection title="Jour de paie">
+        <SettingsSection title={t("settings.payDay.title")}>
           <SettingsRow
             icon="calendar-clock"
-            title="Jour de paie"
-            description="Le jour où ton mois budgétaire recommence"
-            value={payDay === null ? "Le 1er" : `Le ${payDay}`}
+            title={t("settings.payDay.title")}
+            description={t("settings.preferences.payDayDescription")}
+            value={t(
+              payDay === null
+                ? "settings.preferences.payDayFirst"
+                : "settings.preferences.payDayValue",
+              { day: payDay },
+            )}
             onPress={() => router.push("/settings/pay-day")}
           />
         </SettingsSection>
 
         <View style={styles.section}>
-          <Text
-            variant="labelLarge"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            CONFIDENTIALITÉ
-          </Text>
+          <Eyebrow>{t("settings.preferences.privacySection")}</Eyebrow>
           <Card mode="contained">
             <Card.Content style={styles.switchRow}>
               <View style={styles.switchLabels}>
-                <Text variant="bodyLarge">Masquer les montants</Text>
+                <Text variant="bodyLarge">
+                  {t("settings.preferences.hideAmountsTitle")}
+                </Text>
                 <Text
                   variant="labelMedium"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  Remplace chaque montant par ••• — pratique dans le train.
+                  {t("settings.preferences.hideAmountsDescription")}
                 </Text>
               </View>
               <Switch
                 value={areAmountsHidden}
                 onValueChange={toggleAmountVisibility}
-                accessibilityLabel="Masquer les montants"
+                accessibilityLabel={t("settings.preferences.hideAmountsTitle")}
               />
             </Card.Content>
           </Card>
         </View>
 
         <View style={styles.section}>
-          <Text
-            variant="labelLarge"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            RAPPELS
-          </Text>
+          <Eyebrow>{t("settings.preferences.remindersSection")}</Eyebrow>
           <Card mode="contained">
             <Card.Content style={styles.switchRow}>
               <View style={styles.switchLabels}>
-                <Text variant="bodyLarge">Rappel mensuel</Text>
+                <Text variant="bodyLarge">
+                  {t("settings.preferences.reminderTitle")}
+                </Text>
                 <Text
                   variant="labelMedium"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  Un rappel par mois, le jour de paie, pour pointer tes
-                  dépenses. Tu peux couper quand tu veux.
+                  {t("settings.preferences.reminderDescription")}
                 </Text>
               </View>
               <Switch
                 value={areRemindersEnabled}
                 onValueChange={(next) => void applyReminders(next)}
-                accessibilityLabel="Rappel mensuel"
+                accessibilityLabel={t("settings.preferences.reminderTitle")}
               />
             </Card.Content>
           </Card>
@@ -242,29 +245,24 @@ export default function PreferencesScreen() {
         {/* Last, and worded exactly as on iOS and the webapp: the same promise
             has to read the same on all three. */}
         <View style={styles.section}>
-          <Text
-            variant="labelLarge"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            DONNÉES ET CONFIDENTIALITÉ
-          </Text>
+          <Eyebrow>{t("settings.preferences.dataPrivacySection")}</Eyebrow>
           <Card mode="contained">
             <Card.Content style={styles.switchRow}>
               <View style={styles.switchLabels}>
-                <Text variant="bodyLarge">Partager les diagnostics</Text>
+                <Text variant="bodyLarge">
+                  {t("settings.preferences.diagnosticsTitle")}
+                </Text>
                 <Text
                   variant="labelMedium"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  Associe à ton compte les événements techniques et erreurs pour
-                  comprendre les problèmes et t&apos;aider plus rapidement.
-                  Aucun montant ni contenu saisi n&apos;est collecté.
+                  {t("settings.preferences.diagnosticsDescription")}
                 </Text>
               </View>
               <Switch
                 value={isDiagnosticSharingEnabled}
                 onValueChange={setDiagnosticSharing}
-                accessibilityLabel="Partager les diagnostics"
+                accessibilityLabel={t("settings.preferences.diagnosticsTitle")}
               />
             </Card.Content>
           </Card>
@@ -276,22 +274,26 @@ export default function PreferencesScreen() {
           visible={pendingCurrency !== null}
           onDismiss={() => setPendingCurrency(null)}
         >
-          <Dialog.Title>Changer la devise d&apos;affichage ?</Dialog.Title>
+          <Dialog.Title>
+            {t("settings.preferences.currencyDialogTitle")}
+          </Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              Tes montants existants ne sont pas convertis — 100 restera 100,
-              affiché en {pendingCurrency}. Seule la devise d&apos;affichage
-              change.
+              {t("settings.preferences.currencyDialogDescription", {
+                currency: pendingCurrency ?? "",
+              })}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setPendingCurrency(null)}>Annuler</Button>
+            <Button onPress={() => setPendingCurrency(null)}>
+              {t("common.cancel")}
+            </Button>
             <Button
               onPress={() => {
                 if (pendingCurrency !== null) applyCurrency(pendingCurrency);
               }}
             >
-              Changer
+              {t("settings.preferences.currencyDialogAction")}
             </Button>
           </Dialog.Actions>
         </Dialog>

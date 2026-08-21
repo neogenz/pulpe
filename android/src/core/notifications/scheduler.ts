@@ -1,5 +1,7 @@
 import * as Notifications from "expo-notifications";
 
+import { translate } from "@/core/i18n/i18n";
+
 import { monthlyReminderDay } from "./monthly-reminder";
 
 /**
@@ -50,8 +52,8 @@ export async function scheduleMonthlyReminder(
   await Notifications.scheduleNotificationAsync({
     identifier: MONTHLY_REMINDER_ID,
     content: {
-      title: "Nouveau mois",
-      body: "Ton budget du mois t'attend. Fais le point en 30 secondes.",
+      title: translate("settings.preferences.reminderNotificationTitle"),
+      body: translate("settings.preferences.reminderNotificationBody"),
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.MONTHLY,

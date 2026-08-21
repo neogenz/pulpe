@@ -269,6 +269,42 @@
       "description": "Scegli la lingua dell'app",
       "saveError": "Non è stato possibile salvare la lingua.",
       "title": "Lingua"
+    },
+    "payDay": {
+      "budgetDescription": "Il tuo budget di %{month} coprirà il periodo %{period}.",
+      "budgetTitle": "Il tuo mese di budget",
+      "dayLabel": "Giorno %{day}",
+      "description": "Scegli la data da cui vuoi iniziare a seguire le tue spese ed entrate — per esempio, il giorno di paga.",
+      "save": "Salva",
+      "saveError": "Non è stato possibile salvare il giorno di paga. Riprova.",
+      "shortMonths": "I mesi più corti inizieranno il loro ultimo giorno.",
+      "startTitle": "Il mese inizierà il…",
+      "title": "Giorno di paga"
+    },
+    "preferences": {
+      "currencyDescription": "Viene usata per mostrare tutti i tuoi importi.",
+      "currencyDialogAction": "Cambia",
+      "currencyDialogDescription": "Gli importi esistenti non vengono convertiti — 100 resta 100, visualizzato in %{currency}. Cambia solo la valuta di visualizzazione.",
+      "currencyDialogTitle": "Cambiare la valuta di visualizzazione?",
+      "currencyRate": "Tasso indicativo: 1 %{base} = %{rate} %{target}",
+      "currencySaveError": "Non è stato possibile salvare la valuta.",
+      "currencyTitle": "Valuta",
+      "dataPrivacySection": "Dati e privacy",
+      "diagnosticsDescription": "Collega al tuo account gli eventi tecnici e gli errori per capire i problemi e aiutarti più rapidamente. Non vengono raccolti importi né contenuti inseriti.",
+      "diagnosticsTitle": "Condividi la diagnostica",
+      "hideAmountsDescription": "Sostituisce ogni importo con ••• — utile in treno.",
+      "hideAmountsTitle": "Nascondi gli importi",
+      "payDayDescription": "Il giorno in cui ricomincia il tuo mese di budget",
+      "payDayFirst": "Il 1°",
+      "payDayValue": "Il %{day}",
+      "privacySection": "Privacy",
+      "reminderDescription": "Un promemoria al mese, il giorno di paga, per spuntare le tue spese. Puoi disattivarlo quando vuoi.",
+      "reminderNotificationBody": "Il budget del mese ti aspetta. Controllalo in 30 secondi.",
+      "reminderNotificationTitle": "Nuovo mese",
+      "reminderPermissionBlocked": "Le notifiche sono bloccate nelle impostazioni Android.",
+      "remindersSection": "Promemoria",
+      "reminderTitle": "Promemoria mensile",
+      "title": "Preferenze"
     }
   },
   "startup": {

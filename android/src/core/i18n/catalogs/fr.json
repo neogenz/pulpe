@@ -269,6 +269,42 @@
       "description": "Choisis la langue de l'application",
       "saveError": "La langue n'a pas pu être enregistrée.",
       "title": "Langue"
+    },
+    "payDay": {
+      "budgetDescription": "Ton budget « %{month} » couvrira du %{period}.",
+      "budgetTitle": "Ton mois budgétaire",
+      "dayLabel": "Le %{day}",
+      "description": "Choisis la date à laquelle tu souhaites commencer à suivre tes dépenses et revenus — ton jour de paie, par exemple.",
+      "save": "Enregistrer",
+      "saveError": "Le jour de paie n'a pas pu être enregistré. Réessaie.",
+      "shortMonths": "Les mois plus courts démarreront leur dernier jour.",
+      "startTitle": "Le mois commencera un…",
+      "title": "Jour de paie"
+    },
+    "preferences": {
+      "currencyDescription": "On l'utilise pour afficher tous tes montants.",
+      "currencyDialogAction": "Changer",
+      "currencyDialogDescription": "Tes montants existants ne sont pas convertis — 100 restera 100, affiché en %{currency}. Seule la devise d'affichage change.",
+      "currencyDialogTitle": "Changer la devise d'affichage ?",
+      "currencyRate": "Cours indicatif : 1 %{base} = %{rate} %{target}",
+      "currencySaveError": "La devise n'a pas pu être enregistrée.",
+      "currencyTitle": "Devise",
+      "dataPrivacySection": "Données et confidentialité",
+      "diagnosticsDescription": "Associe à ton compte les événements techniques et erreurs pour comprendre les problèmes et t'aider plus rapidement. Aucun montant ni contenu saisi n'est collecté.",
+      "diagnosticsTitle": "Partager les diagnostics",
+      "hideAmountsDescription": "Remplace chaque montant par ••• — pratique dans le train.",
+      "hideAmountsTitle": "Masquer les montants",
+      "payDayDescription": "Le jour où ton mois budgétaire recommence",
+      "payDayFirst": "Le 1er",
+      "payDayValue": "Le %{day}",
+      "privacySection": "Confidentialité",
+      "reminderDescription": "Un rappel par mois, le jour de paie, pour pointer tes dépenses. Tu peux couper quand tu veux.",
+      "reminderNotificationBody": "Ton budget du mois t'attend. Fais le point en 30 secondes.",
+      "reminderNotificationTitle": "Nouveau mois",
+      "reminderPermissionBlocked": "Les notifications sont bloquées dans les réglages Android.",
+      "remindersSection": "Rappels",
+      "reminderTitle": "Rappel mensuel",
+      "title": "Préférences"
     }
   },
   "startup": {

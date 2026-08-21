@@ -269,6 +269,42 @@
       "description": "Choose the app language",
       "saveError": "The language could not be saved.",
       "title": "Language"
+    },
+    "payDay": {
+      "budgetDescription": "Your %{month} budget will run from %{period}.",
+      "budgetTitle": "Your budget month",
+      "dayLabel": "Day %{day}",
+      "description": "Choose the date when you want to start tracking your expenses and income — your pay day, for example.",
+      "save": "Save",
+      "saveError": "Your pay day could not be saved. Try again.",
+      "shortMonths": "Shorter months will start on their last day.",
+      "startTitle": "The month will start on…",
+      "title": "Pay day"
+    },
+    "preferences": {
+      "currencyDescription": "It is used to display all your amounts.",
+      "currencyDialogAction": "Change",
+      "currencyDialogDescription": "Your existing amounts are not converted — 100 remains 100, displayed in %{currency}. Only the display currency changes.",
+      "currencyDialogTitle": "Change the display currency?",
+      "currencyRate": "Indicative rate: 1 %{base} = %{rate} %{target}",
+      "currencySaveError": "The currency could not be saved.",
+      "currencyTitle": "Currency",
+      "dataPrivacySection": "Data and privacy",
+      "diagnosticsDescription": "Links technical events and errors to your account so we can understand problems and help you more quickly. No amount or content you enter is collected.",
+      "diagnosticsTitle": "Share diagnostics",
+      "hideAmountsDescription": "Replaces every amount with ••• — useful on the train.",
+      "hideAmountsTitle": "Hide amounts",
+      "payDayDescription": "The day your budget month starts again",
+      "payDayFirst": "Day 1",
+      "payDayValue": "Day %{day}",
+      "privacySection": "Privacy",
+      "reminderDescription": "One reminder each month on pay day to check off your expenses. You can turn it off at any time.",
+      "reminderNotificationBody": "Your monthly budget is waiting. Check in on it in 30 seconds.",
+      "reminderNotificationTitle": "New month",
+      "reminderPermissionBlocked": "Notifications are blocked in Android settings.",
+      "remindersSection": "Reminders",
+      "reminderTitle": "Monthly reminder",
+      "title": "Preferences"
     }
   },
   "startup": {
