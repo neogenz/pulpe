@@ -31,6 +31,11 @@ describe("phase 4 budget localization", () => {
 
     expect(list).toContain("formatMonthName(month, year, locale)");
     expect(list).toContain('t("budgets.list.createAccessibility")');
+    expect(list).toContain("budgets.isError ||");
+    expect(list).toContain("settings.isError ||");
+    expect(list).toMatch(
+      /Promise\.all\(\[\s*invalidateUserSettings\(\),\s*invalidateBudgetData\(\),?\s*\]\)/,
+    );
     expect(create).toContain(
       "formatMonthLabel(candidate.month, candidate.year, locale)",
     );

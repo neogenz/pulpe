@@ -10,7 +10,10 @@ import { RefreshControl, SectionList, StyleSheet, View } from "react-native";
 import { ActivityIndicator, FAB, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import {
+  invalidateUserSettings,
+  useUserSettings,
+} from "@/core/user-settings/user-settings-queries";
 import { Card } from "@/core/ui/card";
 import { Amount } from "@/core/ui/amount";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
@@ -31,8 +34,6 @@ import {
   useBudgetList,
 } from "@/features/budgets/budget-queries";
 import { monthSubtitle } from "@/features/budgets/month-subtitle";
-
-const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 
 /** Below this, the period is the calendar month and printing its dates says nothing. */
 const CALENDAR_PAY_DAY = 1;
@@ -60,9 +61,6 @@ export default function BudgetsScreen() {
   const settings = useUserSettings();
   const budgets = useBudgetList();
 
-  const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
-  const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
-
   // Derived above the gates below, and the anchor with it: the loading and error
   // returns sit between here and the list, and a hook declared past an early
   // return is a hook the next render may not reach.
@@ -79,11 +77,17 @@ export default function BudgetsScreen() {
     [sections],
   );
   const currentPeriod = useMemo(
-    () => getBudgetPeriodForDate(new Date(), payDayOfMonth),
-    [payDayOfMonth],
+    () =>
+      settings.data?.payDayOfMonth === undefined
+        ? null
+        : getBudgetPeriodForDate(new Date(), settings.data.payDayOfMonth),
+    [settings.data],
   );
   const anchor = useMemo(
-    () => currentBudgetLocation(sections, currentPeriod),
+    () =>
+      currentPeriod === null
+        ? null
+        : currentBudgetLocation(sections, currentPeriod),
     [sections, currentPeriod],
   );
 
@@ -135,7 +139,14 @@ export default function BudgetsScreen() {
     );
   }
 
-  if (budgets.isError) {
+  if (
+    budgets.isError ||
+    settings.isError ||
+    settings.data === undefined ||
+    settings.data.currency === undefined ||
+    settings.data.payDayOfMonth === undefined ||
+    currentPeriod === null
+  ) {
     return (
       <PlaceholderScreen
         icon="cloud-off-outline"
@@ -143,7 +154,11 @@ export default function BudgetsScreen() {
         hint={t("budgets.list.loadErrorHint")}
         action={{
           label: t("common.retry"),
-          onPress: () => void invalidateBudgetData(),
+          onPress: () =>
+            void Promise.all([
+              invalidateUserSettings(),
+              invalidateBudgetData(),
+            ]),
         }}
       />
     );
@@ -162,6 +177,8 @@ export default function BudgetsScreen() {
       />
     );
   }
+
+  const { currency, payDayOfMonth } = settings.data;
 
   return (
     <SafeAreaView
