@@ -247,7 +247,25 @@ The seeds in `../DESIGN.md` are abstract. The values below are the **iOS canonic
 - **Savings / Forest Bright** (`#157038`): `Color.financialSavings`. Slightly brighter than `pulpePrimary`, tuned for ink contrast on warm surfaces.
 - **Expense / Amber** (`#B35800`): `Color.financialExpense`.
 - **Over-Budget / Burnt Amber** (`#905800` light, `#E5A33A` dark): `Color.financialOverBudget`.
-- **Hero Deficit / Sunset Coral** (`#C45028`): `Color.heroTintDeficit`. Gradient mid-stop only.
+- **Hero Deficit / Sunset Coral** (`#C45028`): `Color.heroTintDeficit`. Gradient mid-stop only (legacy, removed with the Budget Detail hero migration).
+
+### Hero Zone (constant brand surface)
+
+The hero surface is the brand forest, never tinted by financial state. Ratios measured by `HeroContrastTests` (WCAG 2.1, text 4.5:1, non-text 3:1):
+
+| Token | Light | Dark | Ratio on `heroSurface` |
+| --- | --- | --- | --- |
+| `Color.heroSurface` | `#0E3A1C` | `#0B2E16` | 11.4:1 vs `appBackground` |
+| `Color.heroSurfaceTop` | `#14512A` | `#0E3A1C` | top gradient stop |
+| `Color.heroInk` | `#FFFFFF` | `#F3F9F5` | 12.8:1 |
+| `Color.heroInkSecondary` | `#CFE8D6` | `#CFE8D6` | 9.9:1 |
+| `Color.heroTile` | `heroInk` @ `Opacity.heroTile` (0.12) | same | surface, not a signal |
+| `Color.heroAccentPositive` | `#7EDB83` | same | 7.5:1 |
+| `Color.heroAccentCaution` | `#E5A33A` | same | 5.9:1 |
+| `Color.heroAccentDeficit` | `#F08A6A` | same | 5.2:1 |
+| `Color.heroAccentInfo` | `#5AA8E0` | same | 4.9:1 |
+
+The previous state-tinted heroes (`#14AD45`, `#D88010` under white ink) measured 2.96:1 and 2.99:1 — refused.
 
 ### Surface (Warm Hierarchy)
 
@@ -272,7 +290,13 @@ The seeds in `../DESIGN.md` are abstract. The values below are the **iOS canonic
 
 ### iOS-Specific Named Rules
 
-**The Two-Zone Rule (iOS implementation).** Every screen with a hero is split. Top 30–35% is the **emotion zone** — `LinearGradient` filled, financial-state-keyed (`heroComfortable` / `heroTight` / `heroDeficit`). Below is the **content zone** — `Color.appBackground` (the warm sage canvas), lists and cards on top. Transition is a soft `LinearGradient` 40–60pt, never a hard cut. Screens without a hero (templates, settings) skip the emotion zone entirely. **The home dashboard (Tour 11)** uses a bounded variant rather than a gradient keyed to screen height: the estimated month-end balance, its two labelled metrics, the trajectory and the verdict sit on one mint surface that ends where the hero's content ends, its lower corners rounded, over `Color.appBackground` like every other content zone. The month and the account live in the native navigation bar, not in a header rebuilt inside the scroll. Coral is reserved for a globally negative estimate; better-than-plan and under-plan states retain the existing green/amber identity and always pair color with an explicit verdict.
+**The Two-Zone Rule (iOS implementation).** Every screen with a hero is split. The **emotion zone** is the constant brand forest (`Color.heroSurface`, two-stop gradient from `heroSurfaceTop`), full-bleed under the navigation bar (`.toolbarColorScheme(.dark, for: .navigationBar)`), bounded by the hero's own content with `CornerRadius.zone` lower corners and `Shadow.zoneBoundary`. The financial state is read in the verdict sentence, one chip and the chart accent (`heroAccentPositive` / `heroAccentCaution` / `heroAccentDeficit`), never in the surface color. Below is the **content zone** — `Color.appBackground` (the warm sage canvas), lists and cards on top. Screens without a dominant financial state (templates, the savings-goal list, settings) skip the emotion zone entirely. The month and the account live in the native navigation bar, not in a header rebuilt inside the scroll.
+
+**The One Hero Rule.** Every surface with a dominant financial state (home, budget detail, yearly view, savings-goal detail) composes its hero from the shared `HeroZone` family (`HeroZoneSurface`, `HeroFigure`, `HeroMetricTile`, `HeroVerdictRow`). No screen draws its own hero grammar.
+
+**The One Ledger Rule.** Every list is a grouped card (`pulpeCard()`), rows separated by hairlines, each row opened by a 36pt leading disc (`RowIcon` / `PointCircle`). `pulpeRowCard` never dresses a single row. Nature is carried by the disc and the amount color, not by an inline tag.
+
+**The Three Families Rule.** At most three chip families are visible on a screen. Any 1-of-N choice is a `SegmentedPicker`. `PulpeChip.muted` never sits on the bare canvas. Hero stat pills are `HeroMetricTile`s, not chips.
 
 **The Home Ledger Rule.** Everything below the hero is a **titled block on a card**, never a run of rows on the bare page. A section names itself with `SectionHeader` — the section title, an optional amount under it, and, when there is somewhere to go, a **named** link (`Tout voir`, `Budget`) rather than a bare chevron. That header sits on the page background, outside the card, so the card boundary marks where the section's content starts. Under it, one card (`pulpeRowCard()` — the shared card fill plus the subtle lift) carries the rows. A row opens with a `RowIcon`: a 36pt disc tinted at `Opacity.accent` in the color of what the row is about, which is what makes the list scannable without reading it — but only when the card's rows are of different natures. A homogeneous list (every row a contribution, every row a withdrawal) already knows what it is from its section title, and the repeated glyph reads as texture rather than information; there the row opens on its name. A hairline may separate rows **inside** a card and nothing else — on the bare page a rule divides nothing and reads as unfinished. Activity groups its rows by day, the day named once above its card instead of repeated under every row. `SectionHeader` owns the screen's only Dynamic Type branch; the rows below it wrap rather than re-stack. The rule is not the home's alone: `SectionHeader` lives in `Shared/Components/` and the savings-goal detail names every one of its sections with it.
 
@@ -311,13 +335,16 @@ Pulpe iOS is **flat by default with restrained tonal layering**. Shadows are dif
 
 - **Subtle** (`0 1px 2px rgba(0,0,0,0.05)`): Per-row card lift on the Budget Detail page.
 - **Card** (`0 2px 4px rgba(0,0,0,0.06)`): Default card lift.
-- **Elevated** (`0 4px 8px rgba(0,0,0,0.08)`): Hero cards, modals, dialog surfaces.
+- **Elevated** (`0 4px 8px rgba(0,0,0,0.08)`): Modals, dialog surfaces.
+- **Zone Boundary** (`Shadow.zoneBoundary`): cast by the hero surface onto the content zone, light mode only.
 - **Input** (`0 2px 6px rgba(0,0,0,0.04)`): Auth and currency input field rest state.
 - **Toast** (`0 4px 8px rgba(0,0,0,0.10)`): Toast notifications.
 
 ### iOS-Specific Named Rules
 
 **The Glass Restraint Rule.** iOS 26 Liquid Glass appears on **navigation only** — toolbars, tab bars, floating buttons, sheets with partial detents. _Never_ on content cards, list rows, or text. The system handles this for standard navigation components; custom views must `.glassEffect()` only on navigation chrome. Pre-auth flows (welcome, login, onboarding) may use glow / shadow for brand expressivity; the authenticated app stays restrained.
+
+**The Hero Depth Rule.** The hero's depth is a two-stop gradient (`heroSurfaceTop` → `heroSurface`) plus `Shadow.zoneBoundary`. Nothing else: no inner glow, no glass, no border on tiles (a translucent tint, never a solid stroke).
 
 **The Sheet Background Rule.** Every sheet must declare `.standardSheetPresentation()` (which bundles `.presentationBackground(Color.sheetBackground)` + detents + drag indicator + corner radius). iOS 26's Liquid Glass bleeds through any sheet without an explicit presentation background. **No exceptions.** Custom-background sheets (gradient sheets like RecoveryKey) declare `.presentationBackground { ... }` explicitly.
 
@@ -328,7 +355,7 @@ Live in `ios/Pulpe/Shared/Components/` and `ios/Pulpe/Shared/Design/PrimaryButto
 ### Buttons
 
 - **Shape:** Capsule (`pill` rounded, `9999px`). The capsule is the brand button.
-- **Primary (`PrimaryButtonStyle`):** `Color.onboardingGradient` (forest → mint, leading→trailing) for enabled, `primaryContainerDisabled` for disabled. White text. Full-width, 54pt height. One per screen.
+- **Primary (`PrimaryButtonStyle`):** flat `Color.pulpePrimary` fill for enabled, `primaryContainerDisabled` for disabled. `textOnPrimary` text. Full-width, 54pt height. One per screen; no gradient — the hero is the screen's only saturated element.
 - **Secondary (`SecondaryButtonStyle`):** Transparent fill, hairline `outlineVariant` border, primary text color. Same dimensions as Primary.
 - **Destructive (`DestructiveButtonStyle`):** Solid `Color.destructivePrimary` fill, white text. Same dimensions. _Only_ for irreversible actions.
 - **Icon (`IconButtonStyle`):** Transparent, 44×44pt minimum hit area, `contentShape(Rectangle())`.
@@ -351,7 +378,7 @@ The Budget Detail filter rail uses `PulpeChip` (`ios/Pulpe/Shared/Components/Pul
 - **No `.compact`:** Pulpe pillar `Légèreté` excludes tight density.
 - **Disabled state:** `opacity(DesignTokens.Opacity.disabled)`, no tap, no haptic. Used on filter pills with count = 0 (except `.all`).
 
-Stat pills on hero cards use `Capsule + tint.opacity(0.15)` background keyed to financial category — currently still composed locally in `BudgetDetailHero` (legacy, audited 2026-05-09; migration to `PulpeChip.muted` is a follow-up).
+Hero metrics are `HeroMetricTile`s (translucent `heroTile` fill), never chips.
 
 ### Segmented Choice (SegmentedPicker)
 
@@ -450,7 +477,7 @@ quick-check cards, one operation per card ("C'est passé" / "Plus tard") — bui
 - **Do** use Manrope (`PulpeTypography.amountHero`, `.headline`, `.kindTag`) for display, brand titles, and amount text. Use SF Pro (system) for everything else.
 - **Do** use `monospacedDigit()` on every `Text` rendering a Decimal.
 - **Do** use `PulpeChip(...)` for any chip / pill / filter / badge in feature code.
-- **Do** keep the emotion zone at the top (gradient, financial-state-keyed) and the content zone below (neutral warm). Transition with a soft `LinearGradient`, never a hard cut.
+- **Do** keep the emotion zone at the top (constant forest surface, state in the verdict) and the content zone below (neutral warm), bounded by `CornerRadius.zone` and `Shadow.zoneBoundary`.
 - **Do** address the user with "tu", always.
 
 ### Don't:

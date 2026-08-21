@@ -87,6 +87,8 @@ enum DesignTokens {
         static let thin: CGFloat = 1
         static let medium: CGFloat = 1.5
         static let thick: CGFloat = 2
+        /// Tracked series on hero charts (`HomeHeroCard+Chart`, `GoalProjectionChart`)
+        static let chartLine: CGFloat = 2.5
     }
 
     // MARK: - Shadows
@@ -166,6 +168,10 @@ enum DesignTokens {
         /// hero gradient's darkest light-mode stop; 0.6 lifts them to 3.42–3.57:1 light and
         /// 4.01–4.68:1 dark across both gradient stops.
         static let heroInkMuted: Double = 0.6
+        /// Translucent metric tile on the forest hero surface (`Color.heroTile`)
+        static let heroTile: Double = 0.12
+        /// Area fill under the tracked series on the hero chart
+        static let heroArea: Double = 0.22
         /// Disabled controls (e.g. type pills with count==0)
         static let disabled: Double = 0.4
         /// Dimmed row card — DM2.1.b.c5 pointed state on per-row card

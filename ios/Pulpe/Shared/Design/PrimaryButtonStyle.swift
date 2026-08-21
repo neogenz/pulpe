@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Primary button style used across auth/onboarding flows
-/// Provides consistent styling with gradient background and proper disabled state
+/// Flat `pulpePrimary` fill: the hero is the screen's only saturated element (ios/DESIGN.md §5)
 struct PrimaryButtonStyle: ButtonStyle {
     let isEnabled: Bool
 
@@ -16,7 +16,7 @@ struct PrimaryButtonStyle: ButtonStyle {
             .frame(height: DesignTokens.FrameHeight.button)
             .background {
                 if isEnabled {
-                    Color.onboardingGradient
+                    Color.pulpePrimary
                 } else {
                     Color.primaryContainerDisabled
                 }

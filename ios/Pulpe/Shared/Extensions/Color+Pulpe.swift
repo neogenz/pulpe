@@ -416,6 +416,28 @@ extension Color {
         dark: .clear
     )
 
+    // MARK: - Hero Zone (ios/DESIGN.md §2 — constant brand-forest surface, never state-tinted)
+    // Replaces `homeHero*` (phase 3) and `heroTint*` / `heroGradient*` (phase 4); those stay
+    // until their last consumer migrates. Financial state lives in the verdict, a chip and
+    // the chart accent, never in the surface color. Ratios measured in `HeroContrastTests`.
+
+    /// Hero surface — forest `#0E3A1C` light, `#0B2E16` dark. 11.4:1 against `appBackground`.
+    static let heroSurface = Color(light: Color(hex: 0x0E3A1C), dark: Color(hex: 0x0B2E16))
+    /// Top stop of the hero's two-stop gradient, a hair lighter than the base. The only depth.
+    static let heroSurfaceTop = Color(light: Color(hex: 0x14512A), dark: Color(hex: 0x0E3A1C))
+    /// Primary ink on the hero: 12.8:1 on `heroSurface`.
+    static let heroInk = Color(light: .white, dark: Color(hex: 0xF3F9F5))
+    /// Secondary ink on the hero (eyebrows, tile labels, chart series): mint, 9.9:1.
+    static let heroInkSecondary = Color(hex: 0xCFE8D6)
+    /// Translucent tile fill on the hero — a tint, never a solid border.
+    static var heroTile: Color { heroInk.opacity(DesignTokens.Opacity.heroTile) }
+    /// State accents on the forest — the existing dark-mode palette, AA on `heroSurface`.
+    /// Positive 7.5:1, caution 5.9:1, deficit 5.2:1, info 4.9:1. Identical in both schemes.
+    static let heroAccentPositive = Color(hex: 0x7EDB83)
+    static let heroAccentCaution = Color(hex: 0xE5A33A)
+    static let heroAccentDeficit = Color(hex: 0xF08A6A)
+    static let heroAccentInfo = Color(hex: 0x5AA8E0)
+
     // MARK: - Row Card
 
     /// Substitute for `Shadow.subtle` in dark mode: a 5% black shadow renders on
