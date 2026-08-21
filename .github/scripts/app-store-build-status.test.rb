@@ -105,3 +105,57 @@ class AppStoreMarketingVersionStatusTest < Minitest::Test
     assert_equal "invalid", status([version(store_state: "PREPARE_FOR_SUBMISSION")])
   end
 end
+
+class AppStoreNextBuildNumberTest < Minitest::Test
+  def build(number, marketing:, id: "build-#{marketing}-#{number}", expired: false)
+    {
+      "type" => "builds",
+      "id" => id,
+      "attributes" => {
+        "version" => number,
+        "processingState" => "VALID",
+        "expired" => expired
+      },
+      "relationships" => {
+        "preReleaseVersion" => {
+          "data" => { "type" => "preReleaseVersions", "id" => marketing }
+        }
+      },
+      "included" => [{
+        "type" => "preReleaseVersions",
+        "id" => marketing,
+        "attributes" => { "version" => marketing }
+      }]
+    }
+  end
+
+  def next_number(builds)
+    AppStoreNextBuildNumber.new(FakeApi.new(builds: builds)).call("app.pulpe.ios", "1.4.2")
+  end
+
+  def test_new_marketing_version_starts_at_one_despite_higher_older_builds
+    assert_equal "1", next_number([build("15", marketing: "1.0.1")])
+    assert_equal "1", next_number([])
+  end
+
+  def test_increments_only_the_selected_marketing_version
+    builds = [
+      build("15", marketing: "1.0.1"),
+      build("1", marketing: "1.4.2"),
+      build("2", marketing: "1.4.2", expired: true)
+    ]
+    assert_equal "3", next_number(builds)
+  end
+
+  def test_malformed_or_ambiguous_builds_fail_closed
+    malformed = build("1", marketing: "1.4.2").tap { |item| item.delete("relationships") }
+    assert_equal "invalid", next_number([malformed])
+    assert_equal "invalid", next_number([build("abc", marketing: "1.4.2")])
+    duplicate_id = build("1", marketing: "1.4.2", id: "same")
+    assert_equal "invalid", next_number([duplicate_id, build("2", marketing: "1.4.2", id: "same")])
+    assert_equal "invalid", next_number([
+      build("1", marketing: "1.4.2", id: "first"),
+      build("1", marketing: "1.4.2", id: "second")
+    ])
+  end
+end

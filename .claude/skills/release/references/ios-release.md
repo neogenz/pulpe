@@ -62,7 +62,7 @@ cd ios && ./scripts/bump-version.sh patch   # or minor
 cd ios && xcodegen generate --use-cache
 ```
 
-This bumps `MARKETING_VERSION` and resets/advances the build number. No Railway follow-up is owed — see the force-update gate section below.
+This bumps `MARKETING_VERSION` and resets the build number to Pulpe's first-build convention, `1`. No Railway follow-up is owed — see the force-update gate section below.
 
 ## Files modified
 
@@ -77,13 +77,13 @@ Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
 
 `.github/workflows/ios-distribute.yml` is the only automated archive/sign/upload path. It is manually dispatched and never submits a build for App Review.
 
-- `internal`: dispatch from `preview`, archive `PulpeProd` / `Prod`, and use the next unused global ASC build number supplied by Alfred (`highest existing build + 1`). The source file is not changed for these temporary builds.
+- `internal`: dispatch from `preview`, archive `PulpeProd` / `Prod`, and use the next unused build number under the selected marketing version. A new marketing version starts at `1`; otherwise use that release train's highest uploaded build plus `1`. The workflow verifies this against App Store Connect before starting Xcode. The source file is not changed for these temporary builds.
 - `release`: dispatch from `main`, archive `PulpeProd` / `Prod`, and use the exact build number recorded in the approved release changes.
 - Both modes require a full source SHA reachable from their channel branch; release recovery may instead use an exact annotated `vX.Y.Z` tag resolving to that SHA. Internal distribution consumes its
   immutable `Staging Ready` proof; release distribution consumes the successful
   `Production Release` proof for that exact SHA.
 - Signing credentials live only in the `ios-distribution` GitHub Environment. The workflow uses an ephemeral keychain and removes certificates, API keys, archives, and exported IPA files in an `always()` cleanup step.
-- GitHub queries the exact ASC version/build before archiving and polls processing to `valid`. Alfred performs the separately approved TestFlight-group or App Store operation.
+- GitHub queries the exact ASC version/build before archiving and polls processing to `valid`. A build already present in ASC is reusable only when an unexpired prior upload intent proves the exact same source SHA, marketing version, build number, channel, trusted channel branch, verified IPA, and successful upload step. Otherwise the workflow fails closed instead of certifying a stale binary. Alfred performs the separately approved TestFlight-group or App Store operation.
 
 ## Force-update gate — nothing to sync
 
