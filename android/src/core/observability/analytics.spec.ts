@@ -16,7 +16,7 @@ const mockLocaleSubscribe = jest.fn();
 let mockConfig: { apiKey: string; host: string } | null;
 let mockIsSharingEnabled: boolean;
 let mockSessionState: {
-  status: "loading" | "unauthenticated" | "authenticated";
+  status: "loading" | "error" | "unauthenticated" | "authenticated";
   user: Record<string, unknown> | null;
 };
 let mockConsentListener:
@@ -176,8 +176,6 @@ describe("PostHog startup", () => {
     expect(mockClient.identify).toHaveBeenCalledWith("supabase-user-id", {
       supabase_user_id: "supabase-user-id",
       early_adopter: true,
-      email: "ismael@example.com",
-      name: "Ismael",
     });
   });
 

@@ -10,6 +10,7 @@ import { PaperProvider } from "react-native-paper";
 
 import { observeSession, useSessionStore } from "@/core/auth/session-store";
 import { startSupabaseAutoRefresh } from "@/core/auth/supabase";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { LocaleSync } from "@/core/i18n/locale-sync";
 import { DeepLinkRouter } from "@/core/linking/deep-link-router";
 import { useLandingPreference } from "@/core/navigation/landing-preference";
@@ -23,6 +24,7 @@ import { ForegroundRefresh } from "@/core/system/foreground-refresh";
 import { armPrivacyShield } from "@/core/system/privacy-shield";
 import { SystemGateScreen } from "@/core/system/system-gate-screen";
 import { WhatsNewSheet } from "@/core/system/whats-new-sheet";
+import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { pulpeDarkTheme, pulpeLightTheme } from "@/core/ui/theme";
 import { armAutoLock } from "@/core/vault/auto-lock";
 import { observeVaultKeyRejection } from "@/core/vault/key-invalidation";
@@ -38,7 +40,11 @@ void SplashScreen.preventAutoHideAsync();
 
 function RootLayout() {
   const colorScheme = useColorScheme();
+  const { t } = useTranslation();
   const status = useSessionStore((state) => state.status);
+  const retrySessionRestore = useSessionStore(
+    (state) => state.retrySessionRestore,
+  );
   const vaultStatus = useVaultStore((state) => state.status);
   const isOnboarding = useOnboardingStore((state) => state.isFlowActive);
   const hasCompletedOnboarding = useOnboardingStore(
@@ -107,32 +113,46 @@ function RootLayout() {
           theme={colorScheme === "dark" ? pulpeDarkTheme : pulpeLightTheme}
         >
           <StatusBar style="auto" />
-          <Stack screenOptions={{ headerShown: false }}>
-            {/* The server vault may temporarily outrank an interrupted run.
-                Which groups are open, and why, lives in `openGroups`. */}
-            <Stack.Protected guard={groups.includes("(onboarding)")}>
-              <Stack.Screen name="(onboarding)" />
-            </Stack.Protected>
-            <Stack.Protected guard={groups.includes("(main)")}>
-              <Stack.Screen name="(main)" />
-            </Stack.Protected>
-            <Stack.Protected guard={groups.includes("(vault)")}>
-              <Stack.Screen name="(vault)" />
-            </Stack.Protected>
-            <Stack.Protected guard={groups.includes("(auth)")}>
-              <Stack.Screen name="(auth)" />
-            </Stack.Protected>
-          </Stack>
-          {/* Above the navigator: the key it announces outlives the screen
-              that minted it, which unmounts the moment the vault unlocks. */}
-          <RecoveryKeyNotice />
-          <ForegroundRefresh />
-          {/* Inside the navigator: it navigates, so it needs the router
-              mounted — and it holds a link until the vault opens one. */}
-          <DeepLinkRouter />
-          <WhatsNewSheet />
-          {/* Last, so it covers every route and every dialog above them. */}
-          <SystemGateScreen />
+          {status === "error" ? (
+            <PlaceholderScreen
+              icon="shield-alert-outline"
+              title={t("auth.restore.title")}
+              hint={t("auth.restore.hint")}
+              action={{
+                label: t("common.retry"),
+                onPress: () => void retrySessionRestore(),
+              }}
+            />
+          ) : (
+            <>
+              <Stack screenOptions={{ headerShown: false }}>
+                {/* The server vault may temporarily outrank an interrupted run.
+                    Which groups are open, and why, lives in `openGroups`. */}
+                <Stack.Protected guard={groups.includes("(onboarding)")}>
+                  <Stack.Screen name="(onboarding)" />
+                </Stack.Protected>
+                <Stack.Protected guard={groups.includes("(main)")}>
+                  <Stack.Screen name="(main)" />
+                </Stack.Protected>
+                <Stack.Protected guard={groups.includes("(vault)")}>
+                  <Stack.Screen name="(vault)" />
+                </Stack.Protected>
+                <Stack.Protected guard={groups.includes("(auth)")}>
+                  <Stack.Screen name="(auth)" />
+                </Stack.Protected>
+              </Stack>
+              {/* Above the navigator: the key it announces outlives the screen
+                  that minted it, which unmounts the moment the vault unlocks. */}
+              <RecoveryKeyNotice />
+              <ForegroundRefresh />
+              {/* Inside the navigator: it navigates, so it needs the router
+                  mounted — and it holds a link until the vault opens one. */}
+              <DeepLinkRouter />
+              <WhatsNewSheet />
+              {/* Last, so it covers every route and every dialog above them. */}
+              <SystemGateScreen />
+            </>
+          )}
         </PaperProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>

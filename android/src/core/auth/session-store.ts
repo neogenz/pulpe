@@ -16,12 +16,17 @@ import { signOutEverywhere, signOutThisDevice, supabase } from "./supabase";
  * alongside this one. Two states in one enum would let a caller branch on a
  * combination that cannot happen.
  */
-export type SessionStatus = "loading" | "unauthenticated" | "authenticated";
+export type SessionStatus =
+  | "loading"
+  | "error"
+  | "unauthenticated"
+  | "authenticated";
 
 interface SessionState {
   status: SessionStatus;
   session: Session | null;
   user: User | null;
+  retrySessionRestore: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -37,10 +42,17 @@ function applySession(session: Session | null): Partial<SessionState> {
   };
 }
 
+let accountTeardown: Promise<void> | null = null;
+let sessionRestore: Promise<void> | null = null;
+let authEventRevision = 0;
+let authEventQueue = Promise.resolve();
+
 export const useSessionStore = create<SessionState>((set) => ({
   status: "loading",
   session: null,
   user: null,
+
+  retrySessionRestore: () => restorePersistedSession(false),
 
   signOut: async () => {
     const { providerError } = await teardownAccount(signOutThisDevice);
@@ -65,7 +77,6 @@ export async function endRecoverySession(): Promise<AccountTeardownResult> {
 async function teardownAccount(
   providerSignOut: () => Promise<void>,
 ): Promise<AccountTeardownResult> {
-  languageWriter.invalidate();
   let providerError: unknown | null = null;
   let localError: unknown | null = null;
 
@@ -76,12 +87,14 @@ async function teardownAccount(
   }
 
   // A global sign-out can fail before supabase-js removes its stored session.
-  // The public local API is idempotent, so run it unconditionally and then ask
-  // the client to read its own adapter instead of depending on its private key.
-  try {
-    await signOutThisDevice();
-  } catch (error) {
-    providerError ??= error;
+  // A successful local sign-out, however, must not be repeated merely because
+  // its SIGNED_OUT listener shares the same teardown path.
+  if (providerSignOut !== signOutThisDevice || providerError !== null) {
+    try {
+      await signOutThisDevice();
+    } catch (error) {
+      providerError ??= error;
+    }
   }
 
   try {
@@ -94,11 +107,9 @@ async function teardownAccount(
   }
 
   try {
-    await purgeLocalAccountData();
+    await teardownLocalAccount();
   } catch (error) {
     localError ??= error;
-  } finally {
-    useSessionStore.setState(applySession(null));
   }
 
   if (localError !== null) throw providerError ?? localError;
@@ -131,20 +142,107 @@ async function purgeLocalAccountData(): Promise<void> {
   if (firstError !== null) throw firstError;
 }
 
+/** The only purge operation, shared by explicit and provider-driven sign-out. */
+function teardownLocalAccount(): Promise<void> {
+  if (accountTeardown !== null) return accountTeardown;
+  if (useSessionStore.getState().status === "unauthenticated") {
+    return Promise.resolve();
+  }
+
+  languageWriter.invalidate();
+  const operation = (async () => {
+    try {
+      await purgeLocalAccountData();
+    } finally {
+      useSessionStore.setState(applySession(null));
+    }
+  })();
+  accountTeardown = operation;
+  const clear = () => {
+    if (accountTeardown === operation) accountTeardown = null;
+  };
+  void operation.then(clear, clear);
+  return operation;
+}
+
+async function waitForAccountTeardown(): Promise<void> {
+  try {
+    await accountTeardown;
+  } catch {
+    // Every cleanup was attempted and the anonymous state was published. A
+    // later session must wait for that outcome, not inherit its storage error.
+  }
+}
+
+function restorePersistedSession(showLoading: boolean): Promise<void> {
+  if (sessionRestore !== null) return sessionRestore;
+  if (showLoading) {
+    useSessionStore.setState({ status: "loading", session: null, user: null });
+  }
+
+  const revision = authEventRevision;
+  const operation = (async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      await waitForAccountTeardown();
+      if (authEventRevision === revision) {
+        useSessionStore.setState(applySession(data.session));
+      }
+    } catch {
+      if (authEventRevision === revision) {
+        useSessionStore.setState({
+          status: "error",
+          session: null,
+          user: null,
+        });
+      }
+    }
+  })();
+  sessionRestore = operation;
+  const clear = () => {
+    if (sessionRestore === operation) sessionRestore = null;
+  };
+  void operation.then(clear, clear);
+  return operation;
+}
+
+async function applyAuthEvent(
+  event: string,
+  session: Session | null,
+): Promise<void> {
+  if (event === "SIGNED_OUT" || session === null) {
+    if (
+      accountTeardown === null &&
+      useSessionStore.getState().status === "unauthenticated"
+    ) {
+      return;
+    }
+    try {
+      await teardownLocalAccount();
+    } catch {
+      // The explicit caller receives the error. Provider listeners cannot, and
+      // teardownLocalAccount has already attempted every cleanup.
+    }
+    return;
+  }
+
+  await waitForAccountTeardown();
+  useSessionStore.setState(applySession(session));
+}
+
 /**
  * Restores the persisted session, then keeps the store in step with
  * supabase-js. Token refreshes and expiry both arrive through this listener,
  * so the store never has to poll.
  */
 export function observeSession(): () => void {
-  void supabase.auth
-    .getSession()
-    .then(({ data }) => useSessionStore.setState(applySession(data.session)));
-
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
-    if (event === "SIGNED_OUT") void purgeLocalAccountData().catch(() => {});
-    useSessionStore.setState(applySession(session));
+    authEventRevision += 1;
+    authEventQueue = authEventQueue
+      .catch(() => undefined)
+      .then(() => applyAuthEvent(event, session));
   });
+  void restorePersistedSession(true);
 
   return () => data.subscription.unsubscribe();
 }

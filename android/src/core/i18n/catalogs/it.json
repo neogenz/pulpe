@@ -30,6 +30,10 @@
       "title": "Reimposta password",
       "verifying": "Verifica del link in corso"
     },
+    "restore": {
+      "hint": "I tuoi dati sono ancora su questo dispositivo. Riprova ad aprire Pulpe.",
+      "title": "Impossibile aprire la sessione"
+    },
     "signIn": {
       "createAccount": "Crea un account",
       "emailPlaceholder": "Indirizzo email",

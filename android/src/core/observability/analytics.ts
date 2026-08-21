@@ -40,22 +40,11 @@ function appContextProperties(): AnalyticsProperties {
   };
 }
 
-function nonEmptyString(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  return trimmed === "" ? undefined : trimmed;
-}
-
 function identityProperties(user: User): AnalyticsProperties {
-  const email = nonEmptyString(user.email);
-  const firstName = nonEmptyString(user.user_metadata?.firstName);
-
   return {
     [ANALYTICS_PROPERTIES.SUPABASE_USER_ID]: user.id,
     [ANALYTICS_PROPERTIES.EARLY_ADOPTER]:
       user.app_metadata?.early_adopter === true,
-    ...(email && { [ANALYTICS_PROPERTIES.EMAIL]: email }),
-    ...(firstName && { [ANALYTICS_PROPERTIES.NAME]: firstName }),
   };
 }
 

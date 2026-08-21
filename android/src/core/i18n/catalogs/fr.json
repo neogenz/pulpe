@@ -30,6 +30,10 @@
       "title": "Réinitialiser le mot de passe",
       "verifying": "Vérification du lien en cours"
     },
+    "restore": {
+      "hint": "Tes données sont restées sur cet appareil. Réessaie pour ouvrir Pulpe.",
+      "title": "Impossible d'ouvrir ta session"
+    },
     "signIn": {
       "createAccount": "Créer un compte",
       "emailPlaceholder": "Adresse e-mail",

@@ -30,6 +30,10 @@
       "title": "Passwort zurücksetzen",
       "verifying": "Link wird überprüft"
     },
+    "restore": {
+      "hint": "Deine Daten sind weiterhin auf diesem Gerät. Versuche erneut, Pulpe zu öffnen.",
+      "title": "Deine Sitzung konnte nicht geöffnet werden"
+    },
     "signIn": {
       "createAccount": "Konto erstellen",
       "emailPlaceholder": "E-Mail-Adresse",

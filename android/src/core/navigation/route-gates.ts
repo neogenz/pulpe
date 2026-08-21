@@ -28,7 +28,7 @@ export interface GateState {
 export function landingRoute(state: GateState): string | null {
   const { status, vaultStatus, isOnboarding, hasCompletedOnboarding } = state;
 
-  if (status === "loading") return null;
+  if (status === "loading" || status === "error") return null;
   if (status === "unauthenticated") {
     if (isOnboarding) return "/(onboarding)";
     // A device that has never been through the flow gets the pitch; one that
