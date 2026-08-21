@@ -90,8 +90,9 @@ release containing migrations enters the protected `production` environment for 
 and apply. The PR job checks its exact base/head range; production replays the exact
 merge-parent/merge range before touching Supabase. Each new migration declares `expand`
 or `contract` in its initial comment header, and published files cannot be changed.
-After exact provider deployments, `production-finalize.yml` verifies CSP, records the
-production proof, publishes the tag/Release, annotates PostHog and updates the web gate.
+After provider deployment, `production-finalize.yml` verifies the exact Railway and
+Vercel deployments plus the public health and version endpoints, then publishes the
+production proof, immutable tag and GitHub Release.
 
 ## Local equivalents
 
