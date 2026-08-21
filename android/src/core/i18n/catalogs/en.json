@@ -125,6 +125,102 @@
       },
       "withdrawnFrom": "Withdrawn from: %{name}"
     },
+    "actions": {
+      "line": {
+        "actions": "Forecast actions",
+        "activityMany": "%{count} entries",
+        "activityNone": "No entries",
+        "activityOne": "1 entry",
+        "cancelPair": "Cancel both",
+        "createTargetBudget": "Create the %{month} budget first",
+        "deleteEmpty": "It will disappear from this month.",
+        "deleteTitle": "Delete this forecast?",
+        "deleteWithMany": "The %{count} linked entries will remain, but without a forecast.",
+        "deleteWithOne": "The linked entry will remain, but without a forecast.",
+        "empty": "Nothing has been linked to this forecast yet.",
+        "failure": {
+          "deleteLine": "The forecast could not be deleted. Try again.",
+          "deletePair": "Deletion failed. Try again.",
+          "postpone": "The forecast could not be postponed. Try again."
+        },
+        "keepIncome": "Keep the %{month} income",
+        "loadError": "Unable to load this forecast.",
+        "missingHint": "It may have been deleted from another device.",
+        "missingTitle": "This forecast no longer exists",
+        "overrun": "%{amount} over budget",
+        "pairDescription": "+%{amount} in %{incomeMonth} is linked to -%{amount} in %{repaymentMonth}.",
+        "pairTitle": "These two lines are linked",
+        "plannedAmount": "of %{amount} planned",
+        "postpone": "Postpone to next month",
+        "remaining": "%{amount} remaining",
+        "viewSpread": "View spread months"
+      },
+      "spread": {
+        "complete": "Target reached",
+        "currentMonth": "This month",
+        "error": "The forecast could not be spread. Try again.",
+        "existingDescription": "%{amount} will be spread over the selected months. This forecast will be replaced by them.",
+        "existingTitle": "Spread “%{name}”",
+        "here": "Here",
+        "lessMonth": "One month fewer",
+        "missing": "%{amount} missing",
+        "mode": {
+          "perMonth": "Amount per month",
+          "total": "Total to spread"
+        },
+        "monthCount": {
+          "one": "1 month",
+          "other": "%{count} months"
+        },
+        "moreMonth": "One more month",
+        "occurrencesError": "We couldn't load the months for this expense.",
+        "occurrencesTitle": "Spread expense",
+        "problem": {
+          "max": "%{count} months maximum",
+          "min": {
+            "one": "Select at least one month",
+            "other": "Select at least %{count} months"
+          }
+        },
+        "progress": "Month %{current} of %{count}",
+        "remaining": "%{amount} left · %{monthly} per remaining month",
+        "summary": {
+          "perMonth": {
+            "one": "%{amount} total over one month",
+            "other": "%{amount} total over %{count} months"
+          },
+          "selected": {
+            "one": "Spread over one month",
+            "other": "Spread over %{count} months"
+          },
+          "total": {
+            "one": "≈ %{amount} over one month",
+            "other": "≈ %{amount} per month over %{count} months"
+          }
+        }
+      },
+      "withdrawal": {
+        "cardAction": "Cover this month with my savings",
+        "cardMessage": "You can cover this month with your savings.",
+        "cardReminder": "Put it back next month: I'll remind you.",
+        "cardTitle": "A tight month?",
+        "chosenMonth": "%{month} · selected month",
+        "confirm": "Confirm",
+        "defaultSource": "My savings",
+        "error": "We couldn't set this up. Try again.",
+        "incomeFootnote": "↪ taken from your savings",
+        "incomeNote": "arrives in your budget",
+        "later": "Later",
+        "missing": "%{amount} missing",
+        "nextMonth": "%{month} · next month",
+        "previewTitle": "Here's what we'll set up",
+        "recap": "You cover %{month}. Your savings are restored in %{repaymentMonth}.",
+        "repaymentName": "Put back into your savings",
+        "savingNote": "set aside to put the money back into your savings",
+        "sourceLabel": "Where is the money coming from? (optional)",
+        "title": "How much are you short?"
+      }
+    },
     "mutations": {
       "activity": {
         "allocatedIn": "Counted in “%{name}”",

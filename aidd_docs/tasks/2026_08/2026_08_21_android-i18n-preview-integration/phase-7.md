@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Localize spread, postpone, point, and savings withdrawal

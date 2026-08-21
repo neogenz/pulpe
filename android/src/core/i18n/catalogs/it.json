@@ -125,6 +125,102 @@
       },
       "withdrawnFrom": "Prelevato da: %{name}"
     },
+    "actions": {
+      "line": {
+        "actions": "Azioni sulla previsione",
+        "activityMany": "%{count} movimenti",
+        "activityNone": "Nessun movimento",
+        "activityOne": "1 movimento",
+        "cancelPair": "Annulla entrambi",
+        "createTargetBudget": "Crea prima il budget di %{month}",
+        "deleteEmpty": "Scomparirà da questo mese.",
+        "deleteTitle": "Eliminare questa previsione?",
+        "deleteWithMany": "I %{count} movimenti collegati resteranno, ma senza previsione.",
+        "deleteWithOne": "Il movimento collegato resterà, ma senza previsione.",
+        "empty": "Non è ancora stato collegato nulla a questa previsione.",
+        "failure": {
+          "deleteLine": "Non è stato possibile eliminare la previsione. Riprova.",
+          "deletePair": "Eliminazione non riuscita. Riprova.",
+          "postpone": "Non è stato possibile rimandare la previsione. Riprova."
+        },
+        "keepIncome": "Mantieni l'entrata di %{month}",
+        "loadError": "Impossibile caricare questa previsione.",
+        "missingHint": "Potrebbe essere stata eliminata da un altro dispositivo.",
+        "missingTitle": "Questa previsione non esiste più",
+        "overrun": "%{amount} oltre il budget",
+        "pairDescription": "+%{amount} a %{incomeMonth} è collegato a -%{amount} a %{repaymentMonth}.",
+        "pairTitle": "Queste due righe sono collegate",
+        "plannedAmount": "su %{amount} previsti",
+        "postpone": "Rimanda al mese successivo",
+        "remaining": "%{amount} rimanenti",
+        "viewSpread": "Vedi i mesi distribuiti"
+      },
+      "spread": {
+        "complete": "Obiettivo raggiunto",
+        "currentMonth": "Questo mese",
+        "error": "Non è stato possibile distribuire la previsione. Riprova.",
+        "existingDescription": "%{amount} saranno distribuiti sui mesi scelti. Questa previsione verrà sostituita.",
+        "existingTitle": "Distribuisci «%{name}»",
+        "here": "Qui",
+        "lessMonth": "Un mese in meno",
+        "missing": "Mancano %{amount}",
+        "mode": {
+          "perMonth": "Importo mensile",
+          "total": "Totale da distribuire"
+        },
+        "monthCount": {
+          "one": "1 mese",
+          "other": "%{count} mesi"
+        },
+        "moreMonth": "Un mese in più",
+        "occurrencesError": "Non è stato possibile caricare i mesi di questa spesa.",
+        "occurrencesTitle": "Spesa distribuita",
+        "problem": {
+          "max": "Massimo %{count} mesi",
+          "min": {
+            "one": "Seleziona almeno un mese",
+            "other": "Seleziona almeno %{count} mesi"
+          }
+        },
+        "progress": "Mese %{current} di %{count}",
+        "remaining": "Restano %{amount} · %{monthly} per ogni mese rimanente",
+        "summary": {
+          "perMonth": {
+            "one": "%{amount} totali su un mese",
+            "other": "%{amount} totali su %{count} mesi"
+          },
+          "selected": {
+            "one": "Distribuito su un mese",
+            "other": "Distribuito su %{count} mesi"
+          },
+          "total": {
+            "one": "≈ %{amount} su un mese",
+            "other": "≈ %{amount} al mese su %{count} mesi"
+          }
+        }
+      },
+      "withdrawal": {
+        "cardAction": "Copri questo mese con i miei risparmi",
+        "cardMessage": "Puoi coprire questo mese con i tuoi risparmi.",
+        "cardReminder": "Da rimettere il mese prossimo: te lo ricorderò.",
+        "cardTitle": "Un mese un po' stretto?",
+        "chosenMonth": "%{month} · mese scelto",
+        "confirm": "Conferma",
+        "defaultSource": "I miei risparmi",
+        "error": "Non è stato possibile configurarlo. Riprova.",
+        "incomeFootnote": "↪ prelevato dai tuoi risparmi",
+        "incomeNote": "arriva nel tuo budget",
+        "later": "Più tardi",
+        "missing": "Mancano %{amount}",
+        "nextMonth": "%{month} · mese successivo",
+        "previewTitle": "Ecco cosa configuriamo",
+        "recap": "Copri %{month}. I tuoi risparmi vengono ricostituiti a %{repaymentMonth}.",
+        "repaymentName": "Rimetti nei tuoi risparmi",
+        "savingNote": "messo da parte per restituire il denaro ai tuoi risparmi",
+        "sourceLabel": "Da dove arriva il denaro? (facoltativo)",
+        "title": "Quanto ti manca?"
+      }
+    },
     "mutations": {
       "activity": {
         "allocatedIn": "Conteggiato in «%{name}»",

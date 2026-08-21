@@ -16,6 +16,7 @@ import {
 } from "react-native-paper";
 
 import { Amount } from "@/core/ui/amount";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
 import { Sheet } from "@/core/ui/sheet";
@@ -49,6 +50,7 @@ export function SpreadOccurrencesSheet({
   currency,
 }: SpreadOccurrencesSheetProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const occurrences = useSpreadOccurrences(isVisible ? spreadGroupId : null);
 
   // Past is judged against the month actually being lived in, pay-day aware —
@@ -68,14 +70,18 @@ export function SpreadOccurrencesSheet({
     livePeriod.year === viewedPeriod.year;
 
   return (
-    <Sheet isVisible={isVisible} onDismiss={onDismiss} title="Dépense lissée">
+    <Sheet
+      isVisible={isVisible}
+      onDismiss={onDismiss}
+      title={t("budgets.actions.spread.occurrencesTitle")}
+    >
       {occurrences.isPending && (
-        <ActivityIndicator accessibilityLabel="Chargement" />
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
       )}
 
       {occurrences.isError && (
         <Text variant="bodyMedium" style={{ color: theme.colors.error }}>
-          On n&apos;a pas pu charger les mois de cette dépense.
+          {t("budgets.actions.spread.occurrencesError")}
         </Text>
       )}
 
@@ -83,7 +89,10 @@ export function SpreadOccurrencesSheet({
         <View style={styles.tracker}>
           <View style={styles.trackerRow}>
             <Text variant="titleSmall">
-              Mois {tracker.currentIndex} sur {tracker.count}
+              {t("budgets.actions.spread.progress", {
+                current: tracker.currentIndex,
+                count: tracker.count,
+              })}
             </Text>
             <Amount size="meta" tone="muted">
               {formatCurrency(tracker.cumulatedAmount, currency)} /{" "}
@@ -101,10 +110,24 @@ export function SpreadOccurrencesSheet({
             style={{ color: theme.colors.onSurfaceVariant }}
           >
             {tracker.remainingToProvision <= 0
-              ? "Objectif atteint"
+              ? t("budgets.actions.spread.complete")
               : tracker.perRemainingMonth === null
-                ? `Il manque ${formatCurrency(tracker.remainingToProvision, currency)}`
-                : `Reste ${formatCurrency(tracker.remainingToProvision, currency)} · ${formatCurrency(tracker.perRemainingMonth, currency)} par mois restant`}
+                ? t("budgets.actions.spread.missing", {
+                    amount: formatCurrency(
+                      tracker.remainingToProvision,
+                      currency,
+                    ),
+                  })
+                : t("budgets.actions.spread.remaining", {
+                    amount: formatCurrency(
+                      tracker.remainingToProvision,
+                      currency,
+                    ),
+                    monthly: formatCurrency(
+                      tracker.perRemainingMonth,
+                      currency,
+                    ),
+                  })}
           </Text>
         </View>
       )}
@@ -131,6 +154,7 @@ function OccurrenceRow({
   isLivePeriodViewed: boolean;
 }) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const { occurrence } = item;
   const hasReal = occurrence.transactionCount > 0;
 
@@ -150,11 +174,13 @@ function OccurrenceRow({
             item.isPast && { color: theme.colors.onSurfaceVariant },
           ]}
         >
-          {formatMonthName(occurrence.month, occurrence.year)}
+          {formatMonthName(occurrence.month, occurrence.year, locale)}
         </Text>
         {item.isViewed && (
           <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
-            {isLivePeriodViewed ? "Ce mois" : "Ici"}
+            {t(
+              `budgets.actions.spread.${isLivePeriodViewed ? "currentMonth" : "here"}`,
+            )}
           </Text>
         )}
       </View>

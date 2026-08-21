@@ -125,6 +125,102 @@
       },
       "withdrawnFrom": "Puisé dans : %{name}"
     },
+    "actions": {
+      "line": {
+        "actions": "Actions sur la prévision",
+        "activityMany": "%{count} opérations",
+        "activityNone": "Aucune opération",
+        "activityOne": "1 opération",
+        "cancelPair": "Tout annuler",
+        "createTargetBudget": "Crée d'abord le budget de %{month}",
+        "deleteEmpty": "Elle disparaîtra de ce mois-ci.",
+        "deleteTitle": "Effacer cette prévision ?",
+        "deleteWithMany": "Les %{count} opérations rattachées resteront, mais sans prévision.",
+        "deleteWithOne": "L'opération rattachée restera, mais sans prévision.",
+        "empty": "Rien n'a encore été rattaché à cette prévision.",
+        "failure": {
+          "deleteLine": "La prévision n'a pas pu être effacée. Réessaie.",
+          "deletePair": "La suppression a échoué. Réessaie.",
+          "postpone": "Le report n'a pas pu être fait. Réessaie."
+        },
+        "keepIncome": "Garder le revenu de %{month}",
+        "loadError": "Impossible de charger cette prévision.",
+        "missingHint": "Elle a peut-être été effacée depuis un autre appareil.",
+        "missingTitle": "Cette prévision n'existe plus",
+        "overrun": "%{amount} de dépassement",
+        "pairDescription": "+%{amount} sur %{incomeMonth} est lié à -%{amount} sur %{repaymentMonth}.",
+        "pairTitle": "Ces deux lignes sont liées",
+        "plannedAmount": "sur %{amount} prévus",
+        "postpone": "Reporter au mois suivant",
+        "remaining": "%{amount} restants",
+        "viewSpread": "Voir les mois lissés"
+      },
+      "spread": {
+        "complete": "Objectif atteint",
+        "currentMonth": "Ce mois",
+        "error": "Le lissage n'a pas pu être fait. Réessaie.",
+        "existingDescription": "%{amount} seront répartis sur les mois choisis. Cette prévision-ci disparaît au profit d'eux.",
+        "existingTitle": "Lisser « %{name} »",
+        "here": "Ici",
+        "lessMonth": "Un mois de moins",
+        "missing": "Il manque %{amount}",
+        "mode": {
+          "perMonth": "Montant par mois",
+          "total": "Total à répartir"
+        },
+        "monthCount": {
+          "one": "1 mois",
+          "other": "%{count} mois"
+        },
+        "moreMonth": "Un mois de plus",
+        "occurrencesError": "On n'a pas pu charger les mois de cette dépense.",
+        "occurrencesTitle": "Dépense lissée",
+        "problem": {
+          "max": "%{count} mois maximum",
+          "min": {
+            "one": "Sélectionne au moins un mois",
+            "other": "Sélectionne au moins %{count} mois"
+          }
+        },
+        "progress": "Mois %{current} sur %{count}",
+        "remaining": "Reste %{amount} · %{monthly} par mois restant",
+        "summary": {
+          "perMonth": {
+            "one": "%{amount} au total sur un mois",
+            "other": "%{amount} au total sur %{count} mois"
+          },
+          "selected": {
+            "one": "Réparti sur un mois",
+            "other": "Réparti sur %{count} mois"
+          },
+          "total": {
+            "one": "≈ %{amount} sur un mois",
+            "other": "≈ %{amount} par mois sur %{count} mois"
+          }
+        }
+      },
+      "withdrawal": {
+        "cardAction": "Couvrir ce mois avec mon épargne",
+        "cardMessage": "Tu peux couvrir ce mois avec ton épargne.",
+        "cardReminder": "À remettre le mois prochain : je te le rappellerai.",
+        "cardTitle": "Un mois un peu juste ?",
+        "chosenMonth": "%{month} · le mois choisi",
+        "confirm": "Confirmer",
+        "defaultSource": "Mon épargne",
+        "error": "On n'a pas pu mettre ça en place. Réessaie.",
+        "incomeFootnote": "↪ pris sur ton épargne",
+        "incomeNote": "arrivent sur ton budget",
+        "later": "Plus tard",
+        "missing": "%{amount} manquants",
+        "nextMonth": "%{month} · le mois suivant",
+        "previewTitle": "Voici ce qu'on met en place",
+        "recap": "Tu tiens %{month}. Ton épargne est reconstituée en %{repaymentMonth}.",
+        "repaymentName": "Remettre sur ton épargne",
+        "savingNote": "mis de côté pour remettre l'argent sur ton épargne",
+        "sourceLabel": "D'où vient l'argent ? (optionnel)",
+        "title": "Combien te manque-t-il ?"
+      }
+    },
     "mutations": {
       "activity": {
         "allocatedIn": "Comptée dans « %{name} »",

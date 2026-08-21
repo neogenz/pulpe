@@ -26,12 +26,14 @@ describe("detail query states", () => {
   });
 
   it("keeps a budget-line query failure distinct from a deleted line", () => {
-    expect(budgetLine.indexOf("if (details.isError)")).toBeLessThan(
-      budgetLine.indexOf("const budget = details.data?.budget"),
-    );
+    expect(
+      budgetLine.indexOf("if (details.isError || settings.isError)"),
+    ).toBeLessThan(budgetLine.indexOf("const budget = details.data?.budget"));
     expect(budgetLine).toContain("<InlineQueryError");
-    expect(budgetLine).toContain("onRetry={() => void details.refetch()}");
-    expect(budgetLine).toContain("Cette prévision n'existe plus");
+    expect(budgetLine).toContain(
+      "void Promise.all([details.refetch(), settings.refetch()])",
+    );
+    expect(budgetLine).toContain('t("budgets.actions.line.missingTitle")');
   });
 
   it("keeps dependent actions unavailable until optional impact data loads", () => {

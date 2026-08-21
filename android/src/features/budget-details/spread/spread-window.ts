@@ -17,6 +17,7 @@ export interface SpreadMonthCell extends SpreadPeriod {
 }
 
 export type SpreadMode = "total" | "perMonth";
+export type SpreadWindowProblem = { kind: "max" | "min"; count: number };
 
 export function periodKey(period: SpreadPeriod): string {
   return `${period.year}-${period.month}`;
@@ -100,14 +101,10 @@ export function spreadCounterpart(
 export function spreadWindowProblem(
   cells: SpreadMonthCell[],
   minimumMonths: number,
-): string | null {
+): SpreadWindowProblem | null {
   const selected = cells.filter((cell) => cell.isSelected).length;
   if (cells.length > MAX_SPREAD_MONTHS)
-    return `${MAX_SPREAD_MONTHS} mois maximum`;
-  if (selected < minimumMonths) {
-    return minimumMonths === 1
-      ? "Sélectionne au moins un mois"
-      : `Sélectionne au moins ${minimumMonths} mois`;
-  }
+    return { kind: "max", count: MAX_SPREAD_MONTHS };
+  if (selected < minimumMonths) return { kind: "min", count: minimumMonths };
   return null;
 }

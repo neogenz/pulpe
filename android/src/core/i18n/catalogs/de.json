@@ -125,6 +125,102 @@
       },
       "withdrawnFrom": "Entnommen aus: %{name}"
     },
+    "actions": {
+      "line": {
+        "actions": "Aktionen für die Planung",
+        "activityMany": "%{count} Vorgänge",
+        "activityNone": "Keine Vorgänge",
+        "activityOne": "1 Vorgang",
+        "cancelPair": "Beide stornieren",
+        "createTargetBudget": "Erstelle zuerst das Budget für %{month}",
+        "deleteEmpty": "Sie verschwindet aus diesem Monat.",
+        "deleteTitle": "Diese Planung löschen?",
+        "deleteWithMany": "Die %{count} verknüpften Vorgänge bleiben erhalten, aber ohne Planung.",
+        "deleteWithOne": "Der verknüpfte Vorgang bleibt erhalten, aber ohne Planung.",
+        "empty": "Mit dieser Planung ist noch nichts verknüpft.",
+        "failure": {
+          "deleteLine": "Die Planung konnte nicht gelöscht werden. Versuche es erneut.",
+          "deletePair": "Das Löschen ist fehlgeschlagen. Versuche es erneut.",
+          "postpone": "Die Planung konnte nicht verschoben werden. Versuche es erneut."
+        },
+        "keepIncome": "Einnahme aus %{month} behalten",
+        "loadError": "Diese Planung konnte nicht geladen werden.",
+        "missingHint": "Sie wurde möglicherweise auf einem anderen Gerät gelöscht.",
+        "missingTitle": "Diese Planung existiert nicht mehr",
+        "overrun": "%{amount} über dem Budget",
+        "pairDescription": "+%{amount} in %{incomeMonth} ist mit -%{amount} in %{repaymentMonth} verknüpft.",
+        "pairTitle": "Diese beiden Zeilen sind verknüpft",
+        "plannedAmount": "von %{amount} geplant",
+        "postpone": "Auf nächsten Monat verschieben",
+        "remaining": "%{amount} übrig",
+        "viewSpread": "Verteilte Monate anzeigen"
+      },
+      "spread": {
+        "complete": "Ziel erreicht",
+        "currentMonth": "Dieser Monat",
+        "error": "Die Planung konnte nicht verteilt werden. Versuche es erneut.",
+        "existingDescription": "%{amount} werden auf die ausgewählten Monate verteilt. Diese Planung wird dadurch ersetzt.",
+        "existingTitle": "„%{name}“ verteilen",
+        "here": "Hier",
+        "lessMonth": "Einen Monat weniger",
+        "missing": "%{amount} fehlen",
+        "mode": {
+          "perMonth": "Betrag pro Monat",
+          "total": "Zu verteilende Summe"
+        },
+        "monthCount": {
+          "one": "1 Monat",
+          "other": "%{count} Monate"
+        },
+        "moreMonth": "Einen Monat mehr",
+        "occurrencesError": "Die Monate dieser Ausgabe konnten nicht geladen werden.",
+        "occurrencesTitle": "Verteilte Ausgabe",
+        "problem": {
+          "max": "Höchstens %{count} Monate",
+          "min": {
+            "one": "Wähle mindestens einen Monat",
+            "other": "Wähle mindestens %{count} Monate"
+          }
+        },
+        "progress": "Monat %{current} von %{count}",
+        "remaining": "%{amount} übrig · %{monthly} pro verbleibendem Monat",
+        "summary": {
+          "perMonth": {
+            "one": "%{amount} insgesamt über einen Monat",
+            "other": "%{amount} insgesamt über %{count} Monate"
+          },
+          "selected": {
+            "one": "Über einen Monat verteilt",
+            "other": "Über %{count} Monate verteilt"
+          },
+          "total": {
+            "one": "≈ %{amount} über einen Monat",
+            "other": "≈ %{amount} pro Monat über %{count} Monate"
+          }
+        }
+      },
+      "withdrawal": {
+        "cardAction": "Diesen Monat mit meinen Ersparnissen decken",
+        "cardMessage": "Du kannst diesen Monat mit deinen Ersparnissen decken.",
+        "cardReminder": "Im nächsten Monat zurücklegen: Ich erinnere dich.",
+        "cardTitle": "Ein knapper Monat?",
+        "chosenMonth": "%{month} · gewählter Monat",
+        "confirm": "Bestätigen",
+        "defaultSource": "Meine Ersparnisse",
+        "error": "Das konnte nicht eingerichtet werden. Versuche es erneut.",
+        "incomeFootnote": "↪ aus deinen Ersparnissen genommen",
+        "incomeNote": "kommt in deinem Budget an",
+        "later": "Später",
+        "missing": "%{amount} fehlen",
+        "nextMonth": "%{month} · nächster Monat",
+        "previewTitle": "Das richten wir ein",
+        "recap": "Du deckst %{month}. Deine Ersparnisse sind im %{repaymentMonth} wieder aufgefüllt.",
+        "repaymentName": "Zurück in deine Ersparnisse",
+        "savingNote": "zur Seite gelegt, um das Geld in deine Ersparnisse zurückzulegen",
+        "sourceLabel": "Woher kommt das Geld? (optional)",
+        "title": "Wie viel fehlt dir?"
+      }
+    },
     "mutations": {
       "activity": {
         "allocatedIn": "In „%{name}“ berücksichtigt",

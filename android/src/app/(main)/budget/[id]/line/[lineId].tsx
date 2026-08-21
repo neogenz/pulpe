@@ -28,7 +28,7 @@ import { useTags } from "@/features/tags/tag-queries";
 import { tagSummary } from "@/features/tags/tag-selection";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCurrency } from "@/core/ui/amount-format";
-import { formatMonthName, ofMonth } from "@/core/ui/date-format";
+import { formatMonthName } from "@/core/ui/date-format";
 import { InlineQueryError } from "@/core/ui/inline-query-error";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
@@ -61,12 +61,6 @@ import { useTransactionRemoval } from "@/features/transactions/use-transaction-r
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 const PERCENT = 100;
 
-const KIND_LABELS = {
-  income: "Revenu",
-  expense: "Dépense",
-  saving: "Épargne",
-} as const;
-
 /**
  * One envelope and everything booked against it. The list here is the answer to
  * the row's amount: it says *where* the money went, which the parent screen has
@@ -92,7 +86,9 @@ export default function BudgetLineDetailScreen() {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isEditVisible, setEditVisible] = useState(false);
   const [isDeleteVisible, setDeleteVisible] = useState(false);
-  const [failure, setFailure] = useState<string | null>(null);
+  const [failure, setFailure] = useState<
+    "postpone" | "deletePair" | "deleteLine" | null
+  >(null);
   const [isAddVisible, setAddVisible] = useState(false);
   const [edited, setEdited] = useState<Transaction | null>(null);
   const [isSpreadVisible, setSpreadVisible] = useState(false);
@@ -102,26 +98,28 @@ export default function BudgetLineDetailScreen() {
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
 
-  if (details.isPending) {
+  if (details.isPending || settings.isPending) {
     return (
       <SafeAreaView
         edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator accessibilityLabel="Chargement" />
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
       </SafeAreaView>
     );
   }
 
-  if (details.isError) {
+  if (details.isError || settings.isError) {
     return (
       <SafeAreaView
         edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
         <InlineQueryError
-          message="Impossible de charger cette prévision."
-          onRetry={() => void details.refetch()}
+          message={t("budgets.actions.line.loadError")}
+          onRetry={() =>
+            void Promise.all([details.refetch(), settings.refetch()])
+          }
         />
       </SafeAreaView>
     );
@@ -134,9 +132,9 @@ export default function BudgetLineDetailScreen() {
     return (
       <PlaceholderScreen
         icon="receipt-text-remove-outline"
-        title="Cette prévision n'existe plus"
-        hint="Elle a peut-être été supprimée depuis un autre appareil."
-        action={{ label: "Revenir", onPress: () => router.back() }}
+        title={t("budgets.actions.line.missingTitle")}
+        hint={t("budgets.actions.line.missingHint")}
+        action={{ label: t("common.back"), onPress: () => router.back() }}
       />
     );
   }
@@ -162,11 +160,13 @@ export default function BudgetLineDetailScreen() {
   const incomeMonthName = formatMonthName(
     incomePeriod.month,
     incomePeriod.year,
-  ).toLocaleLowerCase();
+    locale,
+  );
   const repaymentMonthName = formatMonthName(
     repaymentPeriod(incomePeriod).month,
     repaymentPeriod(incomePeriod).year,
-  ).toLocaleLowerCase();
+    locale,
+  );
   const accent =
     line.kind === "expense" && consumption.available < 0
       ? financial.overBudget
@@ -193,13 +193,13 @@ export default function BudgetLineDetailScreen() {
             <Appbar.Action
               icon="dots-vertical"
               onPress={() => setMenuOpen(true)}
-              accessibilityLabel="Actions sur la prévision"
+              accessibilityLabel={t("budgets.actions.line.actions")}
             />
           }
         >
           <Menu.Item
             leadingIcon="pencil"
-            title="Modifier"
+            title={t("budgets.mutations.edit")}
             onPress={() => {
               setMenuOpen(false);
               setEditVisible(true);
@@ -208,7 +208,7 @@ export default function BudgetLineDetailScreen() {
           {line.spreadGroupId != null && (
             <Menu.Item
               leadingIcon="calendar-multiple"
-              title="Voir les mois lissés"
+              title={t("budgets.actions.line.viewSpread")}
               onPress={() => {
                 setMenuOpen(false);
                 setOccurrencesVisible(true);
@@ -223,7 +223,7 @@ export default function BudgetLineDetailScreen() {
             line.kind !== "income" && (
               <Menu.Item
                 leadingIcon="calendar-multiple"
-                title="Lisser sur plusieurs mois"
+                title={t("budgets.mutations.forecast.spreadTitle")}
                 onPress={() => {
                   setMenuOpen(false);
                   setSpreadVisible(true);
@@ -243,11 +243,14 @@ export default function BudgetLineDetailScreen() {
               }
               title={
                 isPostponeTargetMissing
-                  ? `Crée d'abord le budget de ${formatMonthName(
-                      postponeTarget.month,
-                      postponeTarget.year,
-                    ).toLocaleLowerCase()}`
-                  : "Reporter au mois suivant"
+                  ? t("budgets.actions.line.createTargetBudget", {
+                      month: formatMonthName(
+                        postponeTarget.month,
+                        postponeTarget.year,
+                        locale,
+                      ),
+                    })
+                  : t("budgets.actions.line.postpone")
               }
               disabled={isPostponeTargetMissing || postpone.isPending}
               onPress={() => {
@@ -256,15 +259,14 @@ export default function BudgetLineDetailScreen() {
                   // The line has left this month, so the page it was opened from
                   // no longer has anything to show.
                   onSuccess: () => router.back(),
-                  onError: () =>
-                    setFailure("Le report n'a pas pu être fait. Réessaie."),
+                  onError: () => setFailure("postpone"),
                 });
               }}
             />
           )}
           <Menu.Item
             leadingIcon="trash-can-outline"
-            title="Supprimer"
+            title={t("budgets.mutations.delete")}
             onPress={() => {
               setMenuOpen(false);
               setDeleteVisible(true);
@@ -287,7 +289,7 @@ export default function BudgetLineDetailScreen() {
             variant="labelLarge"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            {KIND_LABELS[line.kind]} ·{" "}
+            {t(`vocabulary.kind.${line.kind}`)} ·{" "}
             {recurrenceLabel(t, line.recurrence).toLocaleLowerCase(locale)}
           </Text>
 
@@ -299,7 +301,9 @@ export default function BudgetLineDetailScreen() {
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            sur {formatCurrency(line.amount, currency)} prévus
+            {t("budgets.actions.line.plannedAmount", {
+              amount: formatCurrency(line.amount, currency),
+            })}
           </Text>
 
           <ProgressBar
@@ -310,15 +314,20 @@ export default function BudgetLineDetailScreen() {
 
           <Amount size="row">
             {consumption.available >= 0
-              ? `${formatCurrency(consumption.available, currency)} restants`
-              : `${formatCurrency(-consumption.available, currency)} de dépassement`}
+              ? t("budgets.actions.line.remaining", {
+                  amount: formatCurrency(consumption.available, currency),
+                })
+              : t("budgets.actions.line.overrun", {
+                  amount: formatCurrency(-consumption.available, currency),
+                })}
           </Amount>
         </View>
 
         <Text variant="titleSmall">
-          {transactions.length === 0
-            ? "Aucune opération"
-            : `${transactions.length} opération${transactions.length > 1 ? "s" : ""}`}
+          {t(
+            `budgets.actions.line.${transactions.length === 0 ? "activityNone" : transactions.length === 1 ? "activityOne" : "activityMany"}`,
+            { count: transactions.length },
+          )}
         </Text>
 
         {transactions.length === 0 ? (
@@ -326,7 +335,7 @@ export default function BudgetLineDetailScreen() {
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Rien n&apos;a encore été rattaché à cette prévision.
+            {t("budgets.actions.line.empty")}
           </Text>
         ) : (
           transactions.map((transaction) => (
@@ -358,20 +367,23 @@ export default function BudgetLineDetailScreen() {
           onPress={() => setAddVisible(true)}
           style={styles.add}
         >
-          Ajouter une opération
+          {t("budgets.mutations.activity.createTitle")}
         </Button>
       </ScrollView>
 
       <Notice
         visible={hasToggleFailed}
         onDismiss={() => setToggleFailed(false)}
-        action={{ label: "Fermer", onPress: () => setToggleFailed(false) }}
+        action={{
+          label: t("common.close"),
+          onPress: () => setToggleFailed(false),
+        }}
       >
-        Le pointage n&apos;a pas été enregistré. Réessaie.
+        {t("budgets.mutations.toggleError")}
       </Notice>
 
       <Notice visible={failure !== null} onDismiss={() => setFailure(null)}>
-        {failure ?? ""}
+        {failure === null ? "" : t(`budgets.actions.line.failure.${failure}`)}
       </Notice>
 
       <BudgetLineSheet
@@ -464,14 +476,20 @@ export default function BudgetLineDetailScreen() {
             visible={isDeleteVisible}
             onDismiss={() => setDeleteVisible(false)}
           >
-            <Dialog.Title>Ces deux lignes sont liées</Dialog.Title>
+            <Dialog.Title>{t("budgets.actions.line.pairTitle")}</Dialog.Title>
             <Dialog.Content>
               <Text variant="bodyMedium">
-                {`+${formatCurrency(line.amount, currency)} sur ${incomeMonthName} est lié à -${formatCurrency(line.amount, currency)} sur ${repaymentMonthName}.`}
+                {t("budgets.actions.line.pairDescription", {
+                  amount: formatCurrency(line.amount, currency),
+                  incomeMonth: incomeMonthName,
+                  repaymentMonth: repaymentMonthName,
+                })}
               </Text>
             </Dialog.Content>
             <Dialog.Actions style={styles.pairActions}>
-              <Button onPress={() => setDeleteVisible(false)}>Annuler</Button>
+              <Button onPress={() => setDeleteVisible(false)}>
+                {t("common.cancel")}
+              </Button>
               <Button
                 disabled={removePair.isPending}
                 onPress={() =>
@@ -484,13 +502,15 @@ export default function BudgetLineDetailScreen() {
                       onSuccess: () => router.back(),
                       onError: () => {
                         setDeleteVisible(false);
-                        setFailure("La suppression a échoué. Réessaie.");
+                        setFailure("deletePair");
                       },
                     },
                   )
                 }
               >
-                {`Garder le revenu ${ofMonth(incomeMonthName)}`}
+                {t("budgets.actions.line.keepIncome", {
+                  month: incomeMonthName,
+                })}
               </Button>
               <Button
                 loading={removePair.isPending}
@@ -505,13 +525,13 @@ export default function BudgetLineDetailScreen() {
                       onSuccess: () => router.back(),
                       onError: () => {
                         setDeleteVisible(false);
-                        setFailure("La suppression a échoué. Réessaie.");
+                        setFailure("deletePair");
                       },
                     },
                   )
                 }
               >
-                Tout annuler
+                {t("budgets.actions.line.cancelPair")}
               </Button>
             </Dialog.Actions>
           </Dialog>
@@ -520,16 +540,21 @@ export default function BudgetLineDetailScreen() {
             visible={isDeleteVisible}
             onDismiss={() => setDeleteVisible(false)}
           >
-            <Dialog.Title>Supprimer cette prévision ?</Dialog.Title>
+            <Dialog.Title>{t("budgets.actions.line.deleteTitle")}</Dialog.Title>
             <Dialog.Content>
               <Text variant="bodyMedium">
                 {transactions.length === 0
-                  ? "Elle disparaîtra de ce mois-ci."
-                  : `Les ${transactions.length} opérations rattachées resteront, mais sans prévision.`}
+                  ? t("budgets.actions.line.deleteEmpty")
+                  : t(
+                      `budgets.actions.line.${transactions.length === 1 ? "deleteWithOne" : "deleteWithMany"}`,
+                      { count: transactions.length },
+                    )}
               </Text>
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={() => setDeleteVisible(false)}>Annuler</Button>
+              <Button onPress={() => setDeleteVisible(false)}>
+                {t("common.cancel")}
+              </Button>
               <Button
                 loading={remove.isPending}
                 disabled={remove.isPending}
@@ -538,14 +563,12 @@ export default function BudgetLineDetailScreen() {
                     onSuccess: () => router.back(),
                     onError: () => {
                       setDeleteVisible(false);
-                      setFailure(
-                        "La prévision n'a pas pu être supprimée. Réessaie.",
-                      );
+                      setFailure("deleteLine");
                     },
                   })
                 }
               >
-                Supprimer
+                {t("budgets.mutations.delete")}
               </Button>
             </Dialog.Actions>
           </Dialog>

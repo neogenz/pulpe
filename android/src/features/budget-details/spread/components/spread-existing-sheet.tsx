@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button, Text, useTheme } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { Sheet } from "@/core/ui/sheet";
 import { FieldError } from "@/core/ui/field-error";
@@ -45,6 +46,7 @@ export function SpreadExistingSheet({
   onSpread,
 }: SpreadExistingSheetProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const spread = useSpreadExistingLine();
   const [length, setLength] = useState(DEFAULT_SPREAD_LENGTH);
   const [deselected, setDeselected] = useState<string[]>([]);
@@ -69,15 +71,13 @@ export function SpreadExistingSheet({
       isVisible={isVisible}
       onDismiss={onDismiss}
       isBusy={spread.isPending}
-      title={`Lisser « ${line.name} »`}
+      title={t("budgets.actions.spread.existingTitle", { name: line.name })}
       // The month grid is a dozen rows on a long spread, and the button that
       // dissolves this forecast into them sits below it.
       footer={
         <>
           {spread.isError && (
-            <FieldError visible>
-              Le lissage n&apos;a pas pu être fait. Réessaie.
-            </FieldError>
+            <FieldError visible>{t("budgets.actions.spread.error")}</FieldError>
           )}
 
           <Button
@@ -86,7 +86,7 @@ export function SpreadExistingSheet({
             disabled={problem !== null || spread.isPending}
             loading={spread.isPending}
           >
-            Lisser
+            {t("budgets.mutations.spread")}
           </Button>
         </>
       }
@@ -95,8 +95,9 @@ export function SpreadExistingSheet({
         variant="bodyMedium"
         style={{ color: theme.colors.onSurfaceVariant }}
       >
-        {formatCurrency(line.amount, currency)} seront répartis sur les mois
-        choisis. Cette prévision-ci disparaît au profit d&apos;eux.
+        {t("budgets.actions.spread.existingDescription", {
+          amount: formatCurrency(line.amount, currency),
+        })}
       </Text>
 
       <SpreadFormSection

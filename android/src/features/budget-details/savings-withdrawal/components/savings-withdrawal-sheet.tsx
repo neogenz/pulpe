@@ -5,6 +5,7 @@ import { StyleSheet, View } from "react-native";
 import { Button, Chip, Text, TextInput, useTheme } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
@@ -17,11 +18,6 @@ import { useCreateSavingsWithdrawal } from "../withdrawal-mutations";
 import { repaymentPeriod } from "../withdrawal-gate";
 
 const NAME_MAX_LENGTH = 100;
-/** The default source name when the user names none. */
-const DEFAULT_SOURCE = "Mon épargne";
-/** The repayment line's label, owned by the client — the backend has no i18n. */
-const REPAYMENT_NAME = "Remettre sur ton épargne";
-
 interface SavingsWithdrawalSheetProps {
   isVisible: boolean;
   onDismiss: () => void;
@@ -51,6 +47,7 @@ export function SavingsWithdrawalSheet({
   onWithdrawn,
 }: SavingsWithdrawalSheetProps) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const financial = useFinancialColors();
   const withdraw = useCreateSavingsWithdrawal();
   const [amount, setAmount] = useState<number | null>(null);
@@ -62,8 +59,17 @@ export function SavingsWithdrawalSheet({
   const [groupId, setGroupId] = useState(() => randomUUID());
 
   const repayment = repaymentPeriod(viewedPeriod);
-  const monthName = formatMonthName(viewedPeriod.month, viewedPeriod.year);
-  const repaymentName = formatMonthName(repayment.month, repayment.year);
+  const monthName = formatMonthName(
+    viewedPeriod.month,
+    viewedPeriod.year,
+    locale,
+  );
+  const repaymentMonthName = formatMonthName(
+    repayment.month,
+    repayment.year,
+    locale,
+  );
+  const defaultSource = t("budgets.actions.withdrawal.defaultSource");
   const canContinue = amount !== null && amount > 0;
 
   function reset() {
@@ -87,8 +93,8 @@ export function SavingsWithdrawalSheet({
       {
         budgetId,
         amount,
-        incomeName: trimmed === "" ? DEFAULT_SOURCE : trimmed,
-        savingName: REPAYMENT_NAME,
+        incomeName: trimmed === "" ? defaultSource : trimmed,
+        savingName: t("budgets.actions.withdrawal.repaymentName"),
         groupId,
       },
       {
@@ -108,8 +114,8 @@ export function SavingsWithdrawalSheet({
       isBusy={withdraw.isPending}
       title={
         isPreviewing
-          ? "Voici ce qu'on met en place"
-          : "Combien te manque-t-il ?"
+          ? t("budgets.actions.withdrawal.previewTitle")
+          : t("budgets.actions.withdrawal.title")
       }
       // The preview runs to two month blocks and a paragraph, so the step that
       // actually writes to two budgets must not be something you scroll to find.
@@ -118,7 +124,7 @@ export function SavingsWithdrawalSheet({
           <>
             {withdraw.isError && (
               <FieldError visible>
-                On n&apos;a pas pu mettre ça en place. Réessaie.
+                {t("budgets.actions.withdrawal.error")}
               </FieldError>
             )}
 
@@ -128,14 +134,14 @@ export function SavingsWithdrawalSheet({
               disabled={withdraw.isPending}
               loading={withdraw.isPending}
             >
-              Confirmer
+              {t("budgets.actions.withdrawal.confirm")}
             </Button>
             <Button
               mode="text"
               onPress={() => setPreviewing(false)}
               disabled={withdraw.isPending}
             >
-              Modifier
+              {t("budgets.mutations.edit")}
             </Button>
           </>
         ) : (
@@ -144,7 +150,7 @@ export function SavingsWithdrawalSheet({
             onPress={() => setPreviewing(true)}
             disabled={!canContinue}
           >
-            Continuer
+            {t("common.continue")}
           </Button>
         )
       }
@@ -152,22 +158,26 @@ export function SavingsWithdrawalSheet({
       {isPreviewing ? (
         <>
           <MonthBlock
-            monthLabel={`${monthName} · le mois choisi`}
-            kindLabel="REVENU"
+            monthLabel={t("budgets.actions.withdrawal.chosenMonth", {
+              month: monthName,
+            })}
+            kindLabel={t("vocabulary.kind.income").toLocaleUpperCase(locale)}
             amount={amount ?? 0}
             sign="+"
-            note="arrivent sur ton budget"
-            footnote="↪ pris sur ton épargne"
+            note={t("budgets.actions.withdrawal.incomeNote")}
+            footnote={t("budgets.actions.withdrawal.incomeFootnote")}
             accent={financial.income}
             currency={currency}
           />
 
           <MonthBlock
-            monthLabel={`${repaymentName} · le mois suivant`}
-            kindLabel="ÉPARGNE"
+            monthLabel={t("budgets.actions.withdrawal.nextMonth", {
+              month: repaymentMonthName,
+            })}
+            kindLabel={t("vocabulary.kind.saving").toLocaleUpperCase(locale)}
             amount={amount ?? 0}
             sign="-"
-            note="mis de côté pour remettre l'argent sur ton épargne"
+            note={t("budgets.actions.withdrawal.savingNote")}
             accent={financial.savings}
             currency={currency}
           />
@@ -176,15 +186,17 @@ export function SavingsWithdrawalSheet({
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Tu tiens {monthName}. Ton épargne est reconstituée en{" "}
-            {repaymentName}.
+            {t("budgets.actions.withdrawal.recap", {
+              month: monthName,
+              repaymentMonth: repaymentMonthName,
+            })}
           </Text>
         </>
       ) : (
         <>
           <AmountField
             key={generation}
-            label="Montant"
+            label={t("budgets.mutations.amount")}
             amount={amount}
             currency={currency}
             onChange={setAmount}
@@ -199,15 +211,17 @@ export function SavingsWithdrawalSheet({
                   setGeneration((current) => current + 1);
                 }}
               >
-                {formatCurrency(missingAmount, currency)} manquants
+                {t("budgets.actions.withdrawal.missing", {
+                  amount: formatCurrency(missingAmount, currency),
+                })}
               </Chip>
             </View>
           )}
 
           <TextInput
             mode="outlined"
-            label="D'où vient l'argent ? (optionnel)"
-            placeholder={DEFAULT_SOURCE}
+            label={t("budgets.actions.withdrawal.sourceLabel")}
+            placeholder={defaultSource}
             value={source}
             onChangeText={setSource}
             maxLength={NAME_MAX_LENGTH}

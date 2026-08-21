@@ -68,12 +68,12 @@ describe("spreadWindowProblem", () => {
   it("refuses a window emptied below the minimum", () => {
     const cells = spreadWindow(ANCHOR, 3, ["2026-12", "2027-1"]);
 
-    expect(spreadWindowProblem(cells, 2)).toBe("Sélectionne au moins 2 mois");
+    expect(spreadWindowProblem(cells, 2)).toEqual({ kind: "min", count: 2 });
   });
 
   it("refuses more months than the backend takes", () => {
     const cells = spreadWindow(ANCHOR, MAX_SPREAD_MONTHS + 1, []);
 
-    expect(spreadWindowProblem(cells, 1)).toBe("36 mois maximum");
+    expect(spreadWindowProblem(cells, 1)).toEqual({ kind: "max", count: 36 });
   });
 });

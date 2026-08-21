@@ -2,6 +2,7 @@ import { StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 
 import { Card } from "@/core/ui/card";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { SPACING } from "@/core/ui/theme";
 
 interface TightMonthCardProps {
@@ -19,32 +20,35 @@ interface TightMonthCardProps {
  */
 export function TightMonthCard({ onWithdraw, onDismiss }: TightMonthCardProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Card mode="contained">
       <Card.Content style={styles.content}>
-        <Text variant="titleMedium">Un mois un peu juste ?</Text>
+        <Text variant="titleMedium">
+          {t("budgets.actions.withdrawal.cardTitle")}
+        </Text>
 
         <View style={styles.lines}>
           <Text
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Tu peux couvrir ce mois avec ton épargne.
+            {t("budgets.actions.withdrawal.cardMessage")}
           </Text>
           <Text
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            À remettre le mois prochain : je te le rappellerai.
+            {t("budgets.actions.withdrawal.cardReminder")}
           </Text>
         </View>
 
         <Button mode="contained" onPress={onWithdraw}>
-          Couvrir ce mois avec mon épargne
+          {t("budgets.actions.withdrawal.cardAction")}
         </Button>
         <Button mode="text" onPress={onDismiss}>
-          Plus tard
+          {t("budgets.actions.withdrawal.later")}
         </Button>
       </Card.Content>
     </Card>

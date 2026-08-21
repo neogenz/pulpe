@@ -9,6 +9,7 @@ import {
 
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { FilterChip } from "@/core/ui/filter-chip";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
@@ -21,10 +22,7 @@ import {
   spreadWindowProblem,
 } from "../spread-window";
 
-const MODE_BUTTONS: { value: SpreadMode; label: string }[] = [
-  { value: "total", label: "Total à répartir" },
-  { value: "perMonth", label: "Montant par mois" },
-];
+const MODES: SpreadMode[] = ["total", "perMonth"];
 
 interface SpreadFormSectionProps {
   cells: SpreadMonthCell[];
@@ -57,6 +55,7 @@ export function SpreadFormSection({
   onToggleMonth,
 }: SpreadFormSectionProps) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const selectedCount = cells.filter((cell) => cell.isSelected).length;
   const problem = spreadWindowProblem(cells, minimumMonths);
   const counterpart =
@@ -68,27 +67,30 @@ export function SpreadFormSection({
         <SegmentedButtons
           value={mode}
           onValueChange={(next) => onChangeMode(next as SpreadMode)}
-          buttons={MODE_BUTTONS}
+          buttons={MODES.map((value) => ({
+            value,
+            label: t(`budgets.actions.spread.mode.${value}`),
+          }))}
         />
       )}
 
       <View style={styles.lengthRow}>
         <Text variant="bodyLarge" style={styles.lengthLabel}>
-          {cells.length} mois
+          {t("budgets.actions.spread.monthCount", { count: cells.length })}
         </Text>
         <IconButton
           icon="minus"
           mode="outlined"
           disabled={cells.length <= minimumMonths}
           onPress={() => onChangeLength(cells.length - 1)}
-          accessibilityLabel="Un mois de moins"
+          accessibilityLabel={t("budgets.actions.spread.lessMonth")}
         />
         <IconButton
           icon="plus"
           mode="outlined"
           disabled={cells.length >= MAX_SPREAD_MONTHS}
           onPress={() => onChangeLength(cells.length + 1)}
-          accessibilityLabel="Un mois de plus"
+          accessibilityLabel={t("budgets.actions.spread.moreMonth")}
         />
       </View>
 
@@ -100,7 +102,7 @@ export function SpreadFormSection({
             onPress={() => onToggleMonth(cell.key)}
             textStyle={styles.month}
           >
-            {formatMonthName(cell.month, cell.year)}
+            {formatMonthName(cell.month, cell.year, locale)}
           </FilterChip>
         ))}
       </View>
@@ -110,14 +112,20 @@ export function SpreadFormSection({
           variant="labelMedium"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          {amount === null
-            ? `Réparti sur ${selectedCount} mois`
-            : mode === "total"
-              ? `≈ ${formatCurrency(counterpart, currency)} par mois sur ${selectedCount} mois`
-              : `${formatCurrency(counterpart, currency)} au total sur ${selectedCount} mois`}
+          {t(
+            `budgets.actions.spread.summary.${amount === null ? "selected" : mode}`,
+            {
+              amount: formatCurrency(counterpart, currency),
+              count: selectedCount,
+            },
+          )}
         </Text>
       ) : (
-        <FieldError visible>{problem}</FieldError>
+        <FieldError visible>
+          {t(`budgets.actions.spread.problem.${problem.kind}`, {
+            count: problem.count,
+          })}
+        </FieldError>
       )}
     </View>
   );
