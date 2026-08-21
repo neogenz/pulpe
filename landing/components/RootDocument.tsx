@@ -3,12 +3,14 @@ import { Poppins } from "next/font/google";
 import { PostHogProvider } from "./PostHogProvider";
 import {
   DESKTOP_BREAKPOINT_PX,
+  GITHUB_URL,
+  IOS_APP_URL,
   MOBILE_NAV_ID,
   MOBILE_NAV_PANEL_ID,
   ORGANIZATION_ID,
   SCROLL_SENTINEL_ID,
 } from "@/lib/config";
-import type { Locale } from "@/lib/i18n";
+import { LOCALES, type Locale } from "@/lib/i18n";
 import { OPEN_GRAPH_LOCALE, SITE_URL } from "@/lib/routes";
 
 const SCROLL_THRESHOLD_PX = 20;
@@ -81,7 +83,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 else start();
 })();`;
 
-function buildJsonLd(locale: Locale, description: string) {
+function buildJsonLd(
+  locale: Locale,
+  description: string,
+  featureList: readonly string[],
+) {
   return {
     "@context": "https://schema.org",
     "@graph": [
@@ -108,9 +114,15 @@ function buildJsonLd(locale: Locale, description: string) {
         "@type": "SoftwareApplication",
         "@id": `${SITE_URL}/#app`,
         name: "Pulpe",
+        url: SITE_URL,
         description,
         applicationCategory: "FinanceApplication",
         operatingSystem: "Web, iOS",
+        availableLanguage: [...LOCALES],
+        countriesSupported: ["FR", "CH"],
+        sameAs: [GITHUB_URL, IOS_APP_URL],
+        downloadUrl: IOS_APP_URL,
+        featureList: [...featureList],
         author: { "@id": ORGANIZATION_ID },
         offers: {
           "@type": "Offer",
@@ -136,13 +148,15 @@ function buildJsonLd(locale: Locale, description: string) {
 export function RootDocument({
   locale,
   graphDescription,
+  featureList,
   children,
 }: {
   locale: Locale;
   graphDescription: string;
+  featureList: readonly string[];
   children: ReactNode;
 }) {
-  const jsonLd = buildJsonLd(locale, graphDescription);
+  const jsonLd = buildJsonLd(locale, graphDescription, featureList);
 
   return (
     <html lang={locale} className={poppins.variable} suppressHydrationWarning>

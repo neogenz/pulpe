@@ -53,6 +53,119 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.45.0',
+    iosVersion: '1.4.0',
+    date: '2026-08-18',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Pulpe dans quatre langues',
+          description:
+            'Utilise Pulpe en français, anglais, allemand ou italien sur le web, le site et l’app iOS.',
+        },
+        {
+          title: 'Objectifs plus lisibles sur iOS',
+          description:
+            'Le détail d’un objectif réunit une progression claire, une trajectoire simplifiée et un historique regroupé.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Des montants exacts au centime',
+          description:
+            'Soldes, dépassements, objectifs et retraits restent cohérents jusque dans les petits écarts.',
+        },
+        {
+          title: 'Suppression des prévisions liées',
+          description:
+            'Sur iOS, le choix attendu apparaît désormais depuis le détail de la prévision.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Pulpe in four languages',
+            description:
+              'Use Pulpe in French, English, German or Italian across the web, website and iOS app.',
+          },
+          {
+            title: 'Clearer goals on iOS',
+            description:
+              'Goal details now combine clear progress, a simpler trajectory and a grouped history.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Amounts accurate to the cent',
+            description:
+              'Balances, overruns, goals and withdrawals remain consistent down to small differences.',
+          },
+          {
+            title: 'Deleting linked forecasts',
+            description:
+              'On iOS, the expected choice now appears from the forecast details.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Pulpe in vier Sprachen',
+            description:
+              'Nutze Pulpe auf der Webapp, der Website und in der iOS-App auf Französisch, Englisch, Deutsch oder Italienisch.',
+          },
+          {
+            title: 'Übersichtlichere Ziele auf iOS',
+            description:
+              'Die Zieldetails verbinden einen klaren Fortschritt, einen vereinfachten Verlauf und eine gruppierte Historie.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Beträge auf den Rappen genau',
+            description:
+              'Salden, Überschreitungen, Ziele und Auszahlungen bleiben auch bei kleinen Differenzen konsistent.',
+          },
+          {
+            title: 'Verknüpfte Prognosen löschen',
+            description:
+              'Auf iOS erscheint die erwartete Auswahl nun direkt in den Prognosedetails.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Pulpe in quattro lingue',
+            description:
+              'Usa Pulpe in francese, inglese, tedesco o italiano sul web, sul sito e nell’app iOS.',
+          },
+          {
+            title: 'Obiettivi più chiari su iOS',
+            description:
+              'Il dettaglio di un obiettivo riunisce progressi chiari, un andamento semplificato e una cronologia raggruppata.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Importi precisi al centesimo',
+            description:
+              'Saldi, sforamenti, obiettivi e prelievi restano coerenti anche nelle differenze minime.',
+          },
+          {
+            title: 'Eliminazione delle previsioni collegate',
+            description:
+              'Su iOS, la scelta prevista appare ora direttamente nel dettaglio della previsione.',
+          },
+        ],
+      },
+    },
+  },
+  {
     version: '0.44.0',
     iosVersion: '1.3.2',
     date: '2026-08-14',
@@ -535,6 +648,11 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
  * no approved note met the iOS curation threshold.
  */
 export const SILENT_IOS_RELEASES: readonly SilentIosReleaseEntry[] = [
+  {
+    version: '0.45.1',
+    reason:
+      'Hotfix 1.4.1 limité à la fluidité du scroll vertical de l’accueil : ne pas interrompre à nouveau les utilisateurs et conserver la feuille complète des nouveautés 1.4.0 pour ceux qui ne l’ont pas encore vue',
+  },
   {
     version: '0.42.0',
     reason:

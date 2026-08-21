@@ -1,4 +1,6 @@
+import Foundation
 @testable import Pulpe
+import Security
 import Testing
 
 /// Tests for app reinstallation scenarios where Keychain persists but UserDefaults is cleared.
@@ -8,6 +10,32 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct AppStateReinstallTests {
+    @Test("Only a confirmed Keychain miss is classified as a missing marker")
+    func lastUsedEmailReadResult_preservesKeychainTruth() {
+        let emailData = Data("returning@pulpe.app".utf8)
+
+        #expect(
+            KeychainManager.lastUsedEmailReadResult(status: errSecSuccess, data: emailData)
+                == .available("returning@pulpe.app")
+        )
+        #expect(
+            KeychainManager.lastUsedEmailReadResult(status: errSecItemNotFound, data: nil)
+                == .missing
+        )
+        #expect(
+            KeychainManager.lastUsedEmailReadResult(status: errSecInteractionNotAllowed, data: nil)
+                == .temporarilyUnavailable(errSecInteractionNotAllowed)
+        )
+        #expect(
+            KeychainManager.lastUsedEmailReadResult(status: errSecSuccess, data: Data([0xFF]))
+                == .failed(errSecDecode)
+        )
+        #expect(
+            KeychainManager.lastUsedEmailReadResult(status: errSecNotAvailable, data: nil)
+                == .failed(errSecNotAvailable)
+        )
+    }
+
     // MARK: - Returning User Flag Persistence
 
     @Test("Last used email persists in Keychain as returning user indicator")
@@ -28,7 +56,7 @@ struct AppStateReinstallTests {
         let keychain = MockKeychainStore(lastUsedEmail: "test@pulpe.app")
 
         // Simulate: app killed and restarted (new AppState instance)
-        let appState = AppState(keychainManager: keychain, biometricPreferenceStore: .init())
+        let appState = makeAppState(keychain: keychain)
 
         await appState.bootstrap()
 
@@ -53,7 +81,7 @@ struct AppStateReinstallTests {
     func returningUser_routesToLogin() async {
         let keychain = MockKeychainStore(lastUsedEmail: "test@pulpe.app")
 
-        let appState = AppState(keychainManager: keychain, biometricPreferenceStore: .init())
+        let appState = makeAppState(keychain: keychain)
 
         await appState.bootstrap()
 
@@ -67,13 +95,24 @@ struct AppStateReinstallTests {
     func newUser_routesToWelcome() async {
         let keychain = MockKeychainStore()
 
-        let appState = AppState(keychainManager: keychain, biometricPreferenceStore: .init())
+        let appState = makeAppState(keychain: keychain)
 
         // Wait for async initialization with polling - verify it stays false
         try? await Task.sleep(for: .milliseconds(200))
 
         #expect(appState.hasReturningUser == false,
                 "New user should see OnboardingFlow")
+    }
+
+    @Test("Fresh install clears a stale marker and keeps the welcome route")
+    func freshInstall_clearsStaleMarker() async {
+        let keychain = MockKeychainStore(lastUsedEmail: "stale@pulpe.app")
+        let appState = makeAppState(keychain: keychain, hasLaunchedBefore: false)
+
+        await appState.bootstrap()
+
+        #expect(!appState.hasReturningUser)
+        #expect(await keychain.readLastUsedEmail() == .missing)
     }
 
     // MARK: - Keychain vs UserDefaults Behavior
@@ -83,12 +122,23 @@ struct AppStateReinstallTests {
         let keychain = MockKeychainStore(lastUsedEmail: "test@pulpe.app")
 
         // Step 1: Create new AppState (simulating fresh app launch after reinstall)
-        let appState = AppState(keychainManager: keychain, biometricPreferenceStore: .init())
+        let appState = makeAppState(keychain: keychain)
 
         await appState.bootstrap()
 
         // Step 2: Verify Keychain value is still available
         #expect(appState.hasReturningUser == true,
                 "Keychain-stored email should persist after reinstall")
+    }
+
+    private func makeAppState(
+        keychain: MockKeychainStore,
+        hasLaunchedBefore: Bool = true
+    ) -> AppState {
+        var dependencies = AppStateDependencies.default
+        dependencies.keychainManager = keychain
+        dependencies.biometricPreferenceStore = .init()
+        dependencies.flagsStore = MockAppAuthFlagsStore(hasLaunchedBefore: hasLaunchedBefore)
+        return AppState(dependencies: dependencies)
     }
 }

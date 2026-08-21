@@ -277,6 +277,7 @@ jobs:
               "ci_run_id": int(os.environ["CI_RUN_ID"]),
               "ci_run_attempt": int(os.environ["CI_RUN_ATTEMPT"]),
               "staging_run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "staging_run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
               "candidate_sha": os.environ["GITHUB_SHA"],
               "tree_sha": os.environ["TREE_SHA"],
               "deployments": {
@@ -293,7 +294,7 @@ jobs:
       - name: 📤 Upload staging proof
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: staging-proof-${{ github.sha }}
+          name: staging-proof-${{ github.sha }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: staging-proof.json
           retention-days: 14
           if-no-files-found: error

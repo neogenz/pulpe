@@ -13,6 +13,7 @@ final class AppRuntimeCoordinator {
     private let dashboardStore: DashboardStore
     private let widgetSyncViewModel: WidgetSyncViewModel
     private var foregroundTask: Task<Void, Never>?
+    @ObservationIgnored private var hasRequestedVisibleStartup = false
     private var hasTrackedInitialOpen = false
 
     init(
@@ -27,6 +28,35 @@ final class AppRuntimeCoordinator {
         self.budgetListStore = budgetListStore
         self.dashboardStore = dashboardStore
         self.widgetSyncViewModel = widgetSyncViewModel
+    }
+
+    /// UI authentication must wait for an interactive scene. Background refresh has
+    /// its own entry point and must never consume this process-lifetime gate.
+    func consumeVisibleStartup(for scenePhase: ScenePhase) -> Bool {
+        guard scenePhase == .active, !hasRequestedVisibleStartup else { return false }
+        hasRequestedVisibleStartup = true
+        Logger.auth.info("[AUTH_UI_START_ACTIVE] visible startup accepted")
+        AnalyticsService.captureAuthSessionDiagnostic(
+            source: "ui_startup",
+            outcome: "started_active"
+        )
+        return true
+    }
+
+    func recordInitialStartupDeferral(for scenePhase: ScenePhase) {
+        let outcome: String
+        switch scenePhase {
+        case .background:
+            outcome = "deferred_background"
+        case .inactive:
+            outcome = "deferred_inactive"
+        case .active:
+            return
+        @unknown default:
+            outcome = "deferred_inactive"
+        }
+        Logger.auth.info("[AUTH_UI_START_DEFERRED] \(outcome, privacy: .public)")
+        AnalyticsService.captureAuthSessionDiagnostic(source: "ui_startup", outcome: outcome)
     }
 
     func handleScenePhaseChange(from oldPhase: ScenePhase, to newPhase: ScenePhase) {

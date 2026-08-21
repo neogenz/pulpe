@@ -1,5 +1,22 @@
 # pulpe-frontend
 
+## 0.45.1
+
+### Patch Changes
+
+- Améliore la fluidité du défilement vertical de l’accueil iOS.
+  - pulpe-shared@0.45.1
+
+## 0.45.0
+
+### Minor Changes
+
+- Pulpe devient disponible en quatre langues et améliore le suivi des objectifs, la précision des montants et la fiabilité des parcours.
+
+### Patch Changes
+
+- pulpe-shared@0.45.0
+
 ## 0.44.0
 
 ### Minor Changes

@@ -64,22 +64,16 @@ After running `pnpm changeset version`:
 
 All must be staged in the release commit, alongside the manually-bumped root `package.json`.
 
-## Sync Railway `LATEST_WEB_VERSION` (force-update gate)
+## Artifact-derived web version
 
-After bumping the product version, `LATEST_WEB_VERSION` remains pending for Railway in **both** `preview` and `production`. The preparation skill never applies it. The protected production workflow may apply it only after the exact candidate tree is ready in both Vercel production projects and Railway production, the production checks are green, and the public health checks pass. A failed or incomplete publication leaves both values unchanged.
-
-The force-update endpoint (`GET /api/v1/app/version`) serves this value to webapp clients; changing it before the web release is public would advertise a version clients cannot use.
-
-The protected production workflow uses one operation per environment with these semantics:
-
-```
-workspace: <repo root>
-environment: preview, then production
-service: backend
-skip deploy: false
-variable: LATEST_WEB_VERSION=<new root version>
-```
-
-The variable change must redeploy the backend so the running `ConfigService` reads the new value. The production workflow waits for the resulting deployments and verifies the public version endpoint. If that workflow lacks its Railway credential, it stops before publication; the preparation skill never substitutes a local mutation.
+The backend embeds `backend-nest/package.json` in its build artifact and serves that
+version as `web.latestVersion`; no Railway variable is synchronized during release.
+The protected `production.yml` preflight proves the exact frontend SHA is public,
+publishes its immutable context, and finishes. Railway `Wait for CI` then deploys
+`main` as the sole backend deployment owner.
+`production-finalize.yml` verifies the exact active Railway SHA and the public
+`GET /api/v1/app/version` payload before publishing the tag and GitHub Release. A
+contradictory provider state fails closed; operators must not substitute a local
+variable write or redeploy.
 
 > **Never** touch `MIN_WEB_VERSION` from this skill. That value is a deliberate kill switch — only bumped when a release contains a breaking change or critical fix that must force users off old binaries. Always require explicit user confirmation before changing it.

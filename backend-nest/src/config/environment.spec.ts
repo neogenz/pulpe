@@ -6,6 +6,23 @@ import {
 } from './environment';
 
 describe('Environment Validation', () => {
+  it('keeps only the web minimum as runtime policy', () => {
+    const result = validateConfig({
+      NODE_ENV: 'test',
+      SUPABASE_URL: 'http://localhost:54321',
+      SUPABASE_ANON_KEY: 'test-anon-key',
+      SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
+      TURNSTILE_SECRET_KEY: 'test-turnstile-key',
+      ENCRYPTION_MASTER_KEY:
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      MIN_WEB_VERSION: '0.40.0',
+      LATEST_WEB_VERSION: '99.0.0',
+    });
+
+    expect(result.MIN_WEB_VERSION).toBe('0.40.0');
+    expect('LATEST_WEB_VERSION' in result).toBe(false);
+  });
+
   describe('NODE_ENV (fail-loud, no default)', () => {
     const baseConfig = {
       SUPABASE_URL: 'http://localhost:54321',
@@ -263,7 +280,6 @@ describe('Environment Validation', () => {
         'https://apps.apple.com/app/id6758464920',
       );
       expect(result.MIN_WEB_VERSION).toBe('0.0.1');
-      expect(result.LATEST_WEB_VERSION).toBe('0.0.1');
       expect(result.MIN_ANDROID_VERSION).toBe('0.0.1');
       expect(result.LATEST_ANDROID_VERSION).toBe('0.0.1');
       expect(result.ANDROID_STORE_URL).toBe(
@@ -278,7 +294,6 @@ describe('Environment Validation', () => {
         LATEST_IOS_VERSION: '2.3.0',
         IOS_STORE_URL: 'https://apps.apple.com/app/id1234567890',
         MIN_WEB_VERSION: '1.5.0',
-        LATEST_WEB_VERSION: '1.6.0',
         MIN_ANDROID_VERSION: '0.42.0',
         LATEST_ANDROID_VERSION: '0.43.0',
         ANDROID_STORE_URL: 'https://play.google.com/store/apps/details?id=demo',
@@ -292,7 +307,6 @@ describe('Environment Validation', () => {
         'https://apps.apple.com/app/id1234567890',
       );
       expect(result.MIN_WEB_VERSION).toBe('1.5.0');
-      expect(result.LATEST_WEB_VERSION).toBe('1.6.0');
       expect(result.MIN_ANDROID_VERSION).toBe('0.42.0');
       expect(result.LATEST_ANDROID_VERSION).toBe('0.43.0');
       expect(result.ANDROID_STORE_URL).toBe(
@@ -310,7 +324,7 @@ describe('Environment Validation', () => {
     });
   });
 
-  describe('Force-update version invariants (web MIN <= LATEST)', () => {
+  describe('force-update version policy', () => {
     const baseConfig = {
       NODE_ENV: 'production',
       SUPABASE_URL: 'https://example.supabase.co',
@@ -321,26 +335,6 @@ describe('Environment Validation', () => {
         '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
     };
 
-    it('should accept web versions when MIN is below LATEST', () => {
-      const config = {
-        ...baseConfig,
-        MIN_WEB_VERSION: '1.0.0',
-        LATEST_WEB_VERSION: '1.0.2',
-      };
-
-      expect(() => validateConfig(config)).not.toThrow();
-    });
-
-    it('should accept versions when MIN equals LATEST', () => {
-      const config = {
-        ...baseConfig,
-        MIN_WEB_VERSION: '2.1.0',
-        LATEST_WEB_VERSION: '2.1.0',
-      };
-
-      expect(() => validateConfig(config)).not.toThrow();
-    });
-
     it('should accept MIN_IOS_VERSION above LATEST_IOS_VERSION so the floor can be armed before the App Store rollout', () => {
       const config = {
         ...baseConfig,
@@ -350,27 +344,6 @@ describe('Environment Validation', () => {
 
       expect(() => validateConfig(config)).not.toThrow();
     });
-
-    it('should reject when MIN_WEB_VERSION is above LATEST_WEB_VERSION', () => {
-      const config = {
-        ...baseConfig,
-        MIN_WEB_VERSION: '3.0.0',
-        LATEST_WEB_VERSION: '2.9.9',
-      };
-
-      expect(() => validateConfig(config)).toThrow(/LATEST_WEB_VERSION/);
-    });
-
-    it('should compare segments numerically (1.0.10 is above 1.0.2)', () => {
-      const config = {
-        ...baseConfig,
-        MIN_WEB_VERSION: '1.0.2',
-        LATEST_WEB_VERSION: '1.0.10',
-      };
-
-      expect(() => validateConfig(config)).not.toThrow();
-    });
-
     it('should reject when MIN_ANDROID_VERSION is above LATEST_ANDROID_VERSION', () => {
       const config = {
         ...baseConfig,

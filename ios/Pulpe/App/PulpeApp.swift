@@ -210,10 +210,12 @@ struct PulpeApp: App {
         switch scenario {
         case .budgetLongPressWithTransactions, .budgetLongPressEmpty:
             BudgetLongPressUITestHarness(scenario: scenario)
-        case .budgetGoalSpreadMetadata:
-            BudgetGoalSpreadUITestHarness()
+        case .budgetGoalSpreadMetadata, .budgetLinkedForecastDelete:
+            BudgetGoalSpreadUITestHarness(scenario: scenario)
         case .contextualCreationHome, .contextualCreationBudget:
             ContextualCreationUITestHarness(scenario: scenario)
+        case .languageSettings:
+            PreferencesUITestHarness()
         case .loginScreen:
             LoginFlowUITestHarness()
         case .savingsGoalForm,

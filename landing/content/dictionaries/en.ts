@@ -5,14 +5,20 @@ import type { Dictionary } from "../dictionary";
 // typography only. Product terms follow the arrested lexicon in `docs/I18N.md`.
 const en: Dictionary = {
   site: {
-    titleDefault: "Pulpe | Know months ahead what you’ll have left",
+    titleDefault:
+      "Pulpe – Budget app | Plan your year, see what you’ll have left",
     titleTemplate: "%s | Pulpe",
     description:
-      "Plan your income, your expenses and your savings. Pulpe shows you what you’ll have left each month, with no bank connection.",
+      "A budget app to plan your income, expenses and savings. Pulpe shows you what you’ll have left each month, with no bank connection.",
     socialImageAlt:
       "Pulpe projects your budget across the year and shows what you’ll have left",
     graphDescription:
-      "Pulpe works out what you have available month after month from your income, your expenses and your savings, with no bank connection.",
+      "Pulpe is a budget app for planning your year, with no bank connection.",
+    featureList: [
+      "Year-ahead planning",
+      "Available to spend each month",
+      "No bank connection",
+    ],
     socialCard: {
       subhead: "Plan your year. See what you have left every month.",
       badge: "Free · No bank connection",
@@ -268,6 +274,11 @@ const en: Dictionary = {
     faq: {
       heading: "The questions I get asked most.",
       items: [
+        {
+          question: "Is Pulpe a budget app?",
+          answer:
+            "Yes. That’s the category people look for. Pulpe is built to plan the year: you see what you’ll have left each month, instead of only listing what has already been spent.",
+        },
         {
           question: "Why Pulpe rather than Excel?",
           answer:

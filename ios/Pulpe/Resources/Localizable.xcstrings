@@ -754,34 +754,6 @@
         }
       }
     },
-    "%@ sur %@ est lié à %@ sur %@." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ im %@ hängt an %@ im %@."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ on %@ is linked to %@ on %@."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ sur %2$@ est lié à %3$@ sur %4$@."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ a %@ è collegato a %@ a %@."
-          }
-        }
-      }
-    },
     "%@ · le mois choisi" : {
       "localizations" : {
         "de" : {
@@ -10161,28 +10133,6 @@
         }
       }
     },
-    "Deux prévisions liées" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zwei verknüpfte Planposten"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Two linked planned items"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Due previsioni collegate"
-          }
-        }
-      }
-    },
     "Devise" : {
       "localizations" : {
         "de" : {
@@ -12179,28 +12129,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tienilo sott'occhio"
-          }
-        }
-      }
-    },
-    "Garder le revenu de %@" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Einnahme für %@ behalten"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep the income for %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mantieni l’entrata di %@"
           }
         }
       }
@@ -16333,6 +16261,34 @@
         }
       }
     },
+    "Ne rien supprimer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nichts löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete nothing"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne rien supprimer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non eliminare nulla"
+          }
+        }
+      }
+    },
     "Nom" : {
       "localizations" : {
         "de" : {
@@ -17941,6 +17897,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apri il budget per regolare le tue buste"
+          }
+        }
+      }
+    },
+    "Ouvre le choix de la langue de l'app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet die Auswahl der App-Sprache"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the app language picker"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apre la selezione della lingua dell'app"
+          }
+        }
+      }
+    },
+    "Ouvre les réglages de langue d'iOS" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet die iOS-Spracheinstellungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the iOS language settings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apre le impostazioni della lingua di iOS"
           }
         }
       }
@@ -19825,6 +19825,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cosa vuoi eliminare?"
+          }
+        }
+      }
+    },
+    "Quelles prévisions supprimer ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welche Planposten löschen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Which planned items should be deleted?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quelles prévisions supprimer ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quali previsioni eliminare?"
           }
         }
       }
@@ -22677,6 +22705,62 @@
         }
       }
     },
+    "Supprimer %@ et %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ und %2$@ löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete %1$@ and %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer %1$@ et %2$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina %1$@ e %2$@"
+          }
+        }
+      }
+    },
+    "Supprimer %@ seulement" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur %@ löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete %@ only"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer %@ seulement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina solo %@"
+          }
+        }
+      }
+    },
     "Supprimer aussi les mouvements rattachés à ces prévisions" : {
       "localizations" : {
         "de" : {
@@ -24625,28 +24709,6 @@
         }
       }
     },
-    "Tout annuler" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Beides zurücknehmen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancel both"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Annulla tutto"
-          }
-        }
-      }
-    },
     "Tout est pointé" : {
       "localizations" : {
         "de" : {
@@ -25123,6 +25185,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Avrai qualche secondo per annullare."
+          }
+        }
+      }
+    },
+    "Tu as pris %@ sur ton épargne en %@ et prévu de les remettre en %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast im %2$@ %1$@ aus deinen Ersparnissen genommen und geplant, es im %3$@ zurückzulegen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You took %1$@ from your savings in %2$@ and planned to put it back in %3$@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu as pris %1$@ sur ton épargne en %2$@ et prévu de les remettre en %3$@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nel mese di %2$@ hai preso %1$@ dai tuoi risparmi e hai previsto di rimetterli nel mese di %3$@."
           }
         }
       }

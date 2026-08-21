@@ -3,16 +3,17 @@ import {
   appVersionResponseSchema,
   type AppVersionResponse,
 } from 'pulpe-shared';
+import { PRODUCT_VERSION } from '../../config/product-version';
 import type { IosVersionGate } from './ios-version-gate.service';
 
 /**
  * Builds the payload served at `GET /api/v1/app/version`.
  *
- * Web and Android values come from `ConfigService` (validated at boot by the
- * `envSchema` Zod schema); iOS versions come from `IosVersionGateService`,
- * which tracks what the App Store actually serves. Everything runs through
- * `appVersionResponseSchema` for a final shape check, so any drift from the
- * shared contract surfaces here as a Zod error.
+ * Minimum web policy and Android values come from `ConfigService` (validated
+ * at boot by the `envSchema` Zod schema); the latest web version comes from
+ * this backend artifact. iOS versions come from `IosVersionGateService`, which
+ * tracks what the App Store actually serves. Everything runs through
+ * `appVersionResponseSchema` for a final shape check.
  */
 export function buildAppVersionResponse(
   configService: ConfigService,
@@ -33,7 +34,7 @@ export function buildAppVersionResponse(
       },
       web: {
         minVersion: configService.get('MIN_WEB_VERSION'),
-        latestVersion: configService.get('LATEST_WEB_VERSION'),
+        latestVersion: PRODUCT_VERSION,
       },
     },
   });

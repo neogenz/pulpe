@@ -368,6 +368,49 @@ struct AppStateBiometricColdStartTests {
         #expect(sut.currentUser?.id == user.id)
     }
 
+    @Test(
+        "A valid session never resumes onboarding when the email marker is unreadable",
+        arguments: [
+            LastUsedEmailReadResult.temporarilyUnavailable(errSecInteractionNotAllowed),
+            .failed(errSecDecode)
+        ]
+    )
+    func checkAuthState_validSession_unreadableMarker_routesToPin(
+        _ readResult: LastUsedEmailReadResult
+    ) async {
+        let user = UserInfo(id: "locked-marker-user", email: "locked@pulpe.app", firstName: "Max")
+        let sut = AppState(
+            keychainManager: MockKeychainStore(readResult: readResult),
+            postAuthResolver: pinResolver,
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            validateRegularSession: { user },
+            maintenanceChecking: { false }
+        )
+
+        await sut.checkAuthState()
+
+        #expect(sut.hasReturningUser)
+        #expect(sut.authState == .needsPinEntry)
+        #expect(sut.pendingOnboardingUser == nil)
+    }
+
+    @Test("No session with a locked email marker routes to returning-user login")
+    func checkAuthState_noSession_lockedMarker_routesToLogin() async {
+        let sut = AppState(
+            keychainManager: MockKeychainStore(
+                readResult: .temporarilyUnavailable(errSecInteractionNotAllowed)
+            ),
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            validateRegularSession: { nil },
+            maintenanceChecking: { false }
+        )
+
+        await sut.checkAuthState()
+
+        #expect(sut.authState == .unauthenticated)
+        #expect(sut.hasReturningUser)
+    }
+
     // MARK: - Session-Based Cold Start Routing (no biometric)
 
     @Test("login() sets hasReturningUser to true")

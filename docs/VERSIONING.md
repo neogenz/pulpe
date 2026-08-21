@@ -89,7 +89,7 @@ l'ignore encore et ne compare que `minVersion`. Seules les versions iOS qui
 embarquent ce mécanisme peuvent afficher la suggestion : il n'existe aucun
 moyen rétroactif de la déclencher dans la 1.0.0.
 
-Huit variables d'env pilotent ce gate côté backend, validées par Zod (`backend-nest/src/config/environment.ts`) :
+Sept variables d'env pilotent ce gate côté backend, validées par Zod (`backend-nest/src/config/environment.ts`) :
 
 | Variable                 | Rôle                                                                                 | Format         |
 | ------------------------ | ------------------------------------------------------------------------------------ | -------------- |
@@ -97,14 +97,14 @@ Huit variables d'env pilotent ce gate côté backend, validées par Zod (`backen
 | `LATEST_IOS_VERSION`     | Repli hors-ligne / override manuel — la valeur servie vient de l'App Store           | SemVer `X.Y.Z` |
 | `IOS_STORE_URL`          | Deep link App Store (CTA "Mettre à jour") — porte aussi l'ID interrogé par le lookup | URL absolue    |
 | `MIN_WEB_VERSION`        | Plancher webapp                                                                      | SemVer `X.Y.Z` |
-| `LATEST_WEB_VERSION`     | Dernière version webapp publiée                                                      | SemVer `X.Y.Z` |
 | `MIN_ANDROID_VERSION`    | Plancher Android — en dessous = blocage dur                                          | SemVer `X.Y.Z` |
 | `LATEST_ANDROID_VERSION` | Dernière version Android publiée                                                     | SemVer `X.Y.Z` |
 | `ANDROID_STORE_URL`      | Deep link Play Store (CTA "Mettre à jour")                                           | URL absolue    |
 
-Source de vérité : Railway (env Production). Les valeurs locales restent celles de `backend-nest/.env.example`.
+La dernière version web vient de `backend-nest/package.json`, embarqué dans l'artifact.
+Les politiques minimales restent dans Railway (env Production).
 
-Android suit la même mécanique que la webapp : pas d'équivalent au lookup App Store, parce que l'API Play Developer exige un compte de service. `LATEST_ANDROID_VERSION` se bump donc à la main à chaque release, et `MIN_ANDROID_VERSION` doit rester ≤ `LATEST_ANDROID_VERSION` — un refine Zod refuse le boot sinon, exactement comme pour le web.
+Android n'a pas d'équivalent public au lookup App Store. `LATEST_ANDROID_VERSION` se bump donc à la main à chaque release, et `MIN_ANDROID_VERSION` doit rester ≤ `LATEST_ANDROID_VERSION` — un refine Zod refuse le boot sinon.
 
 ### iOS : la version publiée se résout toute seule
 
@@ -126,16 +126,17 @@ Bumper `MIN_IOS_VERSION` / `MIN_WEB_VERSION` **uniquement** quand on doit éject
 - Breaking change d'API que les anciens clients ne savent pas négocier.
 - Bug data-corrupting fixé dans une release ultérieure.
 
-Hors ces cas, `MIN_*` reste figé. Une release "classique" ne bouge que `LATEST_*`.
+Hors ces cas, `MIN_*` reste figé. Une release web classique ne modifie aucune variable
+de version ; l'iOS continue d'utiliser son fallback `LATEST_IOS_VERSION`.
 
 ### Procédure de rollout
 
 1. **Publier la release webapp AVANT le bump `MIN_WEB_VERSION`.** La version cible doit déjà être **publique et disponible** sur Vercel. Côté iOS, aucune précaution : le plancher servi est borné par la version App Store.
-2. **Bump `LATEST_WEB_VERSION` sur Railway** dès la release publiée :
-   ```bash
-   railway variables --set "LATEST_WEB_VERSION=0.36.0" --service backend
-   ```
-   Railway redémarre le service à chaque mise à jour de variable — `ConfigService` relit l'env au boot. `LATEST_IOS_VERSION` ne se bump pas : le backend suit l'App Store.
+2. **Laisser le preflight publier son contexte immuable.** Après preuve que le frontend
+   exact est public, Railway déploie `main` en tant qu'unique owner du backend. La
+   version web est celle de l'artifact ; aucun opérateur ne synchronise de variable ni
+   ne redéploie le service dans le chemin normal. `LATEST_IOS_VERSION` ne se bump pas :
+   le backend suit l'App Store.
 3. **Bump `MIN_*` (force-update)** uniquement quand l'éjection est nécessaire :
    ```bash
    railway variables --set "MIN_IOS_VERSION=1.2.0" --service backend

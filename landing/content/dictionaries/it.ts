@@ -5,14 +5,20 @@ import type { Dictionary } from "../dictionary";
 // `docs/I18N.md`.
 const it: Dictionary = {
   site: {
-    titleDefault: "Pulpe | Sai con mesi di anticipo quanto ti resterà",
+    titleDefault:
+      "Pulpe – App di budget | Pianifica l’anno, vedi quanto ti resterà",
     titleTemplate: "%s | Pulpe",
     description:
-      "Pianifica le tue entrate, le tue spese e il tuo risparmio. Pulpe ti mostra quanto ti resterà ogni mese, senza collegamento bancario.",
+      "App di budget per pianificare entrate, spese e risparmio. Pulpe ti mostra quanto ti resterà ogni mese, senza collegamento bancario.",
     socialImageAlt:
       "Pulpe proietta il tuo budget sull’anno e mostra quanto ti resterà",
     graphDescription:
-      "Pulpe calcola mese dopo mese quanto hai a disposizione a partire dalle tue entrate, dalle tue spese e dal tuo risparmio, senza collegamento bancario.",
+      "Pulpe è un’app di budget per pianificare l’anno, senza collegamento bancario.",
+    featureList: [
+      "Pianificazione annuale",
+      "Disponibile da spendere ogni mese",
+      "Senza collegamento bancario",
+    ],
     socialCard: {
       subhead: "Pianifica il tuo anno. Vedi ogni mese quanto ti resta.",
       badge: "Gratis · Senza collegamento bancario",
@@ -269,6 +275,11 @@ const it: Dictionary = {
     faq: {
       heading: "Le domande che mi fanno più spesso.",
       items: [
+        {
+          question: "Pulpe è un’app di budget?",
+          answer:
+            "Sì. È così che la cercano. Pulpe serve soprattutto a pianificare l’anno: vedi quanto ti resterà ogni mese, invece di elencare solo ciò che è già stato speso.",
+        },
         {
           question: "Perché Pulpe invece di Excel?",
           answer:

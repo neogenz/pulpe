@@ -1,9 +1,13 @@
 import type { MetadataRoute } from "next";
 import { GUIDES } from "@/components/guides/guides";
+import { DE_GUIDES } from "@/components/guides/guides.de";
 import { LOCALES } from "@/lib/i18n";
 import {
   ADVICE_INDEX_ROUTE,
+  CALCULATOR_ROUTE,
+  DE_ADVICE_SECTION_PATH,
   alternatesFor,
+  localizedPath,
   ROUTES,
   SITE_URL,
 } from "@/lib/routes";
@@ -15,7 +19,7 @@ export const dynamic = "force-static";
 const absolute = (path: string) => `${SITE_URL}${path === "/" ? "" : path}`;
 
 /**
- * Les 16 URLs du site, une par page et par langue, chacune listant ses trois
+ * Les URLs du site, une par page et par langue, chacune listant ses trois
  * sœurs. `metadataBase` ne s'applique pas ici : les alternates d'un sitemap
  * doivent être des URLs absolues, sans quoi les robots les ignorent.
  */
@@ -46,7 +50,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: absolute(`${ADVICE_INDEX_ROUTE}/${guide.slug}`),
       lastModified: guide.updatedAt,
     })),
+    { url: absolute(CALCULATOR_ROUTE) },
   ];
 
-  return [...localized, ...advice];
+  // Les conseils allemands n'existent qu'en allemand : aucun `alternates`,
+  // comme les conseils français. Les slugs ne traduisent pas le FR.
+  const germanAdvice = DE_GUIDES.map((guide) => ({
+    url: absolute(
+      localizedPath("de", `${DE_ADVICE_SECTION_PATH}/${guide.slug}`),
+    ),
+    lastModified: guide.updatedAt,
+  }));
+
+  return [...localized, ...advice, ...germanAdvice];
 }
