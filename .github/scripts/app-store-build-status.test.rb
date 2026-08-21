@@ -4,8 +4,16 @@ require "minitest/autorun"
 require "tempfile"
 require_relative "app-store-build-status"
 class FakeApi
-  def initialize(apps: [{ "type" => "apps", "id" => "app", "attributes" => { "bundleId" => "app.pulpe.ios" } }], builds: []) = (@apps, @builds = apps, builds)
-  def pages(path, _query) = path == "/v1/apps" ? @apps : @builds
+  attr_reader :calls
+  def initialize(apps: [{ "type" => "apps", "id" => "app", "attributes" => { "bundleId" => "app.pulpe.ios" } }], builds: [], versions: [])
+    @apps, @builds, @versions, @calls = apps, builds, versions, []
+  end
+  def pages(path, query)
+    @calls << [path, query]
+    return @apps if path == "/v1/apps"
+    return @versions if path.end_with?("/appStoreVersions")
+    @builds
+  end
 end
 class AppStoreBuildStatusTest < Minitest::Test
   def build(state, marketing: "1.4.2", number: "1", expired: false)
@@ -64,5 +72,90 @@ class AppStoreBuildStatusTest < Minitest::Test
       assert_equal "ES256", JSON.parse(Base64.urlsafe_decode64(header)).fetch("alg"); assert_equal "appstoreconnect-v1", JSON.parse(Base64.urlsafe_decode64(payload)).fetch("aud")
       assert_equal 64, signature.bytesize
     end
+  end
+end
+class AppStoreMarketingVersionStatusTest < Minitest::Test
+  def version(store_state:, version_state: nil)
+    attributes = { "platform" => "IOS", "versionString" => "1.4.2", "appStoreState" => store_state }
+    attributes["appVersionState"] = version_state if version_state
+    { "type" => "appStoreVersions", "id" => "version", "attributes" => attributes }
+  end
+  def status(versions) = AppStoreMarketingVersionStatus.new(FakeApi.new(versions: versions)).call("app.pulpe.ios", "1.4.2")
+  def test_open_when_version_is_absent_or_editable
+    assert_equal "open", status([])
+    assert_equal "open", status([version(store_state: "PREPARE_FOR_SUBMISSION", version_state: "PREPARE_FOR_SUBMISSION")])
+  end
+  def test_uses_the_official_app_versions_relationship_and_filters
+    api = FakeApi.new(versions: [])
+    assert_equal "open", AppStoreMarketingVersionStatus.new(api).call("app.pulpe.ios", "1.4.2")
+    assert_equal [
+      "/v1/apps/app/appStoreVersions",
+      { "filter[platform]" => "IOS", "filter[versionString]" => "1.4.2", "limit" => "200" }
+    ], api.calls.last
+  end
+  def test_closed_when_version_is_already_distributed
+    assert_equal "closed", status([version(store_state: "READY_FOR_SALE", version_state: "READY_FOR_DISTRIBUTION")])
+    assert_equal "closed", status([version(store_state: "READY_FOR_SALE", version_state: "PREPARE_FOR_SUBMISSION")])
+    assert_equal "closed", status([version(store_state: "PREPARE_FOR_SUBMISSION", version_state: "READY_FOR_DISTRIBUTION")])
+  end
+  def test_malformed_duplicate_or_unknown_versions_fail_closed
+    assert_equal "invalid", status([version(store_state: "READY_FOR_SALE"), version(store_state: "READY_FOR_SALE").merge("id" => "other")])
+    assert_equal "invalid", status([version(store_state: "READY_FOR_SALE").tap { |item| item.delete("id") }])
+    assert_equal "invalid", status([version(store_state: "UNKNOWN", version_state: "UNKNOWN")])
+    assert_equal "invalid", status([version(store_state: "PREPARE_FOR_SUBMISSION")])
+  end
+end
+
+class AppStoreNextBuildNumberTest < Minitest::Test
+  def build(number, marketing:, id: "build-#{marketing}-#{number}", expired: false)
+    {
+      "type" => "builds",
+      "id" => id,
+      "attributes" => {
+        "version" => number,
+        "processingState" => "VALID",
+        "expired" => expired
+      },
+      "relationships" => {
+        "preReleaseVersion" => {
+          "data" => { "type" => "preReleaseVersions", "id" => marketing }
+        }
+      },
+      "included" => [{
+        "type" => "preReleaseVersions",
+        "id" => marketing,
+        "attributes" => { "version" => marketing }
+      }]
+    }
+  end
+
+  def next_number(builds)
+    AppStoreNextBuildNumber.new(FakeApi.new(builds: builds)).call("app.pulpe.ios", "1.4.2")
+  end
+
+  def test_new_marketing_version_starts_at_one_despite_higher_older_builds
+    assert_equal "1", next_number([build("15", marketing: "1.0.1")])
+    assert_equal "1", next_number([])
+  end
+
+  def test_increments_only_the_selected_marketing_version
+    builds = [
+      build("15", marketing: "1.0.1"),
+      build("1", marketing: "1.4.2"),
+      build("2", marketing: "1.4.2", expired: true)
+    ]
+    assert_equal "3", next_number(builds)
+  end
+
+  def test_malformed_or_ambiguous_builds_fail_closed
+    malformed = build("1", marketing: "1.4.2").tap { |item| item.delete("relationships") }
+    assert_equal "invalid", next_number([malformed])
+    assert_equal "invalid", next_number([build("abc", marketing: "1.4.2")])
+    duplicate_id = build("1", marketing: "1.4.2", id: "same")
+    assert_equal "invalid", next_number([duplicate_id, build("2", marketing: "1.4.2", id: "same")])
+    assert_equal "invalid", next_number([
+      build("1", marketing: "1.4.2", id: "first"),
+      build("1", marketing: "1.4.2", id: "second")
+    ])
   end
 end

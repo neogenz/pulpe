@@ -53,6 +53,75 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.46.0',
+    iosVersion: '1.4.2',
+    date: '2026-08-21',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'Réglage de langue harmonisé',
+          description:
+            'Sur iOS, le sélecteur de langue s’intègre désormais naturellement aux autres préférences.',
+        },
+        {
+          title: 'Connexion iOS plus fiable',
+          description:
+            'Un lancement en arrière-plan ne provoque plus de fausse déconnexion.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [],
+        fixes: [
+          {
+            title: 'Consistent language settings',
+            description:
+              'On iOS, the language selector now fits naturally with the other preferences.',
+          },
+          {
+            title: 'More reliable iOS sign-in',
+            description:
+              'A background launch no longer causes a false sign-out.',
+          },
+        ],
+      },
+      de: {
+        features: [],
+        fixes: [
+          {
+            title: 'Einheitliche Spracheinstellung',
+            description:
+              'Auf iOS fügt sich die Sprachauswahl jetzt natürlich in die übrigen Einstellungen ein.',
+          },
+          {
+            title: 'Zuverlässigere iOS-Anmeldung',
+            description:
+              'Ein Start im Hintergrund führt nicht mehr zu einer falschen Abmeldung.',
+          },
+        ],
+      },
+      it: {
+        features: [],
+        fixes: [
+          {
+            title: 'Impostazione della lingua coerente',
+            description:
+              'Su iOS, il selettore della lingua ora si integra naturalmente con le altre preferenze.',
+          },
+          {
+            title: 'Accesso iOS più affidabile',
+            description:
+              'Un avvio in background non causa più una falsa disconnessione.',
+          },
+        ],
+      },
+    },
+  },
+  {
     version: '0.45.0',
     iosVersion: '1.4.0',
     date: '2026-08-18',

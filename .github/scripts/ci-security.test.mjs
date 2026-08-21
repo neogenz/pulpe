@@ -510,6 +510,16 @@ test("production finalizer proves exact providers before idempotent publication"
   }
 });
 
+test("iOS distribution serializes allocation and upload across channels", () => {
+  const concurrency = iosDistribution.slice(
+    iosDistribution.indexOf("\nconcurrency:"),
+    iosDistribution.indexOf("\npermissions:"),
+  );
+  assert.match(concurrency, /group: ios-distribution\n/);
+  assert.doesNotMatch(concurrency, /inputs\.channel/);
+  assert.match(concurrency, /cancel-in-progress: false/);
+});
+
 test("iOS distribution consumes staging or finalized production proofs", () => {
   assert.equal(
     [
@@ -562,7 +572,11 @@ test("internal production-config builds stay bound to preview staging proof", ()
   );
   assert.match(
     iosRelease,
-    /internal.*preview.*PulpeProd.*Prod.*highest existing build \+ 1/,
+    /internal.*preview.*PulpeProd.*Prod.*selected marketing version/,
+  );
+  assert.doesNotMatch(
+    iosRelease,
+    /global ASC build|highest existing build \+ 1/,
   );
   assert.doesNotMatch(iosRelease, /PulpePreview|archive .*Preview/);
   assert.doesNotMatch(iosDistribution, /--submit|MVP/);
@@ -573,9 +587,56 @@ test("iOS distribution resumes the exact App Store build idempotently", () => {
   assert.match(iosDistribution, /git merge-base --is-ancestor "\$SOURCE_SHA"/);
   assert.doesNotMatch(iosDistribution, /remote_sha.*!=.*SOURCE_SHA/s);
   const query = iosDistribution.indexOf("Query exact App Store build");
+  const versionPreflight = iosDistribution.indexOf(
+    "Verify marketing version accepts new builds",
+  );
+  const buildNumberPreflight = iosDistribution.indexOf(
+    "Verify next build number for marketing version",
+  );
+  const provenance = iosDistribution.indexOf(
+    "Verify existing App Store build provenance",
+  );
   const archive = iosDistribution.indexOf("Archive signed application");
+  const verifyIpa = iosDistribution.indexOf(
+    "Verify exported application identity",
+  );
+  const createIntent = iosDistribution.indexOf(
+    "Create iOS distribution intent",
+  );
+  const uploadIntent = iosDistribution.indexOf(
+    "Upload iOS distribution intent",
+  );
+  const upload = iosDistribution.indexOf("Upload to App Store Connect");
+  const proof = iosDistribution.indexOf("Create iOS distribution proof");
   assert.ok(query >= 0 && query < archive);
+  assert.ok(query < versionPreflight && versionPreflight < archive);
+  assert.ok(
+    versionPreflight < buildNumberPreflight && buildNumberPreflight < archive,
+  );
+  assert.ok(buildNumberPreflight < provenance && provenance < archive);
+  assert.ok(
+    verifyIpa < createIntent &&
+      createIntent < uploadIntent &&
+      uploadIntent < upload &&
+      upload < proof,
+  );
+  assert.match(
+    iosDistribution,
+    /Verify marketing version accepts new builds[\s\S]*if: steps\.asc\.outputs\.state == 'not_found'[\s\S]*--marketing-version-status/,
+  );
   assert.match(iosDistribution, /ASC_INITIAL_STATE.*not_found/);
+  assert.match(
+    iosDistribution,
+    /Verify next build number for marketing version[\s\S]*if: steps\.asc\.outputs\.state == 'not_found'[\s\S]*--next-build-number[\s\S]*BUILD_NUMBER/,
+  );
+  assert.match(
+    iosDistribution,
+    /Verify existing App Store build provenance[\s\S]*if: steps\.asc\.outputs\.state != 'not_found'[\s\S]*resolve-ios-distribution-intent\.mjs/,
+  );
+  assert.match(
+    iosDistribution,
+    /Upload iOS distribution intent[\s\S]*if: steps\.asc\.outputs\.state == 'not_found'[\s\S]*ios-distribution-intent-/,
+  );
   assert.match(iosDistribution, /Poll App Store build processing/);
   assert.match(iosDistribution, /ios-distribution-proof-/);
   for (const field of ["marketing_version", "build_number", "source_sha"])

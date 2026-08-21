@@ -44,13 +44,22 @@ class AppStoreApi
     [response.code.to_i, response.body]
   end
 end
+module AppStoreApp
+  module_function
+  def id(api, bundle_id)
+    apps = api.pages("/v1/apps", { "filter[bundleId]" => bundle_id, "limit" => "200" })
+    raise AppStoreApi::Error, "Expected exactly one App Store app" unless apps.length == 1
+    app = apps.first
+    valid = app["type"] == "apps" && app["id"].is_a?(String) && !app["id"].empty? && app.dig("attributes", "bundleId") == bundle_id
+    raise AppStoreApi::Error, "Malformed App Store app" unless valid
+    app["id"]
+  end
+end
 class AppStoreBuildStatus
   def initialize(api) = (@api = api)
   def call(bundle_id, marketing_version, build_number)
-    apps = @api.pages("/v1/apps", { "filter[bundleId]" => bundle_id, "limit" => "200" })
-    raise AppStoreApi::Error, "Expected exactly one App Store app" unless apps.length == 1
-    app = apps.first; raise AppStoreApi::Error, "Malformed App Store app" unless app["type"] == "apps" && app["id"].is_a?(String) && !app["id"].empty? && app.dig("attributes", "bundleId") == bundle_id
-    builds = @api.pages("/v1/builds", { "filter[app]" => app["id"], "filter[version]" => build_number,
+    app_id = AppStoreApp.id(@api, bundle_id)
+    builds = @api.pages("/v1/builds", { "filter[app]" => app_id, "filter[version]" => build_number,
       "include" => "preReleaseVersion", "limit" => "200" })
     return "invalid" unless builds.map { |build| [build["type"], build["id"]] }.uniq.length == builds.length; details = builds.map do |build|
       attributes = build["attributes"]
@@ -68,6 +77,58 @@ class AppStoreBuildStatus
     { "PROCESSING" => "processing", "VALID" => "valid" }.fetch(attributes["processingState"], "invalid")
   end
 end
+class AppStoreMarketingVersionStatus
+  def initialize(api) = (@api = api)
+  def call(bundle_id, marketing_version)
+    app_id = AppStoreApp.id(@api, bundle_id)
+    versions = @api.pages("/v1/apps/#{app_id}/appStoreVersions", {
+      "filter[platform]" => "IOS", "filter[versionString]" => marketing_version,
+      "limit" => "200"
+    })
+    return "open" if versions.empty?
+    return "invalid" unless versions.one?
+    version = versions.first
+    attributes = version["attributes"]
+    complete = version["type"] == "appStoreVersions" && version["id"].is_a?(String) && !version["id"].empty? &&
+      attributes.is_a?(Hash) && attributes["platform"] == "IOS" && attributes["versionString"] == marketing_version &&
+      attributes["appStoreState"].is_a?(String) && attributes["appVersionState"].is_a?(String)
+    return "invalid" unless complete
+    return "closed" if attributes["appStoreState"] == "READY_FOR_SALE" || attributes["appVersionState"] == "READY_FOR_DISTRIBUTION"
+    return "open" if attributes["appStoreState"] == "PREPARE_FOR_SUBMISSION" && attributes["appVersionState"] == "PREPARE_FOR_SUBMISSION"
+    "invalid"
+  end
+end
+class AppStoreNextBuildNumber
+  def initialize(api) = (@api = api)
+  def call(bundle_id, marketing_version)
+    app_id = AppStoreApp.id(@api, bundle_id)
+    builds = @api.pages("/v1/builds", {
+      "filter[app]" => app_id, "include" => "preReleaseVersion", "limit" => "200"
+    })
+    return "invalid" unless builds.map { |build| [build["type"], build["id"]] }.uniq.length == builds.length
+    numbers = builds.map do |build|
+      attributes = build["attributes"]
+      relation_id = build.dig("relationships", "preReleaseVersion", "data", "id")
+      included = build["included"]
+      versions = included.is_a?(Array) ? included.select { |item| item.is_a?(Hash) && item["type"] == "preReleaseVersions" && item["id"] == relation_id } : []
+      version = versions.one? ? versions.first : nil
+      build_number = attributes.is_a?(Hash) ? attributes["version"] : nil
+      complete = build["type"] == "builds" && build["id"].is_a?(String) && !build["id"].empty? &&
+        build_number.is_a?(String) && build_number.match?(/\A(?:0|[1-9][0-9]*)\z/) &&
+        build.dig("relationships", "preReleaseVersion", "data", "type") == "preReleaseVersions" &&
+        relation_id.is_a?(String) && !relation_id.empty? && included.is_a?(Array) &&
+        included.all? { |item| item.is_a?(Hash) && item["type"].is_a?(String) && item["id"].is_a?(String) && !item["id"].empty? } &&
+        included.map { |item| [item["type"], item["id"]] }.uniq.length == included.length &&
+        version&.dig("attributes", "version").is_a?(String) && !version.dig("attributes", "version").empty?
+      next :invalid unless complete
+      version.dig("attributes", "version") == marketing_version ? Integer(build_number, 10) : nil
+    end
+    return "invalid" if numbers.include?(:invalid)
+    selected_numbers = numbers.compact
+    return "invalid" unless selected_numbers.uniq.length == selected_numbers.length
+    ((selected_numbers.max || 0) + 1).to_s
+  end
+end
 module AppStoreToken
   module_function
   def create(key_id, issuer_id, key_path, now = Time.now.to_i)
@@ -82,9 +143,18 @@ module AppStoreToken
 end
 if $PROGRAM_NAME == __FILE__
   begin
-    abort "usage: app-store-build-status.rb BUNDLE_ID MARKETING_VERSION BUILD_NUMBER" unless ARGV.length == 3
     token = AppStoreToken.create(ENV.fetch("ASC_KEY_ID"), ENV.fetch("ASC_ISSUER_ID"), ENV.fetch("ASC_KEY_PATH"))
-    puts AppStoreBuildStatus.new(AppStoreApi.new(token: token)).call(*ARGV)
+    api = AppStoreApi.new(token: token)
+    if ARGV.first == "--marketing-version-status"
+      abort "usage: app-store-build-status.rb --marketing-version-status BUNDLE_ID MARKETING_VERSION" unless ARGV.length == 3
+      puts AppStoreMarketingVersionStatus.new(api).call(ARGV[1], ARGV[2])
+    elsif ARGV.first == "--next-build-number"
+      abort "usage: app-store-build-status.rb --next-build-number BUNDLE_ID MARKETING_VERSION" unless ARGV.length == 3
+      puts AppStoreNextBuildNumber.new(api).call(ARGV[1], ARGV[2])
+    else
+      abort "usage: app-store-build-status.rb BUNDLE_ID MARKETING_VERSION BUILD_NUMBER" unless ARGV.length == 3
+      puts AppStoreBuildStatus.new(api).call(*ARGV)
+    end
   rescue StandardError => e
     warn "App Store build status failed: #{e.message}"
     exit 1
