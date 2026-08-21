@@ -17,17 +17,25 @@ const VALID_PAYLOAD = {
  * A `Response` body can only be consumed once, so a retried call needs a fresh
  * instance. Fixtures hand back a factory rather than a shared object.
  */
-function jsonResponse(body: unknown, status = 200): () => Response {
+function jsonResponse(
+  body: unknown,
+  status = 200,
+  headers: Record<string, string> = {},
+): () => Response {
   return () =>
     new Response(JSON.stringify(body), {
       status,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...headers },
     });
 }
 
 function createClient(
   fetchFn: jest.Mock,
-  overrides: { clientKey?: string | null; token?: string | null } = {},
+  overrides: {
+    clientKey?: string | null;
+    token?: string | null;
+    onError?: ConstructorParameters<typeof ApiClient>[0]["onError"];
+  } = {},
 ) {
   return new ApiClient({
     baseUrl: "https://api.test/api/v1",
@@ -35,6 +43,7 @@ function createClient(
     getClientKey: () => overrides.clientKey ?? null,
     retryBaseDelayMs: 0,
     fetchFn: fetchFn as unknown as typeof fetch,
+    onError: overrides.onError,
   });
 }
 
@@ -137,6 +146,58 @@ describe("ApiClient", () => {
 
     expect(isApiError(failure) && failure.status).toBe(500);
     expect(fetchFn).toHaveBeenCalledTimes(3);
+  });
+
+  it("should report a final error once with the echoed request id", async () => {
+    const onError = jest.fn();
+    const fetchFn = jest.fn().mockImplementation(
+      jsonResponse({ error: "private backend detail" }, 500, {
+        "X-Request-Id": "server-request-id",
+      }),
+    );
+
+    const failure = await createClient(fetchFn, { onError })
+      .get("/budgets", budgetsSchema)
+      .catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({
+      status: 500,
+      requestId: "server-request-id",
+    });
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(failure, {
+      method: "GET",
+      path: "/budgets",
+    });
+  });
+
+  it("should abort at the per-read timeout without retrying", async () => {
+    jest.useFakeTimers();
+    const onError = jest.fn();
+    const fetchFn = jest.fn(
+      (_url, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => {
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        }),
+    );
+
+    const request = createClient(fetchFn, { onError })
+      .get("/app/version", budgetsSchema, undefined, {
+        timeoutMs: 50,
+        retryCount: 0,
+      })
+      .catch((error: unknown) => error);
+    await jest.advanceTimersByTimeAsync(50);
+    const failure = await request;
+
+    expect(failure).toMatchObject({ code: CLIENT_ERROR_CODES.TIMEOUT });
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
   });
 
   it("should never replay a mutation", async () => {

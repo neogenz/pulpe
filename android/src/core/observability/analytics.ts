@@ -163,6 +163,15 @@ export function captureEvent(
   void client?.capture(event, sanitizeProperties(properties));
 }
 
+/** Captures a handled incident without bypassing the diagnostics preference. */
+export function captureException(
+  error: Error,
+  properties: AnalyticsProperties = {},
+): void {
+  if (!isDiagnosticSharingEnabled()) return;
+  client?.captureException(error, sanitizeProperties(properties));
+}
+
 /**
  * Screen views, carrying the *file* segments of the route rather than the
  * resolved path: `budget/[id]/line/[lineId]`, never the ids themselves.

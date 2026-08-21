@@ -4,6 +4,7 @@ const mockClient = {
   reset: jest.fn(),
   optIn: jest.fn(),
   optOut: jest.fn(),
+  captureException: jest.fn(),
 };
 const mockPostHog = jest.fn(() => mockClient);
 const mockStopListening = jest.fn();
@@ -56,15 +57,16 @@ jest.mock("./diagnostics-consent", () => ({
   useDiagnosticsConsent: { subscribe: mockSubscribe },
 }));
 
-function loadStartAnalytics(): typeof import("./analytics").startAnalytics {
-  let startAnalytics: typeof import("./analytics").startAnalytics | undefined;
+function loadAnalytics(): typeof import("./analytics") {
+  let analytics: typeof import("./analytics") | undefined;
   jest.isolateModules(() => {
-    startAnalytics =
-      jest.requireActual<typeof import("./analytics")>(
-        "./analytics",
-      ).startAnalytics;
+    analytics = jest.requireActual<typeof import("./analytics")>("./analytics");
   });
-  return startAnalytics!;
+  return analytics!;
+}
+
+function loadStartAnalytics(): typeof import("./analytics").startAnalytics {
+  return loadAnalytics().startAnalytics;
 }
 
 describe("PostHog startup", () => {
@@ -156,6 +158,28 @@ describe("PostHog startup", () => {
 
     expect(mockClient.optIn).toHaveBeenCalledTimes(1);
     expect(mockClient.optOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("captures handled exceptions only with consent and sanitized properties", () => {
+    const analytics = loadAnalytics();
+    analytics.startAnalytics();
+    mockIsSharingEnabled = false;
+
+    analytics.captureException(new Error("technical"), {
+      request_id: "request-42",
+      message: "backend message",
+    });
+    expect(mockClient.captureException).not.toHaveBeenCalled();
+
+    mockIsSharingEnabled = true;
+    analytics.captureException(new Error("technical"), {
+      request_id: "request-42",
+      message: "backend message",
+    });
+    expect(mockClient.captureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      { request_id: "request-42" },
+    );
   });
 
   it("identifies a restored session with the shared Supabase identity", () => {

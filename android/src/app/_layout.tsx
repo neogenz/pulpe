@@ -16,6 +16,7 @@ import { DeepLinkRouter } from "@/core/linking/deep-link-router";
 import { useLandingPreference } from "@/core/navigation/landing-preference";
 import { openGroups } from "@/core/navigation/route-gates";
 import {
+  captureException,
   startAnalytics,
   useScreenTracking,
 } from "@/core/observability/analytics";
@@ -70,6 +71,13 @@ function RootLayout() {
   useEffect(() => observeVaultKeyRejection(), []);
   useEffect(() => armAutoLock(), []);
   useEffect(() => startAnalytics(), []);
+  useEffect(() => {
+    if (status === "error") {
+      captureException(new Error("Session restore failed"), {
+        phase: "session_restore",
+      });
+    }
+  }, [status]);
   useScreenTracking();
   // Synchronous, and before the first route decision: an unfinished run has to
   // be known by the time the guards below are evaluated.

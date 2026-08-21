@@ -28,12 +28,24 @@ export interface ApiClientOptions {
   retryBaseDelayMs?: number;
   timeoutMs?: number;
   fetchFn?: typeof fetch;
+  onError?: (error: ApiError, context: ApiErrorContext) => void;
+}
+
+export interface ApiErrorContext {
+  method: string;
+  path: string;
+}
+
+export interface ReadRequestOptions {
+  timeoutMs?: number;
+  retryCount?: number;
 }
 
 interface RequestOptions<TBody> {
   query?: QueryParams;
   body?: TBody;
   requestSchema?: ZodType<TBody>;
+  timeoutMs?: number;
 }
 
 /**
@@ -65,6 +77,7 @@ export class ApiClient {
   readonly #retryBaseDelayMs: number;
   readonly #timeoutMs: number;
   readonly #fetch: typeof fetch;
+  readonly #onError: ApiClientOptions["onError"];
 
   constructor(options: ApiClientOptions) {
     this.#baseUrl = options.baseUrl.replace(/\/$/, "");
@@ -74,6 +87,7 @@ export class ApiClient {
       options.retryBaseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS;
     this.#timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.#fetch = options.fetchFn ?? fetch;
+    this.#onError = options.onError;
   }
 
   /**
@@ -85,20 +99,25 @@ export class ApiClient {
     path: string,
     schema: ZodType<T>,
     query?: QueryParams,
+    options: ReadRequestOptions = {},
   ): Promise<T> {
     let lastError: ApiError | undefined;
+    const retryCount = options.retryCount ?? TRANSIENT_RETRY_COUNT;
 
-    for (let attempt = 0; attempt <= TRANSIENT_RETRY_COUNT; attempt += 1) {
+    for (let attempt = 0; attempt <= retryCount; attempt += 1) {
       try {
-        return await this.#request("GET", path, schema, { query });
+        return await this.#request("GET", path, schema, {
+          query,
+          timeoutMs: options.timeoutMs,
+        });
       } catch (error) {
         lastError = normalizeApiError(error);
-        if (!isTransientError(lastError)) throw lastError;
-        if (attempt === TRANSIENT_RETRY_COUNT) break;
+        if (!isTransientError(lastError) || attempt === retryCount) break;
         await delay(this.#retryBaseDelayMs * 3 ** attempt);
       }
     }
 
+    this.#report(lastError!, "GET", path);
     throw lastError;
   }
 
@@ -108,7 +127,10 @@ export class ApiClient {
     responseSchema: ZodType<TResponse>,
     requestSchema?: ZodType<TBody>,
   ): Promise<TResponse> {
-    return this.#request("POST", path, responseSchema, { body, requestSchema });
+    return this.#requestOnce("POST", path, responseSchema, {
+      body,
+      requestSchema,
+    });
   }
 
   patch<TResponse, TBody = unknown>(
@@ -117,7 +139,7 @@ export class ApiClient {
     responseSchema: ZodType<TResponse>,
     requestSchema?: ZodType<TBody>,
   ): Promise<TResponse> {
-    return this.#request("PATCH", path, responseSchema, {
+    return this.#requestOnce("PATCH", path, responseSchema, {
       body,
       requestSchema,
     });
@@ -129,16 +151,19 @@ export class ApiClient {
     responseSchema: ZodType<TResponse>,
     requestSchema?: ZodType<TBody>,
   ): Promise<TResponse> {
-    return this.#request("PUT", path, responseSchema, { body, requestSchema });
+    return this.#requestOnce("PUT", path, responseSchema, {
+      body,
+      requestSchema,
+    });
   }
 
   delete<T>(path: string, schema: ZodType<T>, query?: QueryParams): Promise<T> {
-    return this.#request("DELETE", path, schema, { query });
+    return this.#requestOnce("DELETE", path, schema, { query });
   }
 
   /** For endpoints answering 204 with no body. */
   async deleteVoid(path: string, query?: QueryParams): Promise<void> {
-    await this.#request("DELETE", path, undefined, { query });
+    await this.#requestOnce("DELETE", path, undefined, { query });
   }
 
   /** For toggles and actions answering without a body. */
@@ -147,7 +172,22 @@ export class ApiClient {
     body?: TBody,
     requestSchema?: ZodType<TBody>,
   ): Promise<void> {
-    await this.#request("POST", path, undefined, { body, requestSchema });
+    await this.#requestOnce("POST", path, undefined, { body, requestSchema });
+  }
+
+  async #requestOnce<T, TBody>(
+    method: string,
+    path: string,
+    schema: ZodType<T> | undefined,
+    options: RequestOptions<TBody>,
+  ): Promise<T> {
+    try {
+      return await this.#request(method, path, schema, options);
+    } catch (error) {
+      const normalized = normalizeApiError(error);
+      this.#report(normalized, method, path);
+      throw normalized;
+    }
   }
 
   async #request<T, TBody>(
@@ -156,39 +196,55 @@ export class ApiClient {
     schema: ZodType<T> | undefined,
     options: RequestOptions<TBody> = {},
   ): Promise<T> {
+    const requestId = generateRequestId();
     const { body, requestSchema, query } = options;
-    const payload =
-      requestSchema && body !== undefined ? requestSchema.parse(body) : body;
+    let payload: TBody | undefined;
+    try {
+      payload =
+        requestSchema && body !== undefined ? requestSchema.parse(body) : body;
+    } catch (error) {
+      throw normalizeApiError(error, requestId);
+    }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
+    const timeout = setTimeout(
+      () => controller.abort(),
+      options.timeoutMs ?? this.#timeoutMs,
+    );
 
     let response: Response;
     try {
       response = await this.#fetch(this.#buildUrl(path, query), {
         method,
-        headers: await this.#buildHeaders(payload !== undefined),
+        headers: await this.#buildHeaders(payload !== undefined, requestId),
         body: payload === undefined ? undefined : JSON.stringify(payload),
         signal: controller.signal,
       });
     } catch (error) {
-      throw normalizeApiError(error);
+      throw normalizeApiError(error, requestId);
     } finally {
       clearTimeout(timeout);
     }
 
-    return this.#parseResponse(response, schema);
+    return this.#parseResponse(response, schema, requestId);
   }
 
   async #parseResponse<T>(
     response: Response,
     schema: ZodType<T> | undefined,
+    fallbackRequestId: string,
   ): Promise<T> {
     const rawBody = await response.text();
     const parsedBody = this.#parseJson(rawBody);
+    const requestId =
+      response.headers.get(REQUEST_ID_HEADER) ?? fallbackRequestId;
 
     if (!response.ok) {
-      throw apiErrorFromResponse(response.status, parsedBody ?? rawBody);
+      throw apiErrorFromResponse(
+        response.status,
+        parsedBody ?? rawBody,
+        requestId,
+      );
     }
 
     if (!schema) return undefined as T;
@@ -199,11 +255,12 @@ export class ApiClient {
         undefined,
         response.status,
         undefined,
+        requestId,
       );
     }
 
     const validated = schema.safeParse(parsedBody);
-    if (!validated.success) throw normalizeApiError(validated.error);
+    if (!validated.success) throw normalizeApiError(validated.error, requestId);
     return validated.data;
   }
 
@@ -228,10 +285,13 @@ export class ApiClient {
     return queryString.length > 0 ? `${url}?${queryString}` : url;
   }
 
-  async #buildHeaders(hasBody: boolean): Promise<Record<string, string>> {
+  async #buildHeaders(
+    hasBody: boolean,
+    requestId: string,
+  ): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       Accept: "application/json",
-      [REQUEST_ID_HEADER]: generateRequestId(),
+      [REQUEST_ID_HEADER]: requestId,
     };
 
     if (hasBody) headers["Content-Type"] = "application/json";
@@ -243,6 +303,14 @@ export class ApiClient {
     if (clientKey) headers[CLIENT_KEY_HEADER] = clientKey;
 
     return headers;
+  }
+
+  #report(error: ApiError, method: string, path: string): void {
+    try {
+      this.#onError?.(error, { method, path });
+    } catch {
+      // Observability must never replace the API failure the caller handles.
+    }
   }
 }
 

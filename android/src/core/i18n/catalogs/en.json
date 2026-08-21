@@ -1045,10 +1045,6 @@
       "maintenance": {
         "hint": "We're getting everything back in shape. Come back in a few minutes.",
         "title": "Pulpe is under maintenance"
-      },
-      "offline": {
-        "hint": "Your budgets are encrypted on the server. Without a connection, Pulpe cannot display them.",
-        "title": "No connection"
       }
     },
     "queryError": "This section could not be loaded.",
