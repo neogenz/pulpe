@@ -51,6 +51,7 @@
     }
   },
   "common": {
+    "amountInCurrency": "%{label}, in %{currency}",
     "and": "and",
     "back": "Back",
     "backToSignIn": "Back to sign in",

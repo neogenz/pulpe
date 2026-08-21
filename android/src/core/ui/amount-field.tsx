@@ -2,7 +2,18 @@ import { CURRENCY_METADATA, type SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { TextInput } from "react-native-paper";
 
+import { translate } from "@/core/i18n/i18n";
+import { useTranslation } from "@/core/i18n/locale-store";
+
 import { parseAmount, seedAmountText } from "./money";
+
+export function amountFieldAccessibilityLabel(
+  t: typeof translate,
+  label: string,
+  currency: string,
+): string {
+  return t("common.amountInCurrency", { label, currency });
+}
 
 /**
  * An amount, typed.
@@ -27,6 +38,7 @@ export function AmountField({
   onChange: (amount: number | null) => void;
   autoFocus?: boolean;
 }) {
+  const { t } = useTranslation();
   const [text, setText] = useState(() => seedAmountText(amount));
 
   return (
@@ -42,7 +54,11 @@ export function AmountField({
       keyboardType="decimal-pad"
       autoFocus={autoFocus}
       right={<TextInput.Affix text={CURRENCY_METADATA[currency].symbol} />}
-      accessibilityLabel={`${label}, en ${CURRENCY_METADATA[currency].nativeName}`}
+      accessibilityLabel={amountFieldAccessibilityLabel(
+        t,
+        label,
+        CURRENCY_METADATA[currency].nativeName,
+      )}
     />
   );
 }
