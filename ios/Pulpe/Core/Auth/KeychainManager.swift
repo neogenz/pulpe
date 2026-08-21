@@ -166,6 +166,36 @@ actor KeychainManager {
         get(key: lastUsedEmailKey)
     }
 
+    func readLastUsedEmail() -> LastUsedEmailReadResult {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: lastUsedEmailKey,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        return Self.lastUsedEmailReadResult(status: status, data: result as? Data)
+    }
+
+    static func lastUsedEmailReadResult(status: OSStatus, data: Data?) -> LastUsedEmailReadResult {
+        switch status {
+        case errSecSuccess:
+            guard let data, let email = String(data: data, encoding: .utf8) else {
+                return .failed(errSecDecode)
+            }
+            return .available(email)
+        case errSecItemNotFound:
+            return .missing
+        case errSecInteractionNotAllowed:
+            return .temporarilyUnavailable(status)
+        default:
+            return .failed(status)
+        }
+    }
+
     func clearLastUsedEmail() {
         delete(key: lastUsedEmailKey)
     }
