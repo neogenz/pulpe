@@ -214,6 +214,8 @@ struct PulpeApp: App {
             BudgetGoalSpreadUITestHarness(scenario: scenario)
         case .contextualCreationHome, .contextualCreationBudget:
             ContextualCreationUITestHarness(scenario: scenario)
+        case .languageSettings:
+            PreferencesUITestHarness()
         case .loginScreen:
             LoginFlowUITestHarness()
         case .savingsGoalForm,
