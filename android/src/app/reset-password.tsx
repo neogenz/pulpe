@@ -24,12 +24,10 @@ import {
   PASSWORD_MIN_LENGTH,
 } from "@/core/auth/password-rules";
 import { endRecoverySession, useSessionStore } from "@/core/auth/session-store";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
-
-const INVALID_LINK_MESSAGE =
-  "Ce lien n'est plus valide. Demande un nouveau lien depuis l'écran de connexion.";
 
 type Phase =
   | { kind: "preparing" }
@@ -58,6 +56,7 @@ export default function ResetPasswordScreen() {
   const router = useRouter();
   const url = useLinkingURL();
   const keyboardHeight = useKeyboardHeight();
+  const { t } = useTranslation();
   const status = useSessionStore((state) => state.status);
   const [phase, setPhase] = useState<Phase>({ kind: "preparing" });
 
@@ -165,10 +164,10 @@ export default function ResetPasswordScreen() {
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <ScreenAppBar>
-        <Appbar.Content title="Réinitialiser le mot de passe" />
+        <Appbar.Content title={t("auth.reset.title")} />
         <Appbar.Action
           icon="close"
-          accessibilityLabel="Fermer"
+          accessibilityLabel={t("common.close")}
           onPress={() => void leave()}
         />
       </ScreenAppBar>
@@ -195,58 +194,61 @@ export default function ResetPasswordScreen() {
 }
 
 function SecurityErrorState({ onLeave }: { onLeave: () => void }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.centered}>
       <Text variant="titleLarge" style={styles.title}>
-        Mot de passe modifié
+        {t("auth.reset.securityTitle")}
       </Text>
       <Text variant="bodyMedium" style={styles.title}>
-        La déconnexion de sécurité n&apos;a pas pu être confirmée.
-        Reconnecte-toi avec ton nouveau mot de passe.
+        {t("auth.reset.securityBody")}
       </Text>
       <Button mode="contained" onPress={onLeave}>
-        Retour à la connexion
+        {t("common.backToSignIn")}
       </Button>
     </View>
   );
 }
 
 function PreparingState() {
+  const { t } = useTranslation();
   return (
     <View style={styles.centered}>
-      <ActivityIndicator accessibilityLabel="Vérification du lien en cours" />
-      <Text variant="bodyMedium">Vérification du lien...</Text>
+      <ActivityIndicator accessibilityLabel={t("auth.reset.verifying")} />
+      <Text variant="bodyMedium">{t("auth.reset.verifying")}</Text>
     </View>
   );
 }
 
 function InvalidState({ onLeave }: { onLeave: () => void }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.centered}>
       <Text variant="titleLarge" style={styles.title}>
-        Lien invalide ou expiré
+        {t("auth.reset.invalidTitle")}
       </Text>
       <Text variant="bodyMedium" style={styles.title}>
-        {INVALID_LINK_MESSAGE}
+        {t("auth.reset.invalidBody")}
       </Text>
       <Button mode="contained" onPress={onLeave}>
-        Retour à la connexion
+        {t("common.backToSignIn")}
       </Button>
     </View>
   );
 }
 
 function DoneState({ onLeave }: { onLeave: () => void }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.centered}>
       <Text variant="titleLarge" style={styles.title}>
-        Mot de passe réinitialisé
+        {t("auth.reset.doneTitle")}
       </Text>
       <Text variant="bodyMedium" style={styles.title}>
-        Reconnecte-toi avec ton nouveau mot de passe.
+        {t("auth.reset.doneBody")}
       </Text>
       <Button mode="contained" onPress={onLeave}>
-        Retour à la connexion
+        {t("common.backToSignIn")}
       </Button>
     </View>
   );
@@ -257,6 +259,7 @@ function PasswordForm({
 }: {
   onSubmit: (password: string) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -265,12 +268,12 @@ function PasswordForm({
   async function submit() {
     if (!isAcceptablePassword(password)) {
       setErrorMessage(
-        `${PASSWORD_MIN_LENGTH} caractères minimum, avec au moins une lettre et un chiffre.`,
+        t("auth.reset.passwordRule", { count: PASSWORD_MIN_LENGTH }),
       );
       return;
     }
     if (password !== confirmation) {
-      setErrorMessage("Les mots de passe ne correspondent pas.");
+      setErrorMessage(t("auth.reset.mismatch"));
       return;
     }
 
@@ -278,24 +281,20 @@ function PasswordForm({
     setErrorMessage(null);
     try {
       await onSubmit(password);
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Quelque chose n'a pas fonctionné — réessaie.",
-      );
+    } catch {
+      setErrorMessage(t("auth.reset.error"));
       setIsSubmitting(false);
     }
   }
 
   return (
     <>
-      <Text variant="bodyMedium">Définis ton nouveau mot de passe.</Text>
+      <Text variant="bodyMedium">{t("auth.reset.intro")}</Text>
 
       <TextInput
         mode="outlined"
-        label="Nouveau mot de passe"
-        placeholder={`${PASSWORD_MIN_LENGTH} caractères minimum`}
+        label={t("auth.reset.newPassword")}
+        placeholder={t("auth.reset.minimum", { count: PASSWORD_MIN_LENGTH })}
         value={password}
         onChangeText={setPassword}
         autoCapitalize="none"
@@ -305,8 +304,8 @@ function PasswordForm({
       />
       <TextInput
         mode="outlined"
-        label="Confirmer le nouveau mot de passe"
-        placeholder="Confirme ton nouveau mot de passe"
+        label={t("auth.reset.confirmPassword")}
+        placeholder={t("auth.reset.confirmPlaceholder")}
         value={confirmation}
         onChangeText={setConfirmation}
         autoCapitalize="none"
@@ -323,10 +322,10 @@ function PasswordForm({
         disabled={isSubmitting || password.length === 0}
         onPress={() => void submit()}
         accessibilityLabel={
-          isSubmitting ? "Réinitialisation en cours" : undefined
+          isSubmitting ? t("auth.reset.submitting") : undefined
         }
       >
-        Valider
+        {t("auth.reset.submit")}
       </Button>
     </>
   );

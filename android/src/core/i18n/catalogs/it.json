@@ -1,7 +1,66 @@
 {
+  "auth": {
+    "forgot": {
+      "error": "Qualcosa è andato storto — riprova.",
+      "intro": "Inserisci la tua email per ricevere un link di reimpostazione.",
+      "send": "Invia il link",
+      "sending": "Invio in corso",
+      "sentBody": "Se esiste un account con questo indirizzo, riceverai un'email con un link di reimpostazione.",
+      "sentTitle": "Email inviata",
+      "spam": "Controlla la cartella spam se non la vedi.",
+      "title": "Password dimenticata"
+    },
+    "reset": {
+      "confirmPassword": "Conferma la nuova password",
+      "confirmPlaceholder": "Conferma la tua nuova password",
+      "doneBody": "Accedi di nuovo con la tua nuova password.",
+      "doneTitle": "Password reimpostata",
+      "error": "Qualcosa è andato storto — riprova.",
+      "intro": "Scegli la tua nuova password.",
+      "invalidBody": "Questo link non è più valido. Richiedine uno nuovo dalla schermata di accesso.",
+      "invalidTitle": "Link non valido o scaduto",
+      "minimum": "Almeno %{count} caratteri",
+      "mismatch": "Le password non corrispondono.",
+      "newPassword": "Nuova password",
+      "passwordRule": "Almeno %{count} caratteri, con una lettera e un numero.",
+      "securityBody": "Non è stato possibile confermare la disconnessione sicura. Accedi di nuovo con la tua nuova password.",
+      "securityTitle": "Password modificata",
+      "submit": "Conferma",
+      "submitting": "Reimpostazione in corso",
+      "title": "Reimposta password",
+      "verifying": "Verifica del link in corso"
+    },
+    "signIn": {
+      "createAccount": "Crea un account",
+      "emailPlaceholder": "Indirizzo email",
+      "error": "Accesso non riuscito — riprova.",
+      "forgotPassword": "Password dimenticata?",
+      "google": "Continua con Google",
+      "googleError": "Accesso con Google non riuscito — riprova.",
+      "googlePending": "Accesso in corso…",
+      "hidePassword": "Nascondi password",
+      "newUser": "Non hai ancora Pulpe?",
+      "passwordPlaceholder": "La tua password",
+      "privacy": "Informativa sulla privacy",
+      "showPassword": "Mostra password",
+      "submit": "Accedi",
+      "submitting": "Accesso in corso",
+      "subtitle": "Accedi per consultare il tuo budget",
+      "terms": "Termini",
+      "title": "Bentornato"
+    }
+  },
   "common": {
+    "and": "e",
+    "backToSignIn": "Torna all'accesso",
+    "close": "Chiudi",
+    "email": "Indirizzo email",
+    "emailExample": "tu@esempio.it",
     "error": "Si è verificato un errore",
-    "loading": "Caricamento…"
+    "loading": "Caricamento…",
+    "or": "o",
+    "password": "Password",
+    "retry": "Riprova"
   },
   "settings": {
     "language": {
@@ -9,5 +68,8 @@
       "saveError": "Non è stato possibile salvare la lingua.",
       "title": "Lingua"
     }
+  },
+  "startup": {
+    "vaultError": "Non è stato possibile preparare i tuoi dati protetti."
   }
 }

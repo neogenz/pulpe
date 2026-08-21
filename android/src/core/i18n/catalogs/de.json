@@ -1,7 +1,66 @@
 {
+  "auth": {
+    "forgot": {
+      "error": "Etwas ist schiefgelaufen — versuche es erneut.",
+      "intro": "Gib deine E-Mail-Adresse ein, um einen Link zum Zurücksetzen zu erhalten.",
+      "send": "Link senden",
+      "sending": "Wird gesendet",
+      "sentBody": "Falls ein Konto mit dieser Adresse existiert, erhältst du eine E-Mail mit einem Link zum Zurücksetzen.",
+      "sentTitle": "E-Mail gesendet",
+      "spam": "Prüfe auch deinen Spam-Ordner, falls du sie nicht siehst.",
+      "title": "Passwort vergessen"
+    },
+    "reset": {
+      "confirmPassword": "Neues Passwort bestätigen",
+      "confirmPlaceholder": "Bestätige dein neues Passwort",
+      "doneBody": "Melde dich mit deinem neuen Passwort erneut an.",
+      "doneTitle": "Passwort zurückgesetzt",
+      "error": "Etwas ist schiefgelaufen — versuche es erneut.",
+      "intro": "Lege dein neues Passwort fest.",
+      "invalidBody": "Dieser Link ist nicht mehr gültig. Fordere auf dem Anmeldebildschirm einen neuen an.",
+      "invalidTitle": "Ungültiger oder abgelaufener Link",
+      "minimum": "Mindestens %{count} Zeichen",
+      "mismatch": "Die Passwörter stimmen nicht überein.",
+      "newPassword": "Neues Passwort",
+      "passwordRule": "Mindestens %{count} Zeichen, darunter ein Buchstabe und eine Zahl.",
+      "securityBody": "Die sichere Abmeldung konnte nicht bestätigt werden. Melde dich mit deinem neuen Passwort erneut an.",
+      "securityTitle": "Passwort geändert",
+      "submit": "Bestätigen",
+      "submitting": "Passwort wird zurückgesetzt",
+      "title": "Passwort zurücksetzen",
+      "verifying": "Link wird überprüft"
+    },
+    "signIn": {
+      "createAccount": "Konto erstellen",
+      "emailPlaceholder": "E-Mail-Adresse",
+      "error": "Anmeldung nicht möglich — versuche es erneut.",
+      "forgotPassword": "Passwort vergessen?",
+      "google": "Mit Google fortfahren",
+      "googleError": "Google-Anmeldung nicht möglich — versuche es erneut.",
+      "googlePending": "Anmeldung läuft…",
+      "hidePassword": "Passwort ausblenden",
+      "newUser": "Neu bei Pulpe?",
+      "passwordPlaceholder": "Dein Passwort",
+      "privacy": "Datenschutzrichtlinie",
+      "showPassword": "Passwort anzeigen",
+      "submit": "Anmelden",
+      "submitting": "Anmeldung läuft",
+      "subtitle": "Melde dich an, um auf dein Budget zuzugreifen",
+      "terms": "Nutzungsbedingungen",
+      "title": "Willkommen zurück"
+    }
+  },
   "common": {
+    "and": "und",
+    "backToSignIn": "Zurück zur Anmeldung",
+    "close": "Schliessen",
+    "email": "E-Mail-Adresse",
+    "emailExample": "du@beispiel.de",
     "error": "Ein Fehler ist aufgetreten",
-    "loading": "Wird geladen…"
+    "loading": "Wird geladen…",
+    "or": "oder",
+    "password": "Passwort",
+    "retry": "Erneut versuchen"
   },
   "settings": {
     "language": {
@@ -9,5 +68,8 @@
       "saveError": "Die Sprache konnte nicht gespeichert werden.",
       "title": "Sprache"
     }
+  },
+  "startup": {
+    "vaultError": "Deine geschützten Daten konnten nicht vorbereitet werden."
   }
 }

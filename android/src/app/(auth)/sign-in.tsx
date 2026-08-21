@@ -10,6 +10,7 @@ import {
   signInWithGoogle,
 } from "@/core/auth/google-sign-in";
 import { supabase } from "@/core/auth/supabase";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { preferPitch } from "@/core/navigation/landing-preference";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
@@ -22,6 +23,7 @@ export default function SignInScreen() {
   const theme = useTheme();
   const router = useRouter();
   const keyboardHeight = useKeyboardHeight();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -40,9 +42,11 @@ export default function SignInScreen() {
     setErrorMessage(null);
     try {
       await work();
-    } catch (error) {
+    } catch {
       setErrorMessage(
-        error instanceof Error ? error.message : "Connexion impossible.",
+        t(
+          action === "google" ? "auth.signIn.googleError" : "auth.signIn.error",
+        ),
       );
     } finally {
       setPending(null);
@@ -75,12 +79,12 @@ export default function SignInScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text variant="headlineMedium">Content de te revoir</Text>
+          <Text variant="headlineMedium">{t("auth.signIn.title")}</Text>
           <Text
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Connecte-toi pour accéder à ton budget
+            {t("auth.signIn.subtitle")}
           </Text>
         </View>
 
@@ -91,8 +95,8 @@ export default function SignInScreen() {
         <TextInput
           testID="sign-in-email"
           mode="outlined"
-          label="E-mail"
-          placeholder="Adresse e-mail"
+          label={t("common.email")}
+          placeholder={t("auth.signIn.emailPlaceholder")}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -103,8 +107,8 @@ export default function SignInScreen() {
         <TextInput
           testID="sign-in-password"
           mode="outlined"
-          label="Mot de passe"
-          placeholder="Ton mot de passe"
+          label={t("common.password")}
+          placeholder={t("auth.signIn.passwordPlaceholder")}
           value={password}
           onChangeText={setPassword}
           autoCapitalize="none"
@@ -117,8 +121,8 @@ export default function SignInScreen() {
               onPress={() => setIsPasswordVisible(!isPasswordVisible)}
               accessibilityLabel={
                 isPasswordVisible
-                  ? "Masquer le mot de passe"
-                  : "Afficher le mot de passe"
+                  ? t("auth.signIn.hidePassword")
+                  : t("auth.signIn.showPassword")
               }
             />
           }
@@ -126,7 +130,7 @@ export default function SignInScreen() {
 
         <Link href="/forgot-password" asChild>
           <Button mode="text" compact disabled={isBusy}>
-            Mot de passe oublié ?
+            {t("auth.signIn.forgotPassword")}
           </Button>
         </Link>
 
@@ -141,10 +145,12 @@ export default function SignInScreen() {
           disabled={isBusy || !isFormValid}
           onPress={() => void run("password", submitPassword)}
           accessibilityLabel={
-            pending === "password" ? "Connexion en cours" : "Se connecter"
+            pending === "password"
+              ? t("auth.signIn.submitting")
+              : t("auth.signIn.submit")
           }
         >
-          Se connecter
+          {t("auth.signIn.submit")}
         </Button>
 
         {isGoogleSignInAvailable && (
@@ -155,7 +161,7 @@ export default function SignInScreen() {
                 variant="bodySmall"
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
-                ou
+                {t("common.or")}
               </Text>
               <Divider style={styles.dividerLine} />
             </View>
@@ -168,8 +174,8 @@ export default function SignInScreen() {
               onPress={() => void run("google", signInWithGoogle)}
             >
               {pending === "google"
-                ? "Connexion en cours…"
-                : "Continuer avec Google"}
+                ? t("auth.signIn.googlePending")
+                : t("auth.signIn.google")}
             </Button>
           </>
         )}
@@ -184,7 +190,7 @@ export default function SignInScreen() {
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Nouveau sur Pulpe ?
+            {t("auth.signIn.newUser")}
           </Text>
           <Button
             mode="text"
@@ -195,7 +201,7 @@ export default function SignInScreen() {
               router.replace("/(onboarding)");
             }}
           >
-            Créer un compte
+            {t("auth.signIn.createAccount")}
           </Button>
         </View>
 
@@ -205,20 +211,20 @@ export default function SignInScreen() {
             compact
             onPress={() => void Linking.openURL(APP_URLS.terms)}
           >
-            CGU
+            {t("auth.signIn.terms")}
           </Button>
           <Text
             variant="bodySmall"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            et
+            {t("common.and")}
           </Text>
           <Button
             mode="text"
             compact
             onPress={() => void Linking.openURL(APP_URLS.privacy)}
           >
-            Politique de confidentialité
+            {t("auth.signIn.privacy")}
           </Button>
         </View>
       </ScrollView>

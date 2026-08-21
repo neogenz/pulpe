@@ -8,6 +8,7 @@ import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { z } from "zod";
 
 import { PASSWORD_RESET_REDIRECT_URL, supabase } from "@/core/auth/supabase";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
@@ -18,6 +19,7 @@ export default function ForgotPasswordScreen() {
   const theme = useTheme();
   const router = useRouter();
   const keyboardHeight = useKeyboardHeight();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
@@ -34,7 +36,7 @@ export default function ForgotPasswordScreen() {
     // Deliberately not surfaced per address: a per-address failure would tell
     // an attacker which e-mails have an account here.
     if (error && error.status !== undefined && error.status >= 500) {
-      setErrorMessage("Quelque chose n'a pas fonctionné — réessaie.");
+      setErrorMessage(t("auth.forgot.error"));
       return;
     }
     setIsSent(true);
@@ -46,10 +48,10 @@ export default function ForgotPasswordScreen() {
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <ScreenAppBar>
-        <Appbar.Content title="Mot de passe oublié" />
+        <Appbar.Content title={t("auth.forgot.title")} />
         <Appbar.Action
           icon="close"
-          accessibilityLabel="Fermer"
+          accessibilityLabel={t("common.close")}
           onPress={() => router.back()}
         />
       </ScreenAppBar>
@@ -65,14 +67,12 @@ export default function ForgotPasswordScreen() {
           <SentConfirmation onClose={() => router.back()} />
         ) : (
           <>
-            <Text variant="bodyMedium">
-              Entre ton email pour recevoir un lien de réinitialisation.
-            </Text>
+            <Text variant="bodyMedium">{t("auth.forgot.intro")}</Text>
 
             <TextInput
               mode="outlined"
-              label="Adresse e-mail"
-              placeholder="ton@email.com"
+              label={t("common.email")}
+              placeholder={t("common.emailExample")}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -92,9 +92,11 @@ export default function ForgotPasswordScreen() {
                 isSending || !emailSchema.safeParse(email.trim()).success
               }
               onPress={() => void send()}
-              accessibilityLabel={isSending ? "Envoi en cours" : undefined}
+              accessibilityLabel={
+                isSending ? t("auth.forgot.sending") : undefined
+              }
             >
-              Envoyer le lien
+              {t("auth.forgot.send")}
             </Button>
           </>
         )}
@@ -109,22 +111,20 @@ export default function ForgotPasswordScreen() {
  */
 function SentConfirmation({ onClose }: { onClose: () => void }) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View style={styles.confirmation}>
-      <Text variant="titleLarge">Email envoyé</Text>
-      <Text variant="bodyMedium">
-        Si un compte existe avec cette adresse, tu recevras un email avec un
-        lien de réinitialisation.
-      </Text>
+      <Text variant="titleLarge">{t("auth.forgot.sentTitle")}</Text>
+      <Text variant="bodyMedium">{t("auth.forgot.sentBody")}</Text>
       <Text
         variant="bodySmall"
         style={{ color: theme.colors.onSurfaceVariant }}
       >
-        Pense à vérifier tes spams si tu ne le vois pas.
+        {t("auth.forgot.spam")}
       </Text>
       <Button mode="contained" onPress={onClose}>
-        Retour à la connexion
+        {t("common.backToSignIn")}
       </Button>
     </View>
   );

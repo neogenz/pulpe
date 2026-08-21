@@ -1,7 +1,66 @@
 {
+  "auth": {
+    "forgot": {
+      "error": "Something went wrong — try again.",
+      "intro": "Enter your email to receive a password reset link.",
+      "send": "Send link",
+      "sending": "Sending",
+      "sentBody": "If an account exists for this address, you will receive an email with a reset link.",
+      "sentTitle": "Email sent",
+      "spam": "Check your spam folder if you don't see it.",
+      "title": "Forgot password"
+    },
+    "reset": {
+      "confirmPassword": "Confirm new password",
+      "confirmPlaceholder": "Confirm your new password",
+      "doneBody": "Sign in again with your new password.",
+      "doneTitle": "Password reset",
+      "error": "Something went wrong — try again.",
+      "intro": "Choose your new password.",
+      "invalidBody": "This link is no longer valid. Request a new one from the sign-in screen.",
+      "invalidTitle": "Invalid or expired link",
+      "minimum": "%{count} characters minimum",
+      "mismatch": "The passwords do not match.",
+      "newPassword": "New password",
+      "passwordRule": "%{count} characters minimum, with at least one letter and one number.",
+      "securityBody": "The secure sign-out could not be confirmed. Sign in again with your new password.",
+      "securityTitle": "Password changed",
+      "submit": "Confirm",
+      "submitting": "Resetting password",
+      "title": "Reset password",
+      "verifying": "Verifying link"
+    },
+    "signIn": {
+      "createAccount": "Create an account",
+      "emailPlaceholder": "Email address",
+      "error": "Unable to sign in — try again.",
+      "forgotPassword": "Forgot password?",
+      "google": "Continue with Google",
+      "googleError": "Unable to sign in with Google — try again.",
+      "googlePending": "Signing in…",
+      "hidePassword": "Hide password",
+      "newUser": "New to Pulpe?",
+      "passwordPlaceholder": "Your password",
+      "privacy": "Privacy policy",
+      "showPassword": "Show password",
+      "submit": "Sign in",
+      "submitting": "Signing in",
+      "subtitle": "Sign in to access your budget",
+      "terms": "Terms",
+      "title": "Welcome back"
+    }
+  },
   "common": {
+    "and": "and",
+    "backToSignIn": "Back to sign in",
+    "close": "Close",
+    "email": "Email address",
+    "emailExample": "you@example.com",
     "error": "Something went wrong",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "or": "or",
+    "password": "Password",
+    "retry": "Try again"
   },
   "settings": {
     "language": {
@@ -9,5 +68,8 @@
       "saveError": "The language could not be saved.",
       "title": "Language"
     }
+  },
+  "startup": {
+    "vaultError": "Unable to prepare your secure data."
   }
 }

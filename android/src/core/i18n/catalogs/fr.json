@@ -1,7 +1,66 @@
 {
+  "auth": {
+    "forgot": {
+      "error": "Quelque chose n'a pas fonctionné — réessaie.",
+      "intro": "Entre ton email pour recevoir un lien de réinitialisation.",
+      "send": "Envoyer le lien",
+      "sending": "Envoi en cours",
+      "sentBody": "Si un compte existe avec cette adresse, tu recevras un email avec un lien de réinitialisation.",
+      "sentTitle": "Email envoyé",
+      "spam": "Pense à vérifier tes spams si tu ne le vois pas.",
+      "title": "Mot de passe oublié"
+    },
+    "reset": {
+      "confirmPassword": "Confirmer le nouveau mot de passe",
+      "confirmPlaceholder": "Confirme ton nouveau mot de passe",
+      "doneBody": "Reconnecte-toi avec ton nouveau mot de passe.",
+      "doneTitle": "Mot de passe réinitialisé",
+      "error": "Quelque chose n'a pas fonctionné — réessaie.",
+      "intro": "Définis ton nouveau mot de passe.",
+      "invalidBody": "Ce lien n'est plus valide. Demande un nouveau lien depuis l'écran de connexion.",
+      "invalidTitle": "Lien invalide ou expiré",
+      "minimum": "%{count} caractères minimum",
+      "mismatch": "Les mots de passe ne correspondent pas.",
+      "newPassword": "Nouveau mot de passe",
+      "passwordRule": "%{count} caractères minimum, avec au moins une lettre et un chiffre.",
+      "securityBody": "La déconnexion de sécurité n'a pas pu être confirmée. Reconnecte-toi avec ton nouveau mot de passe.",
+      "securityTitle": "Mot de passe modifié",
+      "submit": "Valider",
+      "submitting": "Réinitialisation en cours",
+      "title": "Réinitialiser le mot de passe",
+      "verifying": "Vérification du lien en cours"
+    },
+    "signIn": {
+      "createAccount": "Créer un compte",
+      "emailPlaceholder": "Adresse e-mail",
+      "error": "Connexion impossible — réessaie.",
+      "forgotPassword": "Mot de passe oublié ?",
+      "google": "Continuer avec Google",
+      "googleError": "Connexion Google impossible — réessaie.",
+      "googlePending": "Connexion en cours…",
+      "hidePassword": "Masquer le mot de passe",
+      "newUser": "Nouveau sur Pulpe ?",
+      "passwordPlaceholder": "Ton mot de passe",
+      "privacy": "Politique de confidentialité",
+      "showPassword": "Afficher le mot de passe",
+      "submit": "Se connecter",
+      "submitting": "Connexion en cours",
+      "subtitle": "Connecte-toi pour accéder à ton budget",
+      "terms": "CGU",
+      "title": "Content de te revoir"
+    }
+  },
   "common": {
+    "and": "et",
+    "backToSignIn": "Retour à la connexion",
+    "close": "Fermer",
+    "email": "Adresse e-mail",
+    "emailExample": "ton@email.com",
     "error": "Une erreur est survenue",
-    "loading": "Chargement…"
+    "loading": "Chargement…",
+    "or": "ou",
+    "password": "Mot de passe",
+    "retry": "Réessayer"
   },
   "settings": {
     "language": {
@@ -9,5 +68,8 @@
       "saveError": "La langue n'a pas pu être enregistrée.",
       "title": "Langue"
     }
+  },
+  "startup": {
+    "vaultError": "Impossible de préparer tes données sécurisées."
   }
 }

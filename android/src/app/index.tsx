@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { ActivityIndicator, Button, Text, useTheme } from "react-native-paper";
 
 import { useSessionStore } from "@/core/auth/session-store";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { useLandingPreference } from "@/core/navigation/landing-preference";
 import { landingRoute } from "@/core/navigation/route-gates";
 import { SPACING } from "@/core/ui/theme";
@@ -53,18 +54,19 @@ function VaultBootstrapScreen({
   errorMessage: string | null;
 }) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       {errorMessage === null ? (
-        <ActivityIndicator accessibilityLabel="Chargement" />
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
       ) : (
         <>
           <Text variant="bodyMedium" style={styles.message}>
-            {errorMessage}
+            {t("startup.vaultError")}
           </Text>
           <Button mode="contained" onPress={() => void bootstrapVault()}>
-            Réessayer
+            {t("common.retry")}
           </Button>
         </>
       )}
