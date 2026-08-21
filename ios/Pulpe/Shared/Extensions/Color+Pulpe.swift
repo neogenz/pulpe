@@ -27,40 +27,6 @@ extension Color {
         }
     }
 
-    // MARK: - Hero Card Gradient Colors (4-stop, ~128° linear)
-    // Designed in oklch for perceptual uniformity, converted to hex for SwiftUI.
-    // Gradient direction: dark → bright for depth and punch.
-
-    /// Emerald Bright — oklch(0.45-0.75, C 0.16-0.22, H 147)
-    static let heroGradientComfortable: [Color] = [
-        Color(light: Color(hex: 0x006B1E), dark: Color(hex: 0x003D10)),
-        Color(light: Color(hex: 0x008C30), dark: Color(hex: 0x005C20)),
-        Color(light: Color(hex: 0x14AD45), dark: Color(hex: 0x007C32)),
-        Color(light: Color(hex: 0x38D062), dark: Color(hex: 0x109E48))
-    ]
-
-    /// Tangerine — oklch(0.48-0.80, C 0.15-0.18, H 65-70)
-    static let heroGradientTight: [Color] = [
-        Color(light: Color(hex: 0x8C4400), dark: Color(hex: 0x4C2400)),
-        Color(light: Color(hex: 0xB86200), dark: Color(hex: 0x6E3A00)),
-        Color(light: Color(hex: 0xD88010), dark: Color(hex: 0x925208)),
-        Color(light: Color(hex: 0xF49E28), dark: Color(hex: 0xB86C14))
-    ]
-
-    /// Sunset Coral — oklch(0.48-0.78, C 0.16, H 35-40)
-    /// `DESIGN.md` Anxiety Red Rule: red is contextual, never punitive.
-    static let heroGradientDeficit: [Color] = [
-        Color(light: Color(hex: 0x9C3418), dark: Color(hex: 0x561C0C)),
-        Color(light: Color(hex: 0xC45028), dark: Color(hex: 0x7C3418)),
-        Color(light: Color(hex: 0xE06C38), dark: Color(hex: 0xA04C28)),
-        Color(light: Color(hex: 0xF48A4C), dark: Color(hex: 0xC46438))
-    ]
-
-    /// Glass tint for hero card overlay elements — mid-tone of each gradient.
-    static let heroTintComfortable = Color(hex: 0x14AD45)
-    static let heroTintTight = Color(hex: 0xD88010)
-    static let heroTintDeficit = Color(hex: 0xC45028)
-
     // MARK: - Brand Colors
 
     /// Primary brand color - Dark green (#006E25 light, #7EDB83 dark)
@@ -403,9 +369,8 @@ extension Color {
     )
 
     // MARK: - Hero Zone (ios/DESIGN.md §2 — constant brand-forest surface, never state-tinted)
-    // Replaces `heroTint*` / `heroGradient*`, which stay until their last consumer migrates
-    // (Budget Detail). Financial state lives in the verdict, a chip and
-    // the chart accent, never in the surface color. Ratios measured in `HeroContrastTests`.
+    // Financial state lives in the verdict, a chip and the chart accent, never in the
+    // surface color. Ratios measured in `HeroContrastTests`.
 
     /// Hero surface — forest `#0E3A1C` light, `#0B2E16` dark. 11.4:1 against `appBackground`.
     static let heroSurface = Color(light: Color(hex: 0x0E3A1C), dark: Color(hex: 0x0B2E16))

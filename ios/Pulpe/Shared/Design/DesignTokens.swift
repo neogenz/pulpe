@@ -43,7 +43,7 @@ enum DesignTokens {
         /// Tight vertical gap (3pt) — icon/label stacks in badges, tab items
         static let dividerGap: CGFloat = 3
         static let xs: CGFloat = 4
-        /// Compact badge padding / inter-badge gap (6pt) — KindBadge, status capsules
+        /// Compact badge padding / inter-badge gap (6pt) — RecurrenceBadge, status capsules
         static let tightGap: CGFloat = 6
         static let sm: CGFloat = 8
         /// Compact horizontal gap (10pt) — tab bar segment gap
@@ -213,6 +213,9 @@ enum DesignTokens {
         /// Pinning budget line rows to the same minimum keeps the rhythm
         /// consistent regardless of subtitle presence.
         static let minHeight: CGFloat = IconSize.listRow + verticalPadding * 2
+        /// Leading inset of the hairline between two ledger rows: past the disc and its gap,
+        /// so the rule starts where the text does.
+        static let dividerInset: CGFloat = TapTarget.minimum + Spacing.sm
     }
 
     // MARK: - Sync indicators

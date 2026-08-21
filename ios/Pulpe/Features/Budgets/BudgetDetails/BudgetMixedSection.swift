@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Mixed-list section for the budget detail screen (DM2.1.b.c5).
 ///
-/// Hosts `BudgetLineMixedRow` cards inside the parent `List` from
-/// `BudgetDetailsView`. Each item is a pre-shaped `LineItem` carrying its
+/// One grouped card of `BudgetLineMixedRow`s under a `SectionHeader`, inside the parent
+/// scroll of `BudgetDetailsView` (The One Ledger Rule). Each item is a pre-shaped `LineItem` carrying its
 /// `consumption` + `isSyncing` flag. The projection pipeline computes those
 /// once per source change — the section never calls `BudgetFormulas.*` or
 /// transforms collections.
@@ -57,43 +57,36 @@ struct BudgetMixedSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: DesignTokens.Spacing.xxs) {
-                Text(headerTitle)
-                    .font(PulpeTypography.headline)
-                    .foregroundStyle(Color.textPrimary)
-                Text(" · \(items.count)")
-                    .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.textSecondary)
-                Spacer()
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityLabel("\(headerTitle), \(items.count)")
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.sm)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            SectionHeader(title: headerTitle, count: items.count)
 
-            ForEach(items) { item in
-                BudgetLineMixedRow(
-                    line: item.line,
-                    consumption: item.consumption,
-                    isSyncing: item.isSyncing,
-                    currency: currency,
-                    savingsGoalName: goalName(for: item.line),
-                    tagNames: TagChips.names(for: item.line.tagIds, namesById: tagNamesById),
-                    savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
-                    onTap: { onTap(item.line) },
-                    onTogglePointed: { onTogglePointed(item.line) }
-                )
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.md)
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .move(edge: .leading)),
-                    removal: .opacity.combined(with: .scale(scale: 0.95))
-                ))
+            VStack(spacing: 0) {
+                ForEach(items) { item in
+                    if item.id != items.first?.id {
+                        Divider().padding(.leading, DesignTokens.ListRow.dividerInset)
+                    }
+                    BudgetLineMixedRow(
+                        line: item.line,
+                        consumption: item.consumption,
+                        isSyncing: item.isSyncing,
+                        currency: currency,
+                        savingsGoalName: goalName(for: item.line),
+                        tagNames: TagChips.names(for: item.line.tagIds, namesById: tagNamesById),
+                        savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
+                        onTap: { onTap(item.line) },
+                        onTogglePointed: { onTogglePointed(item.line) }
+                    )
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .leading)),
+                        removal: .opacity.combined(with: .scale(scale: 0.95))
+                    ))
+                }
             }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
         }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.top, DesignTokens.Spacing.xxl)
     }
 }
 
@@ -159,7 +152,7 @@ private extension BudgetLine {
         BudgetLine.mixedSectionPreview(name: "Transports", amount: 150, kind: .expense),
     ]
 
-    return List {
+    return ScrollView {
         BudgetMixedSection(
             kind: .income,
             items: BudgetLine.previewItems(income),
@@ -182,9 +175,5 @@ private extension BudgetLine {
             onTogglePointed: { _ in }
         )
     }
-    .listStyle(.insetGrouped)
-    .listRowSpacing(DesignTokens.Spacing.md)
-    .listSectionSpacing(DesignTokens.Spacing.xxl)
-    .scrollContentBackground(.hidden)
     .pulpeBackground()
 }

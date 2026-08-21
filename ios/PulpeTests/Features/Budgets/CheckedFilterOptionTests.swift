@@ -1,5 +1,6 @@
 import Foundation
 @testable import Pulpe
+import SwiftUI
 import Testing
 
 struct CheckedFilterOptionTests {
@@ -150,5 +151,27 @@ struct CheckedFilterOptionTests {
 
         // Assert
         #expect(invalid == nil)
+    }
+
+    // MARK: - Three Families Rule (ios/DESIGN.md)
+
+    @Test func checkedChipStyle_all_isOutlined() {
+        let style: PulpeChip<EmptyView>.Style = BudgetTypeFilter.checkedChipStyle(for: .all)
+        #expect(style == .outlined)
+    }
+
+    @Test func checkedChipStyle_narrowing_isSemanticNotSolid() {
+        let unchecked: PulpeChip<EmptyView>.Style = BudgetTypeFilter.checkedChipStyle(for: .unchecked)
+        let checked: PulpeChip<EmptyView>.Style = BudgetTypeFilter.checkedChipStyle(for: .checked)
+        #expect(unchecked == .semantic(.financialSavings))
+        #expect(checked == .semantic(.financialSavings))
+        #expect(unchecked != .solid)
+    }
+
+    @Test func kindChipStyle_solidOnlyWhenSelected() {
+        let selected: PulpeChip<EmptyView>.Style = BudgetTypeFilter.kindChipStyle(isSelected: true)
+        let idle: PulpeChip<EmptyView>.Style = BudgetTypeFilter.kindChipStyle(isSelected: false)
+        #expect(selected == .solid)
+        #expect(idle == .outlined)
     }
 }

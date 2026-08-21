@@ -20,6 +20,7 @@ struct BudgetDetailsView: View {
     @State var projector: BudgetDetailsProjector
     @State private var searchText = ""
     @State private var scrollTracker = BudgetDetailsScrollTracker()
+    @State private var heroSurfaceTracker = HeroZoneTracker()
     /// Budget ids for which the "mois un peu juste" card was dismissed via
     /// "Plus tard" (PUL-292), comma-joined. Non-private for the card extension.
     @AppStorage(SavingsWithdrawalCardGate.storageKey) var dismissedWithdrawalBudgetIds = ""
@@ -108,8 +109,10 @@ struct BudgetDetailsView: View {
         .animation(DesignTokens.Animation.smoothEaseOut, value: screenState.isLoading)
         .navigationTitle(screenState.monthYear.isEmpty ? "Budget" : screenState.monthYear)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.appBackground, for: .navigationBar)
-        .toolbarBackgroundVisibility(.visible, for: .navigationBar)
+        // The hero runs under the navigation bar on the forest surface; light ink while
+        // the budget is loaded, the default ink on the flat error / skeleton canvas.
+        .toolbarColorScheme(projector.screenState.isBudgetPresent ? .dark : nil, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
@@ -218,6 +221,11 @@ struct BudgetDetailsView: View {
                     of: { $0.frame(in: .scrollView).minY },
                     action: { newMinY in scrollTracker.update(heroMinY: newMinY) }
                 )
+                .onGeometryChange(
+                    for: CGFloat.self,
+                    of: { $0.frame(in: .global).maxY },
+                    action: { maxY in heroSurfaceTracker.update(maxY) }
+                )
 
                 TipView(ProductTips.pessimisticCheck)
                     .pulpeTipBackground()
@@ -305,7 +313,7 @@ struct BudgetDetailsView: View {
             reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
             value: screenState.checkedTickHash
         )
-        .pulpeBackground()
+        .background { HeroZoneSurface(tracker: heroSurfaceTracker).ignoresSafeArea() }
         .searchable(
             text: $searchText,
             placement: .navigationBarDrawer(displayMode: .automatic),
