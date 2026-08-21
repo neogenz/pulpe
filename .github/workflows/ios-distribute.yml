@@ -207,6 +207,22 @@ jobs:
             echo "::error::App Store Connect reports this exact build as invalid"
             exit 1
           fi
+      - name: Verify marketing version accepts new builds
+        if: steps.asc.outputs.state == 'not_found'
+        run: |
+          set -euo pipefail
+          state=$(ruby ../.github/scripts/app-store-build-status.rb --marketing-version-status app.pulpe.ios "$EXPECTED_MARKETING_VERSION")
+          case "$state" in
+            open) ;;
+            closed)
+              echo "::error::Marketing version $EXPECTED_MARKETING_VERSION is already distributed and its pre-release train is closed"
+              exit 1
+              ;;
+            *)
+              echo "::error::App Store Connect returned an invalid marketing-version state"
+              exit 1
+              ;;
+          esac
       - name: Poll App Store build processing
         if: steps.asc.outputs.state == 'processing'
         run: |

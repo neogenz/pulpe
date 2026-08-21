@@ -44,13 +44,22 @@ class AppStoreApi
     [response.code.to_i, response.body]
   end
 end
+module AppStoreApp
+  module_function
+  def id(api, bundle_id)
+    apps = api.pages("/v1/apps", { "filter[bundleId]" => bundle_id, "limit" => "200" })
+    raise AppStoreApi::Error, "Expected exactly one App Store app" unless apps.length == 1
+    app = apps.first
+    valid = app["type"] == "apps" && app["id"].is_a?(String) && !app["id"].empty? && app.dig("attributes", "bundleId") == bundle_id
+    raise AppStoreApi::Error, "Malformed App Store app" unless valid
+    app["id"]
+  end
+end
 class AppStoreBuildStatus
   def initialize(api) = (@api = api)
   def call(bundle_id, marketing_version, build_number)
-    apps = @api.pages("/v1/apps", { "filter[bundleId]" => bundle_id, "limit" => "200" })
-    raise AppStoreApi::Error, "Expected exactly one App Store app" unless apps.length == 1
-    app = apps.first; raise AppStoreApi::Error, "Malformed App Store app" unless app["type"] == "apps" && app["id"].is_a?(String) && !app["id"].empty? && app.dig("attributes", "bundleId") == bundle_id
-    builds = @api.pages("/v1/builds", { "filter[app]" => app["id"], "filter[version]" => build_number,
+    app_id = AppStoreApp.id(@api, bundle_id)
+    builds = @api.pages("/v1/builds", { "filter[app]" => app_id, "filter[version]" => build_number,
       "include" => "preReleaseVersion", "limit" => "200" })
     return "invalid" unless builds.map { |build| [build["type"], build["id"]] }.uniq.length == builds.length; details = builds.map do |build|
       attributes = build["attributes"]
@@ -68,6 +77,26 @@ class AppStoreBuildStatus
     { "PROCESSING" => "processing", "VALID" => "valid" }.fetch(attributes["processingState"], "invalid")
   end
 end
+class AppStoreMarketingVersionStatus
+  def initialize(api) = (@api = api)
+  def call(bundle_id, marketing_version)
+    app_id = AppStoreApp.id(@api, bundle_id)
+    versions = @api.pages("/v1/apps/#{app_id}/appStoreVersions", {
+      "filter[platform]" => "IOS", "filter[versionString]" => marketing_version,
+      "limit" => "200"
+    })
+    return "open" if versions.empty?
+    return "invalid" unless versions.one?
+    version = versions.first
+    attributes = version["attributes"]
+    complete = version["type"] == "appStoreVersions" && version["id"].is_a?(String) && !version["id"].empty? &&
+      attributes.is_a?(Hash) && attributes["platform"] == "IOS" && attributes["versionString"] == marketing_version &&
+      attributes["appStoreState"].is_a?(String)
+    return "invalid" unless complete
+    return "closed" if attributes["appStoreState"] == "READY_FOR_SALE" || attributes["appVersionState"] == "READY_FOR_DISTRIBUTION"
+    "open"
+  end
+end
 module AppStoreToken
   module_function
   def create(key_id, issuer_id, key_path, now = Time.now.to_i)
@@ -82,9 +111,15 @@ module AppStoreToken
 end
 if $PROGRAM_NAME == __FILE__
   begin
-    abort "usage: app-store-build-status.rb BUNDLE_ID MARKETING_VERSION BUILD_NUMBER" unless ARGV.length == 3
     token = AppStoreToken.create(ENV.fetch("ASC_KEY_ID"), ENV.fetch("ASC_ISSUER_ID"), ENV.fetch("ASC_KEY_PATH"))
-    puts AppStoreBuildStatus.new(AppStoreApi.new(token: token)).call(*ARGV)
+    api = AppStoreApi.new(token: token)
+    if ARGV.first == "--marketing-version-status"
+      abort "usage: app-store-build-status.rb --marketing-version-status BUNDLE_ID MARKETING_VERSION" unless ARGV.length == 3
+      puts AppStoreMarketingVersionStatus.new(api).call(ARGV[1], ARGV[2])
+    else
+      abort "usage: app-store-build-status.rb BUNDLE_ID MARKETING_VERSION BUILD_NUMBER" unless ARGV.length == 3
+      puts AppStoreBuildStatus.new(api).call(*ARGV)
+    end
   rescue StandardError => e
     warn "App Store build status failed: #{e.message}"
     exit 1
