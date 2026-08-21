@@ -21,7 +21,7 @@ status: in-progress
 | 3   | Corréler les erreurs et réaligner le gate système              | [`phase-3.md`](./phase-3.md) |
 | 4   | Borner le cache langue et l’historique des budgets             | [`phase-4.md`](./phase-4.md) |
 | 5   | Rendre les tests, dépendances et métriques de qualité honnêtes | [`phase-5.md`](./phase-5.md) |
-| 6   | Réduire le couplage onboarding et la route de détail           | [`phase-6.md`](./phase-6.md) |
+| 6   | Réduire le couplage de la route de détail                      | [`phase-6.md`](./phase-6.md) |
 | 7   | Assumer le formulaire modal et terminer l’accessibilité        | [`phase-7.md`](./phase-7.md) |
 
 ## Resources

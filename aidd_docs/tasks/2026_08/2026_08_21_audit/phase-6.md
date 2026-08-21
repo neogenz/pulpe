@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Réduire le couplage de la route de détail
@@ -9,13 +9,15 @@ status: pending
 > Tree of the final files. ✅ create · ✏️ modify · ❌ delete
 
 ```txt
-android/src/
-├── features/budget-details/components/
-│   ├── budget-line-detail-overlays.tsx                      ✅ posséder formulaires dialogues notices et mutations associées
-│   └── budget-line-detail-overlays.spec.tsx                 ✅ couvrir les transitions destructives
-├── features/budget-details/budget-line-detail-screen.spec.tsx ✅ remplacer les assertions textuelles de query state
-├── app/(main)/budget/[id]/line/[lineId].tsx                 ✏️ garder chargement rendu et menu de haut niveau
-└── core/system/detail-query-states.spec.ts                  ❌ remplacé par des tests de rendu ciblés
+android/
+├── jest.config.js                                           ✏️ relever les seuils au nouveau plancher
+└── src/
+    ├── features/budget-details/components/
+    │   ├── budget-line-detail-overlays.tsx                  ✅ posséder formulaires dialogues notices et mutations associées
+    │   └── budget-line-detail-overlays.spec.tsx             ✅ couvrir les transitions destructives
+    ├── features/budget-details/budget-line-detail-screen.spec.tsx ✅ remplacer les assertions textuelles de query state
+    ├── app/(main)/budget/[id]/line/[lineId].tsx             ✏️ garder chargement rendu et menu de haut niveau
+    └── core/system/detail-query-states.spec.ts              ❌ remplacé par des tests de rendu ciblés
 ```
 
 ## User Journey

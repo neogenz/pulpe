@@ -13,7 +13,7 @@ module.exports = {
   coverageDirectory: "coverage",
   coverageReporters: ["text", "json-summary", "lcov"],
   coverageThreshold: {
-    global: { statements: 31, branches: 29, functions: 26, lines: 30 },
+    global: { statements: 32, branches: 31, functions: 28, lines: 32 },
     "./src/core/auth/session-store.ts": {
       statements: 92,
       branches: 78,

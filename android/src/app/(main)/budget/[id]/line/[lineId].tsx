@@ -1,18 +1,12 @@
 import { router, useLocalSearchParams } from "expo-router";
-import {
-  BudgetFormulas,
-  type SupportedCurrency,
-  type Transaction,
-} from "pulpe-shared";
-import { useState } from "react";
+import { BudgetFormulas, type SupportedCurrency } from "pulpe-shared";
+import { useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Appbar,
   Button,
-  Dialog,
   Menu,
-  Portal,
   ProgressBar,
   Text,
   useTheme,
@@ -33,7 +27,6 @@ import { InlineQueryError } from "@/core/ui/inline-query-error";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
-import { Notice } from "@/core/ui/notice";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import {
   useBudgetDetails,
@@ -41,22 +34,15 @@ import {
 } from "@/features/budgets/budget-queries";
 import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
 import {
-  useDeleteBudgetLine,
-  usePostponeBudgetLine,
-} from "@/features/budget-details/budget-line-mutations";
-import { BudgetLineSheet } from "@/features/budget-details/components/budget-line-sheet";
-import {
   hasBudgetForPeriod,
   isPostponeEligible,
   postponeTargetPeriod,
 } from "@/features/budget-details/postpone-gate";
-import { SpreadExistingSheet } from "@/features/budget-details/spread/components/spread-existing-sheet";
-import { SpreadOccurrencesSheet } from "@/features/budget-details/spread/components/spread-occurrences-sheet";
-import { useDeleteSavingsWithdrawal } from "@/features/budget-details/savings-withdrawal/withdrawal-mutations";
-import { repaymentPeriod } from "@/features/budget-details/savings-withdrawal/withdrawal-gate";
 import { TransactionRow } from "@/features/budget-details/components/transaction-row";
-import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
-import { useTransactionRemoval } from "@/features/transactions/use-transaction-removal";
+import {
+  BudgetLineDetailOverlays,
+  type BudgetLineDetailOverlaysHandle,
+} from "@/features/budget-details/components/budget-line-detail-overlays";
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 const PERCENT = 100;
@@ -79,21 +65,8 @@ export default function BudgetLineDetailScreen() {
   const budgets = useBudgetList();
   const tags = useTags();
   const toggle = useToggleCheck(id);
-  const remove = useDeleteBudgetLine();
-  const removePair = useDeleteSavingsWithdrawal();
-  const postpone = usePostponeBudgetLine();
-  const [hasToggleFailed, setToggleFailed] = useState(false);
+  const overlays = useRef<BudgetLineDetailOverlaysHandle>(null);
   const [isMenuOpen, setMenuOpen] = useState(false);
-  const [isEditVisible, setEditVisible] = useState(false);
-  const [isDeleteVisible, setDeleteVisible] = useState(false);
-  const [failure, setFailure] = useState<
-    "postpone" | "deletePair" | "deleteLine" | null
-  >(null);
-  const [isAddVisible, setAddVisible] = useState(false);
-  const [edited, setEdited] = useState<Transaction | null>(null);
-  const [isSpreadVisible, setSpreadVisible] = useState(false);
-  const [areOccurrencesVisible, setOccurrencesVisible] = useState(false);
-  const removal = useTransactionRemoval();
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
@@ -151,22 +124,6 @@ export default function BudgetLineDetailScreen() {
   // pending, the entry stays live and a real failure still speaks for itself.
   const isPostponeTargetMissing =
     budgets.isSuccess && !hasBudgetForPeriod(budgets.data, postponeTarget);
-  // The pair spans two months and the open budget shows one of them: an income
-  // half sits on month M, a repayment half on M+1.
-  const incomePeriod =
-    line.kind === "income"
-      ? { year: budget.year, month: budget.month }
-      : previousPeriod({ year: budget.year, month: budget.month });
-  const incomeMonthName = formatMonthName(
-    incomePeriod.month,
-    incomePeriod.year,
-    locale,
-  );
-  const repaymentMonthName = formatMonthName(
-    repaymentPeriod(incomePeriod).month,
-    repaymentPeriod(incomePeriod).year,
-    locale,
-  );
   const accent =
     line.kind === "expense" && consumption.available < 0
       ? financial.overBudget
@@ -202,7 +159,7 @@ export default function BudgetLineDetailScreen() {
             title={t("budgets.mutations.edit")}
             onPress={() => {
               setMenuOpen(false);
-              setEditVisible(true);
+              overlays.current?.editLine();
             }}
           />
           {line.spreadGroupId != null && (
@@ -211,7 +168,7 @@ export default function BudgetLineDetailScreen() {
               title={t("budgets.actions.line.viewSpread")}
               onPress={() => {
                 setMenuOpen(false);
-                setOccurrencesVisible(true);
+                overlays.current?.showOccurrences();
               }}
             />
           )}
@@ -226,7 +183,7 @@ export default function BudgetLineDetailScreen() {
                 title={t("budgets.mutations.forecast.spreadTitle")}
                 onPress={() => {
                   setMenuOpen(false);
-                  setSpreadVisible(true);
+                  overlays.current?.showSpread();
                 }}
               />
             )}
@@ -252,15 +209,10 @@ export default function BudgetLineDetailScreen() {
                     })
                   : t("budgets.actions.line.postpone")
               }
-              disabled={isPostponeTargetMissing || postpone.isPending}
+              disabled={isPostponeTargetMissing}
               onPress={() => {
                 setMenuOpen(false);
-                postpone.mutate(line.id, {
-                  // The line has left this month, so the page it was opened from
-                  // no longer has anything to show.
-                  onSuccess: () => router.back(),
-                  onError: () => setFailure("postpone"),
-                });
+                overlays.current?.postpone();
               }}
             />
           )}
@@ -269,7 +221,7 @@ export default function BudgetLineDetailScreen() {
             title={t("budgets.mutations.delete")}
             onPress={() => {
               setMenuOpen(false);
-              setDeleteVisible(true);
+              overlays.current?.confirmDelete();
             }}
           />
         </Menu>
@@ -348,11 +300,11 @@ export default function BudgetLineDetailScreen() {
                 toggle.variables?.sourceId === transaction.id
               }
               tagSummary={tagSummary(transaction.tagIds ?? [], tags.data ?? [])}
-              onPress={() => setEdited(transaction)}
+              onPress={() => overlays.current?.editTransaction(transaction)}
               onToggle={() =>
                 toggle.mutate(
                   { source: "transaction", sourceId: transaction.id },
-                  { onError: () => setToggleFailed(true) },
+                  { onError: () => overlays.current?.showToggleFailure() },
                 )
               }
             />
@@ -364,229 +316,29 @@ export default function BudgetLineDetailScreen() {
         <Button
           mode="outlined"
           icon="plus"
-          onPress={() => setAddVisible(true)}
+          onPress={() => overlays.current?.addTransaction()}
           style={styles.add}
         >
           {t("budgets.mutations.activity.createTitle")}
         </Button>
       </ScrollView>
 
-      <Notice
-        visible={hasToggleFailed}
-        onDismiss={() => setToggleFailed(false)}
-        action={{
-          label: t("common.close"),
-          onPress: () => setToggleFailed(false),
-        }}
-      >
-        {t("budgets.mutations.toggleError")}
-      </Notice>
-
-      <Notice visible={failure !== null} onDismiss={() => setFailure(null)}>
-        {failure === null ? "" : t(`budgets.actions.line.failure.${failure}`)}
-      </Notice>
-
-      <BudgetLineSheet
-        // Keyed on the line so reopening after a change starts from the saved
-        // values rather than from what the form held on first mount.
-        key={line.updatedAt}
-        isVisible={isEditVisible}
-        onDismiss={() => setEditVisible(false)}
+      <BudgetLineDetailOverlays
+        ref={overlays}
         budgetId={id}
-        anchor={{ year: budget.year, month: budget.month }}
+        period={{ year: budget.year, month: budget.month }}
         currency={currency}
+        payDayOfMonth={payDayOfMonth}
         line={line}
-        onSaved={() => setEditVisible(false)}
+        transactions={transactions}
+        onLeave={() => router.back()}
       />
-
-      <Notice
-        visible={removal.last !== null}
-        onDismiss={removal.forget}
-        action={{ label: t("budgets.mutations.undo"), onPress: removal.undo }}
-      >
-        {removal.undoable.length === 1
-          ? t("budgets.mutations.removal.removedOne", {
-              name: removal.last?.name,
-            })
-          : t("budgets.mutations.removal.removedMany", {
-              count: removal.undoable.length,
-            })}
-      </Notice>
-
-      <Notice
-        visible={removal.failure !== null}
-        onDismiss={removal.dismissFailure}
-      >
-        {removal.failure === null
-          ? ""
-          : t(`budgets.mutations.removal.${removal.failure}Error`)}
-      </Notice>
-
-      <TransactionSheet
-        isVisible={isAddVisible}
-        onDismiss={() => setAddVisible(false)}
-        budgetId={id}
-        currency={currency}
-        envelope={{ id: line.id, name: line.name, kind: line.kind }}
-        onSaved={() => setAddVisible(false)}
-      />
-
-      {edited !== null && (
-        <TransactionSheet
-          key={edited.id}
-          isVisible
-          onDismiss={() => setEdited(null)}
-          budgetId={id}
-          currency={currency}
-          transaction={edited}
-          onSaved={() => setEdited(null)}
-          onDelete={() => removal.remove(edited, () => setEdited(null))}
-        />
-      )}
-
-      <SpreadExistingSheet
-        isVisible={isSpreadVisible}
-        onDismiss={() => setSpreadVisible(false)}
-        line={line}
-        anchor={{ year: budget.year, month: budget.month }}
-        currency={currency}
-        // The forecast has been replaced by its tranches, so the page it was
-        // opened from no longer has anything to show.
-        onSpread={() => router.back()}
-      />
-
-      {line.spreadGroupId != null && (
-        <SpreadOccurrencesSheet
-          isVisible={areOccurrencesVisible}
-          onDismiss={() => setOccurrencesVisible(false)}
-          spreadGroupId={line.spreadGroupId}
-          viewedPeriod={{ year: budget.year, month: budget.month }}
-          payDayOfMonth={payDayOfMonth}
-          currency={currency}
-        />
-      )}
-
-      <Portal>
-        {/* A line taken from savings is half of a pair, and deleting it alone
-            would leave the other half owing nothing to anyone. The choice is
-            explicit rather than defaulted: cancelling both, or keeping the
-            money taken and dropping the giving back. */}
-        {line.savingsWithdrawalGroupId != null ? (
-          <Dialog
-            visible={isDeleteVisible}
-            onDismiss={() => setDeleteVisible(false)}
-          >
-            <Dialog.Title>{t("budgets.actions.line.pairTitle")}</Dialog.Title>
-            <Dialog.Content>
-              <Text variant="bodyMedium">
-                {t("budgets.actions.line.pairDescription", {
-                  amount: formatCurrency(line.amount, currency),
-                  incomeMonth: incomeMonthName,
-                  repaymentMonth: repaymentMonthName,
-                })}
-              </Text>
-            </Dialog.Content>
-            <Dialog.Actions style={styles.pairActions}>
-              <Button onPress={() => setDeleteVisible(false)}>
-                {t("common.cancel")}
-              </Button>
-              <Button
-                disabled={removePair.isPending}
-                onPress={() =>
-                  removePair.mutate(
-                    {
-                      groupId: line.savingsWithdrawalGroupId as string,
-                      scope: "repayment",
-                    },
-                    {
-                      onSuccess: () => router.back(),
-                      onError: () => {
-                        setDeleteVisible(false);
-                        setFailure("deletePair");
-                      },
-                    },
-                  )
-                }
-              >
-                {t("budgets.actions.line.keepIncome", {
-                  month: incomeMonthName,
-                })}
-              </Button>
-              <Button
-                loading={removePair.isPending}
-                disabled={removePair.isPending}
-                onPress={() =>
-                  removePair.mutate(
-                    {
-                      groupId: line.savingsWithdrawalGroupId as string,
-                      scope: "pair",
-                    },
-                    {
-                      onSuccess: () => router.back(),
-                      onError: () => {
-                        setDeleteVisible(false);
-                        setFailure("deletePair");
-                      },
-                    },
-                  )
-                }
-              >
-                {t("budgets.actions.line.cancelPair")}
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-        ) : (
-          <Dialog
-            visible={isDeleteVisible}
-            onDismiss={() => setDeleteVisible(false)}
-          >
-            <Dialog.Title>{t("budgets.actions.line.deleteTitle")}</Dialog.Title>
-            <Dialog.Content>
-              <Text variant="bodyMedium">
-                {transactions.length === 0
-                  ? t("budgets.actions.line.deleteEmpty")
-                  : t(
-                      `budgets.actions.line.${transactions.length === 1 ? "deleteWithOne" : "deleteWithMany"}`,
-                      { count: transactions.length },
-                    )}
-              </Text>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setDeleteVisible(false)}>
-                {t("common.cancel")}
-              </Button>
-              <Button
-                loading={remove.isPending}
-                disabled={remove.isPending}
-                onPress={() =>
-                  remove.mutate(line.id, {
-                    onSuccess: () => router.back(),
-                    onError: () => {
-                      setDeleteVisible(false);
-                      setFailure("deleteLine");
-                    },
-                  })
-                }
-              >
-                {t("budgets.mutations.delete")}
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-        )}
-      </Portal>
     </SafeAreaView>
   );
 }
 
-function previousPeriod(period: { year: number; month: number }) {
-  return period.month === 1
-    ? { year: period.year - 1, month: 12 }
-    : { year: period.year, month: period.month - 1 };
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  pairActions: { flexWrap: "wrap" },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
   hero: { gap: SPACING.xs },
