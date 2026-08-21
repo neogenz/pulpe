@@ -1,6 +1,6 @@
 ---
 objective: "L’application Android possède un processus de release fiable, un cycle session atomique, des erreurs opérables, des données bornées, des tests honnêtes et des surfaces accessibles validées sur appareil."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Assainir durablement la codebase Android
