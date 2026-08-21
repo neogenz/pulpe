@@ -5,6 +5,7 @@ import { IconButton, Text } from "react-native-paper";
 import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { ROW_ACTION_ICON_SIZE, SPACING } from "@/core/ui/theme";
+import { useTranslation } from "@/core/i18n/locale-store";
 
 import { removeCustomTransaction } from "../onboarding-store";
 import type { OnboardingTransaction } from "../onboarding-transaction";
@@ -19,12 +20,15 @@ export function TransactionList({
   transactions,
   currency,
   onEdit,
+  localized = false,
 }: {
   title: string;
   transactions: readonly OnboardingTransaction[];
   currency: SupportedCurrency;
   onEdit: (transaction: OnboardingTransaction) => void;
+  localized?: boolean;
 }) {
+  const { t } = useTranslation();
   if (transactions.length === 0) return null;
 
   return (
@@ -43,14 +47,22 @@ export function TransactionList({
             size={ROW_ACTION_ICON_SIZE}
             style={styles.action}
             onPress={() => onEdit(transaction)}
-            accessibilityLabel={`Modifier ${transaction.name}`}
+            accessibilityLabel={
+              localized
+                ? t("onboarding.transaction.edit", { name: transaction.name })
+                : `Modifier ${transaction.name}`
+            }
           />
           <IconButton
             icon="close"
             size={ROW_ACTION_ICON_SIZE}
             style={styles.action}
             onPress={() => removeCustomTransaction(transaction.id)}
-            accessibilityLabel={`Supprimer ${transaction.name}`}
+            accessibilityLabel={
+              localized
+                ? t("onboarding.transaction.delete", { name: transaction.name })
+                : `Supprimer ${transaction.name}`
+            }
           />
         </View>
       ))}

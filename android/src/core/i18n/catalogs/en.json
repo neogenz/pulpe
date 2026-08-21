@@ -70,6 +70,12 @@
   },
   "onboarding": {
     "back": "Go back to the previous step",
+    "exit": {
+      "body": "Everything you entered will be deleted.",
+      "leave": "Leave",
+      "stay": "Continue",
+      "title": "Leave budget setup?"
+    },
     "firstName": {
       "accessibility": "First name, required",
       "label": "First name",
@@ -83,7 +89,51 @@
       "privacy": "privacy policy",
       "terms": "terms and conditions"
     },
+    "income": {
+      "addIncome": "Add income",
+      "currencyHint": "You can change it later if needed.",
+      "currencyTitle": "Do you use francs or euros?",
+      "extraIncome": "Additional income",
+      "monthlyIncome": "Net monthly income",
+      "privacy": "No one else can see these amounts — not even the person building Pulpe.",
+      "subtitle": "What reaches your account each month",
+      "title": "Your income",
+      "total": "Total income"
+    },
+    "registration": {
+      "criteria": {
+        "letter": "At least one letter",
+        "minimum": "%{count} characters minimum",
+        "number": "At least one number"
+      },
+      "criterionStatus": "%{label} — %{status}",
+      "error": "Unable to create your account — try again.",
+      "legalPrefix": "By creating your account, you accept",
+      "met": "met",
+      "missing": "not met",
+      "submit": "Create my account",
+      "subtitle": "So you can find it all on every device",
+      "title": "Create your account"
+    },
     "skip": "Skip this step",
+    "transaction": {
+      "add": "Add",
+      "delete": "Delete %{name}",
+      "edit": "Edit %{name}",
+      "monthlyAmount": "Monthly amount",
+      "name": "Name",
+      "placeholder": {
+        "expense": "Subscription, childcare…",
+        "income": "Bonus, allowance…",
+        "saving": "Project, emergency fund…"
+      },
+      "save": "Save",
+      "title": {
+        "expense": "Add an expense",
+        "income": "Add income",
+        "saving": "Add savings"
+      }
+    },
     "welcome": {
       "benefits": {
         "plan": "A clear plan for every month",

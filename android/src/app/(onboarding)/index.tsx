@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { BackHandler } from "react-native";
 import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
 
+import { useTranslation } from "@/core/i18n/locale-store";
 import { SubmissionOverlay } from "@/features/onboarding/components/submission-overlay";
 import { captureOnboardingAbandoned } from "@/features/onboarding/onboarding-analytics";
 import { wouldExitOnBack } from "@/features/onboarding/onboarding-selectors";
@@ -33,6 +34,7 @@ import { WelcomeStep } from "@/features/onboarding/steps/welcome-step";
 export default function OnboardingRoute() {
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useTranslation();
   const currentStep = useOnboardingStore((state) => state.currentStep);
   const isSubmitting = useSubmissionStore((state) => state.status !== "idle");
   const [isExitConfirmed, setExitConfirmed] = useState(false);
@@ -87,14 +89,16 @@ export default function OnboardingRoute() {
           visible={isExitConfirmed}
           onDismiss={() => setExitConfirmed(false)}
         >
-          <Dialog.Title>Quitter la création de ton budget ?</Dialog.Title>
+          <Dialog.Title>{t("onboarding.exit.title")}</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium">Ce que tu as saisi sera effacé.</Text>
+            <Text variant="bodyMedium">{t("onboarding.exit.body")}</Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setExitConfirmed(false)}>Continuer</Button>
+            <Button onPress={() => setExitConfirmed(false)}>
+              {t("onboarding.exit.stay")}
+            </Button>
             <Button textColor={theme.colors.error} onPress={leaveFlow}>
-              Quitter
+              {t("onboarding.exit.leave")}
             </Button>
           </Dialog.Actions>
         </Dialog>

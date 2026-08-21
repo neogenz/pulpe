@@ -5,6 +5,7 @@ import { Button, Text, useTheme } from "react-native-paper";
 import { SPACING } from "@/core/ui/theme";
 
 import { AmountField } from "@/core/ui/amount-field";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { CurrencyPicker } from "../components/currency-picker";
 import { RunningTotal } from "../components/running-total";
 import { StepScaffold } from "../components/step-scaffold";
@@ -23,6 +24,7 @@ import type { OnboardingTransaction } from "../onboarding-transaction";
 
 export function IncomeStep({ onExit }: { onExit: () => void }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const state = useOnboardingStore();
   const [dialog, setDialog] = useState<null | {
     editing: OnboardingTransaction | null;
@@ -35,22 +37,24 @@ export function IncomeStep({ onExit }: { onExit: () => void }) {
   return (
     <StepScaffold
       isCtaEnabled={canProceed(state)}
+      title={t("onboarding.income.title")}
+      subtitle={t("onboarding.income.subtitle")}
       onContinue={goToNextStep}
       onExit={onExit}
     >
       <View style={styles.block}>
-        <Text variant="labelLarge">Tu comptes en francs ou en euros ?</Text>
+        <Text variant="labelLarge">{t("onboarding.income.currencyTitle")}</Text>
         <Text
           variant="bodySmall"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          Tu pourras changer plus tard si besoin.
+          {t("onboarding.income.currencyHint")}
         </Text>
         <CurrencyPicker selected={state.currency} onSelect={selectCurrency} />
       </View>
 
       <AmountField
-        label="Revenu mensuel net"
+        label={t("onboarding.income.monthlyIncome")}
         placeholder="5000"
         amount={state.monthlyIncome}
         currency={state.currency}
@@ -62,23 +66,23 @@ export function IncomeStep({ onExit }: { onExit: () => void }) {
         variant="bodySmall"
         style={{ color: theme.colors.onSurfaceVariant }}
       >
-        Personne d&apos;autre ne voit ces montants — pas même moi qui développe
-        Pulpe.
+        {t("onboarding.income.privacy")}
       </Text>
 
       <TransactionList
-        title="Revenus supplémentaires"
+        title={t("onboarding.income.extraIncome")}
+        localized
         transactions={extraIncomes}
         currency={state.currency}
         onEdit={(editing) => setDialog({ editing })}
       />
 
       <Button icon="plus" onPress={() => setDialog({ editing: null })}>
-        Ajouter un revenu
+        {t("onboarding.income.addIncome")}
       </Button>
 
       <RunningTotal
-        label="Total revenus"
+        label={t("onboarding.income.total")}
         amount={totalIncome(state)}
         accent="income"
         currency={state.currency}
@@ -87,6 +91,7 @@ export function IncomeStep({ onExit }: { onExit: () => void }) {
       {dialog !== null && (
         <TransactionDialog
           kind="income"
+          localized
           currency={state.currency}
           editing={dialog.editing}
           onDismiss={() => setDialog(null)}

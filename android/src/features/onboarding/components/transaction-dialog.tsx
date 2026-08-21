@@ -4,6 +4,7 @@ import { StyleSheet } from "react-native";
 import { Button, Dialog, Portal, TextInput } from "react-native-paper";
 
 import { SPACING } from "@/core/ui/theme";
+import { useTranslation } from "@/core/i18n/locale-store";
 
 import {
   createCustomTransaction,
@@ -22,6 +23,7 @@ export function TransactionDialog({
   kind,
   currency,
   editing,
+  localized = false,
   onDismiss,
   onSubmit,
 }: {
@@ -29,9 +31,11 @@ export function TransactionDialog({
   currency: SupportedCurrency;
   /** The line being edited, or null when adding a new one. */
   editing: OnboardingTransaction | null;
+  localized?: boolean;
   onDismiss: () => void;
   onSubmit: (transaction: OnboardingTransaction) => void;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState(editing?.name ?? "");
   const [amount, setAmount] = useState<number | null>(editing?.amount ?? null);
 
@@ -56,28 +60,48 @@ export function TransactionDialog({
   return (
     <Portal>
       <Dialog visible onDismiss={onDismiss}>
-        <Dialog.Title>{TITLES[kind]}</Dialog.Title>
+        <Dialog.Title>
+          {localized ? t(`onboarding.transaction.title.${kind}`) : TITLES[kind]}
+        </Dialog.Title>
         <Dialog.Content style={styles.content}>
           <TextInput
             mode="outlined"
-            label="Nom"
-            placeholder={PLACEHOLDERS[kind]}
+            label={localized ? t("onboarding.transaction.name") : "Nom"}
+            placeholder={
+              localized
+                ? t(`onboarding.transaction.placeholder.${kind}`)
+                : PLACEHOLDERS[kind]
+            }
             value={name}
             onChangeText={setName}
             maxLength={NAME_MAX_LENGTH}
             autoFocus
           />
           <AmountField
-            label="Montant mensuel"
+            label={
+              localized
+                ? t("onboarding.transaction.monthlyAmount")
+                : "Montant mensuel"
+            }
             amount={amount}
             currency={currency}
             onChange={setAmount}
           />
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDismiss}>Annuler</Button>
+          <Button onPress={onDismiss}>
+            {localized ? t("common.cancel") : "Annuler"}
+          </Button>
           <Button disabled={!isValid} onPress={submit}>
-            {editing === null ? "Ajouter" : "Enregistrer"}
+            {localized
+              ? t(
+                  editing === null
+                    ? "onboarding.transaction.add"
+                    : "onboarding.transaction.save",
+                )
+              : editing === null
+                ? "Ajouter"
+                : "Enregistrer"}
           </Button>
         </Dialog.Actions>
       </Dialog>

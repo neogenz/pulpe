@@ -70,6 +70,12 @@
   },
   "onboarding": {
     "back": "Revenir à l'étape précédente",
+    "exit": {
+      "body": "Ce que tu as saisi sera effacé.",
+      "leave": "Quitter",
+      "stay": "Continuer",
+      "title": "Quitter la création de ton budget ?"
+    },
     "firstName": {
       "accessibility": "Prénom, requis",
       "label": "Prénom",
@@ -83,7 +89,51 @@
       "privacy": "politique de confidentialité",
       "terms": "conditions générales"
     },
+    "income": {
+      "addIncome": "Ajouter un revenu",
+      "currencyHint": "Tu pourras changer plus tard si besoin.",
+      "currencyTitle": "Tu comptes en francs ou en euros ?",
+      "extraIncome": "Revenus supplémentaires",
+      "monthlyIncome": "Revenu mensuel net",
+      "privacy": "Personne d'autre ne voit ces montants — pas même moi qui développe Pulpe.",
+      "subtitle": "Ce qui tombe sur ton compte chaque mois",
+      "title": "Tes revenus",
+      "total": "Total revenus"
+    },
+    "registration": {
+      "criteria": {
+        "letter": "Au moins une lettre",
+        "minimum": "%{count} caractères minimum",
+        "number": "Au moins un chiffre"
+      },
+      "criterionStatus": "%{label} — %{status}",
+      "error": "Création du compte impossible — réessaie.",
+      "legalPrefix": "En créant ton compte, tu acceptes",
+      "met": "rempli",
+      "missing": "à remplir",
+      "submit": "Créer mon compte",
+      "subtitle": "Pour retrouver tout ça sur tous tes appareils",
+      "title": "Crée ton compte"
+    },
     "skip": "Passer cette étape",
+    "transaction": {
+      "add": "Ajouter",
+      "delete": "Supprimer %{name}",
+      "edit": "Modifier %{name}",
+      "monthlyAmount": "Montant mensuel",
+      "name": "Nom",
+      "placeholder": {
+        "expense": "Abonnement, garde d'enfants…",
+        "income": "Prime, allocation…",
+        "saving": "Projet, fonds d'urgence…"
+      },
+      "save": "Enregistrer",
+      "title": {
+        "expense": "Ajouter une dépense",
+        "income": "Ajouter un revenu",
+        "saving": "Ajouter une épargne"
+      }
+    },
     "welcome": {
       "benefits": {
         "plan": "Un plan clair pour chaque mois",

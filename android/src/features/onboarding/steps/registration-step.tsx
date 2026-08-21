@@ -6,8 +6,10 @@ import { Text, TextInput, useTheme } from "react-native-paper";
 import {
   isAcceptablePassword,
   PASSWORD_CRITERIA,
+  PASSWORD_MIN_LENGTH,
 } from "@/core/auth/password-rules";
 import { signUpWithEmail } from "@/core/auth/sign-up";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 
@@ -22,6 +24,8 @@ import {
   useOnboardingStore,
 } from "../onboarding-store";
 
+const CRITERIA_KEYS = ["minimum", "letter", "number"] as const;
+
 /**
  * Where the account is created. Everything answered before this point lives in
  * the draft; everything after it needs a session, which is why the flow can
@@ -29,6 +33,7 @@ import {
  */
 export function RegistrationStep({ onExit }: { onExit: () => void }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const email = useOnboardingStore((state) => state.email);
   const firstName = useOnboardingStore((state) => state.firstName);
   const isAlreadyRegistered = useOnboardingStore(hasAccount);
@@ -55,12 +60,8 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
       captureSignupCompleted("email");
       configureEmailUser();
       goToNextStep();
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Création du compte impossible — réessaie.",
-      );
+    } catch {
+      setErrorMessage(t("onboarding.registration.error"));
     } finally {
       setIsSubmitting(false);
     }
@@ -68,7 +69,9 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
 
   return (
     <StepScaffold
-      ctaLabel="Créer mon compte"
+      ctaLabel={t("onboarding.registration.submit")}
+      title={t("onboarding.registration.title")}
+      subtitle={t("onboarding.registration.subtitle")}
       isCtaEnabled={isEmailValid && isAcceptablePassword(password)}
       isCtaBusy={isSubmitting}
       onContinue={() => void submit()}
@@ -76,8 +79,8 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
     >
       <TextInput
         mode="outlined"
-        label="E-mail"
-        placeholder="ton@email.com"
+        label={t("common.email")}
+        placeholder={t("common.emailExample")}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -89,7 +92,7 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
       <View style={styles.passwordBlock}>
         <TextInput
           mode="outlined"
-          label="Mot de passe"
+          label={t("common.password")}
           value={password}
           onChangeText={setPassword}
           autoCapitalize="none"
@@ -102,18 +105,22 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
               onPress={() => setIsPasswordVisible(!isPasswordVisible)}
               accessibilityLabel={
                 isPasswordVisible
-                  ? "Masquer le mot de passe"
-                  : "Afficher le mot de passe"
+                  ? t("auth.signIn.hidePassword")
+                  : t("auth.signIn.showPassword")
               }
             />
           }
         />
 
         <View style={styles.criteria}>
-          {PASSWORD_CRITERIA.map((criterion) => {
+          {PASSWORD_CRITERIA.map((criterion, index) => {
             const isMet = criterion.isMet(password);
+            const key = CRITERIA_KEYS[index]!;
+            const label = t(`onboarding.registration.criteria.${key}`, {
+              count: PASSWORD_MIN_LENGTH,
+            });
             return (
-              <View key={criterion.label} style={styles.criterion}>
+              <View key={key} style={styles.criterion}>
                 <MaterialCommunityIcons
                   name={isMet ? "check-circle" : "circle-outline"}
                   size={ICON_SIZE.sm}
@@ -128,9 +135,19 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
                       ? theme.colors.onSurface
                       : theme.colors.onSurfaceVariant,
                   }}
-                  accessibilityLabel={`${criterion.label} — ${isMet ? "rempli" : "à remplir"}`}
+                  accessibilityLabel={t(
+                    "onboarding.registration.criterionStatus",
+                    {
+                      label,
+                      status: t(
+                        isMet
+                          ? "onboarding.registration.met"
+                          : "onboarding.registration.missing",
+                      ),
+                    },
+                  )}
                 >
-                  {criterion.label}
+                  {label}
                 </Text>
               </View>
             );
@@ -140,7 +157,10 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
 
       {errorMessage !== null && <FieldError visible>{errorMessage}</FieldError>}
 
-      <LegalConsent prefix="En créant ton compte, tu acceptes" />
+      <LegalConsent
+        localized
+        prefix={t("onboarding.registration.legalPrefix")}
+      />
     </StepScaffold>
   );
 }

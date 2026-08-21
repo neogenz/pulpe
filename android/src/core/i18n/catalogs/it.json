@@ -70,6 +70,12 @@
   },
   "onboarding": {
     "back": "Torna al passaggio precedente",
+    "exit": {
+      "body": "Tutto ciò che hai inserito verrà eliminato.",
+      "leave": "Esci",
+      "stay": "Continua",
+      "title": "Uscire dalla creazione del budget?"
+    },
     "firstName": {
       "accessibility": "Nome, obbligatorio",
       "label": "Nome",
@@ -83,7 +89,51 @@
       "privacy": "informativa sulla privacy",
       "terms": "termini e condizioni"
     },
+    "income": {
+      "addIncome": "Aggiungi un reddito",
+      "currencyHint": "Potrai cambiare valuta più tardi.",
+      "currencyTitle": "Usi franchi o euro?",
+      "extraIncome": "Redditi aggiuntivi",
+      "monthlyIncome": "Reddito mensile netto",
+      "privacy": "Nessun altro vede questi importi — nemmeno chi sviluppa Pulpe.",
+      "subtitle": "Ciò che arriva sul tuo conto ogni mese",
+      "title": "I tuoi redditi",
+      "total": "Redditi totali"
+    },
+    "registration": {
+      "criteria": {
+        "letter": "Almeno una lettera",
+        "minimum": "Almeno %{count} caratteri",
+        "number": "Almeno un numero"
+      },
+      "criterionStatus": "%{label} — %{status}",
+      "error": "Impossibile creare l'account — riprova.",
+      "legalPrefix": "Creando il tuo account, accetti",
+      "met": "soddisfatto",
+      "missing": "da soddisfare",
+      "submit": "Crea il mio account",
+      "subtitle": "Per ritrovare tutto su ogni dispositivo",
+      "title": "Crea il tuo account"
+    },
     "skip": "Salta questo passaggio",
+    "transaction": {
+      "add": "Aggiungi",
+      "delete": "Elimina %{name}",
+      "edit": "Modifica %{name}",
+      "monthlyAmount": "Importo mensile",
+      "name": "Nome",
+      "placeholder": {
+        "expense": "Abbonamento, assistenza all'infanzia…",
+        "income": "Bonus, assegno…",
+        "saving": "Progetto, fondo di emergenza…"
+      },
+      "save": "Salva",
+      "title": {
+        "expense": "Aggiungi una spesa",
+        "income": "Aggiungi un reddito",
+        "saving": "Aggiungi un risparmio"
+      }
+    },
     "welcome": {
       "benefits": {
         "plan": "Un piano chiaro per ogni mese",

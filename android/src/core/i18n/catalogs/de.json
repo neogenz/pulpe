@@ -70,6 +70,12 @@
   },
   "onboarding": {
     "back": "Zum vorherigen Schritt zurückkehren",
+    "exit": {
+      "body": "Deine Eingaben werden gelöscht.",
+      "leave": "Verlassen",
+      "stay": "Weiter",
+      "title": "Budget-Einrichtung verlassen?"
+    },
     "firstName": {
       "accessibility": "Vorname, erforderlich",
       "label": "Vorname",
@@ -83,7 +89,51 @@
       "privacy": "Datenschutzrichtlinie",
       "terms": "Nutzungsbedingungen"
     },
+    "income": {
+      "addIncome": "Einkommen hinzufügen",
+      "currencyHint": "Du kannst die Währung später ändern.",
+      "currencyTitle": "Rechnest du in Franken oder Euro?",
+      "extraIncome": "Zusätzliches Einkommen",
+      "monthlyIncome": "Monatliches Nettoeinkommen",
+      "privacy": "Niemand sonst sieht diese Beträge — nicht einmal die Person, die Pulpe entwickelt.",
+      "subtitle": "Was jeden Monat auf deinem Konto eingeht",
+      "title": "Dein Einkommen",
+      "total": "Gesamteinkommen"
+    },
+    "registration": {
+      "criteria": {
+        "letter": "Mindestens ein Buchstabe",
+        "minimum": "Mindestens %{count} Zeichen",
+        "number": "Mindestens eine Zahl"
+      },
+      "criterionStatus": "%{label} — %{status}",
+      "error": "Konto konnte nicht erstellt werden — versuche es erneut.",
+      "legalPrefix": "Mit der Kontoerstellung akzeptierst du",
+      "met": "erfüllt",
+      "missing": "nicht erfüllt",
+      "submit": "Mein Konto erstellen",
+      "subtitle": "Damit du alles auf all deinen Geräten wiederfindest",
+      "title": "Erstelle dein Konto"
+    },
     "skip": "Diesen Schritt überspringen",
+    "transaction": {
+      "add": "Hinzufügen",
+      "delete": "%{name} löschen",
+      "edit": "%{name} bearbeiten",
+      "monthlyAmount": "Monatlicher Betrag",
+      "name": "Name",
+      "placeholder": {
+        "expense": "Abonnement, Kinderbetreuung…",
+        "income": "Bonus, Zulage…",
+        "saving": "Projekt, Notfallfonds…"
+      },
+      "save": "Speichern",
+      "title": {
+        "expense": "Ausgabe hinzufügen",
+        "income": "Einkommen hinzufügen",
+        "saving": "Ersparnis hinzufügen"
+      }
+    },
     "welcome": {
       "benefits": {
         "plan": "Ein klarer Plan für jeden Monat",
