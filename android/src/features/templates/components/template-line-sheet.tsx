@@ -17,7 +17,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
-import { recurrenceOptions } from "@/core/ui/vocabulary";
+import { kindOptions, recurrenceOptions } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
@@ -34,12 +34,11 @@ import {
 
 const NAME_MAX_LENGTH = 100;
 
-const KIND_BUTTONS: { value: TransactionKind; label: string; icon: string }[] =
-  [
-    { value: "expense", label: "Dépense", icon: "arrow-up" },
-    { value: "income", label: "Revenu", icon: "arrow-down" },
-    { value: "saving", label: "Épargne", icon: "piggy-bank-outline" },
-  ];
+const KIND_ICONS = {
+  expense: "arrow-up",
+  income: "arrow-down",
+  saving: "piggy-bank-outline",
+} as const;
 
 interface TemplateLineSheetProps {
   isVisible: boolean;
@@ -186,13 +185,11 @@ export function TemplateLineSheet({
         isVisible={isVisible && !isPropagationVisible}
         onDismiss={dismiss}
         isBusy={mutation.isPending}
-        title={isEditing ? "Modifier la prévision" : "Nouvelle prévision"}
+        title={t(`templates.lines.${isEditing ? "editTitle" : "createTitle"}`)}
         footer={
           <>
             {mutation.isError && (
-              <FieldError visible>
-                La prévision n&apos;a pas pu être enregistrée. Réessaie.
-              </FieldError>
+              <FieldError visible>{t("templates.lines.error")}</FieldError>
             )}
 
             <Button
@@ -201,10 +198,10 @@ export function TemplateLineSheet({
               disabled={!isSubmittable}
               loading={mutation.isPending}
             >
-              {isEditing ? "Enregistrer" : "Ajouter"}
+              {t(`templates.lines.${isEditing ? "save" : "add"}`)}
             </Button>
             <Button mode="text" onPress={dismiss} disabled={mutation.isPending}>
-              Annuler
+              {t("common.cancel")}
             </Button>
           </>
         }
@@ -212,11 +209,14 @@ export function TemplateLineSheet({
         <SegmentedButtons
           value={kind}
           onValueChange={(next) => setKind(next as TransactionKind)}
-          buttons={KIND_BUTTONS}
+          buttons={kindOptions(t).map((button) => ({
+            ...button,
+            icon: KIND_ICONS[button.value],
+          }))}
         />
 
         <AmountField
-          label="Montant prévu"
+          label={t("templates.lines.amount")}
           amount={amount}
           currency={currency}
           onChange={setAmount}
@@ -224,7 +224,7 @@ export function TemplateLineSheet({
 
         <TextInput
           mode="outlined"
-          label="Nom"
+          label={t("templates.form.name")}
           value={name}
           onChangeText={setName}
           maxLength={NAME_MAX_LENGTH}
@@ -242,14 +242,14 @@ export function TemplateLineSheet({
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              Rattacher à un objectif
+              {t("templates.lines.linkGoal")}
             </Text>
             <View style={styles.chips}>
               <Chip
                 selected={savingsGoalId === null}
                 onPress={() => setSavingsGoalId(null)}
               >
-                Aucun
+                {t("templates.lines.noGoal")}
               </Chip>
               {(goals.data ?? []).map((goal) => (
                 <Chip
@@ -269,22 +269,25 @@ export function TemplateLineSheet({
         <Dialog
           visible={isVisible && isPropagationVisible}
           onDismiss={() => setPropagationVisible(false)}
+          dismissable={!mutation.isPending}
         >
-          <Dialog.Title>Appliquer aux mois suivants ?</Dialog.Title>
+          <Dialog.Title>{t("templates.lines.propagationTitle")}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              Ce modèle est utilisé par {propagationCount}{" "}
-              {propagationCount === 1 ? "budget" : "budgets"}. « Appliquer »
-              mettra à jour les budgets en cours et futurs. Les prévisions
-              modifiées à la main ne seront pas touchées.
+              {t("templates.lines.propagationBody", {
+                count: propagationCount,
+              })}
             </Text>
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
-            <Button onPress={() => setPropagationVisible(false)}>
-              Annuler
+            <Button
+              onPress={() => setPropagationVisible(false)}
+              disabled={mutation.isPending}
+            >
+              {t("common.cancel")}
             </Button>
             <Button onPress={saveTemplateOnly} disabled={mutation.isPending}>
-              Modèle uniquement
+              {t("templates.lines.templateOnly")}
             </Button>
             <Button
               mode="contained"
@@ -292,7 +295,7 @@ export function TemplateLineSheet({
               disabled={mutation.isPending}
               loading={bulk.isPending}
             >
-              Appliquer
+              {t("templates.lines.apply")}
             </Button>
           </Dialog.Actions>
         </Dialog>

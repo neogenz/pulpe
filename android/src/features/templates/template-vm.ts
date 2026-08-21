@@ -9,12 +9,6 @@ export const MAX_TEMPLATES = 5;
 
 export type TemplateUsage = TemplateUsageResponse["data"];
 
-export const KIND_SECTION_LABELS: Record<TransactionKind, string> = {
-  income: "Revenus",
-  expense: "Dépenses",
-  saving: "Épargne",
-};
-
 /** Income first, then what leaves — the order every other screen reads in. */
 const SECTION_ORDER: TransactionKind[] = ["income", "expense", "saving"];
 

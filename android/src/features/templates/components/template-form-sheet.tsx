@@ -4,6 +4,7 @@ import { StyleSheet, View } from "react-native";
 import { Button, Switch, Text, TextInput, useTheme } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Sheet } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
@@ -37,6 +38,7 @@ export function TemplateFormSheet({
   onSaved,
 }: TemplateFormSheetProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const create = useCreateTemplate();
   const update = useUpdateTemplate();
   const [name, setName] = useState(template?.name ?? "");
@@ -91,13 +93,11 @@ export function TemplateFormSheet({
       isVisible={isVisible}
       onDismiss={dismiss}
       isBusy={mutation.isPending}
-      title={isEditing ? "Modifier le modèle" : "Nouveau modèle"}
+      title={t(`templates.form.${isEditing ? "editTitle" : "createTitle"}`)}
       footer={
         <>
           {mutation.isError && (
-            <FieldError visible>
-              Le modèle n&apos;a pas pu être enregistré. Réessaie.
-            </FieldError>
+            <FieldError visible>{t("templates.form.error")}</FieldError>
           )}
 
           <Button
@@ -106,18 +106,18 @@ export function TemplateFormSheet({
             disabled={!isSubmittable}
             loading={mutation.isPending}
           >
-            {isEditing ? "Enregistrer" : "Créer le modèle"}
+            {t(`templates.form.${isEditing ? "save" : "create"}`)}
           </Button>
           <Button mode="text" onPress={dismiss} disabled={mutation.isPending}>
-            Annuler
+            {t("common.cancel")}
           </Button>
         </>
       }
     >
       <TextInput
         mode="outlined"
-        label="Nom"
-        placeholder="Mois standard, mois d'été…"
+        label={t("templates.form.name")}
+        placeholder={t("templates.form.namePlaceholder")}
         value={name}
         onChangeText={setName}
         maxLength={NAME_MAX_LENGTH}
@@ -126,7 +126,7 @@ export function TemplateFormSheet({
 
       <TextInput
         mode="outlined"
-        label="Description (facultatif)"
+        label={t("templates.form.description")}
         value={description}
         onChangeText={setDescription}
         maxLength={DESCRIPTION_MAX_LENGTH}
@@ -135,18 +135,18 @@ export function TemplateFormSheet({
 
       <View style={styles.switchRow}>
         <View style={styles.switchLabels}>
-          <Text variant="bodyLarge">Modèle par défaut</Text>
+          <Text variant="bodyLarge">{t("templates.form.default")}</Text>
           <Text
             variant="labelMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Tes prochains mois seront créés à partir de celui-ci.
+            {t("templates.form.defaultHint")}
           </Text>
         </View>
         <Switch
           value={isDefault}
           onValueChange={setDefault}
-          accessibilityLabel="Modèle par défaut"
+          accessibilityLabel={t("templates.form.default")}
         />
       </View>
     </Sheet>

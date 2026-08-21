@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/core/ui/card";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useAmountMasking } from "@/core/ui/amount-visibility";
@@ -27,6 +28,7 @@ import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { FadingRail } from "@/core/ui/fading-rail";
 import { InlineQueryError } from "@/core/ui/inline-query-error";
+import { FieldError } from "@/core/ui/field-error";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { Amount } from "@/core/ui/amount";
 import { SPACING } from "@/core/ui/theme";
@@ -56,6 +58,7 @@ export default function TemplateDetailScreen() {
   useAmountMasking();
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const settings = useUserSettings();
   const template = useTemplate(id);
   const lines = useTemplateLines(id);
@@ -71,27 +74,31 @@ export default function TemplateDetailScreen() {
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
 
-  if (template.isPending || lines.isPending) {
+  if (template.isPending || lines.isPending || settings.isPending) {
     return (
       <SafeAreaView
         edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator accessibilityLabel="Chargement" />
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
       </SafeAreaView>
     );
   }
 
-  if (template.isError || lines.isError) {
+  if (template.isError || lines.isError || settings.isError) {
     return (
       <PlaceholderScreen
         icon="cloud-off-outline"
-        title="On n'a pas pu charger ce modèle"
-        hint="Vérifie ta connexion, puis réessaie."
+        title={t("templates.detail.loadErrorTitle")}
+        hint={t("common.loadErrorHint")}
         action={{
-          label: "Réessayer",
+          label: t("common.retry"),
           onPress: () =>
-            void Promise.all([template.refetch(), lines.refetch()]),
+            void Promise.all([
+              template.refetch(),
+              lines.refetch(),
+              settings.refetch(),
+            ]),
         }}
       />
     );
@@ -101,9 +108,9 @@ export default function TemplateDetailScreen() {
     return (
       <PlaceholderScreen
         icon="file-remove-outline"
-        title="Ce modèle n'existe plus"
-        hint="Il a peut-être été supprimé depuis un autre appareil."
-        action={{ label: "Revenir", onPress: () => router.back() }}
+        title={t("templates.detail.missingTitle")}
+        hint={t("templates.detail.missingHint")}
+        action={{ label: t("common.back"), onPress: () => router.back() }}
       />
     );
   }
@@ -114,6 +121,18 @@ export default function TemplateDetailScreen() {
   const propagationCount = isUsageReady
     ? propagationBudgetCount(usage.data)
     : 0;
+
+  function dismissLineDeletion() {
+    if (removeLine.isPending) return;
+    removeLine.reset();
+    setDeletedLine(null);
+  }
+
+  function dismissTemplateDeletion() {
+    if (removeTemplate.isPending) return;
+    removeTemplate.reset();
+    setDeletingTemplate(false);
+  }
 
   return (
     <SafeAreaView
@@ -130,13 +149,13 @@ export default function TemplateDetailScreen() {
             <Appbar.Action
               icon="dots-vertical"
               onPress={() => setMenuVisible(true)}
-              accessibilityLabel="Plus d'options"
+              accessibilityLabel={t("common.moreOptions")}
             />
           }
         >
           <Menu.Item
             leadingIcon="pencil-outline"
-            title="Renommer"
+            title={t("templates.detail.rename")}
             onPress={() => {
               setMenuVisible(false);
               setRenaming(true);
@@ -144,7 +163,7 @@ export default function TemplateDetailScreen() {
           />
           <Menu.Item
             leadingIcon="delete-outline"
-            title="Supprimer le modèle"
+            title={t("templates.detail.delete")}
             onPress={() => {
               setMenuVisible(false);
               setDeletingTemplate(true);
@@ -165,7 +184,7 @@ export default function TemplateDetailScreen() {
         {template.data.isDefault === true && (
           <View style={styles.badgeRow}>
             <Chip compact icon="star">
-              Modèle par défaut
+              {t("templates.form.default")}
             </Chip>
           </View>
         )}
@@ -173,17 +192,17 @@ export default function TemplateDetailScreen() {
         <Card mode="contained">
           <Card.Content style={styles.totals}>
             <TotalRow
-              label="Revenus"
+              label={t("templates.detail.income")}
               amount={totals.totalIncome}
               currency={currency}
             />
             <TotalRow
-              label="Dépenses et épargne"
+              label={t("templates.detail.outgoing")}
               amount={totals.totalExpenses}
               currency={currency}
             />
             <TotalRow
-              label="Reste"
+              label={t("templates.detail.balance")}
               amount={totals.balance}
               currency={currency}
               isEmphasised
@@ -196,8 +215,7 @@ export default function TemplateDetailScreen() {
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Ce modèle est encore vide. Ajoute tes revenus, tes charges et ton
-            épargne pour qu&apos;il puisse servir de mois type.
+            {t("templates.detail.empty")}
           </Text>
         ) : (
           <View pointerEvents={isUsageReady ? "auto" : "none"}>
@@ -217,12 +235,12 @@ export default function TemplateDetailScreen() {
           disabled={!isUsageReady}
           onPress={() => setAdding(true)}
         >
-          Ajouter une prévision
+          {t("templates.detail.addLine")}
         </Button>
 
         {usage.isError && (
           <InlineQueryError
-            message="Impossible de vérifier les budgets liés à ce modèle."
+            message={t("templates.detail.usageError")}
             onRetry={() => void usage.refetch()}
           />
         )}
@@ -230,7 +248,9 @@ export default function TemplateDetailScreen() {
         {usage.data !== undefined && usage.data.budgets.length > 0 && (
           <View style={styles.usage}>
             <Text variant="titleSmall">
-              {`${usage.data.budgets.length} budgets créés depuis ce modèle`}
+              {t("templates.detail.usageCount", {
+                count: usage.data.budgets.length,
+              })}
             </Text>
             {/* A scrolling row of destinations, not a column of read-only text:
                 twenty-five months printed one per line filled the screen with
@@ -243,7 +263,7 @@ export default function TemplateDetailScreen() {
                     compact
                     onPress={() => router.push(`/budget/${budget.id}`)}
                   >
-                    {formatMonthLabel(budget.month, budget.year)}
+                    {formatMonthLabel(budget.month, budget.year, locale)}
                   </Chip>
                 ))}
               </FadingRail>
@@ -252,7 +272,7 @@ export default function TemplateDetailScreen() {
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              Supprimer le modèle ne touche pas ces budgets.
+              {t("templates.detail.usageHint")}
             </Text>
           </View>
         )}
@@ -295,17 +315,29 @@ export default function TemplateDetailScreen() {
       <Portal>
         <Dialog
           visible={deletedLine !== null && isUsageReady}
-          onDismiss={() => setDeletedLine(null)}
+          onDismiss={dismissLineDeletion}
+          dismissable={!removeLine.isPending}
         >
-          <Dialog.Title>Supprimer cette prévision ?</Dialog.Title>
+          <Dialog.Title>{t("templates.detail.deleteLineTitle")}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              « {deletedLine?.name} » quittera le modèle. Les budgets déjà créés
-              gardent la leur.
+              {t("templates.detail.deleteLineBody", {
+                name: deletedLine?.name ?? "",
+              })}
             </Text>
+            {removeLine.isError && (
+              <FieldError visible>
+                {t("templates.detail.deleteLineError")}
+              </FieldError>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setDeletedLine(null)}>Annuler</Button>
+            <Button
+              onPress={dismissLineDeletion}
+              disabled={removeLine.isPending}
+            >
+              {t("common.cancel")}
+            </Button>
             <Button
               onPress={() => {
                 if (deletedLine === null || !isUsageReady) return;
@@ -317,24 +349,38 @@ export default function TemplateDetailScreen() {
               disabled={removeLine.isPending}
               loading={removeLine.isPending}
             >
-              Supprimer
+              {t("templates.detail.confirmDelete")}
             </Button>
           </Dialog.Actions>
         </Dialog>
 
         <Dialog
           visible={isDeletingTemplate}
-          onDismiss={() => setDeletingTemplate(false)}
+          onDismiss={dismissTemplateDeletion}
+          dismissable={!removeTemplate.isPending}
         >
-          <Dialog.Title>Supprimer ce modèle ?</Dialog.Title>
+          <Dialog.Title>
+            {t("templates.detail.deleteTemplateTitle")}
+          </Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              Les budgets déjà créés depuis « {template.data.name} » restent
-              intacts. Seul le modèle disparaît.
+              {t("templates.detail.deleteTemplateBody", {
+                name: template.data.name,
+              })}
             </Text>
+            {removeTemplate.isError && (
+              <FieldError visible>
+                {t("templates.detail.deleteTemplateError")}
+              </FieldError>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setDeletingTemplate(false)}>Annuler</Button>
+            <Button
+              onPress={dismissTemplateDeletion}
+              disabled={removeTemplate.isPending}
+            >
+              {t("common.cancel")}
+            </Button>
             <Button
               onPress={() =>
                 removeTemplate.mutate(id, {
@@ -347,7 +393,7 @@ export default function TemplateDetailScreen() {
               disabled={removeTemplate.isPending}
               loading={removeTemplate.isPending}
             >
-              Supprimer
+              {t("templates.detail.confirmDelete")}
             </Button>
           </Dialog.Actions>
         </Dialog>

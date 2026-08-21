@@ -10,7 +10,7 @@ import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { ROW_ACTION_ICON_SIZE, SPACING } from "@/core/ui/theme";
 
-import { KIND_SECTION_LABELS, templateLineSections } from "../template-vm";
+import { templateLineSections } from "../template-vm";
 
 interface TemplateLinesProps {
   lines: TemplateLine[];
@@ -28,13 +28,14 @@ export function TemplateLines({
   onEdit,
   onDelete,
 }: TemplateLinesProps) {
+  const { t } = useTranslation();
   return (
     <>
       {templateLineSections(lines).map((section) => (
         <View key={section.kind} style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text variant="titleSmall">
-              {KIND_SECTION_LABELS[section.kind]}
+              {t(`templates.sections.${section.kind}`)}
             </Text>
             <Amount size="meta" tone="muted">
               {/* Compact: the section total restates the summary card above,
@@ -112,7 +113,9 @@ function LineRow({
         size={ROW_ACTION_ICON_SIZE}
         style={styles.action}
         onPress={onEdit}
-        accessibilityLabel={`Modifier ${line.name}`}
+        accessibilityLabel={t("templates.lines.editAccessibility", {
+          name: line.name,
+        })}
       />
       <IconButton
         icon="trash-can-outline"
@@ -120,7 +123,9 @@ function LineRow({
         style={styles.action}
         onPress={onDelete}
         disabled={isDeleting}
-        accessibilityLabel={`Supprimer ${line.name}`}
+        accessibilityLabel={t("templates.lines.deleteAccessibility", {
+          name: line.name,
+        })}
       />
     </View>
   );

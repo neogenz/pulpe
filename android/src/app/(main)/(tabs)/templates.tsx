@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Tooltip } from "@/core/tips/tooltip";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Card } from "@/core/ui/card";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { APP_URLS } from "@/core/ui/app-urls";
@@ -35,6 +36,7 @@ export default function TemplatesScreen() {
   // itself lives in the formatters.
   useAmountMasking();
   const theme = useTheme();
+  const { t } = useTranslation();
   const templates = useTemplates();
   const [isCreating, setCreating] = useState(false);
 
@@ -44,7 +46,7 @@ export default function TemplatesScreen() {
         edges={["top"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator accessibilityLabel="Chargement" />
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
       </SafeAreaView>
     );
   }
@@ -53,9 +55,12 @@ export default function TemplatesScreen() {
     return (
       <PlaceholderScreen
         icon="cloud-off-outline"
-        title="On n'a pas pu charger tes modèles"
-        hint="Vérifie ta connexion, puis réessaie."
-        action={{ label: "Réessayer", onPress: () => void templates.refetch() }}
+        title={t("templates.list.loadErrorTitle")}
+        hint={t("common.loadErrorHint")}
+        action={{
+          label: t("common.retry"),
+          onPress: () => void templates.refetch(),
+        }}
       />
     );
   }
@@ -71,10 +76,10 @@ export default function TemplatesScreen() {
       {list.length === 0 ? (
         <PlaceholderScreen
           icon="file-document-outline"
-          title="Crée ton premier modèle"
-          hint="Un mois type : tes revenus, tes charges et ton épargne, prêts à être rejoués."
+          title={t("templates.list.emptyTitle")}
+          hint={t("templates.list.emptyHint")}
           action={{
-            label: "Créer un modèle",
+            label: t("templates.list.create"),
             onPress: () => setCreating(true),
           }}
         />
@@ -89,22 +94,25 @@ export default function TemplatesScreen() {
           }
         >
           <View style={styles.header}>
-            <Text variant="headlineSmall">Modèles</Text>
+            <Text variant="headlineSmall">{t("templates.list.title")}</Text>
             <Text
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              {list.length}/{MAX_TEMPLATES} modèles
+              {t("templates.list.count", {
+                count: list.length,
+                max: MAX_TEMPLATES,
+              })}
             </Text>
           </View>
 
           <Tooltip
             id="templates-web-parity"
             icon="laptop"
-            title="Modèles : version Android encore allégée"
-            message="Toutes les actions sur les modèles ne sont pas encore dispos ici. Pour aller au bout, l'app web fait tout — n'hésite pas à y faire un tour."
+            title={t("templates.list.webTitle")}
+            message={t("templates.list.webBody")}
             action={{
-              label: "Ouvrir sur le web",
+              label: t("templates.list.openWeb"),
               onPress: () =>
                 void Linking.openURL(APP_URLS.webappBudgetTemplates),
             }}
@@ -119,8 +127,7 @@ export default function TemplatesScreen() {
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              Tu as atteint la limite de {MAX_TEMPLATES} modèles. Supprimes-en
-              un pour en créer un autre.
+              {t("templates.list.limit", { count: MAX_TEMPLATES })}
             </Text>
           )}
         </ScrollView>
@@ -133,7 +140,7 @@ export default function TemplatesScreen() {
           icon="plus"
           style={styles.fab}
           onPress={() => setCreating(true)}
-          accessibilityLabel="Ajouter un modèle"
+          accessibilityLabel={t("templates.list.addAccessibility")}
         />
       )}
 
@@ -155,6 +162,7 @@ export default function TemplatesScreen() {
 
 function TemplateCard({ template }: { template: BudgetTemplate }) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Card
@@ -166,7 +174,9 @@ function TemplateCard({ template }: { template: BudgetTemplate }) {
           <Text variant="titleMedium" style={styles.cardTitle}>
             {template.name}
           </Text>
-          {template.isDefault === true && <Chip compact>Par défaut</Chip>}
+          {template.isDefault === true && (
+            <Chip compact>{t("templates.form.default")}</Chip>
+          )}
         </View>
         {template.description !== undefined &&
           template.description.length > 0 && (

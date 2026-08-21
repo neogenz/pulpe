@@ -1061,6 +1061,82 @@
   "startup": {
     "vaultError": "Deine geschützten Daten konnten nicht vorbereitet werden."
   },
+  "templates": {
+    "list": {
+      "addAccessibility": "Vorlage hinzufügen",
+      "count": "%{count}/%{max} Vorlagen",
+      "create": "Vorlage erstellen",
+      "emptyHint": "Ein typischer Monat: Einnahmen, Ausgaben und Ersparnisse, bereit zur Wiederverwendung.",
+      "emptyTitle": "Erstelle deine erste Vorlage",
+      "limit": "Du hast das Limit von %{count} Vorlagen erreicht. Lösche eine, um eine neue zu erstellen.",
+      "loadErrorTitle": "Deine Vorlagen konnten nicht geladen werden",
+      "openWeb": "Im Web öffnen",
+      "title": "Vorlagen",
+      "webBody": "Noch sind nicht alle Vorlagenaktionen hier verfügbar. Die Web-App bietet bei Bedarf den vollständigen Umfang.",
+      "webTitle": "Vorlagen: Android ist noch reduziert"
+    },
+    "form": {
+      "create": "Vorlage erstellen",
+      "createTitle": "Neue Vorlage",
+      "default": "Standardvorlage",
+      "defaultHint": "Deine nächsten Monate werden daraus erstellt.",
+      "description": "Beschreibung (optional)",
+      "editTitle": "Vorlage bearbeiten",
+      "error": "Die Vorlage konnte nicht gespeichert werden. Versuche es erneut.",
+      "name": "Name",
+      "namePlaceholder": "Standardmonat, Sommermonat…",
+      "save": "Speichern"
+    },
+    "sections": {
+      "expense": "Ausgaben",
+      "income": "Einnahmen",
+      "saving": "Ersparnisse"
+    },
+    "lines": {
+      "add": "Hinzufügen",
+      "amount": "Geplanter Betrag",
+      "apply": "Anwenden",
+      "createTitle": "Neue Prognose",
+      "deleteAccessibility": "%{name} löschen",
+      "editAccessibility": "%{name} bearbeiten",
+      "editTitle": "Prognose bearbeiten",
+      "error": "Die Prognose konnte nicht gespeichert werden. Versuche es erneut.",
+      "linkGoal": "Mit einem Ziel verknüpfen",
+      "noGoal": "Keines",
+      "propagationBody": {
+        "one": "Diese Vorlage wird von %{count} Budget verwendet. „Anwenden“ aktualisiert aktuelle und zukünftige Budgets. Manuell bearbeitete Prognosen bleiben unverändert.",
+        "other": "Diese Vorlage wird von %{count} Budgets verwendet. „Anwenden“ aktualisiert aktuelle und zukünftige Budgets. Manuell bearbeitete Prognosen bleiben unverändert."
+      },
+      "propagationTitle": "Auf folgende Monate anwenden?",
+      "save": "Speichern",
+      "templateOnly": "Nur Vorlage"
+    },
+    "detail": {
+      "addLine": "Prognose hinzufügen",
+      "balance": "Übrig",
+      "confirmDelete": "Löschen",
+      "delete": "Vorlage löschen",
+      "deleteLineBody": "„%{name}“ wird aus der Vorlage entfernt. Bestehende Budgets behalten ihre Kopie.",
+      "deleteLineError": "Die Prognose konnte nicht gelöscht werden. Versuche es erneut.",
+      "deleteLineTitle": "Diese Prognose löschen?",
+      "deleteTemplateBody": "Budgets, die bereits aus „%{name}“ erstellt wurden, bleiben unverändert. Nur die Vorlage verschwindet.",
+      "deleteTemplateError": "Die Vorlage konnte nicht gelöscht werden. Versuche es erneut.",
+      "deleteTemplateTitle": "Diese Vorlage löschen?",
+      "empty": "Diese Vorlage ist noch leer. Füge Einnahmen, Ausgaben und Ersparnisse hinzu, damit sie als typischer Monat dienen kann.",
+      "income": "Einnahmen",
+      "loadErrorTitle": "Diese Vorlage konnte nicht geladen werden",
+      "missingHint": "Sie wurde vielleicht auf einem anderen Gerät gelöscht.",
+      "missingTitle": "Diese Vorlage existiert nicht mehr",
+      "outgoing": "Ausgaben und Ersparnisse",
+      "rename": "Umbenennen",
+      "usageCount": {
+        "one": "%{count} Budget aus dieser Vorlage erstellt",
+        "other": "%{count} Budgets aus dieser Vorlage erstellt"
+      },
+      "usageError": "Die mit dieser Vorlage verknüpften Budgets konnten nicht geprüft werden.",
+      "usageHint": "Das Löschen der Vorlage wirkt sich nicht auf diese Budgets aus."
+    }
+  },
   "vault": {
     "confirmPin": "Bestätige deinen Code",
     "error": "Zugriff auf deine geschützten Daten nicht möglich — versuche es erneut.",

@@ -1058,6 +1058,82 @@
   "startup": {
     "vaultError": "Impossible de préparer tes données sécurisées."
   },
+  "templates": {
+    "list": {
+      "addAccessibility": "Ajouter un modèle",
+      "count": "%{count}/%{max} modèles",
+      "create": "Créer un modèle",
+      "emptyHint": "Un mois type : tes revenus, tes charges et ton épargne, prêts à être rejoués.",
+      "emptyTitle": "Crée ton premier modèle",
+      "limit": "Tu as atteint la limite de %{count} modèles. Supprimes-en un pour en créer un autre.",
+      "loadErrorTitle": "On n'a pas pu charger tes modèles",
+      "openWeb": "Ouvrir sur le web",
+      "title": "Modèles",
+      "webBody": "Toutes les actions sur les modèles ne sont pas encore disponibles ici. Pour aller au bout, l'app web fait tout — n'hésite pas à y faire un tour.",
+      "webTitle": "Modèles : version Android encore allégée"
+    },
+    "form": {
+      "create": "Créer le modèle",
+      "createTitle": "Nouveau modèle",
+      "default": "Modèle par défaut",
+      "defaultHint": "Tes prochains mois seront créés à partir de celui-ci.",
+      "description": "Description (facultatif)",
+      "editTitle": "Modifier le modèle",
+      "error": "Le modèle n'a pas pu être enregistré. Réessaie.",
+      "name": "Nom",
+      "namePlaceholder": "Mois standard, mois d'été…",
+      "save": "Enregistrer"
+    },
+    "sections": {
+      "expense": "Dépenses",
+      "income": "Revenus",
+      "saving": "Épargne"
+    },
+    "lines": {
+      "add": "Ajouter",
+      "amount": "Montant prévu",
+      "apply": "Appliquer",
+      "createTitle": "Nouvelle prévision",
+      "deleteAccessibility": "Supprimer %{name}",
+      "editAccessibility": "Modifier %{name}",
+      "editTitle": "Modifier la prévision",
+      "error": "La prévision n'a pas pu être enregistrée. Réessaie.",
+      "linkGoal": "Rattacher à un objectif",
+      "noGoal": "Aucun",
+      "propagationBody": {
+        "one": "Ce modèle est utilisé par %{count} budget. « Appliquer » mettra à jour les budgets en cours et futurs. Les prévisions modifiées à la main ne seront pas touchées.",
+        "other": "Ce modèle est utilisé par %{count} budgets. « Appliquer » mettra à jour les budgets en cours et futurs. Les prévisions modifiées à la main ne seront pas touchées."
+      },
+      "propagationTitle": "Appliquer aux mois suivants ?",
+      "save": "Enregistrer",
+      "templateOnly": "Modèle uniquement"
+    },
+    "detail": {
+      "addLine": "Ajouter une prévision",
+      "balance": "Reste",
+      "confirmDelete": "Supprimer",
+      "delete": "Supprimer le modèle",
+      "deleteLineBody": "« %{name} » quittera le modèle. Les budgets déjà créés gardent la leur.",
+      "deleteLineError": "La prévision n'a pas pu être supprimée. Réessaie.",
+      "deleteLineTitle": "Supprimer cette prévision ?",
+      "deleteTemplateBody": "Les budgets déjà créés depuis « %{name} » restent intacts. Seul le modèle disparaît.",
+      "deleteTemplateError": "Le modèle n'a pas pu être supprimé. Réessaie.",
+      "deleteTemplateTitle": "Supprimer ce modèle ?",
+      "empty": "Ce modèle est encore vide. Ajoute tes revenus, tes charges et ton épargne pour qu'il puisse servir de mois type.",
+      "income": "Revenus",
+      "loadErrorTitle": "On n'a pas pu charger ce modèle",
+      "missingHint": "Il a peut-être été supprimé depuis un autre appareil.",
+      "missingTitle": "Ce modèle n'existe plus",
+      "outgoing": "Dépenses et épargne",
+      "rename": "Renommer",
+      "usageCount": {
+        "one": "%{count} budget créé depuis ce modèle",
+        "other": "%{count} budgets créés depuis ce modèle"
+      },
+      "usageError": "Impossible de vérifier les budgets liés à ce modèle.",
+      "usageHint": "Supprimer le modèle ne touche pas ces budgets."
+    }
+  },
   "vault": {
     "confirmPin": "Confirme ton code",
     "error": "Impossible d'accéder à tes données sécurisées — réessaie.",

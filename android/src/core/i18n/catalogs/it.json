@@ -1061,6 +1061,82 @@
   "startup": {
     "vaultError": "Non è stato possibile preparare i tuoi dati protetti."
   },
+  "templates": {
+    "list": {
+      "addAccessibility": "Aggiungi un modello",
+      "count": "%{count}/%{max} modelli",
+      "create": "Crea un modello",
+      "emptyHint": "Un mese tipo: entrate, spese e risparmi, pronti per essere riutilizzati.",
+      "emptyTitle": "Crea il tuo primo modello",
+      "limit": "Hai raggiunto il limite di %{count} modelli. Eliminane uno per crearne un altro.",
+      "loadErrorTitle": "Non siamo riusciti a caricare i tuoi modelli",
+      "openWeb": "Apri sul web",
+      "title": "Modelli",
+      "webBody": "Non tutte le azioni sui modelli sono ancora disponibili qui. L'app web offre l'esperienza completa quando serve.",
+      "webTitle": "Modelli: Android è ancora semplificato"
+    },
+    "form": {
+      "create": "Crea modello",
+      "createTitle": "Nuovo modello",
+      "default": "Modello predefinito",
+      "defaultHint": "I prossimi mesi verranno creati a partire da questo.",
+      "description": "Descrizione (opzionale)",
+      "editTitle": "Modifica modello",
+      "error": "Non è stato possibile salvare il modello. Riprova.",
+      "name": "Nome",
+      "namePlaceholder": "Mese standard, mese estivo…",
+      "save": "Salva"
+    },
+    "sections": {
+      "expense": "Spese",
+      "income": "Entrate",
+      "saving": "Risparmi"
+    },
+    "lines": {
+      "add": "Aggiungi",
+      "amount": "Importo previsto",
+      "apply": "Applica",
+      "createTitle": "Nuova previsione",
+      "deleteAccessibility": "Elimina %{name}",
+      "editAccessibility": "Modifica %{name}",
+      "editTitle": "Modifica previsione",
+      "error": "Non è stato possibile salvare la previsione. Riprova.",
+      "linkGoal": "Collega a un obiettivo",
+      "noGoal": "Nessuno",
+      "propagationBody": {
+        "one": "Questo modello è usato da %{count} budget. «Applica» aggiornerà i budget attuali e futuri. Le previsioni modificate manualmente non cambieranno.",
+        "other": "Questo modello è usato da %{count} budget. «Applica» aggiornerà i budget attuali e futuri. Le previsioni modificate manualmente non cambieranno."
+      },
+      "propagationTitle": "Applicare ai mesi successivi?",
+      "save": "Salva",
+      "templateOnly": "Solo modello"
+    },
+    "detail": {
+      "addLine": "Aggiungi una previsione",
+      "balance": "Resto",
+      "confirmDelete": "Elimina",
+      "delete": "Elimina modello",
+      "deleteLineBody": "«%{name}» verrà rimosso dal modello. I budget esistenti manterranno la loro copia.",
+      "deleteLineError": "Non è stato possibile eliminare la previsione. Riprova.",
+      "deleteLineTitle": "Eliminare questa previsione?",
+      "deleteTemplateBody": "I budget già creati da «%{name}» restano intatti. Scompare solo il modello.",
+      "deleteTemplateError": "Non è stato possibile eliminare il modello. Riprova.",
+      "deleteTemplateTitle": "Eliminare questo modello?",
+      "empty": "Questo modello è ancora vuoto. Aggiungi entrate, spese e risparmi perché possa servire come mese tipo.",
+      "income": "Entrate",
+      "loadErrorTitle": "Non siamo riusciti a caricare questo modello",
+      "missingHint": "Potrebbe essere stato eliminato da un altro dispositivo.",
+      "missingTitle": "Questo modello non esiste più",
+      "outgoing": "Spese e risparmi",
+      "rename": "Rinomina",
+      "usageCount": {
+        "one": "%{count} budget creato da questo modello",
+        "other": "%{count} budget creati da questo modello"
+      },
+      "usageError": "Non è stato possibile verificare i budget collegati a questo modello.",
+      "usageHint": "L'eliminazione del modello non influisce su questi budget."
+    }
+  },
   "vault": {
     "confirmPin": "Conferma il tuo codice",
     "error": "Impossibile accedere ai tuoi dati protetti — riprova.",

@@ -1061,6 +1061,82 @@
   "startup": {
     "vaultError": "Unable to prepare your secure data."
   },
+  "templates": {
+    "list": {
+      "addAccessibility": "Add a template",
+      "count": "%{count}/%{max} templates",
+      "create": "Create a template",
+      "emptyHint": "A typical month: your income, expenses and savings, ready to be reused.",
+      "emptyTitle": "Create your first template",
+      "limit": "You have reached the limit of %{count} templates. Delete one to create another.",
+      "loadErrorTitle": "We couldn't load your templates",
+      "openWeb": "Open on the web",
+      "title": "Templates",
+      "webBody": "Not every template action is available here yet. The web app has the complete experience if you need it.",
+      "webTitle": "Templates: Android is still streamlined"
+    },
+    "form": {
+      "create": "Create template",
+      "createTitle": "New template",
+      "default": "Default template",
+      "defaultHint": "Your next months will be created from this one.",
+      "description": "Description (optional)",
+      "editTitle": "Edit template",
+      "error": "The template couldn't be saved. Try again.",
+      "name": "Name",
+      "namePlaceholder": "Standard month, summer month…",
+      "save": "Save"
+    },
+    "sections": {
+      "expense": "Expenses",
+      "income": "Income",
+      "saving": "Savings"
+    },
+    "lines": {
+      "add": "Add",
+      "amount": "Planned amount",
+      "apply": "Apply",
+      "createTitle": "New forecast",
+      "deleteAccessibility": "Delete %{name}",
+      "editAccessibility": "Edit %{name}",
+      "editTitle": "Edit forecast",
+      "error": "The forecast couldn't be saved. Try again.",
+      "linkGoal": "Link to a goal",
+      "noGoal": "None",
+      "propagationBody": {
+        "one": "This template is used by %{count} budget. “Apply” will update current and future budgets. Manually edited forecasts won't be changed.",
+        "other": "This template is used by %{count} budgets. “Apply” will update current and future budgets. Manually edited forecasts won't be changed."
+      },
+      "propagationTitle": "Apply to following months?",
+      "save": "Save",
+      "templateOnly": "Template only"
+    },
+    "detail": {
+      "addLine": "Add a forecast",
+      "balance": "Remaining",
+      "confirmDelete": "Delete",
+      "delete": "Delete template",
+      "deleteLineBody": "“%{name}” will leave the template. Existing budgets keep their copy.",
+      "deleteLineError": "The forecast couldn't be deleted. Try again.",
+      "deleteLineTitle": "Delete this forecast?",
+      "deleteTemplateBody": "Budgets already created from “%{name}” stay intact. Only the template disappears.",
+      "deleteTemplateError": "The template couldn't be deleted. Try again.",
+      "deleteTemplateTitle": "Delete this template?",
+      "empty": "This template is still empty. Add your income, expenses and savings so it can serve as a typical month.",
+      "income": "Income",
+      "loadErrorTitle": "We couldn't load this template",
+      "missingHint": "It may have been deleted from another device.",
+      "missingTitle": "This template no longer exists",
+      "outgoing": "Expenses and savings",
+      "rename": "Rename",
+      "usageCount": {
+        "one": "%{count} budget created from this template",
+        "other": "%{count} budgets created from this template"
+      },
+      "usageError": "Couldn't check the budgets linked to this template.",
+      "usageHint": "Deleting the template doesn't affect these budgets."
+    }
+  },
   "vault": {
     "confirmPin": "Confirm your code",
     "error": "Unable to access your secure data — try again.",
