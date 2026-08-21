@@ -7,8 +7,8 @@ import {
   hasAccount,
   progressBarSteps,
 } from "./onboarding-selectors";
+import type { OnboardingState } from "./onboarding-state";
 import { STEP_ANALYTICS_NAMES, type OnboardingStep } from "./onboarding-step";
-import type { OnboardingState } from "./onboarding-store";
 
 /**
  * The onboarding funnel, under the names `shared/src/feature-flags.ts` already

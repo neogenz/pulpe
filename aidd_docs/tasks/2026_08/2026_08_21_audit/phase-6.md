@@ -2,7 +2,7 @@
 status: pending
 ---
 
-# Instruction: Réduire le couplage onboarding et la route de détail
+# Instruction: Réduire le couplage de la route de détail
 
 ## Architecture projection
 
@@ -10,14 +10,6 @@ status: pending
 
 ```txt
 android/src/
-├── features/onboarding/
-│   ├── onboarding-state.ts                                  ✅ porter le contrat de données sans dépendance runtime
-│   ├── onboarding-store.ts                                  ✏️ importer le contrat neutre
-│   ├── onboarding-selectors.ts                               ✏️ supprimer le retour vers le store
-│   ├── onboarding-analytics.ts                               ✏️ supprimer le retour vers le store
-│   ├── template-payload.ts                                   ✏️ importer le contrat neutre
-│   ├── onboarding-selectors.spec.ts                          ✏️ importer le contrat neutre
-│   └── template-payload.spec.ts                              ✏️ importer le contrat neutre
 ├── features/budget-details/components/
 │   ├── budget-line-detail-overlays.tsx                      ✅ posséder formulaires dialogues notices et mutations associées
 │   └── budget-line-detail-overlays.spec.tsx                 ✅ couvrir les transitions destructives
@@ -58,19 +50,13 @@ journey
 
 ## Tasks to do
 
-### `1)` Casser le cycle onboarding sans nouvelle couche
-
-1. Déplacer seulement `OnboardingState` et `OnboardingAnswers` dans un module de type neutre.
-2. Mettre à jour les imports ; ne pas créer de repository, service ou interface supplémentaire.
-3. Faire passer le scan Madge Android à zéro cycle.
-
-### `2)` Donner un propriétaire aux overlays du détail
+### `1)` Donner un propriétaire aux overlays du détail
 
 1. Reprendre le pattern `BudgetDetailOverlays` déjà présent pour centraliser états, notices, formulaires et dialogues du détail de ligne.
 2. Laisser à la route les queries, les valeurs dérivées, le contenu et le menu d’actions ; communiquer par une poignée impérative minimale.
 3. Déplacer les helpers propres aux overlays avec eux et supprimer les états devenus morts.
 
-### `3)` Tester les transitions, pas la forme du fichier
+### `2)` Tester les transitions, pas la forme du fichier
 
 1. Couvrir erreur de query, ligne absente, ajout/édition, undo et les deux scopes de suppression liée.
 2. Supprimer `detail-query-states.spec.ts` une fois ces comportements exécutés.
@@ -79,6 +65,5 @@ journey
 
 | Task | Acceptance criteria                                                                                                    |
 | ---- | ---------------------------------------------------------------------------------------------------------------------- |
-| 1    | Madge ne trouve aucun cycle Android et selectors/analytics ne dépendent plus du store.                                 |
-| 2    | La route ne possède plus les états ni mutations des overlays ; chaque action garde le même résultat utilisateur.       |
-| 3    | Les suppressions simple et liée, leurs erreurs et l’undo sont prouvés par rendu et événements, sans lecture de source. |
+| 1    | La route ne possède plus les états ni mutations des overlays ; chaque action garde le même résultat utilisateur.       |
+| 2    | Les suppressions simple et liée, leurs erreurs et l’undo sont prouvés par rendu et événements, sans lecture de source. |
