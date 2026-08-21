@@ -1,61 +1,61 @@
 ---
-status: in-progress
+status: done
 ---
 
-# Instruction: Localize the main shell, current month, budgets, and activity
+# Instruction: Finish the shell, current month, and budget overview
 
 ## Architecture projection
 
 ```txt
 android/src/
-├── app/(main)/(tabs)/**                              ✏️ navigation and list screens
-├── app/(main)/budget/**                              ✏️ budget creation and detail routes
-├── features/current-month/**                         ✏️ hero, drift, savings, unchecked activity
-├── features/budgets/**                               ✏️ creation errors and month subtitles
-├── features/budget-details/**                        ✏️ rows, sheets, filters, spread, postpone, withdrawals
-├── features/transactions/**                          ✏️ create/edit/delete movement copy
-├── core/ui/vocabulary.ts                             ✏️ derive recurrence/nature labels from translation keys
-└── core/i18n/catalogs/{fr,en,de,it}.json             ✏️ add phase keys in lockstep
+├── app/(main)/(tabs)/{_layout,home,budgets}.tsx       ✏️ localized navigation and overview states
+├── app/(main)/budget/create.tsx                      ✏️ localized budget creation boundary
+├── features/current-month/**                         ✏️ localized hero, activity, balance, and reminder sheets
+├── features/budgets/month-subtitle.ts                ✏️ locale-aware month subtitle
+├── core/ui/{date-format,vocabulary}.{ts,spec.ts}     ✏️ render-time dates and vocabulary
+└── core/i18n/{catalogs/*.json,phase4-*.spec.ts}       ✏️ equal catalogs and focused coverage
 ```
 
 ## User Journey
 
 ```mermaid
 flowchart TD
-  A[Localized home] --> B[Open budget]
-  B --> C[Filter and inspect planned versus actual]
-  C --> D[Create or edit activity]
-  D --> E[Spread, postpone, point, or withdraw]
-  E --> F[All outcomes and errors remain localized]
+  A[Open localized home] --> B[Read hero and recent activity]
+  B --> C[Open balance or reminder sheet]
+  C --> D[Browse or create a budget]
+  D --> E[All overview states remain in the selected language]
 ```
 
 ## Test Scope
 
 ```mermaid
+---
+title: Test scope
+---
 journey
   section Setup
-    Seed a budget with all line and movement kinds => every vocabulary branch is visible: 5: system
+    Seed current month and budgets => overview states are reachable: 5: system
   section Happy path
-    In German create and point an expense => labels dialogs and success state stay German: 5: system
-  section Edge case - long copy
-    Render German on a narrow device => tabs chips and actions remain readable: 1: system
+    Switch locale and browse home and budgets => copy dates and vocabulary update together: 5: system
+  section Edge case - settings failure
+    Reject user settings => no fake currency or pay-day data is rendered: 1: system
 ```
 
 ## Tasks to do
 
-### `1)` Translate budget and activity surfaces
+### `1)` Complete overview localization
 
-1. Translate screen copy, empty/error/loading states, sheets, menus, accessibility labels, and confirmation dialogs.
-2. Replace static vocabulary maps with functions resolved at render time so a live language change cannot leave cached French labels.
+1. Finish the already bounded shell, budgets, hero, activity, and secondary-sheet commits.
+2. Remove only review findings that affect correctness; avoid unrelated refactors.
 
-### `2)` Protect product meaning
+### `2)` Lock the overview checkpoint
 
-1. Use the arrested lexicon in `docs/I18N.md`; never surface the banned banking noun in any language.
-2. Use explicit short navigation keys where German copy cannot fit; do not truncate with layout hacks.
+1. Run focused tests, Android quality, catalog parity, lexicon, and diff checks.
+2. Commit and push the final isolated cleanup before moving to budget details.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria                                                                                                                                        |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | Main navigation, current month, budgets, budget details, movements, spread, postpone, point, and withdrawal flows render wholly in each selected language. |
-| 2    | Live locale changes refresh vocabulary maps; German remains readable at the narrow supported width; product lexicon checks stay green.                     |
+| Task | Acceptance criteria                                                                                                      |
+| ---- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1    | Home, navigation, current-month cards and sheets, budget overview, and creation states render in FR/EN/DE/IT.            |
+| 2    | Settings failures never produce invented financial data; the checkpoint is committed, pushed, and independently checked. |

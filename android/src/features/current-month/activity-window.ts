@@ -40,7 +40,7 @@ export function summarizeActivity(
     .sort((a, b) => b.transactionDate.localeCompare(a.transactionDate));
 
   return {
-    days: groupByDay(windowed.slice(0, MAX_ROWS[window]), now),
+    days: groupByDay(windowed.slice(0, MAX_ROWS[window])),
     net: windowed.reduce(
       (total, transaction) =>
         total +
@@ -62,7 +62,7 @@ function isInWindow(
   return new Date(transaction.transactionDate).getTime() >= cutoff;
 }
 
-function groupByDay(transactions: Transaction[], now: Date): ActivityDay[] {
+function groupByDay(transactions: Transaction[]): ActivityDay[] {
   const days: ActivityDay[] = [];
 
   for (const transaction of transactions) {

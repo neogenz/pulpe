@@ -2,58 +2,59 @@
 status: pending
 ---
 
-# Instruction: Localize formatters, notifications, and non-visual messages
+# Instruction: Localize budget and activity mutations
 
 ## Architecture projection
 
 ```txt
 android/src/
-├── core/ui/{date-format.ts,date-format.spec.ts}       ✏️ selected-language dates and grammar-free helpers
-├── core/ui/amount-format.ts                           ✏️ verify currency-owned formatting remains unchanged
-├── core/notifications/scheduler.ts                    ✏️ localized scheduled notification copy
-├── core/notifications/use-reminder-priming.ts         ✏️ reschedule after locale changes
-├── core/observability/analytics.ts                    ✏️ sync locale person property
-├── core/{api,auth,crypto,system,vault}/**             ✏️ close remaining imperative messages
-└── core/i18n/catalogs/{fr,en,de,it}.json              ✏️ complete catalogs
+├── features/budget-details/components/{budget-line-sheet,budget-detail-overlays}.tsx ✏️ localized forecast create/edit outcomes
+├── features/transactions/components/transaction-sheet.tsx       ✏️ localized activity create/edit form
+├── features/transactions/use-transaction-removal.ts             ✏️ localized delete and undo outcomes
+├── features/{budget-details,transactions}/*draft*.ts             ✏️ semantic validation codes where required
+└── core/i18n/{catalogs/*.json,phase6-mutations-i18n.spec.ts}      ✏️ equal keys and focused coverage
 ```
 
 ## User Journey
 
 ```mermaid
 flowchart TD
-  A[Selected interface language] --> B[Dates use that language]
-  A --> C[Amounts keep currency locale]
-  A --> D[Monthly reminder is rescheduled with translated copy]
-  A --> E[PostHog locale property updates]
+  A[Open localized budget] --> B[Create or edit a forecast]
+  B --> C[Create or edit activity]
+  C --> D[Delete then undo activity]
+  D --> E[Localized success or failure outcome]
 ```
 
 ## Test Scope
 
 ```mermaid
+---
+title: Test scope
+---
 journey
   section Setup
-    Select Italian with CHF => independent language and currency axes: 5: system
+    Seed editable forecast and activity => mutation forms are reachable: 5: system
   section Happy path
-    Render dates amounts and schedule reminder => Italian dates copy and Swiss amount grouping coexist: 5: system
-  section Edge case - language changes after scheduling
-    Switch to German => old reminder is replaced with German copy: 1: system
+    Create edit delete and undo in Italian => forms and outcomes stay Italian: 5: system
+  section Edge case - pending request
+    Submit mutation then press Back => sheet cannot dismiss or create a duplicate submission: 1: system
 ```
 
 ## Tasks to do
 
-### `1)` Separate language-sensitive and currency-sensitive formatting
+### `1)` Localize form boundaries
 
-1. Make date formatters resolve against the current interface locale and remove French-only grammar helpers from call sites.
-2. Preserve `CURRENCY_METADATA.numberLocale`, the Swiss apostrophe normalization, masking, signs, and decimals exactly.
+1. Translate field labels, choices, validation, dialogs, progress, and accessibility copy.
+2. Preserve API/domain values; expose semantic validation codes where imperative helpers currently return French.
 
-### `2)` Update background and analytics surfaces
+### `2)` Preserve mutation safety
 
-1. Translate notification content at scheduling time and reschedule the single stable reminder after a locale change.
-2. Set the safe PostHog `locale` person property whenever confirmed settings change; emit no raw device locale.
+1. Keep pending sheets non-dismissable and retain delete/undo invalidation behavior.
+2. Verify each success and failure path in all catalogs.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria                                                                                                  |
-| ---- | -------------------------------------------------------------------------------------------------------------------- |
-| 1    | Dates follow `fr/en/de/it`; CHF/EUR formatting output remains byte-for-byte compatible with existing amount tests.   |
-| 2    | The stable monthly reminder is replaced in the new language and PostHog receives only a normalized supported locale. |
+| Task | Acceptance criteria                                                                                            |
+| ---- | -------------------------------------------------------------------------------------------------------------- |
+| 1    | Forecast and activity create/edit/delete/undo flows render wholly in FR/EN/DE/IT with unchanged payloads.      |
+| 2    | A pending mutation cannot be dismissed or submitted twice; cache invalidation and undo behavior remain intact. |

@@ -1,32 +1,36 @@
 ---
-objective: "The Android app is merged with the current preview baseline and serves French, English, German, and Italian from the shared locale contract, with French as the fallback."
+objective: "One reviewed Android integration PR is merged into preview with the complete FR/EN/DE/IT localization, green CI and Maestro checks, and every superseded Android draft closed without losing work."
 status: in-progress
 ---
 
-# Plan: Integrate preview and localize Android
+# Plan: Complete and consolidate Android localization
 
 ## Overview
 
-| Field      | Value                                                                                                                                              |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Goal**   | Merge `origin/preview` safely, then localize the complete Android user surface in `fr`, `en`, `de`, and `it` without changing currency formatting. |
-| **Source** | User request from 2026-08-21, existing [`docs/I18N.md`](../../../../docs/I18N.md), and repository exploration.                                     |
+| Field      | Value                                                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Goal**   | Finish Android FR/EN/DE/IT on one integration branch, prove it on the final head, then merge one PR into `preview`.                              |
+| **Source** | User requests from 2026-08-21; Android PRs #608, #657, #659, #660, #661, #663, #664, #665, #666, #667; `docs/I18N.md`; current repository state. |
 
-The Android branch already contains one older merge from `preview`; it is now 146 commits ahead and 61 commits behind the common base. Rebase is deliberately rejected because it would rewrite a published, already-merged history. The first phase therefore merges the current `origin/preview` and resolves the 12 simulated conflict areas before any localization work.
-
-Android gets its own catalogs because its screen structure and copy differ from the webapp and iOS. It reuses the shared locale codes, metadata, lexicon, API preference, and analytics contract. Amounts continue to follow the currency; dates and notification copy follow the interface language.
+`origin/preview` is already an ancestor of the current integration branch: no preview commit is missing. Work therefore continues only on `codex/android-i18n-settings-preferences`; the stacked drafts are evidence sources, not merge units. Android keeps platform-specific catalogs while reusing the shared locale codes, metadata, lexicon, API preference, and analytics contract. Amounts remain currency-owned; dates and notification copy follow the interface language.
 
 ## Phases
 
-| #   | Phase                                                         | File                         |
-| --- | ------------------------------------------------------------- | ---------------------------- |
-| 1   | Merge the current preview baseline                            | [`phase-1.md`](./phase-1.md) |
-| 2   | Add the Android localization runtime                          | [`phase-2.md`](./phase-2.md) |
-| 3   | Localize startup, auth, vault, onboarding, and settings       | [`phase-3.md`](./phase-3.md) |
-| 4   | Localize the main shell, current month, budgets, and activity | [`phase-4.md`](./phase-4.md) |
-| 5   | Localize savings goals, templates, tags, and account surfaces | [`phase-5.md`](./phase-5.md) |
-| 6   | Localize formatters, notifications, and non-visual messages   | [`phase-6.md`](./phase-6.md) |
-| 7   | Prove parity, layout resilience, and release readiness        | [`phase-7.md`](./phase-7.md) |
+| #   | Phase                                                    | File                           |
+| --- | -------------------------------------------------------- | ------------------------------ |
+| 1   | Merge the current preview baseline                       | [`phase-1.md`](./phase-1.md)   |
+| 2   | Add the Android localization runtime                     | [`phase-2.md`](./phase-2.md)   |
+| 3   | Localize startup, auth, vault, onboarding, and settings  | [`phase-3.md`](./phase-3.md)   |
+| 4   | Finish the shell, current month, and budget overview     | [`phase-4.md`](./phase-4.md)   |
+| 5   | Localize budget detail reading surfaces                  | [`phase-5.md`](./phase-5.md)   |
+| 6   | Localize budget and activity mutations                   | [`phase-6.md`](./phase-6.md)   |
+| 7   | Localize spread, postpone, point, and savings withdrawal | [`phase-7.md`](./phase-7.md)   |
+| 8   | Localize savings-goal core journeys                      | [`phase-8.md`](./phase-8.md)   |
+| 9   | Localize savings-goal planning and destructive journeys  | [`phase-9.md`](./phase-9.md)   |
+| 10  | Localize templates and residual account surfaces         | [`phase-10.md`](./phase-10.md) |
+| 11  | Close background, notification, and catalog gaps         | [`phase-11.md`](./phase-11.md) |
+| 12  | Prove Android release-candidate readiness                | [`phase-12.md`](./phase-12.md) |
+| 13  | Consolidate Android PRs and merge into preview           | [`phase-13.md`](./phase-13.md) |
 
 ## Resources
 
@@ -40,8 +44,10 @@ Android gets its own catalogs because its screen structure and copy differ from 
 
 | Decision                                                                                | Why                                                                                                                                                                                                                               |
 | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Merge `origin/preview`; do not rebase.                                                  | The branch is published, has 146 branch-side commits, and already contains a preview merge. Rebase would rewrite history for no product gain.                                                                                     |
+| Keep the existing preview merge; do not rebase the published integration history.       | `origin/preview` is already an ancestor of the current head. Rewriting the stacked history would add risk without changing the final tree.                                                                                        |
 | Use the already-installed `expo-localization` plus Expo's documented `i18n-js` runtime. | This is the smallest standard Expo setup; React updates are provided by the already-installed Zustand store rather than another provider dependency.                                                                              |
 | Keep four Android-specific JSON catalogs with identical keys.                           | Reusing the 1,900-key web catalog would ship unrelated copy and still not cover Android-only screens. Catalog parity tests prevent drift.                                                                                         |
 | Snapshot/device/server precedence mirrors iOS.                                          | A synchronous MMKV snapshot avoids a French first-frame flash; the server overrides it when present; otherwise a supported device language wins, then French. Sign-out clears the account snapshot before the next account loads. |
 | Amount locale remains currency-owned; dates follow the selected language.               | This preserves Swiss grouping and the cross-platform contract in `docs/I18N.md`.                                                                                                                                                  |
+| Ship through one final PR to `preview`; do not merge the stacked drafts.                | CI and review must evaluate one exact head. Each old Android PR is closed only after its head is proven included in the final merge.                                                                                              |
+| Keep Google Play Console and production publication outside this plan.                  | This plan ends at a proven merge into `preview`; store configuration and rollout are tracked separately and must not distract the code integration.                                                                               |

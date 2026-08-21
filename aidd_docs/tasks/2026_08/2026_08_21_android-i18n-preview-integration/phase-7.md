@@ -2,62 +2,62 @@
 status: pending
 ---
 
-# Instruction: Prove parity, layout resilience, and release readiness
+# Instruction: Localize spread, postpone, point, and savings withdrawal
 
 ## Architecture projection
 
 ```txt
-.
-├── .github/scripts/lexicon.test.mjs                  ✏️ scan Android catalogs per language
-├── android/maestro/smoke.yaml                        ✏️ keep canonical French smoke stable
-├── android/maestro/i18n.yaml                         ✅ switch languages and inspect representative flows
-├── android/src/core/i18n/catalog-parity.spec.ts      ✏️ reject missing, empty, extra, or raw-key output
-├── android/docs-android/RELEASE.md                    ✏️ document supported locales and native rebuild requirement
-├── android/app.json                                  ✏️ final supportedLocales config verification
-└── android/package.json                              ✏️ release version bump only when cutting the new AAB
+android/src/
+├── features/budget-details/spread/{spread-window.ts,components/*.tsx}               ✏️ localized spread validation and sheets
+├── features/budget-details/postpone-gate.ts                                          ✏️ semantic postpone outcomes
+├── features/budget-details/savings-withdrawal/{withdrawal-gate.ts,components/*.tsx}  ✏️ localized withdrawal journey
+├── features/budget-details/components/{budget-line-sheet,point-circle}.tsx           ✏️ localized actions and accessibility
+└── core/i18n/{catalogs/*.json,phase7-actions-i18n.spec.ts}                            ✏️ equal keys and focused coverage
 ```
 
 ## User Journey
 
 ```mermaid
 flowchart TD
-  A[Install release candidate] --> B[Run French smoke]
-  B --> C[Switch EN DE IT]
-  C --> D[Inspect auth home budget goal and settings]
-  D --> E[Restart app and verify persistence]
-  E --> F[Build new AAB because native locale metadata changed]
+  A[Open a planned item] --> B{Choose action}
+  B --> C[Spread]
+  B --> D[Postpone or point]
+  B --> E[Withdraw savings]
+  C --> F[Localized result]
+  D --> F
+  E --> F
 ```
 
 ## Test Scope
 
 ```mermaid
+---
+title: Test scope
+---
 journey
   section Setup
-    Install a clean release candidate on narrow Android device => native locale metadata is active: 5: system
+    Seed eligible planned items and savings => every action is available: 5: system
   section Happy path
-    Run French smoke then switch EN DE IT across representative screens => no raw or mixed-language copy appears: 5: system
-  section Edge case - German overflow
-    Increase font scale and use narrow width => primary actions remain visible and operable: 1: system
-  section Teardown
-    Restore French and clean test account => canonical smoke baseline returns: 5: system
+    Complete each action in German => prompts recaps and results stay German: 5: system
+  section Edge case - invalid merged withdrawal
+    Edit scheduled withdrawal fields => UI locks invariant fields and backend-compatible payload remains valid: 1: system
 ```
 
 ## Tasks to do
 
-### `1)` Add automated catalog and vocabulary gates
+### `1)` Localize multi-step actions
 
-1. Compare flattened keys and value types across all catalogs; reject blanks, unsupported locale roots, and missing French fallback.
-2. Extend the existing multilingual lexicon scanner to Android catalogs.
+1. Translate spread, postpone, point, withdrawal, recap, and failure surfaces.
+2. Keep action/status identifiers and financial payloads language-neutral.
 
-### `2)` Validate the real application
+### `2)` Protect financial invariants
 
-1. Run Android quality, unit tests, export, canonical Maestro smoke, and the focused locale journey.
-2. Manually inspect German at narrow width/font scaling and exercise live switch, restart, sign-out, offline settings failure, notification, and accessibility labels.
-3. Bump the Android app/build version only when cutting the new AAB; config-plugin locale metadata requires a native binary and cannot ship by OTA alone.
+1. Preserve encrypted amount handling and existing eligibility gates.
+2. Keep scheduled savings withdrawals constrained to the backend-supported nature and recurrence.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria                                                                                                                                                            |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1    | CI fails on any missing/extra/blank catalog value or banned product word in any Android locale.                                                                                |
-| 2    | Quality, unit, export, French smoke, locale journey, narrow German layout, restart/sign-out persistence, rollback, and accessibility checks pass on the release candidate AAB. |
+| Task | Acceptance criteria                                                                                                 |
+| ---- | ------------------------------------------------------------------------------------------------------------------- |
+| 1    | Spread, postpone, point, and savings-withdrawal journeys render fully in each locale with no raw catalog token.     |
+| 2    | Financial values, eligibility, encryption boundaries, and backend withdrawal invariants are unchanged and verified. |

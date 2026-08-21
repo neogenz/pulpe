@@ -35,7 +35,7 @@ flowchart TD
 ```mermaid
 journey
   section Setup
-    Fetch origin preview at f2144ee39 => exact baseline available: 5: cli
+    Fetch origin preview => exact baseline available: 5: cli
   section Happy path
     Merge preview and resolve conflicts => both histories and Android tree remain present: 5: cli
     Run quality checks => merged baseline is green: 5: cli

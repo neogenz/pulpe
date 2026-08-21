@@ -1,5 +1,5 @@
 ---
-status: completed
+status: done
 ---
 
 # Instruction: Localize startup, auth, vault, onboarding, and settings
