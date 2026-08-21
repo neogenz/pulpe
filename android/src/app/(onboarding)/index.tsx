@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { BackHandler } from "react-native";
+import { BackHandler, StyleSheet, View } from "react-native";
 import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
@@ -81,7 +81,15 @@ export default function OnboardingRoute() {
 
   return (
     <>
-      <CurrentStep step={currentStep} onExit={confirmExit} />
+      <View
+        style={styles.step}
+        importantForAccessibility={
+          isSubmitting ? "no-hide-descendants" : "auto"
+        }
+        accessibilityElementsHidden={isSubmitting}
+      >
+        <CurrentStep step={currentStep} onExit={confirmExit} />
+      </View>
       {isSubmitting && <SubmissionOverlay />}
 
       <Portal>
@@ -106,6 +114,8 @@ export default function OnboardingRoute() {
     </>
   );
 }
+
+const styles = StyleSheet.create({ step: { flex: 1 } });
 
 function CurrentStep({
   step,
