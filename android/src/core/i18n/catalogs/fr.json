@@ -52,6 +52,8 @@
   },
   "common": {
     "amountInCurrency": "%{label}, en %{currency}",
+    "currencyNameCHF": "Franc suisse",
+    "currencyNameEUR": "Euro",
     "and": "et",
     "back": "Revenir",
     "backToSignIn": "Retour à la connexion",
@@ -107,9 +109,9 @@
         "minimum": "%{count} caractères minimum",
         "number": "Au moins un chiffre"
       },
-      "criterionStatus": "%{label} — %{status}",
+      "criterion": "%{label} — %{status}",
       "error": "Création du compte impossible — réessaie.",
-      "legalPrefix": "En créant ton compte, tu acceptes",
+      "legal": "En créant ton compte, tu acceptes",
       "met": "rempli",
       "missing": "à remplir",
       "submit": "Créer mon compte",

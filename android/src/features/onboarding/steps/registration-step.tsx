@@ -119,6 +119,13 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
             const label = t(`onboarding.registration.criteria.${key}`, {
               count: PASSWORD_MIN_LENGTH,
             });
+            const status = t(
+              `onboarding.registration.${isMet ? "met" : "missing"}`,
+            );
+            const accessibilityLabel = t("onboarding.registration.criterion", {
+              label,
+              status,
+            });
             return (
               <View key={key} style={styles.criterion}>
                 <MaterialCommunityIcons
@@ -135,17 +142,7 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
                       ? theme.colors.onSurface
                       : theme.colors.onSurfaceVariant,
                   }}
-                  accessibilityLabel={t(
-                    "onboarding.registration.criterionStatus",
-                    {
-                      label,
-                      status: t(
-                        isMet
-                          ? "onboarding.registration.met"
-                          : "onboarding.registration.missing",
-                      ),
-                    },
-                  )}
+                  accessibilityLabel={accessibilityLabel}
                 >
                   {label}
                 </Text>
@@ -157,10 +154,7 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
 
       {errorMessage !== null && <FieldError visible>{errorMessage}</FieldError>}
 
-      <LegalConsent
-        localized
-        prefix={t("onboarding.registration.legalPrefix")}
-      />
+      <LegalConsent localized prefix={t("onboarding.registration.legal")} />
     </StepScaffold>
   );
 }

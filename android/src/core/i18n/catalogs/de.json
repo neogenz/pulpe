@@ -52,6 +52,8 @@
   },
   "common": {
     "amountInCurrency": "%{label}, in %{currency}",
+    "currencyNameCHF": "Schweizer Franken",
+    "currencyNameEUR": "Euro",
     "and": "und",
     "back": "Zurück",
     "backToSignIn": "Zurück zur Anmeldung",
@@ -107,9 +109,9 @@
         "minimum": "Mindestens %{count} Zeichen",
         "number": "Mindestens eine Zahl"
       },
-      "criterionStatus": "%{label} — %{status}",
+      "criterion": "%{label} — %{status}",
       "error": "Konto konnte nicht erstellt werden — versuche es erneut.",
-      "legalPrefix": "Mit der Kontoerstellung akzeptierst du",
+      "legal": "Mit der Kontoerstellung akzeptierst du",
       "met": "erfüllt",
       "missing": "nicht erfüllt",
       "submit": "Mein Konto erstellen",

@@ -10,9 +10,12 @@ import { parseAmount, seedAmountText } from "./money";
 export function amountFieldAccessibilityLabel(
   t: typeof translate,
   label: string,
-  currency: string,
+  currency: SupportedCurrency,
 ): string {
-  return t("common.amountInCurrency", { label, currency });
+  return t("common.amountInCurrency", {
+    label,
+    currency: t(`common.currencyName${currency}`),
+  });
 }
 
 /**
@@ -54,11 +57,7 @@ export function AmountField({
       keyboardType="decimal-pad"
       autoFocus={autoFocus}
       right={<TextInput.Affix text={CURRENCY_METADATA[currency].symbol} />}
-      accessibilityLabel={amountFieldAccessibilityLabel(
-        t,
-        label,
-        CURRENCY_METADATA[currency].nativeName,
-      )}
+      accessibilityLabel={amountFieldAccessibilityLabel(t, label, currency)}
     />
   );
 }
