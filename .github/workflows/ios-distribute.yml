@@ -24,7 +24,7 @@ on:
         type: string
 
 concurrency:
-  group: ios-distribution-${{ inputs.channel }}
+  group: ios-distribution
   cancel-in-progress: false
 
 permissions:

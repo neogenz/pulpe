@@ -509,6 +509,16 @@ test("production finalizer proves exact providers before idempotent publication"
   }
 });
 
+test("iOS distribution serializes allocation and upload across channels", () => {
+  const concurrency = iosDistribution.slice(
+    iosDistribution.indexOf("\nconcurrency:"),
+    iosDistribution.indexOf("\npermissions:"),
+  );
+  assert.match(concurrency, /group: ios-distribution\n/);
+  assert.doesNotMatch(concurrency, /inputs\.channel/);
+  assert.match(concurrency, /cancel-in-progress: false/);
+});
+
 test("iOS distribution consumes staging or finalized production proofs", () => {
   assert.equal(
     [
