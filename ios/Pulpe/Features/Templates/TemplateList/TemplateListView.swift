@@ -208,36 +208,34 @@ struct TemplateRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    HStack {
-                        Text(template.name)
-                            .font(PulpeTypography.headline)
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                RowIcon(systemName: "doc.text", tint: .pulpePrimary)
 
-                        if template.isDefaultTemplate {
-                            Text("Par défaut")
-                                .font(PulpeTypography.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.accentColor.opacity(0.15), in: Capsule())
-                                .foregroundStyle(Color.accentColor)
-                        }
-                    }
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text(template.name)
+                        .font(PulpeTypography.listRowTitle)
+                        .foregroundStyle(Color.textPrimary)
 
-                    if let description = template.description, !description.isEmpty {
+                    if template.isDefaultTemplate {
+                        Text("Par défaut")
+                            .font(PulpeTypography.listRowSubtitle)
+                            .foregroundStyle(Color.textSecondary)
+                    } else if let description = template.description, !description.isEmpty {
                         Text(description)
-                            .font(PulpeTypography.caption)
+                            .font(PulpeTypography.listRowSubtitle)
                             .foregroundStyle(Color.textSecondary)
                             .lineLimit(1)
                     }
                 }
 
-                Spacer()
+                Spacer(minLength: DesignTokens.Spacing.sm)
 
                 Image(systemName: "chevron.right")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textSecondary)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.textTertiary)
+                    .accessibilityHidden(true)
             }
+            .padding(.vertical, DesignTokens.Spacing.xs)
         }
         .buttonStyle(.plain)
         .contentShape(.rect)

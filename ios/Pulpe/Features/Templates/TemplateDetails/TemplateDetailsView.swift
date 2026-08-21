@@ -95,17 +95,11 @@ struct TemplateDetailsView: View {
                     }
 
                     if template.isDefaultTemplate {
-                        HStack(spacing: DesignTokens.Spacing.xs) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(PulpeTypography.caption2)
-                            Text("Par défaut")
-                                .font(PulpeTypography.caption2)
-                                .fontWeight(.medium)
-                        }
-                        .foregroundStyle(Color.financialSavings)
-                        .padding(.horizontal, DesignTokens.Spacing.sm)
-                        .padding(.vertical, DesignTokens.Spacing.xs)
-                        .background(Color.financialSavings.opacity(DesignTokens.Opacity.badgeBackground), in: Capsule())
+                        PulpeChip(
+                            icon: "checkmark.circle.fill",
+                            label: AppLocale.string("Par défaut"),
+                            style: .semantic(.financialSavings)
+                        )
                     }
                 }
                 .padding(.vertical, DesignTokens.Spacing.xs)
@@ -220,6 +214,7 @@ struct TemplateDetailsView: View {
         } header: {
             HStack {
                 Text(title)
+                Text(verbatim: "· \(lines.count)")
                 Spacer()
                 let total = lines.reduce(Decimal.zero) { $0 + $1.amount }
                 Text(total.asSignedCompactCurrency(userSettingsStore.currency, for: kind))
@@ -227,79 +222,6 @@ struct TemplateDetailsView: View {
                     .sensitiveAmount()
             }
         }
-    }
-}
-
-// MARK: - Template Line Row
-
-struct TemplateLineRow: View {
-    let line: TemplateLine
-    let tagNamesById: [String: String]
-    let onEdit: () -> Void
-
-    @Environment(UserSettingsStore.self) private var userSettingsStore
-    @Environment(SavingsGoalStore.self) private var savingsGoalStore
-
-    static func goalName(for goalId: String?, in goals: [SavingsGoal]) -> String? {
-        guard let goalId else { return nil }
-        return goals.first { $0.id == goalId }?.name
-    }
-
-    private var goalName: String? {
-        Self.goalName(for: line.savingsGoalId, in: savingsGoalStore.goals)
-    }
-
-    var body: some View {
-        Button(action: onEdit) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Circle()
-                    .fill(line.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
-                    .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
-                    .overlay {
-                        Image(systemName: line.kind.icon)
-                            .font(PulpeTypography.listRowTitle)
-                            .foregroundStyle(line.kind.color)
-                    }
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(line.name)
-                        .font(PulpeTypography.listRowTitle)
-                        .lineLimit(1)
-
-                    if let goalName {
-                        PulpeChip(
-                            icon: "target",
-                            label: AppLocale.string("Objectif : \(goalName)"),
-                            style: .semantic(.financialSavings)
-                        )
-                        .lineLimit(1)
-                        .accessibilityIdentifier("templateLineGoalChip-\(line.id)")
-                    }
-
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        RecurrenceBadge(line.recurrence, style: .compact)
-
-                        // No `·` here: the count follows a capsule, not text, and a
-                        // separator between the two would read as broken punctuation.
-                        let tagNames = TagChips.names(for: line.tagIds, namesById: tagNamesById)
-                        if !tagNames.isEmpty {
-                            TagChips(names: tagNames, presentation: .count)
-                        }
-                    }
-                }
-
-                Spacer()
-
-                Text(line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency))
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(line.kind.color)
-                    .sensitiveAmount()
-            }
-            .padding(.vertical, DesignTokens.ListRow.verticalPadding)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityHint("Touche pour modifier")
     }
 }
 

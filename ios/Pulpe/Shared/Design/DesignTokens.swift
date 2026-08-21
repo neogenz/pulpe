@@ -43,7 +43,7 @@ enum DesignTokens {
         /// Tight vertical gap (3pt) — icon/label stacks in badges, tab items
         static let dividerGap: CGFloat = 3
         static let xs: CGFloat = 4
-        /// Compact badge padding / inter-badge gap (6pt) — RecurrenceBadge, status capsules
+        /// Compact badge padding / inter-badge gap (6pt) — status capsules
         static let tightGap: CGFloat = 6
         static let sm: CGFloat = 8
         /// Compact horizontal gap (10pt) — tab bar segment gap
@@ -235,6 +235,8 @@ enum DesignTokens {
         static let button: CGFloat = 54
         /// Progress bar track
         static let progressBar: CGFloat = 8
+        /// Onboarding progress bar, a hairline under the CTA
+        static let progressBarThin: CGFloat = 4
         /// Thin separator lines
         static let separator: CGFloat = 1
         /// Inline vertical divider inside a horizontally scrollable filter bar
