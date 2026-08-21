@@ -35,6 +35,7 @@ const backendPackage = JSON.parse(read("backend-nest/package.json"));
 const ciGuide = read("docs/CI.md");
 const releaseSkill = read(".claude/skills/release/SKILL.md");
 const jstsRelease = read(".claude/skills/release/references/jsts-release.md");
+const iosRelease = read(".claude/skills/release/references/ios-release.md");
 const deploymentGuide = read("docs/DEPLOYMENT.md");
 const versioningGuide = read("docs/VERSIONING.md");
 const backendEnvironment = read("backend-nest/src/config/environment.ts");
@@ -550,6 +551,11 @@ test("internal production-config builds stay bound to preview staging proof", ()
     iosDistribution,
     /internal-prod|PulpePreview|configuration="Preview"/,
   );
+  assert.match(
+    iosRelease,
+    /internal.*preview.*PulpeProd.*Prod.*highest existing build \+ 1/,
+  );
+  assert.doesNotMatch(iosRelease, /PulpePreview|archive .*Preview/);
   assert.doesNotMatch(iosDistribution, /--submit|MVP/);
 });
 

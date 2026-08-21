@@ -77,7 +77,7 @@ Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
 
 `.github/workflows/ios-distribute.yml` is the only automated archive/sign/upload path. It is manually dispatched and never submits a build for App Review.
 
-- `internal`: dispatch from `preview`, archive `PulpePreview` / `Preview`, and use an unused ASC build number supplied by Alfred. The source file is not changed for these temporary builds.
+- `internal`: dispatch from `preview`, archive `PulpeProd` / `Prod`, and use the next unused global ASC build number supplied by Alfred (`highest existing build + 1`). The source file is not changed for these temporary builds.
 - `release`: dispatch from `main`, archive `PulpeProd` / `Prod`, and use the exact build number recorded in the approved release changes.
 - Both modes require a full source SHA reachable from their channel branch; release recovery may instead use an exact annotated `vX.Y.Z` tag resolving to that SHA. Internal distribution consumes its
   immutable `Staging Ready` proof; release distribution consumes the successful
