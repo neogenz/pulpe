@@ -572,8 +572,16 @@ test("iOS distribution resumes the exact App Store build idempotently", () => {
   assert.match(iosDistribution, /git merge-base --is-ancestor "\$SOURCE_SHA"/);
   assert.doesNotMatch(iosDistribution, /remote_sha.*!=.*SOURCE_SHA/s);
   const query = iosDistribution.indexOf("Query exact App Store build");
+  const versionPreflight = iosDistribution.indexOf(
+    "Verify marketing version accepts new builds",
+  );
   const archive = iosDistribution.indexOf("Archive signed application");
   assert.ok(query >= 0 && query < archive);
+  assert.ok(query < versionPreflight && versionPreflight < archive);
+  assert.match(
+    iosDistribution,
+    /Verify marketing version accepts new builds[\s\S]*if: steps\.asc\.outputs\.state == 'not_found'[\s\S]*--marketing-version-status/,
+  );
   assert.match(iosDistribution, /ASC_INITIAL_STATE.*not_found/);
   assert.match(iosDistribution, /Poll App Store build processing/);
   assert.match(iosDistribution, /ios-distribution-proof-/);
