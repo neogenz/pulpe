@@ -1,9 +1,5 @@
 import { router } from "expo-router";
-import type {
-  SavingsGoal,
-  SavingsGoalStatus,
-  SupportedCurrency,
-} from "pulpe-shared";
+import type { SavingsGoal, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -16,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/core/ui/card";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
@@ -33,17 +30,12 @@ import { useSavingsGoals } from "@/features/savings-goals/goals-queries";
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 
-const STATUS_LABELS: Record<SavingsGoalStatus, string> = {
-  ACTIVE: "En cours",
-  PAUSED: "En pause",
-  COMPLETED: "Atteint",
-};
-
 export default function GoalsScreen() {
   // Repaints this screen when amounts are hidden or shown; the masking
   // itself lives in the formatters.
   useAmountMasking();
   const theme = useTheme();
+  const { t } = useTranslation();
   const settings = useUserSettings();
   const goals = useSavingsGoals();
   // Read once, at mount: the flag is written the moment the intro is answered,
@@ -55,6 +47,32 @@ export default function GoalsScreen() {
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
+
+  if (goals.isPending || settings.isPending) {
+    return (
+      <SafeAreaView
+        edges={["top"]}
+        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      >
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
+      </SafeAreaView>
+    );
+  }
+
+  if (goals.isError || settings.isError) {
+    return (
+      <PlaceholderScreen
+        icon="cloud-off-outline"
+        title={t("goals.list.loadErrorTitle")}
+        hint={t("common.loadErrorHint")}
+        action={{
+          label: t("common.retry"),
+          onPress: () =>
+            void Promise.all([goals.refetch(), settings.refetch()]),
+        }}
+      />
+    );
+  }
 
   if (isIntroVisible) {
     return (
@@ -69,28 +87,6 @@ export default function GoalsScreen() {
     );
   }
 
-  if (goals.isPending || settings.isPending) {
-    return (
-      <SafeAreaView
-        edges={["top"]}
-        style={[styles.centered, { backgroundColor: theme.colors.background }]}
-      >
-        <ActivityIndicator accessibilityLabel="Chargement" />
-      </SafeAreaView>
-    );
-  }
-
-  if (goals.isError) {
-    return (
-      <PlaceholderScreen
-        icon="cloud-off-outline"
-        title="On n'a pas pu charger tes objectifs"
-        hint="Vérifie ta connexion, puis réessaie."
-        action={{ label: "Réessayer", onPress: () => void goals.refetch() }}
-      />
-    );
-  }
-
   const list = goals.data ?? [];
 
   return (
@@ -101,10 +97,10 @@ export default function GoalsScreen() {
       {list.length === 0 ? (
         <PlaceholderScreen
           icon="target"
-          title="Fixe ton premier objectif"
-          hint="Suis tes projets d'épargne long terme, sans recalculer à la main."
+          title={t("goals.list.emptyTitle")}
+          hint={t("goals.list.emptyHint")}
           action={{
-            label: "Créer un objectif",
+            label: t("goals.list.create"),
             onPress: () => setCreating(true),
           }}
         />
@@ -118,7 +114,7 @@ export default function GoalsScreen() {
             />
           }
         >
-          <Text variant="headlineSmall">Objectifs d&apos;épargne</Text>
+          <Text variant="headlineSmall">{t("goals.list.title")}</Text>
 
           {list.map((goal) => (
             <GoalRow key={goal.id} goal={goal} currency={currency} />
@@ -133,7 +129,7 @@ export default function GoalsScreen() {
           icon="plus"
           style={styles.fab}
           onPress={() => setCreating(true)}
-          accessibilityLabel="Ajouter un objectif"
+          accessibilityLabel={t("goals.list.addAccessibility")}
         />
       )}
 
@@ -156,7 +152,8 @@ function GoalRow({
   currency: SupportedCurrency;
 }) {
   const theme = useTheme();
-  const period = periodLabel(goal);
+  const { locale, t } = useTranslation();
+  const period = periodLabel(goal, locale, t);
 
   return (
     <Card mode="contained" onPress={() => router.push(`/goal/${goal.id}`)}>
@@ -164,7 +161,7 @@ function GoalRow({
         <View style={styles.rowLabels}>
           <Text variant="titleMedium">{goal.name}</Text>
           <View style={styles.statusLine}>
-            <Chip compact>{STATUS_LABELS[goal.status]}</Chip>
+            <Chip compact>{t(`goals.status.${goal.status}`)}</Chip>
             {period !== null && (
               <Text
                 variant="bodySmall"
@@ -186,13 +183,22 @@ function GoalRow({
   );
 }
 
-function periodLabel(goal: SavingsGoal): string | null {
+function periodLabel(
+  goal: SavingsGoal,
+  locale: string,
+  t: ReturnType<typeof useTranslation>["t"],
+): string | null {
   if (goal.startDate !== null && goal.targetDate !== null) {
-    return `${formatIsoDate(goal.startDate)} → ${formatIsoDate(goal.targetDate)}`;
+    return `${formatIsoDate(goal.startDate, locale)} → ${formatIsoDate(goal.targetDate, locale)}`;
   }
   if (goal.targetDate !== null)
-    return `Échéance ${formatIsoDate(goal.targetDate)}`;
-  if (goal.startDate !== null) return `Depuis ${formatIsoDate(goal.startDate)}`;
+    return t("goals.list.deadline", {
+      date: formatIsoDate(goal.targetDate, locale),
+    });
+  if (goal.startDate !== null)
+    return t("goals.list.since", {
+      date: formatIsoDate(goal.startDate, locale),
+    });
   return null;
 }
 

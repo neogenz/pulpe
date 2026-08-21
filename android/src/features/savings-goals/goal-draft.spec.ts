@@ -226,9 +226,7 @@ describe("isSavingsGoalDraftSubmittable", () => {
     });
 
     expect(isSavingsGoalDraftSubmittable(invalid)).toBe(false);
-    expect(savingsGoalDraftHint(invalid)).toBe(
-      "Le début ne peut pas venir après l'échéance.",
-    );
+    expect(savingsGoalDraftHint(invalid)).toBe("dates");
   });
 
   it("accepts a goal with a name and nothing else", () => {

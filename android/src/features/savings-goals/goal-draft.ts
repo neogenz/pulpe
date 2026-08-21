@@ -111,17 +111,21 @@ export function isSavingsGoalDraftSubmittable(
   return true;
 }
 
-export function savingsGoalDraftHint(draft: SavingsGoalDraft): string | null {
-  if (draft.name.trim() === "") return "Donne un nom à ton objectif.";
+export type SavingsGoalDraftProblem = "name" | "target" | "dates";
+
+export function savingsGoalDraftHint(
+  draft: SavingsGoalDraft,
+): SavingsGoalDraftProblem | null {
+  if (draft.name.trim() === "") return "name";
   if (draft.targetAmount !== null && draft.targetAmount <= 0) {
-    return "La cible doit être supérieure à zéro.";
+    return "target";
   }
   if (
     draft.startDate !== null &&
     draft.targetDate !== null &&
     draft.startDate > draft.targetDate
   ) {
-    return "Le début ne peut pas venir après l'échéance.";
+    return "dates";
   }
   return null;
 }

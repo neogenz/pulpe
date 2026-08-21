@@ -4,19 +4,14 @@ import { StyleSheet, View } from "react-native";
 import { Button, Divider, Text, useTheme } from "react-native-paper";
 
 import { Card } from "@/core/ui/card";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
 
-import {
-  AVAILABILITY_LABELS,
-  MONTH_STATE_LABELS,
-  monthAvailability,
-  monthState,
-  planTimeline,
-} from "../plan-timeline";
+import { monthAvailability, monthState, planTimeline } from "../plan-timeline";
 
 interface GoalPlanTimelineProps {
   months: SavingsGoalPlanMonth[];
@@ -39,6 +34,7 @@ export function GoalPlanTimeline({
   onAdjust,
 }: GoalPlanTimelineProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [isExpanded, setExpanded] = useState(false);
   const timeline = planTimeline(months, isExpanded);
 
@@ -48,16 +44,16 @@ export function GoalPlanTimeline({
     <View style={styles.section}>
       <View style={styles.header}>
         <Text variant="titleMedium" style={styles.headerTitle}>
-          Ton plan, mois par mois
+          {t("goals.plan.title")}
         </Text>
         {onAdjust !== undefined && (
           <Button
             mode="text"
             icon="tune-variant"
             onPress={onAdjust}
-            accessibilityLabel="Ajuster le plan"
+            accessibilityLabel={t("goals.plan.adjustAccessibility")}
           >
-            Ajuster
+            {t("goals.plan.adjust")}
           </Button>
         )}
       </View>
@@ -80,8 +76,8 @@ export function GoalPlanTimeline({
           onPress={() => setExpanded((current) => !current)}
         >
           {isExpanded
-            ? "Voir moins"
-            : `Voir tout le plan (${months.length} mois)`}
+            ? t("goals.plan.showLess")
+            : t("goals.plan.showAll", { count: months.length })}
         </Button>
       )}
 
@@ -90,8 +86,9 @@ export function GoalPlanTimeline({
           variant="labelMedium"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          {timeline.remainingUnlinkedMonthCount} mois restants sans prévision
-          liée à cet objectif.
+          {t("goals.plan.unlinked", {
+            count: timeline.remainingUnlinkedMonthCount,
+          })}
         </Text>
       )}
     </View>
@@ -106,13 +103,13 @@ function MonthRow({
   currency: SupportedCurrency;
 }) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const financial = useFinancialColors();
   const savings = financial.savings;
 
   const isCurrent = month.state === "current";
   const isPast = month.state === "past";
   const availability = monthAvailability(month);
-  const availabilityLabel = AVAILABILITY_LABELS[availability];
   const state = monthState(month);
   const plannedWithdrawal = month.plannedWithdrawalAmount ?? 0;
 
@@ -130,13 +127,13 @@ function MonthRow({
     <View style={styles.row}>
       <View style={styles.rowLabels}>
         <Text variant="bodyLarge" style={{ color: labelColor }}>
-          {formatMonthLabel(month.month, month.year)}
+          {formatMonthLabel(month.month, month.year, locale)}
         </Text>
 
         <View style={styles.meta}>
           {isCurrent && (
             <Text variant="labelSmall" style={{ color: savings }}>
-              Ce mois
+              {t("goals.plan.thisMonth")}
             </Text>
           )}
           {state !== null && (
@@ -147,22 +144,24 @@ function MonthRow({
                   state === "checked" ? savings : theme.colors.onSurfaceVariant,
               }}
             >
-              {MONTH_STATE_LABELS[state]}
+              {t(`goals.plan.state.${state}`)}
             </Text>
           )}
-          {availabilityLabel !== null && (
+          {availability !== "linked" && (
             <Text
               variant="labelSmall"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              {availabilityLabel}
+              {t(`goals.plan.availability.${availability}`)}
             </Text>
           )}
         </View>
 
         {plannedWithdrawal > 0 && (
           <Amount size="meta" tone="muted">
-            dont {formatCurrency(plannedWithdrawal, currency)} à sortir
+            {t("goals.plan.withdrawal", {
+              amount: formatCurrency(plannedWithdrawal, currency),
+            })}
           </Amount>
         )}
       </View>

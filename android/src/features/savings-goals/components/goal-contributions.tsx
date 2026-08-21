@@ -8,13 +8,10 @@ import { StyleSheet, View } from "react-native";
 import { Divider, Text, useTheme } from "react-native-paper";
 
 import { Card } from "@/core/ui/card";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
-import {
-  formatIsoDate,
-  formatMonthLabel,
-  ofMonth,
-} from "@/core/ui/date-format";
+import { formatIsoDate, formatMonthLabel } from "@/core/ui/date-format";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
 
@@ -35,11 +32,12 @@ export function GoalContributions({
   contributions,
   currency,
 }: GoalContributionsProps) {
+  const { t } = useTranslation();
   if (contributions.length === 0) return null;
 
   return (
     <View style={styles.section}>
-      <Text variant="titleMedium">Ton suivi</Text>
+      <Text variant="titleMedium">{t("goals.contributions.title")}</Text>
 
       {contributions.map((contribution) => (
         <ContributionCard
@@ -60,12 +58,14 @@ function ContributionCard({
   currency: SupportedCurrency;
 }) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   // A pointed forecast with no operation behind it has no budget to open — the
   // row stays passive rather than pretending otherwise.
   const budgetId = contribution.transactions[0]?.budgetId;
   const period = formatMonthLabel(
     contribution.budgetMonth,
     contribution.budgetYear,
+    locale,
   );
 
   return (
@@ -79,7 +79,7 @@ function ContributionCard({
       accessibilityLabel={
         budgetId === undefined
           ? undefined
-          : `Ouvrir le budget ${ofMonth(period)}`
+          : t("goals.contributions.openBudget", { period })
       }
     >
       <Card.Content style={styles.card}>
@@ -103,7 +103,7 @@ function ContributionCard({
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              Transactions réelles
+              {t("goals.contributions.movements")}
             </Text>
             {contribution.transactions.map((transaction, index) => (
               <View key={transaction.id}>
@@ -128,12 +128,13 @@ function TransactionLine({
   transaction: Transaction;
   currency: SupportedCurrency;
 }) {
+  const { locale } = useTranslation();
   return (
     <View style={styles.row}>
       <View style={styles.rowLabels}>
         <Text variant="bodyMedium">{transaction.name}</Text>
         <StatusLine
-          base={formatIsoDate(transaction.transactionDate.slice(0, 10))}
+          base={formatIsoDate(transaction.transactionDate.slice(0, 10), locale)}
           isChecked={transaction.checkedAt !== null}
         />
       </View>
@@ -153,6 +154,7 @@ function TransactionLine({
 function StatusLine({ base, isChecked }: { base: string; isChecked: boolean }) {
   const theme = useTheme();
   const financial = useFinancialColors();
+  const { t } = useTranslation();
 
   return (
     <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
@@ -163,7 +165,7 @@ function StatusLine({ base, isChecked }: { base: string; isChecked: boolean }) {
           color: isChecked ? financial.savings : theme.colors.onSurfaceVariant,
         }}
       >
-        {isChecked ? "Pointé" : "À pointer"}
+        {t(`budgets.detail.filters.${isChecked ? "checked" : "unchecked"}`)}
       </Text>
     </Text>
   );

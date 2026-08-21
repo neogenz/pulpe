@@ -55,12 +55,6 @@ export function monthAvailability(
   return month.hasBudget === true ? "unfunded" : "no-budget";
 }
 
-export const AVAILABILITY_LABELS: Record<MonthAvailability, string | null> = {
-  linked: null,
-  unfunded: "Aucune épargne prévue",
-  "no-budget": "Pas de budget",
-};
-
 /**
  * A month is locked either because its cycle has closed or because the plan
  * withdrawal it carries has already gone out.
@@ -82,8 +76,3 @@ export function monthState(month: SavingsGoalPlanMonth): MonthState | null {
   if (isChecked) return "checked";
   return isMonthLocked(month) ? "locked" : null;
 }
-
-export const MONTH_STATE_LABELS: Record<MonthState, string> = {
-  checked: "Pointé",
-  locked: "Verrouillé",
-};

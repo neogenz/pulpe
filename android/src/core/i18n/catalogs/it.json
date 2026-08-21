@@ -343,18 +343,153 @@
     "back": "Indietro",
     "backToSignIn": "Torna all'accesso",
     "cancel": "Annulla",
+    "choose": "Scegli",
+    "clear": "Cancella",
     "close": "Chiudi",
     "contactSupport": "Contatta l'assistenza",
     "continue": "Continua",
     "delete": "Cancella",
     "email": "Indirizzo email",
     "emailExample": "tu@esempio.it",
+    "edit": "Modifica",
     "error": "Si è verificato un errore",
     "loading": "Caricamento…",
+    "loadErrorHint": "Controlla la connessione e riprova.",
+    "moreOptions": "Altre opzioni",
     "or": "o",
     "password": "Password",
     "retry": "Riprova",
     "signOut": "Esci"
+  },
+  "goals": {
+    "status": {
+      "ACTIVE": "In corso",
+      "PAUSED": "In pausa",
+      "COMPLETED": "Raggiunto"
+    },
+    "list": {
+      "addAccessibility": "Aggiungi un obiettivo",
+      "create": "Crea un obiettivo",
+      "deadline": "Scadenza %{date}",
+      "emptyHint": "Segui i tuoi progetti di risparmio a lungo termine senza rifare i calcoli.",
+      "emptyTitle": "Fissa il tuo primo obiettivo",
+      "loadErrorTitle": "Non siamo riusciti a caricare i tuoi obiettivi",
+      "since": "Dal %{date}",
+      "title": "Obiettivi di risparmio"
+    },
+    "intro": {
+      "create": "Crea il mio obiettivo",
+      "goalBody": "Viaggio, casa, fondo di emergenza… dagli un importo e una data. Pulpe ti mantiene sulla rotta.",
+      "goalTitle": "Questo progetto è alla tua portata",
+      "later": "Più tardi",
+      "next": "Avanti",
+      "page": "Pagina %{current} di %{total}",
+      "planBody": "Ogni mese si adatta da solo. Niente calcoli, niente dubbi — solo i tuoi progressi che crescono.",
+      "planned": "Previsto",
+      "planTitle": "E saprai sempre a che punto sei",
+      "sampleName": "Viaggio in Giappone",
+      "sampleTarget": "su %{amount} · scadenza nov 2027",
+      "skip": "Salta",
+      "skipAccessibility": "Salta l'introduzione",
+      "thisMonth": "Questo mese"
+    },
+    "form": {
+      "create": "Crea il mio obiettivo",
+      "createTitle": "Nuovo obiettivo",
+      "deadline": "Scadenza",
+      "deadlineHint": "Senza scadenza",
+      "decompose": "Suddividi in importi mensili",
+      "decomposeHint": "Un risparmio previsto in ogni budget fino alla scadenza",
+      "editTitle": "Modifica obiettivo",
+      "initial": "Importo iniziale (opzionale)",
+      "monthly": "Risparmio mensile",
+      "monthlyHint": "Questo importo sarà previsto ogni mese.",
+      "monthlyNoDeadline": "Questo importo alimenterà il tuo fondo ogni mese, senza scadenza.",
+      "monthlyOptional": "Risparmio mensile (opzionale)",
+      "monthlyUntilDeadline": "Questo importo sarà previsto ogni mese fino alla scadenza.",
+      "name": "Nome dell'obiettivo",
+      "namePlaceholder": "Viaggio, casa, fondo di emergenza…",
+      "save": "Salva",
+      "saveError": "Non è stato possibile salvare l'obiettivo. Riprova.",
+      "start": "Inizio",
+      "startHint": "A partire da questo mese",
+      "suggestion": "Precompilato con %{amount} — obiettivo ÷ mesi restanti.",
+      "target": "Obiettivo (opzionale)",
+      "validation": {
+        "dates": "L'inizio non può essere successivo alla scadenza.",
+        "name": "Dai un nome al tuo obiettivo.",
+        "target": "L'obiettivo deve essere maggiore di zero."
+      }
+    },
+    "detail": {
+      "deadline": "Scadenza %{date}",
+      "delete": "Elimina obiettivo",
+      "futureLinesError": "Non è stato possibile verificare le previsioni future di questo obiettivo.",
+      "loadErrorTitle": "Non siamo riusciti a caricare questo obiettivo",
+      "missingHint": "Potrebbe essere stato eliminato da un altro dispositivo.",
+      "missingTitle": "Questo obiettivo non esiste più"
+    },
+    "progress": {
+      "achievementAccessibility": "%{percent}% dell'obiettivo risparmiato",
+      "initial": "Importo iniziale",
+      "ofTarget": "su %{amount}",
+      "pace": {
+        "ahead": "In anticipo",
+        "behind": "Un po' indietro",
+        "on_track": "Sulla buona strada"
+      },
+      "paceAdvice": "Il tuo ritmo previsto: %{pace}/mese · per rispettare la scadenza, punta a %{required}/mese",
+      "paceAdviceDate": "Il tuo ritmo previsto: %{pace}/mese · per finire il %{date}, punta a %{required}/mese",
+      "perMonth": "%{amount} / mese",
+      "planReady": "Il tuo piano è pronto — metti da parte %{amount} questo mese.",
+      "planned": "Già previsto",
+      "projection": "Proiezione del piano",
+      "required": "Per rispettare la scadenza",
+      "saved": "Risparmiato",
+      "target": "Obiettivo %{amount}",
+      "trajectory": "La tua traiettoria"
+    },
+    "contributions": {
+      "loadError": "Non è stato possibile caricare i versamenti di questo obiettivo.",
+      "movements": "Movimenti reali",
+      "openBudget": "Apri il budget di %{period}",
+      "title": "Il tuo monitoraggio"
+    },
+    "withdrawals": {
+      "detail": "%{status} · Previsto %{planned} · Realizzato %{realized}",
+      "inPlan": "Previsto nel piano",
+      "loadError": "Non è stato possibile caricare i prelievi di questo obiettivo.",
+      "openBudget": "Apri il budget di %{name}",
+      "planned": "Prelievi pianificati",
+      "realized": "Prelievi realizzati",
+      "status": {
+        "partially_realized": "Parzialmente realizzato",
+        "planned": "Da realizzare",
+        "realized": "Realizzato"
+      },
+      "title": "Prelievi"
+    },
+    "plan": {
+      "adjust": "Modifica",
+      "adjustAccessibility": "Modifica il piano",
+      "availability": {
+        "no-budget": "Nessun budget",
+        "unfunded": "Nessun risparmio previsto"
+      },
+      "showAll": {
+        "one": "Vedi tutto il piano (%{count} mese)",
+        "other": "Vedi tutto il piano (%{count} mesi)"
+      },
+      "showLess": "Vedi meno",
+      "state": { "checked": "Spuntato", "locked": "Bloccato" },
+      "thisMonth": "Questo mese",
+      "title": "Il tuo piano, mese per mese",
+      "unlinked": {
+        "one": "%{count} mese rimanente non ha previsioni collegate a questo obiettivo.",
+        "other": "%{count} mesi rimanenti non hanno previsioni collegate a questo obiettivo."
+      },
+      "withdrawal": "di cui %{amount} da prelevare"
+    }
   },
   "home": {
     "accountAccessibility": "Il mio account",

@@ -343,18 +343,153 @@
     "back": "Zurück",
     "backToSignIn": "Zurück zur Anmeldung",
     "cancel": "Abbrechen",
+    "choose": "Auswählen",
+    "clear": "Löschen",
     "close": "Schliessen",
     "contactSupport": "Support kontaktieren",
     "continue": "Weiter",
     "delete": "Löschen",
     "email": "E-Mail-Adresse",
     "emailExample": "du@beispiel.de",
+    "edit": "Bearbeiten",
     "error": "Ein Fehler ist aufgetreten",
     "loading": "Wird geladen…",
+    "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",
+    "moreOptions": "Weitere Optionen",
     "or": "oder",
     "password": "Passwort",
     "retry": "Erneut versuchen",
     "signOut": "Abmelden"
+  },
+  "goals": {
+    "status": {
+      "ACTIVE": "Aktiv",
+      "PAUSED": "Pausiert",
+      "COMPLETED": "Erreicht"
+    },
+    "list": {
+      "addAccessibility": "Ziel hinzufügen",
+      "create": "Ziel erstellen",
+      "deadline": "Zieldatum %{date}",
+      "emptyHint": "Verfolge langfristige Sparprojekte, ohne selbst nachzurechnen.",
+      "emptyTitle": "Lege dein erstes Ziel fest",
+      "loadErrorTitle": "Deine Ziele konnten nicht geladen werden",
+      "since": "Seit %{date}",
+      "title": "Sparziele"
+    },
+    "intro": {
+      "create": "Mein Ziel erstellen",
+      "goalBody": "Reise, Wohnung, Notgroschen… gib einen Betrag und ein Datum an. Pulpe hält dich auf Kurs.",
+      "goalTitle": "Dieses Projekt erreichst du",
+      "later": "Später",
+      "next": "Weiter",
+      "page": "Seite %{current} von %{total}",
+      "planBody": "Jeder Monat passt sich automatisch an. Keine Rechnerei, keine Zweifel — nur dein wachsender Fortschritt.",
+      "planned": "Geplant",
+      "planTitle": "Und du weisst immer, wo du stehst",
+      "sampleName": "Japanreise",
+      "sampleTarget": "von %{amount} · Zieldatum Nov. 2027",
+      "skip": "Überspringen",
+      "skipAccessibility": "Einführung überspringen",
+      "thisMonth": "Dieser Monat"
+    },
+    "form": {
+      "create": "Mein Ziel erstellen",
+      "createTitle": "Neues Ziel",
+      "deadline": "Zieldatum",
+      "deadlineHint": "Ohne Frist",
+      "decompose": "In Monatsbeträge aufteilen",
+      "decomposeHint": "Eine geplante Ersparnis in jedem Budget bis zum Zieldatum",
+      "editTitle": "Ziel bearbeiten",
+      "initial": "Startbetrag (optional)",
+      "monthly": "Monatliche Ersparnis",
+      "monthlyHint": "Dieser Betrag wird jeden Monat eingeplant.",
+      "monthlyNoDeadline": "Dieser Betrag fliesst jeden Monat ohne Frist in deinen Topf.",
+      "monthlyOptional": "Monatliche Ersparnis (optional)",
+      "monthlyUntilDeadline": "Dieser Betrag wird bis zum Zieldatum jeden Monat eingeplant.",
+      "name": "Name des Ziels",
+      "namePlaceholder": "Reise, Wohnung, Notgroschen…",
+      "save": "Speichern",
+      "saveError": "Das Ziel konnte nicht gespeichert werden. Versuche es erneut.",
+      "start": "Beginn",
+      "startHint": "Ab diesem Monat",
+      "suggestion": "Vorbelegt mit %{amount} — Ziel ÷ verbleibende Monate.",
+      "target": "Zielbetrag (optional)",
+      "validation": {
+        "dates": "Der Beginn darf nicht nach dem Zieldatum liegen.",
+        "name": "Gib deinem Ziel einen Namen.",
+        "target": "Der Zielbetrag muss grösser als null sein."
+      }
+    },
+    "detail": {
+      "deadline": "Zieldatum %{date}",
+      "delete": "Ziel löschen",
+      "futureLinesError": "Die zukünftigen Prognosen dieses Ziels konnten nicht geprüft werden.",
+      "loadErrorTitle": "Dieses Ziel konnte nicht geladen werden",
+      "missingHint": "Es wurde vielleicht auf einem anderen Gerät gelöscht.",
+      "missingTitle": "Dieses Ziel existiert nicht mehr"
+    },
+    "progress": {
+      "achievementAccessibility": "%{percent} % des Ziels gespart",
+      "initial": "Startbetrag",
+      "ofTarget": "von %{amount}",
+      "pace": {
+        "ahead": "Voraus",
+        "behind": "Etwas im Rückstand",
+        "on_track": "Auf Kurs"
+      },
+      "paceAdvice": "Dein geplantes Tempo: %{pace}/Monat · für dein Zieldatum solltest du %{required}/Monat anstreben",
+      "paceAdviceDate": "Dein geplantes Tempo: %{pace}/Monat · für den Abschluss am %{date} solltest du %{required}/Monat anstreben",
+      "perMonth": "%{amount} / Monat",
+      "planReady": "Dein Plan ist bereit — lege diesen Monat %{amount} zurück.",
+      "planned": "Bereits geplant",
+      "projection": "Planprojektion",
+      "required": "Für dein Zieldatum",
+      "saved": "Gespart",
+      "target": "Ziel %{amount}",
+      "trajectory": "Dein Verlauf"
+    },
+    "contributions": {
+      "loadError": "Die Beiträge dieses Ziels konnten nicht geladen werden.",
+      "movements": "Tatsächliche Bewegungen",
+      "openBudget": "Budget für %{period} öffnen",
+      "title": "Dein Verlauf"
+    },
+    "withdrawals": {
+      "detail": "%{status} · Geplant %{planned} · Realisiert %{realized}",
+      "inPlan": "Im Plan vorgesehen",
+      "loadError": "Die Entnahmen dieses Ziels konnten nicht geladen werden.",
+      "openBudget": "Budget für %{name} öffnen",
+      "planned": "Geplante Entnahmen",
+      "realized": "Realisierte Entnahmen",
+      "status": {
+        "partially_realized": "Teilweise realisiert",
+        "planned": "Ausstehend",
+        "realized": "Realisiert"
+      },
+      "title": "Entnahmen"
+    },
+    "plan": {
+      "adjust": "Anpassen",
+      "adjustAccessibility": "Plan anpassen",
+      "availability": {
+        "no-budget": "Kein Budget",
+        "unfunded": "Keine Ersparnis geplant"
+      },
+      "showAll": {
+        "one": "Gesamten Plan anzeigen (%{count} Monat)",
+        "other": "Gesamten Plan anzeigen (%{count} Monate)"
+      },
+      "showLess": "Weniger anzeigen",
+      "state": { "checked": "Abgehakt", "locked": "Gesperrt" },
+      "thisMonth": "Dieser Monat",
+      "title": "Dein Plan, Monat für Monat",
+      "unlinked": {
+        "one": "%{count} verbleibender Monat hat keine Prognose für dieses Ziel.",
+        "other": "%{count} verbleibende Monate haben keine Prognose für dieses Ziel."
+      },
+      "withdrawal": "davon %{amount} zur Entnahme"
+    }
   },
   "home": {
     "accountAccessibility": "Mein Konto",

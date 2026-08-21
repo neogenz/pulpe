@@ -343,18 +343,153 @@
     "back": "Back",
     "backToSignIn": "Back to sign in",
     "cancel": "Cancel",
+    "choose": "Choose",
+    "clear": "Clear",
     "close": "Close",
     "contactSupport": "Contact support",
     "continue": "Continue",
     "delete": "Delete",
     "email": "Email address",
     "emailExample": "you@example.com",
+    "edit": "Edit",
     "error": "Something went wrong",
     "loading": "Loading…",
+    "loadErrorHint": "Check your connection, then try again.",
+    "moreOptions": "More options",
     "or": "or",
     "password": "Password",
     "retry": "Try again",
     "signOut": "Sign out"
+  },
+  "goals": {
+    "status": {
+      "ACTIVE": "Active",
+      "PAUSED": "Paused",
+      "COMPLETED": "Reached"
+    },
+    "list": {
+      "addAccessibility": "Add a goal",
+      "create": "Create a goal",
+      "deadline": "Deadline %{date}",
+      "emptyHint": "Track your long-term savings projects without recalculating by hand.",
+      "emptyTitle": "Set your first goal",
+      "loadErrorTitle": "We couldn't load your goals",
+      "since": "Since %{date}",
+      "title": "Savings goals"
+    },
+    "intro": {
+      "create": "Create my goal",
+      "goalBody": "A trip, a home, an emergency fund… give it an amount and a date. Pulpe keeps you on track.",
+      "goalTitle": "You can reach this project",
+      "later": "Later",
+      "next": "Next",
+      "page": "Page %{current} of %{total}",
+      "planBody": "Each month adjusts automatically. No calculations, no doubt — just your progress going up.",
+      "planned": "Planned",
+      "planTitle": "And you'll always know where you stand",
+      "sampleName": "Trip to Japan",
+      "sampleTarget": "of %{amount} · deadline Nov 2027",
+      "skip": "Skip",
+      "skipAccessibility": "Skip introduction",
+      "thisMonth": "This month"
+    },
+    "form": {
+      "create": "Create my goal",
+      "createTitle": "New goal",
+      "deadline": "Deadline",
+      "deadlineHint": "No deadline",
+      "decompose": "Break down into monthly amounts",
+      "decomposeHint": "One planned saving in each budget until the deadline",
+      "editTitle": "Edit goal",
+      "initial": "Starting amount (optional)",
+      "monthly": "Monthly saving",
+      "monthlyHint": "This amount will be planned each month.",
+      "monthlyNoDeadline": "This amount will feed your pot each month, with no deadline.",
+      "monthlyOptional": "Monthly saving (optional)",
+      "monthlyUntilDeadline": "This amount will be planned each month until the deadline.",
+      "name": "Goal name",
+      "namePlaceholder": "Trip, home, emergency fund…",
+      "save": "Save",
+      "saveError": "The goal couldn't be saved. Try again.",
+      "start": "Start",
+      "startHint": "Starting this month",
+      "suggestion": "Pre-filled with %{amount} — target ÷ remaining months.",
+      "target": "Target (optional)",
+      "validation": {
+        "dates": "The start can't come after the deadline.",
+        "name": "Give your goal a name.",
+        "target": "The target must be greater than zero."
+      }
+    },
+    "detail": {
+      "deadline": "Deadline %{date}",
+      "delete": "Delete goal",
+      "futureLinesError": "Couldn't check this goal's future forecasts.",
+      "loadErrorTitle": "We couldn't load this goal",
+      "missingHint": "It may have been deleted from another device.",
+      "missingTitle": "This goal no longer exists"
+    },
+    "progress": {
+      "achievementAccessibility": "%{percent}% of the target saved",
+      "initial": "Starting amount",
+      "ofTarget": "of %{amount}",
+      "pace": {
+        "ahead": "Ahead",
+        "behind": "A little behind",
+        "on_track": "On track"
+      },
+      "paceAdvice": "Your planned pace: %{pace}/month · to meet your deadline, aim for %{required}/month",
+      "paceAdviceDate": "Your planned pace: %{pace}/month · to finish by %{date}, aim for %{required}/month",
+      "perMonth": "%{amount} / month",
+      "planReady": "Your plan is ready — put aside %{amount} this month.",
+      "planned": "Already planned",
+      "projection": "Plan projection",
+      "required": "To meet your deadline",
+      "saved": "Saved",
+      "target": "Target %{amount}",
+      "trajectory": "Your trajectory"
+    },
+    "contributions": {
+      "loadError": "Couldn't load this goal's contributions.",
+      "movements": "Actual movements",
+      "openBudget": "Open the budget for %{period}",
+      "title": "Your tracking"
+    },
+    "withdrawals": {
+      "detail": "%{status} · Planned %{planned} · Realized %{realized}",
+      "inPlan": "Planned in the plan",
+      "loadError": "Couldn't load this goal's withdrawals.",
+      "openBudget": "Open the budget for %{name}",
+      "planned": "Planned withdrawals",
+      "realized": "Realized withdrawals",
+      "status": {
+        "partially_realized": "Partially realized",
+        "planned": "To do",
+        "realized": "Realized"
+      },
+      "title": "Withdrawals"
+    },
+    "plan": {
+      "adjust": "Adjust",
+      "adjustAccessibility": "Adjust plan",
+      "availability": {
+        "no-budget": "No budget",
+        "unfunded": "No saving planned"
+      },
+      "showAll": {
+        "one": "View the whole plan (%{count} month)",
+        "other": "View the whole plan (%{count} months)"
+      },
+      "showLess": "View less",
+      "state": { "checked": "Checked", "locked": "Locked" },
+      "thisMonth": "This month",
+      "title": "Your plan, month by month",
+      "unlinked": {
+        "one": "%{count} remaining month has no forecast linked to this goal.",
+        "other": "%{count} remaining months have no forecast linked to this goal."
+      },
+      "withdrawal": "including %{amount} to withdraw"
+    }
   },
   "home": {
     "accountAccessibility": "My account",

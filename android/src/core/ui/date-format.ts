@@ -1,7 +1,6 @@
 /**
- * Dates are French regardless of the currency, matching `Formatters.swift`,
- * which pins `fr_FR` on every date formatter while the amounts follow the
- * account's currency.
+ * Dates follow the interface language independently from the account currency.
+ * French remains the default for callers that have not migrated yet.
  */
 const DATE_LOCALE = "fr-FR";
 const MILLISECONDS_PER_DAY = 86_400_000;
@@ -60,13 +59,19 @@ export function ofMonth(monthName: string): string {
 }
 
 /**
- * `janv. 2026`, and `août 2026` — a chart axis, where the full name would not
- * fit. French abbreviates seven of the twelve months and leaves the short ones
- * whole, which no rule about a fixed number of letters reproduces: cutting to
- * four and adding a period gives "déce.", "octo." and "mars.".
+ * A localized short month and year for chart axes, where the full name would
+ * not fit.
  */
-export function formatMonthYearShort(month: number, year: number): string {
-  return monthYearShortFormatter.format(new Date(year, month - 1, 1));
+export function formatMonthYearShort(
+  month: number,
+  year: number,
+  locale: string = DATE_LOCALE,
+): string {
+  const formatter =
+    locale === DATE_LOCALE
+      ? monthYearShortFormatter
+      : new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" });
+  return formatter.format(new Date(year, month - 1, 1));
 }
 
 /** `5 juillet`, and `1er juillet` on the one day French does not say "1". */
@@ -114,12 +119,23 @@ export function formatRelativeDay(
 }
 
 /**
- * `30 nov. 2026` from a bare `YYYY-MM-DD`. Parsed field by field on purpose:
+ * A localized date from a bare `YYYY-MM-DD`. Parsed field by field on purpose:
  * `new Date("2026-11-30")` is UTC midnight, which prints as the 29th anywhere
  * west of Greenwich.
  */
-export function formatIsoDate(iso: string): string {
-  return fullDateFormatter.format(parseIsoDate(iso));
+export function formatIsoDate(
+  iso: string,
+  locale: string = DATE_LOCALE,
+): string {
+  const formatter =
+    locale === DATE_LOCALE
+      ? fullDateFormatter
+      : new Intl.DateTimeFormat(locale, {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+  return formatter.format(parseIsoDate(iso));
 }
 
 export function parseIsoDate(iso: string): Date {

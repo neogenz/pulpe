@@ -343,18 +343,153 @@
     "back": "Revenir",
     "backToSignIn": "Retour à la connexion",
     "cancel": "Annuler",
+    "choose": "Choisir",
+    "clear": "Effacer",
     "close": "Fermer",
     "contactSupport": "Contacter le support",
     "continue": "Continuer",
     "delete": "Effacer",
     "email": "Adresse e-mail",
     "emailExample": "ton@email.com",
+    "edit": "Modifier",
     "error": "Une erreur est survenue",
     "loading": "Chargement…",
+    "loadErrorHint": "Vérifie ta connexion, puis réessaie.",
+    "moreOptions": "Plus d'options",
     "or": "ou",
     "password": "Mot de passe",
     "retry": "Réessayer",
     "signOut": "Se déconnecter"
+  },
+  "goals": {
+    "status": {
+      "ACTIVE": "En cours",
+      "PAUSED": "En pause",
+      "COMPLETED": "Atteint"
+    },
+    "list": {
+      "addAccessibility": "Ajouter un objectif",
+      "create": "Créer un objectif",
+      "deadline": "Échéance %{date}",
+      "emptyHint": "Suis tes projets d'épargne long terme, sans recalculer à la main.",
+      "emptyTitle": "Fixe ton premier objectif",
+      "loadErrorTitle": "On n'a pas pu charger tes objectifs",
+      "since": "Depuis %{date}",
+      "title": "Objectifs d'épargne"
+    },
+    "intro": {
+      "create": "Créer mon objectif",
+      "goalBody": "Voyage, appart, coussin de sécurité… donne-lui un montant et une date. Pulpe garde le cap avec toi.",
+      "goalTitle": "Ce projet, tu vas l'atteindre",
+      "later": "Plus tard",
+      "next": "Suivant",
+      "page": "Page %{current} sur %{total}",
+      "planBody": "Chaque mois s'ajuste tout seul. Zéro calcul, zéro doute — juste ta progression qui monte.",
+      "planned": "Prévu",
+      "planTitle": "Et tu sauras toujours où tu en es",
+      "sampleName": "Voyage Japon",
+      "sampleTarget": "sur %{amount} · échéance nov. 2027",
+      "skip": "Passer",
+      "skipAccessibility": "Passer l'introduction",
+      "thisMonth": "Ce mois"
+    },
+    "form": {
+      "create": "Créer mon objectif",
+      "createTitle": "Nouvel objectif",
+      "deadline": "Échéance",
+      "deadlineHint": "Sans date limite",
+      "decompose": "Décomposer en mensualités",
+      "decomposeHint": "Une épargne prévue sur chacun de tes budgets, jusqu'à l'échéance",
+      "editTitle": "Modifier l'objectif",
+      "initial": "Montant de départ (optionnel)",
+      "monthly": "Épargne mensuelle",
+      "monthlyHint": "Ce montant sera prévu chaque mois.",
+      "monthlyNoDeadline": "Ce montant alimentera ton pot chaque mois, sans échéance imposée.",
+      "monthlyOptional": "Épargne mensuelle (optionnelle)",
+      "monthlyUntilDeadline": "Ce montant sera prévu chaque mois, jusqu'à l'échéance.",
+      "name": "Nom de l'objectif",
+      "namePlaceholder": "Voyage, appart, coussin de sécurité…",
+      "save": "Enregistrer",
+      "saveError": "L'objectif n'a pas pu être enregistré. Réessaie.",
+      "start": "Début",
+      "startHint": "À partir de ce mois-ci",
+      "suggestion": "Pré-rempli avec %{amount} — cible ÷ mois restants.",
+      "target": "Cible (optionnelle)",
+      "validation": {
+        "dates": "Le début ne peut pas venir après l'échéance.",
+        "name": "Donne un nom à ton objectif.",
+        "target": "La cible doit être supérieure à zéro."
+      }
+    },
+    "detail": {
+      "deadline": "Échéance %{date}",
+      "delete": "Supprimer l'objectif",
+      "futureLinesError": "Impossible de vérifier les prévisions futures de cet objectif.",
+      "loadErrorTitle": "On n'a pas pu charger cet objectif",
+      "missingHint": "Il a peut-être été supprimé depuis un autre appareil.",
+      "missingTitle": "Cet objectif n'existe plus"
+    },
+    "progress": {
+      "achievementAccessibility": "%{percent} % de la cible épargné",
+      "initial": "Montant de départ",
+      "ofTarget": "sur %{amount}",
+      "pace": {
+        "ahead": "En avance",
+        "behind": "Un peu en retrait",
+        "on_track": "Sur la bonne voie"
+      },
+      "paceAdvice": "Ton rythme prévu : %{pace}/mois · pour tenir ton échéance, vise %{required}/mois",
+      "paceAdviceDate": "Ton rythme prévu : %{pace}/mois · pour finir le %{date}, vise %{required}/mois",
+      "perMonth": "%{amount} / mois",
+      "planReady": "Ton plan est prêt — %{amount} à mettre de côté ce mois.",
+      "planned": "Déjà prévu",
+      "projection": "Projection du plan",
+      "required": "Pour tenir ton échéance",
+      "saved": "Épargné",
+      "target": "Cible %{amount}",
+      "trajectory": "Ta trajectoire"
+    },
+    "contributions": {
+      "loadError": "Impossible de charger les versements de cet objectif.",
+      "movements": "Mouvements réels",
+      "openBudget": "Ouvrir le budget de %{period}",
+      "title": "Ton suivi"
+    },
+    "withdrawals": {
+      "detail": "%{status} · Prévu %{planned} · Réalisé %{realized}",
+      "inPlan": "Prévu dans le plan",
+      "loadError": "Impossible de charger les retraits de cet objectif.",
+      "openBudget": "Ouvrir le budget de %{name}",
+      "planned": "Retraits planifiés",
+      "realized": "Retraits réalisés",
+      "status": {
+        "partially_realized": "Partiellement réalisé",
+        "planned": "À réaliser",
+        "realized": "Réalisé"
+      },
+      "title": "Retraits"
+    },
+    "plan": {
+      "adjust": "Ajuster",
+      "adjustAccessibility": "Ajuster le plan",
+      "availability": {
+        "no-budget": "Pas de budget",
+        "unfunded": "Aucune épargne prévue"
+      },
+      "showAll": {
+        "one": "Voir tout le plan (%{count} mois)",
+        "other": "Voir tout le plan (%{count} mois)"
+      },
+      "showLess": "Voir moins",
+      "state": { "checked": "Pointé", "locked": "Verrouillé" },
+      "thisMonth": "Ce mois",
+      "title": "Ton plan, mois par mois",
+      "unlinked": {
+        "one": "%{count} mois restant sans prévision liée à cet objectif.",
+        "other": "%{count} mois restants sans prévision liée à cet objectif."
+      },
+      "withdrawal": "dont %{amount} à sortir"
+    }
   },
   "home": {
     "accountAccessibility": "Mon compte",

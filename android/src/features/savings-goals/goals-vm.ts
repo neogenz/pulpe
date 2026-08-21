@@ -5,12 +5,6 @@ import {
   type SavingsGoalProgress,
 } from "pulpe-shared";
 
-export const PACE_LABELS: Record<SavingsGoalPaceStatus, string> = {
-  behind: "Un peu en retrait",
-  on_track: "Sur la bonne voie",
-  ahead: "En avance",
-};
-
 export const PACE_ICONS: Record<SavingsGoalPaceStatus, string> = {
   behind: "timer-sand",
   on_track: "check-circle-outline",

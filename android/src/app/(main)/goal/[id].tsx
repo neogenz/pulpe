@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
+import { useTranslation } from "@/core/i18n/locale-store";
 
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatIsoDate } from "@/core/ui/date-format";
@@ -52,6 +53,7 @@ export default function GoalDetailScreen() {
   useAmountMasking();
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const settings = useUserSettings();
   const goal = useSavingsGoal(id);
   const progress = useSavingsGoalProgress(id);
@@ -73,26 +75,31 @@ export default function GoalDetailScreen() {
     [progress.data],
   );
 
-  if (goal.isPending || progress.isPending) {
+  if (goal.isPending || progress.isPending || settings.isPending) {
     return (
       <SafeAreaView
         edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator accessibilityLabel="Chargement" />
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
       </SafeAreaView>
     );
   }
 
-  if (goal.isError || progress.isError) {
+  if (goal.isError || progress.isError || settings.isError) {
     return (
       <PlaceholderScreen
         icon="cloud-off-outline"
-        title="On n'a pas pu charger cet objectif"
-        hint="Vérifie ta connexion, puis réessaie."
+        title={t("goals.detail.loadErrorTitle")}
+        hint={t("common.loadErrorHint")}
         action={{
-          label: "Réessayer",
-          onPress: () => void Promise.all([goal.refetch(), progress.refetch()]),
+          label: t("common.retry"),
+          onPress: () =>
+            void Promise.all([
+              goal.refetch(),
+              progress.refetch(),
+              settings.refetch(),
+            ]),
         }}
       />
     );
@@ -102,9 +109,9 @@ export default function GoalDetailScreen() {
     return (
       <PlaceholderScreen
         icon="target-variant"
-        title="Cet objectif n'existe plus"
-        hint="Il a peut-être été supprimé depuis un autre appareil."
-        action={{ label: "Revenir", onPress: () => router.back() }}
+        title={t("goals.detail.missingTitle")}
+        hint={t("goals.detail.missingHint")}
+        action={{ label: t("common.back"), onPress: () => router.back() }}
       />
     );
   }
@@ -137,7 +144,7 @@ export default function GoalDetailScreen() {
           icon="pencil-outline"
           onPress={() => setEditVisible(true)}
           disabled={!areFutureLinesReady}
-          accessibilityLabel="Modifier l'objectif"
+          accessibilityLabel={t("goals.form.editTitle")}
         />
         <Menu
           visible={isMenuVisible}
@@ -146,13 +153,13 @@ export default function GoalDetailScreen() {
             <Appbar.Action
               icon="dots-vertical"
               onPress={() => setMenuVisible(true)}
-              accessibilityLabel="Plus d'options"
+              accessibilityLabel={t("common.moreOptions")}
             />
           }
         >
           <Menu.Item
             leadingIcon="delete-outline"
-            title="Supprimer l'objectif"
+            title={t("goals.detail.delete")}
             onPress={() => {
               setMenuVisible(false);
               setDeleteVisible(true);
@@ -175,7 +182,9 @@ export default function GoalDetailScreen() {
             variant="labelMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Échéance {formatIsoDate(goal.data.targetDate)}
+            {t("goals.detail.deadline", {
+              date: formatIsoDate(goal.data.targetDate, locale),
+            })}
           </Text>
         )}
 
@@ -185,7 +194,7 @@ export default function GoalDetailScreen() {
 
         {futureLines.isError && (
           <InlineQueryError
-            message="Impossible de vérifier les prévisions futures de cet objectif."
+            message={t("goals.detail.futureLinesError")}
             onRetry={() => void futureLines.refetch()}
           />
         )}
@@ -210,7 +219,7 @@ export default function GoalDetailScreen() {
             a verdict on a goal set this morning. */}
         {series !== null && series.hasConfirmedTrend && (
           <>
-            <Text variant="titleMedium">Ta trajectoire</Text>
+            <Text variant="titleMedium">{t("goals.progress.trajectory")}</Text>
             <GoalProjectionChart series={series} currency={currency} />
           </>
         )}
@@ -238,7 +247,7 @@ export default function GoalDetailScreen() {
 
         {withdrawals.isError && (
           <InlineQueryError
-            message="Impossible de charger les retraits de cet objectif."
+            message={t("goals.withdrawals.loadError")}
             onRetry={() => void withdrawals.refetch()}
           />
         )}
@@ -252,7 +261,7 @@ export default function GoalDetailScreen() {
 
         {contributions.isError && (
           <InlineQueryError
-            message="Impossible de charger les versements de cet objectif."
+            message={t("goals.contributions.loadError")}
             onRetry={() => void contributions.refetch()}
           />
         )}

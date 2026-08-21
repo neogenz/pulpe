@@ -16,6 +16,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { hapticSuccess } from "@/core/ui/haptics";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate, parseIsoDate, toIsoDate } from "@/core/ui/date-format";
@@ -38,12 +39,6 @@ import {
 import { useCreateSavingsGoal, useUpdateSavingsGoal } from "../goals-queries";
 
 const NAME_MAX_LENGTH = 100;
-
-const STATUS_BUTTONS: { value: SavingsGoalStatus; label: string }[] = [
-  { value: "ACTIVE", label: "En cours" },
-  { value: "PAUSED", label: "En pause" },
-  { value: "COMPLETED", label: "Atteint" },
-];
 
 /** Which of the two optional dates the calendar is currently answering. */
 type DateField = "startDate" | "targetDate";
@@ -76,6 +71,7 @@ export function GoalFormSheet({
   onSaved,
 }: GoalFormSheetProps) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const create = useCreateSavingsGoal();
   const update = useUpdateSavingsGoal();
   const [draft, setDraft] = useState<SavingsGoalDraft>(() =>
@@ -139,16 +135,14 @@ export function GoalFormSheet({
         isVisible={isVisible}
         onDismiss={dismiss}
         isBusy={mutation.isPending}
-        title={isEditing ? "Modifier l'objectif" : "Nouvel objectif"}
+        title={t(`goals.form.${isEditing ? "editTitle" : "createTitle"}`)}
         // The longest form in the app — name, two amounts, two dates, a toggle
         // and a monthly amount. Scrolled with the body, its own button would sit
         // a screen and a half below the first field.
         footer={
           <>
             {mutation.isError && (
-              <FieldError visible>
-                L&apos;objectif n&apos;a pas pu être enregistré. Réessaie.
-              </FieldError>
+              <FieldError visible>{t("goals.form.saveError")}</FieldError>
             )}
 
             <Button
@@ -159,7 +153,7 @@ export function GoalFormSheet({
               }
               loading={mutation.isPending}
             >
-              {isEditing ? "Enregistrer" : "Créer mon objectif"}
+              {t(`goals.form.${isEditing ? "save" : "create"}`)}
             </Button>
 
             {hint !== null && (
@@ -167,7 +161,7 @@ export function GoalFormSheet({
                 variant="labelMedium"
                 style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}
               >
-                {hint}
+                {t(`goals.form.validation.${hint}`)}
               </Text>
             )}
           </>
@@ -175,8 +169,8 @@ export function GoalFormSheet({
       >
         <TextInput
           mode="outlined"
-          label="Nom de l'objectif"
-          placeholder="Voyage, appart, coussin de sécurité…"
+          label={t("goals.form.name")}
+          placeholder={t("goals.form.namePlaceholder")}
           value={draft.name}
           onChangeText={(name) => change({ name })}
           maxLength={NAME_MAX_LENGTH}
@@ -184,7 +178,7 @@ export function GoalFormSheet({
 
         <AmountField
           key={`target-${generation}`}
-          label="Cible (optionnelle)"
+          label={t("goals.form.target")}
           amount={draft.targetAmount}
           currency={currency}
           onChange={(targetAmount) => change({ targetAmount })}
@@ -192,24 +186,26 @@ export function GoalFormSheet({
 
         <AmountField
           key={`initial-${generation}`}
-          label="Montant de départ (optionnel)"
+          label={t("goals.form.initial")}
           amount={draft.initialAmount}
           currency={currency}
           onChange={(initialAmount) => change({ initialAmount })}
         />
 
         <DateRow
-          label="Début"
+          label={t("goals.form.start")}
           value={draft.startDate}
-          emptyHint="À partir de ce mois-ci"
+          emptyHint={t("goals.form.startHint")}
+          locale={locale}
           onPress={() => setPickingDate("startDate")}
           onClear={() => change({ startDate: null })}
         />
 
         <DateRow
-          label="Échéance"
+          label={t("goals.form.deadline")}
           value={draft.targetDate}
-          emptyHint="Sans date limite"
+          emptyHint={t("goals.form.deadlineHint")}
+          locale={locale}
           onPress={() => setPickingDate("targetDate")}
           onClear={() => change({ targetDate: null })}
         />
@@ -218,19 +214,18 @@ export function GoalFormSheet({
           <>
             <View style={styles.toggleRow}>
               <View style={styles.toggleLabels}>
-                <Text variant="bodyLarge">Décomposer en mensualités</Text>
+                <Text variant="bodyLarge">{t("goals.form.decompose")}</Text>
                 <Text
                   variant="labelMedium"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  Une épargne prévue sur chacun de tes budgets, jusqu&apos;à
-                  l&apos;échéance
+                  {t("goals.form.decomposeHint")}
                 </Text>
               </View>
               <Switch
                 value={draft.isDecomposed}
                 onValueChange={(isDecomposed) => change({ isDecomposed })}
-                accessibilityLabel="Décomposer en mensualités"
+                accessibilityLabel={t("goals.form.decompose")}
               />
             </View>
 
@@ -238,7 +233,7 @@ export function GoalFormSheet({
               <>
                 <AmountField
                   key={`monthly-${generation}-${suggestion}`}
-                  label="Épargne mensuelle"
+                  label={t("goals.form.monthly")}
                   amount={draft.monthlyOverride ?? suggestion}
                   currency={currency}
                   onChange={(monthlyOverride) =>
@@ -253,8 +248,10 @@ export function GoalFormSheet({
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
                   {suggestion === null
-                    ? "Ce montant sera prévu chaque mois."
-                    : `Pré-rempli avec ${formatCurrency(suggestion, currency)} — cible ÷ mois restants.`}
+                    ? t("goals.form.monthlyHint")
+                    : t("goals.form.suggestion", {
+                        amount: formatCurrency(suggestion, currency),
+                      })}
                 </Text>
               </>
             )}
@@ -265,7 +262,7 @@ export function GoalFormSheet({
           <>
             <AmountField
               key={`manual-${generation}`}
-              label="Épargne mensuelle (optionnelle)"
+              label={t("goals.form.monthlyOptional")}
               amount={draft.monthlyOverride}
               currency={currency}
               onChange={(monthlyOverride) => change({ monthlyOverride })}
@@ -275,8 +272,8 @@ export function GoalFormSheet({
               style={{ color: theme.colors.onSurfaceVariant }}
             >
               {draft.targetDate === null
-                ? "Ce montant alimentera ton pot chaque mois, sans échéance imposée."
-                : "Ce montant sera prévu chaque mois, jusqu'à l'échéance."}
+                ? t("goals.form.monthlyNoDeadline")
+                : t("goals.form.monthlyUntilDeadline")}
             </Text>
           </>
         )}
@@ -287,7 +284,9 @@ export function GoalFormSheet({
             onValueChange={(status) =>
               change({ status: status as SavingsGoalStatus })
             }
-            buttons={STATUS_BUTTONS}
+            buttons={(["ACTIVE", "PAUSED", "COMPLETED"] as const).map(
+              (value) => ({ value, label: t(`goals.status.${value}`) }),
+            )}
           />
         )}
       </Sheet>
@@ -318,16 +317,19 @@ function DateRow({
   label,
   value,
   emptyHint,
+  locale,
   onPress,
   onClear,
 }: {
   label: string;
   value: string | null;
   emptyHint: string;
+  locale: string;
   onPress: () => void;
   onClear: () => void;
 }) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View style={styles.dateRow}>
@@ -337,17 +339,17 @@ function DateRow({
           variant="labelMedium"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          {value === null ? emptyHint : formatIsoDate(value)}
+          {value === null ? emptyHint : formatIsoDate(value, locale)}
         </Text>
       </View>
       <View style={styles.dateActions}>
         {value !== null && (
           <Button mode="text" onPress={onClear} compact>
-            Effacer
+            {t("common.clear")}
           </Button>
         )}
         <Button mode="outlined" onPress={onPress} icon="calendar" compact>
-          {value === null ? "Choisir" : "Modifier"}
+          {t(`common.${value === null ? "choose" : "edit"}`)}
         </Button>
       </View>
     </View>

@@ -5,15 +5,18 @@ import { Button, ProgressBar, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/core/ui/card";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { RADIUS, SPACING } from "@/core/ui/theme";
+import { formatMonthName } from "@/core/ui/date-format";
 
 /** What the preview pretends the user already saved, in their own currency. */
 const SAMPLE_TARGET = 6000;
 const SAMPLE_SAVED = 2250;
 const SAMPLE_MONTHLY = 250;
-const SAMPLE_MONTHS = ["Août", "Septembre", "Octobre", "Novembre"];
+const SAMPLE_MONTHS = [8, 9, 10, 11];
+const SAMPLE_YEAR = 2027;
 
 interface GoalsIntroProps {
   currency: SupportedCurrency;
@@ -33,6 +36,7 @@ interface GoalsIntroProps {
  */
 export function GoalsIntro({ currency, onComplete }: GoalsIntroProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [page, setPage] = useState(0);
   const isLastPage = page === 1;
 
@@ -45,9 +49,9 @@ export function GoalsIntro({ currency, onComplete }: GoalsIntroProps) {
           <Button
             mode="text"
             onPress={() => onComplete(false)}
-            accessibilityLabel="Passer l'introduction"
+            accessibilityLabel={t("goals.intro.skipAccessibility")}
           >
-            Passer
+            {t("goals.intro.skip")}
           </Button>
         )}
       </View>
@@ -62,23 +66,24 @@ export function GoalsIntro({ currency, onComplete }: GoalsIntroProps) {
         <View style={styles.copy}>
           <Text variant="headlineSmall" style={styles.centered}>
             {isLastPage
-              ? "Et tu sauras toujours où tu en es"
-              : "Ce projet, tu vas l'atteindre"}
+              ? t("goals.intro.planTitle")
+              : t("goals.intro.goalTitle")}
           </Text>
           <Text
             variant="bodyLarge"
             style={[styles.centered, { color: theme.colors.onSurfaceVariant }]}
           >
-            {isLastPage
-              ? "Chaque mois s'ajuste tout seul. Zéro calcul, zéro doute — juste ta progression qui monte."
-              : "Voyage, appart, coussin de sécurité… donne-lui un montant et une date. Pulpe garde le cap avec toi."}
+            {isLastPage ? t("goals.intro.planBody") : t("goals.intro.goalBody")}
           </Text>
         </View>
       </View>
 
       <View
         style={styles.dots}
-        accessibilityLabel={`Page ${page + 1} sur 2`}
+        accessibilityLabel={t("goals.intro.page", {
+          current: page + 1,
+          total: 2,
+        })}
         accessible
       >
         {[0, 1].map((index) => (
@@ -103,11 +108,11 @@ export function GoalsIntro({ currency, onComplete }: GoalsIntroProps) {
           mode="contained"
           onPress={() => (isLastPage ? onComplete(true) : setPage(1))}
         >
-          {isLastPage ? "Créer mon objectif" : "Suivant"}
+          {t(`goals.intro.${isLastPage ? "create" : "next"}`)}
         </Button>
         {isLastPage && (
           <Button mode="text" onPress={() => onComplete(false)}>
-            Plus tard
+            {t("goals.intro.later")}
           </Button>
         )}
       </View>
@@ -117,11 +122,12 @@ export function GoalsIntro({ currency, onComplete }: GoalsIntroProps) {
 
 function GoalPreview({ currency }: { currency: SupportedCurrency }) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Card mode="contained" style={styles.preview}>
       <Card.Content style={styles.previewContent}>
-        <Text variant="titleMedium">Voyage Japon</Text>
+        <Text variant="titleMedium">{t("goals.intro.sampleName")}</Text>
         {/* Compact like the real progress card this previews — a sample that
             prints centimes promises a card that never does. */}
         <Amount size="hero">
@@ -135,8 +141,9 @@ function GoalPreview({ currency }: { currency: SupportedCurrency }) {
           variant="labelMedium"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          sur {formatCompactCurrency(SAMPLE_TARGET, currency)} · échéance nov.
-          2027
+          {t("goals.intro.sampleTarget", {
+            amount: formatCompactCurrency(SAMPLE_TARGET, currency),
+          })}
         </Text>
       </Card.Content>
     </Card>
@@ -145,6 +152,7 @@ function GoalPreview({ currency }: { currency: SupportedCurrency }) {
 
 function PlanPreview({ currency }: { currency: SupportedCurrency }) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
 
   return (
     <Card mode="contained" style={styles.preview}>
@@ -155,7 +163,7 @@ function PlanPreview({ currency }: { currency: SupportedCurrency }) {
               variant="bodyMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              {month}
+              {formatMonthName(month, SAMPLE_YEAR, locale)}
             </Text>
             <Amount size="row">
               {formatCurrency(SAMPLE_MONTHLY, currency)}
@@ -169,7 +177,7 @@ function PlanPreview({ currency }: { currency: SupportedCurrency }) {
                     : theme.colors.onSurfaceVariant,
               }}
             >
-              {index === 0 ? "Ce mois" : "Prévu"}
+              {t(`goals.intro.${index === 0 ? "thisMonth" : "planned"}`)}
             </Text>
           </View>
         ))}

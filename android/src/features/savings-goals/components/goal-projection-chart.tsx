@@ -9,6 +9,7 @@ import { Text, useTheme } from "react-native-paper";
 import { Area, CartesianChart, Line } from "victory-native";
 
 import { Amount } from "@/core/ui/amount";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatMonthYearShort } from "@/core/ui/date-format";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
@@ -42,6 +43,7 @@ export function GoalProjectionChart({
   currency,
 }: GoalProjectionChartProps) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const financial = useFinancialColors();
   const savings = financial.savings;
   const income = financial.income;
@@ -113,18 +115,20 @@ export function GoalProjectionChart({
             variant="labelSmall"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            {formatMonthYearShort(tick.month, tick.year)}
+            {formatMonthYearShort(tick.month, tick.year, locale)}
           </Text>
         ))}
       </View>
 
       <View style={styles.legend}>
-        <LegendEntry color={savings} label="Épargné" />
-        <LegendEntry color={income} label="Projection du plan" />
+        <LegendEntry color={savings} label={t("goals.progress.saved")} />
+        <LegendEntry color={income} label={t("goals.progress.projection")} />
         {series.target !== null && (
           <LegendEntry
             color={theme.colors.outline}
-            label={`Cible ${formatCompactCurrency(series.target, currency)}`}
+            label={t("goals.progress.target", {
+              amount: formatCompactCurrency(series.target, currency),
+            })}
           />
         )}
       </View>

@@ -9,19 +9,11 @@ import { StyleSheet, View } from "react-native";
 import { Divider, Text, useTheme } from "react-native-paper";
 
 import { Card } from "@/core/ui/card";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate, formatMonthLabel } from "@/core/ui/date-format";
 import { SPACING } from "@/core/ui/theme";
-
-const PLANNED_STATUS_LABELS: Record<
-  SavingsGoalPlannedWithdrawal["status"],
-  string
-> = {
-  planned: "À réaliser",
-  partially_realized: "Partiellement réalisé",
-  realized: "Réalisé",
-};
 
 interface GoalWithdrawalsProps {
   realized: SavingsGoalWithdrawal[];
@@ -44,6 +36,7 @@ export function GoalWithdrawals({
   currency,
 }: GoalWithdrawalsProps) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
 
   if (realized.length === 0 && planned.length === 0 && planOnly.length === 0) {
     return null;
@@ -51,7 +44,7 @@ export function GoalWithdrawals({
 
   return (
     <View style={styles.section}>
-      <Text variant="titleMedium">Retraits</Text>
+      <Text variant="titleMedium">{t("goals.withdrawals.title")}</Text>
 
       {(planned.length > 0 || planOnly.length > 0) && (
         <>
@@ -59,7 +52,7 @@ export function GoalWithdrawals({
             variant="labelMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Retraits planifiés
+            {t("goals.withdrawals.planned")}
           </Text>
           <Card mode="contained">
             <Card.Content style={styles.card}>
@@ -74,7 +67,7 @@ export function GoalWithdrawals({
                   {(index > 0 || planned.length > 0) && <Divider />}
                   <WithdrawalRow
                     title={withdrawal.name}
-                    subtitle={`${formatMonthLabel(withdrawal.month, withdrawal.year)} · Prévu dans le plan`}
+                    subtitle={`${formatMonthLabel(withdrawal.month, withdrawal.year, locale)} · ${t("goals.withdrawals.inPlan")}`}
                     amount={withdrawal.plannedAmount}
                     currency={currency}
                   />
@@ -91,7 +84,7 @@ export function GoalWithdrawals({
             variant="labelMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Retraits réalisés
+            {t("goals.withdrawals.realized")}
           </Text>
           <Card mode="contained">
             <Card.Content style={styles.card}>
@@ -116,12 +109,17 @@ function PlannedRow({
   withdrawal: SavingsGoalPlannedWithdrawal;
   currency: SupportedCurrency;
 }) {
-  const period = formatMonthLabel(withdrawal.month, withdrawal.year);
-  const status = PLANNED_STATUS_LABELS[withdrawal.status];
+  const { locale, t } = useTranslation();
+  const period = formatMonthLabel(withdrawal.month, withdrawal.year, locale);
+  const status = t(`goals.withdrawals.status.${withdrawal.status}`);
   const detail =
     withdrawal.status === "planned"
       ? status
-      : `${status} · Prévu ${formatCurrency(withdrawal.plannedAmount, currency)} · Réalisé ${formatCurrency(withdrawal.realizedAmount, currency)}`;
+      : t("goals.withdrawals.detail", {
+          status,
+          planned: formatCurrency(withdrawal.plannedAmount, currency),
+          realized: formatCurrency(withdrawal.realizedAmount, currency),
+        });
 
   return (
     <WithdrawalRow
@@ -142,12 +140,13 @@ function RealizedRow({
   currency: SupportedCurrency;
 }) {
   const isChecked = (withdrawal.checkedAt ?? null) !== null;
-  const day = formatIsoDate(withdrawal.transactionDate.slice(0, 10));
+  const { locale, t } = useTranslation();
+  const day = formatIsoDate(withdrawal.transactionDate.slice(0, 10), locale);
 
   return (
     <WithdrawalRow
       title={withdrawal.name}
-      subtitle={`${day} · ${isChecked ? "Pointé" : "À pointer"}`}
+      subtitle={`${day} · ${t(`budgets.detail.filters.${isChecked ? "checked" : "unchecked"}`)}`}
       amount={withdrawal.amount}
       currency={currency}
       onPress={() => router.push(`/budget/${withdrawal.budgetId}`)}
@@ -169,6 +168,7 @@ function WithdrawalRow({
   onPress?: () => void;
 }) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const row = (
     <View style={styles.row}>
@@ -194,7 +194,7 @@ function WithdrawalRow({
     <Card
       mode="contained"
       onPress={onPress}
-      accessibilityLabel={`Ouvrir le budget de ${title}`}
+      accessibilityLabel={t("goals.withdrawals.openBudget", { name: title })}
       style={styles.pressable}
     >
       {row}

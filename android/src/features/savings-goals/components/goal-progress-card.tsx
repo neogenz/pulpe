@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { Icon, ProgressBar, Text, useTheme } from "react-native-paper";
 
 import { Card } from "@/core/ui/card";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
@@ -14,7 +15,6 @@ import {
   currentMonthPlannedAmount,
   hasClosedPlanMonth,
   PACE_ICONS,
-  PACE_LABELS,
   plannedFraction,
   requiredMatchesPlannedPace,
 } from "../goals-vm";
@@ -38,6 +38,7 @@ export function GoalProgressCard({
   currency,
 }: GoalProgressCardProps) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const financial = useFinancialColors();
   const savings = financial.savings;
 
@@ -55,7 +56,7 @@ export function GoalProgressCard({
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              Épargné
+              {t("goals.progress.saved")}
             </Text>
             <Amount size="hero" style={{ color: savings }}>
               {formatCompactCurrency(progress.confirmed, currency)}
@@ -64,7 +65,9 @@ export function GoalProgressCard({
 
           {progress.targetAmount !== null && (
             <Amount size="meta" tone="muted">
-              sur {formatCompactCurrency(progress.targetAmount, currency)}
+              {t("goals.progress.ofTarget", {
+                amount: formatCompactCurrency(progress.targetAmount, currency),
+              })}
             </Amount>
           )}
         </View>
@@ -72,7 +75,9 @@ export function GoalProgressCard({
         {progress.targetAmount !== null && (
           <View
             accessible
-            accessibilityLabel={`${progress.achievementPercent ?? 0}% de la cible épargné`}
+            accessibilityLabel={t("goals.progress.achievementAccessibility", {
+              percent: progress.achievementPercent ?? 0,
+            })}
           >
             {/* Two bars stacked: the plan behind, what is actually confirmed in
                 front. Paper's ProgressBar has no layers of its own. */}
@@ -102,7 +107,7 @@ export function GoalProgressCard({
               variant="labelLarge"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              {PACE_LABELS[progress.paceStatus]}
+              {t(`goals.progress.pace.${progress.paceStatus}`)}
             </Text>
           </View>
         )}
@@ -123,9 +128,9 @@ export function GoalProgressCard({
                   { color: theme.colors.onSurfaceVariant },
                 ]}
               >
-                Ton plan est prêt —{" "}
-                {formatCompactCurrency(currentPlanned, currency)} à mettre de
-                côté ce mois.
+                {t("goals.progress.planReady", {
+                  amount: formatCompactCurrency(currentPlanned, currency),
+                })}
               </Text>
             </View>
           )}
@@ -133,34 +138,46 @@ export function GoalProgressCard({
         <View style={styles.stats}>
           {progress.initialAmount > 0 && (
             <StatRow
-              label="Montant de départ"
+              label={t("goals.progress.initial")}
               value={formatCompactCurrency(progress.initialAmount, currency)}
             />
           )}
           <StatRow
-            label="Déjà prévu"
+            label={t("goals.progress.planned")}
             value={formatCompactCurrency(progress.plannedCumulative, currency)}
             swatch={`${savings}66`}
           />
           <StatRow
-            label="Projection du plan"
+            label={t("goals.progress.projection")}
             value={formatCompactCurrency(progress.plannedProjection, currency)}
           />
           {progress.required !== null &&
             isJudgeable &&
             (requiredMatchesPlannedPace(progress.pace, progress.required) ? (
               <StatRow
-                label="Pour tenir ton échéance"
-                value={`${formatCompactCurrency(progress.required, currency)} / mois`}
+                label={t("goals.progress.required")}
+                value={t("goals.progress.perMonth", {
+                  amount: formatCompactCurrency(progress.required, currency),
+                })}
               />
             ) : (
               <Amount size="meta" tone="muted">
-                Ton rythme prévu :{" "}
-                {formatCompactCurrency(progress.pace, currency)}/mois ·{" "}
-                {progress.targetDate === null
-                  ? "pour tenir ton échéance"
-                  : `pour finir le ${formatIsoDate(progress.targetDate)}`}
-                , vise {formatCompactCurrency(progress.required, currency)}/mois
+                {t(
+                  progress.targetDate === null
+                    ? "goals.progress.paceAdvice"
+                    : "goals.progress.paceAdviceDate",
+                  {
+                    pace: formatCompactCurrency(progress.pace, currency),
+                    required: formatCompactCurrency(
+                      progress.required,
+                      currency,
+                    ),
+                    date:
+                      progress.targetDate === null
+                        ? ""
+                        : formatIsoDate(progress.targetDate, locale),
+                  },
+                )}
               </Amount>
             ))}
         </View>
