@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Button, TextInput } from "react-native-paper";
+import { API_ERROR_CODES } from "pulpe-shared";
 
+import { isApiError } from "@/core/api/api-error";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
-import { normalizeApiError } from "@/core/api/api-error";
 import { Sheet } from "@/core/ui/sheet";
 import { FieldError } from "@/core/ui/field-error";
 import {
@@ -27,6 +29,7 @@ export function VerifyRecoveryKeySheet({
   onDismiss: () => void;
   onVerified: () => void;
 }) {
+  const { t } = useTranslation();
   const [value, setValue] = useState("");
   const [hasInvalidCharacters, setHasInvalidCharacters] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -48,7 +51,16 @@ export function VerifyRecoveryKeySheet({
       hapticSuccess();
       onVerified();
     } catch (error) {
-      setErrorMessage(normalizeApiError(error).message);
+      const code = isApiError(error) ? error.code : undefined;
+      setErrorMessage(
+        t(
+          code === API_ERROR_CODES.RECOVERY_KEY_INVALID
+            ? "vault.recovery.rejected"
+            : code === API_ERROR_CODES.RECOVERY_KEY_NOT_CONFIGURED
+              ? "vault.recovery.notConfigured"
+              : "settings.security.recoveryError",
+        ),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -59,8 +71,8 @@ export function VerifyRecoveryKeySheet({
       isVisible={isVisible}
       onDismiss={onDismiss}
       isBusy={isSubmitting}
-      title="Vérifier ma clé de récupération"
-      subtitle="Saisis la clé que tu as notée. Elle reste valable après la vérification."
+      title={t("settings.security.verifyRecoveryTitle")}
+      subtitle={t("settings.security.verifyRecoverySubtitle")}
       footer={
         <>
           {errorMessage !== null && (
@@ -73,17 +85,17 @@ export function VerifyRecoveryKeySheet({
             disabled={!isCompleteRecoveryKey(value) || isSubmitting}
             loading={isSubmitting}
           >
-            Vérifier
+            {t("settings.security.verifyRecoveryAction")}
           </Button>
           <Button mode="text" onPress={onDismiss} disabled={isSubmitting}>
-            Fermer
+            {t("common.close")}
           </Button>
         </>
       }
     >
       <TextInput
         mode="outlined"
-        label="Clé de récupération"
+        label={t("vault.recovery.title")}
         value={value}
         onChangeText={update}
         autoCapitalize="characters"
@@ -93,7 +105,7 @@ export function VerifyRecoveryKeySheet({
       />
       {hasInvalidCharacters && (
         <FieldError visible>
-          Une clé ne contient que des lettres et les chiffres 2 à 7.
+          {t("settings.security.recoveryInvalidCharacters")}
         </FieldError>
       )}
     </Sheet>

@@ -156,17 +156,17 @@ export default function SecuritySettingsScreen() {
           />
         </SettingsSection>
 
-        <SettingsSection title="Clé de récupération">
+        <SettingsSection title={t("settings.security.recoverySection")}>
           <SettingsRow
             icon="key-outline"
-            title="Vérifier ma clé"
-            description="Contrôle celle que tu as notée, sans la remplacer"
+            title={t("settings.security.verifyRecoveryRow")}
+            description={t("settings.security.verifyRecoveryDescription")}
             onPress={() => setSheet("verify")}
           />
           <SettingsRow
             icon="key-plus"
-            title="Régénérer ma clé"
-            description="L'ancienne cessera de fonctionner"
+            title={t("settings.security.regenerateRecoveryRow")}
+            description={t("settings.security.regenerateRecoveryDescription")}
             isDisabled={email.length === 0}
             onPress={() => setSheet("regenerate")}
           />
@@ -198,7 +198,7 @@ export default function SecuritySettingsScreen() {
 
         <View style={styles.danger}>
           <Eyebrow style={{ color: danger.destructive }}>
-            Zone de danger
+            {t("settings.security.dangerSection")}
           </Eyebrow>
           <Card
             mode="contained"
@@ -209,8 +209,7 @@ export default function SecuritySettingsScreen() {
                 variant="bodyMedium"
                 style={{ color: theme.colors.onSurface }}
               >
-                Supprimer ton compte efface définitivement tes budgets, tes
-                objectifs et tes opérations après un délai de grâce.
+                {t("settings.security.deleteAccountDescription")}
               </Text>
               <Button
                 mode="contained"
@@ -218,7 +217,7 @@ export default function SecuritySettingsScreen() {
                 textColor={theme.colors.onError}
                 onPress={() => setDeletingAccount(true)}
               >
-                Supprimer mon compte
+                {t("settings.security.deleteAccountTitle")}
               </Button>
             </Card.Content>
           </Card>
@@ -243,8 +242,8 @@ export default function SecuritySettingsScreen() {
           isVisible
           onDismiss={() => setSheet(null)}
           email={email}
-          title="Régénérer ma clé de récupération"
-          message="La clé que tu as notée cessera de fonctionner. La nouvelle s'affichera une seule fois."
+          title={t("settings.security.regenerateRecoveryTitle")}
+          message={t("settings.security.regenerateRecoveryMessage")}
           onConfirmed={async () => {
             // The key itself is shown by the app-level notice the vault store
             // raises, which outlives this sheet.
@@ -260,7 +259,7 @@ export default function SecuritySettingsScreen() {
           onDismiss={() => setSheet(null)}
           onVerified={() => {
             setSheet(null);
-            setNotice("Cette clé est valide pour ton compte.");
+            setNotice(t("settings.security.verifyRecoveryValid"));
           }}
         />
       )}
@@ -301,18 +300,26 @@ export default function SecuritySettingsScreen() {
 
         <Dialog
           visible={isDeletingAccount}
-          onDismiss={() => setDeletingAccount(false)}
+          onDismiss={() => {
+            if (!removeAccount.isPending) setDeletingAccount(false);
+          }}
         >
           <Dialog.Icon icon="alert" />
-          <Dialog.Title>Supprimer mon compte</Dialog.Title>
+          <Dialog.Title>
+            {t("settings.security.deleteAccountTitle")}
+          </Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              Ton compte sera définitivement supprimé après un délai de 3 jours.
-              Cette action est irréversible.
+              {t("settings.security.deleteAccountDialogDescription")}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setDeletingAccount(false)}>Annuler</Button>
+            <Button
+              onPress={() => setDeletingAccount(false)}
+              disabled={removeAccount.isPending}
+            >
+              {t("common.cancel")}
+            </Button>
             <Button
               textColor={danger.destructive}
               disabled={removeAccount.isPending}
@@ -324,12 +331,12 @@ export default function SecuritySettingsScreen() {
                   onSuccess: () => void signOut(),
                   onError: () => {
                     setDeletingAccount(false);
-                    setNotice("La suppression du compte a échoué.");
+                    setNotice(t("settings.security.deleteAccountError"));
                   },
                 })
               }
             >
-              Supprimer
+              {t("common.delete")}
             </Button>
           </Dialog.Actions>
         </Dialog>

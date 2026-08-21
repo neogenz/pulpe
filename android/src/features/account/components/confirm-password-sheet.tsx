@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Button, TextInput } from "react-native-paper";
 
+import { isInvalidCredentials } from "@/core/auth/auth-error";
 import { verifyPassword } from "@/core/auth/supabase";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Sheet } from "@/core/ui/sheet";
 import { FieldError } from "@/core/ui/field-error";
 
@@ -26,6 +28,7 @@ export function ConfirmPasswordSheet({
   /** Runs once the password checks out; its failure is shown here. */
   onConfirmed: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
@@ -39,11 +42,12 @@ export function ConfirmPasswordSheet({
       await verifyPassword(email, password);
       await onConfirmed();
     } catch (error) {
-      const raw = error instanceof Error ? error.message : "";
       setErrorMessage(
-        raw.toLowerCase().includes("invalid login credentials")
-          ? "Mot de passe incorrect."
-          : raw || "L'opération a échoué. Réessaie.",
+        t(
+          isInvalidCredentials(error)
+            ? "settings.security.confirmPasswordIncorrect"
+            : "settings.security.recoveryError",
+        ),
       );
     } finally {
       setSubmitting(false);
@@ -69,17 +73,17 @@ export function ConfirmPasswordSheet({
             disabled={password.length === 0 || isSubmitting}
             loading={isSubmitting}
           >
-            Confirmer
+            {t("settings.security.confirmPasswordAction")}
           </Button>
           <Button mode="text" onPress={onDismiss} disabled={isSubmitting}>
-            Annuler
+            {t("common.cancel")}
           </Button>
         </>
       }
     >
       <TextInput
         mode="outlined"
-        label="Ton mot de passe"
+        label={t("common.password")}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
