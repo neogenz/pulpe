@@ -3,11 +3,21 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [
-    ["pulpe-frontend", "pulpe-landing", "backend-nest", "pulpe-shared"]
+    [
+      "pulpe-frontend",
+      "pulpe-landing",
+      "backend-nest",
+      "pulpe-shared",
+      "pulpe-android"
+    ]
   ],
   "linked": [],
   "access": "restricted",
   "baseBranch": "preview",
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": [],
+  "privatePackages": {
+    "version": true,
+    "tag": false
+  }
 }

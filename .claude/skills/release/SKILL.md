@@ -21,7 +21,7 @@ Analyze code changes to produce a unified product release with clear, user-focus
 - NEVER use `--force`, `--force-with-lease`, or `git push --tags`
 - If changes are ambiguous, ASK — do not guess
 - When uncertain about bump severity, prefer the HIGHER bump
-- After bumping, ALL of: root, frontend, landing, backend-nest, shared MUST show the same version. If they don't, stop.
+- After bumping, ALL of: root, frontend, landing, backend-nest, shared, Android package and Android app MUST show the same version. If they don't, stop.
 - Use the interaction, file-editing, GitHub, and Railway capabilities available in the current agent. Never assume a Claude Code or Codex-specific tool name.
 
 ## Input
@@ -109,6 +109,7 @@ Map files to packages:
 | `shared/**`       | Shared   |
 | `landing/**`      | Landing  |
 | `ios/**`          | iOS      |
+| `android/**`      | Android  |
 
 Extract relevant commits per package:
 
@@ -118,6 +119,7 @@ git log $BASE_REF..HEAD --oneline -- backend-nest/
 git log $BASE_REF..HEAD --oneline -- shared/
 git log $BASE_REF..HEAD --oneline -- landing/
 git log $BASE_REF..HEAD --oneline -- ios/
+git log $BASE_REF..HEAD --oneline -- android/
 ```
 
 Only `feat:`, `fix:`, `feat!:`, `BREAKING CHANGE:`, `perf:` trigger version bumps. See [references/semver-conventions.md](references/semver-conventions.md).
@@ -300,7 +302,7 @@ Each entry: `{ "title": "Bold title from Step 5", "description": "Description fr
 
 - `frontend/**`, `backend-nest/**`, `shared/**`, `landing/**` (with bumping commits) → `"web"`
 - `ios/**` (with bumping commits) → `"ios"`
-- `android/**` (with bumping commits) → `"android"` (future)
+- `android/**` (with bumping commits) → `"android"`
 
 Deduplicate: if both frontend and backend contributed bumping commits, `"web"` appears once.
 Empty sections stay as `[]` (never omit the key).
@@ -412,20 +414,20 @@ Execute ONLY after user confirms.
 
 1. **Bump root product version** in root `package.json` — use the available file-editing tool to replace the `"version"` field with the target version computed in Step 4.
 
-2. **Bump all JS/TS sub-packages via Changesets fixed mode** — this is NOT optional and NOT conditional on which packages were touched. Fixed mode keeps all four npm packages in lockstep with root. See [references/jsts-release.md](references/jsts-release.md) for the exact procedure (create one changeset file at the right bump level, then `pnpm changeset version`).
+2. **Bump all JS/TS sub-packages via Changesets fixed mode** — this is NOT optional and NOT conditional on which packages were touched. Fixed mode keeps all five npm packages in lockstep with root, including the private Android workspace. See [references/jsts-release.md](references/jsts-release.md) for the exact procedure (create one changeset file at the right bump level, then `pnpm changeset version`).
 
-3. **Sanity check the lockstep** — after Step 6.2, all five versions MUST match:
+3. **Sync the Expo manifest and sanity-check the lockstep** — after Step 6.2, copy the approved target version into `android/app.json`. All seven product-version fields MUST then match:
 
    ```bash
-   grep -H '"version"' package.json frontend/package.json landing/package.json backend-nest/package.json shared/package.json
+   grep -H '"version"' package.json frontend/package.json landing/package.json backend-nest/package.json shared/package.json android/package.json android/app.json
    ```
 
    **If they don't match, recover before continuing:**
-   - **Diagnosis A — bump level mismatch.** Most common. The root was bumped to (say) `0.34.0` but the changeset said `patch`, so sub-packages went to `0.33.2`. Fix: re-edit root `package.json` to match what fixed mode produced (the four sub-package versions are the ground truth here, since they reflect the actual bump level in the changeset file). OR fix the changeset bump level and re-run `pnpm changeset version` — but only if the changeset hasn't been consumed yet.
+   - **Diagnosis A — bump level mismatch.** Most common. The root was bumped to (say) `0.34.0` but the changeset said `patch`, so sub-packages went to `0.33.2`. Fix: re-edit root `package.json` to match what fixed mode produced (the five sub-package versions are the ground truth here, since they reflect the actual bump level in the changeset file). OR fix the changeset bump level and re-run `pnpm changeset version` — but only if the changeset hasn't been consumed yet.
    - **Diagnosis B — `.changeset/config.json` lost its `fixed` group.** Rare, but possible if someone reset the file. Symptom: only ONE sub-package bumped. Fix: restore the `fixed` array (see `references/jsts-release.md`), reset all sub-package versions to match root manually, re-run.
    - **Diagnosis C — packages were already drifted before the run.** Symptom: bump amounts look right but starting points were different. Fix: align all sub-packages to root's pre-bump version, then re-run from Step 6.1.
 
-   In all three cases, end with a fresh sanity check and only continue when all five versions match.
+   In all three cases, end with a fresh sanity check and only continue when all seven version fields match.
 
 4. **iOS** (only if `ios/**` files changed): Apply the decision approved in Step 5 using [references/ios-release.md](references/ios-release.md). After the command, verify the resulting `MARKETING_VERSION` equals `IOS_MARKETING_VERSION` when that value is set. iOS is intentionally NOT in the Changesets fixed group — Changesets only sees npm packages.
 
@@ -473,16 +475,17 @@ Fix issues before proceeding.
 
 ### Step 8: Stage release files
 
-Stage only release files. Under fixed mode, **all four sub-packages always change** even when only one was named in the changeset, so always stage all of them:
+Stage only release files. Under fixed mode, **all five sub-packages always change** even when only one was named in the changeset, so always stage all of them:
 
 ```bash
-# Always: root + all four sub-package versions and changelogs (fixed mode bumped them all)
+# Always: root + all five sub-package versions and changelogs (fixed mode bumped them all)
 git add \
   package.json \
   frontend/package.json frontend/CHANGELOG.md \
   landing/package.json landing/CHANGELOG.md \
   backend-nest/package.json backend-nest/CHANGELOG.md \
   shared/package.json shared/CHANGELOG.md \
+  android/package.json android/app.json android/CHANGELOG.md \
   .changeset/
 
 # Only if Step 5b was NOT skipped (i.e. SKIP_WHATS_NEW=false):
