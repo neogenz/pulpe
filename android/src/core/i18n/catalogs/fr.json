@@ -67,6 +67,64 @@
       "title": "Nouveau budget",
       "viewTemplates": "Voir mes modèles"
     },
+    "detail": {
+      "activityLongPressHint": "Appui long pour effacer ou modifier",
+      "allChecked": "Tout est pointé pour ce mois.",
+      "amountSuffix": {
+        "overrun": "de dépassement",
+        "planned": "prévu",
+        "plannedTotal": "/ %{amount} prévu",
+        "remaining": "restant sur %{amount}"
+      },
+      "deletedGoal": "Cet objectif a été effacé. Le revenu reste dans ton budget.",
+      "editActivity": "Modifier %{name}",
+      "filters": {
+        "all": "Tout",
+        "checked": "Pointé",
+        "expense": "Dépenses",
+        "income": "Revenus",
+        "saving": "Épargne",
+        "unchecked": "À pointer"
+      },
+      "gesturesMessage": "Touche le rond pour pointer · Touche la ligne pour la modifier",
+      "gesturesTitle": "Deux gestes par ligne",
+      "goal": "Objectif : %{name}",
+      "goalShort": "Objectif",
+      "hero": {
+        "accessibility": "%{state} %{amount}, %{percent} % utilisé",
+        "available": "Disponible",
+        "deficit": "Déficit",
+        "distribution": "Répartition du mois",
+        "expenses": "dépenses",
+        "income": "revenus",
+        "previousMonth": "le mois précédent",
+        "rollover": "Report du mois précédent inclus",
+        "rolloverNamed": "Report inclus · %{month}",
+        "savings": "épargne",
+        "viewMonth": "Voir %{month}"
+      },
+      "loadErrorHint": "Vérifie ta connexion, puis réessaie.",
+      "loadErrorTitle": "On n'a pas pu charger ce budget",
+      "monthSelector": "Sélecteur de mois",
+      "noResults": "Rien ne correspond à ce filtre.",
+      "openForecast": "Ouvre le détail de la prévision",
+      "openGoal": "Ouvre l'objectif d'épargne",
+      "protectedMessage": "Quand tu dépenses moins que prévu, Pulpe garde le montant prévu pour protéger ton budget.",
+      "protectedTitle": "Budget protégé",
+      "search": "Rechercher",
+      "sections": {
+        "free": "Hors prévision"
+      },
+      "spread": "Lissé",
+      "status": {
+        "overBudget": "Budget dépassé",
+        "received": "Reçu",
+        "toReceive": "%{amount} à recevoir",
+        "toTransfer": "%{amount} à transférer",
+        "transferred": "Transféré"
+      },
+      "withdrawnFrom": "Puisé dans : %{name}"
+    },
     "list": {
       "adjustment": "Ajustement",
       "create": "Créer mon budget",

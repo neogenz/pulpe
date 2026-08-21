@@ -37,6 +37,14 @@ export type AmountAccent =
   | "warning"
   | "neutral";
 
+export type AmountSuffix =
+  | { kind: "overrun" | "planned" }
+  | { kind: "remaining" | "plannedTotal"; amount: number };
+
+export type StatusLabel =
+  | { kind: "received" | "transferred" | "overBudget" }
+  | { kind: "toReceive" | "toTransfer"; amount: number };
+
 export interface LineItem {
   line: BudgetLine;
   consumption: Consumption;
@@ -48,9 +56,9 @@ export interface LineItem {
    */
   displayAmount: number;
   /** The grey caption under it, absent when the amount speaks for itself. */
-  amountSuffix: string | null;
+  amountSuffix: AmountSuffix | null;
   /** The line under the name; empty once the row is pointed. */
-  statusLabel: string | null;
+  statusLabel: StatusLabel | null;
   accent: AmountAccent;
   isOverBudget: boolean;
   isChecked: boolean;
@@ -72,15 +80,12 @@ export interface KindCounts {
  * Sections, filtered and pre-shaped. A kind with nothing left to show is
  * dropped rather than rendered as an empty header.
  *
- * `formatAmount` is injected because the suffix quotes a currency the user
- * chose, and the selector has no business knowing which — it only has to
- * produce the same string the row would.
+ * Copy and amount formatting stay at the presentation boundary.
  */
 export function detailsSections(
   budgetLines: BudgetLine[],
   transactions: Transaction[],
   filters: DetailsFilters,
-  formatAmount: (value: number) => string,
 ): DetailsSection[] {
   const needle = amountSearchKey(filters.search);
 
@@ -95,7 +100,7 @@ export function detailsSections(
         .filter((line) =>
           matchesSearch(line, transactions, filters.search, needle),
         )
-        .map((line) => toLineItem(line, transactions, formatAmount)),
+        .map((line) => toLineItem(line, transactions)),
     }))
     .filter((section) => section.items.length > 0);
 }
@@ -154,11 +159,7 @@ export function budgetUsagePercentage(metrics: {
   return (metrics.totalExpenses / metrics.available) * PERCENT;
 }
 
-function toLineItem(
-  line: BudgetLine,
-  transactions: Transaction[],
-  formatAmount: (value: number) => string,
-): LineItem {
+function toLineItem(line: BudgetLine, transactions: Transaction[]): LineItem {
   const consumption = BudgetFormulas.calculateConsumption(line, transactions);
   const isOverBudget = line.kind === "expense" && consumption.available < 0;
 
@@ -166,8 +167,8 @@ function toLineItem(
     line,
     consumption,
     displayAmount: displayAmount(line, consumption, isOverBudget),
-    amountSuffix: amountSuffix(line, consumption, isOverBudget, formatAmount),
-    statusLabel: statusLabel(line, consumption, isOverBudget, formatAmount),
+    amountSuffix: amountSuffix(line, consumption, isOverBudget),
+    statusLabel: statusLabel(line, consumption, isOverBudget),
     accent: amountAccent(line, consumption, isOverBudget),
     isOverBudget,
     isChecked: line.checkedAt !== null,
@@ -190,16 +191,15 @@ function amountSuffix(
   line: BudgetLine,
   consumption: Consumption,
   isOverBudget: boolean,
-  formatAmount: (value: number) => string,
-): string | null {
+): AmountSuffix | null {
   if (line.kind === "expense") {
-    if (isOverBudget) return "de dépassement";
-    if (consumption.allocated === 0) return "prévu";
+    if (isOverBudget) return { kind: "overrun" };
+    if (consumption.allocated === 0) return { kind: "planned" };
     if (consumption.allocated === line.amount) return null;
-    return `restant sur ${formatAmount(line.amount)}`;
+    return { kind: "remaining", amount: line.amount };
   }
   if (consumption.allocated > 0 && consumption.allocated < line.amount) {
-    return `/ ${formatAmount(line.amount)} prévu`;
+    return { kind: "plannedTotal", amount: line.amount };
   }
   return null;
 }
@@ -213,24 +213,23 @@ function statusLabel(
   line: BudgetLine,
   consumption: Consumption,
   isOverBudget: boolean,
-  formatAmount: (value: number) => string,
-): string | null {
+): StatusLabel | null {
   if (line.checkedAt !== null) return null;
 
   const hasReal = consumption.allocated > 0;
   if (line.kind === "income") {
     if (!hasReal) return null;
     return consumption.allocated >= line.amount
-      ? "Reçu"
-      : `${formatAmount(consumption.available)} à recevoir`;
+      ? { kind: "received" }
+      : { kind: "toReceive", amount: consumption.available };
   }
   if (line.kind === "saving") {
     if (!hasReal) return null;
     return consumption.allocated >= line.amount
-      ? "Transféré"
-      : `${formatAmount(consumption.available)} à transférer`;
+      ? { kind: "transferred" }
+      : { kind: "toTransfer", amount: consumption.available };
   }
-  return isOverBudget ? "Budget dépassé" : null;
+  return isOverBudget ? { kind: "overBudget" } : null;
 }
 
 /**

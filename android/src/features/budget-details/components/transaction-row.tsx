@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
 import { Amount } from "@/core/ui/amount";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticCommit } from "@/core/ui/haptics";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCurrency } from "@/core/ui/amount-format";
@@ -44,6 +45,7 @@ export function TransactionRow({
   onLongPress,
 }: TransactionRowProps) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const ripple = useRipple();
   const financial = useFinancialColors();
   const isChecked = transaction.checkedAt !== null;
@@ -77,14 +79,16 @@ export function TransactionRow({
       disabled={onPress === undefined}
       accessibilityRole={onPress === undefined ? undefined : "button"}
       accessibilityLabel={
-        onPress === undefined ? undefined : `Modifier ${transaction.name}`
+        onPress === undefined
+          ? undefined
+          : t("budgets.detail.editActivity", { name: transaction.name })
       }
       // TalkBack has no long press, so the menu's contents have to be
       // reachable some other way — the sheet the tap opens still holds them.
       accessibilityHint={
         onLongPress === undefined
           ? undefined
-          : "Appui long pour supprimer ou modifier"
+          : t("budgets.detail.activityLongPressHint")
       }
     >
       <PointCircle
@@ -108,8 +112,8 @@ export function TransactionRow({
           style={{ color: theme.colors.onSurfaceVariant }}
         >
           {tagSummary === null
-            ? formatDayMonth(new Date(transaction.transactionDate))
-            : `${formatDayMonth(new Date(transaction.transactionDate))} · ${tagSummary}`}
+            ? formatDayMonth(new Date(transaction.transactionDate), locale)
+            : `${formatDayMonth(new Date(transaction.transactionDate), locale)} · ${tagSummary}`}
         </Text>
       </View>
 

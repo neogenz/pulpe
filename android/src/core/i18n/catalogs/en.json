@@ -67,6 +67,64 @@
       "title": "New budget",
       "viewTemplates": "View my templates"
     },
+    "detail": {
+      "activityLongPressHint": "Long press to delete or edit",
+      "allChecked": "Everything is checked off for this month.",
+      "amountSuffix": {
+        "overrun": "over budget",
+        "planned": "planned",
+        "plannedTotal": "/ %{amount} planned",
+        "remaining": "left from %{amount}"
+      },
+      "deletedGoal": "This goal was deleted. The income remains in your budget.",
+      "editActivity": "Edit %{name}",
+      "filters": {
+        "all": "All",
+        "checked": "Checked off",
+        "expense": "Expenses",
+        "income": "Income",
+        "saving": "Savings",
+        "unchecked": "To check off"
+      },
+      "gesturesMessage": "Tap the circle to check off · Tap the row to edit",
+      "gesturesTitle": "Two gestures per row",
+      "goal": "Goal: %{name}",
+      "goalShort": "Goal",
+      "hero": {
+        "accessibility": "%{state} %{amount}, %{percent}% used",
+        "available": "Available",
+        "deficit": "Deficit",
+        "distribution": "Monthly breakdown",
+        "expenses": "expenses",
+        "income": "income",
+        "previousMonth": "the previous month",
+        "rollover": "Previous month's rollover included",
+        "rolloverNamed": "Rollover included · %{month}",
+        "savings": "savings",
+        "viewMonth": "View %{month}"
+      },
+      "loadErrorHint": "Check your connection, then try again.",
+      "loadErrorTitle": "We couldn't load this budget",
+      "monthSelector": "Month selector",
+      "noResults": "Nothing matches this filter.",
+      "openForecast": "Open forecast details",
+      "openGoal": "Open savings goal",
+      "protectedMessage": "When you spend less than planned, Pulpe keeps the planned amount to protect your budget.",
+      "protectedTitle": "Protected budget",
+      "search": "Search",
+      "sections": {
+        "free": "Outside forecasts"
+      },
+      "spread": "Spread",
+      "status": {
+        "overBudget": "Over budget",
+        "received": "Received",
+        "toReceive": "%{amount} to receive",
+        "toTransfer": "%{amount} to transfer",
+        "transferred": "Transferred"
+      },
+      "withdrawnFrom": "Withdrawn from: %{name}"
+    },
     "list": {
       "adjustment": "Adjustment",
       "create": "Create my budget",

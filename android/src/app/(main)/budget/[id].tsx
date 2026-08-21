@@ -29,7 +29,7 @@ import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { armTip, dismissTip, useIsTipArmed } from "@/core/tips/tips-store";
 import { Tooltip } from "@/core/tips/tooltip";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
-import { formatCurrency } from "@/core/ui/amount-format";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import {
@@ -75,19 +75,13 @@ import { buildCurrentMonthViewModel } from "@/features/current-month/current-mon
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 
-const SECTION_TITLES = {
-  income: "Revenus",
-  saving: "Épargne",
-  expense: "Dépenses",
-} as const;
-
 /**
  * The month flattened into rows, because a budget grows without bound in two
  * directions at once — envelopes and loose operations — and mounting all of
  * both to show a screenful is what makes an old account open slowly.
  */
 type DetailRow =
-  | { key: string; kind: "header"; title: string }
+  | { key: string; kind: "header"; titleKey: string }
   | { key: string; kind: "line"; item: LineItem }
   | { key: string; kind: "transaction"; transaction: Transaction };
 
@@ -99,7 +93,7 @@ function detailRows(
     {
       key: `header-${section.kind}`,
       kind: "header" as const,
-      title: SECTION_TITLES[section.kind],
+      titleKey: `budgets.detail.filters.${section.kind}`,
     },
     ...section.items.map((item) => ({
       key: item.line.id,
@@ -109,7 +103,11 @@ function detailRows(
   ]);
 
   if (free.length > 0) {
-    rows.push({ key: "header-free", kind: "header", title: "Hors prévision" });
+    rows.push({
+      key: "header-free",
+      kind: "header",
+      titleKey: "budgets.detail.sections.free",
+    });
     for (const transaction of free) {
       rows.push({ key: transaction.id, kind: "transaction", transaction });
     }
@@ -138,6 +136,7 @@ export default function BudgetDetailScreen() {
   useAmountMasking();
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   // The search bar replaces the app bar, and unlike the app bar it does not
   // inset itself against the status bar.
   const insets = useSafeAreaInsets();
@@ -179,11 +178,6 @@ export default function BudgetDetailScreen() {
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
-  const formatAmount = useMemo(
-    () => (value: number) => formatCurrency(value, currency),
-    [currency],
-  );
-
   const sections = useMemo(
     () =>
       details.data === undefined
@@ -192,9 +186,8 @@ export default function BudgetDetailScreen() {
             details.data.budgetLines,
             details.data.transactions,
             filters,
-            formatAmount,
           ),
-    [details.data, filters, formatAmount],
+    [details.data, filters],
   );
   const free = useMemo(
     () =>
@@ -229,18 +222,22 @@ export default function BudgetDetailScreen() {
         edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator accessibilityLabel="Chargement" />
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
       </SafeAreaView>
     );
   }
 
-  if (details.isError || details.data === undefined) {
+  if (details.isError || details.data === undefined || settings.isError) {
     return (
       <PlaceholderScreen
         icon="cloud-off-outline"
-        title="On n'a pas pu charger ce budget"
-        hint="Vérifie ta connexion, puis réessaie."
-        action={{ label: "Réessayer", onPress: () => void details.refetch() }}
+        title={t("budgets.detail.loadErrorTitle")}
+        hint={t("budgets.detail.loadErrorHint")}
+        action={{
+          label: t("common.retry"),
+          onPress: () =>
+            void Promise.all([details.refetch(), settings.refetch()]),
+        }}
       />
     );
   }
@@ -254,6 +251,7 @@ export default function BudgetDetailScreen() {
   const previousMonthName = namePreviousMonth(
     budget.previousBudgetId ?? null,
     budgets.data ?? [],
+    locale,
   );
   const rows = detailRows(sections, free);
   const isTight = shouldOfferWithdrawal({
@@ -284,7 +282,7 @@ export default function BudgetDetailScreen() {
           <Searchbar
             mode="view"
             autoFocus
-            placeholder="Rechercher"
+            placeholder={t("budgets.detail.search")}
             value={filters.search}
             onChangeText={(search) => setFilters({ ...filters, search })}
             icon="arrow-left"
@@ -306,13 +304,13 @@ export default function BudgetDetailScreen() {
             title={
               months.length > 1
                 ? `${budget.year}`
-                : formatMonthName(budget.month, budget.year)
+                : formatMonthName(budget.month, budget.year, locale)
             }
             titleStyle={styles.title}
           />
           <Appbar.Action
             icon="magnify"
-            accessibilityLabel="Rechercher"
+            accessibilityLabel={t("budgets.detail.search")}
             onPress={() => setSearchVisible(true)}
           />
         </ScreenAppBar>
@@ -350,7 +348,7 @@ export default function BudgetDetailScreen() {
           if (row.kind === "header") {
             return (
               <Text variant="titleSmall" style={styles.sectionTitle}>
-                {row.title}
+                {t(row.titleKey)}
               </Text>
             );
           }
@@ -437,8 +435,8 @@ export default function BudgetDetailScreen() {
             ]}
           >
             {filters.checked === "unchecked" && filters.search === ""
-              ? "Tout est pointé pour ce mois."
-              : "Rien ne correspond à ce filtre."}
+              ? t("budgets.detail.allChecked")
+              : t("budgets.detail.noResults")}
           </Text>
         }
         ListHeaderComponent={
@@ -469,8 +467,8 @@ export default function BudgetDetailScreen() {
                 <Tooltip
                   id="pessimistic-check"
                   icon="shield-check-outline"
-                  title="Budget protégé"
-                  message="Quand tu dépenses moins que prévu, Pulpe garde le montant prévu pour protéger ton budget."
+                  title={t("budgets.detail.protectedTitle")}
+                  message={t("budgets.detail.protectedMessage")}
                 />
               </View>
             )}
@@ -497,8 +495,8 @@ export default function BudgetDetailScreen() {
               <Tooltip
                 id="gestures"
                 icon="gesture-tap"
-                title="Deux gestes par ligne"
-                message="Touche le rond pour pointer · Touche la ligne pour la modifier"
+                title={t("budgets.detail.gesturesTitle")}
+                message={t("budgets.detail.gesturesMessage")}
               />
             </View>
           </View>
@@ -525,10 +523,11 @@ export default function BudgetDetailScreen() {
 function namePreviousMonth(
   previousBudgetId: string | null,
   budgets: { id: string; month?: number; year?: number }[],
+  locale: string,
 ): string | null {
   const previous = budgets.find((budget) => budget.id === previousBudgetId);
   if (previous?.month === undefined || previous.year === undefined) return null;
-  return formatMonthName(previous.month, previous.year).toLocaleLowerCase();
+  return formatMonthName(previous.month, previous.year, locale);
 }
 
 const styles = StyleSheet.create({

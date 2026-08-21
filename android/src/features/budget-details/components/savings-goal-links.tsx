@@ -4,6 +4,7 @@ import { StyleSheet, View } from "react-native";
 import { Icon, Text, useTheme } from "react-native-paper";
 
 import { Card } from "@/core/ui/card";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 import { useSavingsGoals } from "@/features/savings-goals/goals-queries";
@@ -23,6 +24,7 @@ export function SavingsGoalLinks({
   line: BudgetLine;
   onNavigate: () => void;
 }) {
+  const { t } = useTranslation();
   const goals = useSavingsGoals();
   const linkedGoal =
     line.kind === "saving" && line.savingsGoalId !== null
@@ -41,8 +43,8 @@ export function SavingsGoalLinks({
       {linkedGoal !== undefined && (
         <LinkRow
           icon="target"
-          label={`Objectif : ${linkedGoal.name}`}
-          hint="Ouvre l'objectif d'épargne"
+          label={t("budgets.detail.goal", { name: linkedGoal.name })}
+          hint={t("budgets.detail.openGoal")}
           onPress={() => open(linkedGoal.id)}
         />
       )}
@@ -51,8 +53,10 @@ export function SavingsGoalLinks({
         (line.sourceSavingsGoalId != null ? (
           <LinkRow
             icon="arrow-down-circle-outline"
-            label={`Puisé dans : ${line.sourceSavingsGoalName}`}
-            hint="Ouvre l'objectif d'épargne"
+            label={t("budgets.detail.withdrawnFrom", {
+              name: line.sourceSavingsGoalName,
+            })}
+            hint={t("budgets.detail.openGoal")}
             onPress={() => open(line.sourceSavingsGoalId as string)}
           />
         ) : (
@@ -60,8 +64,10 @@ export function SavingsGoalLinks({
           // that cannot open.
           <LinkRow
             icon="link-off"
-            label={`Puisé dans : ${line.sourceSavingsGoalName}`}
-            detail="Cet objectif a été supprimé. Le revenu reste dans ton budget."
+            label={t("budgets.detail.withdrawnFrom", {
+              name: line.sourceSavingsGoalName,
+            })}
+            detail={t("budgets.detail.deletedGoal")}
           />
         ))}
     </>

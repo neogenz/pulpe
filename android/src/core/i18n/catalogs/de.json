@@ -67,6 +67,64 @@
       "title": "Neues Budget",
       "viewTemplates": "Meine Vorlagen ansehen"
     },
+    "detail": {
+      "activityLongPressHint": "Lange drücken, um zu löschen oder zu bearbeiten",
+      "allChecked": "Für diesen Monat ist alles abgehakt.",
+      "amountSuffix": {
+        "overrun": "über dem Budget",
+        "planned": "geplant",
+        "plannedTotal": "/ %{amount} geplant",
+        "remaining": "übrig von %{amount}"
+      },
+      "deletedGoal": "Dieses Ziel wurde gelöscht. Die Einnahme bleibt in deinem Budget.",
+      "editActivity": "%{name} bearbeiten",
+      "filters": {
+        "all": "Alle",
+        "checked": "Abgehakt",
+        "expense": "Ausgaben",
+        "income": "Einnahmen",
+        "saving": "Sparen",
+        "unchecked": "Abzuhaken"
+      },
+      "gesturesMessage": "Tippe zum Abhaken auf den Kreis · Tippe zum Bearbeiten auf die Zeile",
+      "gesturesTitle": "Zwei Gesten pro Zeile",
+      "goal": "Ziel: %{name}",
+      "goalShort": "Ziel",
+      "hero": {
+        "accessibility": "%{state} %{amount}, %{percent} % verwendet",
+        "available": "Verfügbar",
+        "deficit": "Defizit",
+        "distribution": "Monatsaufteilung",
+        "expenses": "Ausgaben",
+        "income": "Einnahmen",
+        "previousMonth": "den Vormonat",
+        "rollover": "Übertrag aus dem Vormonat enthalten",
+        "rolloverNamed": "Übertrag enthalten · %{month}",
+        "savings": "Sparen",
+        "viewMonth": "%{month} anzeigen"
+      },
+      "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",
+      "loadErrorTitle": "Dieses Budget konnte nicht geladen werden",
+      "monthSelector": "Monatsauswahl",
+      "noResults": "Nichts entspricht diesem Filter.",
+      "openForecast": "Details der Planung öffnen",
+      "openGoal": "Sparziel öffnen",
+      "protectedMessage": "Wenn du weniger als geplant ausgibst, behält Pulpe den geplanten Betrag bei, um dein Budget zu schützen.",
+      "protectedTitle": "Geschütztes Budget",
+      "search": "Suchen",
+      "sections": {
+        "free": "Ohne Planung"
+      },
+      "spread": "Verteilt",
+      "status": {
+        "overBudget": "Budget überschritten",
+        "received": "Erhalten",
+        "toReceive": "%{amount} noch zu erhalten",
+        "toTransfer": "%{amount} noch zu übertragen",
+        "transferred": "Übertragen"
+      },
+      "withdrawnFrom": "Entnommen aus: %{name}"
+    },
     "list": {
       "adjustment": "Anpassung",
       "create": "Budget erstellen",

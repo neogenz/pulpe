@@ -8,7 +8,6 @@ import {
   type DetailsFilters,
 } from "./budget-details-selectors";
 
-const format = (value: number) => `${value.toFixed(2)} CHF`;
 const filters = (overrides: Partial<DetailsFilters> = {}): DetailsFilters => ({
   ...DEFAULT_FILTERS,
   checked: "all",
@@ -59,7 +58,7 @@ function transaction(
 }
 
 function firstItem(lines: BudgetLine[], transactions: Transaction[]) {
-  const [section] = detailsSections(lines, transactions, filters(), format);
+  const [section] = detailsSections(lines, transactions, filters());
   return section?.items[0];
 }
 
@@ -73,7 +72,6 @@ describe("detailsSections", () => {
       ],
       [],
       filters(),
-      format,
     );
 
     expect(sections.map((section) => section.kind)).toEqual([
@@ -88,7 +86,6 @@ describe("detailsSections", () => {
       [line("a", "expense", 100), line("b", "income", 200)],
       [],
       filters({ kind: "income" }),
-      format,
     );
 
     expect(sections).toHaveLength(1);
@@ -103,7 +100,6 @@ describe("detailsSections", () => {
       ],
       [],
       filters({ checked: "unchecked" }),
-      format,
     );
 
     expect(sections[0]?.items.map((item) => item.line.id)).toEqual(["todo"]);
@@ -122,7 +118,6 @@ describe("detailsSections", () => {
       lines,
       transactions,
       filters({ search: "migros" }),
-      format,
     );
 
     expect(sections[0]?.items.map((item) => item.line.id)).toEqual(["courses"]);
@@ -133,7 +128,7 @@ describe("detailsSections", () => {
     const lines = [line("loyer", "expense", 1650)];
 
     for (const search of ["1650", "1’650", "1 650", "1650,00"]) {
-      const sections = detailsSections(lines, [], filters({ search }), format);
+      const sections = detailsSections(lines, [], filters({ search }));
       expect(sections[0]?.items).toHaveLength(1);
     }
   });
@@ -143,7 +138,6 @@ describe("detailsSections", () => {
       [line("loyer", "expense", 1650)],
       [],
       filters({ search: "  " }),
-      format,
     );
 
     expect(sections).toEqual([]);
@@ -155,7 +149,7 @@ describe("line amounts", () => {
     const item = firstItem([line("loyer", "expense", 1650)], []);
 
     expect(item?.displayAmount).toBe(1650);
-    expect(item?.amountSuffix).toBe("prévu");
+    expect(item?.amountSuffix).toEqual({ kind: "planned" });
   });
 
   it("shows a partly spent expense as what is left", () => {
@@ -165,7 +159,7 @@ describe("line amounts", () => {
     );
 
     expect(item?.displayAmount).toBe(188);
-    expect(item?.amountSuffix).toBe("restant sur 600.00 CHF");
+    expect(item?.amountSuffix).toEqual({ kind: "remaining", amount: 600 });
     expect(item?.accent).toBe("warning");
   });
 
@@ -176,8 +170,8 @@ describe("line amounts", () => {
     );
 
     expect(item?.displayAmount).toBe(100);
-    expect(item?.amountSuffix).toBe("de dépassement");
-    expect(item?.statusLabel).toBe("Budget dépassé");
+    expect(item?.amountSuffix).toEqual({ kind: "overrun" });
+    expect(item?.statusLabel).toEqual({ kind: "overBudget" });
     expect(item?.accent).toBe("overBudget");
   });
 
@@ -188,8 +182,8 @@ describe("line amounts", () => {
     );
 
     expect(item?.displayAmount).toBe(3000);
-    expect(item?.amountSuffix).toBe("/ 4500.00 CHF prévu");
-    expect(item?.statusLabel).toBe("1500.00 CHF à recevoir");
+    expect(item?.amountSuffix).toEqual({ kind: "plannedTotal", amount: 4500 });
+    expect(item?.statusLabel).toEqual({ kind: "toReceive", amount: 1500 });
   });
 
   it("says nothing under a pointed line", () => {
@@ -213,7 +207,7 @@ describe("line amounts", () => {
     );
 
     expect(item?.accent).toBe("income");
-    expect(item?.statusLabel).toBe("Reçu");
+    expect(item?.statusLabel).toEqual({ kind: "received" });
   });
 });
 

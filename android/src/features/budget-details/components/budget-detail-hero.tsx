@@ -10,7 +10,7 @@ import {
   formatSignedCurrency,
 } from "@/core/ui/amount-format";
 import { Amount } from "@/core/ui/amount";
-import { ofMonth } from "@/core/ui/date-format";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Eyebrow } from "@/core/ui/eyebrow";
 import { FadingRail } from "@/core/ui/fading-rail";
 import { Pill } from "@/core/ui/pill";
@@ -58,6 +58,7 @@ export function BudgetDetailHero({
   onPressRollover,
 }: BudgetDetailHeroProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const ripple = useRipple();
   const financial = useFinancialColors();
   const isDeficit = metrics.remaining < 0;
@@ -74,10 +75,16 @@ export function BudgetDetailHero({
         android_ripple={ripple}
         style={styles.summary}
         accessibilityRole="button"
-        accessibilityLabel={`${isDeficit ? "Déficit" : "Disponible"} ${formatCurrency(Math.abs(metrics.remaining), currency)}, ${Math.round(usagePercentage)} % utilisé`}
+        accessibilityLabel={t("budgets.detail.hero.accessibility", {
+          state: t(
+            `budgets.detail.hero.${isDeficit ? "deficit" : "available"}`,
+          ),
+          amount: formatCurrency(Math.abs(metrics.remaining), currency),
+          percent: Math.round(usagePercentage),
+        })}
       >
         <Eyebrow>
-          {isDeficit ? "Déficit" : "Disponible"} ·{" "}
+          {t(`budgets.detail.hero.${isDeficit ? "deficit" : "available"}`)} ·{" "}
           {CURRENCY_METADATA[currency].symbol}
         </Eyebrow>
 
@@ -97,7 +104,11 @@ export function BudgetDetailHero({
             accessibilityLabel={
               onPressRollover === undefined
                 ? undefined
-                : `Voir ${previousMonthName ?? "le mois précédent"}`
+                : t("budgets.detail.hero.viewMonth", {
+                    month:
+                      previousMonthName ??
+                      t("budgets.detail.hero.previousMonth"),
+                  })
             }
           >
             <MaterialCommunityIcons
@@ -110,8 +121,10 @@ export function BudgetDetailHero({
               style={{ color: theme.colors.onSurfaceVariant }}
             >
               {previousMonthName === null
-                ? "Report du mois précédent inclus"
-                : `Report ${ofMonth(previousMonthName)} inclus`}
+                ? t("budgets.detail.hero.rollover")
+                : t("budgets.detail.hero.rolloverNamed", {
+                    month: previousMonthName,
+                  })}
             </Text>
             <Amount size="meta" tone="muted">
               {formatSignedCurrency(rollover, currency)}
@@ -141,23 +154,23 @@ export function BudgetDetailHero({
       {/* Outside the pressable, and running edge to edge: the three of them are
           a hair too wide for a phone, so they scroll — and a rail that owns a
           horizontal gesture must not also be a button. */}
-      <FadingRail accessibilityLabel="Répartition du mois">
+      <FadingRail accessibilityLabel={t("budgets.detail.hero.distribution")}>
         <Pill
           icon="arrow-down"
           amount={formatAmount(metrics.totalIncome, currency)}
-          label="revenus"
+          label={t("budgets.detail.hero.income")}
           tint={financial.income}
         />
         <Pill
           icon="piggy-bank-outline"
           amount={formatAmount(metrics.totalSavings, currency)}
-          label="épargne"
+          label={t("budgets.detail.hero.savings")}
           tint={financial.savings}
         />
         <Pill
           icon="arrow-up"
           amount={formatAmount(metrics.totalExpenses, currency)}
-          label="dépenses"
+          label={t("budgets.detail.hero.expenses")}
           // The darker amber, not the row one: expense ink on its own tint
           // measures 3.85:1, and `overBudget` is the value already tuned to
           // clear AA on a surface of this family (4.59:1).

@@ -21,4 +21,8 @@ describe("tabLabel", () => {
     expect(tabLabel(budget(1, 2026), 2026)).toBe("janvier");
     expect(tabLabel(budget(12, 2025), 2026)).toBe("décembre 2025");
   });
+
+  it("names months in the active locale", () => {
+    expect(tabLabel(budget(5, 2026), 2026, "de")).toBe("Mai");
+  });
 });

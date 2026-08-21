@@ -10,6 +10,7 @@ import {
 import { Text, useTheme } from "react-native-paper";
 
 import { formatMonthName } from "@/core/ui/date-format";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { useRipple } from "@/core/ui/ripple";
 import { SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 
@@ -50,6 +51,7 @@ export function MonthPager({
   onSelect,
 }: MonthPagerProps) {
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const ripple = useRipple();
   const rail = useRef<ScrollView>(null);
   const layouts = useRef(new Map<string, TabLayout>());
@@ -74,7 +76,7 @@ export function MonthPager({
   return (
     <View
       accessibilityRole="tablist"
-      accessibilityLabel="Sélecteur de mois"
+      accessibilityLabel={t("budgets.detail.monthSelector")}
       onLayout={(event: LayoutChangeEvent) =>
         setRailWidth(event.nativeEvent.layout.width)
       }
@@ -110,7 +112,7 @@ export function MonthPager({
                   },
                 ]}
               >
-                {tabLabel(month, anchorYear)}
+                {tabLabel(month, anchorYear, locale)}
               </Text>
               {/* Drawn on every tab, transparent on all but one: the row keeps
                   the same height whichever month is selected, so the list below
@@ -141,8 +143,9 @@ export function MonthPager({
 export function tabLabel(
   month: BudgetSparse,
   anchorYear: number | undefined,
+  locale = "fr",
 ): string {
-  const name = formatMonthName(month.month ?? 1, month.year ?? 0);
+  const name = formatMonthName(month.month ?? 1, month.year ?? 0, locale);
   return month.year === anchorYear ? name : `${name} ${month.year}`;
 }
 

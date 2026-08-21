@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
 
 import { hapticSelection } from "@/core/ui/haptics";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { useRipple } from "@/core/ui/ripple";
 import { EMPHASIS, ICON_SIZE, RADIUS, TOUCH_TARGET } from "@/core/ui/theme";
 
@@ -32,6 +33,7 @@ export function PointCircle({
   onToggle,
 }: PointCircleProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   // Borderless, so the acknowledgement is a disc around the ring rather than a
   // square lighting up inside a rounded row.
   const ripple = useRipple({ radius: TOUCH_TARGET / 2 });
@@ -49,7 +51,7 @@ export function PointCircle({
       style={[styles.target, isSyncing && styles.syncing]}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: isChecked }}
-      accessibilityLabel={`${isChecked ? "Pointé" : "À pointer"} · ${label}`}
+      accessibilityLabel={`${t(`budgets.detail.filters.${isChecked ? "checked" : "unchecked"}`)} · ${label}`}
     >
       <View
         style={[

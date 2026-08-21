@@ -3,6 +3,7 @@ import { SegmentedButtons } from "react-native-paper";
 
 import { FadingRail } from "@/core/ui/fading-rail";
 import { FilterChip } from "@/core/ui/filter-chip";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 
 import type {
@@ -17,16 +18,16 @@ const KIND_CHIPS: {
   label: string;
   count: keyof KindCounts;
 }[] = [
-  { key: "all", label: "Tout", count: "all" },
-  { key: "income", label: "Revenus", count: "income" },
-  { key: "saving", label: "Épargne", count: "saving" },
-  { key: "expense", label: "Dépenses", count: "expense" },
+  { key: "all", label: "all", count: "all" },
+  { key: "income", label: "income", count: "income" },
+  { key: "saving", label: "saving", count: "saving" },
+  { key: "expense", label: "expense", count: "expense" },
 ];
 
 const CHECKED_OPTIONS: { value: CheckedFilter; label: string }[] = [
-  { value: "unchecked", label: "À pointer" },
-  { value: "checked", label: "Pointé" },
-  { value: "all", label: "Tout" },
+  { value: "unchecked", label: "unchecked" },
+  { value: "checked", label: "checked" },
+  { value: "all", label: "all" },
 ];
 
 interface DetailsFilterBarProps {
@@ -50,6 +51,7 @@ export function DetailsFilterBar({
   counts,
   onChange,
 }: DetailsFilterBarProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.bar}>
       <View style={styles.gutter}>
@@ -58,7 +60,10 @@ export function DetailsFilterBar({
           onValueChange={(checked) =>
             onChange({ ...filters, checked: checked as CheckedFilter })
           }
-          buttons={CHECKED_OPTIONS}
+          buttons={CHECKED_OPTIONS.map((option) => ({
+            ...option,
+            label: t(`budgets.detail.filters.${option.label}`),
+          }))}
           density="small"
         />
       </View>
@@ -71,7 +76,7 @@ export function DetailsFilterBar({
             onPress={() => onChange({ ...filters, kind: chip.key })}
             compact
           >
-            {`${chip.label} ${counts[chip.count]}`}
+            {`${t(`budgets.detail.filters.${chip.label}`)} ${counts[chip.count]}`}
           </FilterChip>
         ))}
       </FadingRail>

@@ -53,6 +53,24 @@ export function BudgetLineRow({
     financial,
     theme.colors.onSurfaceVariant,
   );
+  const amountSuffix =
+    item.amountSuffix === null
+      ? null
+      : t(`budgets.detail.amountSuffix.${item.amountSuffix.kind}`, {
+          amount:
+            "amount" in item.amountSuffix
+              ? formatCurrency(item.amountSuffix.amount, currency)
+              : undefined,
+        });
+  const statusLabel =
+    item.statusLabel === null
+      ? null
+      : t(`budgets.detail.status.${item.statusLabel.kind}`, {
+          amount:
+            "amount" in item.statusLabel
+              ? formatCurrency(item.statusLabel.amount, currency)
+              : undefined,
+        });
 
   return (
     <Pressable
@@ -60,7 +78,7 @@ export function BudgetLineRow({
       android_ripple={ripple}
       style={[styles.row, { backgroundColor: theme.colors.surface }]}
       accessibilityRole="button"
-      accessibilityHint="Ouvre le détail de la prévision"
+      accessibilityHint={t("budgets.detail.openForecast")}
     >
       {item.line.sourceSavingsGoalId == null && (
         <PointCircle
@@ -93,7 +111,7 @@ export function BudgetLineRow({
                 variant="labelSmall"
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
-                Lissé
+                {t("budgets.detail.spread")}
               </Text>
             </>
           )}
@@ -108,7 +126,7 @@ export function BudgetLineRow({
                 variant="labelSmall"
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
-                Objectif
+                {t("budgets.detail.goalShort")}
               </Text>
             </>
           )}
@@ -128,7 +146,7 @@ export function BudgetLineRow({
             {tagSummary}
           </Text>
         )}
-        {item.statusLabel !== null && (
+        {statusLabel !== null && (
           <Text
             variant="labelMedium"
             style={{
@@ -137,7 +155,7 @@ export function BudgetLineRow({
                 : theme.colors.onSurfaceVariant,
             }}
           >
-            {item.statusLabel}
+            {statusLabel}
           </Text>
         )}
       </View>
@@ -146,9 +164,9 @@ export function BudgetLineRow({
         <Amount size="row" style={{ color: accent }} numberOfLines={1}>
           {formatCurrency(item.displayAmount, currency)}
         </Amount>
-        {item.amountSuffix !== null && (
+        {amountSuffix !== null && (
           <Amount size="meta" tone="muted" numberOfLines={1}>
-            {item.amountSuffix}
+            {amountSuffix}
           </Amount>
         )}
       </View>
