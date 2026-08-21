@@ -533,25 +533,22 @@ test("iOS distribution consumes staging or finalized production proofs", () => {
 });
 
 test("internal production-config builds stay bound to preview staging proof", () => {
+  assert.match(iosDistribution, /options:\n\s+- internal\n\s+- release/);
   assert.match(
     iosDistribution,
-    /options:\n\s+- internal\n\s+- internal-prod\n\s+- release/,
+    /internal\)\n\s+expected_branch="preview"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
   );
   assert.match(
     iosDistribution,
-    /internal-prod\)\n\s+expected_branch="preview"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
-  );
-  assert.match(
-    iosDistribution,
-    /internal\|internal-prod\)[\s\S]*--workflow staging-proof\.yml/,
+    /internal\)[\s\S]*--workflow staging-proof\.yml/,
   );
   assert.match(
     iosDistribution,
     /if \[ "\$CHANNEL" != "release" \] && \[ "\$BUILD_NUMBER" -lt "\$project_build" \]/,
   );
-  assert.match(
+  assert.doesNotMatch(
     iosDistribution,
-    /internal\)[\s\S]*BUILD_NUMBER % 10[\s\S]*-eq 8[\s\S]*internal-prod\)[\s\S]*BUILD_NUMBER % 10[\s\S]*-ne 8/,
+    /internal-prod|PulpePreview|configuration="Preview"/,
   );
   assert.doesNotMatch(iosDistribution, /--submit|MVP/);
 });
