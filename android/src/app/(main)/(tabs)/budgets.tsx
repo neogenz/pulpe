@@ -19,6 +19,7 @@ import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { StatusBadge } from "@/core/ui/status-badge";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
+import { useTranslation } from "@/core/i18n/locale-store";
 import {
   type BudgetTiming,
   budgetTiming,
@@ -55,6 +56,7 @@ export default function BudgetsScreen() {
   // itself lives in the formatters.
   useAmountMasking();
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const settings = useUserSettings();
   const budgets = useBudgetList();
 
@@ -128,7 +130,7 @@ export default function BudgetsScreen() {
         edges={["top"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator accessibilityLabel="Chargement" />
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
       </SafeAreaView>
     );
   }
@@ -137,10 +139,10 @@ export default function BudgetsScreen() {
     return (
       <PlaceholderScreen
         icon="cloud-off-outline"
-        title="On n'a pas pu charger tes budgets"
-        hint="Vérifie ta connexion, puis réessaie."
+        title={t("budgets.list.loadErrorTitle")}
+        hint={t("budgets.list.loadErrorHint")}
         action={{
-          label: "Réessayer",
+          label: t("common.retry"),
           onPress: () => void invalidateBudgetData(),
         }}
       />
@@ -151,10 +153,10 @@ export default function BudgetsScreen() {
     return (
       <PlaceholderScreen
         icon="calendar-blank-outline"
-        title="Aucun budget pour l'instant"
-        hint="Crée ton premier mois depuis un de tes modèles."
+        title={t("budgets.list.emptyTitle")}
+        hint={t("budgets.list.emptyHint")}
         action={{
-          label: "Créer mon budget",
+          label: t("budgets.list.create"),
           onPress: () => router.push("/budget/create"),
         }}
       />
@@ -205,7 +207,7 @@ export default function BudgetsScreen() {
         }
         ListHeaderComponent={
           <Text variant="headlineSmall" style={styles.screenTitle}>
-            Budgets
+            {t("budgets.list.title")}
           </Text>
         }
         renderSectionHeader={({ section }) => (
@@ -229,6 +231,8 @@ export default function BudgetsScreen() {
               currency={currency}
               payDayOfMonth={payDayOfMonth}
               timing={budgetTiming(budget, currentPeriod)}
+              locale={locale}
+              t={t}
             />
           </View>
         )}
@@ -238,7 +242,7 @@ export default function BudgetsScreen() {
         icon="plus"
         style={styles.fab}
         onPress={() => router.push("/budget/create")}
-        accessibilityLabel="Créer un budget"
+        accessibilityLabel={t("budgets.list.createAccessibility")}
       />
     </SafeAreaView>
   );
@@ -254,11 +258,15 @@ function BudgetRow({
   currency,
   payDayOfMonth,
   timing,
+  locale,
+  t,
 }: {
   budget: BudgetSparse;
   currency: SupportedCurrency;
   payDayOfMonth: number | null;
   timing: BudgetTiming;
+  locale: string;
+  t: (key: string) => string;
 }) {
   const theme = useTheme();
   const month = budget.month ?? 1;
@@ -303,15 +311,17 @@ function BudgetRow({
               sits lower than the rest. */}
           <View style={styles.monthLine}>
             <Text variant="titleMedium" style={styles.month}>
-              {formatMonthName(month, year)}
+              {formatMonthName(month, year, locale)}
             </Text>
-            {isCurrent && <StatusBadge>Mois actuel</StatusBadge>}
+            {isCurrent && (
+              <StatusBadge>{t("budgets.list.current")}</StatusBadge>
+            )}
           </View>
           <Text
             variant="bodySmall"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            {periodLabel(month, year, payDayOfMonth, isPositive)}
+            {periodLabel(t, locale, month, year, payDayOfMonth, isPositive)}
           </Text>
         </View>
 
@@ -325,7 +335,11 @@ function BudgetRow({
           >
             {/* A month that is over settled at this figure; the two other
                 tenses are still describing something that has not happened. */}
-            {isPast ? "Résultat" : isPositive ? "Potentiel" : "Ajustement"}
+            {isPast
+              ? t("budgets.list.result")
+              : isPositive
+                ? t("budgets.list.potential")
+                : t("budgets.list.adjustment")}
           </Text>
         </View>
       </Card.Content>
@@ -334,20 +348,22 @@ function BudgetRow({
 }
 
 function periodLabel(
+  t: (key: string) => string,
+  locale: string,
   month: number,
   year: number,
   payDayOfMonth: number | null,
   isPositive: boolean,
 ): string {
   if (payDayOfMonth === null || payDayOfMonth <= CALENDAR_PAY_DAY) {
-    return monthSubtitle(month, isPositive);
+    return monthSubtitle(t, month, isPositive);
   }
   const { startDate, endDate } = getBudgetPeriodDates(
     month,
     year,
     payDayOfMonth,
   );
-  return `${formatDayMonth(startDate)} – ${formatDayMonth(endDate)}`;
+  return `${formatDayMonth(startDate, locale)} – ${formatDayMonth(endDate, locale)}`;
 }
 
 const styles = StyleSheet.create({

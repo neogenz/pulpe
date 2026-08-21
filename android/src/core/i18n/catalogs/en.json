@@ -50,6 +50,67 @@
       "title": "Welcome back"
     }
   },
+  "budgets": {
+    "create": {
+      "default": "default",
+      "description": "The budget will be created with the forecasts from the selected template.",
+      "error": "The budget could not be created. Try again.",
+      "loadErrorHint": "Check your connection, then try again.",
+      "loadErrorTitle": "We couldn't prepare this new budget",
+      "month": "Which month",
+      "noMonthsHint": "Come back when you want to prepare another one.",
+      "noMonthsTitle": "Your next months are already ready",
+      "noTemplatesHint": "A budget is created from a template. Create one first.",
+      "noTemplatesTitle": "No template yet",
+      "submit": "Create budget",
+      "template": "Choose a template",
+      "title": "New budget",
+      "viewTemplates": "View my templates"
+    },
+    "list": {
+      "adjustment": "Adjustment",
+      "create": "Create my budget",
+      "createAccessibility": "Create a budget",
+      "current": "Current month",
+      "emptyHint": "Create your first month from one of your templates.",
+      "emptyTitle": "No budgets yet",
+      "loadErrorHint": "Check your connection, then try again.",
+      "loadErrorTitle": "We couldn't load your budgets",
+      "potential": "Potential",
+      "result": "Result",
+      "title": "Budgets"
+    },
+    "monthSubtitle": {
+      "negative": {
+        "1": "Plenty of time to catch up",
+        "2": "Short month, small adjustment",
+        "3": "There is still time to course-correct",
+        "4": "Nothing irreversible — adjust",
+        "5": "A gap, not a trend",
+        "6": "Halfway through — balance can return",
+        "7": "Summer costs more, that's normal",
+        "8": "It happens — September starts fresh",
+        "9": "A new season resets the pace",
+        "10": "Still time to adjust",
+        "11": "Almost there — keep going",
+        "12": "Wrap up and adjust"
+      },
+      "positive": {
+        "1": "Fresh start, new ambitions",
+        "2": "Short but decisive",
+        "3": "Springtime for good habits",
+        "4": "Your finances are taking shape",
+        "5": "Clear skies for your finances",
+        "6": "Halfway through — staying on course",
+        "7": "Enjoy it, your budget keeps up",
+        "8": "Summer flies by, your budget holds",
+        "9": "A fresh start after summer",
+        "10": "A season for good choices",
+        "11": "Time to review soon — you've got this",
+        "12": "The home stretch"
+      }
+    }
+  },
   "common": {
     "amountInCurrency": "%{label}, in %{currency}",
     "currencyNameCHF": "Swiss franc",

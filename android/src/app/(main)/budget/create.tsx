@@ -21,6 +21,7 @@ import { FilterChip } from "@/core/ui/filter-chip";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
+import { useTranslation } from "@/core/i18n/locale-store";
 import {
   availableMonths,
   type BudgetPeriod,
@@ -41,6 +42,7 @@ export default function CreateBudgetScreen() {
   // itself lives in the formatters.
   useAmountMasking();
   const theme = useTheme();
+  const { locale, t } = useTranslation();
   const budgets = useBudgetList();
   const templates = useTemplates();
   const create = useCreateBudget();
@@ -68,8 +70,23 @@ export default function CreateBudgetScreen() {
         edges={["bottom"]}
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator accessibilityLabel="Chargement" />
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
       </SafeAreaView>
+    );
+  }
+
+  if (budgets.isError || templates.isError) {
+    return (
+      <PlaceholderScreen
+        icon="cloud-off-outline"
+        title={t("budgets.create.loadErrorTitle")}
+        hint={t("budgets.create.loadErrorHint")}
+        action={{
+          label: t("common.retry"),
+          onPress: () =>
+            void Promise.all([budgets.refetch(), templates.refetch()]),
+        }}
+      />
     );
   }
 
@@ -77,9 +94,9 @@ export default function CreateBudgetScreen() {
     return (
       <PlaceholderScreen
         icon="calendar-check-outline"
-        title="Tes prochains mois sont déjà prêts"
-        hint="Reviens quand tu voudras en préparer un de plus."
-        action={{ label: "Revenir", onPress: () => router.back() }}
+        title={t("budgets.create.noMonthsTitle")}
+        hint={t("budgets.create.noMonthsHint")}
+        action={{ label: t("common.back"), onPress: () => router.back() }}
       />
     );
   }
@@ -88,10 +105,10 @@ export default function CreateBudgetScreen() {
     return (
       <PlaceholderScreen
         icon="file-document-outline"
-        title="Pas encore de modèle"
-        hint="Un budget se crée depuis un modèle. Crée-en un d'abord."
+        title={t("budgets.create.noTemplatesTitle")}
+        hint={t("budgets.create.noTemplatesHint")}
         action={{
-          label: "Voir mes modèles",
+          label: t("budgets.create.viewTemplates"),
           onPress: () => router.replace("/templates"),
         }}
       />
@@ -104,7 +121,7 @@ export default function CreateBudgetScreen() {
       {
         month: period.month,
         year: period.year,
-        description: formatMonthName(period.month, period.year),
+        description: formatMonthName(period.month, period.year, locale),
         templateId: selectedTemplateId,
       },
       { onSuccess: () => router.back() },
@@ -117,12 +134,15 @@ export default function CreateBudgetScreen() {
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <ScreenAppBar>
-        <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content title="Nouveau budget" />
+        <Appbar.BackAction
+          onPress={() => router.back()}
+          accessibilityLabel={t("common.back")}
+        />
+        <Appbar.Content title={t("budgets.create.title")} />
       </ScreenAppBar>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text variant="titleSmall">Quel mois</Text>
+        <Text variant="titleSmall">{t("budgets.create.month")}</Text>
         <View style={styles.periods}>
           {periods.map((candidate) => (
             <FilterChip
@@ -133,12 +153,12 @@ export default function CreateBudgetScreen() {
               {/* Year included: an account already booked to January is offered
                   February, March and April of the *next* year, and three bare
                   month names give no hint of that. */}
-              {formatMonthLabel(candidate.month, candidate.year)}
+              {formatMonthLabel(candidate.month, candidate.year, locale)}
             </FilterChip>
           ))}
         </View>
 
-        <Text variant="titleSmall">Choisir un modèle</Text>
+        <Text variant="titleSmall">{t("budgets.create.template")}</Text>
 
         <RadioButton.Group
           value={selectedTemplateId ?? ""}
@@ -151,7 +171,7 @@ export default function CreateBudgetScreen() {
                 value={template.id}
                 label={
                   template.isDefault === true
-                    ? `${template.name} · par défaut`
+                    ? `${template.name} · ${t("budgets.create.default")}`
                     : template.name
                 }
                 position="leading"
@@ -177,7 +197,7 @@ export default function CreateBudgetScreen() {
           variant="bodySmall"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          Le budget sera créé avec les prévisions du modèle sélectionné.
+          {t("budgets.create.description")}
         </Text>
       </ScrollView>
 
@@ -187,9 +207,7 @@ export default function CreateBudgetScreen() {
       <Divider />
       <View style={styles.footer}>
         {create.isError && (
-          <FieldError visible>
-            Le budget n&apos;a pas pu être créé. Réessaie.
-          </FieldError>
+          <FieldError visible>{t("budgets.create.error")}</FieldError>
         )}
 
         <Button
@@ -198,7 +216,7 @@ export default function CreateBudgetScreen() {
           disabled={selectedTemplateId === null || create.isPending}
           loading={create.isPending}
         >
-          Créer le budget
+          {t("budgets.create.submit")}
         </Button>
       </View>
     </SafeAreaView>

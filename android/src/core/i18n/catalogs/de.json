@@ -50,6 +50,67 @@
       "title": "Willkommen zurück"
     }
   },
+  "budgets": {
+    "create": {
+      "default": "Standard",
+      "description": "Das Budget wird mit den Prognosen der gewählten Vorlage erstellt.",
+      "error": "Das Budget konnte nicht erstellt werden. Versuche es erneut.",
+      "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",
+      "loadErrorTitle": "Das neue Budget konnte nicht vorbereitet werden",
+      "month": "Welcher Monat",
+      "noMonthsHint": "Komm zurück, wenn du einen weiteren Monat vorbereiten möchtest.",
+      "noMonthsTitle": "Deine nächsten Monate sind schon bereit",
+      "noTemplatesHint": "Ein Budget wird aus einer Vorlage erstellt. Erstelle zuerst eine.",
+      "noTemplatesTitle": "Noch keine Vorlage",
+      "submit": "Budget erstellen",
+      "template": "Vorlage wählen",
+      "title": "Neues Budget",
+      "viewTemplates": "Meine Vorlagen ansehen"
+    },
+    "list": {
+      "adjustment": "Anpassung",
+      "create": "Budget erstellen",
+      "createAccessibility": "Ein Budget erstellen",
+      "current": "Aktueller Monat",
+      "emptyHint": "Erstelle deinen ersten Monat aus einer deiner Vorlagen.",
+      "emptyTitle": "Noch keine Budgets",
+      "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",
+      "loadErrorTitle": "Deine Budgets konnten nicht geladen werden",
+      "potential": "Potenzial",
+      "result": "Ergebnis",
+      "title": "Budgets"
+    },
+    "monthSubtitle": {
+      "negative": {
+        "1": "Im Januar lässt sich das schnell aufholen",
+        "2": "Kurzer Monat, kleine Anpassung",
+        "3": "Du kannst noch gegensteuern",
+        "4": "Nichts ist unumkehrbar – passe es an",
+        "5": "Eine Abweichung, kein Trend",
+        "6": "Halbzeit – alles kann sich ausgleichen",
+        "7": "Sommer kostet mehr, das ist normal",
+        "8": "Das passiert – im September geht es neu los",
+        "9": "Neustart nach dem Sommer",
+        "10": "Noch Zeit zum Anpassen",
+        "11": "Fast geschafft – bleib dran",
+        "12": "Abschliessen und anpassen"
+      },
+      "positive": {
+        "1": "Neuer Anfang, neue Ziele",
+        "2": "Kurz, aber entscheidend",
+        "3": "Frühling für gute Gewohnheiten",
+        "4": "Deine Finanzen nehmen Form an",
+        "5": "Gute Aussichten für deine Finanzen",
+        "6": "Halbzeit – du bleibst auf Kurs",
+        "7": "Geniess es, dein Budget hält mit",
+        "8": "Der Sommer vergeht, dein Budget hält",
+        "9": "Neustart nach dem Sommer",
+        "10": "Zeit für gute Entscheidungen",
+        "11": "Bald ist Bilanz – du schaffst das",
+        "12": "Auf der Zielgeraden"
+      }
+    }
+  },
   "common": {
     "amountInCurrency": "%{label}, in %{currency}",
     "currencyNameCHF": "Schweizer Franken",

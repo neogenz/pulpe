@@ -50,6 +50,67 @@
       "title": "Bentornato"
     }
   },
+  "budgets": {
+    "create": {
+      "default": "predefinito",
+      "description": "Il budget verrà creato con le previsioni del modello selezionato.",
+      "error": "Non è stato possibile creare il budget. Riprova.",
+      "loadErrorHint": "Controlla la connessione, poi riprova.",
+      "loadErrorTitle": "Non è stato possibile preparare il nuovo budget",
+      "month": "Quale mese",
+      "noMonthsHint": "Torna quando vorrai prepararne un altro.",
+      "noMonthsTitle": "I tuoi prossimi mesi sono già pronti",
+      "noTemplatesHint": "Un budget viene creato da un modello. Creane prima uno.",
+      "noTemplatesTitle": "Nessun modello per ora",
+      "submit": "Crea budget",
+      "template": "Scegli un modello",
+      "title": "Nuovo budget",
+      "viewTemplates": "Vedi i miei modelli"
+    },
+    "list": {
+      "adjustment": "Aggiustamento",
+      "create": "Crea il mio budget",
+      "createAccessibility": "Crea un budget",
+      "current": "Mese attuale",
+      "emptyHint": "Crea il tuo primo mese da uno dei tuoi modelli.",
+      "emptyTitle": "Nessun budget per ora",
+      "loadErrorHint": "Controlla la connessione, poi riprova.",
+      "loadErrorTitle": "Non è stato possibile caricare i tuoi budget",
+      "potential": "Potenziale",
+      "result": "Risultato",
+      "title": "Budget"
+    },
+    "monthSubtitle": {
+      "negative": {
+        "1": "Gennaio si recupera in fretta",
+        "2": "Mese corto, piccolo aggiustamento",
+        "3": "Puoi ancora correggere la rotta",
+        "4": "Nulla è irreversibile: aggiusta",
+        "5": "Uno scarto, non una tendenza",
+        "6": "A metà strada, tutto può riequilibrarsi",
+        "7": "L'estate costa, è normale",
+        "8": "Capita: settembre riparte",
+        "9": "Il rientro azzera i contatori",
+        "10": "C'è ancora tempo per correggere",
+        "11": "Quasi finito: tieni duro",
+        "12": "Chiudiamo e aggiustiamo"
+      },
+      "positive": {
+        "1": "Nuovo inizio, nuove ambizioni",
+        "2": "Breve ma decisivo",
+        "3": "La primavera delle buone abitudini",
+        "4": "Le tue finanze prendono forma",
+        "5": "Bel tempo per i tuoi conti",
+        "6": "A metà strada, resti sulla rotta",
+        "7": "Goditela, il budget ti segue",
+        "8": "L'estate vola, il budget tiene",
+        "9": "Il rientro porta nuovo slancio",
+        "10": "L'autunno delle buone scelte",
+        "11": "Presto il bilancio: ci sei",
+        "12": "Ultimo tratto"
+      }
+    }
+  },
   "common": {
     "amountInCurrency": "%{label}, in %{currency}",
     "currencyNameCHF": "Franco svizzero",
