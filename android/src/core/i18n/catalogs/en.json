@@ -73,6 +73,21 @@
   },
   "onboarding": {
     "back": "Go back to the previous step",
+    "charges": {
+      "addExpense": "Add an expense",
+      "healthInsurance": "Health insurance",
+      "housing": "Housing",
+      "insurance": "Insurance & subscriptions",
+      "leasingCredit": "Lease or loan payment",
+      "mobility": "Mobility & credit",
+      "phonePlan": "Phone plan",
+      "plannedItems": "My planned items",
+      "rent": "Monthly rent",
+      "subtitle": "Enter what you know — the rest can wait",
+      "title": "Your expenses",
+      "total": "Total expenses",
+      "transport": "Transport (pass, fuel…)"
+    },
     "exit": {
       "body": "Everything you entered will be deleted.",
       "leave": "Leave",
@@ -118,7 +133,24 @@
       "subtitle": "So you can find it all on every device",
       "title": "Create your account"
     },
+    "savings": {
+      "add": "Add savings",
+      "items": "My savings",
+      "subtitle": "What you set aside each month",
+      "title": "Your savings",
+      "total": "Total savings"
+    },
     "skip": "Skip this step",
+    "suggestions": {
+      "diningOut": "Eating out & going out",
+      "groceries": "Groceries / food",
+      "hint": "You can adjust each amount later.",
+      "leisureSport": "Leisure & sport",
+      "retirement": "Retirement savings",
+      "retirementSwiss": "Third pillar",
+      "saving": "Savings",
+      "title": "Suggestions"
+    },
     "transaction": {
       "add": "Add",
       "delete": "Delete %{name}",

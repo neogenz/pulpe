@@ -73,6 +73,21 @@
   },
   "onboarding": {
     "back": "Zum vorherigen Schritt zurückkehren",
+    "charges": {
+      "addExpense": "Ausgabe hinzufügen",
+      "healthInsurance": "Krankenkasse",
+      "housing": "Wohnen",
+      "insurance": "Versicherungen & Abos",
+      "leasingCredit": "Leasing oder Kreditrate",
+      "mobility": "Mobilität & Kredit",
+      "phonePlan": "Handy-Abo",
+      "plannedItems": "Meine Planposten",
+      "rent": "Monatsmiete",
+      "subtitle": "Trage ein, was du weisst — der Rest kann warten",
+      "title": "Deine Ausgaben",
+      "total": "Gesamtausgaben",
+      "transport": "Transport (Abo, Treibstoff…)"
+    },
     "exit": {
       "body": "Deine Eingaben werden gelöscht.",
       "leave": "Verlassen",
@@ -118,7 +133,24 @@
       "subtitle": "Damit du alles auf all deinen Geräten wiederfindest",
       "title": "Erstelle dein Konto"
     },
+    "savings": {
+      "add": "Sparen hinzufügen",
+      "items": "Mein Sparen",
+      "subtitle": "Was du jeden Monat beiseitelegst",
+      "title": "Dein Sparen",
+      "total": "Sparen gesamt"
+    },
     "skip": "Diesen Schritt überspringen",
+    "suggestions": {
+      "diningOut": "Restaurants & Ausgehen",
+      "groceries": "Einkauf / Essen",
+      "hint": "Du kannst jeden Betrag später anpassen.",
+      "leisureSport": "Freizeit & Sport",
+      "retirement": "Altersvorsorge",
+      "retirementSwiss": "Säule 3a",
+      "saving": "Sparen",
+      "title": "Vorschläge"
+    },
     "transaction": {
       "add": "Hinzufügen",
       "delete": "%{name} löschen",

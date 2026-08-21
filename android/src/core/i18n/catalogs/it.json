@@ -73,6 +73,21 @@
   },
   "onboarding": {
     "back": "Torna al passaggio precedente",
+    "charges": {
+      "addExpense": "Aggiungi una spesa",
+      "healthInsurance": "Cassa malati",
+      "housing": "Casa",
+      "insurance": "Assicurazioni & abbonamenti",
+      "leasingCredit": "Leasing o rata del prestito",
+      "mobility": "Mobilità & credito",
+      "phonePlan": "Piano telefonico",
+      "plannedItems": "Le mie previsioni",
+      "rent": "Affitto mensile",
+      "subtitle": "Inserisci ciò che sai — il resto può aspettare",
+      "title": "Le tue spese",
+      "total": "Spese totali",
+      "transport": "Trasporti (abbonamento, carburante…)"
+    },
     "exit": {
       "body": "Tutto ciò che hai inserito verrà eliminato.",
       "leave": "Esci",
@@ -118,7 +133,24 @@
       "subtitle": "Per ritrovare tutto su ogni dispositivo",
       "title": "Crea il tuo account"
     },
+    "savings": {
+      "add": "Aggiungi un risparmio",
+      "items": "I miei risparmi",
+      "subtitle": "Quello che metti da parte ogni mese",
+      "title": "I tuoi risparmi",
+      "total": "Risparmi totali"
+    },
     "skip": "Salta questo passaggio",
+    "suggestions": {
+      "diningOut": "Ristoranti & uscite",
+      "groceries": "Spesa / alimentari",
+      "hint": "Potrai modificare ogni importo più tardi.",
+      "leisureSport": "Tempo libero & sport",
+      "retirement": "Previdenza",
+      "retirementSwiss": "Terzo pilastro",
+      "saving": "Risparmio",
+      "title": "Suggerimenti"
+    },
     "transaction": {
       "add": "Aggiungi",
       "delete": "Elimina %{name}",

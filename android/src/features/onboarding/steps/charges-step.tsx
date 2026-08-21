@@ -2,6 +2,7 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
 
+import { useTranslation } from "@/core/i18n/locale-store";
 import { SPACING } from "@/core/ui/theme";
 
 import { AmountField } from "@/core/ui/amount-field";
@@ -27,6 +28,7 @@ import { chargeSuggestions } from "../suggestions";
  * a name attached is answered far more often than an empty "add a line".
  */
 export function ChargesStep({ onExit }: { onExit: () => void }) {
+  const { t } = useTranslation();
   const state = useOnboardingStore();
   const [dialog, setDialog] = useState<null | {
     editing: OnboardingTransaction | null;
@@ -39,14 +41,16 @@ export function ChargesStep({ onExit }: { onExit: () => void }) {
   return (
     <StepScaffold
       isCtaEnabled
+      title={t("onboarding.charges.title")}
+      subtitle={t("onboarding.charges.subtitle")}
       onContinue={goToNextStep}
       onSkip={goToNextStep}
       onExit={onExit}
     >
       <View style={styles.section}>
-        <Text variant="labelLarge">Logement</Text>
+        <Text variant="labelLarge">{t("onboarding.charges.housing")}</Text>
         <AmountField
-          label="Loyer mensuel"
+          label={t("onboarding.charges.rent")}
           placeholder="1500"
           amount={state.housingCosts}
           currency={state.currency}
@@ -55,12 +59,12 @@ export function ChargesStep({ onExit }: { onExit: () => void }) {
       </View>
 
       <View style={styles.section}>
-        <Text variant="labelLarge">Assurance & abonnements</Text>
+        <Text variant="labelLarge">{t("onboarding.charges.insurance")}</Text>
         {/* Health insurance is a mandatory Swiss line and has no French
             equivalent worth asking about, so it follows the currency. */}
         {state.currency === "CHF" && (
           <AmountField
-            label="Assurance maladie"
+            label={t("onboarding.charges.healthInsurance")}
             placeholder="400"
             amount={state.healthInsurance}
             currency={state.currency}
@@ -68,7 +72,7 @@ export function ChargesStep({ onExit }: { onExit: () => void }) {
           />
         )}
         <AmountField
-          label="Forfait téléphone"
+          label={t("onboarding.charges.phonePlan")}
           placeholder="50"
           amount={state.phonePlan}
           currency={state.currency}
@@ -77,16 +81,16 @@ export function ChargesStep({ onExit }: { onExit: () => void }) {
       </View>
 
       <View style={styles.section}>
-        <Text variant="labelLarge">Mobilité & crédit</Text>
+        <Text variant="labelLarge">{t("onboarding.charges.mobility")}</Text>
         <AmountField
-          label="Transport (abonnement, essence…)"
+          label={t("onboarding.charges.transport")}
           placeholder="100"
           amount={state.transportCosts}
           currency={state.currency}
           onChange={(transportCosts) => updateAnswers({ transportCosts })}
         />
         <AmountField
-          label="Leasing ou mensualité de crédit"
+          label={t("onboarding.charges.leasingCredit")}
           placeholder="300"
           amount={state.leasingCredit}
           currency={state.currency}
@@ -95,23 +99,28 @@ export function ChargesStep({ onExit }: { onExit: () => void }) {
       </View>
 
       <SuggestionGrid
-        suggestions={chargeSuggestions()}
+        suggestions={chargeSuggestions({
+          groceries: t("onboarding.suggestions.groceries"),
+          diningOut: t("onboarding.suggestions.diningOut"),
+          leisureSport: t("onboarding.suggestions.leisureSport"),
+        })}
         currency={state.currency}
       />
 
       <TransactionList
-        title="Mes prévisions"
+        title={t("onboarding.charges.plannedItems")}
+        localized
         transactions={customExpenses}
         currency={state.currency}
         onEdit={(editing) => setDialog({ editing })}
       />
 
       <Button icon="plus" onPress={() => setDialog({ editing: null })}>
-        Ajouter une dépense
+        {t("onboarding.charges.addExpense")}
       </Button>
 
       <RunningTotal
-        label="Total charges"
+        label={t("onboarding.charges.total")}
         amount={totalCharges(state)}
         accent="expense"
         currency={state.currency}
@@ -120,6 +129,7 @@ export function ChargesStep({ onExit }: { onExit: () => void }) {
       {dialog !== null && (
         <TransactionDialog
           kind="expense"
+          localized
           currency={state.currency}
           editing={dialog.editing}
           onDismiss={() => setDialog(null)}

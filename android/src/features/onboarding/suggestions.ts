@@ -8,32 +8,25 @@ import type { OnboardingTransaction } from "./onboarding-transaction";
  * edits and draft restores, and a hand-added line can never collide with one
  * even when the user types the same name.
  */
-const CHARGE_SUGGESTIONS: readonly OnboardingTransaction[] = [
-  suggestion(
-    "f1a1e501-c0a5-4000-a000-000000000001",
-    600,
-    "expense",
-    "Courses / alimentation",
-  ),
-  suggestion(
-    "f1a1e501-c0a5-4000-a000-000000000002",
-    150,
-    "expense",
-    "Restaurants & sorties",
-  ),
-  suggestion(
-    "f1a1e501-c0a5-4000-a000-000000000003",
-    100,
-    "expense",
-    "Loisirs & sport",
-  ),
-];
+const CHARGE_IDS = [
+  "f1a1e501-c0a5-4000-a000-000000000001",
+  "f1a1e501-c0a5-4000-a000-000000000002",
+  "f1a1e501-c0a5-4000-a000-000000000003",
+] as const;
 
 const SAVINGS_ID = "f1a1e501-c0a5-4000-a000-000000000004";
 const RETIREMENT_ID = "f1a1e501-c0a5-4000-a000-000000000005";
 
-export function chargeSuggestions(): readonly OnboardingTransaction[] {
-  return CHARGE_SUGGESTIONS;
+export function chargeSuggestions(names: {
+  groceries: string;
+  diningOut: string;
+  leisureSport: string;
+}): readonly OnboardingTransaction[] {
+  return [
+    suggestion(CHARGE_IDS[0], 600, "expense", names.groceries),
+    suggestion(CHARGE_IDS[1], 150, "expense", names.diningOut),
+    suggestion(CHARGE_IDS[2], 100, "expense", names.leisureSport),
+  ];
 }
 
 /**
@@ -43,20 +36,21 @@ export function chargeSuggestions(): readonly OnboardingTransaction[] {
  */
 export function savingSuggestions(
   currency: SupportedCurrency,
+  names: { saving: string; retirement: string; retirementSwiss: string },
 ): readonly OnboardingTransaction[] {
   return [
-    suggestion(SAVINGS_ID, 500, "saving", "Épargne"),
+    suggestion(SAVINGS_ID, 500, "saving", names.saving),
     suggestion(
       RETIREMENT_ID,
       587,
       "saving",
-      currency === "CHF" ? "3ème pilier" : "Épargne retraite",
+      currency === "CHF" ? names.retirementSwiss : names.retirement,
     ),
   ];
 }
 
 const SUGGESTION_IDS: ReadonlySet<string> = new Set([
-  ...CHARGE_SUGGESTIONS.map((it) => it.id),
+  ...CHARGE_IDS,
   SAVINGS_ID,
   RETIREMENT_ID,
 ]);

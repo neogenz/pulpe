@@ -73,6 +73,21 @@
   },
   "onboarding": {
     "back": "Revenir à l'étape précédente",
+    "charges": {
+      "addExpense": "Ajouter une dépense",
+      "healthInsurance": "Assurance maladie",
+      "housing": "Logement",
+      "insurance": "Assurance & abonnements",
+      "leasingCredit": "Leasing ou mensualité de crédit",
+      "mobility": "Mobilité & crédit",
+      "phonePlan": "Forfait téléphone",
+      "plannedItems": "Mes prévisions",
+      "rent": "Loyer mensuel",
+      "subtitle": "Renseigne ce que tu connais — le reste peut attendre",
+      "title": "Tes dépenses",
+      "total": "Total charges",
+      "transport": "Transport (abonnement, essence…)"
+    },
     "exit": {
       "body": "Ce que tu as saisi sera effacé.",
       "leave": "Quitter",
@@ -118,7 +133,24 @@
       "subtitle": "Pour retrouver tout ça sur tous tes appareils",
       "title": "Crée ton compte"
     },
+    "savings": {
+      "add": "Ajouter une épargne",
+      "items": "Mes épargnes",
+      "subtitle": "Ce que tu mets de côté chaque mois",
+      "title": "Ton épargne",
+      "total": "Total épargne"
+    },
     "skip": "Passer cette étape",
+    "suggestions": {
+      "diningOut": "Restaurants & sorties",
+      "groceries": "Courses / alimentation",
+      "hint": "Tu pourras ajuster chaque montant plus tard.",
+      "leisureSport": "Loisirs & sport",
+      "retirement": "Épargne retraite",
+      "retirementSwiss": "3ème pilier",
+      "saving": "Épargne",
+      "title": "Suggestions"
+    },
     "transaction": {
       "add": "Ajouter",
       "delete": "Supprimer %{name}",

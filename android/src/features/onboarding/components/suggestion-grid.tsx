@@ -2,6 +2,7 @@ import { type SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
+import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSelection } from "@/core/ui/haptics";
 import { FilterChip } from "@/core/ui/filter-chip";
 import { formatCurrency } from "@/core/ui/amount-format";
@@ -27,11 +28,12 @@ export function SuggestionGrid({
   currency: SupportedCurrency;
 }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const state = useOnboardingStore();
 
   return (
     <View style={styles.section}>
-      <Text variant="labelLarge">Suggestions</Text>
+      <Text variant="labelLarge">{t("onboarding.suggestions.title")}</Text>
       <View style={styles.grid}>
         {suggestions.map((suggestion) => {
           const isSelected = isSuggestionSelected(state, suggestion);
@@ -54,7 +56,7 @@ export function SuggestionGrid({
         variant="bodySmall"
         style={{ color: theme.colors.onSurfaceVariant }}
       >
-        Tu pourras ajuster chaque montant plus tard.
+        {t("onboarding.suggestions.hint")}
       </Text>
     </View>
   );
