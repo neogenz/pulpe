@@ -61,6 +61,9 @@ export function createLanguageWriter() {
       selectedLocale = undefined;
       queue = Promise.resolve();
     },
+    synchronize(locale: SupportedLocale): void {
+      confirmedLocale = selectedLocale = locale;
+    },
   };
 }
 

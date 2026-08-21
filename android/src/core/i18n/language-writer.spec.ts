@@ -24,27 +24,24 @@ function dependencies(persist: (locale: SupportedLocale) => Promise<unknown>) {
 }
 
 describe("language writer", () => {
-  it("applies immediately, serializes writes, and confirms afterward", async () => {
-    const first = deferred();
+  it("persists a previously selected locale after a server sync", async () => {
     const writes: SupportedLocale[] = [];
-    const deps = dependencies((locale) => {
+    const deps = dependencies(async (locale) => {
       writes.push(locale);
-      return locale === "en" ? first.promise : Promise.resolve();
     });
     const writer = createLanguageWriter();
-
-    const english = writer.choose("en", deps);
-    const german = writer.choose("de", deps);
-    await Promise.resolve();
-    expect(writes).toEqual(["en"]);
-    expect(deps.onConfirmed).not.toHaveBeenCalled();
-
-    first.resolve();
-    await english;
-    await german;
-    expect(deps.onConfirmed).toHaveBeenNthCalledWith(1, "fr", "en", undefined);
-    expect(deps.onConfirmed).toHaveBeenNthCalledWith(2, "en", "de", undefined);
-    expect(deps.setPending.mock.calls).toEqual([[true], [true], [false]]);
+    await writer.choose("en", deps);
+    writer.synchronize("de");
+    await writer.choose("en", deps);
+    expect(writes).toEqual(["en", "en"]);
+    expect(deps.onConfirmed).toHaveBeenLastCalledWith("de", "en", undefined);
+  });
+  it("rolls a failed choice back to the newest server locale", async () => {
+    const deps = dependencies(() => Promise.reject(new Error("offline")));
+    const writer = createLanguageWriter();
+    writer.synchronize("de");
+    await writer.choose("it", deps);
+    expect(deps.apply.mock.calls).toEqual([["it"], ["de"]]);
   });
 
   it("keeps a reopened screen's newer choice when the old write fails", async () => {
@@ -52,13 +49,11 @@ describe("language writer", () => {
     const oldScreen = dependencies(() => oldWrite.promise);
     const newScreen = dependencies(() => Promise.resolve());
     const writer = createLanguageWriter();
-
     const english = writer.choose("en", oldScreen);
     const german = writer.choose("de", newScreen);
     oldWrite.reject();
     await english;
     await german;
-
     expect(oldScreen.apply).toHaveBeenCalledWith("en");
     expect(newScreen.apply).toHaveBeenCalledWith("de");
   });
@@ -71,7 +66,6 @@ describe("language writer", () => {
       snapshot = locale;
     });
     const writer = createLanguageWriter();
-
     const pending = writer.choose("it", deps);
     await Promise.resolve();
     writer.invalidate();
