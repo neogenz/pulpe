@@ -8,6 +8,7 @@ import { createMMKV } from "react-native-mmkv";
 import { create } from "zustand";
 
 import { i18n, translate } from "./i18n";
+import { languageWriter } from "./language-writer";
 
 const SNAPSHOT_KEY = "pulpe-settings-language";
 const storage = createMMKV({ id: "pulpe-locale" });
@@ -65,10 +66,11 @@ export function setLocaleWritePending(isWritePending: boolean): void {
 }
 
 export function clearLocaleSnapshot(): void {
+  languageWriter.invalidate();
   storage.remove(SNAPSHOT_KEY);
   const locale = resolveLocale(undefined, deviceLanguageTags());
   i18n.locale = locale;
-  useLocaleStore.setState({ locale });
+  useLocaleStore.setState({ isWritePending: false, locale });
 }
 
 export function useTranslation() {

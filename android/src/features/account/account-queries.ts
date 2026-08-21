@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { updateUserSettings } from "@/core/user-settings/user-settings-api";
-import { userSettingsKeys } from "@/core/user-settings/user-settings-queries";
+import { cacheUserSettings } from "@/core/user-settings/user-settings-queries";
 import { useVaultStore } from "@/core/vault/vault-store";
 
 import {
@@ -44,14 +44,9 @@ export function useUpdateUserProfile() {
  * cache rather than the settings alone.
  */
 export function useUpdateUserSettings() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: updateUserSettings,
-    onSuccess: (settings) => {
-      queryClient.setQueryData(userSettingsKeys.all, settings);
-      void queryClient.invalidateQueries();
-    },
+    onSuccess: cacheUserSettings,
   });
 }
 

@@ -2,6 +2,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { create } from "zustand";
 
 import { clearAllKeys } from "@/core/crypto/client-key-manager";
+import { languageWriter } from "@/core/i18n/language-writer";
 import { clearLocaleSnapshot } from "@/core/i18n/locale-store";
 import { forgetLandingPreference } from "@/core/navigation/landing-preference";
 import { queryClient } from "@/core/query/query-client";
@@ -64,6 +65,7 @@ export async function endRecoverySession(): Promise<AccountTeardownResult> {
 async function teardownAccount(
   providerSignOut: () => Promise<void>,
 ): Promise<AccountTeardownResult> {
+  languageWriter.invalidate();
   let providerError: unknown | null = null;
   let localError: unknown | null = null;
 

@@ -12,80 +12,75 @@ function deferred() {
   return { promise, reject, resolve };
 }
 
-describe("language writer", () => {
-  it("applies immediately and serializes rapid writes", async () => {
-    const first = deferred();
-    const second = deferred();
-    const writes: SupportedLocale[] = [];
-    const applied: SupportedLocale[] = [];
-    const confirmed: string[] = [];
-    const pending = jest.fn();
-    const writer = createLanguageWriter("fr", {
-      apply: (locale) => applied.push(locale),
-      persist: (locale) => {
-        writes.push(locale);
-        return writes.length === 1 ? first.promise : second.promise;
-      },
-      onConfirmed: (from, to) => confirmed.push(`${from}-${to}`),
-      onLatestError: jest.fn(),
-      setPending: pending,
-    });
+function dependencies(persist: (locale: SupportedLocale) => Promise<unknown>) {
+  return {
+    apply: jest.fn(),
+    current: () => "fr" as const,
+    onConfirmed: jest.fn(),
+    onLatestError: jest.fn(),
+    persist,
+    setPending: jest.fn(),
+  };
+}
 
-    const english = writer.choose("en");
-    const german = writer.choose("de");
+describe("language writer", () => {
+  it("applies immediately, serializes writes, and confirms afterward", async () => {
+    const first = deferred();
+    const writes: SupportedLocale[] = [];
+    const deps = dependencies((locale) => {
+      writes.push(locale);
+      return locale === "en" ? first.promise : Promise.resolve();
+    });
+    const writer = createLanguageWriter();
+
+    const english = writer.choose("en", deps);
+    const german = writer.choose("de", deps);
     await Promise.resolve();
-    expect(applied).toEqual(["en", "de"]);
     expect(writes).toEqual(["en"]);
-    expect(confirmed).toEqual([]);
+    expect(deps.onConfirmed).not.toHaveBeenCalled();
 
     first.resolve();
     await english;
-    expect(writes).toEqual(["en", "de"]);
-    second.resolve();
     await german;
-    expect(confirmed).toEqual(["fr-en", "en-de"]);
-    expect(pending.mock.calls).toEqual([[true], [true], [false]]);
+    expect(deps.onConfirmed).toHaveBeenNthCalledWith(1, "fr", "en", undefined);
+    expect(deps.onConfirmed).toHaveBeenNthCalledWith(2, "en", "de", undefined);
+    expect(deps.setPending.mock.calls).toEqual([[true], [true], [false]]);
   });
 
-  it("ignores an older failure when a newer choice is queued", async () => {
-    const failed = deferred();
-    const errors = jest.fn();
-    const applied: SupportedLocale[] = [];
-    const writer = createLanguageWriter("fr", {
-      apply: (locale) => applied.push(locale),
-      persist: (locale) =>
-        locale === "en" ? failed.promise : Promise.resolve(),
-      onConfirmed: jest.fn(),
-      onLatestError: errors,
-      setPending: jest.fn(),
-    });
+  it("keeps a reopened screen's newer choice when the old write fails", async () => {
+    const oldWrite = deferred();
+    const oldScreen = dependencies(() => oldWrite.promise);
+    const newScreen = dependencies(() => Promise.resolve());
+    const writer = createLanguageWriter();
 
-    const english = writer.choose("en");
-    const italian = writer.choose("it");
-    failed.reject();
+    const english = writer.choose("en", oldScreen);
+    const german = writer.choose("de", newScreen);
+    oldWrite.reject();
     await english;
-    await italian;
+    await german;
 
-    expect(applied).toEqual(["en", "it"]);
-    expect(errors).not.toHaveBeenCalled();
+    expect(oldScreen.apply).toHaveBeenCalledWith("en");
+    expect(newScreen.apply).toHaveBeenCalledWith("de");
   });
 
-  it("rolls the latest failure back to the last confirmed locale", async () => {
-    const applied: SupportedLocale[] = [];
-    const errors = jest.fn();
-    const writer = createLanguageWriter("fr", {
-      apply: (locale) => applied.push(locale),
-      persist: async () => {
-        throw new Error("offline");
-      },
-      onConfirmed: jest.fn(),
-      onLatestError: errors,
-      setPending: jest.fn(),
+  it("ignores a late rejection after account teardown", async () => {
+    const write = deferred();
+    let snapshot: SupportedLocale | undefined = "fr";
+    const deps = dependencies(() => write.promise);
+    deps.apply.mockImplementation((locale) => {
+      snapshot = locale;
     });
+    const writer = createLanguageWriter();
 
-    await writer.choose("de");
+    const pending = writer.choose("it", deps);
+    await Promise.resolve();
+    writer.invalidate();
+    snapshot = undefined;
+    write.reject();
+    await pending;
 
-    expect(applied).toEqual(["de", "fr"]);
-    expect(errors).toHaveBeenCalledTimes(1);
+    expect(snapshot).toBeUndefined();
+    expect(deps.onConfirmed).not.toHaveBeenCalled();
+    expect(deps.setPending).not.toHaveBeenLastCalledWith(false);
   });
 });

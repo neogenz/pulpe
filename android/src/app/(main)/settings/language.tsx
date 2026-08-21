@@ -4,7 +4,6 @@ import {
   LOCALE_METADATA,
   SUPPORTED_LOCALES,
   supportedLocaleSchema,
-  type SupportedLocale,
 } from "pulpe-shared";
 import { useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
@@ -16,39 +15,40 @@ import {
   setLocaleWritePending,
   useTranslation,
 } from "@/core/i18n/locale-store";
-import { createLanguageWriter } from "@/core/i18n/language-writer";
+import { languageWriter } from "@/core/i18n/language-writer";
 import { captureEvent } from "@/core/observability/analytics";
 import { Notice } from "@/core/ui/notice";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { SPACING } from "@/core/ui/theme";
-import { useUserSettings } from "@/core/user-settings/user-settings-queries";
-import { useUpdateUserSettings } from "@/features/account/account-queries";
+import { updateUserSettings } from "@/core/user-settings/user-settings-api";
+import {
+  cacheUserSettings,
+  useUserSettings,
+} from "@/core/user-settings/user-settings-queries";
 import { SettingsSection } from "@/features/account/components/settings-section";
 
 export default function LanguageScreen() {
   const theme = useTheme();
   const settings = useUserSettings();
-  const update = useUpdateUserSettings();
   const { locale, t } = useTranslation();
   const [hasError, setHasError] = useState(false);
-  const [writer] = useState(() =>
-    createLanguageWriter(settings.data?.locale ?? locale, {
+  function choose(value: string) {
+    const next = supportedLocaleSchema.parse(value);
+    void languageWriter.choose(next, {
       apply: setLocale,
-      persist: (next) => update.mutateAsync({ locale: next }),
+      current: () => settings.data?.locale ?? locale,
+      persist: (next) => updateUserSettings({ locale: next }),
       setPending: setLocaleWritePending,
-      onConfirmed: (from, to) =>
+      onConfirmed: (from, to, confirmedSettings) => {
+        cacheUserSettings(confirmedSettings);
         captureEvent(ANALYTICS_EVENTS.LANGUAGE_CHANGED, {
           from,
           to,
           surface: "settings",
-        }),
+        });
+      },
       onLatestError: () => setHasError(true),
-    }),
-  );
-
-  function choose(value: string) {
-    const next: SupportedLocale = supportedLocaleSchema.parse(value);
-    void writer.choose(next);
+    });
   }
 
   return (
