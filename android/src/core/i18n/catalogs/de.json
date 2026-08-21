@@ -2,5 +2,12 @@
   "common": {
     "error": "Ein Fehler ist aufgetreten",
     "loading": "Wird geladen…"
+  },
+  "settings": {
+    "language": {
+      "description": "Wähle die Sprache der App",
+      "saveError": "Die Sprache konnte nicht gespeichert werden.",
+      "title": "Sprache"
+    }
   }
 }

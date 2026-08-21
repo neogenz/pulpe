@@ -2,5 +2,12 @@
   "common": {
     "error": "Si è verificato un errore",
     "loading": "Caricamento…"
+  },
+  "settings": {
+    "language": {
+      "description": "Scegli la lingua dell'app",
+      "saveError": "Non è stato possibile salvare la lingua.",
+      "title": "Lingua"
+    }
   }
 }

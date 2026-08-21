@@ -2,5 +2,12 @@
   "common": {
     "error": "Une erreur est survenue",
     "loading": "Chargement…"
+  },
+  "settings": {
+    "language": {
+      "description": "Choisis la langue de l'application",
+      "saveError": "La langue n'a pas pu être enregistrée.",
+      "title": "Langue"
+    }
   }
 }

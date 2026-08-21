@@ -1,5 +1,9 @@
 import { router } from "expo-router";
-import { SUPPORTED_CURRENCIES, type SupportedCurrency } from "pulpe-shared";
+import {
+  LOCALE_METADATA,
+  SUPPORTED_CURRENCIES,
+  type SupportedCurrency,
+} from "pulpe-shared";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -17,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Card } from "@/core/ui/card";
 import { Eyebrow } from "@/core/ui/eyebrow";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
+import { useTranslation } from "@/core/i18n/locale-store";
 
 import {
   cancelMonthlyReminder,
@@ -56,6 +61,7 @@ export default function PreferencesScreen() {
   const theme = useTheme();
   const settings = useUserSettings();
   const update = useUpdateUserSettings();
+  const { locale, t } = useTranslation();
   const [pendingCurrency, setPendingCurrency] =
     useState<SupportedCurrency | null>(null);
   const [areRemindersEnabled, setRemindersEnabled] =
@@ -124,6 +130,16 @@ export default function PreferencesScreen() {
           />
         }
       >
+        <SettingsSection title={t("settings.language.title")}>
+          <SettingsRow
+            icon="translate"
+            title={t("settings.language.title")}
+            description={t("settings.language.description")}
+            value={LOCALE_METADATA[locale].nativeName}
+            onPress={() => router.push("/settings/language")}
+          />
+        </SettingsSection>
+
         <View style={styles.section}>
           <Eyebrow>Devise</Eyebrow>
           <Card mode="contained">

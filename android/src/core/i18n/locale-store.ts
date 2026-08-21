@@ -35,6 +35,7 @@ export function resolveLocale(
 }
 
 interface LocaleState {
+  isWritePending: boolean;
   locale: SupportedLocale;
 }
 
@@ -45,6 +46,7 @@ const bootLocale = resolveLocale(
 i18n.locale = bootLocale;
 
 export const useLocaleStore = create<LocaleState>(() => ({
+  isWritePending: false,
   locale: bootLocale,
 }));
 
@@ -56,6 +58,10 @@ export function setLocale(locale: SupportedLocale): void {
 
 export function applyServerLocale(locale?: SupportedLocale): void {
   if (locale !== undefined) setLocale(locale);
+}
+
+export function setLocaleWritePending(isWritePending: boolean): void {
+  useLocaleStore.setState({ isWritePending });
 }
 
 export function clearLocaleSnapshot(): void {
