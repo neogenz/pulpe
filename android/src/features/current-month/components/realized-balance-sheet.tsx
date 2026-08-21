@@ -2,6 +2,7 @@ import type { SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
 import { Divider, Text, useTheme } from "react-native-paper";
 
+import { useTranslation } from "@/core/i18n/locale-store";
 import {
   formatCompactCurrency,
   formatSignedCompactCurrency,
@@ -42,19 +43,24 @@ export function RealizedBalanceSheet({
   realized,
   currency,
 }: RealizedBalanceSheetProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const financial = useFinancialColors();
   const isPositive = realized.realizedBalance >= 0;
   const statusColor = isPositive ? financial.savings : financial.overBudget;
 
   return (
-    <Sheet isVisible={isVisible} onDismiss={onDismiss} title="Suivi du budget">
+    <Sheet
+      isVisible={isVisible}
+      onDismiss={onDismiss}
+      title={t("home.realized.title")}
+    >
       <View style={styles.balanceBlock}>
         <Text
           variant="bodyMedium"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          Solde à date
+          {t("home.realized.balanceToDate")}
         </Text>
         <Amount
           size="hero"
@@ -63,9 +69,11 @@ export function RealizedBalanceSheet({
           {formatSignedCompactCurrency(realized.realizedBalance, currency)}
         </Amount>
         <Text variant="bodySmall" style={{ color: statusColor }}>
-          {isPositive
-            ? "Tout va bien"
-            : "Solde négatif — on y remédie ensemble ?"}
+          {t(
+            isPositive
+              ? "home.realized.positiveStatus"
+              : "home.realized.negativeStatus",
+          )}
         </Text>
       </View>
 
@@ -73,7 +81,7 @@ export function RealizedBalanceSheet({
         style={[styles.card, { backgroundColor: theme.colors.surfaceVariant }]}
       >
         <View style={styles.row}>
-          <Text variant="labelLarge">Pointage</Text>
+          <Text variant="labelLarge">{t("home.realized.checking")}</Text>
           <Amount size="meta" style={{ color: statusColor }}>
             {`${realized.checkedItemsCount} / ${realized.totalItemsCount}`}
           </Amount>
@@ -86,12 +94,12 @@ export function RealizedBalanceSheet({
         />
       </View>
 
-      <Text variant="titleSmall">Prévu vs réalisé</Text>
+      <Text variant="titleSmall">{t("home.realized.plannedVsActual")}</Text>
       <View
         style={[styles.card, { backgroundColor: theme.colors.surfaceVariant }]}
       >
         <CategoryRow
-          label="Revenu"
+          label={t("home.realized.income")}
           realized={realized.realizedIncome}
           planned={metrics.totalIncome}
           color={financial.income}
@@ -100,7 +108,7 @@ export function RealizedBalanceSheet({
         />
         <Divider />
         <CategoryRow
-          label="Dépense"
+          label={t("home.realized.expense")}
           realized={realized.realizedSpending}
           planned={metrics.totalExpenses - metrics.totalSavings}
           color={financial.expense}
@@ -109,7 +117,7 @@ export function RealizedBalanceSheet({
         />
         <Divider />
         <CategoryRow
-          label="Épargne"
+          label={t("home.realized.savings")}
           realized={realized.realizedSavings}
           planned={metrics.totalSavings}
           color={financial.savings}
@@ -122,8 +130,7 @@ export function RealizedBalanceSheet({
         variant="bodySmall"
         style={{ color: theme.colors.onSurfaceVariant }}
       >
-        Compare ce solde avec ton compte bancaire. S&apos;il y a un écart,
-        vérifie que toutes tes dépenses sont bien pointées.
+        {t("home.realized.tip")}
       </Text>
     </Sheet>
   );

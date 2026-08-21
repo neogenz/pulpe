@@ -189,6 +189,24 @@
       "other": "%{count} jours avant la prochaine paie"
     },
     "prepareNextMonth": "Préparer le mois suivant",
+    "realized": {
+      "balanceToDate": "Solde à date",
+      "checking": "Pointage",
+      "expense": "Dépense",
+      "income": "Revenu",
+      "negativeStatus": "Solde négatif — on y remédie ensemble ?",
+      "plannedVsActual": "Prévu vs réalisé",
+      "positiveStatus": "Tout va bien",
+      "savings": "Épargne",
+      "tip": "Compare ce solde avec ton compte bancaire. S'il y a un écart, vérifie que toutes tes dépenses sont bien pointées.",
+      "title": "Suivi du budget"
+    },
+    "reminderPrime": {
+      "body": "Un rappel par mois pour pointer tes dépenses et voir ton disponible. C'est tout — jamais de spam, et tu coupes quand tu veux.",
+      "enable": "Activer les rappels",
+      "later": "Plus tard",
+      "title": "On te fait signe le jour de paie ?"
+    },
     "savingsDone": {
       "accessibility": "Épargne du mois versée, %{amount}",
       "hint": "Voir mes objectifs d'épargne",

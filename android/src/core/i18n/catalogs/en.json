@@ -192,6 +192,24 @@
       "other": "%{count} days until the next payday"
     },
     "prepareNextMonth": "Prepare next month",
+    "realized": {
+      "balanceToDate": "Balance to date",
+      "checking": "Checked off",
+      "expense": "Expenses",
+      "income": "Income",
+      "negativeStatus": "Negative balance — shall we work through it together?",
+      "plannedVsActual": "Planned vs actual",
+      "positiveStatus": "Everything looks good",
+      "savings": "Savings",
+      "tip": "Compare this balance with your bank account. If there is a difference, check that all your expenses are checked off.",
+      "title": "Budget tracking"
+    },
+    "reminderPrime": {
+      "body": "One reminder a month to check off your expenses and see what is available. That's all — no spam, and you can turn it off whenever you like.",
+      "enable": "Enable reminders",
+      "later": "Later",
+      "title": "Shall we remind you on payday?"
+    },
     "savingsDone": {
       "accessibility": "Monthly savings transferred, %{amount}",
       "hint": "View my savings goals",

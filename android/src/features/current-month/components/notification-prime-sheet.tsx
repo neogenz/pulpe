@@ -2,6 +2,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { StyleSheet, View } from "react-native";
 import { Button, Modal, Portal, Text, useTheme } from "react-native-paper";
 
+import { useTranslation } from "@/core/i18n/locale-store";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 
 /** An illustration, not an icon — deliberately off the `ICON_SIZE` ladder. */
@@ -23,6 +24,7 @@ export function NotificationPrimeSheet({
   onDismiss,
   onEnable,
 }: NotificationPrimeSheetProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   return (
@@ -35,29 +37,29 @@ export function NotificationPrimeSheet({
           { backgroundColor: theme.colors.surface },
         ]}
       >
-        <View style={styles.content}>
+        <View accessibilityViewIsModal style={styles.content}>
           <MaterialCommunityIcons
             name="bell-badge-outline"
             size={ILLUSTRATION_SIZE}
             color={theme.colors.primary}
+            accessible={false}
           />
           <Text variant="headlineSmall" style={styles.centered}>
-            On te fait signe le jour de paie ?
+            {t("home.reminderPrime.title")}
           </Text>
           <Text
             variant="bodyLarge"
             style={[styles.centered, { color: theme.colors.onSurfaceVariant }]}
           >
-            Un rappel par mois pour pointer tes dépenses et voir ton disponible.
-            C&apos;est tout — jamais de spam, et tu coupes quand tu veux.
+            {t("home.reminderPrime.body")}
           </Text>
 
           <View style={styles.actions}>
             <Button mode="contained" onPress={onEnable}>
-              Activer les rappels
+              {t("home.reminderPrime.enable")}
             </Button>
             <Button mode="text" onPress={onDismiss}>
-              Plus tard
+              {t("home.reminderPrime.later")}
             </Button>
           </View>
         </View>

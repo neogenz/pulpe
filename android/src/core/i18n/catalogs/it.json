@@ -192,6 +192,24 @@
       "other": "%{count} giorni al prossimo stipendio"
     },
     "prepareNextMonth": "Prepara il mese successivo",
+    "realized": {
+      "balanceToDate": "Saldo a oggi",
+      "checking": "Spunta",
+      "expense": "Spese",
+      "income": "Entrate",
+      "negativeStatus": "Saldo negativo — lo sistemiamo insieme?",
+      "plannedVsActual": "Previsto vs effettivo",
+      "positiveStatus": "Tutto procede bene",
+      "savings": "Risparmio",
+      "tip": "Confronta questo saldo con il tuo conto bancario. Se c'è una differenza, verifica di aver spuntato tutte le spese.",
+      "title": "Andamento del budget"
+    },
+    "reminderPrime": {
+      "body": "Un promemoria al mese per spuntare le spese e vedere quanto hai a disposizione. Nient'altro — niente spam e puoi disattivarlo quando vuoi.",
+      "enable": "Attiva i promemoria",
+      "later": "Più tardi",
+      "title": "Ti avvisiamo il giorno di paga?"
+    },
     "savingsDone": {
       "accessibility": "Risparmio mensile versato, %{amount}",
       "hint": "Vedi i miei obiettivi di risparmio",

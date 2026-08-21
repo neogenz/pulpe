@@ -192,6 +192,24 @@
       "other": "%{count} Tage bis zum nächsten Zahltag"
     },
     "prepareNextMonth": "Nächsten Monat vorbereiten",
+    "realized": {
+      "balanceToDate": "Aktueller Saldo",
+      "checking": "Abgleich",
+      "expense": "Ausgaben",
+      "income": "Einnahmen",
+      "negativeStatus": "Negativer Saldo — gehen wir ihn gemeinsam an?",
+      "plannedVsActual": "Geplant vs. tatsächlich",
+      "positiveStatus": "Alles im grünen Bereich",
+      "savings": "Sparen",
+      "tip": "Vergleiche diesen Saldo mit deinem Bankkonto. Bei einer Abweichung prüfe, ob alle Ausgaben abgeglichen sind.",
+      "title": "Budgetverlauf"
+    },
+    "reminderPrime": {
+      "body": "Eine Erinnerung pro Monat, um deine Ausgaben abzugleichen und deinen verfügbaren Betrag zu sehen. Mehr nicht — kein Spam, und du kannst sie jederzeit ausschalten.",
+      "enable": "Erinnerungen aktivieren",
+      "later": "Später",
+      "title": "Sollen wir dich am Zahltag erinnern?"
+    },
     "savingsDone": {
       "accessibility": "Monatliches Sparen überwiesen, %{amount}",
       "hint": "Meine Sparziele ansehen",
