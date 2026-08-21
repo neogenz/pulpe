@@ -35,6 +35,7 @@ const backendPackage = JSON.parse(read("backend-nest/package.json"));
 const ciGuide = read("docs/CI.md");
 const releaseSkill = read(".claude/skills/release/SKILL.md");
 const jstsRelease = read(".claude/skills/release/references/jsts-release.md");
+const iosRelease = read(".claude/skills/release/references/ios-release.md");
 const deploymentGuide = read("docs/DEPLOYMENT.md");
 const versioningGuide = read("docs/VERSIONING.md");
 const backendEnvironment = read("backend-nest/src/config/environment.ts");
@@ -234,7 +235,7 @@ test("release promotion writes only after a trusted immutable proof", () => {
   );
   assert.match(
     releasePromotion,
-    /actions\/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349/,
+    /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/,
   );
   assert.match(releasePromotion, /permissions:[\s\S]*pull-requests: read/);
   assert.doesNotMatch(releasePromotion, /pull-requests: write/);
@@ -478,7 +479,7 @@ test("production finalizer proves exact providers before idempotent publication"
   assert.match(productionFinalize, /api\/v1\/app\/version/);
   assert.match(
     publishJob,
-    /actions\/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349/,
+    /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/,
   );
   assert.match(publishJob, /git\/tags/);
   assert.match(
@@ -530,6 +531,40 @@ test("iOS distribution consumes staging or finalized production proofs", () => {
   assert.doesNotMatch(iosDistribution, /workflow=production\.yml/);
   assert.doesNotMatch(iosDistribution, /actions\/workflows\/ci\.yml\/runs/);
   assert.doesNotMatch(iosDistribution, /gh run download/);
+});
+
+test("internal production-config builds stay bound to preview staging proof", () => {
+  assert.match(iosDistribution, /options:\n\s+- internal\n\s+- release/);
+  assert.match(
+    iosDistribution,
+    /internal\)\n\s+expected_branch="preview"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
+  );
+  assert.match(
+    iosDistribution,
+    /release\)\n\s+expected_branch="main"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
+  );
+  assert.match(
+    iosDistribution,
+    /internal\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow staging-proof\.yml/,
+  );
+  assert.match(
+    iosDistribution,
+    /release\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow production-finalize\.yml/,
+  );
+  assert.match(
+    iosDistribution,
+    /if \[ "\$CHANNEL" != "release" \] && \[ "\$BUILD_NUMBER" -lt "\$project_build" \]/,
+  );
+  assert.doesNotMatch(
+    iosDistribution,
+    /internal-prod|PulpePreview|configuration="Preview"/,
+  );
+  assert.match(
+    iosRelease,
+    /internal.*preview.*PulpeProd.*Prod.*highest existing build \+ 1/,
+  );
+  assert.doesNotMatch(iosRelease, /PulpePreview|archive .*Preview/);
+  assert.doesNotMatch(iosDistribution, /--submit|MVP/);
 });
 
 test("iOS distribution resumes the exact App Store build idempotently", () => {

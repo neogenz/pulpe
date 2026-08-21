@@ -65,8 +65,8 @@ jobs:
           case "$CHANNEL" in
             internal)
               expected_branch="preview"
-              scheme="PulpePreview"
-              configuration="Preview"
+              scheme="PulpeProd"
+              configuration="Prod"
               ;;
             release)
               expected_branch="main"
@@ -145,7 +145,7 @@ jobs:
             echo "::error::Release build $BUILD_NUMBER is not recorded in project.yml (found $project_build)"
             exit 1
           fi
-          if [ "$CHANNEL" = "internal" ] && [ "$BUILD_NUMBER" -lt "$project_build" ]; then
+          if [ "$CHANNEL" != "release" ] && [ "$BUILD_NUMBER" -lt "$project_build" ]; then
             echo "::error::Internal build $BUILD_NUMBER must be at least project.yml build $project_build"
             exit 1
           fi
@@ -161,25 +161,28 @@ jobs:
           EXPECTED_BRANCH: ${{ steps.release.outputs.branch }}
         run: |
           set -euo pipefail
-          if [ "$CHANNEL" = internal ]; then
-            node ../.github/scripts/resolve-workflow-proof.mjs \
-              --workflow staging-proof.yml \
-              --event deployment_status \
-              --branch "$EXPECTED_BRANCH" \
-              --sha "$SOURCE_SHA" \
-              --job "✅ Staging Ready (shadow)" \
-              --artifact-template "staging-proof-{sha}-run-{run_id}-attempt-{attempt}" \
-              >/dev/null
-          else
-            node ../.github/scripts/resolve-workflow-proof.mjs \
-              --workflow production-finalize.yml \
-              --event deployment_status \
-              --branch "$EXPECTED_BRANCH" \
-              --sha "$SOURCE_SHA" \
-              --job "✅ Publish proven production" \
-              --artifact-template "production-proof-{sha}-run-{run_id}-attempt-{attempt}" \
-              >/dev/null
-          fi
+          case "$CHANNEL" in
+            internal)
+              node ../.github/scripts/resolve-workflow-proof.mjs \
+                --workflow staging-proof.yml \
+                --event deployment_status \
+                --branch "$EXPECTED_BRANCH" \
+                --sha "$SOURCE_SHA" \
+                --job "✅ Staging Ready (shadow)" \
+                --artifact-template "staging-proof-{sha}-run-{run_id}-attempt-{attempt}" \
+                >/dev/null
+              ;;
+            release)
+              node ../.github/scripts/resolve-workflow-proof.mjs \
+                --workflow production-finalize.yml \
+                --event deployment_status \
+                --branch "$EXPECTED_BRANCH" \
+                --sha "$SOURCE_SHA" \
+                --job "✅ Publish proven production" \
+                --artifact-template "production-proof-{sha}-run-{run_id}-attempt-{attempt}" \
+                >/dev/null
+              ;;
+          esac
 
       - name: Prepare App Store status credential
         env:
