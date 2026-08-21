@@ -541,7 +541,15 @@ test("internal production-config builds stay bound to preview staging proof", ()
   );
   assert.match(
     iosDistribution,
-    /internal\)[\s\S]*--workflow staging-proof\.yml/,
+    /release\)\n\s+expected_branch="main"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
+  );
+  assert.match(
+    iosDistribution,
+    /internal\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow staging-proof\.yml/,
+  );
+  assert.match(
+    iosDistribution,
+    /release\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow production-finalize\.yml/,
   );
   assert.match(
     iosDistribution,
