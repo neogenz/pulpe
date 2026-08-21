@@ -71,6 +71,31 @@
     "retry": "Riprova",
     "signOut": "Esci"
   },
+  "main": {
+    "handoff": {
+      "future": {
+        "description": "I tuoi prossimi tredici budget sono stati creati: puoi modificarne uno qualsiasi in anticipo.",
+        "title": "I mesi successivi sono già pronti"
+      },
+      "intro": "Manca solo un'abitudine da prendere, e basta un gesto.",
+      "point": {
+        "description": "Affitto pagato, spesa fatta: segnalo e l'importo disponibile si aggiorna.",
+        "title": "Segna ciò che è avvenuto"
+      },
+      "review": {
+        "description": "Bastano due minuti. Per il resto del tempo, Pulpe aspetta.",
+        "title": "Controlla una volta a settimana"
+      },
+      "start": "Inizia",
+      "title": "Il tuo budget è pronto"
+    },
+    "tabs": {
+      "budgets": { "accessibility": "Scheda Budget", "short": "Budget" },
+      "goals": { "accessibility": "Scheda Obiettivi", "short": "Obiettivi" },
+      "home": { "accessibility": "Scheda Home", "short": "Home" },
+      "templates": { "accessibility": "Scheda Modelli", "short": "Modelli" }
+    }
+  },
   "onboarding": {
     "back": "Torna al passaggio precedente",
     "progress": "Passaggio %{current} di %{total}",

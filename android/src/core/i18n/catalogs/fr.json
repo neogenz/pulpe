@@ -71,6 +71,31 @@
     "retry": "Réessayer",
     "signOut": "Se déconnecter"
   },
+  "main": {
+    "handoff": {
+      "future": {
+        "description": "Tes treize prochains budgets sont créés — tu peux ajuster n'importe lequel à l'avance.",
+        "title": "Les mois suivants existent déjà"
+      },
+      "intro": "Il reste une habitude à prendre, et elle tient en un geste.",
+      "point": {
+        "description": "Un loyer payé, une course faite : tu le pointes, et le montant disponible se met à jour.",
+        "title": "Pointe ce qui est arrivé"
+      },
+      "review": {
+        "description": "Deux minutes suffisent. Le reste du temps, Pulpe attend.",
+        "title": "Regarde une fois par semaine"
+      },
+      "start": "Commencer",
+      "title": "Ton budget est prêt"
+    },
+    "tabs": {
+      "budgets": { "accessibility": "Onglet Budgets", "short": "Budgets" },
+      "goals": { "accessibility": "Onglet Objectifs", "short": "Objectifs" },
+      "home": { "accessibility": "Onglet Accueil", "short": "Accueil" },
+      "templates": { "accessibility": "Onglet Modèles", "short": "Modèles" }
+    }
+  },
   "onboarding": {
     "back": "Revenir à l'étape précédente",
     "progress": "Étape %{current} sur %{total}",

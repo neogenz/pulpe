@@ -5,6 +5,7 @@ import { Button, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { acknowledgeHandoff } from "@/features/onboarding/onboarding-store";
 
 /**
@@ -15,6 +16,7 @@ import { acknowledgeHandoff } from "@/features/onboarding/onboarding-store";
 export default function PostOnboardingScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { t } = useTranslation();
 
   function enterApp() {
     acknowledgeHandoff();
@@ -30,36 +32,36 @@ export default function PostOnboardingScreen() {
 
       <View style={styles.body}>
         <View style={styles.intro}>
-          <Text variant="headlineMedium">Ton budget est prêt</Text>
+          <Text variant="headlineMedium">{t("main.handoff.title")}</Text>
           <Text
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Il reste une habitude à prendre, et elle tient en un geste.
+            {t("main.handoff.intro")}
           </Text>
         </View>
 
         <View style={styles.steps}>
           <RitualStep
             icon="checkbox-marked-circle-outline"
-            title="Pointe ce qui est arrivé"
-            description="Un loyer payé, une course faite : tu le pointes, et le montant disponible se met à jour."
+            title={t("main.handoff.point.title")}
+            description={t("main.handoff.point.description")}
           />
           <RitualStep
             icon="eye-outline"
-            title="Regarde une fois par semaine"
-            description="Deux minutes suffisent. Le reste du temps, Pulpe attend."
+            title={t("main.handoff.review.title")}
+            description={t("main.handoff.review.description")}
           />
           <RitualStep
             icon="calendar-month-outline"
-            title="Les mois suivants existent déjà"
-            description="Tes treize prochains budgets sont créés — tu peux ajuster n'importe lequel à l'avance."
+            title={t("main.handoff.future.title")}
+            description={t("main.handoff.future.description")}
           />
         </View>
       </View>
 
       <Button mode="contained" onPress={enterApp}>
-        Commencer
+        {t("main.handoff.start")}
       </Button>
     </SafeAreaView>
   );
@@ -107,7 +109,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, padding: SPACING.lg, gap: SPACING.xl },
   /**
    * The slack belongs above the button, not below it: centring the whole screen
-   * left "Commencer" floating a third of the way up with nothing under it.
+   * left the primary action floating a third of the way up with nothing under it.
    */
   body: { flex: 1, justifyContent: "center", gap: SPACING.xl },
   intro: { gap: SPACING.xs },

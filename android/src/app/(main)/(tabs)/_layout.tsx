@@ -3,6 +3,7 @@ import { Tabs } from "expo-router";
 import { useTheme } from "react-native-paper";
 
 import { ICON_SIZE } from "@/core/ui/theme";
+import { useTranslation } from "@/core/i18n/locale-store";
 
 /**
  * The four top-level destinations, and nothing else. Every other screen is a
@@ -12,6 +13,7 @@ import { ICON_SIZE } from "@/core/ui/theme";
  */
 export default function TabsLayout() {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Tabs
@@ -32,7 +34,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Accueil",
+          title: t("main.tabs.home.short"),
+          tabBarAccessibilityLabel: t("main.tabs.home.accessibility"),
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="home-variant-outline"
@@ -45,7 +48,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="budgets"
         options={{
-          title: "Budgets",
+          title: t("main.tabs.budgets.short"),
+          tabBarAccessibilityLabel: t("main.tabs.budgets.accessibility"),
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="calendar-month-outline"
@@ -58,7 +62,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="goals"
         options={{
-          title: "Objectifs",
+          title: t("main.tabs.goals.short"),
+          tabBarAccessibilityLabel: t("main.tabs.goals.accessibility"),
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="target"
@@ -71,7 +76,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="templates"
         options={{
-          title: "Modèles",
+          title: t("main.tabs.templates.short"),
+          tabBarAccessibilityLabel: t("main.tabs.templates.accessibility"),
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="file-document-outline"

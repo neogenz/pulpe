@@ -71,6 +71,31 @@
     "retry": "Try again",
     "signOut": "Sign out"
   },
+  "main": {
+    "handoff": {
+      "future": {
+        "description": "Your next thirteen budgets have been created — you can adjust any of them in advance.",
+        "title": "The next months are already there"
+      },
+      "intro": "There is one habit left to build, and it takes just one gesture.",
+      "point": {
+        "description": "Rent paid, groceries bought: check it off and your available amount updates.",
+        "title": "Check off what happened"
+      },
+      "review": {
+        "description": "Two minutes is enough. The rest of the time, Pulpe waits.",
+        "title": "Take a look once a week"
+      },
+      "start": "Get started",
+      "title": "Your budget is ready"
+    },
+    "tabs": {
+      "budgets": { "accessibility": "Budgets tab", "short": "Budgets" },
+      "goals": { "accessibility": "Goals tab", "short": "Goals" },
+      "home": { "accessibility": "Home tab", "short": "Home" },
+      "templates": { "accessibility": "Templates tab", "short": "Templates" }
+    }
+  },
   "onboarding": {
     "back": "Go back to the previous step",
     "progress": "Step %{current} of %{total}",

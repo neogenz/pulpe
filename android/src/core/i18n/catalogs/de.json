@@ -71,6 +71,31 @@
     "retry": "Erneut versuchen",
     "signOut": "Abmelden"
   },
+  "main": {
+    "handoff": {
+      "future": {
+        "description": "Deine nächsten dreizehn Budgets sind erstellt – du kannst jedes davon im Voraus anpassen.",
+        "title": "Die nächsten Monate sind schon da"
+      },
+      "intro": "Jetzt fehlt nur noch eine Gewohnheit – und dafür reicht eine Geste.",
+      "point": {
+        "description": "Miete bezahlt, Einkauf erledigt: Hake es ab, und der verfügbare Betrag wird aktualisiert.",
+        "title": "Abhaken, was passiert ist"
+      },
+      "review": {
+        "description": "Zwei Minuten genügen. Den Rest der Zeit wartet Pulpe.",
+        "title": "Einmal pro Woche nachsehen"
+      },
+      "start": "Loslegen",
+      "title": "Dein Budget ist bereit"
+    },
+    "tabs": {
+      "budgets": { "accessibility": "Tab Budgets", "short": "Budgets" },
+      "goals": { "accessibility": "Tab Ziele", "short": "Ziele" },
+      "home": { "accessibility": "Tab Start", "short": "Start" },
+      "templates": { "accessibility": "Tab Vorlagen", "short": "Vorlagen" }
+    }
+  },
   "onboarding": {
     "back": "Zum vorherigen Schritt zurückkehren",
     "progress": "Schritt %{current} von %{total}",
