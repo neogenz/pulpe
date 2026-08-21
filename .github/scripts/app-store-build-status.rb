@@ -91,10 +91,11 @@ class AppStoreMarketingVersionStatus
     attributes = version["attributes"]
     complete = version["type"] == "appStoreVersions" && version["id"].is_a?(String) && !version["id"].empty? &&
       attributes.is_a?(Hash) && attributes["platform"] == "IOS" && attributes["versionString"] == marketing_version &&
-      attributes["appStoreState"].is_a?(String)
+      attributes["appStoreState"].is_a?(String) && attributes["appVersionState"].is_a?(String)
     return "invalid" unless complete
     return "closed" if attributes["appStoreState"] == "READY_FOR_SALE" || attributes["appVersionState"] == "READY_FOR_DISTRIBUTION"
-    "open"
+    return "open" if attributes["appStoreState"] == "PREPARE_FOR_SUBMISSION" && attributes["appVersionState"] == "PREPARE_FOR_SUBMISSION"
+    "invalid"
   end
 end
 module AppStoreToken

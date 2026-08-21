@@ -83,7 +83,7 @@ class AppStoreMarketingVersionStatusTest < Minitest::Test
   def status(versions) = AppStoreMarketingVersionStatus.new(FakeApi.new(versions: versions)).call("app.pulpe.ios", "1.4.2")
   def test_open_when_version_is_absent_or_editable
     assert_equal "open", status([])
-    assert_equal "open", status([version(store_state: "PREPARE_FOR_SUBMISSION")])
+    assert_equal "open", status([version(store_state: "PREPARE_FOR_SUBMISSION", version_state: "PREPARE_FOR_SUBMISSION")])
   end
   def test_uses_the_official_app_versions_relationship_and_filters
     api = FakeApi.new(versions: [])
@@ -96,8 +96,10 @@ class AppStoreMarketingVersionStatusTest < Minitest::Test
   def test_closed_when_version_is_already_distributed
     assert_equal "closed", status([version(store_state: "READY_FOR_SALE", version_state: "READY_FOR_DISTRIBUTION")])
   end
-  def test_malformed_or_duplicate_versions_fail_closed
+  def test_malformed_duplicate_or_unknown_versions_fail_closed
     assert_equal "invalid", status([version(store_state: "READY_FOR_SALE"), version(store_state: "READY_FOR_SALE").merge("id" => "other")])
     assert_equal "invalid", status([version(store_state: "READY_FOR_SALE").tap { |item| item.delete("id") }])
+    assert_equal "invalid", status([version(store_state: "UNKNOWN", version_state: "UNKNOWN")])
+    assert_equal "invalid", status([version(store_state: "PREPARE_FOR_SUBMISSION")])
   end
 end
