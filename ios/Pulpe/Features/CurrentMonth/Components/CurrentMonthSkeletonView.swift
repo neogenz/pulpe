@@ -3,7 +3,7 @@ import SwiftUI
 /// Loading state for the dashboard. Its regions deliberately follow the loaded
 /// screen so the transition keeps the same visual anchors.
 struct CurrentMonthSkeletonView: View {
-    /// Reports the hero zone's bottom edge in screen space so the dashboard mint
+    /// Reports the hero zone's bottom edge in screen space so the dashboard surface
     /// tracker can stop the surface at the same place while loading as once loaded.
     var onHeroSurfaceBottomChange: (CGFloat) -> Void = { _ in }
 
@@ -31,6 +31,8 @@ struct CurrentMonthSkeletonView: View {
     /// already on screen while this loads.
     private var heroZone: some View {
         CurrentMonthHeroSkeleton()
+        // Placeholders on the forest: the canvas tint would vanish into it.
+        .environment(\.skeletonTint, Color.heroTile)
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.xxl)
@@ -152,6 +154,8 @@ struct CurrentMonthSkeletonView: View {
 }
 
 private struct CurrentMonthHeroSkeleton: View {
+    @Environment(\.skeletonTint) private var skeletonTint
+
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             VStack(spacing: DesignTokens.Spacing.xs) {
@@ -205,7 +209,7 @@ private struct CurrentMonthHeroSkeleton: View {
                     path.addLine(to: CGPoint(x: width, y: height * 2 / 3))
                 }
                 .stroke(
-                    Color.skeletonPlaceholder,
+                    skeletonTint,
                     style: StrokeStyle(
                         lineWidth: DesignTokens.BorderWidth.thin,
                         dash: DesignTokens.Chart.markerDash
@@ -221,7 +225,7 @@ private struct CurrentMonthHeroSkeleton: View {
                     )
                 }
                 .stroke(
-                    Color.skeletonPlaceholder,
+                    skeletonTint,
                     style: StrokeStyle(
                         lineWidth: DesignTokens.BorderWidth.thick,
                         lineCap: .round,
@@ -236,7 +240,7 @@ private struct CurrentMonthHeroSkeleton: View {
                     path.addLine(to: CGPoint(x: width, y: height * 2 / 3))
                 }
                 .stroke(
-                    Color.skeletonPlaceholder,
+                    skeletonTint,
                     style: StrokeStyle(
                         lineWidth: DesignTokens.BorderWidth.thick,
                         lineCap: .round,

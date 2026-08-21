@@ -381,20 +381,19 @@ struct UncheckedOperationsCard: View {
             // button so the choice stays explicit and reachable without the gesture.
             advance(after: item)
         } label: {
-            // A bounded shape, not bare grey text. Two boxes of one size read as the two
-            // terms of a choice; text alone at the far end of a row read as a caption that
-            // happened to be right-aligned. `.muted` gives it a fill of its own — `.outlined`
-            // draws a hairline meant for `appBackground`, which a card of the same
-            // `surfaceContainerLowest` tone swallows at 1,00:1.
-            PulpeChip(
-                label: AppLocale.string("Plus tard"),
-                style: .muted,
-                // Dead with one card left (nothing to turn to) or during the "Pointé" beat
-                // (guard already ignores taps); without the visual disable it looks live.
-                isDisabled: confirmingId != nil || displayItems.count <= 1
-            )
+            // A text link beside the one capsule: the card keeps a single chip family,
+            // and the affirmative is the only bounded shape.
+            Text("Plus tard")
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textSecondary)
+                .padding(.horizontal, DesignTokens.Spacing.md)
         }
-        .plainPressedButtonStyle()
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Rectangle())
+        .textLinkButtonStyle()
+        // Dead with one card left (nothing to turn to) or during the "Pointé" beat
+        // (guard already ignores taps); without the visual disable it looks live.
+        .opacity(confirmingId != nil || displayItems.count <= 1 ? DesignTokens.Opacity.disabled : 1)
         .disabled(confirmingId != nil || displayItems.count <= 1)
         .accessibilityLabel("Plus tard pour \(item.name)")
     }

@@ -7,7 +7,7 @@ import Testing
 /// in `BalanceTrajectoryTests`.
 struct HomeHeroCardTests {
     @Test func estimateComparison_keepsSignedMeaning() {
-        let state = HomeHeroCard.PresentationState(
+        let state = HeroVerdictPresentation(
             plannedBalance: 450,
             estimatedBalance: 800
         )
@@ -17,7 +17,7 @@ struct HomeHeroCardTests {
         #expect(state.verdict == .gain)
         #expect(state.tone == .favorable)
 
-        let onPlan = HomeHeroCard.PresentationState(
+        let onPlan = HeroVerdictPresentation(
             plannedBalance: 450,
             estimatedBalance: 450
         )
@@ -26,12 +26,12 @@ struct HomeHeroCardTests {
     }
 
     @Test func estimateComparison_usesCentPrecision() {
-        let dust = HomeHeroCard.PresentationState(plannedBalance: 58.50, estimatedBalance: 58.504)
+        let dust = HeroVerdictPresentation(plannedBalance: 58.50, estimatedBalance: 58.504)
         #expect(dust.estimatedBalance == 58.50)
         #expect(dust.variance == 0)
         #expect(dust.verdict == .onPlan)
 
-        let cent = HomeHeroCard.PresentationState(plannedBalance: 58.50, estimatedBalance: 58.49)
+        let cent = HeroVerdictPresentation(plannedBalance: 58.50, estimatedBalance: 58.49)
         #expect(cent.variance == -0.01)
         #expect(cent.verdict == .overrun)
         #expect(cent.varianceText(for: .chf) == "-0.01 CHF")
@@ -42,29 +42,29 @@ struct HomeHeroCardTests {
         // `DriftCard` gates its "compensé ailleurs ce mois" clause on this: without the
         // on-plan case it says "200 CHF au-delà du plan" flat while the hero says
         // "Tu es pile sur ton plan" — two claims that contradict each other.
-        let onPlan = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 450)
+        let onPlan = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 450)
         #expect(onPlan.verdict == .onPlan)
         #expect(onPlan.absorbsEnvelopeOverrun)
 
-        let gain = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 800)
+        let gain = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 800)
         #expect(gain.absorbsEnvelopeOverrun)
 
         // The one month that genuinely leaves the excess uncovered.
-        let overrun = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 300)
+        let overrun = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 300)
         #expect(!overrun.absorbsEnvelopeOverrun)
     }
 
     @Test func verdictSentence_datesTheDayTheMonthLeftItsPlan() throws {
         // The plot draws the gap and the metric beside it prints the figure. The one thing
         // neither can say is *when* it opened, so that is all the sentence is for.
-        let below = HomeHeroCard.PresentationState(
+        let below = HeroVerdictPresentation(
             plannedBalance: 2_500,
             estimatedBalance: 1_800,
             driftDate: try date(year: 2026, month: 7, day: 6)
         )
         #expect(below.verdictText == "Sous ton plan depuis le 6 juillet.")
 
-        let above = HomeHeroCard.PresentationState(
+        let above = HeroVerdictPresentation(
             plannedBalance: 2_500,
             estimatedBalance: 2_900,
             driftDate: try date(year: 2026, month: 7, day: 6)
@@ -72,7 +72,7 @@ struct HomeHeroCardTests {
         #expect(above.verdictText == "Au-dessus de ton plan depuis le 6 juillet.")
 
         // "le 1 août" reads as a typo in a sentence; French declines this one day.
-        let firstOfMonth = HomeHeroCard.PresentationState(
+        let firstOfMonth = HeroVerdictPresentation(
             plannedBalance: 2_500,
             estimatedBalance: 1_800,
             driftDate: try date(year: 2026, month: 8, day: 1)
@@ -82,12 +82,12 @@ struct HomeHeroCardTests {
         // Where a new account lands right after onboarding: lines exist, nothing spent, so
         // the forecast still sits on the plan it opened on. That is a fact about the month,
         // not a compliment paid for a comparison nobody has made.
-        let fresh = HomeHeroCard.PresentationState(plannedBalance: 2_500, estimatedBalance: 2_500)
+        let fresh = HeroVerdictPresentation(plannedBalance: 2_500, estimatedBalance: 2_500)
         #expect(fresh.verdict == .onPlan)
         #expect(fresh.verdictText == "Tu es pile sur ton plan.")
 
         // No plot to date the departure from: the sentence drops the clause, not the verdict.
-        let undated = HomeHeroCard.PresentationState(plannedBalance: 2_500, estimatedBalance: 1_800)
+        let undated = HeroVerdictPresentation(plannedBalance: 2_500, estimatedBalance: 1_800)
         #expect(undated.verdictText == "Il te reste moins que prévu.")
     }
 
@@ -95,18 +95,18 @@ struct HomeHeroCardTests {
         // "vs prévu" shares its row with "à pointer", which is a count of operations. With
         // no unit the two are the same figure in the same type, and the money one is the
         // one that becomes unreadable.
-        let onPlan = HomeHeroCard.PresentationState(plannedBalance: 2_500, estimatedBalance: 2_500)
+        let onPlan = HeroVerdictPresentation(plannedBalance: 2_500, estimatedBalance: 2_500)
         #expect(onPlan.varianceText(for: .chf) == "0 CHF")
 
-        let gain = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 800)
+        let gain = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 800)
         #expect(gain.varianceText(for: .chf) == "+350 CHF")
 
-        let overrun = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 300)
+        let overrun = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 300)
         #expect(overrun.varianceText(for: .eur) == "-150 €")
     }
 
     @Test func deficitAcrossZero_isOverrunAndDeficit() {
-        let state = HomeHeroCard.PresentationState(
+        let state = HeroVerdictPresentation(
             plannedBalance: 450,
             estimatedBalance: -3000
         )
@@ -180,7 +180,7 @@ struct HomeHeroCardTests {
     }
 
     @Test func hiddenAmounts_accessibilityDescriptionContainsNoFinancialValue() {
-        let state = HomeHeroCard.PresentationState(
+        let state = HeroVerdictPresentation(
             plannedBalance: 450,
             estimatedBalance: -3000
         )
@@ -205,13 +205,13 @@ struct HomeHeroCardTests {
     }
 
     @Test func accessibilityDescription_explainsComparisonInEverydayFrench() throws {
-        let gain = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 800)
-        let overrun = HomeHeroCard.PresentationState(
+        let gain = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 800)
+        let overrun = HeroVerdictPresentation(
             plannedBalance: 450,
             estimatedBalance: 300,
             driftDate: try date(year: 2026, month: 7, day: 6)
         )
-        let onPlan = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 450)
+        let onPlan = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 450)
 
         #expect(gain.accessibilityDescription(
             monthName: "juillet",
@@ -247,14 +247,14 @@ struct HomeHeroCardTests {
         )
         let backgroundSource = try String(
             contentsOf: iosRoot.appending(
-                path: "Pulpe/Features/CurrentMonth/Components/HomeHeroSurfaceBackground.swift"
+                path: "Pulpe/Shared/Components/HeroZone/HeroZoneSurface.swift"
             ),
             encoding: .utf8
         )
 
         #expect(viewSource.contains(".background { dashboardBackground.ignoresSafeArea() }"))
         #expect(!viewSource.contains(".background(Color.homeBackground)"))
-        #expect(viewSource.contains("HomeHeroSurfaceBackground(tracker:"))
+        #expect(viewSource.contains("HeroZoneSurface(tracker:"))
         #expect(!viewSource.contains("LinearGradient("))
         #expect(backgroundSource.components(separatedBy: "LinearGradient(").count == 2)
     }

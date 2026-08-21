@@ -16,7 +16,7 @@ extension HomeHeroCard {
                 // its value: a named horizontal with no number is a line the reader has to
                 // take on faith, and the gap below is measured from it.
                 RuleMark(y: .value("Prévu", Self.decimalValue(trajectory.plannedBalance)))
-                    .foregroundStyle(Color.homeHeroSupport)
+                    .foregroundStyle(Color.heroInk.opacity(DesignTokens.Opacity.heroInkMuted))
                     .lineStyle(StrokeStyle(
                         lineWidth: DesignTokens.BorderWidth.thin,
                         dash: DesignTokens.Chart.markerDash
@@ -41,9 +41,28 @@ extension HomeHeroCard {
                             Text(trajectory.plannedBalance.asAdaptiveCurrency(currency))
                         }
                         .font(PulpeTypography.caption2)
-                        .foregroundStyle(Color.homeHeroSupport)
+                        .foregroundStyle(Color.heroInkSecondary)
                         .lineLimit(1)
                     }
+
+                // The area under the tracked series: translucent mint fading to nothing,
+                // the only fill on the plot. A flat month has no gap to shade.
+                ForEach(trajectory.drift.rounded(2) == 0 ? [] : trajectory.landing) { point in
+                    AreaMark(
+                        x: .value("Jour", point.day),
+                        yStart: .value("Plancher", Self.chartYDomain(for: trajectory).lowerBound),
+                        yEnd: .value("Atterrissage prévu", Self.decimalValue(point.balance)),
+                        series: .value("Série", "Aire")
+                    )
+                    .interpolationMethod(.monotone)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.heroInkSecondary.opacity(DesignTokens.Opacity.heroArea), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                }
 
                 ForEach(trajectory.landing) { point in
                     LineMark(
@@ -53,11 +72,11 @@ extension HomeHeroCard {
                     )
                     .interpolationMethod(.monotone)
                     .lineStyle(StrokeStyle(
-                        lineWidth: DesignTokens.BorderWidth.thick,
+                        lineWidth: DesignTokens.BorderWidth.chartLine,
                         lineCap: .round,
                         lineJoin: .round
                     ))
-                    .foregroundStyle(accentColor)
+                    .foregroundStyle(Color.heroInkSecondary)
                 }
 
                 // Nothing is known about the days not yet lived, so the forecast holds its
@@ -74,7 +93,7 @@ extension HomeHeroCard {
                         lineCap: .round,
                         dash: DesignTokens.Chart.dash
                     ))
-                    .foregroundStyle(accentColor.opacity(DesignTokens.Opacity.heroInkMuted))
+                    .foregroundStyle(Color.heroInk.opacity(DesignTokens.Opacity.heroInkMuted))
                 }
 
                 // The subtraction, drawn: plan at the top of the stroke, forecast at the
@@ -99,10 +118,10 @@ extension HomeHeroCard {
                         y: .value("Atterrissage prévu", Self.decimalValue(current.balance))
                     )
                     .symbolSize(DesignTokens.Chart.pointSymbolArea)
-                    .foregroundStyle(Color.homeHeroOverlay)
+                    .foregroundStyle(Color.heroInk)
                     .annotation(position: .overlay) {
                         Circle()
-                            .strokeBorder(accentColor, lineWidth: DesignTokens.BorderWidth.thick)
+                            .strokeBorder(Color.heroSurface, lineWidth: DesignTokens.BorderWidth.thick)
                             .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
                     }
                     // One label on this anchor, never two: the gap when there is room to
@@ -120,7 +139,7 @@ extension HomeHeroCard {
                             .foregroundStyle(
                                 Self.showsGapLabel(for: trajectory)
                                     ? accentColor
-                                    : Color.homeHeroSupport
+                                    : Color.heroInkSecondary
                             )
                             .lineLimit(1)
                     }

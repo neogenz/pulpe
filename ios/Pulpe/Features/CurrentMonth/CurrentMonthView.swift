@@ -19,8 +19,8 @@ struct CurrentMonthView: View {
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
-    /// Screen-space bottom edge of the hero, owned here and read only by the mint layer.
-    @State private var heroSurfaceTracker = HomeHeroSurfaceTracker()
+    /// Screen-space bottom edge of the hero, owned here and read only by the surface layer.
+    @State private var heroSurfaceTracker = HeroZoneTracker()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var animationPhase: Int {
@@ -43,7 +43,7 @@ struct CurrentMonthView: View {
     /// Same verdict the hero renders — `DriftCard`'s subtitle reads off this instead of
     /// re-deriving the planned/estimated subtraction on its own.
     private var overrunIsAbsorbed: Bool {
-        HomeHeroCard.PresentationState(
+        HeroVerdictPresentation(
             plannedBalance: store.plannedRemaining,
             estimatedBalance: store.metrics.remaining
         ).absorbsEnvelopeOverrun
@@ -84,6 +84,10 @@ struct CurrentMonthView: View {
             }
         }
         .background { dashboardBackground.ignoresSafeArea() }
+        // The hero runs under the navigation bar: its title and avatar go to light ink
+        // while the forest is painted, and back to the default on a flat canvas.
+        .toolbarColorScheme(paintsHeroSurface ? .dark : nil, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .trackScreen("Dashboard")
         .animation(DesignTokens.Animation.smoothEaseOut, value: animationPhase)
         .navigationTitle(currentMonthName.capitalized)
@@ -336,15 +340,21 @@ struct CurrentMonthView: View {
 // type-length budget while still reaching the view's `private` state (same-file
 // access), rather than loosening encapsulation to move it to another file.
 extension CurrentMonthView {
-    /// Failed and empty keep a flat canvas. Loaded and skeleton paint the mint through
-    /// `HomeHeroSurfaceBackground`, which is the only reader of `tracker.height`.
+    /// Failed and empty keep a flat canvas. Loaded and skeleton paint the forest through
+    /// `HeroZoneSurface`, which is the only reader of `tracker.height`.
     @ViewBuilder
     fileprivate var dashboardBackground: some View {
-        switch store.contentState {
-        case .idle, .loading, .loaded:
-            HomeHeroSurfaceBackground(tracker: heroSurfaceTracker)
-        case .failed, .empty:
+        if paintsHeroSurface {
+            HeroZoneSurface(tracker: heroSurfaceTracker)
+        } else {
             Color.appBackground
+        }
+    }
+
+    fileprivate var paintsHeroSurface: Bool {
+        switch store.contentState {
+        case .idle, .loading, .loaded: true
+        case .failed, .empty: false
         }
     }
 

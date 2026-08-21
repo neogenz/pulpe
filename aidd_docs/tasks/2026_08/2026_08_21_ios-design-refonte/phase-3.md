@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: hero de référence sur l'accueil, `HeroZone` partagé

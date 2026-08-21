@@ -388,26 +388,12 @@ extension Color {
     /// Deficit (Sunset Coral): warm peach → neutral warm
     static let dashboardGradientDeficit = Color(light: Color(hex: 0xFADCD0), dark: Color(hex: 0x201008))
 
-    // MARK: - Home Dashboard (Tour 11 — sage canvas + mint hero card)
+    // MARK: - Home Dashboard
 
-    // The home canvas is `appBackground`, like every other screen. It had its own
-    // near-white tone while the ledger was flat and had nothing to lift off the page;
-    // with the rows back on cards, a canvas a hair off white is a canvas with no cards.
-    /// Mint hero card surface — identical across emotion states.
-    static let homeHeroSurface = Color(light: Color(hex: 0xCFE8D6), dark: Color(hex: 0x1D3A28))
-    /// Top stop of the mint hero card's material gradient — a hair lighter than the base
-    /// so the surface catches light from above. State-independent; the brand stays calm.
-    static let homeHeroSurfaceTop = Color(light: Color(hex: 0xDCEFE2), dark: Color(hex: 0x244A34))
-    /// Deep-green ink for primary text and progress fill on the mint hero card.
-    static let homeHeroInk = Color(light: Color(hex: 0x0E3A1C), dark: Color(hex: 0xD5ECDC))
-    /// Supporting text on the mint hero card.
-    static let homeHeroSupport = Color(light: Color(hex: 0x2C5136), dark: Color(hex: 0x9FC3AA))
-    /// Solid overlay surface on the mint hero card (state chip fill + progress track).
-    static let homeHeroOverlay = Color(light: Color(hex: 0xF3F9F5), dark: Color(hex: 0x2C4A37))
     /// Envelope drift accent — overrun amounts + overflow bar segments on the home dashboard only.
-    /// Light value set against the mint hero surface, where it must clear 4.5:1.
+    /// Light value set against a card surface, where it must clear 4.5:1.
     static let driftAccent = Color(light: Color(hex: 0xAA4522), dark: Color(hex: 0xE8825A))
-    /// Cast by the mint hero surface onto the content zone below it. In light mode the two
+    /// Cast by the hero surface onto the content zone below it. In light mode the two
     /// zones are close in value and would otherwise read as one flat plane, so the drop is
     /// the whole depth cue; in dark mode the tonal jump already carries it and a black
     /// shadow on a near-black canvas only muddies the edge.
@@ -417,8 +403,8 @@ extension Color {
     )
 
     // MARK: - Hero Zone (ios/DESIGN.md §2 — constant brand-forest surface, never state-tinted)
-    // Replaces `homeHero*` (phase 3) and `heroTint*` / `heroGradient*` (phase 4); those stay
-    // until their last consumer migrates. Financial state lives in the verdict, a chip and
+    // Replaces `heroTint*` / `heroGradient*`, which stay until their last consumer migrates
+    // (Budget Detail). Financial state lives in the verdict, a chip and
     // the chart accent, never in the surface color. Ratios measured in `HeroContrastTests`.
 
     /// Hero surface — forest `#0E3A1C` light, `#0B2E16` dark. 11.4:1 against `appBackground`.

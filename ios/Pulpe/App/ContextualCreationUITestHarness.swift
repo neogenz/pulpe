@@ -175,7 +175,7 @@ struct ContextualCreationUITestHarness: View {
             .padding(.horizontal, DesignTokens.Spacing.xl)
             .padding(.top, DesignTokens.Spacing.xxxl)
         }
-        .background(Color.homeHeroSurface.ignoresSafeArea())
+        .background(Color.heroSurface.ignoresSafeArea())
     }
 
     private var chartFixture: ChartFixture {

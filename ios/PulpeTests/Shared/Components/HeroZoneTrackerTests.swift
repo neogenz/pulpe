@@ -4,15 +4,15 @@ import Observation
 import Testing
 
 @MainActor
-struct HomeHeroSurfaceTrackerTests {
+struct HeroZoneTrackerTests {
     @Test func update_newHeight_publishesThatValue() {
-        let tracker = HomeHeroSurfaceTracker()
+        let tracker = HeroZoneTracker()
         tracker.update(240)
         #expect(tracker.height == 240)
     }
 
     @Test func update_sameHeight_doesNotNotify() {
-        let tracker = HomeHeroSurfaceTracker()
+        let tracker = HeroZoneTracker()
         tracker.update(120)
 
         let probe = ObservationProbe()
@@ -28,7 +28,7 @@ struct HomeHeroSurfaceTrackerTests {
     }
 
     @Test func update_negativeHeight_clampsToZero() {
-        let tracker = HomeHeroSurfaceTracker()
+        let tracker = HeroZoneTracker()
         tracker.update(-40)
         #expect(tracker.height == 0)
     }
