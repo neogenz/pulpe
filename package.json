@@ -13,6 +13,8 @@
     "dev:shared": "turbo dev --filter=pulpe-shared",
     "dev:frontend": "turbo start --filter=pulpe-frontend",
     "dev:backend": "turbo build --filter=pulpe-shared && cd backend-nest && bun run dev",
+    "dev:android": "turbo dev --filter=pulpe-android",
+    "build:android": "turbo build --filter=pulpe-android",
     "build": "turbo build",
     "build:all": "turbo build",
     "build:shared": "turbo build --filter=pulpe-shared",

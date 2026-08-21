@@ -9,7 +9,7 @@ import { AuthGuard } from '@common/guards/auth.guard';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import { ENCRYPTION_PORT } from '@modules/encryption/encryption.tokens';
 import { createMockPinoLogger } from '@/test/test-mocks';
-import { GetIosWhatsNewUseCase } from '../../application/get-ios-whats-new.use-case';
+import { GetWhatsNewUseCase } from '../../application/get-whats-new.use-case';
 import { WhatsNewController } from './whats-new.controller';
 
 const VALID_CLIENT_KEY = 'ab'.repeat(32);
@@ -31,7 +31,7 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({
     controllers: [WhatsNewController],
     providers: [
-      GetIosWhatsNewUseCase,
+      GetWhatsNewUseCase,
       AuthGuard,
       { provide: SupabaseService, useValue: supabaseServiceStub },
       { provide: Reflector, useValue: { getAllAndOverride: () => false } },
@@ -104,5 +104,26 @@ describe('GET /api/v1/whats-new/ios', () => {
     expect(response.status).toBe(200);
     expect(whatsNewResponseSchema.safeParse(response.body).success).toBe(true);
     expect(response.body.data.entries).toEqual([]);
+  });
+});
+
+describe('GET /api/v1/whats-new/android', () => {
+  it('responds 401 when no bearer token is provided', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/whats-new/android')
+      .query({ currentVersion: '0.43.0', lastSeenVersion: '0.42.0' });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('returns a schema-valid payload for an authenticated request', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/whats-new/android')
+      .set('Authorization', 'Bearer valid-token')
+      .set('x-client-key', VALID_CLIENT_KEY)
+      .query({ currentVersion: '99.99.99', lastSeenVersion: '0.0.0' });
+
+    expect(response.status).toBe(200);
+    expect(whatsNewResponseSchema.safeParse(response.body).success).toBe(true);
   });
 });

@@ -12,6 +12,10 @@ import { IosVersionGateService } from './ios-version-gate.service';
 const STUB_ENV = {
   IOS_STORE_URL: 'https://apps.apple.com/app/pulpe',
   MIN_WEB_VERSION: '0.0.1',
+  MIN_ANDROID_VERSION: '0.42.0',
+  LATEST_ANDROID_VERSION: '0.43.0',
+  ANDROID_STORE_URL:
+    'https://play.google.com/store/apps/details?id=app.pulpe.android',
 };
 const PRODUCT_VERSION = (
   JSON.parse(
@@ -81,7 +85,7 @@ describe('GET /api/v1/app/version', () => {
     expect(response.headers['cache-control']).toBe('public, max-age=300');
   });
 
-  it('serves the resolved iOS versions and the configured store URL', async () => {
+  it('serves resolved iOS, artifact web, and configured Android versions', async () => {
     const response = await request(app.getHttpServer()).get(
       '/api/v1/app/version',
     );
@@ -92,5 +96,10 @@ describe('GET /api/v1/app/version', () => {
     );
     expect(response.body.data.ios.storeUrl).toBe(STUB_ENV.IOS_STORE_URL);
     expect(response.body.data.web.latestVersion).toBe(PRODUCT_VERSION);
+    expect(response.body.data.android).toEqual({
+      minVersion: STUB_ENV.MIN_ANDROID_VERSION,
+      latestVersion: STUB_ENV.LATEST_ANDROID_VERSION,
+      storeUrl: STUB_ENV.ANDROID_STORE_URL,
+    });
   });
 });

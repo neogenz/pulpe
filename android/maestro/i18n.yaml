@@ -1,0 +1,58 @@
+# Run after login-vault.yaml: change every supported language, prove one restart,
+# then restore the canonical French baseline for the rest of the smoke suite.
+appId: app.pulpe.android
+env:
+  PIN: ${MAESTRO_PIN || "1234"}
+---
+- tapOn:
+    id: "home-account"
+- tapOn:
+    id: "settings-preferences"
+- tapOn:
+    id: "settings-language"
+- tapOn:
+    id: "settings-language-fr"
+- assertVisible: "Langue"
+- tapOn:
+    id: "settings-language-en"
+- extendedWaitUntil:
+    visible: "Language"
+    timeout: 15000
+
+# The synchronous snapshot must win on the first frame after a cold restart.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Your code"
+    timeout: 30000
+- tapOn: ${PIN.charAt(0)}
+- tapOn: ${PIN.charAt(1)}
+- tapOn: ${PIN.charAt(2)}
+- tapOn: ${PIN.charAt(3)}
+- extendedWaitUntil:
+    visible: "My account"
+    timeout: 30000
+
+- tapOn:
+    id: "home-account"
+- tapOn:
+    id: "settings-preferences"
+- tapOn:
+    id: "settings-language"
+- tapOn:
+    id: "settings-language-de"
+- assertVisible: "Sprache"
+- tapOn:
+    id: "settings-language-it"
+- assertVisible: "Lingua"
+- tapOn:
+    id: "settings-language-fr"
+- assertVisible: "Langue"
+
+- back
+- back
+- back
+- extendedWaitUntil:
+    visible:
+      id: "home-add-entry"
+    timeout: 15000

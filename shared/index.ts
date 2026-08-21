@@ -229,7 +229,27 @@ export {
 } from './src/api-response.js';
 
 // Export calculators
-export { BudgetFormulas, isOutflowKind } from './src/calculators/index.js';
+export {
+  BudgetFormulas,
+  isOutflowKind,
+  TIGHT_BUDGET_THRESHOLD_PERCENT,
+  type Consumption,
+  type EmotionState,
+  type TemplateTotals,
+} from './src/calculators/index.js';
+export {
+  spreadOccurrenceItems,
+  spreadRealizedAmount,
+  spreadTracker,
+  type SpreadOccurrenceItem,
+  type SpreadTracker,
+} from './src/calculators/index.js';
+export {
+  calculateBalanceTrajectory,
+  type BalanceTrajectory,
+  type BalanceTrajectoryInput,
+  type BalanceTrajectoryPoint,
+} from './src/calculators/index.js';
 export { splitTotalPreserving } from './src/calculators/index.js';
 export {
   PACE_TOLERANCE_PERCENT,

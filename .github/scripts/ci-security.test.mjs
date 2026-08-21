@@ -18,6 +18,7 @@ const readOptional = (path) => {
 
 const action = read(".github/actions/setup-supabase-cli/action.yml");
 const workflow = read(".github/workflows/ci.yml");
+const androidE2eWorkflow = read(".github/workflows/android-e2e.yml");
 const stagingProof = read(".github/workflows/staging-proof.yml");
 const releasePromotion = read(".github/workflows/release-promotion.yml");
 const releaseGate = read(".github/workflows/release-gate.yml");
@@ -652,6 +653,23 @@ test("critical dependency audit stays in CI", () => {
     "pnpm audit --audit-level critical",
   );
   assert.match(workflow, /check:\s*\[[^\]]*"audit:critical"[^\]]*\]/);
+});
+
+test("Android E2E verifies Maestro and withholds preview secrets from forks", () => {
+  assert.match(
+    androidE2eWorkflow,
+    /pull_request\.head\.repo\.full_name == github\.repository/,
+  );
+  assert.match(androidE2eWorkflow, /environment: Preview/);
+  assert.match(
+    androidE2eWorkflow,
+    /a4ccab6b604617e7aef6db4f885666056eabe5cfa32befaa3bc994041b8fcbb5/,
+  );
+
+  const download = androidE2eWorkflow.indexOf("curl --fail");
+  const verify = androidE2eWorkflow.indexOf("sha256sum --check");
+  const extract = androidE2eWorkflow.indexOf("unzip -q");
+  assert.ok(download < verify && verify < extract);
 });
 
 test("the boundaries upgrade keeps a modern explicit policy", () => {

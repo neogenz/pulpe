@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SEMVER_PATTERN } from '@common/utils/semver-compare';
+import { SEMVER_PATTERN, isVersionAtMost } from '@common/utils/semver-compare';
 
 const envSchema = z
   .object({
@@ -62,8 +62,25 @@ const envSchema = z
     LATEST_IOS_VERSION: z.string().regex(SEMVER_PATTERN).default('1.0.0'),
     IOS_STORE_URL: z.url().default('https://apps.apple.com/app/id6758464920'),
     MIN_WEB_VERSION: z.string().regex(SEMVER_PATTERN).default('0.0.1'),
+    // No public Play Store lookup counterpart to `IosVersionGateService`, so
+    // Android keeps its published version in deployment configuration.
+    MIN_ANDROID_VERSION: z.string().regex(SEMVER_PATTERN).default('0.0.1'),
+    LATEST_ANDROID_VERSION: z.string().regex(SEMVER_PATTERN).default('0.0.1'),
+    ANDROID_STORE_URL: z
+      .url()
+      .default(
+        'https://play.google.com/store/apps/details?id=app.pulpe.android',
+      ),
   })
-  .strip();
+  .strip()
+  .refine(
+    (env) =>
+      isVersionAtMost(env.MIN_ANDROID_VERSION, env.LATEST_ANDROID_VERSION),
+    {
+      message: 'LATEST_ANDROID_VERSION must be >= MIN_ANDROID_VERSION',
+      path: ['LATEST_ANDROID_VERSION'],
+    },
+  );
 
 export type Environment = z.infer<typeof envSchema>;
 

@@ -1,6 +1,6 @@
 # Pulpe Workspace
 
-pnpm + Turborepo monorepo: `frontend/` (Angular 22, Signals, Material 22, Tailwind v4), `backend-nest/` (NestJS 11, Bun, Supabase), `ios/` (SwiftUI, outside pnpm), `landing/` (Next.js), `shared/` (Zod, builds before the others), `.claude/rules/` (rules loaded on demand).
+pnpm + Turborepo monorepo: `frontend/` (Angular 22, Signals, Material 22, Tailwind v4), `backend-nest/` (NestJS 11, Bun, Supabase), `ios/` (SwiftUI, outside pnpm), `android/` (Expo SDK 57, React Native, Expo Router), `landing/` (Next.js), `shared/` (Zod, builds before the others), `.claude/rules/` (rules loaded on demand).
 
 ## Commands
 
@@ -8,9 +8,10 @@ pnpm + Turborepo monorepo: `frontend/` (Angular 22, Signals, Material 22, Tailwi
 pnpm dev                      # Full stack via Turbo
 pnpm build:shared             # shared alone (the others depend on it)
 pnpm dev:frontend             # frontend + shared    (same for dev:backend)
+pnpm dev:android              # Expo on a device — needs JAVA_HOME=jdk17 + ANDROID_HOME (see android/README.md)
 pnpm test                     # Unit tests           (pnpm test:e2e → Playwright)
 
-# Quality — root only (no package defines `quality` except backend-nest)
+# Quality — run from the root (backend-nest and android define their own `quality`)
 pnpm quality                  # turbo quality + format:check:automation + test:ci-security + test:public-surface + test:lexicon
                               # lefthook runs it pre-commit, but scoped `--filter="...[HEAD^]"` and SKIPPED on merge/rebase
                               # Angular templates (strictTemplates) are only checked by `ng build` → dedicated CI job
@@ -29,7 +30,7 @@ cd backend-nest && supabase start
   Locally, use only `bun run supabase:reset`, which re-encrypts the seed after resetting it.
 - **AFTER** DB schema change: `bun run generate-types:local` in backend
 - **ALWAYS** encrypt financial amounts (`amount`, `target_amount`, `ending_balance`) via `ENCRYPTION_PORT` before DB write. Columns `text` holding AES-256-GCM ciphertexts. (see `docs/ENCRYPTION.md`)
-- **ALWAYS** mirror a formula change across both sides: `shared/src/calculators/` ↔ `ios/Pulpe/Domain/Formulas/`, tests included, same commit. Nothing fails the build when they diverge — web and iOS just show two different amounts. (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`)
+- **ALWAYS** mirror a formula change across both sides: `shared/src/calculators/` ↔ `ios/Pulpe/Domain/Formulas/`, tests included, same commit. Nothing fails the build when they diverge — web and iOS just show two different amounts. Android is not a third side: it imports `shared/src/calculators/` directly. (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`)
 - **ALWAYS** use `import * as z from 'zod'` for frontend/shared runtime schemas. Keep Zod errors in default English, never configure locales, and remeasure the Angular bundle after Zod or esbuild upgrades.
 
 ## Vocabulary
@@ -44,17 +45,17 @@ Product-facing copy is French. Code and docs are English.
 
 ## Docs
 
-| Purpose                     | Path                                       |
-| --------------------------- | ------------------------------------------ |
-| Strategic foundation        | `PRODUCT.md`                               |
-| Business rules              | `docs/BUSINESS_RULES.md`                   |
-| Encryption (AES-256-GCM)    | `docs/ENCRYPTION.md`                       |
-| Spreading an expense        | `docs/SPREAD.md`                           |
-| Savings goals               | `docs/SAVINGS.md`                          |
-| Architecture decisions      | `docs/adr/README.md`                       |
-| Backend Clean Architecture  | `backend-nest/docs/ARCHITECTURE.md`        |
-| DB types                    | `backend-nest/src/types/database.types.ts` |
-| Shared schemas              | `shared/schemas.ts`                        |
+| Purpose                    | Path                                       |
+| -------------------------- | ------------------------------------------ |
+| Strategic foundation       | `PRODUCT.md`                               |
+| Business rules             | `docs/BUSINESS_RULES.md`                   |
+| Encryption (AES-256-GCM)   | `docs/ENCRYPTION.md`                       |
+| Spreading an expense       | `docs/SPREAD.md`                           |
+| Savings goals              | `docs/SAVINGS.md`                          |
+| Architecture decisions     | `docs/adr/README.md`                       |
+| Backend Clean Architecture | `backend-nest/docs/ARCHITECTURE.md`        |
+| DB types                   | `backend-nest/src/types/database.types.ts` |
+| Shared schemas             | `shared/schemas.ts`                        |
 
 **Design:** `PRODUCT.md` (strategy) → `DESIGN.md` (cross-platform visual) → `{ios,frontend,landing}/DESIGN.md` (extensions). Never duplicate a cross-platform rule inside a platform doc. `ios/DESIGN.md` has no sidecar — `/impeccable live` is browser-only.
 
