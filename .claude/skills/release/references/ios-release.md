@@ -79,11 +79,11 @@ Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
 
 - `internal`: dispatch from `preview`, archive `PulpePreview` / `Preview`, and use an unused ASC build number supplied by Alfred. The source file is not changed for these temporary builds.
 - `release`: dispatch from `main`, archive `PulpeProd` / `Prod`, and use the exact build number recorded in the approved release changes.
-- Both modes require the exact branch-head SHA. Internal distribution consumes its
+- Both modes require a full source SHA reachable from their channel branch; release recovery may instead use an exact annotated `vX.Y.Z` tag resolving to that SHA. Internal distribution consumes its
   immutable `Staging Ready` proof; release distribution consumes the successful
-  `Production Release` proof for the exact `main` SHA.
+  `Production Release` proof for that exact SHA.
 - Signing credentials live only in the `ios-distribution` GitHub Environment. The workflow uses an ephemeral keychain and removes certificates, API keys, archives, and exported IPA files in an `always()` cleanup step.
-- GitHub Actions only uploads the IPA. Alfred verifies ASC processing and performs the separately approved TestFlight or App Store operation.
+- GitHub queries the exact ASC version/build before archiving and polls processing to `valid`. Alfred performs the separately approved TestFlight-group or App Store operation.
 
 ## Force-update gate — nothing to sync
 

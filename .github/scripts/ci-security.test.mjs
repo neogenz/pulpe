@@ -26,6 +26,9 @@ const productionFinalize = readOptional(
   ".github/workflows/production-finalize.yml",
 );
 const iosDistribution = read(".github/workflows/ios-distribute.yml");
+const appStoreBuildStatus = readOptional(
+  ".github/scripts/app-store-build-status.rb",
+);
 const dockerfile = read("backend-nest/Dockerfile");
 const rootPackage = JSON.parse(read("package.json"));
 const backendPackage = JSON.parse(read("backend-nest/package.json"));
@@ -527,6 +530,20 @@ test("iOS distribution consumes staging or finalized production proofs", () => {
   assert.doesNotMatch(iosDistribution, /workflow=production\.yml/);
   assert.doesNotMatch(iosDistribution, /actions\/workflows\/ci\.yml\/runs/);
   assert.doesNotMatch(iosDistribution, /gh run download/);
+});
+
+test("iOS distribution resumes the exact App Store build idempotently", () => {
+  assert.match(appStoreBuildStatus, /appstoreconnect-v1/);
+  assert.match(iosDistribution, /git merge-base --is-ancestor "\$SOURCE_SHA"/);
+  assert.doesNotMatch(iosDistribution, /remote_sha.*!=.*SOURCE_SHA/s);
+  const query = iosDistribution.indexOf("Query exact App Store build");
+  const archive = iosDistribution.indexOf("Archive signed application");
+  assert.ok(query >= 0 && query < archive);
+  assert.match(iosDistribution, /ASC_INITIAL_STATE.*not_found/);
+  assert.match(iosDistribution, /Poll App Store build processing/);
+  assert.match(iosDistribution, /ios-distribution-proof-/);
+  for (const field of ["marketing_version", "build_number", "source_sha"])
+    assert.match(iosDistribution, new RegExp(`"${field}"`));
 });
 
 test("the backend image does not install Bun", () => {
