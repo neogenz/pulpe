@@ -2,6 +2,7 @@ import type { SupportedCurrency } from "pulpe-shared";
 import { create } from "zustand";
 
 import { translate } from "@/core/i18n/i18n";
+import { useLocaleStore } from "@/core/i18n/locale-store";
 import { updateUserSettings } from "@/core/user-settings/user-settings-api";
 
 import {
@@ -47,6 +48,7 @@ export async function submitOnboarding(): Promise<void> {
         description: translate("onboarding.template.description", {
           name: state.firstName.trim(),
         }),
+        locale: useLocaleStore.getState().locale,
       }),
     );
     await generateInitialBudgets(templateId, new Date());

@@ -184,6 +184,7 @@ export const budgetTemplateCreateFromOnboardingSchema = z.strictObject({
   name: z.string().min(1).max(100).trim().default('Mois Standard'),
   description: z.string().max(500).trim().optional(),
   isDefault: z.boolean().default(true),
+  locale: supportedLocaleSchema.optional(),
   monthlyIncome: z.number().min(0).default(0).optional(),
   housingCosts: z.number().min(0).default(0).optional(),
   healthInsurance: z.number().min(0).default(0).optional(),

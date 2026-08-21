@@ -34,6 +34,9 @@ jest.mock("./onboarding-store", () => ({
 jest.mock("@/core/user-settings/user-settings-api", () => ({
   updateUserSettings: jest.fn(),
 }));
+jest.mock("@/core/i18n/locale-store", () => ({
+  useLocaleStore: { getState: () => ({ locale: "de" }) },
+}));
 
 it("stores only safe state when localized submission fails", async () => {
   i18n.locale = "de";
@@ -45,6 +48,7 @@ it("stores only safe state when localized submission fails", async () => {
     expect.objectContaining({
       name: "Standardmonat",
       description: "Persönliche Vorlage von Max",
+      locale: "de",
     }),
   );
   expect(useSubmissionStore.getState()).toEqual({ status: "failed" });

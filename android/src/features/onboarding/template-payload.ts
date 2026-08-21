@@ -1,4 +1,7 @@
-import type { BudgetTemplateCreateFromOnboarding } from "pulpe-shared";
+import type {
+  BudgetTemplateCreateFromOnboarding,
+  SupportedLocale,
+} from "pulpe-shared";
 
 import type { OnboardingState } from "./onboarding-store";
 import { toWire } from "./onboarding-transaction";
@@ -6,6 +9,7 @@ import { toWire } from "./onboarding-transaction";
 interface TemplateCopy {
   name: string;
   description: string;
+  locale: SupportedLocale;
 }
 
 /**
@@ -26,6 +30,7 @@ export function toTemplatePayload(
     name: copy.name,
     description: copy.description,
     isDefault: true,
+    locale: copy.locale,
     monthlyIncome: state.monthlyIncome ?? 0,
     housingCosts: state.housingCosts ?? 0,
     healthInsurance: state.healthInsurance ?? 0,

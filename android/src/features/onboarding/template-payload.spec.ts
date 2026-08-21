@@ -37,6 +37,7 @@ const ANSWERS: OnboardingState = {
 const COPY = {
   name: "Standard Month",
   description: "Maxime's personal template",
+  locale: "en" as const,
 };
 
 function customTransaction(
