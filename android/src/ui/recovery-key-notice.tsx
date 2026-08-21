@@ -83,12 +83,7 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
                 },
               ]}
             >
-              <Text
-                variant="bodyMedium"
-                selectable
-                style={styles.key}
-                accessibilityLabel={t("vault.recovery.title")}
-              >
+              <Text variant="bodyMedium" selectable style={styles.key}>
                 {formatRecoveryKey(recoveryKey)}
               </Text>
             </View>

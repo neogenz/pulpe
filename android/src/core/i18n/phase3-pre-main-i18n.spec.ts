@@ -29,10 +29,14 @@ describe("final pre-main localization", () => {
     const presentation = paths
       .map((path) => readFileSync(path, "utf8"))
       .join("\n");
+    const notice = readFileSync("src/ui/recovery-key-notice.tsx", "utf8");
     const vault = readFileSync("src/core/vault/vault-store.ts", "utf8");
 
     expect(presentation).not.toContain("localized");
     expect(presentation).not.toMatch(/Clé de récupération|Étape \$|Annuler/);
+    expect(notice).toMatch(
+      /selectable\s+style=\{styles\.key\}\s*>\s*\{formatRecoveryKey\(recoveryKey\)\}/,
+    );
     expect(vault).toContain("hasBootstrapError: true");
     expect(vault).not.toContain("normalizeApiError");
   });
