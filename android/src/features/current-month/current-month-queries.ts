@@ -31,6 +31,7 @@ export interface CurrentMonthQuery {
   details: BudgetDetails | null;
   viewModel: CurrentMonthViewModel | null;
   currency: SupportedCurrency;
+  payDayOfMonth: number | null;
   isRefreshing: boolean;
   refresh: () => Promise<void>;
 }
@@ -82,6 +83,7 @@ export function useCurrentMonth(): CurrentMonthQuery {
     details: details.data ?? null,
     viewModel,
     currency: settings.data?.currency ?? FALLBACK_CURRENCY,
+    payDayOfMonth,
     isRefreshing:
       periods.isRefetching || details.isRefetching || settings.isRefetching,
     refresh: refreshCurrentMonth,

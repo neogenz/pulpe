@@ -1973,6 +1973,18 @@ describe('BudgetFormulas.calculateConsumption', () => {
     expect(consumption.percentage).toBeGreaterThan(100);
     expect(consumption.available).toBe(-100);
   });
+
+  it('rounds decimal allocation noise to the nearest cent', () => {
+    const consumption = BudgetFormulas.calculateConsumption(
+      { id: '1', kind: 'expense', amount: 0.3 },
+      [
+        { budgetLineId: '1', kind: 'expense', amount: 0.1 },
+        { budgetLineId: '1', kind: 'expense', amount: 0.2 },
+      ],
+    );
+
+    expect(consumption.available).toBe(0);
+  });
 });
 
 describe('BudgetFormulas.calculateTemplateTotals', () => {

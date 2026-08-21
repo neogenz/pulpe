@@ -71,7 +71,8 @@ export default function HomeScreen() {
   // extra — it only asks a different question of it.
   const budgets = useBudgetList();
   const hasMonthToPrepare =
-    budgets.data !== undefined && hasAvailableMonth(budgets.data, new Date());
+    budgets.data !== undefined &&
+    hasAvailableMonth(budgets.data, new Date(), currentMonth.payDayOfMonth);
 
   if (currentMonth.status === "loading") {
     return (

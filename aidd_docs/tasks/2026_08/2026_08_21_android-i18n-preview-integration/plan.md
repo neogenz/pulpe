@@ -1,6 +1,6 @@
 ---
 objective: "One reviewed Android integration PR is merged into preview with the complete FR/EN/DE/IT localization, green CI and Maestro checks, and every superseded Android draft closed without losing work."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Complete and consolidate Android localization

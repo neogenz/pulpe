@@ -22,6 +22,7 @@ import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import {
   availableMonths,
   type BudgetPeriod,
@@ -45,6 +46,7 @@ export default function CreateBudgetScreen() {
   const { locale, t } = useTranslation();
   const budgets = useBudgetList();
   const templates = useTemplates();
+  const settings = useUserSettings();
   const create = useCreateBudget();
   const [chosenPeriodKey, setChosenPeriodKey] = useState<string | null>(null);
   const [chosenTemplateId, setChosenTemplateId] = useState<string | null>(null);
@@ -53,6 +55,7 @@ export default function CreateBudgetScreen() {
     budgets.data ?? [],
     new Date(),
     PERIODS_OFFERED,
+    settings.data?.payDayOfMonth,
   );
   // Derived rather than synced from an effect: both lists arrive after the
   // first render, and a default written into state then would overwrite a
@@ -64,7 +67,7 @@ export default function CreateBudgetScreen() {
   const selectedTemplateId =
     chosenTemplateId ?? defaultTemplateId(templates.data ?? []);
 
-  if (budgets.isPending || templates.isPending) {
+  if (budgets.isPending || templates.isPending || settings.isPending) {
     return (
       <SafeAreaView
         edges={["bottom"]}
@@ -75,7 +78,7 @@ export default function CreateBudgetScreen() {
     );
   }
 
-  if (budgets.isError || templates.isError) {
+  if (budgets.isError || templates.isError || settings.isError) {
     return (
       <PlaceholderScreen
         icon="cloud-off-outline"
@@ -84,7 +87,11 @@ export default function CreateBudgetScreen() {
         action={{
           label: t("common.retry"),
           onPress: () =>
-            void Promise.all([budgets.refetch(), templates.refetch()]),
+            void Promise.all([
+              budgets.refetch(),
+              templates.refetch(),
+              settings.refetch(),
+            ]),
         }}
       />
     );

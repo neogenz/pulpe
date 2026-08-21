@@ -8,6 +8,7 @@ import {
   budgetTemplateUpdateSchema,
   type TemplateLine,
   templateLineCreateSchema,
+  templateLineCreateWithoutTemplateIdSchema,
   templateLineListResponseSchema,
   templateLineResponseSchema,
   type TemplateLinesBulkOperations,
@@ -27,6 +28,9 @@ import { ENDPOINTS } from "@/core/api/endpoints";
 
 /** `pulpe-shared` exports the schema but not its inferred type. */
 export type TemplateLineCreate = z.infer<typeof templateLineCreateSchema>;
+type TemplateLineCreateBody = z.infer<
+  typeof templateLineCreateWithoutTemplateIdSchema
+>;
 
 export function fetchTemplates(): Promise<BudgetTemplate[]> {
   return api
@@ -90,11 +94,13 @@ export function deleteTemplate(templateId: string): Promise<void> {
 export function createTemplateLine(
   payload: TemplateLineCreate,
 ): Promise<TemplateLine> {
+  const { templateId, ...body } = payload;
+
   return api
     .post<
       { data: TemplateLine },
-      TemplateLineCreate
-    >(ENDPOINTS.templateLines(payload.templateId), payload, templateLineResponseSchema, templateLineCreateSchema)
+      TemplateLineCreateBody
+    >(ENDPOINTS.templateLines(templateId), body, templateLineResponseSchema, templateLineCreateWithoutTemplateIdSchema)
     .then((response) => response.data);
 }
 

@@ -537,7 +537,7 @@ export class BudgetFormulas {
 
     return {
       allocated,
-      available: budgetLine.amount - allocated,
+      available: moneyDifference(budgetLine.amount, allocated),
       percentage:
         budgetLine.amount > 0 ? (allocated / budgetLine.amount) * 100 : 0,
     };

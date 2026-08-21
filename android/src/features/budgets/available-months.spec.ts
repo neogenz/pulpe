@@ -14,6 +14,14 @@ describe("availableMonths", () => {
     expect(availableMonths([], NOW, 1)).toEqual([{ month: 8, year: 2026 }]);
   });
 
+  it("starts from the active pay-day period", () => {
+    const beforePayDay = new Date(2026, 7, 5);
+
+    expect(availableMonths([], beforePayDay, 1, 10)).toEqual([
+      { month: 7, year: 2026 },
+    ]);
+  });
+
   it("skips the months already covered", () => {
     const budgets = [budget(8, 2026), budget(9, 2026)];
 
