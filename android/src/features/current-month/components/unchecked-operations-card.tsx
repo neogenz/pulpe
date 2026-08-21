@@ -86,7 +86,7 @@ export function UncheckedOperationsCard({
 
   return (
     <View style={styles.card}>
-      <Text variant="titleSmall">Opérations à pointer</Text>
+      <Text variant="titleSmall">{t("home.checking.title")}</Text>
 
       <View
         style={[styles.pane, { backgroundColor: theme.colors.surfaceVariant }]}
@@ -129,17 +129,21 @@ export function UncheckedOperationsCard({
             icon="check"
             disabled={isSyncing}
             onPress={handleConfirm}
-            accessibilityLabel={`Pointer ${current.name}`}
+            accessibilityLabel={t("home.checking.confirmAccessibility", {
+              name: current.name,
+            })}
           >
-            C&apos;est passé
+            {t("home.checking.confirm")}
           </Button>
           <Button
             mode="text"
             disabled={isSyncing}
             onPress={handleSkip}
-            accessibilityLabel={`Plus tard pour ${current.name}`}
+            accessibilityLabel={t("home.checking.laterAccessibility", {
+              name: current.name,
+            })}
           >
-            Plus tard
+            {t("home.checking.later")}
           </Button>
         </View>
       </View>

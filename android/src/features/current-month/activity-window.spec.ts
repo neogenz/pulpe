@@ -25,7 +25,7 @@ function dated(id: string, isoDate: string, rest: Partial<Transaction> = {}) {
 }
 
 describe("summarizeActivity", () => {
-  it("names today and yesterday rather than dating them", () => {
+  it("keeps day groups semantic for localized presentation", () => {
     const { days } = summarizeActivity(
       [
         dated("today", "2026-08-11T09:00:00.000Z"),
@@ -36,11 +36,7 @@ describe("summarizeActivity", () => {
       NOW,
     );
 
-    expect(days.map((day) => day.label)).toEqual([
-      "aujourd'hui",
-      "hier",
-      "7 août",
-    ]);
+    expect(days.map((day) => day.date.getDate())).toEqual([11, 10, 7]);
   });
 
   it("puts the same day's operations under one heading", () => {

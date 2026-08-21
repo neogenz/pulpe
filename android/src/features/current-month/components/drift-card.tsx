@@ -11,6 +11,7 @@ import { RADIUS, SPACING } from "@/core/ui/theme";
 import type { DriftLine } from "../current-month-view-model";
 import { Amount } from "@/core/ui/amount";
 import { useHeroColors } from "@/core/ui/scheme-colors";
+import { useTranslation } from "@/core/i18n/locale-store";
 
 /**
  * Fixed rather than derived: this is a dashboard summary, not the full list, and
@@ -41,6 +42,7 @@ export function DriftCard({
 }: DriftCardProps) {
   const theme = useTheme();
   const hero = useHeroColors();
+  const { t } = useTranslation();
   const driftColor = hero.drift;
 
   const shown = drifts.slice(0, MAX_ROWS);
@@ -56,14 +58,17 @@ export function DriftCard({
   return (
     <View style={styles.card}>
       <View style={styles.heading}>
-        <Text variant="titleSmall">Ça dérive</Text>
+        <Text variant="titleSmall">{t("home.drift.title")}</Text>
         <Text
           variant="bodySmall"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          {`${formatCompactCurrency(totalOver, currency)} au-delà du plan${
-            absorbsOverrun ? ", compensé ailleurs ce mois" : ""
-          }`}
+          {t(
+            absorbsOverrun
+              ? "home.drift.summaryAbsorbed"
+              : "home.drift.summary",
+            { amount: formatCompactCurrency(totalOver, currency) },
+          )}
         </Text>
       </View>
 
@@ -81,7 +86,9 @@ export function DriftCard({
                     {drift.line.name}
                   </Text>
                   <Amount size="meta" style={{ color: driftColor }}>
-                    {`+${formatCompactAmount(overBy, currency)} en trop`}
+                    {t("home.drift.overBy", {
+                      amount: formatCompactAmount(overBy, currency),
+                    })}
                   </Amount>
                 </View>
                 <View
@@ -112,7 +119,7 @@ export function DriftCard({
               variant="labelMedium"
               style={[styles.row, { color: theme.colors.onSurfaceVariant }]}
             >
-              {`+${hidden} autre${hidden > 1 ? "s" : ""} enveloppe${hidden > 1 ? "s" : ""}`}
+              {t("home.drift.hidden", { count: hidden })}
             </Text>
           </>
         )}

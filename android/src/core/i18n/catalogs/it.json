@@ -134,6 +134,42 @@
   },
   "home": {
     "accountAccessibility": "Il mio account",
+    "activity": {
+      "added": "Movimento aggiunto",
+      "empty": {
+        "month": "Niente questo mese",
+        "week": "Niente negli ultimi 7 giorni"
+      },
+      "emptyHint": "I tuoi movimenti appariranno qui",
+      "title": "Attività",
+      "viewAll": "Vedi tutto",
+      "window": { "month": "Questo mese", "week": "7 giorni" },
+      "windowAccessibility": "Attività per %{window}"
+    },
+    "add": "Aggiungi",
+    "addAccessibility": "Aggiungi un movimento",
+    "checking": {
+      "confirm": "È avvenuto",
+      "confirmAccessibility": "Segna %{name}",
+      "later": "Più tardi",
+      "laterAccessibility": "Controlla %{name} più tardi",
+      "pointFailure": "Non è stato possibile segnare il movimento. Riprova.",
+      "pointed": "%{name} segnato",
+      "title": "Movimenti da segnare",
+      "tooltipMessage": "Quando un movimento appare sul tuo conto, segnalo qui per tenere tutto sotto controllo.",
+      "tooltipTitle": "Segna",
+      "undoFailure": "Non è stato possibile annullare il segno. Riprova dal budget."
+    },
+    "drift": {
+      "hidden": {
+        "one": "+1 altra previsione",
+        "other": "+%{count} altre previsioni"
+      },
+      "overBy": "+%{amount} in più",
+      "summary": "%{amount} oltre il piano",
+      "summaryAbsorbed": "%{amount} oltre il piano, compensato altrove questo mese",
+      "title": "Fuori rotta"
+    },
     "hero": {
       "chartAccessibility": "Andamento del saldo stimato nel mese rispetto al piano",
       "detail": "Vedi i dettagli",
@@ -150,6 +186,16 @@
         "overrunDated": "Sotto il tuo piano dal %{date}."
       },
       "vsPlanned": "vs previsto"
+    },
+    "periodRemaining": {
+      "one": "Ultimo giorno del periodo",
+      "other": "%{count} giorni al prossimo stipendio"
+    },
+    "prepareNextMonth": "Prepara il mese successivo",
+    "savingsDone": {
+      "accessibility": "Risparmio mensile versato, %{amount}",
+      "hint": "Vedi i miei obiettivi di risparmio",
+      "title": "Risparmio mensile versato"
     },
     "states": {
       "createBudget": "Crea il mio budget",

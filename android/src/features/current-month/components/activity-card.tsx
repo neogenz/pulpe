@@ -14,18 +14,12 @@ import { Amount } from "@/core/ui/amount";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { FilterChip } from "@/core/ui/filter-chip";
 import { FINANCIAL_COLORS, RADIUS, SPACING } from "@/core/ui/theme";
+import { useTranslation } from "@/core/i18n/locale-store";
+import { formatRelativeDay } from "@/core/ui/date-format";
 
 import { summarizeActivity, type ActivityWindow } from "../activity-window";
 
-const WINDOWS: { value: ActivityWindow; label: string }[] = [
-  { value: "week", label: "7 jours" },
-  { value: "month", label: "Ce mois" },
-];
-
-const EMPTY_TITLES: Record<ActivityWindow, string> = {
-  week: "Rien sur ces 7 jours",
-  month: "Rien ce mois-ci",
-};
+const WINDOWS: ActivityWindow[] = ["week", "month"];
 
 const KIND_ICONS = {
   income: "arrow-down",
@@ -60,15 +54,17 @@ export function ActivityCard({
 }: ActivityCardProps) {
   const theme = useTheme();
   const financial = useFinancialColors();
+  const { locale, t } = useTranslation();
   const [window, setWindow] = useState<ActivityWindow>("week");
-  const { days, net } = summarizeActivity(transactions, window, new Date());
+  const now = new Date();
+  const { days, net } = summarizeActivity(transactions, window, now);
   // Names live on their own endpoint — a transaction carries ids only.
   const tags = useTags();
 
   return (
     <View style={styles.card}>
       <View style={styles.heading}>
-        <Text variant="titleSmall">Activité</Text>
+        <Text variant="titleSmall">{t("home.activity.title")}</Text>
         <Amount size="meta">
           {formatSignedCompactCurrency(net, currency)}
         </Amount>
@@ -77,17 +73,19 @@ export function ActivityCard({
       <View style={styles.windows}>
         {WINDOWS.map((option) => (
           <FilterChip
-            key={option.value}
-            selected={window === option.value}
-            onPress={() => setWindow(option.value)}
-            accessibilityLabel={`Activité sur ${option.label}`}
+            key={option}
+            selected={window === option}
+            onPress={() => setWindow(option)}
+            accessibilityLabel={t("home.activity.windowAccessibility", {
+              window: t(`home.activity.window.${option}`),
+            })}
           >
-            {option.label}
+            {t(`home.activity.window.${option}`)}
           </FilterChip>
         ))}
         {onPressAll !== undefined && (
           <Button mode="text" compact onPress={onPressAll}>
-            Tout voir
+            {t("home.activity.viewAll")}
           </Button>
         )}
       </View>
@@ -102,12 +100,14 @@ export function ActivityCard({
           <View style={styles.row}>
             <IconDisc name="tray" tint={theme.colors.onSurfaceVariant} />
             <View style={styles.labels}>
-              <Text variant="bodyLarge">{EMPTY_TITLES[window]}</Text>
+              <Text variant="bodyLarge">
+                {t(`home.activity.empty.${window}`)}
+              </Text>
               <Text
                 variant="labelMedium"
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
-                Tes opérations s&apos;afficheront ici
+                {t("home.activity.emptyHint")}
               </Text>
             </View>
           </View>
@@ -119,7 +119,7 @@ export function ActivityCard({
               variant="labelMedium"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              {day.label}
+              {formatRelativeDay(day.date, now, locale)}
             </Text>
             <View
               style={[

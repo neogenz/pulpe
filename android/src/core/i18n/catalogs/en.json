@@ -134,6 +134,42 @@
   },
   "home": {
     "accountAccessibility": "My account",
+    "activity": {
+      "added": "Entry added",
+      "empty": {
+        "month": "Nothing this month",
+        "week": "Nothing in the last 7 days"
+      },
+      "emptyHint": "Your entries will appear here",
+      "title": "Activity",
+      "viewAll": "View all",
+      "window": { "month": "This month", "week": "7 days" },
+      "windowAccessibility": "Activity for %{window}"
+    },
+    "add": "Add",
+    "addAccessibility": "Add an entry",
+    "checking": {
+      "confirm": "It happened",
+      "confirmAccessibility": "Check off %{name}",
+      "later": "Later",
+      "laterAccessibility": "Check %{name} later",
+      "pointFailure": "This could not be checked off. Try again.",
+      "pointed": "%{name} checked off",
+      "title": "Entries to check off",
+      "tooltipMessage": "When an entry appears on your account, check it off here to keep track.",
+      "tooltipTitle": "Checking off",
+      "undoFailure": "The check could not be undone. Try again from the budget."
+    },
+    "drift": {
+      "hidden": {
+        "one": "+1 other forecast",
+        "other": "+%{count} other forecasts"
+      },
+      "overBy": "+%{amount} over",
+      "summary": "%{amount} over plan",
+      "summaryAbsorbed": "%{amount} over plan, covered elsewhere this month",
+      "title": "Off track"
+    },
     "hero": {
       "chartAccessibility": "Estimated balance over the month compared with the plan",
       "detail": "View details",
@@ -150,6 +186,16 @@
         "overrunDated": "Below your plan since %{date}."
       },
       "vsPlanned": "vs planned"
+    },
+    "periodRemaining": {
+      "one": "Last day of the period",
+      "other": "%{count} days until the next payday"
+    },
+    "prepareNextMonth": "Prepare next month",
+    "savingsDone": {
+      "accessibility": "Monthly savings transferred, %{amount}",
+      "hint": "View my savings goals",
+      "title": "Monthly savings transferred"
     },
     "states": {
       "createBudget": "Create my budget",

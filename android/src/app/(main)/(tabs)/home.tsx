@@ -57,7 +57,9 @@ export default function HomeScreen() {
   const isAddVisible = isAddOpen || isAddRequested;
   // Names the step that failed: a pointing that never reached the server and an
   // undo that did not go back are two different pieces of news.
-  const [toggleFailure, setToggleFailure] = useState<string | null>(null);
+  const [toggleFailure, setToggleFailure] = useState<"point" | "undo" | null>(
+    null,
+  );
   const [pointed, setPointed] = useState<CheckableItem | null>(null);
   const [hasTransactionAdded, setTransactionAdded] = useState(false);
   // A rolled-back row reappearing is not an explanation, so the failure is said
@@ -195,8 +197,8 @@ export default function HomeScreen() {
             <Tooltip
               id="checking"
               icon="check-circle-outline"
-              title="Pointage"
-              message="Quand un mouvement est passé sur ton compte, pointe-le ici pour garder le fil."
+              title={t("home.checking.tooltipTitle")}
+              message={t("home.checking.tooltipMessage")}
             />
             <UncheckedOperationsCard
               items={viewModel.uncheckedItems}
@@ -208,9 +210,7 @@ export default function HomeScreen() {
                 toggle.mutate(item, {
                   onError: () => {
                     hapticFailure();
-                    setToggleFailure(
-                      "Le pointage n'a pas été enregistré. Réessaie.",
-                    );
+                    setToggleFailure("point");
                   },
                   // Offered here and nowhere else: a reminder to point is worth
                   // something only to someone who has just found out what
@@ -240,9 +240,7 @@ export default function HomeScreen() {
           variant="bodyMedium"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          {viewModel.daysRemaining === 1
-            ? "Dernier jour de la période"
-            : `${viewModel.daysRemaining} jours avant la prochaine paie`}
+          {t("home.periodRemaining", { count: viewModel.daysRemaining })}
         </Text>
 
         {hasMonthToPrepare && (
@@ -251,7 +249,7 @@ export default function HomeScreen() {
             icon="calendar-plus"
             onPress={() => router.push("/budget/create")}
           >
-            Préparer le mois suivant
+            {t("home.prepareNextMonth")}
           </Button>
         )}
       </ScrollView>
@@ -261,10 +259,10 @@ export default function HomeScreen() {
       {!isAddVisible && !isRealizedVisible && !reminders.isVisible && (
         <FAB
           icon="plus"
-          label="Ajouter"
+          label={t("home.add")}
           style={styles.fab}
           onPress={() => setAddOpen(true)}
-          accessibilityLabel="Ajouter une opération"
+          accessibilityLabel={t("home.addAccessibility")}
         />
       )}
 
@@ -275,30 +273,34 @@ export default function HomeScreen() {
         visible={pointed !== null}
         onDismiss={() => setPointed(null)}
         action={{
-          label: "Annuler",
+          label: t("common.cancel"),
           onPress: () => {
             const item = pointed;
             setPointed(null);
             if (item === null) return;
             toggle.mutate(item, {
-              onError: () =>
-                setToggleFailure(
-                  "Le pointage n'a pas pu être annulé. Reprends-le depuis le budget.",
-                ),
+              onError: () => setToggleFailure("undo"),
             });
           },
         }}
       >
-        {pointed === null ? "" : `${pointed.name} pointé`}
+        {pointed === null
+          ? ""
+          : t("home.checking.pointed", { name: pointed.name })}
       </Notice>
 
       <Notice
         clearsFab
         visible={toggleFailure !== null}
         onDismiss={() => setToggleFailure(null)}
-        action={{ label: "Fermer", onPress: () => setToggleFailure(null) }}
+        action={{
+          label: t("common.close"),
+          onPress: () => setToggleFailure(null),
+        }}
       >
-        {toggleFailure}
+        {toggleFailure === null
+          ? ""
+          : t(`home.checking.${toggleFailure}Failure`)}
       </Notice>
 
       <Notice
@@ -306,7 +308,7 @@ export default function HomeScreen() {
         visible={hasTransactionAdded}
         onDismiss={() => setTransactionAdded(false)}
       >
-        Opération ajoutée
+        {t("home.activity.added")}
       </Notice>
 
       <RealizedBalanceSheet

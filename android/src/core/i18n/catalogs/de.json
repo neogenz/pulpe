@@ -134,6 +134,42 @@
   },
   "home": {
     "accountAccessibility": "Mein Konto",
+    "activity": {
+      "added": "Eintrag hinzugefügt",
+      "empty": {
+        "month": "Nichts in diesem Monat",
+        "week": "Nichts in den letzten 7 Tagen"
+      },
+      "emptyHint": "Deine Einträge erscheinen hier",
+      "title": "Aktivität",
+      "viewAll": "Alle ansehen",
+      "window": { "month": "Dieser Monat", "week": "7 Tage" },
+      "windowAccessibility": "Aktivität für %{window}"
+    },
+    "add": "Hinzufügen",
+    "addAccessibility": "Eintrag hinzufügen",
+    "checking": {
+      "confirm": "Ist erfolgt",
+      "confirmAccessibility": "%{name} abhaken",
+      "later": "Später",
+      "laterAccessibility": "%{name} später prüfen",
+      "pointFailure": "Der Eintrag konnte nicht abgehakt werden. Versuche es erneut.",
+      "pointed": "%{name} abgehakt",
+      "title": "Offene Einträge",
+      "tooltipMessage": "Wenn ein Eintrag auf deinem Konto erscheint, hake ihn hier ab, um den Überblick zu behalten.",
+      "tooltipTitle": "Abhaken",
+      "undoFailure": "Das Abhaken konnte nicht rückgängig gemacht werden. Versuche es im Budget erneut."
+    },
+    "drift": {
+      "hidden": {
+        "one": "+1 weitere Prognose",
+        "other": "+%{count} weitere Prognosen"
+      },
+      "overBy": "+%{amount} zu viel",
+      "summary": "%{amount} über dem Plan",
+      "summaryAbsorbed": "%{amount} über dem Plan, diesen Monat an anderer Stelle ausgeglichen",
+      "title": "Vom Plan abgewichen"
+    },
     "hero": {
       "chartAccessibility": "Geschätzter Saldo im Monatsverlauf im Vergleich zum Plan",
       "detail": "Details ansehen",
@@ -150,6 +186,16 @@
         "overrunDated": "Seit %{date} unter deinem Plan."
       },
       "vsPlanned": "ggü. Plan"
+    },
+    "periodRemaining": {
+      "one": "Letzter Tag der Periode",
+      "other": "%{count} Tage bis zum nächsten Zahltag"
+    },
+    "prepareNextMonth": "Nächsten Monat vorbereiten",
+    "savingsDone": {
+      "accessibility": "Monatliches Sparen überwiesen, %{amount}",
+      "hint": "Meine Sparziele ansehen",
+      "title": "Monatliches Sparen überwiesen"
     },
     "states": {
       "createBudget": "Budget erstellen",

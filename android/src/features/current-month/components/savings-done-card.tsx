@@ -10,6 +10,7 @@ import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
 import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
+import { useTranslation } from "@/core/i18n/locale-store";
 
 interface SavingsDoneCardProps {
   amount: number;
@@ -30,6 +31,7 @@ export function SavingsDoneCard({
   const theme = useTheme();
   const ripple = useRipple();
   const financial = useFinancialColors();
+  const { t } = useTranslation();
   const savingsColor = financial.savings;
 
   return (
@@ -37,14 +39,16 @@ export function SavingsDoneCard({
       onPress={onPress}
       android_ripple={ripple}
       accessibilityRole="button"
-      accessibilityLabel={`Épargne du mois versée, ${formatCompactCurrency(amount, currency)}`}
-      accessibilityHint="Voir mes objectifs d'épargne"
+      accessibilityLabel={t("home.savingsDone.accessibility", {
+        amount: formatCompactCurrency(amount, currency),
+      })}
+      accessibilityHint={t("home.savingsDone.hint")}
       style={[styles.card, { backgroundColor: theme.colors.surfaceVariant }]}
     >
       <IconDisc name="check" tint={savingsColor} />
 
       <View style={styles.text}>
-        <Text variant="bodyLarge">Épargne du mois versée</Text>
+        <Text variant="bodyLarge">{t("home.savingsDone.title")}</Text>
         <Amount size="meta" tone="muted">
           {formatCompactCurrency(amount, currency)}
         </Amount>

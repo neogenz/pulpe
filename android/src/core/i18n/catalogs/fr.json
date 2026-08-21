@@ -134,6 +134,39 @@
   },
   "home": {
     "accountAccessibility": "Mon compte",
+    "activity": {
+      "added": "Opération ajoutée",
+      "empty": { "month": "Rien ce mois-ci", "week": "Rien sur ces 7 jours" },
+      "emptyHint": "Tes opérations s'afficheront ici",
+      "title": "Activité",
+      "viewAll": "Tout voir",
+      "window": { "month": "Ce mois", "week": "7 jours" },
+      "windowAccessibility": "Activité sur %{window}"
+    },
+    "add": "Ajouter",
+    "addAccessibility": "Ajouter une opération",
+    "checking": {
+      "confirm": "C'est passé",
+      "confirmAccessibility": "Pointer %{name}",
+      "later": "Plus tard",
+      "laterAccessibility": "Plus tard pour %{name}",
+      "pointFailure": "Le pointage n'a pas été enregistré. Réessaie.",
+      "pointed": "%{name} pointé",
+      "title": "Opérations à pointer",
+      "tooltipMessage": "Quand un mouvement est passé sur ton compte, pointe-le ici pour garder le fil.",
+      "tooltipTitle": "Pointage",
+      "undoFailure": "Le pointage n'a pas pu être annulé. Reprends-le depuis le budget."
+    },
+    "drift": {
+      "hidden": {
+        "one": "+1 autre enveloppe",
+        "other": "+%{count} autres enveloppes"
+      },
+      "overBy": "+%{amount} en trop",
+      "summary": "%{amount} au-delà du plan",
+      "summaryAbsorbed": "%{amount} au-delà du plan, compensé ailleurs ce mois",
+      "title": "Ça dérive"
+    },
     "hero": {
       "chartAccessibility": "Évolution du solde estimé par rapport au plan",
       "detail": "Voir le détail",
@@ -150,6 +183,16 @@
         "overrunDated": "Sous ton plan depuis le %{date}."
       },
       "vsPlanned": "vs prévu"
+    },
+    "periodRemaining": {
+      "one": "Dernier jour de la période",
+      "other": "%{count} jours avant la prochaine paie"
+    },
+    "prepareNextMonth": "Préparer le mois suivant",
+    "savingsDone": {
+      "accessibility": "Épargne du mois versée, %{amount}",
+      "hint": "Voir mes objectifs d'épargne",
+      "title": "Épargne du mois versée"
     },
     "states": {
       "createBudget": "Créer mon budget",

@@ -1,7 +1,5 @@
 import type { Transaction } from "pulpe-shared";
 
-import { formatRelativeDay } from "@/core/ui/date-format";
-
 export type ActivityWindow = "week" | "month";
 
 const WINDOW_DAYS = 7;
@@ -17,7 +15,6 @@ const MAX_ROWS: Record<ActivityWindow, number> = { week: 5, month: 10 };
 export interface ActivityDay {
   /** Start of the day, as a key and a sort handle. */
   date: Date;
-  label: string;
   transactions: Transaction[];
 }
 
@@ -77,7 +74,6 @@ function groupByDay(transactions: Transaction[], now: Date): ActivityDay[] {
     }
     days.push({
       date,
-      label: formatRelativeDay(date, now),
       transactions: [transaction],
     });
   }
