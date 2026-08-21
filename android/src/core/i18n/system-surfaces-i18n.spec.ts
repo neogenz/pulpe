@@ -26,10 +26,17 @@ describe("system surface localization", () => {
       "utf8",
     );
     const inline = readFileSync("src/core/ui/inline-query-error.tsx", "utf8");
+    const whatsNew = readFileSync(
+      "src/core/system/whats-new-sheet.tsx",
+      "utf8",
+    );
 
     expect(system).toContain('t("common.retry")');
     expect(required).toContain('t("system.requiredSettings.loading")');
     expect(inline).toContain('t("system.queryError")');
+    expect(whatsNew.indexOf("if (!canShowWhatsNew")).toBeLessThan(
+      whatsNew.indexOf("<Portal>"),
+    );
     expect(`${system}\n${required}\n${inline}`).not.toMatch(
       /Réessayer|Chargement de tes préférences|Impossible de charger cette section/,
     );

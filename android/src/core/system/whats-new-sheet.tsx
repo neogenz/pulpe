@@ -9,9 +9,11 @@ import { useVaultStore } from "@/core/vault/vault-store";
 
 import {
   acknowledgeWhatsNew,
+  canShowWhatsNew,
   checkWhatsNew,
   clearWhatsNewSession,
   useWhatsNewStore,
+  whatsNewIdentity,
 } from "./whats-new-store";
 
 /**
@@ -27,18 +29,23 @@ export function WhatsNewSheet() {
   const isAuthenticated = useSessionStore(
     (state) => state.status === "authenticated",
   );
+  const userId = useSessionStore((state) => state.user?.id ?? null);
   const isUnlocked = useVaultStore((state) => state.status === "unlocked");
-  const entries = useWhatsNewStore((state) => state.entries);
+  const whatsNew = useWhatsNewStore();
+  const identity =
+    isAuthenticated && isUnlocked && userId !== null
+      ? whatsNewIdentity(userId, locale)
+      : null;
 
   useEffect(() => {
-    if (!isAuthenticated || !isUnlocked) {
+    if (identity === null) {
       clearWhatsNewSession();
       return;
     }
-    void checkWhatsNew(locale);
-  }, [isAuthenticated, isUnlocked, locale]);
+    void checkWhatsNew(locale, identity);
+  }, [identity, locale]);
 
-  if (entries.length === 0) return null;
+  if (!canShowWhatsNew(whatsNew, identity)) return null;
 
   return (
     <Portal>
@@ -50,7 +57,7 @@ export function WhatsNewSheet() {
 
         <Dialog.ScrollArea>
           <ScrollView contentContainerStyle={styles.content}>
-            {entries.map((entry) => (
+            {whatsNew.entries.map((entry) => (
               <Release key={entry.version} {...entry} />
             ))}
           </ScrollView>

@@ -2,9 +2,11 @@ import { api } from "@/core/api/api";
 
 import {
   acknowledgeWhatsNew,
+  canShowWhatsNew,
   checkWhatsNew,
   clearWhatsNewSession,
   useWhatsNewStore,
+  whatsNewIdentity,
 } from "./whats-new-store";
 
 const mockStorage = new Map<string, string>();
@@ -22,6 +24,8 @@ jest.mock("expo-constants", () => ({ expoConfig: { version: "1.2.0" } }));
 
 const LAST_SEEN_KEY = "pulpe-whats-new-last-seen";
 const mockedGet = api.get as jest.MockedFunction<typeof api.get>;
+const identity = (locale: "fr" | "en" | "de" | "it") =>
+  whatsNewIdentity("user-a", locale);
 
 const ENTRY = {
   version: "1.2.0",
@@ -42,7 +46,7 @@ beforeEach(() => {
 
 describe("checkWhatsNew", () => {
   it("should say nothing on a fresh install", async () => {
-    await checkWhatsNew("fr");
+    await checkWhatsNew("fr", identity("fr"));
 
     // "Everything is new" is not news — record where we are and stay quiet.
     expect(mockedGet).not.toHaveBeenCalled();
@@ -53,7 +57,7 @@ describe("checkWhatsNew", () => {
     mockStorage.set(LAST_SEEN_KEY, "1.1.0");
     answerWith([ENTRY]);
 
-    await checkWhatsNew("fr");
+    await checkWhatsNew("fr", identity("fr"));
 
     expect(mockedGet).toHaveBeenCalledWith(
       "/whats-new/android",
@@ -61,12 +65,13 @@ describe("checkWhatsNew", () => {
       { currentVersion: "1.2.0", lastSeenVersion: "1.1.0", locale: "fr" },
     );
     expect(useWhatsNewStore.getState().entries).toEqual([ENTRY]);
+    expect(useWhatsNewStore.getState().identity).toBe(identity("fr"));
   });
 
   it("should not ask twice for a version already seen", async () => {
     mockStorage.set(LAST_SEEN_KEY, "1.2.0");
 
-    await checkWhatsNew("fr");
+    await checkWhatsNew("fr", identity("fr"));
 
     expect(mockedGet).not.toHaveBeenCalled();
   });
@@ -75,7 +80,7 @@ describe("checkWhatsNew", () => {
     // A debug build installed over a release one.
     mockStorage.set(LAST_SEEN_KEY, "1.3.0");
 
-    await checkWhatsNew("fr");
+    await checkWhatsNew("fr", identity("fr"));
 
     expect(mockedGet).not.toHaveBeenCalled();
   });
@@ -84,7 +89,7 @@ describe("checkWhatsNew", () => {
     mockStorage.set(LAST_SEEN_KEY, "1.1.0");
     answerWith([]);
 
-    await checkWhatsNew("fr");
+    await checkWhatsNew("fr", identity("fr"));
 
     expect(useWhatsNewStore.getState().entries).toEqual([]);
     // Moved, or the empty answer is re-fetched on every single launch.
@@ -95,7 +100,7 @@ describe("checkWhatsNew", () => {
     mockStorage.set(LAST_SEEN_KEY, "1.1.0");
     mockedGet.mockRejectedValue(new Error("offline"));
 
-    await checkWhatsNew("fr");
+    await checkWhatsNew("fr", identity("fr"));
 
     // Fails open and retries next launch, rather than eating the notes.
     expect(useWhatsNewStore.getState().entries).toEqual([]);
@@ -104,7 +109,7 @@ describe("checkWhatsNew", () => {
 
   it("should record the version only once the user has acknowledged it", () => {
     mockStorage.set(LAST_SEEN_KEY, "1.1.0");
-    useWhatsNewStore.setState({ entries: [ENTRY] });
+    useWhatsNewStore.setState({ entries: [ENTRY], identity: identity("fr") });
 
     acknowledgeWhatsNew();
 
@@ -121,8 +126,8 @@ describe("checkWhatsNew", () => {
       data: { entries: [{ ...ENTRY, title: "Neuigkeiten" }] },
     } as never);
 
-    const oldCheck = checkWhatsNew("fr");
-    await checkWhatsNew("de");
+    const oldCheck = checkWhatsNew("fr", identity("fr"));
+    await checkWhatsNew("de", identity("de"));
     resolveFrench({ success: true, data: { entries: [ENTRY] } } as never);
     await oldCheck;
 
@@ -138,7 +143,7 @@ describe("checkWhatsNew", () => {
         new Promise<never>((resolve) => (resolveRequest = resolve)),
       );
 
-      const request = checkWhatsNew("it");
+      const request = checkWhatsNew("it", identity("it"));
       invalidate();
       resolveRequest({ success: true, data: { entries: [ENTRY] } } as never);
       await request;
@@ -146,4 +151,11 @@ describe("checkWhatsNew", () => {
       expect(useWhatsNewStore.getState().entries).toEqual([]);
     },
   );
+
+  it("hides entries synchronously when locale or vault identity changes", () => {
+    const state = { entries: [ENTRY], identity: identity("fr") };
+    expect(canShowWhatsNew(state, identity("fr"))).toBe(true);
+    expect(canShowWhatsNew(state, identity("de"))).toBe(false);
+    expect(canShowWhatsNew(state, null)).toBe(false);
+  });
 });

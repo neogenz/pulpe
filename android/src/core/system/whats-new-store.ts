@@ -19,11 +19,31 @@ let requestGeneration = 0;
 
 interface WhatsNewState {
   entries: WhatsNewEntry[];
+  identity: string | null;
 }
 
 export const useWhatsNewStore = create<WhatsNewState>(() => ({
   entries: [],
+  identity: null,
 }));
+
+export function whatsNewIdentity(
+  userId: string,
+  locale: SupportedLocale,
+): string {
+  return `${userId}:unlocked:${locale}`;
+}
+
+export function canShowWhatsNew(
+  state: WhatsNewState,
+  currentIdentity: string | null,
+): boolean {
+  return (
+    currentIdentity !== null &&
+    state.identity === currentIdentity &&
+    state.entries.length > 0
+  );
+}
 
 /**
  * What changed since the version this device last ran — once per upgrade, and
@@ -37,9 +57,12 @@ export const useWhatsNewStore = create<WhatsNewState>(() => ({
  * Fails open, like the version gate: an outage leaves the marker untouched so
  * the next launch retries, and never holds up a launch.
  */
-export async function checkWhatsNew(locale: SupportedLocale): Promise<void> {
+export async function checkWhatsNew(
+  locale: SupportedLocale,
+  identity: string,
+): Promise<void> {
   const generation = ++requestGeneration;
-  useWhatsNewStore.setState({ entries: [] });
+  useWhatsNewStore.setState({ entries: [], identity: null });
   const lastSeenVersion = storage.getString(LAST_SEEN_KEY);
   if (lastSeenVersion === undefined) {
     // First run of a version-aware build: record where we are and say nothing.
@@ -65,7 +88,7 @@ export async function checkWhatsNew(locale: SupportedLocale): Promise<void> {
       return;
     }
 
-    useWhatsNewStore.setState({ entries: response.data.entries });
+    useWhatsNewStore.setState({ entries: response.data.entries, identity });
   } catch {
     // Deliberately silent: nothing here is worth interrupting a launch for.
   }
@@ -75,11 +98,11 @@ export async function checkWhatsNew(locale: SupportedLocale): Promise<void> {
 export function acknowledgeWhatsNew(): void {
   requestGeneration += 1;
   storage.set(LAST_SEEN_KEY, CURRENT_APP_VERSION);
-  useWhatsNewStore.setState({ entries: [] });
+  useWhatsNewStore.setState({ entries: [], identity: null });
 }
 
 /** Session teardown also makes every pending locale response obsolete. */
 export function clearWhatsNewSession(): void {
   requestGeneration += 1;
-  useWhatsNewStore.setState({ entries: [] });
+  useWhatsNewStore.setState({ entries: [], identity: null });
 }
