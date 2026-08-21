@@ -95,6 +95,8 @@ class AppStoreMarketingVersionStatusTest < Minitest::Test
   end
   def test_closed_when_version_is_already_distributed
     assert_equal "closed", status([version(store_state: "READY_FOR_SALE", version_state: "READY_FOR_DISTRIBUTION")])
+    assert_equal "closed", status([version(store_state: "READY_FOR_SALE", version_state: "PREPARE_FOR_SUBMISSION")])
+    assert_equal "closed", status([version(store_state: "PREPARE_FOR_SUBMISSION", version_state: "READY_FOR_DISTRIBUTION")])
   end
   def test_malformed_duplicate_or_unknown_versions_fail_closed
     assert_equal "invalid", status([version(store_state: "READY_FOR_SALE"), version(store_state: "READY_FOR_SALE").merge("id" => "other")])
