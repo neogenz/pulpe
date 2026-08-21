@@ -214,6 +214,57 @@
     }
   },
   "settings": {
+    "account": {
+      "editProfile": "Edit my profile",
+      "profile": {
+        "emailHint": "Your email is used to sign in.",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "save": "Save",
+        "saveError": "Your profile could not be saved. Try again.",
+        "title": "Your profile"
+      },
+      "rows": {
+        "faq": {
+          "description": "Help and frequently asked questions",
+          "title": "FAQ and support"
+        },
+        "preferences": {
+          "description": "Pay day and currency",
+          "title": "Preferences"
+        },
+        "privacy": {
+          "description": "How your data is protected",
+          "title": "Privacy notice"
+        },
+        "security": {
+          "description": "PIN, password and biometrics",
+          "title": "Security"
+        },
+        "tags": {
+          "description": "Your personal tags",
+          "title": "My tags"
+        },
+        "terms": {
+          "description": "Pulpe's terms of use",
+          "title": "Terms and conditions"
+        },
+        "whatsNew": {
+          "description": "Latest updates",
+          "title": "What's new"
+        }
+      },
+      "sections": {
+        "application": "App settings",
+        "legal": "Legal",
+        "support": "Support"
+      },
+      "signOut": {
+        "description": "You will need to sign in again with your email and password, then enter your PIN again.",
+        "title": "Sign out"
+      },
+      "title": "Account"
+    },
     "language": {
       "description": "Choose the app language",
       "saveError": "The language could not be saved.",

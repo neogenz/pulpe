@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button, HelperText, TextInput } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { Sheet } from "@/core/ui/sheet";
 import { FieldError } from "@/core/ui/field-error";
 
@@ -25,6 +26,7 @@ export function ProfileSheet({
   onDismiss: () => void;
   profile: UserProfile;
 }) {
+  const { t } = useTranslation();
   const update = useUpdateUserProfile();
   const [firstName, setFirstName] = useState(profile.firstName ?? "");
   const [lastName, setLastName] = useState(profile.lastName ?? "");
@@ -54,12 +56,12 @@ export function ProfileSheet({
       isVisible={isVisible}
       onDismiss={onDismiss}
       isBusy={update.isPending}
-      title="Ton profil"
+      title={t("settings.account.profile.title")}
       footer={
         <>
           {update.isError && (
             <FieldError visible>
-              Ton profil n&apos;a pas pu être enregistré. Réessaie.
+              {t("settings.account.profile.saveError")}
             </FieldError>
           )}
 
@@ -69,17 +71,17 @@ export function ProfileSheet({
             disabled={!isSubmittable}
             loading={update.isPending}
           >
-            Enregistrer
+            {t("settings.account.profile.save")}
           </Button>
           <Button mode="text" onPress={onDismiss} disabled={update.isPending}>
-            Annuler
+            {t("common.cancel")}
           </Button>
         </>
       }
     >
       <TextInput
         mode="outlined"
-        label="Prénom"
+        label={t("settings.account.profile.firstName")}
         value={firstName}
         onChangeText={setFirstName}
         maxLength={NAME_MAX_LENGTH}
@@ -88,7 +90,7 @@ export function ProfileSheet({
       />
       <TextInput
         mode="outlined"
-        label="Nom"
+        label={t("settings.account.profile.lastName")}
         value={lastName}
         onChangeText={setLastName}
         maxLength={NAME_MAX_LENGTH}
@@ -97,12 +99,12 @@ export function ProfileSheet({
 
       <TextInput
         mode="outlined"
-        label="Email"
+        label={t("common.email")}
         value={profile.email}
         editable={false}
       />
       <HelperText type="info" visible>
-        Ton email est ton identifiant de connexion.
+        {t("settings.account.profile.emailHint")}
       </HelperText>
     </Sheet>
   );

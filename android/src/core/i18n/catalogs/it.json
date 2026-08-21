@@ -214,6 +214,57 @@
     }
   },
   "settings": {
+    "account": {
+      "editProfile": "Modifica il mio profilo",
+      "profile": {
+        "emailHint": "La tua email è l'identificativo di accesso.",
+        "firstName": "Nome",
+        "lastName": "Cognome",
+        "save": "Salva",
+        "saveError": "Non è stato possibile salvare il tuo profilo. Riprova.",
+        "title": "Il tuo profilo"
+      },
+      "rows": {
+        "faq": {
+          "description": "Aiuto e domande frequenti",
+          "title": "FAQ e assistenza"
+        },
+        "preferences": {
+          "description": "Giorno di paga e valuta",
+          "title": "Preferenze"
+        },
+        "privacy": {
+          "description": "Protezione dei tuoi dati",
+          "title": "Informativa sulla privacy"
+        },
+        "security": {
+          "description": "Codice PIN, password e biometria",
+          "title": "Sicurezza"
+        },
+        "tags": {
+          "description": "I tuoi tag personali",
+          "title": "I miei tag"
+        },
+        "terms": {
+          "description": "Condizioni d'uso di Pulpe",
+          "title": "Termini e condizioni"
+        },
+        "whatsNew": {
+          "description": "Ultimi aggiornamenti",
+          "title": "Novità"
+        }
+      },
+      "sections": {
+        "application": "Impostazioni dell'app",
+        "legal": "Note legali",
+        "support": "Assistenza"
+      },
+      "signOut": {
+        "description": "Dovrai accedere di nuovo con email e password, quindi inserire nuovamente il codice PIN.",
+        "title": "Esci"
+      },
+      "title": "Account"
+    },
     "language": {
       "description": "Scegli la lingua dell'app",
       "saveError": "Non è stato possibile salvare la lingua.",

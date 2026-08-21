@@ -214,6 +214,57 @@
     }
   },
   "settings": {
+    "account": {
+      "editProfile": "Mein Profil bearbeiten",
+      "profile": {
+        "emailHint": "Deine E-Mail-Adresse dient zur Anmeldung.",
+        "firstName": "Vorname",
+        "lastName": "Nachname",
+        "save": "Speichern",
+        "saveError": "Dein Profil konnte nicht gespeichert werden. Versuche es erneut.",
+        "title": "Dein Profil"
+      },
+      "rows": {
+        "faq": {
+          "description": "Hilfe und häufige Fragen",
+          "title": "FAQ und Support"
+        },
+        "preferences": {
+          "description": "Zahltag und Währung",
+          "title": "Einstellungen"
+        },
+        "privacy": {
+          "description": "Schutz deiner Daten",
+          "title": "Datenschutzhinweis"
+        },
+        "security": {
+          "description": "PIN-Code, Passwort und Biometrie",
+          "title": "Sicherheit"
+        },
+        "tags": {
+          "description": "Deine persönlichen Tags",
+          "title": "Meine Tags"
+        },
+        "terms": {
+          "description": "Nutzungsbedingungen von Pulpe",
+          "title": "Allgemeine Geschäftsbedingungen"
+        },
+        "whatsNew": {
+          "description": "Letzte Aktualisierungen",
+          "title": "Neuigkeiten"
+        }
+      },
+      "sections": {
+        "application": "App-Einstellungen",
+        "legal": "Rechtliches",
+        "support": "Support"
+      },
+      "signOut": {
+        "description": "Du musst dich erneut mit deiner E-Mail-Adresse und deinem Passwort anmelden und danach deinen PIN-Code eingeben.",
+        "title": "Abmelden"
+      },
+      "title": "Konto"
+    },
     "language": {
       "description": "Wähle die Sprache der App",
       "saveError": "Die Sprache konnte nicht gespeichert werden.",

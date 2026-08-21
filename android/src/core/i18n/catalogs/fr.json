@@ -214,6 +214,57 @@
     }
   },
   "settings": {
+    "account": {
+      "editProfile": "Modifier mon profil",
+      "profile": {
+        "emailHint": "Ton email est ton identifiant de connexion.",
+        "firstName": "Prénom",
+        "lastName": "Nom",
+        "save": "Enregistrer",
+        "saveError": "Ton profil n'a pas pu être enregistré. Réessaie.",
+        "title": "Ton profil"
+      },
+      "rows": {
+        "faq": {
+          "description": "Aide et questions fréquentes",
+          "title": "FAQ et support"
+        },
+        "preferences": {
+          "description": "Jour de paie et devise",
+          "title": "Préférences"
+        },
+        "privacy": {
+          "description": "Protection de tes données",
+          "title": "Avis de confidentialité"
+        },
+        "security": {
+          "description": "Code PIN, mot de passe, biométrie",
+          "title": "Sécurité"
+        },
+        "tags": {
+          "description": "Tes tags personnels",
+          "title": "Mes tags"
+        },
+        "terms": {
+          "description": "Conditions d'utilisation de Pulpe",
+          "title": "Conditions générales"
+        },
+        "whatsNew": {
+          "description": "Dernières mises à jour",
+          "title": "Nouveautés"
+        }
+      },
+      "sections": {
+        "application": "Paramètres de l'application",
+        "legal": "Légal",
+        "support": "Support"
+      },
+      "signOut": {
+        "description": "Tu devras te reconnecter avec ton email et ton mot de passe, puis ressaisir ton code PIN.",
+        "title": "Déconnexion"
+      },
+      "title": "Compte"
+    },
     "language": {
       "description": "Choisis la langue de l'application",
       "saveError": "La langue n'a pas pu être enregistrée.",

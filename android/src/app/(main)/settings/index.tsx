@@ -22,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useSessionStore } from "@/core/auth/session-store";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { SPACING } from "@/core/ui/theme";
 import { useUserProfile } from "@/features/account/account-queries";
@@ -40,6 +41,7 @@ const AVATAR_SIZE = 72;
  */
 export default function SettingsScreen() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const profile = useUserProfile();
   const sessionEmail = useSessionStore((state) => state.user?.email);
   const signOut = useSessionStore((state) => state.signOut);
@@ -62,7 +64,7 @@ export default function SettingsScreen() {
     >
       <ScreenAppBar>
         <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content title="Compte" />
+        <Appbar.Content title={t("settings.account.title")} />
       </ScreenAppBar>
 
       <ScrollView
@@ -95,61 +97,61 @@ export default function SettingsScreen() {
               icon="pencil-outline"
               onPress={() => setEditingProfile(true)}
             >
-              Modifier mon profil
+              {t("settings.account.editProfile")}
             </Button>
           )}
         </View>
 
-        <SettingsSection title="Paramètres de l'application">
+        <SettingsSection title={t("settings.account.sections.application")}>
           <SettingsRow
             icon="shield-lock-outline"
-            title="Sécurité"
-            description="Code PIN, mot de passe, biométrie"
+            title={t("settings.account.rows.security.title")}
+            description={t("settings.account.rows.security.description")}
             onPress={() => router.push("/settings/security")}
           />
           <SettingsRow
             icon="cog-outline"
-            title="Préférences"
-            description="Jour de paie et devise"
+            title={t("settings.account.rows.preferences.title")}
+            description={t("settings.account.rows.preferences.description")}
             onPress={() => router.push("/settings/preferences")}
           />
           <SettingsRow
             icon="tag-outline"
-            title="Mes tags"
-            description="Tes tags personnels"
+            title={t("settings.account.rows.tags.title")}
+            description={t("settings.account.rows.tags.description")}
             onPress={() => router.push("/settings/tags")}
           />
         </SettingsSection>
 
-        <SettingsSection title="Support">
+        <SettingsSection title={t("settings.account.sections.support")}>
           <SettingsRow
             icon="help-circle-outline"
-            title="FAQ et support"
-            description="Aide et questions fréquentes"
+            title={t("settings.account.rows.faq.title")}
+            description={t("settings.account.rows.faq.description")}
             isExternal
             onPress={() => void Linking.openURL(APP_URLS.support)}
           />
           <SettingsRow
             icon="star-four-points-outline"
-            title="Nouveautés"
-            description="Dernières mises à jour"
+            title={t("settings.account.rows.whatsNew.title")}
+            description={t("settings.account.rows.whatsNew.description")}
             isExternal
             onPress={() => void Linking.openURL(APP_URLS.changelog)}
           />
         </SettingsSection>
 
-        <SettingsSection title="Légal">
+        <SettingsSection title={t("settings.account.sections.legal")}>
           <SettingsRow
             icon="file-document-outline"
-            title="Conditions générales"
-            description="Conditions d'utilisation de Pulpe"
+            title={t("settings.account.rows.terms.title")}
+            description={t("settings.account.rows.terms.description")}
             isExternal
             onPress={() => void Linking.openURL(APP_URLS.terms)}
           />
           <SettingsRow
             icon="hand-back-right-outline"
-            title="Avis de confidentialité"
-            description="Protection de tes données"
+            title={t("settings.account.rows.privacy.title")}
+            description={t("settings.account.rows.privacy.description")}
             isExternal
             onPress={() => void Linking.openURL(APP_URLS.privacy)}
           />
@@ -160,7 +162,7 @@ export default function SettingsScreen() {
           textColor={theme.colors.error}
           onPress={() => setSigningOut(true)}
         >
-          Déconnexion
+          {t("common.signOut")}
         </Button>
 
         <Text
@@ -182,22 +184,23 @@ export default function SettingsScreen() {
 
       <Portal>
         <Dialog visible={isSigningOut} onDismiss={() => setSigningOut(false)}>
-          <Dialog.Title>Déconnexion</Dialog.Title>
+          <Dialog.Title>{t("settings.account.signOut.title")}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              Tu devras te reconnecter avec ton email et ton mot de passe, puis
-              ressaisir ton code PIN.
+              {t("settings.account.signOut.description")}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setSigningOut(false)}>Annuler</Button>
+            <Button onPress={() => setSigningOut(false)}>
+              {t("common.cancel")}
+            </Button>
             {/* No navigation here: the root layout sends an unauthenticated
                 session back to the login screen on its own. */}
             <Button
               textColor={theme.colors.error}
               onPress={() => void signOut()}
             >
-              Déconnecter
+              {t("common.signOut")}
             </Button>
           </Dialog.Actions>
         </Dialog>
