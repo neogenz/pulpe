@@ -1,6 +1,6 @@
 ---
 objective: "L'app iOS partage une seule grammaire visuelle à fort contraste (hero forêt, ledger en cartes groupées, trois familles de chips maximum, un CTA plat) sur l'accueil, le détail de budget, la vue annuelle, les objectifs et les modèles ; la saisie d'une opération tient en trois blocs ; l'onboarding pose une question par écran."
-status: in-progress
+status: implemented
 ---
 
 # Plan: refonte du design system et de l'UI de l'app iOS
