@@ -305,6 +305,35 @@
       "remindersSection": "Reminders",
       "reminderTitle": "Monthly reminder",
       "title": "Preferences"
+    },
+    "tags": {
+      "add": "Add",
+      "available": "Available tags",
+      "createError": "The tag could not be created. Try again.",
+      "createSelect": "Create and select this tag",
+      "delete": "Delete",
+      "deleteA11y": "Delete %{name}",
+      "deleteDescription": "“%{name}” will be removed from the forecasts and activity that use it. They will remain.",
+      "deleteError": "The tag could not be deleted. Try again.",
+      "deleteTitle": "Delete this tag?",
+      "description": "Tags group your forecasts and activity. They are shared with the web and iOS apps.",
+      "empty": "No tags yet.",
+      "loadError": "Your tags could not be loaded.",
+      "name": "Name",
+      "new": "New",
+      "newTag": "New tag",
+      "pickerTitle": "Tags",
+      "rename": "Rename",
+      "renameA11y": "Rename %{name}",
+      "renameError": "The tag could not be renamed. Try again.",
+      "renameTitle": "Rename tag",
+      "selectionCount": "%{count} of %{total}",
+      "title": "My tags",
+      "validation": {
+        "duplicate": "This tag already exists",
+        "selectionLimit": "%{count} tags maximum",
+        "tooLong": "%{count} characters maximum"
+      }
     }
   },
   "startup": {

@@ -11,6 +11,7 @@ import {
 } from "react-native-paper";
 
 import { FadingRail } from "@/core/ui/fading-rail";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { FilterChip } from "@/core/ui/filter-chip";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
@@ -18,6 +19,7 @@ import { FieldError } from "@/core/ui/field-error";
 import { useCreateTag, useTags } from "./tag-queries";
 import {
   canCreateTag,
+  TAG_NAME_MAX_LENGTH,
   tagNameIssue,
   tagsSelectedFirst,
   toggledTagIds,
@@ -38,16 +40,20 @@ interface TagPickerProps {
  */
 export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const tags = useTags();
   const createTag = useCreateTag();
   const [name, setName] = useState("");
   const [isCreating, setCreating] = useState(false);
 
   const available = tags.data ?? [];
+  const hasLoadError = tags.isError && tags.data === undefined;
   const ordered = tagsSelectedFirst(available, selectedIds);
   const issue = tagNameIssue(name, available, selectedIds.length);
   const isCreatable =
-    canCreateTag(name, available, selectedIds.length) && !createTag.isPending;
+    canCreateTag(name, available, selectedIds.length) &&
+    !createTag.isPending &&
+    !hasLoadError;
 
   function create() {
     if (!isCreatable) return;
@@ -62,12 +68,15 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
   return (
     <View style={styles.field}>
       <View style={styles.heading}>
-        <Text variant="labelLarge">Tags</Text>
+        <Text variant="labelLarge">{t("settings.tags.pickerTitle")}</Text>
         <Text
           variant="labelSmall"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          {`${selectedIds.length} sur ${MAX_TAGS_PER_TRANSACTION}`}
+          {t("settings.tags.selectionCount", {
+            count: selectedIds.length,
+            total: MAX_TAGS_PER_TRANSACTION,
+          })}
         </Text>
       </View>
 
@@ -76,13 +85,22 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
           the bottom of the sheet. It runs to the sheet's own edges so a chip
           scrolls past the gutter instead of being clipped by it. */}
       {tags.isPending ? (
-        <ActivityIndicator accessibilityLabel="Chargement" />
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
+      ) : hasLoadError ? (
+        <View style={styles.errorState}>
+          <FieldError visible>{t("settings.tags.loadError")}</FieldError>
+          <IconButton
+            icon="refresh"
+            onPress={() => void tags.refetch()}
+            accessibilityLabel={t("common.retry")}
+          />
+        </View>
       ) : (
         <View style={styles.rail}>
           <FadingRail
             inset={SHEET_PADDING}
             background={theme.colors.surface}
-            accessibilityLabel="Tags disponibles"
+            accessibilityLabel={t("settings.tags.available")}
           >
             {ordered.map((tag) => {
               const isSelected = selectedIds.includes(tag.id);
@@ -107,20 +125,20 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
                 permanent field sitting under every list. */}
             {!isCreating && (
               <Chip icon="plus" onPress={() => setCreating(true)}>
-                Nouveau
+                {t("settings.tags.new")}
               </Chip>
             )}
           </FadingRail>
         </View>
       )}
 
-      {isCreating && (
+      {isCreating && !hasLoadError && (
         <View style={styles.create}>
           <TextInput
             mode="outlined"
             dense
             autoFocus
-            label="Nouveau tag"
+            label={t("settings.tags.newTag")}
             value={name}
             onChangeText={setName}
             onSubmitEditing={create}
@@ -130,7 +148,7 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
           {createTag.isPending ? (
             <ActivityIndicator
               style={styles.creating}
-              accessibilityLabel="Chargement"
+              accessibilityLabel={t("common.loading")}
             />
           ) : (
             <IconButton
@@ -138,17 +156,24 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
               mode="contained-tonal"
               disabled={!isCreatable}
               onPress={create}
-              accessibilityLabel="Créer et sélectionner ce tag"
+              accessibilityLabel={t("settings.tags.createSelect")}
             />
           )}
         </View>
       )}
 
-      {issue !== null && <FieldError visible>{issue}</FieldError>}
-      {createTag.isError && (
+      {issue !== null && !hasLoadError && (
         <FieldError visible>
-          Le tag n&apos;a pas pu être créé. Réessaie.
+          {t(`settings.tags.validation.${issue}`, {
+            count:
+              issue === "tooLong"
+                ? TAG_NAME_MAX_LENGTH
+                : MAX_TAGS_PER_TRANSACTION,
+          })}
         </FieldError>
+      )}
+      {createTag.isError && (
+        <FieldError visible>{t("settings.tags.createError")}</FieldError>
       )}
     </View>
   );
@@ -165,4 +190,5 @@ const styles = StyleSheet.create({
   create: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
   nameField: { flex: 1 },
   creating: { marginHorizontal: SPACING.md },
+  errorState: { flexDirection: "row", alignItems: "center" },
 });

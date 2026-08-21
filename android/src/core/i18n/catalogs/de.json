@@ -305,6 +305,35 @@
       "remindersSection": "Erinnerungen",
       "reminderTitle": "Monatliche Erinnerung",
       "title": "Einstellungen"
+    },
+    "tags": {
+      "add": "Hinzufügen",
+      "available": "Verfügbare Tags",
+      "createError": "Der Tag konnte nicht erstellt werden. Versuche es erneut.",
+      "createSelect": "Diesen Tag erstellen und auswählen",
+      "delete": "Löschen",
+      "deleteA11y": "%{name} löschen",
+      "deleteDescription": "„%{name}“ wird von den Prognosen und Vorgängen entfernt, die ihn verwenden. Diese bleiben bestehen.",
+      "deleteError": "Der Tag konnte nicht gelöscht werden. Versuche es erneut.",
+      "deleteTitle": "Diesen Tag löschen?",
+      "description": "Mit Tags gruppierst du Prognosen und Vorgänge. Sie werden mit der Web- und der iOS-App geteilt.",
+      "empty": "Noch keine Tags.",
+      "loadError": "Deine Tags konnten nicht geladen werden.",
+      "name": "Name",
+      "new": "Neu",
+      "newTag": "Neuer Tag",
+      "pickerTitle": "Tags",
+      "rename": "Umbenennen",
+      "renameA11y": "%{name} umbenennen",
+      "renameError": "Der Tag konnte nicht umbenannt werden. Versuche es erneut.",
+      "renameTitle": "Tag umbenennen",
+      "selectionCount": "%{count} von %{total}",
+      "title": "Meine Tags",
+      "validation": {
+        "duplicate": "Dieser Tag existiert bereits",
+        "selectionLimit": "Maximal %{count} Tags",
+        "tooLong": "Maximal %{count} Zeichen"
+      }
     }
   },
   "startup": {

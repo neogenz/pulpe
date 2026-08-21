@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/core/ui/card";
+import { useTranslation } from "@/core/i18n/locale-store";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import {
@@ -28,10 +29,9 @@ import {
 import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { ROW_ACTION_ICON_SIZE, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
+import { TAG_NAME_MAX_LENGTH } from "@/features/tags/tag-selection";
 
 /** `tagCreateSchema` caps a name at 30 characters. */
-const NAME_MAX_LENGTH = 30;
-
 /**
  * Personal tags, editable here rather than read-only as on iOS: this is the
  * only surface either mobile app offers for them, and a tag that can be
@@ -39,6 +39,7 @@ const NAME_MAX_LENGTH = 30;
  */
 export default function TagsSettingsScreen() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const keyboardHeight = useKeyboardHeight();
   const tags = useTags();
   const create = useCreateTag();
@@ -50,17 +51,24 @@ export default function TagsSettingsScreen() {
   const [deletedTag, setDeletedTag] = useState<Tag | null>(null);
 
   const list = tags.data ?? [];
+  const hasLoadError = tags.isError && tags.data === undefined;
 
   function submitDraft() {
     const name = draftName.trim();
-    if (name.length === 0 || create.isPending) return;
+    if (name.length === 0 || create.isPending || hasLoadError) return;
 
     create.mutate(name, { onSuccess: () => setDraftName("") });
   }
 
   function startRename(tag: Tag) {
+    rename.reset();
     setRenamedTag(tag);
     setRenamedName(tag.name);
+  }
+
+  function startDelete(tag: Tag) {
+    remove.reset();
+    setDeletedTag(tag);
   }
 
   return (
@@ -70,7 +78,7 @@ export default function TagsSettingsScreen() {
     >
       <ScreenAppBar>
         <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content title="Mes tags" />
+        <Appbar.Content title={t("settings.tags.title")} />
       </ScreenAppBar>
 
       <ScrollView
@@ -90,17 +98,16 @@ export default function TagsSettingsScreen() {
           variant="bodyMedium"
           style={{ color: theme.colors.onSurfaceVariant }}
         >
-          Tes tags servent à regrouper des prévisions et des opérations. Ils
-          sont partagés avec le web et l&apos;app iOS.
+          {t("settings.tags.description")}
         </Text>
 
         <View style={styles.addRow}>
           <TextInput
             mode="outlined"
-            label="Nouveau tag"
+            label={t("settings.tags.newTag")}
             value={draftName}
             onChangeText={setDraftName}
-            maxLength={NAME_MAX_LENGTH}
+            maxLength={TAG_NAME_MAX_LENGTH}
             style={styles.addInput}
             onSubmitEditing={submitDraft}
             returnKeyType="done"
@@ -108,27 +115,34 @@ export default function TagsSettingsScreen() {
           <Button
             mode="contained"
             onPress={submitDraft}
-            disabled={draftName.trim().length === 0 || create.isPending}
+            disabled={
+              draftName.trim().length === 0 || create.isPending || hasLoadError
+            }
             loading={create.isPending}
           >
-            Ajouter
+            {t("settings.tags.add")}
           </Button>
         </View>
 
         {create.isError && (
-          <FieldError visible>
-            Le tag n&apos;a pas pu être créé. Il existe peut-être déjà.
-          </FieldError>
+          <FieldError visible>{t("settings.tags.createError")}</FieldError>
         )}
 
         {tags.isPending ? (
-          <ActivityIndicator accessibilityLabel="Chargement" />
+          <ActivityIndicator accessibilityLabel={t("common.loading")} />
+        ) : hasLoadError ? (
+          <View style={styles.loadError}>
+            <FieldError visible>{t("settings.tags.loadError")}</FieldError>
+            <Button onPress={() => void tags.refetch()}>
+              {t("common.retry")}
+            </Button>
+          </View>
         ) : list.length === 0 ? (
           <Text
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            Aucun tag pour l&apos;instant.
+            {t("settings.tags.empty")}
           </Text>
         ) : (
           <Card mode="contained">
@@ -144,14 +158,18 @@ export default function TagsSettingsScreen() {
                       size={ROW_ACTION_ICON_SIZE}
                       style={styles.action}
                       onPress={() => startRename(tag)}
-                      accessibilityLabel={`Renommer ${tag.name}`}
+                      accessibilityLabel={t("settings.tags.renameA11y", {
+                        name: tag.name,
+                      })}
                     />
                     <IconButton
                       icon="delete-outline"
                       size={ROW_ACTION_ICON_SIZE}
                       style={styles.action}
-                      onPress={() => setDeletedTag(tag)}
-                      accessibilityLabel={`Supprimer ${tag.name}`}
+                      onPress={() => startDelete(tag)}
+                      accessibilityLabel={t("settings.tags.deleteA11y", {
+                        name: tag.name,
+                      })}
                     />
                   </View>
                 )}
@@ -164,21 +182,31 @@ export default function TagsSettingsScreen() {
       <Portal>
         <Dialog
           visible={renamedTag !== null}
-          onDismiss={() => setRenamedTag(null)}
+          onDismiss={() => {
+            if (!rename.isPending) setRenamedTag(null);
+          }}
         >
-          <Dialog.Title>Renommer le tag</Dialog.Title>
+          <Dialog.Title>{t("settings.tags.renameTitle")}</Dialog.Title>
           <Dialog.Content>
             <TextInput
               mode="outlined"
-              label="Nom"
+              label={t("settings.tags.name")}
               value={renamedName}
               onChangeText={setRenamedName}
-              maxLength={NAME_MAX_LENGTH}
+              maxLength={TAG_NAME_MAX_LENGTH}
               autoFocus
             />
+            {rename.isError && (
+              <FieldError visible>{t("settings.tags.renameError")}</FieldError>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setRenamedTag(null)}>Annuler</Button>
+            <Button
+              onPress={() => setRenamedTag(null)}
+              disabled={rename.isPending}
+            >
+              {t("common.cancel")}
+            </Button>
             <Button
               disabled={renamedName.trim().length === 0 || rename.isPending}
               loading={rename.isPending}
@@ -190,24 +218,35 @@ export default function TagsSettingsScreen() {
                 );
               }}
             >
-              Renommer
+              {t("settings.tags.rename")}
             </Button>
           </Dialog.Actions>
         </Dialog>
 
         <Dialog
           visible={deletedTag !== null}
-          onDismiss={() => setDeletedTag(null)}
+          onDismiss={() => {
+            if (!remove.isPending) setDeletedTag(null);
+          }}
         >
-          <Dialog.Title>Supprimer ce tag ?</Dialog.Title>
+          <Dialog.Title>{t("settings.tags.deleteTitle")}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              «&nbsp;{deletedTag?.name}&nbsp;» sera retiré des prévisions et des
-              opérations qui le portent. Elles, elles restent.
+              {t("settings.tags.deleteDescription", {
+                name: deletedTag?.name ?? "",
+              })}
             </Text>
+            {remove.isError && (
+              <FieldError visible>{t("settings.tags.deleteError")}</FieldError>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setDeletedTag(null)}>Annuler</Button>
+            <Button
+              onPress={() => setDeletedTag(null)}
+              disabled={remove.isPending}
+            >
+              {t("common.cancel")}
+            </Button>
             <Button
               textColor={theme.colors.error}
               disabled={remove.isPending}
@@ -219,7 +258,7 @@ export default function TagsSettingsScreen() {
                 });
               }}
             >
-              Supprimer
+              {t("settings.tags.delete")}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -235,4 +274,5 @@ const styles = StyleSheet.create({
   addInput: { flex: 1 },
   actions: { flexDirection: "row", alignItems: "center" },
   action: { margin: 0 },
+  loadError: { alignItems: "flex-start" },
 });

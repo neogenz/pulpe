@@ -305,6 +305,35 @@
       "remindersSection": "Promemoria",
       "reminderTitle": "Promemoria mensile",
       "title": "Preferenze"
+    },
+    "tags": {
+      "add": "Aggiungi",
+      "available": "Tag disponibili",
+      "createError": "Non è stato possibile creare il tag. Riprova.",
+      "createSelect": "Crea e seleziona questo tag",
+      "delete": "Elimina",
+      "deleteA11y": "Elimina %{name}",
+      "deleteDescription": "“%{name}” verrà rimosso dalle previsioni e dai movimenti che lo usano. Questi resteranno invariati.",
+      "deleteError": "Non è stato possibile eliminare il tag. Riprova.",
+      "deleteTitle": "Eliminare questo tag?",
+      "description": "I tag raggruppano previsioni e movimenti. Sono condivisi con le app web e iOS.",
+      "empty": "Nessun tag per ora.",
+      "loadError": "Non è stato possibile caricare i tuoi tag.",
+      "name": "Nome",
+      "new": "Nuovo",
+      "newTag": "Nuovo tag",
+      "pickerTitle": "Tag",
+      "rename": "Rinomina",
+      "renameA11y": "Rinomina %{name}",
+      "renameError": "Non è stato possibile rinominare il tag. Riprova.",
+      "renameTitle": "Rinomina tag",
+      "selectionCount": "%{count} su %{total}",
+      "title": "I miei tag",
+      "validation": {
+        "duplicate": "Questo tag esiste già",
+        "selectionLimit": "Massimo %{count} tag",
+        "tooLong": "Massimo %{count} caratteri"
+      }
     }
   },
   "startup": {

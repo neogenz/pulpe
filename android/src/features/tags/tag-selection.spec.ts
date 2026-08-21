@@ -87,16 +87,16 @@ describe("tagNameIssue", () => {
   });
 
   it("rejects a name longer than thirty characters", () => {
-    expect(tagNameIssue("a".repeat(31), TAGS, 0)).toBe("30 caractères maximum");
+    expect(tagNameIssue("a".repeat(31), TAGS, 0)).toBe("tooLong");
   });
 
   it("rejects a name already taken", () => {
-    expect(tagNameIssue("courses", TAGS, 0)).toBe("Ce tag existe déjà");
+    expect(tagNameIssue("courses", TAGS, 0)).toBe("duplicate");
   });
 
   it("rejects creating one more once the selection is full", () => {
     expect(tagNameIssue("Vacances", TAGS, MAX_TAGS_PER_TRANSACTION)).toBe(
-      `${MAX_TAGS_PER_TRANSACTION} tags maximum`,
+      "selectionLimit",
     );
   });
 

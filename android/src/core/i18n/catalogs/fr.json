@@ -305,6 +305,35 @@
       "remindersSection": "Rappels",
       "reminderTitle": "Rappel mensuel",
       "title": "Préférences"
+    },
+    "tags": {
+      "add": "Ajouter",
+      "available": "Tags disponibles",
+      "createError": "Le tag n'a pas pu être créé. Réessaie.",
+      "createSelect": "Créer et sélectionner ce tag",
+      "delete": "Supprimer",
+      "deleteA11y": "Supprimer %{name}",
+      "deleteDescription": "« %{name} » sera retiré des prévisions et des opérations qui le portent. Elles, elles restent.",
+      "deleteError": "Le tag n'a pas pu être supprimé. Réessaie.",
+      "deleteTitle": "Supprimer ce tag ?",
+      "description": "Tes tags servent à regrouper des prévisions et des opérations. Ils sont partagés avec le web et l'app iOS.",
+      "empty": "Aucun tag pour l'instant.",
+      "loadError": "Tes tags n'ont pas pu être chargés.",
+      "name": "Nom",
+      "new": "Nouveau",
+      "newTag": "Nouveau tag",
+      "pickerTitle": "Tags",
+      "rename": "Renommer",
+      "renameA11y": "Renommer %{name}",
+      "renameError": "Le tag n'a pas pu être renommé. Réessaie.",
+      "renameTitle": "Renommer le tag",
+      "selectionCount": "%{count} sur %{total}",
+      "title": "Mes tags",
+      "validation": {
+        "duplicate": "Ce tag existe déjà",
+        "selectionLimit": "%{count} tags maximum",
+        "tooLong": "%{count} caractères maximum"
+      }
     }
   },
   "startup": {

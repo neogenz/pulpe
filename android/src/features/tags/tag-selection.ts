@@ -1,6 +1,7 @@
 import { MAX_TAGS_PER_TRANSACTION, type Tag } from "pulpe-shared";
 
-const NAME_MAX_LENGTH = 30;
+export const TAG_NAME_MAX_LENGTH = 30;
+export type TagNameIssue = "tooLong" | "duplicate" | "selectionLimit";
 
 /**
  * Adds or removes a tag, refusing to grow past the server's own ceiling — the
@@ -48,15 +49,13 @@ export function tagNameIssue(
   name: string,
   tags: Tag[],
   selectionCount: number,
-): string | null {
+): TagNameIssue | null {
   const trimmed = name.trim();
   if (trimmed.length === 0) return null;
-  if (trimmed.length > NAME_MAX_LENGTH) {
-    return `${NAME_MAX_LENGTH} caractères maximum`;
-  }
-  if (findTagByName(trimmed, tags) !== undefined) return "Ce tag existe déjà";
+  if (trimmed.length > TAG_NAME_MAX_LENGTH) return "tooLong";
+  if (findTagByName(trimmed, tags) !== undefined) return "duplicate";
   if (selectionCount >= MAX_TAGS_PER_TRANSACTION) {
-    return `${MAX_TAGS_PER_TRANSACTION} tags maximum`;
+    return "selectionLimit";
   }
   return null;
 }
