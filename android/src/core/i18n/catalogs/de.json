@@ -73,6 +73,7 @@
   },
   "onboarding": {
     "back": "Zum vorherigen Schritt zurückkehren",
+    "progress": "Schritt %{current} von %{total}",
     "charges": {
       "addExpense": "Ausgabe hinzufügen",
       "healthInsurance": "Krankenkasse",
@@ -434,6 +435,17 @@
     "pinLength": "%{count} Ziffern",
     "pinMismatch": "Die Codes stimmen nicht überein",
     "pinProgress": "Eingegebene Ziffern: %{filled} von %{total}",
+    "notice": {
+      "acknowledge": "Ich habe meinen Schlüssel notiert",
+      "copied": "Kopiert",
+      "copiedA11y": "Schlüssel kopiert",
+      "copy": "Schlüssel kopieren",
+      "copyA11y": "Wiederherstellungsschlüssel kopieren",
+      "mintedBody": "Notiere diesen Schlüssel an einem sicheren Ort. Damit kannst du wieder auf deine Daten zugreifen, falls du deinen PIN-Code vergisst.",
+      "mintFailedBody": "Die Wiederherstellung war erfolgreich, aber ein neuer Wiederherstellungsschlüssel konnte nicht erstellt werden. Du kannst ihn in den Einstellungen erstellen.",
+      "understood": "Verstanden",
+      "warning": "Ohne diesen Schlüssel und deinen PIN-Code sind deine Finanzdaten dauerhaft nicht mehr zugänglich."
+    },
     "recovery": {
       "invalidCharacters": "Dein Schlüssel enthält ungültige Zeichen",
       "lostKey": "Du hast deinen Schlüssel nicht mehr?",

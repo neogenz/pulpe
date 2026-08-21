@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
 
+import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 import { formatRecoveryKey } from "@/core/vault/recovery-key";
@@ -36,6 +37,7 @@ export function RecoveryKeyNotice() {
 
 function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [isCopied, setIsCopied] = useState(false);
   const resetTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -62,13 +64,14 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
     <Portal>
       <Dialog visible dismissable={false} onDismiss={acknowledgeRecoveryNotice}>
         <Dialog.Icon icon="key-variant" />
-        <Dialog.Title style={styles.centered}>Clé de récupération</Dialog.Title>
+        <Dialog.Title style={styles.centered}>
+          {t("vault.recovery.title")}
+        </Dialog.Title>
 
         <Dialog.ScrollArea>
           <ScrollView contentContainerStyle={styles.content}>
             <Text variant="bodyMedium" style={styles.centered}>
-              Note cette clé dans un endroit sûr. Elle te permettra de retrouver
-              l&apos;accès à tes données si tu oublies ton code PIN.
+              {t("vault.notice.mintedBody")}
             </Text>
 
             <View
@@ -84,7 +87,7 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
                 variant="bodyMedium"
                 selectable
                 style={styles.key}
-                accessibilityLabel="Clé de récupération"
+                accessibilityLabel={t("vault.recovery.title")}
               >
                 {formatRecoveryKey(recoveryKey)}
               </Text>
@@ -95,10 +98,12 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
               icon={isCopied ? "check" : "content-copy"}
               onPress={() => void copy()}
               accessibilityLabel={
-                isCopied ? "Clé copiée" : "Copier la clé de récupération"
+                isCopied
+                  ? t("vault.notice.copiedA11y")
+                  : t("vault.notice.copyA11y")
               }
             >
-              {isCopied ? "Copié" : "Copier la clé"}
+              {t(isCopied ? "vault.notice.copied" : "vault.notice.copy")}
             </Button>
 
             <View
@@ -119,8 +124,7 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
                   { color: theme.colors.onErrorContainer },
                 ]}
               >
-                Sans cette clé et sans ton code PIN, tes données financières
-                seront définitivement inaccessibles.
+                {t("vault.notice.warning")}
               </Text>
             </View>
           </ScrollView>
@@ -128,7 +132,7 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
 
         <Dialog.Actions>
           <Button mode="contained" onPress={acknowledgeRecoveryNotice}>
-            J&apos;ai noté ma clé
+            {t("vault.notice.acknowledge")}
           </Button>
         </Dialog.Actions>
       </Dialog>
@@ -141,21 +145,20 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
  * intact, so this is a warning with a way forward, not a failure.
  */
 function MintFailedDialog() {
+  const { t } = useTranslation();
   return (
     <Portal>
       <Dialog visible dismissable={false} onDismiss={acknowledgeRecoveryNotice}>
         <Dialog.Icon icon="key-alert-outline" />
-        <Dialog.Title style={styles.centered}>Clé de récupération</Dialog.Title>
+        <Dialog.Title style={styles.centered}>
+          {t("vault.recovery.title")}
+        </Dialog.Title>
         <Dialog.Content>
-          <Text variant="bodyMedium">
-            Ta récupération a réussi, mais la nouvelle clé de récupération
-            n&apos;a pas pu être générée. Tu peux en créer une depuis les
-            réglages.
-          </Text>
+          <Text variant="bodyMedium">{t("vault.notice.mintFailedBody")}</Text>
         </Dialog.Content>
         <Dialog.Actions>
           <Button mode="contained" onPress={acknowledgeRecoveryNotice}>
-            J&apos;ai compris
+            {t("vault.notice.understood")}
           </Button>
         </Dialog.Actions>
       </Dialog>

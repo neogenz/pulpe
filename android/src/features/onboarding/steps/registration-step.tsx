@@ -152,7 +152,7 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
 
       {errorMessage !== null && <FieldError visible>{errorMessage}</FieldError>}
 
-      <LegalConsent localized prefix={t("onboarding.registration.legal")} />
+      <LegalConsent prefix={t("onboarding.registration.legal")} />
     </StepScaffold>
   );
 }

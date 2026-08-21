@@ -1,6 +1,5 @@
 import { create } from "zustand";
 
-import { normalizeApiError } from "@/core/api/api-error";
 import {
   clearAllKeys,
   clearLegacyClientKey,
@@ -46,14 +45,14 @@ interface VaultState {
   status: VaultStatus;
   isBiometricAvailable: boolean;
   /** Non-null only while `status` is `unknown`: the reason it is still unknown. */
-  bootstrapError: string | null;
+  hasBootstrapError: boolean;
   pendingRecoveryNotice: RecoveryKeyNotice | null;
 }
 
 export const useVaultStore = create<VaultState>(() => ({
   status: "unknown",
   isBiometricAvailable: false,
-  bootstrapError: null,
+  hasBootstrapError: false,
   pendingRecoveryNotice: null,
 }));
 
@@ -77,10 +76,10 @@ async function deriveAndHold(pin: string): Promise<string> {
  *
  * Never rejects: the router waits on this state, and an exception nobody is
  * positioned to catch would leave it on a blank screen with no way forward.
- * A failure becomes `bootstrapError`, which the retry screen reads.
+ * A failure becomes a stable flag, which the retry screen translates.
  */
 export async function bootstrapVault(): Promise<VaultStatus> {
-  setState({ bootstrapError: null });
+  setState({ hasBootstrapError: false });
 
   try {
     await clearLegacyClientKey();
@@ -96,10 +95,10 @@ export async function bootstrapVault(): Promise<VaultStatus> {
       isBiometricAvailable: await hasBiometricKey(),
     });
     return "locked";
-  } catch (error) {
+  } catch {
     setState({
       status: "unknown",
-      bootstrapError: normalizeApiError(error).message,
+      hasBootstrapError: true,
     });
     return "unknown";
   }
@@ -270,7 +269,7 @@ export function resetVault(): void {
   setState({
     status: "unknown",
     isBiometricAvailable: false,
-    bootstrapError: null,
+    hasBootstrapError: false,
     pendingRecoveryNotice: null,
   });
 }

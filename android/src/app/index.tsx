@@ -23,7 +23,7 @@ import { useOnboardingStore } from "@/features/onboarding/onboarding-store";
 export default function IndexRoute() {
   const status = useSessionStore((state) => state.status);
   const vaultStatus = useVaultStore((state) => state.status);
-  const bootstrapError = useVaultStore((state) => state.bootstrapError);
+  const hasBootstrapError = useVaultStore((state) => state.hasBootstrapError);
   const isOnboarding = useOnboardingStore((state) => state.isFlowActive);
   const hasCompletedOnboarding = useOnboardingStore(
     (state) => state.hasCompletedOnboarding,
@@ -45,20 +45,16 @@ export default function IndexRoute() {
   // is signed in and the vault has not answered. Everything past this point
   // reads encrypted amounts, so a spinner is all there is to show.
   if (status === "loading") return null;
-  return <VaultBootstrapScreen errorMessage={bootstrapError} />;
+  return <VaultBootstrapScreen hasError={hasBootstrapError} />;
 }
 
-function VaultBootstrapScreen({
-  errorMessage,
-}: {
-  errorMessage: string | null;
-}) {
+function VaultBootstrapScreen({ hasError }: { hasError: boolean }) {
   const theme = useTheme();
   const { t } = useTranslation();
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      {errorMessage === null ? (
+      {!hasError ? (
         <ActivityIndicator accessibilityLabel={t("common.loading")} />
       ) : (
         <>

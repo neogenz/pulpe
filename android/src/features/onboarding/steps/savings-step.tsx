@@ -48,7 +48,6 @@ export function SavingsStep({ onExit }: { onExit: () => void }) {
 
       <TransactionList
         title={t("onboarding.savings.items")}
-        localized
         transactions={customSavings}
         currency={state.currency}
         onEdit={(editing) => setDialog({ editing })}
@@ -68,7 +67,6 @@ export function SavingsStep({ onExit }: { onExit: () => void }) {
       {dialog !== null && (
         <TransactionDialog
           kind="saving"
-          localized
           currency={state.currency}
           editing={dialog.editing}
           onDismiss={() => setDialog(null)}

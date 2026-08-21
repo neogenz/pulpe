@@ -109,7 +109,6 @@ export function ChargesStep({ onExit }: { onExit: () => void }) {
 
       <TransactionList
         title={t("onboarding.charges.plannedItems")}
-        localized
         transactions={customExpenses}
         currency={state.currency}
         onEdit={(editing) => setDialog({ editing })}
@@ -129,7 +128,6 @@ export function ChargesStep({ onExit }: { onExit: () => void }) {
       {dialog !== null && (
         <TransactionDialog
           kind="expense"
-          localized
           currency={state.currency}
           editing={dialog.editing}
           onDismiss={() => setDialog(null)}

@@ -10,27 +10,15 @@ import { SPACING } from "@/core/ui/theme";
  * behind a checkbox nobody reads — same wording and same placement as the iOS
  * welcome and registration steps.
  */
-export function LegalConsent({
-  prefix,
-  localized = false,
-}: {
-  prefix: string;
-  localized?: boolean;
-}) {
+export function LegalConsent({ prefix }: { prefix: string }) {
   const theme = useTheme();
   const { t } = useTranslation();
   const muted = { color: theme.colors.onSurfaceVariant };
   const link = [styles.link, { color: theme.colors.primary }];
-  const possessive = localized ? t("onboarding.legal.possessive") : "nos";
-  const terms = localized
-    ? t("onboarding.legal.terms")
-    : "conditions générales";
-  const possessiveSingular = localized
-    ? t("onboarding.legal.possessiveSingular")
-    : "notre";
-  const privacy = localized
-    ? t("onboarding.legal.privacy")
-    : "politique de confidentialité";
+  const possessive = t("onboarding.legal.possessive");
+  const terms = t("onboarding.legal.terms");
+  const possessiveSingular = t("onboarding.legal.possessiveSingular");
+  const privacy = t("onboarding.legal.privacy");
   return (
     <View style={styles.paragraph}>
       <Text variant="bodySmall" style={muted}>
@@ -43,7 +31,7 @@ export function LegalConsent({
         >
           {terms}
         </Text>{" "}
-        {localized ? t("common.and") : "et"} {possessiveSingular}{" "}
+        {t("common.and")} {possessiveSingular}{" "}
         <Text
           variant="bodySmall"
           style={link}

@@ -71,7 +71,6 @@ export function IncomeStep({ onExit }: { onExit: () => void }) {
 
       <TransactionList
         title={t("onboarding.income.extraIncome")}
-        localized
         transactions={extraIncomes}
         currency={state.currency}
         onEdit={(editing) => setDialog({ editing })}
@@ -91,7 +90,6 @@ export function IncomeStep({ onExit }: { onExit: () => void }) {
       {dialog !== null && (
         <TransactionDialog
           kind="income"
-          localized
           currency={state.currency}
           editing={dialog.editing}
           onDismiss={() => setDialog(null)}

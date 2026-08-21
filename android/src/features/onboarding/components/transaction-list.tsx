@@ -20,13 +20,11 @@ export function TransactionList({
   transactions,
   currency,
   onEdit,
-  localized = false,
 }: {
   title: string;
   transactions: readonly OnboardingTransaction[];
   currency: SupportedCurrency;
   onEdit: (transaction: OnboardingTransaction) => void;
-  localized?: boolean;
 }) {
   const { t } = useTranslation();
   if (transactions.length === 0) return null;
@@ -47,22 +45,18 @@ export function TransactionList({
             size={ROW_ACTION_ICON_SIZE}
             style={styles.action}
             onPress={() => onEdit(transaction)}
-            accessibilityLabel={
-              localized
-                ? t("onboarding.transaction.edit", { name: transaction.name })
-                : `Modifier ${transaction.name}`
-            }
+            accessibilityLabel={t("onboarding.transaction.edit", {
+              name: transaction.name,
+            })}
           />
           <IconButton
             icon="close"
             size={ROW_ACTION_ICON_SIZE}
             style={styles.action}
             onPress={() => removeCustomTransaction(transaction.id)}
-            accessibilityLabel={
-              localized
-                ? t("onboarding.transaction.delete", { name: transaction.name })
-                : `Supprimer ${transaction.name}`
-            }
+            accessibilityLabel={t("onboarding.transaction.delete", {
+              name: transaction.name,
+            })}
           />
         </View>
       ))}

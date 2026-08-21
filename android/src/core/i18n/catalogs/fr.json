@@ -73,6 +73,7 @@
   },
   "onboarding": {
     "back": "Revenir à l'étape précédente",
+    "progress": "Étape %{current} sur %{total}",
     "charges": {
       "addExpense": "Ajouter une dépense",
       "healthInsurance": "Assurance maladie",
@@ -434,6 +435,17 @@
     "pinLength": "%{count} chiffres",
     "pinMismatch": "Les codes ne correspondent pas",
     "pinProgress": "Chiffres saisis : %{filled} sur %{total}",
+    "notice": {
+      "acknowledge": "J'ai noté ma clé",
+      "copied": "Copié",
+      "copiedA11y": "Clé copiée",
+      "copy": "Copier la clé",
+      "copyA11y": "Copier la clé de récupération",
+      "mintedBody": "Note cette clé dans un endroit sûr. Elle te permettra de retrouver l'accès à tes données si tu oublies ton code PIN.",
+      "mintFailedBody": "Ta récupération a réussi, mais la nouvelle clé de récupération n'a pas pu être générée. Tu peux en créer une depuis les réglages.",
+      "understood": "J'ai compris",
+      "warning": "Sans cette clé et sans ton code PIN, tes données financières seront définitivement inaccessibles."
+    },
     "recovery": {
       "invalidCharacters": "Ta clé contient des caractères invalides",
       "lostKey": "Tu n'as plus ta clé ?",

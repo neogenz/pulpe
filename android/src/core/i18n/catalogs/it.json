@@ -73,6 +73,7 @@
   },
   "onboarding": {
     "back": "Torna al passaggio precedente",
+    "progress": "Passaggio %{current} di %{total}",
     "charges": {
       "addExpense": "Aggiungi una spesa",
       "healthInsurance": "Cassa malati",
@@ -434,6 +435,17 @@
     "pinLength": "%{count} cifre",
     "pinMismatch": "I codici non corrispondono",
     "pinProgress": "Cifre inserite: %{filled} su %{total}",
+    "notice": {
+      "acknowledge": "Ho annotato la mia chiave",
+      "copied": "Copiata",
+      "copiedA11y": "Chiave copiata",
+      "copy": "Copia la chiave",
+      "copyA11y": "Copia la chiave di recupero",
+      "mintedBody": "Annota questa chiave in un luogo sicuro. Ti permetterà di recuperare l'accesso ai dati se dimentichi il codice PIN.",
+      "mintFailedBody": "Il recupero è riuscito, ma non è stato possibile generare una nuova chiave di recupero. Puoi crearne una nelle impostazioni.",
+      "understood": "Ho capito",
+      "warning": "Senza questa chiave e il codice PIN, i tuoi dati finanziari diventeranno definitivamente inaccessibili."
+    },
     "recovery": {
       "invalidCharacters": "La chiave contiene caratteri non validi",
       "lostKey": "Non hai più la tua chiave?",

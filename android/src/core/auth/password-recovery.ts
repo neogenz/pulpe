@@ -1,22 +1,4 @@
-import type { AuthError } from "@supabase/supabase-js";
-
 import { supabase } from "./supabase";
-
-const HTTP_TOO_MANY_REQUESTS = 429;
-
-/**
- * Supabase messages are English and leak implementation detail, so nothing
- * from `error.message` reaches the screen. Same three cases as iOS.
- */
-function recoveryFailureMessage(error: AuthError): string {
-  if (error.status === HTTP_TOO_MANY_REQUESTS) {
-    return "Trop de tentatives — patiente un moment.";
-  }
-  if (error.status === undefined) {
-    return "Connexion impossible — vérifie ta connexion internet.";
-  }
-  return "Quelque chose n'a pas fonctionné — réessaie.";
-}
 
 /**
  * The tokens Supabase hands back on a recovery link. The client runs the
@@ -55,10 +37,10 @@ export async function beginPasswordRecovery(
     access_token: tokens.accessToken,
     refresh_token: tokens.refreshToken,
   });
-  if (error) throw new Error(recoveryFailureMessage(error));
+  if (error) throw error;
 }
 
 export async function updatePassword(newPassword: string): Promise<void> {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
-  if (error) throw new Error(recoveryFailureMessage(error));
+  if (error) throw error;
 }

@@ -1,6 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
 
+import { useTranslation } from "@/core/i18n/locale-store";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 
 const DOT_SIZE = 8;
@@ -19,12 +20,16 @@ export function ProgressDots({
   currentIndex: number;
 }) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View
       style={styles.row}
       accessibilityRole="progressbar"
-      accessibilityLabel={`Étape ${currentIndex + 1} sur ${total}`}
+      accessibilityLabel={t("onboarding.progress", {
+        current: currentIndex + 1,
+        total,
+      })}
     >
       {Array.from({ length: total }, (_unused, index) => (
         <View

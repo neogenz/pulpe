@@ -87,7 +87,7 @@ beforeEach(() => {
   useVaultStore.setState({
     status: "unknown",
     isBiometricAvailable: false,
-    bootstrapError: null,
+    hasBootstrapError: false,
     pendingRecoveryNotice: null,
   });
 
@@ -140,7 +140,7 @@ describe("bootstrapVault", () => {
 
     expect(useVaultStore.getState()).toMatchObject({
       status: "unknown",
-      bootstrapError: expect.stringContaining("Connexion impossible"),
+      hasBootstrapError: true,
     });
   });
 });

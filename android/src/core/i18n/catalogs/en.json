@@ -73,6 +73,7 @@
   },
   "onboarding": {
     "back": "Go back to the previous step",
+    "progress": "Step %{current} of %{total}",
     "charges": {
       "addExpense": "Add an expense",
       "healthInsurance": "Health insurance",
@@ -434,6 +435,17 @@
     "pinLength": "%{count} digits",
     "pinMismatch": "The codes do not match",
     "pinProgress": "Digits entered: %{filled} of %{total}",
+    "notice": {
+      "acknowledge": "I've written down my key",
+      "copied": "Copied",
+      "copiedA11y": "Key copied",
+      "copy": "Copy the key",
+      "copyA11y": "Copy the recovery key",
+      "mintedBody": "Write this key down somewhere safe. It will let you regain access to your data if you forget your PIN.",
+      "mintFailedBody": "Recovery succeeded, but a new recovery key could not be generated. You can create one in settings.",
+      "understood": "I understand",
+      "warning": "Without this key and your PIN, your financial data will become permanently inaccessible."
+    },
     "recovery": {
       "invalidCharacters": "Your key contains invalid characters",
       "lostKey": "Lost your key?",

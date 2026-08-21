@@ -147,7 +147,7 @@ export function WelcomeStep() {
           {t("onboarding.welcome.signIn")}
         </Button>
 
-        <LegalConsent localized prefix={t("onboarding.welcome.legalPrefix")} />
+        <LegalConsent prefix={t("onboarding.welcome.legalPrefix")} />
       </View>
     </SafeAreaView>
   );
