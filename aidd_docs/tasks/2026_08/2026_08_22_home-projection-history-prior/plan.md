@@ -1,6 +1,6 @@
 ---
 objective: "The home projection bends toward where this user usually lands, computed by the backend from their closed months, and ships only if a backtest proves it beats the straight line."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Home projection learns from the user's history
@@ -19,7 +19,7 @@ status: in-progress
 | 1   | Backend drift history on the budget details response   | [`phase-1.md`](./phase-1.md) |
 | 2   | Backtest gate: curve vs straight line on real history  | [`phase-2.md`](./phase-2.md) |
 | 3   | iOS projection bends with the prior, guarded           | [`phase-3.md`](./phase-3.md) |
-| 4   | Forecast journal and the 'when' profile, conditional   | [`phase-4.md`](./phase-4.md) |
+| 4   | Forecast journal and the 'when' profile, conditional   | [`phase-4.md`](./phase-4.md) — deferred 2026-08-22: needs ≥2 users × 3 months, one real user today |
 
 ## Decisions
 
