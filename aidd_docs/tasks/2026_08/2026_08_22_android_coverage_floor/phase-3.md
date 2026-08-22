@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Couvrir les écrans du coffre et la saisie du PIN
