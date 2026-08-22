@@ -1,6 +1,6 @@
 ---
 objective: "Le plancher de couverture Android progresse de façon monotone grâce à des tests comportementaux des parcours à risque, sans test décoratif ni baisse silencieuse de seuil."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Faire progresser le plancher de couverture Android
