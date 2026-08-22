@@ -21,20 +21,20 @@ struct EditTransactionPage: View {
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
-    @State private var name = ""
-    @State private var amount: Decimal?
+    @State var name = ""
+    @State var amount: Decimal?
     @State private var amountText = ""
-    @State private var kind: TransactionKind = .expense
+    @State var kind: TransactionKind = .expense
     @State private var transactionDate: Date = .now
     @State private var error: Error?
-    @State private var isLoading = false
+    @State var isLoading = false
     @State private var submitSuccessTrigger = false
     @State private var didAutofocus = false
     @State private var showDeleteConfirmation = false
     @State private var pendingPostpone: PostponeTarget?
     @State private var selectedTagIds: Set<String> = []
     @State private var initialTagIds: Set<String> = []
-    @FocusState private var focusedField: AmountDescriptionField?
+    @FocusState var focusedField: AmountDescriptionField?
 
     private let conversionService = CurrencyConversionService.shared
 
@@ -215,33 +215,6 @@ struct EditTransactionPage: View {
         .padding(.top, DesignTokens.Spacing.lg)
     }
 
-    private var descriptionField: some View {
-        FormTextField(
-            hint: kind.descriptionPlaceholder,
-            text: $name,
-            label: AppLocale.string("Description"),
-            focusBinding: $focusedField,
-            field: .description,
-            style: .row
-        )
-    }
-
-    @ViewBuilder
-    private func saveButton(for tx: Transaction) -> some View {
-        let canSubmit = EditTransactionLogic.isFormValid(
-            name: name,
-            amount: amount,
-            isLoading: isLoading
-        )
-        Button {
-            Task { await save(for: tx) }
-        } label: {
-            Text("Enregistrer")
-        }
-        .disabled(!canSubmit)
-        .primaryButtonStyle(isEnabled: canSubmit)
-    }
-
     @ViewBuilder
     private func headerMenu(for tx: Transaction) -> some View {
         Menu {
@@ -309,7 +282,7 @@ struct EditTransactionPage: View {
         amountText = Formatters.amountInput(for: inputCurrency).string(from: editable as NSDecimalNumber) ?? ""
     }
 
-    private func save(for tx: Transaction) async {
+    func save(for tx: Transaction) async {
         guard let amount else { return }
 
         isLoading = true

@@ -1,6 +1,6 @@
 ---
 objective: "Every screen touched by the iOS design refonte reads as one calm, clear product: the hero zone survives pull-to-refresh, the home page has a full-bleed chart and a content card that rises over the forest, toolbar and pager chrome are legible, pointing is discoverable again, and all six entry forms share the home sheet's three-block model."
-status: in-progress
+status: implemented
 ---
 
 # Plan: iOS design fix pass after the refonte

@@ -13,11 +13,17 @@ import Testing
         "Shared/Components/EditBudgetLineSheet.swift"
     ]
 
+    /// A form's source plus its `+Form` companion when the LOC budget forced a split.
     private static func source(_ relativePath: String) throws -> String {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent()
-        return try String(contentsOf: root.appendingPathComponent("Pulpe/\(relativePath)"), encoding: .utf8)
+        let url = root.appendingPathComponent("Pulpe/\(relativePath)")
+        let companion = url.deletingPathExtension().appendingPathExtension("swift")
+            .path.replacingOccurrences(of: ".swift", with: "+Form.swift")
+        let main = try String(contentsOf: url, encoding: .utf8)
+        let extra = (try? String(contentsOfFile: companion, encoding: .utf8)) ?? ""
+        return main + extra
     }
 
     @Test(arguments: forms)
