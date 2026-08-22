@@ -103,6 +103,7 @@ struct BudgetListStoreCacheInvalidationTests {
 
         mockService.stubbedSparse = sparseBudgets(september: "-2096.80", october: "39.18")
 
+        #expect(BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets))
         if BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets) {
             await listStore.loadIfNeeded()
         }
@@ -135,6 +136,7 @@ struct BudgetListStoreCacheInvalidationTests {
         await store.forceRefresh()
         #expect(store.invalidationGeneration == 0)
 
+        #expect(BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets))
         if BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets) {
             await store.loadIfNeeded()
         }
@@ -143,6 +145,7 @@ struct BudgetListStoreCacheInvalidationTests {
         mockService.stubbedSparse = sparseBudgets(september: "-2096.80", october: "39.18")
         store.invalidateCache()
         #expect(store.invalidationGeneration == 1)
+        #expect(BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets, pathCount: 0))
         if BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets, pathCount: 0) {
             await store.loadIfNeeded()
         }
