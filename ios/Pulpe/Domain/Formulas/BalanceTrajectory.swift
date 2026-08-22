@@ -40,6 +40,26 @@ extension BudgetFormulas {
         /// The gap the plot draws — and, by the two properties above, exactly the card's
         /// `vs prévu` metric. Neither can contradict the other.
         var drift: Decimal { estimatedBalance - plannedBalance }
+
+        /// Where the period lands if it keeps leaving its plan at the pace seen so far:
+        /// the estimate plus the drift per day lived, carried over the days left. The pace
+        /// is shrunk toward zero by how little of the month is known — one day of data
+        /// weighs 1/(1+`priorDays`), a full month nearly 1 — so an early outlier bends the
+        /// line rather than throwing it. A held month, or the last day, lands on the estimate.
+        ///
+        /// The hero figure stays the estimate: this answers a different question ("and if
+        /// you carry on?"), and a second figure is what the dashed stroke is for.
+        ///
+        /// `priorDays` is the weight of the plan as a prior. When a per-month drift history
+        /// exists it should replace the zero prior with the user's usual drift rate, in this
+        /// same blend.
+        func trendBalance(priorDays: Int) -> Decimal {
+            let remaining = totalDays - today
+            guard remaining > 0, drift != 0, today > 0 else { return estimatedBalance }
+            let pace = drift / Decimal(today)
+            let weight = Decimal(today) / Decimal(today + max(priorDays, 0))
+            return (estimatedBalance + pace * weight * Decimal(remaining)).rounded(2)
+        }
     }
 
     /// Replays the hero's own envelope arithmetic against the transactions each day knew

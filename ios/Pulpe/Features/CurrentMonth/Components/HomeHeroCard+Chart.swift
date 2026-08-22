@@ -48,8 +48,9 @@ extension HomeHeroCard {
                     .foregroundStyle(Color.heroInk)
                 }
 
-                // Nothing is known about the days not yet lived, so the forecast holds its
-                // level across them. A slope here would be the plot inventing news.
+                // The days not yet lived, at the pace of the days lived: the stroke bends
+                // toward where the month lands if it carries on, and holds level when the
+                // month holds its plan.
                 ForEach(Self.projection(for: trajectory)) { point in
                     LineMark(
                         x: .value("Jour", point.day),
@@ -63,6 +64,31 @@ extension HomeHeroCard {
                         dash: DesignTokens.Chart.dash
                     ))
                     .foregroundStyle(Color.heroInk.opacity(DesignTokens.Opacity.heroInkMuted))
+                }
+
+                // The trend's own figure, once it is far enough from the estimate to be a
+                // second number: the hero prints where the month lands, this prints where it
+                // lands if nothing changes.
+                if Self.showsTrendLabel(for: trajectory), let end = Self.projection(for: trajectory).last {
+                    PointMark(
+                        x: .value("Fin", end.day),
+                        y: .value("Tendance", Self.decimalValue(end.balance))
+                    )
+                    .symbolSize(0)
+                    // Grows leftward from the plot's edge, and keeps the text inset the hero
+                    // uses: the plot is edge to edge, so "fit to chart" alone would touch glass.
+                    .annotation(
+                        position: Self.gapLabelPosition(for: trajectory),
+                        alignment: .trailing,
+                        spacing: DesignTokens.Spacing.xs,
+                        overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
+                    ) {
+                        Text(Self.trendLabel(for: trajectory, currency: currency))
+                            .padding(.trailing, DesignTokens.Spacing.xxl)
+                            .font(PulpeTypography.caption2)
+                            .foregroundStyle(Color.heroInkSecondary)
+                            .lineLimit(1)
+                    }
                 }
 
                 if let current = trajectory.landing.last {
@@ -123,14 +149,32 @@ extension HomeHeroCard {
         }
     }
 
-    /// What the forecast says about the days not yet lived: nothing new, so it holds its
-    /// level. Empty on the last day of the period, where there is nothing left to project.
+    /// The days not yet lived, from today's reading to the trend's landing. Empty on the
+    /// last day of the period, where there is nothing left to project.
     static func projection(
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> [BudgetFormulas.BalanceTrajectory.Point] {
         guard trajectory.today < trajectory.totalDays,
               let current = trajectory.landing.last else { return [] }
-        return [current, .init(day: trajectory.totalDays, balance: current.balance)]
+        return [current, .init(day: trajectory.totalDays, balance: trend(for: trajectory))]
+    }
+
+    static func trend(for trajectory: BudgetFormulas.BalanceTrajectory) -> Decimal {
+        trajectory.trendBalance(priorDays: DesignTokens.Chart.trendPriorDays)
+    }
+
+    /// The trend gets its figure only once it is visibly apart from the estimate; closer
+    /// than that it would print a second number on top of the first.
+    static func showsTrendLabel(for trajectory: BudgetFormulas.BalanceTrajectory) -> Bool {
+        let gap = abs(decimalValue(trend(for: trajectory) - trajectory.estimatedBalance))
+        return gap >= span(for: trajectory) * DesignTokens.Chart.gapLabelMinimumRatio
+    }
+
+    static func trendLabel(
+        for trajectory: BudgetFormulas.BalanceTrajectory,
+        currency: SupportedCurrency
+    ) -> String {
+        AppLocale.string("à ce rythme \(trend(for: trajectory).asCompactCurrency(currency))")
     }
 
     /// The anchor label sits away from the plan level — below the dot for a month under its
@@ -186,14 +230,18 @@ extension HomeHeroCard {
             return "\(plan) \(estimate) " + AppLocale.string("Écart \(drift).")
         }
         let day = Formatters.dayMonthLabel(for: since)
-        return "\(plan) \(estimate) " + AppLocale.string("Écart \(drift) depuis le \(day).")
+        let spoken = "\(plan) \(estimate) " + AppLocale.string("Écart \(drift) depuis le \(day).")
+        guard showsTrendLabel(for: trajectory) else { return spoken }
+        return spoken + " " + AppLocale.string(
+            "À ce rythme, \(trend(for: trajectory).asCompactCurrency(currency))."
+        )
     }
 
     /// How much vertical room the drawing claims. A month that held its plan moves by a few
     /// francs; scaled to itself that reads as a plunge, so the floor is a fraction of what
     /// the period actually planned to spend.
     static func span(for trajectory: BudgetFormulas.BalanceTrajectory) -> Double {
-        let values = trajectory.landing.map { decimalValue($0.balance) }
+        let values = trajectory.landing.map { decimalValue($0.balance) } + [decimalValue(trend(for: trajectory))]
         let amplitude = (values.max() ?? 0) - (values.min() ?? 0)
         let floor = decimalValue(trajectory.plannedOutflows)
             * DesignTokens.Chart.landingScaleFloorRatio
@@ -203,7 +251,7 @@ extension HomeHeroCard {
     static func chartYDomain(
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> ClosedRange<Double> {
-        let values = trajectory.landing.map { decimalValue($0.balance) }
+        let values = trajectory.landing.map { decimalValue($0.balance) } + [decimalValue(trend(for: trajectory))]
         let lower = values.min() ?? 0
         let upper = values.max() ?? 1
         let span = span(for: trajectory)

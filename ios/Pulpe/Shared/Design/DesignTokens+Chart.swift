@@ -31,5 +31,8 @@ extension DesignTokens {
         /// The anchor label is part of the drawing, so the range reserves a one-line band
         /// for it on the far side of the rule instead of letting it fall out of the frame.
         static let anchorLabelBandRatio = 0.18
+        /// Days of plan-as-prior the trend pace is shrunk against: a week, so the first
+        /// few days of a month bend the projection without throwing it.
+        static let trendPriorDays = 7
     }
 }
