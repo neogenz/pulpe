@@ -245,6 +245,7 @@ struct CurrentMonthStoreMutationSeamTests {
         let dashboardStore = DashboardStore(budgetService: dashboardService)
         await listStore.forceRefresh()
         await dashboardStore.forceRefresh()
+        let dashboardFetchBaseline = dashboardService.getBudgetsSparseCallCount
         let currentMonthStore = CurrentMonthStore()
         currentMonthStore.onMutation = { [listStore, dashboardStore] in
             listStore.invalidateCache()
@@ -259,7 +260,10 @@ struct CurrentMonthStoreMutationSeamTests {
         await listStore.loadIfNeeded()
         await dashboardStore.loadIfNeeded()
         #expect(listService.getBudgetsSparseCallCount == 2)
-        #expect(dashboardService.getBudgetsSparseCallCount == 4)
+        #expect(
+            dashboardService.getBudgetsSparseCallCount == dashboardFetchBaseline + 2,
+            "Dashboard invalidation must trigger one refresh (current year + recent history)"
+        )
     }
 
     @Test

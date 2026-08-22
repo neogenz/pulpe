@@ -59,7 +59,7 @@ struct StoreRaceConditionTests {
     // MARK: - BudgetListStore Tests
 
     @Test("BudgetListStore reset keeps the newer load task reference")
-    func budgetListStore_reset_doesNotClearNewerLoadTask() async throws {
+    func budgetListStore_reset_doesNotClearNewerLoadTask() async {
         let service = MockBudgetService()
         service.gateSparse()
         service.sparseError = APIError.invalidResponse
@@ -78,8 +78,14 @@ struct StoreRaceConditionTests {
         #expect(store.isLoading, "Stale completion must not hide the active post-reset load")
         #expect(store.error == nil, "Stale failure must not publish after reset")
 
-        let coalescedLoad = Task { await store.loadIfNeeded() }
-        try await Task.sleep(for: .milliseconds(20))
+        var coalescedLoadStarted = false
+        let coalescedLoad = Task {
+            coalescedLoadStarted = true
+            await store.loadIfNeeded()
+        }
+        // Both tasks inherit MainActor, so the flag is observable only after
+        // loadIfNeeded reaches its first suspension against the active load.
+        await waitForCondition("Coalesced smart load must start") { coalescedLoadStarted }
         #expect(service.getBudgetsSparseCallCount == 2, "Smart load must retain and join the post-reset fetch")
         service.releaseSparse()
         await currentLoad.value
