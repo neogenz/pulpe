@@ -405,6 +405,7 @@ struct SavingsGoalIntervalUITestHarness: View {
              .budgetLinkedForecastDelete,
              .contextualCreationHome,
              .contextualCreationBudget,
+             .languageSettings,
              .loginScreen:
             EmptyView()
         }

@@ -1,0 +1,85 @@
+{
+  "expo": {
+    "name": "Pulpe",
+    "slug": "pulpe",
+    "version": "0.46.0",
+    "orientation": "portrait",
+    "scheme": "pulpe",
+    "userInterfaceStyle": "automatic",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "icon": "./assets/images/icon.png",
+    "android": {
+      "package": "app.pulpe.android",
+      "allowBackup": false,
+      "predictiveBackGestureEnabled": false,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
+        "backgroundColor": "#C6F0BA"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.pulpe.app",
+              "pathPrefix": "/reset-password"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 240,
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F6F3",
+          "dark": {
+            "backgroundColor": "#141210"
+          }
+        }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "android": ["fr", "en", "de", "it"]
+          }
+        }
+      ],
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#006E25"
+        }
+      ],
+      "@react-native-google-signin/google-signin",
+      "@react-native-community/datetimepicker",
+      "./plugins/with-brand-colors",
+      "./plugins/with-release-permissions"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e876501a-aa88-495e-941a-5d218021e5e9"
+      }
+    },
+    "owner": "maximedesogus"
+  }
+}

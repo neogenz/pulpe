@@ -66,6 +66,30 @@ jobs:
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
+  migration-contract:
+    name: 🛡️ Migration Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout full migration history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 🛡️ Check migration contract
+        run: node --test .github/scripts/migration-contract.test.cjs
+
+      - name: 🛡️ Validate changed migrations
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node .github/scripts/check-migration-contract.cjs "$BASE_SHA" "$HEAD_SHA"
+
   # 🗄️ SUPABASE SETUP (Approche officielle 2025)
   supabase-setup:
     name: 🗄️ Setup Supabase Local
@@ -694,6 +718,7 @@ jobs:
         quality,
         actionlint,
         test-ios,
+        migration-contract,
       ]
     if: always()
     steps:
@@ -705,7 +730,8 @@ jobs:
           needs.test-e2e.result == 'success' &&
           needs.quality.result == 'success' &&
           needs.actionlint.result == 'success' &&
-          needs.test-ios.result == 'success'
+          needs.test-ios.result == 'success' &&
+          needs.migration-contract.result == 'success'
         run: echo "🎉 All CI checks passed!"
 
       - name: ❌ Check failures
@@ -716,7 +742,8 @@ jobs:
           needs.test-e2e.result != 'success' ||
           needs.quality.result != 'success' ||
           needs.actionlint.result != 'success' ||
-          needs.test-ios.result != 'success'
+          needs.test-ios.result != 'success' ||
+          needs.migration-contract.result != 'success'
         run: |
           echo "❌ Some CI checks failed"
           echo "Build: ${{ needs.build.result }}"
@@ -726,6 +753,7 @@ jobs:
           echo "Quality: ${{ needs.quality.result }}"
           echo "Workflow Lint: ${{ needs.actionlint.result }}"
           echo "iOS Tests: ${{ needs.test-ios.result }}"
+          echo "Migration Contract: ${{ needs.migration-contract.result }}"
           exit 1
 
       - name: 📥 Checkout tested tree

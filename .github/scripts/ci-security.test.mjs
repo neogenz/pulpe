@@ -7,140 +7,73 @@ const require = createRequire(import.meta.url);
 
 const read = (path) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+const readOptional = (path) => {
+  try {
+    return read(path);
+  } catch (error) {
+    if (error.code === "ENOENT") return "";
+    throw error;
+  }
+};
 
 const action = read(".github/actions/setup-supabase-cli/action.yml");
 const workflow = read(".github/workflows/ci.yml");
+const androidE2eWorkflow = read(".github/workflows/android-e2e.yml");
 const stagingProof = read(".github/workflows/staging-proof.yml");
 const releasePromotion = read(".github/workflows/release-promotion.yml");
 const releaseGate = read(".github/workflows/release-gate.yml");
 const production = read(".github/workflows/production.yml");
+const productionFinalize = readOptional(
+  ".github/workflows/production-finalize.yml",
+);
 const iosDistribution = read(".github/workflows/ios-distribute.yml");
+const appStoreBuildStatus = readOptional(
+  ".github/scripts/app-store-build-status.rb",
+);
 const dockerfile = read("backend-nest/Dockerfile");
 const rootPackage = JSON.parse(read("package.json"));
 const backendPackage = JSON.parse(read("backend-nest/package.json"));
 const ciGuide = read("docs/CI.md");
+const releaseSkill = read(".claude/skills/release/SKILL.md");
+const jstsRelease = read(".claude/skills/release/references/jsts-release.md");
+const iosRelease = read(".claude/skills/release/references/ios-release.md");
+const deploymentGuide = read("docs/DEPLOYMENT.md");
+const versioningGuide = read("docs/VERSIONING.md");
+const backendEnvironment = read("backend-nest/src/config/environment.ts");
+const backendMain = read("backend-nest/src/main.ts");
+const backendEnvExample = read("backend-nest/.env.example");
 const frontendEslintConfig = require("../../frontend/eslint.config.js");
 
-function selectReleaseGateProof({ runs, attempts, jobs }, branch, candidate) {
-  const matchingRuns = runs
-    .filter(
-      (run) =>
-        run.path === ".github/workflows/release-gate.yml" &&
-        run.event === "pull_request" &&
-        run.head_branch === branch &&
-        run.head_sha === candidate,
-    )
-    .toSorted((left, right) => right.id - left.id);
-
-  const candidates = [];
-  for (const run of matchingRuns) {
-    const runAttempts = attempts[run.id];
-    if (!runAttempts) return null;
-    for (const attempt of runAttempts) {
-      const exactIdentity =
-        attempt.path === ".github/workflows/release-gate.yml" &&
-        attempt.event === "pull_request" &&
-        attempt.head_branch === branch &&
-        attempt.head_sha === candidate &&
-        attempt.status === "completed";
-      if (!exactIdentity) return null;
-
-      const attemptJobs = jobs[`${run.id}:${attempt.run_attempt}`];
-      if (!attemptJobs) return null;
-      const namedJobs = attemptJobs.filter(
-        (job) => job.name === "✅ Release Gate",
-      );
-      if (namedJobs.length > 1) return null;
-      if (attempt.conclusion === "success") {
-        if (
-          namedJobs.length !== 1 ||
-          namedJobs[0].status !== "completed" ||
-          namedJobs[0].conclusion !== "success"
-        ) {
-          return null;
-        }
-        candidates.push({
-          runId: run.id,
-          attempt: attempt.run_attempt,
-          jobId: namedJobs[0].id,
-        });
-      }
-    }
+test("release instructions use only the Railway-owned production path", () => {
+  assert.match(releaseSkill, /production-finalize\.yml/);
+  assert.doesNotMatch(releaseSkill, /RAILWAY_PREVIEW_TOKEN/);
+  assert.doesNotMatch(
+    jstsRelease,
+    /skip deploy: false|environment: preview, then production/,
+  );
+  assert.doesNotMatch(
+    versioningGuide,
+    /railway variables --set "LATEST_WEB_VERSION/,
+  );
+  for (const artifactVersionSurface of [
+    production,
+    releaseSkill,
+    jstsRelease,
+    deploymentGuide,
+    versioningGuide,
+    backendEnvironment,
+    backendMain,
+    backendEnvExample,
+  ]) {
+    assert.doesNotMatch(artifactVersionSurface, /LATEST_WEB_VERSION/);
   }
-  return (
-    candidates.toSorted(
-      (left, right) => right.runId - left.runId || right.attempt - left.attempt,
-    )[0] ?? null
-  );
-}
-
-test("release proof keeps a successful immutable attempt after a failed rerun", () => {
-  const identity = {
-    path: ".github/workflows/release-gate.yml",
-    event: "pull_request",
-    head_branch: "release/v1.2.3",
-    head_sha: "a".repeat(40),
-  };
-  const evidence = {
-    runs: [{ id: 42, ...identity, pull_requests: [] }],
-    attempts: {
-      42: [
-        {
-          ...identity,
-          run_attempt: 1,
-          status: "completed",
-          conclusion: "success",
-        },
-        {
-          ...identity,
-          run_attempt: 2,
-          status: "completed",
-          conclusion: "failure",
-        },
-      ],
-    },
-    jobs: {
-      "42:1": [
-        {
-          id: 99,
-          name: "✅ Release Gate",
-          status: "completed",
-          conclusion: "success",
-        },
-      ],
-      "42:2": [
-        {
-          id: 101,
-          name: "✅ Release Gate",
-          status: "completed",
-          conclusion: "failure",
-        },
-      ],
-    },
-  };
-
-  assert.deepEqual(
-    selectReleaseGateProof(evidence, identity.head_branch, identity.head_sha),
-    { runId: 42, attempt: 1, jobId: 99 },
-  );
-  evidence.jobs["42:1"].push({ ...evidence.jobs["42:1"][0], id: 100 });
-  assert.equal(
-    selectReleaseGateProof(evidence, identity.head_branch, identity.head_sha),
-    null,
-    "ambiguous named jobs must fail closed",
-  );
-  evidence.jobs["42:1"].pop();
-  assert.equal(
-    selectReleaseGateProof(evidence, "release/v9.9.9", identity.head_sha),
-    null,
-    "branch drift must fail closed",
-  );
-  evidence.attempts[42][1].head_sha = "b".repeat(40);
-  assert.equal(
-    selectReleaseGateProof(evidence, identity.head_branch, identity.head_sha),
-    null,
-    "identity drift in a later attempt must fail closed",
-  );
+  for (const recovery of [
+    "tag exists but the GitHub Release is missing",
+    "duplicate Railway success",
+    "main advances",
+  ]) {
+    assert.match(deploymentGuide, new RegExp(recovery, "i"));
+  }
 });
 
 test("Supabase archives are pinned and verified before extraction", () => {
@@ -188,6 +121,20 @@ test("CI is PR-only and production owns migration credentials", () => {
   assert.ok(
     dryRun < apply,
     "the production dry-run must precede migration apply",
+  );
+});
+
+test("the migration contract is required and replayed before production apply", () => {
+  assert.match(
+    workflow,
+    /\n  migration-contract:[\s\S]*migration-contract\.test\.cjs[\s\S]*github\.event\.pull_request\.base\.sha[\s\S]*github\.event\.pull_request\.head\.sha[\s\S]*check-migration-contract\.cjs[\s\S]*\n  ci-success:[\s\S]*migration-contract[\s\S]*needs\.migration-contract\.result\s*==\s*'success'[\s\S]*needs\.migration-contract\.result\s*!=\s*'success'/,
+  );
+  const replay = production.indexOf("Verify migration contract");
+  const dryRun = production.indexOf("run: supabase db push --dry-run");
+  assert.ok(replay >= 0 && replay < dryRun);
+  assert.match(
+    production.slice(replay, dryRun),
+    /check-migration-contract\.cjs "\$\{GITHUB_SHA\}\^1" "\$GITHUB_SHA"/,
   );
 });
 
@@ -247,7 +194,10 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
   assert.match(stagingProof, /preview moved from/);
   assert.match(stagingProof, /git rev-parse "\$\{GITHUB_SHA\}\^1"/);
   assert.match(stagingProof, /backend-preview-34f4\.up\.railway\.app\/health/);
-  assert.match(stagingProof, /name: staging-proof-\$\{\{ github\.sha \}\}/);
+  assert.match(
+    stagingProof,
+    /name: staging-proof-\$\{\{ github\.sha \}\}-run-\$\{\{ github\.run_id \}\}-attempt-\$\{\{ github\.run_attempt \}\}/,
+  );
   assert.ok(
     stagingProof.indexOf("canonical CI run failed") <
       stagingProof.indexOf("📥 Download tested-tree evidence"),
@@ -286,16 +236,36 @@ test("release promotion writes only after a trusted immutable proof", () => {
   );
   assert.match(
     releasePromotion,
-    /actions\/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349/,
+    /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/,
+  );
+  assert.match(releasePromotion, /permissions:[\s\S]*pull-requests: read/);
+  assert.doesNotMatch(releasePromotion, /pull-requests: write/);
+  assert.match(releasePromotion, /workflow_run:[\s\S]*branches: \[preview\]/);
+  const validationJob = releasePromotion.slice(
+    releasePromotion.indexOf("\n  validate:"),
+    releasePromotion.indexOf("\n  promote:"),
+  );
+  const privilegedPromotion = releasePromotion.slice(
+    releasePromotion.indexOf("\n  promote:"),
+  );
+  assert.match(validationJob, /Checkout trusted release automation/);
+  assert.match(validationJob, /persist-credentials: false/);
+  assert.doesNotMatch(validationJob, /secrets\.|:\s*write\b/);
+  assert.match(privilegedPromotion, /needs: validate/);
+  assert.doesNotMatch(
+    privilegedPromotion,
+    /actions\/checkout|git (?:fetch|pull|checkout|switch|reset|worktree)|gh run download|uses: \.\//,
+  );
+  assert.doesNotMatch(
+    releasePromotion,
+    /git fetch[^\n]*(?:CANDIDATE_SHA|RELEASE_SHA|release_sha)|ref:.*workflow_run\.head_sha/,
   );
   assert.match(releasePromotion, /\.user\.login == "pulpe-release\[bot\]"/);
   assert.match(releasePromotion, /\.parents\[1\]\.sha == \$release/);
   assert.match(releasePromotion, /\.parents\[0\]\.sha == \$base/);
-  assert.match(releasePromotion, /staging-proof-\$CANDIDATE_SHA/);
-  assert.match(releasePromotion, /artifact_count.*\.expired == false/s);
   assert.match(
     releasePromotion,
-    /completed staging workflow has no proof artifact/,
+    /--workflow staging-proof\.yml[\s\S]*--job "✅ Staging Ready \(shadow\)"[\s\S]*--artifact-template "staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
   );
   assert.match(releasePromotion, /-F force=false/);
   assert.match(releasePromotion, /base=preview/);
@@ -305,6 +275,10 @@ test("release promotion writes only after a trusted immutable proof", () => {
   );
   assert.match(releasePromotion, /base=main/);
   assert.match(releasePromotion, /pulls" -f state=open -f base=main -f head=/);
+  assert.match(
+    releasePromotion,
+    /pulls" -f state=open -f base=main -f per_page=100[\s\S]*pulpe-release\[bot\][\s\S]*startswith\("release\/"\)/,
+  );
 
   for (const actionUse of releasePromotion.matchAll(
     /^\s*uses:\s*([^\s#]+)/gm,
@@ -317,6 +291,22 @@ test("release promotion writes only after a trusted immutable proof", () => {
   }
 });
 
+test("release lineage uses the shared content-integration check", () => {
+  const lineageSources = [
+    releasePromotion,
+    releaseGate,
+    production,
+    releaseSkill,
+  ];
+  for (const source of lineageSources) {
+    assert.match(source, /node \.github\/scripts\/check-release-lineage\.mjs/);
+    assert.doesNotMatch(
+      source,
+      /behind_by\s*==\s*0|git\s+merge-base\s+--is-ancestor\s+origin\/main\b/,
+    );
+  }
+});
+
 test("the production PR gate is read-only and proof-bound", () => {
   assert.match(releaseGate, /pull_request:\n\s+branches: \[main\]/);
   assert.doesNotMatch(releaseGate, /pull_request_target/);
@@ -325,8 +315,17 @@ test("the production PR gate is read-only and proof-bound", () => {
   assert.match(releaseGate, /pull-requests: read/);
   assert.doesNotMatch(
     releaseGate,
-    /secrets\.|:\s*write\b|actions\/checkout|git checkout|pull_request\.head\.repo/,
+    /secrets\.|:\s*write\b|git checkout|pull_request\.head\.repo/,
   );
+  assert.match(
+    releaseGate,
+    /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/,
+  );
+  assert.match(
+    releaseGate,
+    /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/,
+  );
+  assert.match(releaseGate, /persist-credentials: false/);
   assert.match(releaseGate, /PR_AUTHOR.*pull_request\.user\.login/);
   assert.match(releaseGate, /test "\$PR_AUTHOR" = 'pulpe-release\[bot\]'/);
   assert.match(releaseGate, /release\/v\(\[0-9\]/);
@@ -334,17 +333,26 @@ test("the production PR gate is read-only and proof-bound", () => {
   assert.match(releaseGate, /\.parents\[1\]\.sha == \$release/);
   assert.match(releaseGate, /\.parents\[0\]\.sha == \$base/);
   assert.match(releaseGate, /\.tree_sha == \$tree/);
-  assert.match(releaseGate, /\.conclusion == "success"/);
-  assert.match(releaseGate, /staging-proof-\$CANDIDATE_SHA/);
+  assert.match(
+    releaseGate,
+    /--workflow staging-proof\.yml[\s\S]*--job "✅ Staging Ready \(shadow\)"[\s\S]*--artifact-template "staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
+  );
+  assert.match(
+    releaseGate,
+    /node \.github\/scripts\/resolve-workflow-proof\.mjs --published-main "\$current_main"/,
+  );
   assert.match(releaseGate, /matching-refs\/tags/);
+  assert.ok(
+    releaseGate.includes(
+      'gh api -X GET "repos/$GITHUB_REPOSITORY/contents/package.json" -f ref="$CANDIDATE_SHA"',
+    ),
+  );
 });
 
-test("production publishes only an approved and proven release", () => {
+test("production finishes preflight before Railway deploys", () => {
   assert.match(production, /push:\n\s+branches: \[main\]/);
-  assert.match(production, /timeout-minutes: 90/);
   assert.match(production, /actions: read/);
   assert.match(production, /contents: read/);
-  assert.match(production, /deployments: read/);
   assert.match(production, /pull-requests: read/);
   assert.doesNotMatch(production, /:\s*write\b|--force/);
   assert.match(production, /.user\.login == "pulpe-release\[bot\]"/);
@@ -353,85 +361,51 @@ test("production publishes only an approved and proven release", () => {
   assert.doesNotMatch(production, /\.pull_requests\[\]|\.pull_requests\[\]\?/);
   assert.match(
     production,
-    /\.head_branch == \$branch and \.head_sha == \$candidate/,
+    /node \.github\/scripts\/resolve-workflow-proof\.mjs[\s\S]*--workflow release-gate\.yml[\s\S]*--sha "\$candidate_sha"[\s\S]*--job "✅ Release Gate"/,
   );
-  assert.match(production, /actions\/runs\/\$run_id\/attempts\/\$attempt"/);
   assert.match(
     production,
-    /actions\/runs\/\$run_id\/attempts\/\$attempt\/jobs/,
+    /--workflow staging-proof\.yml[\s\S]*--job "✅ Staging Ready \(shadow\)"[\s\S]*--artifact-template "staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
   );
-  assert.match(production, /\.run_attempt == \$attempt/);
-  assert.match(production, /gate-candidates\.jsonl/);
-  assert.doesNotMatch(production, /break 2/);
-  assert.match(production, /\.name == "✅ Release Gate"/);
-  assert.match(
-    production,
-    /release_gate:\{run_id:\$gate_run,attempt:\$gate_attempt,job_id:\$gate_job\}/,
-  );
-  assert.match(production, /railway_active:\$active_railway/);
-  const vercelDeploymentGate = production.match(
-    /- name: Wait for exact Vercel production deployments[\s\S]*?(?=\n\s+- name:)/,
-  )?.[0];
-  assert.ok(vercelDeploymentGate);
-  assert.doesNotMatch(
-    vercelDeploymentGate,
-    /pulpe-backend|railway_state|api\.pulpe\.app/,
-  );
-  assert.match(production, /serviceInstanceDeployV2/);
+  assert.doesNotMatch(production, /gate-candidates|for run_id in/);
+  assert.match(production, /environment: production/);
+  assert.match(production, /run: supabase db push --dry-run/);
+  assert.match(production, /run: supabase db push\n/);
   assert.doesNotMatch(
     production,
-    /max_by\(\.id\) \| \.conclusion == "success"/,
+    /RAILWAY_PRODUCTION_TOKEN|RAILWAY_CLI_VERSION|railway variable set/,
   );
-  assert.match(production, /.parents\[1\]\.sha == \$candidate/);
-  assert.match(production, /.parents\[0\]\.sha == \$base/);
-  assert.match(production, /staging-proof-\$candidate_sha/);
-  assert.match(production, /Production – pulpe-frontend/);
-  assert.match(production, /Production – pulpe-landing/);
-  assert.match(production, /pulpe-backend \/ production/);
-  assert.match(production, /production-proof-\$\{\{ github\.sha \}\}/);
   assert.match(
     production,
-    /actions\/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349/,
+    /name: production-context-\$\{\{ github\.sha \}\}-run-\$\{\{ github\.run_id \}\}-attempt-\$\{\{ github\.run_attempt \}\}/,
   );
-  assert.match(production, /repos\/\$GITHUB_REPOSITORY\/git\/tags/);
-  assert.match(production, /repos\/\$GITHUB_REPOSITORY\/releases/);
-  assert.match(production, /RAILWAY_PREVIEW_TOKEN/);
-  assert.match(production, /RAILWAY_PRODUCTION_TOKEN/);
   assert.match(
     production,
-    /RAILWAY_CLI_SHA256: d302113b772b8f34d28ed2242c1d258953de989c282d4cc72291239ccb0fb041/,
+    /release_gate:\{run_id:\$gate_run_id,attempt:\$gate_attempt,job_id:\$gate_job_id\}/,
   );
-  assert.match(production, /sha256sum --check/);
-  assert.doesNotMatch(production, /npx --yes "@railway\/cli/);
-  assert.match(production, /LATEST_WEB_VERSION=\$VERSION/);
-  assert.match(production, /railway redeploy --project "\$RAILWAY_PROJECT"/);
-  assert.match(
+  assert.doesNotMatch(
     production,
-    /railway deployment list.*--environment production.*--limit 50 --json/,
+    /serviceInstanceDeployV2|railway redeploy|railway deployment list|Wait for exact Vercel|Create short-lived GitHub App token|git\/tags|repos\/\$GITHUB_REPOSITORY\/releases|PostHog|Content-Security-Policy/,
   );
-  assert.match(production, /serviceInstanceDeployV2\(commitSha:\$sha/);
-  assert.match(
-    production,
-    /\.\[0\]\.id == \$id and \.\[0\]\.status == "SUCCESS" and \.\[0\]\.meta\.commitHash == \$sha and \.\[0\]\.meta\.branch == "main"/,
+  const authorizeJob = production.slice(
+    production.indexOf("\n  authorize:"),
+    production.indexOf("\n  migrate:"),
   );
-  assert.doesNotMatch(production, /LATEST_IOS_VERSION|MIN_WEB_VERSION/);
-  assert.doesNotMatch(production, /actions\/workflows\/ci\.yml\/runs/);
+  assert.doesNotMatch(authorizeJob, /secrets\.|environment:/);
   assert.ok(
-    production.indexOf("Verify the approved release and staging proof") <
-      production.indexOf("Checkout authorized production tree"),
-    "repository code must only be checked out after authorization",
+    authorizeJob.indexOf("Checkout release automation without credentials") <
+      authorizeJob.indexOf("Verify the approved release and staging proof"),
+    "candidate automation may run only in the unprivileged authorization job",
   );
-  const railwayProof = production.indexOf(
-    "Verify Railway credentials and active production deployment",
-  );
-  const recordProof = production.indexOf("Record immutable production proof");
-  const uploadProof = production.indexOf("Upload production proof");
-  const appToken = production.indexOf("Create short-lived GitHub App token");
   assert.ok(
-    railwayProof < recordProof &&
-      recordProof < uploadProof &&
-      uploadProof < appToken,
-    "the final proof must include direct Railway evidence before publication credentials",
+    production.indexOf("run: supabase db push\n") <
+      production.indexOf("Upload authorized production context"),
+    "the context must be emitted only after migrations succeed",
+  );
+  assert.ok(
+    production.indexOf("Production – pulpe-frontend") <
+      production.indexOf("Upload authorized production context"),
+    "the web client must be public before Railway receives its context",
   );
 
   for (const actionUse of production.matchAll(/^\s*uses:\s*([^\s#]+)/gm)) {
@@ -439,13 +413,234 @@ test("production publishes only an approved and proven release", () => {
   }
 });
 
-test("iOS distribution consumes staging or production proofs, never push CI", () => {
-  assert.match(iosDistribution, /workflow=staging-proof\.yml/);
-  assert.match(iosDistribution, /workflow=production\.yml/);
-  assert.match(iosDistribution, /staging-proof-\$SOURCE_SHA/);
-  assert.match(iosDistribution, /production-proof-\$SOURCE_SHA/);
+test("production finalizer proves exact providers before idempotent publication", () => {
+  assert.match(productionFinalize, /on:\n\s+deployment_status:/);
+  assert.match(
+    productionFinalize,
+    /group: production-finalize-\$\{\{ github\.event\.deployment\.sha \}\}/,
+  );
+  assert.match(productionFinalize, /railway-app\[bot\]/);
+  assert.match(productionFinalize, /pulpe-backend \/ production/);
+  assert.match(
+    productionFinalize,
+    /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/,
+  );
+  assert.match(
+    productionFinalize,
+    /DEPLOYMENT_REF: \$\{\{ github\.event\.deployment\.ref \}\}/,
+  );
+  assert.doesNotMatch(
+    productionFinalize,
+    /test "\$\{\{ github\.event\.deployment\.ref \}\}"/,
+  );
+  assert.match(productionFinalize, /deployments\/\$DEPLOYMENT_ID\/statuses/);
+  assert.match(productionFinalize, /\.ref == \$sha/);
+  assert.match(
+    productionFinalize,
+    /https:\/\/railway\.com\/project\/33ba829c-d4d6-4096-b0dc-57c89c367063\?environmentId=a28b6826-ecbe-4c0f-9856-e0ba3ce14e93/,
+  );
+  assert.doesNotMatch(
+    productionFinalize,
+    /github\.event\.deployment\.ref \}\}" = main|\.ref == "main"/,
+  );
+  const vercelState = productionFinalize.slice(
+    productionFinalize.indexOf("state() {"),
+    productionFinalize.indexOf("for _ in {1..60}"),
+  );
+  assert.ok(
+    vercelState.indexOf("max_by(.id)") < vercelState.indexOf("environment_url"),
+    "Vercel URL checks must apply to the latest bot status",
+  );
+  assert.match(
+    productionFinalize,
+    /node \.github\/scripts\/resolve-workflow-proof\.mjs[\s\S]*--workflow production\.yml[\s\S]*--sha "\$PRODUCTION_SHA"[\s\S]*--artifact-template "production-context-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
+  );
+  assert.doesNotMatch(productionFinalize, /branches\/main/);
+
+  const verifyJob = productionFinalize.slice(
+    productionFinalize.indexOf("\n  verify:"),
+    productionFinalize.indexOf("\n  publish:"),
+  );
+  const publishJob = productionFinalize.slice(
+    productionFinalize.indexOf("\n  publish:"),
+  );
+  assert.doesNotMatch(verifyJob, /secrets\.|environment: production/);
+  assert.match(publishJob, /needs: verify/);
+  assert.match(publishJob, /environment: production/);
+  assert.doesNotMatch(publishJob, /actions\/checkout/);
+  assert.match(publishJob, /\.\[0\]\.status == "SUCCESS"/);
+  assert.match(publishJob, /\.\[0\]\.meta\.commitHash == \$sha/);
+  assert.match(publishJob, /\.\[0\]\.meta\.branch == "main"/);
+  assert.match(productionFinalize, /Production – pulpe-frontend/);
+  assert.match(productionFinalize, /Production – pulpe-landing/);
+  assert.match(productionFinalize, /https:\/\/app\.pulpe\.app\//);
+  assert.match(productionFinalize, /https:\/\/pulpe\.app\//);
+  assert.match(productionFinalize, /https:\/\/api\.pulpe\.app\/health/);
+  assert.match(productionFinalize, /\.status == "healthy"/);
+  assert.match(productionFinalize, /api\/v1\/app\/version/);
+  assert.match(
+    publishJob,
+    /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/,
+  );
+  assert.match(publishJob, /git\/tags/);
+  assert.match(
+    publishJob,
+    /\.tag == \$tag and \.object\.type == "commit" and \.object\.sha == \$sha/,
+  );
+  assert.match(publishJob, /releases\?per_page=100/);
+  assert.match(publishJob, /--arg body "\$body"/);
+  assert.match(publishJob, /-X POST "repos\/\$GITHUB_REPOSITORY\/releases"/);
+  assert.match(
+    publishJob,
+    /name: production-proof-\$\{\{ fromJSON\(needs\.verify\.outputs\.context\)\.production_sha \}\}-run-\$\{\{ github\.run_id \}\}-attempt-\$\{\{ github\.run_attempt \}\}/,
+  );
+  assert.doesNotMatch(
+    productionFinalize,
+    /serviceInstanceDeployV2|railway redeploy|Content-Security-Policy|POSTHOG/,
+  );
+  assert.ok(
+    publishJob.indexOf("Verify active Railway production deployment") <
+      publishJob.indexOf("Create short-lived GitHub App token"),
+    "publication credentials must follow all provider proof",
+  );
+  for (const actionUse of productionFinalize.matchAll(
+    /^\s*uses:\s*([^\s#]+)/gm,
+  )) {
+    assert.match(actionUse[1], /^(?:\.\/|.*@[0-9a-f]{40}$)/);
+  }
+});
+
+test("iOS distribution serializes allocation and upload across channels", () => {
+  const concurrency = iosDistribution.slice(
+    iosDistribution.indexOf("\nconcurrency:"),
+    iosDistribution.indexOf("\npermissions:"),
+  );
+  assert.match(concurrency, /group: ios-distribution\n/);
+  assert.doesNotMatch(concurrency, /inputs\.channel/);
+  assert.match(concurrency, /cancel-in-progress: false/);
+});
+
+test("iOS distribution consumes staging or finalized production proofs", () => {
+  assert.equal(
+    [
+      ...iosDistribution.matchAll(
+        /node \.\.\/\.github\/scripts\/resolve-workflow-proof\.mjs/g,
+      ),
+    ].length,
+    2,
+  );
+  assert.match(iosDistribution, /--workflow staging-proof\.yml/);
+  assert.match(iosDistribution, /--workflow production-finalize\.yml/);
+  assert.match(
+    iosDistribution,
+    /staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}/,
+  );
+  assert.match(
+    iosDistribution,
+    /production-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}/,
+  );
+  assert.doesNotMatch(iosDistribution, /workflow=production\.yml/);
   assert.doesNotMatch(iosDistribution, /actions\/workflows\/ci\.yml\/runs/);
   assert.doesNotMatch(iosDistribution, /gh run download/);
+});
+
+test("internal production-config builds stay bound to preview staging proof", () => {
+  assert.match(iosDistribution, /options:\n\s+- internal\n\s+- release/);
+  assert.match(
+    iosDistribution,
+    /internal\)\n\s+expected_branch="preview"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
+  );
+  assert.match(
+    iosDistribution,
+    /release\)\n\s+expected_branch="main"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
+  );
+  assert.match(
+    iosDistribution,
+    /internal\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow staging-proof\.yml/,
+  );
+  assert.match(
+    iosDistribution,
+    /release\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow production-finalize\.yml/,
+  );
+  assert.match(
+    iosDistribution,
+    /if \[ "\$CHANNEL" != "release" \] && \[ "\$BUILD_NUMBER" -lt "\$project_build" \]/,
+  );
+  assert.doesNotMatch(
+    iosDistribution,
+    /internal-prod|PulpePreview|configuration="Preview"/,
+  );
+  assert.match(
+    iosRelease,
+    /internal.*preview.*PulpeProd.*Prod.*selected marketing version/,
+  );
+  assert.doesNotMatch(
+    iosRelease,
+    /global ASC build|highest existing build \+ 1/,
+  );
+  assert.doesNotMatch(iosRelease, /PulpePreview|archive .*Preview/);
+  assert.doesNotMatch(iosDistribution, /--submit|MVP/);
+});
+
+test("iOS distribution resumes the exact App Store build idempotently", () => {
+  assert.match(appStoreBuildStatus, /appstoreconnect-v1/);
+  assert.match(iosDistribution, /git merge-base --is-ancestor "\$SOURCE_SHA"/);
+  assert.doesNotMatch(iosDistribution, /remote_sha.*!=.*SOURCE_SHA/s);
+  const query = iosDistribution.indexOf("Query exact App Store build");
+  const versionPreflight = iosDistribution.indexOf(
+    "Verify marketing version accepts new builds",
+  );
+  const buildNumberPreflight = iosDistribution.indexOf(
+    "Verify next build number for marketing version",
+  );
+  const provenance = iosDistribution.indexOf(
+    "Verify existing App Store build provenance",
+  );
+  const archive = iosDistribution.indexOf("Archive signed application");
+  const verifyIpa = iosDistribution.indexOf(
+    "Verify exported application identity",
+  );
+  const createIntent = iosDistribution.indexOf(
+    "Create iOS distribution intent",
+  );
+  const uploadIntent = iosDistribution.indexOf(
+    "Upload iOS distribution intent",
+  );
+  const upload = iosDistribution.indexOf("Upload to App Store Connect");
+  const proof = iosDistribution.indexOf("Create iOS distribution proof");
+  assert.ok(query >= 0 && query < archive);
+  assert.ok(query < versionPreflight && versionPreflight < archive);
+  assert.ok(
+    versionPreflight < buildNumberPreflight && buildNumberPreflight < archive,
+  );
+  assert.ok(buildNumberPreflight < provenance && provenance < archive);
+  assert.ok(
+    verifyIpa < createIntent &&
+      createIntent < uploadIntent &&
+      uploadIntent < upload &&
+      upload < proof,
+  );
+  assert.match(
+    iosDistribution,
+    /Verify marketing version accepts new builds[\s\S]*if: steps\.asc\.outputs\.state == 'not_found'[\s\S]*--marketing-version-status/,
+  );
+  assert.match(iosDistribution, /ASC_INITIAL_STATE.*not_found/);
+  assert.match(
+    iosDistribution,
+    /Verify next build number for marketing version[\s\S]*if: steps\.asc\.outputs\.state == 'not_found'[\s\S]*--next-build-number[\s\S]*BUILD_NUMBER/,
+  );
+  assert.match(
+    iosDistribution,
+    /Verify existing App Store build provenance[\s\S]*if: steps\.asc\.outputs\.state != 'not_found'[\s\S]*resolve-ios-distribution-intent\.mjs/,
+  );
+  assert.match(
+    iosDistribution,
+    /Upload iOS distribution intent[\s\S]*if: steps\.asc\.outputs\.state == 'not_found'[\s\S]*ios-distribution-intent-/,
+  );
+  assert.match(iosDistribution, /Poll App Store build processing/);
+  assert.match(iosDistribution, /ios-distribution-proof-/);
+  for (const field of ["marketing_version", "build_number", "source_sha"])
+    assert.match(iosDistribution, new RegExp(`"${field}"`));
 });
 
 test("the backend image does not install Bun", () => {
@@ -458,6 +653,23 @@ test("critical dependency audit stays in CI", () => {
     "pnpm audit --audit-level critical",
   );
   assert.match(workflow, /check:\s*\[[^\]]*"audit:critical"[^\]]*\]/);
+});
+
+test("Android E2E verifies Maestro and withholds preview secrets from forks", () => {
+  assert.match(
+    androidE2eWorkflow,
+    /pull_request\.head\.repo\.full_name == github\.repository/,
+  );
+  assert.match(androidE2eWorkflow, /environment: Preview/);
+  assert.match(
+    androidE2eWorkflow,
+    /a4ccab6b604617e7aef6db4f885666056eabe5cfa32befaa3bc994041b8fcbb5/,
+  );
+
+  const download = androidE2eWorkflow.indexOf("curl --fail");
+  const verify = androidE2eWorkflow.indexOf("sha256sum --check");
+  const extract = androidE2eWorkflow.indexOf("unzip -q");
+  assert.ok(download < verify && verify < extract);
 });
 
 test("the boundaries upgrade keeps a modern explicit policy", () => {

@@ -43,15 +43,21 @@ const testimonials: Testimonial[] = [
 
 const fr = {
   site: {
-    titleDefault: "Pulpe | Tu sais des mois d’avance combien il te restera",
+    titleDefault:
+      "Pulpe – App de budget | Planifie ton année, vois combien il te restera",
     titleTemplate: "%s | Pulpe",
     description:
-      "Planifie tes revenus, tes dépenses et ton épargne. Pulpe te montre combien il te restera chaque mois, sans connexion bancaire.",
+      "App de budget pour planifier tes revenus, tes dépenses et ton épargne. Pulpe te montre combien il te restera chaque mois, sans connexion bancaire.",
     socialImageAlt:
       "Pulpe projette ton budget sur l’année et montre combien il te restera",
     // Repris dans les deux nœuds du graphe JSON-LD.
     graphDescription:
-      "Pulpe calcule ton disponible mois après mois à partir de tes revenus, de tes dépenses et de ton épargne, sans connexion bancaire.",
+      "Pulpe est une app de budget pour planifier son année, sans connexion bancaire.",
+    featureList: [
+      "Planification annuelle",
+      "Disponible à dépenser chaque mois",
+      "Sans connexion bancaire",
+    ],
     // Les deux lignes propres à la carte sociale, plus courtes que celles de la
     // page : à 1200×630 une phrase de plus déborde du cadre.
     socialCard: {
@@ -293,6 +299,11 @@ const fr = {
       // `isOpen` reste dans le composant : c’est une décision de mise en page,
       // pas de la copie, et elle vaut pour les quatre langues.
       items: [
+        {
+          question: "C’est une app de gestion de budget ?",
+          answer:
+            "Oui. C’est comme ça que les gens l’appellent. Pulpe sert surtout à planifier l’année : tu vois combien il te restera chaque mois, au lieu de seulement recenser ce qui est déjà dépensé.",
+        },
         {
           question: "Pourquoi Pulpe plutôt qu’Excel ?",
           answer:

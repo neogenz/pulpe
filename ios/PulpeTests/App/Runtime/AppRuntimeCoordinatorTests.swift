@@ -26,6 +26,33 @@ struct AppRuntimeCoordinatorTests {
         )
     }
 
+    // MARK: - Visible Startup Gate
+
+    @Test func visibleStartup_active_isAcceptedOnlyOnce() {
+        let sut = makeCoordinator(appState: AppState())
+
+        #expect(sut.consumeVisibleStartup(for: .active))
+        #expect(!sut.consumeVisibleStartup(for: .active))
+    }
+
+    @Test(arguments: [ScenePhase.inactive, .background])
+    func visibleStartup_nonActivePhase_isDeferredWithoutConsumingGate(_ phase: ScenePhase) {
+        let sut = makeCoordinator(appState: AppState())
+
+        #expect(!sut.consumeVisibleStartup(for: phase))
+        #expect(sut.consumeVisibleStartup(for: .active))
+    }
+
+    @Test func visibleStartup_warmForeground_doesNotRestartColdStartup() {
+        let sut = makeCoordinator(appState: AppState())
+        #expect(sut.consumeVisibleStartup(for: .active))
+
+        sut.handleScenePhaseChange(from: .active, to: .background)
+        sut.handleScenePhaseChange(from: .background, to: .active)
+
+        #expect(!sut.consumeVisibleStartup(for: .active))
+    }
+
     // MARK: - Privacy Shield: Activation
 
     @Test func scenePhaseActive_thenBackground_activatesPrivacyShield_whenAuthenticated() async {

@@ -9,6 +9,7 @@ import { AppVersionApi } from './app-version-api';
 const VALID_PAYLOAD = {
   success: true,
   data: {
+    android: { minVersion: '0.42.0', latestVersion: '0.43.0' },
     ios: { minVersion: '1.0.0', latestVersion: '1.0.2' },
     web: { minVersion: '0.0.1', latestVersion: '0.35.0' },
   },

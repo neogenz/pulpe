@@ -31,24 +31,41 @@ export function compareSemver(a: string, b: string): number {
   return 0;
 }
 
-export function isIosUserFacing(entry: WhatsNewReleaseEntry): boolean {
+export type WhatsNewPlatform = 'android' | 'ios';
+
+/**
+ * The version a client of this platform reports. iOS ships under its own App
+ * Store marketing version, which drifts from the repo version; Android ships
+ * the repo version verbatim (`android/app.json` tracks `package.json`).
+ *
+ * Undefined for a release that never reached the App Store, which is how an
+ * Android-only entry stays invisible to iOS without a second flag saying so.
+ */
+function clientVersionOf(
+  entry: WhatsNewReleaseEntry,
+  platform: WhatsNewPlatform,
+): string | undefined {
+  return platform === 'ios' ? entry.iosVersion : entry.version;
+}
+
+export function isUserFacing(
+  entry: WhatsNewReleaseEntry,
+  platform: WhatsNewPlatform,
+): boolean {
   return (
-    entry.platforms.includes('ios') &&
+    entry.platforms.includes(platform) &&
     (entry.changes.features.length > 0 || entry.changes.fixes.length > 0)
   );
 }
 
-function hasValidReleaseMetadata(entry: WhatsNewReleaseEntry): boolean {
-  if (
-    !semverPattern.test(entry.iosVersion) ||
-    !isoDatePattern.test(entry.date)
-  ) {
+function hasValidReleaseMetadata(clientVersion: string, date: string): boolean {
+  if (!semverPattern.test(clientVersion) || !isoDatePattern.test(date)) {
     return false;
   }
 
-  const year = Number(entry.date.slice(0, 4));
-  const month = Number(entry.date.slice(5, 7));
-  const day = Number(entry.date.slice(8, 10));
+  const year = Number(date.slice(0, 4));
+  const month = Number(date.slice(5, 7));
+  const day = Number(date.slice(8, 10));
   const parsedDate = new Date(Date.UTC(year, month - 1, day));
 
   return (
@@ -107,26 +124,29 @@ function toBody(
 
 export function buildWhatsNewResponse(
   query: WhatsNewQuery,
+  platform: WhatsNewPlatform = 'ios',
   releases: readonly WhatsNewReleaseEntry[] = RELEASES,
 ): WhatsNewResponse {
-  const releasesByIosVersion = new Map<string, WhatsNewReleaseEntry[]>();
+  const releasesByVersion = new Map<string, WhatsNewReleaseEntry[]>();
   for (const entry of releases) {
+    const clientVersion = clientVersionOf(entry, platform);
     if (
-      !hasValidReleaseMetadata(entry) ||
-      !isIosUserFacing(entry) ||
-      compareSemver(entry.iosVersion, query.lastSeenVersion) <= 0 ||
-      compareSemver(entry.iosVersion, query.currentVersion) > 0
+      clientVersion === undefined ||
+      !hasValidReleaseMetadata(clientVersion, entry.date) ||
+      !isUserFacing(entry, platform) ||
+      compareSemver(clientVersion, query.lastSeenVersion) <= 0 ||
+      compareSemver(clientVersion, query.currentVersion) > 0
     ) {
       continue;
     }
-    const versionReleases = releasesByIosVersion.get(entry.iosVersion) ?? [];
+    const versionReleases = releasesByVersion.get(clientVersion) ?? [];
     versionReleases.push(entry);
-    releasesByIosVersion.set(entry.iosVersion, versionReleases);
+    releasesByVersion.set(clientVersion, versionReleases);
   }
 
-  const entries = [...releasesByIosVersion.entries()]
+  const entries = [...releasesByVersion.entries()]
     .sort(([a], [b]) => compareSemver(a, b))
-    .flatMap(([iosVersion, releases]) => {
+    .flatMap(([version, releases]) => {
       const publishedAt = releases
         .map((release) => release.date)
         .sort()
@@ -137,8 +157,8 @@ export function buildWhatsNewResponse(
       const locale = resolvedLocale(releases, query.locale ?? 'fr');
       return [
         {
-          version: iosVersion,
-          title: titleForLocale(locale, iosVersion),
+          version,
+          title: titleForLocale(locale, version),
           body: toBody(releases, locale),
           publishedAt,
         },

@@ -25,6 +25,7 @@ flowchart LR
     Quality --> Success
     IOS[iOS tests] --> Success
     Actionlint[actionlint] --> Success
+    Migration[Migration contract] --> Success
 ```
 
 - `install` installs the frozen pnpm workspace.
@@ -36,6 +37,7 @@ flowchart LR
 - `quality` runs the root quality gate, including repository security and vocabulary tests.
 - `actionlint` validates workflow syntax and shell fragments.
 - `test-ios` generates the Xcode project and runs Swift tests on macOS.
+- `migration-contract` validates new migration metadata, additive SQL and immutable history.
 - `ci-success` is the single protected status and fails unless every required job succeeded.
 
 There is no performance-test job: the former job selected a deleted test file, so Bun ran
@@ -85,8 +87,12 @@ rebase. CI always runs the complete gate.
 `production.yml` authenticates the App-authored and approved release PR before checking
 out repository code. It detects migration changes against the previous `main`; only a
 release containing migrations enters the protected `production` environment for dry-run
-and apply. After exact provider deployments, the same workflow verifies CSP, records the
-production proof, publishes the tag/Release, annotates PostHog and updates the web gate.
+and apply. The PR job checks its exact base/head range; production replays the exact
+merge-parent/merge range before touching Supabase. Each new migration declares `expand`
+or `contract` in its initial comment header, and published files cannot be changed.
+After provider deployment, `production-finalize.yml` verifies the exact Railway and
+Vercel deployments plus the public health and version endpoints, then publishes the
+production proof, immutable tag and GitHub Release.
 
 ## Local equivalents
 

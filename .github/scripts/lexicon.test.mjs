@@ -6,7 +6,9 @@ const read = (path) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 const I18N_ROOT = "frontend/projects/webapp/public/i18n";
+const ANDROID_I18N_ROOT = "android/src/core/i18n/catalogs";
 const SWIFT_ROOT = "ios/Pulpe";
+const TSX_ROOT = "android/src";
 
 // Le mot est banni parce que Pulpe n'a aucun lien bancaire — c'est une règle
 // produit, pas une règle de français. Chaque langue doit donc déclarer le sien :
@@ -235,6 +237,106 @@ test("aucune chaîne affichée par l'app iOS ne dit « transaction »", () => {
   );
 });
 
+const androidCatalogs = () =>
+  readdirSync(new URL(`../../${ANDROID_I18N_ROOT}`, import.meta.url))
+    .filter((file) => file.endsWith(".json"))
+    .sort()
+    .map((file) => ({ file, lang: file.replace(/\.json$/, "") }));
+
+const androidTranslations = () =>
+  androidCatalogs().flatMap(({ file, lang }) =>
+    flatten(JSON.parse(read(`${ANDROID_I18N_ROOT}/${file}`))).map(
+      ([key, value]) => ({ key, lang, value }),
+    ),
+  );
+
+test("aucune traduction du catalogue Android ne dit « transaction »", () => {
+  const translations = androidTranslations();
+  assert.notEqual(
+    translations.length,
+    0,
+    `Aucune traduction lue dans ${ANDROID_I18N_ROOT}. Le garde ne prouverait rien.`,
+  );
+
+  const offenders = translations
+    .filter(({ lang, value }) => BANNED_WORD_BY_LANG[lang]?.test(value))
+    .map(({ key, lang, value }) => `  ${lang} → ${key} = ${value}`);
+
+  assert.equal(
+    offenders.length,
+    0,
+    `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${ANDROID_I18N_ROOT} :\n${offenders.join("\n")}`,
+  );
+});
+
+test("aucune traduction du catalogue Android ne vouvoie", () => {
+  const offenders = androidTranslations()
+    .filter(({ lang, value }) => FORMAL_ADDRESS_BY_LANG[lang]?.test(value))
+    .map(({ key, lang, value }) => `  ${lang} → ${key} = ${value}`);
+
+  assert.equal(
+    offenders.length,
+    0,
+    "Pulpe tutoie dans les quatre langues (docs/I18N.md).\n" +
+      `Dans ${ANDROID_I18N_ROOT} :\n${offenders.join("\n")}`,
+  );
+});
+
+// Le mot désigne aussi un type et une demi-douzaine de fonctions dans les
+// sources Android. `kind: "transaction"` et `useCreateTransaction` sont du
+// domaine, et les régenter rendrait le garde inutilisable.
+//
+// Ce qui est lu est donc uniquement ce qui ne peut être que de l'affichage :
+//
+//   · un attribut JSX — `label="Mouvements"`, collé au `=`, ce qu'une
+//     affectation TypeScript (`const x = "transaction"`) n'est jamais ;
+//   · un nœud de texte JSX — `<Text>Mouvements</Text>`.
+//
+// Une valeur dans un objet, un argument de fonction ou un type n'est ni l'un ni
+// l'autre, et sort du périmètre sans avoir à être exemptée nommément.
+const JSX_ATTRIBUTE = /\b[a-zA-Z][a-zA-Z0-9]*="([^"]*)"/g;
+const JSX_TEXT_NODE = />\s*([^<>{}\n]+?)\s*</g;
+
+const tsxOffendersIn = (path, source) => {
+  const offenders = [];
+
+  source.split("\n").forEach((line, index) => {
+    if (isComment(line)) return;
+
+    const displayed = [
+      ...[...line.matchAll(JSX_ATTRIBUTE)].map(([, value]) => value),
+      ...[...line.matchAll(JSX_TEXT_NODE)].map(([, value]) => value),
+    ];
+
+    for (const text of displayed) {
+      if (/transaction/i.test(text) && isDisplayedProse(text)) {
+        offenders.push(`  ${path}:${index + 1} = ${text}`);
+      }
+    }
+  });
+
+  return offenders;
+};
+
+const tsxSources = () =>
+  readdirSync(new URL(`../../${TSX_ROOT}`, import.meta.url), {
+    recursive: true,
+  })
+    .filter((path) => path.endsWith(".tsx"))
+    .sort();
+
+test("aucune chaîne affichée par l'app Android ne dit « transaction »", () => {
+  const offenders = tsxSources().flatMap((path) =>
+    tsxOffendersIn(path, read(`${TSX_ROOT}/${path}`)),
+  );
+
+  assert.equal(
+    offenders.length,
+    0,
+    `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${TSX_ROOT}/ :\n${offenders.join("\n")}`,
+  );
+});
+
 const IOS_CATALOG = "ios/Pulpe/Resources/Localizable.xcstrings";
 
 /**
@@ -331,6 +433,12 @@ const everyTranslation = () => [
   ),
   ...iosTranslations().map(({ key, lang, value }) => ({
     source: IOS_CATALOG,
+    lang,
+    key,
+    value,
+  })),
+  ...androidTranslations().map(({ key, lang, value }) => ({
+    source: ANDROID_I18N_ROOT,
     lang,
     key,
     value,

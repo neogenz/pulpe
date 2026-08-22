@@ -184,6 +184,7 @@ export const budgetTemplateCreateFromOnboardingSchema = z.strictObject({
   name: z.string().min(1).max(100).trim().default('Mois Standard'),
   description: z.string().max(500).trim().optional(),
   isDefault: z.boolean().default(true),
+  locale: supportedLocaleSchema.optional(),
   monthlyIncome: z.number().min(0).default(0).optional(),
   housingCosts: z.number().min(0).default(0).optional(),
   healthInsurance: z.number().min(0).default(0).optional(),
@@ -2511,8 +2512,8 @@ export type EncryptionChangePinResponse = z.infer<
  * Endpoint: `GET /api/v1/app/version` (public, unauthenticated, cacheable).
  *
  * iOS uses `latestVersion` for a dismissible soft-update prompt; the web client
- * still ignores it. `storeUrl` is the platform store deep link (App Store for
- * `ios`).
+ * and Android still ignore it. `storeUrl` is the platform store deep link
+ * (App Store for `ios`, Play Store for `android`).
  */
 const semverString = z.string().regex(/^\d+\.\d+\.\d+$/);
 
@@ -2525,6 +2526,7 @@ const platformVersionSchema = z.object({
 export const appVersionResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
+    android: platformVersionSchema,
     ios: platformVersionSchema,
     web: platformVersionSchema,
   }),

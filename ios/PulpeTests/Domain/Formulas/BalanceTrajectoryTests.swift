@@ -4,6 +4,9 @@ import Testing
 
 /// `BudgetFormulas.calculateBalanceTrajectory` — the period arithmetic behind the home
 /// chart. What the card then *says* about a trajectory lives in `HomeHeroCardTests`.
+///
+/// Shares its numeric fixtures with `shared/src/calculators/balance-trajectory.spec.ts`,
+/// so a divergence between the two implementations fails an assertion here.
 struct BalanceTrajectoryTests {
     // 5 000 in, 2 500 out: the plan lands on 2 500, and every case below is read against it.
     private let lines = [
