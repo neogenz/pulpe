@@ -348,13 +348,15 @@ struct AddTransactionDependencies: Sendable {
 
 struct DeepLinkAddExpenseSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var viewModel = DeepLinkAddExpenseViewModel()
 
     var body: some View {
         Group {
             if let budgetId = viewModel.currentBudgetId {
-                AddTransactionSheet(budgetId: budgetId) { _ in
+                AddTransactionSheet(budgetId: budgetId) { transaction in
+                    currentMonthStore.addTransaction(transaction)
                     dismiss()
                 }
             } else {
