@@ -1913,12 +1913,30 @@ export const budgetSummarySchema = z.object({
 });
 export type BudgetSummary = z.infer<typeof budgetSummarySchema>;
 
+/**
+ * How the user's closed months (pay-day period ended, every prévision pointed)
+ * usually drifted from their plan. Credibility prior for the home projection:
+ * `usualOutflowDrift` = median of (actual − planned) / planned outflows, 0 when
+ * the sign alternates; `priorStrength` = weight of the prior in days [3, 14];
+ * `driftMad` = median absolute deviation of the end drifts, in currency;
+ * `driftProfile` = share of the drift reached at 25/50/75/100 % of the period.
+ */
+export const driftHistorySchema = z.object({
+  usualOutflowDrift: z.number(),
+  closedMonths: z.number().int().positive(),
+  priorStrength: z.number().min(3).max(14),
+  driftMad: z.number().nonnegative(),
+  driftProfile: z.array(z.number().min(0).max(1)).length(4),
+});
+export type DriftHistory = z.infer<typeof driftHistorySchema>;
+
 // Budget details response schema - aggregates budget with its transactions and budget lines
 export const budgetDetailsResponseSchema = createSuccessResponse(
   z.object({
     budget: budgetSchema,
     transactions: z.array(transactionSchema),
     budgetLines: z.array(budgetLineSchema),
+    history: driftHistorySchema.nullable(),
   }),
 );
 export type BudgetDetailsResponse = z.infer<typeof budgetDetailsResponseSchema>;

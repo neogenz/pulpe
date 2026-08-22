@@ -2,14 +2,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { PAY_DAY_MIN, PAY_DAY_MAX } from 'pulpe-shared';
+import { PAY_DAY_MIN, PAY_DAY_MAX, compareBudgetPeriods } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
 } from '../domain/ports/budget-repository.port';
 import { RecalculateBudgetBalancesUseCase } from './recalculate-budget-balances.use-case';
-import type { BudgetWithDetails } from '../domain/budget.entity';
+import type { Budget, BudgetWithDetails } from '../domain/budget.entity';
+import { driftHistory, type DriftHistory } from '../domain/drift-history';
 
 @Injectable()
 export class FindBudgetWithDetailsUseCase {
@@ -42,10 +43,10 @@ export class FindBudgetWithDetailsUseCase {
     const { budget, budgetLines, transactions } =
       await this.repo.fetchBudgetData(budgetId);
 
-    const rolloverData = await this.recalculateUseCase.getRollover(
-      budgetId,
-      payDayOfMonth,
-    );
+    const [rolloverData, history] = await Promise.all([
+      this.recalculateUseCase.getRollover(budgetId, payDayOfMonth),
+      this.computeHistory(budget, payDayOfMonth),
+    ]);
 
     this.logger.info(
       {
@@ -63,7 +64,21 @@ export class FindBudgetWithDetailsUseCase {
       transactions,
       rollover: rolloverData.rollover,
       previousBudgetId: rolloverData.previousBudgetId,
+      history,
     };
+  }
+
+  /** The ≤12 budgets strictly before this one, newest first, reduced to a prior. */
+  private async computeHistory(
+    budget: Budget,
+    payDayOfMonth: number,
+  ): Promise<DriftHistory | null> {
+    const previous = (await this.repo.fetchAllBudgets())
+      .filter((b) => compareBudgetPeriods(b, budget) < 0)
+      .sort((a, b) => compareBudgetPeriods(b, a))
+      .slice(0, 12);
+    const months = await this.repo.fetchHistoryData(previous);
+    return driftHistory(months, payDayOfMonth);
   }
 
   private async getPayDayOfMonth(

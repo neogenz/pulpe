@@ -119,6 +119,7 @@ export class BudgetMapper {
         },
         transactions: this.toTransactionApiList(composite.transactions),
         budgetLines: this.toBudgetLineApiList(composite.budgetLines),
+        history: composite.history ?? null,
       },
     };
   }
