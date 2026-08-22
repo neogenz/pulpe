@@ -2,7 +2,7 @@
   {
     "version": "0.46.0",
     "iosVersion": "1.4.2",
-    "date": "2026-08-21",
+    "date": "2026-08-22",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.46.0",
     "platforms": [
       "web",
@@ -32,7 +32,7 @@
       "technical": [
         {
           "title": "Publication renforcée",
-          "description": "Les déploiements, migrations et builds iOS sont désormais vérifiés contre leur source exacte avant publication."
+          "description": "Les déploiements, migrations et builds mobiles sont désormais vérifiés contre leur source exacte. L’application Android est préparée pour une future diffusion interne."
         }
       ]
     },
@@ -62,7 +62,7 @@
           "technical": [
             {
               "title": "Safer releases",
-              "description": "Deployments, migrations and iOS builds are now verified against their exact source before publication."
+              "description": "Deployments, migrations and mobile builds are now verified against their exact source. The Android app is prepared for a future internal release."
             }
           ]
         }
@@ -92,7 +92,7 @@
           "technical": [
             {
               "title": "Sicherere Veröffentlichungen",
-              "description": "Deployments, Migrationen und iOS-Builds werden vor der Veröffentlichung mit ihrer exakten Quelle abgeglichen."
+              "description": "Deployments, Migrationen und mobile Builds werden mit ihrer exakten Quelle abgeglichen. Die Android-App ist für eine künftige interne Veröffentlichung vorbereitet."
             }
           ]
         }
@@ -122,7 +122,7 @@
           "technical": [
             {
               "title": "Pubblicazioni più sicure",
-              "description": "Deploy, migrazioni e build iOS vengono verificati rispetto alla fonte esatta prima della pubblicazione."
+              "description": "Deploy, migrazioni e build mobili vengono verificati rispetto alla fonte esatta. L’app Android è pronta per una futura distribuzione interna."
             }
           ]
         }
