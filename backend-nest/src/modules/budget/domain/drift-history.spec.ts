@@ -70,13 +70,17 @@ describe('monthDrift', () => {
   it('rate is end drift over planned outflows, profile the share reached per quarter', () => {
     // March: 31 days. Quarter cut-offs fall on days 8, 16, 23, 31.
     const drift = monthDrift(
-      month(3, 2026, [spend('2026-03-05', 100), spend('2026-03-20', 300)]),
+      month(3, 2026, [
+        spend('2026-03-05', 100),
+        // A datetime on the cut-off day itself belongs to that day.
+        spend('2026-03-08T23:30:00+00:00', 300),
+      ]),
       PAY_DAY,
     );
     expect(drift.endDrift).toBe(-400);
     expect(drift.plannedOutflows).toBe(1000);
     expect(drift.rate).toBeCloseTo(-0.4);
-    expect(drift.profile).toEqual([0.25, 0.25, 1, 1]);
+    expect(drift.profile).toEqual([1, 1, 1, 1]);
     expect(drift.daily).toHaveLength(32);
     expect(drift.daily[0]).toBe(0);
   });

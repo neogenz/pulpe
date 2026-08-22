@@ -31,7 +31,7 @@ export interface HistoryTransaction {
   kind: TransactionKind;
   amount: number;
   budgetLineId: string | null;
-  /** ISO `YYYY-MM-DD` (local period dates compare lexicographically). */
+  /** ISO date or datetime; only its `YYYY-MM-DD` prefix is read. */
   transactionDate: string;
 }
 
@@ -103,7 +103,11 @@ export function monthDrift(
   for (let day = 1; day < totalDays; day++) {
     const cutoff = isoDate(addDays(startDate, day - 1));
     daily.push(
-      landing(month.transactions.filter((t) => t.transactionDate <= cutoff)),
+      landing(
+        month.transactions.filter(
+          (t) => t.transactionDate.slice(0, 10) <= cutoff,
+        ),
+      ),
     );
   }
   // The final reading takes every transaction, dated outside the period or not:
