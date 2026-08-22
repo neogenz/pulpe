@@ -9,6 +9,7 @@ const options = {
   marketingVersion: "1.4.2",
   buildNumber: "17",
   channel: "release",
+  automationBranch: "main",
 };
 
 function artifactNameFor(intentOptions) {
@@ -140,7 +141,11 @@ test("rejects intents produced outside the channel branch", () => {
 });
 
 test("accepts an internal intent produced from the preview branch", () => {
-  const internalOptions = { ...options, channel: "internal" };
+  const internalOptions = {
+    ...options,
+    channel: "internal",
+    automationBranch: "preview",
+  };
   const { api, readArtifact } = fixture({
     branch: "preview",
     intentOptions: internalOptions,
@@ -148,6 +153,19 @@ test("accepts an internal intent produced from the preview branch", () => {
   });
   assert.deepEqual(
     resolveDistributionIntent(internalOptions, api, readArtifact),
+    { artifact_id: 7, run_id: 42, attempt: 1 },
+  );
+});
+
+test("accepts a tagged release recovery intent produced from preview", () => {
+  const recoveryOptions = { ...options, automationBranch: "preview" };
+  const { api, readArtifact } = fixture({
+    branch: "preview",
+    intentOptions: recoveryOptions,
+    steps: successfulSteps,
+  });
+  assert.deepEqual(
+    resolveDistributionIntent(recoveryOptions, api, readArtifact),
     { artifact_id: 7, run_id: 42, attempt: 1 },
   );
 });

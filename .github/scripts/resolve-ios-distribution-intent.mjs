@@ -40,6 +40,13 @@ function assertOptions(options) {
     options.channel === "internal" || options.channel === "release",
     "Invalid channel",
   );
+  invariant(
+    options.channel === "internal"
+      ? options.automationBranch === "preview"
+      : options.automationBranch === "main" ||
+          options.automationBranch === "preview",
+    "Invalid automation branch",
+  );
 }
 
 function successfulStep(job, name) {
@@ -105,8 +112,7 @@ export function resolveDistributionIntent(options, api, readArtifact) {
           return null;
         }
         const run = api(`${apiPrefix}/runs/${runId}/attempts/${attempt}`);
-        const expectedBranch =
-          options.channel === "internal" ? "preview" : "main";
+        const expectedBranch = options.automationBranch;
         if (
           run.id !== runId ||
           run.path !== ".github/workflows/ios-distribute.yml" ||

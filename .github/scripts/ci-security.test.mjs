@@ -552,6 +552,33 @@ test("iOS archive uses the imported App Store profiles without automatic provisi
   );
 });
 
+test("iOS release recovery from preview is bound to an exact annotated release tag", () => {
+  const validation = iosDistribution.slice(
+    iosDistribution.indexOf("Validate source and distribution inputs"),
+    iosDistribution.indexOf(
+      "Require immutable deployment proof for source SHA",
+    ),
+  );
+
+  assert.match(validation, /tagged_release_recovery=false/);
+  assert.match(
+    validation,
+    /CHANNEL" = release.*GITHUB_REF_NAME" = preview.*tagged_release_recovery=true/s,
+  );
+  assert.match(validation, /release_version=.*\.\.\/package\.json/);
+  assert.match(validation, /recovery_tag="refs\/tags\/v\$release_version"/);
+  assert.match(validation, /git cat-file -t "\$recovery_tag".*!= tag/s);
+  assert.match(
+    validation,
+    /git rev-parse "\$recovery_tag\^\{commit\}".*!= "\$SOURCE_SHA"/s,
+  );
+  assert.match(validation, /Require exact annotated release tag for recovery/);
+  assert.match(
+    iosDistribution,
+    /resolve-ios-distribution-intent\.mjs[\s\S]*--automation-branch "\$GITHUB_REF_NAME"/,
+  );
+});
+
 test("iOS distribution consumes staging or finalized production proofs", () => {
   assert.equal(
     [
