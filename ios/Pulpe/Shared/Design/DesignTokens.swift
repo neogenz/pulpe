@@ -259,6 +259,10 @@ enum DesignTokens {
 
     enum Checkbox {
         static let size: CGFloat = 24
+        /// Ring around an unpointed disc: what says "to tick" before the first tap.
+        static let ringWidth: CGFloat = 1.5
+        /// Disc scale while pressed (`PointCircle`).
+        static let pressedScale: CGFloat = 0.92
         /// Pulls the sync badge back in from the circle's bounding-box corner so it
         /// straddles the stroke instead of floating diagonally off it.
         static let syncBadgeInset: CGFloat = 2

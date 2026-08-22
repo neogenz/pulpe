@@ -2,8 +2,9 @@ import SwiftUI
 
 /// The nature disc that opens a ledger row, and the control that points it.
 ///
-/// Unpointed: the kind's glyph on a wash of its tint (`RowIcon`). Pointed: a full disc in
-/// the tint with a checkmark. 44×44 hit area around a 36pt disc; the parent owns the state.
+/// Unpointed: the kind's glyph on a wash of its tint (`RowIcon`) inside a ring of the tint,
+/// which is what says "to tick" before the first tap. Pointed: a full disc in the tint with
+/// a checkmark. 44×44 hit area around a 36pt disc; the parent owns the state.
 /// Uses `Button` so the tap is visible to VoiceOver independently of the row's own target.
 struct PointCircle: View {
     let kind: TransactionKind
@@ -32,6 +33,9 @@ struct PointCircle: View {
                         .transition(.scale.combined(with: .opacity))
                 } else {
                     RowIcon(systemName: kind.icon, tint: color)
+                        .overlay {
+                            Circle().strokeBorder(color, lineWidth: DesignTokens.Checkbox.ringWidth)
+                        }
                         .transition(.scale.combined(with: .opacity))
                 }
 
@@ -50,10 +54,25 @@ struct PointCircle: View {
             )
             .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PointCirclePressStyle(reduceMotion: reduceMotion))
         .sensoryFeedback(.impact(flexibility: .soft), trigger: isPointed)
         .rampSyncIndicator(isSyncing: isSyncing, displayed: $displayedSyncing)
         .accessibilityLabel(isPointed ? "Pointé" : "À pointer")
         .accessibilityAddTraits(isPointed ? [.isButton, .isSelected] : .isButton)
+    }
+}
+
+/// A flick under the finger: the disc dips while pressed and springs back, faster out than
+/// in. Nothing moves under Reduce Motion.
+private struct PointCirclePressStyle: ButtonStyle {
+    let reduceMotion: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? DesignTokens.Checkbox.pressedScale : 1)
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8),
+                value: configuration.isPressed
+            )
     }
 }

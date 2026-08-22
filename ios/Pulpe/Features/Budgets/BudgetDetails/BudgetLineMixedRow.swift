@@ -143,6 +143,13 @@ struct BudgetLineMixedRow: View {
             )
         }
         .buttonStyle(.plain)
+        // Second path to the same toggle, the gesture Mail taught; a withdrawal has nothing to point.
+        .leadingSwipeAction(
+            systemImage: isPointed ? "arrow.uturn.backward" : "checkmark",
+            tint: dotColor,
+            isEnabled: !line.isPlannedSavingsWithdrawal,
+            action: handleTogglePointed
+        )
         // Explicit, or the button inherits the metadata Text's identifier from its label.
         .accessibilityIdentifier("budgetLineMixedRowButton-\(line.id)")
         .sensoryFeedback(.success, trigger: triggerToggleFeedback)

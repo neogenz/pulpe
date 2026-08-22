@@ -127,7 +127,11 @@ private final class BudgetGoalSpreadUITestService: BudgetServicing, BudgetLineSe
     func getAll() async throws -> [Tag] { [] }
     func create(_: TagCreate) async throws -> Tag { throw URLError(.unsupportedURL) }
     func deleteBudgetLine(id _: String) async throws { throw URLError(.unsupportedURL) }
-    func toggleCheck(id _: String) async throws -> BudgetLine { throw URLError(.unsupportedURL) }
+    /// Pointing a line is the one mutation the detail ledger exercises from a UI test.
+    func toggleCheck(id: String) async throws -> BudgetLine {
+        guard let line = details.budgetLines.first(where: { $0.id == id }) else { throw URLError(.unsupportedURL) }
+        return line.toggled()
+    }
     func postpone(id _: String) async throws -> BudgetLine { throw URLError(.unsupportedURL) }
     func createSpread(_: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse {
         throw URLError(.unsupportedURL)

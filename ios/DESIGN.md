@@ -294,7 +294,7 @@ The previous state-tinted heroes (`#14AD45`, `#D88010` under white ink) measured
 
 **The One Hero Rule.** Every surface with a dominant financial state (home, budget detail, yearly view, savings-goal detail) composes its hero from the shared `HeroZone` family (`heroZone()` / `contentZone()`, `HeroFigure`, `HeroMetricTile`, `HeroVerdictRow`). No screen draws its own hero grammar.
 
-**The One Ledger Rule.** Every list is a grouped card (`pulpeCard()`), rows separated by hairlines, each row opened by a 36pt leading disc (`RowIcon` / `PointCircle`). `pulpeRowCard` never dresses a single row. Nature is carried by the disc and the amount color, not by an inline tag.
+**The One Ledger Rule.** Every list is a grouped card (`pulpeCard()`), rows separated by hairlines, each row opened by a 36pt leading disc (`RowIcon` / `PointCircle`). `pulpeRowCard` never dresses a single row. Nature is carried by the disc and the amount color, not by an inline tag. The disc is also the pointing control: a ring in the tint means "to point", a filled disc with a checkmark means "pointed"; a leading swipe on the row is the second path to the same toggle, and an announced withdrawal keeps a plain disc.
 
 **The Three Families Rule.** At most three chip families are visible on a screen. Any 1-of-N choice is a `SegmentedPicker`. `PulpeChip.muted` never sits on the bare canvas. Hero stat pills are `HeroMetricTile`s, not chips.
 

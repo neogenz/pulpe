@@ -9,6 +9,8 @@ extension DesignTokens {
         /// Chrome that appears or retires (sticky bars, pills): in under a glance, out faster.
         static let microFadeIn: Double = 0.16
         static let microFadeOut: Double = 0.1
+        /// Drag distance that commits a leading swipe action on a ledger row.
+        static let swipeCommitDistance: CGFloat = 72
         static let quickSnap: Double = 0.25
         static let normal: Double = 0.3
         static let slow: Double = 0.5

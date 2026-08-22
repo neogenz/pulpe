@@ -182,6 +182,11 @@ private struct BudgetDetailsFreeTransactionRow: View {
             )
         }
         .buttonStyle(.plain)
+        .leadingSwipeAction(
+            systemImage: isPointed ? "arrow.uturn.backward" : "checkmark",
+            tint: dotColor,
+            action: handleTogglePointed
+        )
         .sensoryFeedback(.success, trigger: triggerToggleFeedback)
         // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
         // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
