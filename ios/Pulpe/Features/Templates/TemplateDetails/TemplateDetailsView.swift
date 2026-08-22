@@ -320,10 +320,11 @@ private struct TemplateDetailsSkeletonView: View {
                         width: DesignTokens.Skeleton.longTextWidth,
                         height: DesignTokens.Skeleton.bodyHeight
                     )
+                    // `PulpeChip` is a capsule, not a rounded tag.
                     SkeletonShape(
                         width: DesignTokens.Skeleton.shortTextWidth,
-                        height: DesignTokens.Skeleton.tagHeight,
-                        cornerRadius: DesignTokens.CornerRadius.sm
+                        height: DesignTokens.Skeleton.chipHeight,
+                        cornerRadius: .infinity
                     )
                 }
                 .padding(.vertical, DesignTokens.Spacing.xs)
@@ -357,44 +358,57 @@ private struct TemplateDetailsSkeletonView: View {
                 )
             }
 
-            // Budget line sections (2 sections)
-            ForEach(0..<2, id: \.self) { _ in
+            // Line sections: revenus, dépenses, épargne
+            ForEach(0..<3, id: \.self) { _ in
                 Section {
                     ForEach(0..<3, id: \.self) { _ in
-                        HStack(spacing: DesignTokens.Spacing.md) {
-                            SkeletonShape(
-                                width: DesignTokens.IconSize.listRow,
-                                height: DesignTokens.IconSize.listRow,
-                                cornerRadius: DesignTokens.IconSize.listRow / 2
-                            )
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        // `TemplateLineRow`: disc, name over a single subtitle line that may
+                        // carry a tag chip beside it, the amount, then the chevron.
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            SkeletonCircle(size: DesignTokens.IconSize.listRow)
+
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                                 SkeletonShape(
                                     width: DesignTokens.Skeleton.mediumTextWidth,
-                                    height: DesignTokens.Skeleton.bodyHeight
+                                    height: DesignTokens.Skeleton.lineHeight
                                 )
-                                SkeletonShape(
-                                    width: DesignTokens.Skeleton.compactTextWidth,
-                                    height: DesignTokens.Skeleton.tagHeight,
-                                    cornerRadius: DesignTokens.CornerRadius.sm
-                                )
-                                SkeletonShape(
-                                    width: DesignTokens.Skeleton.compactTextWidth,
-                                    height: DesignTokens.Skeleton.tagHeight,
-                                    cornerRadius: DesignTokens.CornerRadius.sm
-                                )
+                                HStack(spacing: DesignTokens.Spacing.xs) {
+                                    SkeletonShape(
+                                        width: DesignTokens.Skeleton.shortTextWidth,
+                                        height: DesignTokens.Skeleton.captionHeight
+                                    )
+                                    SkeletonShape(
+                                        width: DesignTokens.Skeleton.numericWidth,
+                                        height: DesignTokens.Skeleton.tagHeight,
+                                        cornerRadius: .infinity
+                                    )
+                                }
                             }
-                            Spacer()
+
+                            Spacer(minLength: DesignTokens.Spacing.sm)
+
                             SkeletonShape(
                                 width: DesignTokens.Skeleton.compactTextWidth,
-                                height: DesignTokens.Skeleton.bodyHeight
+                                height: DesignTokens.Skeleton.lineHeight
+                            )
+
+                            SkeletonShape(
+                                width: DesignTokens.Spacing.xs,
+                                height: DesignTokens.Spacing.md,
+                                cornerRadius: DesignTokens.CornerRadius.xs
                             )
                         }
                         .padding(.vertical, DesignTokens.ListRow.verticalPadding)
                     }
                 } header: {
-                    HStack {
+                    HStack(spacing: DesignTokens.Spacing.xs) {
                         SkeletonShape(
                             width: DesignTokens.Skeleton.compactTextWidth,
+                            height: DesignTokens.Skeleton.captionHeight
+                        )
+                        // The « · 3 » count that follows the section title.
+                        SkeletonShape(
+                            width: DesignTokens.Skeleton.numericWidth,
                             height: DesignTokens.Skeleton.captionHeight
                         )
                         Spacer()

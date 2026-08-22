@@ -166,24 +166,30 @@ private struct TemplateListSkeletonView: View {
 
             Section {
                 ForEach(0..<3, id: \.self) { _ in
-                    HStack {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    // Same slots as `TemplateRow`: the disc, name over subtitle, the chevron.
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        SkeletonCircle(size: DesignTokens.IconSize.listRow)
+
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                             SkeletonShape(
                                 width: DesignTokens.Skeleton.mediumTextWidth,
-                                height: DesignTokens.Spacing.lg
+                                height: DesignTokens.Skeleton.lineHeight
                             )
                             SkeletonShape(
                                 width: DesignTokens.Skeleton.longTextWidth,
                                 height: DesignTokens.Skeleton.captionHeight
                             )
                         }
-                        Spacer()
+
+                        Spacer(minLength: DesignTokens.Spacing.sm)
+
                         SkeletonShape(
-                            width: DesignTokens.Spacing.compactGap,
-                            height: DesignTokens.Skeleton.bodyHeight,
+                            width: DesignTokens.Spacing.xs,
+                            height: DesignTokens.Spacing.md,
                             cornerRadius: DesignTokens.CornerRadius.xs
                         )
                     }
+                    .padding(.vertical, DesignTokens.Spacing.xs)
                 }
             } footer: {
                 SkeletonShape(

@@ -12,16 +12,9 @@ struct BudgetListView: View {
 
     var body: some View {
         Group {
-            if !store.hasLoadedOnce && store.budgets.isEmpty {
-                if let error = store.error {
-                    ErrorView(error: error) {
-                        await store.forceRefresh()
-                    }
+            if showsSkeleton {
+                BudgetListSkeletonView()
                     .transition(.opacity)
-                } else {
-                    BudgetListSkeletonView()
-                        .transition(.opacity)
-                }
             } else if let error = store.error, store.budgets.isEmpty {
                 ErrorView(error: error) {
                     await store.forceRefresh()
@@ -102,8 +95,12 @@ struct BudgetListView: View {
         }
     }
 
-    /// Only the loaded list paints the forest; skeleton, error and empty keep a flat canvas.
-    private var isOnHeroSurface: Bool { !store.budgets.isEmpty }
+    /// The list and its skeleton both paint the forest; error and empty keep a flat canvas.
+    private var isOnHeroSurface: Bool { !store.budgets.isEmpty || showsSkeleton }
+
+    private var showsSkeleton: Bool {
+        !store.hasLoadedOnce && store.budgets.isEmpty && store.error == nil
+    }
 
     private var createButton: some View {
         Button {
@@ -243,123 +240,5 @@ private extension BudgetListView {
         return BudgetPeriodCalculator.formatPeriod(
             month: month, year: year, payDayOfMonth: userSettingsStore.payDayOfMonth
         )
-    }
-}
-
-// MARK: - Skeleton
-
-private struct BudgetListSkeletonView: View {
-    var body: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.xxxl) {
-                VStack(spacing: DesignTokens.Spacing.none) {
-                    HStack {
-                        SkeletonShape(
-                            width: DesignTokens.Skeleton.mediumTextWidth,
-                            height: DesignTokens.Spacing.sectionGap
-                        )
-                        Spacer()
-                        SkeletonShape(
-                            width: DesignTokens.Skeleton.shortTextWidth,
-                            height: DesignTokens.IconSize.compact,
-                            cornerRadius: .infinity
-                        )
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.xl)
-
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            SkeletonShape(
-                                width: DesignTokens.Skeleton.compactTextWidth,
-                                height: DesignTokens.Skeleton.controlHeight,
-                                cornerRadius: .infinity
-                            )
-                        }
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.xl)
-                }
-
-                yearRecapSkeleton
-                    .padding(.horizontal, DesignTokens.Spacing.xl)
-
-                VStack(spacing: DesignTokens.Spacing.none) {
-                    SkeletonShape(
-                        width: DesignTokens.Skeleton.longTextWidth,
-                        height: DesignTokens.Skeleton.sectionHeight
-                    )
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, DesignTokens.Spacing.xl)
-                        .padding(.bottom, DesignTokens.Spacing.md)
-
-                    VStack(spacing: 0) {
-                        ForEach(0..<3, id: \.self) { index in
-                            if index > 0 { Divider() }
-                            skeletonMonthRow
-                        }
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.xl)
-                }
-            }
-            .padding(.bottom, DesignTokens.Spacing.lg)
-        }
-        .shimmering()
-        .pulpeBackground()
-        .accessibilityLabel("Chargement des budgets")
-    }
-
-    private var yearRecapSkeleton: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            SkeletonShape(
-                width: DesignTokens.Skeleton.longTextWidth,
-                height: DesignTokens.Skeleton.sectionHeight
-            )
-            SkeletonShape(
-                width: DesignTokens.Skeleton.longTextWidth,
-                height: DesignTokens.Skeleton.amountHeight
-            )
-            SkeletonShape(
-                height: DesignTokens.ProgressBar.heroHeight,
-                cornerRadius: DesignTokens.CornerRadius.progressBar
-            )
-            SkeletonShape(
-                width: DesignTokens.Skeleton.extraLongTextWidth,
-                height: DesignTokens.Skeleton.captionHeight
-            )
-            SkeletonShape(
-                width: DesignTokens.Skeleton.longTextWidth,
-                height: DesignTokens.Skeleton.captionHeight
-            )
-        }
-    }
-
-    private var skeletonMonthRow: some View {
-        skeletonMonthContent
-            .padding(.vertical, DesignTokens.Spacing.md)
-    }
-
-    private var skeletonMonthContent: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.shortTextWidth,
-                    height: DesignTokens.Skeleton.lineHeight
-                )
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.mediumTextWidth,
-                    height: DesignTokens.Skeleton.captionHeight
-                )
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.shortTextWidth,
-                    height: DesignTokens.Skeleton.bodyHeight
-                )
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.compactTextWidth,
-                    height: DesignTokens.Spacing.sm
-                )
-            }
-        }
     }
 }

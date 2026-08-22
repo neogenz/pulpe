@@ -17,8 +17,7 @@ struct SavingsGoalsListView: View {
     var body: some View {
         Group {
             if store.isLoading && store.goals.isEmpty {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                SavingsGoalsListSkeletonView()
             } else if store.hasError, let error = store.error {
                 ErrorView(error: error) { await store.forceRefresh() }
             } else if store.goals.isEmpty {

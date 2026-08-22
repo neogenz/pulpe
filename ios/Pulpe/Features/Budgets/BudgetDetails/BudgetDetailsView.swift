@@ -140,14 +140,16 @@ struct BudgetDetailsView: View {
                 currentMonthStore: currentMonthStore,
                 savingsGoalStore: savingsGoalStore
             )
-            // Resolve "Objectif" names for saving rows / the line detail chip.
-            await savingsGoalStore.loadIfNeeded()
-            await tagStore.loadIfNeeded()
+            // The budget first: until its load is dispatched the screen has neither a
+            // skeleton nor content, and the two lookups below cost a round trip each.
             if !screenState.hasAllBudgets {
                 await coordinator.dispatch(.loadDetails(force: false))
             } else {
                 await coordinator.dispatch(.reloadCurrentBudget)
             }
+            // Resolve "Objectif" names for saving rows / the line detail chip.
+            await savingsGoalStore.loadIfNeeded()
+            await tagStore.loadIfNeeded()
         }
         .task(id: screenState.referencedTagIds) { await tagStore.loadIfNeeded(for: screenState.referencedTagIds) }
         .onChange(of: searchText) { _, newValue in

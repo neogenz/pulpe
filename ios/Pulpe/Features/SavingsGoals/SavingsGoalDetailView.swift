@@ -50,11 +50,17 @@ struct SavingsGoalDetailView: View {
 
     var currency: SupportedCurrency { userSettingsStore.currency }
 
+    /// The skeleton paints the same forest hero as the loaded screen, so the bar keeps
+    /// its light ink instead of flipping when the data lands. Only the error state,
+    /// which draws on the flat canvas, gives it back.
+    private var paintsHeroSurface: Bool {
+        viewModel.progress != nil || viewModel.error == nil
+    }
+
     var body: some View {
         Group {
             if viewModel.isLoading, viewModel.progress == nil {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                SavingsGoalDetailSkeletonView()
             } else if let progress = viewModel.progress {
                 content(progress: progress)
             } else if let error = viewModel.error {
@@ -64,7 +70,7 @@ struct SavingsGoalDetailView: View {
         .navigationTitle(currentGoal.name)
         .navigationBarTitleDisplayMode(.inline)
         .background { Color.appBackground.ignoresSafeArea() }
-        .toolbarColorScheme(viewModel.progress != nil ? .dark : nil, for: .navigationBar)
+        .toolbarColorScheme(paintsHeroSurface ? .dark : nil, for: .navigationBar)
         .heroNavigationBar()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -73,11 +79,11 @@ struct SavingsGoalDetailView: View {
                 } label: {
                     Image(systemName: "pencil")
                 }
-                .heroToolbarButtonStyle(viewModel.progress != nil)
+                .heroToolbarButtonStyle(paintsHeroSurface)
                 .accessibilityLabel("Modifier l'objectif")
                 .accessibilityIdentifier("savingsGoalEditButton")
             }
-            .heroToolbarGroup(viewModel.progress != nil)
+            .heroToolbarGroup(paintsHeroSurface)
         }
         .sheet(item: $editTarget, onDismiss: handleEditDismiss) { goal in
             SavingsGoalFormSheet(
