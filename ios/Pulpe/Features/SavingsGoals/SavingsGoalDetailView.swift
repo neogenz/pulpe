@@ -65,7 +65,7 @@ struct SavingsGoalDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .background { Color.appBackground.ignoresSafeArea() }
         .toolbarColorScheme(viewModel.progress != nil ? .dark : nil, for: .navigationBar)
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .heroNavigationBar()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {

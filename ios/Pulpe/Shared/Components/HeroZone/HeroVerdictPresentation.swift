@@ -65,7 +65,7 @@ struct HeroVerdictPresentation: Equatable {
     var absorbsEnvelopeOverrun: Bool { verdict != .overrun }
 
     /// The one thing on the card the plot cannot draw and the metrics cannot show: *when*
-    /// the month left its plan. The size of the gap is in `vs prévu`, its shape is in the
+    /// the month left its plan. The size of the gap is in `Imprévus`, its shape is in the
     /// line, so repeating either here would spend the sentence on something already said.
     var verdictText: String {
         switch verdict {

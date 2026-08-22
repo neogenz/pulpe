@@ -167,6 +167,12 @@ extension View {
         modifier(HeroToolbarButtonModifier(isOnHeroSurface: isOnHeroSurface))
     }
 
+    /// Hero under the navigation bar: no bar background, and on iOS 26 the soft
+    /// scroll-edge effect, pinned — the hard one rules a hairline across the forest on scroll.
+    func heroNavigationBar() -> some View {
+        modifier(HeroNavigationBarModifier())
+    }
+
     /// Applies text-link button styling (44pt minimum tap height)
     func textLinkButtonStyle() -> some View {
         self.buttonStyle(TextLinkButtonStyle())
@@ -180,6 +186,21 @@ extension View {
     /// Applies circle icon button styling (44×44pt minimum tap target, circular hit area)
     func circleIconButtonStyle() -> some View {
         self.buttonStyle(CircleIconButtonStyle())
+    }
+}
+
+private struct HeroNavigationBarModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        let bare = content.toolbarBackground(.hidden, for: .navigationBar)
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            bare.scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            bare
+        }
+        #else
+        bare
+        #endif
     }
 }
 

@@ -30,13 +30,21 @@ extension BudgetFormulas {
         /// The user's usual drift, when the backend has closed months to read it from.
         var history: DriftHistory?
 
+        /// Pay day: the date day 1 stands for. The chart prints it and the period's end
+        /// under the plot, so the horizontal reads as time.
+        var periodStart: Date?
+
+        var periodEnd: Date? {
+            periodStart.flatMap { Calendar.current.date(byAdding: .day, value: totalDays - 1, to: $0) }
+        }
+
         /// Days the chart waits before letting the prior bend the line: earlier, no model
         /// beats noise, and a bend there would be noise dressed as insight.
         static let priorWarmupDays = 7
 
         /// Where the plan alone said the period would land. Equal to `plannedRemaining` by
         /// construction: day 0 has no transactions, so the same envelope arithmetic that
-        /// yields the plan yields this. The chart's rule and the card's `vs prévu` reference
+        /// yields the plan yields this. The chart's rule and the card's `Imprévus` reference
         /// are therefore one number, never two neighbouring calculations.
         var plannedBalance: Decimal { landing.first?.balance ?? 0 }
 
@@ -45,7 +53,7 @@ extension BudgetFormulas {
         var estimatedBalance: Decimal { landing.last?.balance ?? 0 }
 
         /// The gap the plot draws — and, by the two properties above, exactly the card's
-        /// `vs prévu` metric. Neither can contradict the other.
+        /// `Imprévus` metric. Neither can contradict the other.
         var drift: Decimal { estimatedBalance - plannedBalance }
 
         /// Where the period lands if it keeps leaving its plan at the pace seen so far:
@@ -133,7 +141,8 @@ extension BudgetFormulas {
                 .reduce(Decimal.zero) { $0 + $1.amount },
             today: today,
             totalDays: totalDays,
-            history: history
+            history: history,
+            periodStart: periodStart
         )
     }
     /// One reading per day elapsed, each one asking the same question of a different amount

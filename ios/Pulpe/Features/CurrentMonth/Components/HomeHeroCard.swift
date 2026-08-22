@@ -28,7 +28,7 @@ struct HomeHeroCard: View {
     private var presentation: HeroVerdictPresentation {
         HeroVerdictPresentation(
             // The plot's own origin whenever there is a plot, so the rule under the hero and
-            // the `vs prévu` beside it quote one number rather than two calculations of it.
+            // the `Imprévus` beside it quote one number rather than two calculations of it.
             plannedBalance: trajectory?.plannedBalance ?? fallbackPlannedBalance,
             estimatedBalance: metrics.remaining,
             // The plot's own drift date, so the sentence dates the same departure the line
@@ -69,7 +69,10 @@ struct HomeHeroCard: View {
                 accessibilityIdentifier: "homeProjectedBalanceAmount"
             )
 
-            balanceChart
+            VStack(spacing: DesignTokens.Spacing.xs) {
+                balanceChart
+                chartTimeAxis
+            }
 
             metricsButton
 
@@ -115,7 +118,7 @@ struct HomeHeroCard: View {
 
     private var varianceValue: String { presentation.varianceText(for: currency) }
 
-    private var varianceLabel: String { AppLocale.string("vs prévu") }
+    private var varianceLabel: String { AppLocale.string("Imprévus") }
 
     // MARK: - Verdict
 

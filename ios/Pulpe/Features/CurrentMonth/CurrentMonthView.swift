@@ -87,7 +87,7 @@ struct CurrentMonthView: View {
         // The hero runs under the navigation bar: its title and avatar go to light ink
         // while the forest is painted, and back to the default on a flat canvas.
         .toolbarColorScheme(paintsHeroSurface ? .dark : nil, for: .navigationBar)
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .heroNavigationBar()
         .trackScreen("Dashboard")
         .animation(DesignTokens.Animation.smoothEaseOut, value: animationPhase)
         .navigationTitle(currentMonthName.capitalized)
@@ -162,18 +162,21 @@ struct CurrentMonthView: View {
             await userSettingsStore.loadIfNeeded()
             store.setPayDay(userSettingsStore.payDayOfMonth)
             await store.loadDetailsIfNeeded()
-            // Sparse budget list feeds "retour au vert" (deficit hero) + create-budget gating
-            await budgetListStore.loadIfNeeded()
-            // Goal names for the "épargne versée" card — only when the month links to goals
-            if store.budgetLines.contains(where: { $0.savingsGoalId != nil }) {
-                await savingsGoalStore.loadIfNeeded()
-            }
+            // Reveal with the details: waiting for the secondary loads below left the
+            // loaded screen on stage with every block still at opacity 0 (bare forest
+            // square under the bar, then a pop).
             if reduceMotion {
                 hasAppeared = true
             } else {
                 withAnimation(DesignTokens.Animation.smoothEaseOut) {
                     hasAppeared = true
                 }
+            }
+            // Sparse budget list feeds "retour au vert" (deficit hero) + create-budget gating
+            await budgetListStore.loadIfNeeded()
+            // Goal names for the "épargne versée" card — only when the month links to goals
+            if store.budgetLines.contains(where: { $0.savingsGoalId != nil }) {
+                await savingsGoalStore.loadIfNeeded()
             }
         }
         .task(id: referencedTagIds) {
@@ -345,9 +348,8 @@ struct CurrentMonthView: View {
 extension CurrentMonthView {
     /// Failed and empty keep a flat canvas; loaded and skeleton paint the forest through
     /// `heroZone()`, so the navigation bar ink follows the same switch.
-    fileprivate var loadedTransition: AnyTransition {
-        reduceMotion ? .opacity : AnyTransition(.blurReplace)
-    }
+    /// Crossfade only: `blurReplace` washed the forest to a pale haze for a frame.
+    fileprivate var loadedTransition: AnyTransition { .opacity }
 
     fileprivate var paintsHeroSurface: Bool {
         switch store.contentState {

@@ -111,7 +111,7 @@ struct BudgetDetailsView: View {
         // The hero runs under the navigation bar on the forest surface; light ink while
         // the budget is loaded, the default ink on the flat error / skeleton canvas.
         .toolbarColorScheme(projector.screenState.isBudgetPresent ? .dark : nil, for: .navigationBar)
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .heroNavigationBar()
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 trailingToolbarButtons

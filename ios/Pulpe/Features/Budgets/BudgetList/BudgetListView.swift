@@ -47,7 +47,7 @@ struct BudgetListView: View {
         .localizedNavigationTitle("Budgets")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(isOnHeroSurface ? .dark : nil, for: .navigationBar)
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .heroNavigationBar()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 createButton

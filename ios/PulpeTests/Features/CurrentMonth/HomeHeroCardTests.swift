@@ -92,7 +92,7 @@ struct HomeHeroCardTests {
     }
 
     @Test func varianceMetric_carriesItsCurrencyBesideTheOperationCount() {
-        // "vs prévu" shares its row with "à pointer", which is a count of operations. With
+        // "Imprévus" shares its row with "à pointer", which is a count of operations. With
         // no unit the two are the same figure in the same type, and the money one is the
         // one that becomes unreadable.
         let onPlan = HeroVerdictPresentation(plannedBalance: 2_500, estimatedBalance: 2_500)
@@ -149,7 +149,7 @@ struct HomeHeroCardTests {
         #expect(HomeHeroCard.anchorLabel(for: wide, currency: .chf) == "-700 CHF")
 
         // 30 CHF on a plot floored at 450: closer to the plan's own label than a line height.
-        // The `vs prévu` metric above still prints it, so nothing is hidden by staying quiet.
+        // The `Imprévus` metric above still prints it, so nothing is hidden by staying quiet.
         let narrow = trajectory(landing: [2_500, 2_470], plannedOutflows: 9_000)
         #expect(HomeHeroCard.anchorLabel(for: narrow, currency: .chf) == "Aujourd’hui")
 

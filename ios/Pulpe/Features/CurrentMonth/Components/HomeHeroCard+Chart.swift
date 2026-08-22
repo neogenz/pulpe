@@ -7,12 +7,27 @@ extension HomeHeroCard {
     /// The month's landing forecast: it opens on the plan, it arrives on the figure above
     /// it, and it only leaves the horizontal when the month leaves its plan. Two strokes and
     /// a point: what the days lived did to the forecast, where it holds from today, and the
-    /// gap named at the anchor. No rule for the plan and none for today — the line's own
+    /// gap named at the anchor. A faint rule names the plan; no rule for today — the line's own
     /// first reading is the plan, and the dot is today.
     @ViewBuilder
     var balanceChart: some View {
         if let trajectory {
             Chart {
+                // The plan's level, named: the line opens on it and every gap is read
+                // against it, so the rule gives the eye the reference the figures assume.
+                RuleMark(y: .value("Prévu", Self.decimalValue(trajectory.plannedBalance)))
+                    .lineStyle(StrokeStyle(
+                        lineWidth: DesignTokens.BorderWidth.thin,
+                        dash: DesignTokens.Chart.markerDash
+                    ))
+                    .foregroundStyle(Color.heroInkSecondary.opacity(DesignTokens.Opacity.heroInkMuted))
+                    .annotation(position: .top, alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
+                        Text(AppLocale.string("prévu \(trajectory.plannedBalance.asCompactCurrency(currency))"))
+                            .font(PulpeTypography.caption2)
+                            .foregroundStyle(Color.heroInkSecondary)
+                            .padding(.trailing, DesignTokens.Spacing.xxl)
+                    }
+
                 // The area under the tracked series: ink fading to nothing, the only fill on
                 // the plot. Always drawn, a held month included — the fill is what makes the
                 // line read as a surface rather than a wire, not a signal about the gap.
@@ -168,6 +183,26 @@ extension HomeHeroCard {
         }
     }
 
+    /// Pay day on the left, the period's end on the right: the plot is a timeline, and
+    /// nothing else on it says so.
+    @ViewBuilder
+    var chartTimeAxis: some View {
+        if let trajectory, let start = trajectory.periodStart, let end = trajectory.periodEnd {
+            HStack {
+                Text(Formatters.dayMonthLabel(for: start))
+                Spacer(minLength: DesignTokens.Spacing.md)
+                Text(Formatters.dayMonthLabel(for: end))
+            }
+            .font(PulpeTypography.caption2)
+            .foregroundStyle(Color.heroInkSecondary)
+            .lineLimit(1)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(AppLocale.string(
+                "Du \(Formatters.dayMonthLabel(for: start)) au \(Formatters.dayMonthLabel(for: end))"
+            ))
+        }
+    }
+
     /// The skeleton's own pulse on the dashed stroke and its label while an entry settles —
     /// the same material the loading state uses, so "not final yet" reads the same way
     /// twice. Reduced motion holds the faded level without pulsing.
@@ -213,7 +248,7 @@ extension HomeHeroCard {
     }
 
     /// A gap wide enough to be seen gets named; anything narrower would print a figure over
-    /// its own rule, and the `vs prévu` metric above the plot already carries it.
+    /// its own rule, and the `Imprévus` metric above the plot already carries it.
     static func showsGapLabel(for trajectory: BudgetFormulas.BalanceTrajectory) -> Bool {
         guard trajectory.drift.rounded(2) != 0 else { return false }
         let gap = abs(decimalValue(trajectory.drift))

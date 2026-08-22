@@ -10513,6 +10513,28 @@
         }
       }
     },
+    "Du %@ au %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vom %@ bis %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %@ to %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dal %@ al %@"
+          }
+        }
+      }
+    },
     "Dès que tu dépenses, pointe-le en un tap. 10 secondes, et ton « disponible à dépenser » reste toujours juste." : {
       "localizations" : {
         "de" : {
@@ -12855,6 +12877,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impossibile verificare lo stato"
+          }
+        }
+      }
+    },
+    "Imprévus" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unvorhergesehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unplanned"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imprevisti"
           }
         }
       }
