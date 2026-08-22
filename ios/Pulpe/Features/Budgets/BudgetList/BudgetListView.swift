@@ -98,17 +98,31 @@ struct BudgetListView: View {
                 selectedYear = latest
             }
         }
+        .onChange(of: appState.selectedTab) { oldTab, newTab in
+            guard BudgetListRefreshPolicy.shouldLoadAfterTabChange(
+                from: oldTab, to: newTab, pathCount: appState.budgetPath.count
+            ) else { return }
+            Task { await store.loadIfNeeded() }
+        }
+        .onChange(of: appState.budgetPath.count) { oldCount, newCount in
+            guard BudgetListRefreshPolicy.shouldLoadAfterPathChange(
+                from: oldCount, to: newCount, selectedTab: appState.selectedTab
+            ) else { return }
+            Task { await store.loadIfNeeded() }
+        }
+        .onChange(of: store.invalidationGeneration) {
+            guard BudgetListRefreshPolicy.shouldLoadAfterInvalidation(
+                selectedTab: appState.selectedTab, pathCount: appState.budgetPath.count
+            ) else { return }
+            Task { await store.loadIfNeeded() }
+        }
         .onChange(of: selectedYear) {
             showPastMonths = false
         }
     }
 
     private var createButton: some View {
-        Button {
-            createBudgetTarget = store.nextAvailableMonth
-        } label: {
-            Image(systemName: "plus")
-        }
+        Button(action: { createBudgetTarget = store.nextAvailableMonth }, label: { Image(systemName: "plus") })
         .disabled(store.nextAvailableMonth == nil)
         .accessibilityLabel("Créer un nouveau budget")
     }

@@ -608,6 +608,65 @@ test("iOS distribution serializes allocation and upload across channels", () => 
   assert.match(concurrency, /cancel-in-progress: false/);
 });
 
+test("iOS archive uses the imported App Store profiles without automatic provisioning", () => {
+  const archive = iosDistribution.slice(
+    iosDistribution.indexOf("Archive signed application"),
+    iosDistribution.indexOf("Export signed IPA"),
+  );
+
+  assert.match(archive, /CODE_SIGN_STYLE=Manual/);
+  assert.match(
+    archive,
+    /PULPE_APP_PROVISIONING_PROFILE_SPECIFIER="Pulpe App Store CI"/,
+  );
+  assert.match(
+    archive,
+    /PULPE_WIDGET_PROVISIONING_PROFILE_SPECIFIER="Pulpe Widget App Store CI"/,
+  );
+  assert.doesNotMatch(
+    archive,
+    /CODE_SIGN_STYLE=Automatic|-allowProvisioningUpdates|-authenticationKey(?:Path|ID|IssuerID)/,
+  );
+  const signing = iosDistribution.slice(
+    iosDistribution.indexOf("Configure manual App Store signing"),
+    iosDistribution.indexOf("Generate Xcode project"),
+  );
+  assert.match(signing, /PULPE_APP_PROVISIONING_PROFILE_SPECIFIER/);
+  assert.match(signing, /PULPE_WIDGET_PROVISIONING_PROFILE_SPECIFIER/);
+  assert.match(signing, /PROVISIONING_PROFILE_SPECIFIER/);
+  assert.ok(
+    iosDistribution.indexOf("Configure manual App Store signing") <
+      iosDistribution.indexOf("Generate Xcode project"),
+  );
+});
+
+test("iOS release recovery from preview is bound to an exact annotated release tag", () => {
+  const validation = iosDistribution.slice(
+    iosDistribution.indexOf("Validate source and distribution inputs"),
+    iosDistribution.indexOf(
+      "Require immutable deployment proof for source SHA",
+    ),
+  );
+
+  assert.match(validation, /tagged_release_recovery=false/);
+  assert.match(
+    validation,
+    /CHANNEL" = release.*GITHUB_REF_NAME" = preview.*tagged_release_recovery=true/s,
+  );
+  assert.match(validation, /release_version=.*\.\.\/package\.json/);
+  assert.match(validation, /recovery_tag="refs\/tags\/v\$release_version"/);
+  assert.match(validation, /git cat-file -t "\$recovery_tag".*!= tag/s);
+  assert.match(
+    validation,
+    /git rev-parse "\$recovery_tag\^\{commit\}".*!= "\$SOURCE_SHA"/s,
+  );
+  assert.match(validation, /Require exact annotated release tag for recovery/);
+  assert.match(
+    iosDistribution,
+    /resolve-ios-distribution-intent\.mjs[\s\S]*--automation-branch "\$GITHUB_REF_NAME"/,
+  );
+});
+
 test("iOS distribution consumes staging or finalized production proofs", () => {
   assert.equal(
     [

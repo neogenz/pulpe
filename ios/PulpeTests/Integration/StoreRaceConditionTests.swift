@@ -58,13 +58,40 @@ struct StoreRaceConditionTests {
 
     // MARK: - BudgetListStore Tests
 
-    @Test("BudgetListStore handles concurrent loadIfNeeded safely")
-    func budgetListStore_concurrentLoadIfNeeded_noRace() async throws {
-        let store = BudgetListStore()
+    @Test("BudgetListStore reset keeps the newer load task reference")
+    func budgetListStore_reset_doesNotClearNewerLoadTask() async {
+        let service = MockBudgetService()
+        service.gateSparse()
+        service.sparseError = APIError.invalidResponse
+        let store = BudgetListStore(budgetService: service)
+        let staleLoad = Task { await store.forceRefresh() }
+        await waitForCondition("First sparse fetch must enter the gate") { service.didEnterSparse }
 
-        await runConcurrent(count: 10) { await store.loadIfNeeded() }
+        store.reset()
+        service.sparseError = nil
+        let currentLoad = Task { await store.forceRefresh() }
+        await waitForCondition("New sparse fetch must enter after reset") {
+            service.getBudgetsSparseCallCount == 2
+        }
+        service.releaseNextSparse()
+        await staleLoad.value
+        #expect(store.isLoading, "Stale completion must not hide the active post-reset load")
+        #expect(store.error == nil, "Stale failure must not publish after reset")
 
-        #expect(store.isLoading == false, "Store must not be stuck in loading after concurrent loadIfNeeded calls")
+        var coalescedLoadStarted = false
+        let coalescedLoad = Task {
+            coalescedLoadStarted = true
+            await store.loadIfNeeded()
+        }
+        // Both tasks inherit MainActor, so the flag is observable only after
+        // loadIfNeeded reaches its first suspension against the active load.
+        await waitForCondition("Coalesced smart load must start") { coalescedLoadStarted }
+        #expect(service.getBudgetsSparseCallCount == 2, "Smart load must retain and join the post-reset fetch")
+        service.releaseSparse()
+        await currentLoad.value
+        await coalescedLoad.value
+
+        #expect(store.isLoading == false)
     }
 
     // MARK: - DashboardStore Tests

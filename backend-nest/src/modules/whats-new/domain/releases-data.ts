@@ -55,7 +55,7 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
   {
     version: '0.46.0',
     iosVersion: '1.4.2',
-    date: '2026-08-21',
+    date: '2026-08-22',
     platforms: ['web', 'ios'],
     changes: {
       features: [],
