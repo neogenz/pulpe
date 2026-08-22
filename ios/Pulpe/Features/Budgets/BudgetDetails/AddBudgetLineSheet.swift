@@ -219,7 +219,11 @@ struct AddBudgetLineSheet: View {
             accessibilityLabel: AppLocale.string("Description de la prévision"),
             focusBinding: $focusedField,
             field: .description,
-            style: .row
+            style: .row,
+            onSubmit: {
+                guard canSubmit else { return }
+                Task { await submit() }
+            }
         )
     }
 

@@ -166,7 +166,11 @@ struct EditTemplateLineSheet: View {
             accessibilityLabel: AppLocale.string("Nom de la ligne du modèle"),
             focusBinding: $focusedField,
             field: .description,
-            style: .row
+            style: .row,
+            onSubmit: {
+                guard canSubmit else { return }
+                Task { await updateTemplateLine() }
+            }
         )
     }
 

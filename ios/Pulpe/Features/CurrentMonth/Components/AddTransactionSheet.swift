@@ -194,7 +194,11 @@ struct AddTransactionSheet: View {
             label: AppLocale.string("Description"),
             focusBinding: $focusedField,
             field: .description,
-            style: .row
+            style: .row,
+            onSubmit: {
+                guard canSubmit else { return }
+                Task { await addTransaction() }
+            }
         )
     }
 

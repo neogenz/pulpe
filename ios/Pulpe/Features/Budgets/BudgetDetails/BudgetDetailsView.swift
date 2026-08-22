@@ -246,6 +246,17 @@ struct BudgetDetailsView: View {
                         checkedCounts: screenState.checkedCounts
                     )
                     .popoverTip(ProductTips.checking)
+                    // The rail sits inside the zone's top curve: a chip scrolled to the edge
+                    // is cut along that same curve rather than drawn over the hero.
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .clipShape(
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: DesignTokens.CornerRadius.zone,
+                            topTrailingRadius: DesignTokens.CornerRadius.zone,
+                            style: .continuous
+                        )
+                    )
+                    .padding(.top, -DesignTokens.Spacing.lg)
 
                     if !searchText.isEmpty && sections.isEmpty && free.isEmpty {
                         ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")

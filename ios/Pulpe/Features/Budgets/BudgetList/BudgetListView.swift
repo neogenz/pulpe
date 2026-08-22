@@ -219,9 +219,9 @@ struct BudgetListView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
                 }
+                // The content zone is the card: rows sit bare on it, a second surface
+                // under the zone's own curve would read as a card inside a card.
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.top, DesignTokens.Spacing.xxl)
                 .padding(.bottom, DesignTokens.Spacing.lg)
@@ -291,11 +291,10 @@ private struct BudgetListSkeletonView: View {
                         .padding(.horizontal, DesignTokens.Spacing.xl)
                         .padding(.bottom, DesignTokens.Spacing.md)
 
-                    VStack(spacing: DesignTokens.Spacing.md) {
-                        currentMonthCardSkeleton
-
-                        ForEach(0..<2, id: \.self) { _ in
-                            skeletonMonthCard
+                    VStack(spacing: 0) {
+                        ForEach(0..<3, id: \.self) { index in
+                            if index > 0 { Divider() }
+                            skeletonMonthRow
                         }
                     }
                     .padding(.horizontal, DesignTokens.Spacing.xl)
@@ -333,23 +332,9 @@ private struct BudgetListSkeletonView: View {
         }
     }
 
-    private var currentMonthCardSkeleton: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            SkeletonShape(
-                width: DesignTokens.Skeleton.shortTextWidth,
-                height: DesignTokens.Skeleton.lineHeight,
-                cornerRadius: .infinity
-            )
-            skeletonMonthContent
-        }
-        .padding(DesignTokens.Spacing.xxl)
-        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
-    }
-
-    private var skeletonMonthCard: some View {
+    private var skeletonMonthRow: some View {
         skeletonMonthContent
-            .padding(DesignTokens.Spacing.xxl)
-            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
+            .padding(.vertical, DesignTokens.Spacing.md)
     }
 
     private var skeletonMonthContent: some View {
