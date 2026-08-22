@@ -109,6 +109,8 @@
       },
       "loadErrorHint": "Controlla la connessione e riprova.",
       "loadErrorTitle": "Non è stato possibile caricare questo budget",
+      "missingHint": "Potrebbe essere stato eliminato da un altro dispositivo.",
+      "missingTitle": "Questo budget non esiste più",
       "monthSelector": "Selettore del mese",
       "noResults": "Nessun risultato per questo filtro.",
       "openForecast": "Apri i dettagli della previsione",

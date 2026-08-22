@@ -227,7 +227,7 @@ export default function BudgetDetailScreen() {
     );
   }
 
-  if (details.isError || details.data === undefined || settings.isError) {
+  if (details.isError || settings.isError) {
     return (
       <PlaceholderScreen
         icon="cloud-off-outline"
@@ -238,6 +238,17 @@ export default function BudgetDetailScreen() {
           onPress: () =>
             void Promise.all([details.refetch(), settings.refetch()]),
         }}
+      />
+    );
+  }
+
+  if (details.data === undefined) {
+    return (
+      <PlaceholderScreen
+        icon="calendar-remove-outline"
+        title={t("budgets.detail.missingTitle")}
+        hint={t("budgets.detail.missingHint")}
+        action={{ label: t("common.back"), onPress: () => router.back() }}
       />
     );
   }

@@ -6,6 +6,20 @@ export interface BudgetYearSection {
 }
 
 /**
+ * Infinite pages can overlap when a write lands between two offset requests.
+ * Keep the first occurrence so the already visible month stays stable while
+ * the newly loaded history is appended.
+ */
+export function uniqueBudgets(pages: BudgetSparse[][]): BudgetSparse[] {
+  const seen = new Set<string>();
+  return pages.flat().filter((budget) => {
+    if (seen.has(budget.id)) return false;
+    seen.add(budget.id);
+    return true;
+  });
+}
+
+/**
  * The list as it reads: newest year first, newest month first inside it, and
  * the year the user is living in at the top whatever the calendar says — a
  * future budget belongs above the past, not after it.

@@ -109,6 +109,8 @@
       },
       "loadErrorHint": "Check your connection, then try again.",
       "loadErrorTitle": "We couldn't load this budget",
+      "missingHint": "It may have been deleted from another device.",
+      "missingTitle": "This budget no longer exists",
       "monthSelector": "Month selector",
       "noResults": "Nothing matches this filter.",
       "openForecast": "Open forecast details",

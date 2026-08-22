@@ -109,6 +109,8 @@
       },
       "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",
       "loadErrorTitle": "Dieses Budget konnte nicht geladen werden",
+      "missingHint": "Möglicherweise wurde es auf einem anderen Gerät gelöscht.",
+      "missingTitle": "Dieses Budget existiert nicht mehr",
       "monthSelector": "Monatsauswahl",
       "noResults": "Nichts entspricht diesem Filter.",
       "openForecast": "Details der Planung öffnen",

@@ -9,6 +9,7 @@ import {
   fetchBudgetListPage,
   fetchBudgetPeriods,
 } from "./budget-api";
+import { uniqueBudgets } from "./budget-list-selectors";
 
 export const budgetKeys = {
   all: ["budgets"] as const,
@@ -37,7 +38,7 @@ export function useBudgetList() {
     initialPageParam: 0,
     getNextPageParam: (lastPage, _pages, lastOffset) =>
       nextBudgetPageOffset(lastPage.length, lastOffset),
-    select: (data) => data.pages.flat(),
+    select: (data) => uniqueBudgets(data.pages),
   });
 }
 
