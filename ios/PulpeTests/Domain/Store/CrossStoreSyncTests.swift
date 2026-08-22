@@ -61,28 +61,49 @@ struct BudgetListStoreCacheInvalidationTests {
     private let cache = BudgetDetailCache.shared
 
     @Test
+    func navigationRefreshPolicy_onlyAcceptsVisibleReturnsToRoot() {
+        #expect(BudgetListRefreshPolicy.shouldLoadAfterTabChange(
+            from: .currentMonth,
+            to: .budgets,
+            pathCount: 0
+        ))
+        #expect(!BudgetListRefreshPolicy.shouldLoadAfterTabChange(
+            from: .budgets,
+            to: .currentMonth,
+            pathCount: 0
+        ))
+        #expect(!BudgetListRefreshPolicy.shouldLoadAfterTabChange(
+            from: .currentMonth,
+            to: .budgets,
+            pathCount: 1
+        ))
+
+        #expect(BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0))
+        #expect(!BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 0, to: 1))
+        #expect(!BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 2))
+    }
+
+    @Test
     func detailMutation_thenPopBack_refetchesListAggregates() async {
         cache.invalidateAll()
 
         // List screen loaded → TTL fresh
         let mockService = MockBudgetService()
-        mockService.stubbedSparse = [
-            TestDataFactory.createBudgetSparse(id: "budget-current", month: 2, year: 2025)
-        ]
+        mockService.stubbedSparse = sparseBudgets(september: "-4199.78", october: "-2096.80")
         let listStore = BudgetListStore(budgetService: mockService)
         await listStore.forceRefresh()
         #expect(mockService.getBudgetsSparseCallCount == 1, "Setup: initial list load")
 
         // User opens detail and mutates (optimistic apply ends in syncCache())
-        let currentBudget = TestDataFactory.createBudget(id: "budget-current", month: 2, year: 2025)
-        cache.store(budgetId: "budget-current", budget: currentBudget, budgetLines: [], transactions: [])
+        let currentBudget = TestDataFactory.createBudget(id: "budget-september", month: 9, year: 2026)
+        cache.store(budgetId: currentBudget.id, budget: currentBudget, budgetLines: [], transactions: [])
         // Dashboard store loaded too (300s TTL, projects the same sparse aggregates)
         let dashboardMock = MockBudgetService()
         let dashboardStore = DashboardStore(budgetService: dashboardMock)
         await dashboardStore.forceRefresh()
         let dashboardBaseline = dashboardMock.getBudgetsSparseCallCount
 
-        let coordinator = BudgetDetailsCoordinator(budgetId: "budget-current")
+        let coordinator = BudgetDetailsCoordinator(budgetId: currentBudget.id)
         // CurrentMonthStore (concrete service, not mock-injectable) backs the
         // CurrentMonth tab; bind() must wire it into the same onMutation closure
         // whose execution the list + dashboard assertions below already prove.
@@ -100,15 +121,19 @@ struct BudgetListStoreCacheInvalidationTests {
             currentMonthStore: currentMonthStore,
             savingsGoalStore: savingsGoalStore
         )
-        let tx = TestDataFactory.createTransaction(id: "new-tx", budgetId: "budget-current")
+        let tx = TestDataFactory.createTransaction(id: "new-tx", budgetId: currentBudget.id)
         await coordinator.dispatch(.addTransaction(tx))
 
-        // Pop back within the 30s TTL: BudgetListView's .task re-fires loadIfNeeded()
-        await listStore.loadIfNeeded()
+        mockService.stubbedSparse = sparseBudgets(september: "-2096.80", october: "39.18")
+
+        if BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0) {
+            await listStore.loadIfNeeded()
+        }
         #expect(
             mockService.getBudgetsSparseCallCount == 2,
             "A detail mutation must invalidate the list TTL so pop-back refetches the aggregates (PUL-270)"
         )
+        assertBalances(listStore.budgets, september: "-2096.80", october: "39.18")
 
         // Same mutation must also mark the dashboard stale (trend chart)
         await dashboardStore.loadIfNeeded()
@@ -123,6 +148,28 @@ struct BudgetListStoreCacheInvalidationTests {
             goalService.getAllCallCount > goalBaseline,
             "A detail mutation must invalidate the savings-goal TTL too (PUL-270)"
         )
+    }
+
+    private func sparseBudgets(september: String, october: String) -> [BudgetSparse] {
+        [
+            TestDataFactory.createBudgetSparse(
+                id: "budget-september",
+                month: 9,
+                year: 2026,
+                remaining: Decimal(string: september)
+            ),
+            TestDataFactory.createBudgetSparse(
+                id: "budget-october",
+                month: 10,
+                year: 2026,
+                remaining: Decimal(string: october)
+            )
+        ]
+    }
+
+    private func assertBalances(_ budgets: [BudgetSparse], september: String, october: String) {
+        #expect(budgets.first { $0.id == "budget-september" }?.remaining == Decimal(string: september))
+        #expect(budgets.first { $0.id == "budget-october" }?.remaining == Decimal(string: october))
     }
 
     @Test

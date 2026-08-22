@@ -1,5 +1,15 @@
 import SwiftUI
 
+enum BudgetListRefreshPolicy {
+    static func shouldLoadAfterTabChange(from oldTab: Tab, to newTab: Tab, pathCount: Int) -> Bool {
+        oldTab != .budgets && newTab == .budgets && pathCount == 0
+    }
+
+    static func shouldLoadAfterPathChange(from oldCount: Int, to newCount: Int) -> Bool {
+        oldCount > 0 && newCount == 0
+    }
+}
+
 struct BudgetListView: View {
     @Environment(AppState.self) private var appState
     @Environment(BudgetListStore.self) private var store
@@ -97,6 +107,21 @@ struct BudgetListView: View {
             if !years.contains(selectedYear), let latest = years.last {
                 selectedYear = latest
             }
+        }
+        .onChange(of: appState.selectedTab) { oldTab, newTab in
+            guard BudgetListRefreshPolicy.shouldLoadAfterTabChange(
+                from: oldTab,
+                to: newTab,
+                pathCount: appState.budgetPath.count
+            ) else { return }
+            Task { await store.loadIfNeeded() }
+        }
+        .onChange(of: appState.budgetPath.count) { oldCount, newCount in
+            guard BudgetListRefreshPolicy.shouldLoadAfterPathChange(
+                from: oldCount,
+                to: newCount
+            ) else { return }
+            Task { await store.loadIfNeeded() }
         }
         .onChange(of: selectedYear) {
             showPastMonths = false
