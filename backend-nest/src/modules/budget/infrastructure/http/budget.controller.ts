@@ -95,33 +95,34 @@ export class BudgetController {
   @ApiOperation({
     summary: 'List user budgets with optional sparse fieldsets',
     description:
-      'Retrieves budgets with optional field selection, limit, and year filtering. Use sparse fieldsets to reduce payload size.',
+      'Retrieves all budgets, or a filtered sparse fieldset. The limit, offset, and year parameters require fields.',
   })
   @ApiQuery({
     name: 'fields',
     required: false,
     description:
-      'Comma-separated fields to return: month,year,totalExpenses,totalSavings,totalIncome,remaining,rollover',
+      'Comma-separated fields to return: month,year,totalExpenses,totalSavings,totalIncome,remaining,rollover. Required when using limit, offset, or year.',
     example: 'month,year,totalExpenses',
   })
   @ApiQuery({
     name: 'limit',
     required: false,
-    description: 'Maximum number of budgets to return (1-36)',
+    description:
+      'Maximum number of sparse budgets to return (1-36); requires fields',
     example: 3,
     type: Number,
   })
   @ApiQuery({
     name: 'offset',
     required: false,
-    description: 'Zero-based offset; requires limit',
+    description: 'Zero-based sparse offset; requires fields and limit',
     example: 36,
     type: Number,
   })
   @ApiQuery({
     name: 'year',
     required: false,
-    description: 'Filter budgets by year',
+    description: 'Filter sparse budgets by year; requires fields',
     example: 2026,
     type: Number,
   })

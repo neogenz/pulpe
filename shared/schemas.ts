@@ -1974,7 +1974,7 @@ export const listBudgetsQuerySchema = z
       .optional()
       .refine(
         (val) => {
-          if (!val) return true;
+          if (val === undefined) return true;
           const requestedFields = val.split(',').map((f) => f.trim());
           return requestedFields.every((f) =>
             (VALID_SPARSE_FIELDS as readonly string[]).includes(f),
@@ -1991,6 +1991,19 @@ export const listBudgetsQuerySchema = z
   .refine((query) => query.offset === undefined || query.limit !== undefined, {
     message: 'offset requires limit',
     path: ['offset'],
+  })
+  .superRefine((query, context) => {
+    if (query.fields) return;
+
+    for (const modifier of ['limit', 'offset', 'year'] as const) {
+      if (query[modifier] !== undefined) {
+        context.addIssue({
+          code: 'custom',
+          message: `${modifier} requires fields`,
+          path: [modifier],
+        });
+      }
+    }
   });
 export type ListBudgetsQuery = z.infer<typeof listBudgetsQuerySchema>;
 
