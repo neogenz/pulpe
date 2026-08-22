@@ -1,6 +1,6 @@
 ---
 objective: "Au retour sur la liste iOS, chaque budget affiche le même solde cumulé que son détail après une mutation."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Rafraîchir les soldes de la liste des budgets iOS
