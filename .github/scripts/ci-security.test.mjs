@@ -95,7 +95,10 @@ test("product versions and the Android release contract stay in lockstep", () =>
 
   assert.throws(() =>
     assertProductVersionInvariant({
-      packages: [...packages.slice(0, -1), { version: "0.0.0" }],
+      packages: [
+        ...packages.slice(0, -1),
+        { name: "pulpe-android", version: "0.0.0" },
+      ],
       appVersion: androidApp.expo.version,
       fixedGroup,
     }),

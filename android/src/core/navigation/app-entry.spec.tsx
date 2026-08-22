@@ -122,12 +122,12 @@ jest.mock("@/core/ui/placeholder-screen", () => {
       action,
     }: {
       title: string;
-      action: { label: string; onPress: () => void };
+      action: { label: string; loading?: boolean; onPress: () => void };
     }) => (
       <View>
         <Text>{title}</Text>
-        <Pressable onPress={action.onPress}>
-          <Text>{action.label}</Text>
+        <Pressable disabled={action.loading} onPress={action.onPress}>
+          <Text>{action.loading ? "session-retry-loading" : action.label}</Text>
         </Pressable>
       </View>
     ),
@@ -190,12 +190,23 @@ it("renders a usable route when the custom font falls back", async () => {
 
 it("exposes a retry when session restoration fails", async () => {
   Object.assign(mockSession, { status: "error" });
+  let finishRetry!: () => void;
+  mockRetrySession.mockReturnValueOnce(
+    new Promise<void>((resolve) => {
+      finishRetry = resolve;
+    }),
+  );
   const view = await render(<RootLayout />);
 
   await fireEvent.press(view.getByText("common.retry"));
 
   expect(view.getByText("auth.restore.title")).toBeTruthy();
   expect(mockRetrySession).toHaveBeenCalledTimes(1);
+  await waitFor(() =>
+    expect(view.getByText("session-retry-loading")).toBeTruthy(),
+  );
+  finishRetry();
+  await waitFor(() => expect(view.getByText("common.retry")).toBeTruthy());
 });
 
 it("holds loading and makes a failed vault bootstrap retryable", async () => {

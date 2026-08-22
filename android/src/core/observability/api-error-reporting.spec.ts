@@ -17,7 +17,7 @@ describe("API error reporting", () => {
       new ApiError(
         "backend secret message",
         "ERR_BUDGET_FETCH_FAILED",
-        500,
+        503,
         { amount: 1200 },
         "request-42",
       ),
@@ -31,7 +31,7 @@ describe("API error reporting", () => {
       expect.objectContaining({ name: "ApiRequestError" }),
       {
         http_method: "GET",
-        http_status: 500,
+        http_status: 503,
         request_path: "/budgets/:id",
         error_code: "ERR_BUDGET_FETCH_FAILED",
         request_id: "request-42",
@@ -48,6 +48,7 @@ describe("API error reporting", () => {
     [401, undefined],
     [403, undefined],
     [429, undefined],
+    [503, "MAINTENANCE"],
     [400, API_ERROR_CODES.RECOVERY_KEY_INVALID],
     [404, API_ERROR_CODES.RECOVERY_KEY_NOT_CONFIGURED],
     [400, API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED],

@@ -3,7 +3,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
@@ -46,6 +46,7 @@ function RootLayout() {
   const retrySessionRestore = useSessionStore(
     (state) => state.retrySessionRestore,
   );
+  const [isRetryingSession, setIsRetryingSession] = useState(false);
   const vaultStatus = useVaultStore((state) => state.status);
   const isOnboarding = useOnboardingStore((state) => state.isFlowActive);
   const hasCompletedOnboarding = useOnboardingStore(
@@ -128,7 +129,13 @@ function RootLayout() {
               hint={t("auth.restore.hint")}
               action={{
                 label: t("common.retry"),
-                onPress: () => void retrySessionRestore(),
+                loading: isRetryingSession,
+                onPress: () => {
+                  setIsRetryingSession(true);
+                  void retrySessionRestore().finally(() =>
+                    setIsRetryingSession(false),
+                  );
+                },
               }}
             />
           ) : (
