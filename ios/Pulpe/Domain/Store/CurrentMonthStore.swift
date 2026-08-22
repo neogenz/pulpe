@@ -707,6 +707,11 @@ extension CurrentMonthStore {
     }
 
     func addTransaction(_ transaction: Transaction) {
+        guard budget?.id == transaction.budgetId else {
+            invalidateCache()
+            onMutation?()
+            return
+        }
         transactions.append(transaction)
         recomputeMetrics()
         syncWidgetAfterChange()

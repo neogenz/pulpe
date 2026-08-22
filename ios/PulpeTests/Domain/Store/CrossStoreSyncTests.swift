@@ -250,14 +250,19 @@ struct BudgetListStoreCacheInvalidationTests {
 @MainActor
 struct CurrentMonthStoreMutationSeamTests {
     @Test
-    func addTransaction_firesOnMutation() {
+    func addTransaction_onlyAppendsToMatchingBudget_andFiresOnMutation() {
         let store = CurrentMonthStore()
         nonisolated(unsafe) var fired = 0
         store.onMutation = { fired += 1 }
-
-        store.addTransaction(TestDataFactory.createTransaction(id: "tx-seam"))
-
-        #expect(fired == 1, "Amount-changing dashboard mutation must fire onMutation")
+        store.addTransaction(TestDataFactory.createTransaction(id: "without-budget"))
+        #expect(store.transactions.isEmpty)
+        let budget = TestDataFactory.createBudget(id: "current")
+        store.populateForTesting(budget: budget)
+        store.addTransaction(TestDataFactory.createTransaction(id: "other", budgetId: "other"))
+        #expect(store.transactions.isEmpty)
+        store.addTransaction(TestDataFactory.createTransaction(id: "matching", budgetId: budget.id))
+        #expect(store.transactions.map(\.id) == ["matching"])
+        #expect(fired == 3, "Every confirmed mutation must invalidate sibling projections")
     }
 
     @Test
@@ -268,15 +273,14 @@ struct CurrentMonthStoreMutationSeamTests {
         let dashboardStore = DashboardStore(budgetService: dashboardService)
         await listStore.forceRefresh()
         await dashboardStore.forceRefresh()
-
         let currentMonthStore = CurrentMonthStore()
         currentMonthStore.onMutation = { [listStore, dashboardStore] in
             listStore.invalidateCache()
             dashboardStore.invalidateCache()
         }
         let transaction = TestDataFactory.createTransaction(id: "deep-link-quick-add")
+        currentMonthStore.populateForTesting(budget: TestDataFactory.createBudget(id: transaction.budgetId))
         currentMonthStore.addTransaction(transaction)
-
         let containsTransaction = currentMonthStore.transactions.contains { $0.id == transaction.id }
         #expect(containsTransaction)
         #expect(listStore.invalidationGeneration == 1)

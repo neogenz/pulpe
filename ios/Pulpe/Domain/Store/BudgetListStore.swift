@@ -145,7 +145,7 @@ final class BudgetListStore: StoreProtocol {
         loadTask = nil
         widgetSyncTask?.cancel()
         widgetSyncTask = nil
-        loadGeneration = 0
+        loadGeneration += 1
         budgets = []
         hasLoadedOnce = false
         lastLoadTime = nil

@@ -58,25 +58,29 @@ struct StoreRaceConditionTests {
 
     // MARK: - BudgetListStore Tests
 
-    @Test("BudgetListStore coalesces concurrent loadIfNeeded calls")
-    func budgetListStore_concurrentLoadIfNeeded_fetchesOnce() async {
+    @Test("BudgetListStore reset keeps the newer load task reference")
+    func budgetListStore_reset_doesNotClearNewerLoadTask() async throws {
         let service = MockBudgetService()
         service.gateSparse()
         let store = BudgetListStore(budgetService: service)
-        let firstLoad = Task { await store.loadIfNeeded() }
+        let staleLoad = Task { await store.forceRefresh() }
         await waitForCondition("First sparse fetch must enter the gate") { service.didEnterSparse }
 
-        nonisolated(unsafe) var secondStarted = false
-        let secondLoad = Task {
-            secondStarted = true
-            await store.loadIfNeeded()
+        store.reset()
+        let currentLoad = Task { await store.forceRefresh() }
+        await waitForCondition("New sparse fetch must enter after reset") {
+            service.getBudgetsSparseCallCount == 2
         }
-        await waitForCondition("Second smart load must start") { secondStarted }
-        service.releaseSparse()
-        await firstLoad.value
-        await secondLoad.value
+        service.releaseNextSparse()
+        await staleLoad.value
 
-        #expect(service.getBudgetsSparseCallCount == 1, "Visible refresh signals must share one smart fetch")
+        let coalescedLoad = Task { await store.loadIfNeeded() }
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(service.getBudgetsSparseCallCount == 2, "Smart load must retain and join the post-reset fetch")
+        service.releaseSparse()
+        await currentLoad.value
+        await coalescedLoad.value
+
         #expect(store.isLoading == false)
     }
 

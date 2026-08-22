@@ -49,6 +49,10 @@ final class MockBudgetService: BudgetServicing {
 
     func gateSparse() { isSparseGated = true }
 
+    func releaseNextSparse() {
+        sparseGateContinuations.removeFirst().resume()
+    }
+
     func releaseSparse() {
         isSparseGated = false
         for continuation in sparseGateContinuations {
