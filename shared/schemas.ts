@@ -1993,7 +1993,7 @@ export const listBudgetsQuerySchema = z
     path: ['offset'],
   })
   .superRefine((query, context) => {
-    if (query.fields) return;
+    if (query.fields !== undefined) return;
 
     for (const modifier of ['limit', 'offset', 'year'] as const) {
       if (query[modifier] !== undefined) {

@@ -29,10 +29,16 @@ describe('listBudgetsQuerySchema', () => {
     expect(listBudgetsQuerySchema.safeParse(query).success).toBe(false);
   });
 
-  it('rejects empty fields', () => {
-    expect(listBudgetsQuerySchema.safeParse({ fields: '' }).success).toBe(
-      false,
-    );
+  it('reports only the invalid fields error for empty fields', () => {
+    const result = listBudgetsQuerySchema.safeParse({
+      fields: '',
+      limit: '36',
+    });
+
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.issues).toHaveLength(1);
+    expect(result.error.issues[0]?.path).toEqual(['fields']);
   });
 
   it('keeps existing queries valid without pagination', () => {
