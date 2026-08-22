@@ -12,7 +12,7 @@ import { isInvalidCredentials } from "@/core/auth/auth-error";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { updatePassword, verifyPassword } from "@/core/auth/supabase";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 
@@ -71,7 +71,7 @@ export function ChangePasswordSheet({
   }
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={onDismiss}
       isBusy={isSubmitting}
@@ -154,7 +154,7 @@ export function ChangePasswordSheet({
       {confirmation.length > 0 && !isConfirmed && (
         <FieldError visible>{t("auth.reset.mismatch")}</FieldError>
       )}
-    </Sheet>
+    </FormModal>
   );
 }
 

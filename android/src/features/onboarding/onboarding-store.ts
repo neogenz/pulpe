@@ -21,6 +21,7 @@ import {
   resetOnboardingAnalytics,
 } from "./onboarding-analytics";
 import { nextVisibleStep, previousVisibleStep } from "./onboarding-selectors";
+import type { OnboardingAnswers, OnboardingState } from "./onboarding-state";
 import type { OnboardingStep } from "./onboarding-step";
 import type { OnboardingTransaction } from "./onboarding-transaction";
 
@@ -31,67 +32,6 @@ import type { OnboardingTransaction } from "./onboarding-transaction";
  * `onboarding-selectors.ts`; the HTTP calls that consume the answers live in
  * `api.ts`.
  */
-export interface OnboardingState {
-  /**
-   * A run is under way and owns the router. It is what keeps the flow on
-   * screen after registration, when the session turns authenticated and the
-   * vault gate would otherwise claim the user mid-flow.
-   */
-  isFlowActive: boolean;
-  /** A run finished on this device — a returning user goes to sign-in, not to welcome. */
-  hasCompletedOnboarding: boolean;
-  /** The one-time handoff has been read; the app opens on the home screen from now on. */
-  hasSeenHandoff: boolean;
-
-  currentStep: OnboardingStep;
-  /**
-   * Set while editing an answer from the budget preview: the next move in
-   * either direction returns here instead of walking the steps in order.
-   */
-  editReturnStep: OnboardingStep | null;
-
-  /**
-   * True for Google signup only — it is what makes firstName and registration
-   * skippable. Together with `wasEmailRegistered` it is also how the flow knows
-   * it has an account; see `hasAccount`.
-   */
-  isSocialAuth: boolean;
-  /**
-   * Whether the provider supplied a usable first name. Captured once at auth
-   * time so the visible step count cannot shift while the user is mid-form.
-   */
-  socialProvidedName: boolean;
-  /** Persisted, so a cold start after signup resumes past registration. */
-  wasEmailRegistered: boolean;
-  /** Persisted, so a cold start between the PIN ceremony and the reveal skips it. */
-  hasCompletedPinSetup: boolean;
-
-  firstName: string;
-  /** Not persisted: it means something only inside the registration form. */
-  email: string;
-  currency: SupportedCurrency;
-  monthlyIncome: number | null;
-  housingCosts: number | null;
-  healthInsurance: number | null;
-  phonePlan: number | null;
-  transportCosts: number | null;
-  leasingCredit: number | null;
-  customTransactions: OnboardingTransaction[];
-}
-
-/** The answers, minus everything the flow derives or re-establishes on its own. */
-export type OnboardingAnswers = Pick<
-  OnboardingState,
-  | "firstName"
-  | "currency"
-  | "monthlyIncome"
-  | "housingCosts"
-  | "healthInsurance"
-  | "phonePlan"
-  | "transportCosts"
-  | "leasingCredit"
->;
-
 /**
  * The `.max(50)` on `budgetTemplateCreateFromOnboardingSchema.customTransactions`
  * — reached here rather than at submit time, so the cap is a disabled chip

@@ -67,7 +67,10 @@ distributions that still use them.
 
 `appVersionSource: "remote"` means EAS owns `versionCode`; nothing in the repo
 tracks it and nothing should. The user-facing `version` stays in `app.json`,
-in lockstep with the root `package.json` like every other Pulpe surface.
+in lockstep with the root `package.json` and `android/package.json` like every
+other Pulpe surface. The unified `/release` workflow bumps the private Android
+workspace through Changesets and synchronizes `app.json`; do not edit either
+Android version as a separate release step.
 
 ## Workflows
 

@@ -30,6 +30,10 @@
       "title": "Réinitialiser le mot de passe",
       "verifying": "Vérification du lien en cours"
     },
+    "restore": {
+      "hint": "Tes données sont restées sur cet appareil. Réessaie pour ouvrir Pulpe.",
+      "title": "Impossible d'ouvrir ta session"
+    },
     "signIn": {
       "createAccount": "Créer un compte",
       "emailPlaceholder": "Adresse e-mail",
@@ -105,6 +109,8 @@
       },
       "loadErrorHint": "Vérifie ta connexion, puis réessaie.",
       "loadErrorTitle": "On n'a pas pu charger ce budget",
+      "missingHint": "Il a peut-être été supprimé depuis un autre appareil.",
+      "missingTitle": "Ce budget n'existe plus",
       "monthSelector": "Sélecteur de mois",
       "noResults": "Rien ne correspond à ce filtre.",
       "openForecast": "Ouvre le détail de la prévision",
@@ -1038,10 +1044,6 @@
       "maintenance": {
         "hint": "On remet les compteurs d'aplomb. Reviens dans quelques minutes.",
         "title": "Pulpe est en maintenance"
-      },
-      "offline": {
-        "hint": "Tes budgets sont chiffrés côté serveur : sans réseau, Pulpe ne peut rien afficher.",
-        "title": "Pas de connexion"
       }
     },
     "queryError": "Impossible de charger cette section.",

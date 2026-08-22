@@ -1,6 +1,6 @@
 # JS/TS Release (Changesets — fixed mode)
 
-Pulpe uses Changesets in **fixed mode**: all four npm sub-packages always bump together to the same version, mirroring the root `package.json`. There is no per-package version drift.
+Pulpe uses Changesets in **fixed mode**: all five npm sub-packages always bump together to the same version, mirroring the root `package.json`. There is no per-package version drift.
 
 See `semver-conventions.md` for the rationale (Pulpe is a product, not a library).
 
@@ -14,7 +14,7 @@ The **root `package.json`** holds the canonical product version. Bumping it is t
 
 ```json
 "fixed": [
-  ["pulpe-frontend", "pulpe-landing", "backend-nest", "pulpe-shared"]
+  ["pulpe-frontend", "pulpe-landing", "backend-nest", "pulpe-shared", "pulpe-android"]
 ]
 ```
 
@@ -42,14 +42,14 @@ Then apply:
 pnpm changeset version
 ```
 
-This bumps **all four** sub-package `package.json` files to the same version, appends entries to per-package `CHANGELOG.md` files, and consumes the changeset file.
+This bumps **all five** sub-package `package.json` files to the same version, appends entries to per-package `CHANGELOG.md` files, and consumes the changeset file. Because Android is private, `.changeset/config.json` explicitly enables private package versioning and disables private package tags.
 
 ## Sanity check
 
-After running `pnpm changeset version`, all five versions MUST match:
+After running `pnpm changeset version`, copy the target into `android/app.json`. All seven product-version fields MUST match:
 
 ```bash
-grep -H '"version"' package.json frontend/package.json landing/package.json backend-nest/package.json shared/package.json
+grep -H '"version"' package.json frontend/package.json landing/package.json backend-nest/package.json shared/package.json android/package.json android/app.json
 ```
 
 If any version drifts, stop and investigate before committing — the fixed group is broken or the root bump didn't match the changeset bump level.
@@ -58,8 +58,9 @@ If any version drifts, stop and investigate before committing — the fixed grou
 
 After running `pnpm changeset version`:
 
-- `frontend/package.json`, `landing/package.json`, `backend-nest/package.json`, `shared/package.json` — all bumped to the new product version
-- `frontend/CHANGELOG.md`, `landing/CHANGELOG.md`, `backend-nest/CHANGELOG.md`, `shared/CHANGELOG.md` — new entries appended (entries appear even for packages whose code didn't change — that's fixed mode, it's harmless)
+- `frontend/package.json`, `landing/package.json`, `backend-nest/package.json`, `shared/package.json`, `android/package.json` — all bumped to the new product version
+- `frontend/CHANGELOG.md`, `landing/CHANGELOG.md`, `backend-nest/CHANGELOG.md`, `shared/CHANGELOG.md`, `android/CHANGELOG.md` — new entries appended (entries appear even for packages whose code didn't change — that's fixed mode, it's harmless)
+- `android/app.json` — synchronized explicitly from the approved product version after Changesets
 - `.changeset/<name>.md` — consumed (deleted)
 
 All must be staged in the release commit, alongside the manually-bumped root `package.json`.

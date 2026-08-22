@@ -10,7 +10,7 @@ import {
   totalIncome,
   totalSavings,
 } from "./onboarding-selectors";
-import type { OnboardingState } from "./onboarding-store";
+import type { OnboardingState } from "./onboarding-state";
 import type { OnboardingTransaction } from "./onboarding-transaction";
 
 const BASE: OnboardingState = {

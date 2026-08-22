@@ -1,14 +1,13 @@
 import Constants from "expo-constants";
-import { appVersionResponseSchema } from "pulpe-shared";
+import { API_ERROR_CODES, appVersionResponseSchema } from "pulpe-shared";
 import { create } from "zustand";
 
 import { api } from "@/core/api/api";
-import { isApiError, isTransientError } from "@/core/api/api-error";
+import { isApiError } from "@/core/api/api-error";
 import { ENDPOINTS } from "@/core/api/endpoints";
 
 import { isVersionBelow } from "./semver";
 
-const MAINTENANCE_CODE = "MAINTENANCE";
 const HTTP_SERVICE_UNAVAILABLE = 503;
 
 /**
@@ -20,10 +19,10 @@ const CHECK_TIMEOUT_MS = 3000;
 
 /**
  * What stands between the app and its own screens. `ok` is the normal state;
- * each of the other three owns a full-screen route, and none is dismissable —
+ * each blocking state owns a full-screen route, and none is dismissable —
  * there is no usable app behind any of them.
  */
-export type SystemGate = "ok" | "maintenance" | "forceUpdate" | "offline";
+export type SystemGate = "ok" | "maintenance" | "forceUpdate";
 
 interface SystemState {
   gate: SystemGate;
@@ -42,7 +41,7 @@ const setState = useSystemStore.setState;
 
 export const CURRENT_APP_VERSION = Constants.expoConfig?.version ?? "0.0.0";
 
-const TIMED_OUT = Symbol("timed-out");
+let systemCheck: Promise<void> | null = null;
 
 /**
  * Asks the backend whether this build is still welcome, and doubles as the
@@ -57,54 +56,39 @@ const TIMED_OUT = Symbol("timed-out");
  * Never rejects: the router reads this state and has nowhere to send an
  * exception.
  */
-export async function checkSystemGate(): Promise<void> {
+export function checkSystemGate(): Promise<void> {
+  if (systemCheck !== null) return systemCheck;
   setState({ isChecking: true });
-
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    const outcome = await Promise.race([
-      api.get(ENDPOINTS.appVersion, appVersionResponseSchema),
-      new Promise<typeof TIMED_OUT>((resolve) => {
-        timer = setTimeout(() => resolve(TIMED_OUT), CHECK_TIMEOUT_MS);
-      }),
-    ]);
-
-    if (outcome === TIMED_OUT) {
-      // No verdict, so no change of verdict. The request keeps running and
-      // simply lands too late to matter.
-      setState({ isChecking: false });
-      return;
-    }
-
-    const { minVersion, storeUrl } = outcome.data.android;
-    setState({
-      gate: isVersionBelow(CURRENT_APP_VERSION, minVersion)
-        ? "forceUpdate"
-        : "ok",
-      storeUrl: storeUrl ?? null,
-      isChecking: false,
-    });
-  } catch (error) {
-    setState({ isChecking: false, ...gateForFailure(error) });
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
+  const operation = performSystemCheck().finally(() => {
+    setState({ isChecking: false });
+    if (systemCheck === operation) systemCheck = null;
+  });
+  systemCheck = operation;
+  return operation;
 }
 
-function gateForFailure(error: unknown): Partial<SystemState> {
-  if (
-    isApiError(error) &&
-    (error.code === MAINTENANCE_CODE ||
-      error.status === HTTP_SERVICE_UNAVAILABLE)
-  ) {
-    return { gate: "maintenance" };
+async function performSystemCheck(): Promise<void> {
+  try {
+    const outcome = await api.get(
+      ENDPOINTS.appVersion,
+      appVersionResponseSchema,
+      undefined,
+      { timeoutMs: CHECK_TIMEOUT_MS, retryCount: 0 },
+    );
+    const { minVersion, storeUrl } = outcome.data.android;
+    if (isVersionBelow(CURRENT_APP_VERSION, minVersion)) {
+      setState({ gate: "forceUpdate", storeUrl: storeUrl ?? null });
+    } else if (useSystemStore.getState().gate === "maintenance") {
+      setState({ gate: "ok" });
+    }
+  } catch (error) {
+    if (
+      useSystemStore.getState().gate === "ok" &&
+      isApiError(error) &&
+      (error.code === API_ERROR_CODES.MAINTENANCE ||
+        error.status === HTTP_SERVICE_UNAVAILABLE)
+    ) {
+      setState({ gate: "maintenance" });
+    }
   }
-
-  // A gate already standing outranks a failed re-check; only `ok` may become
-  // `offline`, and only for the failures that really mean "no server reached".
-  if (useSystemStore.getState().gate === "ok" && isTransientError(error)) {
-    return { gate: "offline" };
-  }
-
-  return {};
 }

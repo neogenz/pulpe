@@ -8,6 +8,7 @@ import {
   useTheme,
 } from "react-native-paper";
 
+import { useTranslation } from "@/core/i18n/locale-store";
 import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 
 import { dismissTip, type TipId, useTipsStore } from "./tips-store";
@@ -33,6 +34,7 @@ interface TooltipProps {
  * once answered, so callers can mount it unconditionally.
  */
 export function Tooltip({ id, title, message, icon, action }: TooltipProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isDismissed = useTipsStore((state) => state.dismissedIds.includes(id));
 
@@ -62,7 +64,7 @@ export function Tooltip({ id, title, message, icon, action }: TooltipProps) {
           icon="close"
           size={ICON_SIZE.md}
           onPress={() => dismissTip(id)}
-          accessibilityLabel="Fermer le conseil"
+          accessibilityLabel={t("common.close")}
           iconColor={theme.colors.onSecondaryContainer}
           style={styles.close}
         />

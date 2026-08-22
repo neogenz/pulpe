@@ -24,10 +24,11 @@ Les commits techniques (`chore:`, `refactor:`, `test:`, `ci:`, `docs:`, `style:`
 
 ## Sous-packages
 
-Les quatre sous-packages JS/TS sont dans le groupe `fixed` de
+Les cinq sous-packages JS/TS sont dans le groupe `fixed` de
 [Changesets](https://github.com/changesets/changesets). À chaque release, frontend,
-landing, backend et shared prennent tous la version produit racine, même si un seul
-package a changé. Ils ne génèrent aucun tag séparé ; seul `vX.Y.Z` existe.
+landing, backend, shared et Android prennent tous la version produit racine, même si
+un seul package a changé. Le manifeste Expo `android/app.json` est ensuite synchronisé
+sur cette cible. Ils ne génèrent aucun tag séparé ; seul `vX.Y.Z` existe.
 
 ## iOS
 

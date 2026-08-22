@@ -20,7 +20,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate, parseIsoDate, toIsoDate } from "@/core/ui/date-format";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 
@@ -131,7 +131,7 @@ export function GoalFormSheet({
 
   return (
     <>
-      <Sheet
+      <FormModal
         isVisible={isVisible}
         onDismiss={dismiss}
         isBusy={mutation.isPending}
@@ -289,7 +289,7 @@ export function GoalFormSheet({
             )}
           />
         )}
-      </Sheet>
+      </FormModal>
 
       {/* Android's own dialog, not a full-page calendar: mounting this renders
           nothing and asks the platform to present its picker. */}

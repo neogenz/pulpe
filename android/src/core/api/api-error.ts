@@ -34,6 +34,7 @@ export class ApiError extends Error {
     readonly code: string | undefined,
     readonly status: number,
     readonly details: unknown,
+    readonly requestId?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -67,7 +68,11 @@ export function isTransientError(error: unknown): boolean {
 }
 
 /** Builds the error carried by a response the server did answer. */
-export function apiErrorFromResponse(status: number, body: unknown): ApiError {
+export function apiErrorFromResponse(
+  status: number,
+  body: unknown,
+  requestId?: string,
+): ApiError {
   const parsed = errorResponseSchema.safeParse(body);
   if (parsed.success) {
     return new ApiError(
@@ -75,6 +80,7 @@ export function apiErrorFromResponse(status: number, body: unknown): ApiError {
       parsed.data.code,
       status,
       parsed.data.details,
+      requestId,
     );
   }
 
@@ -82,11 +88,14 @@ export function apiErrorFromResponse(status: number, body: unknown): ApiError {
     typeof body === "string" && body.length > 0
       ? body
       : CLIENT_ERROR_MESSAGES_FR.unknown;
-  return new ApiError(message, undefined, status, body);
+  return new ApiError(message, undefined, status, body, requestId);
 }
 
 /** Builds the error carried by a failure that never reached the server. */
-export function normalizeApiError(error: unknown): ApiError {
+export function normalizeApiError(
+  error: unknown,
+  requestId?: string,
+): ApiError {
   if (isApiError(error)) return error;
 
   if (error instanceof ZodError) {
@@ -95,6 +104,7 @@ export function normalizeApiError(error: unknown): ApiError {
       CLIENT_ERROR_CODES.ZOD_PARSE_ERROR,
       NO_HTTP_RESPONSE_STATUS,
       error.issues,
+      requestId,
     );
   }
 
@@ -104,6 +114,7 @@ export function normalizeApiError(error: unknown): ApiError {
       CLIENT_ERROR_CODES.TIMEOUT,
       NO_HTTP_RESPONSE_STATUS,
       undefined,
+      requestId,
     );
   }
 
@@ -113,6 +124,7 @@ export function normalizeApiError(error: unknown): ApiError {
       CLIENT_ERROR_CODES.NETWORK_ERROR,
       NO_HTTP_RESPONSE_STATUS,
       error.message,
+      requestId,
     );
   }
 
@@ -121,5 +133,6 @@ export function normalizeApiError(error: unknown): ApiError {
     undefined,
     NO_HTTP_RESPONSE_STATUS,
     error,
+    requestId,
   );
 }

@@ -10,6 +10,7 @@ import {
 
 const SESSION_STATUSES: SessionStatus[] = [
   "loading",
+  "error",
   "unauthenticated",
   "authenticated",
 ];
@@ -126,6 +127,20 @@ describe("landing contract", () => {
         prefersSignIn: null,
       }),
     ).toBeNull();
+  });
+
+  it("keeps every route group closed after a restore error", () => {
+    const failedRestore: GateState = {
+      status: "error",
+      vaultStatus: "unlocked",
+      isOnboarding: true,
+      hasCompletedOnboarding: true,
+      hasSeenHandoff: true,
+      prefersSignIn: true,
+    };
+
+    expect(landingRoute(failedRestore)).toBeNull();
+    expect(openGroups(failedRestore)).toEqual([]);
   });
 
   it("keeps the run mounted once the user signs in mid-flow", () => {

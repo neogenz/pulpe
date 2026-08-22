@@ -30,6 +30,10 @@
       "title": "Reset password",
       "verifying": "Verifying link"
     },
+    "restore": {
+      "hint": "Your data is still on this device. Try again to open Pulpe.",
+      "title": "Unable to open your session"
+    },
     "signIn": {
       "createAccount": "Create an account",
       "emailPlaceholder": "Email address",
@@ -105,6 +109,8 @@
       },
       "loadErrorHint": "Check your connection, then try again.",
       "loadErrorTitle": "We couldn't load this budget",
+      "missingHint": "It may have been deleted from another device.",
+      "missingTitle": "This budget no longer exists",
       "monthSelector": "Month selector",
       "noResults": "Nothing matches this filter.",
       "openForecast": "Open forecast details",
@@ -1041,10 +1047,6 @@
       "maintenance": {
         "hint": "We're getting everything back in shape. Come back in a few minutes.",
         "title": "Pulpe is under maintenance"
-      },
-      "offline": {
-        "hint": "Your budgets are encrypted on the server. Without a connection, Pulpe cannot display them.",
-        "title": "No connection"
       }
     },
     "queryError": "This section could not be loaded.",

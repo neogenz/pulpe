@@ -4,7 +4,7 @@ import { Button, TextInput } from "react-native-paper";
 import { isInvalidCredentials } from "@/core/auth/auth-error";
 import { verifyPassword } from "@/core/auth/supabase";
 import { useTranslation } from "@/core/i18n/locale-store";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { FieldError } from "@/core/ui/field-error";
 
 /**
@@ -55,7 +55,7 @@ export function ConfirmPasswordSheet({
   }
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={onDismiss}
       isBusy={isSubmitting}
@@ -91,6 +91,6 @@ export function ConfirmPasswordSheet({
         autoComplete="current-password"
         autoFocus
       />
-    </Sheet>
+    </FormModal>
   );
 }

@@ -1,7 +1,7 @@
 import { BudgetFormulas, type EmotionState } from "pulpe-shared";
 
+import type { OnboardingState } from "./onboarding-state";
 import { type OnboardingStep, ONBOARDING_STEPS } from "./onboarding-step";
-import type { OnboardingState } from "./onboarding-store";
 
 /**
  * Derived reads over the onboarding state. They take the state rather than

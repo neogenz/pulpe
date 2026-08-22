@@ -109,6 +109,7 @@ export class SupabaseBudgetRepository
 
   async fetchBudgetsWithFilters(filters: {
     limit?: number;
+    offset?: number;
     year?: number;
   }): Promise<Budget[]> {
     const supabase = this.supabaseProvider.client;
@@ -118,8 +119,11 @@ export class SupabaseBudgetRepository
       .order('year', { ascending: false })
       .order('month', { ascending: false });
 
-    if (filters.limit) query = query.limit(filters.limit);
     if (filters.year) query = query.eq('year', filters.year);
+    if (filters.limit !== undefined) {
+      const offset = filters.offset ?? 0;
+      query = query.range(offset, offset + filters.limit - 1);
+    }
 
     const { data, error } = await query;
 

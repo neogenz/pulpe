@@ -17,6 +17,7 @@ const readOptional = (path) => {
 };
 
 const action = read(".github/actions/setup-supabase-cli/action.yml");
+const startSupabase = read(".github/scripts/start-supabase.sh");
 const workflow = read(".github/workflows/ci.yml");
 const androidE2eWorkflow = read(".github/workflows/android-e2e.yml");
 const stagingProof = read(".github/workflows/staging-proof.yml");
@@ -32,7 +33,13 @@ const appStoreBuildStatus = readOptional(
 );
 const dockerfile = read("backend-nest/Dockerfile");
 const rootPackage = JSON.parse(read("package.json"));
+const frontendPackage = JSON.parse(read("frontend/package.json"));
+const landingPackage = JSON.parse(read("landing/package.json"));
 const backendPackage = JSON.parse(read("backend-nest/package.json"));
+const sharedPackage = JSON.parse(read("shared/package.json"));
+const androidPackage = JSON.parse(read("android/package.json"));
+const androidApp = JSON.parse(read("android/app.json"));
+const changesetsConfig = JSON.parse(read(".changeset/config.json"));
 const ciGuide = read("docs/CI.md");
 const releaseSkill = read(".claude/skills/release/SKILL.md");
 const jstsRelease = read(".claude/skills/release/references/jsts-release.md");
@@ -43,6 +50,78 @@ const backendEnvironment = read("backend-nest/src/config/environment.ts");
 const backendMain = read("backend-nest/src/main.ts");
 const backendEnvExample = read("backend-nest/.env.example");
 const frontendEslintConfig = require("../../frontend/eslint.config.js");
+
+const assertProductVersionInvariant = ({
+  packages,
+  appVersion,
+  fixedGroup,
+}) => {
+  const expected = packages[0].version;
+  assert.ok(expected, "the root product version must be present");
+  for (const packageJson of packages) {
+    assert.equal(
+      packageJson.version,
+      expected,
+      `${packageJson.name} version mismatch`,
+    );
+  }
+  assert.equal(appVersion, expected, "android/app.json version mismatch");
+  assert.ok(
+    fixedGroup.includes("pulpe-android"),
+    "pulpe-android must remain in the fixed release group",
+  );
+};
+
+test("product versions and the Android release contract stay in lockstep", () => {
+  const packages = [
+    rootPackage,
+    frontendPackage,
+    landingPackage,
+    backendPackage,
+    sharedPackage,
+    androidPackage,
+  ];
+  const fixedGroup = changesetsConfig.fixed.flat();
+
+  assertProductVersionInvariant({
+    packages,
+    appVersion: androidApp.expo.version,
+    fixedGroup,
+  });
+  assert.deepEqual(changesetsConfig.privatePackages, {
+    version: true,
+    tag: false,
+  });
+
+  assert.throws(() =>
+    assertProductVersionInvariant({
+      packages: [
+        ...packages.slice(0, -1),
+        { name: "pulpe-android", version: "0.0.0" },
+      ],
+      appVersion: androidApp.expo.version,
+      fixedGroup,
+    }),
+  );
+  assert.throws(() =>
+    assertProductVersionInvariant({
+      packages,
+      appVersion: androidApp.expo.version,
+      fixedGroup: fixedGroup.filter((name) => name !== "pulpe-android"),
+    }),
+  );
+
+  assert.match(releaseSkill, /android\/\*\*/);
+  assert.match(
+    releaseSkill,
+    /git log \$BASE_REF\.\.HEAD --oneline -- android\//,
+  );
+  assert.match(
+    releaseSkill,
+    /android\/package\.json android\/app\.json android\/CHANGELOG\.md/,
+  );
+  assert.match(jstsRelease, /android\/app\.json/);
+});
 
 test("release instructions use only the Railway-owned production path", () => {
   assert.match(releaseSkill, /production-finalize\.yml/);
@@ -106,6 +185,15 @@ test("Supabase CLI version stays aligned across CI, local tooling, and docs", ()
   assert.match(
     ciGuide,
     new RegExp(`CLI Supabase ${version.replaceAll(".", "\\.")}`),
+  );
+});
+
+test("Supabase type generation pulls postgres-meta inside the retry boundary", () => {
+  assert.match(workflow, /supabase gen types typescript --local/);
+  assert.doesNotMatch(
+    startSupabase,
+    /^EXCLUDE=.*postgres-meta/m,
+    "postgres-meta must start inside the rate-limit retry loop",
   );
 });
 

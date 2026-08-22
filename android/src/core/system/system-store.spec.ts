@@ -35,6 +35,12 @@ describe("checkSystemGate", () => {
       gate: "forceUpdate",
       storeUrl: "https://play.google.com/pulpe",
     });
+    expect(mockedGet).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.anything(),
+      undefined,
+      { timeoutMs: 3000, retryCount: 0 },
+    );
   });
 
   it("should let the app through at the published minimum", async () => {
@@ -45,24 +51,28 @@ describe("checkSystemGate", () => {
     expect(useSystemStore.getState().gate).toBe("ok");
   });
 
-  it("should show maintenance when the server says it is down", async () => {
-    mockedGet.mockRejectedValue(
-      new ApiError("En maintenance", "MAINTENANCE", 503, undefined),
-    );
+  it("should leave maintenance after a healthy compatible retry", async () => {
+    mockedGet
+      .mockRejectedValueOnce(
+        new ApiError("En maintenance", "MAINTENANCE", 503, undefined),
+      )
+      .mockResolvedValueOnce(versionResponse("1.2.0"));
 
     await checkSystemGate();
-
     expect(useSystemStore.getState().gate).toBe("maintenance");
+
+    await checkSystemGate();
+    expect(useSystemStore.getState().gate).toBe("ok");
   });
 
-  it("should report being offline when no server answers", async () => {
+  it("should fail open when no server answers on launch", async () => {
     mockedGet.mockRejectedValue(
       new ApiError("Connexion impossible", "NETWORK_ERROR", 0, undefined),
     );
 
     await checkSystemGate();
 
-    expect(useSystemStore.getState().gate).toBe("offline");
+    expect(useSystemStore.getState().gate).toBe("ok");
   });
 
   it("should keep a raised gate when a later check fails", async () => {
@@ -77,18 +87,33 @@ describe("checkSystemGate", () => {
     expect(useSystemStore.getState().gate).toBe("forceUpdate");
   });
 
-  it("should leave the gate alone when the check outlives its budget", async () => {
-    jest.useFakeTimers();
-    mockedGet.mockReturnValue(new Promise(() => undefined));
+  it("should keep a confirmed gate when a later response would allow access", async () => {
+    useSystemStore.setState({ gate: "forceUpdate" });
+    mockedGet.mockResolvedValue(versionResponse("1.0.0"));
 
-    const check = checkSystemGate();
-    jest.runOnlyPendingTimers();
-    await check;
+    await checkSystemGate();
+
+    expect(useSystemStore.getState().gate).toBe("forceUpdate");
+  });
+
+  it("should share concurrent checks", async () => {
+    let resolve!: (value: ReturnType<typeof versionResponse>) => void;
+    mockedGet.mockReturnValue(
+      new Promise((done) => {
+        resolve = done;
+      }),
+    );
+
+    const first = checkSystemGate();
+    const second = checkSystemGate();
+    expect(first).toBe(second);
+    expect(mockedGet).toHaveBeenCalledTimes(1);
+    resolve(versionResponse("1.2.0"));
+    await Promise.all([first, second]);
 
     expect(useSystemStore.getState()).toMatchObject({
       gate: "ok",
       isChecking: false,
     });
-    jest.useRealTimers();
   });
 });

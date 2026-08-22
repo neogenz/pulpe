@@ -222,6 +222,16 @@ export default function BudgetsScreen() {
             onRefresh={() => void invalidateBudgetData()}
           />
         }
+        onEndReached={() => {
+          if (budgets.hasNextPage && !budgets.isFetchingNextPage) {
+            void budgets.fetchNextPage();
+          }
+        }}
+        ListFooterComponent={
+          budgets.isFetchingNextPage ? (
+            <ActivityIndicator accessibilityLabel={t("common.loading")} />
+          ) : null
+        }
         ListHeaderComponent={
           <Text variant="headlineSmall" style={styles.screenTitle}>
             {t("budgets.list.title")}

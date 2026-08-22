@@ -1,6 +1,7 @@
 import { getAccessToken } from "@/core/auth/supabase";
 import { ENV } from "@/core/config/env";
 import { getCachedClientKey } from "@/core/crypto/client-key-manager";
+import { reportApiError } from "@/core/observability/api-error-reporting";
 
 import { ApiClient } from "./api-client";
 
@@ -14,4 +15,5 @@ export const api = new ApiClient({
   baseUrl: ENV.apiBaseUrl,
   getAccessToken,
   getClientKey: getCachedClientKey,
+  onError: reportApiError,
 });

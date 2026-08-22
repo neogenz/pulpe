@@ -30,6 +30,10 @@
       "title": "Passwort zurücksetzen",
       "verifying": "Link wird überprüft"
     },
+    "restore": {
+      "hint": "Deine Daten sind weiterhin auf diesem Gerät. Versuche erneut, Pulpe zu öffnen.",
+      "title": "Deine Sitzung konnte nicht geöffnet werden"
+    },
     "signIn": {
       "createAccount": "Konto erstellen",
       "emailPlaceholder": "E-Mail-Adresse",
@@ -105,6 +109,8 @@
       },
       "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",
       "loadErrorTitle": "Dieses Budget konnte nicht geladen werden",
+      "missingHint": "Möglicherweise wurde es auf einem anderen Gerät gelöscht.",
+      "missingTitle": "Dieses Budget existiert nicht mehr",
       "monthSelector": "Monatsauswahl",
       "noResults": "Nichts entspricht diesem Filter.",
       "openForecast": "Details der Planung öffnen",
@@ -1041,10 +1047,6 @@
       "maintenance": {
         "hint": "Wir bringen gerade alles wieder in Ordnung. Komm in ein paar Minuten zurück.",
         "title": "Pulpe wird gewartet"
-      },
-      "offline": {
-        "hint": "Deine Budgets sind auf dem Server verschlüsselt. Ohne Verbindung kann Pulpe sie nicht anzeigen.",
-        "title": "Keine Verbindung"
       }
     },
     "queryError": "Dieser Bereich konnte nicht geladen werden.",
