@@ -1,6 +1,6 @@
 ---
 objective: "Les tips TipKit iOS ne décrivent que des gestes qui existent encore, expliquent comment pointer en pointant la flèche sur le vrai contrôle, et portent le style de la refonte."
-status: in-progress
+status: implemented
 ---
 
 # Plan: iOS first-launch tips refresh
