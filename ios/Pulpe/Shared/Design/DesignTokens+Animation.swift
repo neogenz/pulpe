@@ -6,6 +6,9 @@ extension DesignTokens {
         // MARK: - Duration
 
         static let fast: Double = 0.2
+        /// Chrome that appears or retires (sticky bars, pills): in under a glance, out faster.
+        static let microFadeIn: Double = 0.16
+        static let microFadeOut: Double = 0.1
         static let quickSnap: Double = 0.25
         static let normal: Double = 0.3
         static let slow: Double = 0.5

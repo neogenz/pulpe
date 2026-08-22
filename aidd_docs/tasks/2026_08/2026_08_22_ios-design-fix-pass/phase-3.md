@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Hero chrome — legible toolbar buttons, month pager that never hides content

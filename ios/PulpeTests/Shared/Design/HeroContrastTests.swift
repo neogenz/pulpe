@@ -24,6 +24,14 @@ struct HeroContrastTests {
 
     private static let textPairs: [Pair] = [
         text("heroInk", .heroInk),
+        // Toolbar glyph on its disc: the disc is ink at `heroDisc` alpha over the forest,
+        // composited here because WCAG measures opaque colours.
+        Pair(
+            name: "heroInk on heroDisc over heroSurface",
+            foreground: .heroInk,
+            background: composite(.heroInk, alpha: DesignTokens.Opacity.heroDisc, over: .heroSurface),
+            floor: textFloor
+        ),
         Pair(name: "heroInk on heroSurfaceTop", foreground: .heroInk, background: .heroSurfaceTop, floor: textFloor),
         text("heroInkSecondary", .heroInkSecondary),
         text("heroAccentPositive", .heroAccentPositive),
@@ -61,6 +69,23 @@ struct HeroContrastTests {
                 )
             }
         }
+    }
+
+    /// Source-over blend of `top` at `alpha` on `base`, resolved in light (the forest is
+    /// the same colour in both schemes; the ink too).
+    private static func composite(_ top: Color, alpha: Double, over base: Color) -> Color {
+        let topColor = UIColor(top).resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
+        let baseColor = UIColor(base).resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
+        var tr: CGFloat = 0, tg: CGFloat = 0, tb: CGFloat = 0, ta: CGFloat = 0
+        var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
+        topColor.getRed(&tr, green: &tg, blue: &tb, alpha: &ta)
+        baseColor.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+        let mix = CGFloat(alpha)
+        return Color(
+            red: tr * mix + br * (1 - mix),
+            green: tg * mix + bg * (1 - mix),
+            blue: tb * mix + bb * (1 - mix)
+        )
     }
 
     // MARK: - WCAG relative luminance

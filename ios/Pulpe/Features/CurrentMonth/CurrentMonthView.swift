@@ -103,12 +103,16 @@ struct CurrentMonthView: View {
                         firstName: appState.currentUser?.firstName,
                         email: appState.currentUser?.email,
                         avatarUrl: appState.currentUser?.avatarUrl,
-                        diameter: DesignTokens.IconSize.compact
+                        diameter: DesignTokens.IconSize.compact,
+                        background: paintsHeroSurface ? .heroDisc : .surfaceContainerLowest,
+                        foreground: paintsHeroSurface ? .heroInk : .textTertiary
                     )
                 }
+                .heroToolbarButtonStyle(paintsHeroSurface)
                 .accessibilityLabel("Mon compte")
                 .accessibilityIdentifier("homeAccountButton")
             }
+            .heroToolbarGroup(paintsHeroSurface)
         }
         .sheet(item: $activeSheet) { sheet in
             Group {

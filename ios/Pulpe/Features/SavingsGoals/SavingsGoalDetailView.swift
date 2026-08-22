@@ -73,9 +73,11 @@ struct SavingsGoalDetailView: View {
                 } label: {
                     Image(systemName: "pencil")
                 }
+                .heroToolbarButtonStyle(viewModel.progress != nil)
                 .accessibilityLabel("Modifier l'objectif")
                 .accessibilityIdentifier("savingsGoalEditButton")
             }
+            .heroToolbarGroup(viewModel.progress != nil)
         }
         .sheet(item: $editTarget, onDismiss: handleEditDismiss) { goal in
             SavingsGoalFormSheet(

@@ -114,28 +114,14 @@ struct BudgetDetailsView: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    router.present(.realizedBalance)
-                } label: {
-                    Image(systemName: "chart.bar.fill")
-                }
-                .iconButtonStyle()
-                .accessibilityLabel("Suivi du budget")
-                .accessibilityIdentifier("budgetTrackingButton")
-                if screenState.isBudgetPresent {
-                    Button { router.present(.addBudgetLine) } label: {
-                        Image(systemName: "plus")
-                    }
-                    .iconButtonStyle()
-                    .accessibilityLabel("Ajouter une prévision")
-                    .accessibilityIdentifier("budgetAddLineButton")
-                }
+                trailingToolbarButtons
             }
+            .heroToolbarGroup(screenState.isBudgetPresent)
         }
         // Scroll-independent month navigation (system title chevron). The sticky
-        // pager only reveals after ~32pt of scroll — a short filtered list (e.g.
-        // "À pointer" fully checked) can never produce that, so the title menu is
-        // the guaranteed path; the pager stays as the scrolled fast path.
+        // pager only reveals once the hero has scrolled under the bar — a short
+        // filtered list (e.g. "À pointer" fully checked) can never produce that, so
+        // the title menu is the guaranteed path; the pager stays as the scrolled fast path.
         .toolbarTitleMenu {
             // Newest first: a title menu is a quick-jump list and the recent
             // months are the target in practice — chronological order would bury
@@ -199,6 +185,27 @@ struct BudgetDetailsView: View {
         }
     }
 
+    @ViewBuilder
+    private var trailingToolbarButtons: some View {
+        let screenState = projector.screenState
+        Button {
+            router.present(.realizedBalance)
+        } label: {
+            Image(systemName: "chart.bar.fill")
+        }
+        .heroToolbarButtonStyle(screenState.isBudgetPresent)
+        .accessibilityLabel("Suivi du budget")
+        .accessibilityIdentifier("budgetTrackingButton")
+        if screenState.isBudgetPresent {
+            Button { router.present(.addBudgetLine) } label: {
+                Image(systemName: "plus")
+            }
+            .heroToolbarButtonStyle(true)
+            .accessibilityLabel("Ajouter une prévision")
+            .accessibilityIdentifier("budgetAddLineButton")
+        }
+    }
+
     private var content: some View {
         let screenState = projector.screenState
         let sections = screenState.sections
@@ -217,8 +224,8 @@ struct BudgetDetailsView: View {
                 )
                 .onGeometryChange(
                     for: CGFloat.self,
-                    of: { $0.frame(in: .scrollView).minY },
-                    action: { newMinY in scrollTracker.update(heroMinY: newMinY) }
+                    of: { $0.frame(in: .global).maxY },
+                    action: { maxY in scrollTracker.update(heroMaxY: maxY) }
                 )
                 .heroZone()
 

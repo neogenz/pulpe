@@ -52,6 +52,7 @@ struct BudgetListView: View {
             ToolbarItem(placement: .primaryAction) {
                 createButton
             }
+            .heroToolbarGroup(isOnHeroSurface)
         }
         .sheet(isPresented: Binding(
             get: { createBudgetTarget != nil },
@@ -111,6 +112,7 @@ struct BudgetListView: View {
             Image(systemName: "plus")
         }
         .disabled(store.nextAvailableMonth == nil)
+        .heroToolbarButtonStyle(isOnHeroSurface)
         .accessibilityLabel("Créer un nouveau budget")
     }
 

@@ -171,6 +171,8 @@ enum DesignTokens {
         static let heroInkMuted: Double = 0.6
         /// Translucent metric tile on the forest hero surface (`Color.heroTile`)
         static let heroTile: Double = 0.12
+        /// A 36pt toolbar disc on the forest: the tile tint vanishes at that size.
+        static let heroDisc: Double = 0.2
         /// Area fill under the tracked series on the hero chart
         static let heroArea: Double = 0.22
         /// Disabled controls (e.g. type pills with count==0)
@@ -186,6 +188,8 @@ enum DesignTokens {
     // MARK: - Icon Sizes
 
     enum IconSize {
+        /// Disc behind a toolbar glyph on the hero surface (`HeroToolbarButtonStyle`).
+        static let heroToolbarDisc: CGFloat = 36
         /// List row icons
         static let listRow: CGFloat = 40
         /// Compact badges

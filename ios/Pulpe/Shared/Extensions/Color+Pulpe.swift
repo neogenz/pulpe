@@ -368,6 +368,8 @@ extension Color {
     static let heroInkSecondary = Color(hex: 0xCFE8D6)
     /// Translucent tile fill on the hero — a tint, never a solid border.
     static var heroTile: Color { heroInk.opacity(DesignTokens.Opacity.heroTile) }
+    /// Disc behind a toolbar glyph or avatar on the forest (`HeroToolbarButtonStyle`).
+    static var heroDisc: Color { heroInk.opacity(DesignTokens.Opacity.heroDisc) }
     /// State accents on the forest — the existing dark-mode palette, AA on `heroSurface`.
     /// Positive 7.5:1, caution 5.9:1, deficit 5.2:1, info 4.9:1. Identical in both schemes.
     static let heroAccentPositive = Color(hex: 0x7EDB83)
