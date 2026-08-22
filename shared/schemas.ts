@@ -1996,6 +1996,7 @@ export const listBudgetsQuerySchema = z
     if (query.fields !== undefined) return;
 
     for (const modifier of ['limit', 'offset', 'year'] as const) {
+      if (modifier === 'offset' && query.limit === undefined) continue;
       if (query[modifier] !== undefined) {
         context.addIssue({
           code: 'custom',

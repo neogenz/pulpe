@@ -41,6 +41,19 @@ describe('listBudgetsQuerySchema', () => {
     expect(result.error.issues[0]?.path).toEqual(['fields']);
   });
 
+  it('reports the first missing prerequisite for an offset', () => {
+    const result = listBudgetsQuerySchema.safeParse({ offset: '5' });
+
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.issues).toEqual([
+      expect.objectContaining({
+        message: 'offset requires limit',
+        path: ['offset'],
+      }),
+    ]);
+  });
+
   it('keeps existing queries valid without pagination', () => {
     expect(listBudgetsQuerySchema.parse({})).toEqual({});
     expect(
