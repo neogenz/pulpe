@@ -77,6 +77,20 @@ struct BudgetDetails: Decodable {
     let budget: Budget
     let transactions: [Transaction]
     let budgetLines: [BudgetLine]
+    /// Absent on older backends and `null` until one month has closed: both mean no prior.
+    var history: DriftHistory?
+}
+
+/// How this user's closed months usually drifted from their plan, computed server-side.
+/// The home projection reads it as a credibility prior: `usualOutflowDrift` is the prior
+/// mean (a rate of the planned outflows), `priorStrength` its weight in days, `driftMad`
+/// the cap on what it may move the line. `driftProfile` is decoded for a later phase.
+struct DriftHistory: Codable, Equatable, Sendable {
+    let usualOutflowDrift: Decimal
+    let closedMonths: Int
+    let priorStrength: Int
+    let driftMad: Decimal
+    let driftProfile: [Decimal]
 }
 
 struct BudgetExportResponse: Decodable {

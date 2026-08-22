@@ -221,6 +221,7 @@ struct CurrentMonthView: View {
                     trajectory: store.balanceTrajectory,
                     monthName: currentMonthName,
                     uncheckedCount: store.uncheckedCount,
+                    isSettling: store.isSettling,
                     onTapMetrics: { activeSheet = .realizedBalance },
                     onTapDetail: { navigateToBudget = true }
                 )

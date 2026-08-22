@@ -64,6 +64,7 @@ extension HomeHeroCard {
                         dash: DesignTokens.Chart.dash
                     ))
                     .foregroundStyle(Color.heroInk.opacity(DesignTokens.Opacity.heroInkMuted))
+                    .opacity(settlingOpacity)
                 }
 
                 // The trend's own figure, once it is far enough from the estimate to be a
@@ -88,6 +89,7 @@ extension HomeHeroCard {
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.heroInkSecondary)
                             .lineLimit(1)
+                            .opacity(settlingOpacity)
                     }
                 }
 
@@ -124,6 +126,23 @@ extension HomeHeroCard {
                 }
             }
             .chartXScale(domain: 0 ... trajectory.totalDays)
+            // The projection springs to its new end once the server has settled an entry;
+            // under reduced motion it crossfades there instead.
+            .animation(
+                reduceMotion
+                    ? .easeInOut(duration: DesignTokens.Animation.normal)
+                    : DesignTokens.Animation.defaultSpring,
+                value: Self.trend(for: trajectory)
+            )
+            .animation(
+                settlePulse && !reduceMotion
+                    ? .easeInOut(duration: 1.0).repeatForever(autoreverses: true)
+                    : .easeInOut(duration: DesignTokens.Animation.fast),
+                value: settlePulse
+            )
+            .onChange(of: isSettling, initial: true) { _, settling in
+                settlePulse = settling
+            }
             // Edge to edge: cancels the hero's text inset so the plot spans the screen.
             .chartPlotStyle { $0.padding(0) }
             .padding(.horizontal, -DesignTokens.Spacing.xxl)
@@ -147,6 +166,14 @@ extension HomeHeroCard {
             // element that speaks the trajectory rather than on the silent view above it.
             .accessibilityIdentifier("home-balance-chart")
         }
+    }
+
+    /// The skeleton's own pulse on the dashed stroke and its label while an entry settles —
+    /// the same material the loading state uses, so "not final yet" reads the same way
+    /// twice. Reduced motion holds the faded level without pulsing.
+    var settlingOpacity: Double {
+        guard isSettling else { return 1 }
+        return settlePulse || reduceMotion ? DesignTokens.Opacity.settling : 1
     }
 
     /// The days not yet lived, from today's reading to the trend's landing. Empty on the

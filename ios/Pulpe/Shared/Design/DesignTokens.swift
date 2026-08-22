@@ -164,6 +164,8 @@ enum DesignTokens {
         static let borderFocused: Double = 0.45
         /// Heavy overlays
         static let heavy: Double = 0.5
+        /// The skeleton pulse's low point, shared with the projection while an entry settles.
+        static let settling: Double = 0.4
         /// Muted ink on the mint hero card — suffixes, chevrons, progress-track hairline.
         /// Floor set by WCAG 1.4.11: at `heavy` (0.5) these composite to 2.69:1 against the
         /// hero gradient's darkest light-mode stop; 0.6 lifts them to 3.42–3.57:1 light and

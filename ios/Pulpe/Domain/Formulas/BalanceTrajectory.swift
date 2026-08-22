@@ -27,6 +27,13 @@ extension BudgetFormulas {
         let today: Int
         let totalDays: Int
 
+        /// The user's usual drift, when the backend has closed months to read it from.
+        var history: DriftHistory?
+
+        /// Days the chart waits before letting the prior bend the line: earlier, no model
+        /// beats noise, and a bend there would be noise dressed as insight.
+        static let priorWarmupDays = 7
+
         /// Where the plan alone said the period would land. Equal to `plannedRemaining` by
         /// construction: day 0 has no transactions, so the same envelope arithmetic that
         /// yields the plan yields this. The chart's rule and the card's `vs prévu` reference
@@ -43,22 +50,36 @@ extension BudgetFormulas {
 
         /// Where the period lands if it keeps leaving its plan at the pace seen so far:
         /// the estimate plus the drift per day lived, carried over the days left. The pace
-        /// is shrunk toward zero by how little of the month is known — one day of data
-        /// weighs 1/(1+`priorDays`), a full month nearly 1 — so an early outlier bends the
-        /// line rather than throwing it. A held month, or the last day, lands on the estimate.
+        /// is shrunk toward a prior by how little of the month is known — one day of data
+        /// weighs 1/(1+K), a full month nearly 1 — so an early outlier bends the line
+        /// rather than throwing it. A held month, or the last day, lands on the estimate.
+        ///
+        /// Without `history` the prior is the plan itself (zero drift) and `priorDays` is K.
+        /// With it, the prior is the user's usual drift rate applied to this month's planned
+        /// outflows over the days left, K is `priorStrength`, and three guards hold it: the
+        /// line stays flat before `priorWarmupDays`, the prior's pull never exceeds
+        /// `driftMad`, and one or two closed months only count for `n/(n+2)` of it.
         ///
         /// The hero figure stays the estimate: this answers a different question ("and if
         /// you carry on?"), and a second figure is what the dashed stroke is for.
-        ///
-        /// `priorDays` is the weight of the plan as a prior. When a per-month drift history
-        /// exists it should replace the zero prior with the user's usual drift rate, in this
-        /// same blend.
         func trendBalance(priorDays: Int) -> Decimal {
             let remaining = totalDays - today
-            guard remaining > 0, drift != 0, today > 0 else { return estimatedBalance }
+            guard remaining > 0, today > 0 else { return estimatedBalance }
+            guard let history else {
+                guard drift != 0 else { return estimatedBalance }
+                let pace = drift / Decimal(today)
+                let weight = Decimal(today) / Decimal(today + max(priorDays, 0))
+                return (estimatedBalance + pace * weight * Decimal(remaining)).rounded(2)
+            }
+            guard today >= Self.priorWarmupDays else { return estimatedBalance }
             let pace = drift / Decimal(today)
-            let weight = Decimal(today) / Decimal(today + max(priorDays, 0))
-            return (estimatedBalance + pace * weight * Decimal(remaining)).rounded(2)
+            let weight = Decimal(today) / Decimal(today + max(history.priorStrength, 0))
+            let confidence = Decimal(history.closedMonths) / Decimal(history.closedMonths + 2)
+            let rawPrior = confidence * history.usualOutflowDrift * plannedOutflows
+                * Decimal(remaining) / Decimal(totalDays)
+            let prior = min(max(rawPrior, -history.driftMad), history.driftMad)
+            return (estimatedBalance + weight * pace * Decimal(remaining) + (1 - weight) * prior)
+                .rounded(2)
         }
     }
 
@@ -69,6 +90,7 @@ extension BudgetFormulas {
         transactions: [Transaction],
         budget: Budget,
         payDayOfMonth: Int?,
+        history: DriftHistory? = nil,
         referenceDate: Date = Date()
     ) -> BalanceTrajectory? {
         let calendar = Calendar.current
@@ -110,7 +132,8 @@ extension BudgetFormulas {
                 .filter { $0.kind.isOutflow && !($0.isRollover ?? false) }
                 .reduce(Decimal.zero) { $0 + $1.amount },
             today: today,
-            totalDays: totalDays
+            totalDays: totalDays,
+            history: history
         )
     }
     /// One reading per day elapsed, each one asking the same question of a different amount

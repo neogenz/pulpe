@@ -47,7 +47,7 @@ final class ContextualCreationUITests: XCTestCase {
     /// unreadable next to its neighbours. Both schemes, because the two labels and the line
     /// carry the card's ink and only dark says whether it still separates from its surface.
     func testHomeChartStaysLegibleAcrossDataStates() {
-        let states = ["firstDay", "untouched", "onPlan", "quiet", "gain", "overrun", "deficit", "lastDay"]
+        let states = ["firstDay", "untouched", "onPlan", "quiet", "gain", "overrun", "deficit", "history", "lastDay"]
         for colorScheme in ["light", "dark"] {
             for state in states {
                 launch(

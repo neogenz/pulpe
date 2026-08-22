@@ -12,12 +12,17 @@ struct HomeHeroCard: View {
     let trajectory: BudgetFormulas.BalanceTrajectory?
     let monthName: String
     let uncheckedCount: Int
+    /// A home entry is still on its way to the server: the projection is drawn from an
+    /// optimistic store and says so by shimmering until the response lands.
+    var isSettling = false
     var onTapMetrics: () -> Void
     var onTapDetail: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) var amountsHidden
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     @State private var tapTrigger = false
+    @State var settlePulse = false
 
     var currency: SupportedCurrency { userSettingsStore.currency }
     private var presentation: HeroVerdictPresentation {
