@@ -31,9 +31,13 @@ const mockSettings = {
   isError: false,
   refetch: mockSettingsRefetch,
 };
-const mockBudgets = {
-  data: [] as { id: string; month: number; year: number }[],
-};
+const mockPeriodsByYear = new Map<
+  number,
+  { id: string; month: number; year: number }[]
+>();
+const mockUseBudgetPeriods = jest.fn((year: number | null) => ({
+  data: year === null ? [] : (mockPeriodsByYear.get(year) ?? []),
+}));
 const mockToggle = {
   mutate: jest.fn(),
   isPending: false,
@@ -203,7 +207,7 @@ jest.mock("@/features/budgets/budget-queries", () => ({
   },
   invalidateBudgetData: jest.fn(async () => undefined),
   useBudgetDetails: () => mockDetails,
-  useBudgetList: () => mockBudgets,
+  useBudgetPeriods: (year: number | null) => mockUseBudgetPeriods(year),
 }));
 jest.mock("@/features/budgets/toggle-check-api", () => ({
   toggleCheck: (target: unknown) => mockToggleRequest(target),
@@ -424,7 +428,7 @@ beforeEach(() => {
     isPending: false,
     isError: false,
   });
-  mockBudgets.data = [];
+  mockPeriodsByYear.clear();
 });
 
 it("distinguishes loading, retryable failure and a deleted budget", async () => {
@@ -447,10 +451,10 @@ it("distinguishes loading, retryable failure and a deleted budget", async () => 
 
 it("filters, searches and navigates between rendered budget months", async () => {
   mockDetails.data = readyDetails();
-  mockBudgets.data = [
+  mockPeriodsByYear.set(2026, [
     { id: "budget-1", month: 8, year: 2026 },
     { id: "budget-2", month: 9, year: 2026 },
-  ];
+  ]);
   const view = await render(<BudgetDetailScreen />);
 
   expect(view.getByText("line:Loyer")).toBeTruthy();
@@ -471,6 +475,22 @@ it("filters, searches and navigates between rendered budget months", async () =>
 
   await fireEvent.press(view.getByText("month:budget-2"));
   expect(router.replace).toHaveBeenCalledWith("/budget/budget-2");
+  expect(mockUseBudgetPeriods).toHaveBeenCalledWith(2026);
+});
+
+it("loads the previous-year neighbor when January opens directly", async () => {
+  const details = readyDetails();
+  details.budget.month = 1;
+  details.budget.previousBudgetId = "budget-0";
+  mockDetails.data = details;
+  mockPeriodsByYear.set(2025, [{ id: "budget-0", month: 12, year: 2025 }]);
+  mockPeriodsByYear.set(2026, [{ id: "budget-1", month: 1, year: 2026 }]);
+
+  const view = await render(<BudgetDetailScreen />);
+
+  expect(view.getByText("month:budget-0")).toBeTruthy();
+  expect(view.getByText("month:budget-1")).toBeTruthy();
+  expect(mockUseBudgetPeriods).toHaveBeenCalledWith(2025);
 });
 
 it("uses overlay handles for editing, metrics and rejected pointing", async () => {

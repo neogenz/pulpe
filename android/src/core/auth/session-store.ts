@@ -210,7 +210,7 @@ async function applyAuthEvent(
   event: string,
   session: Session | null,
 ): Promise<void> {
-  if (event === "SIGNED_OUT" || session === null) {
+  if (event === "SIGNED_OUT") {
     if (
       accountTeardown === null &&
       useSessionStore.getState().status === "unauthenticated"
@@ -223,6 +223,11 @@ async function applyAuthEvent(
       // The explicit caller receives the error. Provider listeners cannot, and
       // teardownLocalAccount has already attempted every cleanup.
     }
+    return;
+  }
+
+  if (session === null) {
+    useSessionStore.setState(applySession(null));
     return;
   }
 

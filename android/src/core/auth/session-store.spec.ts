@@ -150,6 +150,20 @@ describe("session lifecycle", () => {
     unsubscribe();
   });
 
+  it("keeps local preferences for an initial signed-out session", async () => {
+    const unsubscribe = observeSession();
+    mockAuthListener?.("INITIAL_SESSION", null);
+    await settle();
+
+    expect(useSessionStore.getState().status).toBe("unauthenticated");
+    expect(mockQueryClear).not.toHaveBeenCalled();
+    expect(mockClearLocale).not.toHaveBeenCalled();
+    expect(mockResetVault).not.toHaveBeenCalled();
+    expect(mockForgetLanding).not.toHaveBeenCalled();
+    expect(mockClearKeys).not.toHaveBeenCalled();
+    unsubscribe();
+  });
+
   it("waits for account A cleanup before applying session B", async () => {
     const keys = deferred();
     mockClearKeys.mockImplementationOnce(async () => {

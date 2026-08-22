@@ -6,6 +6,10 @@ const mockDetails = jest.fn();
 const mockSettings = jest.fn();
 const mockDetailsRefetch = jest.fn(async () => undefined);
 const mockSettingsRefetch = jest.fn(async () => undefined);
+const mockUseBudgetPeriods = jest.fn((_year: number | null) => ({
+  data: [],
+  isSuccess: false,
+}));
 
 jest.mock("expo-router", () => ({
   router: { back: jest.fn() },
@@ -29,7 +33,7 @@ jest.mock("@/core/user-settings/user-settings-queries", () => ({
 }));
 jest.mock("@/features/budgets/budget-queries", () => ({
   useBudgetDetails: () => mockDetails(),
-  useBudgetList: () => ({ isSuccess: false }),
+  useBudgetPeriods: (year: number | null) => mockUseBudgetPeriods(year),
 }));
 jest.mock("@/features/tags/tag-queries", () => ({
   useTags: () => ({ data: [] }),
@@ -72,7 +76,7 @@ it("shows the missing-line state only after queries succeeded", async () => {
     isPending: false,
     isError: false,
     data: {
-      budget: { year: 2026, month: 8 },
+      budget: { year: 2026, month: 12 },
       budgetLines: [],
       transactions: [],
     },
@@ -82,4 +86,5 @@ it("shows the missing-line state only after queries succeeded", async () => {
 
   expect(view.getByText("budgets.actions.line.missingTitle")).toBeTruthy();
   expect(view.queryByText("budgets.actions.line.loadError")).toBeNull();
+  expect(mockUseBudgetPeriods).toHaveBeenCalledWith(2027);
 });

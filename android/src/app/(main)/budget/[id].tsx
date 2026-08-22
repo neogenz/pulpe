@@ -45,7 +45,7 @@ import { budgetsInPeriodOrder } from "@/features/budgets/budget-list-selectors";
 import {
   invalidateBudgetData,
   useBudgetDetails,
-  useBudgetList,
+  useBudgetPeriods,
 } from "@/features/budgets/budget-queries";
 import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
 import {
@@ -142,7 +142,17 @@ export default function BudgetDetailScreen() {
   const insets = useSafeAreaInsets();
   const settings = useUserSettings();
   const details = useBudgetDetails(id);
-  const budgets = useBudgetList();
+  const viewedBudget = details.data?.budget;
+  const budgetPeriods = useBudgetPeriods(viewedBudget?.year ?? null);
+  const boundaryPeriods = useBudgetPeriods(
+    viewedBudget === undefined
+      ? null
+      : viewedBudget.month === 1
+        ? viewedBudget.year - 1
+        : viewedBudget.month === 12
+          ? viewedBudget.year + 1
+          : null,
+  );
   const tags = useTags();
   const toggle = useToggleCheck(id);
   const overlays = useRef<BudgetDetailOverlaysHandle>(null);
@@ -261,7 +271,7 @@ export default function BudgetDetailScreen() {
   );
   const previousMonthName = namePreviousMonth(
     budget.previousBudgetId ?? null,
-    budgets.data ?? [],
+    [...(budgetPeriods.data ?? []), ...(boundaryPeriods.data ?? [])],
     locale,
   );
   const rows = detailRows(sections, free);
@@ -271,7 +281,10 @@ export default function BudgetDetailScreen() {
     payDayOfMonth,
     isDismissed: isCardDismissed,
   });
-  const months = budgetsInPeriodOrder(budgets.data ?? []);
+  const months = budgetsInPeriodOrder([
+    ...(budgetPeriods.data ?? []),
+    ...(boundaryPeriods.data ?? []),
+  ]);
 
   // Leaving the search puts the whole list back: a term left behind would keep
   // filtering it from a field the user can no longer see.

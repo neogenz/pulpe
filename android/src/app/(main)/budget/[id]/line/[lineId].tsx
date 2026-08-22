@@ -30,7 +30,7 @@ import { SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import {
   useBudgetDetails,
-  useBudgetList,
+  useBudgetPeriods,
 } from "@/features/budgets/budget-queries";
 import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
 import {
@@ -62,7 +62,11 @@ export default function BudgetLineDetailScreen() {
   const financial = useFinancialColors();
   const settings = useUserSettings();
   const details = useBudgetDetails(id);
-  const budgets = useBudgetList();
+  const targetPeriods = useBudgetPeriods(
+    details.data === undefined
+      ? null
+      : postponeTargetPeriod(details.data.budget).year,
+  );
   const tags = useTags();
   const toggle = useToggleCheck(id);
   const overlays = useRef<BudgetLineDetailOverlaysHandle>(null);
@@ -120,10 +124,11 @@ export default function BudgetLineDetailScreen() {
     year: budget.year,
     month: budget.month,
   });
-  // Only claim the month is missing once the list has actually answered:
+  // Only claim the month is missing once the period lookup has answered:
   // pending, the entry stays live and a real failure still speaks for itself.
   const isPostponeTargetMissing =
-    budgets.isSuccess && !hasBudgetForPeriod(budgets.data, postponeTarget);
+    targetPeriods.isSuccess &&
+    !hasBudgetForPeriod(targetPeriods.data, postponeTarget);
   const accent =
     line.kind === "expense" && consumption.available < 0
       ? financial.overBudget

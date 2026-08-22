@@ -30,7 +30,7 @@ export function fetchBudgetListPage(offset: number): Promise<BudgetSparse[]> {
     .then((response) => response.data);
 }
 
-/** Period-only lookup used to find the active budget independently of history. */
+/** Period-only lookup used by dashboards and detail navigation without history. */
 export function fetchBudgetPeriods(year: number): Promise<BudgetSparse[]> {
   return api
     .get(ENDPOINTS.budgets, budgetSparseListResponseSchema, {

@@ -19,7 +19,7 @@ const INDICATOR_HEIGHT = 3;
 const DIVIDER_HEIGHT = 1;
 
 interface MonthPagerProps {
-  /** Every budget the account has, oldest first. */
+  /** The viewed year and any boundary neighbor, oldest first. */
   months: BudgetSparse[];
   currentBudgetId: string;
   onSelect: (budgetId: string) => void;
