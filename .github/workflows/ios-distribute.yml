@@ -79,9 +79,14 @@ jobs:
               ;;
           esac
 
+          tagged_release_recovery=false
           if [ "$GITHUB_REF_NAME" != "$expected_branch" ]; then
-            echo "::error::Channel '$CHANNEL' must be dispatched from '$expected_branch', not '$GITHUB_REF_NAME'"
-            exit 1
+            if [ "$CHANNEL" = release ] && [ "$GITHUB_REF_NAME" = preview ]; then
+              tagged_release_recovery=true
+            else
+              echo "::error::Channel '$CHANNEL' must be dispatched from '$expected_branch', not '$GITHUB_REF_NAME'"
+              exit 1
+            fi
           fi
           if ! printf '%s' "$SOURCE_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
             echo "::error::source_sha must be a full lowercase 40-character SHA"
@@ -114,6 +119,20 @@ jobs:
             exit 1
           fi
           git fetch --force --tags origin "refs/heads/$expected_branch:refs/remotes/origin/$expected_branch"
+          if [ "$tagged_release_recovery" = true ]; then
+            release_version=$(node -p "require('../package.json').version")
+            if ! printf '%s' "$release_version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "::error::Tagged release recovery requires a semantic root package version"
+              exit 1
+            fi
+            recovery_tag="refs/tags/v$release_version"
+            echo "Require exact annotated release tag for recovery: $recovery_tag"
+            if [ "$(git cat-file -t "$recovery_tag" 2>/dev/null || true)" != tag ] ||
+               [ "$(git rev-parse "$recovery_tag^{commit}" 2>/dev/null || true)" != "$SOURCE_SHA" ]; then
+              echo "::error::Release recovery from preview requires $recovery_tag to be an annotated tag for $SOURCE_SHA"
+              exit 1
+            fi
+          fi
           reachable=false
           if git merge-base --is-ancestor "$SOURCE_SHA" "refs/remotes/origin/$expected_branch"; then
             reachable=true
