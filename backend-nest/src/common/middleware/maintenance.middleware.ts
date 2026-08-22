@@ -1,6 +1,7 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response, NextFunction } from 'express';
+import { API_ERROR_CODES } from 'pulpe-shared';
 
 /**
  * Middleware to block all requests when maintenance mode is enabled.
@@ -17,7 +18,7 @@ export class MaintenanceMiddleware implements NestMiddleware {
     if (isMaintenanceMode) {
       return res.status(503).json({
         statusCode: 503,
-        code: 'MAINTENANCE',
+        code: API_ERROR_CODES.MAINTENANCE,
         message: 'Application en maintenance — réessaie plus tard',
       });
     }

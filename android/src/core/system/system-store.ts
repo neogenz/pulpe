@@ -1,5 +1,5 @@
 import Constants from "expo-constants";
-import { appVersionResponseSchema } from "pulpe-shared";
+import { API_ERROR_CODES, appVersionResponseSchema } from "pulpe-shared";
 import { create } from "zustand";
 
 import { api } from "@/core/api/api";
@@ -8,7 +8,6 @@ import { ENDPOINTS } from "@/core/api/endpoints";
 
 import { isVersionBelow } from "./semver";
 
-const MAINTENANCE_CODE = "MAINTENANCE";
 const HTTP_SERVICE_UNAVAILABLE = 503;
 
 /**
@@ -86,7 +85,7 @@ async function performSystemCheck(): Promise<void> {
     if (
       useSystemStore.getState().gate === "ok" &&
       isApiError(error) &&
-      (error.code === MAINTENANCE_CODE ||
+      (error.code === API_ERROR_CODES.MAINTENANCE ||
         error.status === HTTP_SERVICE_UNAVAILABLE)
     ) {
       setState({ gate: "maintenance" });
