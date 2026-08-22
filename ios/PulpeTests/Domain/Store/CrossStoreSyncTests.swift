@@ -78,9 +78,14 @@ struct BudgetListStoreCacheInvalidationTests {
             pathCount: 1
         ))
 
-        #expect(BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0))
-        #expect(!BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 0, to: 1))
-        #expect(!BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 2))
+        #expect(BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets))
+        #expect(!BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .currentMonth))
+        #expect(!BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 0, to: 1, selectedTab: .budgets))
+        #expect(!BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 2, selectedTab: .budgets))
+
+        #expect(BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets, pathCount: 0))
+        #expect(!BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .currentMonth, pathCount: 0))
+        #expect(!BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets, pathCount: 1))
     }
 
     @Test
@@ -126,7 +131,7 @@ struct BudgetListStoreCacheInvalidationTests {
 
         mockService.stubbedSparse = sparseBudgets(september: "-2096.80", october: "39.18")
 
-        if BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0) {
+        if BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets) {
             await listStore.loadIfNeeded()
         }
         #expect(
@@ -148,6 +153,30 @@ struct BudgetListStoreCacheInvalidationTests {
             goalService.getAllCallCount > goalBaseline,
             "A detail mutation must invalidate the savings-goal TTL too (PUL-270)"
         )
+    }
+
+    @Test
+    func invalidationAfterVisibleReturn_refetchesListAggregates() async {
+        let mockService = MockBudgetService()
+        mockService.stubbedSparse = sparseBudgets(september: "-4199.78", october: "-2096.80")
+        let store = BudgetListStore(budgetService: mockService)
+        await store.forceRefresh()
+        #expect(store.invalidationGeneration == 0)
+
+        if BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets) {
+            await store.loadIfNeeded()
+        }
+        #expect(mockService.getBudgetsSparseCallCount == 1, "Visible return precedes the late invalidation")
+
+        mockService.stubbedSparse = sparseBudgets(september: "-2096.80", october: "39.18")
+        store.invalidateCache()
+        #expect(store.invalidationGeneration == 1)
+        if BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets, pathCount: 0) {
+            await store.loadIfNeeded()
+        }
+
+        #expect(mockService.getBudgetsSparseCallCount == 2)
+        assertBalances(store.budgets, september: "-2096.80", october: "39.18")
     }
 
     private func sparseBudgets(september: String, october: String) -> [BudgetSparse] {
@@ -229,6 +258,32 @@ struct CurrentMonthStoreMutationSeamTests {
         store.addTransaction(TestDataFactory.createTransaction(id: "tx-seam"))
 
         #expect(fired == 1, "Amount-changing dashboard mutation must fire onMutation")
+    }
+
+    @Test
+    func deepLinkQuickAdd_seamInvalidatesListAndDashboard() async {
+        let listService = MockBudgetService()
+        let dashboardService = MockBudgetService()
+        let listStore = BudgetListStore(budgetService: listService)
+        let dashboardStore = DashboardStore(budgetService: dashboardService)
+        await listStore.forceRefresh()
+        await dashboardStore.forceRefresh()
+
+        let currentMonthStore = CurrentMonthStore()
+        currentMonthStore.onMutation = { [listStore, dashboardStore] in
+            listStore.invalidateCache()
+            dashboardStore.invalidateCache()
+        }
+        let transaction = TestDataFactory.createTransaction(id: "deep-link-quick-add")
+        currentMonthStore.addTransaction(transaction)
+
+        let containsTransaction = currentMonthStore.transactions.contains { $0.id == transaction.id }
+        #expect(containsTransaction)
+        #expect(listStore.invalidationGeneration == 1)
+        await listStore.loadIfNeeded()
+        await dashboardStore.loadIfNeeded()
+        #expect(listService.getBudgetsSparseCallCount == 2)
+        #expect(dashboardService.getBudgetsSparseCallCount == 4)
     }
 
     @Test

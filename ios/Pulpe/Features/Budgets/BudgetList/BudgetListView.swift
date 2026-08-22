@@ -5,8 +5,12 @@ enum BudgetListRefreshPolicy {
         oldTab != .budgets && newTab == .budgets && pathCount == 0
     }
 
-    static func shouldLoadAfterPathChange(from oldCount: Int, to newCount: Int) -> Bool {
-        oldCount > 0 && newCount == 0
+    static func shouldLoadAfterPathChange(from oldCount: Int, to newCount: Int, selectedTab: Tab) -> Bool {
+        selectedTab == .budgets && oldCount > 0 && newCount == 0
+    }
+
+    static func shouldLoadAfterInvalidation(selectedTab: Tab, pathCount: Int) -> Bool {
+        selectedTab == .budgets && pathCount == 0
     }
 }
 
@@ -110,16 +114,19 @@ struct BudgetListView: View {
         }
         .onChange(of: appState.selectedTab) { oldTab, newTab in
             guard BudgetListRefreshPolicy.shouldLoadAfterTabChange(
-                from: oldTab,
-                to: newTab,
-                pathCount: appState.budgetPath.count
+                from: oldTab, to: newTab, pathCount: appState.budgetPath.count
             ) else { return }
             Task { await store.loadIfNeeded() }
         }
         .onChange(of: appState.budgetPath.count) { oldCount, newCount in
             guard BudgetListRefreshPolicy.shouldLoadAfterPathChange(
-                from: oldCount,
-                to: newCount
+                from: oldCount, to: newCount, selectedTab: appState.selectedTab
+            ) else { return }
+            Task { await store.loadIfNeeded() }
+        }
+        .onChange(of: store.invalidationGeneration) {
+            guard BudgetListRefreshPolicy.shouldLoadAfterInvalidation(
+                selectedTab: appState.selectedTab, pathCount: appState.budgetPath.count
             ) else { return }
             Task { await store.loadIfNeeded() }
         }
@@ -129,11 +136,7 @@ struct BudgetListView: View {
     }
 
     private var createButton: some View {
-        Button {
-            createBudgetTarget = store.nextAvailableMonth
-        } label: {
-            Image(systemName: "plus")
-        }
+        Button(action: { createBudgetTarget = store.nextAvailableMonth }, label: { Image(systemName: "plus") })
         .disabled(store.nextAvailableMonth == nil)
         .accessibilityLabel("Créer un nouveau budget")
     }

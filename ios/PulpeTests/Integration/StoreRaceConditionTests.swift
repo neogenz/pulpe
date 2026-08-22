@@ -58,13 +58,26 @@ struct StoreRaceConditionTests {
 
     // MARK: - BudgetListStore Tests
 
-    @Test("BudgetListStore handles concurrent loadIfNeeded safely")
-    func budgetListStore_concurrentLoadIfNeeded_noRace() async throws {
-        let store = BudgetListStore()
+    @Test("BudgetListStore coalesces concurrent loadIfNeeded calls")
+    func budgetListStore_concurrentLoadIfNeeded_fetchesOnce() async {
+        let service = MockBudgetService()
+        service.gateSparse()
+        let store = BudgetListStore(budgetService: service)
+        let firstLoad = Task { await store.loadIfNeeded() }
+        await waitForCondition("First sparse fetch must enter the gate") { service.didEnterSparse }
 
-        await runConcurrent(count: 10) { await store.loadIfNeeded() }
+        nonisolated(unsafe) var secondStarted = false
+        let secondLoad = Task {
+            secondStarted = true
+            await store.loadIfNeeded()
+        }
+        await waitForCondition("Second smart load must start") { secondStarted }
+        service.releaseSparse()
+        await firstLoad.value
+        await secondLoad.value
 
-        #expect(store.isLoading == false, "Store must not be stuck in loading after concurrent loadIfNeeded calls")
+        #expect(service.getBudgetsSparseCallCount == 1, "Visible refresh signals must share one smart fetch")
+        #expect(store.isLoading == false)
     }
 
     // MARK: - DashboardStore Tests

@@ -1,6 +1,6 @@
 ---
 objective: "Au retour sur la liste iOS, chaque budget affiche le même solde cumulé que son détail après une mutation."
-status: implemented
+status: in-progress
 ---
 
 # Plan: Rafraîchir les soldes de la liste des budgets iOS
@@ -17,3 +17,4 @@ status: implemented
 | #   | Phase | File |
 | --- | ----- | ---- |
 | 1   | Relier les retours de navigation au cache invalidé | [`phase-1.md`](./phase-1.md) |
+| 2   | Réparer les retours tardifs et le quick-add après review | [`phase-2.md`](./phase-2.md) |

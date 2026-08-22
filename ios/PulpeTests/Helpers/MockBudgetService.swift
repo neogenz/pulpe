@@ -30,7 +30,7 @@ final class MockBudgetService: BudgetServicing {
 
     private var gateContinuation: CheckedContinuation<Void, Never>?
     private var isGated = false
-    private var sparseGateContinuation: CheckedContinuation<Void, Never>?
+    private var sparseGateContinuations: [CheckedContinuation<Void, Never>] = []
     private var isSparseGated = false
 
     /// Arm a one-shot gate: the next `getBudgetWithDetails` call suspends until
@@ -51,8 +51,10 @@ final class MockBudgetService: BudgetServicing {
 
     func releaseSparse() {
         isSparseGated = false
-        sparseGateContinuation?.resume()
-        sparseGateContinuation = nil
+        for continuation in sparseGateContinuations {
+            continuation.resume()
+        }
+        sparseGateContinuations.removeAll()
     }
 
     func getBudgetWithDetails(id: String) async throws -> BudgetDetails {
@@ -73,7 +75,7 @@ final class MockBudgetService: BudgetServicing {
         let snapshot = stubbedSparse
         if isSparseGated {
             await withCheckedContinuation { continuation in
-                sparseGateContinuation = continuation
+                sparseGateContinuations.append(continuation)
             }
         }
         return snapshot

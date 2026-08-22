@@ -17,6 +17,7 @@ final class BudgetListStore: StoreProtocol {
     // MARK: - Cache Metadata
 
     private(set) var hasLoadedOnce = false
+    private(set) var invalidationGeneration = 0
     private var lastLoadTime: Date?
 
     /// Coalescing task to prevent concurrent API loads
@@ -46,6 +47,11 @@ final class BudgetListStore: StoreProtocol {
     // MARK: - Smart Loading (StoreProtocol)
 
     func loadIfNeeded() async {
+        if let loadTask {
+            await loadTask.value
+            return
+        }
+
         // Skip if data is fresh
         if let lastLoad = lastLoadTime,
            Date().timeIntervalSince(lastLoad) < AppConfiguration.shortCacheValidity {
@@ -158,6 +164,7 @@ final class BudgetListStore: StoreProtocol {
         loadTask?.cancel()
         loadTask = nil
         loadGeneration += 1
+        invalidationGeneration += 1
         lastLoadTime = nil
     }
 }
