@@ -104,9 +104,7 @@ struct BudgetListStoreCacheInvalidationTests {
         mockService.stubbedSparse = sparseBudgets(september: "-2096.80", october: "39.18")
 
         #expect(BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets))
-        if BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets) {
-            await listStore.loadIfNeeded()
-        }
+        await listStore.loadIfNeeded()
         #expect(
             mockService.getBudgetsSparseCallCount == 2,
             "A detail mutation must invalidate the list TTL so pop-back refetches the aggregates (PUL-270)"
@@ -137,18 +135,14 @@ struct BudgetListStoreCacheInvalidationTests {
         #expect(store.invalidationGeneration == 0)
 
         #expect(BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets))
-        if BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets) {
-            await store.loadIfNeeded()
-        }
+        await store.loadIfNeeded()
         #expect(mockService.getBudgetsSparseCallCount == 1, "Visible return precedes the late invalidation")
 
         mockService.stubbedSparse = sparseBudgets(september: "-2096.80", october: "39.18")
         store.invalidateCache()
         #expect(store.invalidationGeneration == 1)
         #expect(BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets, pathCount: 0))
-        if BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets, pathCount: 0) {
-            await store.loadIfNeeded()
-        }
+        await store.loadIfNeeded()
 
         #expect(mockService.getBudgetsSparseCallCount == 2)
         assertBalances(store.budgets, september: "-2096.80", october: "39.18")
@@ -265,7 +259,7 @@ struct CurrentMonthStoreMutationSeamTests {
         #expect(listService.getBudgetsSparseCallCount == 2)
         #expect(
             dashboardService.getBudgetsSparseCallCount == dashboardFetchBaseline + 2,
-            "Dashboard invalidation must trigger one refresh (current year + recent history)"
+            "Dashboard invalidation must trigger a full refresh (current year + recent history = 2 API calls)"
         )
     }
 
