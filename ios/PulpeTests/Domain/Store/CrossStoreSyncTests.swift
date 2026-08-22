@@ -261,10 +261,10 @@ struct CurrentMonthStoreMutationSeamTests {
         store.addTransaction(TestDataFactory.createTransaction(id: "other", budgetId: "other"))
         #expect(store.transactions.isEmpty)
         store.addTransaction(TestDataFactory.createTransaction(id: "matching", budgetId: budget.id))
+        store.addTransaction(TestDataFactory.createTransaction(id: "matching", budgetId: budget.id))
         #expect(store.transactions.map(\.id) == ["matching"])
-        #expect(fired == 3, "Every confirmed mutation must invalidate sibling projections")
+        #expect(fired == 4, "Every confirmed mutation must invalidate sibling projections")
     }
-
     @Test
     func deepLinkQuickAdd_seamInvalidatesListAndDashboard() async {
         let listService = MockBudgetService()

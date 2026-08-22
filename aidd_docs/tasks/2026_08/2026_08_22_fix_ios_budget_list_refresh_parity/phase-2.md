@@ -6,15 +6,7 @@ status: done
 
 ## Architecture projection
 
-```txt
-ios/
-├── Pulpe/
-│   ├── Domain/Store/BudgetListStore.swift
-│   └── Features/{Budgets/BudgetList,CurrentMonth/Components}/
-└── PulpeTests/
-    ├── Domain/Store/CrossStoreSyncTests.swift
-    └── Integration/StoreRaceConditionTests.swift
-```
+`ios/Pulpe/{Domain/Store,Features/{Budgets/BudgetList,CurrentMonth/Components}}` · `ios/PulpeTests/{Domain/Store,Integration}`
 
 ## Tasks to do
 

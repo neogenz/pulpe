@@ -20,6 +20,7 @@ final class MockBudgetService: BudgetServicing {
     )
     var stubbedSparse: [BudgetSparse] = []
     var detailsError: Error?
+    var sparseError: Error?
 
     private(set) var getBudgetWithDetailsCallCount = 0
     private(set) var getBudgetsSparseCallCount = 0
@@ -76,12 +77,13 @@ final class MockBudgetService: BudgetServicing {
     func getBudgetsSparse(fields: String, limit: Int?, year: Int?) async throws -> [BudgetSparse] {
         getBudgetsSparseCallCount += 1
         didEnterSparse = true
-        let snapshot = stubbedSparse
+        let response = (stubbedSparse, sparseError)
         if isSparseGated {
             await withCheckedContinuation { continuation in
                 sparseGateContinuations.append(continuation)
             }
         }
-        return snapshot
+        if let error = response.1 { throw error }
+        return response.0
     }
 }

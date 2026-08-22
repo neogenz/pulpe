@@ -62,17 +62,21 @@ struct StoreRaceConditionTests {
     func budgetListStore_reset_doesNotClearNewerLoadTask() async throws {
         let service = MockBudgetService()
         service.gateSparse()
+        service.sparseError = APIError.invalidResponse
         let store = BudgetListStore(budgetService: service)
         let staleLoad = Task { await store.forceRefresh() }
         await waitForCondition("First sparse fetch must enter the gate") { service.didEnterSparse }
 
         store.reset()
+        service.sparseError = nil
         let currentLoad = Task { await store.forceRefresh() }
         await waitForCondition("New sparse fetch must enter after reset") {
             service.getBudgetsSparseCallCount == 2
         }
         service.releaseNextSparse()
         await staleLoad.value
+        #expect(store.isLoading, "Stale completion must not hide the active post-reset load")
+        #expect(store.error == nil, "Stale failure must not publish after reset")
 
         let coalescedLoad = Task { await store.loadIfNeeded() }
         try await Task.sleep(for: .milliseconds(20))

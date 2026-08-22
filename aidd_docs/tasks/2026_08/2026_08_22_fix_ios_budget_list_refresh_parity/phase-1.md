@@ -6,10 +6,7 @@ status: done
 
 ## Architecture projection
 
-```txt
-ios/Pulpe/Features/Budgets/BudgetList/BudgetListView.swift
-ios/PulpeTests/Domain/Store/CrossStoreSyncTests.swift
-```
+`ios/Pulpe/Features/Budgets/BudgetList/BudgetListView.swift` · `ios/PulpeTests/Domain/Store/CrossStoreSyncTests.swift`
 
 ## User Journey
 

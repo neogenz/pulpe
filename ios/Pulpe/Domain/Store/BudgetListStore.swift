@@ -68,11 +68,12 @@ final class BudgetListStore: StoreProtocol {
         let currentGeneration = loadGeneration
 
         let task = Task(name: "BudgetList.load") {
+            guard loadGeneration == currentGeneration else { return }
             let showsSkeleton = budgets.isEmpty
             isLoading = true
             error = nil
             let loadStart = ContinuousClock.now
-            defer { isLoading = false }
+            defer { if loadGeneration == currentGeneration { isLoading = false } }
 
             do {
                 let fields = "month,year,remaining,totalIncome,totalExpenses,rollover"
@@ -85,6 +86,7 @@ final class BudgetListStore: StoreProtocol {
                     try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
                 }
 
+                guard loadGeneration == currentGeneration else { return }
                 budgets = fetchedBudgets
                 lastLoadTime = Date()
                 hasLoadedOnce = true
@@ -94,12 +96,12 @@ final class BudgetListStore: StoreProtocol {
                 widgetSyncTask = Task(name: "BudgetList.widgetSync", priority: .utility) { [widgetSyncService] in
                     await widgetSyncService.syncAll()
                 }
-            } catch is CancellationError {
+            } catch where error.isCancellationOrURLCancellation {
                 // Task was cancelled, don't update error state
             } catch let apiError as APIError {
-                self.error = apiError
+                if loadGeneration == currentGeneration { self.error = apiError }
             } catch {
-                self.error = .networkError(error)
+                if loadGeneration == currentGeneration { self.error = .networkError(error) }
             }
         }
 
@@ -146,6 +148,7 @@ final class BudgetListStore: StoreProtocol {
         widgetSyncTask?.cancel()
         widgetSyncTask = nil
         loadGeneration += 1
+        isLoading = false
         budgets = []
         hasLoadedOnce = false
         lastLoadTime = nil
@@ -164,6 +167,7 @@ final class BudgetListStore: StoreProtocol {
         loadTask?.cancel()
         loadTask = nil
         loadGeneration += 1
+        isLoading = false
         invalidationGeneration += 1
         lastLoadTime = nil
     }

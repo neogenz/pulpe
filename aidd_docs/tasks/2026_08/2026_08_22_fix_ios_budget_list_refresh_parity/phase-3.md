@@ -6,10 +6,7 @@ status: done
 
 ## Architecture projection
 
-```txt
-ios/Pulpe/Domain/Store/{BudgetListStore,CurrentMonthStore}.swift
-ios/PulpeTests/{Integration/StoreRaceConditionTests,Domain/Store/CrossStoreSyncTests}.swift
-```
+`ios/Pulpe/Domain/Store/{BudgetListStore,CurrentMonthStore}.swift` · `ios/PulpeTests/{Integration/StoreRaceConditionTests,Domain/Store/CrossStoreSyncTests}.swift`
 
 ## Tasks to do
 

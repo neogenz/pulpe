@@ -712,6 +712,7 @@ extension CurrentMonthStore {
             onMutation?()
             return
         }
+        transactions.removeAll { $0.id == transaction.id }
         transactions.append(transaction)
         recomputeMetrics()
         syncWidgetAfterChange()
