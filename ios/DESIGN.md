@@ -463,6 +463,8 @@ quick-check cards, one operation per card ("C'est passé" / "Plus tard") — bui
 
 **The Tap Target Rule (iOS).** Every interactive element has a 44×44pt minimum hit area (Apple HIG). The `frame(minHeight: 44)` goes on the **Button**, never inside the label — putting it on the label inflates the visible background. Pair with `.contentShape(...)` so the full hit area is tappable. Icon buttons use `IconButtonStyle()` or `CircleIconButtonStyle()` which encode this.
 
+**The Form Rule.** Every add or edit form reads top to bottom in the same order: the segmented choices the form needs (nature, once/spread, total/monthly, recurrence), the hero amount with its quick chips, a "what" `FormCard` (description, tags), a "details" `FormCard` (date, pointed, goal or origin), then one primary CTA (flat in a sheet, sticky on a page). Atoms inside a card wear `style: .row`; a form-specific block such as the spread section sits below the details card. A card that would be empty is not drawn.
+
 **The Chip Composition Rule (iOS implementation).** Chips and pills are **never** composed ad-hoc from `Capsule().fill(...)` + padding + text in feature code. They go through `PulpeChip` in `Shared/Components/`. SwiftLint rule `no_adhoc_capsule_chip` (warning) enforces this; legacy decorative shapes (progress bars, hero accents, toast rails) are explicitly excluded by path. New ad-hoc chips fail the lefthook gate.
 
 ## 6. Do's and Don'ts (iOS-specific)

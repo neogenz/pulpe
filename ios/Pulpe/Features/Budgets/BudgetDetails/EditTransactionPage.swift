@@ -194,10 +194,16 @@ struct EditTransactionPage: View {
                 exchangeRate: tx.exchangeRate
             )
 
-            descriptionField
+            // Three blocks: the amount above, what it is, then the details.
+            FormCard {
+                descriptionField
+                FormRowDivider()
+                TagPickerField(selection: $selectedTagIds, style: .row)
+            }
 
-            TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency)
-            TagPickerField(selection: $selectedTagIds)
+            FormCard {
+                TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency, style: .row)
+            }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -215,7 +221,8 @@ struct EditTransactionPage: View {
             text: $name,
             label: AppLocale.string("Description"),
             focusBinding: $focusedField,
-            field: .description
+            field: .description,
+            style: .row
         )
     }
 

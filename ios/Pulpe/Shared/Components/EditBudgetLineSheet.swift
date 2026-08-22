@@ -88,17 +88,27 @@ struct EditBudgetLineSheet: View {
                 originalCurrency: budgetLine.originalCurrency,
                 exchangeRate: budgetLine.exchangeRate
             )
-            descriptionField
+            // Three blocks: the amount above, what it is, then the details.
+            FormCard {
+                descriptionField
+                FormRowDivider()
+                TagPickerField(selection: $selectedTagIds, style: .row)
+            }
+
             if kind == .saving {
-                SavingsGoalPickerField(selection: $savingsGoalId, budgetPeriod: budgetPeriod)
+                FormCard {
+                    SavingsGoalPickerField(selection: $savingsGoalId, budgetPeriod: budgetPeriod, style: .row)
+                }
             }
             // PUL-329 v2 — the goal an income was announced to be drawn from is
             // read-only: the origin is fixed at creation, and a second picker
             // here would suggest the source could be swapped.
             if let source = budgetLine.savingsGoalSource {
-                SavingsGoalSourceLabel(source: source)
+                FormCard {
+                    SavingsGoalSourceLabel(source: source)
+                        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+                }
             }
-            TagPickerField(selection: $selectedTagIds)
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -124,7 +134,8 @@ struct EditBudgetLineSheet: View {
             label: AppLocale.string("Description"),
             accessibilityLabel: AppLocale.string("Description de la prévision"),
             focusBinding: $focusedField,
-            field: .description
+            field: .description,
+            style: .row
         )
     }
 

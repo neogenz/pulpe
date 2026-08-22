@@ -220,7 +220,8 @@ struct AddTransactionSheet: View {
                         mode: .withdrawal,
                         withdrawalAmount: convertedAmount,
                         withdrawalRefreshToken: withdrawalRefreshToken,
-                        onWithdrawalReadinessChange: { isWithdrawalReady = $0 }
+                        onWithdrawalReadinessChange: { isWithdrawalReady = $0 },
+                        style: .row
                     )
                 }
             }
