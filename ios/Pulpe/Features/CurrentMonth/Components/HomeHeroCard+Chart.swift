@@ -5,23 +5,14 @@ import SwiftUI
 
 extension HomeHeroCard {
     /// The month's landing forecast: it opens on the plan, it arrives on the figure above
-    /// it, and it only leaves the horizontal when the month leaves its plan. Everything
-    /// drawn here is that one subtraction — the rule it started from, the gap it has opened,
-    /// and where the gap leaves it.
+    /// it, and it only leaves the horizontal when the month leaves its plan. Two strokes and
+    /// a point: what the days lived did to the forecast, where it holds from today, and the
+    /// gap named at the anchor. No rule for the plan and none for today — the line's own
+    /// first reading is the plan, and the dot is today.
     @ViewBuilder
     var balanceChart: some View {
         if let trajectory {
             Chart {
-                // The line's own origin, so rule and line can never start apart. It carries
-                // no label: the `vs prévu` tile under the plot already quotes the plan, and a
-                // figure printed on the picture was one more thing to read before seeing it.
-                RuleMark(y: .value("Prévu", Self.decimalValue(trajectory.plannedBalance)))
-                    .foregroundStyle(Color.heroInk.opacity(DesignTokens.Opacity.heroInkMuted))
-                    .lineStyle(StrokeStyle(
-                        lineWidth: DesignTokens.BorderWidth.thin,
-                        dash: DesignTokens.Chart.markerDash
-                    ))
-
                 // The area under the tracked series: ink fading to nothing, the only fill on
                 // the plot. Always drawn, a held month included — the fill is what makes the
                 // line read as a surface rather than a wire, not a signal about the gap.
@@ -74,22 +65,6 @@ extension HomeHeroCard {
                     .foregroundStyle(Color.heroInk.opacity(DesignTokens.Opacity.heroInkMuted))
                 }
 
-                // The subtraction, drawn: plan at the top of the stroke, forecast at the
-                // bottom of it. Saying "801 de moins" in words asks the reader to hold two
-                // numbers; this asks them to look at one distance.
-                if let current = trajectory.landing.last, trajectory.drift.rounded(2) != 0 {
-                    RuleMark(
-                        x: .value("Aujourd’hui", current.day),
-                        yStart: .value("Prévu", Self.decimalValue(trajectory.plannedBalance)),
-                        yEnd: .value("Atterrissage", Self.decimalValue(current.balance))
-                    )
-                    .foregroundStyle(accentColor.opacity(DesignTokens.Opacity.heroInkMuted))
-                    .lineStyle(StrokeStyle(
-                        lineWidth: DesignTokens.BorderWidth.thin,
-                        dash: DesignTokens.Chart.markerDash
-                    ))
-                }
-
                 if let current = trajectory.landing.last {
                     PointMark(
                         x: .value("Aujourd’hui", current.day),
@@ -103,8 +78,8 @@ extension HomeHeroCard {
                             .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
                     }
                     // One label on this anchor, never two: the gap when there is room to
-                    // print it, the day otherwise. It lands on the far side of the rule from
-                    // the line's origin, where the plot is empty by construction.
+                    // print it, the day otherwise. It lands on the far side of the line's
+                    // origin level, where the plot is empty by construction.
                     .annotation(
                         position: Self.gapLabelPosition(for: trajectory),
                         alignment: .trailing,
@@ -158,8 +133,8 @@ extension HomeHeroCard {
         return [current, .init(day: trajectory.totalDays, balance: current.balance)]
     }
 
-    /// The anchor label sits away from the rule — below it for a month under its plan,
-    /// above it for a month over — where the plot is empty by construction.
+    /// The anchor label sits away from the plan level — below the dot for a month under its
+    /// plan, above it for a month over — where the plot is empty by construction.
     static func gapLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> AnnotationPosition {

@@ -135,9 +135,9 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func gapLabel_sitsAwayFromThePlanRule() {
+    @Test func gapLabel_sitsAwayFromThePlanLevel() {
         // The label lands where the plot is empty by construction: the line never crosses
-        // its own rule, so the far side of the rule from the origin is always free.
+        // its own opening level, so the far side of it from the origin is always free.
         #expect(HomeHeroCard.gapLabelPosition(for: trajectory(landing: [2_500, 1_800])) == .bottom)
         #expect(HomeHeroCard.gapLabelPosition(for: trajectory(landing: [2_500, 2_900])) == .top)
         #expect(HomeHeroCard.gapLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .bottom)
