@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Couvrir les mutations sensibles des objectifs et modèles
