@@ -1,6 +1,6 @@
 ---
 objective: "Budget list query modifiers are accepted only when sparse fields make them effective, so validated requests can no longer be silently ignored or cached under misleading keys."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Enforce the budget list query contract
