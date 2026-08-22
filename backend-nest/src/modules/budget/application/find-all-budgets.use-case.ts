@@ -49,7 +49,7 @@ export class FindAllBudgetsUseCase {
       user.clientKey.toString('hex').slice(0, 16),
       query?.fields ?? '',
       query?.limit ?? '',
-      query?.offset ?? '',
+      query?.offset ?? 0,
       query?.year ?? '',
     ].join(':');
     const cacheKey = `budgets:list:${keyParts}`;
