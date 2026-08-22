@@ -51,9 +51,23 @@ struct HomeHeroCard: View {
 
     // MARK: - Body
 
+    /// One read order, top to bottom: the figure, the line that explains it, the two
+    /// numbers that qualify it, the sentence that concludes. The chart runs edge to edge
+    /// because it is the picture of the month, not a widget inside it.
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            metricsContent
+            HeroFigure(
+                eyebrow: AppLocale.string("estimé fin \(monthName)"),
+                amount: presentation.estimatedBalance,
+                currency: currency,
+                alignment: .leading,
+                accessibilityIdentifier: "homeProjectedBalanceAmount"
+            )
+
+            balanceChart
+
+            metricsButton
+
             verdictSentence
         }
         // Drives the digit morph above: `contentTransition` is inert unless the value
@@ -63,35 +77,22 @@ struct HomeHeroCard: View {
 
     // MARK: - Summary
 
-    /// Same `VStack(spacing: .lg)` structure as before — only `summaryMetrics` sits behind
-    /// the Button now. The amount and the chart never opened anything; wrapping all three
-    /// made the 120pt chart tappable by accident and buried the one thing that does
-    /// (the two metrics) inside a control with no chevron or ink to say so.
-    private var metricsContent: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            HeroFigure(
-                eyebrow: AppLocale.string("estimé fin \(monthName)"),
-                amount: presentation.estimatedBalance,
-                currency: currency,
-                accessibilityIdentifier: "homeProjectedBalanceAmount"
-            )
-
-            Button {
-                tapTrigger.toggle()
-                onTapMetrics()
-            } label: {
-                summaryMetrics
-            }
-            .contentShape(Rectangle())
-            .plainPressedButtonStyle()
-            .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
-            .accessibilityLabel(accessibilityDescription)
-            .accessibilityHint("Ouvrir le suivi du réalisé")
-            .accessibilityIdentifier("homeHeroMetrics")
-
-            balanceChart
+    /// Only the two metrics open anything. The amount and the chart stay outside the
+    /// control: wrapping all three made the chart tappable by accident and buried the one
+    /// thing that does respond inside a control with no chevron or ink to say so.
+    private var metricsButton: some View {
+        Button {
+            tapTrigger.toggle()
+            onTapMetrics()
+        } label: {
+            summaryMetrics
         }
-        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .plainPressedButtonStyle()
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
+        .accessibilityLabel(accessibilityDescription)
+        .accessibilityHint("Ouvrir le suivi du réalisé")
+        .accessibilityIdentifier("homeHeroMetrics")
     }
 
     // MARK: - Compact Summary

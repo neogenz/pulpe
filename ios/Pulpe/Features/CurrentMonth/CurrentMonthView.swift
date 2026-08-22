@@ -78,7 +78,9 @@ struct CurrentMonthView: View {
                 .transition(.opacity)
             case .loaded:
                 dashboardContent
-                    .transition(.opacity)
+                    // The skeleton already holds every slot; the data arrives by coming into
+                    // focus over it rather than popping in. Reduce Motion gets a plain fade.
+                    .transition(loadedTransition)
             }
         }
         .background { Color.appBackground.ignoresSafeArea() }
@@ -338,6 +340,10 @@ struct CurrentMonthView: View {
 extension CurrentMonthView {
     /// Failed and empty keep a flat canvas; loaded and skeleton paint the forest through
     /// `heroZone()`, so the navigation bar ink follows the same switch.
+    fileprivate var loadedTransition: AnyTransition {
+        reduceMotion ? .opacity : AnyTransition(.blurReplace)
+    }
+
     fileprivate var paintsHeroSurface: Bool {
         switch store.contentState {
         case .idle, .loading, .loaded: true

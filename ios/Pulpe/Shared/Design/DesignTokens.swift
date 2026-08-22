@@ -88,7 +88,7 @@ enum DesignTokens {
         static let medium: CGFloat = 1.5
         static let thick: CGFloat = 2
         /// Tracked series on hero charts (`HomeHeroCard+Chart`, `GoalProjectionChart`)
-        static let chartLine: CGFloat = 2.5
+        static let chartLine: CGFloat = 2
     }
 
     // MARK: - Shadows
@@ -331,6 +331,8 @@ enum DesignTokens {
         static let greetingWidth = longTextWidth
         /// A single line of placeholder text.
         static let lineHeight: CGFloat = 18
+        /// A `HeroMetricTile` placeholder: value + label lines plus `md` padding on each side.
+        static let heroTileHeight: CGFloat = 64
         static let sectionHeight: CGFloat = 20
         static let tagHeight: CGFloat = 20
         static let chipHeight: CGFloat = 30

@@ -151,46 +151,42 @@ struct CurrentMonthSkeletonView: View {
 private struct CurrentMonthHeroSkeleton: View {
     @Environment(\.skeletonTint) private var skeletonTint
 
+    /// Same slots, same order and heights as the loaded hero: eyebrow and figure on the
+    /// leading rail, the full-bleed chart, two tiles, the sentence.
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            VStack(spacing: DesignTokens.Spacing.xs) {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth,
-                    height: DesignTokens.Spacing.sectionGap
-                )
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 SkeletonShape(
                     width: DesignTokens.Skeleton.greetingWidth / 2,
                     height: DesignTokens.Spacing.md
                 )
-            }
-
-            HStack {
                 SkeletonShape(
                     width: DesignTokens.Skeleton.greetingWidth,
-                    height: DesignTokens.Skeleton.lineHeight
-                )
-                Spacer()
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth / 2,
-                    height: DesignTokens.Skeleton.lineHeight
+                    height: DesignTokens.Spacing.sectionGap
                 )
             }
 
             chartSkeleton
+                .padding(.horizontal, -DesignTokens.Spacing.xxl)
 
-            HStack {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth / 2,
-                    height: DesignTokens.Skeleton.lineHeight
-                )
-                Spacer()
-                SkeletonShape(
-                    width: DesignTokens.Spacing.md,
-                    height: DesignTokens.Skeleton.lineHeight
-                )
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                tileSkeleton
+                tileSkeleton
             }
+
+            SkeletonShape(
+                width: DesignTokens.Skeleton.greetingWidth,
+                height: DesignTokens.Skeleton.lineHeight
+            )
             .frame(minHeight: DesignTokens.TapTarget.minimum)
         }
+    }
+
+    private var tileSkeleton: some View {
+        SkeletonShape(
+            height: DesignTokens.Skeleton.heroTileHeight,
+            cornerRadius: DesignTokens.CornerRadius.card
+        )
     }
 
     private var chartSkeleton: some View {

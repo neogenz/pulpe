@@ -13,41 +13,19 @@ extension HomeHeroCard {
         if let trajectory {
             Chart {
                 // The line's own origin, so rule and line can never start apart. It carries
-                // its value: a named horizontal with no number is a line the reader has to
-                // take on faith, and the gap below is measured from it.
+                // no label: the `vs prévu` tile under the plot already quotes the plan, and a
+                // figure printed on the picture was one more thing to read before seeing it.
                 RuleMark(y: .value("Prévu", Self.decimalValue(trajectory.plannedBalance)))
                     .foregroundStyle(Color.heroInk.opacity(DesignTokens.Opacity.heroInkMuted))
                     .lineStyle(StrokeStyle(
                         lineWidth: DesignTokens.BorderWidth.thin,
                         dash: DesignTokens.Chart.markerDash
                     ))
-                    // Kept inside the plot: a month below its plan has the rule at the top of
-                    // the range and no room above it, and the label went out of the frame
-                    // and landed on the metrics row. The side it sits on is empty by
-                    // construction — the line never crosses its own rule — so sliding it in
-                    // costs nothing.
-                    //
-                    // Clears the rule by more than the today marker's own radius. On the
-                    // first day of a period the marker sits at the left edge, right under
-                    // this label, and a tighter gap put the circle through the figure.
-                    .annotation(
-                        position: Self.ruleLabelPosition(for: trajectory),
-                        alignment: .leading,
-                        spacing: DesignTokens.Spacing.md,
-                        overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))
-                    ) {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
-                            Text("Prévu")
-                            Text(trajectory.plannedBalance.asAdaptiveCurrency(currency))
-                        }
-                        .font(PulpeTypography.caption2)
-                        .foregroundStyle(Color.heroInkSecondary)
-                        .lineLimit(1)
-                    }
 
-                // The area under the tracked series: translucent mint fading to nothing,
-                // the only fill on the plot. A flat month has no gap to shade.
-                ForEach(trajectory.drift.rounded(2) == 0 ? [] : trajectory.landing) { point in
+                // The area under the tracked series: ink fading to nothing, the only fill on
+                // the plot. Always drawn, a held month included — the fill is what makes the
+                // line read as a surface rather than a wire, not a signal about the gap.
+                ForEach(trajectory.landing) { point in
                     AreaMark(
                         x: .value("Jour", point.day),
                         yStart: .value("Plancher", Self.chartYDomain(for: trajectory).lowerBound),
@@ -57,7 +35,7 @@ extension HomeHeroCard {
                     .interpolationMethod(.monotone)
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color.heroInkSecondary.opacity(DesignTokens.Opacity.heroArea), .clear],
+                            colors: [Color.heroInk.opacity(DesignTokens.Opacity.heroArea), .clear],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -76,7 +54,7 @@ extension HomeHeroCard {
                         lineCap: .round,
                         lineJoin: .round
                     ))
-                    .foregroundStyle(Color.heroInkSecondary)
+                    .foregroundStyle(Color.heroInk)
                 }
 
                 // Nothing is known about the days not yet lived, so the forecast holds its
@@ -89,7 +67,7 @@ extension HomeHeroCard {
                     )
                     .interpolationMethod(.linear)
                     .lineStyle(StrokeStyle(
-                        lineWidth: DesignTokens.BorderWidth.thick,
+                        lineWidth: DesignTokens.BorderWidth.chartLine,
                         lineCap: .round,
                         dash: DesignTokens.Chart.dash
                     ))
@@ -125,9 +103,8 @@ extension HomeHeroCard {
                             .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
                     }
                     // One label on this anchor, never two: the gap when there is room to
-                    // print it, the day otherwise. It always lands on the far side of the
-                    // rule from the plan's own label, so the two cannot meet — that overlap
-                    // is what the mockups showed on an early day.
+                    // print it, the day otherwise. It lands on the far side of the rule from
+                    // the line's origin, where the plot is empty by construction.
                     .annotation(
                         position: Self.gapLabelPosition(for: trajectory),
                         alignment: .trailing,
@@ -146,6 +123,9 @@ extension HomeHeroCard {
                 }
             }
             .chartXScale(domain: 0 ... trajectory.totalDays)
+            // Edge to edge: cancels the hero's text inset so the plot spans the screen.
+            .chartPlotStyle { $0.padding(0) }
+            .padding(.horizontal, -DesignTokens.Spacing.xxl)
             .chartYScale(domain: Self.chartYDomain(for: trajectory))
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
@@ -178,15 +158,8 @@ extension HomeHeroCard {
         return [current, .init(day: trajectory.totalDays, balance: current.balance)]
     }
 
-    /// The two labels sit on opposite sides of the rule — the plan's away from the drift,
-    /// the anchor's away from the rule. A month above its plan flips both, and neither
-    /// arrangement can put them on the same band of the plot.
-    static func ruleLabelPosition(
-        for trajectory: BudgetFormulas.BalanceTrajectory
-    ) -> AnnotationPosition {
-        trajectory.drift.rounded(2) > 0 ? .bottom : .top
-    }
-
+    /// The anchor label sits away from the rule — below it for a month under its plan,
+    /// above it for a month over — where the plot is empty by construction.
     static func gapLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> AnnotationPosition {
@@ -260,20 +233,22 @@ extension HomeHeroCard {
         let upper = values.max() ?? 1
         let span = span(for: trajectory)
         // The floor is spent as slack around the readings rather than added below them, so a
-        // quiet month sits centred in its frame instead of pinned to the top of it.
-        let slack = max(span - (upper - lower), 0) / 2
+        // quiet month is not pinned to the top of its frame. Three quarters of it go under the
+        // line: the fill lives there, and empty sky above a flat line reads as a missing plot.
+        let slack = max(span - (upper - lower), 0)
+        let slackAbove = slack / 4
+        let slackBelow = slack - slackAbove
         let padding = max(
             span * DesignTokens.Chart.domainPaddingRatio,
             DesignTokens.Chart.minimumDomainPadding
         )
-        // A band for each label, on the side that label sits: the plan's away from the
-        // drift, the anchor's away from the rule. Reserved here rather than resolved at
-        // draw time, because pushing a label back inside a full frame lands it on the line.
-        let planBand = span * DesignTokens.Chart.planLabelBandRatio
+        // A band for the anchor label on the side it sits, away from the rule. Reserved here
+        // rather than resolved at draw time, because pushing a label back inside a full
+        // frame lands it on the line.
         let anchorBand = span * DesignTokens.Chart.anchorLabelBandRatio
-        let above = trajectory.drift.rounded(2) > 0 ? anchorBand : planBand
-        let below = trajectory.drift.rounded(2) > 0 ? planBand : anchorBand
-        return (lower - slack - padding - below) ... (upper + slack + padding + above)
+        let above = trajectory.drift.rounded(2) > 0 ? anchorBand : 0
+        let below = trajectory.drift.rounded(2) > 0 ? 0 : anchorBand
+        return (lower - slackBelow - padding - below) ... (upper + slackAbove + padding + above)
     }
 
     private static func decimalValue(_ value: Decimal) -> Double {

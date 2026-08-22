@@ -135,20 +135,12 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func chartLabels_sitOnOppositeSidesOfThePlanRule() {
-        // The mockups overlapped on an early day, with both labels in the same band. Placing
-        // them across the rule makes that arrangement unreachable rather than unlikely.
-        let below = trajectory(landing: [2_500, 1_800])
-        #expect(HomeHeroCard.ruleLabelPosition(for: below) == .top)
-        #expect(HomeHeroCard.gapLabelPosition(for: below) == .bottom)
-
-        let above = trajectory(landing: [2_500, 2_900])
-        #expect(HomeHeroCard.ruleLabelPosition(for: above) == .bottom)
-        #expect(HomeHeroCard.gapLabelPosition(for: above) == .top)
-
-        let held = trajectory(landing: [2_500, 2_500])
-        #expect(HomeHeroCard.ruleLabelPosition(for: held) == .top)
-        #expect(HomeHeroCard.gapLabelPosition(for: held) == .bottom)
+    @Test func gapLabel_sitsAwayFromThePlanRule() {
+        // The label lands where the plot is empty by construction: the line never crosses
+        // its own rule, so the far side of the rule from the origin is always free.
+        #expect(HomeHeroCard.gapLabelPosition(for: trajectory(landing: [2_500, 1_800])) == .bottom)
+        #expect(HomeHeroCard.gapLabelPosition(for: trajectory(landing: [2_500, 2_900])) == .top)
+        #expect(HomeHeroCard.gapLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .bottom)
     }
 
     @MainActor

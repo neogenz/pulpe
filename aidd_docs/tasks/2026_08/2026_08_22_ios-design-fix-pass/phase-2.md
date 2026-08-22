@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Home hero — edge-to-edge chart, one hierarchy
