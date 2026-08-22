@@ -117,10 +117,11 @@ enum DesignTokens {
         /// die-cut from the same sheet, so it stays close to the edge that casts it:
         /// spread over a wide blur it dissolved into the canvas and read as nothing.
         /// Scheme-aware colour, because dark mode gets its depth from tone instead.
+        /// Negative offset: the content card casts it upward onto the forest it rises over.
         static let zoneBoundary = ShadowStyle(
             color: .homeZoneBoundaryShadow,
             radius: 6,
-            y: 3
+            y: -3
         )
         /// Input fields (auth, currency)
         static let input = ShadowStyle(
@@ -352,6 +353,19 @@ enum DesignTokens {
     }
 
     // MARK: - Progress Bar
+
+    enum Layout {
+        /// How far a scroll-native zone background is bled past its own edge, so overscroll
+        /// (pull-to-refresh, rubber-banding) and the status bar never show the canvas behind
+        /// it. Any value taller than a screen works; 1000pt is just comfortably past it.
+        static let overscrollBleed: CGFloat = 1000
+    }
+
+    enum Motion {
+        /// Fraction of the scroll offset the home hero follows, so the content card appears
+        /// to rise over it. 0 = scrolls 1:1 with the card (what Reduce Motion gets).
+        static let heroParallax: CGFloat = 0.35
+    }
 
     enum ProgressBar {
         /// Standard thin progress bar height

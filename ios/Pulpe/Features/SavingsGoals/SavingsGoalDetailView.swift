@@ -24,7 +24,6 @@ struct SavingsGoalDetailView: View {
 
     @State var viewModel: SavingsGoalDetailViewModel
     @State private var editTarget: SavingsGoal?
-    @State private var heroSurfaceTracker = HeroZoneTracker()
     @State private var isSimulating = false
     @State private var pendingSimulatorBudgetId: String?
     @State private var showRecoveryRecap = false
@@ -64,7 +63,7 @@ struct SavingsGoalDetailView: View {
         }
         .navigationTitle(currentGoal.name)
         .navigationBarTitleDisplayMode(.inline)
-        .background { HeroZoneSurface(tracker: heroSurfaceTracker).ignoresSafeArea() }
+        .background { Color.appBackground.ignoresSafeArea() }
         .toolbarColorScheme(viewModel.progress != nil ? .dark : nil, for: .navigationBar)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
@@ -137,61 +136,71 @@ struct SavingsGoalDetailView: View {
     @ViewBuilder
     private func content(progress: SavingsGoalProgress) -> some View {
         ScrollView {
-            // Section rhythm of the home: `xxl` between sections, `md` from a
-            // title to the card it introduces — the 2:1 ratio that tells which
-            // block a header belongs to.
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+            VStack(spacing: 0) {
                 hero(progress)
-                    .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
-                        heroSurfaceTracker.update($0)
-                    }
-                if progress.linkedLineCount == 0 {
-                    GoalEmptyGuidanceCard()
-                }
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.vertical, DesignTokens.Spacing.lg)
+                    .heroZone()
 
-                GoalDerivedStateCards(
-                    progress: progress,
-                    status: currentGoal.status,
-                    isMutatingStatus: viewModel.isMutatingStatus,
-                    futureLinesCount: viewModel.futureLines.count,
-                    onEdit: { editTarget = currentGoal },
-                    onComplete: { Task { await setStatus(.completed) } },
-                    onReopen: { Task { await setStatus(.active) } },
-                    onManageFutureLines: { Task { await proposeGenerationStop() } }
-                )
-
-                if SavingsGoalDetailViewModel.shouldShowPlanTimeline(progress) {
-                    if progress.linkedLineCount > 0 {
-                        // Construite une seule fois : la même série gate la section
-                        // et alimente le chart (jusqu'à ~96 mois mappés par lecture).
-                        let series = GoalProjectionSeries.read(from: progress)
-                        if series.hasConfirmedTrend {
-                            GoalTrajectorySection(progress: progress, series: series, currency: currency)
-                        }
-                    }
-                    GoalPlanTimelineSection(
-                        months: progress.months,
-                        currency: currency,
-                        plannedWithdrawals: viewModel.plannedWithdrawals,
-                        canAdjust: canAdjust(progress),
-                        canRepair: SavingsGoalDetailViewModel.canRepairPlan(progress, status: currentGoal.status),
-                        onAdjust: { isSimulating = true },
-                        onRepair: { showRecoveryRecap = true },
-                        onOpenBudget: openWithdrawal
-                    )
-                }
-
-                contributionsSection(progress)
-                withdrawalsSection
+                sections(progress)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.top, DesignTokens.Spacing.xxl)
+                    .padding(.bottom, DesignTokens.Spacing.lg)
+                    .contentZone()
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.lg)
         }
         .scrollContentBackground(.hidden)
         .refreshable { await viewModel.load() }
         .accessibilityIdentifier("savingsGoalDetailRoot")
         .sheet(isPresented: $isSimulating, onDismiss: openPendingSimulatorBudget) {
             simulator(progress: progress)
+        }
+    }
+
+    /// Section rhythm of the home: `xxl` between sections, `md` from a
+    /// title to the card it introduces — the 2:1 ratio that tells which
+    /// block a header belongs to.
+    @ViewBuilder
+    private func sections(_ progress: SavingsGoalProgress) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+            if progress.linkedLineCount == 0 {
+                GoalEmptyGuidanceCard()
+            }
+
+            GoalDerivedStateCards(
+                progress: progress,
+                status: currentGoal.status,
+                isMutatingStatus: viewModel.isMutatingStatus,
+                futureLinesCount: viewModel.futureLines.count,
+                onEdit: { editTarget = currentGoal },
+                onComplete: { Task { await setStatus(.completed) } },
+                onReopen: { Task { await setStatus(.active) } },
+                onManageFutureLines: { Task { await proposeGenerationStop() } }
+            )
+
+            if SavingsGoalDetailViewModel.shouldShowPlanTimeline(progress) {
+                if progress.linkedLineCount > 0 {
+                    // Construite une seule fois : la même série gate la section
+                    // et alimente le chart (jusqu'à ~96 mois mappés par lecture).
+                    let series = GoalProjectionSeries.read(from: progress)
+                    if series.hasConfirmedTrend {
+                        GoalTrajectorySection(progress: progress, series: series, currency: currency)
+                    }
+                }
+                GoalPlanTimelineSection(
+                    months: progress.months,
+                    currency: currency,
+                    plannedWithdrawals: viewModel.plannedWithdrawals,
+                    canAdjust: canAdjust(progress),
+                    canRepair: SavingsGoalDetailViewModel.canRepairPlan(progress, status: currentGoal.status),
+                    onAdjust: { isSimulating = true },
+                    onRepair: { showRecoveryRecap = true },
+                    onOpenBudget: openWithdrawal
+                )
+            }
+
+            contributionsSection(progress)
+            withdrawalsSection
         }
     }
 
@@ -247,47 +256,6 @@ struct SavingsGoalDetailView: View {
         guard let budgetId = pendingSimulatorBudgetId else { return }
         pendingSimulatorBudgetId = nil
         openWithdrawal(budgetId)
-    }
-
-    /// Simulator entry (pilier C): active goal, at least one linked line, at least
-    /// one open month. Hidden for PAUSED/COMPLETED (no rhythm verdict → no editing).
-    private func canAdjust(_ progress: SavingsGoalProgress) -> Bool {
-        guard currentGoal.status == .active, progress.linkedLineCount > 0 else { return false }
-        return progress.months.contains { SavingsPlanCalculator.isContributivePlanMonth($0) }
-    }
-
-    private func recoveryChanges(
-        _ progress: SavingsGoalProgress
-    ) -> [SavingsPlanCalculator.SimulatedMonth] {
-        guard let amount = SavingsGoalDetailViewModel.recoveryAmount(progress) else { return [] }
-        // Each repaired month adds `amount` on top of every repair before it, so
-        // the running total accumulates — `plannedCumulative + amount` alone would
-        // report the same figure for all N months. Mirrors the accumulation
-        // `SavingsPlanCalculator.simulate` performs on the adjustment path.
-        var repaired = Decimal.zero
-        return progress.months.filter(\.isRepairable).map {
-            repaired += amount
-            return SavingsPlanCalculator.SimulatedMonth(
-                month: $0,
-                simulatedAmount: amount,
-                simulatedCumulative: $0.plannedCumulative + repaired,
-                isAdjusted: true,
-                replacesExistingPlanWithdrawal: false
-            )
-        }
-    }
-
-    /// Base `displayedProjection`, not `plannedProjection`: the sentence answers
-    /// the same question as the hero and the chart endpoint, so it has to start
-    /// from the same figure. `plannedProjection` never subtracts a withdrawal,
-    /// so on a goal without a target amount it quoted an « après création » above
-    /// what the curve reaches — two projections for one plan.
-    private func recoveryVerdict(_ progress: SavingsGoalProgress) -> String {
-        let changes = recoveryChanges(progress)
-        let added = changes.reduce(Decimal.zero) { $0 + $1.simulatedAmount }
-        return AppLocale.string(
-            "Projection après création : \((progress.displayedProjection + added).asAdaptiveCurrency(currency))"
-        )
     }
 }
 

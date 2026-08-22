@@ -19,8 +19,6 @@ struct CurrentMonthView: View {
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
-    /// Screen-space bottom edge of the hero, owned here and read only by the surface layer.
-    @State private var heroSurfaceTracker = HeroZoneTracker()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var animationPhase: Int {
@@ -60,7 +58,7 @@ struct CurrentMonthView: View {
         ZStack {
             switch store.contentState {
             case .idle, .loading:
-                CurrentMonthSkeletonView(onHeroSurfaceBottomChange: { heroSurfaceTracker.update($0) })
+                CurrentMonthSkeletonView()
                     .transition(.opacity)
             case .failed:
                 ErrorView(error: store.error ?? .networkError(URLError(.unknown))) {
@@ -83,7 +81,7 @@ struct CurrentMonthView: View {
                     .transition(.opacity)
             }
         }
-        .background { dashboardBackground.ignoresSafeArea() }
+        .background { Color.appBackground.ignoresSafeArea() }
         // The hero runs under the navigation bar: its title and avatar go to light ink
         // while the forest is painted, and back to the default on a flat canvas.
         .toolbarColorScheme(paintsHeroSurface ? .dark : nil, for: .navigationBar)
@@ -224,15 +222,13 @@ struct CurrentMonthView: View {
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xxl)
-                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
-                    heroSurfaceTracker.update($0)
-                }
+                .heroZone(parallax: true)
 
                 dashboardDetails
-                .frame(maxWidth: .infinity)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.lg)
-                .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
+                    .padding(.top, DesignTokens.Spacing.xxl)
+                    .padding(.bottom, DesignTokens.Spacing.lg)
+                    .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
+                    .contentZone()
             }
         }
         .refreshable {
@@ -340,17 +336,8 @@ struct CurrentMonthView: View {
 // type-length budget while still reaching the view's `private` state (same-file
 // access), rather than loosening encapsulation to move it to another file.
 extension CurrentMonthView {
-    /// Failed and empty keep a flat canvas. Loaded and skeleton paint the forest through
-    /// `HeroZoneSurface`, which is the only reader of `tracker.height`.
-    @ViewBuilder
-    fileprivate var dashboardBackground: some View {
-        if paintsHeroSurface {
-            HeroZoneSurface(tracker: heroSurfaceTracker)
-        } else {
-            Color.appBackground
-        }
-    }
-
+    /// Failed and empty keep a flat canvas; loaded and skeleton paint the forest through
+    /// `heroZone()`, so the navigation bar ink follows the same switch.
     fileprivate var paintsHeroSurface: Bool {
         switch store.contentState {
         case .idle, .loading, .loaded: true

@@ -8,7 +8,6 @@ struct BudgetListView: View {
     @State private var createBudgetTarget: (month: Int, year: Int)?
     @State private var hasAppeared = false
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
-    @State private var heroSurfaceTracker = HeroZoneTracker()
     @State private var templateBalance: Decimal?
 
     var body: some View {
@@ -191,9 +190,7 @@ struct BudgetListView: View {
                 }
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xl)
-                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
-                    heroSurfaceTracker.update($0)
-                }
+                .heroZone()
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     SectionHeader(title: AppLocale.string("Mois"), count: yearBudgets.count)
@@ -225,13 +222,14 @@ struct BudgetListView: View {
                 }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.top, DesignTokens.Spacing.xxl)
+                .padding(.bottom, DesignTokens.Spacing.lg)
+                .contentZone()
             }
-            .padding(.bottom, DesignTokens.Spacing.lg)
             .opacity(hasAppeared ? 1 : 0)
             .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
         }
         .scrollIndicators(.automatic)
-        .background { HeroZoneSurface(tracker: heroSurfaceTracker).ignoresSafeArea() }
+        .background { Color.appBackground.ignoresSafeArea() }
     }
 }
 

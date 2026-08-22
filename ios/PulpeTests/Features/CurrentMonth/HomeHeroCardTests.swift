@@ -252,9 +252,10 @@ struct HomeHeroCardTests {
             encoding: .utf8
         )
 
-        #expect(viewSource.contains(".background { dashboardBackground.ignoresSafeArea() }"))
+        #expect(viewSource.contains(".heroZone(parallax: true)"))
+        #expect(viewSource.contains(".contentZone()"))
         #expect(!viewSource.contains(".background(Color.homeBackground)"))
-        #expect(viewSource.contains("HeroZoneSurface(tracker:"))
+        #expect(!viewSource.contains("HeroZoneTracker"))
         #expect(!viewSource.contains("LinearGradient("))
         #expect(backgroundSource.components(separatedBy: "LinearGradient(").count == 2)
     }

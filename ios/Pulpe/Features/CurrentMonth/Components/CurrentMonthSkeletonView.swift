@@ -3,10 +3,6 @@ import SwiftUI
 /// Loading state for the dashboard. Its regions deliberately follow the loaded
 /// screen so the transition keeps the same visual anchors.
 struct CurrentMonthSkeletonView: View {
-    /// Reports the hero zone's bottom edge in screen space so the dashboard surface
-    /// tracker can stop the surface at the same place while loading as once loaded.
-    var onHeroSurfaceBottomChange: (CGFloat) -> Void = { _ in }
-
     var body: some View {
         ScrollView {
             VStack(spacing: DesignTokens.Spacing.none) {
@@ -18,8 +14,9 @@ struct CurrentMonthSkeletonView: View {
                     activityCardSkeleton
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
-                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.top, DesignTokens.Spacing.xxl)
                 .padding(.bottom, DesignTokens.Spacing.lg)
+                .contentZone()
             }
         }
         .shimmering()
@@ -36,9 +33,7 @@ struct CurrentMonthSkeletonView: View {
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.xxl)
-        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
-            onHeroSurfaceBottomChange($0)
-        }
+        .heroZone(parallax: true)
     }
 
     /// The filled CTA, at its own height: a card-shaped placeholder would hand the slot

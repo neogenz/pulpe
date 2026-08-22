@@ -20,7 +20,6 @@ struct BudgetDetailsView: View {
     @State var projector: BudgetDetailsProjector
     @State private var searchText = ""
     @State private var scrollTracker = BudgetDetailsScrollTracker()
-    @State private var heroSurfaceTracker = HeroZoneTracker()
     /// Budget ids for which the "mois un peu juste" card was dismissed via
     /// "Plus tard" (PUL-292), comma-joined. Non-private for the card extension.
     @AppStorage(SavingsWithdrawalCardGate.storageKey) var dismissedWithdrawalBudgetIds = ""
@@ -221,77 +220,77 @@ struct BudgetDetailsView: View {
                     of: { $0.frame(in: .scrollView).minY },
                     action: { newMinY in scrollTracker.update(heroMinY: newMinY) }
                 )
-                .onGeometryChange(
-                    for: CGFloat.self,
-                    of: { $0.frame(in: .global).maxY },
-                    action: { maxY in heroSurfaceTracker.update(maxY) }
-                )
+                .heroZone()
 
-                TipView(ProductTips.pessimisticCheck)
-                    .pulpeTipBackground()
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.sm)
+                VStack(spacing: 0) {
+                    TipView(ProductTips.pessimisticCheck)
+                        .pulpeTipBackground()
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .padding(.bottom, DesignTokens.Spacing.sm)
 
-                if let prefill = tightMonthCardPrefill {
-                    tightMonthCard(prefill: prefill)
-                }
+                    if let prefill = tightMonthCardPrefill {
+                        tightMonthCard(prefill: prefill)
+                    }
 
-                BudgetTypeFilter(
-                    kind: typeFilterBinding,
-                    checked: checkedFilterBinding,
-                    counts: screenState.kindCounts,
-                    checkedCounts: screenState.checkedCounts
-                )
-                .popoverTip(ProductTips.checking)
+                    BudgetTypeFilter(
+                        kind: typeFilterBinding,
+                        checked: checkedFilterBinding,
+                        counts: screenState.kindCounts,
+                        checkedCounts: screenState.checkedCounts
+                    )
+                    .popoverTip(ProductTips.checking)
 
-                if !searchText.isEmpty && sections.isEmpty && free.isEmpty {
-                    ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
+                    if !searchText.isEmpty && sections.isEmpty && free.isEmpty {
+                        ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, DesignTokens.Spacing.xxl)
+                    }
+
+                    if screenState.canShowEmptyChecked {
+                        ContentUnavailableView {
+                            Label("Tout est pointé", systemImage: "checkmark.circle.fill")
+                        } description: {
+                            Text("Bien joué ! Passe sur « Tout voir » pour revoir tes prévisions.")
+                        }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, DesignTokens.Spacing.xxl)
-                }
-
-                if screenState.canShowEmptyChecked {
-                    ContentUnavailableView {
-                        Label("Tout est pointé", systemImage: "checkmark.circle.fill")
-                    } description: {
-                        Text("Bien joué ! Passe sur « Tout voir » pour revoir tes prévisions.")
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DesignTokens.Spacing.xxl)
-                }
 
-                ForEach(sections) { section in
-                    BudgetMixedSection(
-                        kind: section.kind,
-                        items: section.items,
-                        currency: userSettingsStore.currency,
-                        goalNamesById: savingsGoalNamesById,
-                        tagNamesById: tagStore.namesById,
-                        savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
-                        onTap: { line in
-                            router.push(.lineDetail(lineId: line.id))
-                        },
-                        onTogglePointed: { line in handlePointGesture(on: line) }
-                    )
-                }
+                    ForEach(sections) { section in
+                        BudgetMixedSection(
+                            kind: section.kind,
+                            items: section.items,
+                            currency: userSettingsStore.currency,
+                            goalNamesById: savingsGoalNamesById,
+                            tagNamesById: tagStore.namesById,
+                            savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
+                            onTap: { line in
+                                router.push(.lineDetail(lineId: line.id))
+                            },
+                            onTogglePointed: { line in handlePointGesture(on: line) }
+                        )
+                    }
 
-                if !free.isEmpty {
-                    BudgetDetailsFreeTransactionsList(
-                        items: free,
-                        currency: userSettingsStore.currency,
-                        tagNamesById: tagStore.namesById,
-                        onTap: { transaction in
-                            router.push(.editTx(transactionId: transaction.id))
-                        },
-                        onTogglePointed: { transaction in
-                            Task {
-                                await coordinator.dispatch(.toggleTransaction(transaction))
+                    if !free.isEmpty {
+                        BudgetDetailsFreeTransactionsList(
+                            items: free,
+                            currency: userSettingsStore.currency,
+                            tagNamesById: tagStore.namesById,
+                            onTap: { transaction in
+                                router.push(.editTx(transactionId: transaction.id))
+                            },
+                            onTogglePointed: { transaction in
+                                Task {
+                                    await coordinator.dispatch(.toggleTransaction(transaction))
+                                }
                             }
-                        }
-                    )
-                }
+                        )
+                    }
 
-                Color.clear.frame(height: DesignTokens.Spacing.lg)
+                    Color.clear.frame(height: DesignTokens.Spacing.lg)
+                }
+                .padding(.top, DesignTokens.Spacing.lg)
+                .contentZone()
             }
         }
         .scrollContentBackground(.hidden)
@@ -313,7 +312,7 @@ struct BudgetDetailsView: View {
             reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
             value: screenState.checkedTickHash
         )
-        .background { HeroZoneSurface(tracker: heroSurfaceTracker).ignoresSafeArea() }
+        .background { Color.appBackground.ignoresSafeArea() }
         .searchable(
             text: $searchText,
             placement: .navigationBarDrawer(displayMode: .automatic),
