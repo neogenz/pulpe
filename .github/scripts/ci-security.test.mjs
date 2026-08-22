@@ -520,6 +520,38 @@ test("iOS distribution serializes allocation and upload across channels", () => 
   assert.match(concurrency, /cancel-in-progress: false/);
 });
 
+test("iOS archive uses the imported App Store profiles without automatic provisioning", () => {
+  const archive = iosDistribution.slice(
+    iosDistribution.indexOf("Archive signed application"),
+    iosDistribution.indexOf("Export signed IPA"),
+  );
+
+  assert.match(archive, /CODE_SIGN_STYLE=Manual/);
+  assert.match(
+    archive,
+    /PULPE_APP_PROVISIONING_PROFILE_SPECIFIER="Pulpe App Store CI"/,
+  );
+  assert.match(
+    archive,
+    /PULPE_WIDGET_PROVISIONING_PROFILE_SPECIFIER="Pulpe Widget App Store CI"/,
+  );
+  assert.doesNotMatch(
+    archive,
+    /CODE_SIGN_STYLE=Automatic|-allowProvisioningUpdates|-authenticationKey(?:Path|ID|IssuerID)/,
+  );
+  const signing = iosDistribution.slice(
+    iosDistribution.indexOf("Configure manual App Store signing"),
+    iosDistribution.indexOf("Generate Xcode project"),
+  );
+  assert.match(signing, /PULPE_APP_PROVISIONING_PROFILE_SPECIFIER/);
+  assert.match(signing, /PULPE_WIDGET_PROVISIONING_PROFILE_SPECIFIER/);
+  assert.match(signing, /PROVISIONING_PROFILE_SPECIFIER/);
+  assert.ok(
+    iosDistribution.indexOf("Configure manual App Store signing") <
+      iosDistribution.indexOf("Generate Xcode project"),
+  );
+});
+
 test("iOS distribution consumes staging or finalized production proofs", () => {
   assert.equal(
     [

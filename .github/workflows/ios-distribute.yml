@@ -395,6 +395,37 @@ jobs:
             "$APPLE_TEAM_ID.app.pulpe.ios.widget" \
             WIDGET_INSTALLED_PROFILE
 
+      - name: Configure manual App Store signing
+        if: steps.asc.outputs.state == 'not_found'
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("project.yml")
+          text = path.read_text(encoding="utf-8")
+          profiles = {
+              '        INFOPLIST_KEY_CFBundleDisplayName: Pulpe':
+                  '$(PULPE_APP_PROVISIONING_PROFILE_SPECIFIER)',
+              '        INFOPLIST_KEY_CFBundleDisplayName: "Pulpe Widget"':
+                  '$(PULPE_WIDGET_PROVISIONING_PROFILE_SPECIFIER)',
+          }
+          for marker, profile_variable in profiles.items():
+              setting = f'          PROVISIONING_PROFILE_SPECIFIER: "{profile_variable}"'
+              if setting in text:
+                  continue
+              if text.count(marker) != 1:
+                  raise SystemExit(f"expected one signing marker, found {text.count(marker)}: {marker}")
+              replacement = (
+                  f"{marker}\n"
+                  "      configs:\n"
+                  "        Prod:\n"
+                  f"{setting}"
+              )
+              text = text.replace(marker, replacement)
+          path.write_text(text, encoding="utf-8")
+          PY
+
       - name: Generate Xcode project
         if: steps.asc.outputs.state == 'not_found'
         run: xcodegen generate --use-cache
@@ -410,12 +441,11 @@ jobs:
             -configuration "${{ steps.release.outputs.configuration }}" \
             -destination 'generic/platform=iOS' \
             -archivePath "$archive_path" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PULPE_APP_PROVISIONING_PROFILE_SPECIFIER="Pulpe App Store CI" \
+            PULPE_WIDGET_PROVISIONING_PROFILE_SPECIFIER="Pulpe Widget App Store CI" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             ONLY_ACTIVE_ARCH=NO
           echo "ARCHIVE_PATH=$archive_path" >> "$GITHUB_ENV"
