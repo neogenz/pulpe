@@ -260,9 +260,19 @@ it("creates the visible operation with its date and tags", async () => {
       amount: 120,
       kind: "expense",
       tagIds: ["tag-1"],
+      transactionDate: expect.any(String),
     }),
     expect.any(Object),
   );
+  const { transactionDate } = mockCreate.mutate.mock.calls[0][0] as {
+    transactionDate: string;
+  };
+  const chosenDate = new Date(transactionDate);
+  expect([
+    chosenDate.getFullYear(),
+    chosenDate.getMonth(),
+    chosenDate.getDate(),
+  ]).toEqual([2026, 8, 15]);
   const callbacks = mockCreate.mutate.mock.calls[0][1] as {
     onSuccess: () => void;
   };

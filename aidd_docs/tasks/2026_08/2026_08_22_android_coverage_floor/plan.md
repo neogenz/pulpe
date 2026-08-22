@@ -9,7 +9,7 @@ status: implemented
 
 | Field      | Value                                                                                                                        |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| **Goal**   | Partir du baseline réel 36,33/32,90/30,13/35,99 et relever chaque métrique après des tranches comportementales prioritaires. |
+| **Goal**   | Partir du total brut 36,33/32,90/30,13/35,99, puis relever le gate `global` sur sa population effective après chaque tranche comportementale prioritaire. |
 | **Source** | Texte utilisateur du 22 août 2026 : « écrire un plan pour faire progresser le plancher ».                                    |
 
 ## Phases
@@ -37,7 +37,7 @@ status: implemented
 
 | Decision                                                                                                    | Why                                                                                                                                           |
 | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Relever chaque métrique au plancher entier de la suite complète après chaque phase, sans jamais la diminuer | Le seuil reste toujours gagné par un comportement exécuté et ne dépend pas d’un objectif arbitraire ou d’un sous-ensemble de tests.           |
+| Relever chaque métrique au plancher entier de la population effective de `global`, sans jamais la diminuer | Jest soustrait de `global` les fichiers ayant leur propre seuil ; le total brut reste une mesure de reporting et ne doit pas être copié dans le gate. |
 | Prioriser disponibilité, coffre et écritures financières avant les écrans faciles à rendre                  | Une ligne couverte sur un flux qui peut bloquer l’app ou écrire de l’argent vaut davantage qu’une ligne couverte uniquement pour le compteur. |
 | Réutiliser Jest, `jest-expo` et RNTL déjà installés                                                         | La CI exécute déjà `pnpm test:unit`; aucun reporter, script de ratchet ni dépendance supplémentaire n’est nécessaire.                         |
 | Conserver les seuils ciblés session, vault et API                                                           | Ils empêchent le global de masquer une régression locale dans les trois frontières déjà fortement couvertes.                                  |

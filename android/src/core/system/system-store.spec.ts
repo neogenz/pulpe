@@ -51,14 +51,18 @@ describe("checkSystemGate", () => {
     expect(useSystemStore.getState().gate).toBe("ok");
   });
 
-  it("should show maintenance when the server says it is down", async () => {
-    mockedGet.mockRejectedValue(
-      new ApiError("En maintenance", "MAINTENANCE", 503, undefined),
-    );
+  it("should leave maintenance after a healthy compatible retry", async () => {
+    mockedGet
+      .mockRejectedValueOnce(
+        new ApiError("En maintenance", "MAINTENANCE", 503, undefined),
+      )
+      .mockResolvedValueOnce(versionResponse("1.2.0"));
 
     await checkSystemGate();
-
     expect(useSystemStore.getState().gate).toBe("maintenance");
+
+    await checkSystemGate();
+    expect(useSystemStore.getState().gate).toBe("ok");
   });
 
   it("should fail open when no server answers on launch", async () => {

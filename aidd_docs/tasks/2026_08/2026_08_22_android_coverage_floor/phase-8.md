@@ -52,7 +52,7 @@ journey
 
 ### `2)` Poser le plancher de sortie
 
-1. Exécuter la suite complète, relever chaque métrique globale à son plancher entier final et conserver tous les seuils ciblés.
+1. Exécuter la suite complète, soustraire les fichiers possédant un seuil ciblé, relever chaque métrique `global` à son plancher entier effectif final et conserver tous les seuils ciblés.
 2. Vérifier qu’aucune exclusion de production, snapshot ou lecture de source n’a été ajoutée dans les nouvelles specs.
 3. Conserver la couverture comme sortie du test CI existant, sans nouveau job ni reporter.
 
@@ -61,4 +61,4 @@ journey
 | Task | Acceptance criteria                                                                                                                    |
 | ---- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | Une action sensible exige sa confirmation, ne part qu’une fois et laisse une issue récupérable après rejet.                            |
-| 2    | Les quatre seuils globaux finaux sont supérieurs à 36/32/30/35, aucun seuil ciblé ne baisse et `pnpm test:unit` les impose dans la CI. |
+| 2    | Les quatre seuils `global` finaux ratchetent leur population effective, le total brut est reporté séparément, aucun seuil ciblé ne baisse et `pnpm test:unit` les impose dans la CI. |

@@ -43,17 +43,17 @@ journey
 ### `1)` Fermer l’écart entre mesure et seuil
 
 1. Garder le dénominateur `src/**/*.{ts,tsx}` et ses exclusions actuelles.
-2. Passer le global à statements 36, branches 32, functions 30 et lines 35.
+2. Mesurer séparément le total brut du rapport et la population effective de `global`, qui exclut les fichiers possédant un seuil ciblé, puis appliquer `floor(mesure effective)`.
 3. Ne pas modifier les seuils ciblés de `session-store`, `vault-store` et `api-client`.
 
 ### `2)` Définir la règle de ratchet des phases suivantes
 
-1. Après chaque phase, exécuter la suite complète et relever chaque seuil à `floor(mesure)` seulement si la valeur augmente.
+1. Après chaque phase, exécuter la suite complète et relever chaque seuil à `floor(mesure effective de global)` seulement si la valeur augmente.
 2. Refuser toute baisse de métrique, exclusion de production ou test source ajouté pour atteindre le seuil.
 
 ## Test acceptance criteria
 
 | Task | Acceptance criteria                                                                                                            |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------ |
-| 1    | Le seuil global correspond au plancher entier du baseline 36,33/32,90/30,13/35,99 et la suite complète reste verte.            |
-| 2    | Une couverture sous 36/32/30/35 échoue, tandis que les trois seuils ciblés critiques conservent leurs valeurs plus exigeantes. |
+| 1    | Le total brut 36,33/32,90/30,13/35,99 est reporté séparément et le seuil `global` correspond au plancher entier de sa population effective. |
+| 2    | Une couverture sous chaque plancher effectif échoue, tandis que les trois seuils ciblés critiques conservent leurs valeurs plus exigeantes. |

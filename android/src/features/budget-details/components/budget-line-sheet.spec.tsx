@@ -184,7 +184,25 @@ jest.mock("../spread/components/spread-form-section", () => {
     ),
   };
 });
-jest.mock("./savings-goal-links", () => ({ SavingsGoalLinks: () => null }));
+jest.mock("./savings-goal-links", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    SavingsGoalLinks: ({
+      line,
+      onNavigate,
+    }: {
+      line: { savingsGoalId: string | null };
+      onNavigate: () => void;
+    }) => (
+      <Pressable
+        accessibilityLabel={`open-goal-${line.savingsGoalId}`}
+        onPress={onNavigate}
+      >
+        <Text>{line.savingsGoalId}</Text>
+      </Pressable>
+    ),
+  };
+});
 
 const baseProps = {
   isVisible: true,
@@ -242,6 +260,7 @@ it("updates an existing forecast without echoing untouched fields", async () => 
     kind: "expense",
     recurrence: "one_off",
     templateLineId: "template-line-1",
+    savingsGoalId: "goal-1",
     sourceSavingsGoalId: null,
   } as BudgetLine;
   const view = await render(<BudgetLineSheet {...baseProps} line={line} />);
@@ -259,6 +278,29 @@ it("updates an existing forecast without echoing untouched fields", async () => 
     },
     expect.any(Object),
   );
+  expect(mockUpdate.mutate.mock.calls[0][0]).not.toHaveProperty(
+    "savingsGoalId",
+  );
+});
+
+it("closes the sheet before opening its linked savings goal", async () => {
+  const line = {
+    id: "line-1",
+    budgetId: "budget-1",
+    name: "Voyage",
+    amount: 100,
+    kind: "saving",
+    recurrence: "fixed",
+    templateLineId: "template-line-1",
+    savingsGoalId: "goal-1",
+    sourceSavingsGoalId: null,
+  } as BudgetLine;
+  const view = await render(<BudgetLineSheet {...baseProps} line={line} />);
+
+  await fireEvent.press(view.getByLabelText("open-goal-goal-1"));
+
+  expect(baseProps.onDismiss).toHaveBeenCalledTimes(1);
+  expect(mockUpdate.mutate).not.toHaveBeenCalled();
 });
 
 it("spreads a total or monthly amount over the selected window", async () => {

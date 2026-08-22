@@ -13,7 +13,10 @@ module.exports = {
   coverageDirectory: "coverage",
   coverageReporters: ["text", "json-summary", "lcov"],
   coverageThreshold: {
-    global: { statements: 49, branches: 48, functions: 42, lines: 48 },
+    // Jest removes files with their own threshold below from the `global`
+    // aggregate. Ratchet these floors from that effective population, while
+    // reporting `coverage-summary.json.total` separately as the raw total.
+    global: { statements: 49, branches: 48, functions: 42, lines: 49 },
     "./src/core/auth/session-store.ts": {
       statements: 92,
       branches: 78,

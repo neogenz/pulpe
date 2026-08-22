@@ -79,6 +79,8 @@ async function performSystemCheck(): Promise<void> {
     const { minVersion, storeUrl } = outcome.data.android;
     if (isVersionBelow(CURRENT_APP_VERSION, minVersion)) {
       setState({ gate: "forceUpdate", storeUrl: storeUrl ?? null });
+    } else if (useSystemStore.getState().gate === "maintenance") {
+      setState({ gate: "ok" });
     }
   } catch (error) {
     if (

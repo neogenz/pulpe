@@ -1,14 +1,10 @@
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 
-import { hapticFailure } from "@/core/ui/haptics";
-
 import { usePinEntry } from "./use-pin-entry";
 
 jest.mock("@/core/i18n/i18n", () => ({ translate: (key: string) => key }));
 jest.mock("@/core/ui/haptics", () => ({ hapticFailure: jest.fn() }));
 jest.mock("./pin-pad", () => ({ PIN_LENGTH: 4 }));
-
-const mockedHapticFailure = jest.mocked(hapticFailure);
 
 it("submits the fourth digit once while validation is in flight", async () => {
   let finish!: (message: string | null) => void;
@@ -26,7 +22,29 @@ it("submits the fourth digit once while validation is in flight", async () => {
   expect(result.current).toMatchObject({ pin: "", isBusy: false });
 });
 
-it("clears a returned error and its timer on unmount", async () => {
+it("clears an error after three seconds and accepts a new PIN", async () => {
+  jest.useFakeTimers();
+  const handle = jest
+    .fn<Promise<string | null>, [string]>()
+    .mockResolvedValueOnce("invalid-pin")
+    .mockResolvedValueOnce(null);
+  const { result } = await renderHook(() => usePinEntry(handle));
+
+  await act(() => result.current.setPin("1234"));
+  expect(result.current.errorMessage).toBe("invalid-pin");
+
+  await act(() => jest.advanceTimersByTimeAsync(2999));
+  expect(result.current.errorMessage).toBe("invalid-pin");
+  await act(() => jest.advanceTimersByTimeAsync(1));
+  expect(result.current.errorMessage).toBeNull();
+
+  await act(() => result.current.setPin("5678"));
+  expect(handle).toHaveBeenNthCalledWith(2, "5678");
+  expect(result.current).toMatchObject({ pin: "", isBusy: false });
+  jest.useRealTimers();
+});
+
+it("clears the error timer on unmount", async () => {
   jest.useFakeTimers();
   const clearTimeoutSpy = jest.spyOn(globalThis, "clearTimeout");
   const { result, unmount } = await renderHook(() =>
@@ -35,10 +53,10 @@ it("clears a returned error and its timer on unmount", async () => {
 
   await act(() => result.current.setPin("1234"));
   await waitFor(() => expect(result.current.errorMessage).toBe("invalid-pin"));
-  expect(mockedHapticFailure).toHaveBeenCalledTimes(1);
+  expect(clearTimeoutSpy).not.toHaveBeenCalled();
 
   await unmount();
-  expect(clearTimeoutSpy).toHaveBeenCalled();
+  expect(clearTimeoutSpy).toHaveBeenCalledTimes(1);
   clearTimeoutSpy.mockRestore();
   jest.useRealTimers();
 });
