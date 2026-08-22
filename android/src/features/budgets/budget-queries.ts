@@ -47,6 +47,7 @@ export function useBudgetPeriods(year: number | null) {
 
   return useQuery({
     queryKey: budgetKeys.periods(year ?? 0),
+    // A manual refetch can run even while `enabled` is false.
     queryFn: () =>
       year === null
         ? Promise.reject(new Error("No budget year to load"))

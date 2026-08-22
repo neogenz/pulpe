@@ -17,6 +17,7 @@ const readOptional = (path) => {
 };
 
 const action = read(".github/actions/setup-supabase-cli/action.yml");
+const startSupabase = read(".github/scripts/start-supabase.sh");
 const workflow = read(".github/workflows/ci.yml");
 const androidE2eWorkflow = read(".github/workflows/android-e2e.yml");
 const stagingProof = read(".github/workflows/staging-proof.yml");
@@ -58,10 +59,17 @@ const assertProductVersionInvariant = ({
   const expected = packages[0].version;
   assert.ok(expected, "the root product version must be present");
   for (const packageJson of packages) {
-    assert.equal(packageJson.version, expected);
+    assert.equal(
+      packageJson.version,
+      expected,
+      `${packageJson.name} version mismatch`,
+    );
   }
-  assert.equal(appVersion, expected);
-  assert.ok(fixedGroup.includes("pulpe-android"));
+  assert.equal(appVersion, expected, "android/app.json version mismatch");
+  assert.ok(
+    fixedGroup.includes("pulpe-android"),
+    "pulpe-android must remain in the fixed release group",
+  );
 };
 
 test("product versions and the Android release contract stay in lockstep", () => {
@@ -174,6 +182,15 @@ test("Supabase CLI version stays aligned across CI, local tooling, and docs", ()
   assert.match(
     ciGuide,
     new RegExp(`CLI Supabase ${version.replaceAll(".", "\\.")}`),
+  );
+});
+
+test("Supabase type generation pulls postgres-meta inside the retry boundary", () => {
+  assert.match(workflow, /supabase gen types typescript --local/);
+  assert.doesNotMatch(
+    startSupabase,
+    /^EXCLUDE=.*postgres-meta/m,
+    "postgres-meta must start inside the rate-limit retry loop",
   );
 });
 
