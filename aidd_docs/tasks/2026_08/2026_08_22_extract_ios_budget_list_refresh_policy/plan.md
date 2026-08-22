@@ -1,6 +1,6 @@
 ---
 objective: "La politique de rafraîchissement de la liste des budgets et son test unitaire vivent dans la feature Budgets sans changer le comportement de navigation."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Extraire la politique de rafraîchissement de la liste iOS
