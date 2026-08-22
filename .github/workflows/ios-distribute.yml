@@ -265,6 +265,7 @@ jobs:
             --marketing-version "$EXPECTED_MARKETING_VERSION" \
             --build-number "$BUILD_NUMBER" \
             --channel "$CHANNEL" \
+            --automation-branch "$GITHUB_REF_NAME" \
             >/dev/null
       - name: Poll App Store build processing
         if: steps.asc.outputs.state == 'processing'

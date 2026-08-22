@@ -573,6 +573,10 @@ test("iOS release recovery from preview is bound to an exact annotated release t
     /git rev-parse "\$recovery_tag\^\{commit\}".*!= "\$SOURCE_SHA"/s,
   );
   assert.match(validation, /Require exact annotated release tag for recovery/);
+  assert.match(
+    iosDistribution,
+    /resolve-ios-distribution-intent\.mjs[\s\S]*--automation-branch "\$GITHUB_REF_NAME"/,
+  );
 });
 
 test("iOS distribution consumes staging or finalized production proofs", () => {
