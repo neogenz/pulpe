@@ -44,38 +44,18 @@ enum ProductTips {
         isSheetPresented = modalPresentationCount > 0
     }
 
-    // MARK: - Gestures Tip
-
-    struct GesturesTip: Tip {
-        var title: Text {
-            Text("Interagis avec tes lignes")
-        }
-
-        var message: Text? {
-            Text("Touche pour modifier · Glisse pour compléter ou supprimer · Reste appuyé pour voir le détail")
-        }
-
-        var image: Image? {
-            Image(systemName: "hand.tap.fill")
-        }
-
-        var rules: [Rule] {
-            [
-                #Rule(ProductTips.$tourDismissed) { $0 == false },
-                #Rule(ProductTips.$isSheetPresented) { $0 == false }
-            ]
-        }
-    }
-
     // MARK: - Checking Tip
 
     struct CheckingTip: Tip {
         var title: Text {
-            Text("Pointage")
+            Text("Pointer un mouvement")
         }
 
         var message: Text? {
-            Text("Quand un mouvement est passé sur ton compte, pointe-le ici pour garder le fil.")
+            Text("""
+                Dès qu'un mouvement est passé sur ton compte, touche le rond devant sa ligne \
+                (ou « C'est passé » sur l'accueil). Pulpe garde le fil de ce qui est réel.
+                """)
         }
 
         var image: Image? {
@@ -151,7 +131,6 @@ enum ProductTips {
 
     // MARK: - Shared Instances
 
-    static let gestures = GesturesTip()
     static let checking = CheckingTip()
     static let pessimisticCheck = PessimisticCheckTip()
     static let templatesWebParity = TemplatesWebParityTip()

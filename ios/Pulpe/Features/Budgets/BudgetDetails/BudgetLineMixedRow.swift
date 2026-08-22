@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 
 /// One ledger row of the budget detail (The One Ledger Rule): nature disc, name, amount,
 /// chevron. Lives inside the section's grouped card; it carries no card of its own.
@@ -15,6 +16,8 @@ struct BudgetLineMixedRow: View {
     let tagNames: [String]
     /// Pre-resolved origin month for a savings-withdrawal repayment.
     var savingsWithdrawalOriginMonthName: String?
+    /// Anchors the checking tip's arrow on this row's disc — the control it teaches.
+    var showsCheckingTip = false
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
@@ -113,6 +116,7 @@ struct BudgetLineMixedRow: View {
                             isSyncing: isSyncing,
                             onToggle: handleTogglePointed
                         )
+                        .popoverTip(showsCheckingTip ? ProductTips.checking : nil)
                     }
                 }
                 .frame(width: DesignTokens.TapTarget.minimum)

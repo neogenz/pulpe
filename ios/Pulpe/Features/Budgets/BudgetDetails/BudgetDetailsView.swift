@@ -211,6 +211,7 @@ struct BudgetDetailsView: View {
     private var content: some View {
         let screenState = projector.screenState
         let sections = screenState.sections
+        let checkingTipLineId = screenState.checkingTipLineId
         let free = screenState.free
 
         return ScrollView {
@@ -247,7 +248,6 @@ struct BudgetDetailsView: View {
                         counts: screenState.kindCounts,
                         checkedCounts: screenState.checkedCounts
                     )
-                    .popoverTip(ProductTips.checking)
                     // The rail sits inside the zone's top curve: a chip scrolled to the edge
                     // is cut along that same curve rather than drawn over the hero.
                     .padding(.top, DesignTokens.Spacing.lg)
@@ -284,6 +284,7 @@ struct BudgetDetailsView: View {
                             goalNamesById: savingsGoalNamesById,
                             tagNamesById: tagStore.namesById,
                             savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
+                            checkingTipLineId: checkingTipLineId,
                             onTap: { line in
                                 router.push(.lineDetail(lineId: line.id))
                             },

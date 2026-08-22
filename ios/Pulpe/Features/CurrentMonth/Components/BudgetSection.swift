@@ -1,5 +1,4 @@
 import SwiftUI
-import TipKit
 
 /// Section of recurring budget lines - designed to be used inside a parent List
 /// Note: Deletion now uses undo toast instead of confirmation dialog
@@ -13,7 +12,6 @@ struct BudgetSection: View {
     let onAddTransaction: ((BudgetLine) -> Void)?
     let onLongPress: ((BudgetLine, [Transaction]) -> Void)?
     let onEdit: ((BudgetLine) -> Void)?
-    var tip: (any Tip)?
 
     init(
         title: String,
@@ -24,8 +22,7 @@ struct BudgetSection: View {
         onDelete: ((BudgetLine) -> Void)? = nil,
         onAddTransaction: ((BudgetLine) -> Void)? = nil,
         onLongPress: ((BudgetLine, [Transaction]) -> Void)? = nil,
-        onEdit: ((BudgetLine) -> Void)? = nil,
-        tip: (any Tip)? = nil
+        onEdit: ((BudgetLine) -> Void)? = nil
     ) {
         self.title = title
         self.items = items
@@ -36,7 +33,6 @@ struct BudgetSection: View {
         self.onAddTransaction = onAddTransaction
         self.onLongPress = onLongPress
         self.onEdit = onEdit
-        self.tip = tip
     }
 
     @State private var isExpanded = false
@@ -75,12 +71,6 @@ struct BudgetSection: View {
 
     var body: some View {
         Section {
-            if let tip {
-                TipView(tip)
-                    .pulpeTipBackground()
-                    .listRowSeparator(.hidden)
-            }
-
             ForEach(Array(displayedItems.enumerated()), id: \.element.id) { index, item in
                 budgetLineRow(for: item)
                     .listRowSeparator(.hidden)
@@ -117,7 +107,6 @@ struct BudgetSection: View {
             if let onDelete {
                 Button {
                     onDelete(item)
-                    ProductTips.gestures.invalidate(reason: .actionPerformed)
                 } label: {
                     Label("Supprimer", systemImage: "trash")
                 }
@@ -127,7 +116,6 @@ struct BudgetSection: View {
             if let onToggle {
                 Button {
                     onToggle(item)
-                    ProductTips.gestures.invalidate(reason: .actionPerformed)
                     ProductTips.checking.invalidate(reason: .actionPerformed)
                 } label: {
                     Label(
@@ -141,7 +129,6 @@ struct BudgetSection: View {
             if let onEdit {
                 Button {
                     onEdit(item)
-                    ProductTips.gestures.invalidate(reason: .actionPerformed)
                 } label: {
                     Label("Modifier", systemImage: "pencil")
                 }
@@ -336,7 +323,6 @@ struct BudgetLineRow: View {
         // hit target without nested button semantics (VoiceOver uses `accessibilityAction` below).
         .onTapGesture {
             guard let onAddTransaction, !line.isVirtualRollover else { return }
-            ProductTips.gestures.invalidate(reason: .actionPerformed)
             onAddTransaction()
         }
         .scaleEffect(isPressed ? 0.97 : 1.0)
@@ -403,8 +389,6 @@ struct BudgetLineRow: View {
 
     private func handleLongPress() {
         guard let onLongPress, !line.isVirtualRollover else { return }
-
-        ProductTips.gestures.invalidate(reason: .actionPerformed)
 
         if linkedTransactions.isEmpty {
             triggerWarningFeedback.toggle()

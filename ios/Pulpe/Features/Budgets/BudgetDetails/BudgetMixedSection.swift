@@ -18,6 +18,8 @@ struct BudgetMixedSection: View {
     /// Origin month name (M) of a savings-withdrawal repayment (PUL-292), = this
     /// budget's month − 1. Shown only on the M+1 "Remettre sur ton épargne" line.
     let savingsWithdrawalOriginMonthName: String?
+    /// The one line whose disc carries the checking tip popover, if any.
+    let checkingTipLineId: String?
     let onTap: (BudgetLine) -> Void
     let onTogglePointed: (BudgetLine) -> Void
 
@@ -28,6 +30,7 @@ struct BudgetMixedSection: View {
         goalNamesById: [String: String] = [:],
         tagNamesById: [String: String] = [:],
         savingsWithdrawalOriginMonthName: String? = nil,
+        checkingTipLineId: String? = nil,
         onTap: @escaping (BudgetLine) -> Void,
         onTogglePointed: @escaping (BudgetLine) -> Void
     ) {
@@ -37,6 +40,7 @@ struct BudgetMixedSection: View {
         self.goalNamesById = goalNamesById
         self.tagNamesById = tagNamesById
         self.savingsWithdrawalOriginMonthName = savingsWithdrawalOriginMonthName
+        self.checkingTipLineId = checkingTipLineId
         self.onTap = onTap
         self.onTogglePointed = onTogglePointed
     }
@@ -73,6 +77,7 @@ struct BudgetMixedSection: View {
                         savingsGoalName: goalName(for: item.line),
                         tagNames: TagChips.names(for: item.line.tagIds, namesById: tagNamesById),
                         savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
+                        showsCheckingTip: item.line.id == checkingTipLineId,
                         onTap: { onTap(item.line) },
                         onTogglePointed: { onTogglePointed(item.line) }
                     )
