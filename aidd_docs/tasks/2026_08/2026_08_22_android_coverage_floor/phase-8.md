@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Couvrir la sécurité du compte et poser le plancher de sortie
