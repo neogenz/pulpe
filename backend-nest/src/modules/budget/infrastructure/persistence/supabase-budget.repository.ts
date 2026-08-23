@@ -333,28 +333,48 @@ export class SupabaseBudgetRepository
 
   async fetchBudgetData(budgetId: string): Promise<BudgetWithRelations> {
     const supabase = this.supabaseProvider.client;
-    const [budgetResult, budgetLinesResult, transactionsResult] =
-      await Promise.all([
-        supabase.from('monthly_budget').select('*').eq('id', budgetId).single(),
-        supabase
-          .from('budget_line')
-          .select('*, budget_line_tag(tag_id)')
-          .eq('budget_id', budgetId)
-          // `created_at` alone does not order these. Instantiating a budget
-          // from a template inserts every line in one statement, so they share
-          // a timestamp to the microsecond and Postgres falls back to physical
-          // heap order — which an UPDATE moves. Checking a line therefore
-          // reshuffled the list around it, and undoing the check did not put
-          // the line back where it was. `id` is arbitrary; being stable is the
-          // whole job.
-          .order('created_at', { ascending: false })
-          .order('id', { ascending: true }),
-        supabase
-          .from('transaction')
-          .select('*, transaction_tag(tag_id)')
-          .eq('budget_id', budgetId)
-          .order('transaction_date', { ascending: false }),
-      ]);
+    const [budgetResult, budgetLines, transactions] = await Promise.all([
+      supabase.from('monthly_budget').select('*').eq('id', budgetId).single(),
+      this.readPagedRows(
+        [budgetId],
+        (ids, from, to) =>
+          supabase
+            .from('budget_line')
+            .select('*, budget_line_tag(tag_id)')
+            .in('budget_id', ids)
+            // `created_at` alone does not order these. Instantiating a budget
+            // from a template inserts every line in one statement, so they share
+            // a timestamp to the microsecond and Postgres falls back to physical
+            // heap order — which an UPDATE moves. Checking a line therefore
+            // reshuffled the list around it, and undoing the check did not put
+            // the line back where it was. `id` is arbitrary; being stable is the
+            // whole job — and paging needs that total order to not skip a row.
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: true })
+            .range(from, to),
+        {
+          errorDef: ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          operation: 'fetchBudgetLines',
+          entityType: 'budgetLines',
+        },
+      ),
+      this.readPagedRows(
+        [budgetId],
+        (ids, from, to) =>
+          supabase
+            .from('transaction')
+            .select('*, transaction_tag(tag_id)')
+            .in('budget_id', ids)
+            .order('transaction_date', { ascending: false })
+            .order('id', { ascending: true })
+            .range(from, to),
+        {
+          errorDef: ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+          operation: 'fetchTransactions',
+          entityType: 'transactions',
+        },
+      ),
+    ]);
 
     if (budgetResult.error || !budgetResult.data) {
       throw this.budgetReadError(budgetResult.error, budgetId, {
@@ -364,39 +384,13 @@ export class SupabaseBudgetRepository
       });
     }
 
-    if (budgetLinesResult.error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-        { budgetId },
-        {
-          operation: 'fetchBudgetLines',
-          entityId: budgetId,
-          entityType: 'budgetLines',
-        },
-        { cause: budgetLinesResult.error },
-      );
-    }
-
-    if (transactionsResult.error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-        { budgetId },
-        {
-          operation: 'fetchTransactions',
-          entityId: budgetId,
-          entityType: 'transactions',
-        },
-        { cause: transactionsResult.error },
-      );
-    }
-
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return {
       budget: this.toEntity(budgetResult.data, dek),
-      budgetLines: (budgetLinesResult.data ?? []).map((row) =>
+      budgetLines: budgetLines.map((row) =>
         this.toBudgetLineDecrypted(row, dek),
       ),
-      transactions: (transactionsResult.data ?? []).map((row) =>
+      transactions: transactions.map((row) =>
         this.toTransactionDecrypted(row, dek),
       ),
     };
@@ -406,42 +400,41 @@ export class SupabaseBudgetRepository
     budgetId: string,
   ): Promise<BudgetDataForRecalc> {
     const supabase = this.supabaseProvider.client;
-    const [budgetLinesResult, transactionsResult] = await Promise.all([
-      supabase
-        .from('budget_line')
-        .select('id, kind, amount')
-        .eq('budget_id', budgetId),
-      supabase
-        .from('transaction')
-        .select('kind, amount, budget_line_id')
-        .eq('budget_id', budgetId),
-    ]);
-
-    if (budgetLinesResult.error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-        { budgetId },
+    // Paged like every other read of these two tables: this one persists the
+    // balance it computes, so a truncated page would not just display a wrong
+    // total, it would write one.
+    const [budgetLines, transactions] = await Promise.all([
+      this.readPagedRows(
+        [budgetId],
+        (ids, from, to) =>
+          supabase
+            .from('budget_line')
+            .select('id, kind, amount')
+            .in('budget_id', ids)
+            .order('id', { ascending: true })
+            .range(from, to),
         {
+          errorDef: ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
           operation: 'fetchBudgetDataForRecalc',
-          entityId: budgetId,
           entityType: 'budgetLines',
         },
-        { cause: budgetLinesResult.error },
-      );
-    }
-
-    if (transactionsResult.error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-        { budgetId },
+      ),
+      this.readPagedRows(
+        [budgetId],
+        (ids, from, to) =>
+          supabase
+            .from('transaction')
+            .select('kind, amount, budget_line_id')
+            .in('budget_id', ids)
+            .order('id', { ascending: true })
+            .range(from, to),
         {
+          errorDef: ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
           operation: 'fetchBudgetDataForRecalc',
-          entityId: budgetId,
           entityType: 'transactions',
         },
-        { cause: transactionsResult.error },
-      );
-    }
+      ),
+    ]);
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     // Strict on purpose: recalculation persists its result, so an
@@ -466,12 +459,12 @@ export class SupabaseBudgetRepository
     };
 
     return {
-      budgetLines: (budgetLinesResult.data ?? []).map((row) => ({
+      budgetLines: budgetLines.map((row) => ({
         id: row.id,
         kind: row.kind,
         amount: decryptStrict(row.amount),
       })),
-      transactions: (transactionsResult.data ?? []).map((row) => ({
+      transactions: transactions.map((row) => ({
         kind: row.kind,
         amount: decryptStrict(row.amount),
         budgetLineId: row.budget_line_id,
@@ -1026,7 +1019,11 @@ export class SupabaseBudgetRepository
         throw new BusinessException(
           context.errorDef,
           undefined,
-          { operation: context.operation, entityType: context.entityType },
+          {
+            operation: context.operation,
+            entityType: context.entityType,
+            userId: this.supabaseProvider.user.id,
+          },
           { cause: error },
         );
       },

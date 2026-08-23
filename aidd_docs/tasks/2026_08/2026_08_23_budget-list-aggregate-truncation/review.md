@@ -4,7 +4,7 @@
 - **Diff**: `preview...fix/budget-list-aggregate-truncation`
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_08_23
-- **Findings**: 0 critical, 0 warning, 4 minor (all fixed in the reviewed branch)
+- **Findings**: 0 critical, 1 warning, 5 minor (all fixed in the reviewed branch)
 
 ## Phases
 
@@ -23,6 +23,8 @@
 | 🟢 | code-health | 1 | `supabase-budget.repository.ts:731` | The two `.catch()` blocks in `fetchBudgetAggregates` differed only by error definition and entity label — 20 duplicated lines, and `fetchHistoryData` collapsed both tables onto one error definition. | Extracted `readPagedRows(parentIds, fetchPage, context)`; each read now names its own `ERROR_DEFINITIONS` entry. Applied. |
 | 🟢 | rot | 1 | `supabase-budget.repository.spec.ts:895` | The spec redefined `PAGE_SIZE = 1_000` instead of reading the source of truth, so a page-size change would leave the regression test asserting the old boundary. | Imports `POSTGREST_PAGE_SIZE`. Applied. |
 | 🟢 | standards | 1 | `postgrest-pagination.spec.ts:69` | Test name read `keeps every chunk s rows` — a dropped apostrophe. | Reworded to `keeps the rows of every chunk`. Applied. |
+| 🟡 | code | 1 | `supabase-budget.repository.ts:334,399` | Raised on the PR: the aggregate read pages, but `fetchBudgetData` and `fetchBudgetDataForRecalc` still read one budget's lines and transactions unpaginated. A single budget past the cap would show the same list-versus-detail divergence — and recalculation **persists** the balance it computes from a truncated read. | Both now go through `readPagedRows`, with `id` added as tiebreaker where the sort was not total. Regression test `row cap > recalculates from the rows sitting past the first page`, verified load-bearing by mutation (3 red without paging). Applied. |
+| 🟢 | standards | 1 | `supabase-budget.repository.ts:1035` | Raised on the PR: `readPagedRows` omitted `userId` from its `loggingContext`, which `error-handling-backend.md` requires alongside `operation`. | Added `userId: this.supabaseProvider.user.id`. Applied. |
 
 Checked and **not** raised, with the reasoning that dismissed each:
 

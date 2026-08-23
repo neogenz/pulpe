@@ -83,23 +83,22 @@ function createMockEncryption(): EncryptionPort {
 const budgetLineOrderSpy = jest.fn();
 
 /**
- * Supabase's query builder is a thenable that keeps accepting `.order()`, so a
- * mock that resolves on the first call cannot see a second sort key.
+ * `.in(...).order(...).range(from, to)` — the shape every read of these two
+ * tables now has. Supabase's builder keeps accepting `.order()`, so a mock that
+ * resolves on the first call cannot see a second sort key; only `.range()`
+ * settles, and the second page comes back empty so paging terminates.
  */
-function budgetLineQuery(lineRow: BudgetLineRow) {
-  const result = Promise.resolve({ data: [lineRow], error: null });
+function pagedRowsQuery(
+  rows: unknown[],
+  orderSpy: ReturnType<typeof jest.fn> = jest.fn(),
+) {
   const chain = {
-    order: budgetLineOrderSpy,
-    then: result.then.bind(result),
+    order: orderSpy,
+    range: jest.fn((from: number) =>
+      Promise.resolve({ data: from === 0 ? rows : [], error: null }),
+    ),
   };
-  budgetLineOrderSpy.mockReturnValue(chain);
-  return chain;
-}
-
-function emptyBudgetLineQuery() {
-  const result = Promise.resolve({ data: [], error: null });
-  const chain = { order: jest.fn(), then: result.then.bind(result) };
-  chain.order.mockReturnValue(chain);
+  orderSpy.mockReturnValue(chain);
   return chain;
 }
 
@@ -127,16 +126,14 @@ function fetchBudgetDataProvider(
     if (table === 'budget_line') {
       return {
         select: () => ({
-          eq: () => budgetLineQuery(lineRow),
+          in: () => pagedRowsQuery([lineRow], budgetLineOrderSpy),
         }),
       };
     }
     // transaction
     return {
       select: () => ({
-        eq: () => ({
-          order: jest.fn().mockResolvedValue({ data: [], error: null }),
-        }),
+        in: () => pagedRowsQuery([]),
       }),
     };
   });
@@ -242,16 +239,12 @@ describe('SupabaseBudgetRepository fetchBudgetDataForRecalc (strict decrypt)', (
     return createMockProvider((table: string) => {
       if (table === 'budget_line') {
         return {
-          select: () => ({
-            eq: jest.fn().mockResolvedValue({ data: lineRows, error: null }),
-          }),
+          select: () => ({ in: () => pagedRowsQuery(lineRows) }),
         };
       }
       if (table === 'transaction') {
         return {
-          select: () => ({
-            eq: jest.fn().mockResolvedValue({ data: txRows, error: null }),
-          }),
+          select: () => ({ in: () => pagedRowsQuery(txRows) }),
         };
       }
       throw new Error(`unexpected table: ${table}`);
@@ -801,18 +794,12 @@ describe('SupabaseBudgetRepository toTransactionDecrypted (PUL-329)', () => {
       }
       if (table === 'budget_line') {
         return {
-          select: () => ({
-            eq: () => emptyBudgetLineQuery(),
-          }),
+          select: () => ({ in: () => pagedRowsQuery([]) }),
         };
       }
       // transaction
       return {
-        select: () => ({
-          eq: () => ({
-            order: jest.fn().mockResolvedValue({ data: [txRow], error: null }),
-          }),
-        }),
+        select: () => ({ in: () => pagedRowsQuery([txRow]) }),
       };
     });
   }
@@ -896,7 +883,7 @@ describe('SupabaseBudgetRepository sparse pagination', () => {
   });
 });
 
-describe('SupabaseBudgetRepository fetchBudgetAggregates row cap', () => {
+describe('SupabaseBudgetRepository row cap', () => {
   /**
    * Stands in for PostgREST: `.range(from, to)` slices, and nothing warns when the
    * slice is short. Before the fix the repository issued no range at all, so the
@@ -979,6 +966,35 @@ describe('SupabaseBudgetRepository fetchBudgetAggregates row cap', () => {
       ['budget_line', 'id', { ascending: true }],
       ['transaction', 'id', { ascending: true }],
     ]);
+  });
+
+  it('recalculates from the rows sitting past the first page', async () => {
+    // A balance computed from a truncated read does not just display wrong, it
+    // gets persisted — so this read has to page like the aggregate one.
+    const filler: BudgetLineRow[] = Array.from(
+      { length: POSTGREST_PAGE_SIZE },
+      (_, i) => ({
+        ...budgetLineRow,
+        id: `filler-${i}`,
+        budget_id: 'budget-1',
+        amount: null,
+      }),
+    );
+    const lines: BudgetLineRow[] = [
+      ...filler,
+      { ...budgetLineRow, id: 'line-late', budget_id: 'budget-1' },
+    ];
+    const { provider } = pagedTableProvider(lines, []);
+    const encryption = createMockEncryption();
+    (encryption as unknown as { decryptAmount: unknown }).decryptAmount = jest
+      .fn()
+      .mockReturnValue(250);
+    const repo = new SupabaseBudgetRepository(provider, encryption);
+
+    const data = await repo.fetchBudgetDataForRecalc('budget-1');
+
+    expect(data.budgetLines).toHaveLength(POSTGREST_PAGE_SIZE + 1);
+    expect(data.budgetLines.at(-1)?.id).toBe('line-late');
   });
 
   it('raises instead of aggregating a failed read as zeros', async () => {
