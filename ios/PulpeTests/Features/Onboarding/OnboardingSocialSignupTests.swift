@@ -271,6 +271,17 @@ struct OnboardingSocialSignupTests {
         #expect(socialPercentage == 100)
         #expect(nonSocialPercentage == 100)
     }
+}
+
+@Suite(.serialized)
+@MainActor
+struct OnboardingFirstNamePersistTests {
+    private func makeSUT() -> OnboardingState {
+        OnboardingState.clearPersistedData()
+        let state = OnboardingState()
+        state.currentStep = .welcome
+        return state
+    }
 
     // MARK: - First-name persist (PUL-344)
 
@@ -371,5 +382,53 @@ struct OnboardingSocialSignupTests {
         #expect(state.currentStep == .firstName)
         #expect(state.error == nil)
         #expect(!state.socialProvidedName)
+    }
+
+    @Test
+    func persistFirstName_skipsNetworkAfterSuccessfulPersist() async throws {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureEmailUser(UserInfo(id: "1", email: "a@b.com"))
+        state.firstName = "Marie"
+
+        var calls = 0
+        let persist: (String) async throws -> UserInfo = { name in
+            calls += 1
+            return UserInfo(id: "1", email: "a@b.com", firstName: name)
+        }
+        try await state.persistFirstName(using: persist)
+        try await state.persistFirstName(using: persist)
+        #expect(calls == 1)
+    }
+
+    @Test
+    func applySocialSignup_withoutPersistError_skipsLaterPersist() async throws {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.applySocialSignup(UserInfo(id: "1", email: "a@b.com", firstName: "Marie"))
+
+        var calls = 0
+        try await state.persistFirstName { name in
+            calls += 1
+            return UserInfo(id: "1", email: "a@b.com", firstName: name)
+        }
+        #expect(calls == 0)
+    }
+
+    @Test
+    func applySocialSignup_persistError_lastChanceStillPersists() async throws {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.applySocialSignup(
+            UserInfo(id: "1", email: "a@b.com", firstName: "Marie"),
+            persistError: PersistStubError.failed
+        )
+
+        var calls = 0
+        try await state.persistFirstName { name in
+            calls += 1
+            return UserInfo(id: "1", email: "a@b.com", firstName: name)
+        }
+        #expect(calls == 1)
     }
 }

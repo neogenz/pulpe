@@ -112,6 +112,7 @@ extension OnboardingState {
         hasEmittedWelcomeViewed = false
         hasEmittedSignupStarted = false
         hasEmittedBudgetPreviewCompleted = false
+        firstNamePersistSucceeded = false
     }
 }
 
@@ -167,6 +168,8 @@ extension OnboardingState {
         configureSocialUser(user)
         if let persistError {
             error = APIError.serverError(message: AuthErrorLocalizer.localize(persistError))
+        } else if FirstNameResolver.normalized(user.firstName) != nil {
+            firstNamePersistSucceeded = true
         }
         nextStep()
     }
@@ -177,9 +180,19 @@ extension OnboardingState {
         using persist: (String) async throws -> UserInfo
     ) async throws {
         guard let name = FirstNameResolver.normalized(firstName) else { return }
-        let updated = try await persist(name)
-        let merged = FirstNameResolver.coalescing(updated, fallbackFirstName: name)
-        authenticatedUser = merged
-        firstName = FirstNameResolver.normalized(merged.firstName) ?? name
+        if firstNamePersistSucceeded,
+           FirstNameResolver.normalized(authenticatedUser?.firstName) == name {
+            return
+        }
+        do {
+            let updated = try await persist(name)
+            let merged = FirstNameResolver.coalescing(updated, fallbackFirstName: name)
+            authenticatedUser = merged
+            firstName = FirstNameResolver.normalized(merged.firstName) ?? name
+            firstNamePersistSucceeded = true
+        } catch {
+            firstNamePersistSucceeded = false
+            throw error
+        }
     }
 }
