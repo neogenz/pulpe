@@ -11,6 +11,11 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { sanitizeLogTechnicalValue } from '@common/utils/log-anonymization';
+import {
+  POSTGREST_FILTER_CHUNK_SIZE,
+  fetchAllPages,
+  fetchRowsByParentIds,
+} from '@common/utils/postgrest-pagination';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { DEMO_CLIENT_KEY_BUFFER } from '../../domain/encryption.constants';
 import { SupabaseEncryptionKeyRepository } from '../persistence/supabase-encryption-key.repository';
@@ -33,8 +38,6 @@ const SALT_LENGTH = 16;
 const KDF_ITERATIONS = 600_000;
 const HKDF_DIGEST = 'sha256';
 const DEK_CACHE_TTL_MS = 5 * 60 * 1000;
-const POSTGREST_PAGE_SIZE = 1_000;
-const POSTGREST_FILTER_CHUNK_SIZE = 100;
 const VAULT_VALIDATION_CONTEXT_KEY = 'encryption.validatedVaultCacheKey';
 
 // Base32 alphabet (RFC 4648, no padding) — avoids 0/O and 1/l ambiguity
@@ -592,18 +595,7 @@ export class AesGcmCryptoService {
       to: number,
     ) => PromiseLike<{ data: T[] | null; error: unknown }>,
   ): Promise<T[]> {
-    const rows: T[] = [];
-    for (let from = 0; ; from += POSTGREST_PAGE_SIZE) {
-      const { data, error } = await fetchPage(
-        from,
-        from + POSTGREST_PAGE_SIZE - 1,
-      );
-      if (error) throw error;
-      if (data === null) throw new Error('Ambiguous Supabase response');
-
-      rows.push(...data);
-      if (data.length < POSTGREST_PAGE_SIZE) return rows;
-    }
+    return fetchAllPages(fetchPage);
   }
 
   async #fetchRowsByParentIds<T>(
@@ -614,18 +606,7 @@ export class AesGcmCryptoService {
       to: number,
     ) => PromiseLike<{ data: T[] | null; error: unknown }>,
   ): Promise<T[]> {
-    const rows: T[] = [];
-    for (
-      let offset = 0;
-      offset < parentIds.length;
-      offset += POSTGREST_FILTER_CHUNK_SIZE
-    ) {
-      const ids = parentIds.slice(offset, offset + POSTGREST_FILTER_CHUNK_SIZE);
-      rows.push(
-        ...(await this.#fetchAllPages((from, to) => fetchPage(ids, from, to))),
-      );
-    }
-    return rows;
+    return fetchRowsByParentIds(parentIds, fetchPage);
   }
 
   async regenerateRecoveryKey(

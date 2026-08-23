@@ -3,6 +3,7 @@ import type { Buffer } from 'node:buffer';
 import { ZodError } from 'zod';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { fetchRowsByParentIds } from '@common/utils/postgrest-pagination';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import {
   ENCRYPTION_PORT,
@@ -722,19 +723,48 @@ export class SupabaseBudgetRepository
     }
 
     const supabase = this.supabaseProvider.client;
-    const [budgetLinesResult, transactionsResult] = await Promise.all([
-      supabase
-        .from('budget_line')
-        .select('id, budget_id, kind, amount')
-        .in('budget_id', budgetIds),
-      supabase
-        .from('transaction')
-        .select('budget_id, kind, amount, budget_line_id')
-        .in('budget_id', budgetIds),
+    // Paged: PostgREST caps an unpaginated reply at `max_rows` and reports nothing,
+    // so a single `.in()` over every budget used to hand back a truncated row set —
+    // the budgets past the cap then aggregated to zero and the list showed a
+    // `remaining` the detail screen contradicted.
+    const [budgetLines, transactions] = await Promise.all([
+      fetchRowsByParentIds(budgetIds, (ids, from, to) =>
+        supabase
+          .from('budget_line')
+          .select('id, budget_id, kind, amount')
+          .in('budget_id', ids)
+          .order('id', { ascending: true })
+          .range(from, to),
+      ).catch((error: unknown) => {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'fetchBudgetAggregates',
+            entityType: 'budgetLines',
+          },
+          { cause: error },
+        );
+      }),
+      fetchRowsByParentIds(budgetIds, (ids, from, to) =>
+        supabase
+          .from('transaction')
+          .select('budget_id, kind, amount, budget_line_id')
+          .in('budget_id', ids)
+          .order('id', { ascending: true })
+          .range(from, to),
+      ).catch((error: unknown) => {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'fetchBudgetAggregates',
+            entityType: 'transactions',
+          },
+          { cause: error },
+        );
+      }),
     ]);
-
-    const budgetLines = budgetLinesResult.data ?? [];
-    const transactions = transactionsResult.data ?? [];
 
     const hasEncryptedData =
       budgetLines.some((l) => l.amount) || transactions.some((t) => t.amount);
@@ -764,32 +794,36 @@ export class SupabaseBudgetRepository
     const budgetIds = budgets.map((b) => b.id);
 
     const supabase = this.supabaseProvider.client;
-    const [budgetLinesResult, transactionsResult] = await Promise.all([
-      supabase
-        .from('budget_line')
-        .select('id, budget_id, kind, amount, checked_at')
-        .in('budget_id', budgetIds),
-      supabase
-        .from('transaction')
-        .select('budget_id, kind, amount, budget_line_id, transaction_date')
-        .in('budget_id', budgetIds),
-    ]);
-
-    if (budgetLinesResult.error || transactionsResult.error) {
+    // Paged for the same reason as `fetchBudgetAggregates`: the drift prior reads
+    // every previous budget at once, so it crosses PostgREST's row cap first.
+    const [budgetLines, transactions] = await Promise.all([
+      fetchRowsByParentIds(budgetIds, (ids, from, to) =>
+        supabase
+          .from('budget_line')
+          .select('id, budget_id, kind, amount, checked_at')
+          .in('budget_id', ids)
+          .order('id', { ascending: true })
+          .range(from, to),
+      ),
+      fetchRowsByParentIds(budgetIds, (ids, from, to) =>
+        supabase
+          .from('transaction')
+          .select('budget_id, kind, amount, budget_line_id, transaction_date')
+          .in('budget_id', ids)
+          .order('id', { ascending: true })
+          .range(from, to),
+      ),
+    ]).catch((error: unknown) => {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
         undefined,
         {
           operation: 'fetchHistoryData',
           entityType: 'budget',
-          supabaseError: budgetLinesResult.error ?? transactionsResult.error,
         },
-        { cause: budgetLinesResult.error ?? transactionsResult.error },
+        { cause: error },
       );
-    }
-
-    const budgetLines = budgetLinesResult.data ?? [];
-    const transactions = transactionsResult.data ?? [];
+    });
 
     const hasEncryptedData =
       budgetLines.some((l) => l.amount) || transactions.some((t) => t.amount);
