@@ -335,6 +335,11 @@ const it: Dictionary = {
       title: "Modello o budget: che cosa devi modificare?",
       text: "Scegli il posto giusto a seconda che il tuo cambiamento riguardi un solo mese o i tuoi mesi abituali.",
     },
+    assistantCard: {
+      eyebrow: "Tutorial",
+      title: "Collegare Pulpe a un assistente IA",
+      text: "Collega ChatGPT, Claude o Claude Code al tuo budget, in sola lettura oppure con il diritto di scrivere.",
+    },
     faqHeading: "Le domande che mi fanno più spesso.",
     faq: {
       purpose: {
@@ -461,6 +466,92 @@ const it: Dictionary = {
     contactHeading: "Ancora bloccato?",
     contactText:
       "Scrivimi indicando la schermata in cui ti trovi. Ti risponderò direttamente.",
+  },
+
+  assistant: {
+    metaTitle: "Collegare Pulpe a un assistente IA",
+    metaDescription:
+      "Collegare Pulpe a ChatGPT, Claude o Claude Code: che cosa sa fare l’assistente, come autorizzarlo e dove tagliare l’accesso.",
+    backToSupport: "Aiuto",
+    eyebrow: "Assistenti IA",
+    heading: "Parlare del tuo budget dal tuo assistente",
+    intro:
+      "Puoi collegare Pulpe a ChatGPT, a Claude o a Claude Code, poi chiedere a che punto sei questo mese oppure registrare una spesa senza aprire l’app.",
+    abilitiesHeading: "Che cosa sa fare il tuo assistente.",
+    abilities: [
+      "Dirti quanto ti resta da spendere questo mese, e da dove viene la cifra.",
+      "Leggere le tue previsioni, i tuoi movimenti e i tuoi obiettivi di risparmio.",
+      "Registrare una spesa, un’entrata o un risparmio, poi spuntarlo.",
+      "Distribuire una spesa grossa su più mesi.",
+      "Creare il budget di un mese a partire da uno dei tuoi modelli.",
+    ],
+    sourceTitle: "Le cifre restano quelle di Pulpe",
+    sourceText:
+      "L’assistente non ricalcola nulla. Legge gli stessi importi della tua app, e fa fede Pulpe. Il modo in cui li mette in frasi è suo, quindi rileggilo come rileggeresti una bozza.",
+    modeHeading: "Decidi che cosa ha il diritto di fare.",
+    modeIntro:
+      "Scegli nel momento in cui autorizzi il collegamento. Puoi cambiare idea dopo: taglialo, poi rifallo nell’altra modalità.",
+    readMode: {
+      eyebrow: "Sola lettura",
+      title: "Guarda, non tocca niente",
+      text: "Risponde alle tue domande sul mese in corso e sul tuo anno. Nei tuoi budget non si muove nulla, anche se glielo chiedi.",
+    },
+    writeMode: {
+      eyebrow: "Lettura e scrittura",
+      title: "Registra al posto tuo",
+      text: "Oltre a leggere, può aggiungere una spesa, spuntarla oppure creare il budget del mese prossimo. Annuncia quello che sta per fare prima di farlo.",
+    },
+    connectEyebrow: "Il collegamento",
+    connectHeading: "Collega Pulpe, una volta sola.",
+    addressLabel: "L’indirizzo da incollare, lo stesso ovunque",
+    availabilityNote:
+      "I connettori personalizzati non sono aperti né su tutti i piani, né su tutte le versioni. Se non trovi la schermata descritta qui, il tuo assistente non li propone ancora.",
+    clients: [
+      {
+        name: "ChatGPT",
+        steps: [
+          "Apri le impostazioni, poi la sezione dei connettori.",
+          "Aggiungi un connettore e incolla l’indirizzo qui sopra.",
+          "Autorizza l’accesso nella pagina Pulpe che si apre.",
+        ],
+      },
+      {
+        name: "Claude",
+        steps: [
+          "Apri le impostazioni, poi la sezione dei connettori.",
+          "Aggiungi un connettore personalizzato con l’indirizzo qui sopra.",
+          "Autorizza l’accesso nella pagina Pulpe che si apre.",
+        ],
+      },
+      {
+        name: "Claude Code",
+        steps: [
+          "Lancia il comando qui sotto nel tuo terminale.",
+          "Autorizza l’accesso nel browser che si apre.",
+          "Torna al terminale: il collegamento è attivo.",
+        ],
+      },
+    ],
+    commandLabel: "Nel terminale",
+    consentTitle: "Che cosa vedi al momento di autorizzare",
+    consentSteps: [
+      "Accedi al tuo account Pulpe, come sul web.",
+      "Inserisci il tuo codice, quello che sblocca i tuoi importi.",
+      "Scegli sola lettura oppure lettura e scrittura, poi confermi.",
+    ],
+    revokeHeading: "Taglia l’accesso quando vuoi.",
+    revokeText:
+      "Un collegamento tagliato lo è subito: l’assistente non legge più nulla e non scrive più nulla, senza attesa.",
+    revokeSteps: [
+      "Apri Pulpe, poi le impostazioni.",
+      "Vai alla lista dei tuoi collegamenti.",
+      "Taglia quello che non vuoi più.",
+    ],
+    revokeNote:
+      "Cambiare il tuo codice o recuperare la tua cassaforte taglia anche tutti i collegamenti in un colpo solo. È voluto: i tuoi assistenti non hanno più con che cosa aprire i tuoi importi, e li ricolleghi quando vuoi.",
+    contactHeading: "Il collegamento si blocca?",
+    contactText:
+      "Scrivimi indicando l’assistente e la schermata in cui ti blocchi. Sviluppo Pulpe da solo e rispondo io stesso.",
   },
 
   changelog: {
