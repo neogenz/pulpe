@@ -22,7 +22,7 @@ extension HomeHeroCard {
                     ))
                     .foregroundStyle(Color.heroInkSecondary.opacity(DesignTokens.Opacity.heroInkMuted))
                     .annotation(position: .top, alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                        Text(AppLocale.string("prévu \(trajectory.plannedBalance.asCompactCurrency(currency))"))
+                        Text(AppLocale.string("Prévu \(trajectory.plannedBalance.asCompactCurrency(currency))"))
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.heroInkSecondary)
                             .padding(.trailing, DesignTokens.Spacing.xxl)

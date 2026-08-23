@@ -11869,6 +11869,28 @@
         }
       }
     },
+    "Estimé fin %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschätzt Ende %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Est. end of %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stimato a fine %@"
+          }
+        }
+      }
+    },
     "Et tu sauras toujours où tu en es" : {
       "localizations" : {
         "de" : {
@@ -25525,6 +25547,50 @@
         }
       }
     },
+    "Tu dépenses moins que prévu depuis le %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seit dem %@ gibst du weniger aus als geplant."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are spending less than planned since %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dal %@ spendi meno del previsto."
+          }
+        }
+      }
+    },
+    "Tu dépenses plus que prévu depuis le %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seit dem %@ gibst du mehr aus als geplant."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are spending more than planned since %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dal %@ spendi più del previsto."
+          }
+        }
+      }
+    },
     "Tu dépenses plus que tu ne gagnes ce mois-ci." : {
       "localizations" : {
         "de" : {
@@ -26551,6 +26617,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mostra di più"
+          }
+        }
+      }
+    },
+    "Voir le budget" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi budget"
           }
         }
       }

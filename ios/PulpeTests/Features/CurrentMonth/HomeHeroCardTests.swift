@@ -62,14 +62,14 @@ struct HomeHeroCardTests {
             estimatedBalance: 1_800,
             driftDate: try date(year: 2026, month: 7, day: 6)
         )
-        #expect(below.verdictText == "Sous ton plan depuis le 6 juillet.")
+        #expect(below.verdictText == "Tu dépenses plus que prévu depuis le 6 juillet.")
 
         let above = HeroVerdictPresentation(
             plannedBalance: 2_500,
             estimatedBalance: 2_900,
             driftDate: try date(year: 2026, month: 7, day: 6)
         )
-        #expect(above.verdictText == "Au-dessus de ton plan depuis le 6 juillet.")
+        #expect(above.verdictText == "Tu dépenses moins que prévu depuis le 6 juillet.")
 
         // "le 1 août" reads as a typo in a sentence; French declines this one day.
         let firstOfMonth = HeroVerdictPresentation(
@@ -77,7 +77,7 @@ struct HomeHeroCardTests {
             estimatedBalance: 1_800,
             driftDate: try date(year: 2026, month: 8, day: 1)
         )
-        #expect(firstOfMonth.verdictText == "Sous ton plan depuis le 1er août.")
+        #expect(firstOfMonth.verdictText == "Tu dépenses plus que prévu depuis le 1er août.")
 
         // Where a new account lands right after onboarding: lines exist, nothing spent, so
         // the forecast still sits on the plan it opened on. That is a fact about the month,

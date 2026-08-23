@@ -62,7 +62,7 @@ struct HomeHeroCard: View {
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             HeroFigure(
-                eyebrow: AppLocale.string("estimé fin \(monthName)"),
+                eyebrow: AppLocale.string("Estimé fin \(monthName)"),
                 amount: presentation.estimatedBalance,
                 currency: currency,
                 alignment: .leading,
@@ -114,7 +114,7 @@ struct HomeHeroCard: View {
 
     private var uncheckedValue: String { "\(uncheckedCount)" }
 
-    private var uncheckedLabel: String { AppLocale.string("à pointer") }
+    private var uncheckedLabel: String { AppLocale.string("À pointer") }
 
     private var varianceValue: String { presentation.varianceText(for: currency) }
 
@@ -127,7 +127,7 @@ struct HomeHeroCard: View {
     private var verdictSentence: some View {
         HeroVerdictRow(
             sentence: presentation.verdictText,
-            linkTitle: AppLocale.string("Voir le détail"),
+            linkTitle: AppLocale.string("Voir le budget"),
             accent: accentColor,
             action: onTapDetail,
             accessibilityLabel: AppLocale.string("Voir le détail du budget"),
