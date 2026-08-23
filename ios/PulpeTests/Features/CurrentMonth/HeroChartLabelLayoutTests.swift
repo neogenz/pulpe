@@ -58,6 +58,41 @@ struct HeroChartLabelLayoutTests {
         assertClean(rects, count: 2)
     }
 
+    // Every slot around the anchor taken: the search keeps pushing instead of dropping the
+    // pill back onto what it was avoiding.
+    @Test func crowdedPlot_keepsPushingUntilTheSlotIsFree() throws {
+        let layout = HeroChartLabelLayout(
+            plot: CGRect(x: 0, y: 0, width: 300, height: 90),
+            dot: CGRect(x: 200, y: 30, width: 12, height: 12),
+            spacing: 4,
+            inset: 40
+        )
+        let pill = CGSize(width: 60, height: 18)
+        let rects = layout.resolve(
+            anchors: [.today: CGPoint(x: 260, y: 20), .trend: CGPoint(x: 260, y: 50), .plan: CGPoint(x: 260, y: 36)],
+            sizes: [.today: pill, .trend: pill, .plan: pill],
+            preferredSide: [.today: .top, .trend: .bottom, .plan: .top]
+        )
+        let plan = try #require(rects[.plan])
+        #expect(!plan.intersects(layout.dot))
+        for (label, rect) in rects where label != .plan {
+            #expect(!plan.intersects(rect), "the plan pill lands on \(label)")
+        }
+    }
+
+    @Test func pillWiderThanThePlot_staysInsideTheInset() throws {
+        let plot = CGRect(x: 0, y: 0, width: 300, height: 200)
+        let layout = HeroChartLabelLayout(plot: plot, dot: dot, spacing: spacing, inset: inset)
+        let rect = try #require(
+            layout.resolve(
+                anchors: [.trend: CGPoint(x: 260, y: 100)],
+                sizes: [.trend: CGSize(width: 400, height: 18)],
+                preferredSide: [.trend: .top]
+            )[.trend]
+        )
+        #expect(plot.insetBy(dx: inset, dy: 0).contains(rect))
+    }
+
     @Test func freeSide_keepsThePreferredSideAtSpacing() throws {
         let anchor = CGPoint(x: 200, y: 40)
         let rects = resolve(anchors: [.plan: anchor], preferredSide: [.plan: .bottom])

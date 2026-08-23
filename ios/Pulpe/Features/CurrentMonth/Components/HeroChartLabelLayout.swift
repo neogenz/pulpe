@@ -32,19 +32,37 @@ struct HeroChartLabelLayout {
             guard let anchor = anchors[label], let size = sizes[label] else { continue }
             let preferred = preferredSide[label] ?? .top
             let opposite: AnnotationPosition = preferred == .bottom ? .top : .bottom
-            let candidates = [(preferred, 0), (opposite, 0), (preferred, 1), (opposite, 1)].map { side, push in
-                rect(anchor: anchor, size: size, side: side, push: CGFloat(push))
+            let candidates = (0 ... Self.maxPush).flatMap { push in
+                [preferred, opposite].map { side in
+                    rect(anchor: anchor, size: size, side: side, push: CGFloat(push))
+                }
             }
             let obstacles = [dot] + placed.values
-            placed[label] = candidates.first { candidate in
+            let free = candidates.first { candidate in
                 !obstacles.contains { $0.intersects(candidate) }
-            } ?? candidates[candidates.count - 1]
+            }
+            // A plot too short for any free slot still has to show the pill: the least covered
+            // spot beats the last one tried.
+            placed[label] = free ?? candidates.min { overlap($0, with: obstacles) < overlap($1, with: obstacles) }
         }
         return placed
     }
 
+    /// How far a pill may be pushed off its anchor before the search gives up.
+    private static let maxPush = 3
+
+    /// The area a candidate steals from what it must avoid, to rank the impossible cases.
+    private func overlap(_ candidate: CGRect, with obstacles: [CGRect]) -> CGFloat {
+        obstacles.reduce(0) { total, obstacle in
+            let shared = obstacle.intersection(candidate)
+            return total + (shared.isNull ? 0 : shared.width * shared.height)
+        }
+    }
+
     private func rect(anchor: CGPoint, size: CGSize, side: AnnotationPosition, push: CGFloat) -> CGRect {
         let bounds = plot.insetBy(dx: inset, dy: 0)
+        // A pill longer than the inset plot is drawn capped to it, so it is placed capped too.
+        let width = min(size.width, bounds.width)
         let offset = spacing + push * (size.height + spacing)
         // Today's word is anchored on the dot itself: it clears from the dot's edge.
         let onDot = dot.contains(anchor)
@@ -52,9 +70,9 @@ struct HeroChartLabelLayout {
             ? (onDot ? dot.maxY : anchor.y) + offset
             : (onDot ? dot.minY : anchor.y) - offset - size.height
         return CGRect(
-            x: min(max(anchor.x - size.width, bounds.minX), bounds.maxX - size.width),
+            x: min(max(anchor.x - width, bounds.minX), bounds.maxX - width),
             y: min(max(y, bounds.minY), bounds.maxY - size.height),
-            width: size.width,
+            width: width,
             height: size.height
         )
     }

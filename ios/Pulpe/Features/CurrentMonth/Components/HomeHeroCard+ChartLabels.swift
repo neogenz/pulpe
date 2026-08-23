@@ -4,16 +4,22 @@ import SwiftUI
 // MARK: - Chart Labels
 
 extension HomeHeroCard {
+    /// The hero keeps its words off the card's edge, wherever the plot ends.
+    static let pillInset = DesignTokens.Spacing.xxl
+
     /// The plot's pills, drawn over it from one layout pass rather than as per-mark
     /// annotations: only here are all their anchors known in points at once, so none can
     /// land on today's dot or on another pill.
     func labelOverlay(proxy: ChartProxy) -> some View {
         GeometryReader { geometry in
             if let trajectory, let frame = proxy.plotFrame {
-                let rects = labelRects(for: trajectory, proxy: proxy, plot: geometry[frame])
+                let plot = geometry[frame]
+                let rects = labelRects(for: trajectory, proxy: proxy, plot: plot)
                 ForEach(HeroChartLabelLayout.Label.allCases, id: \.self) { label in
                     if let rect = rects[label] {
                         chartLabel(labelText(label, for: trajectory))
+                            // A long amount at an accessibility text size stops at the inset.
+                            .frame(maxWidth: plot.width - 2 * Self.pillInset)
                             .onGeometryChange(
                                 for: CGSize.self,
                                 of: { $0.size },
@@ -67,7 +73,7 @@ extension HomeHeroCard {
             plot: plot,
             dot: CGRect(x: today.x - dot / 2, y: today.y - dot / 2, width: dot, height: dot),
             spacing: DesignTokens.Spacing.xs,
-            inset: DesignTokens.Spacing.xxl
+            inset: Self.pillInset
         ).resolve(
             anchors: anchors,
             sizes: sizes,
