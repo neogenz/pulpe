@@ -112,7 +112,7 @@ extension OnboardingState {
         hasEmittedWelcomeViewed = false
         hasEmittedSignupStarted = false
         hasEmittedBudgetPreviewCompleted = false
-        firstNamePersistSucceeded = false
+        firstNamePersistFailedThisSession = false
     }
 }
 
@@ -168,20 +168,20 @@ extension OnboardingState {
         configureSocialUser(user)
         if let persistError {
             error = APIError.serverError(message: AuthErrorLocalizer.localize(persistError))
-        } else if FirstNameResolver.normalized(user.firstName) != nil {
-            firstNamePersistSucceeded = true
+            firstNamePersistFailedThisSession = true
         }
         nextStep()
     }
 
     /// Writes the in-memory first name to `user_metadata.firstName` when one exists.
-    /// Retries even if `authenticatedUser.firstName` is already set (failed persist).
+    /// Skips the network when Auth already has the same name, unless a write failed
+    /// earlier this session (last-chance retry).
     func persistFirstName(
         using persist: (String) async throws -> UserInfo
     ) async throws {
         guard let name = FirstNameResolver.normalized(firstName) else { return }
-        if firstNamePersistSucceeded,
-           FirstNameResolver.normalized(authenticatedUser?.firstName) == name {
+        if FirstNameResolver.normalized(authenticatedUser?.firstName) == name,
+           !firstNamePersistFailedThisSession {
             return
         }
         do {
@@ -189,9 +189,9 @@ extension OnboardingState {
             let merged = FirstNameResolver.coalescing(updated, fallbackFirstName: name)
             authenticatedUser = merged
             firstName = FirstNameResolver.normalized(merged.firstName) ?? name
-            firstNamePersistSucceeded = true
+            firstNamePersistFailedThisSession = false
         } catch {
-            firstNamePersistSucceeded = false
+            firstNamePersistFailedThisSession = true
             throw error
         }
     }

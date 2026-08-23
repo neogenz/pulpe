@@ -65,6 +65,23 @@ struct EditFirstNameViewModelTests {
         #expect(viewModel.canSubmit)
     }
 
+    @Test func submit_whenAPIOmitsFirstName_keepsDraftOnSavedUser() async {
+        let viewModel = EditFirstNameViewModel(
+            initialFirstName: "Marie",
+            dependencies: EditFirstNameDependencies(updateFirstName: { name in
+                #expect(name == "Marie")
+                return UserInfo(id: "1", email: "a@b.com", firstName: nil)
+            })
+        )
+
+        await viewModel.submit()
+
+        #expect(viewModel.isCompleted)
+        #expect(viewModel.errorMessage == nil)
+        #expect(viewModel.savedUser?.firstName == "Marie")
+        #expect(viewModel.draft == "Marie")
+    }
+
     @Test func submit_doesNotDeriveANameFromRelayEmail() async {
         let viewModel = EditFirstNameViewModel(
             initialFirstName: nil,

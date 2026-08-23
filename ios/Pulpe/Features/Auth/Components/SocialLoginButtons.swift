@@ -167,7 +167,6 @@ struct SocialLoginSection: View {
     /// that Supabase didn't capture in metadata. Awaits persist; keeps the name
     /// in memory and returns the error when the network write fails.
     /// Login must not call this — an existing `firstName` must not be overwritten.
-    @discardableResult
     private func patchFirstName(
         on user: inout UserInfo,
         from givenName: String?

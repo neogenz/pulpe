@@ -37,7 +37,10 @@ final class EditFirstNameViewModel {
         defer { isSubmitting = false }
 
         do {
-            let user = try await dependencies.updateFirstName(draft)
+            let user = FirstNameResolver.coalescing(
+                try await dependencies.updateFirstName(draft),
+                fallbackFirstName: draft
+            )
             savedUser = user
             if let persisted = FirstNameResolver.normalized(user.firstName) {
                 draft = persisted

@@ -165,8 +165,6 @@ extension RegistrationStep {
                         message: AuthErrorLocalizer.localize(error)
                     )
                 }
-            } else {
-                state.firstNamePersistSucceeded = true
             }
 
             state.isLoading = false

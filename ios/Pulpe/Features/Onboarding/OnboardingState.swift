@@ -46,9 +46,9 @@ final class OnboardingState {
     /// while the user is interacting with the form.
     private(set) var socialProvidedName: Bool = false
 
-    /// Session-only. Last-chance persist skips the network after a successful write.
-    /// Not persisted — a cold start mid-onboarding still retries.
-    var firstNamePersistSucceeded = false
+    /// Session-only. Last-chance persist retries after a failed write this session.
+    /// Matching Auth metadata (including a cold start) skips the network.
+    var firstNamePersistFailedThisSession = false
 
     /// Triggers `finishOnboarding` from BudgetPreview (the finale) for all auth paths.
     var readyToComplete: Bool = false

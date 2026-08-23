@@ -323,17 +323,18 @@ struct OnboardingFirstNamePersistTests {
     func persistFirstName_keepsNameInMemoryWhenPersistFails() async {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
-        state.configureSocialUser(UserInfo(id: "1", email: "a@b.com", firstName: "Marie"))
+        state.configureEmailUser(UserInfo(id: "1", email: "a@b.com"))
+        state.firstName = "Marie"
 
         await #expect(throws: PersistStubError.failed) {
             try await state.persistFirstName { _ in throw PersistStubError.failed }
         }
         #expect(state.firstName == "Marie")
-        #expect(state.authenticatedUser?.firstName == "Marie")
+        #expect(state.authenticatedUser?.firstName == nil)
     }
 
     @Test
-    func persistFirstName_retriesEvenIfUserAlreadyHasInMemoryName() async throws {
+    func persistFirstName_skipsWhenAuthenticatedUserAlreadyHasMatchingName() async throws {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
         state.configureSocialUser(UserInfo(id: "1", email: "a@b.com", firstName: "Marie"))
@@ -343,7 +344,7 @@ struct OnboardingFirstNamePersistTests {
             calls += 1
             return UserInfo(id: "1", email: "a@b.com", firstName: name)
         }
-        #expect(calls == 1)
+        #expect(calls == 0)
     }
 
     @Test
