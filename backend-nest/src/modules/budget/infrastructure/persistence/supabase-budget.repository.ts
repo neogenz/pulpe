@@ -775,6 +775,19 @@ export class SupabaseBudgetRepository
         .in('budget_id', budgetIds),
     ]);
 
+    if (budgetLinesResult.error || transactionsResult.error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'fetchHistoryData',
+          entityType: 'budget',
+          supabaseError: budgetLinesResult.error ?? transactionsResult.error,
+        },
+        { cause: budgetLinesResult.error ?? transactionsResult.error },
+      );
+    }
+
     const budgetLines = budgetLinesResult.data ?? [];
     const transactions = transactionsResult.data ?? [];
 

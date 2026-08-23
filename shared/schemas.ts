@@ -1925,7 +1925,7 @@ export type BudgetSummary = z.infer<typeof budgetSummarySchema>;
 export const driftHistorySchema = z.object({
   usualOutflowDrift: z.number(),
   closedMonths: z.number().int().positive(),
-  priorStrength: z.number().min(3).max(14),
+  priorStrength: z.number().int().min(3).max(14),
   driftMad: z.number().nonnegative(),
   driftProfile: z.array(z.number().min(0).max(1)).length(4),
 });
