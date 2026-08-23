@@ -39,9 +39,9 @@ struct HomeHeroCard: View {
 
     // MARK: - Semantic Styling
 
-    /// One accent for the whole card — variance tile, link and plotted gap. Read by
-    /// `HomeHeroCard+Chart`. The surface never takes it (The Two-Zone Rule).
-    var accentColor: Color { presentation.accent }
+    /// One accent for the whole card, spent on the variance tile alone. The surface never
+    /// takes it (The Two-Zone Rule).
+    private var accentColor: Color { presentation.accent }
 
     // MARK: - Accessibility
 
@@ -107,7 +107,7 @@ struct HomeHeroCard: View {
 
     private var summaryMetrics: some View {
         HeroMetricTileRow {
-            HeroMetricTile(label: uncheckedLabel, value: uncheckedValue)
+            HeroMetricTile(label: uncheckedLabel, value: uncheckedValue, showsChevron: true)
             HeroMetricTile(label: varianceLabel, value: varianceValue, tint: accentColor, showsChevron: true)
         }
     }
@@ -124,11 +124,13 @@ struct HomeHeroCard: View {
 
     /// One sentence that ends in its own action. The verdict is already spoken by the
     /// metrics element above; repeating it here would make VoiceOver say it twice in a row.
+    /// The link takes the hero's ink: the accent is spent on the `Imprévus` amount alone,
+    /// so orange means "the month's gap", never "tap here".
     private var verdictSentence: some View {
         HeroVerdictRow(
             sentence: presentation.verdictText,
             linkTitle: AppLocale.string("Voir le budget"),
-            accent: accentColor,
+            accent: .heroInk,
             action: onTapDetail,
             accessibilityLabel: AppLocale.string("Voir le détail du budget"),
             accessibilityIdentifier: "homeBudgetDetailLink"
