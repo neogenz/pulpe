@@ -6,9 +6,14 @@ struct ActivityCard: View {
     let transactions: [Transaction]
     var tagNamesById: [String: String] = [:]
     var onViewAll: () -> Void
+    var onEdit: (Transaction) -> Void
+    var onDelete: (Transaction) -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var window: Window = .week
+    /// The one row whose swipe actions are revealed, shared across the day cards.
+    @State private var openRowId: AnyHashable?
+    @State private var pendingDeletion: Transaction?
 
     enum Window: String, CaseIterable {
         case week = "7 jours"
@@ -109,6 +114,17 @@ struct ActivityCard: View {
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
         .accessibilityIdentifier("homeActivityCard")
+        .confirmationDialog(
+            AppLocale.string("Supprimer cette opération ?"),
+            isPresented: Binding(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } }),
+            titleVisibility: .visible,
+            presenting: pendingDeletion
+        ) { transaction in
+            Button(AppLocale.string("Supprimer"), role: .destructive) { onDelete(transaction) }
+            Button(AppLocale.string("Annuler"), role: .cancel) {}
+        } message: { transaction in
+            Text(transaction.name)
+        }
     }
 
     // MARK: - Window Picker
@@ -136,13 +152,23 @@ struct ActivityCard: View {
                 .foregroundStyle(Color.textTertiary)
                 .accessibilityAddTraits(.isHeader)
 
+            // The inset lives on each row rather than on the stack, so a swiped row's
+            // buttons reach the card's edge instead of stopping at its padding.
             VStack(spacing: DesignTokens.Spacing.none) {
                 ForEach(Array(group.transactions.enumerated()), id: \.element.id) { index, transaction in
-                    if index > 0 { Divider() }
+                    if index > 0 { Divider().padding(.horizontal, DesignTokens.Spacing.lg) }
                     row(transaction)
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .trailingSwipeActions(id: transaction.id, openId: $openRowId) {
+                            swipeButton("Modifier", systemImage: "pencil", fill: .editAction) { onEdit(transaction) }
+                            swipeButton("Supprimer", systemImage: "trash", fill: .destructivePrimary) {
+                                pendingDeletion = transaction
+                            }
+                        }
+                        .accessibilityAction(named: AppLocale.string("Modifier")) { onEdit(transaction) }
+                        .accessibilityAction(named: AppLocale.string("Supprimer")) { pendingDeletion = transaction }
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.xs)
             .pulpeRowCard()
         }
@@ -173,6 +199,29 @@ struct ActivityCard: View {
         }
         .padding(.vertical, DesignTokens.Spacing.md)
         .accessibilityElement(children: .combine)
+    }
+
+    /// One revealed action: a full-height tinted column with its glyph. Tapping it closes
+    /// the row before acting, so the row is at rest whatever the action does next.
+    private func swipeButton(
+        _ title: String.LocalizationValue,
+        systemImage: String,
+        fill: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            openRowId = nil
+            action()
+        } label: {
+            Label(AppLocale.string(title), systemImage: systemImage)
+                .labelStyle(.iconOnly)
+                .font(PulpeTypography.metricLabelBold)
+                .foregroundStyle(Color.textOnPrimary)
+                .frame(width: DesignTokens.TapTarget.minimum + DesignTokens.Spacing.lg)
+                .frame(maxHeight: .infinity)
+                .background(fill)
+        }
+        .buttonStyle(.plain)
     }
 
     /// Mock renders activity amounts in neutral ink (not kind-colored);

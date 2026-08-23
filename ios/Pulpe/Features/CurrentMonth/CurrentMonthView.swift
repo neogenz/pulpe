@@ -327,7 +327,9 @@ struct CurrentMonthView: View {
                 ActivityCard(
                     transactions: store.transactions,
                     tagNamesById: tagStore.namesById,
-                    onViewAll: { navigateToBudget = true }
+                    onViewAll: { navigateToBudget = true },
+                    onEdit: editTransaction,
+                    onDelete: { transaction in Task { await store.deleteTransaction(transaction) } }
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 3)
             }
@@ -335,6 +337,15 @@ struct CurrentMonthView: View {
         // One content margin for the whole screen, aligned with the hero above, so the
         // section headings and the cards they introduce hang off a single vertical rail.
         .padding(.horizontal, DesignTokens.Spacing.xxl)
+    }
+
+    /// The edit page lives in the budget's stack: the home pushes the budget, which opens
+    /// from the cache this store already primed, and hands it the operation to push next.
+    /// Back returns to the budget, then here.
+    private func editTransaction(_ transaction: Transaction) {
+        guard let budgetId = store.budget?.id else { return }
+        appState.pendingTransactionEdit = transaction.id
+        appState.currentMonthPath.append(BudgetDestination.details(budgetId: budgetId))
     }
 
     /// The one filled element in the content zone. Recording an operation is the act the
