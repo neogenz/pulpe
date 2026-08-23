@@ -144,20 +144,6 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func anchorLabel_namesTheGapOnlyWhenThePlotHasRoomForIt() {
-        let wide = trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000)
-        #expect(HomeHeroCard.anchorLabel(for: wide, currency: .chf) == "-700 CHF")
-
-        // 30 CHF on a plot floored at 450: closer to the plan's own label than a line height.
-        // The `Imprévus` metric above still prints it, so nothing is hidden by staying quiet.
-        let narrow = trajectory(landing: [2_500, 2_470], plannedOutflows: 9_000)
-        #expect(HomeHeroCard.anchorLabel(for: narrow, currency: .chf) == "Aujourd’hui")
-
-        let held = trajectory(landing: [2_500, 2_500], plannedOutflows: 9_000)
-        #expect(HomeHeroCard.anchorLabel(for: held, currency: .chf) == "Aujourd’hui")
-    }
-
-    @MainActor
     @Test func chartDomain_holdsEveryReadingIncludingAMonthThatNeverMoved() {
         let drifted = trajectory(landing: [100, 80, -40])
         let driftedDomain = HomeHeroCard.chartYDomain(for: drifted)

@@ -22433,6 +22433,50 @@
       "localizations" : {},
       "shouldTranslate" : false
     },
+    "Si tu continues : %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn du so weitermachst: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you keep going: %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se continui così: %@"
+          }
+        }
+      }
+    },
+    "Si tu continues, %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn du so weitermachst, %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you keep going, %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se continui così, %@."
+          }
+        }
+      }
+    },
     "Si un compte existe avec cette adresse, tu recevras un email avec un lien de réinitialisation." : {
       "localizations" : {
         "de" : {

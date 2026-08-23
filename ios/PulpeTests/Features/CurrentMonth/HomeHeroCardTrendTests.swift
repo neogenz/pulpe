@@ -29,6 +29,7 @@ import Testing
     @Test func trendLabel_printsOnlyOnceTheTrendIsVisiblyApartFromTheEstimate() {
         let loud = trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000, totalDays: 31)
         #expect(HomeHeroCard.showsTrendLabel(for: loud))
+        #expect(HomeHeroCard.trendLabel(for: loud, currency: .chf).hasPrefix("Si tu continues : "))
         #expect(HomeHeroCard.trendLabel(for: loud, currency: .chf).hasSuffix("CHF"))
         let quiet = trajectory(landing: [2_500, 2_495], plannedOutflows: 9_000, totalDays: 31)
         #expect(!HomeHeroCard.showsTrendLabel(for: quiet))

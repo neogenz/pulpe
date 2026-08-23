@@ -6,8 +6,8 @@ import SwiftUI
 extension HomeHeroCard {
     /// The month's landing forecast: it opens on the plan, it arrives on the figure above
     /// it, and it only leaves the horizontal when the month leaves its plan. Two strokes and
-    /// a point: what the days lived did to the forecast, where it holds from today, and the
-    /// gap named at the anchor. A faint rule names the plan; no rule for today — the line's own
+    /// a point: what the days lived did to the forecast, where it holds from today, and today
+    /// itself, named. A faint rule names the plan; no rule for today — the line's own
     /// first reading is the plan, and the dot is today.
     @ViewBuilder
     var balanceChart: some View {
@@ -120,22 +120,18 @@ extension HomeHeroCard {
                             .strokeBorder(Color.heroSurface, lineWidth: DesignTokens.BorderWidth.thick)
                             .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
                     }
-                    // One label on this anchor, never two: the gap when there is room to
-                    // print it, the day otherwise. It lands on the far side of the line's
-                    // origin level, where the plot is empty by construction.
+                    // The day only: the gap's figure lives in the `Imprévus` tile, and the plot
+                    // prints one end-of-month number, the trend's. It lands on the far side
+                    // of the line's origin level, where the plot is empty by construction.
                     .annotation(
                         position: Self.gapLabelPosition(for: trajectory),
                         alignment: .trailing,
                         spacing: DesignTokens.Spacing.xs,
                         overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
                     ) {
-                        Text(Self.anchorLabel(for: trajectory, currency: currency))
+                        Text(AppLocale.string("Aujourd’hui"))
                             .font(PulpeTypography.caption2)
-                            .foregroundStyle(
-                                Self.showsGapLabel(for: trajectory)
-                                    ? accentColor
-                                    : Color.heroInkSecondary
-                            )
+                            .foregroundStyle(Color.heroInkSecondary)
                             .lineLimit(1)
                     }
                 }
@@ -236,7 +232,7 @@ extension HomeHeroCard {
         for trajectory: BudgetFormulas.BalanceTrajectory,
         currency: SupportedCurrency
     ) -> String {
-        AppLocale.string("à ce rythme \(trend(for: trajectory).asCompactCurrency(currency))")
+        AppLocale.string("Si tu continues : \(trend(for: trajectory).asCompactCurrency(currency))")
     }
 
     /// The anchor label sits away from the plan level — below the dot for a month under its
@@ -245,23 +241,6 @@ extension HomeHeroCard {
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> AnnotationPosition {
         trajectory.drift.rounded(2) > 0 ? .top : .bottom
-    }
-
-    /// A gap wide enough to be seen gets named; anything narrower would print a figure over
-    /// its own rule, and the `Imprévus` metric above the plot already carries it.
-    static func showsGapLabel(for trajectory: BudgetFormulas.BalanceTrajectory) -> Bool {
-        guard trajectory.drift.rounded(2) != 0 else { return false }
-        let gap = abs(decimalValue(trajectory.drift))
-        return gap >= span(for: trajectory) * DesignTokens.Chart.gapLabelMinimumRatio
-    }
-
-    static func anchorLabel(
-        for trajectory: BudgetFormulas.BalanceTrajectory,
-        currency: SupportedCurrency
-    ) -> String {
-        guard showsGapLabel(for: trajectory) else { return AppLocale.string("Aujourd’hui") }
-        let drift = trajectory.drift.rounded(2)
-        return "\(drift > 0 ? "+" : "")\(drift.asAdaptiveCurrency(currency))"
     }
 
     /// Speaks the subtraction VoiceOver cannot see, in the drawing's own order: the plan the
@@ -295,7 +274,7 @@ extension HomeHeroCard {
         let spoken = "\(plan) \(estimate) " + AppLocale.string("Écart \(drift) depuis le \(day).")
         guard showsTrendLabel(for: trajectory) else { return spoken }
         return spoken + " " + AppLocale.string(
-            "À ce rythme, \(trend(for: trajectory).asCompactCurrency(currency))."
+            "Si tu continues, \(trend(for: trajectory).asCompactCurrency(currency))."
         )
     }
 
