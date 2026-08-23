@@ -111,10 +111,8 @@ extension HomeHeroCard {
                     .symbolSize(0)
                     // Grows leftward from the plot's edge, and keeps the text inset the hero
                     // uses: the plot is edge to edge, so "fit to chart" alone would touch glass.
-                    // Above its own stroke: the band below the plot belongs to today's
-                    // label, and the two would otherwise meet when today is late in the month.
                     .annotation(
-                        position: .top,
+                        position: Self.trendLabelPosition(for: trajectory),
                         alignment: .trailing,
                         spacing: DesignTokens.Spacing.xs,
                         overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
@@ -135,10 +133,13 @@ extension HomeHeroCard {
                     )
                     .symbolSize(DesignTokens.Chart.pointSymbolArea)
                     .foregroundStyle(Color.heroInk)
+                    // Steps aside with the labels: one dot on the plot at a time.
+                    .opacity(labelOpacity)
                     .annotation(position: .overlay) {
                         Circle()
                             .strokeBorder(Color.heroSurface, lineWidth: DesignTokens.BorderWidth.thick)
                             .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
+                            .opacity(labelOpacity)
                     }
                     // The day only, below and to the left of the dot: under the stroke that
                     // reaches it, where neither the dashed tail nor the plan passes.
@@ -156,27 +157,14 @@ extension HomeHeroCard {
                     }
                 }
 
-                // The finger's day: a rule through the plot, a dot on the stroke it reads,
-                // and one bubble that says the day, what was left, what was planned.
+                // The finger's day: a rule through the plot and a dot on the stroke it
+                // reads. No text on the plot — the hero figure above says the value and
+                // its eyebrow the day, the way a price chart hands its reading to the title.
                 if let scrubDay {
                     let reading = Self.scrubReading(at: scrubDay, in: trajectory)
                     RuleMark(x: .value("Jour", reading.day))
                         .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin))
-                        .foregroundStyle(Color.heroInkSecondary)
-                        .annotation(
-                            position: .top,
-                            alignment: .center,
-                            spacing: DesignTokens.Spacing.xs,
-                            overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
-                        ) {
-                            Text(Self.scrubBubbleText(reading, currency: currency))
-                                .font(PulpeTypography.caption2)
-                                .foregroundStyle(Color.heroInk)
-                                .lineLimit(1)
-                                .padding(.horizontal, DesignTokens.Spacing.sm)
-                                .padding(.vertical, DesignTokens.Spacing.xxs)
-                                .background(Color.heroSurface, in: Capsule())
-                        }
+                        .foregroundStyle(Color.heroInkSecondary.opacity(DesignTokens.Opacity.heroInkMuted))
                     // The dot sits on the stroke the day belongs to: real, else estimate.
                     if let value = reading.real ?? reading.estimate {
                         PointMark(
@@ -185,6 +173,11 @@ extension HomeHeroCard {
                         )
                         .symbolSize(DesignTokens.Chart.pointSymbolArea)
                         .foregroundStyle(Color.heroInk)
+                        .annotation(position: .overlay) {
+                            Circle()
+                                .strokeBorder(Color.heroSurface, lineWidth: DesignTokens.BorderWidth.thick)
+                                .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
+                        }
                     }
                 }
             }
@@ -303,13 +296,22 @@ extension HomeHeroCard {
         AppLocale.string("Si tu continues : \(trend(for: trajectory).asCompactCurrency(currency))")
     }
 
-    /// « Prévu » sits on the side of the plan's end the dashed stroke leaves free: above it
-    /// for a month under its plan, below it for a month over — the trend's figure is
-    /// always above the dashed stroke, so the two words never share a band.
+    /// A label grows leftward from its stroke's end, so it has to sit on the side the
+    /// stroke leaves free there: under a stroke that falls (the line is higher to the
+    /// left), over one that climbs. The plan falls whenever the month plans to spend.
     static func planLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> AnnotationPosition {
-        trajectory.drift.rounded(2) > 0 ? .bottom : .top
+        trajectory.plannedBalance < trajectory.plannedAvailable ? .bottom : .top
+    }
+
+    /// Same rule for the trend's figure: under a dashed stroke that keeps falling, over
+    /// one that climbs back. A held month's stroke is flat and takes the top.
+    static func trendLabelPosition(
+        for trajectory: BudgetFormulas.BalanceTrajectory
+    ) -> AnnotationPosition {
+        guard let current = trajectory.real.last else { return .top }
+        return trend(for: trajectory) < current.balance ? .bottom : .top
     }
 
     /// Speaks the three strokes VoiceOver cannot see, in the drawing's own order: what the

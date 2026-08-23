@@ -135,12 +135,18 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func planLabel_sitsOnTheSideTheDashedStrokeLeavesFree() {
-        // Under its plan the dashed stroke ends below the plan's end, so « Prévu » goes
-        // above it; over its plan it goes below, out of the trend figure's way.
-        #expect(HomeHeroCard.planLabelPosition(for: trajectory(landing: [2_500, 1_800])) == .top)
-        #expect(HomeHeroCard.planLabelPosition(for: trajectory(landing: [2_500, 2_900])) == .bottom)
+    @Test func labels_sitUnderAFallingStrokeAndOverAClimbingOne() {
+        // A label grows leftward from the stroke's end, where a falling line is higher:
+        // it goes under. A plan with outflows always falls; the trend follows its slope.
+        let spending = trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000, totalDays: 31)
+        #expect(HomeHeroCard.planLabelPosition(for: spending) == .bottom)
+        #expect(HomeHeroCard.trendLabelPosition(for: spending) == .bottom)
+        // Even a month above its plan still has money to spend: the dashed stroke falls
+        // from what is left today to what is left at the end, and its figure goes under.
+        let recovering = trajectory(landing: [2_500, 2_900], plannedOutflows: 9_000, totalDays: 31)
+        #expect(HomeHeroCard.trendLabelPosition(for: recovering) == .bottom)
         #expect(HomeHeroCard.planLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
+        #expect(HomeHeroCard.trendLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
     }
 
     @MainActor

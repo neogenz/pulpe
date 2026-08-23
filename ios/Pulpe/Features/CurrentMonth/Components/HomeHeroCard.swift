@@ -32,6 +32,10 @@ struct HomeHeroCard: View {
     @State var scrubDay: Int?
 
     var currency: SupportedCurrency { userSettingsStore.currency }
+    private var scrubReading: ScrubReading? {
+        guard let scrubDay, let trajectory else { return nil }
+        return Self.scrubReading(at: scrubDay, in: trajectory)
+    }
     private var presentation: HeroVerdictPresentation {
         HeroVerdictPresentation(
             // The plot's own origin whenever there is a plot, so the rule under the hero and
@@ -68,9 +72,12 @@ struct HomeHeroCard: View {
     /// because it is the picture of the month, not a widget inside it.
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
+            // While the plot is scrubbed the title hands itself to the finger: the day
+            // in the eyebrow, the day's reading as the figure, digits morphing between.
             HeroFigure(
-                eyebrow: AppLocale.string("Estimé fin \(monthName)"),
-                amount: presentation.estimatedBalance,
+                eyebrow: scrubReading.map { Self.scrubEyebrow($0, currency: currency) }
+                    ?? AppLocale.string("Estimé fin \(monthName)"),
+                amount: scrubReading.map(Self.scrubFigure) ?? presentation.estimatedBalance,
                 currency: currency,
                 alignment: .leading,
                 accessibilityIdentifier: "homeProjectedBalanceAmount"
@@ -88,6 +95,7 @@ struct HomeHeroCard: View {
         // Drives the digit morph above: `contentTransition` is inert unless the value
         // change happens inside an animation, so the two ship together or neither works.
         .animation(DesignTokens.Animation.smoothEaseInOut, value: metrics)
+        .animation(reduceMotion ? nil : DesignTokens.Animation.quickEaseInOut, value: scrubDay)
     }
 
     // MARK: - Summary

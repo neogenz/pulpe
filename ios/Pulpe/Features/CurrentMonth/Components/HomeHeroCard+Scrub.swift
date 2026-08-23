@@ -31,18 +31,19 @@ extension HomeHeroCard {
         return ScrubReading(day: day, date: date, real: real, plan: plan, estimate: estimate)
     }
 
-    /// « 12 août · Réel 6’900 CHF · Prévu 7’400 CHF », or the estimate once the day is
-    /// still to come. Three self-contained pieces joined by the separator the app uses.
-    static func scrubBubbleText(_ reading: ScrubReading, currency: SupportedCurrency) -> String {
-        var parts: [String] = []
-        if let date = reading.date { parts.append(Formatters.dayMonthLabel(for: date)) }
-        if let real = reading.real {
-            parts.append(AppLocale.string("Réel \(real.asCompactCurrency(currency))"))
-        } else if let estimate = reading.estimate {
-            parts.append(AppLocale.string("Estimé \(estimate.asCompactCurrency(currency))"))
-        }
-        parts.append(AppLocale.string("Prévu \(reading.plan.asCompactCurrency(currency))"))
-        return parts.joined(separator: " · ")
+    /// The eyebrow while scrubbing: « Réel le 12 août · Prévu 7’400 CHF », or « Estimé le
+    /// 20 août · … » once the day is still to come. The figure under it is the reading.
+    static func scrubEyebrow(_ reading: ScrubReading, currency: SupportedCurrency) -> String {
+        let day = reading.date.map { Formatters.dayMonthLabel(for: $0) } ?? ""
+        let lead = reading.real != nil
+            ? AppLocale.string("Réel le \(day)")
+            : AppLocale.string("Estimé le \(day)")
+        return lead + " · " + AppLocale.string("Prévu \(reading.plan.asCompactCurrency(currency))")
+    }
+
+    /// What the hero prints while scrubbing: the real stroke's reading, else the estimate's.
+    static func scrubFigure(_ reading: ScrubReading) -> Decimal {
+        reading.real ?? reading.estimate ?? reading.plan
     }
 
     /// A short hold, then the finger drives the rule. A bare drag would take the page's

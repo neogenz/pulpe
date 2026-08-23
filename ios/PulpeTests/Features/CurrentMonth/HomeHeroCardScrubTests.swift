@@ -52,14 +52,15 @@ struct HomeHeroCardScrubTests {
     }
 
     @MainActor
-    @Test func bubble_namesTheDayAndBothAmounts() {
-        let past = HomeHeroCard.scrubBubbleText(HomeHeroCard.scrubReading(at: 5, in: trajectory), currency: .chf)
-        #expect(past.hasPrefix("5 août · Réel "))
-        #expect(past.contains(" · Prévu "))
-        #expect(!past.contains("Estimé"))
+    @Test func eyebrow_namesTheDayAndThePlan_andTheFigureIsTheReading() {
+        let past = HomeHeroCard.scrubReading(at: 5, in: trajectory)
+        #expect(HomeHeroCard.scrubEyebrow(past, currency: .chf).hasPrefix("Réel le 5 août · Prévu "))
+        #expect(HomeHeroCard.scrubFigure(past) == 11_500)
 
-        let future = HomeHeroCard.scrubBubbleText(HomeHeroCard.scrubReading(at: 20, in: trajectory), currency: .chf)
-        #expect(future.hasPrefix("20 août · Estimé "))
-        #expect(future.hasSuffix("CHF"))
+        let future = HomeHeroCard.scrubReading(at: 20, in: trajectory)
+        let eyebrow = HomeHeroCard.scrubEyebrow(future, currency: .chf)
+        #expect(eyebrow.hasPrefix("Estimé le 20 août · Prévu "))
+        #expect(eyebrow.hasSuffix("CHF"))
+        #expect(HomeHeroCard.scrubFigure(future) == future.estimate)
     }
 }
