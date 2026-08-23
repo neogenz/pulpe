@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Tour 11 "opérations à pointer": a cyclic deck of quick-check cards. The neighbours
-/// wait off-screen; a « 1 / 4 » position says there is more to swipe to.
+/// Tour 11 "opérations à pointer": a cyclic deck of quick-check cards whose neighbours
+/// peek at the screen edges to say the deck slides; « 1 / 4 » says how far.
 struct UncheckedOperationsCard: View {
     let items: [CurrentMonthStore.CheckableItem]
     var tagNamesById: [String: String] = [:]
@@ -142,9 +142,8 @@ struct UncheckedOperationsCard: View {
 
     /// The page hangs everything on one rail (the `Spacing.xxl` content margin applied
     /// by CurrentMonthView). The deck escapes that rail to run full-bleed and re-applies
-    /// the same token as a scroll content margin, so the focused card sits exactly on the
-    /// rail; the slot gap is two gutters wide, which parks the neighbours just past the
-    /// glass. A plain HStack, not lazy: removal transitions don't play inside lazy
+    /// the same token as a scroll content margin — the focused card sits exactly on the
+    /// rail while its neighbours own the edges. A plain HStack, not lazy: removal transitions don't play inside lazy
     /// containers, and the list is at most a month's unchecked operations.
     private var deck: some View {
         let reduceDeckMotion = reduceMotion
