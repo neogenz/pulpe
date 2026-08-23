@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 ---
 
 # Instruction: Les quinze outils métier

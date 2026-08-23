@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { createInfoLoggerProvider } from '@common/logger';
 import { BudgetModule } from '@modules/budget/budget.module';
+import { BudgetLineModule } from '@modules/budget-line/budget-line.module';
+import { CurrencyModule } from '@modules/currency/currency.module';
+import { UserModule } from '@modules/user/user.module';
 import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
 import { SavingsGoalModule } from '@modules/savings-goal/savings-goal.module';
 import { TransactionModule } from '@modules/transaction/transaction.module';
@@ -25,6 +28,14 @@ import { ListSavingsGoalsTool } from './infrastructure/tools/read/list-savings-g
 import { GetSavingsGoalOutlookTool } from './infrastructure/tools/read/get-savings-goal-outlook.tool';
 import { ListTemplatesTool } from './infrastructure/tools/read/list-templates.tool';
 import { AddMovementTool } from './infrastructure/tools/write/add-movement.tool';
+import { UpdateMovementTool } from './infrastructure/tools/write/update-movement.tool';
+import { DeleteMovementTool } from './infrastructure/tools/write/delete-movement.tool';
+import { AddForecastTool } from './infrastructure/tools/write/add-forecast.tool';
+import { UpdateForecastTool } from './infrastructure/tools/write/update-forecast.tool';
+import { SpreadExpenseTool } from './infrastructure/tools/write/spread-expense.tool';
+import { CreateMonthFromTemplateTool } from './infrastructure/tools/write/create-month-from-template.tool';
+import { ToggleCheckTool } from './infrastructure/tools/write/toggle-check.tool';
+import { ResolveCurrencyUseCase } from './application/resolve-currency.use-case';
 import { McpRevocationModule } from './mcp-revocation.module';
 import { MCP_ACTIVITY_REPOSITORY, MCP_TOOLS } from './mcp.tokens';
 
@@ -37,13 +48,23 @@ const TOOLS = [
   GetSavingsGoalOutlookTool,
   ListTemplatesTool,
   AddMovementTool,
+  UpdateMovementTool,
+  DeleteMovementTool,
+  AddForecastTool,
+  UpdateForecastTool,
+  SpreadExpenseTool,
+  CreateMonthFromTemplateTool,
+  ToggleCheckTool,
 ];
 
 @Module({
   imports: [
     McpRevocationModule,
     BudgetModule,
+    BudgetLineModule,
     BudgetTemplateModule,
+    CurrencyModule,
+    UserModule,
     SavingsGoalModule,
     TransactionModule,
   ],
@@ -55,6 +76,7 @@ const TOOLS = [
   ],
   providers: [
     ListToolsUseCase,
+    ResolveCurrencyUseCase,
     CallToolUseCase,
     ApproveConnectionUseCase,
     DenyConnectionUseCase,
