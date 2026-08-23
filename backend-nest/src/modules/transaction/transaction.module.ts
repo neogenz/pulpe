@@ -21,6 +21,8 @@ import { ToggleTransactionCheckUseCase } from './application/toggle-transaction-
 import { SearchTransactionsUseCase } from './application/search-transactions.use-case';
 import { SearchTransactionsInProcessUseCase } from './application/search-transactions-in-process.use-case';
 import { TRANSACTION_SEARCH_PORT } from './domain/ports/transaction-search.port';
+import { WriteTransactionsInProcessUseCase } from './application/write-transactions-in-process.use-case';
+import { TRANSACTION_WRITE_PORT } from './domain/ports/transaction-write.port';
 import { PostponeTransactionUseCase } from './application/postpone-transaction.use-case';
 import { SpreadTransactionFromTxnUseCase } from './application/spread-transaction-from-txn.use-case';
 
@@ -60,6 +62,11 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
       provide: TRANSACTION_SEARCH_PORT,
       useExisting: SearchTransactionsInProcessUseCase,
     },
+    WriteTransactionsInProcessUseCase,
+    {
+      provide: TRANSACTION_WRITE_PORT,
+      useExisting: WriteTransactionsInProcessUseCase,
+    },
     TransactionMapper,
     createInfoLoggerProvider(TransactionController.name),
     createInfoLoggerProvider(SupabaseTransactionRepository.name),
@@ -78,6 +85,7 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
     TRANSACTION_SPREAD_FROM_TXN_PORT,
     TRANSACTION_CREATE_PORT,
     TRANSACTION_SEARCH_PORT,
+    TRANSACTION_WRITE_PORT,
   ],
 })
 export class TransactionModule {}
