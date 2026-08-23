@@ -141,6 +141,7 @@ struct HomeHeroCardTests {
         let spending = trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000, totalDays: 31)
         #expect(HomeHeroCard.planLabelPosition(for: spending) == .bottom)
         #expect(HomeHeroCard.trendLabelPosition(for: spending) == .bottom)
+        #expect(HomeHeroCard.todayLabelPosition(for: spending) == .top)
         // Even a month above its plan still has money to spend: the dashed stroke falls
         // from what is left today to what is left at the end, and its figure goes under.
         let recovering = trajectory(landing: [2_500, 2_900], plannedOutflows: 9_000, totalDays: 31)

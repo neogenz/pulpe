@@ -39,10 +39,8 @@ extension HomeHeroCard {
                         spacing: DesignTokens.Spacing.xs,
                         overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
                     ) {
-                        Text(AppLocale.string("Prévu"))
+                        chartLabel(AppLocale.string("Prévu"))
                             .padding(.trailing, DesignTokens.Spacing.xxl)
-                            .font(PulpeTypography.caption2)
-                            .foregroundStyle(Color.heroInkSecondary)
                             .opacity(labelOpacity)
                     }
                 }
@@ -117,11 +115,8 @@ extension HomeHeroCard {
                         spacing: DesignTokens.Spacing.xs,
                         overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
                     ) {
-                        Text(Self.trendLabel(for: trajectory, currency: currency))
+                        chartLabel(Self.trendLabel(for: trajectory, currency: currency))
                             .padding(.trailing, DesignTokens.Spacing.xxl)
-                            .font(PulpeTypography.caption2)
-                            .foregroundStyle(Color.heroInkSecondary)
-                            .lineLimit(1)
                             .opacity(settlingOpacity * labelOpacity)
                     }
                 }
@@ -141,18 +136,15 @@ extension HomeHeroCard {
                             .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
                             .opacity(labelOpacity)
                     }
-                    // The day only, below and to the left of the dot: under the stroke that
-                    // reaches it, where neither the dashed tail nor the plan passes.
+                    // The day only, to the left of the dot, on the side the trend's figure
+                    // leaves free: late in the month the two would otherwise share a corner.
                     .annotation(
-                        position: .bottom,
+                        position: Self.todayLabelPosition(for: trajectory),
                         alignment: .trailing,
                         spacing: DesignTokens.Spacing.xs,
                         overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
                     ) {
-                        Text(AppLocale.string("Aujourd’hui"))
-                            .font(PulpeTypography.caption2)
-                            .foregroundStyle(Color.heroInkSecondary)
-                            .lineLimit(1)
+                        chartLabel(AppLocale.string("Aujourd’hui"))
                             .opacity(labelOpacity)
                     }
                 }
@@ -249,6 +241,18 @@ extension HomeHeroCard {
     /// The fixed labels step aside while the finger's bubble is on the plot.
     var labelOpacity: Double { scrubDay == nil ? 1 : 0 }
 
+    /// A word on the plot sits on a sliver of the surface, so a stroke passing under it
+    /// never runs through its letters. The same glass tint as the metric tiles below.
+    private func chartLabel(_ text: String) -> some View {
+        Text(text)
+            .font(PulpeTypography.caption2)
+            .foregroundStyle(Color.heroInkSecondary)
+            .lineLimit(1)
+            .padding(.horizontal, DesignTokens.Spacing.xs)
+            .padding(.vertical, DesignTokens.Spacing.xxs)
+            .background(Color.heroTile, in: Capsule())
+    }
+
     /// The skeleton's own pulse on the dashed stroke and its label while an entry settles —
     /// the same material the loading state uses, so "not final yet" reads the same way
     /// twice. Reduced motion holds the faded level without pulsing.
@@ -312,6 +316,14 @@ extension HomeHeroCard {
     ) -> AnnotationPosition {
         guard let current = trajectory.real.last else { return .top }
         return trend(for: trajectory) < current.balance ? .bottom : .top
+    }
+
+    /// Today's word takes the side the trend's figure does not, since both grow leftward
+    /// from nearly the same point once the month is well along.
+    static func todayLabelPosition(
+        for trajectory: BudgetFormulas.BalanceTrajectory
+    ) -> AnnotationPosition {
+        trendLabelPosition(for: trajectory) == .bottom ? .top : .bottom
     }
 
     /// Speaks the three strokes VoiceOver cannot see, in the drawing's own order: what the
