@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "pulpe": {
+      "type": "http",
+      "url": "https://api.pulpe.app/mcp",
+      "note": "Serveur MCP Pulpe. L'authentification passe par OAuth : à la première connexion, Pulpe demande d'autoriser l'agent et de choisir entre lecture seule et lecture-écriture. Aucun réglage local, aucune clé à coller."
+    }
+  }
+}

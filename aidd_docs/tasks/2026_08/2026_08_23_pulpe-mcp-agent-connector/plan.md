@@ -1,6 +1,6 @@
 ---
 objective: "Un utilisateur Pulpe branche son compte dans ChatGPT, Claude ou Codex, autorise l'accès depuis une page Pulpe, pilote son budget en langage naturel, et coupe l'accès quand il veut."
-status: in-progress
+status: blocked
 ---
 
 # Plan: Connecteur MCP Pulpe pour agents IA

@@ -1631,12 +1631,23 @@
         "analyticsLabel": "Important :",
         "analyticsBody": "J'utilise PostHog pour suivre l'utilisation de l'application. Cela inclut les pages visitées, les fonctionnalités utilisées, les erreurs rencontrées et l'enregistrement de sessions (replay des interactions). Tes données financières sont toujours masquées dans ces analyses et enregistrements."
       },
+      "aiAssistants": {
+        "title": "5. Connexions à des assistants IA",
+        "intro": "Tu peux connecter Pulpe à un assistant IA. Ce canal est facultatif, et les règles suivantes s’y ajoutent.",
+        "items": {
+          "authority": "L’assistant agit en ton nom, dans la limite du mode que tu as choisi : lecture seule, ou lecture et écriture.",
+          "responsibility": "Tu restes responsable de ce que tu lui demandes. Une écriture faite par l’assistant vaut une écriture faite par toi.",
+          "editor": "L’éditeur de l’assistant est un tiers que tu choisis. Ses conditions s’appliquent à lui, pas à moi, et je ne réponds pas de ce qu’il fait de tes demandes.",
+          "figures": "Les chiffres que l’assistant annonce viennent de Pulpe. La façon dont il les met en mots lui appartient : en cas d’écart, l’application fait foi.",
+          "revocation": "Tu coupes l’accès quand tu veux, dans Réglages puis Connexions. L’effet est immédiat."
+        }
+      },
       "source": {
-        "title": "5. Code source et propriété",
+        "title": "6. Code source et propriété",
         "body": "Le code source de Pulpe peut être consulté publiquement sur GitHub. Tes données personnelles t'appartiennent et restent privées."
       },
       "liability": {
-        "title": "6. Limitation de responsabilité",
+        "title": "7. Limitation de responsabilité",
         "intro": "Pulpe est un projet personnel maintenu sur mon temps libre. Le service est fourni « tel quel » et je ne peux pas garantir :",
         "warning": "Avertissement important :",
         "items": {
@@ -1650,19 +1661,19 @@
         }
       },
       "termination": {
-        "title": "7. Résiliation",
+        "title": "8. Résiliation",
         "body": "Tu peux supprimer ton compte à tout moment depuis les paramètres. Je me réserve le droit de suspendre ou supprimer ton compte en cas de violation de ces conditions ou d'utilisation abusive."
       },
       "changes": {
-        "title": "8. Modifications des CGU",
+        "title": "9. Modifications des CGU",
         "body": "Je peux modifier ces conditions si nécessaire. Les modifications importantes seront notifiées par email. L'utilisation continue du service après modification vaut acceptation des nouvelles conditions."
       },
       "law": {
-        "title": "9. Droit applicable",
+        "title": "10. Droit applicable",
         "body": "Ces conditions sont régies par le droit suisse. Tout litige sera soumis aux tribunaux compétents de Genève, Suisse."
       },
       "contact": {
-        "title": "10. Contact",
+        "title": "11. Contact",
         "body": "Pour toute question concernant ces conditions, contacte-moi à :"
       }
     }

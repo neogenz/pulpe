@@ -1,5 +1,5 @@
 ---
-status: pending
+status: blocked
 ---
 
 # Instruction: Publication dans les annuaires

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "pulpe",
+  "version": "0.45.1",
+  "description": "Parler à son budget Pulpe : lire ses mois, ses prévisions et ses objectifs d'épargne, et enregistrer ses mouvements",
+  "author": {
+    "name": "Pulpe",
+    "url": "https://pulpe.app"
+  },
+  "keywords": ["budget", "finances", "epargne", "pulpe"],
+  "repository": "https://github.com/neogenz/pulpe",
+  "homepage": "https://pulpe.app",
+  "license": "UNLICENSED"
+}
