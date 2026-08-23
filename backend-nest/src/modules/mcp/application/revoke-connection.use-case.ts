@@ -41,9 +41,22 @@ export class RevokeConnectionUseCase implements RevokeAgentConnectionsPort {
     await this.#dropGrants(userId, clientIds, accessToken);
   }
 
+  /**
+   * Best effort, by design. The callers — PIN change, vault recovery, account
+   * deletion — have already re-derived the key, so every wrapped copy an agent
+   * holds is dead whatever happens here. Surfacing a failure would report a
+   * successful rekey as an error and invite the user to redo it.
+   */
   async revokeAll(userId: string, accessToken: string): Promise<void> {
-    const clientIds = await this.connections.revoke(userId);
-    await this.#dropGrants(userId, clientIds, accessToken);
+    try {
+      const clientIds = await this.connections.revoke(userId);
+      await this.#dropGrants(userId, clientIds, accessToken);
+    } catch {
+      this.logger.warn(
+        { userId, operation: 'mcpConnection.revokeAll' },
+        'Agent keys are dead after the rekey but their rows could not be marked revoked',
+      );
+    }
   }
 
   async #dropGrants(
