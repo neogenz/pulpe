@@ -578,7 +578,7 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<string[]> {
-    const rows = await this.#fetchAllPages((from, to) =>
+    const rows = await fetchAllPages((from, to) =>
       supabase
         .from('monthly_budget')
         .select('id')
@@ -587,26 +587,6 @@ export class AesGcmCryptoService {
         .range(from, to),
     );
     return rows.map((row) => row.id);
-  }
-
-  async #fetchAllPages<T>(
-    fetchPage: (
-      from: number,
-      to: number,
-    ) => PromiseLike<{ data: T[] | null; error: unknown }>,
-  ): Promise<T[]> {
-    return fetchAllPages(fetchPage);
-  }
-
-  async #fetchRowsByParentIds<T>(
-    parentIds: string[],
-    fetchPage: (
-      ids: string[],
-      from: number,
-      to: number,
-    ) => PromiseLike<{ data: T[] | null; error: unknown }>,
-  ): Promise<T[]> {
-    return fetchRowsByParentIds(parentIds, fetchPage);
   }
 
   async regenerateRecoveryKey(
@@ -1157,7 +1137,7 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<string[]> {
-    const rows = await this.#fetchAllPages((from, to) =>
+    const rows = await fetchAllPages((from, to) =>
       supabase
         .from('template')
         .select('id')
@@ -1174,7 +1154,7 @@ export class AesGcmCryptoService {
   ) {
     if (!budgetIds.length) return [];
 
-    return this.#fetchRowsByParentIds(budgetIds, (ids, from, to) =>
+    return fetchRowsByParentIds(budgetIds, (ids, from, to) =>
       supabase
         .from('budget_line')
         .select('id, amount, original_amount')
@@ -1190,7 +1170,7 @@ export class AesGcmCryptoService {
   ) {
     if (!budgetIds.length) return [];
 
-    return this.#fetchRowsByParentIds(budgetIds, (ids, from, to) =>
+    return fetchRowsByParentIds(budgetIds, (ids, from, to) =>
       supabase
         .from('transaction')
         .select('id, amount, original_amount')
@@ -1206,7 +1186,7 @@ export class AesGcmCryptoService {
   ) {
     if (!templateIds.length) return [];
 
-    return this.#fetchRowsByParentIds(templateIds, (ids, from, to) =>
+    return fetchRowsByParentIds(templateIds, (ids, from, to) =>
       supabase
         .from('template_line')
         .select('id, amount, original_amount')
@@ -1220,7 +1200,7 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
-    return this.#fetchAllPages((from, to) =>
+    return fetchAllPages((from, to) =>
       supabase
         .from('savings_goal')
         .select('id, target_amount, original_target_amount, initial_amount')
@@ -1234,7 +1214,7 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
-    return this.#fetchAllPages((from, to) =>
+    return fetchAllPages((from, to) =>
       supabase
         .from('monthly_budget')
         .select('id, ending_balance')
@@ -1248,7 +1228,7 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
-    return this.#fetchAllPages((from, to) =>
+    return fetchAllPages((from, to) =>
       supabase
         .from('savings_goal_plan_withdrawal')
         .select('id, amount')

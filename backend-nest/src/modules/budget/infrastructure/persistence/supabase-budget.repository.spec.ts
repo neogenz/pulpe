@@ -9,6 +9,7 @@ import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authentica
 import type { EncryptionPort } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { MaterializedBudgetPeriod } from '../../domain/ports/savings-goal-horizon.port';
+import { POSTGREST_PAGE_SIZE } from '@common/utils/postgrest-pagination';
 
 const mockUser: AuthenticatedUser = {
   id: 'user-1',
@@ -896,8 +897,6 @@ describe('SupabaseBudgetRepository sparse pagination', () => {
 });
 
 describe('SupabaseBudgetRepository fetchBudgetAggregates row cap', () => {
-  const PAGE_SIZE = 1_000;
-
   /**
    * Stands in for PostgREST: `.range(from, to)` slices, and nothing warns when the
    * slice is short. Before the fix the repository issued no range at all, so the
@@ -914,7 +913,7 @@ describe('SupabaseBudgetRepository fetchBudgetAggregates row cap', () => {
       // answers it with the first `max_rows` rows and no warning — so a query that
       // stops paging silently loses everything past the cap.
       const truncated = Promise.resolve({
-        data: rows.slice(0, PAGE_SIZE),
+        data: rows.slice(0, POSTGREST_PAGE_SIZE),
         error: null,
       });
       const chain: Record<string, unknown> = {
@@ -943,7 +942,7 @@ describe('SupabaseBudgetRepository fetchBudgetAggregates row cap', () => {
     // One budget fills the first page on its own; the next budget's line only
     // exists on page two.
     const filler: BudgetLineRow[] = Array.from(
-      { length: PAGE_SIZE },
+      { length: POSTGREST_PAGE_SIZE },
       (_, i) => ({
         ...budgetLineRow,
         id: `filler-${i}`,

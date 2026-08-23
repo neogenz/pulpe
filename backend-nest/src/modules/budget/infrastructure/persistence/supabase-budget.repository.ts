@@ -2,7 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Buffer } from 'node:buffer';
 import { ZodError } from 'zod';
 import { BusinessException } from '@common/exceptions/business.exception';
-import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import {
+  ERROR_DEFINITIONS,
+  type ErrorDefinition,
+} from '@common/constants/error-definitions';
 import { fetchRowsByParentIds } from '@common/utils/postgrest-pagination';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import {
@@ -728,42 +731,36 @@ export class SupabaseBudgetRepository
     // the budgets past the cap then aggregated to zero and the list showed a
     // `remaining` the detail screen contradicted.
     const [budgetLines, transactions] = await Promise.all([
-      fetchRowsByParentIds(budgetIds, (ids, from, to) =>
-        supabase
-          .from('budget_line')
-          .select('id, budget_id, kind, amount')
-          .in('budget_id', ids)
-          .order('id', { ascending: true })
-          .range(from, to),
-      ).catch((error: unknown) => {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'fetchBudgetAggregates',
-            entityType: 'budgetLines',
-          },
-          { cause: error },
-        );
-      }),
-      fetchRowsByParentIds(budgetIds, (ids, from, to) =>
-        supabase
-          .from('transaction')
-          .select('budget_id, kind, amount, budget_line_id')
-          .in('budget_id', ids)
-          .order('id', { ascending: true })
-          .range(from, to),
-      ).catch((error: unknown) => {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'fetchBudgetAggregates',
-            entityType: 'transactions',
-          },
-          { cause: error },
-        );
-      }),
+      this.readPagedRows(
+        budgetIds,
+        (ids, from, to) =>
+          supabase
+            .from('budget_line')
+            .select('id, budget_id, kind, amount')
+            .in('budget_id', ids)
+            .order('id', { ascending: true })
+            .range(from, to),
+        {
+          errorDef: ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          operation: 'fetchBudgetAggregates',
+          entityType: 'budgetLines',
+        },
+      ),
+      this.readPagedRows(
+        budgetIds,
+        (ids, from, to) =>
+          supabase
+            .from('transaction')
+            .select('budget_id, kind, amount, budget_line_id')
+            .in('budget_id', ids)
+            .order('id', { ascending: true })
+            .range(from, to),
+        {
+          errorDef: ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+          operation: 'fetchBudgetAggregates',
+          entityType: 'transactions',
+        },
+      ),
     ]);
 
     const hasEncryptedData =
@@ -797,33 +794,37 @@ export class SupabaseBudgetRepository
     // Paged for the same reason as `fetchBudgetAggregates`: the drift prior reads
     // every previous budget at once, so it crosses PostgREST's row cap first.
     const [budgetLines, transactions] = await Promise.all([
-      fetchRowsByParentIds(budgetIds, (ids, from, to) =>
-        supabase
-          .from('budget_line')
-          .select('id, budget_id, kind, amount, checked_at')
-          .in('budget_id', ids)
-          .order('id', { ascending: true })
-          .range(from, to),
-      ),
-      fetchRowsByParentIds(budgetIds, (ids, from, to) =>
-        supabase
-          .from('transaction')
-          .select('budget_id, kind, amount, budget_line_id, transaction_date')
-          .in('budget_id', ids)
-          .order('id', { ascending: true })
-          .range(from, to),
-      ),
-    ]).catch((error: unknown) => {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-        undefined,
+      this.readPagedRows(
+        budgetIds,
+        (ids, from, to) =>
+          supabase
+            .from('budget_line')
+            .select('id, budget_id, kind, amount, checked_at')
+            .in('budget_id', ids)
+            .order('id', { ascending: true })
+            .range(from, to),
         {
+          errorDef: ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
           operation: 'fetchHistoryData',
-          entityType: 'budget',
+          entityType: 'budgetLines',
         },
-        { cause: error },
-      );
-    });
+      ),
+      this.readPagedRows(
+        budgetIds,
+        (ids, from, to) =>
+          supabase
+            .from('transaction')
+            .select('budget_id, kind, amount, budget_line_id, transaction_date')
+            .in('budget_id', ids)
+            .order('id', { ascending: true })
+            .range(from, to),
+        {
+          errorDef: ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+          operation: 'fetchHistoryData',
+          entityType: 'transactions',
+        },
+      ),
+    ]);
 
     const hasEncryptedData =
       budgetLines.some((l) => l.amount) || transactions.some((t) => t.amount);
@@ -999,6 +1000,37 @@ export class SupabaseBudgetRepository
     if (patch.templateId !== undefined)
       updateData.template_id = patch.templateId;
     return updateData;
+  }
+
+  /**
+   * Read every row of a set of parents, paged past PostgREST's `max_rows` cap, and
+   * turn a failed page into the caller's business error. Never returns a partial
+   * set: aggregating a truncated read is what let a wrong `remaining` reach the
+   * budget list unnoticed.
+   */
+  private readPagedRows<T>(
+    parentIds: string[],
+    fetchPage: (
+      ids: string[],
+      from: number,
+      to: number,
+    ) => PromiseLike<{ data: T[] | null; error: unknown }>,
+    context: {
+      errorDef: ErrorDefinition;
+      operation: string;
+      entityType: string;
+    },
+  ): Promise<T[]> {
+    return fetchRowsByParentIds(parentIds, fetchPage).catch(
+      (error: unknown) => {
+        throw new BusinessException(
+          context.errorDef,
+          undefined,
+          { operation: context.operation, entityType: context.entityType },
+          { cause: error },
+        );
+      },
+    );
   }
 
   private computeEnvelopeAggregates(

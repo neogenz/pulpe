@@ -66,7 +66,7 @@ describe('fetchAllPages', () => {
 });
 
 describe('fetchRowsByParentIds', () => {
-  it('splits the ids into chunks and keeps every chunk s rows', async () => {
+  it('splits the ids into chunks and keeps the rows of every chunk', async () => {
     const parentIds = Array.from(
       { length: POSTGREST_FILTER_CHUNK_SIZE + 1 },
       (_, i) => `parent-${i}`,
