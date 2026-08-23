@@ -22,6 +22,8 @@ import { ResolveNextMonthBudgetUseCase } from './application/resolve-next-month-
 import { EnsureBudgetsForPeriodsUseCase } from './application/ensure-budgets-for-periods.use-case';
 import { BUDGET_PROVISIONING_PORT } from './domain/ports/budget-provisioning.port';
 import { SAVINGS_GOAL_HORIZON_PORT } from './domain/ports/savings-goal-horizon.port';
+import { BUDGET_MONTH_READ_PORT } from './domain/ports/budget-month-read.port';
+import { ReadBudgetMonthUseCase } from './application/read-budget-month.use-case';
 
 @Module({
   imports: [EncryptionModule],
@@ -40,6 +42,7 @@ import { SAVINGS_GOAL_HORIZON_PORT } from './domain/ports/savings-goal-horizon.p
     RecalculateBudgetBalancesUseCase,
     ResolveNextMonthBudgetUseCase,
     EnsureBudgetsForPeriodsUseCase,
+    ReadBudgetMonthUseCase,
     SupabaseBudgetRepository,
     { provide: BUDGET_REPOSITORY, useExisting: SupabaseBudgetRepository },
     {
@@ -58,6 +61,7 @@ import { SAVINGS_GOAL_HORIZON_PORT } from './domain/ports/savings-goal-horizon.p
       provide: BUDGET_PROVISIONING_PORT,
       useExisting: EnsureBudgetsForPeriodsUseCase,
     },
+    { provide: BUDGET_MONTH_READ_PORT, useExisting: ReadBudgetMonthUseCase },
     BudgetMapper,
     createInfoLoggerProvider(BudgetController.name),
     createInfoLoggerProvider(HasBudgetsUseCase.name),
@@ -78,6 +82,7 @@ import { SAVINGS_GOAL_HORIZON_PORT } from './domain/ports/savings-goal-horizon.p
     BUDGET_RECALCULATION_PORT,
     BUDGET_PERIOD_LOOKUP_PORT,
     BUDGET_PROVISIONING_PORT,
+    BUDGET_MONTH_READ_PORT,
     SAVINGS_GOAL_HORIZON_PORT,
   ],
 })

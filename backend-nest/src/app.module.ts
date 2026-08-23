@@ -38,6 +38,7 @@ import { AccountDeletionModule } from '@modules/account-deletion/account-deletio
 import { AppVersionModule } from '@modules/app-version/app-version.module';
 import { WhatsNewModule } from '@modules/whats-new/whats-new.module';
 import { AllocationModule } from '@modules/allocation/allocation.module';
+import { McpModule } from '@modules/mcp/mcp.module';
 
 // Filters
 import { FiltersModule } from '@common/filters/filters.module';
@@ -318,6 +319,7 @@ export function createPinoLoggerConfig(configService: ConfigService) {
     AccountDeletionModule,
     AppVersionModule,
     WhatsNewModule,
+    McpModule,
     // Only include DebugModule in non-production-like environments
     ...(!isProductionLike() ? [DebugModule] : []),
     FiltersModule,

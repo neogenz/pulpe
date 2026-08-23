@@ -28,6 +28,15 @@ const envSchema = z
       .regex(/^[0-9a-f]+$/i, {
         error: 'ENCRYPTION_MASTER_KEY must be a valid hex string',
       }),
+    // MCP agent connector: the public URL clients present as audience.
+    MCP_RESOURCE_URL: z.url().default('http://localhost:3000/mcp'),
+    // Phase-1 stand-in for `mcp_connection`: a test vault key and mode.
+    MCP_TEST_CLIENT_KEY: z
+      .string()
+      .length(64)
+      .regex(/^[0-9a-f]+$/i)
+      .optional(),
+    MCP_TEST_ACCESS_MODE: z.enum(['read', 'read_write']).optional(),
     CORS_ORIGIN: z.string().optional(),
     DEBUG_HTTP_FULL: z.string().optional(),
     RAILWAY_ENVIRONMENT_NAME: z.string().optional(),

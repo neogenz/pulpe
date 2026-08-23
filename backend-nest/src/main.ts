@@ -215,7 +215,15 @@ function setupApiVersioning(
   });
 
   app.setGlobalPrefix('api', {
-    exclude: [{ path: 'health', method: RequestMethod.GET }],
+    exclude: [
+      { path: 'health', method: RequestMethod.GET },
+      // MCP agent connector lives at the origin root (RFC 9728 discovery).
+      { path: 'mcp', method: RequestMethod.ALL },
+      {
+        path: '.well-known/oauth-protected-resource{/*rest}',
+        method: RequestMethod.GET,
+      },
+    ],
   });
 }
 
@@ -269,6 +277,7 @@ async function bootstrap() {
     SUPABASE_SERVICE_ROLE_KEY: configService.get('SUPABASE_SERVICE_ROLE_KEY')!,
     TURNSTILE_SECRET_KEY: configService.get('TURNSTILE_SECRET_KEY')!,
     ENCRYPTION_MASTER_KEY: configService.get('ENCRYPTION_MASTER_KEY')!,
+    MCP_RESOURCE_URL: configService.get('MCP_RESOURCE_URL')!,
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
     RAILWAY_ENVIRONMENT_NAME: configService.get('RAILWAY_ENVIRONMENT_NAME'),
     MIN_IOS_VERSION: configService.get('MIN_IOS_VERSION')!,
