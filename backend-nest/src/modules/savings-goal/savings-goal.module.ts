@@ -12,6 +12,8 @@ import { SavingsGoalMapper } from './infrastructure/mappers/savings-goal.mapper'
 import { SAVINGS_GOAL_REPOSITORY } from './domain/ports/savings-goal-repository.port';
 import { SAVINGS_GOAL_WITHDRAWAL_POLICY } from './domain/ports/savings-goal-withdrawal-policy.port';
 import { FindAllSavingsGoalsUseCase } from './application/find-all-savings-goals.use-case';
+import { ReadSavingsGoalsInProcessUseCase } from './application/read-savings-goals-in-process.use-case';
+import { SAVINGS_GOAL_READ_PORT } from './domain/ports/savings-goal-read.port';
 import { FindSavingsGoalUseCase } from './application/find-savings-goal.use-case';
 import { CreateSavingsGoalUseCase } from './application/create-savings-goal.use-case';
 import { UpdateSavingsGoalUseCase } from './application/update-savings-goal.use-case';
@@ -42,6 +44,11 @@ import { SavingsGoalWithdrawalPolicyService } from './application/savings-goal-w
   controllers: [SavingsGoalController],
   providers: [
     FindAllSavingsGoalsUseCase,
+    ReadSavingsGoalsInProcessUseCase,
+    {
+      provide: SAVINGS_GOAL_READ_PORT,
+      useExisting: ReadSavingsGoalsInProcessUseCase,
+    },
     FindSavingsGoalUseCase,
     CreateSavingsGoalUseCase,
     UpdateSavingsGoalUseCase,
@@ -77,6 +84,6 @@ import { SavingsGoalWithdrawalPolicyService } from './application/savings-goal-w
   ],
   // La règle de solde des retraits reste la propriété de l'objectif ; le
   // module transaction l'appelle par ce seul port (PUL-329).
-  exports: [SAVINGS_GOAL_WITHDRAWAL_POLICY],
+  exports: [SAVINGS_GOAL_WITHDRAWAL_POLICY, SAVINGS_GOAL_READ_PORT],
 })
 export class SavingsGoalModule {}

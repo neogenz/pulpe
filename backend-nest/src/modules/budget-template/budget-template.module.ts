@@ -9,6 +9,8 @@ import { BUDGET_TEMPLATE_REPOSITORY } from './domain/ports/budget-template-repos
 import { TEMPLATE_LINE_PROPAGATION_PORT } from './domain/ports/template-line-propagation.port';
 import { TemplateLinePropagationAdapter } from './infrastructure/adapters/template-line-propagation.adapter';
 import { FindAllTemplatesUseCase } from './application/find-all-templates.use-case';
+import { ReadTemplatesInProcessUseCase } from './application/read-templates-in-process.use-case';
+import { BUDGET_TEMPLATE_READ_PORT } from './domain/ports/budget-template-read.port';
 import { FindTemplateUseCase } from './application/find-template.use-case';
 import { CreateTemplateUseCase } from './application/create-template.use-case';
 import { CreateTemplateFromOnboardingUseCase } from './application/create-template-from-onboarding.use-case';
@@ -32,6 +34,11 @@ import { BulkTemplateLineOperationsUseCase } from './application/bulk-template-l
       useClass: SupabaseBudgetTemplateRepository,
     },
     FindAllTemplatesUseCase,
+    ReadTemplatesInProcessUseCase,
+    {
+      provide: BUDGET_TEMPLATE_READ_PORT,
+      useExisting: ReadTemplatesInProcessUseCase,
+    },
     FindTemplateUseCase,
     CreateTemplateUseCase,
     CreateTemplateFromOnboardingUseCase,
@@ -63,6 +70,10 @@ import { BulkTemplateLineOperationsUseCase } from './application/bulk-template-l
     createInfoLoggerProvider(DeleteTemplateLineUseCase.name),
     createInfoLoggerProvider(BulkTemplateLineOperationsUseCase.name),
   ],
-  exports: [BUDGET_TEMPLATE_REPOSITORY, TEMPLATE_LINE_PROPAGATION_PORT],
+  exports: [
+    BUDGET_TEMPLATE_REPOSITORY,
+    TEMPLATE_LINE_PROPAGATION_PORT,
+    BUDGET_TEMPLATE_READ_PORT,
+  ],
 })
 export class BudgetTemplateModule {}
