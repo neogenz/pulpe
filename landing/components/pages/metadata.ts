@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getDictionary } from "@/content/dictionary";
 import type { Locale } from "@/lib/i18n";
 import { rootMetadata, socialMetadata } from "@/lib/metadata";
-import { alternatesFor, GUIDE_ROUTE } from "@/lib/routes";
+import { alternatesFor, ASSISTANT_ROUTE, GUIDE_ROUTE } from "@/lib/routes";
 
 // Les métadonnées de chaque page sont écrites une fois et appelées par les deux
 // coquilles, française et préfixée. Les dupliquer les laisserait diverger : une
@@ -65,6 +65,27 @@ export async function supportGuideMetadata(locale: Locale): Promise<Metadata> {
       path: alternates.canonical,
       title: `${guide.metaTitle} | Pulpe`,
       description: guide.metaDescription,
+      imageAlt: site.socialImageAlt,
+      type: "article",
+    }),
+  };
+}
+
+export async function supportAssistantMetadata(
+  locale: Locale,
+): Promise<Metadata> {
+  const { assistant, site } = await getDictionary(locale);
+  const alternates = alternatesFor(locale, ASSISTANT_ROUTE);
+
+  return {
+    title: assistant.metaTitle,
+    description: assistant.metaDescription,
+    alternates,
+    ...socialMetadata({
+      locale,
+      path: alternates.canonical,
+      title: `${assistant.metaTitle} | Pulpe`,
+      description: assistant.metaDescription,
       imageAlt: site.socialImageAlt,
       type: "article",
     }),

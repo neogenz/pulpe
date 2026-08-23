@@ -1,29 +1,11 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { Container, Section } from "@/components/ui";
+import { Container, Section, Steps } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
 import type { Dictionary } from "@/content/dictionary";
 import { CONTACT_EMAIL } from "@/lib/config";
 import type { Locale } from "@/lib/i18n";
 import { GUIDE_ROUTE, localizedPath } from "@/lib/routes";
-
-function Steps({ items }: { items: readonly string[] }) {
-  return (
-    <ol className="mt-7 space-y-5">
-      {items.map((item, index) => (
-        <li key={item} className="flex gap-4">
-          <span
-            aria-hidden="true"
-            className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
-          >
-            {index + 1}
-          </span>
-          <p className="pt-0.5 leading-relaxed text-text-secondary">{item}</p>
-        </li>
-      ))}
-    </ol>
-  );
-}
 
 export function SupportGuide({
   dict,

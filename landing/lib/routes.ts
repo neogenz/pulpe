@@ -2,7 +2,7 @@ import { DEFAULT_LOCALE, LOCALES, type Locale } from "./i18n";
 
 export const SITE_URL = "https://pulpe.app";
 
-// Les quatre pages du site, dans l'ordre du plan. Une seule table : dériver les
+// Les cinq pages du site, dans l'ordre du plan. Une seule table : dériver les
 // `alternates` et le sitemap de la même source est la seule façon de garantir
 // qu'une version se liste elle-même et que la boucle hreflang se referme. Une
 // carte écrite à la main page par page finit par pointer vers un 404, et Google
@@ -12,14 +12,17 @@ export const ROUTES = [
   "/changelog",
   "/support",
   "/support/modeles-et-budgets",
+  "/support/connecter-un-assistant",
 ] as const;
 
 export type Route = (typeof ROUTES)[number];
 
-// Le slug du guide reste français dans les quatre langues : il est en dur à
-// plusieurs endroits, et des slugs par langue multiplieraient ce couplage pour
-// un gain marginal sur une page unique.
+// Les slugs des tutoriels restent français dans les quatre langues : ils sont
+// en dur à plusieurs endroits, et des slugs par langue multiplieraient ce
+// couplage pour un gain marginal.
 export const GUIDE_ROUTE = "/support/modeles-et-budgets" satisfies Route;
+export const ASSISTANT_ROUTE =
+  "/support/connecter-un-assistant" satisfies Route;
 
 /**
  * L'index des conseils budget et son libellé.

@@ -11,6 +11,10 @@ export const MOBILE_NAV_PANEL_ID = "mobile-nav-panel";
 export const DESKTOP_BREAKPOINT_PX = 1024;
 export const GITHUB_URL = "https://github.com/neogenz/pulpe";
 export const IOS_APP_URL = "https://apps.apple.com/app/pulpe/id6758464920";
+// L'adresse du serveur MCP, celle qu'un assistant reçoit telle quelle. Le
+// tutoriel l'affiche et la commande du terminal la reprend : une seule source
+// évite qu'un des deux reste sur une ancienne adresse.
+export const MCP_SERVER_URL = "https://api.pulpe.app/mcp";
 // Single schema.org entity in the root @graph. Articles reference its @id as
 // publisher, and this shared constant keeps both sides aligned. `SITE_URL` lives
 // in `routes.ts`, which owns every URL the four languages resolve against.
