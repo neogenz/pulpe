@@ -1,6 +1,6 @@
 ---
 objective: "Après un signup Apple/Google, un échec de persist firstName est visible sur l’étape suivante, et un succès d’update ne peut plus effacer le givenName déjà en mémoire."
-status: in-progress
+status: implemented
 ---
 
 # Plan: surfacer l’échec de persist prénom et ne plus perdre le givenName Apple
