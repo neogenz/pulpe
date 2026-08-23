@@ -222,6 +222,7 @@ struct ActivityCard: View {
                 .background(fill)
         }
         .buttonStyle(.plain)
+        .contentShape(Rectangle())
     }
 
     /// Mock renders activity amounts in neutral ink (not kind-colored);

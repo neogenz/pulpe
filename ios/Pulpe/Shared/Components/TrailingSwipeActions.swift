@@ -26,8 +26,9 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
     func body(content: Content) -> some View {
         content
             .offset(x: offset)
-            // A row that is open closes on a tap, the way a `List` row does.
-            .onTapGesture { if isOpen { openId = nil } }
+            // A row that is open closes on a tap, the way a `List` row does; a closed one
+            // carries no tap recognizer to compete with whatever the row holds.
+            .gesture(TapGesture().onEnded { openId = nil }, including: isOpen ? .all : .none)
             .background(alignment: .trailing) {
                 HStack(spacing: 0) { actions }
                     .onGeometryChange(for: CGFloat.self, of: { $0.size.width }, action: { width = $0 })
