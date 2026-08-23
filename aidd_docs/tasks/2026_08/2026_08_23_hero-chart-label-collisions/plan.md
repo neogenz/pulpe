@@ -1,6 +1,6 @@
 ---
 objective: "On the iOS home burn-down chart, no label pill ever overlaps today's dot, another pill, or the plot edge, whatever the month's shape."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Hero chart label collision resolver
