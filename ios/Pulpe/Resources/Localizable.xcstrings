@@ -28375,28 +28375,6 @@
         }
       }
     },
-    "potentiel" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Potenzial"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "potential"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "potenziale"
-          }
-        }
-      }
-    },
     "pris en %@" : {
       "localizations" : {
         "de" : {

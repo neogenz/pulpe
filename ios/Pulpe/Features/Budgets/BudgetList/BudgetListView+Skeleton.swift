@@ -59,7 +59,7 @@ struct BudgetListSkeletonView: View {
         .padding(.horizontal, DesignTokens.Spacing.lg)
     }
 
-    /// `YearRecapCard`: eyebrow over the display figure, two metric tiles, the verdict.
+    /// `YearRecapCard`: eyebrow over the display figure, the metric tile, the verdict.
     /// No progress bar — the loaded card has none.
     private var yearRecapSkeleton: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
@@ -74,10 +74,7 @@ struct BudgetListSkeletonView: View {
                 )
             }
 
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                tileSkeleton
-                tileSkeleton
-            }
+            tileSkeleton
 
             SkeletonShape(
                 width: DesignTokens.Skeleton.extraLongTextWidth,
