@@ -24,6 +24,7 @@ import { AesGcmCryptoService } from './infrastructure/crypto/aes-gcm.crypto-serv
 import { SupabaseEncryptionKeyRepository } from './infrastructure/persistence/supabase-encryption-key.repository';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import { ENCRYPTION_KEY_REPOSITORY } from './domain/ports/encryption-key-repository.port';
+import { REVOKE_AGENT_CONNECTIONS_PORT } from '@modules/mcp/domain/ports/revoke-agent-connections.port';
 import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { createInfoLoggerProvider } from '@common/logger';
@@ -161,6 +162,12 @@ async function bootstrapApp(
       {
         provide: ENCRYPTION_KEY_REPOSITORY,
         useExisting: SupabaseEncryptionKeyRepository,
+      },
+      // PIN change and recovery cut the agent connections; this suite asserts
+      // the repository error contract, not that revocation.
+      {
+        provide: REVOKE_AGENT_CONNECTIONS_PORT,
+        useValue: { revokeAll: async () => undefined },
       },
       { provide: SupabaseService, useValue: supabaseServiceMock },
       {
