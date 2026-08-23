@@ -20,6 +20,8 @@ import { UpdateTransactionUseCase } from './application/update-transaction.use-c
 import { RemoveTransactionUseCase } from './application/remove-transaction.use-case';
 import { ToggleTransactionCheckUseCase } from './application/toggle-transaction-check.use-case';
 import { SearchTransactionsUseCase } from './application/search-transactions.use-case';
+import { SearchTransactionsInProcessUseCase } from './application/search-transactions-in-process.use-case';
+import { TRANSACTION_SEARCH_PORT } from './domain/ports/transaction-search.port';
 import { PostponeTransactionUseCase } from './application/postpone-transaction.use-case';
 import { SpreadTransactionFromTxnUseCase } from './application/spread-transaction-from-txn.use-case';
 
@@ -44,6 +46,7 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
     RemoveTransactionUseCase,
     ToggleTransactionCheckUseCase,
     SearchTransactionsUseCase,
+    SearchTransactionsInProcessUseCase,
     PostponeTransactionUseCase,
     SpreadTransactionFromTxnUseCase,
     {
@@ -55,6 +58,10 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
       useExisting: SpreadTransactionFromTxnUseCase,
     },
     { provide: TRANSACTION_CREATE_PORT, useExisting: CreateTransactionUseCase },
+    {
+      provide: TRANSACTION_SEARCH_PORT,
+      useExisting: SearchTransactionsInProcessUseCase,
+    },
     TransactionMapper,
     createInfoLoggerProvider(TransactionController.name),
     createInfoLoggerProvider(SupabaseTransactionRepository.name),
@@ -70,6 +77,10 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
     createInfoLoggerProvider(PostponeTransactionUseCase.name),
     createInfoLoggerProvider(SpreadTransactionFromTxnUseCase.name),
   ],
-  exports: [TRANSACTION_SPREAD_FROM_TXN_PORT, TRANSACTION_CREATE_PORT],
+  exports: [
+    TRANSACTION_SPREAD_FROM_TXN_PORT,
+    TRANSACTION_CREATE_PORT,
+    TRANSACTION_SEARCH_PORT,
+  ],
 })
 export class TransactionModule {}
