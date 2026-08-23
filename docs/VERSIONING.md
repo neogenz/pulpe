@@ -109,7 +109,9 @@ Android n'a pas d'équivalent public au lookup App Store. `LATEST_ANDROID_VERSIO
 
 ### iOS : la version publiée se résout toute seule
 
-`IosVersionGateService` (`backend-nest/src/modules/app-version/`) interroge le lookup public Apple (`https://itunes.apple.com/lookup?id=<app id>`, ID extrait de `IOS_STORE_URL`) et sert cette version comme `ios.latestVersion`.
+`IosVersionGateService` (`backend-nest/src/modules/app-version/`) interroge le lookup public Apple (`https://itunes.apple.com/lookup?id=<app id>&country=ch`, ID extrait de `IOS_STORE_URL`) et sert cette version comme `ios.latestVersion`.
+
+Le `country=ch` n'est pas décoratif : sans storefront, Apple répond depuis un cache plus ancien. Le 23.08.2026 cette URL rendait encore 1.4.1, trois jours après la publication de 1.4.2 que tous les storefronts nommés — `us` compris — servaient déjà. Le pays choisi importe peu, son absence seule crée le retard.
 
 Le lookup part une première fois au démarrage du conteneur, puis paresseusement : la première requête passé le TTL (6 h) déclenche un appel en tâche de fond. Aucune requête client n'attend Apple, et le redémarrage qui suit un changement de variable Railway sert la bonne version sans attendre le premier appel client.
 
