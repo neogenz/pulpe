@@ -334,4 +334,42 @@ struct OnboardingSocialSignupTests {
         }
         #expect(calls == 1)
     }
+
+    @Test
+    func persistFirstName_keepsFallbackWhenAPIOmitsFirstName() async throws {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureEmailUser(UserInfo(id: "1", email: "a@b.com"))
+        state.firstName = "Marie"
+
+        try await state.persistFirstName { _ in
+            UserInfo(id: "1", email: "a@b.com", firstName: nil)
+        }
+
+        #expect(state.authenticatedUser?.firstName == "Marie")
+        #expect(state.firstName == "Marie")
+    }
+
+    @Test
+    func applySocialSignup_persistError_skipsFirstNameAndSurfacesError() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.applySocialSignup(
+            UserInfo(id: "1", email: "a@b.com", firstName: "Marie"),
+            persistError: PersistStubError.failed
+        )
+        #expect(state.socialProvidedName)
+        #expect(state.currentStep == .income)
+        #expect(state.error != nil)
+    }
+
+    @Test
+    func applySocialSignup_withoutName_showsFirstNameWithoutError() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.applySocialSignup(UserInfo(id: "1", email: "a@b.com", firstName: nil))
+        #expect(state.currentStep == .firstName)
+        #expect(state.error == nil)
+        #expect(!state.socialProvidedName)
+    }
 }

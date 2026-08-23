@@ -41,4 +41,11 @@ enum FirstNameResolver: Sendable {
         updated.firstName = name
         return updated
     }
+
+    /// Keep the in-memory given name when the Auth API omits `firstName` after a successful update.
+    static func coalescing(_ persisted: UserInfo, fallbackFirstName: String) -> UserInfo {
+        var merged = persisted
+        merged.firstName = normalized(persisted.firstName) ?? normalized(fallbackFirstName)
+        return merged
+    }
 }

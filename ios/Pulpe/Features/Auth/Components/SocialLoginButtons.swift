@@ -20,12 +20,12 @@ struct SocialLoginSection: View {
 
     private let dependencies: SocialLoginDependencies?
     let onSuccess: (() -> Void)?
-    let onAuthenticated: ((UserInfo) async -> Void)?
+    let onAuthenticated: ((UserInfo, Error?) async -> Void)?
 
     init(
         dependencies: SocialLoginDependencies? = nil,
         onSuccess: (() -> Void)? = nil,
-        onAuthenticated: ((UserInfo) async -> Void)? = nil
+        onAuthenticated: ((UserInfo, Error?) async -> Void)? = nil
     ) {
         self.dependencies = dependencies
         self.onSuccess = onSuccess
@@ -91,10 +91,7 @@ struct SocialLoginSection: View {
                 case .newUser(var user):
                     let persistError = await patchFirstName(on: &user, from: givenName)
                     AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "apple"])
-                    await onAuthenticated(user)
-                    if let persistError {
-                        errorMessage = socialErrorMessage(for: persistError)
-                    }
+                    await onAuthenticated(user, persistError)
                 case .existingUserRedirected:
                     // Already had a vault — this was a login disguised as signup.
                     AnalyticsService.shared.capture(
@@ -144,10 +141,7 @@ struct SocialLoginSection: View {
                 case .newUser(var user):
                     let persistError = await patchFirstName(on: &user, from: givenName)
                     AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "google"])
-                    await onAuthenticated(user)
-                    if let persistError {
-                        errorMessage = socialErrorMessage(for: persistError)
-                    }
+                    await onAuthenticated(user, persistError)
                 case .existingUserRedirected:
                     // Already had a vault — this was a login disguised as signup.
                     AnalyticsService.shared.capture(
@@ -186,7 +180,10 @@ struct SocialLoginSection: View {
             return nil
         }
         do {
-            user = try await AuthService.shared.updateUserFirstName(name)
+            user = FirstNameResolver.coalescing(
+                try await AuthService.shared.updateUserFirstName(name),
+                fallbackFirstName: name
+            )
             return nil
         } catch {
             Logger.auth.warning(

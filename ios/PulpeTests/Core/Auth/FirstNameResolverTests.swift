@@ -81,4 +81,22 @@ struct FirstNameResolverTests {
         let patched = FirstNameResolver.applyingProviderGivenName("  ", to: user)
         #expect(patched.firstName == nil)
     }
+
+    @Test func coalescing_usesFallbackWhenAPIOmitsFirstName() {
+        let persisted = UserInfo(id: "1", email: "a@b.com", firstName: nil)
+        let merged = FirstNameResolver.coalescing(persisted, fallbackFirstName: "Marie")
+        #expect(merged.firstName == "Marie")
+    }
+
+    @Test func coalescing_prefersAPIFirstNameOverFallback() {
+        let persisted = UserInfo(id: "1", email: "a@b.com", firstName: "Léa")
+        let merged = FirstNameResolver.coalescing(persisted, fallbackFirstName: "Marie")
+        #expect(merged.firstName == "Léa")
+    }
+
+    @Test func coalescing_whitespaceAPIUsesFallback() {
+        let persisted = UserInfo(id: "1", email: "a@b.com", firstName: "  ")
+        let merged = FirstNameResolver.coalescing(persisted, fallbackFirstName: "Marie")
+        #expect(merged.firstName == "Marie")
+    }
 }

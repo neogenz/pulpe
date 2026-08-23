@@ -157,3 +157,29 @@ private struct OnboardingStorageData: Codable {
         let isRecurring: Bool
     }
 }
+
+// MARK: - First name
+
+extension OnboardingState {
+    /// Applies a social signup and advances. Persist failures stay on `error` so the next
+    /// step can show the existing banner — Welcome is already left after auth.
+    func applySocialSignup(_ user: UserInfo, persistError: Error? = nil) {
+        configureSocialUser(user)
+        if let persistError {
+            error = APIError.serverError(message: AuthErrorLocalizer.localize(persistError))
+        }
+        nextStep()
+    }
+
+    /// Writes the in-memory first name to `user_metadata.firstName` when one exists.
+    /// Retries even if `authenticatedUser.firstName` is already set (failed persist).
+    func persistFirstName(
+        using persist: (String) async throws -> UserInfo
+    ) async throws {
+        guard let name = FirstNameResolver.normalized(firstName) else { return }
+        let updated = try await persist(name)
+        let merged = FirstNameResolver.coalescing(updated, fallbackFirstName: name)
+        authenticatedUser = merged
+        firstName = FirstNameResolver.normalized(merged.firstName) ?? name
+    }
+}
