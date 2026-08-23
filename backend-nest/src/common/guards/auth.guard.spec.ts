@@ -152,6 +152,19 @@ describe('AuthGuard', () => {
       );
     });
 
+    it('should reject a token minted for an agent (client_id claim)', async () => {
+      const b64 = (o: unknown) =>
+        Buffer.from(JSON.stringify(o)).toString('base64url');
+      const agentToken = `${b64({ alg: 'HS256' })}.${b64({ sub: MOCK_USER_ID, client_id: 'chatgpt' })}.sig`;
+      const mockContext = createMockExecutionContext(`Bearer ${agentToken}`);
+
+      await expectErrorThrown(
+        () => authGuard.canActivate(mockContext),
+        BusinessException,
+        'Invalid authentication token',
+      );
+    });
+
     it('should throw BusinessException when Bearer prefix missing', async () => {
       // Arrange
       const mockContext = createMockExecutionContext('token-without-bearer');

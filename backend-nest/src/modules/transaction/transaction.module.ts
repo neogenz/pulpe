@@ -10,6 +10,7 @@ import { SupabaseTransactionRepository } from './infrastructure/persistence/supa
 import { TransactionMapper } from './infrastructure/mappers/transaction.mapper';
 import { TRANSACTION_REPOSITORY } from './domain/ports/transaction-repository.port';
 import { TRANSACTION_SPREAD_FROM_TXN_PORT } from './domain/ports/transaction-spread-from-txn.port';
+import { TRANSACTION_CREATE_PORT } from './domain/ports/transaction-create.port';
 import { FindTransactionUseCase } from './application/find-transaction.use-case';
 import { FindTransactionsByBudgetUseCase } from './application/find-transactions-by-budget.use-case';
 import { FindTransactionsByBudgetLineUseCase } from './application/find-transactions-by-budget-line.use-case';
@@ -51,6 +52,7 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
       provide: TRANSACTION_SPREAD_FROM_TXN_PORT,
       useExisting: SpreadTransactionFromTxnUseCase,
     },
+    { provide: TRANSACTION_CREATE_PORT, useExisting: CreateTransactionUseCase },
     TransactionMapper,
     createInfoLoggerProvider(TransactionController.name),
     createInfoLoggerProvider(SupabaseTransactionRepository.name),
@@ -65,6 +67,6 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
     createInfoLoggerProvider(PostponeTransactionUseCase.name),
     createInfoLoggerProvider(SpreadTransactionFromTxnUseCase.name),
   ],
-  exports: [TRANSACTION_SPREAD_FROM_TXN_PORT],
+  exports: [TRANSACTION_SPREAD_FROM_TXN_PORT, TRANSACTION_CREATE_PORT],
 })
 export class TransactionModule {}

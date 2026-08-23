@@ -20,6 +20,7 @@ import {
   type EncryptionPort,
 } from '@modules/encryption/encryption.tokens';
 import { ALLOW_VAULT_BOOTSTRAP } from '@common/decorators/allow-vault-bootstrap.decorator';
+import { isAgentToken } from '@modules/mcp/infrastructure/auth/mcp-token.guard';
 
 const SAFE_HTTP_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
@@ -56,6 +57,11 @@ export class AuthGuard implements CanActivate {
 
     if (!accessToken) {
       throw new BusinessException(ERROR_DEFINITIONS.AUTH_TOKEN_MISSING);
+    }
+
+    // A token minted for an agent (OAuth client) is only valid on /mcp.
+    if (isAgentToken(accessToken)) {
+      throw new BusinessException(ERROR_DEFINITIONS.AUTH_TOKEN_INVALID);
     }
 
     if (request.__throttlerUserCache) {
