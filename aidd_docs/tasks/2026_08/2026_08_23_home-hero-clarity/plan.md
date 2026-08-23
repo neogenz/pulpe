@@ -1,6 +1,6 @@
 ---
 objective: "La Home donne une seule projection de fin de mois, une phrase de verdict sans ambiguïté, une casse unique, et deux tuiles qui se lisent comme un seul contrôle."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Home hero clarity

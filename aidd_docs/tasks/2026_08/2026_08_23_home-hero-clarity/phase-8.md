@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Bas d'écran : rien ne se cache sous la barre
@@ -41,3 +41,7 @@ journey
 | ---- | ------------------- |
 | 1 | Screenshot at scroll end: no content under the bar |
 | 2 | Accessibility Inspector (or `accessibilityFrame` test) reports ≥ 44 pt on both links |
+
+## Outcome (2026-08-23)
+
+No code. Both links already clear 44 pt: `HeroVerdictRow` frames its button at `TapTarget.minimum`, `SectionHeader.linkButton` pads its content shape by half the target on each edge. Content scrolling under the translucent tab bar is the iOS 26 system behaviour; the scroll view's safe area keeps the last card above the bar at scroll end, so an extra inset would double it.
