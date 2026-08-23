@@ -31,7 +31,18 @@ Vérifié en local (`probe.sh`, backend sur :3077, Supabase local) :
 Préalable fait le 2026-08-23 sur le projet **preview** (`lrphlfjkzkwyllejanrd`) : serveur OAuth
 2.1 activé, `authorization_url_path = /mcp-consent`, DCR activé ; metadata publiée sur
 `/auth/v1/.well-known/oauth-authorization-server` avec `registration_endpoint`.
-Reste : publier le serveur MCP sur une URL https.
+Serveur MCP publié (2026-08-23) : environnement Railway `mcp-spike` (projet `pulpe-backend`,
+forké de `preview`, branche `cursor/0d3766ab`), `https://backend-mcp-spike.up.railway.app/mcp`,
+`MCP_TEST_ACCESS_MODE=read_write`. Compte de test preview `mcp-spike@pulpe.test` (PIN 1234,
+budget 8/2026) ; `MCP_TEST_CLIENT_KEY` = sa clé client dérivée. À supprimer après le spike.
+
+Chaîne OAuth vérifiée sans navigateur (`oauth-e2e.py`) contre cette URL : DCR `201` avec
+`redirect_uri` `http://localhost:<port>/callback` → `authorize` `302` vers
+`…/welcome/mcp-consent?authorization_id=…` → approbation via
+`POST /auth/v1/oauth/authorizations/{id}/consent` avec le JWT utilisateur → code → jeton portant
+`client_id` et `aud: authenticated` → `tools/list` et `get_current_month` `200` avec les montants
+déchiffrés. Les clients ci-dessous s'arrêteront à la page de consentement tant que la phase 2 ne
+l'a pas livrée ; le spike constate donc l'inscription et la redirection, pas la connexion finale.
 
 Dette connue : le Site URL preview se termine par `/welcome`, donc l'URL de consentement
 générée est `…/welcome/mcp-consent`. À corriger en phase 2 (Auth → URL Configuration, Site URL
