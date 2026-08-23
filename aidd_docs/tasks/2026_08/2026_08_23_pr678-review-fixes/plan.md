@@ -1,6 +1,6 @@
 ---
 objective: "Every finding of the PR #678 review is closed: the TS trajectory mirrors the Swift one, a failed history query never bends the projection, and the details endpoint measures or skips the history cost."
-status: in-progress
+status: implemented
 ---
 
 # Plan: PR #678 review fixes
