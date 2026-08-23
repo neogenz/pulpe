@@ -74,6 +74,19 @@ describe('IosVersionGateService', () => {
     await flushPendingRefresh();
   });
 
+  it('should pin the lookup to a storefront, since the country-less one lags behind', async () => {
+    mockFetch.mockResolvedValue(lookupResponse('1.3.1'));
+    service = await createService();
+
+    service.resolve();
+    await flushPendingRefresh();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://itunes.apple.com/lookup?id=6758464920&country=ch',
+      expect.anything(),
+    );
+  });
+
   it('should prime the App Store version at bootstrap, before any request', async () => {
     mockFetch.mockResolvedValue(lookupResponse('1.3.1'));
     service = await createService();
