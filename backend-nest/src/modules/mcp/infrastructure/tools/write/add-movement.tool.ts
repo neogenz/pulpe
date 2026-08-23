@@ -6,7 +6,7 @@ import {
   TRANSACTION_CREATE_PORT,
   type TransactionCreatePort,
 } from '@modules/transaction/domain/ports/transaction-create.port';
-import type { McpTool, McpToolResult } from '../../domain/mcp-tool.entity';
+import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
 
 const inputSchema = {
   budgetId: z.uuid().describe('Identifiant du budget du mois visé'),
