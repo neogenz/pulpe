@@ -278,6 +278,7 @@ async function bootstrap() {
     TURNSTILE_SECRET_KEY: configService.get('TURNSTILE_SECRET_KEY')!,
     ENCRYPTION_MASTER_KEY: configService.get('ENCRYPTION_MASTER_KEY')!,
     MCP_RESOURCE_URL: configService.get('MCP_RESOURCE_URL')!,
+    MCP_WRAPPING_KEY: configService.get('MCP_WRAPPING_KEY')!,
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
     RAILWAY_ENVIRONMENT_NAME: configService.get('RAILWAY_ENVIRONMENT_NAME'),
     MIN_IOS_VERSION: configService.get('MIN_IOS_VERSION')!,

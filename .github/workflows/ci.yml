@@ -362,6 +362,7 @@ jobs:
           # Turnstile verification is skipped in test environment, dummy value is sufficient
           echo "TURNSTILE_SECRET_KEY=ci-test-turnstile-key" >> .env
           echo "ENCRYPTION_MASTER_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" >> .env
+          echo "MCP_WRAPPING_KEY=fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210" >> .env
           echo "✅ Environment ready"
 
       - name: 🔌 Run backend integration tests
@@ -375,6 +376,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase.outputs.SUPABASE_SERVICE_ROLE_KEY }}
           TURNSTILE_SECRET_KEY: ci-test-turnstile-key
           ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          MCP_WRAPPING_KEY: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
 
       - name: 🩺 Supabase diagnostics on failure
         if: failure()
@@ -451,6 +453,7 @@ jobs:
           NODE_ENV: test
           TURNSTILE_SECRET_KEY: ci-test-turnstile-key
           ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          MCP_WRAPPING_KEY: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
 
       - name: 🔍 Lint
         run: pnpm lint ${TURBO_AFFECTED:+"--affected"}

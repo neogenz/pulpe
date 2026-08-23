@@ -240,6 +240,27 @@
       "accountBlocked": "Dein Konto wird gerade gelöscht.",
       "clientKeyMissing": "Dein Tresorschlüssel fehlt — gib ihn ein, um weiterzumachen",
       "userNotConnected": "Nutzer nicht angemeldet"
+    },
+    "mcpConsent": {
+      "title": "Pulpe mit {{client}} verbinden",
+      "subtitle": "{{client}} bittet um Zugriff auf dein Budget.",
+      "modeRead": "Nur lesen",
+      "modeReadDescription": "Ansehen und auswerten, nichts ändern.",
+      "modeReadWrite": "Lesen und schreiben",
+      "modeReadWriteDescription": "Hinzufügen, ändern, löschen und abhaken.",
+      "warningsTitle": "Drei Dinge, die du vor dem Akzeptieren wissen solltest",
+      "warningDataTitle": "Deine Daten laufen über {{client}}.",
+      "warningDataBody": "Jede Frage schickt {{client}} die Budgetangaben, die für die Antwort nötig sind: Bezeichnungen, Beträge, Daten, Ziele. Für diese Verarbeitung gelten deren Nutzungsbedingungen.",
+      "warningKeyTitle": "Ich bewahre eine geschützte Kopie deines Schlüssels auf.",
+      "warningKeyBody": "Heute sind deine Beträge nur mit deinem Code lesbar, und ich kann sie ohne dich nicht entschlüsseln. Damit {{client}} antworten kann, wenn du nicht am Handy bist, bewahre ich eine geschützte Kopie dieses Schlüssels auf, solange die Verbindung besteht.",
+      "warningRevokeTitle": "Du kannst jederzeit trennen.",
+      "warningRevokeBody": "Einstellungen, dann Verbindungen. Die Trennung wirkt sofort: Der Zugriff wird entzogen und die Kopie deines Schlüssels gelöscht.",
+      "pinLabel": "Dein Pulpe-Code",
+      "pinHint": "Er verlässt diese Seite nicht und wird nie an {{client}} übermittelt.",
+      "authorize": "Erlauben",
+      "privacyLink": "Was ich mit deinen Daten mache",
+      "invalidRequest": "Diese Anfrage ist nicht mehr gültig. Starte die Verbindung erneut aus deinem Assistenten.",
+      "missingRequest": "Keine Verbindungsanfrage aktiv. Starte die Verbindung erneut aus deinem Assistenten."
     }
   },
   "welcome": {
@@ -1526,8 +1547,20 @@
         "title": "12. Änderungen",
         "body": "Diese Erklärung kann gelegentlich aktualisiert werden. Über wesentliche Änderungen wirst du per E-Mail informiert."
       },
+      "aiAssistants": {
+        "title": "13. Verbindungen zu KI-Assistenten",
+        "intro": "Wenn du Pulpe mit einem KI-Assistenten verbindest (ChatGPT, Claude, Codex oder ein anderer kompatibler Client), gelten zusätzlich die folgenden Regeln.",
+        "items": {
+          "data": "Betroffene Daten: die für jede Antwort nötigen Budgetangaben (Bezeichnungen, Beträge, Daten, Ziele), nie dein Passwort oder deine PIN.",
+          "purpose": "Zweck: deine Anfragen in natürlicher Sprache beantworten und, falls du den Modus Lesen und Schreiben gewählt hast, die gewünschten Änderungen ausführen.",
+          "recipients": "Empfänger: der Anbieter des von dir verbundenen Assistenten, nach dessen eigenen Nutzungsbedingungen. Pulpe wählt diesen Empfänger nicht, das tust du.",
+          "key": "Verschlüsselungsschlüssel: Damit der Assistent ohne deinen Code antworten kann, bewahre ich eine geschützte Kopie deines Entschlüsselungsschlüssels auf, verschlüsselt mit einem eigenen Serverschlüssel. Weder der Assistent noch die Datenbank können sie lesen.",
+          "retention": "Dauer: Die Verbindung und die geschützte Kopie deines Schlüssels bestehen, bis du sie widerrufst. Das Ändern oder Wiederherstellen deiner PIN widerruft alle Verbindungen.",
+          "withdrawal": "Widerruf der Einwilligung: jederzeit unter Einstellungen, dann Verbindungen. Die Wirkung ist sofort: Der Zugriff wird entzogen und die Kopie deines Schlüssels gelöscht."
+        }
+      },
       "contact": {
-        "title": "13. Kontakt",
+        "title": "14. Kontakt",
         "intro": "Bei Fragen zu deinen personenbezogenen Daten:",
         "emailLabel": "E-Mail:",
         "githubLabel": "GitHub:",
@@ -1731,7 +1764,8 @@
     "settings": "Einstellungen",
     "settingsTags": "Meine Tags",
     "designSystem": "Design System",
-    "maintenance": "Wartung"
+    "maintenance": "Wartung",
+    "mcpConsent": "KI-Assistenten verbinden"
   },
   "authError": {
     "generic": "Etwas hat nicht funktioniert — versuch es nochmal",

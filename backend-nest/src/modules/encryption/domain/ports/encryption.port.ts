@@ -18,6 +18,10 @@ export interface EncryptionPort {
   ensureDemoUserDEK(userId: string): Promise<Buffer>;
   /** Retrieve cached DEK; skip keyCheck validation. Use after `ensureUserDEK` already ran. */
   getUserDEK(userId: string, clientKey: Buffer): Promise<Buffer>;
+  /** Wrap a 32-byte secret (an agent's vault key) with MCP_WRAPPING_KEY, base64. */
+  wrapSecret(secret: Buffer): string;
+  /** Inverse of `wrapSecret`; throws on a tampered payload or a different wrapping key. */
+  unwrapSecret(wrapped: string): Buffer;
   /** Convenience wrapper around getUserDEK for an authenticated user. */
   getDekFor(user: {
     readonly id: string;
