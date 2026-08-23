@@ -52,8 +52,8 @@ sans `/welcome`, puis retester confirmation et reset e-mail), quand la page exis
 | --- | --- | --- | --- |
 | ChatGPT (mode développeur, « New Plugin ») | `chatgpt.com/connector/oauth/<id>` (un par connecteur, pas l'URL générique) | **Oui** (2026-08-23) : DCR → `authorize` avec `resource=` (RFC 8707, ignoré par Supabase) → consentement approuvé via l'API → callback → « Pulpe spike is now connected » → `get_current_month` rend 2’960 dans le chat | |
 | Claude (claude.ai web, même client OAuth `Claude` que Claude Desktop) | fixe (`claude.ai/api/mcp/auth_callback`) | **Oui** (2026-08-23) : DCR → redirection `…/welcome/mcp-consent` (404, page phase 2) → consentement approuvé via l'API → callback claude.ai → outils listés, classés read-only / write par les annotations → `get_current_month` rend 2 960 CHF dans le chat | |
-| Claude Code | `localhost:<port éphémère>` | à constater (risque DCR à match exact, discussion supabase#41695) | |
-| Codex CLI | `localhost:<port éphémère>` | à constater (même risque) | |
+| Claude Code | `localhost:<port éphémère>` | non testé (2026-08-23, décision : 2/4 suffisent pour avancer ; risque DCR à match exact, discussion supabase#41695) | |
+| Codex CLI | `localhost:<port éphémère>` | non testé (idem) | |
 
 Décision : aucune couche de registre client tant qu'un échec n'est pas constaté sur ce
 tableau. Si Claude Code ou Codex échouent, l'option la moins chère est le client ID fixe
