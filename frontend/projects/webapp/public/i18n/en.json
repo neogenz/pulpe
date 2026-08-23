@@ -466,6 +466,32 @@
       "genericError": "Something went wrong — try again later",
       "changeFailed": "Changing the PIN failed — try again later",
       "rekeyFailed": "Re-encrypting failed — your old PIN stays active, try again later"
+    },
+    "connections": {
+      "title": "Connections",
+      "description": "The AI assistants allowed to access your budget.",
+      "subtitle": "The assistants allowed to access your budget. You can cut their access at any time.",
+      "loading": "Loading your connections...",
+      "errorTitle": "Could not load your connections",
+      "errorMessage": "Loading got stuck. Try again to see who has access to your budget.",
+      "emptyTitle": "No assistant connected",
+      "emptyMessage": "You can plug Pulpe into ChatGPT or Claude to manage your budget by talking. Nothing is shared until you allow it.",
+      "modeRead": "Read only",
+      "modeReadWrite": "Read and write",
+      "since": "since {{ date }}",
+      "recentActions": "Recent actions",
+      "showActions": "See what the assistant did",
+      "noActivity": "No action yet.",
+      "seeAll": "See all",
+      "failed": "failed",
+      "tools": {
+        "add_movement": "Movement added"
+      },
+      "revoke": "Cut access",
+      "revokeTitle": "Cut {{ client }}'s access?",
+      "revokeMessage": "{{ client }} will no longer be able to read or change your budget. To plug it back in, you will have to allow it again with your code.",
+      "revokeSuccess": "{{ client }}'s access cut.",
+      "revokeError": "Could not cut access. Try again."
     }
   },
   "budget": {
@@ -1765,7 +1791,8 @@
     "settingsTags": "My tags",
     "designSystem": "Design System",
     "maintenance": "Maintenance",
-    "mcpConsent": "Connect an AI assistant"
+    "mcpConsent": "Connect an AI assistant",
+    "settingsConnections": "Connections"
   },
   "authError": {
     "generic": "Something didn't work — try again",

@@ -215,6 +215,11 @@ export {
   mcpConsentDetailsResponseSchema,
   mcpConsentApproveRequestSchema,
   mcpConsentRedirectResponseSchema,
+  mcpConnectionSchema,
+  mcpConnectionListResponseSchema,
+  mcpActivitySchema,
+  mcpActivityQuerySchema,
+  mcpActivityListResponseSchema,
 } from './schemas.js';
 
 // Export error codes
@@ -526,4 +531,9 @@ export type {
   McpConsentDetailsResponse,
   McpConsentApproveRequest,
   McpConsentRedirectResponse,
+  McpConnection,
+  McpConnectionListResponse,
+  McpActivity,
+  McpActivityQuery,
+  McpActivityListResponse,
 } from './schemas.js';

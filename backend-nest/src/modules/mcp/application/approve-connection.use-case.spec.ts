@@ -22,9 +22,12 @@ function harness(saveFails = false) {
       calls.push('deny');
       return 'https://chatgpt.com/cb?error=access_denied&state=s';
     },
+    revokeGrant: async () => {},
   };
   const connections = {
     findActive: async () => null,
+    listActive: async () => [],
+    revoke: async () => [],
     save: async (c: NewMcpConnection) => {
       calls.push('save');
       if (saveFails) throw new Error('db down');

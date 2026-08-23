@@ -18,8 +18,8 @@ import type { ZodRawShapeCompat } from '@modelcontextprotocol/sdk/server/zod-com
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ListToolsUseCase } from '../../application/list-tools.use-case';
 import { CallToolUseCase } from '../../application/call-tool.use-case';
-import type { AccessMode } from '../../domain/access-mode';
 import type { McpTool } from '../../domain/mcp-tool.entity';
+import type { ActiveMcpConnection } from '../../domain/ports/mcp-connection-repository.port';
 import { McpTokenGuard, type McpRequest } from '../auth/mcp-token.guard';
 
 /**
@@ -43,8 +43,8 @@ export class McpController {
     @Res() response: Response,
     @Body() body: unknown,
   ): Promise<void> {
-    const mode = request.mcpConnection!.mode;
-    const server = this.#buildServer(mode);
+    const connection = request.mcpConnection!;
+    const server = this.#buildServer(connection, request.user!.id);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,
@@ -62,18 +62,28 @@ export class McpController {
     );
   }
 
-  #buildServer(mode: AccessMode): McpServer {
+  #buildServer(connection: ActiveMcpConnection, userId: string): McpServer {
     const server = new McpServer({ name: 'pulpe', version: '1' });
-    for (const tool of this.listTools.execute(mode)) {
-      this.#register(server, mode, tool);
+    for (const tool of this.listTools.execute(connection.mode)) {
+      this.#register(server, connection, userId, tool);
     }
     return server;
   }
 
-  #register(server: McpServer, mode: AccessMode, tool: McpTool): void {
+  #register(
+    server: McpServer,
+    connection: ActiveMcpConnection,
+    userId: string,
+    tool: McpTool,
+  ): void {
     const callback: ToolCallback<ZodRawShapeCompat> = async (args) => {
       try {
-        const { text } = await this.callTool.execute(mode, tool.name, args);
+        const { text } = await this.callTool.execute(
+          connection,
+          userId,
+          tool.name,
+          args,
+        );
         return { content: [{ type: 'text', text }] };
       } catch (error) {
         return {

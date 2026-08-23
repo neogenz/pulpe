@@ -76,14 +76,36 @@ describe('tool catalog by access mode', () => {
     tool('r', 'read'),
     tool('w', 'read_write'),
   ]);
-  const call = new CallToolUseCase(list);
+  const recorded: string[] = [];
+  const call = new CallToolUseCase(list, {
+    record: async (a) => {
+      recorded.push(`${a.tool}:${a.outcome}`);
+    },
+    listByConnection: async () => [],
+    purgeOlderThan: async () => {},
+  });
+  const conn = (mode: 'read' | 'read_write') => ({
+    id: 'conn-1',
+    clientId: 'c',
+    mode,
+    clientKey: Buffer.alloc(32),
+  });
 
   it('hides write tools from a read connection and refuses direct calls', async () => {
     expect(list.execute('read').map((t) => t.name)).toEqual(['r']);
     expect(list.execute('read_write').map((t) => t.name)).toEqual(['r', 'w']);
-    expect(call.execute('read', 'w', {})).rejects.toBeInstanceOf(
+    expect(call.execute(conn('read'), 'u', 'w', {})).rejects.toBeInstanceOf(
       McpToolNotAvailableError,
     );
-    expect((await call.execute('read_write', 'w', {})).text).toBe('w');
+    expect((await call.execute(conn('read_write'), 'u', 'w', {})).text).toBe(
+      'w',
+    );
+  });
+
+  it('logs write tool calls only, with their outcome and nothing else', async () => {
+    recorded.length = 0;
+    await call.execute(conn('read_write'), 'u', 'r', {});
+    await call.execute(conn('read_write'), 'u', 'w', { amount: 1234.56 });
+    expect(recorded).toEqual(['w:ok']);
   });
 });

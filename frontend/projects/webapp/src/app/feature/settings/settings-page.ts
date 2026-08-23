@@ -280,6 +280,28 @@ import { SettingsDialogService } from './settings-dialog.service';
             {{ 'settings.tags.manage' | transloco }}
           </button>
         </div>
+
+        <div
+          class="md:col-start-2 md:col-span-2 flex items-center justify-between gap-6"
+        >
+          <div class="space-y-1">
+            <h3 class="text-title-small">
+              {{ 'settings.connections.title' | transloco }}
+            </h3>
+            <p class="text-body-small text-on-surface-variant">
+              {{ 'settings.connections.description' | transloco }}
+            </p>
+          </div>
+          <button
+            matButton="outlined"
+            type="button"
+            class="shrink-0"
+            data-testid="connections-settings-link"
+            (click)="openConnections()"
+          >
+            {{ 'settings.tags.manage' | transloco }}
+          </button>
+        </div>
       </section>
 
       <mat-divider class="my-8!"></mat-divider>
@@ -546,6 +568,14 @@ export default class SettingsPage {
 
   openTagCatalog(): void {
     void this.#router.navigate(['/', ROUTES.SETTINGS, ROUTES.SETTINGS_TAGS]);
+  }
+
+  openConnections(): void {
+    void this.#router.navigate([
+      '/',
+      ROUTES.SETTINGS,
+      ROUTES.SETTINGS_CONNECTIONS,
+    ]);
   }
 
   async saveSettings(): Promise<void> {

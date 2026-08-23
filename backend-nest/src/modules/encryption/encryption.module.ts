@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { createInfoLoggerProvider } from '@common/logger';
+import { McpRevocationModule } from '@modules/mcp/mcp-revocation.module';
 import { EncryptionController } from './infrastructure/http/encryption.controller';
 import { AesGcmCryptoService } from './infrastructure/crypto/aes-gcm.crypto-service';
 import { SupabaseEncryptionKeyRepository } from './infrastructure/persistence/supabase-encryption-key.repository';
@@ -16,6 +17,7 @@ import { ChangePinUseCase } from './application/change-pin.use-case';
 
 @Global()
 @Module({
+  imports: [McpRevocationModule],
   controllers: [EncryptionController],
   providers: [
     AesGcmCryptoService,

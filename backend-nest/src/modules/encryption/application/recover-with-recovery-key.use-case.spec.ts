@@ -10,6 +10,8 @@ const createMockLogger = () => ({
   trace: mock(() => {}),
 });
 
+const revoke = { revokeAll: mock(() => Promise.resolve()) };
+
 describe('RecoverWithRecoveryKeyUseCase', () => {
   it('logs recovery.complete on successful recovery', async () => {
     const cryptoService = {
@@ -18,6 +20,7 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
     const logger = createMockLogger();
     const useCase = new RecoverWithRecoveryKeyUseCase(
       cryptoService as any,
+      revoke as any,
       logger as any,
     );
 
@@ -26,6 +29,7 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
       'AAAA-BBBB-CCCC-DDDD',
       Buffer.alloc(32, 0xab),
       {} as any,
+      'jwt',
     );
 
     expect(logger.info).toHaveBeenCalledTimes(1);
@@ -46,6 +50,7 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
     };
     const useCase = new RecoverWithRecoveryKeyUseCase(
       cryptoService as any,
+      revoke as any,
       createMockLogger() as any,
     );
 
@@ -55,6 +60,7 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
         'WRONG-KEY',
         Buffer.alloc(32, 0xab),
         {} as any,
+        'jwt',
       );
       expect.unreachable('Should have thrown');
     } catch (error: any) {
@@ -74,6 +80,7 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
     };
     const useCase = new RecoverWithRecoveryKeyUseCase(
       cryptoService as any,
+      revoke as any,
       createMockLogger() as any,
     );
 
@@ -83,6 +90,7 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
         'AAAA-BBBB',
         Buffer.alloc(32, 0xab),
         {} as any,
+        'jwt',
       );
       expect.unreachable('Should have thrown');
     } catch (error: any) {
@@ -100,6 +108,7 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
     };
     const useCase = new RecoverWithRecoveryKeyUseCase(
       cryptoService as any,
+      revoke as any,
       createMockLogger() as any,
     );
 
@@ -109,6 +118,7 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
         'AAAA-BBBB-CCCC-DDDD',
         Buffer.alloc(32, 0xab),
         {} as any,
+        'jwt',
       );
       expect.unreachable('Should have thrown');
     } catch (error: any) {
@@ -129,6 +139,7 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
     const logger = createMockLogger();
     const useCase = new RecoverWithRecoveryKeyUseCase(
       cryptoService as any,
+      revoke as any,
       logger as any,
     );
 
@@ -138,6 +149,7 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
         'WRONG',
         Buffer.alloc(32, 0xab),
         {} as any,
+        'jwt',
       );
       expect.unreachable('Should have thrown');
     } catch {
