@@ -20,6 +20,7 @@ const createMockLogger = () => ({
 const createMockConfigService = () => ({
   get: (key: string) => {
     if (key === 'ENCRYPTION_MASTER_KEY') return TEST_MASTER_KEY;
+    if (key === 'MCP_WRAPPING_KEY') return 'cd'.repeat(32);
     return undefined;
   },
 });
@@ -204,6 +205,38 @@ describe('AesGcmCryptoService', () => {
   beforeEach(() => {
     mockConfigService = createMockConfigService();
     mockRepository = createMockRepository();
+  });
+
+  describe('wrapSecret / unwrapSecret (agent connections)', () => {
+    const build = (config: unknown) =>
+      new AesGcmCryptoService(
+        createMockLogger() as any,
+        config as any,
+        mockRepository as any,
+      );
+
+    it('round-trips a 32-byte secret and rejects a different wrapping key', () => {
+      const secret = Buffer.from('ef'.repeat(32), 'hex');
+      const wrapped = build(mockConfigService).wrapSecret(secret);
+      expect(wrapped).not.toContain(secret.toString('hex'));
+      expect(build(mockConfigService).unwrapSecret(wrapped)).toEqual(secret);
+
+      const other = build({
+        get: (key: string) =>
+          key === 'MCP_WRAPPING_KEY' ? '12'.repeat(32) : TEST_MASTER_KEY,
+      });
+      expect(() => other.unwrapSecret(wrapped)).toThrow();
+    });
+
+    it('refuses to wrap when MCP_WRAPPING_KEY is absent', () => {
+      const noKey = build({
+        get: (key: string) =>
+          key === 'ENCRYPTION_MASTER_KEY' ? TEST_MASTER_KEY : undefined,
+      });
+      expect(() => noKey.wrapSecret(Buffer.alloc(32, 1))).toThrow(
+        /MCP_WRAPPING_KEY/,
+      );
+    });
   });
 
   describe('constructor', () => {

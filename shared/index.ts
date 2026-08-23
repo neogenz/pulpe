@@ -210,6 +210,11 @@ export {
   // Feedback
   feedbackRatingSchema,
   feedbackCreateSchema,
+  // MCP agent connector
+  mcpAccessModeSchema,
+  mcpConsentDetailsResponseSchema,
+  mcpConsentApproveRequestSchema,
+  mcpConsentRedirectResponseSchema,
 } from './schemas.js';
 
 // Export error codes
@@ -517,4 +522,8 @@ export type {
 
   // Feedback
   FeedbackCreate,
+  McpAccessMode,
+  McpConsentDetailsResponse,
+  McpConsentApproveRequest,
+  McpConsentRedirectResponse,
 } from './schemas.js';

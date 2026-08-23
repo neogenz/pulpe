@@ -31,7 +31,23 @@ describe('Environment Validation', () => {
       TURNSTILE_SECRET_KEY: 'test-turnstile-key',
       ENCRYPTION_MASTER_KEY:
         '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      MCP_WRAPPING_KEY:
+        'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
     };
+
+    it('should refuse to boot when MCP_WRAPPING_KEY is missing or mis-sized', () => {
+      const { MCP_WRAPPING_KEY: _omitted, ...without } = baseConfig;
+      expect(() => validateConfig({ ...without, NODE_ENV: 'test' })).toThrow(
+        /MCP_WRAPPING_KEY/,
+      );
+      expect(() =>
+        validateConfig({
+          ...baseConfig,
+          NODE_ENV: 'test',
+          MCP_WRAPPING_KEY: 'abcd',
+        }),
+      ).toThrow(/MCP_WRAPPING_KEY/);
+    });
 
     it('should refuse to boot when NODE_ENV is absent', () => {
       expect(() => validateConfig(baseConfig)).toThrow(/NODE_ENV/);
@@ -61,6 +77,8 @@ describe('Environment Validation', () => {
         TURNSTILE_SECRET_KEY: 'test-turnstile-key',
         ENCRYPTION_MASTER_KEY:
           '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        MCP_WRAPPING_KEY:
+          'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
         // SERVICE_ROLE_KEY omitted - should fail
       };
 
@@ -75,6 +93,8 @@ describe('Environment Validation', () => {
         TURNSTILE_SECRET_KEY: 'test-turnstile-key',
         ENCRYPTION_MASTER_KEY:
           '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        MCP_WRAPPING_KEY:
+          'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
         // SERVICE_ROLE_KEY omitted - should fail
       };
 
@@ -89,6 +109,8 @@ describe('Environment Validation', () => {
         TURNSTILE_SECRET_KEY: 'prod-turnstile-key',
         ENCRYPTION_MASTER_KEY:
           '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        MCP_WRAPPING_KEY:
+          'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
         // SERVICE_ROLE_KEY omitted - should fail
       };
 
@@ -103,6 +125,8 @@ describe('Environment Validation', () => {
         TURNSTILE_SECRET_KEY: 'preview-turnstile-key',
         ENCRYPTION_MASTER_KEY:
           '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        MCP_WRAPPING_KEY:
+          'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
         // SERVICE_ROLE_KEY omitted - should fail
       };
 
@@ -118,6 +142,8 @@ describe('Environment Validation', () => {
         TURNSTILE_SECRET_KEY: 'prod-turnstile-key',
         ENCRYPTION_MASTER_KEY:
           '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        MCP_WRAPPING_KEY:
+          'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
       };
 
       expect(() => validateConfig(config)).not.toThrow();
@@ -133,6 +159,8 @@ describe('Environment Validation', () => {
         TURNSTILE_SECRET_KEY: 'test-turnstile-key',
         ENCRYPTION_MASTER_KEY:
           '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        MCP_WRAPPING_KEY:
+          'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
       };
 
       expect(() => validateConfig(config)).toThrow(/SUPABASE_URL/);
@@ -146,6 +174,8 @@ describe('Environment Validation', () => {
         TURNSTILE_SECRET_KEY: 'test-turnstile-key',
         ENCRYPTION_MASTER_KEY:
           '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        MCP_WRAPPING_KEY:
+          'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
       };
 
       expect(() => validateConfig(config)).toThrow(/SUPABASE_ANON_KEY/);
@@ -159,6 +189,8 @@ describe('Environment Validation', () => {
         TURNSTILE_SECRET_KEY: 'test-turnstile-key',
         ENCRYPTION_MASTER_KEY:
           '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        MCP_WRAPPING_KEY:
+          'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
       };
 
       expect(() => validateConfig(config)).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
@@ -172,6 +204,8 @@ describe('Environment Validation', () => {
         SUPABASE_SERVICE_ROLE_KEY: 'test-service-key',
         ENCRYPTION_MASTER_KEY:
           '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        MCP_WRAPPING_KEY:
+          'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
       };
 
       expect(() => validateConfig(config)).toThrow(/TURNSTILE_SECRET_KEY/);
@@ -187,6 +221,8 @@ describe('Environment Validation', () => {
       TURNSTILE_SECRET_KEY: 'prod-turnstile-key',
       ENCRYPTION_MASTER_KEY:
         '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      MCP_WRAPPING_KEY:
+        'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
     };
 
     it('should accept all three PostHog vars when set', () => {
@@ -269,6 +305,8 @@ describe('Environment Validation', () => {
       TURNSTILE_SECRET_KEY: 'prod-turnstile-key',
       ENCRYPTION_MASTER_KEY:
         '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      MCP_WRAPPING_KEY:
+        'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
     };
 
     it('should apply default values when force-update vars are absent', () => {
@@ -333,6 +371,8 @@ describe('Environment Validation', () => {
       TURNSTILE_SECRET_KEY: 'prod-turnstile-key',
       ENCRYPTION_MASTER_KEY:
         '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      MCP_WRAPPING_KEY:
+        'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
     };
 
     it('should accept MIN_IOS_VERSION above LATEST_IOS_VERSION so the floor can be armed before the App Store rollout', () => {

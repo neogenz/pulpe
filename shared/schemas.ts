@@ -2651,3 +2651,35 @@ export const feedbackCreateSchema = z.strictObject({
   iosVersion: z.string().trim().min(1).max(32),
 });
 export type FeedbackCreate = z.infer<typeof feedbackCreateSchema>;
+
+// ============================================================================
+// MCP agent connector — consent page (OAuth 2.1 authorization on Supabase)
+// ============================================================================
+
+/** What an agent may do with the vault. Stored on `mcp_connection`, never a JWT claim. */
+export const mcpAccessModeSchema = z.enum(['read', 'read_write']);
+export type McpAccessMode = z.infer<typeof mcpAccessModeSchema>;
+
+/** GET /mcp/consent/:authorizationId — the client as declared to Supabase */
+export const mcpConsentDetailsResponseSchema = z.object({
+  clientName: z.string(),
+});
+export type McpConsentDetailsResponse = z.infer<
+  typeof mcpConsentDetailsResponseSchema
+>;
+
+/** POST /mcp/consent/:authorizationId/approve */
+export const mcpConsentApproveRequestSchema = z.strictObject({
+  mode: mcpAccessModeSchema,
+});
+export type McpConsentApproveRequest = z.infer<
+  typeof mcpConsentApproveRequestSchema
+>;
+
+/** approve and deny both answer with where to send the browser back */
+export const mcpConsentRedirectResponseSchema = z.object({
+  redirectUrl: z.url(),
+});
+export type McpConsentRedirectResponse = z.infer<
+  typeof mcpConsentRedirectResponseSchema
+>;

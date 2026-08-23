@@ -166,8 +166,41 @@ export type Database = {
             referencedRelation: "tag"
             referencedColumns: ["id"]
           },
-        ]
-      }
+        ];
+      };
+      mcp_connection: {
+        Row: {
+          authorized_at: string;
+          client_id: string;
+          client_name: string;
+          id: string;
+          mode: string;
+          revoked_at: string | null;
+          user_id: string;
+          wrapped_client_key: string;
+        };
+        Insert: {
+          authorized_at?: string;
+          client_id: string;
+          client_name: string;
+          id?: string;
+          mode: string;
+          revoked_at?: string | null;
+          user_id: string;
+          wrapped_client_key: string;
+        };
+        Update: {
+          authorized_at?: string;
+          client_id?: string;
+          client_name?: string;
+          id?: string;
+          mode?: string;
+          revoked_at?: string | null;
+          user_id?: string;
+          wrapped_client_key?: string;
+        };
+        Relationships: [];
+      };
       monthly_budget: {
         Row: {
           created_at: string
@@ -1337,4 +1370,3 @@ export const Constants = {
     },
   },
 } as const
-

@@ -240,6 +240,27 @@
       "accountBlocked": "Il tuo account è in corso di eliminazione.",
       "clientKeyMissing": "Manca la chiave della tua cassaforte — scrivila per continuare",
       "userNotConnected": "Utente non connesso"
+    },
+    "mcpConsent": {
+      "title": "Collegare Pulpe a {{client}}",
+      "subtitle": "{{client}} chiede l’accesso al tuo budget.",
+      "modeRead": "Sola lettura",
+      "modeReadDescription": "Consultare e analizzare, senza cambiare nulla.",
+      "modeReadWrite": "Lettura e scrittura",
+      "modeReadWriteDescription": "Aggiungere, modificare, eliminare e spuntare.",
+      "warningsTitle": "Tre cose da sapere prima di accettare",
+      "warningDataTitle": "I tuoi dati passano da {{client}}.",
+      "warningDataBody": "Ogni domanda invia a {{client}} gli elementi del budget necessari per rispondere: descrizioni, importi, date, obiettivi. A questo trattamento si applicano le loro condizioni d’uso.",
+      "warningKeyTitle": "Conservo una copia protetta della tua chiave.",
+      "warningKeyBody": "Oggi i tuoi importi sono leggibili solo con il tuo codice, e non posso decifrarli senza di te. Perché {{client}} risponda quando non sei davanti al telefono, conservo una copia protetta di questa chiave finché la connessione esiste.",
+      "warningRevokeTitle": "Puoi interrompere quando vuoi.",
+      "warningRevokeBody": "Impostazioni, poi Connessioni. L’interruzione è immediata: l’accesso viene tolto e la copia della tua chiave distrutta.",
+      "pinLabel": "Il tuo codice Pulpe",
+      "pinHint": "Non lascia questa pagina e non viene mai trasmesso a {{client}}.",
+      "authorize": "Autorizza",
+      "privacyLink": "Cosa faccio dei tuoi dati",
+      "invalidRequest": "Questa richiesta non è più valida. Riavvia la connessione dal tuo assistente.",
+      "missingRequest": "Nessuna richiesta di connessione in corso. Riavvia la connessione dal tuo assistente."
     }
   },
   "welcome": {
@@ -1526,8 +1547,20 @@
         "title": "12. Modifiche",
         "body": "Questa informativa può essere aggiornata occasionalmente. Le modifiche sostanziali saranno comunicate via email."
       },
+      "aiAssistants": {
+        "title": "13. Connessioni ad assistenti IA",
+        "intro": "Se colleghi Pulpe a un assistente IA (ChatGPT, Claude, Codex o un altro client compatibile), si aggiungono le regole seguenti.",
+        "items": {
+          "data": "Dati coinvolti: gli elementi del budget necessari a ogni risposta (descrizioni, importi, date, obiettivi), mai la tua password né il tuo PIN.",
+          "purpose": "Finalità: rispondere alle tue richieste in linguaggio naturale e, se hai scelto la modalità lettura e scrittura, applicare le modifiche che chiedi.",
+          "recipients": "Destinatari: l’editore dell’assistente che hai collegato, secondo le sue condizioni d’uso. Pulpe non sceglie questo destinatario, lo fai tu.",
+          "key": "Chiave di cifratura: perché l’assistente risponda senza il tuo codice, conservo una copia protetta della tua chiave di decifratura, cifrata con una chiave server dedicata. Né l’assistente né il database possono leggerla.",
+          "retention": "Durata: la connessione e la copia protetta della tua chiave esistono finché non le revochi. Cambiare o recuperare il PIN revoca tutte le connessioni.",
+          "withdrawal": "Revoca del consenso: in qualsiasi momento, in Impostazioni poi Connessioni. L’effetto è immediato: l’accesso viene tolto e la copia della tua chiave distrutta."
+        }
+      },
       "contact": {
-        "title": "13. Contatti",
+        "title": "14. Contatti",
         "intro": "Per qualsiasi domanda sui tuoi dati personali:",
         "emailLabel": "Email:",
         "githubLabel": "GitHub:",
@@ -1731,7 +1764,8 @@
     "settings": "Impostazioni",
     "settingsTags": "I miei tag",
     "designSystem": "Design System",
-    "maintenance": "Manutenzione"
+    "maintenance": "Manutenzione",
+    "mcpConsent": "Collegare un assistente IA"
   },
   "authError": {
     "generic": "Qualcosa non ha funzionato — riprova",

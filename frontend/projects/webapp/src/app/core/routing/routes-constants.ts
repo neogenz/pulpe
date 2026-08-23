@@ -18,6 +18,7 @@ export const ROUTES = {
   SETUP_VAULT_CODE: 'setup-vault-code',
   ENTER_VAULT_CODE: 'enter-vault-code',
   RECOVER_VAULT_CODE: 'recover-vault-code',
+  MCP_CONSENT: 'mcp-consent',
 
   // Legal paths
   LEGAL_TERMS: 'cgu',
@@ -33,6 +34,7 @@ export const PAGE_TITLES = {
   SETUP_VAULT_CODE: 'pageTitle.setupVaultCode',
   ENTER_VAULT_CODE: 'pageTitle.enterVaultCode',
   RECOVER_VAULT_CODE: 'pageTitle.recoverVaultCode',
+  MCP_CONSENT: 'pageTitle.mcpConsent',
   DASHBOARD: 'pageTitle.dashboard',
   COMPLETE_PROFILE: 'pageTitle.completeProfile',
   BUDGET: 'pageTitle.budget',

@@ -1,5 +1,6 @@
 import type { Buffer } from 'node:buffer';
 import type { AccessMode } from '../access-mode';
+import type { NewMcpConnection } from '../mcp-connection.entity';
 
 export const MCP_CONNECTION_REPOSITORY = Symbol('MCP_CONNECTION_REPOSITORY');
 
@@ -17,4 +18,6 @@ export interface McpConnectionRepositoryPort {
     userId: string,
     clientId: string,
   ): Promise<ActiveMcpConnection | null>;
+  /** Create or re-authorize the `(userId, clientId)` pair: new key, new mode, revocation cleared. */
+  save(connection: NewMcpConnection): Promise<void>;
 }

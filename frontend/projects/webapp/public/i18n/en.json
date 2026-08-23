@@ -240,6 +240,27 @@
       "accountBlocked": "Your account is being deleted.",
       "clientKeyMissing": "Your vault key is missing — type it to carry on",
       "userNotConnected": "User not signed in"
+    },
+    "mcpConsent": {
+      "title": "Connect Pulpe to {{client}}",
+      "subtitle": "{{client}} is asking for access to your budget.",
+      "modeRead": "Read only",
+      "modeReadDescription": "Look and analyse, change nothing.",
+      "modeReadWrite": "Read and write",
+      "modeReadWriteDescription": "Add, edit, delete and check off.",
+      "warningsTitle": "Three things to know before you accept",
+      "warningDataTitle": "Your data goes through {{client}}.",
+      "warningDataBody": "Every question sends {{client}} the budget details needed to answer it: labels, amounts, dates, goals. Their terms of use apply to that processing.",
+      "warningKeyTitle": "I keep a protected copy of your key.",
+      "warningKeyBody": "Today your amounts can only be read with your code, and I cannot decrypt them without you. So that {{client}} can answer when you are not at your phone, I keep a protected copy of that key for as long as the connection exists.",
+      "warningRevokeTitle": "You can cut it off whenever you want.",
+      "warningRevokeBody": "Settings, then Connections. It is immediate: access is removed and the copy of your key destroyed.",
+      "pinLabel": "Your Pulpe code",
+      "pinHint": "It never leaves this page and is never sent to {{client}}.",
+      "authorize": "Authorise",
+      "privacyLink": "What I do with your data",
+      "invalidRequest": "This request is no longer valid. Start the connection again from your assistant.",
+      "missingRequest": "No connection request in progress. Start the connection again from your assistant."
     }
   },
   "welcome": {
@@ -1526,8 +1547,20 @@
         "title": "12. Changes",
         "body": "This policy may be updated occasionally. Material changes will be notified by email."
       },
+      "aiAssistants": {
+        "title": "13. Connections to AI assistants",
+        "intro": "If you connect Pulpe to an AI assistant (ChatGPT, Claude, Codex or another compatible client), the following rules apply in addition.",
+        "items": {
+          "data": "Data involved: the budget details needed for each answer (labels, amounts, dates, goals), never your password or PIN.",
+          "purpose": "Purpose: answering your requests in natural language and, if you chose read and write mode, applying the changes you ask for.",
+          "recipients": "Recipients: the publisher of the assistant you connected, under its own terms of use. Pulpe does not pick that recipient, you do.",
+          "key": "Encryption key: so that the assistant can answer without your code, I keep a protected copy of your decryption key, encrypted with a dedicated server key. Neither the assistant nor the database can read it.",
+          "retention": "Duration: the connection and the protected copy of your key exist until you revoke them. Changing or recovering your PIN revokes every connection.",
+          "withdrawal": "Withdrawing consent: at any time, in Settings then Connections. The effect is immediate: access is removed and the copy of your key destroyed."
+        }
+      },
       "contact": {
-        "title": "13. Contact",
+        "title": "14. Contact",
         "intro": "For any question about your personal data:",
         "emailLabel": "Email:",
         "githubLabel": "GitHub:",
@@ -1731,7 +1764,8 @@
     "settings": "Settings",
     "settingsTags": "My tags",
     "designSystem": "Design System",
-    "maintenance": "Maintenance"
+    "maintenance": "Maintenance",
+    "mcpConsent": "Connect an AI assistant"
   },
   "authError": {
     "generic": "Something didn't work — try again",
