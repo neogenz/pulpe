@@ -13,16 +13,36 @@ import italian from '../../../../../public/i18n/it.json';
 /* eslint-enable boundaries/no-unknown */
 
 const cases = [
-  ['fr', '27 janvier 2026', '9. Droit applicable'],
-  ['en', 'January 27, 2026', '9. Governing law'],
-  ['de', '27. Januar 2026', '9. Anwendbares Recht'],
-  ['it', '27 gennaio 2026', '9. Legge applicabile'],
+  [
+    'fr',
+    '27 janvier 2026',
+    '10. Droit applicable',
+    '5. Connexions à des assistants IA',
+  ],
+  [
+    'en',
+    'January 27, 2026',
+    '10. Governing law',
+    '5. Connections to AI assistants',
+  ],
+  [
+    'de',
+    '27. Januar 2026',
+    '10. Anwendbares Recht',
+    '5. Verbindungen zu KI-Assistenten',
+  ],
+  [
+    'it',
+    '27 gennaio 2026',
+    '10. Legge applicabile',
+    '5. Connessioni ad assistenti IA',
+  ],
 ] as const;
 
 describe('TermsOfServiceComponent', () => {
   it.each(cases)(
     'renders the complete %s document',
-    async (lang, date, law) => {
+    async (lang, date, law, assistants) => {
       TestBed.configureTestingModule({
         imports: [TermsOfServiceComponent],
         providers: [
@@ -43,9 +63,10 @@ describe('TermsOfServiceComponent', () => {
         (link) => link.getAttribute('href'),
       );
 
-      expect(element.querySelectorAll('section')).toHaveLength(10);
+      expect(element.querySelectorAll('section')).toHaveLength(11);
       expect(text).toContain(date);
       expect(text).toContain(law);
+      expect(text).toContain(assistants);
       expect(text).not.toContain('legal.terms');
       expect(links).toContain('mailto:maxime.desogus@gmail.com');
       expect(links).toContain('/legal/confidentialite');

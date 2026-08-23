@@ -1612,12 +1612,23 @@
         "analyticsLabel": "Wichtig:",
         "analyticsBody": "Ich verwende PostHog, um die Nutzung der App zu verstehen. Dazu gehören besuchte Seiten, verwendete Funktionen, aufgetretene Fehler und Sitzungsaufzeichnungen (Wiedergabe von Interaktionen). Deine Finanzdaten werden in diesen Analysen und Aufzeichnungen immer maskiert."
       },
+      "aiAssistants": {
+        "title": "5. Verbindungen zu KI-Assistenten",
+        "intro": "Du kannst Pulpe mit einem KI-Assistenten verbinden. Dieser Kanal ist freiwillig, und dafür gelten zusätzlich die folgenden Regeln.",
+        "items": {
+          "authority": "Der Assistent handelt in deinem Namen, im Rahmen des von dir gewählten Modus: nur lesen oder lesen und schreiben.",
+          "responsibility": "Du bleibst verantwortlich für das, was du ihn bittest. Eine Änderung durch den Assistenten gilt wie eine Änderung durch dich.",
+          "editor": "Der Anbieter des Assistenten ist ein Dritter, den du auswählst. Seine Bedingungen gelten für ihn, nicht für mich, und ich hafte nicht dafür, was er mit deinen Anfragen macht.",
+          "figures": "Die Zahlen, die der Assistent nennt, stammen aus Pulpe. Wie er sie formuliert, liegt bei ihm: bei Abweichungen gilt die App.",
+          "revocation": "Du kannst den Zugriff jederzeit beenden, unter Einstellungen und dann Verbindungen. Die Wirkung ist sofort."
+        }
+      },
       "source": {
-        "title": "5. Open Source und Eigentum",
+        "title": "6. Open Source und Eigentum",
         "body": "Der Quellcode von Pulpe ist unter der MIT-Lizenz auf GitHub verfügbar. Du kannst ihn einsehen, ändern und selbst hosten. Deine personenbezogenen Daten gehören dir und bleiben privat."
       },
       "liability": {
-        "title": "6. Haftungsbeschränkung",
+        "title": "7. Haftungsbeschränkung",
         "intro": "Pulpe ist ein persönliches Projekt, das ich in meiner Freizeit pflege. Der Dienst wird ohne Gewähr bereitgestellt. Ich kann Folgendes nicht garantieren:",
         "warning": "Wichtiger Hinweis:",
         "items": {
@@ -1631,19 +1642,19 @@
         }
       },
       "termination": {
-        "title": "7. Kündigung",
+        "title": "8. Kündigung",
         "body": "Du kannst dein Konto jederzeit in den Einstellungen löschen. Ich behalte mir das Recht vor, dein Konto bei einem Verstoss gegen diese Bedingungen oder bei missbräuchlicher Nutzung zu sperren oder zu löschen."
       },
       "changes": {
-        "title": "8. Änderungen der Bedingungen",
+        "title": "9. Änderungen der Bedingungen",
         "body": "Ich kann diese Bedingungen bei Bedarf ändern. Über wesentliche Änderungen wirst du per E-Mail informiert. Wenn du den Dienst danach weiter nutzt, akzeptierst du die neuen Bedingungen."
       },
       "law": {
-        "title": "9. Anwendbares Recht",
+        "title": "10. Anwendbares Recht",
         "body": "Diese Bedingungen unterliegen dem schweizerischen Recht. Für Streitigkeiten sind die zuständigen Gerichte in Genf, Schweiz, zuständig."
       },
       "contact": {
-        "title": "10. Kontakt",
+        "title": "11. Kontakt",
         "body": "Bei Fragen zu diesen Bedingungen erreichst du mich unter:"
       }
     }
