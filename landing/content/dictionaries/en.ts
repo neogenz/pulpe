@@ -334,6 +334,11 @@ const en: Dictionary = {
       title: "Template or budget: which one should you edit?",
       text: "Pick the right place depending on whether your change affects a single month or your ordinary months.",
     },
+    assistantCard: {
+      eyebrow: "Tutorial",
+      title: "Connect Pulpe to an AI assistant",
+      text: "Connect ChatGPT, Claude or Claude Code to your budget, read only or with the right to write.",
+    },
     faqHeading: "The questions I get asked most.",
     faq: {
       purpose: {
@@ -457,6 +462,92 @@ const en: Dictionary = {
     contactHeading: "Still stuck?",
     contactText:
       "Write to me and say which screen you’re on. I’ll answer you directly.",
+  },
+
+  assistant: {
+    metaTitle: "Connect Pulpe to an AI assistant",
+    metaDescription:
+      "Connect Pulpe to ChatGPT, Claude or Claude Code: what the assistant can do, how to authorise it, and where to cut the access.",
+    backToSupport: "Help",
+    eyebrow: "AI assistants",
+    heading: "Talk about your budget from your assistant",
+    intro:
+      "You can connect Pulpe to ChatGPT, to Claude or to Claude Code, then ask where you stand this month or record an expense without opening the app.",
+    abilitiesHeading: "What your assistant can do.",
+    abilities: [
+      "Tell you what is left to spend this month, and where the figure comes from.",
+      "Read your planned items, your activity and your savings goals.",
+      "Record an expense, an income or a saving, then check it off.",
+      "Spread a large expense over several months.",
+      "Create the budget of a month from one of your templates.",
+    ],
+    sourceTitle: "The figures stay the ones from Pulpe",
+    sourceText:
+      "The assistant recalculates nothing. It reads the same amounts as your app, and Pulpe is what counts. The way it turns them into sentences is its own, so read it the way you would read a draft.",
+    modeHeading: "Decide what it is allowed to do.",
+    modeIntro:
+      "You choose when you authorise the connection. You can change your mind later: cut it, then set it up again in the other mode.",
+    readMode: {
+      eyebrow: "Read only",
+      title: "It looks, it touches nothing",
+      text: "It answers your questions about the current month and about your year. Nothing moves in your budgets, even if you ask for it.",
+    },
+    writeMode: {
+      eyebrow: "Read and write",
+      title: "It records for you",
+      text: "On top of reading, it can add an expense, check it off, or create next month’s budget. It says what it is about to do before doing it.",
+    },
+    connectEyebrow: "The setup",
+    connectHeading: "Connect Pulpe, once.",
+    addressLabel: "The address to paste, the same everywhere",
+    availabilityNote:
+      "Custom connectors are open neither on every plan, nor on every version. If you cannot find the screen described here, your assistant does not offer them yet.",
+    clients: [
+      {
+        name: "ChatGPT",
+        steps: [
+          "Open the settings, then the connectors section.",
+          "Add a connector and paste the address above.",
+          "Authorise the access on the Pulpe page that opens.",
+        ],
+      },
+      {
+        name: "Claude",
+        steps: [
+          "Open the settings, then the connectors section.",
+          "Add a custom connector with the address above.",
+          "Authorise the access on the Pulpe page that opens.",
+        ],
+      },
+      {
+        name: "Claude Code",
+        steps: [
+          "Run the command below in your terminal.",
+          "Authorise the access in the browser that opens.",
+          "Come back to the terminal: the connection is live.",
+        ],
+      },
+    ],
+    commandLabel: "In the terminal",
+    consentTitle: "What you see when you authorise",
+    consentSteps: [
+      "You sign in to your Pulpe account, as you would on the web.",
+      "You enter your code, the one that unlocks your amounts.",
+      "You pick read only or read and write, then you confirm.",
+    ],
+    revokeHeading: "Cut the access whenever you want.",
+    revokeText:
+      "A connection you cut is cut right away: the assistant reads nothing and writes nothing any more, with no delay.",
+    revokeSteps: [
+      "Open Pulpe, then the settings.",
+      "Go to the list of your connections.",
+      "Cut the one you no longer want.",
+    ],
+    revokeNote:
+      "Changing your code or recovering your vault also cuts every connection at once. That is deliberate: your assistants no longer have what it takes to open your amounts, and you connect them again whenever you want.",
+    contactHeading: "Stuck on the setup?",
+    contactText:
+      "Write to me and name the assistant and the screen where you are stuck. I build Pulpe on my own and I answer myself.",
   },
 
   changelog: {

@@ -4,13 +4,19 @@ import { describe, it, mock } from "node:test";
 import { LOCALES } from "../lib/i18n";
 import { angularUrl } from "../lib/config";
 import { socialPreviewFile, socialPreviewImage } from "../lib/metadata";
-import { OPEN_GRAPH_LOCALE, openGraphAlternates } from "../lib/routes";
+import {
+  ASSISTANT_ROUTE,
+  OPEN_GRAPH_LOCALE,
+  openGraphAlternates,
+  ROUTES,
+} from "../lib/routes";
 import {
   DE_COMPARISON_SLUG,
   DE_PREMIUMS_SLUG,
 } from "../components/guides/guides.de";
 import {
   changelogMetadata,
+  supportAssistantMetadata,
   supportMetadata,
 } from "../components/pages/metadata";
 import type { PostHog } from "posthog-js/dist/module.slim";
@@ -109,6 +115,10 @@ const componentSources = {
   ),
   supportGuide: readFileSync(
     new URL("../components/pages/SupportGuide.tsx", import.meta.url),
+    "utf8",
+  ),
+  supportAssistant: readFileSync(
+    new URL("../components/pages/SupportAssistant.tsx", import.meta.url),
     "utf8",
   ),
   guidesIndex: readFileSync(
@@ -1583,6 +1593,39 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.supportGuide, /<Image|next\/image/);
   });
 
+  it("tells a reader what an assistant may do before how to plug it in", async () => {
+    const assistant = joined(frDict.assistant);
+    assert.match(assistant, /lecture seule/i);
+    assert.match(assistant, /lecture et écriture/i);
+    for (const client of ["ChatGPT", "Claude", "Claude Code"]) {
+      assert.ok(frDict.assistant.clients.some((c) => c.name === client));
+    }
+    // Le lecteur doit savoir couper avant d'avoir branché : la révocation vit
+    // sur la page, pas seulement dans les paramètres de l'app.
+    assert.ok(frDict.assistant.revokeSteps.length > 0);
+    assert.match(assistant, /paramètres/);
+
+    // L'adresse du serveur et la commande du terminal ne sont pas traduisibles.
+    // Les catalogues ne doivent donc pas en porter de copie, qui prendrait sa
+    // propre vie à la première relecture.
+    for (const catalog of Object.values(CATALOGS)) {
+      assert.doesNotMatch(joined(catalog.assistant), /https?:\/\/|claude mcp/i);
+    }
+    assert.match(componentSources.supportAssistant, /MCP_SERVER_URL/);
+    assert.match(
+      componentSources.supportAssistant,
+      /claude mcp add --transport http pulpe \$\{MCP_SERVER_URL\}/,
+    );
+
+    // La route est dans la table, donc le sitemap et les `hreflang` la servent
+    // dans les quatre langues sans qu'on les touche.
+    assert.ok(ROUTES.includes(ASSISTANT_ROUTE));
+    const metadata = await supportAssistantMetadata("fr");
+    assert.ok(metadata.openGraph && "type" in metadata.openGraph);
+    assert.equal(metadata.openGraph.type, "article");
+    assert.equal(metadata.alternates?.canonical, ASSISTANT_ROUTE);
+  });
+
   it("owns the guide social metadata instead of inheriting the homepage", () => {
     assert.match(
       componentSources.pageMetadata,
@@ -1647,7 +1690,17 @@ describe("landing accessibility contracts", () => {
       componentSources.footer,
       /id: "guides",\s*href: ADVICE_INDEX_ROUTE,[\s\S]*frenchOnly: true/,
     );
-    assert.match(componentSources.support, /\/support\/modeles-et-budgets/);
+    // Les deux tutoriels sont listés depuis leur constante de route : le
+    // sitemap et les `hreflang` partent de la même table, donc une carte ne
+    // peut plus pointer vers une URL que le site ne sert pas.
+    assert.match(
+      componentSources.support,
+      /\{ href: GUIDE_ROUTE, card: support\.guideCard \}/,
+    );
+    assert.match(
+      componentSources.support,
+      /\{ href: ASSISTANT_ROUTE, card: support\.assistantCard \}/,
+    );
     // La destination est structurelle et reste dans le code ; seul le libellé
     // change de langue, et les quatre catalogues doivent en fournir un.
     assert.match(
@@ -1669,6 +1722,7 @@ describe("landing accessibility contracts", () => {
       componentSources.page,
       componentSources.support,
       componentSources.supportGuide,
+      componentSources.supportAssistant,
       componentSources.guidesIndex,
       componentSources.articleLayout,
     ]) {
