@@ -43,6 +43,7 @@ extension HomeHeroCard {
                             .padding(.trailing, DesignTokens.Spacing.xxl)
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.heroInkSecondary)
+                            .opacity(labelOpacity)
                     }
                 }
 
@@ -123,7 +124,7 @@ extension HomeHeroCard {
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.heroInkSecondary)
                             .lineLimit(1)
-                            .opacity(settlingOpacity)
+                            .opacity(settlingOpacity * labelOpacity)
                     }
                 }
 
@@ -151,9 +152,43 @@ extension HomeHeroCard {
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.heroInkSecondary)
                             .lineLimit(1)
+                            .opacity(labelOpacity)
+                    }
+                }
+
+                // The finger's day: a rule through the plot, a dot on the stroke it reads,
+                // and one bubble that says the day, what was left, what was planned.
+                if let scrubDay {
+                    let reading = Self.scrubReading(at: scrubDay, in: trajectory)
+                    RuleMark(x: .value("Jour", reading.day))
+                        .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin))
+                        .foregroundStyle(Color.heroInkSecondary)
+                        .annotation(
+                            position: .top,
+                            alignment: .center,
+                            spacing: DesignTokens.Spacing.xs,
+                            overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
+                        ) {
+                            Text(Self.scrubBubbleText(reading, currency: currency))
+                                .font(PulpeTypography.caption2)
+                                .foregroundStyle(Color.heroInk)
+                                .lineLimit(1)
+                                .padding(.horizontal, DesignTokens.Spacing.sm)
+                                .padding(.vertical, DesignTokens.Spacing.xxs)
+                                .background(Color.heroSurface, in: Capsule())
+                        }
+                    if let value = Self.scrubDotValue(reading) {
+                        PointMark(
+                            x: .value("Jour", reading.day),
+                            y: .value("Lecture", Self.decimalValue(value))
+                        )
+                        .symbolSize(DesignTokens.Chart.pointSymbolArea)
+                        .foregroundStyle(Color.heroInk)
                     }
                 }
             }
+            .chartOverlay { proxy in scrubOverlay(proxy: proxy) }
+            .sensoryFeedback(.selection, trigger: scrubDay)
             .chartXScale(domain: 0 ... trajectory.totalDays)
             // The projection springs to its new end once the server has settled an entry;
             // under reduced motion it crossfades there instead.
@@ -216,6 +251,9 @@ extension HomeHeroCard {
             ))
         }
     }
+
+    /// The fixed labels step aside while the finger's bubble is on the plot.
+    var labelOpacity: Double { scrubDay == nil ? 1 : 0 }
 
     /// The skeleton's own pulse on the dashed stroke and its label while an entry settles —
     /// the same material the loading state uses, so "not final yet" reads the same way

@@ -1,6 +1,6 @@
 ---
 objective: "Le burn-down de la Home se lit au doigt : une règle qui suit le toucher et une bulle qui dit le jour, le réel, le prévu et l'estimé."
-status: pending
+status: implemented
 ---
 
 # Plan: Home chart scrub

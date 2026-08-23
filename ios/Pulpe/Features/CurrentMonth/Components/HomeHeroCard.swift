@@ -27,6 +27,8 @@ struct HomeHeroCard: View {
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @State private var tapTrigger = false
     @State var settlePulse = false
+    /// The day under the finger while the plot is being scrubbed, `nil` at rest.
+    @State var scrubDay: Int?
 
     var currency: SupportedCurrency { userSettingsStore.currency }
     private var presentation: HeroVerdictPresentation {

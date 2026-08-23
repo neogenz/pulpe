@@ -16,6 +16,9 @@ extension DesignTokens {
         /// and the same room in the detail and in the simulator.
         static let goalHeight: CGFloat = 160
         static let domainPaddingRatio = 0.12
+        /// How long the finger rests before the scrub rule takes it: shorter and the page
+        /// scroll loses its vertical drags, longer and the plot feels asleep.
+        static let scrubHoldDuration: Double = 0.15
         static let minimumDomainPadding = 1.0
 
         /// The plotted range never shrinks below this share of what the period planned to

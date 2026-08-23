@@ -11935,6 +11935,28 @@
         }
       }
     },
+    "Estimé %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschätzt %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimated %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stimato %@"
+          }
+        }
+      }
+    },
     "Estimé fin %@" : {
       "localizations" : {
         "de" : {
@@ -21953,6 +21975,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Effettivo"
+          }
+        }
+      }
+    },
+    "Réel %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tatsächlich %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actual %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reale %@"
           }
         }
       }
