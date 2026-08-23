@@ -62,7 +62,9 @@ extension HomeHeroCard {
                             guard case .second(true, .some(let drag)) = value,
                                   let frame = proxy.plotFrame else { return }
                             let x = drag.location.x - geometry[frame].origin.x
-                            guard let day: Int = proxy.value(atX: x) else { return }
+                            // A drag fires many times per day column; only a new day is
+                            // worth a body pass and a tick.
+                            guard let day: Int = proxy.value(atX: x), day != scrubDay else { return }
                             scrubDay = day
                         }
                         .onEnded { _ in scrubDay = nil }
