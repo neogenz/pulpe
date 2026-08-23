@@ -275,10 +275,7 @@ extension AuthService {
         let user = session.user
         let metadata = user.userMetadata
 
-        var firstName: String?
-        if case .string(let name) = metadata["firstName"] {
-            firstName = name
-        }
+        let firstName = FirstNameResolver.canonical(from: metadata)
 
         let hasVaultCodeConfigured: Bool
         if case .bool(let configured) = metadata["vaultCodeConfigured"] {
@@ -300,12 +297,15 @@ extension AuthService {
         _ = try await supabase.auth.signIn(email: email, password: password)
     }
 
-    /// Persist a first name to Supabase user_metadata.
-    /// Called fire-and-forget after social sign-in provides a name not in the JWT.
-    func updateUserFirstName(_ name: String) async throws {
-        _ = try await supabase.auth.update(
-            user: UserAttributes(data: ["firstName": .string(name)])
+    /// Persist a trimmed first name to Supabase `user_metadata.firstName`.
+    /// Throws `AuthServiceError.emptyFirstName` without calling the network when blank.
+    @discardableResult
+    func updateUserFirstName(_ name: String) async throws -> UserInfo {
+        let trimmed = try FirstNameResolver.nameForPersistence(name)
+        let user = try await supabase.auth.update(
+            user: UserAttributes(data: ["firstName": .string(trimmed)])
         )
+        return Self.userInfo(from: user, fallbackEmail: user.email ?? "")
     }
 
     /// Update the current user's password in Supabase auth.

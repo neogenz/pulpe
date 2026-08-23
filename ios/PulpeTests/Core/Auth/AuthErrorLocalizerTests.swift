@@ -75,6 +75,14 @@ struct AuthErrorLocalizerTests {
         #expect(message == "Ta session a expiré — reconnecte-toi")
     }
 
+    @Test func localizeAuthServiceErrorEmptyFirstNameReturnsPrompt() {
+        let message = AuthErrorLocalizer.localize(
+            AuthServiceError.emptyFirstName,
+            in: AppLocale.uiLocale(for: .fr)
+        )
+        #expect(message == "Saisis ton prénom")
+    }
+
     @Test func infoPlist_requiredRuntimeConfigKeysArePresent() throws {
         let info = try #require(loadAppInfoPlist())
 

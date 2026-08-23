@@ -8,6 +8,8 @@ enum AuthServiceError: LocalizedError, Equatable {
     /// Post-auth resolution determined the user is no longer authenticated
     /// (vault-status returned 401 even after a refresh attempt).
     case sessionExpired
+    /// Persist refused a blank first name — never write empty `user_metadata.firstName`.
+    case emptyFirstName
 
     var errorDescription: String? {
         switch self {
@@ -17,6 +19,8 @@ enum AuthServiceError: LocalizedError, Equatable {
             return AppLocale.string("La connexion n'a pas abouti — \(message)")
         case .sessionExpired:
             return AppLocale.string("Ta session a expiré — reconnecte-toi")
+        case .emptyFirstName:
+            return AppLocale.string("Saisis ton prénom")
         }
     }
 }

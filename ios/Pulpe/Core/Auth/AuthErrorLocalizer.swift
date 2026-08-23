@@ -91,7 +91,7 @@ enum AuthErrorLocalizer {
             switch authError {
             case .sessionExpired:
                 return .sessionExpired
-            case .signupFailed, .loginFailed:
+            case .signupFailed, .loginFailed, .emptyFirstName:
                 return nil
             }
         }
@@ -182,6 +182,10 @@ enum AuthErrorLocalizer {
     }
 
     private static func catalogKey(for error: Error) -> String.LocalizationValue {
+        if let authError = error as? AuthServiceError, case .emptyFirstName = authError {
+            return "Saisis ton prénom"
+        }
+
         let description = error.localizedDescription
 
         // Try code-based translation first

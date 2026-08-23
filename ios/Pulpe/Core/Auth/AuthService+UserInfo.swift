@@ -3,16 +3,7 @@ import Supabase
 extension AuthService {
     static func userInfo(from user: User, fallbackEmail: String) -> UserInfo {
         let metadata = user.userMetadata
-
-        // Priority: firstName (email signup) > given_name (Google) > name (Apple, first sign-in only)
-        var firstName: String?
-        if case .string(let name) = metadata["firstName"] {
-            firstName = name
-        } else if case .string(let name) = metadata["given_name"] {
-            firstName = name
-        } else if case .string(let name) = metadata["name"] {
-            firstName = name
-        }
+        let firstName = FirstNameResolver.canonical(from: metadata)
 
         // OAuth profile photo — Google exposes both `avatar_url` and `picture`; Apple/email none.
         var avatarUrl: String?
