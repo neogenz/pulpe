@@ -60,15 +60,22 @@ export class ApiClient {
     });
   }
 
+  /**
+   * `headers` is for one-off request-scoped headers (a vault key proven for a
+   * single call); the interceptors still add the session ones.
+   */
   post$<TRes, TReq = unknown>(
     path: string,
     body: TReq,
     responseSchema: ZodType<TRes>,
     requestSchema?: ZodType<TReq>,
+    headers?: Record<string, string>,
   ): Observable<TRes> {
     return defer(() => {
       const payload = requestSchema ? requestSchema.parse(body) : body;
-      return this.#http.post<unknown>(`${this.#baseUrl}${path}`, payload);
+      return this.#http.post<unknown>(`${this.#baseUrl}${path}`, payload, {
+        headers,
+      });
     }).pipe(
       map((res) => responseSchema.parse(res)),
       catchError((error) => this.#handleError(error)),

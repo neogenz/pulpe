@@ -204,6 +204,12 @@ export {
   whatsNewEntrySchema,
   whatsNewResponseSchema,
   whatsNewQuerySchema,
+
+  // MCP agent connector
+  mcpAccessModeSchema,
+  mcpConsentDetailsResponseSchema,
+  mcpConsentApproveRequestSchema,
+  mcpConsentRedirectResponseSchema,
 } from './schemas.js';
 
 // Export error codes
@@ -488,4 +494,8 @@ export type {
   WhatsNewEntry,
   WhatsNewResponse,
   WhatsNewQuery,
+  McpAccessMode,
+  McpConsentDetailsResponse,
+  McpConsentApproveRequest,
+  McpConsentRedirectResponse,
 } from './schemas.js';

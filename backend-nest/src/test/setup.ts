@@ -17,6 +17,7 @@ process.env.TURNSTILE_SECRET_KEY =
   process.env.TURNSTILE_SECRET_KEY || 'test-turnstile-secret';
 process.env.ENCRYPTION_MASTER_KEY =
   process.env.ENCRYPTION_MASTER_KEY || 'ab'.repeat(32);
+process.env.MCP_WRAPPING_KEY = process.env.MCP_WRAPPING_KEY || 'cd'.repeat(32);
 
 // ============================================================================
 // TEST LOG SILENCING SYSTEM

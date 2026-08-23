@@ -240,6 +240,27 @@
       "accountBlocked": "Ton compte est en cours de suppression.",
       "clientKeyMissing": "Ta clé de coffre est manquante — saisis-la pour continuer",
       "userNotConnected": "Utilisateur non connecté"
+    },
+    "mcpConsent": {
+      "title": "Connecter Pulpe à {{client}}",
+      "subtitle": "{{client}} demande l’accès à ton budget.",
+      "modeRead": "Lecture seule",
+      "modeReadDescription": "Consulter et analyser, sans rien changer.",
+      "modeReadWrite": "Lecture et écriture",
+      "modeReadWriteDescription": "Ajouter, modifier, supprimer et pointer.",
+      "warningsTitle": "Trois choses à savoir avant d’accepter",
+      "warningDataTitle": "Tes données passent par {{client}}.",
+      "warningDataBody": "Chaque question envoie à {{client}} les éléments de budget nécessaires pour y répondre : intitulés, montants, dates, objectifs. Leurs conditions d’utilisation s’appliquent à ce traitement.",
+      "warningKeyTitle": "Je garde une copie protégée de ta clé.",
+      "warningKeyBody": "Aujourd’hui tes montants ne sont lisibles qu’avec ton code, et je ne peux pas les déchiffrer sans toi. Pour que {{client}} réponde quand tu n’es pas devant ton téléphone, je conserve une copie protégée de cette clé aussi longtemps que la connexion existe.",
+      "warningRevokeTitle": "Tu peux couper quand tu veux.",
+      "warningRevokeBody": "Réglages, puis Connexions. La coupure est immédiate : l’accès est retiré et la copie de ta clé détruite.",
+      "pinLabel": "Ton code Pulpe",
+      "pinHint": "Il ne quitte pas cette page et n’est jamais transmis à {{client}}.",
+      "authorize": "Autoriser",
+      "privacyLink": "Ce que je fais de tes données",
+      "invalidRequest": "Cette demande n’est plus valable. Relance la connexion depuis ton assistant.",
+      "missingRequest": "Aucune demande de connexion en cours. Relance la connexion depuis ton assistant."
     }
   },
   "welcome": {
@@ -1507,8 +1528,20 @@
         "title": "12. Modifications",
         "body": "Cette politique peut être mise à jour occasionnellement. Les changements importants seront notifiés par email."
       },
+      "aiAssistants": {
+        "title": "13. Connexions à des assistants IA",
+        "intro": "Si tu connectes Pulpe à un assistant IA (ChatGPT, Claude, Codex ou un autre client compatible), les règles suivantes s’ajoutent.",
+        "items": {
+          "data": "Données concernées : les éléments de budget nécessaires à chaque réponse (intitulés, montants, dates, objectifs), jamais ton mot de passe ni ton code PIN.",
+          "purpose": "Finalité : répondre à tes demandes en langage naturel et, si tu as choisi le mode lecture et écriture, appliquer les changements que tu demandes.",
+          "recipients": "Destinataires : l’éditeur de l’assistant que tu as connecté, selon ses propres conditions d’utilisation. Pulpe ne choisit pas ce destinataire, c’est toi.",
+          "key": "Clé de chiffrement : pour que l’assistant réponde sans ton code, je conserve une copie protégée de ta clé de déchiffrement, chiffrée avec une clé serveur dédiée. Elle n’est lisible ni par l’assistant ni en base de données.",
+          "retention": "Durée : la connexion et la copie protégée de ta clé existent tant que tu ne les révoques pas. Changer ton code PIN ou le récupérer révoque toutes les connexions.",
+          "withdrawal": "Retrait du consentement : à tout moment, dans Réglages puis Connexions. L’effet est immédiat : l’accès est retiré et la copie de ta clé détruite."
+        }
+      },
       "contact": {
-        "title": "13. Contact",
+        "title": "14. Contact",
         "intro": "Pour toute question sur tes données personnelles :",
         "emailLabel": "Email :",
         "githubLabel": "GitHub :",
@@ -1712,7 +1745,8 @@
     "settings": "Paramètres",
     "settingsTags": "Mes tags",
     "designSystem": "Design System",
-    "maintenance": "Maintenance"
+    "maintenance": "Maintenance",
+    "mcpConsent": "Connecter un assistant IA"
   },
   "authError": {
     "generic": "Quelque chose n'a pas fonctionné — réessaie",

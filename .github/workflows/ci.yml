@@ -161,6 +161,7 @@ jobs:
           # Turnstile verification is skipped in test environment, dummy value is sufficient
           echo "TURNSTILE_SECRET_KEY=ci-test-turnstile-key" >> .env
           echo "ENCRYPTION_MASTER_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" >> .env
+          echo "MCP_WRAPPING_KEY=fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210" >> .env
           echo "✅ Environment ready"
 
       - name: 💾 Save Supabase State
@@ -268,6 +269,7 @@ jobs:
           NODE_ENV: test
           TURNSTILE_SECRET_KEY: ci-test-turnstile-key
           ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          MCP_WRAPPING_KEY: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
 
   # 🔌 TESTS D'INTÉGRATION BACKEND (seul job de test à démarrer Supabase — runner dédié,
   # pas de concurrence avec vitest frontend, donc pas de saturation ni de flake réseau)
@@ -386,6 +388,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_SERVICE_ROLE_KEY }}
           TURNSTILE_SECRET_KEY: ci-test-turnstile-key
           ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          MCP_WRAPPING_KEY: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
 
       - name: 🩺 Supabase diagnostics on failure
         if: failure()

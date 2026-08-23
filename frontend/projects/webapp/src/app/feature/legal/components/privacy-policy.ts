@@ -318,6 +318,31 @@ import { ROUTES } from '@core/routing';
           </p>
         </section>
 
+        <section class="mb-8" id="ai-assistants">
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.privacy.aiAssistants.title' | transloco }}
+          </h2>
+          <p class="text-body-large">
+            {{ 'legal.privacy.aiAssistants.intro' | transloco }}
+          </p>
+          <ul class="list-disc pl-6 text-body-large mt-4">
+            <li>{{ 'legal.privacy.aiAssistants.items.data' | transloco }}</li>
+            <li>
+              {{ 'legal.privacy.aiAssistants.items.purpose' | transloco }}
+            </li>
+            <li>
+              {{ 'legal.privacy.aiAssistants.items.recipients' | transloco }}
+            </li>
+            <li>{{ 'legal.privacy.aiAssistants.items.key' | transloco }}</li>
+            <li>
+              {{ 'legal.privacy.aiAssistants.items.retention' | transloco }}
+            </li>
+            <li>
+              {{ 'legal.privacy.aiAssistants.items.withdrawal' | transloco }}
+            </li>
+          </ul>
+        </section>
+
         <section class="mb-8">
           <h2 class="text-headline-medium mb-4">
             {{ 'legal.privacy.contact.title' | transloco }}

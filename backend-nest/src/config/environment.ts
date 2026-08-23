@@ -30,13 +30,16 @@ const envSchema = z
       }),
     // MCP agent connector: the public URL clients present as audience.
     MCP_RESOURCE_URL: z.url().default('http://localhost:3000/mcp'),
-    // Phase-1 stand-in for `mcp_connection`: a test vault key and mode.
-    MCP_TEST_CLIENT_KEY: z
+    // Wraps each agent connection's vault key at rest. Distinct from the
+    // master key so rotating one never exposes the other.
+    MCP_WRAPPING_KEY: z
       .string()
-      .length(64)
-      .regex(/^[0-9a-f]+$/i)
-      .optional(),
-    MCP_TEST_ACCESS_MODE: z.enum(['read', 'read_write']).optional(),
+      .length(64, {
+        error: 'MCP_WRAPPING_KEY must be exactly 64 hex characters (32 bytes)',
+      })
+      .regex(/^[0-9a-f]+$/i, {
+        error: 'MCP_WRAPPING_KEY must be a valid hex string',
+      }),
     CORS_ORIGIN: z.string().optional(),
     DEBUG_HTTP_FULL: z.string().optional(),
     RAILWAY_ENVIRONMENT_NAME: z.string().optional(),
