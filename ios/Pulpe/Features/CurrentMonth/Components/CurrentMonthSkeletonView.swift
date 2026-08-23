@@ -195,8 +195,9 @@ private struct CurrentMonthHeroSkeleton: View {
             let height = proxy.size.height
 
             ZStack {
+                // The plan: a straight fall from the opening amount to what the period keeps.
                 Path { path in
-                    path.move(to: CGPoint(x: 0, y: height * 2 / 3))
+                    path.move(to: CGPoint(x: 0, y: height / 4))
                     path.addLine(to: CGPoint(x: width, y: height * 2 / 3))
                 }
                 .stroke(
@@ -207,12 +208,13 @@ private struct CurrentMonthHeroSkeleton: View {
                     )
                 )
 
+                // The real stroke, falling under the plan to today.
                 Path { path in
-                    path.move(to: CGPoint(x: 0, y: height / 3))
+                    path.move(to: CGPoint(x: 0, y: height / 4))
                     path.addCurve(
-                        to: CGPoint(x: width * 2 / 3, y: height / 2),
-                        control1: CGPoint(x: width / 3, y: height / 3),
-                        control2: CGPoint(x: width / 2, y: height / 2)
+                        to: CGPoint(x: width * 2 / 3, y: height * 3 / 5),
+                        control1: CGPoint(x: width / 3, y: height / 4),
+                        control2: CGPoint(x: width / 2, y: height * 3 / 5)
                     )
                 }
                 .stroke(
@@ -224,11 +226,10 @@ private struct CurrentMonthHeroSkeleton: View {
                     )
                 )
 
-                // The projection keeps falling toward the plan line, as the real one does —
-                // it never turns back up.
+                // The projection keeps falling from today, as the real one does.
                 Path { path in
-                    path.move(to: CGPoint(x: width * 2 / 3, y: height / 2))
-                    path.addLine(to: CGPoint(x: width, y: height * 2 / 3))
+                    path.move(to: CGPoint(x: width * 2 / 3, y: height * 3 / 5))
+                    path.addLine(to: CGPoint(x: width, y: height * 4 / 5))
                 }
                 .stroke(
                     skeletonTint,
@@ -241,7 +242,7 @@ private struct CurrentMonthHeroSkeleton: View {
 
                 // Anchor point where the tracked series hands over to the projection.
                 SkeletonCircle(size: DesignTokens.Spacing.md)
-                    .position(x: width * 2 / 3, y: height / 2)
+                    .position(x: width * 2 / 3, y: height * 3 / 5)
             }
         }
         .frame(height: DesignTokens.Chart.dashboardHeight)

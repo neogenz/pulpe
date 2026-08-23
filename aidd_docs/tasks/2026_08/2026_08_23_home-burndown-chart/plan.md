@@ -1,6 +1,6 @@
 ---
 objective: "Le graphe de la Home est un burn-down du disponible : le plan sur tout le mois, le réel jusqu'à aujourd'hui, l'estimé jusqu'à la fin, un seul chiffre au bout."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Home burn-down chart

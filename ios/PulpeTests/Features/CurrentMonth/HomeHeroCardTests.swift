@@ -118,29 +118,36 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func chartDomain_floorsAQuietMonthOnWhatThePeriodPlannedToSpend() {
-        // Two real months of the production export, both on ~9 000 of planned outflows.
-        // Scaled to itself, May's 201 of drift plunges from one edge of the frame to the
-        // other and reads as an accident; floored on the plan it is the near-flat line it is.
+    @Test func chartDomain_framesTheWholePlanSoDriftReadsAgainstTheMonth() {
+        // A burn-down is read against what the month had: the frame holds the plan's
+        // opening and its end, so 201 of drift on 9 000 planned is the near-flat line it is,
+        // and 1 767 is a visible departure from the dashed plan without filling the frame.
         let quiet = trajectory(landing: [2_500, 2_400, 2_299], plannedOutflows: 9_000)
         let quietDomain = HomeHeroCard.chartYDomain(for: quiet)
-        let quietShare = 201.0 / (quietDomain.upperBound - quietDomain.lowerBound)
-        #expect(quietShare < 0.35)
+        #expect(quietDomain.contains(11_500))
+        #expect(quietDomain.contains(2_299))
+        #expect(201.0 / (quietDomain.upperBound - quietDomain.lowerBound) < 0.05)
 
-        // April's 1 767 still fills its frame: the floor must not flatten everything.
         let loud = trajectory(landing: [2_500, 1_500, 733], plannedOutflows: 9_000)
         let loudDomain = HomeHeroCard.chartYDomain(for: loud)
         let loudShare = 1_767.0 / (loudDomain.upperBound - loudDomain.lowerBound)
-        #expect(loudShare > 0.5)
+        #expect(loudShare > 0.1 && loudShare < 0.3)
     }
 
     @MainActor
-    @Test func gapLabel_sitsAwayFromThePlanLevel() {
-        // The label lands where the plot is empty by construction: the line never crosses
-        // its own opening level, so the far side of it from the origin is always free.
-        #expect(HomeHeroCard.gapLabelPosition(for: trajectory(landing: [2_500, 1_800])) == .bottom)
-        #expect(HomeHeroCard.gapLabelPosition(for: trajectory(landing: [2_500, 2_900])) == .top)
-        #expect(HomeHeroCard.gapLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .bottom)
+    @Test func planLabel_sitsOnTheSideTheDashedStrokeLeavesFree() {
+        // Under its plan the dashed stroke ends below the plan's end, so « Prévu » goes
+        // above it; over its plan it goes below, out of the trend figure's way.
+        #expect(HomeHeroCard.planLabelPosition(for: trajectory(landing: [2_500, 1_800])) == .top)
+        #expect(HomeHeroCard.planLabelPosition(for: trajectory(landing: [2_500, 2_900])) == .bottom)
+        #expect(HomeHeroCard.planLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
+    }
+
+    @MainActor
+    @Test func plan_fallsFromTheOpeningAmountToWhatThePeriodKeeps() {
+        let plan = HomeHeroCard.plan(for: trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000, totalDays: 31))
+        #expect(plan.map(\.day) == [0, 31])
+        #expect(plan.map(\.balance) == [11_500, 2_500])
     }
 
     @MainActor
@@ -284,31 +291,33 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func chartLabel_speaksTheSubtractionAndHidesAmountsOnDemand() throws {
+    @Test func chartLabel_speaksTheThreeStrokesAndHidesAmountsOnDemand() throws {
+        // 10 days in, 700 under plan, wide enough for the trend to get its figure.
         let drifted = trajectory(
-            landing: [1_000, 900],
-            driftDate: try date(year: 2026, month: 7, day: 6)
+            landing: Array(repeating: Decimal(2_500), count: 10) + [1_800],
+            driftDate: try date(year: 2026, month: 7, day: 6),
+            plannedOutflows: 9_000,
+            totalDays: 31
         )
 
-        // The three things the drawing shows, in the order it shows them. Not a reading of
-        // every point: VoiceOver would get a list where the plot gives one subtraction.
+        // The strokes in the order they are drawn: opening, plan's end, real today, trend.
         let spoken = HomeHeroCard.chartAccessibilityLabel(
             for: drifted,
             currency: .chf,
             amountsHidden: false
         )
-        #expect(spoken.hasPrefix("Prévu "))
-        #expect(spoken.contains("Atterrissage estimé"))
-        #expect(spoken.contains("Écart -100 CHF depuis le 6 juillet."))
+        #expect(spoken.hasPrefix(
+            "Disponible prévu 11’500 CHF. Prévu fin de période 2’500 CHF. Réel aujourd’hui 10’800 CHF."
+        ))
+        #expect(spoken.contains("Si tu continues, "))
 
-        // A month still on its plan has no gap to speak of, and says so rather than
-        // reciting a zero — the plot draws nothing there either.
+        // A month on its plan has no trend to speak of.
         let untouched = HomeHeroCard.chartAccessibilityLabel(
             for: trajectory(landing: [1_000, 1_000]),
             currency: .chf,
             amountsHidden: false
         )
-        #expect(untouched.contains("Aucun écart au plan."))
+        #expect(!untouched.contains("Si tu continues"))
 
         let masked = HomeHeroCard.chartAccessibilityLabel(
             for: drifted,
@@ -343,8 +352,16 @@ struct HomeHeroCardTests {
         totalDays: Int? = nil
     ) -> BudgetFormulas.BalanceTrajectory {
         let today = max(landing.count - 1, 1)
+        let points = landing.enumerated().map {
+            BudgetFormulas.BalanceTrajectory.Point(day: $0.offset, balance: $0.element)
+        }
+        // The real stroke opens on what the period had and falls by the same drift, so a
+        // fixture written in landing terms still draws a coherent burn-down.
+        let opening = (landing.first ?? 0) + plannedOutflows
         return BudgetFormulas.BalanceTrajectory(
-            landing: landing.enumerated().map { .init(day: $0.offset, balance: $0.element) },
+            landing: points,
+            plannedAvailable: opening,
+            real: points.map { .init(day: $0.day, balance: opening + $0.balance - (landing.first ?? 0)) },
             driftDate: driftDate,
             plannedOutflows: plannedOutflows,
             today: today,
