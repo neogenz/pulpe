@@ -6,7 +6,7 @@ import SwiftUI
 extension HomeHeroCard {
     /// What the plot knows about one day: what the plan expected, what was really left
     /// (up to today), where the estimate passes (after today).
-    struct ScrubReading: Equatable {
+    struct ScrubReading {
         let day: Int
         let date: Date?
         let real: Decimal?
@@ -45,11 +45,6 @@ extension HomeHeroCard {
         return parts.joined(separator: " · ")
     }
 
-    /// The value the dot sits on while scrubbing: the real stroke, else the estimate.
-    static func scrubDotValue(_ reading: ScrubReading) -> Decimal? {
-        reading.real ?? reading.estimate
-    }
-
     /// A short hold, then the finger drives the rule. A bare drag would take the page's
     /// vertical scroll with it; a hold first keeps the two apart.
     func scrubOverlay(proxy: ChartProxy) -> some View {
@@ -61,14 +56,22 @@ extension HomeHeroCard {
                     LongPressGesture(minimumDuration: DesignTokens.Chart.scrubHoldDuration)
                         .sequenced(before: DragGesture(minimumDistance: 0))
                         .onChanged { value in
-                            guard case .second(true, let drag) = value, let frame = proxy.plotFrame else { return }
-                            let origin = geometry[frame].origin
-                            let x = (drag?.location.x ?? origin.x) - origin.x
+                            // The sequence reports the hold's success once with no drag yet;
+                            // reading a position there would flash the rule on pay day.
+                            guard case .second(true, .some(let drag)) = value,
+                                  let frame = proxy.plotFrame else { return }
+                            let x = drag.location.x - geometry[frame].origin.x
                             guard let day: Int = proxy.value(atX: x) else { return }
                             scrubDay = day
                         }
                         .onEnded { _ in scrubDay = nil }
                 )
+                // A sequence cut short (a cancelled touch, the page scrolling) never reaches
+                // `onEnded`; the rule must not stay latched and the labels hidden.
+                .onChange(of: scenePhase) { _, phase in
+                    if phase != .active { scrubDay = nil }
+                }
+                .onDisappear { scrubDay = nil }
         }
     }
 

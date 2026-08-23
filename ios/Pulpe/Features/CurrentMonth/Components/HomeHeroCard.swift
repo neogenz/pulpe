@@ -25,6 +25,7 @@ struct HomeHeroCard: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) var amountsHidden
     @Environment(\.accessibilityReduceMotion) var reduceMotion
+    @Environment(\.scenePhase) var scenePhase
     @State private var tapTrigger = false
     @State var settlePulse = false
     /// The day under the finger while the plot is being scrubbed, `nil` at rest.

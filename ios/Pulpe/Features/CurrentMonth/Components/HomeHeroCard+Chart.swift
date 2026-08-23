@@ -177,7 +177,8 @@ extension HomeHeroCard {
                                 .padding(.vertical, DesignTokens.Spacing.xxs)
                                 .background(Color.heroSurface, in: Capsule())
                         }
-                    if let value = Self.scrubDotValue(reading) {
+                    // The dot sits on the stroke the day belongs to: real, else estimate.
+                    if let value = reading.real ?? reading.estimate {
                         PointMark(
                             x: .value("Jour", reading.day),
                             y: .value("Lecture", Self.decimalValue(value))
