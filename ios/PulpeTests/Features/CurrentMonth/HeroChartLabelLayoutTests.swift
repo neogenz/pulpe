@@ -1,4 +1,3 @@
-import Charts
 import CoreGraphics
 @testable import Pulpe
 import Testing
@@ -20,7 +19,7 @@ struct HeroChartLabelLayoutTests {
 
     private func resolve(
         anchors: [Label: CGPoint],
-        preferredSide: [Label: AnnotationPosition]
+        preferredSide: [Label: HeroChartLabelLayout.Side]
     ) -> [Label: CGRect] {
         HeroChartLabelLayout(plot: plot, dot: dot, spacing: spacing, inset: inset)
             .resolve(anchors: anchors, sizes: sizes, preferredSide: preferredSide)

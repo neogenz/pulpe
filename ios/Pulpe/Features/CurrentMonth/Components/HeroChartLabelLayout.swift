@@ -1,4 +1,3 @@
-import Charts
 import CoreGraphics
 
 // ponytail: greedy, fixed priority; add a scoring pass when a 4th label shows up.
@@ -13,6 +12,12 @@ struct HeroChartLabelLayout {
         case today, trend, plan
     }
 
+    /// Which way a pill hangs off its anchor. Its own two cases rather than the chart
+    /// framework's, whose corners and leading/trailing halves mean nothing here.
+    enum Side {
+        case top, bottom
+    }
+
     let plot: CGRect
     let dot: CGRect
     let spacing: CGFloat
@@ -25,13 +30,13 @@ struct HeroChartLabelLayout {
     func resolve(
         anchors: [Label: CGPoint],
         sizes: [Label: CGSize],
-        preferredSide: [Label: AnnotationPosition]
+        preferredSide: [Label: Side]
     ) -> [Label: CGRect] {
         var placed: [Label: CGRect] = [:]
         for label in Label.allCases {
             guard let anchor = anchors[label], let size = sizes[label] else { continue }
             let preferred = preferredSide[label] ?? .top
-            let opposite: AnnotationPosition = preferred == .bottom ? .top : .bottom
+            let opposite: Side = preferred == .bottom ? .top : .bottom
             let candidates = (0 ... Self.maxPush).flatMap { push in
                 [preferred, opposite].map { side in
                     rect(anchor: anchor, size: size, side: side, push: CGFloat(push))
@@ -59,7 +64,7 @@ struct HeroChartLabelLayout {
         }
     }
 
-    private func rect(anchor: CGPoint, size: CGSize, side: AnnotationPosition, push: CGFloat) -> CGRect {
+    private func rect(anchor: CGPoint, size: CGSize, side: Side, push: CGFloat) -> CGRect {
         let bounds = plot.insetBy(dx: inset, dy: 0)
         // A pill longer than the inset plot is drawn capped to it, so it is placed capped too.
         let width = min(size.width, bounds.width)

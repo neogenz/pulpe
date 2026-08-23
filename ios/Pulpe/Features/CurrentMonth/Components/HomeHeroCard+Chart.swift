@@ -250,7 +250,7 @@ extension HomeHeroCard {
     /// left), over one that climbs. The plan falls whenever the month plans to spend.
     static func planLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
-    ) -> AnnotationPosition {
+    ) -> HeroChartLabelLayout.Side {
         trajectory.plannedBalance < trajectory.plannedAvailable ? .bottom : .top
     }
 
@@ -258,7 +258,7 @@ extension HomeHeroCard {
     /// one that climbs back. A held month's stroke is flat and takes the top.
     static func trendLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
-    ) -> AnnotationPosition {
+    ) -> HeroChartLabelLayout.Side {
         guard let current = trajectory.real.last else { return .top }
         return trend(for: trajectory) < current.balance ? .bottom : .top
     }
@@ -267,7 +267,7 @@ extension HomeHeroCard {
     /// from nearly the same point once the month is well along.
     static func todayLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
-    ) -> AnnotationPosition {
+    ) -> HeroChartLabelLayout.Side {
         trendLabelPosition(for: trajectory) == .bottom ? .top : .bottom
     }
 
