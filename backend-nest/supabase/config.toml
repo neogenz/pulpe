@@ -141,6 +141,13 @@ minimum_password_length = 8
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
 
+# OAuth 2.1 server: Supabase is the authorization server of the MCP agent
+# connector. The consent screen is the Pulpe webapp page, relative to site_url.
+[auth.oauth_server]
+enabled = true
+allow_dynamic_registration = true
+authorization_url_path = "/mcp-consent"
+
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
 email_sent = 2
