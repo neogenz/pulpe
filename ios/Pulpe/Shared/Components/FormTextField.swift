@@ -14,6 +14,7 @@ struct FormTextField<Field: Hashable>: View {
     var accessibilityLabel: String?
     var focusBinding: FocusState<Field?>.Binding
     var field: Field
+    var textContentType: UITextContentType?
 
     var body: some View {
         if let label {
@@ -45,6 +46,7 @@ struct FormTextField<Field: Hashable>: View {
             // See type documentation — `Button` would not focus the inner `TextField` with this layout.
             .onTapGesture { focusBinding.wrappedValue = field }
             .focused(focusBinding, equals: field)
+            .textContentType(textContentType)
             .onSubmit { focusBinding.wrappedValue = nil }
     }
 }

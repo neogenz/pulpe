@@ -6,6 +6,7 @@ struct AccountView: View {
     @State private var showLogoutConfirmation = false
     @State private var isDebugVisible = false
     @State private var debugToggleTrigger = false
+    @State private var showEditFirstName = false
 
     var body: some View {
         NavigationStack {
@@ -39,6 +40,9 @@ struct AccountView: View {
                     Button("Fermer") { dismiss() }
                 }
             }
+            .sheet(isPresented: $showEditFirstName) {
+                EditFirstNameSheet(initialFirstName: appState.currentUser?.firstName)
+            }
         }
     }
 }
@@ -62,8 +66,29 @@ extension AccountView {
                     font: PulpeTypography.amountXL
                 )
                 .accessibilityHidden(true)
-                Text(email.isEmpty ? AppLocale.string("Non connecté(e)") : email)
-                    .font(PulpeTypography.bodyLarge)
+
+                if let firstName = FirstNameResolver.normalized(appState.currentUser?.firstName) {
+                    Text(firstName)
+                        .font(PulpeTypography.title3)
+                        .foregroundStyle(Color.textPrimary)
+                    Text(email.isEmpty ? AppLocale.string("Non connecté(e)") : email)
+                        .font(PulpeTypography.bodyLarge)
+                    Button("Modifier") {
+                        showEditFirstName = true
+                    }
+                    .font(PulpeTypography.buttonSecondary)
+                    .foregroundStyle(Color.pulpePrimary)
+                    .accessibilityIdentifier("editFirstNameButton")
+                } else {
+                    Button("Ajouter un prénom") {
+                        showEditFirstName = true
+                    }
+                    .font(PulpeTypography.buttonSecondary)
+                    .foregroundStyle(Color.pulpePrimary)
+                    .accessibilityIdentifier("addFirstNameButton")
+                    Text(email.isEmpty ? AppLocale.string("Non connecté(e)") : email)
+                        .font(PulpeTypography.bodyLarge)
+                }
                 Text("Pulpe")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textSecondary)
