@@ -28,9 +28,14 @@ Vérifié en local (`probe.sh`, backend sur :3077, Supabase local) :
 
 ## Reste à constater par client (nécessite un compte humain sur chaque client)
 
-Préalable : activer le serveur OAuth 2.1 sur le projet Supabase hébergé (Dashboard →
-Authentication → OAuth Server), `authorization_url_path = /mcp-consent`, DCR activé, puis
-publier le serveur MCP sur une URL https.
+Préalable fait le 2026-08-23 sur le projet **preview** (`lrphlfjkzkwyllejanrd`) : serveur OAuth
+2.1 activé, `authorization_url_path = /mcp-consent`, DCR activé ; metadata publiée sur
+`/auth/v1/.well-known/oauth-authorization-server` avec `registration_endpoint`.
+Reste : publier le serveur MCP sur une URL https.
+
+Dette connue : le Site URL preview se termine par `/welcome`, donc l'URL de consentement
+générée est `…/welcome/mcp-consent`. À corriger en phase 2 (Auth → URL Configuration, Site URL
+sans `/welcome`, puis retester confirmation et reset e-mail), quand la page existe.
 
 | Client | URL de redirection | Connexion aboutit ? | Erreur exacte sinon |
 | --- | --- | --- | --- |
