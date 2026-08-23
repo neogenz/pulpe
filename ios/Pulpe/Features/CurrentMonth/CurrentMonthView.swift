@@ -288,7 +288,6 @@ struct CurrentMonthView: View {
                     },
                     onViewAll: { navigateToBudget = true }
                 )
-                .popoverTip(ProductTips.checking)
                 .staggeredEntrance(isVisible: hasAppeared, index: 1)
             }
 

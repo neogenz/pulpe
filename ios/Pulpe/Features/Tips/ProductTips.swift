@@ -53,8 +53,8 @@ enum ProductTips {
 
         var message: Text? {
             Text("""
-                Dès qu'un mouvement est passé sur ton compte, touche le rond devant sa ligne \
-                (ou « C'est passé » sur l'accueil). Pulpe garde le fil de ce qui est réel.
+                Dès qu'un mouvement est passé sur ton compte, touche le rond devant sa ligne. \
+                Pulpe garde le fil de ce qui est réel.
                 """)
         }
 
@@ -104,13 +104,13 @@ enum ProductTips {
 
     struct TemplatesWebParityTip: Tip {
         var title: Text {
-            Text("Modèles : version iOS encore allégée")
+            Text("Modèles : ajouter ou retirer une ligne")
         }
 
         var message: Text? {
             Text("""
-                Toutes les actions sur les modèles ne sont pas encore dispos ici. \
-                Pour aller au bout, l'app web fait tout — n'hésite pas à y faire un tour.
+                Ici tu peux modifier les lignes d'un modèle. Pour en ajouter ou en retirer, \
+                passe par l'app web.
                 """)
         }
 
