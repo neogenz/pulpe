@@ -6225,6 +6225,28 @@
         }
       }
     },
+    "Carte %lld sur %lld" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karte %@ von %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Card %@ of %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheda %@ di %@"
+          }
+        }
+      }
+    },
     "Ce Réel sera créé pointé." : {
       "localizations" : {
         "de" : {
@@ -16931,6 +16953,28 @@
         }
       }
     },
+    "Noté · %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erfasst · %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noted · %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annotato · %@"
+          }
+        }
+      }
+    },
     "Nouveau\ndans Pulpe" : {
       "localizations" : {
         "de" : {
@@ -19843,6 +19887,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previsto %@."
+          }
+        }
+      }
+    },
+    "Prévu ce mois · %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Monat geplant · %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planned this month · %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previsto questo mese · %@"
           }
         }
       }

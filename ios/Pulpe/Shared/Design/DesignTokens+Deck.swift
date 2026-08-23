@@ -2,9 +2,12 @@ import SwiftUI
 
 extension DesignTokens {
     /// Motion grammar of a paged card deck (home quick-check): the neighbouring cards
-    /// peek at the screen edges as tickets tucked behind the focused one, and turn away
+    /// wait past the screen edges as tickets tucked behind the focused one, and turn away
     /// as the deck rotates.
     enum Deck {
+        /// Gap between two slots: two page gutters, so a neighbour's inner edge sits on
+        /// the glass while the focused card sits on the rail.
+        static let slotGap: CGFloat = Spacing.xxl * 2
         /// How much a fully tucked neighbour shrinks (scale = 1 − drop), anchored on its
         /// inner edge so the peek width survives the shrink.
         static let tuckScaleDrop: CGFloat = 0.1

@@ -258,7 +258,7 @@ struct HomeHeroCardTests {
             .appending(path: "Pulpe/Features/CurrentMonth/Components/UncheckedOperationsCard.swift")
         let source = try String(contentsOf: sourceFile, encoding: .utf8)
 
-        #expect(source.contains("Text(subtitle(for: item))"))
+        #expect(source.contains("Text(Self.subtitle(for: item))"))
         #expect(!source.contains("tag\\("))
         #expect(source.components(separatedBy: "presentation: .count").count == 2)
     }
