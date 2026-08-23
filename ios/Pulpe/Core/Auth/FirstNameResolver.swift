@@ -31,4 +31,14 @@ enum FirstNameResolver: Sendable {
         }
         return nil
     }
+
+    /// Overlay a provider `givenName` only when metadata has no canonical first name.
+    /// Login with an existing `firstName` must not call this to persist.
+    static func applyingProviderGivenName(_ givenName: String?, to user: UserInfo) -> UserInfo {
+        if normalized(user.firstName) != nil { return user }
+        guard let name = normalized(givenName) else { return user }
+        var updated = user
+        updated.firstName = name
+        return updated
+    }
 }

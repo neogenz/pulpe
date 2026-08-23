@@ -78,8 +78,16 @@ actor AuthService {
 
     // MARK: - Signup
 
-    func signup(email: String, password: String) async throws -> UserInfo {
-        let response = try await supabase.auth.signUp(email: email, password: password)
+    func signup(email: String, password: String, firstName: String? = nil) async throws -> UserInfo {
+        var data: [String: AnyJSON]?
+        if let firstName, let name = FirstNameResolver.normalized(firstName) {
+            data = ["firstName": .string(name)]
+        }
+        let response = try await supabase.auth.signUp(
+            email: email,
+            password: password,
+            data: data
+        )
 
         guard let session = response.session else {
             throw AuthServiceError.signupFailed("No session returned. Email confirmation may be required.")

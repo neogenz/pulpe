@@ -77,7 +77,7 @@ final class OnboardingState {
         resetDraftFields()
         authenticatedUser = user
         isSocialAuth = true
-        if let name = user.firstName, !name.isEmpty {
+        if let name = FirstNameResolver.normalized(user.firstName) {
             firstName = name
             socialProvidedName = true
         } else {
@@ -121,7 +121,7 @@ final class OnboardingState {
     // MARK: - Computed
 
     var isFirstNameValid: Bool {
-        !firstName.trimmingCharacters(in: .whitespaces).isEmpty
+        FirstNameResolver.normalized(firstName) != nil
     }
 
     var isIncomeValid: Bool {
@@ -469,6 +469,17 @@ final class OnboardingState {
 // this file focused on navigation, validation, and store-shape.
 
 extension OnboardingState {
+    /// Writes the in-memory first name to `user_metadata.firstName` when one exists.
+    /// Retries even if `authenticatedUser.firstName` is already set (failed persist).
+    func persistFirstName(
+        using persist: (String) async throws -> UserInfo
+    ) async throws {
+        guard let name = FirstNameResolver.normalized(firstName) else { return }
+        let updated = try await persist(name)
+        authenticatedUser = updated
+        firstName = FirstNameResolver.normalized(updated.firstName) ?? name
+    }
+
     /// Switches the onboarding currency from a user action. Mirrors the webapp
     /// `onCurrencyChange`: health insurance is a CHF-only onboarding line, so any
     /// entered amount is dropped when leaving CHF — a value typed in CHF must not

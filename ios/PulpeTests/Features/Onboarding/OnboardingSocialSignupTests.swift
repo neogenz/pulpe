@@ -79,6 +79,9 @@ struct OnboardingSocialSignupTests {
 
         state.configureSocialUser(UserInfo(id: "3", email: "x@x.com", firstName: ""))
         #expect(!state.socialProvidedName)
+
+        state.configureSocialUser(UserInfo(id: "4", email: "x@x.com", firstName: "   "))
+        #expect(!state.socialProvidedName)
     }
 
     @Test
@@ -267,5 +270,68 @@ struct OnboardingSocialSignupTests {
         // Both hit 100% at budgetPreview (last step for both paths)
         #expect(socialPercentage == 100)
         #expect(nonSocialPercentage == 100)
+    }
+
+    // MARK: - First-name persist (PUL-344)
+
+    private enum PersistStubError: Error {
+        case failed
+    }
+
+    @Test
+    func persistFirstName_writesTrimmedNameAndUpdatesUser() async throws {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureEmailUser(UserInfo(id: "1", email: "a@b.com"))
+        state.firstName = "  Marie  "
+
+        var persisted: String?
+        try await state.persistFirstName { name in
+            persisted = name
+            return UserInfo(id: "1", email: "a@b.com", firstName: name)
+        }
+
+        #expect(persisted == "Marie")
+        #expect(state.firstName == "Marie")
+        #expect(state.authenticatedUser?.firstName == "Marie")
+    }
+
+    @Test
+    func persistFirstName_skipsWhenNameBlank() async throws {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        var calls = 0
+        try await state.persistFirstName { _ in
+            calls += 1
+            return UserInfo(id: "1", email: "a@b.com")
+        }
+        #expect(calls == 0)
+    }
+
+    @Test
+    func persistFirstName_keepsNameInMemoryWhenPersistFails() async {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureSocialUser(UserInfo(id: "1", email: "a@b.com", firstName: "Marie"))
+
+        await #expect(throws: PersistStubError.failed) {
+            try await state.persistFirstName { _ in throw PersistStubError.failed }
+        }
+        #expect(state.firstName == "Marie")
+        #expect(state.authenticatedUser?.firstName == "Marie")
+    }
+
+    @Test
+    func persistFirstName_retriesEvenIfUserAlreadyHasInMemoryName() async throws {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureSocialUser(UserInfo(id: "1", email: "a@b.com", firstName: "Marie"))
+
+        var calls = 0
+        try await state.persistFirstName { name in
+            calls += 1
+            return UserInfo(id: "1", email: "a@b.com", firstName: name)
+        }
+        #expect(calls == 1)
     }
 }

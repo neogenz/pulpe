@@ -89,9 +89,12 @@ struct SocialLoginSection: View {
                 let result = try await appState.authenticateWithApple(idToken: idToken, nonce: nonce)
                 switch result {
                 case .newUser(var user):
-                    patchFirstName(on: &user, from: givenName)
+                    let persistError = await patchFirstName(on: &user, from: givenName)
                     AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "apple"])
                     await onAuthenticated(user)
+                    if let persistError {
+                        errorMessage = socialErrorMessage(for: persistError)
+                    }
                 case .existingUserRedirected:
                     // Already had a vault — this was a login disguised as signup.
                     AnalyticsService.shared.capture(
@@ -139,9 +142,12 @@ struct SocialLoginSection: View {
                 let result = try await appState.authenticateWithGoogle(idToken: idToken, accessToken: accessToken)
                 switch result {
                 case .newUser(var user):
-                    patchFirstName(on: &user, from: givenName)
+                    let persistError = await patchFirstName(on: &user, from: givenName)
                     AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "google"])
                     await onAuthenticated(user)
+                    if let persistError {
+                        errorMessage = socialErrorMessage(for: persistError)
+                    }
                 case .existingUserRedirected:
                     // Already had a vault — this was a login disguised as signup.
                     AnalyticsService.shared.capture(
@@ -164,24 +170,29 @@ struct SocialLoginSection: View {
     }
 
     /// Patches firstName on a new social user if the provider gave us a name
-    /// that Supabase didn't capture in metadata. Persists to user_metadata.
+    /// that Supabase didn't capture in metadata. Awaits persist; keeps the name
+    /// in memory and returns the error when the network write fails.
+    /// Login must not call this — an existing `firstName` must not be overwritten.
+    @discardableResult
     private func patchFirstName(
         on user: inout UserInfo,
         from givenName: String?
-    ) {
-        guard (user.firstName ?? "").isEmpty,
-              let name = givenName, !name.isEmpty else { return }
-        user.firstName = name
-        // Best-effort persistence — if this fails, the name field will re-appear on next login.
-        // Apple only sends fullName on the first sign-in, so loss is acceptable here.
-        Task(name: "SocialLogin.persistFirstName") {
-            do {
-                try await AuthService.shared.updateUserFirstName(name)
-            } catch {
-                Logger.auth.warning(
-                    "Failed to persist firstName: \(error.localizedDescription, privacy: .public)"
-                )
-            }
+    ) async -> Error? {
+        if FirstNameResolver.normalized(user.firstName) != nil {
+            return nil
+        }
+        user = FirstNameResolver.applyingProviderGivenName(givenName, to: user)
+        guard let name = FirstNameResolver.normalized(user.firstName) else {
+            return nil
+        }
+        do {
+            user = try await AuthService.shared.updateUserFirstName(name)
+            return nil
+        } catch {
+            Logger.auth.warning(
+                "Failed to persist firstName: \(error.localizedDescription, privacy: .public)"
+            )
+            return error
         }
     }
 

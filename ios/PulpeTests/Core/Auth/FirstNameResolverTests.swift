@@ -63,4 +63,22 @@ struct FirstNameResolverTests {
         ]
         #expect(FirstNameResolver.canonical(from: metadata) == "Bob")
     }
+
+    @Test func applyingProviderGivenName_fillsWhenMetadataEmpty() {
+        let user = UserInfo(id: "1", email: "a@b.com", firstName: nil)
+        let patched = FirstNameResolver.applyingProviderGivenName("Marie", to: user)
+        #expect(patched.firstName == "Marie")
+    }
+
+    @Test func applyingProviderGivenName_doesNotOverwriteExistingFirstName() {
+        let user = UserInfo(id: "1", email: "a@b.com", firstName: "Alice")
+        let patched = FirstNameResolver.applyingProviderGivenName("Bob", to: user)
+        #expect(patched.firstName == "Alice")
+    }
+
+    @Test func applyingProviderGivenName_ignoresBlankGivenName() {
+        let user = UserInfo(id: "1", email: "a@b.com", firstName: nil)
+        let patched = FirstNameResolver.applyingProviderGivenName("  ", to: user)
+        #expect(patched.firstName == nil)
+    }
 }

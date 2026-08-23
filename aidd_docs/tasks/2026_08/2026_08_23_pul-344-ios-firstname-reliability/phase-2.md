@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: capturer et attendre le prénom pendant l’onboarding
