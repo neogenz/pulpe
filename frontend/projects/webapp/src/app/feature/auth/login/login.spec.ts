@@ -52,7 +52,7 @@ describe('Login', () => {
     component = TestBed.createComponent(Login).componentInstance;
 
     const router = TestBed.inject(Router);
-    navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    navigateSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
   }
 
   describe('Component Structure', () => {
@@ -127,7 +127,7 @@ describe('Login', () => {
 
       await component['signIn']();
 
-      expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+      expect(navigateSpy).toHaveBeenCalledWith('/dashboard');
     });
 
     it('should set error message on failed sign in', async () => {
@@ -155,6 +155,38 @@ describe('Login', () => {
         'Quelques champs à vérifier avant de continuer',
       );
       expect(mockAuthCredentials.signInWithEmail).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('returnUrl', () => {
+    async function signInWith(queryParams: Record<string, string>) {
+      await setupComponent(queryParams);
+      mockAuthCredentials.signInWithEmail.mockResolvedValue({ success: true });
+      component['loginForm'].patchValue({
+        email: 'test@example.com',
+        password: 'password123',
+      });
+      await component['signIn']();
+    }
+
+    it('should return to the page the guard interrupted', async () => {
+      await signInWith({ returnUrl: '/mcp-consent?authorization_id=abc' });
+
+      expect(navigateSpy).toHaveBeenCalledWith(
+        '/mcp-consent?authorization_id=abc',
+      );
+    });
+
+    it('should ignore a protocol-relative returnUrl', async () => {
+      await signInWith({ returnUrl: '//evil.example.com' });
+
+      expect(navigateSpy).toHaveBeenCalledWith('/dashboard');
+    });
+
+    it('should ignore an absolute returnUrl', async () => {
+      await signInWith({ returnUrl: 'https://evil.example.com' });
+
+      expect(navigateSpy).toHaveBeenCalledWith('/dashboard');
     });
   });
 

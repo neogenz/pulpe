@@ -262,6 +262,18 @@ export default class Login {
     this.errorMessage.set('');
   }
 
+  /**
+   * Where to land after signing in: back to the page the guard interrupted,
+   * otherwise the dashboard. Only an in-app path is honoured — a value that
+   * does not start with a single slash would be an open redirect.
+   */
+  #destination(): string {
+    const returnUrl = this.#route.snapshot.queryParamMap.get('returnUrl');
+    return returnUrl?.startsWith('/') && !returnUrl.startsWith('//')
+      ? returnUrl
+      : `/${ROUTES.DASHBOARD}`;
+  }
+
   protected async signIn(): Promise<void> {
     if (!this.loginForm.valid) {
       this.loginForm.markAllAsTouched();
@@ -281,7 +293,7 @@ export default class Login {
       );
 
       if (result.success) {
-        this.#router.navigate(['/', ROUTES.DASHBOARD]);
+        this.#router.navigateByUrl(this.#destination());
       } else {
         this.errorMessage.set(
           result.error || this.#transloco.translate('auth.login.errorDefault'),
