@@ -1,6 +1,6 @@
 ---
 objective: "On the iOS home « Activité » rows, a leftward swipe reveals Modifier and Supprimer; Modifier opens the existing edit page, Supprimer asks before deleting. A vertical pan on any swipeable row always scrolls."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Home activity swipe actions + ledger scroll fix
