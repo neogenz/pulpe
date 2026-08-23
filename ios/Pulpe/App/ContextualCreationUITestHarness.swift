@@ -169,13 +169,14 @@ struct ContextualCreationUITestHarness: View {
                 trajectory: fixture.trajectory,
                 monthName: fixture.monthName,
                 uncheckedCount: 1,
-                onTapMetrics: {},
+                onTapUnchecked: {},
+                onTapVariance: {},
                 onTapDetail: {}
             )
             .padding(.horizontal, DesignTokens.Spacing.xl)
             .padding(.top, DesignTokens.Spacing.xxxl)
         }
-        .background(Color.homeHeroSurface.ignoresSafeArea())
+        .background(Color.heroSurface.ignoresSafeArea())
     }
 
     private var chartFixture: ChartFixture {
@@ -204,6 +205,7 @@ struct ContextualCreationUITestHarness: View {
             transactions: transactions,
             budget: budget,
             payDayOfMonth: payDay,
+            history: chartHistory(for: state),
             referenceDate: referenceDate
         ) else {
             preconditionFailure("Chart UI test trajectory must exist")
@@ -269,7 +271,7 @@ struct ContextualCreationUITestHarness: View {
             ]
         case "gain":
             return [transaction(id: "bonus", amount: 400, kind: .income, date: days[1])]
-        case "deficit":
+        case "deficit", "history":
             return [transaction(id: "repair", amount: 2_600, date: days[1])]
         default:
             return [
@@ -277,6 +279,19 @@ struct ContextualCreationUITestHarness: View {
                 transaction(id: "impulse", amount: 700, date: days[2]),
             ]
         }
+    }
+
+    /// The deficit month again, read by a user who usually lands 8 % under plan over six
+    /// closed months: the projection leans further down than the deficit variant's.
+    private func chartHistory(for state: String) -> DriftHistory? {
+        guard state == "history" else { return nil }
+        return DriftHistory(
+            usualOutflowDrift: -0.08,
+            closedMonths: 6,
+            priorStrength: 7,
+            driftMad: 600,
+            driftProfile: [0.25, 0.5, 0.75, 1]
+        )
     }
 
     private func line(

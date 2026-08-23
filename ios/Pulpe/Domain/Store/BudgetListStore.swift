@@ -97,7 +97,9 @@ final class BudgetListStore: StoreProtocol {
                     await widgetSyncService.syncAll()
                 }
             } catch where error.isCancellationOrURLCancellation {
-                // Task was cancelled, don't update error state
+                // Superseded by a newer load (a second screen asked while the first was in
+                // flight): URLSession reports it as -999, not CancellationError, and the
+                // error view would flash over the skeleton until the newer load lands.
             } catch let apiError as APIError {
                 if loadGeneration == currentGeneration { self.error = apiError }
             } catch {

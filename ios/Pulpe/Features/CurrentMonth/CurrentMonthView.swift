@@ -19,8 +19,6 @@ struct CurrentMonthView: View {
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
-    /// Screen-space bottom edge of the hero, owned here and read only by the mint layer.
-    @State private var heroSurfaceTracker = HomeHeroSurfaceTracker()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var animationPhase: Int {
@@ -43,7 +41,7 @@ struct CurrentMonthView: View {
     /// Same verdict the hero renders — `DriftCard`'s subtitle reads off this instead of
     /// re-deriving the planned/estimated subtraction on its own.
     private var overrunIsAbsorbed: Bool {
-        HomeHeroCard.PresentationState(
+        HeroVerdictPresentation(
             plannedBalance: store.plannedRemaining,
             estimatedBalance: store.metrics.remaining
         ).absorbsEnvelopeOverrun
@@ -60,7 +58,7 @@ struct CurrentMonthView: View {
         ZStack {
             switch store.contentState {
             case .idle, .loading:
-                CurrentMonthSkeletonView(onHeroSurfaceBottomChange: { heroSurfaceTracker.update($0) })
+                CurrentMonthSkeletonView()
                     .transition(.opacity)
             case .failed:
                 ErrorView(error: store.error ?? .networkError(URLError(.unknown))) {
@@ -80,10 +78,16 @@ struct CurrentMonthView: View {
                 .transition(.opacity)
             case .loaded:
                 dashboardContent
-                    .transition(.opacity)
+                    // The skeleton already holds every slot; the data arrives by coming into
+                    // focus over it rather than popping in. Reduce Motion gets a plain fade.
+                    .transition(loadedTransition)
             }
         }
-        .background { dashboardBackground.ignoresSafeArea() }
+        .background { Color.appBackground.ignoresSafeArea() }
+        // The hero runs under the navigation bar: its title and avatar go to light ink
+        // while the forest is painted, and back to the default on a flat canvas.
+        .toolbarColorScheme(paintsHeroSurface ? .dark : nil, for: .navigationBar)
+        .heroNavigationBar()
         .trackScreen("Dashboard")
         .animation(DesignTokens.Animation.smoothEaseOut, value: animationPhase)
         .navigationTitle(currentMonthName.capitalized)
@@ -99,12 +103,16 @@ struct CurrentMonthView: View {
                         firstName: appState.currentUser?.firstName,
                         email: appState.currentUser?.email,
                         avatarUrl: appState.currentUser?.avatarUrl,
-                        diameter: DesignTokens.IconSize.compact
+                        diameter: DesignTokens.IconSize.compact,
+                        background: paintsHeroSurface ? .heroDisc : .surfaceContainerLowest,
+                        foreground: paintsHeroSurface ? .heroInk : .textTertiary
                     )
                 }
+                .heroToolbarButtonStyle(paintsHeroSurface)
                 .accessibilityLabel("Mon compte")
                 .accessibilityIdentifier("homeAccountButton")
             }
+            .heroToolbarGroup(paintsHeroSurface)
         }
         .sheet(item: $activeSheet) { sheet in
             Group {
@@ -154,18 +162,21 @@ struct CurrentMonthView: View {
             await userSettingsStore.loadIfNeeded()
             store.setPayDay(userSettingsStore.payDayOfMonth)
             await store.loadDetailsIfNeeded()
-            // Sparse budget list feeds "retour au vert" (deficit hero) + create-budget gating
-            await budgetListStore.loadIfNeeded()
-            // Goal names for the "épargne versée" card — only when the month links to goals
-            if store.budgetLines.contains(where: { $0.savingsGoalId != nil }) {
-                await savingsGoalStore.loadIfNeeded()
-            }
+            // Reveal with the details: waiting for the secondary loads below left the
+            // loaded screen on stage with every block still at opacity 0 (bare forest
+            // square under the bar, then a pop).
             if reduceMotion {
                 hasAppeared = true
             } else {
                 withAnimation(DesignTokens.Animation.smoothEaseOut) {
                     hasAppeared = true
                 }
+            }
+            // Sparse budget list feeds "retour au vert" (deficit hero) + create-budget gating
+            await budgetListStore.loadIfNeeded()
+            // Goal names for the "épargne versée" card — only when the month links to goals
+            if store.budgetLines.contains(where: { $0.savingsGoalId != nil }) {
+                await savingsGoalStore.loadIfNeeded()
             }
         }
         .task(id: referencedTagIds) {
@@ -205,36 +216,45 @@ struct CurrentMonthView: View {
     // MARK: - Dashboard Content
 
     private var dashboardContent: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.none) {
-                HomeHeroCard(
-                    metrics: store.metrics,
-                    fallbackPlannedBalance: store.plannedRemaining,
-                    trajectory: store.balanceTrajectory,
-                    monthName: currentMonthName,
-                    uncheckedCount: store.uncheckedCount,
-                    onTapMetrics: { activeSheet = .realizedBalance },
-                    onTapDetail: { navigateToBudget = true }
-                )
-                .staggeredEntrance(isVisible: hasAppeared, index: 0)
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xxl)
-                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
-                    heroSurfaceTracker.update($0)
-                }
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.none) {
+                    HomeHeroCard(
+                        metrics: store.metrics,
+                        fallbackPlannedBalance: store.plannedRemaining,
+                        trajectory: store.balanceTrajectory,
+                        monthName: currentMonthName,
+                        uncheckedCount: store.uncheckedCount,
+                        isSettling: store.isSettling,
+                        onTapUnchecked: {
+                            withAnimation(DesignTokens.Animation.gentleSpring) {
+                                proxy.scrollTo(Self.uncheckedDeckId, anchor: .top)
+                            }
+                        },
+                        onTapVariance: { activeSheet = .realizedBalance },
+                        onTapDetail: { navigateToBudget = true }
+                    )
+                    .staggeredEntrance(isVisible: hasAppeared, index: 0)
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.xxl)
+                    .heroZone(parallax: true)
 
-                dashboardDetails
-                .frame(maxWidth: .infinity)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.lg)
-                .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
+                    dashboardDetails
+                        .padding(.top, DesignTokens.Spacing.xxl)
+                        .padding(.bottom, DesignTokens.Spacing.lg)
+                        .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
+                        .contentZone()
+                }
+            }
+            .refreshable {
+                await store.forceRefresh()
             }
         }
-        .refreshable {
-            await store.forceRefresh()
-        }
     }
+
+    /// Scroll anchor of the deck: the « À pointer » tile brings it to the top of the frame.
+    static let uncheckedDeckId = "uncheckedDeck"
 
     private var dashboardDetails: some View {
         // Wider than the gap inside a section: a section is now a heading on the page
@@ -278,7 +298,7 @@ struct CurrentMonthView: View {
                     },
                     onViewAll: { navigateToBudget = true }
                 )
-                .popoverTip(ProductTips.checking)
+                .id(Self.uncheckedDeckId)
                 .staggeredEntrance(isVisible: hasAppeared, index: 1)
             }
 
@@ -336,15 +356,15 @@ struct CurrentMonthView: View {
 // type-length budget while still reaching the view's `private` state (same-file
 // access), rather than loosening encapsulation to move it to another file.
 extension CurrentMonthView {
-    /// Failed and empty keep a flat canvas. Loaded and skeleton paint the mint through
-    /// `HomeHeroSurfaceBackground`, which is the only reader of `tracker.height`.
-    @ViewBuilder
-    fileprivate var dashboardBackground: some View {
+    /// Failed and empty keep a flat canvas; loaded and skeleton paint the forest through
+    /// `heroZone()`, so the navigation bar ink follows the same switch.
+    /// Crossfade only: `blurReplace` washed the forest to a pale haze for a frame.
+    fileprivate var loadedTransition: AnyTransition { .opacity }
+
+    fileprivate var paintsHeroSurface: Bool {
         switch store.contentState {
-        case .idle, .loading, .loaded:
-            HomeHeroSurfaceBackground(tracker: heroSurfaceTracker)
-        case .failed, .empty:
-            Color.appBackground
+        case .idle, .loading, .loaded: true
+        case .failed, .empty: false
         }
     }
 

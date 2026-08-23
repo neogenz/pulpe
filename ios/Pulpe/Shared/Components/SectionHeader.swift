@@ -8,6 +8,8 @@ import SwiftUI
 /// reads as a link because that is what it is.
 struct SectionHeader: View {
     let title: String
+    /// Optional item count after the title (« Revenus · 3 »).
+    var count: Int?
     /// Optional figure under the title — a window total, an overrun. Always an amount,
     /// so the header can treat every one of them the same way.
     var amountSubtitle: String?
@@ -45,9 +47,17 @@ struct SectionHeader: View {
 
     private var titleBlock: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-            Text(title)
-                .font(PulpeTypography.sectionTitle)
-                .foregroundStyle(Color.textPrimary)
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xxs) {
+                Text(title)
+                    .font(PulpeTypography.sectionTitle)
+                    .foregroundStyle(Color.textPrimary)
+                if let count {
+                    Text(" · \(count)")
+                        .font(PulpeTypography.subheadline)
+                        .foregroundStyle(Color.textSecondary)
+                        .monospacedDigit()
+                }
+            }
 
             if let amountSubtitle {
                 Text(amountSubtitle)

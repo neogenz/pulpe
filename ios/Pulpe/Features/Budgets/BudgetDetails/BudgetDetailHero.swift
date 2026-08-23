@@ -1,61 +1,33 @@
 import SwiftUI
 
-/// Hero balance block — flat layout on the page neutral background per DM2.1.b.c5.
+/// Budget detail hero on the shared `HeroZone` family (The One Hero Rule).
 ///
-/// Layout (refonte mai 2026):
-/// - Eyebrow: "DISPONIBLE · CHF" (or "DÉFICIT · CHF" if deficit)
-/// - Hero amount: Manrope ExtraBold, `Color.textPrimary`
-/// - Rollover disclosure (when non-zero): ties the reported balance to the amount above
-/// - Inline progress bar (green) + percent flush right
-/// - Horizontal scroll of pills: Revenus · Dépenses · dont Épargne
-///
-/// No surface, no border, no shadow, no gradient. Sits flush on `Color.appBackground`.
-/// Used **only** in `BudgetDetailsView`. The dashboard + previous-budget sheet keep
-/// the classic gradient `HeroBalanceCard`.
+/// Figure: what is left to spend, to the cent (Two-Decimals rule). Three tiles: income,
+/// outflows, savings. A progress bar of the month's consumption, then the verdict sentence.
+/// The surface never carries the state; the verdict and its accent do.
 struct BudgetDetailHero: View {
     let metrics: BudgetFormulas.Metrics
     var timeElapsedPercentage: Double = 0
     var onTapProgress: (() -> Void)?
     var rolloverAmount: Decimal?
-    /// Localized month name of the source budget (e.g. "mars"). Drives the rollover pill label.
+    /// Localized month name of the source budget (e.g. "mars"). Drives the rollover label.
     var previousBudgetMonth: String?
     var onRolloverTap: (() -> Void)?
-
-    // MARK: - Environment
 
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var tapTrigger = false
 
-    // MARK: - Computed Properties
+    // MARK: - Derived
 
-    private var contextLabel: String {
-        let symbol = userSettingsStore.currency.symbol
-        return metrics.isDeficit
-            ? AppLocale.string("Déficit · \(symbol)")
-            : AppLocale.string("Disponible · \(symbol)")
-    }
+    private var currency: SupportedCurrency { userSettingsStore.currency }
 
-    /// VoiceOver-only label — no embedded currency symbol so it isn't doubled with the formatted amount.
-    private var contextLabelForVoiceOver: String {
-        metrics.isDeficit ? AppLocale.string("Déficit") : AppLocale.string("Disponible")
+    private var eyebrow: String {
+        metrics.isDeficit ? AppLocale.string("Déficit") : AppLocale.string("Disponible à dépenser")
     }
 
     private var fillPercentage: Double {
         min(max(metrics.usagePercentage / 100, 0), 1)
-    }
-
-    private var formattedBalance: String {
-        let amount = abs(metrics.remaining).asAdaptiveAmount(for: userSettingsStore.currency)
-        let sign: String
-        if metrics.remaining > 0 {
-            sign = "+"
-        } else if metrics.isDeficit {
-            sign = "-"
-        } else {
-            sign = ""
-        }
-        return "\(sign)\(amount)"
     }
 
     private var usagePercentageText: String {
@@ -63,8 +35,7 @@ struct BudgetDetailHero: View {
     }
 
     /// Gate on the value rounded to the 2-decimal display precision, not `!= 0`: a
-    /// sub-cent residual rollover would otherwise render "+0.00 CHF" — a disclosure
-    /// claiming an amount it then shows as zero.
+    /// sub-cent residual rollover would otherwise render "+0.00 CHF".
     private var hasRollover: Bool {
         guard let rolloverAmount else { return false }
         return rolloverAmount.rounded(2) != 0
@@ -77,13 +48,14 @@ struct BudgetDetailHero: View {
         return AppLocale.string("Report du mois précédent inclus")
     }
 
+    private var verdict: BudgetDetailVerdict { BudgetDetailVerdict(metrics: metrics) }
+
     private var accessibilityDescription: String {
         if amountsHidden {
-            return AppLocale.string("\(contextLabelForVoiceOver) — montant masqué")
+            return AppLocale.string("\(eyebrow) — montant masqué")
         }
-        let currency = userSettingsStore.currency
         var desc = AppLocale.string("""
-        \(contextLabelForVoiceOver) \(abs(metrics.remaining).asAdaptiveCurrency(currency)). \
+        \(eyebrow) \(abs(metrics.remaining).asCurrency(currency)). \
         \(Int(metrics.usagePercentage))% utilisé. \
         Revenus \(metrics.totalIncome.asCurrency(currency)). \
         Dépenses \(metrics.totalExpenses.asCurrency(currency)), \
@@ -91,7 +63,7 @@ struct BudgetDetailHero: View {
         """)
         if hasRollover, let rolloverAmount {
             let roundedAmount = rolloverAmount.rounded(2)
-            let formatted = abs(roundedAmount).asAdaptiveCurrency(currency)
+            let formatted = abs(roundedAmount).asCurrency(currency)
             desc += ". " + (roundedAmount >= 0
                 ? AppLocale.string("Excédent reporté de \(formatted)")
                 : AppLocale.string("Déficit reporté de \(formatted)"))
@@ -108,12 +80,12 @@ struct BudgetDetailHero: View {
                     tapTrigger.toggle()
                     onTapProgress()
                 } label: {
-                    cardContent
+                    heroContent
                 }
                 .buttonStyle(.plain)
                 .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
             } else {
-                cardContent
+                heroContent
             }
         }
         .accessibilityElement(children: .ignore)
@@ -124,102 +96,74 @@ struct BudgetDetailHero: View {
         }
     }
 
-    // MARK: - Card Content
+    private var heroContent: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            HeroFigure(
+                eyebrow: eyebrow,
+                amount: metrics.remaining,
+                currency: currency,
+                alignment: .leading,
+                accessibilityIdentifier: "budgetDetailHeroAmount"
+            )
 
-    private var cardContent: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
-            // Chunk 1 — Contextual eyebrow
-            Text(contextLabel)
-                .font(PulpeTypography.labelLargeBold)
-                .textCase(.uppercase)
-                .tracking(DesignTokens.Tracking.uppercase)
-                .foregroundStyle(Color.textSecondary)
-
-            // Chunk 2 — Hero amount (black on neutral) — tight 6pt gap to eyebrow
-            Text(formattedBalance)
-                .font(PulpeTypography.displayYear)
-                .tracking(DesignTokens.Tracking.display)
-                .minimumScaleFactor(0.5)
-                .lineLimit(1)
-                .monospacedDigit()
-                .foregroundStyle(Color.textPrimary)
-                .contentTransition(.numericText())
-                .sensitiveAmount()
-                .padding(.top, DesignTokens.Spacing.tightGap)
-
-            // Chunk 2.5 — Rollover disclosure: the amount above already bakes it in.
             if hasRollover, let rolloverAmount {
                 rolloverDisclosure(amount: rolloverAmount)
-                    .padding(.top, DesignTokens.Spacing.xs)
             }
 
-            // Chunk 3 — Inline progress + percent
-            progressRow
-                .padding(.top, DesignTokens.Spacing.md)
+            HeroMetricTileRow {
+                HeroMetricTile(
+                    icon: "arrow.down.circle",
+                    label: AppLocale.string("Revenus"),
+                    value: metrics.totalIncome.asAmount(for: currency)
+                )
+                HeroMetricTile(
+                    icon: "arrow.up.circle",
+                    label: AppLocale.string("Dépenses"),
+                    value: metrics.totalExpenses.asAmount(for: currency)
+                )
+                HeroMetricTile(
+                    icon: "target",
+                    label: AppLocale.string("Épargne"),
+                    value: metrics.totalSavings.asAmount(for: currency)
+                )
+            }
 
-            // Chunk 4 — Pills row (Revenus · Épargne · Dépenses)
-            pillsRow
-                .padding(.top, DesignTokens.Spacing.md)
+            progressRow
+
+            HeroVerdictRow(sentence: verdict.sentence, accent: verdict.accent)
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.sm)
+        .padding(.bottom, DesignTokens.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Progress + Inline Percent
+    // MARK: - Progress
 
     private var progressRow: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
-            progressBar
+            ZStack(alignment: .leading) {
+                // A progress track, not a chip: `.rect(cornerRadius:)` keeps the pill shape
+                // without tripping the ad-hoc chip lint.
+                Rectangle()
+                    .fill(Color.heroInk.opacity(DesignTokens.Opacity.heroTile))
+                    .clipShape(.rect(cornerRadius: DesignTokens.ProgressBar.heroHeight / 2))
+                ProgressBarShape(progress: fillPercentage)
+                    .fill(Color.heroInkSecondary)
+                    .animation(DesignTokens.Animation.smoothEaseInOut, value: fillPercentage)
+            }
+            .frame(height: DesignTokens.ProgressBar.heroHeight)
 
             Text(usagePercentageText)
                 .font(PulpeTypography.progressValue)
-                .foregroundStyle(Color.financialSavings)
+                .foregroundStyle(Color.heroInkSecondary)
                 .monospacedDigit()
                 .accessibilityHidden(true)
         }
     }
 
-    // MARK: - Progress Bar
-
-    private var progressBar: some View {
-        ZStack(alignment: .leading) {
-            Capsule()
-                .fill(Color.progressTrack)
-
-            ProgressBarShape(progress: fillPercentage)
-                .fill(Color.financialSavings)
-                .animation(DesignTokens.Animation.smoothEaseInOut, value: fillPercentage)
-        }
-        .frame(height: DesignTokens.ProgressBar.heroHeight)
-    }
-
-    // MARK: - Pills Row
-
-    private var pillsRow: some View {
-        // Only this horizontal rail goes full-bleed. The surrounding hero chunks
-        // keep their lg horizontal padding; the negative outer padding cancels
-        // it so the scroll viewport spans the whole card width, and the inner
-        // contentMargins re-adds it so the first pill aligns with the chunks.
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DesignTokens.Spacing.tightGap) {
-                incomePill
-                expensesPill
-                savingsPill
-            }
-        }
-        .contentMargins(.horizontal, DesignTokens.Spacing.lg, for: .scrollContent)
-        .scrollClipDisabled()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, -DesignTokens.Spacing.lg)
-    }
-
     // MARK: - Rollover Disclosure
 
-    /// Ties the rollover to the hero amount it is baked into — sits directly under the
-    /// number, not in the pill rail where it read as just another metric. Tappable
-    /// through to the source budget when there is one.
     @ViewBuilder
     private func rolloverDisclosure(amount: Decimal) -> some View {
         if let onRolloverTap {
@@ -236,91 +180,43 @@ struct BudgetDetailHero: View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Image(systemName: "arrow.clockwise")
                 .font(PulpeTypography.metricMini)
-                .foregroundStyle(Color.textTertiary)
 
             Text(rolloverDisclosureLabel)
                 .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.textTertiary)
 
             let roundedAmount = amount.rounded(2)
-            Text("\(roundedAmount > 0 ? "+" : "")\(roundedAmount.asAdaptiveCurrency(userSettingsStore.currency))")
+            Text("\(roundedAmount > 0 ? "+" : "")\(roundedAmount.asAdaptiveCurrency(currency))")
                 .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.heroInk)
                 .monospacedDigit()
                 .sensitiveAmount()
 
             if onRolloverTap != nil {
                 Image(systemName: "chevron.right")
                     .font(PulpeTypography.metricMini)
-                    .foregroundStyle(Color.textTertiary)
             }
         }
+        .foregroundStyle(Color.heroInkSecondary)
     }
+}
 
-    // MARK: - Income / Savings / Expenses Pills
+/// The sentence and accent the budget-detail hero spends on its verdict. Derived from the
+/// metrics' emotion state, since a closed budget has no plan to compare an estimate against.
+struct BudgetDetailVerdict: Equatable {
+    let sentence: String
+    let accent: Color
 
-    private var incomePill: some View {
-        tintedPill(
-            amount: metrics.totalIncome,
-            label: AppLocale.string("revenus"),
-            tint: .financialIncome
-        )
-    }
-
-    /// Every outflow, savings included — this is the figure the hero amount
-    /// subtracts from `revenus`, so it sits next to it.
-    private var expensesPill: some View {
-        tintedPill(
-            amount: metrics.totalExpenses,
-            label: AppLocale.string("dépenses"),
-            tint: .financialExpense
-        )
-    }
-
-    /// Prefixed "dont" because the metrics calculator adds a saving line to
-    /// *both* totals (`case .saving`). Without the word the three pills read as
-    /// disjoint buckets and the arithmetic looks broken.
-    private var savingsPill: some View {
-        tintedPill(
-            prefix: AppLocale.string("dont"),
-            amount: metrics.totalSavings,
-            label: AppLocale.string("épargne"),
-            tint: .financialSavings
-        )
-    }
-
-    /// Pale-tinted pill with colored ink text — pale category-tint background,
-    /// dark category text. Matches DM2.1.b.c5 maquette (incomeSoft/incomeInk pattern).
-    /// No leading icon: the label word already names the kind and the tint already
-    /// encodes it, so the glyph only ate rail width the third pill needed.
-    private func tintedPill(
-        prefix: String? = nil,
-        amount: Decimal,
-        label: String,
-        tint: Color
-    ) -> some View {
-        HStack(spacing: DesignTokens.Spacing.xs) {
-            if let prefix {
-                Text(prefix)
-                    .font(PulpeTypography.metricLabelBold)
-                    .foregroundStyle(tint)
-            }
-
-            Text(amount.asAmount(for: userSettingsStore.currency))
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(tint)
-                .monospacedDigit()
-                .sensitiveAmount()
-
-            Text(label)
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(tint)
-        }
-        .padding(.horizontal, DesignTokens.Spacing.md)
-        .padding(.vertical, DesignTokens.Spacing.tightGap)
-        .background {
-            Capsule()
-                .fill(tint.opacity(DesignTokens.Opacity.accent))
+    init(metrics: BudgetFormulas.Metrics) {
+        switch metrics.emotionState {
+        case .comfortable:
+            sentence = AppLocale.string("Tu es large ce mois-ci.")
+            accent = .heroAccentPositive
+        case .tight:
+            sentence = AppLocale.string("Ce mois est un peu juste.")
+            accent = .heroAccentCaution
+        case .deficit:
+            sentence = AppLocale.string("Tu dépenses plus que tu ne gagnes ce mois-ci.")
+            accent = .heroAccentDeficit
         }
     }
 }

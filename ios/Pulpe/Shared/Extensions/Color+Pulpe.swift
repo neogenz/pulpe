@@ -27,40 +27,6 @@ extension Color {
         }
     }
 
-    // MARK: - Hero Card Gradient Colors (4-stop, ~128° linear)
-    // Designed in oklch for perceptual uniformity, converted to hex for SwiftUI.
-    // Gradient direction: dark → bright for depth and punch.
-
-    /// Emerald Bright — oklch(0.45-0.75, C 0.16-0.22, H 147)
-    static let heroGradientComfortable: [Color] = [
-        Color(light: Color(hex: 0x006B1E), dark: Color(hex: 0x003D10)),
-        Color(light: Color(hex: 0x008C30), dark: Color(hex: 0x005C20)),
-        Color(light: Color(hex: 0x14AD45), dark: Color(hex: 0x007C32)),
-        Color(light: Color(hex: 0x38D062), dark: Color(hex: 0x109E48))
-    ]
-
-    /// Tangerine — oklch(0.48-0.80, C 0.15-0.18, H 65-70)
-    static let heroGradientTight: [Color] = [
-        Color(light: Color(hex: 0x8C4400), dark: Color(hex: 0x4C2400)),
-        Color(light: Color(hex: 0xB86200), dark: Color(hex: 0x6E3A00)),
-        Color(light: Color(hex: 0xD88010), dark: Color(hex: 0x925208)),
-        Color(light: Color(hex: 0xF49E28), dark: Color(hex: 0xB86C14))
-    ]
-
-    /// Sunset Coral — oklch(0.48-0.78, C 0.16, H 35-40)
-    /// `DESIGN.md` Anxiety Red Rule: red is contextual, never punitive.
-    static let heroGradientDeficit: [Color] = [
-        Color(light: Color(hex: 0x9C3418), dark: Color(hex: 0x561C0C)),
-        Color(light: Color(hex: 0xC45028), dark: Color(hex: 0x7C3418)),
-        Color(light: Color(hex: 0xE06C38), dark: Color(hex: 0xA04C28)),
-        Color(light: Color(hex: 0xF48A4C), dark: Color(hex: 0xC46438))
-    ]
-
-    /// Glass tint for hero card overlay elements — mid-tone of each gradient.
-    static let heroTintComfortable = Color(hex: 0x14AD45)
-    static let heroTintTight = Color(hex: 0xD88010)
-    static let heroTintDeficit = Color(hex: 0xC45028)
-
     // MARK: - Brand Colors
 
     /// Primary brand color - Dark green (#006E25 light, #7EDB83 dark)
@@ -312,20 +278,6 @@ extension Color {
     static let stepTransport = Color(light: Color(hex: 0xEF6C00), dark: Color(hex: 0xFFA726))
     static let stepCredit = Color(light: Color(hex: 0x37474F), dark: Color(hex: 0x78909C))
 
-    /// Onboarding accent gradient — brighter dark mode for visibility on deep backgrounds.
-    /// Both stops sit under `Color.textOnPrimary` at the CTA's two call sites
-    /// (`PrimaryButtonStyle`, `OnboardingStepView`'s `ctaBackground`), white in light mode
-    /// and near-black in dark mode — each bound below is the one closer to its ink, so it's
-    /// the one that gates the pair's contrast against WCAG's 4.5:1 floor:
-    /// - Light trailing (`0x00842C`) vs white ink: 4.84:1.
-    /// - Dark leading (`0x409B43`) vs dark ink: 4.93:1.
-    static let onboardingGradient = LinearGradient(
-        colors: [Color(light: Color(hex: 0x006E25), dark: Color(hex: 0x409B43)),
-                 Color(light: Color(hex: 0x00842C), dark: Color(hex: 0x56C45A))],
-        startPoint: .leading,
-        endPoint: .trailing
-    )
-
     // MARK: - PIN Screen Colors (adaptive light/dark)
 
     /// PIN background gradient stops — aligned with onboarding loginGradientStops
@@ -388,26 +340,12 @@ extension Color {
     /// Deficit (Sunset Coral): warm peach → neutral warm
     static let dashboardGradientDeficit = Color(light: Color(hex: 0xFADCD0), dark: Color(hex: 0x201008))
 
-    // MARK: - Home Dashboard (Tour 11 — sage canvas + mint hero card)
+    // MARK: - Home Dashboard
 
-    // The home canvas is `appBackground`, like every other screen. It had its own
-    // near-white tone while the ledger was flat and had nothing to lift off the page;
-    // with the rows back on cards, a canvas a hair off white is a canvas with no cards.
-    /// Mint hero card surface — identical across emotion states.
-    static let homeHeroSurface = Color(light: Color(hex: 0xCFE8D6), dark: Color(hex: 0x1D3A28))
-    /// Top stop of the mint hero card's material gradient — a hair lighter than the base
-    /// so the surface catches light from above. State-independent; the brand stays calm.
-    static let homeHeroSurfaceTop = Color(light: Color(hex: 0xDCEFE2), dark: Color(hex: 0x244A34))
-    /// Deep-green ink for primary text and progress fill on the mint hero card.
-    static let homeHeroInk = Color(light: Color(hex: 0x0E3A1C), dark: Color(hex: 0xD5ECDC))
-    /// Supporting text on the mint hero card.
-    static let homeHeroSupport = Color(light: Color(hex: 0x2C5136), dark: Color(hex: 0x9FC3AA))
-    /// Solid overlay surface on the mint hero card (state chip fill + progress track).
-    static let homeHeroOverlay = Color(light: Color(hex: 0xF3F9F5), dark: Color(hex: 0x2C4A37))
     /// Envelope drift accent — overrun amounts + overflow bar segments on the home dashboard only.
-    /// Light value set against the mint hero surface, where it must clear 4.5:1.
+    /// Light value set against a card surface, where it must clear 4.5:1.
     static let driftAccent = Color(light: Color(hex: 0xAA4522), dark: Color(hex: 0xE8825A))
-    /// Cast by the mint hero surface onto the content zone below it. In light mode the two
+    /// Cast by the hero surface onto the content zone below it. In light mode the two
     /// zones are close in value and would otherwise read as one flat plane, so the drop is
     /// the whole depth cue; in dark mode the tonal jump already carries it and a black
     /// shadow on a near-black canvas only muddies the edge.
@@ -415,6 +353,29 @@ extension Color {
         light: .black.opacity(DesignTokens.Opacity.glow),
         dark: .clear
     )
+
+    // MARK: - Hero Zone (ios/DESIGN.md §2 — constant brand-forest surface, never state-tinted)
+    // Financial state lives in the verdict, a chip and the chart accent, never in the
+    // surface color. Ratios measured in `HeroContrastTests`.
+
+    /// Hero surface — forest `#0E3A1C` light, `#0B2E16` dark. 11.4:1 against `appBackground`.
+    static let heroSurface = Color(light: Color(hex: 0x0E3A1C), dark: Color(hex: 0x0B2E16))
+    /// Top stop of the hero's two-stop gradient, a hair lighter than the base. The only depth.
+    static let heroSurfaceTop = Color(light: Color(hex: 0x14512A), dark: Color(hex: 0x0E3A1C))
+    /// Primary ink on the hero: 12.8:1 on `heroSurface`.
+    static let heroInk = Color(light: .white, dark: Color(hex: 0xF3F9F5))
+    /// Secondary ink on the hero (eyebrows, tile labels, chart series): mint, 9.9:1.
+    static let heroInkSecondary = Color(hex: 0xCFE8D6)
+    /// Translucent tile fill on the hero — a tint, never a solid border.
+    static var heroTile: Color { heroInk.opacity(DesignTokens.Opacity.heroTile) }
+    /// Disc behind a toolbar glyph or avatar on the forest (`HeroToolbarButtonStyle`).
+    static var heroDisc: Color { heroInk.opacity(DesignTokens.Opacity.heroDisc) }
+    /// State accents on the forest — the existing dark-mode palette, AA on `heroSurface`.
+    /// Positive 7.5:1, caution 5.9:1, deficit 5.2:1, info 4.9:1. Identical in both schemes.
+    static let heroAccentPositive = Color(hex: 0x7EDB83)
+    static let heroAccentCaution = Color(hex: 0xE5A33A)
+    static let heroAccentDeficit = Color(hex: 0xF08A6A)
+    static let heroAccentInfo = Color(hex: 0x5AA8E0)
 
     // MARK: - Row Card
 

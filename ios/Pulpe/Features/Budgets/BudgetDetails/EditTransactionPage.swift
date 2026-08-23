@@ -21,20 +21,20 @@ struct EditTransactionPage: View {
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
-    @State private var name = ""
-    @State private var amount: Decimal?
+    @State var name = ""
+    @State var amount: Decimal?
     @State private var amountText = ""
-    @State private var kind: TransactionKind = .expense
+    @State var kind: TransactionKind = .expense
     @State private var transactionDate: Date = .now
     @State private var error: Error?
-    @State private var isLoading = false
+    @State var isLoading = false
     @State private var submitSuccessTrigger = false
     @State private var didAutofocus = false
     @State private var showDeleteConfirmation = false
     @State private var pendingPostpone: PostponeTarget?
     @State private var selectedTagIds: Set<String> = []
     @State private var initialTagIds: Set<String> = []
-    @FocusState private var focusedField: AmountDescriptionField?
+    @FocusState var focusedField: AmountDescriptionField?
 
     private let conversionService = CurrencyConversionService.shared
 
@@ -194,10 +194,16 @@ struct EditTransactionPage: View {
                 exchangeRate: tx.exchangeRate
             )
 
-            descriptionField
+            // Three blocks: the amount above, what it is, then the details.
+            FormCard {
+                descriptionField
+                FormRowDivider()
+                TagPickerField(selection: $selectedTagIds, style: .row)
+            }
 
-            TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency)
-            TagPickerField(selection: $selectedTagIds)
+            FormCard {
+                TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency, style: .row)
+            }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -207,32 +213,6 @@ struct EditTransactionPage: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.top, DesignTokens.Spacing.lg)
-    }
-
-    private var descriptionField: some View {
-        FormTextField(
-            hint: kind.descriptionPlaceholder,
-            text: $name,
-            label: AppLocale.string("Description"),
-            focusBinding: $focusedField,
-            field: .description
-        )
-    }
-
-    @ViewBuilder
-    private func saveButton(for tx: Transaction) -> some View {
-        let canSubmit = EditTransactionLogic.isFormValid(
-            name: name,
-            amount: amount,
-            isLoading: isLoading
-        )
-        Button {
-            Task { await save(for: tx) }
-        } label: {
-            Text("Enregistrer")
-        }
-        .disabled(!canSubmit)
-        .primaryButtonStyle(isEnabled: canSubmit)
     }
 
     @ViewBuilder
@@ -302,7 +282,7 @@ struct EditTransactionPage: View {
         amountText = Formatters.amountInput(for: inputCurrency).string(from: editable as NSDecimalNumber) ?? ""
     }
 
-    private func save(for tx: Transaction) async {
+    func save(for tx: Transaction) async {
         guard let amount else { return }
 
         isLoading = true

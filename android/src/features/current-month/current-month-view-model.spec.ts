@@ -63,7 +63,7 @@ function viewModelOf(
   payDayOfMonth: number | null = null,
 ) {
   return buildCurrentMonthViewModel(
-    { budget: budget(overrides), budgetLines, transactions },
+    { budget: budget(overrides), budgetLines, transactions, history: null },
     { now: AUGUST_11, payDayOfMonth },
   );
 }

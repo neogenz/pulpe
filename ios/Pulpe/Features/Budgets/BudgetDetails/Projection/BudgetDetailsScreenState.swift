@@ -161,6 +161,17 @@ struct BudgetDetailsScreenState: Equatable {
         let previousBudgetMonth: String?
     }
 
+    /// The one disc the checking tip's arrow lands on: the first line still to point,
+    /// in display order. One anchor per tip, or TipKit pops a popover on every row.
+    var checkingTipLineId: String? { Self.checkingTipLineId(in: sections) }
+
+    static func checkingTipLineId(in sections: [Section]) -> String? {
+        sections.lazy
+            .flatMap(\.items)
+            .first { !$0.line.isChecked && !$0.line.isVirtualRollover && !$0.line.isPlannedSavingsWithdrawal }?
+            .line.id
+    }
+
     struct Section: Identifiable, Equatable {
         let kind: TransactionKind
         let items: [LineItem]

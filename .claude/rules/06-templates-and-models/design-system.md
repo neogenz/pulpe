@@ -184,7 +184,7 @@ Content zone background = neutral warm, never green-tinted. Generate the Materia
 
 Screen split in two zones (see `DESIGN.md` §2, **The Two-Zone Rule**):
 
-- **Emotion zone** (hero, header ~30-35% top): colored background matching financial state
+- **Emotion zone** (hero, top): deep constant brand surface; financial state lives in the verdict, a chip and the accent, never in the surface color
 - **Content zone** (lists, cards, forms): neutral warm background, never green-tinted
 - Zone transition: soft gradient (40-60px), not hard cut
 - Green = accents and actions only. Does NOT color neutral surfaces.

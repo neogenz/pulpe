@@ -113,34 +113,15 @@ struct ActivityCard: View {
 
     // MARK: - Window Picker
 
-    /// Two `PulpeChip`s, on the model of `BudgetTypeFilter.typePill`: this is a selector,
-    /// not the filter pastille `SegmentedPicker` renders, and it sat as the biggest solid
-    /// green below the fold — the same ink as the CTA, for a state instead of the action
-    /// the product depends on.
+    /// A 1-of-N choice, so the app's single segmented control (The Three Families Rule).
     private var windowPicker: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ForEach(Window.allCases, id: \.self) { option in
-                windowChip(option)
-            }
+        SegmentedPicker(
+            selection: $window.animation(.snappy(duration: DesignTokens.Animation.fast)),
+            title: nil
+        ) { option in
+            Text(option.label)
         }
-        .sensoryFeedback(.selection, trigger: window)
-        .accessibilityElement(children: .contain)
         .accessibilityLabel("Période d'activité")
-    }
-
-    @ViewBuilder
-    private func windowChip(_ option: Window) -> some View {
-        let isSelected = window == option
-
-        Button {
-            withAnimation(.snappy(duration: DesignTokens.Animation.fast)) {
-                window = option
-            }
-        } label: {
-            PulpeChip(label: option.label, style: isSelected ? .solid : .outlined)
-        }
-        .plainPressedButtonStyle()
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     // MARK: - Day group

@@ -27,23 +27,11 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         switch self {
         case .welcome: AppLocale.string("Bienvenue")
         case .firstName: AppLocale.string("Comment tu t'appelles ?")
-        case .income: AppLocale.string("Tes revenus")
-        case .charges: AppLocale.string("Tes dépenses")
-        case .savings: AppLocale.string("Ton épargne")
+        case .income: AppLocale.string("Combien gagnes-tu par mois ?")
+        case .charges: AppLocale.string("Quelles sont tes charges fixes ?")
+        case .savings: AppLocale.string("Combien mets-tu de côté ?")
         case .budgetPreview: AppLocale.string("Ton budget")
         case .registration: AppLocale.string("Crée ton compte")
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .welcome: AppLocale.string("Reprends le contrôle de tes finances")
-        case .firstName: AppLocale.string("Juste ton prénom")
-        case .income: AppLocale.string("Ce qui tombe sur ton compte chaque mois")
-        case .charges: AppLocale.string("Renseigne ce que tu connais — le reste peut attendre")
-        case .savings: AppLocale.string("Ce que tu mets de côté chaque mois")
-        case .budgetPreview: AppLocale.string("Voici ce que ça donne")
-        case .registration: AppLocale.string("Pour retrouver tout ça sur tous tes appareils")
         }
     }
 
@@ -63,29 +51,5 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
     /// Titles for budget preview stay centered; form steps use leading alignment (Practical UI / lean forms).
     var onboardingHeaderIsCentered: Bool {
         self == .budgetPreview
-    }
-
-    var iconName: String {
-        switch self {
-        case .welcome: "sparkles"
-        case .firstName: "person.circle.fill"
-        case .income: "arrow.down.circle.fill"
-        case .charges: "house.fill"
-        case .savings: "building.columns"
-        case .budgetPreview: "chart.pie.fill"
-        case .registration: "checkmark.seal.fill"
-        }
-    }
-
-    var iconColor: Color {
-        switch self {
-        case .welcome: .pulpePrimary
-        case .firstName: .pulpePrimary
-        case .income: .financialIncome
-        case .charges: .stepHousing
-        case .savings: .financialSavings
-        case .budgetPreview: .pulpePrimary
-        case .registration: .pulpePrimary
-        }
     }
 }

@@ -36,6 +36,13 @@ struct AddTransactionSheet: View {
         }
     }
 
+    /// What the details card starts with when nothing is touched: the fact is dated
+    /// today and has already left the account. Explicit so the defaults are tested.
+    enum Defaults {
+        static let isChecked = true
+        static func transactionDate(now: Date = Date()) -> Date { now }
+    }
+
     let budgetId: String
     let onAdd: (Transaction) -> Void
 
@@ -46,8 +53,8 @@ struct AddTransactionSheet: View {
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
-    @State private var transactionDate = Date()
-    @State private var isChecked = true
+    @State private var transactionDate = Defaults.transactionDate()
+    @State private var isChecked = Defaults.isChecked
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var focusedField: AmountDescriptionField?
@@ -117,11 +124,6 @@ struct AddTransactionSheet: View {
             focus: $focusedField,
             focusOrder: [.amount, .description]
         ) {
-            // The one line that separates this screen from « Prévoir » : here a
-            // dated fact, there an intention. Left at the bottom it arrived
-            // after the question it answers had already been settled.
-            dateSelector
-
             KindToggle(selection: $kind)
             if userSettingsStore.showCurrencySelector {
                 CurrencyAmountPicker(selectedCurrency: $inputCurrency)
@@ -144,15 +146,21 @@ struct AddTransactionSheet: View {
                 currency: inputCurrency
             )
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
-            descriptionField
-            TagPickerField(selection: $selectedTagIds)
-            savingsGoalOriginSection
 
-            // Pointing answers a different question than the rest of the form —
-            // not what is being noted, but whether the money has already left
-            // the account — so it sits with the actions rather than inside the
-            // block that describes the movement.
-            CheckedToggle(isOn: $isChecked, tintColor: kind.color)
+            // Three blocks: the amount above, what it is, then the details.
+            FormCard {
+                descriptionField
+                FormRowDivider()
+                TagPickerField(selection: $selectedTagIds, style: .row)
+            }
+
+            // The date is a detail, today by default.
+            FormCard {
+                TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency, style: .row)
+                FormRowDivider()
+                CheckedToggle(isOn: $isChecked, tintColor: kind.color, style: .row)
+                savingsGoalOriginSection
+            }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -185,7 +193,12 @@ struct AddTransactionSheet: View {
             text: $name,
             label: AppLocale.string("Description"),
             focusBinding: $focusedField,
-            field: .description
+            field: .description,
+            style: .row,
+            onSubmit: {
+                guard canSubmit else { return }
+                Task { await addTransaction() }
+            }
         )
     }
 
@@ -194,10 +207,12 @@ struct AddTransactionSheet: View {
     @ViewBuilder
     private var savingsGoalOriginSection: some View {
         if savingsGoalOrigin.isOffered {
+            FormRowDivider()
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 Toggle("Ce revenu vient d'un objectif d'épargne", isOn: $isFromSavingsGoal)
                     .font(PulpeTypography.body)
                     .tint(kind.color)
+                    .frame(minHeight: DesignTokens.ListRow.minHeight)
 
                 if isFromSavingsGoal {
                     Text("Le montant sera retiré de l'objectif choisi.")
@@ -209,18 +224,14 @@ struct AddTransactionSheet: View {
                         mode: .withdrawal,
                         withdrawalAmount: convertedAmount,
                         withdrawalRefreshToken: withdrawalRefreshToken,
-                        onWithdrawalReadinessChange: { isWithdrawalReady = $0 }
+                        onWithdrawalReadinessChange: { isWithdrawalReady = $0 },
+                        style: .row
                     )
                 }
             }
+            .padding(.bottom, isFromSavingsGoal ? DesignTokens.Spacing.lg : 0)
             .animation(DesignTokens.Animation.smoothEaseInOut, value: isFromSavingsGoal)
         }
-    }
-
-    // MARK: - Date Selector
-
-    private var dateSelector: some View {
-        TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency)
     }
 
     // MARK: - Add Button

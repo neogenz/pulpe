@@ -37,6 +37,7 @@ function detailsMock(): BudgetDetailsResponse {
       },
       transactions: [],
       budgetLines: [salaire],
+      history: null,
     },
   };
 }

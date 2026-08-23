@@ -412,6 +412,7 @@ function readyDetails(): BudgetDetailsResponse["data"] {
       }),
     ],
     transactions: [transaction()],
+    history: null,
   };
 }
 

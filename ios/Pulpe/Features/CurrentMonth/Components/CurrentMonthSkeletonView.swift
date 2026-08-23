@@ -3,10 +3,6 @@ import SwiftUI
 /// Loading state for the dashboard. Its regions deliberately follow the loaded
 /// screen so the transition keeps the same visual anchors.
 struct CurrentMonthSkeletonView: View {
-    /// Reports the hero zone's bottom edge in screen space so the dashboard mint
-    /// tracker can stop the surface at the same place while loading as once loaded.
-    var onHeroSurfaceBottomChange: (CGFloat) -> Void = { _ in }
-
     var body: some View {
         ScrollView {
             VStack(spacing: DesignTokens.Spacing.none) {
@@ -18,8 +14,9 @@ struct CurrentMonthSkeletonView: View {
                     activityCardSkeleton
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
-                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.top, DesignTokens.Spacing.xxl)
                 .padding(.bottom, DesignTokens.Spacing.lg)
+                .contentZone()
             }
         }
         .shimmering()
@@ -31,12 +28,12 @@ struct CurrentMonthSkeletonView: View {
     /// already on screen while this loads.
     private var heroZone: some View {
         CurrentMonthHeroSkeleton()
+        // Placeholders on the forest: the canvas tint would vanish into it.
+        .environment(\.skeletonTint, Color.heroTile)
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.xxl)
-        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
-            onHeroSurfaceBottomChange($0)
-        }
+        .heroZone(parallax: true)
     }
 
     /// The filled CTA, at its own height: a card-shaped placeholder would hand the slot
@@ -152,46 +149,44 @@ struct CurrentMonthSkeletonView: View {
 }
 
 private struct CurrentMonthHeroSkeleton: View {
+    @Environment(\.skeletonTint) private var skeletonTint
+
+    /// Same slots, same order and heights as the loaded hero: eyebrow and figure on the
+    /// leading rail, the full-bleed chart, two tiles, the sentence.
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            VStack(spacing: DesignTokens.Spacing.xs) {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth,
-                    height: DesignTokens.Spacing.sectionGap
-                )
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 SkeletonShape(
                     width: DesignTokens.Skeleton.greetingWidth / 2,
                     height: DesignTokens.Spacing.md
                 )
-            }
-
-            HStack {
                 SkeletonShape(
                     width: DesignTokens.Skeleton.greetingWidth,
-                    height: DesignTokens.Skeleton.lineHeight
-                )
-                Spacer()
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth / 2,
-                    height: DesignTokens.Skeleton.lineHeight
+                    height: DesignTokens.Spacing.sectionGap
                 )
             }
 
             chartSkeleton
+                .padding(.horizontal, -DesignTokens.Spacing.xxl)
 
-            HStack {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth / 2,
-                    height: DesignTokens.Skeleton.lineHeight
-                )
-                Spacer()
-                SkeletonShape(
-                    width: DesignTokens.Spacing.md,
-                    height: DesignTokens.Skeleton.lineHeight
-                )
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                tileSkeleton
+                tileSkeleton
             }
+
+            SkeletonShape(
+                width: DesignTokens.Skeleton.greetingWidth,
+                height: DesignTokens.Skeleton.lineHeight
+            )
             .frame(minHeight: DesignTokens.TapTarget.minimum)
         }
+    }
+
+    private var tileSkeleton: some View {
+        SkeletonShape(
+            height: DesignTokens.Skeleton.heroTileHeight,
+            cornerRadius: DesignTokens.CornerRadius.card
+        )
     }
 
     private var chartSkeleton: some View {
@@ -200,28 +195,30 @@ private struct CurrentMonthHeroSkeleton: View {
             let height = proxy.size.height
 
             ZStack {
+                // The plan: a straight fall from the opening amount to what the period keeps.
                 Path { path in
-                    path.move(to: CGPoint(x: 0, y: height * 2 / 3))
+                    path.move(to: CGPoint(x: 0, y: height / 4))
                     path.addLine(to: CGPoint(x: width, y: height * 2 / 3))
                 }
                 .stroke(
-                    Color.skeletonPlaceholder,
+                    skeletonTint,
                     style: StrokeStyle(
                         lineWidth: DesignTokens.BorderWidth.thin,
                         dash: DesignTokens.Chart.markerDash
                     )
                 )
 
+                // The real stroke, falling under the plan to today.
                 Path { path in
-                    path.move(to: CGPoint(x: 0, y: height / 3))
+                    path.move(to: CGPoint(x: 0, y: height / 4))
                     path.addCurve(
-                        to: CGPoint(x: width * 2 / 3, y: height / 2),
-                        control1: CGPoint(x: width / 3, y: height / 3),
-                        control2: CGPoint(x: width / 2, y: height / 2)
+                        to: CGPoint(x: width * 2 / 3, y: height * 3 / 5),
+                        control1: CGPoint(x: width / 3, y: height / 4),
+                        control2: CGPoint(x: width / 2, y: height * 3 / 5)
                     )
                 }
                 .stroke(
-                    Color.skeletonPlaceholder,
+                    skeletonTint,
                     style: StrokeStyle(
                         lineWidth: DesignTokens.BorderWidth.thick,
                         lineCap: .round,
@@ -229,14 +226,13 @@ private struct CurrentMonthHeroSkeleton: View {
                     )
                 )
 
-                // The projection keeps falling toward the plan line, as the real one does —
-                // it never turns back up.
+                // The projection keeps falling from today, as the real one does.
                 Path { path in
-                    path.move(to: CGPoint(x: width * 2 / 3, y: height / 2))
-                    path.addLine(to: CGPoint(x: width, y: height * 2 / 3))
+                    path.move(to: CGPoint(x: width * 2 / 3, y: height * 3 / 5))
+                    path.addLine(to: CGPoint(x: width, y: height * 4 / 5))
                 }
                 .stroke(
-                    Color.skeletonPlaceholder,
+                    skeletonTint,
                     style: StrokeStyle(
                         lineWidth: DesignTokens.BorderWidth.thick,
                         lineCap: .round,
@@ -246,7 +242,7 @@ private struct CurrentMonthHeroSkeleton: View {
 
                 // Anchor point where the tracked series hands over to the projection.
                 SkeletonCircle(size: DesignTokens.Spacing.md)
-                    .position(x: width * 2 / 3, y: height / 2)
+                    .position(x: width * 2 / 3, y: height * 3 / 5)
             }
         }
         .frame(height: DesignTokens.Chart.dashboardHeight)

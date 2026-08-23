@@ -80,6 +80,8 @@ struct EditTemplateLineSheet: View {
             focusOrder: [.amount, .description]
         ) {
             KindToggle(selection: $kind)
+            // A segmented choice reads before the amount, like the nature above it.
+            recurrenceSelector
             if userSettingsStore.showCurrencySelector && isAlternateCurrency {
                 CurrencyAmountPicker(
                     selectedCurrency: .constant(inputCurrency),
@@ -99,12 +101,17 @@ struct EditTemplateLineSheet: View {
                 originalCurrency: templateLine.originalCurrency,
                 exchangeRate: templateLine.exchangeRate
             )
-            descriptionField
-            recurrenceSelector
-            if kind == .saving {
-                SavingsGoalPickerField(selection: $savingsGoalId)
+            // Three blocks: the amount above, what it is, then the details.
+            FormCard {
+                descriptionField
+                FormRowDivider()
+                TagPickerField(selection: $selectedTagIds, style: .row)
             }
-            TagPickerField(selection: $selectedTagIds)
+            if kind == .saving {
+                FormCard {
+                    SavingsGoalPickerField(selection: $savingsGoalId, style: .row)
+                }
+            }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -158,25 +165,25 @@ struct EditTemplateLineSheet: View {
             label: AppLocale.string("Description"),
             accessibilityLabel: AppLocale.string("Nom de la ligne du modèle"),
             focusBinding: $focusedField,
-            field: .description
+            field: .description,
+            style: .row,
+            onSubmit: {
+                guard canSubmit else { return }
+                Task { await updateTemplateLine() }
+            }
         )
     }
 
     // MARK: - Recurrence Selector
 
     private var recurrenceSelector: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Récurrence")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
-
-            Picker("Récurrence", selection: $recurrence) {
-                ForEach(TransactionRecurrence.allCases, id: \.self) { type in
-                    Text(type.label).tag(type)
-                }
+        Picker("Récurrence", selection: $recurrence) {
+            ForEach(TransactionRecurrence.allCases, id: \.self) { type in
+                Text(type.label).tag(type)
             }
-            .pickerStyle(.segmented)
         }
+        .pickerStyle(.segmented)
+        .accessibilityLabel("Récurrence")
     }
 
     // MARK: - Save Button
