@@ -51,7 +51,7 @@ sans `/welcome`, puis retester confirmation et reset e-mail), quand la page exis
 | Client | URL de redirection | Connexion aboutit ? | Erreur exacte sinon |
 | --- | --- | --- | --- |
 | ChatGPT | fixe (`chatgpt.com/connector_platform_oauth_redirect`) | à constater | |
-| Claude Desktop | fixe (`claude.ai/api/mcp/auth_callback`) | à constater | |
+| Claude (claude.ai web, même client OAuth `Claude` que Claude Desktop) | fixe (`claude.ai/api/mcp/auth_callback`) | **Oui** (2026-08-23) : DCR → redirection `…/welcome/mcp-consent` (404, page phase 2) → consentement approuvé via l'API → callback claude.ai → outils listés, classés read-only / write par les annotations → `get_current_month` rend 2 960 CHF dans le chat | |
 | Claude Code | `localhost:<port éphémère>` | à constater (risque DCR à match exact, discussion supabase#41695) | |
 | Codex CLI | `localhost:<port éphémère>` | à constater (même risque) | |
 
