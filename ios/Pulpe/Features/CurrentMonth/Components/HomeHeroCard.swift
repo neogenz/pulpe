@@ -30,6 +30,8 @@ struct HomeHeroCard: View {
     @State var settlePulse = false
     /// The day under the finger while the plot is being scrubbed, `nil` at rest.
     @State var scrubDay: Int?
+    /// Each pill's measured size, so the plot can lay the three out around the dot.
+    @State var pillSizes: [HeroChartLabelLayout.Label: CGSize] = [:]
 
     var currency: SupportedCurrency { userSettingsStore.currency }
     private var scrubReading: ScrubReading? {

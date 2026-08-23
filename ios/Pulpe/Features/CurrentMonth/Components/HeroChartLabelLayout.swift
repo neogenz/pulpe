@@ -46,7 +46,11 @@ struct HeroChartLabelLayout {
     private func rect(anchor: CGPoint, size: CGSize, side: AnnotationPosition, push: CGFloat) -> CGRect {
         let bounds = plot.insetBy(dx: inset, dy: 0)
         let offset = spacing + push * (size.height + spacing)
-        let y = side == .bottom ? anchor.y + offset : anchor.y - offset - size.height
+        // Today's word is anchored on the dot itself: it clears from the dot's edge.
+        let onDot = dot.contains(anchor)
+        let y = side == .bottom
+            ? (onDot ? dot.maxY : anchor.y) + offset
+            : (onDot ? dot.minY : anchor.y) - offset - size.height
         return CGRect(
             x: min(max(anchor.x - size.width, bounds.minX), bounds.maxX - size.width),
             y: min(max(y, bounds.minY), bounds.maxY - size.height),

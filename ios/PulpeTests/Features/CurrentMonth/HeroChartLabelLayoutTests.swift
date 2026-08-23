@@ -46,6 +46,8 @@ struct HeroChartLabelLayoutTests {
             preferredSide: [.today: .top, .plan: .bottom, .trend: .bottom]
         )
         assertClean(rects, count: 3)
+        // Today's word sits right against the dot, not a pill away from it.
+        #expect(rects[.today]?.maxY == dot.minY - spacing)
     }
 
     @Test func heldMonth_twoPillsStayApart() {
