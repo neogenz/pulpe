@@ -102,6 +102,15 @@ extension AccountView {
             ) {
                 TagsSettingsView()
             }
+
+            settingsNavigationRow(
+                icon: "link",
+                iconColor: Color.textSecondary,
+                title: AppLocale.string("Connexions"),
+                subtitle: AppLocale.string("Assistants IA autorisés")
+            ) {
+                ConnectionsView()
+            }
         } header: {
             Text("PARAMÈTRES DE L'APPLICATION")
         }
