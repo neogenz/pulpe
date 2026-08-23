@@ -1,6 +1,6 @@
 ---
 objective: "Sur iOS, le prénom canonique vit dans user_metadata.firstName, survit à une reconnexion Apple/Google, n’est jamais déduit d’un e-mail ni du claim name, et un compte existant sans prénom peut le saisir dans Compte."
-status: in-progress
+status: implemented
 ---
 
 # Plan: fiabiliser le prénom iOS quel que soit le mode d’inscription
