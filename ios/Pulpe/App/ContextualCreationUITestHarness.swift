@@ -169,7 +169,8 @@ struct ContextualCreationUITestHarness: View {
                 trajectory: fixture.trajectory,
                 monthName: fixture.monthName,
                 uncheckedCount: 1,
-                onTapMetrics: {},
+                onTapUnchecked: {},
+                onTapVariance: {},
                 onTapDetail: {}
             )
             .padding(.horizontal, DesignTokens.Spacing.xl)

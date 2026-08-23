@@ -4473,6 +4473,28 @@
         }
       }
     },
+    "Aller aux opérations à pointer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu den offenen Vorgängen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to the operations to check"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vai alle operazioni da spuntare"
+          }
+        }
+      }
+    },
     "Annuler" : {
       "localizations" : {
         "de" : {

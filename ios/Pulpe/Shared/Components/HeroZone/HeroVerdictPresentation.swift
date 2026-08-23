@@ -99,6 +99,14 @@ struct HeroVerdictPresentation: Equatable {
         "\(variance > 0 ? "+" : "")\(variance.asAdaptiveCurrency(currency))"
     }
 
+    /// One key for every non-zero count: the singular is a plural variant of it in
+    /// the catalog, not a second sentence assembled here.
+    func uncheckedAccessibilityText(count: Int) -> String {
+        count == 0
+            ? AppLocale.string("Aucune opération à pointer.")
+            : AppLocale.string("\(count) opérations à pointer.")
+    }
+
     func accessibilityDescription(
         monthName: String,
         currency: SupportedCurrency,
@@ -106,11 +114,7 @@ struct HeroVerdictPresentation: Equatable {
         uncheckedCount: Int
     ) -> String {
         let month = monthName.capitalized
-        // One key for every non-zero count: the singular is a plural variant of it in
-        // the catalog, not a second sentence assembled here.
-        let unchecked = uncheckedCount == 0
-            ? AppLocale.string("Aucune opération à pointer.")
-            : AppLocale.string("\(uncheckedCount) opérations à pointer.")
+        let unchecked = uncheckedAccessibilityText(count: uncheckedCount)
         guard !amountsHidden else {
             return AppLocale.string("""
                 \(month). Solde estimé fin de mois, montant masqué. \

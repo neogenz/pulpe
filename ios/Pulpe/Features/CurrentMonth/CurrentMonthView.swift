@@ -216,35 +216,45 @@ struct CurrentMonthView: View {
     // MARK: - Dashboard Content
 
     private var dashboardContent: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.none) {
-                HomeHeroCard(
-                    metrics: store.metrics,
-                    fallbackPlannedBalance: store.plannedRemaining,
-                    trajectory: store.balanceTrajectory,
-                    monthName: currentMonthName,
-                    uncheckedCount: store.uncheckedCount,
-                    isSettling: store.isSettling,
-                    onTapMetrics: { activeSheet = .realizedBalance },
-                    onTapDetail: { navigateToBudget = true }
-                )
-                .staggeredEntrance(isVisible: hasAppeared, index: 0)
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xxl)
-                .heroZone(parallax: true)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.none) {
+                    HomeHeroCard(
+                        metrics: store.metrics,
+                        fallbackPlannedBalance: store.plannedRemaining,
+                        trajectory: store.balanceTrajectory,
+                        monthName: currentMonthName,
+                        uncheckedCount: store.uncheckedCount,
+                        isSettling: store.isSettling,
+                        onTapUnchecked: {
+                            withAnimation(DesignTokens.Animation.gentleSpring) {
+                                proxy.scrollTo(Self.uncheckedDeckId, anchor: .top)
+                            }
+                        },
+                        onTapVariance: { activeSheet = .realizedBalance },
+                        onTapDetail: { navigateToBudget = true }
+                    )
+                    .staggeredEntrance(isVisible: hasAppeared, index: 0)
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.xxl)
+                    .heroZone(parallax: true)
 
-                dashboardDetails
-                    .padding(.top, DesignTokens.Spacing.xxl)
-                    .padding(.bottom, DesignTokens.Spacing.lg)
-                    .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
-                    .contentZone()
+                    dashboardDetails
+                        .padding(.top, DesignTokens.Spacing.xxl)
+                        .padding(.bottom, DesignTokens.Spacing.lg)
+                        .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
+                        .contentZone()
+                }
+            }
+            .refreshable {
+                await store.forceRefresh()
             }
         }
-        .refreshable {
-            await store.forceRefresh()
-        }
     }
+
+    /// Scroll anchor of the deck: the « À pointer » tile brings it to the top of the frame.
+    static let uncheckedDeckId = "uncheckedDeck"
 
     private var dashboardDetails: some View {
         // Wider than the gap inside a section: a section is now a heading on the page
@@ -288,6 +298,7 @@ struct CurrentMonthView: View {
                     },
                     onViewAll: { navigateToBudget = true }
                 )
+                .id(Self.uncheckedDeckId)
                 .staggeredEntrance(isVisible: hasAppeared, index: 1)
             }
 

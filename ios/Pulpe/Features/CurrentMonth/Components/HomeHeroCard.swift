@@ -15,7 +15,11 @@ struct HomeHeroCard: View {
     /// A home entry is still on its way to the server: the projection is drawn from an
     /// optimistic store and says so by shimmering until the response lands.
     var isSettling = false
-    var onTapMetrics: () -> Void
+    /// Each tile opens its own thing: the count goes to the deck of operations to point,
+    /// the variance to the realized sheet. One button for both was one tap with two
+    /// chevrons and one surprise.
+    var onTapUnchecked: () -> Void
+    var onTapVariance: () -> Void
     var onTapDetail: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -74,7 +78,7 @@ struct HomeHeroCard: View {
                 chartTimeAxis
             }
 
-            metricsButton
+            summaryMetrics
 
             verdictSentence
         }
@@ -85,31 +89,33 @@ struct HomeHeroCard: View {
 
     // MARK: - Summary
 
-    /// Only the two metrics open anything. The amount and the chart stay outside the
-    /// control: wrapping all three made the chart tappable by accident and buried the one
-    /// thing that does respond inside a control with no chevron or ink to say so.
-    private var metricsButton: some View {
-        Button {
-            tapTrigger.toggle()
-            onTapMetrics()
-        } label: {
-            summaryMetrics
-        }
-        .contentShape(Rectangle())
-        .plainPressedButtonStyle()
-        .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
-        .accessibilityLabel(accessibilityDescription)
-        .accessibilityHint("Ouvrir le suivi du réalisé")
-        .accessibilityIdentifier("homeHeroMetrics")
-    }
-
-    // MARK: - Compact Summary
-
+    /// Only the two tiles open anything. The amount and the chart stay outside any
+    /// control: wrapping them made the chart tappable by accident.
     private var summaryMetrics: some View {
         HeroMetricTileRow {
-            HeroMetricTile(label: uncheckedLabel, value: uncheckedValue, showsChevron: true)
-            HeroMetricTile(label: varianceLabel, value: varianceValue, tint: accentColor, showsChevron: true)
+            Button {
+                tapTrigger.toggle()
+                onTapUnchecked()
+            } label: {
+                HeroMetricTile(label: uncheckedLabel, value: uncheckedValue, showsChevron: uncheckedCount > 0)
+            }
+            .disabled(uncheckedCount == 0)
+            .accessibilityLabel(presentation.uncheckedAccessibilityText(count: uncheckedCount))
+            .accessibilityHint(AppLocale.string("Aller aux opérations à pointer"))
+            .accessibilityIdentifier("homeHeroUnchecked")
+
+            Button {
+                tapTrigger.toggle()
+                onTapVariance()
+            } label: {
+                HeroMetricTile(label: varianceLabel, value: varianceValue, tint: accentColor, showsChevron: true)
+            }
+            .accessibilityLabel(accessibilityDescription)
+            .accessibilityHint("Ouvrir le suivi du réalisé")
+            .accessibilityIdentifier("homeHeroMetrics")
         }
+        .plainPressedButtonStyle()
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
     }
 
     private var uncheckedValue: String { "\(uncheckedCount)" }
@@ -175,7 +181,8 @@ struct HomeHeroCard: View {
             trajectory: gainTrajectory,
             monthName: "juillet",
             uncheckedCount: 5,
-            onTapMetrics: {},
+            onTapUnchecked: {},
+            onTapVariance: {},
             onTapDetail: {}
         )
         .padding(DesignTokens.Spacing.lg)
