@@ -2595,3 +2595,40 @@ export const mcpConsentRedirectResponseSchema = z.object({
 export type McpConsentRedirectResponse = z.infer<
   typeof mcpConsentRedirectResponseSchema
 >;
+
+/** One agent connection as shown in Settings > Connexions */
+export const mcpConnectionSchema = z.object({
+  id: z.uuid(),
+  clientName: z.string(),
+  mode: mcpAccessModeSchema,
+  authorizedAt: z.iso.datetime({ offset: true }),
+});
+export type McpConnection = z.infer<typeof mcpConnectionSchema>;
+
+/** GET /mcp/connections */
+export const mcpConnectionListResponseSchema =
+  createListResponse(mcpConnectionSchema);
+export type McpConnectionListResponse = z.infer<
+  typeof mcpConnectionListResponseSchema
+>;
+
+/** One write gesture of an agent: the tool called, never the content. */
+export const mcpActivitySchema = z.object({
+  tool: z.string(),
+  outcome: z.enum(['ok', 'error']),
+  createdAt: z.iso.datetime({ offset: true }),
+});
+export type McpActivity = z.infer<typeof mcpActivitySchema>;
+
+/** GET /mcp/connections/:id/activity — newest first, keyset on `before` */
+export const mcpActivityQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  before: z.iso.datetime({ offset: true }).optional(),
+});
+export type McpActivityQuery = z.infer<typeof mcpActivityQuerySchema>;
+
+export const mcpActivityListResponseSchema =
+  createListResponse(mcpActivitySchema);
+export type McpActivityListResponse = z.infer<
+  typeof mcpActivityListResponseSchema
+>;

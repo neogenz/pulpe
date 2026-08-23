@@ -466,6 +466,32 @@
       "genericError": "Qualcosa è andato storto — riprova più tardi",
       "changeFailed": "Il cambio del codice PIN non è riuscito — riprova più tardi",
       "rekeyFailed": "La ri-cifratura non è riuscita — il tuo vecchio codice PIN resta attivo, riprova più tardi"
+    },
+    "connections": {
+      "title": "Connessioni",
+      "description": "Gli assistenti IA autorizzati ad accedere al tuo budget.",
+      "subtitle": "Gli assistenti autorizzati ad accedere al tuo budget. Puoi togliere l'accesso in qualsiasi momento.",
+      "loading": "Caricamento delle tue connessioni...",
+      "errorTitle": "Impossibile caricare le connessioni",
+      "errorMessage": "Il caricamento si è bloccato. Riprova per vedere chi ha accesso al tuo budget.",
+      "emptyTitle": "Nessun assistente collegato",
+      "emptyMessage": "Puoi collegare Pulpe a ChatGPT o Claude per gestire il tuo budget parlando. Niente viene condiviso finché non lo autorizzi.",
+      "modeRead": "Sola lettura",
+      "modeReadWrite": "Lettura e scrittura",
+      "since": "dal {{ date }}",
+      "recentActions": "Ultime azioni",
+      "showActions": "Vedi cosa ha fatto l'assistente",
+      "noActivity": "Nessuna azione per ora.",
+      "seeAll": "Vedi tutto",
+      "failed": "fallita",
+      "tools": {
+        "add_movement": "Movimento aggiunto"
+      },
+      "revoke": "Togli l'accesso",
+      "revokeTitle": "Togliere l'accesso a {{ client }}?",
+      "revokeMessage": "{{ client }} non potrà più leggere né modificare il tuo budget. Per ricollegarlo dovrai autorizzarlo di nuovo con il tuo codice.",
+      "revokeSuccess": "Accesso di {{ client }} tolto.",
+      "revokeError": "Impossibile togliere l'accesso. Riprova."
     }
   },
   "budget": {
@@ -1746,7 +1772,8 @@
     "settingsTags": "I miei tag",
     "designSystem": "Design System",
     "maintenance": "Manutenzione",
-    "mcpConsent": "Collegare un assistente IA"
+    "mcpConsent": "Collegare un assistente IA",
+    "settingsConnections": "Connessioni"
   },
   "authError": {
     "generic": "Qualcosa non ha funzionato — riprova",

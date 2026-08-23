@@ -12,6 +12,7 @@ export const ROUTES = {
   SAVINGS_GOALS: 'savings-goals',
   SETTINGS: 'settings',
   SETTINGS_TAGS: 'tags',
+  SETTINGS_CONNECTIONS: 'connections',
   DESIGN_SYSTEM: 'design-system',
   LEGAL: 'legal',
   MAINTENANCE: 'maintenance',
@@ -52,6 +53,7 @@ export const PAGE_TITLES = {
   LEGAL_PRIVACY: 'pageTitle.legalPrivacy',
   SETTINGS: 'pageTitle.settings',
   SETTINGS_TAGS: 'pageTitle.settingsTags',
+  SETTINGS_CONNECTIONS: 'pageTitle.settingsConnections',
   DESIGN_SYSTEM: 'pageTitle.designSystem',
   MAINTENANCE: 'pageTitle.maintenance',
 } as const;

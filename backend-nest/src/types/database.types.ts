@@ -168,6 +168,41 @@ export type Database = {
           },
         ];
       };
+      mcp_activity: {
+        Row: {
+          connection_id: string;
+          created_at: string;
+          id: string;
+          outcome: string;
+          tool: string;
+          user_id: string;
+        };
+        Insert: {
+          connection_id: string;
+          created_at?: string;
+          id?: string;
+          outcome: string;
+          tool: string;
+          user_id: string;
+        };
+        Update: {
+          connection_id?: string;
+          created_at?: string;
+          id?: string;
+          outcome?: string;
+          tool?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'mcp_activity_connection_id_fkey';
+            columns: ['connection_id'];
+            isOneToOne: false;
+            referencedRelation: 'mcp_connection';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       mcp_connection: {
         Row: {
           authorized_at: string;
@@ -177,7 +212,7 @@ export type Database = {
           mode: string;
           revoked_at: string | null;
           user_id: string;
-          wrapped_client_key: string;
+          wrapped_client_key: string | null;
         };
         Insert: {
           authorized_at?: string;
@@ -187,7 +222,7 @@ export type Database = {
           mode: string;
           revoked_at?: string | null;
           user_id: string;
-          wrapped_client_key: string;
+          wrapped_client_key?: string | null;
         };
         Update: {
           authorized_at?: string;
@@ -197,7 +232,7 @@ export type Database = {
           mode?: string;
           revoked_at?: string | null;
           user_id?: string;
-          wrapped_client_key?: string;
+          wrapped_client_key?: string | null;
         };
         Relationships: [];
       };
