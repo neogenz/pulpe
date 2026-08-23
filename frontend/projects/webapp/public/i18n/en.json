@@ -1631,12 +1631,23 @@
         "analyticsLabel": "Important:",
         "analyticsBody": "I use PostHog to understand how the application is used. This includes pages visited, features used, errors encountered and session recordings (interaction replays). Your financial data is always masked in these analyses and recordings."
       },
+      "aiAssistants": {
+        "title": "5. Connections to AI assistants",
+        "intro": "You can connect Pulpe to an AI assistant. This channel is optional, and the following rules apply to it.",
+        "items": {
+          "authority": "The assistant acts on your behalf, within the mode you chose: read-only, or read and write.",
+          "responsibility": "You remain responsible for what you ask it. A write made by the assistant counts as a write made by you.",
+          "editor": "The assistant's publisher is a third party you choose. Its terms apply to it, not to me, and I am not answerable for what it does with your requests.",
+          "figures": "The figures the assistant quotes come from Pulpe. How it words them is its own doing: where they differ, the app prevails.",
+          "revocation": "You cut access whenever you want, in Settings then Connections. It takes effect immediately."
+        }
+      },
       "source": {
-        "title": "5. Source code and ownership",
+        "title": "6. Source code and ownership",
         "body": "Pulpe's source code can be viewed publicly on GitHub. Your personal data belongs to you and remains private."
       },
       "liability": {
-        "title": "6. Limitation of liability",
+        "title": "7. Limitation of liability",
         "intro": "Pulpe is a personal project maintained in my spare time. The service is provided “as is”, and I cannot guarantee:",
         "warning": "Important warning:",
         "items": {
@@ -1650,19 +1661,19 @@
         }
       },
       "termination": {
-        "title": "7. Termination",
+        "title": "8. Termination",
         "body": "You may delete your account at any time from the settings. I reserve the right to suspend or delete your account if you breach these terms or misuse the service."
       },
       "changes": {
-        "title": "8. Changes to these terms",
+        "title": "9. Changes to these terms",
         "body": "I may amend these terms when necessary. Material changes will be notified by email. Continuing to use the service after a change constitutes acceptance of the new terms."
       },
       "law": {
-        "title": "9. Governing law",
+        "title": "10. Governing law",
         "body": "These terms are governed by Swiss law. Any dispute will be submitted to the competent courts of Geneva, Switzerland."
       },
       "contact": {
-        "title": "10. Contact",
+        "title": "11. Contact",
         "body": "For questions about these terms, contact me at:"
       }
     }

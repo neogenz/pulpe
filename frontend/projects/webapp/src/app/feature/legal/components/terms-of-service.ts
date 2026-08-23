@@ -78,6 +78,28 @@ import { ROUTES } from '@core/routing';
           </p>
         </section>
 
+        <section class="mb-8" id="ai-assistants">
+          <h2 class="text-headline-medium mb-4">
+            {{ 'legal.terms.aiAssistants.title' | transloco }}
+          </h2>
+          <p class="text-body-large">
+            {{ 'legal.terms.aiAssistants.intro' | transloco }}
+          </p>
+          <ul class="list-disc pl-6 text-body-large mt-4">
+            <li>
+              {{ 'legal.terms.aiAssistants.items.authority' | transloco }}
+            </li>
+            <li>
+              {{ 'legal.terms.aiAssistants.items.responsibility' | transloco }}
+            </li>
+            <li>{{ 'legal.terms.aiAssistants.items.editor' | transloco }}</li>
+            <li>{{ 'legal.terms.aiAssistants.items.figures' | transloco }}</li>
+            <li>
+              {{ 'legal.terms.aiAssistants.items.revocation' | transloco }}
+            </li>
+          </ul>
+        </section>
+
         <section class="mb-8">
           <h2 class="text-headline-medium mb-4">
             {{ 'legal.terms.source.title' | transloco }}

@@ -16,34 +16,38 @@ const cases = [
   [
     'fr',
     '27 janvier 2026',
-    '9. Droit applicable',
+    '10. Droit applicable',
     'peut être consulté publiquement sur GitHub',
     'licence MIT',
     "l'héberger toi-même",
+    '5. Connexions à des assistants IA',
   ],
   [
     'en',
     'January 27, 2026',
-    '9. Governing law',
+    '10. Governing law',
     'can be viewed publicly on GitHub',
     'MIT licence',
     'host it yourself',
+    '5. Connections to AI assistants',
   ],
   [
     'de',
     '27. Januar 2026',
-    '9. Anwendbares Recht',
+    '10. Anwendbares Recht',
     'kann öffentlich auf GitHub eingesehen werden',
     'MIT-Lizenz',
     'selbst hosten',
+    '5. Verbindungen zu KI-Assistenten',
   ],
   [
     'it',
     '27 gennaio 2026',
-    '9. Legge applicabile',
+    '10. Legge applicabile',
     'può essere consultato pubblicamente su GitHub',
     'licenza MIT',
     'ospitarlo autonomamente',
+    '5. Connessioni ad assistenti IA',
   ],
 ] as const;
 
@@ -54,6 +58,7 @@ describe('TermsOfServiceComponent', () => {
       lang,
       date,
       law,
+      assistants,
       publicSourceStatement,
       licenseClaim,
       selfHostingClaim,
@@ -78,12 +83,13 @@ describe('TermsOfServiceComponent', () => {
         (link) => link.getAttribute('href'),
       );
 
-      expect(element.querySelectorAll('section')).toHaveLength(10);
+      expect(element.querySelectorAll('section')).toHaveLength(11);
       expect(text).toContain(date);
       expect(text).toContain(law);
       expect(text).toContain(publicSourceStatement);
       expect(text).not.toContain(licenseClaim);
       expect(text).not.toContain(selfHostingClaim);
+      expect(text).toContain(assistants);
       expect(text).not.toContain('legal.terms');
       expect(links).toContain('mailto:maxime.desogus@gmail.com');
       expect(links).toContain('/legal/confidentialite');
