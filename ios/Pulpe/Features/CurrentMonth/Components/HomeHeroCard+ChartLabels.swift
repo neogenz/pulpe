@@ -7,6 +7,10 @@ extension HomeHeroCard {
     /// The hero keeps its words off the card's edge, wherever the plot ends.
     static let pillInset = DesignTokens.Spacing.xxl
 
+    /// What a pill is assumed to measure for the frame before it is measured: a caption line
+    /// and a short word. Never drawn at this size — the real one replaces it on the next pass.
+    private static let pillSizeEstimate = CGSize(width: 60, height: 18)
+
     /// The plot's pills, drawn over it from one layout pass rather than as per-mark
     /// annotations: only here are all their anchors known in points at once, so none can
     /// land on today's dot or on another pill.
@@ -67,7 +71,7 @@ extension HomeHeroCard {
         }
         // Before a pill is measured it is laid out at a guess; the real size lands a frame
         // later and, the layout being pure, settles there.
-        let sizes = anchors.mapValues { _ in CGSize(width: 60, height: 18) }.merging(pillSizes) { $1 }
+        let sizes = anchors.mapValues { _ in Self.pillSizeEstimate }.merging(pillSizes) { $1 }
         let dot = DesignTokens.Spacing.md
         return HeroChartLabelLayout(
             plot: plot,
