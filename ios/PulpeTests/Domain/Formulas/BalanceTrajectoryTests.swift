@@ -169,6 +169,60 @@ struct BalanceTrajectoryTests {
         ) == nil)
     }
 
+    // MARK: - Real series
+
+    @Test func real_opensOnWhatThePeriodHadAndHoldsWhileNothingIsPointed() throws {
+        let trajectory = try #require(makeTrajectory(transactions: []))
+
+        #expect(trajectory.plannedAvailable == 5_000)
+        #expect(Set(trajectory.real.map(\.balance)) == [5_000])
+        #expect(trajectory.real.map(\.day) == Array(0 ... 15))
+    }
+
+    @Test func real_dropsOnTheDayALineIsPointed_andIgnoresAForecastNotYetConfirmed() throws {
+        let rent = TestDataFactory.createBudgetLine(
+            id: "rent", amount: 2_000, kind: .expense, checkedAt: try date(year: 2026, month: 7, day: 5)
+        )
+        let food = TestDataFactory.createBudgetLine(id: "food", amount: 500, kind: .expense)
+        let trajectory = try #require(makeTrajectory(budgetLines: [lines[0], rent, food], transactions: []))
+
+        let byDay = Dictionary(uniqueKeysWithValues: trajectory.real.map { ($0.day, $0.balance) })
+        // Index d reads through day d (day 1 is pay day): the 5th's pointing shows from index 5.
+        #expect(byDay[4] == 5_000)
+        #expect(byDay[5] == 3_000)
+        #expect(byDay[15] == 3_000)
+    }
+
+    @Test func real_dropsOnAPointedTransaction_andNotOnAnUncheckedOne() throws {
+        let pointed = try transaction(id: "groceries", amount: 120, day: 8)
+        var pending = try transaction(id: "bar", amount: 60, day: 9)
+        pending = Transaction(
+            id: pending.id, budgetId: pending.budgetId, budgetLineId: nil, name: pending.name,
+            amount: pending.amount, kind: pending.kind, transactionDate: pending.transactionDate,
+            category: nil, checkedAt: nil, createdAt: pending.createdAt, updatedAt: pending.updatedAt
+        )
+        let trajectory = try #require(makeTrajectory(transactions: [pointed, pending]))
+
+        let byDay = Dictionary(uniqueKeysWithValues: trajectory.real.map { ($0.day, $0.balance) })
+        #expect(byDay[7] == 5_000)
+        #expect(byDay[8] == 4_880)
+        #expect(byDay[15] == 4_880)
+    }
+
+    @Test func real_lastReadingIsTheOpeningMinusEverythingRealized() throws {
+        let rent = TestDataFactory.createBudgetLine(
+            id: "rent", amount: 2_000, kind: .expense, checkedAt: try date(year: 2026, month: 7, day: 2)
+        )
+        let transactions = [try transaction(id: "groceries", amount: 800, day: 5)]
+        let budgetLines = [lines[0], rent, lines[2]]
+        let trajectory = try #require(makeTrajectory(budgetLines: budgetLines, transactions: transactions))
+
+        let realized = BudgetFormulas.calculateRealizedExpenses(
+            budgetLines: budgetLines, transactions: transactions
+        )
+        #expect(trajectory.real.last?.balance == 5_000 - realized)
+    }
+
     // MARK: - Helpers
 
     private func makeTrajectory(

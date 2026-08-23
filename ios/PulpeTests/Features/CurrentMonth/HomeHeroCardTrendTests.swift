@@ -126,8 +126,16 @@ import Testing
         history: DriftHistory? = nil
     ) -> BudgetFormulas.BalanceTrajectory {
         let today = max(landing.count - 1, 1)
+        let points = landing.enumerated().map {
+            BudgetFormulas.BalanceTrajectory.Point(day: $0.offset, balance: $0.element)
+        }
+        // The real stroke opens on what the period had and falls by the same drift, so a
+        // fixture written in landing terms still draws a coherent burn-down.
+        let opening = (landing.first ?? 0) + plannedOutflows
         return BudgetFormulas.BalanceTrajectory(
-            landing: landing.enumerated().map { .init(day: $0.offset, balance: $0.element) },
+            landing: points,
+            plannedAvailable: opening,
+            real: points.map { .init(day: $0.day, balance: opening + $0.balance - (landing.first ?? 0)) },
             driftDate: driftDate,
             plannedOutflows: plannedOutflows,
             today: today,

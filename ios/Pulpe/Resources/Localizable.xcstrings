@@ -10397,6 +10397,28 @@
         }
       }
     },
+    "Disponible prévu %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geplant verfügbar %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planned available %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibile previsto %@."
+          }
+        }
+      }
+    },
     "Disponible · %@" : {
       "localizations" : {
         "de" : {
@@ -19803,6 +19825,28 @@
         }
       }
     },
+    "Prévu fin de période %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geplant zum Periodenende %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planned at period end %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previsto a fine periodo %@."
+          }
+        }
+      }
+    },
     "Prévu vs Réalisé" : {
       "localizations" : {
         "de" : {
@@ -21821,6 +21865,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Effettivo"
+          }
+        }
+      }
+    },
+    "Réel aujourd’hui %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tatsächlich heute %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actual today %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reale oggi %@."
           }
         }
       }

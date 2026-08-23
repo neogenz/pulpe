@@ -15,6 +15,15 @@ extension BudgetFormulas {
 
         let landing: [Point]
 
+        /// What the period opened with: planned income plus the rollover, before a single
+        /// franc went out. The burn-down's origin, shared by the plan stroke and the real one.
+        let plannedAvailable: Decimal
+
+        /// What is actually left, one reading per day elapsed: the opening amount minus
+        /// every outflow pointed by that morning. Pointing is the only signal — a forecast
+        /// not yet confirmed leaves the line where it is.
+        let real: [Point]
+
         /// The day the forecast first left the plan it opened on. `nil` while the month is
         /// still landing exactly where it was planned to — a frequent, valid state, not an
         /// absence of measurement.
@@ -128,9 +137,18 @@ extension BudgetFormulas {
             today: today
         )
 
-        guard let opening = landing.first else { return nil }
+        let real = realSeries(
+            budgetLines: budgetLines,
+            transactions: transactions,
+            rollover: budget.rollover.orZero,
+            periodStart: periodStart,
+            today: today
+        )
+        guard let opening = landing.first, let realOpening = real.first else { return nil }
         return BalanceTrajectory(
             landing: landing,
+            plannedAvailable: realOpening.balance,
+            real: real,
             // A reading at index `d` covers the days before it, so the one that first differs
             // was moved by activity on the day it opened — one back from its own index.
             driftDate: landing
@@ -178,6 +196,38 @@ extension BudgetFormulas {
                 },
                 rollover: rollover
             ))
+        }
+    }
+
+    /// What was left each morning: the opening amount minus the outflows pointed before
+    /// that day. The last reading takes every pointed item untouched, the way the realized
+    /// sheet does, so the dot lands on a figure the app prints elsewhere.
+    private static func realSeries(
+        budgetLines: [BudgetLine],
+        transactions: [Transaction],
+        rollover: Decimal,
+        periodStart: Date,
+        today: Int
+    ) -> [BalanceTrajectory.Point] {
+        let calendar = Calendar.current
+        let plannedAvailable = calculateAllMetrics(budgetLines: budgetLines, rollover: rollover).available
+        let checkedTransactions = transactions.filter(\.isChecked)
+        return (0 ... today).compactMap { day -> BalanceTrajectory.Point? in
+            guard day < today else {
+                return .init(day: day, balance: plannedAvailable - calculateRealizedExpenses(
+                    budgetLines: budgetLines,
+                    transactions: checkedTransactions
+                ))
+            }
+            guard let endExclusive = calendar.date(byAdding: .day, value: day, to: periodStart) else { return nil }
+            let realized = calculateRealizedExpenses(
+                budgetLines: budgetLines.map { line in
+                    guard let checkedAt = line.checkedAt, checkedAt >= endExclusive else { return line }
+                    return line.toggled() // pointed later than this morning: not yet, that day
+                },
+                transactions: checkedTransactions.filter { $0.transactionDate < endExclusive }
+            )
+            return .init(day: day, balance: plannedAvailable - realized)
         }
     }
 
