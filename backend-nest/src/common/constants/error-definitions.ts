@@ -100,6 +100,11 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to save agent connection',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  MCP_CONNECTION_NOT_FOUND: {
+    code: API_ERROR_CODES.MCP_CONNECTION_NOT_FOUND,
+    message: () => 'Agent connection not found',
+    httpStatus: HttpStatus.NOT_FOUND,
+  },
   ENCRYPTION_KEY_CHECK_FAILED: {
     code: API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED,
     message: () => 'Client key verification failed',

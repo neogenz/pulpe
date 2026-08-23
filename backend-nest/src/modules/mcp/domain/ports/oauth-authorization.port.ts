@@ -18,4 +18,6 @@ export interface OAuthAuthorizationPort {
   ): Promise<OAuthAuthorizationRequest>;
   approve(authorizationId: string, accessToken: string): Promise<string>;
   deny(authorizationId: string, accessToken: string): Promise<string>;
+  /** Drops the user's grant to one client: its sessions and refresh tokens die with it. */
+  revokeGrant(clientId: string, accessToken: string): Promise<void>;
 }

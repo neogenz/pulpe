@@ -23,11 +23,13 @@ type Action = 'approve' | 'deny';
  */
 @Injectable()
 export class SupabaseOAuthAuthorizationAdapter implements OAuthAuthorizationPort {
+  readonly #authUrl: string;
   readonly #baseUrl: string;
   readonly #anonKey: string;
 
   constructor(config: ConfigService) {
-    this.#baseUrl = `${config.getOrThrow<string>('SUPABASE_URL')}/auth/v1/oauth/authorizations`;
+    this.#authUrl = `${config.getOrThrow<string>('SUPABASE_URL')}/auth/v1`;
+    this.#baseUrl = `${this.#authUrl}/oauth/authorizations`;
     this.#anonKey = config.getOrThrow<string>('SUPABASE_ANON_KEY');
   }
 
@@ -49,6 +51,22 @@ export class SupabaseOAuthAuthorizationAdapter implements OAuthAuthorizationPort
     return this.#decide(authorizationId, accessToken, 'deny');
   }
 
+  /** `DELETE /auth/v1/user/oauth/grants?client_id=` answers 204; a grant already gone is not an error. */
+  async revokeGrant(clientId: string, accessToken: string): Promise<void> {
+    const url = `${this.#authUrl}/user/oauth/grants?client_id=${encodeURIComponent(clientId)}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: this.#headers(accessToken),
+    });
+    if (!response.ok && response.status !== 404) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.MCP_AUTHORIZATION_UNPROCESSABLE,
+        undefined,
+        { operation: 'revokeGrant', status: response.status },
+      );
+    }
+  }
+
   async #decide(
     authorizationId: string,
     accessToken: string,
@@ -66,11 +84,7 @@ export class SupabaseOAuthAuthorizationAdapter implements OAuthAuthorizationPort
     const url = `${this.#baseUrl}/${encodeURIComponent(authorizationId)}${action ? '/consent' : ''}`;
     const response = await fetch(url, {
       method: action ? 'POST' : 'GET',
-      headers: {
-        apikey: this.#anonKey,
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
+      headers: this.#headers(accessToken),
       body: action ? JSON.stringify({ action }) : undefined,
     });
     if (!response.ok) {
@@ -81,5 +95,13 @@ export class SupabaseOAuthAuthorizationAdapter implements OAuthAuthorizationPort
       );
     }
     return response.json();
+  }
+
+  #headers(accessToken: string): Record<string, string> {
+    return {
+      apikey: this.#anonKey,
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    };
   }
 }

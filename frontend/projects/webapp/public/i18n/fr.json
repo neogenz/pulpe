@@ -466,6 +466,32 @@
       "genericError": "Une erreur est survenue — réessaie plus tard",
       "changeFailed": "Le changement de code PIN a échoué — réessaie plus tard",
       "rekeyFailed": "Le re-chiffrement a échoué — ton ancien code PIN reste actif, réessaie plus tard"
+    },
+    "connections": {
+      "title": "Connexions",
+      "description": "Les assistants IA autorisés à accéder à ton budget.",
+      "subtitle": "Les assistants autorisés à accéder à ton budget. Tu peux couper l'accès à tout moment.",
+      "loading": "Chargement de tes connexions...",
+      "errorTitle": "Impossible de charger tes connexions",
+      "errorMessage": "Le chargement a bloqué. Réessaie pour voir qui a accès à ton budget.",
+      "emptyTitle": "Aucun assistant branché",
+      "emptyMessage": "Tu peux brancher Pulpe dans ChatGPT ou Claude pour gérer ton budget en parlant. Rien n'est partagé tant que tu n'as rien autorisé.",
+      "modeRead": "Lecture seule",
+      "modeReadWrite": "Lecture et écriture",
+      "since": "depuis le {{ date }}",
+      "recentActions": "Dernières actions",
+      "showActions": "Voir ce que l'assistant a fait",
+      "noActivity": "Aucune action pour l'instant.",
+      "seeAll": "Tout voir",
+      "failed": "échec",
+      "tools": {
+        "add_movement": "Mouvement ajouté"
+      },
+      "revoke": "Couper l'accès",
+      "revokeTitle": "Couper l'accès à {{ client }} ?",
+      "revokeMessage": "{{ client }} ne pourra plus lire ni modifier ton budget. Pour le rebrancher, il faudra l'autoriser à nouveau avec ton code.",
+      "revokeSuccess": "Accès de {{ client }} coupé.",
+      "revokeError": "Impossible de couper l'accès. Réessaie."
     }
   },
   "budget": {
@@ -1765,7 +1791,8 @@
     "settingsTags": "Mes tags",
     "designSystem": "Design System",
     "maintenance": "Maintenance",
-    "mcpConsent": "Connecter un assistant IA"
+    "mcpConsent": "Connecter un assistant IA",
+    "settingsConnections": "Connexions"
   },
   "authError": {
     "generic": "Quelque chose n'a pas fonctionné — réessaie",

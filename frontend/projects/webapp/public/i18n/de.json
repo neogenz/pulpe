@@ -466,6 +466,32 @@
       "genericError": "Etwas ist schiefgelaufen — versuch es später nochmal",
       "changeFailed": "Das Ändern des PIN ist fehlgeschlagen — versuch es später nochmal",
       "rekeyFailed": "Die Neuverschlüsselung ist fehlgeschlagen — dein alter PIN bleibt aktiv, versuch es später nochmal"
+    },
+    "connections": {
+      "title": "Verbindungen",
+      "description": "Die KI-Assistenten, die auf dein Budget zugreifen dürfen.",
+      "subtitle": "Die Assistenten, die auf dein Budget zugreifen dürfen. Du kannst den Zugriff jederzeit beenden.",
+      "loading": "Deine Verbindungen werden geladen...",
+      "errorTitle": "Verbindungen konnten nicht geladen werden",
+      "errorMessage": "Das Laden ist hängen geblieben. Versuch es erneut, um zu sehen, wer Zugriff auf dein Budget hat.",
+      "emptyTitle": "Kein Assistent verbunden",
+      "emptyMessage": "Du kannst Pulpe mit ChatGPT oder Claude verbinden, um dein Budget im Gespräch zu verwalten. Es wird nichts geteilt, solange du nichts erlaubt hast.",
+      "modeRead": "Nur lesen",
+      "modeReadWrite": "Lesen und schreiben",
+      "since": "seit {{ date }}",
+      "recentActions": "Letzte Aktionen",
+      "showActions": "Anzeigen, was der Assistent getan hat",
+      "noActivity": "Noch keine Aktion.",
+      "seeAll": "Alle anzeigen",
+      "failed": "fehlgeschlagen",
+      "tools": {
+        "add_movement": "Bewegung hinzugefügt"
+      },
+      "revoke": "Zugriff beenden",
+      "revokeTitle": "Zugriff von {{ client }} beenden?",
+      "revokeMessage": "{{ client }} kann dein Budget dann weder lesen noch ändern. Um es wieder zu verbinden, musst du es erneut mit deinem Code erlauben.",
+      "revokeSuccess": "Zugriff von {{ client }} beendet.",
+      "revokeError": "Zugriff konnte nicht beendet werden. Versuch es erneut."
     }
   },
   "budget": {
@@ -1765,7 +1791,8 @@
     "settingsTags": "Meine Tags",
     "designSystem": "Design System",
     "maintenance": "Wartung",
-    "mcpConsent": "KI-Assistenten verbinden"
+    "mcpConsent": "KI-Assistenten verbinden",
+    "settingsConnections": "Verbindungen"
   },
   "authError": {
     "generic": "Etwas hat nicht funktioniert — versuch es nochmal",
