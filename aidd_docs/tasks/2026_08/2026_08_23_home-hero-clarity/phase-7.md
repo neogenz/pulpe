@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Imprévus sans alarme quand c'est compensé
@@ -39,3 +39,7 @@ journey
 | Task | Acceptance criteria |
 | ---- | ------------------- |
 | 1 | Three cases asserted on tint and label; lexicon test green |
+
+## Outcome (2026-08-23)
+
+No code. `HeroVerdictPresentation.accent` already returns `heroAccentCaution` only when `tone == .caution`, i.e. `variance < 0` (`verdict == .overrun`); a month on or above its plan takes `heroInk` / `heroAccentPositive`. The « Imprévus · compensés » label was dropped: `absorbsEnvelopeOverrun && variance != 0` is exactly a `.gain` month, where « compensés » next to « +300 CHF » would misname a surplus.
