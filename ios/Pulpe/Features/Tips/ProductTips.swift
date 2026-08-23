@@ -44,38 +44,18 @@ enum ProductTips {
         isSheetPresented = modalPresentationCount > 0
     }
 
-    // MARK: - Gestures Tip
-
-    struct GesturesTip: Tip {
-        var title: Text {
-            Text("Interagis avec tes lignes")
-        }
-
-        var message: Text? {
-            Text("Touche pour modifier · Glisse pour compléter ou supprimer · Reste appuyé pour voir le détail")
-        }
-
-        var image: Image? {
-            Image(systemName: "hand.tap.fill")
-        }
-
-        var rules: [Rule] {
-            [
-                #Rule(ProductTips.$tourDismissed) { $0 == false },
-                #Rule(ProductTips.$isSheetPresented) { $0 == false }
-            ]
-        }
-    }
-
     // MARK: - Checking Tip
 
     struct CheckingTip: Tip {
         var title: Text {
-            Text("Pointage")
+            Text("Pointer un mouvement")
         }
 
         var message: Text? {
-            Text("Quand un mouvement est passé sur ton compte, pointe-le ici pour garder le fil.")
+            Text("""
+                Dès qu'un mouvement est passé sur ton compte, touche le rond devant sa ligne. \
+                Pulpe garde le fil de ce qui est réel.
+                """)
         }
 
         var image: Image? {
@@ -124,13 +104,13 @@ enum ProductTips {
 
     struct TemplatesWebParityTip: Tip {
         var title: Text {
-            Text("Modèles : version iOS encore allégée")
+            Text("Modèles : ajouter ou retirer une ligne")
         }
 
         var message: Text? {
             Text("""
-                Toutes les actions sur les modèles ne sont pas encore dispos ici. \
-                Pour aller au bout, l'app web fait tout — n'hésite pas à y faire un tour.
+                Ici tu peux modifier les lignes d'un modèle. Pour en ajouter ou en retirer, \
+                passe par l'app web.
                 """)
         }
 
@@ -151,7 +131,6 @@ enum ProductTips {
 
     // MARK: - Shared Instances
 
-    static let gestures = GesturesTip()
     static let checking = CheckingTip()
     static let pessimisticCheck = PessimisticCheckTip()
     static let templatesWebParity = TemplatesWebParityTip()

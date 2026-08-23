@@ -1,5 +1,135 @@
 [
   {
+    "version": "0.46.0",
+    "iosVersion": "1.4.2",
+    "date": "2026-08-22",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.46.0",
+    "platforms": [
+      "web",
+      "ios"
+    ],
+    "changes": {
+      "features": [
+        {
+          "title": "Un calculateur de budget suisse",
+          "description": "Compose tes charges ligne par ligne pour obtenir une estimation claire et personnalisable."
+        },
+        {
+          "title": "Davantage de conseils pour la Suisse",
+          "description": "De nouveaux guides et comparatifs aident à choisir une méthode et une application adaptées à son budget."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Réglage de langue harmonisé",
+          "description": "Sur iOS, le sélecteur de langue s’intègre désormais naturellement aux autres préférences."
+        },
+        {
+          "title": "Connexion iOS plus fiable",
+          "description": "Un lancement en arrière-plan ne provoque plus de fausse déconnexion."
+        }
+      ],
+      "technical": [
+        {
+          "title": "Publication renforcée",
+          "description": "Les déploiements, migrations et builds mobiles sont désormais vérifiés contre leur source exacte. L’application Android est préparée pour une future diffusion interne."
+        }
+      ]
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "A Swiss budget calculator",
+              "description": "Build your expenses line by line for a clear, customisable estimate."
+            },
+            {
+              "title": "More guidance for Switzerland",
+              "description": "New guides and comparisons help you choose a budgeting method and app."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Consistent language settings",
+              "description": "On iOS, the language selector now fits naturally with the other preferences."
+            },
+            {
+              "title": "More reliable iOS sign-in",
+              "description": "A background launch no longer causes a false sign-out."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Safer releases",
+              "description": "Deployments, migrations and mobile builds are now verified against their exact source. The Android app is prepared for a future internal release."
+            }
+          ]
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Ein Budgetrechner für die Schweiz",
+              "description": "Stelle deine Ausgaben Zeile für Zeile zusammen und erhalte eine klare, anpassbare Schätzung."
+            },
+            {
+              "title": "Mehr Budgethilfe für die Schweiz",
+              "description": "Neue Ratgeber und Vergleiche helfen bei der Wahl einer passenden Methode und App."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Einheitliche Spracheinstellung",
+              "description": "Auf iOS fügt sich die Sprachauswahl jetzt natürlich in die übrigen Einstellungen ein."
+            },
+            {
+              "title": "Zuverlässigere iOS-Anmeldung",
+              "description": "Ein Start im Hintergrund führt nicht mehr zu einer falschen Abmeldung."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Sicherere Veröffentlichungen",
+              "description": "Deployments, Migrationen und mobile Builds werden mit ihrer exakten Quelle abgeglichen. Die Android-App ist für eine künftige interne Veröffentlichung vorbereitet."
+            }
+          ]
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Un calcolatore di budget svizzero",
+              "description": "Componi le spese riga per riga per ottenere una stima chiara e personalizzabile."
+            },
+            {
+              "title": "Più consigli per la Svizzera",
+              "description": "Nuove guide e confronti aiutano a scegliere un metodo e un’app adatti al proprio budget."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Impostazione della lingua coerente",
+              "description": "Su iOS, il selettore della lingua ora si integra naturalmente con le altre preferenze."
+            },
+            {
+              "title": "Accesso iOS più affidabile",
+              "description": "Un avvio in background non causa più una falsa disconnessione."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Pubblicazioni più sicure",
+              "description": "Deploy, migrazioni e build mobili vengono verificati rispetto alla fonte esatta. L’app Android è pronta per una futura distribuzione interna."
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
     "version": "0.45.1",
     "iosVersion": "1.4.1",
     "date": "2026-08-18",

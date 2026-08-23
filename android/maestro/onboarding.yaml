@@ -1,0 +1,86 @@
+# Journey 1 — a stranger becomes a user with a budget.
+#
+# Not in the preview workflow on purpose: this registers a real account against
+# the API, so running it on every push would seed the database with a build's
+# worth of throwaway users. Run it by hand before a release, with an address
+# nobody minds:
+#   maestro test -e EMAIL=pulpe+$(date +%s)@example.test maestro/onboarding.yaml
+#
+# Deliberately shallow on the money steps — it answers the minimum each one
+# demands and moves on. What it proves is that the eight screens chain without
+# a dead end, not that the arithmetic is right; that is what the unit tests do.
+#
+# Step order follows `src/features/onboarding/onboarding-step.ts`: the account
+# is created second, before any amount is collected, because every figure after
+# it is encrypted under the code chosen at the end.
+appId: app.pulpe.android
+env:
+  EMAIL: pulpe-e2e@example.test
+  PASSWORD: "MaestroTest2026!"
+  PIN: "1234"
+---
+- launchApp:
+    clearState: true
+
+# 1. welcome
+- assertVisible: "S'inscrire avec un e-mail"
+- tapOn: "S'inscrire avec un e-mail"
+
+# 2. firstName
+- tapOn: "Prénom"
+- inputText: "Maestro"
+- hideKeyboard
+- tapOn: "Continuer"
+
+# 3. registration
+- assertVisible: "Crée ton compte"
+- tapOn: "E-mail"
+- inputText: ${EMAIL}
+- tapOn: "Mot de passe"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: "Créer mon compte"
+
+# 4. income — the only figure the flow cannot skip.
+- extendedWaitUntil:
+    visible: "Revenu mensuel net"
+    timeout: 30000
+- tapOn: "Revenu mensuel net"
+- inputText: "5000"
+- hideKeyboard
+- tapOn: "Continuer"
+
+# 5. charges, 6. savings — both are optional and accept being left empty.
+- assertVisible: "Tes dépenses"
+- tapOn: "Continuer"
+- assertVisible: "Ton épargne"
+- tapOn: "Continuer"
+
+# 7. budgetPreview — the number the whole flow was for.
+- assertVisible: "Disponible à dépenser"
+- tapOn: "C'est parti"
+
+# 8. pinSetup — chosen, then confirmed.
+- extendedWaitUntil:
+    visible: "Choisis ton code"
+    timeout: 15000
+- tapOn: ${PIN.charAt(0)}
+- tapOn: ${PIN.charAt(1)}
+- tapOn: ${PIN.charAt(2)}
+- tapOn: ${PIN.charAt(3)}
+- extendedWaitUntil:
+    visible: "Confirme ton code"
+    timeout: 15000
+- tapOn: ${PIN.charAt(0)}
+- tapOn: ${PIN.charAt(1)}
+- tapOn: ${PIN.charAt(2)}
+- tapOn: ${PIN.charAt(3)}
+
+# The handoff, then the month itself.
+- extendedWaitUntil:
+    visible: "Commencer"
+    timeout: 60000
+- tapOn: "Commencer"
+- extendedWaitUntil:
+    visible: "Ajouter"
+    timeout: 30000

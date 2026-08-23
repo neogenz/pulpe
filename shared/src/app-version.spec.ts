@@ -1,31 +1,35 @@
 import { describe, expect, it } from 'vitest';
 import { appVersionResponseSchema } from '../schemas.js';
 
+const ANDROID = { minVersion: '0.43.0', latestVersion: '0.43.0' };
+const IOS = { minVersion: '1.0.0', latestVersion: '1.0.0' };
+const WEB = { minVersion: '0.0.1', latestVersion: '0.0.1' };
+
+function payload(overrides: Record<string, unknown> = {}) {
+  return {
+    success: true,
+    data: { android: ANDROID, ios: IOS, web: WEB, ...overrides },
+  };
+}
+
 describe('appVersionResponseSchema', () => {
   it('should accept a well-formed payload with storeUrl', () => {
-    const result = appVersionResponseSchema.safeParse({
-      success: true,
-      data: {
-        ios: {
-          minVersion: '1.0.0',
-          latestVersion: '1.0.2',
-          storeUrl: 'https://apps.apple.com/app/pulpe',
+    const result = appVersionResponseSchema.safeParse(
+      payload({
+        android: {
+          ...ANDROID,
+          storeUrl:
+            'https://play.google.com/store/apps/details?id=app.pulpe.android',
         },
-        web: { minVersion: '0.0.1', latestVersion: '0.34.1' },
-      },
-    });
+        ios: { ...IOS, storeUrl: 'https://apps.apple.com/app/pulpe' },
+      }),
+    );
 
     expect(result.success).toBe(true);
   });
 
   it('should accept a payload without storeUrl', () => {
-    const result = appVersionResponseSchema.safeParse({
-      success: true,
-      data: {
-        ios: { minVersion: '1.0.0', latestVersion: '1.0.0' },
-        web: { minVersion: '0.0.1', latestVersion: '0.0.1' },
-      },
-    });
+    const result = appVersionResponseSchema.safeParse(payload());
 
     expect(result.success).toBe(true);
   });
@@ -33,50 +37,42 @@ describe('appVersionResponseSchema', () => {
   it.each(['1.0', '1', 'latest', '1.0.0-beta', '1.0.0.1', ''])(
     'should reject non-semver version: %s',
     (value) => {
-      const result = appVersionResponseSchema.safeParse({
-        success: true,
-        data: {
-          ios: { minVersion: value, latestVersion: '1.0.0' },
-          web: { minVersion: '0.0.1', latestVersion: '0.0.1' },
-        },
-      });
+      const result = appVersionResponseSchema.safeParse(
+        payload({ ios: { minVersion: value, latestVersion: '1.0.0' } }),
+      );
 
       expect(result.success).toBe(false);
     },
   );
 
   it('should reject non-URL storeUrl', () => {
-    const result = appVersionResponseSchema.safeParse({
-      success: true,
-      data: {
-        ios: { minVersion: '1.0.0', latestVersion: '1.0.0', storeUrl: 'oops' },
-        web: { minVersion: '0.0.1', latestVersion: '0.0.1' },
-      },
-    });
+    const result = appVersionResponseSchema.safeParse(
+      payload({ ios: { ...IOS, storeUrl: 'oops' } }),
+    );
 
     expect(result.success).toBe(false);
   });
 
   it('should reject success=false', () => {
     const result = appVersionResponseSchema.safeParse({
+      ...payload(),
       success: false,
-      data: {
-        ios: { minVersion: '1.0.0', latestVersion: '1.0.0' },
-        web: { minVersion: '0.0.1', latestVersion: '0.0.1' },
-      },
     });
 
     expect(result.success).toBe(false);
   });
 
-  it('should reject missing web platform', () => {
-    const result = appVersionResponseSchema.safeParse({
-      success: true,
-      data: {
-        ios: { minVersion: '1.0.0', latestVersion: '1.0.0' },
-      },
-    });
+  it.each(['android', 'ios', 'web'] as const)(
+    'should reject a payload missing the %s platform',
+    (platform) => {
+      const { [platform]: _dropped, ...remaining } = payload().data;
 
-    expect(result.success).toBe(false);
-  });
+      const result = appVersionResponseSchema.safeParse({
+        success: true,
+        data: remaining,
+      });
+
+      expect(result.success).toBe(false);
+    },
+  );
 });

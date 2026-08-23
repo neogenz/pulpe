@@ -32,6 +32,7 @@ import type {
   BudgetDataForRecalc,
   BudgetRepositoryPort,
 } from '../../domain/ports/budget-repository.port';
+import type { HistoryMonth } from '../../domain/drift-history';
 import type {
   MaterializedBudgetPeriod,
   SavingsGoalHorizonPort,
@@ -109,6 +110,7 @@ export class SupabaseBudgetRepository
 
   async fetchBudgetsWithFilters(filters: {
     limit?: number;
+    offset?: number;
     year?: number;
   }): Promise<Budget[]> {
     const supabase = this.supabaseProvider.client;
@@ -118,8 +120,11 @@ export class SupabaseBudgetRepository
       .order('year', { ascending: false })
       .order('month', { ascending: false });
 
-    if (filters.limit) query = query.limit(filters.limit);
     if (filters.year) query = query.eq('year', filters.year);
+    if (filters.limit !== undefined) {
+      const offset = filters.offset ?? 0;
+      query = query.range(offset, offset + filters.limit - 1);
+    }
 
     const { data, error } = await query;
 
@@ -750,6 +755,72 @@ export class SupabaseBudgetRepository
     );
 
     return aggregatesMap;
+  }
+
+  async fetchHistoryData(
+    budgets: { id: string; month: number; year: number }[],
+  ): Promise<HistoryMonth[]> {
+    if (budgets.length === 0) return [];
+    const budgetIds = budgets.map((b) => b.id);
+
+    const supabase = this.supabaseProvider.client;
+    const [budgetLinesResult, transactionsResult] = await Promise.all([
+      supabase
+        .from('budget_line')
+        .select('id, budget_id, kind, amount, checked_at')
+        .in('budget_id', budgetIds),
+      supabase
+        .from('transaction')
+        .select('budget_id, kind, amount, budget_line_id, transaction_date')
+        .in('budget_id', budgetIds),
+    ]);
+
+    if (budgetLinesResult.error || transactionsResult.error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'fetchHistoryData',
+          entityType: 'budget',
+          supabaseError: budgetLinesResult.error ?? transactionsResult.error,
+        },
+        { cause: budgetLinesResult.error ?? transactionsResult.error },
+      );
+    }
+
+    const budgetLines = budgetLinesResult.data ?? [];
+    const transactions = transactionsResult.data ?? [];
+
+    const hasEncryptedData =
+      budgetLines.some((l) => l.amount) || transactions.some((t) => t.amount);
+    const dek = hasEncryptedData
+      ? await this.encryption.getDekFor(this.supabaseProvider.user)
+      : null;
+    const decrypt = (ciphertext: string | null): number =>
+      ciphertext && dek
+        ? this.encryption.tryDecryptAmount(ciphertext, dek, 0)
+        : 0;
+
+    return budgets.map(({ id, month, year }) => ({
+      month,
+      year,
+      budgetLines: budgetLines
+        .filter((l) => l.budget_id === id)
+        .map((l) => ({
+          id: l.id,
+          kind: l.kind,
+          amount: decrypt(l.amount),
+          checkedAt: l.checked_at,
+        })),
+      transactions: transactions
+        .filter((t) => t.budget_id === id)
+        .map((t) => ({
+          kind: t.kind,
+          amount: decrypt(t.amount),
+          budgetLineId: t.budget_line_id,
+          transactionDate: t.transaction_date,
+        })),
+    }));
   }
 
   async fetchBudgetIdByPeriod(

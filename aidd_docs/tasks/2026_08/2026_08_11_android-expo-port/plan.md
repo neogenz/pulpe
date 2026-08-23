@@ -12,7 +12,7 @@ status: pending
 | **Goal**   | Nouvelle app `android/` (Expo, RN, TS strict) dans le monorepo, parité 1:1 avec les ~60 écrans iOS, data via backend-nest    |
 | **Source** | Brainstorm du 2026-08-11 (stack verrouillée : Expo/RN, pas d'IAP, iOS SwiftUI définitif) + inventaire iOS/web/backend/shared |
 
-Stack verrouillée : Expo SDK · Expo Router · Zustand · TanStack Query · MMKV · Reanimated · Gesture Handler · expo-haptics · Sentry · PostHog · EAS (Build/Update/Workflows) · Maestro. `pulpe-shared` consommé directement (schemas Zod + calculators) — le miroir de formules reste à 2 sens (shared ↔ iOS).
+Stack verrouillée : Expo SDK · Expo Router · Zustand · TanStack Query · MMKV · Reanimated · Gesture Handler · expo-haptics · PostHog · EAS (Build/Update/Workflows) · Maestro. `pulpe-shared` consommé directement (schemas Zod + calculators) — le miroir de formules reste à 2 sens (shared ↔ iOS).
 
 L'app iOS est la référence de parité : chaque écran, flow et comportement est spécifié par `ios/Pulpe/`. La webapp sert de référence secondaire pour les flows auth/vault. Copy produit en français (cf. vocabulaire AGENTS.md).
 

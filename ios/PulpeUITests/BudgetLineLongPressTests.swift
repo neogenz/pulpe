@@ -202,7 +202,7 @@ final class BudgetLineLongPressTests: XCTestCase {
             app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = "accessibility3"
         }
         app.launch()
-        let budget = app.buttons["budgetCard-\(Self.goalSpreadBudgetId)"]
+        let budget = app.buttons["budgetMonthRow-\(Self.goalSpreadBudgetId)"]
         XCTAssertTrue(budget.waitForExistence(timeout: 10))
         budget.tap()
     }

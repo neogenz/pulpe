@@ -126,6 +126,16 @@ struct BudgetTypeFilter: View {
     let counts: BudgetLineKindCounts
     let checkedCounts: CheckedFilterCounts
 
+    /// The Three Families Rule: natures are solid / outlined, the état filter is the one
+    /// semantic chip and only reads active while it narrows the list.
+    static func kindChipStyle<Trailing: View>(isSelected: Bool) -> PulpeChip<Trailing>.Style {
+        isSelected ? .solid : .outlined
+    }
+
+    static func checkedChipStyle<Trailing: View>(for option: CheckedFilterOption) -> PulpeChip<Trailing>.Style {
+        option == .all ? .outlined : .semantic(.financialSavings)
+    }
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: DesignTokens.ChipMetrics.Standard.interChipGap) {
@@ -156,13 +166,10 @@ struct BudgetTypeFilter: View {
             checkedMenuItems()
         } label: {
             PulpeChip(
+                icon: "checkmark.circle",
                 label: checked.label,
                 count: checkedCounts.count(for: checked),
-                // Solid whenever the filter is narrowing the list — including the
-                // `.unchecked` default. Left permanently `.outlined`, the control
-                // read as inactive while it hid rows, and the "Tout est pointé"
-                // empty state looked like an empty budget. Matches `typePill()`.
-                style: checked == .all ? .outlined : .solid,
+                style: Self.checkedChipStyle(for: checked),
                 trailing: {
                     Image(systemName: "chevron.down")
                         .font(PulpeTypography.metricMini)
@@ -177,7 +184,11 @@ struct BudgetTypeFilter: View {
         .menuStyle(.button)
         .plainPressedButtonStyle()
         .accessibilityLabel("Filtre d'état")
-        .accessibilityValue("\(checked.label), \(checkedCounts.count(for: checked)) éléments")
+        .accessibilityValue(
+            checked == .all
+                ? "\(checked.label), \(checkedCounts.count(for: checked)) éléments"
+                : "\(checked.label), activé, \(checkedCounts.count(for: checked)) éléments"
+        )
         .accessibilityHint("Touche deux fois pour ouvrir le menu de filtres d'état.")
     }
 
@@ -213,7 +224,7 @@ struct BudgetTypeFilter: View {
             PulpeChip(
                 label: option.label,
                 count: count,
-                style: isSelected ? .solid : .outlined,
+                style: Self.kindChipStyle(isSelected: isSelected),
                 isDisabled: isDisabled
             )
         }

@@ -7,7 +7,7 @@ final class BudgetLinkedForecastDeleteUITests: XCTestCase {
         app.launchEnvironment["UITEST_SCENARIO"] = "UITEST_BUDGET_LINKED_FORECAST_DELETE"
         app.launch()
 
-        let budget = app.buttons["budgetCard-linked-delete-budget"]
+        let budget = app.buttons["budgetMonthRow-linked-delete-budget"]
         XCTAssertTrue(budget.waitForExistence(timeout: 10))
         budget.tap()
 

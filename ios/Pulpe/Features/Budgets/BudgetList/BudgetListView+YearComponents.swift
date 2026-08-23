@@ -1,11 +1,15 @@
 import SwiftUI
 
-// MARK: - Year Recap Card
+// MARK: - Year Recap (hero zone content)
 
+/// Hero content of the yearly view (ios/DESIGN.md, One Hero per screen): the signed
+/// year-end balance, two tiles and a verdict. Painted on `HeroZoneSurface` by the parent.
 struct YearRecapCard: View {
     let year: Int
     let budgets: [BudgetSparse]
     var isPastYear: Bool = false
+    /// Sum of the positive `remaining` of the months still ahead; 0 on a past year.
+    var upcomingPotential: Decimal = 0
 
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -17,15 +21,6 @@ struct YearRecapCard: View {
         BudgetFormulas.yearClosingBalance(budgets)
     }
 
-    private var emotionColor: Color {
-        closingBalance >= 0 ? Color.pulpePrimary : Color.financialExpense
-    }
-
-    private var monthProgress: Double {
-        guard !budgets.isEmpty else { return 0 }
-        return Double(budgets.count) / 12.0
-    }
-
     private var subtitle: String {
         let count = budgets.count
         if count == 0 {
@@ -35,23 +30,34 @@ struct YearRecapCard: View {
             return AppLocale.string("Tu as budgétisé toute l'année. Bravo !")
         }
         return AppLocale.string("Tu as budgétisé \(count) mois sur 12 sur l'année.")
-            + " " + AppLocale.string("Ton potentiel de croissance est encore incomplet.")
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            (isPastYear ? Text("Bilan de l'année") : Text("Potentiel de l'année"))
-                .font(PulpeTypography.stepTitle)
-                .foregroundStyle(Color.textPrimary)
-                .tracking(DesignTokens.Tracking.title)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            HeroFigure(
+                eyebrow: isPastYear ? AppLocale.string("Bilan de l'année") : AppLocale.string("Solde fin d'année"),
+                amount: closingBalance,
+                currency: userSettingsStore.currency,
+                signed: true,
+                alignment: .leading,
+                accessibilityIdentifier: "yearRecapAmount"
+            )
 
-            heroAmount
+            HeroMetricTileRow {
+                HeroMetricTile(
+                    icon: "calendar",
+                    label: AppLocale.string("mois"),
+                    value: "\(budgets.count) / 12"
+                )
+                HeroMetricTile(
+                    icon: "sparkles",
+                    label: AppLocale.string("potentiel"),
+                    value: upcomingPotential.asSignedCompactAmount(for: userSettingsStore.currency),
+                    tint: upcomingPotential < 0 ? .heroAccentDeficit : .heroInk
+                )
+            }
 
-            progressBar
-
-            Text(subtitle)
-                .font(PulpeTypography.detailLabel)
-                .foregroundStyle(Color.secondary)
+            HeroVerdictRow(sentence: subtitle)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
@@ -66,44 +72,12 @@ struct YearRecapCard: View {
             + AppLocale.string("\(budgets.count) mois sur 12")
         )
     }
-
-    private var heroAmount: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xs) {
-            Text(closingBalance.asSignedCompactAmount(for: userSettingsStore.currency))
-                .font(PulpeTypography.heroIcon)
-                .monospacedDigit()
-                .tracking(DesignTokens.Tracking.hero)
-                .foregroundStyle(emotionColor)
-                .sensitiveAmount()
-            Text(userSettingsStore.currency.symbol)
-                .font(PulpeTypography.sectionTitle)
-                .foregroundStyle(emotionColor)
-        }
-    }
-
-    private var progressBar: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.textPrimary.opacity(DesignTokens.Opacity.highlightBackground))
-                    .frame(height: DesignTokens.ProgressBar.heroHeight)
-                Capsule()
-                    .fill(emotionColor)
-                    .frame(
-                        width: max(
-                            geo.size.width * monthProgress,
-                            DesignTokens.ProgressBar.heroHeight
-                        ),
-                        height: DesignTokens.ProgressBar.heroHeight
-                    )
-            }
-        }
-        .frame(height: DesignTokens.ProgressBar.heroHeight)
-    }
 }
 
 // MARK: - Year Picker
 
+/// Horizontal year selector in hero ink: the selection is a `heroTile` tile, the others
+/// plain `heroInkSecondary` text.
 struct YearPicker: View {
     let years: [Int]
     @Binding var selectedYear: Int
@@ -111,8 +85,8 @@ struct YearPicker: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    ForEach(Array(years.enumerated()), id: \.element) { index, year in
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    ForEach(years, id: \.self) { year in
                         let isSelected = selectedYear == year
                         Button {
                             withAnimation(.snappy(duration: DesignTokens.Animation.fast)) {
@@ -121,48 +95,25 @@ struct YearPicker: View {
                         } label: {
                             Text(String(year))
                                 .font(PulpeTypography.labelLargeBold)
-                                .foregroundStyle(
-                                    isSelected ? Color.pulpePrimary : Color.secondary
-                                )
-                                .padding(.horizontal, DesignTokens.Spacing.xxl)
+                                .foregroundStyle(isSelected ? Color.heroInk : Color.heroInkSecondary)
+                                .padding(.horizontal, DesignTokens.Spacing.lg)
                                 .padding(.vertical, DesignTokens.Spacing.sm)
                                 .background(
-                                    isSelected
-                                        ? Color.pulpePrimary.opacity(DesignTokens.Opacity.faint)
-                                        : Color.clear
-                                )
-                                .clipShape(Capsule())
-                                .overlay(
-                                    Capsule().strokeBorder(
-                                        isSelected
-                                            ? Color.pulpePrimary
-                                            : Color.clear,
-                                        lineWidth: DesignTokens.BorderWidth.thin
-                                    )
+                                    isSelected ? Color.heroTile : Color.clear,
+                                    in: .rect(cornerRadius: DesignTokens.CornerRadius.button)
                                 )
                         }
                         .id(year)
                         .frame(minHeight: DesignTokens.TapTarget.minimum)
-                        .contentShape(Capsule())
+                        .contentShape(Rectangle())
                         .plainPressedButtonStyle()
                         .accessibilityLabel("Année \(year)")
                         .accessibilityAddTraits(
                             isSelected ? [.isButton, .isSelected] : .isButton
                         )
-
-                        // Separator between years
-                        if index < years.count - 1 {
-                            Text("|")
-                                .font(PulpeTypography.onboardingSubtitle)
-                                .foregroundStyle(
-                                    Color.secondary.opacity(DesignTokens.Opacity.secondary)
-                                )
-                                .padding(.horizontal, DesignTokens.Spacing.xs)
-                                .accessibilityHidden(true)
-                        }
                     }
                 }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
             }
             .scrollClipDisabled()
             .sensoryFeedback(.selection, trigger: selectedYear)

@@ -287,23 +287,6 @@ final class OnboardingState {
         saveToStorage()
     }
 
-    /// Fire the `onboarding_step_completed` event for a given step.
-    /// Enriched with `step_index` (1-based), `step_total` (total visible for this path), and
-    /// `auth_method` so PostHog funnels are resilient to future step reordering.
-    private func captureStepCompleted(_ step: OnboardingStep) {
-        let bar = progressBarSteps
-        let index = (bar.firstIndex(of: step).map { $0 + 1 }) ?? 0
-        AnalyticsService.shared.capture(
-            .onboardingStepCompleted,
-            properties: [
-                "step": step.analyticsName,
-                "step_index": index,
-                "step_total": bar.count,
-                "auth_method": authMethodProperty
-            ]
-        )
-    }
-
     /// Stable string describing the auth method for analytics properties.
     /// Matches `login_completed.method` convention: `email | apple | google`.
     /// Defaults to `email` before authentication since the only non-email entry
@@ -481,6 +464,40 @@ extension OnboardingState {
         currency = newCurrency
         if newCurrency != .chf {
             healthInsurance = nil
+        }
+    }
+}
+
+// MARK: - Step completion analytics
+
+extension OnboardingState {
+    /// Fire the `onboarding_step_completed` event for a given step.
+    /// Enriched with `step_index` (1-based), `step_count` (steps visible for this path), and
+    /// `auth_method` so PostHog funnels are resilient to future step reordering.
+    func captureStepCompleted(_ step: OnboardingStep) {
+        let bar = progressBarSteps
+        let index = (bar.firstIndex(of: step).map { $0 + 1 }) ?? 0
+        var properties: [String: Any] = [
+            "step": step.analyticsName,
+            "step_index": index,
+            // Not `step_total`: `sanitizeProperties` drops any key carrying `total`.
+            "step_count": bar.count,
+            "auth_method": authMethodProperty
+        ]
+        if isStepSkipped(step) {
+            properties["skipped"] = true
+        }
+        AnalyticsService.shared.capture(.onboardingStepCompleted, properties: properties)
+    }
+
+    /// « Passer » is « Continuer » with nothing filled: an optional step crossed without a
+    /// single amount reports `skipped` so the funnel can tell a blank from an answer.
+    func isStepSkipped(_ step: OnboardingStep) -> Bool {
+        guard step.isOptional else { return false }
+        switch step {
+        case .charges: return totalCharges == 0
+        case .savings: return totalSavings == 0
+        default: return false
         }
     }
 }

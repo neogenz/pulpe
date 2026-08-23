@@ -277,6 +277,7 @@ export function createMockBudgetDetailsResponse(overrides?: {
       budget,
       budgetLines,
       transactions,
+      history: null,
     },
   };
 }

@@ -5,6 +5,10 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { SEMVER_PATTERN, isVersionAtMost } from '@common/utils/semver-compare';
 
 const APP_STORE_LOOKUP_URL = 'https://itunes.apple.com/lookup';
+// Apple answers the country-less lookup from a staler cache: on 2026-08-23 it still
+// returned 1.4.1, three days after 1.4.2 went live and reached every `&country=`
+// storefront, US included. Any storefront lifts the lag; `ch` is where Pulpe ships.
+const APP_STORE_LOOKUP_STOREFRONT = 'ch';
 const APP_STORE_ID_PATTERN = /id(\d+)/;
 const APP_STORE_LOOKUP_SCHEMA = z.object({
   results: z
@@ -131,9 +135,12 @@ export class IosVersionGateService implements OnApplicationBootstrap {
   }
 
   async #fetchPublishedVersion(appStoreId: string): Promise<string> {
-    const response = await fetch(`${APP_STORE_LOOKUP_URL}?id=${appStoreId}`, {
-      signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
-    });
+    const response = await fetch(
+      `${APP_STORE_LOOKUP_URL}?id=${appStoreId}&country=${APP_STORE_LOOKUP_STOREFRONT}`,
+      {
+        signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
+      },
+    );
     if (!response.ok) {
       throw new Error(`App Store lookup returned HTTP ${response.status}`);
     }

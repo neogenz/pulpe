@@ -1,6 +1,6 @@
 # Information affichée à l'inscription
 
-> Note d'implémentation du parcours de création de compte web et iOS. Ce document décrit
+> Note d'implémentation du parcours de création de compte web, iOS et Android. Ce document décrit
 > le comportement actuel ; il ne constitue pas un avis juridique.
 
 ## Formulation actuelle
@@ -17,6 +17,8 @@ Surfaces concernées :
 - web : `feature/auth/signup`
 - iOS : `Onboarding/Steps/WelcomeStep` et `RegistrationStep`, via
   `AppURLs.legalDisclosure`
+- Android : `features/onboarding/steps/welcome-step` et `registration-step`, via
+  `LegalConsent`
 
 `LoginView.termsFooter` contient seulement des liens vers les documents légaux.
 
@@ -26,10 +28,13 @@ Les diagnostics PostHog sont activés par défaut. Un réglage local permet de l
 immédiatement :
 
 - web : **Paramètres → Données de diagnostic → Partager les diagnostics** ;
-- iOS : **Préférences → Données et confidentialité → Partager les diagnostics**.
+- iOS : **Préférences → Données et confidentialité → Partager les diagnostics** ;
+- Android : **Préférences → Confidentialité → Partager les diagnostics**.
 
-Quand le réglage est actif, la session authentifiée peut être associée à l'UUID Supabase,
-à l'email et au prénom afin de relier les incidents signalés au compte concerné.
+Quand le réglage est actif, la session authentifiée est associée à l'UUID Supabase. Web
+et iOS peuvent aussi transmettre l'email et le prénom afin de relier un incident au
+compte concerné. Android limite son identité PostHog à l'UUID et au statut early adopter :
+aucun email ni prénom n'est envoyé par ce client.
 
 La désactivation :
 
@@ -38,8 +43,8 @@ La désactivation :
 - conserve le choix sur l'appareil.
 
 La réactivation associe de nouveau la session authentifiée. Les champs sensibles sont
-exclus des captures par les configurations PostHog des clients web et iOS ; la politique
-de confidentialité décrit les catégories de données concernées.
+exclus des captures par les configurations PostHog des trois clients ; la politique de
+confidentialité décrit les catégories de données concernées.
 
 ## Revue
 

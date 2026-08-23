@@ -165,19 +165,25 @@ struct AddAllocatedTransactionPage: View {
                 currency: effectiveCurrency
             )
 
-            descriptionField(line: line)
-
-            TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency)
-
-            if realization == nil {
-                CheckedToggle(isOn: $isChecked, tintColor: line.kind.color)
-            } else {
-                Text("Ce Réel sera créé pointé.")
-                    .font(PulpeTypography.footnote)
-                    .foregroundStyle(Color.onSurfaceVariant)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            // Three blocks: the amount above, what it is, then the details.
+            FormCard {
+                descriptionField(line: line)
             }
-            TagPickerField(selection: $selectedTagIds)
+
+            FormCard {
+                TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency, style: .row)
+                FormRowDivider()
+                if realization == nil {
+                    CheckedToggle(isOn: $isChecked, tintColor: line.kind.color, style: .row)
+                } else {
+                    Text("Ce Réel sera créé pointé.")
+                        .font(PulpeTypography.footnote)
+                        .foregroundStyle(Color.onSurfaceVariant)
+                        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+                }
+                FormRowDivider()
+                TagPickerField(selection: $selectedTagIds, style: .row)
+            }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -221,7 +227,8 @@ struct AddAllocatedTransactionPage: View {
             text: $name,
             label: AppLocale.string("Description"),
             focusBinding: $focusedField,
-            field: .description
+            field: .description,
+            style: .row
         )
     }
 

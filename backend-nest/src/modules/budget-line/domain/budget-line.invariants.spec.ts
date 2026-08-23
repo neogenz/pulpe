@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { BudgetLineInvariants } from './budget-line.invariants';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
-import type { SpreadSourceLine } from './budget-line.entity';
+import type { BudgetLine, SpreadSourceLine } from './budget-line.entity';
 
 const spreadSourceLine = (
   overrides: Partial<SpreadSourceLine> = {},
@@ -184,6 +184,49 @@ describe('BudgetLineInvariants', () => {
       const dto = { name: 'Nouveau nom', amount: 500 } as BudgetLineUpdate;
 
       expect(() => BudgetLineInvariants.validateUpdate(dto)).not.toThrow();
+    });
+  });
+
+  describe('validateMergedUpdate', () => {
+    const plannedWithdrawal = (overrides: Partial<BudgetLine> = {}) => ({
+      id: 'line-1',
+      budgetId: 'budget-1',
+      templateLineId: null,
+      savingsGoalId: null,
+      tagIds: [],
+      spreadGroupId: null,
+      savingsWithdrawalGroupId: null,
+      sourceSavingsGoalId: 'goal-1',
+      sourceSavingsGoalName: 'Vacances',
+      name: 'Retrait vacances',
+      amount: 500,
+      originalAmount: null,
+      originalCurrency: null,
+      targetCurrency: null,
+      exchangeRate: null,
+      kind: 'income' as const,
+      recurrence: 'one_off' as const,
+      isManuallyAdjusted: false,
+      checkedAt: null,
+      createdAt: '2026-08-01T00:00:00.000Z',
+      updatedAt: '2026-08-01T00:00:00.000Z',
+      ...overrides,
+    });
+
+    it('should reject a merged planned withdrawal with a structural change', () => {
+      expect(() =>
+        BudgetLineInvariants.validateMergedUpdate(
+          plannedWithdrawal({ recurrence: 'fixed' }),
+        ),
+      ).toThrow(BusinessException);
+    });
+
+    it('should accept a merged planned withdrawal metadata change', () => {
+      expect(() =>
+        BudgetLineInvariants.validateMergedUpdate(
+          plannedWithdrawal({ name: 'Retrait voyage', amount: 450 }),
+        ),
+      ).not.toThrow();
     });
   });
 

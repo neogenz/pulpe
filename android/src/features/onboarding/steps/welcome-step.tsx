@@ -1,0 +1,184 @@
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { Image, ScrollView, StyleSheet, View } from "react-native";
+import { Button, Divider, Text, useTheme } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import {
+  isGoogleSignInAvailable,
+  signInWithGoogle,
+} from "@/core/auth/google-sign-in";
+import { preferSignIn } from "@/core/navigation/landing-preference";
+import { useTranslation } from "@/core/i18n/locale-store";
+import { ICON_SIZE, SPACING } from "@/core/ui/theme";
+import { FieldError } from "@/core/ui/field-error";
+
+import { LegalConsent } from "../components/legal-consent";
+import { beginOnboarding, configureSocialUser } from "../onboarding-store";
+
+const BRAND_MARK_SIZE = 88;
+
+const BENEFITS = [
+  { icon: "format-list-bulleted", key: "plan" },
+  { icon: "check-circle-outline", key: "tracking" },
+  { icon: "lock-outline", key: "privacy" },
+] as const;
+
+/**
+ * The pitch, and the fork between the two signup paths. Google is offered
+ * first because it is one tap and skips two questions; e-mail is the path that
+ * always works. Both land in the same flow.
+ */
+export function WelcomeStep() {
+  const theme = useTheme();
+  const router = useRouter();
+  const { t } = useTranslation();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+
+  async function continueWithGoogle() {
+    setIsSigningIn(true);
+    setErrorMessage(null);
+    try {
+      const result = await signInWithGoogle();
+      if (result === null) return;
+      // The vault bootstrap decides whether this is a signup or a returning
+      // account. Until then, keep only the provider data needed by either path.
+      configureSocialUser(result.firstName);
+    } catch {
+      setErrorMessage(t("onboarding.welcome.googleError"));
+    } finally {
+      setIsSigningIn(false);
+    }
+  }
+
+  return (
+    <SafeAreaView
+      style={[styles.screen, { backgroundColor: theme.colors.background }]}
+    >
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.hero}>
+          <Image
+            source={require("../../../../assets/images/brand-mark.png")}
+            style={styles.brandMark}
+            accessibilityIgnoresInvertColors
+            accessible={false}
+          />
+          <Text variant="headlineLarge" style={styles.headline}>
+            {t("onboarding.welcome.title")}
+          </Text>
+          <Text
+            variant="bodyLarge"
+            style={[styles.headline, { color: theme.colors.onSurfaceVariant }]}
+          >
+            {t("onboarding.welcome.subtitle")}
+          </Text>
+        </View>
+
+        <View style={styles.benefits}>
+          {BENEFITS.map((benefit) => (
+            <View key={benefit.key} style={styles.benefitRow}>
+              <MaterialCommunityIcons
+                name={benefit.icon}
+                size={ICON_SIZE.lg}
+                color={theme.colors.primary}
+              />
+              <Text
+                variant="bodyMedium"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {t(`onboarding.welcome.benefits.${benefit.key}`)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={styles.actions}>
+        {errorMessage !== null && (
+          <FieldError visible>{errorMessage}</FieldError>
+        )}
+
+        {isGoogleSignInAvailable && (
+          <>
+            <Button
+              mode="contained"
+              icon="google"
+              loading={isSigningIn}
+              disabled={isSigningIn}
+              onPress={() => void continueWithGoogle()}
+            >
+              {t("onboarding.welcome.google")}
+            </Button>
+            <View style={styles.divider}>
+              <Divider style={styles.dividerLine} />
+              <Text
+                variant="bodySmall"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {t("common.or")}
+              </Text>
+              <Divider style={styles.dividerLine} />
+            </View>
+          </>
+        )}
+
+        <Button
+          mode={isGoogleSignInAvailable ? "outlined" : "contained"}
+          disabled={isSigningIn}
+          onPress={beginOnboarding}
+        >
+          {t("onboarding.welcome.emailSignup")}
+        </Button>
+
+        <Button
+          mode="text"
+          disabled={isSigningIn}
+          onPress={() => {
+            // The ask is recorded before the move: `/` re-states the landing
+            // decision every time it regains focus, and the router passes back
+            // through it on the way across. On record, that re-statement agrees
+            // with where the user is going; without it, it sends them back.
+            preferSignIn();
+            router.replace("/sign-in");
+          }}
+        >
+          {t("onboarding.welcome.signIn")}
+        </Button>
+
+        <LegalConsent prefix={t("onboarding.welcome.legalPrefix")} />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  content: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: SPACING.lg,
+    gap: SPACING.xxl,
+  },
+  hero: { alignItems: "center", gap: SPACING.md },
+  brandMark: { width: BRAND_MARK_SIZE, height: BRAND_MARK_SIZE },
+  headline: { textAlign: "center" },
+  benefits: { gap: SPACING.md },
+  benefitRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
+  },
+  actions: {
+    padding: SPACING.lg,
+    paddingTop: 0,
+    gap: SPACING.sm,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+  },
+  dividerLine: { flex: 1 },
+});

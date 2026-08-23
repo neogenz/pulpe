@@ -1,70 +1,48 @@
 import SwiftUI
 
-/// Segmented progress indicator for onboarding steps.
+/// Thin progress bar of the onboarding, rendered in the bottom zone under the CTA.
 /// Takes the actual visible steps so the count reflects what the user sees
 /// (e.g. social users with a provider name don't see firstName or registration).
 struct OnboardingProgressIndicator: View {
     let currentStep: OnboardingStep
     let progressSteps: [OnboardingStep]
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private var currentPosition: Int {
         progressSteps.firstIndex(of: currentStep).map { $0 + 1 } ?? 0
     }
 
-    private var currentIndex: Int {
-        progressSteps.firstIndex(of: currentStep) ?? 0
-    }
-
     private var totalCount: Int { progressSteps.count }
 
-    var body: some View {
-        VStack(alignment: .center, spacing: DesignTokens.Spacing.xs) {
-            HStack(spacing: DesignTokens.Spacing.xs) {
-                ForEach(0..<totalCount, id: \.self) { index in
-                    Capsule()
-                        .fill(segmentFill(for: index))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: segmentHeight(for: index))
-                }
-            }
+    private var fraction: CGFloat {
+        guard totalCount > 0 else { return 0 }
+        return CGFloat(currentPosition) / CGFloat(totalCount)
+    }
 
-            Text("\(currentPosition) / \(totalCount)")
-                .font(PulpeTypography.caption2)
-                .foregroundStyle(Color.textTertiaryOnboarding)
-                .monospacedDigit()
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Rectangle()
+                .fill(Color.outlineVariant)
+            ProgressBarShape(progress: fraction)
+                .fill(Color.pulpePrimary)
+                .animation(reduceMotion ? nil : .easeOut(duration: DesignTokens.Animation.fast), value: fraction)
         }
+        .frame(height: DesignTokens.FrameHeight.progressBarThin)
+        .clipShape(.rect(cornerRadius: DesignTokens.FrameHeight.progressBarThin / 2))
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
-        .padding(.top, DesignTokens.Spacing.md)
-        .animation(PulpeAnimations.defaultSpring, value: currentIndex)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Étape \(currentPosition) sur \(totalCount), étape actuelle : \(currentStep.title)")
         .accessibilityValue("\(currentPosition) sur \(totalCount)")
-    }
-
-    private func segmentFill(for index: Int) -> Color {
-        if index < currentIndex {
-            Color.pulpePrimary.opacity(DesignTokens.Opacity.progressTrackActive)
-        } else if index == currentIndex {
-            Color.pulpePrimary
-        } else {
-            Color.secondary.opacity(DesignTokens.Opacity.badgeBackground)
-        }
-    }
-
-    private func segmentHeight(for index: Int) -> CGFloat {
-        index == currentIndex ? DesignTokens.Spacing.sm : DesignTokens.Spacing.xs
     }
 }
 
 #Preview {
     VStack(spacing: 40) {
-        // Email user — sees all 6 steps
         OnboardingProgressIndicator(
             currentStep: .firstName,
             progressSteps: [.firstName, .registration, .income, .charges, .savings, .budgetPreview]
         )
-        // Social user with name — skips firstName + registration → 4 steps
         OnboardingProgressIndicator(
             currentStep: .income,
             progressSteps: [.income, .charges, .savings, .budgetPreview]

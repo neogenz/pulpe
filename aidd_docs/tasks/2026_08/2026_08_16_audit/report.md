@@ -1,0 +1,44 @@
+# Codebase Audit: Android application
+
+The Android app is a mature, coherent Expo client with strong domain tests, shared contracts and careful privacy defaults. Overall health is **fair** because one isolated cold-start path bypasses the five-minute app lock; the remaining findings are bounded hardening and maintainability work.
+
+- Date: 2026-08-16
+- Scope: full Android application across seven AIDD pillars
+- Health: fair
+- Findings: 1 critical, 11 warnings, 4 minor
+
+## Findings
+
+| Sev | Category      | Location                                             | Issue                                                                                                                                                                     | Suggested fix                                                                                                                              | Effort |
+| --- | ------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| 🔴  | Security      | `android/src/core/vault/vault-store.ts:93`           | Cold bootstrap restores the standard client key and unlocks the vault; process death clears the in-memory background timer, bypassing the five-minute PIN/biometric lock. | Persist and enforce lock expiry before restoring the key, or do not persist an ungated key across cold launches; add a process-death test. | M      |
+| 🟡  | Security      | `android/src/features/onboarding/draft-storage.ts:9` | Plaintext financial onboarding drafts remain eligible for Android backup.                                                                                                 | Disable `android.allowBackup`; if backup becomes necessary, explicitly exclude or device-encrypt this store.                               | S      |
+| 🟡  | Security      | `android/src/core/config/env.ts:64`                  | Production service URLs are not required to use HTTPS, so a bad EAS profile can send credentials over HTTP.                                                               | Require `https:` outside explicit loopback development.                                                                                    | S      |
+| 🟢  | Security      | `android/src/core/linking/deep-links.ts:50`          | Malformed percent encoding in an external deep link throws during decoding.                                                                                               | Reject decode failures and validate identifiers.                                                                                           | S      |
+| 🟡  | Code quality  | `android/src/app/(main)/budget/[id].tsx:139`         | The 708-line budget route owns too many UI and mutation responsibilities.                                                                                                 | Extract only the row/search and overlay coordination seams, leaving the route as orchestrator.                                             | M      |
+| 🟡  | Architecture  | `android/src/core/tags/tag-queries.ts:4`             | `core` imports a budget feature cache key, reversing the dependency direction.                                                                                            | Move tags to features or move the neutral cache key to core.                                                                               | S      |
+| 🟢  | Architecture  | `aidd_docs/memory/architecture.md:4`                 | Android is absent from the architecture memory and system diagram.                                                                                                        | Add Android to the stack, data flow and mobile memory.                                                                                     | S      |
+| 🟡  | Dependencies  | `android/package.json:29`                            | Thirteen transitive Expo/Metro/Jest advisories remain (9 high, 4 moderate); observed paths are tooling-only.                                                              | Upgrade through a compatible Expo toolchain release and regenerate the lockfile.                                                           | M      |
+| 🟢  | Dependencies  | `android/package.json:21`                            | Six runtime dependencies and `@types/d3` have no import/config usage.                                                                                                     | Remove them and rerun export plus quality.                                                                                                 | S      |
+| 🟡  | Performance   | `android/src/core/ui/fading-rail.tsx:76`             | Scroll handling triggers React state updates every 16 ms for two edge booleans.                                                                                           | Update state only when edge visibility changes or move offset off the render path.                                                         | S      |
+| 🟡  | Performance   | `android/src/features/budgets/budget-api.ts:23`      | Budget history is fetched without a bound, so payload and validation cost grow indefinitely.                                                                              | Return current period plus cursor-paginated history.                                                                                       | M      |
+| 🟡  | Tests         | `android/src/core/auth/session-store.ts:39`          | Account sign-out/purge is uncovered despite guarding cross-account cache and key separation.                                                                              | Add one focused store purge test.                                                                                                          | S      |
+| 🟡  | Tests         | `android/.eas/workflows/deploy-preview.yml:6`        | Maestro is wired to EAS, but only for branch-name pushes; no local package script exists, and release docs say the workflow has never run.                                | Compose the stable flows, initialize EAS with a deterministic fixture, then enable a path-filtered pull-request check after burn-in.       | M      |
+| 🟡  | UI/UX         | `android/src/app/(main)/template/[id].tsx:95`        | Failed line/usage queries are rendered as an empty model and zero propagation impact.                                                                                     | Show explicit retry states and block propagation-sensitive edits until usage is known.                                                     | S      |
+| 🟡  | UI/UX         | `android/src/app/(main)/goal/[id].tsx:75`            | Progress and secondary query failures silently remove meaningful goal content.                                                                                            | Add a consolidated progress retry and optional-panel notices.                                                                              | S      |
+| 🟢  | Accessibility | `android/src/core/system/system-gate-screen.tsx:67`  | The maintenance animation ignores reduced motion.                                                                                                                         | Render a static frame when reduced motion is enabled.                                                                                      | S      |
+
+## Top actions
+
+1. **Close the vault bypass** at cold start and lock it with a process-death regression test.
+2. **Protect account/device boundaries** by disabling backup for plaintext drafts and testing the complete sign-out purge.
+3. **Stop presenting failed queries as valid empty data** on template and goal detail screens.
+4. **Make existing mobile E2E assets executable** through one package script and a release/emulator CI check.
+5. **Then reduce the two scaling hotspots**: the budget-detail route and unbounded budget history.
+
+## Coverage
+
+- Scanned: all seven pillars — code quality, architecture, security, dependencies, performance, tests and UI/UX — across 285 TypeScript/TSX files and relevant Android/project configuration.
+- Verified: TypeScript, ESLint and Prettier pass; all 64 Jest suites/472 tests pass; Expo production export succeeds; Expo's local dependency compatibility check passes.
+- Measured: 27.18% line coverage; 13 Android-path dependency advisories; 13 MB Expo export with 10 MB Hermes bytecode.
+- Skipped: device profiler, Maestro execution, TalkBack/visual inspection, dynamic penetration testing, dedicated cycle scanner and license inventory; each limitation is detailed in its pillar report.

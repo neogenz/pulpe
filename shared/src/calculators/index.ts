@@ -9,7 +9,27 @@
  * Voir shared/README.md section "Résolution des Modules ESM" pour plus de détails.
  */
 
-export { BudgetFormulas, isOutflowKind } from './budget-formulas.js';
+export {
+  BudgetFormulas,
+  isOutflowKind,
+  TIGHT_BUDGET_THRESHOLD_PERCENT,
+  type Consumption,
+  type EmotionState,
+  type TemplateTotals,
+} from './budget-formulas.js';
+export {
+  spreadOccurrenceItems,
+  spreadRealizedAmount,
+  spreadTracker,
+  type SpreadOccurrenceItem,
+  type SpreadTracker,
+} from './spread-progress.js';
+export {
+  calculateBalanceTrajectory,
+  type BalanceTrajectory,
+  type BalanceTrajectoryInput,
+  type BalanceTrajectoryPoint,
+} from './balance-trajectory.js';
 export { splitTotalPreserving } from './spread-split.js';
 export {
   PACE_TOLERANCE_PERCENT,

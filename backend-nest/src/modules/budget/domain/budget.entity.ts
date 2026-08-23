@@ -1,3 +1,4 @@
+import type { DriftHistory } from './drift-history';
 import type { Database } from '../../../types/database.types';
 
 export type BudgetRow = Database['public']['Tables']['monthly_budget']['Row'];
@@ -84,6 +85,7 @@ export interface BudgetWithDetails {
   transactions: TransactionDecrypted[];
   rollover: number;
   previousBudgetId: string | null;
+  history?: DriftHistory | null;
 }
 
 /**

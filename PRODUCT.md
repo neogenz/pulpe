@@ -24,9 +24,9 @@ Pulpe est un outil de planification budgétaire prospective. Son mécanisme dist
 
 ## Operating Context
 
-- L'application authentifiée existe sur le web avec Angular et sur iOS avec SwiftUI.
+- L'application authentifiée existe sur le web avec Angular, sur iOS avec SwiftUI et sur Android avec Expo/React Native.
 - Le landing Next.js présente le produit, ses bénéfices, ses plateformes et ses preuves.
-- Ces surfaces partagent la même vérité produit et le même vocabulaire, tout en respectant les conventions propres au web et à iOS.
+- Ces surfaces partagent la même vérité produit et le même vocabulaire, tout en respectant les conventions propres à chaque plateforme.
 - L'interface est en français et utilise toujours le tutoiement.
 - Les montants sont principalement exprimés en CHF ou en EUR.
 
@@ -71,11 +71,12 @@ Aucun autre témoignage, client, benchmark ou résultat commercial ne doit être
 2. **La clarté avant l'exhaustivité** — montrer l'information utile au bon moment sans recréer un tableur.
 3. **Le soulagement avant la pression** — réduire le stress budgétaire sans jugement, culpabilisation ou gamification.
 4. **Le contrôle reste à l'utilisateur** — Pulpe éclaire les choix et leurs conséquences sans décider à sa place.
-5. **Une vérité produit, des expériences natives** — conserver les mêmes règles et le même vocabulaire sur le web et iOS, avec une interface adaptée à chaque plateforme.
+5. **Une vérité produit, des expériences natives** — conserver les mêmes règles et le même vocabulaire sur le web, iOS et Android, avec une interface adaptée à chaque plateforme.
 
 ## Accessibility & Inclusion
 
 - WCAG AA minimum sur le web.
 - Dynamic Type et cibles tactiles de 44 pt minimum sur iOS.
+- Cibles tactiles accessibles et prise en charge des réglages système sur Android.
 - Réduction des animations lorsque le système le demande.
 - Aucun état ou concept financier communiqué par la couleur seule.

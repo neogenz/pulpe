@@ -30,6 +30,7 @@ export default async function FrenchRootLayout({
     <RootDocument
       locale={DEFAULT_LOCALE}
       graphDescription={site.graphDescription}
+      featureList={site.featureList}
     >
       {children}
     </RootDocument>

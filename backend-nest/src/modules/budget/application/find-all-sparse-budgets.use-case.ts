@@ -59,6 +59,7 @@ export class FindAllSparseBudgetsUseCase {
 
     const budgetsList = await this.repo.fetchBudgetsWithFilters({
       limit: query.limit,
+      offset: query.offset,
       year: query.year,
     });
     const budgetIds = budgetsList.map((b) => b.id);

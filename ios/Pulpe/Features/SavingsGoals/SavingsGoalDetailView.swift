@@ -1,11 +1,4 @@
-// swiftlint:disable file_length
 import SwiftUI
-
-struct SavingsGoalDeadlineDecision {
-    var update: SavingsGoalUpdate
-    let targetDate: String
-    let lines: [SavingsGoalFutureLine]
-}
 
 /// Progression detail for a single savings goal (PUL-8, CA7–CA9). Pushed from the
 /// goals list row; the edit form now opens from here (toolbar + the D1 CTA),
@@ -29,7 +22,7 @@ struct SavingsGoalDetailView: View {
     @Environment(DashboardStore.self) private var dashboardStore
     @Environment(\.dismiss) private var dismiss
 
-    @State private var viewModel: SavingsGoalDetailViewModel
+    @State var viewModel: SavingsGoalDetailViewModel
     @State private var editTarget: SavingsGoal?
     @State private var isSimulating = false
     @State private var pendingSimulatorBudgetId: String?
@@ -51,17 +44,23 @@ struct SavingsGoalDetailView: View {
 
     /// Latest goal from the cache so name/status edits reflect after the form
     /// dismisses; falls back to the pushed value before the store refreshes.
-    private var currentGoal: SavingsGoal {
+    var currentGoal: SavingsGoal {
         store.goals.first { $0.id == goal.id } ?? goal
     }
 
-    private var currency: SupportedCurrency { userSettingsStore.currency }
+    var currency: SupportedCurrency { userSettingsStore.currency }
+
+    /// The skeleton paints the same forest hero as the loaded screen, so the bar keeps
+    /// its light ink instead of flipping when the data lands. Only the error state,
+    /// which draws on the flat canvas, gives it back.
+    private var paintsHeroSurface: Bool {
+        viewModel.progress != nil || viewModel.error == nil
+    }
 
     var body: some View {
         Group {
             if viewModel.isLoading, viewModel.progress == nil {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                SavingsGoalDetailSkeletonView()
             } else if let progress = viewModel.progress {
                 content(progress: progress)
             } else if let error = viewModel.error {
@@ -70,7 +69,9 @@ struct SavingsGoalDetailView: View {
         }
         .navigationTitle(currentGoal.name)
         .navigationBarTitleDisplayMode(.inline)
-        .pulpeBackground()
+        .background { Color.appBackground.ignoresSafeArea() }
+        .toolbarColorScheme(paintsHeroSurface ? .dark : nil, for: .navigationBar)
+        .heroNavigationBar()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -78,9 +79,11 @@ struct SavingsGoalDetailView: View {
                 } label: {
                     Image(systemName: "pencil")
                 }
+                .heroToolbarButtonStyle(paintsHeroSurface)
                 .accessibilityLabel("Modifier l'objectif")
                 .accessibilityIdentifier("savingsGoalEditButton")
             }
+            .heroToolbarGroup(paintsHeroSurface)
         }
         .sheet(item: $editTarget, onDismiss: handleEditDismiss) { goal in
             SavingsGoalFormSheet(
@@ -141,52 +144,18 @@ struct SavingsGoalDetailView: View {
     @ViewBuilder
     private func content(progress: SavingsGoalProgress) -> some View {
         ScrollView {
-            // Section rhythm of the home: `xxl` between sections, `md` from a
-            // title to the card it introduces — the 2:1 ratio that tells which
-            // block a header belongs to.
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+            VStack(spacing: 0) {
                 hero(progress)
-                if progress.linkedLineCount == 0 {
-                    GoalEmptyGuidanceCard()
-                }
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.vertical, DesignTokens.Spacing.lg)
+                    .heroZone()
 
-                GoalDerivedStateCards(
-                    progress: progress,
-                    status: currentGoal.status,
-                    isMutatingStatus: viewModel.isMutatingStatus,
-                    futureLinesCount: viewModel.futureLines.count,
-                    onEdit: { editTarget = currentGoal },
-                    onComplete: { Task { await setStatus(.completed) } },
-                    onReopen: { Task { await setStatus(.active) } },
-                    onManageFutureLines: { Task { await proposeGenerationStop() } }
-                )
-
-                if SavingsGoalDetailViewModel.shouldShowPlanTimeline(progress) {
-                    if progress.linkedLineCount > 0 {
-                        // Construite une seule fois : la même série gate la section
-                        // et alimente le chart (jusqu'à ~96 mois mappés par lecture).
-                        let series = GoalProjectionSeries.read(from: progress)
-                        if series.hasConfirmedTrend {
-                            GoalTrajectorySection(progress: progress, series: series, currency: currency)
-                        }
-                    }
-                    GoalPlanTimelineSection(
-                        months: progress.months,
-                        currency: currency,
-                        plannedWithdrawals: viewModel.plannedWithdrawals,
-                        canAdjust: canAdjust(progress),
-                        canRepair: SavingsGoalDetailViewModel.canRepairPlan(progress, status: currentGoal.status),
-                        onAdjust: { isSimulating = true },
-                        onRepair: { showRecoveryRecap = true },
-                        onOpenBudget: openWithdrawal
-                    )
-                }
-
-                contributionsSection(progress)
-                withdrawalsSection
+                sections(progress)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.top, DesignTokens.Spacing.xxl)
+                    .padding(.bottom, DesignTokens.Spacing.lg)
+                    .contentZone()
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.lg)
         }
         .scrollContentBackground(.hidden)
         .refreshable { await viewModel.load() }
@@ -196,15 +165,51 @@ struct SavingsGoalDetailView: View {
         }
     }
 
-    private func hero(_ progress: SavingsGoalProgress) -> some View {
-        GoalProgressHero(
-            presentation: GoalHeroPresentation(
+    /// Section rhythm of the home: `xxl` between sections, `md` from a
+    /// title to the card it introduces — the 2:1 ratio that tells which
+    /// block a header belongs to.
+    @ViewBuilder
+    private func sections(_ progress: SavingsGoalProgress) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+            if progress.linkedLineCount == 0 {
+                GoalEmptyGuidanceCard()
+            }
+
+            GoalDerivedStateCards(
                 progress: progress,
                 status: currentGoal.status,
-                currency: currency
-            ),
-            status: currentGoal.status
-        )
+                isMutatingStatus: viewModel.isMutatingStatus,
+                futureLinesCount: viewModel.futureLines.count,
+                onEdit: { editTarget = currentGoal },
+                onComplete: { Task { await setStatus(.completed) } },
+                onReopen: { Task { await setStatus(.active) } },
+                onManageFutureLines: { Task { await proposeGenerationStop() } }
+            )
+
+            if SavingsGoalDetailViewModel.shouldShowPlanTimeline(progress) {
+                if progress.linkedLineCount > 0 {
+                    // Construite une seule fois : la même série gate la section
+                    // et alimente le chart (jusqu'à ~96 mois mappés par lecture).
+                    let series = GoalProjectionSeries.read(from: progress)
+                    if series.hasConfirmedTrend {
+                        GoalTrajectorySection(progress: progress, series: series, currency: currency)
+                    }
+                }
+                GoalPlanTimelineSection(
+                    months: progress.months,
+                    currency: currency,
+                    plannedWithdrawals: viewModel.plannedWithdrawals,
+                    canAdjust: canAdjust(progress),
+                    canRepair: SavingsGoalDetailViewModel.canRepairPlan(progress, status: currentGoal.status),
+                    onAdjust: { isSimulating = true },
+                    onRepair: { showRecoveryRecap = true },
+                    onOpenBudget: openWithdrawal
+                )
+            }
+
+            contributionsSection(progress)
+            withdrawalsSection
+        }
     }
 
     private func simulator(progress: SavingsGoalProgress) -> some View {
@@ -217,20 +222,6 @@ struct SavingsGoalDetailView: View {
             onOpenBudget: queueBudgetFromSimulator,
             onPlanConflict: { await handlePlanConflict() }
         )
-    }
-
-    @ViewBuilder
-    private func contributionsSection(_ progress: SavingsGoalProgress) -> some View {
-        if progress.linkedLineCount > 0 {
-            GoalContributionsSection(
-                contributions: viewModel.contributions,
-                currency: currency,
-                isLoading: viewModel.isLoadingContributions,
-                error: viewModel.contributionsError,
-                onRetry: { Task { await viewModel.loadContributions() } }
-            )
-            .accessibilityIdentifier("savingsGoalContributionsSection")
-        }
     }
 
     /// Survives an empty plan on purpose: a goal can lose every linked prévision
@@ -273,47 +264,6 @@ struct SavingsGoalDetailView: View {
         guard let budgetId = pendingSimulatorBudgetId else { return }
         pendingSimulatorBudgetId = nil
         openWithdrawal(budgetId)
-    }
-
-    /// Simulator entry (pilier C): active goal, at least one linked line, at least
-    /// one open month. Hidden for PAUSED/COMPLETED (no rhythm verdict → no editing).
-    private func canAdjust(_ progress: SavingsGoalProgress) -> Bool {
-        guard currentGoal.status == .active, progress.linkedLineCount > 0 else { return false }
-        return progress.months.contains { SavingsPlanCalculator.isContributivePlanMonth($0) }
-    }
-
-    private func recoveryChanges(
-        _ progress: SavingsGoalProgress
-    ) -> [SavingsPlanCalculator.SimulatedMonth] {
-        guard let amount = SavingsGoalDetailViewModel.recoveryAmount(progress) else { return [] }
-        // Each repaired month adds `amount` on top of every repair before it, so
-        // the running total accumulates — `plannedCumulative + amount` alone would
-        // report the same figure for all N months. Mirrors the accumulation
-        // `SavingsPlanCalculator.simulate` performs on the adjustment path.
-        var repaired = Decimal.zero
-        return progress.months.filter(\.isRepairable).map {
-            repaired += amount
-            return SavingsPlanCalculator.SimulatedMonth(
-                month: $0,
-                simulatedAmount: amount,
-                simulatedCumulative: $0.plannedCumulative + repaired,
-                isAdjusted: true,
-                replacesExistingPlanWithdrawal: false
-            )
-        }
-    }
-
-    /// Base `displayedProjection`, not `plannedProjection`: the sentence answers
-    /// the same question as the hero and the chart endpoint, so it has to start
-    /// from the same figure. `plannedProjection` never subtracts a withdrawal,
-    /// so on a goal without a target amount it quoted an « après création » above
-    /// what the curve reaches — two projections for one plan.
-    private func recoveryVerdict(_ progress: SavingsGoalProgress) -> String {
-        let changes = recoveryChanges(progress)
-        let added = changes.reduce(Decimal.zero) { $0 + $1.simulatedAmount }
-        return AppLocale.string(
-            "Projection après création : \((progress.displayedProjection + added).asAdaptiveCurrency(currency))"
-        )
     }
 }
 
@@ -521,186 +471,5 @@ private extension SavingsGoalDetailView {
                 ? AppLocale.string("\(result.affectedCount) prévision(s) conservée(s) sans objectif")
                 : AppLocale.string("\(result.affectedCount) prévision(s) retirée(s) de tes mois futurs")
         )
-    }
-}
-
-extension SavingsGoalDetailView {
-    @MainActor
-    static func refreshedDeadlineDecision(
-        id: String,
-        update: SavingsGoalUpdate,
-        targetDate: String,
-        store: SavingsGoalStore
-    ) async throws -> SavingsGoalDeadlineDecision? {
-        let lines = try await store.getFutureLines(id: id, targetDate: targetDate)
-        guard !lines.isEmpty else { return nil }
-        var update = update
-        update.reconciliation = nil
-        return SavingsGoalDeadlineDecision(update: update, targetDate: targetDate, lines: lines)
-    }
-
-    nonisolated static func deadlinePreviewTarget(
-        previous: String?,
-        update: String??,
-        payDayOfMonth: Int?
-    ) -> String? {
-        guard let previous,
-              case .some(let updatedValue) = update,
-              let updated = updatedValue,
-              let previousDate = SavingsGoalDateFormatter.parse(previous),
-              let updatedDate = SavingsGoalDateFormatter.parse(updated) else { return nil }
-        let previousPeriod = BudgetPeriodCalculator.periodForDate(previousDate, payDayOfMonth: payDayOfMonth)
-        let updatedPeriod = BudgetPeriodCalculator.periodForDate(updatedDate, payDayOfMonth: payDayOfMonth)
-        return BudgetPeriodCalculator.comparePeriods(updatedPeriod, previousPeriod) < 0 ? updated : nil
-    }
-}
-
-// MARK: - ViewModel
-
-/// Drives `SavingsGoalDetailView`: fetches the derived progression and routes
-/// status changes through `SavingsGoalStore` (so the goals list stays fresh),
-/// refetching progress after each change. The server owns every figure; this
-/// object only loads and mutates status.
-@Observable @MainActor
-final class SavingsGoalDetailViewModel {
-    let goalId: String
-
-    private(set) var progress: SavingsGoalProgress?
-    private(set) var contributions: [SavingsGoalContribution] = []
-    private(set) var withdrawals: [SavingsGoalWithdrawal] = []
-    private(set) var plannedWithdrawals: [SavingsGoalPlannedWithdrawal] = []
-    private(set) var planOnlyWithdrawals: [SavingsGoalPlanOnlyWithdrawal] = []
-    private(set) var futureLines: [SavingsGoalFutureLine] = []
-    private(set) var isLoading = true
-    private(set) var isLoadingContributions = false
-    private(set) var isLoadingWithdrawals = false
-    private(set) var isMutatingStatus = false
-    private(set) var error: Error?
-    private(set) var contributionsError: Error?
-    private(set) var withdrawalsError: Error?
-
-    private let service: any SavingsGoalServicing
-
-    init(goalId: String, service: any SavingsGoalServicing = SavingsGoalService.shared) {
-        self.goalId = goalId
-        self.service = service
-    }
-
-    static func recoveryAmount(_ progress: SavingsGoalProgress) -> Decimal? {
-        guard let amount = progress.required?.rounded(2, .up), amount > 0 else { return nil }
-        return amount
-    }
-
-    static func canRepairPlan(_ progress: SavingsGoalProgress, status: SavingsGoalStatus) -> Bool {
-        status == .active
-            && recoveryAmount(progress) != nil
-            && progress.months.contains(where: \.isRepairable)
-    }
-
-    static func shouldShowPlanTimeline(_ progress: SavingsGoalProgress) -> Bool {
-        !progress.months.isEmpty
-    }
-
-    /// Initial / pull-to-refresh load. Shows the full-screen spinner while the
-    /// first fetch is in flight (progress still nil). The three reads carry
-    /// their own state: a history that fails must not blank out a progression
-    /// that loaded, so none of them can speak for the others.
-    func load() async {
-        isLoading = true
-        defer { isLoading = false }
-        async let progressLoad: Void = fetchProgress()
-        async let contributionsLoad: Void = loadContributions()
-        async let withdrawalsLoad: Void = loadWithdrawals()
-        await progressLoad
-        await contributionsLoad
-        await withdrawalsLoad
-    }
-
-    func loadContributions() async {
-        isLoadingContributions = true
-        contributionsError = nil
-        defer { isLoadingContributions = false }
-        do {
-            contributions = try await service.getContributions(id: goalId)
-        } catch {
-            contributionsError = error
-        }
-    }
-
-    /// Incomes drawn from this goal (PUL-329), newest first — the server's order
-    /// is the displayed order.
-    func loadWithdrawals() async {
-        isLoadingWithdrawals = true
-        withdrawalsError = nil
-        defer { isLoadingWithdrawals = false }
-        do {
-            let readModel = try await service.getWithdrawals(id: goalId)
-            withdrawals = readModel.withdrawals
-            plannedWithdrawals = readModel.planned
-            planOnlyWithdrawals = readModel.planOnly
-        } catch {
-            withdrawalsError = error
-        }
-    }
-
-    /// Changes status via the store (keeps the cached list in sync) then
-    /// refetches progress so `suggestCompletion` and the status flip are
-    /// reflected. Never auto-flips — always user-initiated (pilier Contrôle).
-    func changeStatus(to status: SavingsGoalStatus, via store: SavingsGoalStore) async {
-        isMutatingStatus = true
-        defer { isMutatingStatus = false }
-        error = nil
-        do {
-            _ = try await store.update(id: goalId, data: SavingsGoalUpdate(status: status))
-            await fetchProgress(reportError: false)
-        } catch {
-            self.error = error
-        }
-    }
-
-    func applyMissingForecasts(from progress: SavingsGoalProgress) async -> Bool {
-        error = nil
-        guard let amount = Self.recoveryAmount(progress) else { return false }
-        let adjustments = progress.months
-            .filter(\.isRepairable)
-            .map {
-                SavingsGoalPlanApply.MissingMonthAdjustment(
-                    month: $0.month,
-                    year: $0.year,
-                    amount: amount
-                )
-            }
-        guard !adjustments.isEmpty else { return false }
-
-        do {
-            _ = try await service.applyPlan(
-                id: goalId,
-                SavingsGoalPlanApply(
-                    monthAdjustments: [],
-                    missingMonthAdjustments: adjustments
-                )
-            )
-            return true
-        } catch {
-            self.error = error
-            return false
-        }
-    }
-
-    private func fetchProgress(reportError: Bool = true) async {
-        error = nil
-        do {
-            progress = try await service.getProgress(id: goalId)
-        } catch {
-            if reportError { self.error = error }
-        }
-    }
-
-    // MARK: - Generation stop (PUL-285 CA8)
-
-    /// Advisory candidates: the goal's future linked lines. Read is advisory —
-    /// a failure just leaves the card hidden (the user can pull-to-refresh).
-    func loadFutureLines() async {
-        futureLines = (try? await service.getFutureLines(id: goalId)) ?? []
     }
 }

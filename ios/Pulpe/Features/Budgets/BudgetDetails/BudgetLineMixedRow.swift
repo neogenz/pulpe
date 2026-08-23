@@ -1,8 +1,10 @@
 import SwiftUI
+import TipKit
 
-/// Mixed-list budget card. Standard sizes keep the compact amount column;
-/// Accessibility sizes move amount and chevron below the descriptive content.
-/// The point circle remains independently actionable from the card surface.
+/// One ledger row of the budget detail (The One Ledger Rule): nature disc, name, amount,
+/// chevron. Lives inside the section's grouped card; it carries no card of its own.
+/// Standard sizes keep the compact amount column; Accessibility sizes move amount and
+/// chevron below the descriptive content. The disc remains independently actionable.
 struct BudgetLineMixedRow: View {
     let line: BudgetLine
     let consumption: BudgetFormulas.Consumption
@@ -14,6 +16,8 @@ struct BudgetLineMixedRow: View {
     let tagNames: [String]
     /// Pre-resolved origin month for a savings-withdrawal repayment.
     var savingsWithdrawalOriginMonthName: String?
+    /// Anchors the checking tip's arrow on this row's disc — the control it teaches.
+    var showsCheckingTip = false
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
@@ -98,22 +102,21 @@ struct BudgetLineMixedRow: View {
 
     var body: some View {
         Button(action: handleTap) {
-            HStack(spacing: DesignTokens.Spacing.xxs) {
-                // The leading rail belongs to the row, not to the circle. An
-                // announced withdrawal has nothing to point, and dropping the
-                // slot along with the circle starts its title 44pt left of every
-                // neighbour — `ios/DESIGN.md` sizes the row's `xs` leading
-                // padding against this slot, not against the card edge.
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                // The leading rail belongs to the row, not to the disc. An announced
+                // withdrawal has nothing to point, so it keeps the glyph without the control.
                 Group {
                     if line.isPlannedSavingsWithdrawal {
-                        Color.clear
+                        RowIcon(systemName: line.kind.icon, tint: dotColor)
                     } else {
                         PointCircle(
+                            kind: line.kind,
                             isPointed: isPointed,
                             color: dotColor,
                             isSyncing: isSyncing,
                             onToggle: handleTogglePointed
                         )
+                        .popoverTip(showsCheckingTip ? ProductTips.checking : nil)
                     }
                 }
                 .frame(width: DesignTokens.TapTarget.minimum)
@@ -135,8 +138,6 @@ struct BudgetLineMixedRow: View {
                 }
             }
             .padding(.vertical, DesignTokens.Spacing.md)
-            .padding(.leading, DesignTokens.Spacing.xs)
-            .padding(.trailing, DesignTokens.Spacing.md)
             .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
             .contentShape(Rectangle())
             .opacity(isPointed ? DesignTokens.Opacity.pointedDim : 1)
@@ -146,9 +147,15 @@ struct BudgetLineMixedRow: View {
             )
         }
         .buttonStyle(.plain)
+        // Second path to the same toggle, the gesture Mail taught; a withdrawal has nothing to point.
+        .leadingSwipeAction(
+            systemImage: isPointed ? "arrow.uturn.backward" : "checkmark",
+            tint: dotColor,
+            isEnabled: !line.isPlannedSavingsWithdrawal,
+            action: handleTogglePointed
+        )
         // Explicit, or the button inherits the metadata Text's identifier from its label.
         .accessibilityIdentifier("budgetLineMixedRowButton-\(line.id)")
-        .pulpeRowCard(cornerRadius: DesignTokens.CornerRadius.xl)
         .sensoryFeedback(.success, trigger: triggerToggleFeedback)
         // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
         // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
@@ -158,13 +165,11 @@ struct BudgetLineMixedRow: View {
         .accessibilityIdentifier("budgetLineMixedRow-\(line.id)")
     }
 
-    // MARK: - Center column (kind tag + label + subtitle)
+    // MARK: - Center column (label + subtitle)
 
     @ViewBuilder
     private var centerColumn: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-            KindTagInline(kind: line.kind)
-
             Text(line.name)
                 .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(Color.textPrimary)

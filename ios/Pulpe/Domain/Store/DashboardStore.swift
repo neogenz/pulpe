@@ -115,8 +115,9 @@ final class DashboardStore: StoreProtocol {
 
                 sparseBudgets = merged
                 lastLoadTime = Date()
-            } catch is CancellationError {
-                // Task was cancelled, don't update error state
+            } catch where error.isCancellationOrURLCancellation {
+                // Superseded by a newer load: URLSession reports it as -999, not
+                // CancellationError, and it must not surface as an error.
             } catch let apiError as APIError {
                 self.error = apiError
             } catch {
