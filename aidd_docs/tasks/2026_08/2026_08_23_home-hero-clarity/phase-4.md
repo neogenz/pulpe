@@ -1,5 +1,5 @@
 ---
-status: pending
+status: superseded
 ---
 
 # Instruction: Graphe lisible : base, marge, aucune collision

@@ -45,7 +45,7 @@ Preuves : critique impeccable du 2026-08-23 (évaluation B, capture `home.png`) 
 | 2   | Verdict et casse | [`phase-2.md`](./phase-2.md) |
 | 3   | Tuiles et accent | [`phase-3.md`](./phase-3.md) |
 | —   | **Palier 1 : check Maxime sur device** | |
-| 4   | Graphe lisible : base, marge, aucune collision | [`phase-4.md`](./phase-4.md) |
+| 4   | Remplacée par [`home-burndown-chart`](../2026_08_23_home-burndown-chart/plan.md) (décision Maxime 2026-08-23 : le graphe devient un burn-down du disponible, la règle « Prévu » disparaît) | [`phase-4.md`](./phase-4.md) |
 | 5   | Une tuile, une destination | [`phase-5.md`](./phase-5.md) |
 | 6   | Deck : dire ce qui aide à décider | [`phase-6.md`](./phase-6.md) |
 | 7   | Imprévus sans alarme quand c'est compensé | [`phase-7.md`](./phase-7.md) |
