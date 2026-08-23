@@ -1,5 +1,6 @@
 import Foundation
 
+/// Port of shared/src/calculators/balance-trajectory.ts
 extension BudgetFormulas {
     /// Where the period is forecast to land, read once per day elapsed. Day 0 knows nothing
     /// but the plan; today knows every transaction, so it is the estimate the hero prints.

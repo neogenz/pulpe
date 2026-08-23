@@ -26,6 +26,7 @@ export interface BudgetRepositoryPort {
   fetchAllBudgets(): Promise<Budget[]>;
   fetchBudgetsWithFilters(filters: {
     limit?: number;
+    offset?: number;
     year?: number;
   }): Promise<Budget[]>;
   fetchAllBudgetsForExport(): Promise<Budget[]>;

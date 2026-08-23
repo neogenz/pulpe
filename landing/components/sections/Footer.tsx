@@ -6,8 +6,17 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { angularUrl, CONTACT_EMAIL, GITHUB_URL } from "@/lib/config";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n";
 import {
+  DE_COMPARISON_SLUG,
+  DE_PREMIUMS_SLUG,
+} from "@/components/guides/guides.de";
+import {
   ADVICE_LABEL_FR,
   ADVICE_INDEX_ROUTE,
+  CALCULATOR_LABEL_FR,
+  CALCULATOR_ROUTE,
+  DE_ADVICE_SECTION_PATH,
+  DE_COMPARISON_GUIDE_LABEL,
+  DE_PREMIUMS_GUIDE_LABEL,
   localizedPath,
   type Route,
 } from "@/lib/routes";
@@ -25,6 +34,24 @@ const FOOTER_GROUPS = [
         href: ADVICE_INDEX_ROUTE,
         internal: true,
         frenchOnly: true,
+      },
+      {
+        id: "calculator",
+        href: CALCULATOR_ROUTE,
+        internal: true,
+        frenchOnly: true,
+      },
+      {
+        id: "deComparison",
+        href: `${DE_ADVICE_SECTION_PATH}/${DE_COMPARISON_SLUG}`,
+        internal: true,
+        germanOnly: true,
+      },
+      {
+        id: "dePremiums",
+        href: `${DE_ADVICE_SECTION_PATH}/${DE_PREMIUMS_SLUG}`,
+        internal: true,
+        germanOnly: true,
       },
       { id: "changelog", href: "/changelog", internal: true },
       { id: "source", href: GITHUB_URL, external: true },
@@ -52,6 +79,7 @@ const FOOTER_GROUPS = [
     external?: boolean;
     internal?: boolean;
     frenchOnly?: boolean;
+    germanOnly?: boolean;
     angular?: boolean;
   }[];
 }[];
@@ -71,11 +99,16 @@ export function Footer({
   /** `null` sur une page qui n'existe qu'en français : rien vers quoi basculer. */
   route: Route | null;
 }) {
-  // Le libellé des guides ne vit pas dans les dictionnaires : la page qu'il
-  // ouvre n'existe qu'en français, donc le lien ne s'affiche qu'en français et
+  // Les libellés des conseils ne vivent pas dans les dictionnaires : chaque
+  // article n'existe que dans une langue, donc le lien se retire des autres et
   // une traduction resterait inatteignable.
-  const labelOf = (id: string) =>
-    id === "guides" ? ADVICE_LABEL_FR : dict.links[id as FooterLinkId];
+  const labelOf = (id: string) => {
+    if (id === "guides") return ADVICE_LABEL_FR;
+    if (id === "calculator") return CALCULATOR_LABEL_FR;
+    if (id === "deComparison") return DE_COMPARISON_GUIDE_LABEL;
+    if (id === "dePremiums") return DE_PREMIUMS_GUIDE_LABEL;
+    return dict.links[id as FooterLinkId];
+  };
   return (
     <footer className="border-t border-text/10 bg-transparent py-12">
       <Container>
@@ -105,11 +138,15 @@ export function Footer({
                 </h2>
                 <ul className="mt-2">
                   {group.links
-                    .filter(
-                      (link) =>
-                        !("frenchOnly" in link && link.frenchOnly) ||
-                        locale === DEFAULT_LOCALE,
-                    )
+                    .filter((link) => {
+                      if ("frenchOnly" in link && link.frenchOnly) {
+                        return locale === DEFAULT_LOCALE;
+                      }
+                      if ("germanOnly" in link && link.germanOnly) {
+                        return locale === "de";
+                      }
+                      return true;
+                    })
                     .map((link) => (
                       <li key={link.id}>
                         {"internal" in link && link.internal ? (

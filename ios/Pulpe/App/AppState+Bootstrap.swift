@@ -10,10 +10,7 @@ extension AppState {
         isBootstrapped = true
         await clearKeychainIfReinstalled()
         await authService.clearLegacyBiometricTokens()
-        if !returningUserFlagLoaded {
-            hasReturningUser = await keychainManager.getLastUsedEmail() != nil
-            returningUserFlagLoaded = true
-        }
+        await ensureReturningUserFlagLoaded()
         await biometric.loadPreference()
     }
 
@@ -76,8 +73,42 @@ extension AppState {
 
     func ensureReturningUserFlagLoaded() async {
         guard !returningUserFlagLoaded else { return }
-        hasReturningUser = await keychainManager.getLastUsedEmail() != nil
+        let result = await keychainManager.readLastUsedEmail()
+        let outcome: String
+        let status: Int?
+
+        switch result {
+        case .available:
+            hasReturningUser = true
+            outcome = "available"
+            status = nil
+        case .missing:
+            hasReturningUser = false
+            outcome = "missing"
+            status = nil
+        case .temporarilyUnavailable(let osStatus):
+            hasReturningUser = true
+            outcome = "interaction_not_allowed"
+            status = Int(osStatus)
+        case .failed(let osStatus):
+            hasReturningUser = true
+            outcome = "read_failed"
+            status = Int(osStatus)
+        }
+
         returningUserFlagLoaded = true
+        if let status {
+            Logger.auth.warning(
+                "[AUTH_RETURNING_USER_MARKER] outcome=\(outcome, privacy: .public) status=\(status)"
+            )
+        } else {
+            Logger.auth.info("[AUTH_RETURNING_USER_MARKER] outcome=\(outcome, privacy: .public)")
+        }
+        AnalyticsService.captureAuthSessionDiagnostic(
+            source: "returning_user_marker",
+            outcome: outcome,
+            status: status
+        )
     }
 
     private func applyStartupResult(_ result: StartupCoordinator.StartupResult) async {

@@ -199,4 +199,36 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
 
     expect(totalPersistedDelta).toBe(lastMonthRemaining);
   });
+
+  it('uses a distinct cache entry for each sparse page', async () => {
+    await useCase.execute(fakeUser as never, fakeSupabase as never, {
+      fields: 'month,year',
+      limit: 36,
+      offset: 0,
+    });
+    await useCase.execute(fakeUser as never, fakeSupabase as never, {
+      fields: 'month,year',
+      limit: 36,
+      offset: 36,
+    });
+
+    const keys = mockCache.getOrSet.mock.calls.map((call) => call[1]);
+    expect(keys[0]).not.toBe(keys[1]);
+    expect(String(keys[1]).endsWith(':month,year:36:36:')).toBe(true);
+  });
+
+  it('shares the first sparse page cache entry with an explicit zero offset', async () => {
+    await useCase.execute(fakeUser as never, fakeSupabase as never, {
+      fields: 'month,year',
+      limit: 36,
+    });
+    await useCase.execute(fakeUser as never, fakeSupabase as never, {
+      fields: 'month,year',
+      limit: 36,
+      offset: 0,
+    });
+
+    const keys = mockCache.getOrSet.mock.calls.map((call) => call[1]);
+    expect(keys[0]).toBe(keys[1]);
+  });
 });

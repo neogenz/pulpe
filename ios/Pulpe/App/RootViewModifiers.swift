@@ -136,13 +136,21 @@ struct RootViewLifecycle: ViewModifier {
             .onReceive(NotificationCenter.default.publisher(for: .sessionExpired)) { _ in
                 appState.send(.sessionExpired)
             }
-            .task { await onAppStart() }
+            .task {
+                guard runtimeCoordinator.consumeVisibleStartup(for: scenePhase) else {
+                    runtimeCoordinator.recordInitialStartupDeferral(for: scenePhase)
+                    return
+                }
+                await onAppStart()
+            }
             .onChange(of: appState.isInMaintenance) { wasInMaintenance, isInMaintenance in
                 guard wasInMaintenance, !isInMaintenance else { return }
                 Task(name: "RootView.exitMaintenance") { await appState.retryStartup() }
             }
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 runtimeCoordinator.handleScenePhaseChange(from: oldPhase, to: newPhase)
+                guard runtimeCoordinator.consumeVisibleStartup(for: newPhase) else { return }
+                Task(name: "RootView.visibleStartup") { await onAppStart() }
             }
             .onChange(of: appState.currentRoute) { oldRoute, newRoute in
                 logAuthTransition(label: "AUTH_ROUTE", from: oldRoute, to: newRoute)

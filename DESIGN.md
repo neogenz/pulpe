@@ -23,6 +23,9 @@ typography:
   body-ios:
     fontFamily: "SF Pro"
     fontWeight: 400
+  body-android:
+    fontFamily: "Roboto"
+    fontWeight: 400
   body-web:
     fontFamily: "DM Sans"
     fontWeight: 400
@@ -38,6 +41,7 @@ typography:
 > - **Strategic foundation:** [PRODUCT.md](./PRODUCT.md) — audience, voice, brand pillars, anti-references
 > - **Visual common (this file):** the cross-platform DA — color seeds, typography lineage, voice rules, named rules that apply everywhere
 > - **iOS extensions:** [ios/DESIGN.md](./ios/DESIGN.md) — tokens, components, Liquid Glass, sheets, SwiftUI patterns
+> - **Android extensions:** [android/DESIGN.md](./android/DESIGN.md) — Material 3 via react-native-paper, the kit/signature split, RN patterns
 > - **Web extensions:** [frontend/DESIGN.md](./frontend/DESIGN.md) — Material 3, Tailwind v4, responsive grid, Angular components
 > - **Landing extensions:** [landing/DESIGN.md](./landing/DESIGN.md) — Poppins-only, hero compositions, marketing CTAs
 >
@@ -56,7 +60,7 @@ This system explicitly rejects: cold corporate banking apps with navy and aggres
 - Warm neutral canvas (`#F7F6F3` family), never cold gray, never green-tinted
 - Color carries meaning: green = savings/positive, amber = expense, blue = income, red = global deficit or high-consequence system feedback only
 - Soft springs (response 0.4–0.6s, damping 0.65–0.85), zero bounce except on the landing page
-- Manrope (display + amounts) + body font per platform (SF Pro on iOS, DM Sans on web, Poppins on landing). Two families per platform, max
+- Manrope (display + amounts) + body font per platform (SF Pro on iOS, Roboto on Android, DM Sans on web, Poppins on landing). Two families per platform, max
 - WCAG AA contrast, accessibility primary citizen on every surface
 - Tutoiement always; microcopy disarms anxiety
 
@@ -110,14 +114,17 @@ A neutral warm canvas with three semantic accents, one cautionary amber, and a t
 **Body / UI:** platform-specific.
 
 - **iOS:** SF Pro (system) — Dynamic Type respected.
+- **Android (Expo):** Roboto (system) — the OS font scale is respected.
 - **Web (Angular):** DM Sans — `--plain-family`.
 - **Landing (Next.js):** Poppins (only Poppins, no display/body split — landing is poster-flat).
 
-**Numbers:** tabular figures everywhere amounts appear. `monospacedDigit()` on iOS, `font-feature-settings: "tnum"` (or `tabular-nums`) on web.
+**Numbers:** tabular figures everywhere amounts appear. `monospacedDigit()` on iOS, `fontVariant: ["tabular-nums"]` on Android, `font-feature-settings: "tnum"` (or `tabular-nums`) on web.
 
-**Character.** Manrope is friendly-modern with a bit of warmth in its terminals — it carries the brand without being decorative. The platform body font carries clarity and accessibility. Two families per platform, never three. No serifs. No geometric tech fonts (Inter, Roboto, Geist). No mono fonts in chrome (mono is reserved for recovery keys and codes).
+**Character.** Manrope is friendly-modern with a bit of warmth in its terminals — it carries the brand without being decorative. The platform body font carries clarity and accessibility. Two families per platform, never three. No serifs. No mono fonts in chrome (mono is reserved for recovery keys and codes).
 
-> **Per-platform scale:** the size scale, line heights, and tracking values live in the platform-specific docs (`ios/DESIGN.md`, `frontend/DESIGN.md`, `landing/DESIGN.md`). The font _family_ commitments above are universal.
+**No geometric tech font as a brand voice** — Inter and Geist are out everywhere, and so is Roboto on any platform that is not Android. The *system* font is never a font choice, it is the platform speaking: SF Pro on iOS and Roboto on Android are both the local system face, and picking either buys native rendering, the user's own font-scale setting, and zero bundle weight. Shipping Manrope as Android body text would have cost all three to gain nothing the display face does not already carry.
+
+> **Per-platform scale:** the size scale, line heights, and tracking values live in the platform-specific docs (`ios/DESIGN.md`, `android/DESIGN.md`, `frontend/DESIGN.md`, `landing/DESIGN.md`). The font _family_ commitments above are universal.
 
 ### Named Rules
 
@@ -183,7 +190,7 @@ What's universal is the **vocabulary**: every platform has a Primary Button, Sec
 
 - **Do** map every color to a financial concept or state — savings green, income blue, expense amber, deficit red.
 - **Do** address every user with "tu", everywhere, on every platform.
-- **Do** use Manrope for display and amounts on every platform; pair with the platform body font (SF Pro / DM Sans / Poppins).
+- **Do** use Manrope for display and amounts on every platform; pair with the platform body font (SF Pro / Roboto / DM Sans / Poppins).
 - **Do** keep the emotion zone at the top (constant brand surface, state in the verdict) and the content zone below (neutral warm) wherever a screen has a hero.
 - **Do** use tabular digits (`monospacedDigit()` / `tabular-nums`) on every numeric amount.
 - **Do** preserve enough precision for every amount that explains a monetary state; a non-zero cent value must never be presented as zero.
@@ -204,4 +211,4 @@ What's universal is the **vocabulary**: every platform has a Primary Button, Sec
 - **Don't** invent a new chip name for an existing affordance, and don't reuse an existing chip name for a new affordance.
 - **Don't** ask for a recoverable account password twice; allow visibility, paste, autofill, and immediate requirement feedback instead.
 - **Don't** let independently rounded labels disagree about whether money is available, exhausted, or exceeded.
-- **Don't** edit this file when the rule is platform-specific — push it down to `ios/DESIGN.md`, `frontend/DESIGN.md`, or `landing/DESIGN.md` instead. This file is for what is **shared**.
+- **Don't** edit this file when the rule is platform-specific — push it down to `ios/DESIGN.md`, `android/DESIGN.md`, `frontend/DESIGN.md`, or `landing/DESIGN.md` instead. This file is for what is **shared**.

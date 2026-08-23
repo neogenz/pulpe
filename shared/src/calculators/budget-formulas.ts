@@ -61,6 +61,28 @@ export function isOutflowKind(kind: TransactionKind): boolean {
 }
 
 /**
+ * Zone émotionnelle d'un budget (DA §3.1), qui pilote la teinte du hero.
+ */
+export type EmotionState = 'comfortable' | 'tight' | 'deficit';
+
+/** Seuil DA §3.1 séparant "confortable" de "serré". */
+export const TIGHT_BUDGET_THRESHOLD_PERCENT = 80;
+
+/** Miroir de `BudgetFormulas.Consumption` (Swift). */
+export interface Consumption {
+  allocated: number;
+  available: number;
+  percentage: number;
+}
+
+/** Miroir de `BudgetFormulas.TemplateTotals` (Swift). */
+export interface TemplateTotals {
+  totalIncome: number;
+  totalExpenses: number;
+  balance: number;
+}
+
+/**
  * Classe contenant toutes les formules métier selon SPECS
  * Toutes les méthodes sont statiques et pures (pas d'effets de bord)
  */
@@ -77,6 +99,13 @@ export class BudgetFormulas {
     return map;
   }
 
+  /**
+   * Les lignes de report sont écartées de TOUS les flux (prévu comme réalisé) :
+   * le report n'est pas de l'argent qui bouge ce mois-ci, il entre par le
+   * paramètre `rollover` — dans `available` côté prévu, dans le solde côté
+   * réalisé. La compter ici la ferait entrer deux fois.
+   * Miroir de `BudgetFormulas.swift` (gardes `!(line.isRollover ?? false)`).
+   */
   static #calculateEnvelopeTotal(
     budgetLines: FinancialItemWithId[],
     txsByLineId: Map<string, TransactionWithBudgetLineId[]>,
@@ -85,7 +114,7 @@ export class BudgetFormulas {
     let total = 0;
 
     for (const line of budgetLines) {
-      if (!kindFilter(line.kind)) continue;
+      if (!kindFilter(line.kind) || line.isRollover) continue;
       const consumed = (txsByLineId.get(line.id) ?? [])
         .filter((tx) => kindFilter(tx.kind))
         .reduce((sum, tx) => sum + tx.amount, 0);
@@ -162,7 +191,10 @@ export class BudgetFormulas {
     transactions: TransactionWithBudgetLineId[] = [],
   ): number {
     const checkedBudgetIncome = budgetLines
-      .filter((line) => line.checkedAt != null && line.kind === 'income')
+      .filter(
+        (line) =>
+          line.checkedAt != null && line.kind === 'income' && !line.isRollover,
+      )
       .reduce((sum, line) => sum + line.amount, 0);
 
     const checkedTransactionIncome = transactions
@@ -192,7 +224,7 @@ export class BudgetFormulas {
     let total = 0;
 
     for (const line of budgetLines) {
-      if (!isOutflowKind(line.kind)) continue;
+      if (!isOutflowKind(line.kind) || line.isRollover) continue;
 
       const consumed = (txsByLineId.get(line.id) ?? [])
         .filter((tx) => tx.checkedAt != null && isOutflowKind(tx.kind))
@@ -233,7 +265,7 @@ export class BudgetFormulas {
     let total = 0;
 
     for (const line of budgetLines) {
-      if (line.kind !== 'saving') continue;
+      if (line.kind !== 'saving' || line.isRollover) continue;
 
       const consumed = (txsByLineId.get(line.id) ?? [])
         .filter((tx) => tx.checkedAt != null && tx.kind === 'saving')
@@ -251,15 +283,21 @@ export class BudgetFormulas {
 
   /**
    * Calcule le solde réalisé (basé uniquement sur les éléments pointés)
-   * Formule: solde_réalisé = Σ(revenus pointés) - Σ(dépenses + épargnes pointées)
+   * Formule: solde_réalisé = Σ(revenus pointés) - Σ(dépenses + épargnes pointées) + report
+   *
+   * Le report arrive par `rollover`, pas par les flux : le solde observé est le
+   * même qu'au temps où la ligne virtuelle toujours pointée gonflait les revenus
+   * (report positif) ou les dépenses (report négatif).
    *
    * @param budgetLines - Lignes budgétaires planifiées
    * @param transactions - Transactions réelles
-   * @returns Solde calculé depuis les éléments pointés uniquement
+   * @param rollover - Report du mois précédent (peut être négatif)
+   * @returns Solde calculé depuis les éléments pointés, report inclus
    */
   static calculateRealizedBalance(
     budgetLines: FinancialItemWithId[],
     transactions: TransactionWithBudgetLineId[] = [],
+    rollover: number = 0,
   ): number {
     const realizedIncome = this.calculateRealizedIncome(
       budgetLines,
@@ -269,7 +307,7 @@ export class BudgetFormulas {
       budgetLines,
       transactions,
     );
-    return realizedIncome - realizedExpenses;
+    return realizedIncome - realizedExpenses + rollover;
   }
 
   /**
@@ -359,6 +397,36 @@ export class BudgetFormulas {
       remaining,
       rollover,
     };
+  }
+
+  /**
+   * Zone émotionnelle à partir des valeurs brutes (DA §3.1) : confortable en
+   * dessous de 80 % d'utilisation, serré de 80 à 100 %, déficit au-delà.
+   *
+   * Vit ici plutôt que côté serveur parce que l'onboarding la recalcule pendant
+   * que l'utilisateur saisit ses montants, avant qu'aucun budget n'existe.
+   */
+  static emotionState({
+    remaining,
+    totalIncome,
+    totalExpenses,
+    rollover,
+  }: {
+    remaining?: number | null;
+    totalIncome?: number | null;
+    totalExpenses?: number | null;
+    rollover?: number | null;
+  }): EmotionState {
+    if (remaining === null || remaining === undefined) return 'comfortable';
+    if (remaining < 0) return 'deficit';
+
+    const available = (totalIncome ?? 0) + (rollover ?? 0);
+    if (available <= 0) return 'comfortable';
+
+    const usagePercentage = ((totalExpenses ?? 0) / available) * 100;
+    return usagePercentage >= TIGHT_BUDGET_THRESHOLD_PERCENT
+      ? 'tight'
+      : 'comfortable';
   }
 
   /**
@@ -452,6 +520,47 @@ export class BudgetFormulas {
     const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
     const clampedDay = Math.min(payDay, lastDayOfPrevMonth);
     return new Date(prevYear, prevMonth - 1, clampedDay);
+  }
+
+  /**
+   * Ce qu'une enveloppe a absorbé jusqu'ici — barre de progression, filtre de
+   * dérive, lignes du détail de budget. Miroir de
+   * `BudgetFormulas.calculateConsumption` (Swift).
+   */
+  static calculateConsumption(
+    budgetLine: FinancialItemWithId,
+    transactions: TransactionWithBudgetLineId[],
+  ): Consumption {
+    const allocated = transactions
+      .filter((tx) => tx.budgetLineId === budgetLine.id)
+      .reduce((sum, tx) => sum + tx.amount, 0);
+
+    return {
+      allocated,
+      available: moneyDifference(budgetLine.amount, allocated),
+      percentage:
+        budgetLine.amount > 0 ? (allocated / budgetLine.amount) * 100 : 0,
+    };
+  }
+
+  /**
+   * Ce qu'un modèle prévoit pour un mois. Miroir de
+   * `BudgetFormulas.calculateTemplateTotals` (Swift), noms de champs compris :
+   * `totalExpenses` y couvre tout ce qui sort, épargne incluse (`isOutflowKind`).
+   */
+  static calculateTemplateTotals(lines: FinancialItem[]): TemplateTotals {
+    const totalIncome = lines
+      .filter((line) => line.kind === 'income')
+      .reduce((sum, line) => sum + line.amount, 0);
+    const totalExpenses = lines
+      .filter((line) => isOutflowKind(line.kind))
+      .reduce((sum, line) => sum + line.amount, 0);
+
+    return {
+      totalIncome,
+      totalExpenses,
+      balance: totalIncome - totalExpenses,
+    };
   }
 
   static validateMetricsCoherence(

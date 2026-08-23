@@ -16,6 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Checkout trusted release automation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+
       - name: Verify App author, frozen candidate, and staging proof
         env:
           GH_TOKEN: ${{ github.token }}
@@ -39,6 +46,9 @@ jobs:
 
           current_main=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)
           test "$current_main" = "$BASE_SHA"
+          node .github/scripts/resolve-workflow-proof.mjs --published-main "$current_main" > "$RUNNER_TEMP/published-main.json"
+
+          node .github/scripts/check-release-lineage.mjs "$current_main" "$CANDIDATE_SHA"
           encoded_branch=$(jq -rn --arg value "$RELEASE_BRANCH" '$value | @uri')
           test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$encoded_branch" --jq .object.sha)" = "$CANDIDATE_SHA"
 
@@ -57,13 +67,20 @@ jobs:
           gh api -X GET "repos/$GITHUB_REPOSITORY/contents/package.json" -f ref="$CANDIDATE_SHA" --jq .content |
             tr -d '\n' | base64 --decode > "$RUNNER_TEMP/package.json"
           test "$(jq -r .version "$RUNNER_TEMP/package.json")" = "$version"
-          gh api "repos/$GITHUB_REPOSITORY/compare/$current_main...$CANDIDATE_SHA" > "$RUNNER_TEMP/main-compare.json"
-          jq -e '.behind_by == 0' "$RUNNER_TEMP/main-compare.json"
           encoded_tag=$(jq -rn --arg value "v$version" '$value | @uri')
           tag_count=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$encoded_tag" | jq --arg ref "refs/tags/v$version" '[.[] | select(.ref == $ref)] | length')
           test "$tag_count" = 0
 
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$staging_run_id" > "$RUNNER_TEMP/staging-run.json"
-          jq -e --arg candidate "$CANDIDATE_SHA" '.path == ".github/workflows/staging-proof.yml" and .event == "deployment_status" and .head_sha == $candidate and .status == "completed" and .conclusion == "success"' "$RUNNER_TEMP/staging-run.json"
-          gh run download "$staging_run_id" --repo "$GITHUB_REPOSITORY" --name "staging-proof-$CANDIDATE_SHA" --dir "$RUNNER_TEMP/staging-proof"
-          jq -e --arg repository "$GITHUB_REPOSITORY" --arg candidate "$CANDIDATE_SHA" --arg tree "$candidate_tree" --argjson pr "$preparation_pr" --argjson run "$staging_run_id" '.repository == $repository and .candidate_sha == $candidate and .tree_sha == $tree and .pr_number == $pr and .staging_run_id == $run' "$RUNNER_TEMP/staging-proof/staging-proof.json"
+          staging=$(node .github/scripts/resolve-workflow-proof.mjs \
+            --workflow staging-proof.yml \
+            --event deployment_status \
+            --branch preview \
+            --sha "$CANDIDATE_SHA" \
+            --job "✅ Staging Ready (shadow)" \
+            --artifact-template "staging-proof-{sha}-run-{run_id}-attempt-{attempt}")
+          proof_run_id=$(jq -r .run_id <<< "$staging")
+          proof_attempt=$(jq -r .attempt <<< "$staging")
+          artifact=$(jq -r .artifact_name <<< "$staging")
+          test "$proof_run_id" = "$staging_run_id"
+          gh run download "$proof_run_id" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "$RUNNER_TEMP/staging-proof"
+          jq -e --arg repository "$GITHUB_REPOSITORY" --arg candidate "$CANDIDATE_SHA" --arg tree "$candidate_tree" --argjson pr "$preparation_pr" --argjson run "$proof_run_id" --argjson attempt "$proof_attempt" '.repository == $repository and .candidate_sha == $candidate and .tree_sha == $tree and .pr_number == $pr and .staging_run_id == $run and .staging_run_attempt == $attempt' "$RUNNER_TEMP/staging-proof/staging-proof.json"

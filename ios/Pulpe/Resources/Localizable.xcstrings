@@ -18209,6 +18209,50 @@
         }
       }
     },
+    "Ouvre le choix de la langue de l'app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet die Auswahl der App-Sprache"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the app language picker"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apre la selezione della lingua dell'app"
+          }
+        }
+      }
+    },
+    "Ouvre les réglages de langue d'iOS" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet die iOS-Spracheinstellungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the iOS language settings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apre le impostazioni della lingua di iOS"
+          }
+        }
+      }
+    },
     "Ouvrir le budget" : {
       "localizations" : {
         "de" : {

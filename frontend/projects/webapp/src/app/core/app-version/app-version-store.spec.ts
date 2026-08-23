@@ -13,6 +13,7 @@ import { CURRENT_APP_VERSION } from './current-app-version';
 const createVersionResponse = (minVersion: string): AppVersionResponse => ({
   success: true,
   data: {
+    android: { minVersion: '0.0.1', latestVersion: '0.0.1' },
     ios: { minVersion: '1.0.0', latestVersion: '1.0.0' },
     web: { minVersion, latestVersion: '9.9.9' },
   },

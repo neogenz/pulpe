@@ -6,6 +6,10 @@ import { angularUrl } from "../lib/config";
 import { socialPreviewFile, socialPreviewImage } from "../lib/metadata";
 import { OPEN_GRAPH_LOCALE, openGraphAlternates } from "../lib/routes";
 import {
+  DE_COMPARISON_SLUG,
+  DE_PREMIUMS_SLUG,
+} from "../components/guides/guides.de";
+import {
   changelogMetadata,
   supportMetadata,
 } from "../components/pages/metadata";
@@ -1467,10 +1471,14 @@ describe("landing accessibility contracts", () => {
     for (const catalog of Object.values(CATALOGS)) {
       assert.match(joined(catalog.home.whyFree), /AES-256-GCM/);
     }
-    assert.match(
-      frDict.site.titleDefault,
-      /des mois d’avance combien il te restera/i,
-    );
+    assert.match(frDict.site.titleDefault, /App de budget/i);
+    assert.match(frDict.site.titleDefault, /combien il te restera/i);
+    for (const catalog of Object.values(CATALOGS)) {
+      assert.doesNotMatch(
+        catalog.site.titleDefault,
+        /suisse|schweiz|swiss|svizzera/i,
+      );
+    }
     assert.match(
       joined(frDict.home.finalCta),
       /Prépare ton année[\s\S]*Vois combien il te restera chaque mois/i,
@@ -1858,5 +1866,48 @@ describe("landing accessibility contracts", () => {
         assert.match(href, new RegExp(`[?&]lang=${locale}$`));
       }
     }
+  });
+
+  it("shows German guide links only on the German footer", () => {
+    for (const locale of LOCALES) {
+      const catalog = CATALOGS[locale];
+      const html = renderToStaticMarkup(
+        <Footer
+          dict={catalog.footer}
+          language={catalog.language}
+          locale={locale}
+          route={null}
+        />,
+      );
+      const hasComparison = html.includes("Beste Budget-App Schweiz");
+      const hasPremiums = html.includes("Krankenkassenprämien budgetieren");
+      if (locale === "de") {
+        assert.ok(hasComparison);
+        assert.ok(hasPremiums);
+        assert.match(
+          html,
+          new RegExp(`href="/de/budget-ratgeber/${DE_COMPARISON_SLUG}"`),
+        );
+        assert.match(
+          html,
+          new RegExp(`href="/de/budget-ratgeber/${DE_PREMIUMS_SLUG}"`),
+        );
+        assert.ok(!html.includes("Conseils budget"));
+        assert.ok(!html.includes("Calculateur de budget"));
+      } else {
+        assert.ok(!hasComparison);
+        assert.ok(!hasPremiums);
+      }
+    }
+    const frenchFooter = renderToStaticMarkup(
+      <Footer
+        dict={frDict.footer}
+        language={frDict.language}
+        locale="fr"
+        route={null}
+      />,
+    );
+    assert.ok(frenchFooter.includes("Conseils budget"));
+    assert.ok(frenchFooter.includes("Calculateur de budget"));
   });
 });

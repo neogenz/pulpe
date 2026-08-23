@@ -44,27 +44,6 @@ merge commit in staging, freezes that proven candidate, then promotes it to `mai
 without another version change. `preview` and production remain independent
 environments. Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
 
-### Production release evidence
-
-The production workflow authorizes a release from the merged production PR, its
-exact release branch and candidate SHA. It discovers matching `✅ Release Gate`
-runs without relying on the optional `pull_requests[]` field, then inspects every
-immutable run attempt and its named job. A successful historical attempt remains
-valid evidence even if a later rerun fails; API errors, identity drift, or the
-absence of one exact successful job fail closed.
-
-Before publication, GitHub deployment statuses prove the expected provider events,
-but Railway is also queried directly. If its latest production deployment is not
-the exact production commit, the workflow deploys that commit through
-`serviceInstanceDeployV2`. The resulting deployment must be the latest, `SUCCESS`
-and on `main`. The immutable production proof records the selected Release Gate
-run, attempt and job IDs plus the directly verified active Railway deployment ID.
-
-Recovery is forward-only and idempotent. Keep maintenance enabled while migrations,
-the exact backend deployment, version gates and public health are validated. If a
-check fails after maintenance starts to lift, restore maintenance and revalidate
-`503 MAINTENANCE`; do not automate migration rollback.
-
 ## Initial Setup
 
 ### Database (Supabase)
@@ -88,10 +67,19 @@ supabase unlink
 
 - `🏭 Production Release` detects changes in `backend-nest/supabase/migrations/`
   against the previous `main`. No pull-request job receives production secrets.
-- Only when migrations changed, the protected `production` environment approves a
-  job that verifies its pinned Supabase CLI archive, runs `supabase db push --dry-run`,
-  then applies from the authorized production commit.
-- To create a new migration: `supabase migration new [description]` then `supabase db push` after editing the generated SQL. Warning: this pushes to the linked (prod) project.
+- Published migration files are immutable. Every new file starts, before any SQL, with
+  `-- pulpe:migration-phase expand` or `-- pulpe:migration-phase contract`. Contract
+  files also require `-- pulpe:safe-after vX.Y.Z`; that release tag must already be an
+  ancestor of, or content-integrated into, the release baseline.
+- Expand migrations reject destructive/security-weakening SQL, `DO`, dynamic `EXECUTE`, unsafe required
+  columns and unclassified procedural bodies. Prefer additive tables, columns with a
+  default, indexes, policies and explicit `CREATE OR REPLACE FUNCTION` definitions.
+- The checker is deliberately conservative and heuristic, not a PostgreSQL parser or
+  a substitute for SQL review. Split ambiguous changes or classify them as contract.
+- CI checks the PR range and includes the result in `ci-success`. Production replays
+  the exact merge range before the protected Supabase dry-run and apply.
+- Create locally with `supabase migration new [description]`. Never run `db push`
+  against the linked production project outside the protected workflow.
 
 ##### Apply migrations locally
 
@@ -186,13 +174,9 @@ CORS_ORIGIN=https://app.pulpe.app
 
 > **SUPABASE_SERVICE_ROLE_KEY is mandatory** in production/preview for automatic demo user cleanup. The application **will not start** without this variable.
 
-Deploy:
-
-```bash
-railway link
-railway up --detach
-railway domain  # Get the public URL
-```
+Initial bootstrap only: `railway link`, `railway up --detach`, then
+`railway domain`. Normal production releases always use the event-driven flow
+below; operators never run `railway up` for a release.
 
 ### Frontend — Angular App (Vercel project: `pulpe-frontend`)
 
@@ -378,68 +362,62 @@ borné au slug réel de l’équipe propriétaire, puis le consigner ici.
 
 > Repository Settings → Secrets and variables → Actions → New repository secret
 
-| Secret                          | Value                    | Used by                                                   |
-| ------------------------------- | ------------------------ | --------------------------------------------------------- |
-| `SUPABASE_ACCESS_TOKEN`         | Supabase CLI token       | Production Release migrations                             |
-| `PRODUCTION_DB_PASSWORD`        | Supabase DB password     | Production Release migrations                             |
-| `PRODUCTION_PROJECT_ID`         | Supabase project ref     | Production Release migrations                             |
-| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | Production annotations + iOS releases                     |
-| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | Production annotations + iOS releases                     |
-| `PULPE_RELEASE_APP_ID`          | GitHub App ID            | Opens protected release PRs                               |
-| `PULPE_RELEASE_APP_PRIVATE_KEY` | GitHub App private key   | Creates short-lived release tokens                        |
-| `RAILWAY_PREVIEW_TOKEN`         | Railway project token    | Verifies and synchronizes the preview web-version gate    |
-| `RAILWAY_PRODUCTION_TOKEN`      | Railway project token    | Verifies and synchronizes the production web-version gate |
+| Secret                          | Value                    | Used by                            |
+| ------------------------------- | ------------------------ | ---------------------------------- |
+| `SUPABASE_ACCESS_TOKEN`         | Supabase CLI token       | Production Release migrations      |
+| `PRODUCTION_DB_PASSWORD`        | Supabase DB password     | Production Release migrations      |
+| `PRODUCTION_PROJECT_ID`         | Supabase project ref     | Production Release migrations      |
+| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | iOS releases                       |
+| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | iOS releases                       |
+| `PULPE_RELEASE_APP_ID`          | GitHub App ID            | Opens protected release PRs        |
+| `PULPE_RELEASE_APP_PRIVATE_KEY` | GitHub App private key   | Creates short-lived release tokens |
+| `RAILWAY_PRODUCTION_TOKEN`      | Railway project token    | Verifies the active production SHA |
 
 See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release architecture.
 
 ## Release Process
 
-### 1. Prepare one release candidate
+1. Run `/release` from a clean synchronized `preview`. It creates one
+   `release/vX.Y.Z` commit and opens the preparation PR to `preview`.
+2. Merge only after CI, staging provider SHAs and `✅ Staging Ready (shadow)` are green.
+   Its proof is bound to the exact workflow run, attempt, successful job and artifact.
+   Promotion freezes that proven merge commit and opens `release/vX.Y.Z → main`; while
+   that PR is open, no other release PR can be opened toward `main`.
+3. `✅ Release Gate` verifies the frozen candidate, content lineage, absent future tag,
+   and that current `main` already has its exact annotated tag and published release.
+4. Approve and merge the production PR. **This is the single human release approval.**
+5. `🏭 Production Preflight` revalidates provenance and migrations, waits for the
+   exact frontend, then uploads the immutable context. Railway `Wait for CI` waits for
+   this workflow only; the backend version is embedded in the artifact.
+6. Railway deploys `main`. Its exact successful status starts `✅ Production Finalized`;
+   that workflow must never be a Railway-required check. It proves Railway, Vercel,
+   `/health` and `/api/v1/app/version`, then idempotently publishes `vX.Y.Z` and the
+   GitHub Release.
 
-Run `/release` from a clean, synchronized local `preview`. The skill analyzes the
-changes, asks approval for the version and multilingual product copy, applies the
-Changesets fixed-mode bump, validates the release surfaces, then creates exactly one
-commit on `release/vX.Y.Z`. A second explicit approval publishes only that branch and
-dispatches `🚦 Release Promotion`.
+`main` must require strict up-to-date status checks so an older green release PR cannot
+merge after `main` advances. The `production` environment stores secrets but has no
+reviewers; adding one would reintroduce a second approval after the production PR.
 
-Detailed versioning and force-update gate rules: [VERSIONING.md](./VERSIONING.md).
+### Recovery
 
-### 2. Validate the candidate in preview
+- Railway `FAILED`: manually redeploy the **same SHA** once from Railway, then rerun or
+  wait for the finalizer. Never call `serviceInstanceDeployV2` or `railway redeploy` in
+  the normal workflow.
+- Finalizer failure: rerun it after the provider issue is fixed. An identical tag or
+  release is accepted; any contradictory existing object fails closed.
+- **Tag exists but the GitHub Release is missing**: rerun the finalizer. It accepts the
+  exact annotated tag and creates only the missing Release; a mismatch fails closed.
+- **Duplicate Railway success**: duplicate events for the same SHA are serialized and
+  idempotent. Let the existing finalizer finish or rerun its failed attempt; do not deploy.
+- **Main advances**: strict checks block a stale production PR. If a prior `main` is not
+  fully tagged and published, the next promotion remains blocked until its finalizer
+  completes successfully.
+- Migration failure: keep recovery forward-only and ship a corrective migration; do
+  not automate rollback.
+- iOS build already valid succeeds without archive/upload; processing polls the same version/build without allocating or uploading another.
+- PostHog and CSP diagnostics are useful monitoring signals, not publication gates.
 
-1. The GitHub App opens `release/vX.Y.Z → preview`.
-2. The preparation PR runs the complete CI matrix and is merged with a merge commit.
-3. Vercel and Railway deploy that merge commit to the independent preview environment.
-   Railway's successful `deployment_status` starts `✅ Staging Ready (shadow)`.
-4. `Staging Ready` verifies the canonical PR artifact, identical Git tree, exact
-   provider SHAs/statuses, staging health checks and the unchanged release base. If
-   `preview` received another merge after the release branch was created, promotion
-   fails closed instead of silently including it.
-5. Until that proof is green, do not merge another PR into `preview`. Afterwards,
-   normal feature merges may resume: the release branch is advanced to the proven
-   merge commit and frozen, so later `preview` changes cannot enter the release.
-
-### 3. Approve and publish production
-
-1. `🚦 Release Promotion` opens `release/vX.Y.Z → main` only for an App-authored
-   preparation PR with a valid staging proof. A normal feature PR stops here.
-2. `✅ Release Gate` checks the frozen candidate, version, ancestry, absent tag and
-   immutable proof without executing untrusted PR code or receiving production secrets.
-3. A human other than the App approves and merges the production PR. This is the
-   release decision; no administrator push is part of the normal process.
-4. `🏭 Production Release` revalidates the approval and proofs, applies any migration
-   behind the protected environment gate, waits for exact Vercel/Railway production
-   deployments, checks the public endpoints and CSP, and records an immutable proof.
-5. Only then does the workflow create `vX.Y.Z`, publish the French GitHub Release and
-   synchronize Railway `LATEST_WEB_VERSION` in preview and production. iOS remains
-   governed by App Store distribution; the backend resolves its published version
-   from Apple.
-
-### 4. Enforced branch gates
-
-`preview` requires `✅ CI Success`; its administrator bypass is retained for the solo
-maintainer's ordinary PRs. `main` accepts only a PR with `✅ Release Gate`, one human
-approval and no administrator bypass. There is no complete CI matrix on either push and
-no deferred post-release cleanup step.
+Detailed versioning and force-update rules: [VERSIONING.md](./VERSIONING.md).
 
 ## Post-Deployment Monitoring
 

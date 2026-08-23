@@ -468,7 +468,7 @@ extension OnboardingState {
 
 extension OnboardingState {
     /// Fire the `onboarding_step_completed` event for a given step.
-    /// Enriched with `step_index` (1-based), `step_total` (total visible for this path), and
+    /// Enriched with `step_index` (1-based), `step_count` (steps visible for this path), and
     /// `auth_method` so PostHog funnels are resilient to future step reordering.
     func captureStepCompleted(_ step: OnboardingStep) {
         let bar = progressBarSteps
@@ -476,7 +476,8 @@ extension OnboardingState {
         var properties: [String: Any] = [
             "step": step.analyticsName,
             "step_index": index,
-            "step_total": bar.count,
+            // Not `step_total`: `sanitizeProperties` drops any key carrying `total`.
+            "step_count": bar.count,
             "auth_method": authMethodProperty
         ]
         if isStepSkipped(step) {
