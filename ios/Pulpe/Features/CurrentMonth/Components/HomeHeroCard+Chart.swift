@@ -11,10 +11,13 @@ extension HomeHeroCard {
     @ViewBuilder
     var balanceChart: some View {
         if let trajectory {
+            let plan = Self.plan(for: trajectory)
+            let projection = Self.projection(for: trajectory)
+            let yDomain = Self.chartYDomain(for: trajectory)
             Chart {
                 // The plan, as a rhythm rather than a calendar: forecasts carry no due date,
                 // so the only honest shape is the straight fall from opening to remaining.
-                ForEach(Self.plan(for: trajectory)) { point in
+                ForEach(plan) { point in
                     LineMark(
                         x: .value("Jour", point.day),
                         y: .value("Prévu", Self.decimalValue(point.balance)),
@@ -27,7 +30,7 @@ extension HomeHeroCard {
                     ))
                     .foregroundStyle(Color.heroInkSecondary.opacity(DesignTokens.Opacity.heroInkMuted))
                 }
-                if let planEnd = Self.plan(for: trajectory).last {
+                if let planEnd = plan.last {
                     PointMark(
                         x: .value("Fin", planEnd.day),
                         y: .value("Prévu", Self.decimalValue(planEnd.balance))
@@ -50,7 +53,7 @@ extension HomeHeroCard {
                 ForEach(trajectory.real) { point in
                     AreaMark(
                         x: .value("Jour", point.day),
-                        yStart: .value("Plancher", Self.chartYDomain(for: trajectory).lowerBound),
+                        yStart: .value("Plancher", yDomain.lowerBound),
                         yEnd: .value("Réel", Self.decimalValue(point.balance)),
                         series: .value("Série", "Aire")
                     )
@@ -82,7 +85,7 @@ extension HomeHeroCard {
                 // The days not yet lived: from what is left today to where the month lands
                 // if it carries on, trend included. One stroke, not two — the plan above it
                 // is the reference, and the gap between the two ends is `Imprévus`.
-                ForEach(Self.projection(for: trajectory)) { point in
+                ForEach(projection) { point in
                     LineMark(
                         x: .value("Jour", point.day),
                         y: .value("Estimation finale", Self.decimalValue(point.balance)),
@@ -101,7 +104,7 @@ extension HomeHeroCard {
                 // The trend's own figure, once it is far enough from the plan to be a second
                 // number: the hero prints where the month lands, this prints where it lands
                 // if nothing changes.
-                if Self.showsTrendLabel(for: trajectory), let end = Self.projection(for: trajectory).last {
+                if Self.showsTrendLabel(for: trajectory), let end = projection.last {
                     PointMark(
                         x: .value("Fin", end.day),
                         y: .value("Tendance", Self.decimalValue(end.balance))
@@ -196,7 +199,7 @@ extension HomeHeroCard {
             // Edge to edge: cancels the hero's text inset so the plot spans the screen.
             .chartPlotStyle { $0.padding(0) }
             .padding(.horizontal, -DesignTokens.Spacing.xxl)
-            .chartYScale(domain: Self.chartYDomain(for: trajectory))
+            .chartYScale(domain: yDomain)
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
             .chartLegend(.hidden)

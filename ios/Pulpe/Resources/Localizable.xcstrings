@@ -826,6 +826,28 @@
         }
       }
     },
+    "%@ · Prévu %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · Geplant %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · Planned %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · Previsto %@"
+          }
+        }
+      }
+    },
     "%@ · sur %@" : {
       "localizations" : {
         "de" : {

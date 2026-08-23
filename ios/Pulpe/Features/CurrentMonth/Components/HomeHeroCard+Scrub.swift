@@ -38,7 +38,7 @@ extension HomeHeroCard {
         let lead = reading.real != nil
             ? AppLocale.string("Réel le \(day)")
             : AppLocale.string("Estimé le \(day)")
-        return lead + " · " + AppLocale.string("Prévu \(reading.plan.asCompactCurrency(currency))")
+        return AppLocale.string("\(lead) · Prévu \(reading.plan.asCompactCurrency(currency))")
     }
 
     /// What the hero prints while scrubbing: the real stroke's reading, else the estimate's.
