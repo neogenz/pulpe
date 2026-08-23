@@ -15,6 +15,11 @@ function trajectory(
       { day: 0, balance: 2500 },
       { day: 1, balance: 2200 },
     ],
+    plannedAvailable: 5000,
+    real: [
+      { day: 0, balance: 5000 },
+      { day: 1, balance: 5000 },
+    ],
     driftDate: new Date(2026, 6, 5),
     plannedOutflows: 2500,
     today: 1,
