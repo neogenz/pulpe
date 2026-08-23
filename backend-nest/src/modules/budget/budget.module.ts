@@ -24,6 +24,8 @@ import { BUDGET_PROVISIONING_PORT } from './domain/ports/budget-provisioning.por
 import { SAVINGS_GOAL_HORIZON_PORT } from './domain/ports/savings-goal-horizon.port';
 import { BUDGET_MONTH_READ_PORT } from './domain/ports/budget-month-read.port';
 import { ReadBudgetMonthUseCase } from './application/read-budget-month.use-case';
+import { BUDGET_WRITE_PORT } from './domain/ports/budget-write.port';
+import { CreateBudgetInProcessUseCase } from './application/create-budget-in-process.use-case';
 
 @Module({
   imports: [EncryptionModule],
@@ -43,6 +45,7 @@ import { ReadBudgetMonthUseCase } from './application/read-budget-month.use-case
     ResolveNextMonthBudgetUseCase,
     EnsureBudgetsForPeriodsUseCase,
     ReadBudgetMonthUseCase,
+    CreateBudgetInProcessUseCase,
     SupabaseBudgetRepository,
     { provide: BUDGET_REPOSITORY, useExisting: SupabaseBudgetRepository },
     {
@@ -62,6 +65,7 @@ import { ReadBudgetMonthUseCase } from './application/read-budget-month.use-case
       useExisting: EnsureBudgetsForPeriodsUseCase,
     },
     { provide: BUDGET_MONTH_READ_PORT, useExisting: ReadBudgetMonthUseCase },
+    { provide: BUDGET_WRITE_PORT, useExisting: CreateBudgetInProcessUseCase },
     BudgetMapper,
     createInfoLoggerProvider(BudgetController.name),
     createInfoLoggerProvider(HasBudgetsUseCase.name),
@@ -83,6 +87,7 @@ import { ReadBudgetMonthUseCase } from './application/read-budget-month.use-case
     BUDGET_PERIOD_LOOKUP_PORT,
     BUDGET_PROVISIONING_PORT,
     BUDGET_MONTH_READ_PORT,
+    BUDGET_WRITE_PORT,
     SAVINGS_GOAL_HORIZON_PORT,
   ],
 })
