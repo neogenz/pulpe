@@ -108,8 +108,7 @@ struct BudgetDetailsView: View {
         .animation(DesignTokens.Animation.smoothEaseOut, value: screenState.isLoading)
         .navigationTitle(screenState.monthYear.isEmpty ? "Budget" : screenState.monthYear)
         .navigationBarTitleDisplayMode(.inline)
-        // The hero runs under the navigation bar on the forest surface; light ink while
-        // the budget is loaded, the default ink on the flat error / skeleton canvas.
+        // Hero under the nav bar on the forest surface: light ink when loaded, default ink on error / skeleton.
         .toolbarColorScheme(projector.screenState.isBudgetPresent ? .dark : nil, for: .navigationBar)
         .heroNavigationBar()
         .toolbar {
