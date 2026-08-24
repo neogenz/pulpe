@@ -50,7 +50,6 @@ import {
   TransactionSearchResponseDto,
 } from './dto/transaction-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
-import { FindAllTransactionsUseCase } from '../../application/find-all-transactions.use-case';
 import { FindTransactionUseCase } from '../../application/find-transaction.use-case';
 import { FindTransactionsByBudgetUseCase } from '../../application/find-transactions-by-budget.use-case';
 import { FindTransactionsByBudgetLineUseCase } from '../../application/find-transactions-by-budget-line.use-case';
@@ -83,7 +82,6 @@ const SEARCH_QUERY_VALIDATION_REASON_BY_CODE: Partial<Record<string, string>> =
 export class TransactionController {
   // eslint-disable-next-line max-params
   constructor(
-    private readonly findAllUseCase: FindAllTransactionsUseCase,
     private readonly findOneUseCase: FindTransactionUseCase,
     private readonly findByBudgetUseCase: FindTransactionsByBudgetUseCase,
     private readonly findByBudgetLineUseCase: FindTransactionsByBudgetLineUseCase,
