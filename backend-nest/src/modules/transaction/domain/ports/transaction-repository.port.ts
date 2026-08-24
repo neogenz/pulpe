@@ -19,7 +19,6 @@ export interface TransactionSearchCriteria {
 }
 
 export interface TransactionRepositoryPort {
-  findAll(): Promise<Transaction[]>;
   findById(id: string): Promise<Transaction>;
   findByBudgetId(budgetId: string): Promise<Transaction[]>;
   findByBudgetLineId(budgetLineId: string): Promise<Transaction[]>;

@@ -184,10 +184,6 @@ struct BudgetListView: View {
         let isPastYear = selectedYear < currentPeriod.year
         let yearBudgets = store.budgets(forYear: selectedYear)
         let slots = monthSlots(from: yearBudgets, currentPeriod: currentPeriod)
-        let upcomingFromMonth = isPastYear ? 13 : (selectedYear == currentPeriod.year ? currentPeriod.month : 1)
-        let upcomingPotential = yearBudgets
-            .filter { ($0.month ?? 0) >= upcomingFromMonth }
-            .reduce(Decimal.zero) { $0 + max(0, $1.remaining ?? 0) }
 
         return ScrollView {
             VStack(spacing: 0) {
@@ -196,8 +192,7 @@ struct BudgetListView: View {
                     YearRecapCard(
                         year: selectedYear,
                         budgets: yearBudgets,
-                        isPastYear: isPastYear,
-                        upcomingPotential: upcomingPotential
+                        isPastYear: isPastYear
                     )
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                 }

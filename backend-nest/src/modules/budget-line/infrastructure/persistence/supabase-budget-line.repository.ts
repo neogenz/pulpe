@@ -64,31 +64,6 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     private readonly spreadReader: SupabaseBudgetLineSpreadReader,
   ) {}
 
-  async findAll(): Promise<BudgetLine[]> {
-    const supabase = this.supabaseProvider.client;
-    const { data, error } = await supabase
-      .from('budget_line')
-      .select(BUDGET_LINE_WITH_TAGS_SELECT)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
-        undefined,
-        {
-          operation: 'listBudgetLines',
-          entityType: 'budget_line',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
-    }
-
-    if (!data?.length) return [];
-    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return data.map((row) => this.toEntity(row, dek));
-  }
-
   async findById(id: string): Promise<BudgetLine> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase

@@ -15,7 +15,6 @@ import {
   BUDGET_LINE_CHECK_TRANSACTIONS_PORT,
   BUDGET_LINE_SPREAD_OCCURRENCES_PORT,
 } from './domain/ports/budget-line-allocation.port';
-import { FindAllBudgetLinesUseCase } from './application/find-all-budget-lines.use-case';
 import { FindBudgetLineUseCase } from './application/find-budget-line.use-case';
 import { FindBudgetLinesByBudgetUseCase } from './application/find-budget-lines-by-budget.use-case';
 import { CreateBudgetLineUseCase } from './application/create-budget-line.use-case';
@@ -41,7 +40,6 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
   ],
   controllers: [BudgetLineController],
   providers: [
-    FindAllBudgetLinesUseCase,
     FindBudgetLineUseCase,
     FindBudgetLinesByBudgetUseCase,
     CreateBudgetLineUseCase,
@@ -73,7 +71,6 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
     BudgetLineMapper,
     createInfoLoggerProvider(BudgetLineController.name),
     createInfoLoggerProvider(SupabaseBudgetLineRepository.name),
-    createInfoLoggerProvider(FindAllBudgetLinesUseCase.name),
     createInfoLoggerProvider(FindBudgetLineUseCase.name),
     createInfoLoggerProvider(FindBudgetLinesByBudgetUseCase.name),
     createInfoLoggerProvider(CreateBudgetLineUseCase.name),
