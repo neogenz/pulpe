@@ -183,7 +183,7 @@ enum AuthErrorLocalizer {
 
     private static func catalogKey(for error: Error) -> String.LocalizationValue {
         if let authError = error as? AuthServiceError, case .emptyFirstName = authError {
-            return "Saisis ton prénom"
+            return AuthServiceError.emptyFirstNamePrompt
         }
 
         let description = error.localizedDescription

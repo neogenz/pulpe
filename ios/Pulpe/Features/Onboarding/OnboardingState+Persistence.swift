@@ -112,7 +112,7 @@ extension OnboardingState {
         hasEmittedWelcomeViewed = false
         hasEmittedSignupStarted = false
         hasEmittedBudgetPreviewCompleted = false
-        firstNamePersistFailedThisSession = false
+        markFirstNamePersistFailed(false)
     }
 }
 
@@ -168,7 +168,7 @@ extension OnboardingState {
         configureSocialUser(user)
         if let persistError {
             error = APIError.serverError(message: AuthErrorLocalizer.localize(persistError))
-            firstNamePersistFailedThisSession = true
+            markFirstNamePersistFailed(true)
         }
         nextStep()
     }
@@ -189,10 +189,42 @@ extension OnboardingState {
             let merged = FirstNameResolver.coalescing(updated, fallbackFirstName: name)
             authenticatedUser = merged
             firstName = FirstNameResolver.normalized(merged.firstName) ?? name
-            firstNamePersistFailedThisSession = false
+            markFirstNamePersistFailed(false)
         } catch {
-            firstNamePersistFailedThisSession = true
+            markFirstNamePersistFailed(true)
             throw error
+        }
+    }
+}
+
+// MARK: - Step completion analytics
+
+extension OnboardingState {
+    /// Fire `onboarding_step_completed` with `step_index` (1-based), `step_count`,
+    /// and `auth_method` so PostHog funnels survive step reordering.
+    func captureStepCompleted(_ step: OnboardingStep) {
+        let bar = progressBarSteps
+        let index = (bar.firstIndex(of: step).map { $0 + 1 }) ?? 0
+        var properties: [String: Any] = [
+            "step": step.analyticsName,
+            "step_index": index,
+            // Not `step_total`: `sanitizeProperties` drops any key carrying `total`.
+            "step_count": bar.count,
+            "auth_method": authMethodProperty
+        ]
+        if isStepSkipped(step) {
+            properties["skipped"] = true
+        }
+        AnalyticsService.shared.capture(.onboardingStepCompleted, properties: properties)
+    }
+
+    /// « Passer » is « Continuer » with nothing filled: skipped = optional step, no amount.
+    func isStepSkipped(_ step: OnboardingStep) -> Bool {
+        guard step.isOptional else { return false }
+        switch step {
+        case .charges: return totalCharges == 0
+        case .savings: return totalSavings == 0
+        default: return false
         }
     }
 }

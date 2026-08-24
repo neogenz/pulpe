@@ -11,6 +11,9 @@ enum AuthServiceError: LocalizedError, Equatable {
     /// Persist refused a blank first name — never write empty `user_metadata.firstName`.
     case emptyFirstName
 
+    /// Catalog key for the empty-name prompt. Shared with `AuthErrorLocalizer`.
+    static let emptyFirstNamePrompt: String.LocalizationValue = "Saisis ton prénom"
+
     var errorDescription: String? {
         switch self {
         case .signupFailed(let message):
@@ -20,7 +23,7 @@ enum AuthServiceError: LocalizedError, Equatable {
         case .sessionExpired:
             return AppLocale.string("Ta session a expiré — reconnecte-toi")
         case .emptyFirstName:
-            return AppLocale.string("Saisis ton prénom")
+            return AppLocale.string(Self.emptyFirstNamePrompt)
         }
     }
 }
