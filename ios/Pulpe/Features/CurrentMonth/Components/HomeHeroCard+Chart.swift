@@ -30,23 +30,6 @@ extension HomeHeroCard {
                     ))
                     .foregroundStyle(Color.heroInkSecondary.opacity(DesignTokens.Opacity.heroInkMuted))
                 }
-                if let planEnd = plan.last {
-                    PointMark(
-                        x: .value("Fin", planEnd.day),
-                        y: .value("Prévu", Self.decimalValue(planEnd.balance))
-                    )
-                    .symbolSize(0)
-                    .annotation(
-                        position: Self.planLabelPosition(for: trajectory),
-                        alignment: .trailing,
-                        spacing: DesignTokens.Spacing.xs,
-                        overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
-                    ) {
-                        chartLabel(AppLocale.string("Prévu"))
-                            .padding(.trailing, DesignTokens.Spacing.xxl)
-                            .opacity(labelOpacity)
-                    }
-                }
 
                 // The area under the real stroke: ink fading to nothing, the only fill on the
                 // plot. What makes the line read as a surface rather than a wire.
@@ -101,29 +84,6 @@ extension HomeHeroCard {
                     .opacity(settlingOpacity)
                 }
 
-                // The trend's own figure, once it is far enough from the plan to be a second
-                // number: the hero prints where the month lands, this prints where it lands
-                // if nothing changes.
-                if Self.showsTrendLabel(for: trajectory), let end = projection.last {
-                    PointMark(
-                        x: .value("Fin", end.day),
-                        y: .value("Tendance", Self.decimalValue(end.balance))
-                    )
-                    .symbolSize(0)
-                    // Grows leftward from the plot's edge, and keeps the text inset the hero
-                    // uses: the plot is edge to edge, so "fit to chart" alone would touch glass.
-                    .annotation(
-                        position: Self.trendLabelPosition(for: trajectory),
-                        alignment: .trailing,
-                        spacing: DesignTokens.Spacing.xs,
-                        overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
-                    ) {
-                        chartLabel(Self.trendLabel(for: trajectory, currency: currency))
-                            .padding(.trailing, DesignTokens.Spacing.xxl)
-                            .opacity(settlingOpacity * labelOpacity)
-                    }
-                }
-
                 if let current = trajectory.real.last {
                     PointMark(
                         x: .value("Aujourd’hui", current.day),
@@ -137,17 +97,6 @@ extension HomeHeroCard {
                         Circle()
                             .strokeBorder(Color.heroSurface, lineWidth: DesignTokens.BorderWidth.thick)
                             .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
-                            .opacity(labelOpacity)
-                    }
-                    // The day only, to the left of the dot, on the side the trend's figure
-                    // leaves free: late in the month the two would otherwise share a corner.
-                    .annotation(
-                        position: Self.todayLabelPosition(for: trajectory),
-                        alignment: .trailing,
-                        spacing: DesignTokens.Spacing.xs,
-                        overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
-                    ) {
-                        chartLabel(AppLocale.string("Aujourd’hui"))
                             .opacity(labelOpacity)
                     }
                 }
@@ -176,7 +125,12 @@ extension HomeHeroCard {
                     }
                 }
             }
-            .chartOverlay { proxy in scrubOverlay(proxy: proxy) }
+            .chartOverlay { proxy in
+                ZStack {
+                    scrubOverlay(proxy: proxy)
+                    labelOverlay(proxy: proxy)
+                }
+            }
             .sensoryFeedback(.selection, trigger: scrubDay)
             .chartXScale(domain: 0 ... trajectory.totalDays)
             // The projection springs to its new end once the server has settled an entry;
@@ -244,18 +198,6 @@ extension HomeHeroCard {
     /// The fixed labels step aside while the finger's bubble is on the plot.
     var labelOpacity: Double { scrubDay == nil ? 1 : 0 }
 
-    /// A word on the plot sits on a sliver of the surface, so a stroke passing under it
-    /// never runs through its letters. The same glass tint as the metric tiles below.
-    private func chartLabel(_ text: String) -> some View {
-        Text(text)
-            .font(PulpeTypography.caption2)
-            .foregroundStyle(Color.heroInkSecondary)
-            .lineLimit(1)
-            .padding(.horizontal, DesignTokens.Spacing.xs)
-            .padding(.vertical, DesignTokens.Spacing.xxs)
-            .background(Color.heroTile, in: Capsule())
-    }
-
     /// The skeleton's own pulse on the dashed stroke and its label while an entry settles —
     /// the same material the loading state uses, so "not final yet" reads the same way
     /// twice. Reduced motion holds the faded level without pulsing.
@@ -308,7 +250,7 @@ extension HomeHeroCard {
     /// left), over one that climbs. The plan falls whenever the month plans to spend.
     static func planLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
-    ) -> AnnotationPosition {
+    ) -> HeroChartLabelLayout.Side {
         trajectory.plannedBalance < trajectory.plannedAvailable ? .bottom : .top
     }
 
@@ -316,7 +258,7 @@ extension HomeHeroCard {
     /// one that climbs back. A held month's stroke is flat and takes the top.
     static func trendLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
-    ) -> AnnotationPosition {
+    ) -> HeroChartLabelLayout.Side {
         guard let current = trajectory.real.last else { return .top }
         return trend(for: trajectory) < current.balance ? .bottom : .top
     }
@@ -325,7 +267,7 @@ extension HomeHeroCard {
     /// from nearly the same point once the month is well along.
     static func todayLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
-    ) -> AnnotationPosition {
+    ) -> HeroChartLabelLayout.Side {
         trendLabelPosition(for: trajectory) == .bottom ? .top : .bottom
     }
 
@@ -396,7 +338,7 @@ extension HomeHeroCard {
             + [decimalValue(trend(for: trajectory))]
     }
 
-    private static func decimalValue(_ value: Decimal) -> Double {
+    static func decimalValue(_ value: Decimal) -> Double {
         Double(truncating: value.rounded(2) as NSDecimalNumber)
     }
 }
