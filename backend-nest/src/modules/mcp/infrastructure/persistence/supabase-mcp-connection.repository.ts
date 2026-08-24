@@ -101,7 +101,7 @@ export class SupabaseMcpConnectionRepository implements McpConnectionRepositoryP
 
   #fail(operation: string, userId: string, cause: unknown): never {
     throw new BusinessException(
-      ERROR_DEFINITIONS.MCP_CONNECTION_SAVE_FAILED,
+      ERROR_DEFINITIONS.MCP_CONNECTION_OPERATION_FAILED,
       undefined,
       { operation, userId },
       { cause },
