@@ -160,6 +160,9 @@ extension RegistrationStep {
                     }
                     resolvedUser = state.authenticatedUser ?? resolvedUser
                 } catch {
+                    // Signup already succeeded. Keep the in-memory name and
+                    // advance; the banner shows on Revenus. finishOnboarding
+                    // retries persist as last chance (same as social signup).
                     resolvedUser.firstName = FirstNameResolver.normalized(state.firstName)
                     state.error = APIError.serverError(
                         message: AuthErrorLocalizer.localize(error)
