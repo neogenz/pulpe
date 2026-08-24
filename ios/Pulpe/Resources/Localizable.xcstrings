@@ -19079,28 +19079,6 @@
         }
       }
     },
-    "Potentiel %@" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Potenzial %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Potential %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Potenziale %@"
-          }
-        }
-      }
-    },
     "Potentiel de l'année" : {
       "localizations" : {
         "de" : {
@@ -22847,6 +22825,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saldo di fine anno"
+          }
+        }
+      }
+    },
+    "Solde fin d'année %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saldo zum Jahresende %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Year-end balance %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saldo di fine anno %@"
           }
         }
       }

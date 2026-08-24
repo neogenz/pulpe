@@ -53,9 +53,11 @@ struct YearRecapCard: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
+            // Same words as the eyebrow above: VoiceOver and the screen have to
+            // name the same figure.
             (isPastYear
                 ? AppLocale.string("Bilan \(String(year))")
-                : AppLocale.string("Potentiel \(String(year))"))
+                : AppLocale.string("Solde fin d'année \(String(year))"))
             + ", "
             + (amountsHidden
                 ? AppLocale.string("montant masqué")
