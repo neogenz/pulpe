@@ -133,6 +133,7 @@ struct BudgetDetailsView: View {
             }
         }
         .task(id: screenState.budgetId) {
+            pushPendingTransactionEdit()
             coordinator.bind(
                 budgetListStore: budgetListStore,
                 dashboardStore: dashboardStore,
@@ -151,9 +152,7 @@ struct BudgetDetailsView: View {
             await tagStore.loadIfNeeded()
         }
         .task(id: screenState.referencedTagIds) { await tagStore.loadIfNeeded(for: screenState.referencedTagIds) }
-        .onChange(of: searchText) { _, newValue in
-            projector.setSearchText(newValue)
-        }
+        .onChange(of: searchText) { _, newValue in projector.setSearchText(newValue) }
         .sheet(item: $router.sheet) { dest in
             sheetContent(for: dest)
         }

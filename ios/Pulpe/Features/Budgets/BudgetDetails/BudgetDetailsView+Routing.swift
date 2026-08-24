@@ -17,6 +17,14 @@ extension BudgetDetailsView {
         )
     }
 
+    /// The accueil's « Modifier » on an operation: the edit route only resolves from inside
+    /// this page, so the accueil pushes the budget and leaves the operation for it to push.
+    func pushPendingTransactionEdit() {
+        guard let transactionId = appState.pendingTransactionEdit else { return }
+        appState.pendingTransactionEdit = nil
+        router.push(.editTx(transactionId: transactionId))
+    }
+
     func handlePointGesture(on line: BudgetLine) {
         Task {
             await coordinator.dispatch(
