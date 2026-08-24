@@ -731,7 +731,10 @@ extension CurrentMonthStore {
         onMutation?()
     }
 
-    func deleteTransaction(_ transaction: Transaction) async {
+    /// `false` when the deletion was rolled back: `error` alone is only read by the loading
+    /// states, so the caller is the one that can tell the user a mutation failed.
+    @discardableResult
+    func deleteTransaction(_ transaction: Transaction) async -> Bool {
         isSettling = true
         defer { isSettling = false }
         // Optimistic update
@@ -743,14 +746,17 @@ extension CurrentMonthStore {
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
             syncWidgetAfterChange()
+            return true
         } catch let apiError as APIError {
             transactions = originalTransactions
             self.error = apiError
             recomputeMetrics()
+            return false
         } catch {
             transactions = originalTransactions
             self.error = .networkError(error)
             recomputeMetrics()
+            return false
         }
     }
 

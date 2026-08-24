@@ -5,7 +5,10 @@ import SwiftUI
 /// action on release with a haptic. The row snaps back either way; it never stays open.
 ///
 /// Off under VoiceOver and Switch Control, where the row's own button carries the action.
-/// A vertical pan keeps scrolling: the drag only engages once it is clearly horizontal.
+/// A vertical pan keeps scrolling: the drag is attached at the lowest priority (`gesture`,
+/// never `highPriorityGesture` or `simultaneousGesture`, both of which let its radial
+/// `minimumDistance` claim a downward pan and leave the finger scrolling nothing), so the
+/// scroll view takes the vertical pulls and hands over only the horizontal ones it refuses.
 struct LeadingSwipeAction: ViewModifier {
     let systemImage: String
     let tint: Color
@@ -39,7 +42,7 @@ struct LeadingSwipeAction: ViewModifier {
             }
             .animation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring, value: offset)
             .sensoryFeedback(.success, trigger: commitCount)
-            .highPriorityGesture(drag, including: isEnabled && !voiceOver && !switchControl ? .all : .none)
+            .gesture(drag, including: isEnabled && !voiceOver && !switchControl ? .all : .none)
     }
 
     private var drag: some Gesture {
