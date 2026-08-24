@@ -188,14 +188,22 @@ test("tracked project files preserve AIDD history and skill contracts", () => {
 
 test("the plugin manifest lets Claude Code see every release", () => {
   const manifest = JSON.parse(read("plugins/pulpe/.claude-plugin/plugin.json"));
+  const marketplace = JSON.parse(read(".claude-plugin/marketplace.json"));
+  const marketplaceEntry = marketplace.plugins.find(
+    ({ name }) => name === manifest.name,
+  );
 
-  // Declaring `version` pins the plugin: Claude Code compares that string and
-  // keeps the cached copy until someone bumps it by hand, so every release
-  // after it goes unseen. On a git source, omitting the field makes the
-  // resolved commit SHA the update signal, which cannot drift.
+  // Declaring `version` in either place pins the plugin. On a git source,
+  // omitting both fields makes the resolved commit SHA the update signal.
+  assert.ok(marketplaceEntry, "the Pulpe marketplace entry must exist");
   assert.equal(
     manifest.version,
     undefined,
     "plugins/pulpe/.claude-plugin/plugin.json must not declare a version",
+  );
+  assert.equal(
+    marketplaceEntry.version,
+    undefined,
+    ".claude-plugin/marketplace.json Pulpe entry must not declare a version",
   );
 });
