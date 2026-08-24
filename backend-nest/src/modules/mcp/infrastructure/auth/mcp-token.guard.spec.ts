@@ -41,6 +41,7 @@ describe('MCP token claims', () => {
     expect(
       isMcpAudience({ client_id: '', aud: 'authenticated' }, RESOURCE),
     ).toBe(false);
+    expect(isMcpAudience({ client_id: 'c', aud: [] }, RESOURCE)).toBe(false);
   });
 
   it('flags agent tokens so the REST API refuses them', () => {

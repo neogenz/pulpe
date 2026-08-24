@@ -95,9 +95,11 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Authorization request cannot be processed',
     httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
   },
-  MCP_CONNECTION_SAVE_FAILED: {
-    code: API_ERROR_CODES.MCP_CONNECTION_SAVE_FAILED,
-    message: () => 'Failed to save agent connection',
+  MCP_CONNECTION_OPERATION_FAILED: {
+    code: API_ERROR_CODES.MCP_CONNECTION_OPERATION_FAILED,
+    // Reads, writes and revocations share it: the exact operation travels
+    // in the log context, not in the code the caller sees.
+    message: () => 'Agent connection operation failed',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
   MCP_CONNECTION_NOT_FOUND: {

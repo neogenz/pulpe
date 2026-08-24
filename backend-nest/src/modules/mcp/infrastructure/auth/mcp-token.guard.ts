@@ -64,6 +64,9 @@ export function isMcpAudience(
 ): boolean {
   if (typeof claims.client_id !== 'string' || !claims.client_id) return false;
   const audiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+  // `every` answers true on an empty array: a token naming no audience at
+  // all would slip through a check that reads as strict.
+  if (audiences.length === 0) return false;
   return audiences.every(
     (aud) => aud === 'authenticated' || aud === resourceUrl,
   );
@@ -121,7 +124,7 @@ export class McpTokenGuard implements CanActivate {
     if (!connection) {
       throw this.#unauthorized(response, 'connection');
     }
-
+    // No `request.user` yet: ClientKeyCleanupInterceptor cannot zero this key.
     try {
       await this.encryption.ensureUserDEK(user.id, connection.clientKey);
     } catch {
