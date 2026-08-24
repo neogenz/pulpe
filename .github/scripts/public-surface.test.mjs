@@ -185,3 +185,17 @@ test("tracked project files preserve AIDD history and skill contracts", () => {
   assert.match(storyFormat, /Template \(copier-coller exact\)/);
   assert.match(storyFormat, /Barème d'estimation \(Story Points\)/);
 });
+
+test("the plugin manifest lets Claude Code see every release", () => {
+  const manifest = JSON.parse(read("plugins/pulpe/.claude-plugin/plugin.json"));
+
+  // Declaring `version` pins the plugin: Claude Code compares that string and
+  // keeps the cached copy until someone bumps it by hand, so every release
+  // after it goes unseen. On a git source, omitting the field makes the
+  // resolved commit SHA the update signal, which cannot drift.
+  assert.equal(
+    manifest.version,
+    undefined,
+    "plugins/pulpe/.claude-plugin/plugin.json must not declare a version",
+  );
+});
