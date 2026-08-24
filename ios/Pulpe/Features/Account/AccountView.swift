@@ -73,19 +73,15 @@ extension AccountView {
                         .foregroundStyle(Color.textPrimary)
                     Text(email.isEmpty ? AppLocale.string("Non connecté(e)") : email)
                         .font(PulpeTypography.bodyLarge)
-                    Button("Modifier") {
-                        showEditFirstName = true
-                    }
-                    .font(PulpeTypography.buttonSecondary)
-                    .foregroundStyle(Color.pulpePrimary)
-                    .accessibilityIdentifier("editFirstNameButton")
+                    firstNameActionButton(
+                        title: "Modifier",
+                        identifier: "editFirstNameButton"
+                    )
                 } else {
-                    Button("Ajouter un prénom") {
-                        showEditFirstName = true
-                    }
-                    .font(PulpeTypography.buttonSecondary)
-                    .foregroundStyle(Color.pulpePrimary)
-                    .accessibilityIdentifier("addFirstNameButton")
+                    firstNameActionButton(
+                        title: "Ajouter un prénom",
+                        identifier: "addFirstNameButton"
+                    )
                     Text(email.isEmpty ? AppLocale.string("Non connecté(e)") : email)
                         .font(PulpeTypography.bodyLarge)
                 }
@@ -242,6 +238,19 @@ extension AccountView {
 // MARK: - Row Helpers
 
 extension AccountView {
+    /// Text link in the profile stack: expand the hit area to 44pt without
+    /// growing the `VStack` (pad → shape → negative pad, same as `SectionHeader`).
+    private func firstNameActionButton(title: String, identifier: String) -> some View {
+        Button(title) { showEditFirstName = true }
+            .font(PulpeTypography.buttonSecondary)
+            .foregroundStyle(Color.pulpePrimary)
+            .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
+            .contentShape(Rectangle())
+            .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+            .textLinkButtonStyle()
+            .accessibilityIdentifier(identifier)
+    }
+
     private func settingsNavigationRow<Destination: View>(
         icon: String,
         iconColor: Color,
