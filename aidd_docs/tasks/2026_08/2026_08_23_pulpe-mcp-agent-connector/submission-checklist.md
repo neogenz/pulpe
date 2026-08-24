@@ -10,13 +10,13 @@ faire à sa place.
 
 ## Ce qui est livré dans le dépôt
 
-| Élément                                | Chemin                                     |
-| -------------------------------------- | ------------------------------------------ |
-| Manifeste du plugin Claude Code         | `plugins/pulpe/.claude-plugin/plugin.json` |
-| Déclaration du serveur MCP distant      | `plugins/pulpe/.mcp.json`                  |
-| Catalogue du dépôt marketplace          | `.claude-plugin/marketplace.json`          |
-| Canal agent dans les CGU (4 langues)    | `legal.terms.aiAssistants`                 |
-| Canal agent dans la confidentialité     | `legal.privacy.aiAssistants` (phase 2)     |
+| Élément                              | Chemin                                     |
+| ------------------------------------ | ------------------------------------------ |
+| Manifeste du plugin Claude Code      | `plugins/pulpe/.claude-plugin/plugin.json` |
+| Déclaration du serveur MCP distant   | `plugins/pulpe/.mcp.json`                  |
+| Catalogue du dépôt marketplace       | `.claude-plugin/marketplace.json`          |
+| Canal agent dans les CGU (4 langues) | `legal.terms.aiAssistants`                 |
+| Canal agent dans la confidentialité  | `legal.privacy.aiAssistants` (phase 2)     |
 
 Le plugin ne déclare aucun serveur stdio local et aucune variable à renseigner :
 l'utilisateur installe, Pulpe demande l'autorisation, c'est tout.
@@ -26,8 +26,9 @@ Les trois manifestes ont été vérifiés en les installant réellement :
 aboutissent, et `claude plugin details pulpe@pulpe` liste bien un serveur MCP et
 rien d'autre. L'installation a ensuite été retirée du poste.
 
-Le manifeste porte une version. Elle est aujourd'hui alignée à la main sur celle
-du dépôt ; le script de release ne la connaît pas encore.
+Le manifeste et l'entrée plugin du marketplace ne portent aucune version. Sur
+cette source Git, Claude Code utilise le SHA du commit pour détecter chaque
+mise à jour ; la version à la racine du marketplace ne versionne que le catalogue.
 
 ## Ce qui est bloqué, et par quoi
 
@@ -35,14 +36,14 @@ Les trois soumissions supposent toutes que le serveur MCP répond sur son URL de
 production, `https://api.pulpe.app/mcp`. Aucune ne peut donc être tentée avant
 un déploiement en production.
 
-| Étape                                          | Bloquant                                                              |
-| ---------------------------------------------- | --------------------------------------------------------------------- |
-| Déployer le connecteur en production            | Décision de mise en production, hors périmètre de l'implémentation     |
-| Vérifier l'identité développeur chez OpenAI     | Pièce d'identité, session humaine sur la plateforme OpenAI             |
-| Ouvrir une organisation Team chez Anthropic     | Paiement par carte, plan payant                                        |
-| Soumettre au Plugin Directory OpenAI            | Formulaire dans une session authentifiée                               |
-| Soumettre au Connectors Directory Anthropic     | Portail dans les réglages d'organisation, sept déclarations à signer   |
-| Installer depuis un poste vierge et vérifier    | Manifestes validés en local, reste le dépôt marketplace à publier      |
+| Étape                                        | Bloquant                                                             |
+| -------------------------------------------- | -------------------------------------------------------------------- |
+| Déployer le connecteur en production         | Décision de mise en production, hors périmètre de l'implémentation   |
+| Vérifier l'identité développeur chez OpenAI  | Pièce d'identité, session humaine sur la plateforme OpenAI           |
+| Ouvrir une organisation Team chez Anthropic  | Paiement par carte, plan payant                                      |
+| Soumettre au Plugin Directory OpenAI         | Formulaire dans une session authentifiée                             |
+| Soumettre au Connectors Directory Anthropic  | Portail dans les réglages d'organisation, sept déclarations à signer |
+| Installer depuis un poste vierge et vérifier | Manifestes validés en local, reste le dépôt marketplace à publier    |
 
 ## Compte de revue
 
@@ -67,9 +68,6 @@ la page de consentement.
 
 ## Guide grand public
 
-Non écrit. La page destinée aux utilisateurs
-(`landing/app/…/connecter-un-assistant`) demande la copie dans les quatre
-langues de la landing, un composant, ses entrées de dictionnaire, ses deux
-routes, son entrée de sitemap et son test d'accessibilité. Elle dépasse le
-plafond de taille que le dépôt s'impose pour un seul incrément, et elle attend
-une décision de périmètre.
+Livré sur `/support/connecter-un-assistant` dans les quatre langues de la
+landing. Le guide couvre ChatGPT, Claude et Claude Code, le choix entre lecture
+seule et lecture-écriture, puis la coupure immédiate de l'accès depuis Pulpe.
