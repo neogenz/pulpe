@@ -1,6 +1,6 @@
 ---
 objective: "Les findings de la review MCP que personne d'autre ne bloque sont soldés : aucune audience vide ne passe, un échec de lecture ne se lit plus comme un échec d'écriture, et le plugin Claude Code ne fige plus ses utilisateurs sur la version du jour."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Solder les findings traitables de la review MCP
