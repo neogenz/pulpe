@@ -263,22 +263,14 @@ extension HomeHeroCard {
         return trend(for: trajectory) < current.balance ? .bottom : .top
     }
 
-    /// The same rule once more, read on the stroke that ends on today's dot: the real line
-    /// only exists left of it, so the word takes the side it arrives from — under a stroke
-    /// that falls, over one that climbs. Keeping it off the trend's figure is the layout's
-    /// push loop, not this side's job.
+    /// Today's word hangs to the right of its dot, where the real stroke never runs: the one
+    /// stroke it can meet there is the dashed projection, so it reads the same slope as the
+    /// trend's figure and takes the same side. Two pills on one side is the layout's push
+    /// loop's business, not this rule's.
     static func todayLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> HeroChartLabelLayout.Side {
-        let real = trajectory.real
-        // A day 0 has no arriving segment, so neither side is unsafe: take the one the
-        // trend's figure leaves, as the plot did before there was a stroke to read.
-        guard real.count >= 2 else {
-            return trendLabelPosition(for: trajectory) == .bottom ? .top : .bottom
-        }
-        // ponytail: last segment only — a flat today after a week of falling can still clip
-        // the pill; feed the whole polyline to the resolver if that shows up.
-        return real[real.count - 1].balance < real[real.count - 2].balance ? .bottom : .top
+        trendLabelPosition(for: trajectory)
     }
 
     /// Speaks the three strokes VoiceOver cannot see, in the drawing's own order: what the

@@ -141,22 +141,18 @@ struct HomeHeroCardTests {
         let spending = trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000, totalDays: 31)
         #expect(HomeHeroCard.planLabelPosition(for: spending) == .bottom)
         #expect(HomeHeroCard.trendLabelPosition(for: spending) == .bottom)
-        // Today's word reads its own stroke, the real one, which falls into the dot here.
+        // Today's word hangs right of its dot, so the stroke it can meet is the projection:
+        // it reads the same slope as the trend's figure and lands on the same side.
         #expect(HomeHeroCard.todayLabelPosition(for: spending) == .bottom)
         // Even a month above its plan still has money to spend: the dashed stroke falls
         // from what is left today to what is left at the end, and its figure goes under.
-        // Its real stroke climbed into today, though, so the word above it stays clear.
         let recovering = trajectory(landing: [2_500, 2_900], plannedOutflows: 9_000, totalDays: 31)
         #expect(HomeHeroCard.trendLabelPosition(for: recovering) == .bottom)
-        #expect(HomeHeroCard.todayLabelPosition(for: recovering) == .top)
+        #expect(HomeHeroCard.todayLabelPosition(for: recovering) == .bottom)
+        // A month held on its plan draws a flat projection, and both words take the top.
         #expect(HomeHeroCard.planLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
         #expect(HomeHeroCard.trendLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
         #expect(HomeHeroCard.todayLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
-        // Day 0 draws a single reading and no arriving segment: the word then just keeps
-        // off the trend's figure, the only other thing anchored on that point.
-        let openingDay = trajectory(landing: [2_500], plannedOutflows: 9_000, totalDays: 31)
-        #expect(HomeHeroCard.todayLabelPosition(for: openingDay)
-            != HomeHeroCard.trendLabelPosition(for: openingDay))
     }
 
     @MainActor
