@@ -11,6 +11,11 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { sanitizeLogTechnicalValue } from '@common/utils/log-anonymization';
+import {
+  POSTGREST_FILTER_CHUNK_SIZE,
+  fetchAllPages,
+  fetchRowsByParentIds,
+} from '@common/utils/postgrest-pagination';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { DEMO_CLIENT_KEY_BUFFER } from '../../domain/encryption.constants';
 import { SupabaseEncryptionKeyRepository } from '../persistence/supabase-encryption-key.repository';
@@ -33,8 +38,6 @@ const SALT_LENGTH = 16;
 const KDF_ITERATIONS = 600_000;
 const HKDF_DIGEST = 'sha256';
 const DEK_CACHE_TTL_MS = 5 * 60 * 1000;
-const POSTGREST_PAGE_SIZE = 1_000;
-const POSTGREST_FILTER_CHUNK_SIZE = 100;
 const VAULT_VALIDATION_CONTEXT_KEY = 'encryption.validatedVaultCacheKey';
 
 // Base32 alphabet (RFC 4648, no padding) — avoids 0/O and 1/l ambiguity
@@ -575,7 +578,7 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<string[]> {
-    const rows = await this.#fetchAllPages((from, to) =>
+    const rows = await fetchAllPages((from, to) =>
       supabase
         .from('monthly_budget')
         .select('id')
@@ -584,48 +587,6 @@ export class AesGcmCryptoService {
         .range(from, to),
     );
     return rows.map((row) => row.id);
-  }
-
-  async #fetchAllPages<T>(
-    fetchPage: (
-      from: number,
-      to: number,
-    ) => PromiseLike<{ data: T[] | null; error: unknown }>,
-  ): Promise<T[]> {
-    const rows: T[] = [];
-    for (let from = 0; ; from += POSTGREST_PAGE_SIZE) {
-      const { data, error } = await fetchPage(
-        from,
-        from + POSTGREST_PAGE_SIZE - 1,
-      );
-      if (error) throw error;
-      if (data === null) throw new Error('Ambiguous Supabase response');
-
-      rows.push(...data);
-      if (data.length < POSTGREST_PAGE_SIZE) return rows;
-    }
-  }
-
-  async #fetchRowsByParentIds<T>(
-    parentIds: string[],
-    fetchPage: (
-      ids: string[],
-      from: number,
-      to: number,
-    ) => PromiseLike<{ data: T[] | null; error: unknown }>,
-  ): Promise<T[]> {
-    const rows: T[] = [];
-    for (
-      let offset = 0;
-      offset < parentIds.length;
-      offset += POSTGREST_FILTER_CHUNK_SIZE
-    ) {
-      const ids = parentIds.slice(offset, offset + POSTGREST_FILTER_CHUNK_SIZE);
-      rows.push(
-        ...(await this.#fetchAllPages((from, to) => fetchPage(ids, from, to))),
-      );
-    }
-    return rows;
   }
 
   async regenerateRecoveryKey(
@@ -1176,7 +1137,7 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<string[]> {
-    const rows = await this.#fetchAllPages((from, to) =>
+    const rows = await fetchAllPages((from, to) =>
       supabase
         .from('template')
         .select('id')
@@ -1193,7 +1154,7 @@ export class AesGcmCryptoService {
   ) {
     if (!budgetIds.length) return [];
 
-    return this.#fetchRowsByParentIds(budgetIds, (ids, from, to) =>
+    return fetchRowsByParentIds(budgetIds, (ids, from, to) =>
       supabase
         .from('budget_line')
         .select('id, amount, original_amount')
@@ -1209,7 +1170,7 @@ export class AesGcmCryptoService {
   ) {
     if (!budgetIds.length) return [];
 
-    return this.#fetchRowsByParentIds(budgetIds, (ids, from, to) =>
+    return fetchRowsByParentIds(budgetIds, (ids, from, to) =>
       supabase
         .from('transaction')
         .select('id, amount, original_amount')
@@ -1225,7 +1186,7 @@ export class AesGcmCryptoService {
   ) {
     if (!templateIds.length) return [];
 
-    return this.#fetchRowsByParentIds(templateIds, (ids, from, to) =>
+    return fetchRowsByParentIds(templateIds, (ids, from, to) =>
       supabase
         .from('template_line')
         .select('id, amount, original_amount')
@@ -1239,7 +1200,7 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
-    return this.#fetchAllPages((from, to) =>
+    return fetchAllPages((from, to) =>
       supabase
         .from('savings_goal')
         .select('id, target_amount, original_target_amount, initial_amount')
@@ -1253,7 +1214,7 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
-    return this.#fetchAllPages((from, to) =>
+    return fetchAllPages((from, to) =>
       supabase
         .from('monthly_budget')
         .select('id, ending_balance')
@@ -1267,7 +1228,7 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
-    return this.#fetchAllPages((from, to) =>
+    return fetchAllPages((from, to) =>
       supabase
         .from('savings_goal_plan_withdrawal')
         .select('id, amount')

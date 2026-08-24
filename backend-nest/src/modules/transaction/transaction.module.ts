@@ -10,7 +10,6 @@ import { SupabaseTransactionRepository } from './infrastructure/persistence/supa
 import { TransactionMapper } from './infrastructure/mappers/transaction.mapper';
 import { TRANSACTION_REPOSITORY } from './domain/ports/transaction-repository.port';
 import { TRANSACTION_SPREAD_FROM_TXN_PORT } from './domain/ports/transaction-spread-from-txn.port';
-import { FindAllTransactionsUseCase } from './application/find-all-transactions.use-case';
 import { FindTransactionUseCase } from './application/find-transaction.use-case';
 import { FindTransactionsByBudgetUseCase } from './application/find-transactions-by-budget.use-case';
 import { FindTransactionsByBudgetLineUseCase } from './application/find-transactions-by-budget-line.use-case';
@@ -34,7 +33,6 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
   ],
   controllers: [TransactionController],
   providers: [
-    FindAllTransactionsUseCase,
     FindTransactionUseCase,
     FindTransactionsByBudgetUseCase,
     FindTransactionsByBudgetLineUseCase,
@@ -56,7 +54,6 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
     TransactionMapper,
     createInfoLoggerProvider(TransactionController.name),
     createInfoLoggerProvider(SupabaseTransactionRepository.name),
-    createInfoLoggerProvider(FindAllTransactionsUseCase.name),
     createInfoLoggerProvider(FindTransactionUseCase.name),
     createInfoLoggerProvider(FindTransactionsByBudgetUseCase.name),
     createInfoLoggerProvider(FindTransactionsByBudgetLineUseCase.name),

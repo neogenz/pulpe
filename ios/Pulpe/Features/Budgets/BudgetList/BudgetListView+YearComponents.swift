@@ -8,8 +8,6 @@ struct YearRecapCard: View {
     let year: Int
     let budgets: [BudgetSparse]
     var isPastYear: Bool = false
-    /// Sum of the positive `remaining` of the months still ahead; 0 on a past year.
-    var upcomingPotential: Decimal = 0
 
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -49,21 +47,17 @@ struct YearRecapCard: View {
                     label: AppLocale.string("mois"),
                     value: "\(budgets.count) / 12"
                 )
-                HeroMetricTile(
-                    icon: "sparkles",
-                    label: AppLocale.string("potentiel"),
-                    value: upcomingPotential.asSignedCompactAmount(for: userSettingsStore.currency),
-                    tint: upcomingPotential < 0 ? .heroAccentDeficit : .heroInk
-                )
             }
 
             HeroVerdictRow(sentence: subtitle)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
+            // Same words as the eyebrow above: VoiceOver and the screen have to
+            // name the same figure.
             (isPastYear
                 ? AppLocale.string("Bilan \(String(year))")
-                : AppLocale.string("Potentiel \(String(year))"))
+                : AppLocale.string("Solde fin d'année \(String(year))"))
             + ", "
             + (amountsHidden
                 ? AppLocale.string("montant masqué")

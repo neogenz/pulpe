@@ -80,31 +80,6 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     private readonly logger: InfoLogger,
   ) {}
 
-  async findAll(): Promise<Transaction[]> {
-    const supabase = this.supabaseProvider.client;
-    const { data, error } = await supabase
-      .from('transaction')
-      .select(TRANSACTION_WITH_TAGS_SELECT)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-        undefined,
-        {
-          operation: 'listTransactions',
-          entityType: 'transaction',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
-    }
-
-    if (!data?.length) return [];
-    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return data.map((row) => this.toEntity(row, dek));
-  }
-
   async findById(id: string): Promise<Transaction> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase

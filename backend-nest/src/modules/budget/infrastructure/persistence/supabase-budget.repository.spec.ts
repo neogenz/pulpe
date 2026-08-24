@@ -9,6 +9,7 @@ import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authentica
 import type { EncryptionPort } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { MaterializedBudgetPeriod } from '../../domain/ports/savings-goal-horizon.port';
+import { POSTGREST_PAGE_SIZE } from '@common/utils/postgrest-pagination';
 
 const mockUser: AuthenticatedUser = {
   id: 'user-1',
@@ -82,23 +83,22 @@ function createMockEncryption(): EncryptionPort {
 const budgetLineOrderSpy = jest.fn();
 
 /**
- * Supabase's query builder is a thenable that keeps accepting `.order()`, so a
- * mock that resolves on the first call cannot see a second sort key.
+ * `.in(...).order(...).range(from, to)` — the shape every read of these two
+ * tables now has. Supabase's builder keeps accepting `.order()`, so a mock that
+ * resolves on the first call cannot see a second sort key; only `.range()`
+ * settles, and the second page comes back empty so paging terminates.
  */
-function budgetLineQuery(lineRow: BudgetLineRow) {
-  const result = Promise.resolve({ data: [lineRow], error: null });
+function pagedRowsQuery(
+  rows: unknown[],
+  orderSpy: ReturnType<typeof jest.fn> = jest.fn(),
+) {
   const chain = {
-    order: budgetLineOrderSpy,
-    then: result.then.bind(result),
+    order: orderSpy,
+    range: jest.fn((from: number) =>
+      Promise.resolve({ data: from === 0 ? rows : [], error: null }),
+    ),
   };
-  budgetLineOrderSpy.mockReturnValue(chain);
-  return chain;
-}
-
-function emptyBudgetLineQuery() {
-  const result = Promise.resolve({ data: [], error: null });
-  const chain = { order: jest.fn(), then: result.then.bind(result) };
-  chain.order.mockReturnValue(chain);
+  orderSpy.mockReturnValue(chain);
   return chain;
 }
 
@@ -126,16 +126,14 @@ function fetchBudgetDataProvider(
     if (table === 'budget_line') {
       return {
         select: () => ({
-          eq: () => budgetLineQuery(lineRow),
+          in: () => pagedRowsQuery([lineRow], budgetLineOrderSpy),
         }),
       };
     }
     // transaction
     return {
       select: () => ({
-        eq: () => ({
-          order: jest.fn().mockResolvedValue({ data: [], error: null }),
-        }),
+        in: () => pagedRowsQuery([]),
       }),
     };
   });
@@ -241,16 +239,12 @@ describe('SupabaseBudgetRepository fetchBudgetDataForRecalc (strict decrypt)', (
     return createMockProvider((table: string) => {
       if (table === 'budget_line') {
         return {
-          select: () => ({
-            eq: jest.fn().mockResolvedValue({ data: lineRows, error: null }),
-          }),
+          select: () => ({ in: () => pagedRowsQuery(lineRows) }),
         };
       }
       if (table === 'transaction') {
         return {
-          select: () => ({
-            eq: jest.fn().mockResolvedValue({ data: txRows, error: null }),
-          }),
+          select: () => ({ in: () => pagedRowsQuery(txRows) }),
         };
       }
       throw new Error(`unexpected table: ${table}`);
@@ -800,18 +794,12 @@ describe('SupabaseBudgetRepository toTransactionDecrypted (PUL-329)', () => {
       }
       if (table === 'budget_line') {
         return {
-          select: () => ({
-            eq: () => emptyBudgetLineQuery(),
-          }),
+          select: () => ({ in: () => pagedRowsQuery([]) }),
         };
       }
       // transaction
       return {
-        select: () => ({
-          eq: () => ({
-            order: jest.fn().mockResolvedValue({ data: [txRow], error: null }),
-          }),
-        }),
+        select: () => ({ in: () => pagedRowsQuery([txRow]) }),
       };
     });
   }
@@ -892,5 +880,137 @@ describe('SupabaseBudgetRepository sparse pagination', () => {
 
     expect(eq).toHaveBeenCalledWith('year', 2026);
     expect(range).toHaveBeenCalledWith(12, 23);
+  });
+});
+
+describe('SupabaseBudgetRepository row cap', () => {
+  /**
+   * Stands in for PostgREST: `.range(from, to)` slices, and nothing warns when the
+   * slice is short. Before the fix the repository issued no range at all, so the
+   * rows past the cap never reached the aggregation and the budgets holding them
+   * came back at zero.
+   */
+  function pagedTableProvider(
+    lines: BudgetLineRow[],
+    transactions: TransactionRow[],
+  ) {
+    const orderCalls: Array<[string, string, { ascending: boolean }]> = [];
+    const build = (table: string, rows: unknown[]) => {
+      // Awaiting the chain without a range is what production did, and PostgREST
+      // answers it with the first `max_rows` rows and no warning — so a query that
+      // stops paging silently loses everything past the cap.
+      const truncated = Promise.resolve({
+        data: rows.slice(0, POSTGREST_PAGE_SIZE),
+        error: null,
+      });
+      const chain: Record<string, unknown> = {
+        then: truncated.then.bind(truncated),
+      };
+      chain.select = () => chain;
+      chain.in = () => chain;
+      chain.order = (column: string, opts: { ascending: boolean }) => {
+        orderCalls.push([table, column, opts]);
+        return chain;
+      };
+      chain.range = (from: number, to: number) =>
+        Promise.resolve({ data: rows.slice(from, to + 1), error: null });
+      return chain;
+    };
+
+    return {
+      orderCalls,
+      provider: createMockProvider((table: string) =>
+        build(table, table === 'budget_line' ? lines : transactions),
+      ),
+    };
+  }
+
+  it('aggregates the rows sitting past the first page', async () => {
+    // One budget fills the first page on its own; the next budget's line only
+    // exists on page two.
+    const filler: BudgetLineRow[] = Array.from(
+      { length: POSTGREST_PAGE_SIZE },
+      (_, i) => ({
+        ...budgetLineRow,
+        id: `filler-${i}`,
+        budget_id: 'budget-noise',
+        amount: null,
+      }),
+    );
+    const lines: BudgetLineRow[] = [
+      ...filler,
+      { ...budgetLineRow, id: 'line-late', budget_id: 'budget-late' },
+    ];
+    const { provider } = pagedTableProvider(lines, []);
+    const encryption = createMockEncryption();
+    (encryption.tryDecryptAmount as ReturnType<typeof jest.fn>).mockReturnValue(
+      250,
+    );
+    const repo = new SupabaseBudgetRepository(provider, encryption);
+
+    const aggregates = await repo.fetchBudgetAggregates([
+      'budget-noise',
+      'budget-late',
+    ]);
+
+    expect(aggregates.get('budget-late')?.totalExpenses).toBe(250);
+  });
+
+  it('orders on a stable key so pages never overlap or skip', async () => {
+    const { provider, orderCalls } = pagedTableProvider([], []);
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    await repo.fetchBudgetAggregates(['budget-1']);
+
+    expect(orderCalls).toEqual([
+      ['budget_line', 'id', { ascending: true }],
+      ['transaction', 'id', { ascending: true }],
+    ]);
+  });
+
+  it('recalculates from the rows sitting past the first page', async () => {
+    // A balance computed from a truncated read does not just display wrong, it
+    // gets persisted — so this read has to page like the aggregate one.
+    const filler: BudgetLineRow[] = Array.from(
+      { length: POSTGREST_PAGE_SIZE },
+      (_, i) => ({
+        ...budgetLineRow,
+        id: `filler-${i}`,
+        budget_id: 'budget-1',
+        amount: null,
+      }),
+    );
+    const lines: BudgetLineRow[] = [
+      ...filler,
+      { ...budgetLineRow, id: 'line-late', budget_id: 'budget-1' },
+    ];
+    const { provider } = pagedTableProvider(lines, []);
+    const encryption = createMockEncryption();
+    (encryption as unknown as { decryptAmount: unknown }).decryptAmount = jest
+      .fn()
+      .mockReturnValue(250);
+    const repo = new SupabaseBudgetRepository(provider, encryption);
+
+    const data = await repo.fetchBudgetDataForRecalc('budget-1');
+
+    expect(data.budgetLines).toHaveLength(POSTGREST_PAGE_SIZE + 1);
+    expect(data.budgetLines.at(-1)?.id).toBe('line-late');
+  });
+
+  it('raises instead of aggregating a failed read as zeros', async () => {
+    const provider = createMockProvider(() => {
+      const chain: Record<string, unknown> = {};
+      chain.select = () => chain;
+      chain.in = () => chain;
+      chain.order = () => chain;
+      chain.range = () =>
+        Promise.resolve({ data: null, error: new Error('read failed') });
+      return chain;
+    });
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    await expect(repo.fetchBudgetAggregates(['budget-1'])).rejects.toThrow(
+      BusinessException,
+    );
   });
 });
