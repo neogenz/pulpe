@@ -6,6 +6,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import proxy from "../proxy";
 import sitemap from "./sitemap";
+import fr from "../content/dictionaries/fr";
 import { homeMetadata } from "../components/pages/metadata";
 import { ABOUT_ROUTE, PRIVACY_ROUTE, SITE_URL } from "../lib/routes";
 import { patchVaryHeaderSource } from "../scripts/patch-next-vary.js";
@@ -31,10 +32,26 @@ const { default: AboutPage, generateMetadata: aboutMetadata } =
   await import("./(fr)/about/page");
 const { default: PrivacyPage, generateMetadata: privacyMetadata } =
   await import("./(fr)/privacy/page");
+const { default: LandingPage } = await import("./(fr)/page");
 
 const VARY = "Accept, Accept-Encoding";
 const rootDocumentSource = readFileSync(
   new URL("../components/RootDocument.tsx", import.meta.url),
+  "utf8",
+);
+const nextConfigSource = readFileSync(
+  new URL("../next.config.ts", import.meta.url),
+  "utf8",
+);
+const deploymentIgnore = readFileSync(
+  new URL("../../.vercelignore", import.meta.url),
+  "utf8",
+);
+const landingPackage = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+);
+const notFoundSource = readFileSync(
+  new URL("./global-not-found.tsx", import.meta.url),
   "utf8",
 );
 const markdown = readFileSync(
@@ -59,8 +76,9 @@ const nextAppPageRuntime = readFileSync(
   "utf8",
 );
 
-function request(path: string, accept?: string) {
+function request(path: string, accept?: string, method = "GET") {
   return new NextRequest(`https://pulpe.app${path}`, {
+    method,
     headers: accept === undefined ? undefined : { accept },
   });
 }
@@ -130,6 +148,53 @@ describe("agent representation negotiation", () => {
   });
 });
 
+describe("agent-friendly 404s", () => {
+  it("returns a recoverable Markdown 404 for GET and HEAD", async () => {
+    const get = proxy(request("/missing-agent-path", "text/markdown"));
+    assert.equal(get.status, 404);
+    assert.equal(
+      get.headers.get("content-type"),
+      "text/markdown; charset=utf-8",
+    );
+    assert.equal(get.headers.get("vary"), VARY);
+
+    const body = await get.text();
+    assert.match(body, /^# Page introuvable$/m);
+    for (const path of ["/sitemap.xml", "/llms.txt", "/support"]) {
+      assert.ok(body.includes(`${SITE_URL}${path}`));
+    }
+
+    const head = proxy(request("/missing-agent-path", "text/markdown", "HEAD"));
+    assert.equal(head.status, 404);
+    assert.equal(
+      head.headers.get("content-type"),
+      "text/markdown; charset=utf-8",
+    );
+    assert.equal(head.headers.get("vary"), VARY);
+    assert.equal(await head.text(), "");
+  });
+
+  it("lets Next render the visual 404 and keeps every sitemap page valid", () => {
+    const html = proxy(request("/missing-human-path", "text/html"));
+    assert.equal(html.headers.get("x-middleware-next"), "1");
+    assert.equal(html.headers.get("vary"), VARY);
+
+    for (const { url } of sitemap()) {
+      const response = proxy(
+        request(new URL(url).pathname, "text/markdown, text/html;q=0.5"),
+      );
+      assert.notEqual(response.status, 404, url);
+    }
+
+    assert.match(notFoundSource, /robots: \{ index: false, follow: false \}/);
+    assert.match(fr.notFound.text, /chemin demandé est inconnu/i);
+    assert.doesNotMatch(fr.notFound.text, /déménag/i);
+    for (const path of ["/sitemap.xml", "/llms.txt", "/support"]) {
+      assert.ok(notFoundSource.includes(`href="${path}"`));
+    }
+  });
+});
+
 describe("agent discovery files", () => {
   it("publishes useful plain Markdown for the homepage", () => {
     assert.match(markdown, /^# Pulpe$/m);
@@ -178,6 +243,9 @@ describe("agent discovery files", () => {
 
   it("patches the exact final Vary header imposed by Next", () => {
     assert.equal(nextPackage.version, "16.3.1");
+    assert.doesNotMatch(nextConfigSource, /\bdistDir\s*:/);
+    assert.match(deploymentIgnore, /^!landing\/public\/index\.md$/m);
+    assert.equal(landingPackage.scripts.build, "next build --webpack");
 
     const patched = patchVaryHeaderSource(nextAppPageRuntime);
     assert.match(patched, /getVaryHeader\(e,t\).*?qm}, Accept`/);
@@ -186,6 +254,23 @@ describe("agent discovery files", () => {
       () => patchVaryHeaderSource("unexpected runtime"),
       /Vary patch target changed/,
     );
+  });
+});
+
+describe("homepage raw HTML", () => {
+  it("keeps useful content and an ordered heading outline without JavaScript", async () => {
+    const markup = renderToStaticMarkup(await LandingPage());
+
+    assert.ok(visibleText(markup).length > 500);
+    assert.equal(markup.match(/<h1\b/g)?.length, 1);
+
+    const levels = [...markup.matchAll(/<h([1-6])\b/g)].map((match) =>
+      Number(match[1]),
+    );
+    assert.ok(levels.includes(2));
+    for (let index = 1; index < levels.length; index += 1) {
+      assert.ok(levels[index] - levels[index - 1] <= 1);
+    }
   });
 });
 

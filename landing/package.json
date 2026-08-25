@@ -14,7 +14,7 @@
   "scripts": {
     "dev": "next dev --port 3001",
     "prebuild": "node scripts/patch-next-vary.js",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "test": "tsx --test --experimental-test-module-mocks app/accessibility.test.tsx app/agent-readiness.test.tsx components/guides/ArticleLayout.test.tsx content/dictionaries.test.ts data/releases.test.ts lib/amount.test.ts lib/budgetCalculator.test.ts lib/visitorCurrency.test.ts lib/bodyScrollLock.test.ts scripts/create-release.test.js",
     "lint": "eslint .",

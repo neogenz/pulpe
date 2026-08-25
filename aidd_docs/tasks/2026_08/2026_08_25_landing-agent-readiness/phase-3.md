@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: 404 récupérable et preuve du HTML sans JavaScript
@@ -9,12 +9,16 @@ status: pending
 > Tree of the final files. ✅ create · ✏️ modify · ❌ delete
 
 ```txt
+✏️ .vercelignore
 landing/
 ├── app/
 │   ├── ✏️ agent-readiness.test.tsx
 │   └── ✏️ global-not-found.tsx
 ├── content/dictionaries/
 │   └── ✏️ fr.ts
+├── ✏️ next-env.d.ts
+├── ✏️ next.config.ts
+├── ✏️ package.json
 └── ✏️ proxy.ts
 ```
 
@@ -94,6 +98,8 @@ journey
 1. Tester au minimum `GET` et `HEAD` sur une URL aléatoire, en HTML puis Markdown.
 2. Vérifier 404, `Content-Type` et `Vary` sur `GET`/`HEAD`; vérifier `noindex` côté HTML et les trois liens de récupération dans les deux corps `GET`.
 3. Rejouer la matrice sur une preview Vercel avant fusion pour couvrir la frontière CDN/proxy.
+4. Conserver le répertoire de build Next natif `.next`, attendu par Vercel depuis la suppression de l'ancien export statique.
+5. Conserver `public/index.md` dans l'artefact Vercel malgré l'exclusion documentaire générale et forcer le build Webpack, seul runtime couvert par le garde-fou `Vary` exact de la phase 1.
 
 ## Test acceptance criteria
 

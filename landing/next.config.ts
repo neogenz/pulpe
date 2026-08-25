@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  distDir: "dist",
   trailingSlash: false,
   env: {
     NEXT_PUBLIC_POSTHOG_KEY:

@@ -65,13 +65,40 @@ export default async function GlobalNotFound() {
           </FadeIn>
 
           <FadeIn animateOnMount delay={0.3}>
-            <nav className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
+            <nav
+              aria-label="Actions principales"
+              className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8"
+            >
               <Button href={ANGULAR_APP_URL} glow>
                 {notFound.appCta}
               </Button>
               <Button href="/" variant="secondary">
                 {notFound.homeCta}
               </Button>
+            </nav>
+
+            <nav
+              aria-label="Ressources de récupération"
+              className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm"
+            >
+              <a
+                className="text-text-secondary hover:text-primary"
+                href="/sitemap.xml"
+              >
+                Plan du site
+              </a>
+              <a
+                className="text-text-secondary hover:text-primary"
+                href="/llms.txt"
+              >
+                Instructions pour agents
+              </a>
+              <Link
+                className="text-text-secondary hover:text-primary"
+                href="/support"
+              >
+                Aide et contact
+              </Link>
             </nav>
           </FadeIn>
         </Container>

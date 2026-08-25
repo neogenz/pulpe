@@ -1,6 +1,7 @@
 import Negotiator from "negotiator";
 import { type NextRequest, NextResponse } from "next/server";
 import sitemap from "@/app/sitemap";
+import { SITE_URL } from "@/lib/routes";
 
 const HTML = "text/html";
 const MARKDOWN = "text/markdown";
@@ -8,6 +9,16 @@ const VARY = "Accept, Accept-Encoding";
 const PUBLIC_PATHS = new Set(
   sitemap().map(({ url }) => new URL(url).pathname.replace(/\/$/, "") || "/"),
 );
+const NOT_FOUND_MARKDOWN = `# Page introuvable
+
+Le chemin demandé n’existe pas sur pulpe.app.
+
+- [Accueil](${SITE_URL})
+- [Plan du site](${SITE_URL}/sitemap.xml)
+- [Instructions pour les agents](${SITE_URL}/llms.txt)
+- [Aide et contact](${SITE_URL}/support)
+- [Application Pulpe](https://app.pulpe.app)
+`;
 
 function negotiator(request: NextRequest) {
   return new Negotiator({
@@ -22,10 +33,23 @@ function withVary(response: NextResponse) {
 
 export default function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname.replace(/\/$/, "") || "/";
-
-  if (!PUBLIC_PATHS.has(path)) return withVary(NextResponse.next());
-
   const accepted = negotiator(request);
+
+  if (!PUBLIC_PATHS.has(path)) {
+    if (accepted.mediaType([HTML, MARKDOWN]) === MARKDOWN) {
+      return withVary(
+        new NextResponse(
+          request.method === "HEAD" ? null : NOT_FOUND_MARKDOWN,
+          {
+            status: 404,
+            headers: { "Content-Type": `${MARKDOWN}; charset=utf-8` },
+          },
+        ),
+      );
+    }
+
+    return withVary(NextResponse.next());
+  }
 
   if (path === "/") {
     const preferred = accepted.mediaType([HTML, MARKDOWN]);
