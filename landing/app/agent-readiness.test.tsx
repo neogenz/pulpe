@@ -1,10 +1,36 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { describe, it } from "node:test";
+import { describe, it, mock } from "node:test";
 import { NextRequest } from "next/server";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import proxy from "../proxy";
+import sitemap from "./sitemap";
 import { homeMetadata } from "../components/pages/metadata";
+import { ABOUT_ROUTE, PRIVACY_ROUTE, SITE_URL } from "../lib/routes";
 import { patchVaryHeaderSource } from "../scripts/patch-next-vary.js";
+
+const nextFontMock = {
+  cache: false,
+  exports: { Poppins: () => ({ variable: "font-poppins" }) },
+};
+mock.module("next/font/google", nextFontMock);
+
+const nextImageMock = {
+  cache: false,
+  exports: {
+    default: (props: Record<string, unknown>) =>
+      React.createElement("img", { src: props.src, alt: props.alt }),
+  },
+};
+mock.module("next/image", nextImageMock);
+
+const { buildJsonLd } = await import("../components/RootDocument");
+
+const { default: AboutPage, generateMetadata: aboutMetadata } =
+  await import("./(fr)/about/page");
+const { default: PrivacyPage, generateMetadata: privacyMetadata } =
+  await import("./(fr)/privacy/page");
 
 const VARY = "Accept, Accept-Encoding";
 const rootDocumentSource = readFileSync(
@@ -37,6 +63,26 @@ function request(path: string, accept?: string) {
   return new NextRequest(`https://pulpe.app${path}`, {
     headers: accept === undefined ? undefined : { accept },
   });
+}
+
+function visibleText(markup: string) {
+  return markup
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function assertTrustPage(markup: string) {
+  assert.equal(markup.match(/<h1\b/g)?.length, 1);
+  assert.ok(visibleText(markup).length > 500);
+
+  const levels = [...markup.matchAll(/<h([1-6])\b/g)].map((match) =>
+    Number(match[1]),
+  );
+  assert.equal(levels[0], 1);
+  for (let index = 1; index < levels.length; index += 1) {
+    assert.ok(levels[index] - levels[index - 1] <= 1);
+  }
 }
 
 describe("agent representation negotiation", () => {
@@ -140,5 +186,59 @@ describe("agent discovery files", () => {
       () => patchVaryHeaderSource("unexpected runtime"),
       /Vary patch target changed/,
     );
+  });
+});
+
+describe("trust anchors", () => {
+  it("renders useful About and Privacy pages without JavaScript", async () => {
+    const about = renderToStaticMarkup(await AboutPage());
+    const privacy = renderToStaticMarkup(await PrivacyPage());
+
+    assertTrustPage(about);
+    assertTrustPage(privacy);
+    assert.match(about, /https:\/\/github\.com\/neogenz\/pulpe/);
+    assert.match(
+      privacy,
+      /https:\/\/app\.pulpe\.app\/legal\/confidentialite\?lang=fr/,
+    );
+
+    const claims = `${visibleText(about)} ${visibleText(privacy)}`;
+    assert.doesNotMatch(claims, /(?:\+\d{7,}|rue |registre du commerce)/i);
+  });
+
+  it("publishes clean canonicals and sitemap entries", async () => {
+    assert.equal((await aboutMetadata()).alternates?.canonical, ABOUT_ROUTE);
+    assert.equal(
+      (await privacyMetadata()).alternates?.canonical,
+      PRIVACY_ROUTE,
+    );
+
+    const entries = sitemap();
+    for (const route of [ABOUT_ROUTE, PRIVACY_ROUTE]) {
+      const entry = entries.find(({ url }) => url === `${SITE_URL}${route}`);
+      assert.ok(entry, `${route} is missing from the sitemap`);
+      assert.equal(entry.alternates, undefined);
+      assert.match(markdown, new RegExp(`https://pulpe\\.app${route}`));
+      assert.match(llms, new RegExp(`https://pulpe\\.app${route}`));
+    }
+  });
+
+  it("completes Organization without inventing an address or phone", () => {
+    const graph = buildJsonLd("fr", "Description", ["Projection"])["@graph"];
+    const organization = graph.find((node) => node["@type"] === "Organization");
+    assert.ok(organization);
+    assert.deepEqual(organization.contactPoint, {
+      "@type": "ContactPoint",
+      email: "maxime.desogus@gmail.com",
+      contactType: "customer support",
+      url: "https://pulpe.app/support",
+      availableLanguage: ["fr", "en", "de", "it"],
+    });
+    assert.deepEqual(organization.address, {
+      "@type": "PostalAddress",
+      addressCountry: "CH",
+    });
+    assert.equal("telephone" in organization, false);
+    assert.equal("streetAddress" in organization.address, false);
   });
 });

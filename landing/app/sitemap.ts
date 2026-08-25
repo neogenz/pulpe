@@ -10,6 +10,7 @@ import {
   localizedPath,
   ROUTES,
   SITE_URL,
+  TRUST_ROUTES,
 } from "@/lib/routes";
 
 // Le sitemap est une projection de constantes locales : le verrouiller en
@@ -53,6 +54,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: absolute(CALCULATOR_ROUTE) },
   ];
 
+  const trust = TRUST_ROUTES.map((route) => ({ url: absolute(route) }));
+
   // Les conseils allemands n'existent qu'en allemand : aucun `alternates`,
   // comme les conseils français. Les slugs ne traduisent pas le FR.
   const germanAdvice = DE_GUIDES.map((guide) => ({
@@ -62,5 +65,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: guide.updatedAt,
   }));
 
-  return [...localized, ...advice, ...germanAdvice];
+  return [...localized, ...trust, ...advice, ...germanAdvice];
 }

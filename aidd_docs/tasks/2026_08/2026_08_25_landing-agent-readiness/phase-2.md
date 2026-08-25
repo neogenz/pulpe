@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: pages de confiance et identité Organization
@@ -20,8 +20,11 @@ landing/
 │   └── ✏️ sitemap.ts
 ├── components/
 │   └── ✏️ RootDocument.tsx
-└── lib/
-    └── ✏️ routes.ts
+├── lib/
+│   └── ✏️ routes.ts
+└── public/
+    ├── ✏️ index.md
+    └── ✏️ llms.txt
 ```
 
 ## User Journey

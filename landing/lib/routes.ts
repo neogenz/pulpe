@@ -35,6 +35,12 @@ export const ADVICE_LABEL_FR = "Conseils budget";
 export const CALCULATOR_ROUTE = "/calculateur-budget";
 export const CALCULATOR_LABEL_FR = "Calculateur de budget";
 
+// Ancres de confiance françaises. Elles restent hors de `ROUTES` pour ne pas
+// annoncer de traductions inexistantes dans les alternates et le footer.
+export const ABOUT_ROUTE = "/about";
+export const PRIVACY_ROUTE = "/privacy";
+export const TRUST_ROUTES = [ABOUT_ROUTE, PRIVACY_ROUTE] as const;
+
 /**
  * Conseils allemands, hors de `ROUTES`. Ce ne sont pas des pages des quatre
  * langues, et les slugs ne traduisent pas le français : les y mettre ferait

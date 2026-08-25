@@ -18,4 +18,6 @@ Pulpe fonctionne en francs suisses et en euros, sur le web et sur iPhone. Le ser
 - [Essayer le calculateur de budget](https://pulpe.app/calculateur-budget)
 - [Lire les conseils budget](https://pulpe.app/conseils-budget)
 - [Consulter l’aide](https://pulpe.app/support)
+- [Découvrir le projet](https://pulpe.app/about)
+- [Lire le résumé de confidentialité](https://pulpe.app/privacy)
 - [Voir le code source](https://github.com/neogenz/pulpe)

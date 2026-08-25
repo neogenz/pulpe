@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import { PostHogProvider } from "./PostHogProvider";
 import {
   DESKTOP_BREAKPOINT_PX,
+  CONTACT_EMAIL,
   GITHUB_URL,
   IOS_APP_URL,
   MOBILE_NAV_ID,
@@ -83,7 +84,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 else start();
 })();`;
 
-function buildJsonLd(
+export function buildJsonLd(
   locale: Locale,
   description: string,
   featureList: readonly string[],
@@ -99,6 +100,17 @@ function buildJsonLd(
         name: "Pulpe",
         url: SITE_URL,
         logo: `${SITE_URL}/icon-192.png`,
+        contactPoint: {
+          "@type": "ContactPoint",
+          email: CONTACT_EMAIL,
+          contactType: "customer support",
+          url: `${SITE_URL}/support`,
+          availableLanguage: [...LOCALES],
+        },
+        address: {
+          "@type": "PostalAddress",
+          addressCountry: "CH",
+        },
       },
       {
         "@type": "WebSite",

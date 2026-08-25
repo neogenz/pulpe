@@ -18,6 +18,8 @@ Pulpe est disponible sur le web et sur iPhone, en français, anglais, allemand e
 - [Calculateur de budget](https://pulpe.app/calculateur-budget): Estimation guidée du disponible mensuel.
 - [Conseils budget](https://pulpe.app/conseils-budget): Articles pratiques pour préparer et suivre un budget.
 - [Aide et contact](https://pulpe.app/support): Guides, réponses fréquentes et moyen de contacter le créateur.
+- [À propos](https://pulpe.app/about): Identité du créateur, but du projet et modèle actuel.
+- [Confidentialité](https://pulpe.app/privacy): Résumé des données, protections, sous-traitants et droits.
 
 ## Additional resources
 
