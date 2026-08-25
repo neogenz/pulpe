@@ -2,7 +2,7 @@
 status: done
 ---
 
-# Instruction: 404 récupérable et preuve du HTML sans JavaScript
+# Instruction: recoverable 404 and no-JavaScript HTML proof
 
 ## Architecture projection
 
@@ -72,39 +72,39 @@ journey
 
 ## Tasks to do
 
-### `1)` Rendre le 404 actionnable
+### `1)` Make the 404 actionable
 
-> Conserver le statut et le design, remplacer le cul-de-sac par des destinations fiables.
+> Preserve the status and design while replacing the dead end with reliable destinations.
 
-1. Garder `global-not-found.tsx`, son document complet, son `noindex` et les boutons app/accueil.
-2. Remplacer le texte français centré sur l'ancien déménagement par une explication générique de chemin inconnu.
-3. Ajouter des liens compacts vers `/sitemap.xml`, `/llms.txt` et `/support`; leurs libellés restent français car le 404 global n'a pas de locale fiable.
-4. Dans le proxy, répondre directement en `text/markdown; charset=utf-8` avec statut 404 et les mêmes destinations lorsqu'un chemin absent préfère Markdown.
-5. Utiliser les URLs issues du sitemap pour qu'aucune vraie page ne soit classée absente par le proxy.
+1. Keep `global-not-found.tsx`, its complete document, `noindex`, and app/home buttons.
+2. Replace the French copy about the historical move with a generic unknown-path explanation.
+3. Add compact links to `/sitemap.xml`, `/llms.txt`, and `/support`; labels remain French because the global 404 has no reliable locale.
+4. In Proxy, respond directly with `text/markdown; charset=utf-8`, status 404, and the same destinations when a missing path prefers Markdown.
+5. Use sitemap-derived URLs so Proxy never classifies a real page as missing.
 
-### `2)` Traiter le constat « sans JavaScript » comme une preuve de non-régression
+### `2)` Treat “without JavaScript” as regression proof
 
-> La homepage est déjà pré-rendue; ne modifier aucun composant sans défaut reproductible.
+> The homepage is already prerendered; do not modify a component without a reproducible defect.
 
-1. Depuis le build de production, extraire le HTML de `/` sans exécuter de script et compter le texte visible.
-2. Vérifier exactement un H1, au moins un H2 et aucun saut de niveau dans l'ordre H1/H2/H3/H4 actuel.
-3. Ajouter ces assertions au test d'intégration agent; ne changer les headings que si ce test reproduit un saut réel.
-4. Confirmer que les sections serveur restent hors du bundle client comme dans le test d'accessibilité existant.
+1. From the production build, extract `/` HTML without executing scripts and count visible text.
+2. Verify exactly one H1, at least one H2, and no level gap in the current H1/H2/H3/H4 order.
+3. Add these assertions to the agent integration test; change headings only if the test reproduces a real gap.
+4. Confirm that server sections remain outside the client bundle as in the existing accessibility test.
 
-### `3)` Vérifier le contrat HTTP local et preview
+### `3)` Verify the local and preview HTTP contract
 
-> Les statuts et en-têtes sont des critères de sortie, pas une inspection manuelle facultative.
+> Statuses and headers are exit criteria, not optional manual inspection.
 
-1. Tester au minimum `GET` et `HEAD` sur une URL aléatoire, en HTML puis Markdown.
-2. Vérifier 404, `Content-Type` et `Vary` sur `GET`/`HEAD`; vérifier `noindex` côté HTML et les trois liens de récupération dans les deux corps `GET`.
-3. Rejouer la matrice sur une preview Vercel avant fusion pour couvrir la frontière CDN/proxy.
-4. Conserver le répertoire de build Next natif `.next`, attendu par Vercel depuis la suppression de l'ancien export statique.
-5. Conserver `public/index.md` dans l'artefact Vercel malgré l'exclusion documentaire générale et forcer le build Webpack, seul runtime couvert par le garde-fou `Vary` exact de la phase 1.
+1. Test at least `GET` and `HEAD` on a random URL, first as HTML and then Markdown.
+2. Verify 404, `Content-Type`, and `Vary` on `GET`/`HEAD`; verify `noindex` in HTML and the three recovery links in both `GET` bodies.
+3. Replay the matrix on a Vercel preview before merge to cover the CDN/Proxy boundary.
+4. Keep the native `.next` build directory expected by Vercel after removal of the former static export.
+5. Keep `public/index.md` in the Vercel artifact and use the native Next build. The final-response verifier must prove direct negotiated responses; final HTML keeps native RSC tokens and records the upstream `Accept` omission.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria |
-| ---- | ------------------- |
-| 1 | Toute URL absente reste un vrai 404; HTML conserve le design actuel et Markdown fournit une courte carte de récupération. |
-| 2 | Le HTML brut de `/` contient un H1, plus de 500 caractères utiles et une hiérarchie de titres sans saut, sans exécution JavaScript. |
-| 3 | Les mêmes statuts, types, `Vary` et liens sont observés en local puis sur la preview Vercel. |
+| Task | Acceptance criteria                                                                                                                                               |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Every missing URL remains a real 404; HTML preserves the current design and Markdown provides a short recovery map.                                               |
+| 2    | Raw `/` HTML contains one H1, more than 500 useful characters, and a gap-free heading hierarchy without JavaScript execution.                                     |
+| 3    | The same statuses, types, negotiated-response `Vary`, and links are observed locally and on the Vercel preview; the final HTML limitation is recorded explicitly. |

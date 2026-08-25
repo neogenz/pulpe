@@ -9,14 +9,12 @@ import { DEFAULT_LOCALE } from "@/lib/i18n";
 import { APP_ICONS, rootViewport } from "@/lib/metadata";
 import "./globals.css";
 
-// Avec deux root layouts, un `not-found.tsx` posé dans l'un d'eux n'atteint
-// jamais `404.html` — sans avertissement ni erreur — et l'export livre le 404
-// intégré de Next, sans attribut `lang`. `global-not-found` est le seul moyen
-// d'obtenir un 404 personnalisé ici ; il rend son document complet, donc il
-// monte lui-même la police, les styles et l'en-tête.
+// A route-level `not-found.tsx` cannot cover both root layouts.
+// `global-not-found` provides one shared custom 404 and renders a complete
+// document, so it mounts the font, styles, and head itself.
 //
-// La page est en français : c'est la langue par défaut, et une URL inconnue ne
-// porte par définition aucune langue fiable.
+// The page is French because that is the default language and an unknown URL
+// does not provide a reliable locale.
 
 export const metadata: Metadata = {
   title: "404",

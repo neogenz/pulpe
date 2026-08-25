@@ -2,11 +2,10 @@ import { DEFAULT_LOCALE, LOCALES, type Locale } from "./i18n";
 
 export const SITE_URL = "https://pulpe.app";
 
-// Les quatre pages du site, dans l'ordre du plan. Une seule table : dériver les
-// `alternates` et le sitemap de la même source est la seule façon de garantir
-// qu'une version se liste elle-même et que la boucle hreflang se referme. Une
-// carte écrite à la main page par page finit par pointer vers un 404, et Google
-// ignore alors le groupe entier au lieu de le dégrader.
+// The four localized pages, in sitemap order. Deriving `alternates` and the
+// sitemap from one table guarantees that each version lists itself and closes
+// the hreflang loop. Hand-written per-page maps eventually point at a 404,
+// causing Google to ignore the whole group.
 export const ROUTES = [
   "/",
   "/changelog",
@@ -16,47 +15,46 @@ export const ROUTES = [
 
 export type Route = (typeof ROUTES)[number];
 
-// Le slug du guide reste français dans les quatre langues : il est en dur à
-// plusieurs endroits, et des slugs par langue multiplieraient ce couplage pour
-// un gain marginal sur une page unique.
+// The guide slug remains French in all four languages. It is referenced in
+// several places, and localized slugs would multiply that coupling for little
+// value on a single page.
 export const GUIDE_ROUTE = "/support/modeles-et-budgets" satisfies Route;
 
 /**
- * L'index des conseils budget et son libellé.
+ * Budget advice index and label.
  *
- * Ces pages n'existent qu'en français : elles visent la recherche francophone
- * suisse, et une traduction sans son propre travail de mots-clés n'y apporte
- * rien. Elles sont donc hors de `ROUTES`, qui ne liste que ce dont les quatre
- * langues ont une version — les y mettre ferait pointer chaque `hreflang` vers
- * un 404.
+ * These pages exist only in French and target Swiss French search. A
+ * translation without its own keyword work adds no value. They stay outside
+ * `ROUTES`, which lists only pages available in all four languages; including
+ * them would point each hreflang at a 404.
  */
 export const ADVICE_INDEX_ROUTE = "/conseils-budget";
 export const ADVICE_LABEL_FR = "Conseils budget";
 export const CALCULATOR_ROUTE = "/calculateur-budget";
 export const CALCULATOR_LABEL_FR = "Calculateur de budget";
 
-// Ancres de confiance françaises. Elles restent hors de `ROUTES` pour ne pas
-// annoncer de traductions inexistantes dans les alternates et le footer.
+// French trust anchors. They remain outside `ROUTES` so alternates and the
+// footer do not advertise nonexistent translations.
 export const ABOUT_ROUTE = "/about";
 export const PRIVACY_ROUTE = "/privacy";
 export const TRUST_ROUTES = [ABOUT_ROUTE, PRIVACY_ROUTE] as const;
 
 /**
- * Conseils allemands, hors de `ROUTES`. Ce ne sont pas des pages des quatre
- * langues, et les slugs ne traduisent pas le français : les y mettre ferait
- * pointer chaque `hreflang` vers un 404. Le footer DE les affiche via ces
- * libellés, jamais via `dict.links`.
+ * German advice, outside `ROUTES`. These pages are not available in all four
+ * languages and their slugs do not mirror French. Including them would point
+ * each hreflang at a 404. The German footer uses these labels directly rather
+ * than `dict.links`.
  */
 export const DE_ADVICE_SECTION_PATH = "/budget-ratgeber";
 export const DE_COMPARISON_GUIDE_LABEL = "Beste Budget-App Schweiz";
 export const DE_PREMIUMS_GUIDE_LABEL = "Krankenkassenprämien budgetieren";
 
 /**
- * Le chemin d'un lien dans une langue donnée. Le français reste à la racine :
- * ses URL sont indexées, et `/fr/…` les dédoublerait.
+ * A link path in a given language. French remains at the root because its URLs
+ * are indexed and `/fr/…` would duplicate them.
  *
- * Accepte aussi une ancre (`/#pain-points`), que la barre de navigation porte :
- * le segment de langue se pose avant le `#`, jamais après.
+ * Also accepts a hash (`/#pain-points`) used by the navigation bar. The locale
+ * segment is inserted before `#`, never after it.
  */
 export function localizedPath(locale: Locale, href: string): string {
   if (locale === DEFAULT_LOCALE) return href;
@@ -67,9 +65,9 @@ export function localizedPath(locale: Locale, href: string): string {
 }
 
 /**
- * Les cinq entrées `hreflang` d'une page : les quatre langues plus
- * `x-default`. Chaque version se liste elle-même — un `hreflang` que la page
- * cible ne renvoie pas est purement ignoré, pas dégradé.
+ * The five hreflang entries for a page: four languages plus `x-default`.
+ * Every version lists itself; a hreflang absent from the target page is ignored
+ * rather than partially accepted.
  */
 export function alternatesFor(locale: Locale, route: Route) {
   return {
@@ -83,7 +81,7 @@ export function alternatesFor(locale: Locale, route: Route) {
   };
 }
 
-/** La locale Open Graph de chaque langue, marché principal de Pulpe compris. */
+/** Open Graph locale for each language, including Pulpe's primary market. */
 export const OPEN_GRAPH_LOCALE: Record<Locale, string> = {
   fr: "fr_CH",
   en: "en_US",
@@ -95,7 +93,7 @@ export function openGraphAlternates(locale: Locale): string[] {
   const others = LOCALES.filter((code) => code !== locale).map(
     (code) => OPEN_GRAPH_LOCALE[code],
   );
-  // Le français suisse et le français de France partagent la même page : Pulpe
-  // sert les deux marchés, et l'un des deux serait invisible sans cette entrée.
+  // Swiss and French French share one page. Pulpe serves both markets, and one
+  // would be invisible without this entry.
   return locale === DEFAULT_LOCALE ? ["fr_FR", ...others] : others;
 }

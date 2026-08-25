@@ -2,19 +2,18 @@
 status: blocked
 ---
 
-# Instruction: activation de marque et vérification publique
+# Instruction: brand activation and public verification
 
 ## Blocker
 
-La preview Vercel vérifiée est prête, mais sa promotion vers `pulpe.app` est une
-mutation de production qui n'a pas été autorisée. La production du 25 août 2026
-sert encore l'ancienne version : `Accept: text/markdown` renvoie du HTML et
-`/llms.txt`, `/index.md`, `/about` et `/privacy` répondent 404. Search Console et
-les soumissions externes demandent en plus les accès ou l'accord de Maxime.
+The verified Vercel preview is ready, but promoting it to `pulpe.app` is a
+production mutation that has not been authorized. On August 25, 2026,
+production still served the old version: `Accept: text/markdown` returned HTML,
+and `/llms.txt`, `/index.md`, `/about`, and `/privacy` returned 404. Search
+Console and external submissions also require Maxime's access or approval.
 
-La requête propre `Pulpe` observée le même jour place désormais `pulpe.app` en
-premier résultat. Le constat de marque peut donc être revalidé, sans nouvelle
-campagne ni promesse de rang.
+The clean `Pulpe` query observed the same day placed `pulpe.app` first. The brand
+finding can therefore be revalidated without a new campaign or rank promise.
 
 ## Architecture projection
 
@@ -22,7 +21,7 @@ campagne ni promesse de rang.
 
 ```txt
 .
-└── Aucun fichier produit : actions Search Console, annuaires, outreach et preuve publique.
+└── No product file: Search Console, directory, outreach, and public-proof actions.
 ```
 
 ## User Journey
@@ -56,38 +55,38 @@ journey
 
 ## Tasks to do
 
-### `1)` Prouver toutes les surfaces en production
+### `1)` Prove every production surface
 
-> Rejouer une matrice explicite sur le domaine canonique après déploiement.
+> Replay an explicit matrix against the canonical domain after deployment.
 
-1. Vérifier `/`, `/llms.txt`, `/index.md`, `/about`, `/privacy`, `/support`, `/sitemap.xml`, `/robots.txt` et un chemin aléatoire.
-2. Sur `/`, tester HTML, Markdown, valeurs `q`, wildcard et représentation impossible; relever statut, `Content-Type`, `Vary`, `Link` et taille du corps.
-3. Sur le chemin aléatoire, tester HTML et Markdown; exiger 404 dans les deux cas.
-4. Valider le JSON-LD avec le Rich Results Test ou Schema Markup Validator et conserver les résultats textuels dans le compte-rendu d'implémentation.
+1. Verify `/`, `/llms.txt`, `/index.md`, `/about`, `/privacy`, `/support`, `/sitemap.xml`, `/robots.txt`, and a random path.
+2. On `/`, test HTML, Markdown, `q` values, wildcard, and an impossible representation; record status, `Content-Type`, `Vary`, `Link`, and body size.
+3. On the random path, test HTML and Markdown and require 404 in both cases.
+4. Validate JSON-LD with Rich Results Test or Schema Markup Validator and retain the textual results in the implementation report.
 
-### `2)` Activer la découverte de marque existante
+### `2)` Activate existing brand discovery
 
-> Le rang « Pulpe » dépend d'index et de mentions externes, pas d'un nouveau composant.
+> “Pulpe” rank depends on indexes and external mentions, not a new component.
 
-1. Dans Search Console déjà vérifiée par la meta présente, demander l'indexation de `/`, `/about`, `/privacy` et des pages SEO prioritaires; ne pas cibler un pays unique.
-2. Réutiliser `aidd_docs/tasks/2026_07/2026_07_23_growth-seo-assets/outreach-directories.md` pour AlternativeTo et Les Pépites Tech.
-3. Réutiliser `outreach-listicles.md` pour les mentions éditoriales; aucune soumission ou prise de contact n'est faite sans le compte ou l'accord de Maxime.
-4. Employer partout la même entité : « Pulpe, app de budget pour planifier son année, sans connexion bancaire », `https://pulpe.app`, Suisse, et l'adresse de contact réellement disponible.
-5. Si une boîte `@pulpe.app` existe, l'utiliser de façon cohérente; sinon conserver `CONTACT_EMAIL` et ne pas inventer d'alias.
+1. In Search Console, already verified by the existing meta tag, request indexing for `/`, `/about`, `/privacy`, and priority SEO pages; do not target one country exclusively.
+2. Reuse `aidd_docs/tasks/2026_07/2026_07_23_growth-seo-assets/outreach-directories.md` for AlternativeTo and Les Pépites Tech.
+3. Reuse `outreach-listicles.md` for editorial mentions; do not submit or contact anyone without Maxime's account or approval.
+4. Use the same entity everywhere: “Pulpe, app de budget pour planifier son année, sans connexion bancaire”, `https://pulpe.app`, Switzerland, and the contact address that is actually available.
+5. If an `@pulpe.app` mailbox exists, use it consistently; otherwise keep `CONTACT_EMAIL` and do not invent an alias.
 
-### `3)` Mesurer sans promettre un rang
+### `3)` Measure without promising a rank
 
-> Fermer les correctifs techniques immédiatement; garder le constat de marque ouvert jusqu'à observation externe.
+> Close technical fixes immediately; keep the brand finding open until external observation.
 
-1. Refaire les requêtes `Pulpe`, `Pulpe app budget` et `site:pulpe.app` depuis un contexte non personnalisé fr-CH après le délai d'indexation.
-2. Noter moteur, locale, date et position du premier résultat canonique; l'App Store ne remplace pas le domaine dans ce critère.
-3. Relancer le scan Is Agentic seulement après purge/déploiement CDN; comparer chaque preuve au baseline 73/100.
-4. Dans le résumé final, séparer résultats vérifiés, délai de ranking encore ouvert, décisions de contenu et credentials manquants.
+1. Repeat `Pulpe`, `Pulpe app budget`, and `site:pulpe.app` from a non-personalized fr-CH context after the indexing window.
+2. Record engine, locale, date, and position of the first canonical result; the App Store does not replace the domain for this criterion.
+3. Rerun the Is Agentic scan only after CDN purge/deployment; compare each result with the 73/100 baseline.
+4. In the final summary, separate verified results, remaining ranking delay, content decisions, and missing credentials.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria |
-| ---- | ------------------- |
-| 1 | La matrice production confirme les mêmes statuts, corps, types, liens et en-têtes que la preview pour chaque endpoint public. |
-| 2 | Search Console et les profils externes utilisent le domaine canonique et une identité cohérente, sans nouvelle campagne dupliquée dans le dépôt. |
-| 3 | Le score technique est re-scanné; le point « Pulpe » n'est déclaré résolu que lorsque `pulpe.app` apparaît réellement dans une recherche propre. |
+| Task | Acceptance criteria                                                                                                                     |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | The production matrix confirms the same statuses, bodies, types, links, and headers as preview for every public endpoint.               |
+| 2    | Search Console and external profiles use the canonical domain and a consistent identity without a duplicate campaign in the repository. |
+| 3    | The technical score is rescanned; the “Pulpe” item is declared resolved only when `pulpe.app` appears in a clean search.                |

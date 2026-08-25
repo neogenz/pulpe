@@ -2,7 +2,7 @@
 status: done
 ---
 
-# Instruction: pages de confiance et identité Organization
+# Instruction: trust pages and Organization identity
 
 ## Architecture projection
 
@@ -81,43 +81,43 @@ journey
 
 ## Tasks to do
 
-### `1)` Publier `/about`
+### `1)` Publish `/about`
 
-> Rendre l'identité déjà visible sur la homepage accessible à une URL canonique.
+> Make the identity already visible on the homepage available at a canonical URL.
 
-1. Réutiliser le shell `Header`/`Container`/`Footer` et les contenus factuels de `home.whyFree`; ne pas créer un nouveau composant générique.
-2. Ajouter une introduction qui identifie Pulpe, Maxime, la Suisse, le modèle gratuit actuel, l'open source et l'absence de connexion bancaire.
-3. Garder un H1 unique, des H2 ordonnés, un canonical `/about` et plus de 500 caractères visibles dans le HTML brut.
+1. Reuse the `Header`/`Container`/`Footer` shell and factual `home.whyFree` content; do not create a new generic component.
+2. Add an introduction identifying Pulpe, Maxime, Switzerland, the current free model, the publicly visible source code, and the absence of bank connectivity.
+3. Keep one H1, ordered H2 headings, a `/about` canonical, and more than 500 visible characters in raw HTML.
 
-### `2)` Publier `/privacy`
+### `2)` Publish `/privacy`
 
-> Donner une ancre de confiance concise sans dupliquer la politique légale complète.
+> Provide a concise trust anchor without duplicating the complete legal policy.
 
-1. Résumer les catégories de données, le chiffrement des montants, les diagnostics PostHog, les sous-traitants, les droits et le contact à partir de `docs/CONSENT.md` et du composant Angular courant.
-2. Lier clairement la politique complète sur `app.pulpe.app` avec la locale française; ne pas modifier le parcours d'inscription ni le document Angular.
-3. Garder un H1 unique, des H2 ordonnés, un canonical `/privacy` et plus de 500 caractères visibles.
+1. Summarize data categories, amount encryption, PostHog diagnostics, processors, rights, and contact from `docs/CONSENT.md` and the current Angular component.
+2. Link clearly to the complete policy on `app.pulpe.app` with the French locale; do not change onboarding or the Angular document.
+3. Keep one H1, ordered H2 headings, a `/privacy` canonical, and more than 500 visible characters.
 
-### `3)` Rendre les ancres découvrables
+### `3)` Make trust anchors discoverable
 
-> Une source de routes pour le sitemap, le proxy et les fichiers agents.
+> One route source for the sitemap, Proxy, and agent files.
 
-1. Déclarer les deux routes françaises dans `lib/routes.ts` sans les ajouter à `ROUTES`, réservé aux pages traduites quatre fois.
-2. Ajouter `/about` et `/privacy` au sitemap sans `hreflang` inexistant.
-3. Les lister dans `llms.txt` et `index.md`; conserver `/support` comme page Contact déjà vérifiée par l'audit.
+1. Declare the two French routes in `lib/routes.ts` without adding them to `ROUTES`, which is reserved for pages translated into all four languages.
+2. Add `/about` and `/privacy` to the sitemap without nonexistent hreflang variants.
+3. List them in `llms.txt` and `index.md`; keep `/support` as the Contact page already verified by the audit.
 
-### `4)` Compléter l'entité Organization
+### `4)` Complete the Organization entity
 
-> Ajouter uniquement les coordonnées déjà publiées et vérifiables.
+> Add only contact details that are already published and verifiable.
 
-1. Ajouter `contactPoint` avec `CONTACT_EMAIL`, `contactType: "customer support"`, URL `/support` et langues disponibles.
-2. Ajouter `address` de type `PostalAddress` avec `addressCountry: "CH"`, déjà affirmé dans la politique; ne pas inventer téléphone, rue ou immatriculation.
-3. Étendre le test JSON-LD et les tests de pages/sitemap dans `agent-readiness.test.tsx`.
+1. Add `contactPoint` with `CONTACT_EMAIL`, `contactType: "customer support"`, the `/support` URL, and available languages.
+2. Add a `PostalAddress` with `addressCountry: "CH"`, already stated in the policy; do not invent a phone number, street address, or registration.
+3. Extend JSON-LD and page/sitemap tests in `agent-readiness.test.tsx`.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria |
-| ---- | ------------------- |
-| 1 | `/about` répond 200 avec un canonical propre, un H1, une hiérarchie sans saut et plus de 500 caractères visibles sans JavaScript. |
-| 2 | `/privacy` répond 200 avec le même contrat et conduit à la politique complète sans remplacer son URL ni son contenu. |
-| 3 | Le sitemap et `llms.txt` exposent About, Privacy et le Contact existant sans annoncer de traduction inexistante. |
-| 4 | Le JSON-LD contient un `ContactPoint` joignable et un `PostalAddress` suisse, sans donnée personnelle inventée. |
+| Task | Acceptance criteria                                                                                                                 |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `/about` returns 200 with a clean canonical, one H1, a gap-free hierarchy, and more than 500 visible characters without JavaScript. |
+| 2    | `/privacy` returns 200 with the same contract and leads to the complete policy without replacing its URL or content.                |
+| 3    | The sitemap and `llms.txt` expose About, Privacy, and the existing Contact page without advertising nonexistent translations.       |
+| 4    | JSON-LD contains a reachable `ContactPoint` and Swiss `PostalAddress` without invented personal data.                               |

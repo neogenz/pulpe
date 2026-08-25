@@ -21,8 +21,8 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react"],
-    // Un `not-found.tsx` ne peut pas couvrir plusieurs root layouts. Ce drapeau
-    // confie donc toutes les routes absentes au document global dédié.
+    // A `not-found.tsx` cannot cover multiple root layouts, so every missing
+    // route is delegated to the dedicated global document.
     globalNotFound: true,
   },
   compiler: {

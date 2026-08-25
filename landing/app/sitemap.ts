@@ -13,16 +13,16 @@ import {
   TRUST_ROUTES,
 } from "@/lib/routes";
 
-// Le sitemap est une projection de constantes locales : le verrouiller en
-// statique évite de lui attribuer inutilement une exécution serveur.
+// The sitemap is a projection of local constants, so keeping it static avoids
+// unnecessary server execution.
 export const dynamic = "force-static";
 
 const absolute = (path: string) => `${SITE_URL}${path === "/" ? "" : path}`;
 
 /**
- * Les URLs du site, une par page et par langue, chacune listant ses trois
- * sœurs. `metadataBase` ne s'applique pas ici : les alternates d'un sitemap
- * doivent être des URLs absolues, sans quoi les robots les ignorent.
+ * Site URLs, one per page and language, each listing its three siblings.
+ * `metadataBase` does not apply here: sitemap alternates must be absolute URLs
+ * or crawlers ignore them.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const localized = ROUTES.flatMap((route) =>
@@ -43,8 +43,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }),
   );
 
-  // Les conseils budget n'existent qu'en français : aucun `alternates` à
-  // déclarer, sous peine d'annoncer des versions qui n'existent pas.
+  // Budget advice exists only in French, so do not advertise nonexistent
+  // localized alternates.
   const advice = [
     { url: absolute(ADVICE_INDEX_ROUTE) },
     ...GUIDES.map((guide) => ({
@@ -56,8 +56,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const trust = TRUST_ROUTES.map((route) => ({ url: absolute(route) }));
 
-  // Les conseils allemands n'existent qu'en allemand : aucun `alternates`,
-  // comme les conseils français. Les slugs ne traduisent pas le FR.
+  // German advice exists only in German, so it has no alternates either. Its
+  // slugs are independent from the French ones.
   const germanAdvice = DE_GUIDES.map((guide) => ({
     url: absolute(
       localizedPath("de", `${DE_ADVICE_SECTION_PATH}/${guide.slug}`),

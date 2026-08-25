@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: restore documentation and comment conformity
@@ -65,7 +65,7 @@ journey
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria |
-| ---- | ------------------- |
-| 1 | The original plan and four phases are English, retain their evidence, and no longer claim that the ineffective patch proves final HTML compliance. |
-| 2 | Changed technical comments are English and accurate; all user-facing and agent-facing French text remains French. |
+| Task | Acceptance criteria                                                                                                                                |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | The original plan and four phases are English, retain their evidence, and no longer claim that the ineffective patch proves final HTML compliance. |
+| 2    | Changed technical comments are English and accurate; all user-facing and agent-facing French text remains French.                                  |

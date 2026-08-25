@@ -2,7 +2,7 @@
 status: done
 ---
 
-# Instruction: négociation Markdown et instructions agents
+# Instruction: Markdown negotiation and agent instructions
 
 ## Architecture projection
 
@@ -28,7 +28,7 @@ status: done
     │   ├── ✅ index.md
     │   └── ✅ llms.txt
     └── scripts/
-        └── ✅ patch-next-vary.js
+        └── ✅ verify-agent-readiness.js
 ```
 
 ## User Journey
@@ -36,7 +36,7 @@ status: done
 ```mermaid
 flowchart TD
   A[Agent requests a public path] --> B[Proxy ranks Accept media types]
-  B -->|home prefers Markdown| C[Rewrite to static index.md]
+  B -->|home prefers Markdown| C[Return the static index.md content]
   B -->|HTML is acceptable| D[Continue to prerendered Next page]
   B -->|nothing is acceptable| E[406 with Vary]
   F[Agent requests llms.txt] --> G[Curated guidance and links]
@@ -53,7 +53,7 @@ journey
     Build and start the landing locally => public routes are ready: 5: cli
   section Happy path
     Request production server / with Accept text/markdown => 200 Markdown with final Vary and no HTML shell: 5: cli
-    Request production server / with Accept text/html => prerendered HTML with final Vary and preserved RSC fields: 5: cli
+    Request production server / with Accept text/html => prerendered HTML with preserved RSC fields and recorded upstream Vary limit: 5: cli
     Request /llms.txt => ordered llms.txt document and valid absolute links: 5: cli
   section Edge case - quality values
     Prefer HTML or set Markdown q=0 => HTML wins: 1: cli
@@ -64,52 +64,52 @@ journey
 
 ## Tasks to do
 
-### `1)` Sortir de l'export pur sans rendre les pages dynamiques
+### `1)` Leave pure export without making pages dynamic
 
-> Autoriser une frontière de requête minuscule tout en conservant le rendu statique des pages.
+> Allow a minimal request boundary while preserving static page rendering.
 
-1. Retirer seulement `output: "export"` de `next.config.ts`; garder `distDir`, les images non optimisées et les autres réglages.
-2. Ajouter `dynamicParams = false` au layout `[lang]` pour conserver le 404 des langues inconnues, auparavant imposé par l'export.
-3. Corriger les commentaires de `(fr)/layout.tsx`, `[lang]/layout.tsx`, `RootDocument.tsx` et `sitemap.ts` devenus faux ; ne changer ni les routes ni les root layouts.
-4. Prouver dans le build que `/`, les pages localisées et le sitemap restent `Static`/`SSG`.
+1. Remove only `output: "export"` from `next.config.ts`; keep unoptimized images and all other settings.
+2. Add `dynamicParams = false` to the `[lang]` layout so unknown languages retain a 404.
+3. Correct stale comments in `(fr)/layout.tsx`, `[lang]/layout.tsx`, `RootDocument.tsx`, and `sitemap.ts`; do not change routes or root layouts.
+4. Prove in the build that `/`, localized pages, and the sitemap remain `Static`/`SSG`.
 
-### `2)` Négocier la représentation de façon conforme
+### `2)` Negotiate representations correctly
 
-> Un proxy unique classe `text/html` et `text/markdown` avec leurs valeurs `q`.
+> One Proxy ranks `text/html` and `text/markdown` with their `q` values.
 
-1. Déclarer directement `negotiator` et ses types, déjà présents transitivement, plutôt que réécrire un parseur HTTP.
-2. Limiter le matcher aux chemins de contenu : exclure `_next`, les assets avec extension, `/ph` et `/app`; dériver les chemins existants du sitemap au lieu de maintenir une seconde liste.
-3. Sur `/`, réécrire vers `public/index.md` seulement lorsque Markdown est la représentation préférée; renvoyer 406 lorsque ni HTML ni Markdown ne sont acceptables.
-4. Sur une autre route existante sans variante Markdown, poursuivre en HTML si ce type reste acceptable, sinon renvoyer 406; ne jamais transformer une page existante en 404.
-5. Poser `Vary: Accept, Accept-Encoding` et `Content-Type: text/markdown; charset=utf-8` sur les réponses directes du proxy.
-6. Verrouiller Next sur `16.3.1` et exécuter avant chaque build un script idempotent qui ajoute `Accept` à l'unique `getVaryHeader` du runtime App Page de production ; refuser le build si la version ou le motif exact change. La compression native ajoute ensuite `Accept-Encoding`.
-7. Garder HTML comme valeur par défaut pour en-tête absent ou `*/*`; tester les égalités, valeurs pondérées et `q=0`.
+1. Declare `negotiator` and its types, already present transitively, instead of rewriting an HTTP parser.
+2. Limit the matcher to content paths: exclude `_next`, assets with extensions, `/ph`, and `/app`; derive existing paths from the sitemap instead of maintaining a second list.
+3. On `/`, load the tracked `public/index.md` and return it directly only when Markdown is preferred; return 406 when neither HTML nor Markdown is acceptable.
+4. On another existing route without a Markdown variant, continue as HTML if acceptable, otherwise return 406; never turn an existing page into a 404.
+5. Set `Vary: Accept, Accept-Encoding` and `Content-Type: text/markdown; charset=utf-8` on direct Proxy responses.
+6. If the Markdown source cannot be loaded, return an explicit cache-safe 503 instead of falling through to HTML.
+7. Keep HTML as the default for a missing header or `*/*`; test ties, weighted values, and `q=0`.
 
-### `3)` Publier les points d'entrée agents
+### `3)` Publish agent entry points
 
-> Deux petits fichiers statiques, sans générateur ni CMS.
+> Two small static files, without a generator or CMS.
 
-1. `index.md` reprend uniquement les faits stables de la homepage, ses cas d'usage et les liens principaux; aucune promesse absente du HTML.
-2. `llms.txt` suit exactement l'ordre v2 : H1, blockquote, détails, puis listes de liens sous H2.
-3. La section `When to use Pulpe` nomme les bons travaux : préparer un budget annuel, placer les dépenses irrégulières, projeter le disponible et utiliser CHF/EUR sans connexion bancaire.
-4. Dire explicitement qu'il n'existe pas d'API publique pour agents : un agent recommande ou ouvre l'app/calculateur, il n'invente pas d'appel automatisé.
-5. Ajouter `rel="alternate" type="text/markdown"` sur la homepage et `rel="describedby"` vers `/llms.txt` dans le document racine.
+1. `index.md` contains only stable homepage facts, use cases, and main links; it makes no promise absent from the HTML.
+2. `llms.txt` follows the v2 order exactly: H1, blockquote, details, then link lists under H2 headings.
+3. `When to use Pulpe` names the right jobs: prepare an annual budget, place irregular expenses, project available money, and use CHF/EUR without bank connectivity.
+4. State explicitly that no public agent API exists: an agent recommends or opens the app/calculator and does not invent an automated call.
+5. Add `rel="alternate" type="text/markdown"` on the French homepage and `rel="describedby"` to `/llms.txt` in the root document.
 
-### `4)` Verrouiller le contrat
+### `4)` Lock the contract
 
-> Un seul fichier de test dédié aux surfaces agents.
+> One dedicated test file for agent surfaces.
 
-1. Tester la sélection de représentation, les statuts, `Content-Type`, le `Vary` du proxy et l'absence de régression HTML.
-2. Parser `llms.txt` pour vérifier l'ordre requis, l'unique H1 et des listes H2 constituées de liens absolus valides.
-3. Vérifier que `index.md` dépasse 500 caractères utiles, contient un H1 et ne contient ni balise HTML ni jargon d'API inexistant.
-4. Vérifier dans le même test la version exacte de Next, la transformation du runtime, son idempotence et son échec sur un motif inattendu, puis ajouter le test au script `pulpe-landing test`.
-5. Valider sur le serveur de production local, puis en preview si disponible, que les réponses Markdown et HTML finales contiennent `Accept` et `Accept-Encoding`, et que l'HTML conserve les quatre champs RSC.
+1. Test representation selection, statuses, `Content-Type`, Proxy `Vary`, source-load failure, and the absence of an HTML regression.
+2. Parse `llms.txt` to verify the required order, its single H1, and H2 sections containing valid absolute links.
+3. Verify that `index.md` exceeds 500 useful characters, contains an H1, and contains neither HTML tags nor nonexistent API jargon.
+4. Add a dependency-free final-response verifier that runs the same matrix against local, preview, and production URLs.
+5. On the final local server and preview, require `Accept` and `Accept-Encoding` on negotiated Markdown/404/406 responses, preserve native RSC tokens on HTML, and record Next's upstream omission of `Accept` from final HTML `Vary`.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria |
-| ---- | ------------------- |
-| 1 | Le build marque toujours la homepage et les pages existantes comme statiques/SSG; une locale hors FR/EN/DE/IT reste 404. |
-| 2 | Les préférences `Accept` et `q` choisissent la bonne représentation, `q=0` n'est jamais servi, et la réponse finale de chaque variante annonce `Accept` et `Accept-Encoding` dans `Vary` sans perdre les champs RSC de l'HTML. |
-| 3 | `/llms.txt` respecte le format v2 et explique précisément quand recommander Pulpe, sans prétendre exposer une API. |
-| 4 | Les tests de landing échouent si le Markdown, les en-têtes de cache ou les liens de découverte divergent. |
+| Task | Acceptance criteria                                                                                                                                                                                                                                                                   |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | The build still marks the homepage and existing pages as static/SSG; a locale outside FR/EN/DE/IT remains a 404.                                                                                                                                                                      |
+| 2    | `Accept` preferences and `q` values select the correct representation, `q=0` is never served, and every negotiated Markdown/404/406 final response varies on `Accept` and `Accept-Encoding`. Final HTML preserves Next's RSC tokens; the upstream missing `Accept` token is explicit. |
+| 3    | `/llms.txt` follows the v2 format and explains precisely when to recommend Pulpe without claiming to expose an API.                                                                                                                                                                   |
+| 4    | Landing tests fail if Markdown, cache headers, source failure handling, or discovery links drift.                                                                                                                                                                                     |

@@ -6,10 +6,9 @@ import { assertPrefixedLocale, PREFIXED_LOCALES } from "@/lib/i18n";
 import { rootMetadata, rootViewport } from "@/lib/metadata";
 import "../globals.css";
 
-// Racine des trois langues préfixées. `generateStaticParams` n'émet jamais
-// `fr` : ce segment produirait `/fr/…` en double de chaque URL française déjà
-// indexée. Les autres valeurs restent explicitement fermées pour conserver un
-// vrai 404 maintenant que le site n'utilise plus l'export pur.
+// Root for the three prefixed languages. `generateStaticParams` never emits
+// `fr`, which would duplicate every indexed French URL under `/fr/…`.
+// Unsupported values remain explicitly closed so they still return a real 404.
 
 export const dynamicParams = false;
 

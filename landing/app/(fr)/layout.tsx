@@ -6,10 +6,10 @@ import { DEFAULT_LOCALE } from "@/lib/i18n";
 import { rootMetadata, rootViewport } from "@/lib/metadata";
 import "../globals.css";
 
-// Racine française. Elle est servie à `/` sans préfixe : ses URL sont indexées,
-// et `/fr/…` les dédoublerait. Deux root layouts gardent le français à la
-// racine sans redirection ; `app/layout.tsx` ne doit donc pas exister, car sa
-// seule présence empêcherait celui-ci d'être une racine.
+// French root. It is served at `/` without a prefix because its URLs are
+// already indexed and `/fr/…` would duplicate them. Two root layouts keep
+// French at the root without a redirect; `app/layout.tsx` must not exist,
+// because its presence would prevent this file from being a root layout.
 
 export async function generateMetadata(): Promise<Metadata> {
   const { site } = await getDictionary(DEFAULT_LOCALE);

@@ -3,46 +3,46 @@ objective: "pulpe.app exposes accurate, cache-safe agent entry points, recoverab
 status: blocked
 ---
 
-# Plan: améliorer la lisibilité de la landing par les agents
+# Plan: improve landing readability for agents
 
 ## Overview
 
-| Field      | Value |
-| ---------- | ----- |
-| **Goal**   | Corriger les constats Is Agentic qui relèvent du site, prouver les réponses publiques, puis réutiliser le travail SEO existant pour le constat de marque. |
-| **Source** | Rapport textuel Is Agentic transmis par Maxime le 25 août 2026 pour `https://pulpe.app` (score annoncé : 73/100, sept constats). |
+| Field      | Value                                                                                                                                |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Goal**   | Correct the site-controlled Is Agentic findings, prove the public responses, then reuse the existing SEO work for the brand finding. |
+| **Source** | Is Agentic text report provided by Maxime on August 25, 2026 for `https://pulpe.app` (reported score: 73/100, seven findings).       |
 
 ## Phases
 
-| #   | Phase | File |
-| --- | ----- | ---- |
-| 1   | Négociation Markdown et instructions agents | [`phase-1.md`](./phase-1.md) |
-| 2   | Pages de confiance et identité Organization | [`phase-2.md`](./phase-2.md) |
-| 3   | 404 récupérable et preuve du HTML sans JavaScript | [`phase-3.md`](./phase-3.md) |
-| 4   | Activation de marque et vérification publique | [`phase-4.md`](./phase-4.md) |
+| #   | Phase                                        | File                         |
+| --- | -------------------------------------------- | ---------------------------- |
+| 1   | Markdown negotiation and agent instructions  | [`phase-1.md`](./phase-1.md) |
+| 2   | Trust pages and Organization identity        | [`phase-2.md`](./phase-2.md) |
+| 3   | Recoverable 404 and no-JavaScript HTML proof | [`phase-3.md`](./phase-3.md) |
+| 4   | Brand activation and public verification     | [`phase-4.md`](./phase-4.md) |
 
 ## Resources
 
-| Source | Verified |
-| ------ | -------- |
-| https://acceptmarkdown.com/guides/accept-text-markdown | `text/markdown` est le media type enregistré ; les préférences et valeurs `q` doivent être respectées. |
-| https://acceptmarkdown.com/guides/vary-accept | Chaque variante négociée doit annoncer `Vary: Accept`, éventuellement avec `Accept-Encoding`. |
-| https://llmstxt.org/ | La v2 impose H1, résumé en blockquote, détails sans titre, puis listes de liens sous H2 ; elle recommande aussi `alternate` et `describedby`. |
-| https://nextjs.org/docs/app/api-reference/file-conventions/proxy | Un proxy Next peut négocier sur l'en-tête de requête ; il n'est pas disponible avec `output: "export"`. |
-| https://github.com/vercel/next.js/issues/85999 | Next 16 écrase actuellement un `Vary` personnalisé sur les réponses HTML App Router ; le proxy seul ne peut donc pas garantir l'en-tête final. |
-| https://nextjs.org/docs/app/api-reference/file-conventions/not-found | `global-not-found.tsx` est le bon point d'entrée pour un 404 global avec plusieurs root layouts et conserve un statut 404. |
-| https://schema.org/Organization | `contactPoint` accepte un `ContactPoint` et `address` un `PostalAddress`. |
-| https://vercel.com/docs/project-configuration/vercel-json | Les en-têtes et routes Vercel peuvent être vérifiés en preview sans remplacer les règles de sécurité existantes. |
-| https://pulpe.app/ | Vérifié le 25 août 2026 : `200 text/html`, même corps pour `Accept: text/markdown`, aucun `Vary`. |
-| https://pulpe.app/llms.txt | Vérifié le 25 août 2026 : 404. |
-| https://pulpe.app/this-path-does-not-exist-agent-audit | Vérifié le 25 août 2026 : vrai 404 HTML, mais seulement des sorties vers l'accueil et l'app. |
+| Source                                                               | Verified                                                                                                                                             |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| https://acceptmarkdown.com/guides/accept-text-markdown               | `text/markdown` is the registered media type; preferences and `q` values must be honored.                                                            |
+| https://acceptmarkdown.com/guides/vary-accept                        | Every negotiated Markdown response must advertise `Vary: Accept`, optionally with `Accept-Encoding`.                                                 |
+| https://llmstxt.org/                                                 | Version 2 requires an H1, blockquote summary, untitled details, then link lists under H2 headings; it also recommends `alternate` and `describedby`. |
+| https://nextjs.org/docs/app/api-reference/file-conventions/proxy     | A Next Proxy can negotiate on request headers, may be async, and can return a response directly.                                                     |
+| https://github.com/vercel/next.js/issues/85999                       | Next 16 currently overwrites custom `Vary` values on final App Router HTML responses.                                                                |
+| https://nextjs.org/docs/app/api-reference/file-conventions/not-found | `global-not-found.tsx` is the correct global 404 entry point for multiple root layouts and preserves a 404 status.                                   |
+| https://schema.org/Organization                                      | `contactPoint` accepts a `ContactPoint` and `address` a `PostalAddress`.                                                                             |
+| https://vercel.com/docs/project-configuration/vercel-json            | Vercel headers and routes can be verified in preview without replacing existing security rules.                                                      |
+| https://pulpe.app/                                                   | Verified August 25, 2026: `200 text/html`, same body for `Accept: text/markdown`, no `Vary`.                                                         |
+| https://pulpe.app/llms.txt                                           | Verified August 25, 2026: 404.                                                                                                                       |
+| https://pulpe.app/this-path-does-not-exist-agent-audit               | Verified August 25, 2026: real HTML 404, but recovery links only to the homepage and app.                                                            |
 
 ## Decisions
 
-| Decision | Why |
-| -------- | --- |
-| Remplacer l'export pur par le rendu statique Next avec un proxy limité aux chemins publics | Un matcher Vercel statique ne classe pas correctement toutes les valeurs `q` et `q=0`; le proxy permet une négociation conforme tout en laissant les pages pré-rendues. |
-| Verrouiller Next 16.3.1 et corriger son runtime App Page dans `prebuild` avec un motif exact | Next écrase actuellement tout `Vary` configuré après le proxy et son runtime est précompilé sur une seule ligne. Le garde de build reste minuscule, idempotent, testé, exécuté malgré `installCommand --ignore-scripts`, et échoue explicitement dès que la version ou le motif change. |
-| Ne pas « ajouter du SSR » à la homepage | La production livre déjà 6 000+ caractères, un H1 et une hiérarchie H1/H2/H3/H4 dans le HTML brut ; le constat doit être sécurisé par un test, pas par une migration inutile. |
-| Publier `/about` et `/privacy` en français, sans remplacer la politique complète de l'app | L'audit porte sur les ancres racine de `pulpe.app`; la politique Angular reste le document légal détaillé et la nouvelle page la référence explicitement. |
-| Réutiliser le kit SEO existant au lieu de créer une seconde campagne | `2026_07_23_growth-seo-assets` contient déjà les cibles, messages, annuaires et règles ; le rang de marque dépend ensuite d'actions et de délais externes. |
+| Decision                                                                                         | Why                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Replace the pure export with statically rendered Next pages plus a Proxy limited to public paths | A static Vercel matcher cannot correctly rank every `q` value and `q=0`; Proxy provides compliant negotiation while pages remain prerendered.                                                                                                      |
+| Serve negotiated Markdown directly from Proxy and keep the native Next build                     | Direct responses preserve `Vary: Accept, Accept-Encoding` for Markdown, 404, and 406 without patching private Next internals. Final HTML keeps Next's RSC `Vary` tokens; the upstream omission of `Accept` is recorded rather than falsely hidden. |
+| Do not “add SSR” to the homepage                                                                 | Production already delivers 6,000+ characters, an H1, and an H1/H2/H3/H4 hierarchy in raw HTML; a regression test is appropriate, not an unnecessary rendering migration.                                                                          |
+| Publish `/about` and `/privacy` in French without replacing the app's complete policy            | The audit checks root trust anchors on `pulpe.app`; the Angular policy remains the detailed legal document and the new page links to it explicitly.                                                                                                |
+| Reuse the existing SEO kit instead of creating a second campaign                                 | `2026_07_23_growth-seo-assets` already contains targets, messages, directories, and rules; brand rank then depends on external action and time.                                                                                                    |
