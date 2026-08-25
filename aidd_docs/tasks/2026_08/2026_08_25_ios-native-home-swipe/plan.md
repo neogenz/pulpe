@@ -1,6 +1,6 @@
 ---
 objective: "The home activity rows use native SwiftUI trailing swipe actions without changing the two-zone hero, vertical scrolling, Dynamic Type, or mandatory deletion confirmation."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Make the home activity swipe native without flattening the homepage
