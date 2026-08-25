@@ -19,6 +19,7 @@ struct CurrentMonthView: View {
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
+    @State private var pendingActivityDeletion: Transaction?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var animationPhase: Int {
@@ -309,10 +310,8 @@ struct CurrentMonthView: View {
                         tagNamesById: tagStore.namesById,
                         onViewAll: { navigateToBudget = true },
                         onEdit: editTransaction,
-                        onDelete: { transaction in Task { await delete(transaction) } }
+                        onDelete: { pendingActivityDeletion = $0 }
                     )
-                    .staggeredEntrance(isVisible: hasAppeared, index: 3)
-                    .dashboardListRow()
                 }
 
                 Color.clear
@@ -322,6 +321,7 @@ struct CurrentMonthView: View {
             }
             .listStyle(.plain)
             .listRowSpacing(DesignTokens.Spacing.none)
+            .listSectionSpacing(DesignTokens.Spacing.none)
             .scrollContentBackground(.hidden)
             .background {
                 VStack(spacing: DesignTokens.Spacing.none) {
@@ -335,10 +335,11 @@ struct CurrentMonthView: View {
             .refreshable {
                 await store.forceRefresh()
             }
+            .activityDeletionConfirmation(pending: $pendingActivityDeletion) { transaction in
+                Task { await delete(transaction) }
+            }
         }
     }
-
-    /// Scroll anchor of the deck: the « À pointer » tile brings it to the top of the frame.
     static let uncheckedDeckId = "uncheckedDeck"
 }
 

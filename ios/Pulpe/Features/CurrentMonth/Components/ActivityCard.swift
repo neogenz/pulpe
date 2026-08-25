@@ -11,9 +11,6 @@ struct ActivityCard: View {
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var window: Window = .week
-    /// The one row whose swipe actions are revealed, shared across the day cards.
-    @State private var openRowId: AnyHashable?
-    @State private var pendingDeletion: Transaction?
 
     enum Window: String, CaseIterable {
         case week = "7 jours"
@@ -85,11 +82,24 @@ struct ActivityCard: View {
     }
 
     var body: some View {
-        // Sort, filter and group once per render — as computed vars, the header total and
-        // the rows each re-traversed all transactions.
         let windowed = filtered
         let groups = dayGroups(for: windowed)
 
+        activityHeader(for: windowed)
+
+        if groups.isEmpty {
+            emptyState
+                .padding(.horizontal, DesignTokens.Spacing.xxl)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .contentListRow()
+        } else {
+            ForEach(groups) { group in
+                daySection(group)
+            }
+        }
+    }
+
+    private func activityHeader(for windowed: [Transaction]) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             SectionHeader(
                 title: AppLocale.string("Activité"),
@@ -97,34 +107,13 @@ struct ActivityCard: View {
                 link: (label: AppLocale.string("Tout voir"), action: onViewAll)
             )
 
-            // Its own row, full width. Squeezed into the heading it fought the title for
-            // the line and had to be re-stacked by hand past `xxLarge`; on a row of its
-            // own it fits at every text size, and the labels get their whole word back.
             windowPicker
-
-            if groups.isEmpty {
-                emptyState
-            } else {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    ForEach(groups) { group in
-                        dayGroup(group)
-                    }
-                }
-            }
         }
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
+        .padding(.top, DesignTokens.Spacing.xxl)
+        .contentListRow()
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
         .accessibilityIdentifier("homeActivityCard")
-        .confirmationDialog(
-            AppLocale.string("Supprimer cette opération ?"),
-            isPresented: Binding(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } }),
-            titleVisibility: .visible,
-            presenting: pendingDeletion
-        ) { transaction in
-            Button(AppLocale.string("Supprimer"), role: .destructive) { onDelete(transaction) }
-            Button(AppLocale.string("Annuler"), role: .cancel) {}
-        } message: { transaction in
-            Text(transaction.name)
-        }
     }
 
     // MARK: - Window Picker
@@ -142,38 +131,53 @@ struct ActivityCard: View {
 
     // MARK: - Day group
 
-    private func dayGroup(_ group: DayGroup) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            // The day sits outside the card, said once, instead of repeating under every
-            // name inside it. It carries the header trait so VoiceOver can jump by day —
-            // which is the navigation the rows lost when they gave up their date.
+    private func daySection(_ group: DayGroup) -> some View {
+        Section {
+            ForEach(Array(group.transactions.enumerated()), id: \.element.id) { index, transaction in
+                row(transaction)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .overlay(alignment: .bottom) {
+                        if index < group.transactions.count - 1 {
+                            Divider()
+                        }
+                    }
+                    .background(rowBackground(index: index, count: group.transactions.count))
+                    .listRowInsets(EdgeInsets(
+                        top: DesignTokens.Spacing.none,
+                        leading: DesignTokens.Spacing.xxl,
+                        bottom: DesignTokens.Spacing.none,
+                        trailing: DesignTokens.Spacing.xxl
+                    ))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) { onDelete(transaction) } label: {
+                            Label(AppLocale.string("Supprimer"), systemImage: "trash")
+                        }
+                        .tint(Color.destructivePrimary)
+                        .accessibilityIdentifier("homeActivityDelete-\(transaction.id)")
+
+                        Button { onEdit(transaction) } label: {
+                            Label(AppLocale.string("Modifier"), systemImage: "pencil")
+                        }
+                        .tint(Color.editAction)
+                        .accessibilityIdentifier("homeActivityEdit-\(transaction.id)")
+                    }
+                    .accessibilityIdentifier("homeActivityRow-\(transaction.id)")
+            }
+        } header: {
             Text(group.label)
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textTertiary)
+                .padding(.horizontal, DesignTokens.Spacing.xxl)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.sm)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.appBackground)
                 .accessibilityAddTraits(.isHeader)
-
-            // Every inset lives on the rows, none on the stack, so a swiped row's buttons
-            // run to the card's edge on all four sides the way an inset-grouped `List`
-            // section's do — clipped by the card's corner radius and nothing else. A
-            // vertical inset here would leave them floating short of the top and bottom
-            // edges, which on a one-row day reads as a pill dropped on the card.
-            VStack(spacing: DesignTokens.Spacing.none) {
-                ForEach(Array(group.transactions.enumerated()), id: \.element.id) { index, transaction in
-                    if index > 0 { Divider().padding(.horizontal, DesignTokens.Spacing.lg) }
-                    row(transaction)
-                        .padding(.horizontal, DesignTokens.Spacing.lg)
-                        .trailingSwipeActions(id: transaction.id, openId: $openRowId) {
-                            swipeButton(systemImage: "pencil", fill: .editAction) { onEdit(transaction) }
-                            swipeButton(systemImage: "trash", fill: .destructivePrimary) {
-                                pendingDeletion = transaction
-                            }
-                        }
-                        .accessibilityAction(named: AppLocale.string("Modifier")) { onEdit(transaction) }
-                        .accessibilityAction(named: AppLocale.string("Supprimer")) { pendingDeletion = transaction }
-                }
-            }
-            .pulpeRowCard()
         }
+        .textCase(nil)
+        .listSectionSeparator(.hidden)
     }
 
     private func row(_ transaction: Transaction) -> some View {
@@ -203,32 +207,17 @@ struct ActivityCard: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// One revealed action: a full-height tinted column with its glyph. Tapping it closes
-    /// the row before acting, so the row is at rest whatever the action does next.
-    ///
-    /// A tinted column and a tap, not a `Button`: on iOS 26 a `Button` insets and rounds its
-    /// own chrome even under `.buttonStyle(.plain)`, which drew the pair as two floating
-    /// squircles with the row showing through between them instead of one strip. Nothing is
-    /// lost by dropping it — the strip is `.accessibilityHidden`, so VoiceOver reaches these
-    /// actions through the row's `.accessibilityAction`s and never through this view.
-    private func swipeButton(
-        systemImage: String,
-        fill: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        fill
-            .frame(width: DesignTokens.TapTarget.minimum + DesignTokens.Spacing.lg)
-            .frame(maxHeight: .infinity)
-            .overlay {
-                Image(systemName: systemImage)
-                    .font(PulpeTypography.metricLabelBold)
-                    .foregroundStyle(Color.textOnPrimary)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                openRowId = nil
-                action()
-            }
+    private func rowBackground(index: Int, count: Int) -> some View {
+        let topRadius = index == 0 ? DesignTokens.CornerRadius.card : DesignTokens.Spacing.none
+        let bottomRadius = index == count - 1 ? DesignTokens.CornerRadius.card : DesignTokens.Spacing.none
+        return UnevenRoundedRectangle(
+            topLeadingRadius: topRadius,
+            bottomLeadingRadius: bottomRadius,
+            bottomTrailingRadius: bottomRadius,
+            topTrailingRadius: topRadius,
+            style: .continuous
+        )
+        .fill(Color.surfaceContainerLowest)
     }
 
     /// Mock renders activity amounts in neutral ink (not kind-colored);
@@ -280,5 +269,32 @@ struct ActivityCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .pulpeRowCard()
         .accessibilityElement(children: .combine)
+    }
+}
+
+extension View {
+    func activityDeletionConfirmation(
+        pending: Binding<Transaction?>,
+        onConfirm: @escaping (Transaction) -> Void
+    ) -> some View {
+        confirmationDialog(
+            AppLocale.string("Supprimer cette opération ?"),
+            isPresented: Binding(
+                get: { pending.wrappedValue != nil },
+                set: { if !$0 { pending.wrappedValue = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: pending.wrappedValue
+        ) { transaction in
+            Button(AppLocale.string("Supprimer"), role: .destructive) {
+                pending.wrappedValue = nil
+                onConfirm(transaction)
+            }
+            .accessibilityIdentifier("homeActivityConfirmDelete")
+            Button(AppLocale.string("Annuler"), role: .cancel) {}
+                .accessibilityIdentifier("homeActivityCancelDelete")
+        } message: { transaction in
+            Text(transaction.name)
+        }
     }
 }

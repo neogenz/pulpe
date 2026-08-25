@@ -281,3 +281,65 @@ final class ContextualCreationUITests: XCTestCase {
         add(attachment)
     }
 }
+
+@MainActor
+final class HomeActivitySwipeUITests: XCTestCase {
+    private var app = XCUIApplication()
+
+    override func setUp() {
+        super.setUp()
+        continueAfterFailure = false
+    }
+
+    func testFullSwipeOnlyRevealsActionsAndDeleteRequiresConfirmation() {
+        launchHome()
+        let row = activityRow()
+
+        row.swipeLeft()
+
+        XCTAssertFalse(app.buttons["homeActivityConfirmDelete"].exists)
+        let delete = app.buttons["homeActivityDelete-marketing-bonus"]
+        XCTAssertTrue(delete.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.buttons["homeActivityEdit-marketing-bonus"].exists)
+
+        delete.tap()
+
+        let confirmation = app.buttons["homeActivityConfirmDelete"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Bonus"].exists)
+        XCTAssertTrue(row.exists)
+
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5)).tap()
+        XCTAssertFalse(confirmation.exists)
+        XCTAssertTrue(row.exists)
+    }
+
+    func testEditActionOpensExistingTransaction() {
+        launchHome()
+        let row = activityRow()
+        row.swipeLeft()
+
+        let edit = app.buttons["homeActivityEdit-marketing-bonus"]
+        XCTAssertTrue(edit.waitForExistence(timeout: 5), app.debugDescription)
+        edit.tap()
+
+        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 10), app.debugDescription)
+    }
+
+    private func launchHome() {
+        app.launchArguments = ["-UITEST_CONTEXTUAL_CREATION_HOME"]
+        app.launchEnvironment["UITEST_SCENARIO"] = "UITEST_CONTEXTUAL_CREATION_HOME"
+        app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = "large"
+        app.launchEnvironment["UITEST_HOME_MARKETING_GAIN"] = "1"
+        app.launch()
+    }
+
+    private func activityRow() -> XCUIElement {
+        let row = app.descendants(matching: .any)["homeActivityRow-marketing-bonus"]
+        for _ in 0..<8 where !row.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(row.isHittable, app.debugDescription)
+        return row
+    }
+}
