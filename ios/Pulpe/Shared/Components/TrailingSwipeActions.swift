@@ -1,14 +1,17 @@
 import SwiftUI
 
-// ponytail: no rubber-band past the buttons, no full-swipe commit; add when asked.
+// ponytail: no full-swipe commit; add when asked.
 
 /// List-style trailing swipe on a row that lives outside a `List`: dragging the row to the
-/// left slides it off its buttons, which stay revealed once the pull passes half their
-/// width. One row per group is open at a time, through the shared `openId`.
+/// left slides it off its buttons, which stay revealed once the flick's projected resting
+/// point passes half their width. One row per group is open at a time, through the shared
+/// `openId`. The row tracks the finger 1:1, resists past either end of its travel, and
+/// springs only on release.
 ///
 /// Off under VoiceOver and Switch Control, where the caller exposes the same actions as
-/// accessibility actions. A vertical pan keeps scrolling: the drag sits at the lowest priority,
-/// so the scroll view takes it and hands over only the horizontal pulls it refuses.
+/// accessibility actions. A vertical pan keeps scrolling because the pull runs on
+/// `HorizontalPanGesture`, which declines the touch outright when the finger is going
+/// vertically — see that type for why no `DragGesture` priority can do the same.
 struct TrailingSwipeActions<Actions: View>: ViewModifier {
     let id: AnyHashable
     @Binding var openId: AnyHashable?
@@ -21,7 +24,9 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isOpen: Bool { openId == id }
-    private var offset: CGFloat { (isOpen ? -width : 0) + dragOffset }
+    /// Where the row starts the gesture, and where it returns once `dragOffset` clears.
+    private var restingStart: CGFloat { isOpen ? -width : 0 }
+    private var offset: CGFloat { restingStart + dragOffset }
 
     func body(content: Content) -> some View {
         content
@@ -36,31 +41,56 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
                     .accessibilityHidden(true)
             }
             .clipped()
-            .animation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring, value: offset)
-            .gesture(drag, including: voiceOver || switchControl ? .none : .all)
+            .gesture(
+                HorizontalPanGesture(
+                    isEnabled: !voiceOver && !switchControl,
+                    onChange: track,
+                    onEnd: settle,
+                    onCancel: { withAnimation(spring) { dragOffset = 0 } }
+                )
+            )
     }
 
-    private var drag: some Gesture {
-        DragGesture(minimumDistance: DesignTokens.Spacing.xl)
-            .onChanged { value in
-                let dx = value.translation.width
-                // Only a clearly horizontal pull moves the row; a vertical one is the scroll's.
-                guard abs(dx) > abs(value.translation.height) else { dragOffset = 0; return }
-                dragOffset = min(max(dx, isOpen ? 0 : -width), isOpen ? width : 0)
-            }
-            .onEnded { value in
-                let rests = Self.restingOffset(translation: value.translation.width, wasOpen: isOpen, width: width)
-                dragOffset = 0
-                // Any pull that ends closed also closes whichever row of the group was open.
-                openId = rests < 0 ? id : nil
-            }
+    /// The row follows the finger, resisting past either end of its travel so it never
+    /// slides off screen.
+    private func track(_ dx: CGFloat) {
+        // Before the buttons are measured every translation would clamp to zero, which
+        // would swallow the first swipe of a freshly laid-out row.
+        guard width > 0 else { return }
+        let reached = restingStart + dx
+        let withinTravel = min(0, max(-width, reached))
+        let overshoot = reached - withinTravel
+        dragOffset = withinTravel + overshoot / 4 - restingStart
+    }
+
+    private func settle(_ dx: CGFloat, _ velocity: CGFloat) {
+        let rests = Self.restingOffset(translation: dx, velocity: velocity, wasOpen: isOpen, width: width)
+        withAnimation(spring) {
+            dragOffset = 0
+            // Any pull that ends closed also closes whichever row of the group was open.
+            openId = rests < 0 ? id : nil
+        }
+    }
+
+    private var spring: SwiftUI.Animation? {
+        reduceMotion ? nil : DesignTokens.Animation.gentleSpring
     }
 
     /// Where the row settles once the finger lifts: open past half the buttons' width,
-    /// closed before it, measured from where the row started.
-    static func restingOffset(translation: CGFloat, wasOpen: Bool, width: CGFloat) -> CGFloat {
+    /// closed before it, measured from where the row started. The point compared is the one
+    /// the flick is *heading* for — WWDC18 *Designing Fluid Interfaces* projects it from the
+    /// release velocity and the platform's deceleration rate — so a short fast flick opens
+    /// the row the way a `List` row does. At zero velocity this is the raw translation.
+    static func restingOffset(
+        translation: CGFloat,
+        velocity: CGFloat,
+        wasOpen: Bool,
+        width: CGFloat
+    ) -> CGFloat {
         let start: CGFloat = wasOpen ? -width : 0
-        return start + translation < -width / 2 ? -width : 0
+        let rate = DesignTokens.Animation.swipeDecelerationRate
+        let projected = translation + (velocity / 1000) * rate / (1 - rate)
+        return start + projected < -width / 2 ? -width : 0
     }
 }
 
