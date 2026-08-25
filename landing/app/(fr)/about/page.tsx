@@ -9,7 +9,7 @@ import { ABOUT_ROUTE } from "@/lib/routes";
 
 const title = "À propos de Pulpe";
 const description =
-  "Découvre pourquoi Maxime a créé Pulpe, comment le projet est financé aujourd’hui et ce que son code ouvert permet de vérifier.";
+  "Découvre pourquoi Maxime a créé Pulpe, comment le projet est financé aujourd’hui et ce que son code source public permet de vérifier.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { site } = await getDictionary(DEFAULT_LOCALE);
@@ -84,14 +84,14 @@ export default async function AboutPage() {
                   id="model-heading"
                   className="text-2xl font-bold tracking-[-0.025em] text-text sm:text-3xl"
                 >
-                  Un projet personnel et ouvert
+                  Un projet personnel au code public
                 </h2>
                 <p className="mt-4">
                   Pulpe est aujourd’hui gratuit, sans publicité ni abonnement.
-                  Le code source est publié sous licence MIT : chacun peut
-                  examiner le fonctionnement du projet, proposer une
-                  amélioration ou l’héberger lui-même. Les données personnelles
-                  des utilisateurs ne font pas partie du dépôt public.
+                  Le code source peut être consulté publiquement sur GitHub pour
+                  examiner le fonctionnement du projet ou proposer une
+                  amélioration. Les données personnelles des utilisateurs ne
+                  font pas partie du dépôt public.
                 </p>
                 <a
                   href={GITHUB_URL}

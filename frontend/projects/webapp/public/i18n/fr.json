@@ -1454,7 +1454,7 @@
       "sharing": {
         "title": "7. Partage des données",
         "neverSell": "Je ne vends jamais tes données personnelles.",
-        "privateBody": "Tes données transitent uniquement par les services mentionnés ci-dessus. Le code source est open source sur GitHub, mais tes données restent privées.",
+        "privateBody": "Tes données transitent uniquement par les services mentionnés ci-dessus. Le code source peut être consulté publiquement sur GitHub, mais tes données restent privées.",
         "processors": "Les services tiers listés (Supabase, Railway, Vercel, PostHog, Cloudflare et Google) agissent comme sous-traitants au sens de l'article 28 du RGPD. Un Data Processing Agreement (DPA) dédié a été signé avec PostHog Inc. Pour les autres sous-traitants, les engagements de traitement sont fournis via leurs conditions de service standard, conformément à l'article 28 du RGPD."
       },
       "retention": {
@@ -1554,8 +1554,8 @@
         "analyticsBody": "J'utilise PostHog pour suivre l'utilisation de l'application. Cela inclut les pages visitées, les fonctionnalités utilisées, les erreurs rencontrées et l'enregistrement de sessions (replay des interactions). Tes données financières sont toujours masquées dans ces analyses et enregistrements."
       },
       "source": {
-        "title": "5. Open Source et propriété",
-        "body": "Le code source de Pulpe est disponible sous licence MIT sur GitHub. Tu peux le consulter, le modifier et l'héberger toi-même. Tes données personnelles t'appartiennent et restent privées."
+        "title": "5. Code source et propriété",
+        "body": "Le code source de Pulpe peut être consulté publiquement sur GitHub. Tes données personnelles t'appartiennent et restent privées."
       },
       "liability": {
         "title": "6. Limitation de responsabilité",

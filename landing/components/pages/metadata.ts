@@ -4,10 +4,8 @@ import type { Locale } from "@/lib/i18n";
 import { rootMetadata, socialMetadata } from "@/lib/metadata";
 import { alternatesFor, GUIDE_ROUTE } from "@/lib/routes";
 
-// Les métadonnées de chaque page sont écrites une fois et appelées par les deux
-// coquilles, française et préfixée. Les dupliquer les laisserait diverger : une
-// balise ajoutée d'un seul côté ne se voit dans aucun test, seulement dans les
-// résultats de recherche, des semaines plus tard.
+// Page metadata is defined once and shared by the French and prefixed shells.
+// Duplicating it would let the two variants drift silently in search results.
 
 export async function homeMetadata(locale: Locale): Promise<Metadata> {
   const { site } = await getDictionary(locale);
@@ -15,7 +13,7 @@ export async function homeMetadata(locale: Locale): Promise<Metadata> {
     ...rootMetadata(locale, site),
     alternates: {
       ...alternatesFor(locale, "/"),
-      types: { "text/markdown": "/index.md" },
+      ...(locale === "fr" ? { types: { "text/markdown": "/index.md" } } : {}),
     },
   };
 }

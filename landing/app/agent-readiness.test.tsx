@@ -145,6 +145,12 @@ describe("agent representation negotiation", () => {
     const unsupported = proxy(request("/", "application/json"));
     assert.equal(unsupported.status, 406);
     assert.equal(unsupported.headers.get("vary"), VARY);
+
+    for (const locale of ["en", "de", "it"]) {
+      const localized = proxy(request(`/${locale}`, "text/markdown"));
+      assert.equal(localized.status, 406, locale);
+      assert.equal(localized.headers.get("vary"), VARY);
+    }
   });
 });
 
@@ -245,9 +251,15 @@ describe("agent discovery files", () => {
     assert.match(llms, /Il n’existe pas d’API publique pour les agents/);
   });
 
-  it("links the HTML homepage to its agent resources", async () => {
-    const metadata = await homeMetadata("fr");
-    assert.equal(metadata.alternates?.types?.["text/markdown"], "/index.md");
+  it("advertises Markdown only where it is negotiated", async () => {
+    const french = await homeMetadata("fr");
+    assert.equal(french.alternates?.types?.["text/markdown"], "/index.md");
+
+    for (const locale of ["en", "de", "it"] as const) {
+      const localized = await homeMetadata(locale);
+      assert.equal(localized.alternates?.types, undefined, locale);
+    }
+
     assert.match(
       rootDocumentSource,
       /<link rel="describedby" href="\/llms\.txt" \/>/,
@@ -295,6 +307,8 @@ describe("trust anchors", () => {
     assertTrustPage(about);
     assertTrustPage(privacy);
     assert.match(about, /https:\/\/github\.com\/neogenz\/pulpe/);
+    assert.match(about, /code source peut être consulté publiquement/);
+    assert.doesNotMatch(about, /licence MIT|héberger lui-même/i);
     assert.match(
       privacy,
       /https:\/\/app\.pulpe\.app\/legal\/confidentialite\?lang=fr/,

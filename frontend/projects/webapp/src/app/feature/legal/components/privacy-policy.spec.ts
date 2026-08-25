@@ -20,6 +20,7 @@ const cases = [
     'le replay est désactivé en production',
     'sans stockage permanent',
     'langue, devise',
+    'peut être consulté publiquement sur GitHub',
   ],
   [
     'en',
@@ -28,6 +29,7 @@ const cases = [
     'replay is disabled in production',
     'does not store it permanently',
     'language, currency',
+    'can be viewed publicly on GitHub',
   ],
   [
     'de',
@@ -36,6 +38,7 @@ const cases = [
     'Wiedergabe ist in der Produktion deaktiviert',
     'speichert sie nicht dauerhaft',
     'Sprache, Währung',
+    'kann öffentlich auf GitHub eingesehen werden',
   ],
   [
     'it',
@@ -44,6 +47,7 @@ const cases = [
     'replay è disattivato in produzione',
     'senza archiviarli in modo permanente',
     'lingua, valuta',
+    'può essere consultato pubblicamente su GitHub',
   ],
 ] as const;
 
@@ -79,6 +83,7 @@ describe('PrivacyPolicyComponent', () => {
       replayDisabled,
       railwayNoStorage,
       localePreference,
+      publicSourceStatement,
     ) => {
       TestBed.configureTestingModule({
         imports: [PrivacyPolicyComponent],
@@ -106,6 +111,8 @@ describe('PrivacyPolicyComponent', () => {
       expect(text).toContain(replayDisabled);
       expect(text).toContain(railwayNoStorage);
       expect(text).toContain(localePreference);
+      expect(text).toContain(publicSourceStatement);
+      expect(text.toLowerCase()).not.toContain('open source');
       expect(text).toContain('12');
       expect(text).toContain('3');
       expect(text).toContain('24');
