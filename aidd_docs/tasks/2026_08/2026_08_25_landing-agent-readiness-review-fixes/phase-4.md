@@ -1,5 +1,5 @@
 ---
-status: pending
+status: in-progress
 ---
 
 # Instruction: promote, verify, and rescan the public site
@@ -56,6 +56,9 @@ journey
 
 1. Keep bypass credentials in the environment and out of logs.
 2. Record the accepted HTML limitation separately from passing Markdown checks.
+3. If the automation bypass secret is unavailable, run the same matrix through
+   authenticated `vercel curl` against the immutable deployment URL; never copy
+   the CLI token or protection credentials into the report.
 
 ### `2)` Promote through the existing release flow
 
@@ -73,8 +76,8 @@ journey
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria |
-| ---- | ------------------- |
-| 1 | The tracked report identifies the preview URL and SHA and contains a passing supported endpoint matrix with no secret values. |
-| 2 | `pulpe.app` serves the same proven statuses, types, recovery content, discovery files, and structured data after a human-approved release. |
-| 3 | Search Console/profile evidence, the new Is Agentic score, the clean-brand observation, and an approved final review are recorded; unavailable credentials are named precisely. |
+| Task | Acceptance criteria                                                                                                                                                                                                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | The tracked report identifies the immutable preview URL and SHA and contains a passing supported endpoint matrix with no secret values. Direct negotiated responses require exact `Accept, Accept-Encoding`; HTML requires native RSC tokens and records the upstream `Accept` limitation. |
+| 2    | `pulpe.app` serves the same proven statuses, types, recovery content, discovery files, and structured data after a human-approved release.                                                                                                                                                 |
+| 3    | Search Console/profile evidence, the new Is Agentic score, the clean-brand observation, and an approved final review are recorded; unavailable credentials are named precisely.                                                                                                            |

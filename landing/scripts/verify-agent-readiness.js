@@ -1,10 +1,9 @@
 const NEGOTIATED_VARY = ["accept", "accept-encoding"];
-const HTML_VARY = [
+const HTML_RSC_VARY = [
   "rsc",
   "next-router-state-tree",
   "next-router-prefetch",
   "next-router-segment-prefetch",
-  "accept-encoding",
 ];
 const RECOVERY_LINKS = ["/sitemap.xml", "/llms.txt", "/support"];
 
@@ -193,7 +192,7 @@ for (const check of checks) {
       );
     if (check.vary === "html") {
       const tokens = varyTokens(vary);
-      for (const token of HTML_VARY) {
+      for (const token of HTML_RSC_VARY) {
         if (!tokens.includes(token)) errors.push(`vary is missing ${token}`);
       }
       if (!tokens.includes("accept")) {

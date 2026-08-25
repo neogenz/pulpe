@@ -25,7 +25,8 @@ const nextImageMock = {
 };
 mock.module("next/image", nextImageMock);
 
-const { buildJsonLd } = await import("../components/RootDocument");
+const { buildJsonLd, RootDocument } =
+  await import("../components/RootDocument");
 
 const { default: AboutPage, generateMetadata: aboutMetadata } =
   await import("./(fr)/about/page");
@@ -35,10 +36,6 @@ const { default: LandingPage } = await import("./(fr)/page");
 
 const MARKDOWN = "text/markdown";
 const VARY = "Accept, Accept-Encoding";
-const rootDocumentSource = readFileSync(
-  new URL("../components/RootDocument.tsx", import.meta.url),
-  "utf8",
-);
 const notFoundSource = readFileSync(
   new URL("./global-not-found.tsx", import.meta.url),
   "utf8",
@@ -227,7 +224,10 @@ describe("agent-friendly 404s", () => {
       assert.notEqual(response.status, 404, url);
     }
 
-    assert.match(notFoundSource, /robots: \{ index: false, follow: false \}/);
+    assert.match(
+      notFoundSource,
+      /robots:\s*\{\s*index:\s*false,\s*follow:\s*false\s*\}/,
+    );
     assert.match(fr.notFound.text, /chemin demandé est inconnu/i);
     assert.doesNotMatch(fr.notFound.text, /déménag/i);
     for (const path of ["/sitemap.xml", "/llms.txt", "/support"]) {
@@ -282,9 +282,14 @@ describe("agent discovery files", () => {
       assert.equal(localized.alternates?.types, undefined, locale);
     }
 
+    const rootMarkup = renderToStaticMarkup(
+      <RootDocument locale="fr" graphDescription="Pulpe" featureList={[]}>
+        <main />
+      </RootDocument>,
+    );
     assert.match(
-      rootDocumentSource,
-      /<link rel="describedby" href="\/llms\.txt" \/>/,
+      rootMarkup,
+      /<link(?=[^>]*\brel="describedby")(?=[^>]*\bhref="\/llms\.txt")[^>]*>/,
     );
   });
 });
