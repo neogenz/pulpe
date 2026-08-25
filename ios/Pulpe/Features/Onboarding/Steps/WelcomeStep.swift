@@ -89,9 +89,8 @@ struct WelcomeStep: View {
                 // Bottom buttons
                 VStack(spacing: DesignTokens.Spacing.md) {
                     // Social login — primary path (onboarding context)
-                    SocialLoginSection(onAuthenticated: { user in
-                        state.configureSocialUser(user)
-                        state.nextStep()
+                    SocialLoginSection(onAuthenticated: { user, persistError in
+                        state.applySocialSignup(user, persistError: persistError)
                     })
 
                     SocialLoginDivider()

@@ -6,6 +6,7 @@ struct AccountView: View {
     @State private var showLogoutConfirmation = false
     @State private var isDebugVisible = false
     @State private var debugToggleTrigger = false
+    @State private var showEditFirstName = false
 
     var body: some View {
         NavigationStack {
@@ -39,6 +40,9 @@ struct AccountView: View {
                     Button("Fermer") { dismiss() }
                 }
             }
+            .sheet(isPresented: $showEditFirstName) {
+                EditFirstNameSheet(initialFirstName: appState.currentUser?.firstName)
+            }
         }
     }
 }
@@ -62,8 +66,25 @@ extension AccountView {
                     font: PulpeTypography.amountXL
                 )
                 .accessibilityHidden(true)
-                Text(email.isEmpty ? AppLocale.string("Non connecté(e)") : email)
-                    .font(PulpeTypography.bodyLarge)
+
+                if let firstName = FirstNameResolver.normalized(appState.currentUser?.firstName) {
+                    Text(firstName)
+                        .font(PulpeTypography.title3)
+                        .foregroundStyle(Color.textPrimary)
+                    Text(email.isEmpty ? AppLocale.string("Non connecté(e)") : email)
+                        .font(PulpeTypography.bodyLarge)
+                    firstNameActionButton(
+                        title: AppLocale.string("Modifier"),
+                        identifier: "editFirstNameButton"
+                    )
+                } else {
+                    firstNameActionButton(
+                        title: AppLocale.string("Ajouter un prénom"),
+                        identifier: "addFirstNameButton"
+                    )
+                    Text(email.isEmpty ? AppLocale.string("Non connecté(e)") : email)
+                        .font(PulpeTypography.bodyLarge)
+                }
                 Text("Pulpe")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textSecondary)
@@ -217,6 +238,19 @@ extension AccountView {
 // MARK: - Row Helpers
 
 extension AccountView {
+    /// Text link in the profile stack: expand the hit area to 44pt without
+    /// growing the `VStack` (pad → shape → negative pad, same as `SectionHeader`).
+    private func firstNameActionButton(title: String, identifier: String) -> some View {
+        Button(title) { showEditFirstName = true }
+            .font(PulpeTypography.buttonSecondary)
+            .foregroundStyle(Color.pulpePrimary)
+            .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
+            .contentShape(Rectangle())
+            .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+            .textLinkButtonStyle()
+            .accessibilityIdentifier(identifier)
+    }
+
     private func settingsNavigationRow<Destination: View>(
         icon: String,
         iconColor: Color,
