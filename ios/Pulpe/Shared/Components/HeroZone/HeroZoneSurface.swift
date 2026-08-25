@@ -21,6 +21,17 @@ extension View {
     func contentZone() -> some View {
         modifier(ContentZoneModifier())
     }
+
+    /// List-row variant: the rounded content cap occupies the hero row's existing overlap
+    /// allowance, so neighboring collection cells never need to draw outside their bounds.
+    func heroListRow(parallax: Bool = false) -> some View {
+        modifier(HeroListRowModifier(parallax: parallax))
+    }
+
+    /// Paint a full-width neutral row below `heroListRow` with no system-owned chrome.
+    func contentListRow() -> some View {
+        modifier(ContentListRowModifier())
+    }
 }
 
 private struct HeroZoneModifier: ViewModifier {
@@ -69,5 +80,50 @@ private struct ContentZoneModifier: ViewModifier {
                 .padding(.bottom, -DesignTokens.Layout.overscrollBleed)
             }
             .padding(.top, -DesignTokens.CornerRadius.zone)
+    }
+}
+
+private struct HeroListRowModifier: ViewModifier {
+    let parallax: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        let factor = parallax && !reduceMotion ? DesignTokens.Motion.heroParallax : 0
+        return content
+            .visualEffect { content, proxy in
+                content.offset(y: max(0, -proxy.frame(in: .scrollView).minY) * factor)
+            }
+            .padding(.bottom, DesignTokens.CornerRadius.zone)
+            .frame(maxWidth: .infinity)
+            .background(alignment: .bottom) {
+                UnevenRoundedRectangle(
+                    topLeadingRadius: DesignTokens.CornerRadius.zone,
+                    topTrailingRadius: DesignTokens.CornerRadius.zone,
+                    style: .continuous
+                )
+                .fill(Color.appBackground)
+                .shadow(DesignTokens.Shadow.zoneBoundary)
+                .frame(height: DesignTokens.CornerRadius.zone + DesignTokens.Layout.overscrollBleed)
+                .offset(y: DesignTokens.Layout.overscrollBleed)
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(
+                LinearGradient(
+                    colors: [.heroSurfaceTop, .heroSurface],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+    }
+}
+
+private struct ContentListRowModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: .infinity)
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.appBackground)
     }
 }
