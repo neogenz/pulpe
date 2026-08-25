@@ -138,12 +138,11 @@ function buildJsonLd(
  * Le document complet, partagé par les deux root layouts.
  *
  * `app/(fr)/layout.tsx` et `app/[lang]/layout.tsx` sont deux racines
- * indépendantes : sous `output: 'export'` il n'existe ni middleware ni rewrite,
- * et c'est la seule forme qui garde le français à `/`. Chacune doit donc monter
- * pour son compte tout ce qui est global — la police, `globals.css`, le script
+ * indépendantes pour garder le français à `/`. Chacune doit donc monter pour
+ * son compte tout ce qui est global — la police, `globals.css`, le script
  * d'en-tête, `PostHogProvider`. Un fournisseur monté d'un seul côté échouerait
- * en silence pour les trois autres langues ; ce composant est ce qui empêche
- * les deux racines de diverger.
+ * en silence pour les trois autres langues ; ce composant empêche les deux
+ * racines de diverger.
  */
 export function RootDocument({
   locale,
@@ -165,6 +164,7 @@ export function RootDocument({
           vit dans `components/`. */}
       {/* eslint-disable-next-line @next/next/no-head-element */}
       <head>
+        <link rel="describedby" href="/llms.txt" />
         <script dangerouslySetInnerHTML={{ __html: headerScript }} />
         <script
           type="application/ld+json"

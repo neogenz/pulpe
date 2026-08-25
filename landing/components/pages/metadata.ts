@@ -11,7 +11,13 @@ import { alternatesFor, GUIDE_ROUTE } from "@/lib/routes";
 
 export async function homeMetadata(locale: Locale): Promise<Metadata> {
   const { site } = await getDictionary(locale);
-  return rootMetadata(locale, site);
+  return {
+    ...rootMetadata(locale, site),
+    alternates: {
+      ...alternatesFor(locale, "/"),
+      types: { "text/markdown": "/index.md" },
+    },
+  };
 }
 
 export async function changelogMetadata(locale: Locale): Promise<Metadata> {

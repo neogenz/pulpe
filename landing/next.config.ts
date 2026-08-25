@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "export",
   distDir: "dist",
   trailingSlash: false,
   env: {
@@ -23,10 +22,8 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react"],
-    // Sans ce drapeau, `app/global-not-found.tsx` n'est pas rendu et l'export
-    // livre le 404 intégré de Next, sans attribut `lang`. Un `not-found.tsx`
-    // ne peut pas le remplacer : avec deux root layouts, il n'atteint jamais
-    // `404.html`, en silence.
+    // Un `not-found.tsx` ne peut pas couvrir plusieurs root layouts. Ce drapeau
+    // confie donc toutes les routes absentes au document global dédié.
     globalNotFound: true,
   },
   compiler: {

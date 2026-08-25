@@ -8,8 +8,10 @@ import "../globals.css";
 
 // Racine des trois langues préfixées. `generateStaticParams` n'émet jamais
 // `fr` : ce segment produirait `/fr/…` en double de chaque URL française déjà
-// indexée. Pas de `dynamicParams = false` non plus — sous `output: 'export'` le
-// build le force déjà, la ligne ne serait que du bruit.
+// indexée. Les autres valeurs restent explicitement fermées pour conserver un
+// vrai 404 maintenant que le site n'utilise plus l'export pur.
+
+export const dynamicParams = false;
 
 export function generateStaticParams() {
   return PREFIXED_LOCALES.map((lang) => ({ lang }));

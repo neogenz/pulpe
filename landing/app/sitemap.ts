@@ -12,8 +12,8 @@ import {
   SITE_URL,
 } from "@/lib/routes";
 
-// Sans cette ligne, le build meurt sur `route "/sitemap.xml" with "output:
-// export"` : Next traite le sitemap comme une route dynamique par défaut.
+// Le sitemap est une projection de constantes locales : le verrouiller en
+// statique évite de lui attribuer inutilement une exécution serveur.
 export const dynamic = "force-static";
 
 const absolute = (path: string) => `${SITE_URL}${path === "/" ? "" : path}`;
