@@ -36,4 +36,4 @@ status: implemented
 | Prove the `List` shell before deleting the custom swipe code. | Hero parallax and the rounded content boundary are the real risks; retaining the current swipe through phase 1 keeps the change reversible until those visuals pass on-device inspection. |
 | Add list-compatible behavior to the existing `HeroZoneSurface` family and leave its current modifiers intact. | Seven other loaded/skeleton surfaces use the current modifiers; a parallel capability avoids a cross-app migration while keeping the home inside the shared hero grammar. |
 | Use the stable list-row API now; do not add an unavailable beta path or dual implementation. | The app builds with Xcode 26.6 and targets iOS 18. A future container API is the eventual simpler route, not a production dependency today. |
-| Disable full swipe and keep the existing system confirmation dialog. | The validated product rule requires explicit revelation of both actions and confirmation before every deletion. |
+| Disable full swipe and use a centered system alert. | The validated product rule requires explicit revelation of both actions and confirmation before every deletion. |

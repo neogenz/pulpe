@@ -277,24 +277,23 @@ extension View {
         pending: Binding<Transaction?>,
         onConfirm: @escaping (Transaction) -> Void
     ) -> some View {
-        confirmationDialog(
-            AppLocale.string("Supprimer cette opération ?"),
+        alert(
+            AppLocale.string("Supprimer « \(pending.wrappedValue?.name ?? "") » ?"),
             isPresented: Binding(
                 get: { pending.wrappedValue != nil },
                 set: { if !$0 { pending.wrappedValue = nil } }
             ),
-            titleVisibility: .visible,
             presenting: pending.wrappedValue
         ) { transaction in
+            Button(AppLocale.string("Annuler"), role: .cancel) {}
+                .accessibilityIdentifier("homeActivityCancelDelete")
             Button(AppLocale.string("Supprimer"), role: .destructive) {
                 pending.wrappedValue = nil
                 onConfirm(transaction)
             }
             .accessibilityIdentifier("homeActivityConfirmDelete")
-            Button(AppLocale.string("Annuler"), role: .cancel) {}
-                .accessibilityIdentifier("homeActivityCancelDelete")
-        } message: { transaction in
-            Text(transaction.name)
+        } message: { _ in
+            Text("Cette action est irréversible.")
         }
     }
 }

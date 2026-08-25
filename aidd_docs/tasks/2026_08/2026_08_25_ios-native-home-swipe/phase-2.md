@@ -32,7 +32,7 @@ flowchart TD
   B --> C[The system reveals Edit and Delete]
   C --> D{Chosen action}
   D -- Edit --> E[Open the existing operation editor]
-  D -- Delete --> F[Present the system confirmation dialog]
+  D -- Delete --> F[Present the centered system alert]
   F -- Cancel --> G[Keep the operation]
   F -- Confirm --> H[Delete through the existing store path]
 ```
@@ -50,8 +50,8 @@ journey
   section Happy path
     Swipe an activity row partially toward the leading edge => Edit and Delete appear with system physics and chrome: 5: cli
     Tap Edit => the existing operation editor opens for that row: 5: cli
-    Tap Delete then cancel the dialog => the named operation remains visible: 5: cli
-    Tap Delete then confirm the dialog => the existing delete path removes the named operation: 5: cli
+    Tap Delete then cancel the alert => the named operation remains visible: 5: cli
+    Tap Delete then confirm the alert => the existing delete path removes the named operation: 5: cli
   section Edge case - Full swipe
     Swipe the row fully across without tapping an action => no edit or deletion runs automatically: 1: cli
   section Edge case - Scroll arbitration
@@ -77,7 +77,7 @@ journey
 │ ├────────────────┴─────────┴───────┤ │
 │ │     Operation row                 │ │
 │ └───────────────────────────────────┘ │
-│ (6) System confirmation dialog       │
+│ (6) Centered system alert            │
 └──────────────────────────────────────┘
 ```
 
@@ -106,7 +106,7 @@ journey
 1. Add `.swipeActions(edge: .trailing, allowsFullSwipe: false)` to each transaction row.
 2. Declare Delete first in the builder so it sits closest to the trailing edge, followed by Edit, yielding the visible left-to-right order Edit then Delete.
 3. Use native `Button` labels with `pencil` and `trash`, `.editAction` and `.destructivePrimary` tints, and the destructive role on Delete.
-4. Keep the existing `pendingDeletion` confirmation dialog and route Edit/Delete through the existing callbacks.
+4. Present an item-driven system alert from `pendingActivityDeletion` and route Edit/Delete through the existing callbacks.
 5. Verify native VoiceOver actions before removing the explicit duplicate `.accessibilityAction` declarations.
 
 ### `3)` Delete the home-only swipe implementation
@@ -133,7 +133,7 @@ journey
 | 1 | Every visible operation is a direct native list row with stable transaction identity and no fixed-height nested list. |
 | 1 | Day labels, card grouping, dividers, tag wrapping, amounts, and Dynamic Type remain readable on the existing home rails. |
 | 2 | A partial trailing swipe reveals native Edit and Delete actions; a full swipe executes neither action. |
-| 2 | Delete always presents the system confirmation dialog naming the operation before the store mutation can run. |
+| 2 | Delete always presents a centered system alert naming the operation before the store mutation can run. |
 | 2 | Edit opens the existing editor and both actions remain available to VoiceOver without hidden custom tap targets. |
 | 3 | The custom trailing modifier, its tests, and its private projection token are absent; the leading ledger swipe still compiles and behaves unchanged. |
 | 4 | Vertical flicks from closed and revealed activity rows scroll immediately, and the system dismisses revealed actions while scrolling. |

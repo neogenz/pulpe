@@ -306,10 +306,12 @@ final class HomeActivitySwipeUITests: XCTestCase {
 
         let confirmation = app.buttons["homeActivityConfirmDelete"]
         XCTAssertTrue(confirmation.waitForExistence(timeout: 5), app.debugDescription)
-        XCTAssertTrue(app.staticTexts["Bonus"].exists)
+        XCTAssertTrue(app.alerts.firstMatch.label.contains("Bonus"))
         XCTAssertTrue(row.exists)
 
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5)).tap()
+        let cancel = app.buttons.matching(identifier: "homeActivityCancelDelete").firstMatch
+        XCTAssertTrue(cancel.exists)
+        cancel.tap()
         XCTAssertFalse(confirmation.exists)
         XCTAssertTrue(row.exists)
     }
