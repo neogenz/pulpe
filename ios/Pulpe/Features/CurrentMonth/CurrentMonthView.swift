@@ -386,7 +386,8 @@ extension CurrentMonthView {
 
     /// The store puts the row back when the server refuses, so the failure needs saying.
     private func delete(_ transaction: Transaction) async {
-        guard await store.deleteTransaction(transaction) == false else { return }
+        let deleted = await store.deleteTransaction(transaction)
+        guard !deleted else { return }
         toastManager.show(AppLocale.string("\(transaction.name) n'a pas pu être supprimé"), type: .error)
     }
 
