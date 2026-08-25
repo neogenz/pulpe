@@ -14,6 +14,7 @@ struct FormTextField<Field: Hashable>: View {
     var accessibilityLabel: String?
     var focusBinding: FocusState<Field?>.Binding
     var field: Field
+    var textContentType: UITextContentType?
     /// `.row`: title on the left, bare field on the right, for one line of a `FormCard`.
     var style: FormRowStyle = .standalone
     /// Runs on the keyboard's Return after the field drops focus: the form's own submit,
@@ -31,10 +32,11 @@ struct FormTextField<Field: Hashable>: View {
                     .multilineTextAlignment(.trailing)
                     .submitLabel(.done)
                     .focused(focusBinding, equals: field)
+                    .textContentType(textContentType)
                     .onSubmit {
-                focusBinding.wrappedValue = nil
-                onSubmit?()
-            }
+                        focusBinding.wrappedValue = nil
+                        onSubmit?()
+                    }
                     .accessibilityLabel(accessibilityLabel ?? label)
             }
             .frame(minHeight: DesignTokens.ListRow.minHeight)
@@ -69,6 +71,7 @@ struct FormTextField<Field: Hashable>: View {
             // See type documentation — `Button` would not focus the inner `TextField` with this layout.
             .onTapGesture { focusBinding.wrappedValue = field }
             .focused(focusBinding, equals: field)
+            .textContentType(textContentType)
             .onSubmit {
                 focusBinding.wrappedValue = nil
                 onSubmit?()

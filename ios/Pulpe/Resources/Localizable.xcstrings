@@ -4253,6 +4253,28 @@
         }
       }
     },
+    "Ajouter un prénom" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vornamen hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a first name"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi un nome"
+          }
+        }
+      }
+    },
     "Ajouter un revenu" : {
       "localizations" : {
         "de" : {
@@ -19525,6 +19547,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nome"
+          }
+        }
+      }
+    },
+    "Prénom enregistré" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorname gespeichert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First name saved"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome salvato"
           }
         }
       }

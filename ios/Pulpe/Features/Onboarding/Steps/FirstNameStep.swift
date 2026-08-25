@@ -13,7 +13,7 @@ struct FirstNameStep: View {
             step: .firstName,
             state: state,
             canProceed: state.isFirstNameValid,
-            onNext: { state.nextStep() },
+            onNext: { Task { await persistIfAuthenticatedThenAdvance() } },
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     // Required marker via Text concatenation: `*` keeps the
@@ -45,6 +45,27 @@ struct FirstNameStep: View {
             }
         )
         .trackScreen("Onboarding_FirstName")
+    }
+
+    private func persistIfAuthenticatedThenAdvance() async {
+        guard state.isAuthenticated else {
+            state.nextStep()
+            return
+        }
+
+        state.isLoading = true
+        state.error = nil
+        defer {
+            state.isLoading = false
+            state.nextStep()
+        }
+        do {
+            try await state.persistFirstName { name in
+                try await AuthService.shared.updateUserFirstName(name)
+            }
+        } catch {
+            state.error = APIError.serverError(message: AuthErrorLocalizer.localize(error))
+        }
     }
 }
 

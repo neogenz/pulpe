@@ -35,20 +35,24 @@ struct AuthServiceUserInfoTests {
         #expect(info.email.isEmpty)
     }
 
-    // MARK: - First name priority: firstName > given_name > name
+    // MARK: - First name: firstName > given_name; never `name` or email
 
     @Test(
-        "firstName priority respects metadata order",
+        "firstName resolution ignores provider name and email",
         arguments: [
             (["firstName": .string("Alice"), "given_name": .string("Bob"), "name": .string("Carol")], "Alice"),
             (["given_name": .string("Bob"), "name": .string("Carol")], "Bob"),
-            (["name": .string("Carol")], "Carol"),
-        ] as [([String: AnyJSON], String)]
+            (["name": .string("Carol")], nil),
+            (["firstName": .string("  Marie  ")], "Marie"),
+            (["firstName": .string("   "), "given_name": .string("Bob")], "Bob"),
+            (["firstName": .string("")], nil),
+            (["email": .string("xyz@privaterelay.appleid.com"), "name": .string("Carol")], nil),
+        ] as [([String: AnyJSON], String?)]
     )
-    func firstNameResolution(metadata: [String: AnyJSON], expected: String) {
-        let user = makeUser(email: "x@y.com", userMetadata: metadata)
+    func firstNameResolution(metadata: [String: AnyJSON], expected: String?) {
+        let user = makeUser(email: "xyz@privaterelay.appleid.com", userMetadata: metadata)
 
-        let info = AuthService.userInfo(from: user, fallbackEmail: "")
+        let info = AuthService.userInfo(from: user, fallbackEmail: "xyz@privaterelay.appleid.com")
 
         #expect(info.firstName == expected)
     }
@@ -59,6 +63,15 @@ struct AuthServiceUserInfoTests {
         let info = AuthService.userInfo(from: user, fallbackEmail: "")
 
         #expect(info.firstName == nil)
+    }
+
+    @Test func fallbackEmail_isNeverUsedAsFirstName() {
+        let user = makeUser(email: nil, userMetadata: [:])
+
+        let info = AuthService.userInfo(from: user, fallbackEmail: "marie@icloud.com")
+
+        #expect(info.firstName == nil)
+        #expect(info.email == "marie@icloud.com")
     }
 
     // MARK: - Provider mapping (Supabase returns both "apple" and "apple.com")

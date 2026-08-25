@@ -22,13 +22,16 @@ extension HomeHeroCard {
                 ForEach(HeroChartLabelLayout.Label.allCases, id: \.self) { label in
                     if let rect = rects[label] {
                         chartLabel(labelText(label, for: trajectory))
-                            // A long amount at an accessibility text size stops at the inset.
-                            .frame(maxWidth: plot.width - 2 * Self.pillInset)
+                            // Under the cap, so what is measured is the capsule and not the
+                            // frame: a frame offered the whole overlay takes the whole
+                            // overlay, and the layout would place three identical rects.
                             .onGeometryChange(
                                 for: CGSize.self,
                                 of: { $0.size },
                                 action: { pillSizes[label] = $0 }
                             )
+                            // A long amount at an accessibility text size stops at the inset.
+                            .frame(maxWidth: plot.width - 2 * Self.pillInset)
                             .position(x: rect.midX, y: rect.midY)
                             .opacity(labelOpacity * (label == .trend ? settlingOpacity : 1))
                     }

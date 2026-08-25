@@ -135,7 +135,11 @@ extension RegistrationStep {
 
         do {
             let authService = AuthService.shared
-            let user = try await authService.signup(email: state.email, password: password)
+            let user = try await authService.signup(
+                email: state.email,
+                password: password,
+                firstName: state.firstName
+            )
 
             // Race guard: if the user tapped "Recommencer" (abandonInProgressSignup)
             // while this signup was in-flight, the task is cancelled but Supabase
@@ -147,8 +151,27 @@ extension RegistrationStep {
             }
 
             AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "email"])
+
+            var resolvedUser = user
+            if FirstNameResolver.normalized(resolvedUser.firstName) == nil {
+                do {
+                    try await state.persistFirstName { name in
+                        try await authService.updateUserFirstName(name)
+                    }
+                    resolvedUser = state.authenticatedUser ?? resolvedUser
+                } catch {
+                    // Signup already succeeded. Keep the in-memory name and
+                    // advance; the banner shows on Revenus. finishOnboarding
+                    // retries persist as last chance (same as social signup).
+                    resolvedUser.firstName = FirstNameResolver.normalized(state.firstName)
+                    state.error = APIError.serverError(
+                        message: AuthErrorLocalizer.localize(error)
+                    )
+                }
+            }
+
             state.isLoading = false
-            state.configureEmailUser(user)
+            state.configureEmailUser(resolvedUser)
             state.nextStep()
         } catch let apiError as APIError {
             AnalyticsService.shared.captureAuthError(.signupFailed, error: apiError, method: "email")

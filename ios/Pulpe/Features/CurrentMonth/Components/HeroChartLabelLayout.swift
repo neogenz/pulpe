@@ -24,9 +24,10 @@ struct HeroChartLabelLayout {
     /// The hero's text inset: the plot is edge to edge, the pills are not.
     let inset: CGFloat
 
-    /// One rect per present anchor. A pill grows leftward from its anchor (trailing
-    /// alignment), tries its preferred side, the other, then each pushed one pill further,
-    /// and takes the first that clears the dot, the pills already placed, and the inset plot.
+    /// One rect per present anchor. A pill hangs off its anchor — leftward for the two that
+    /// end the plot, rightward for today's word, off the dot's free side — then tries its
+    /// preferred side, the other, then each pushed one pill further, and takes the first
+    /// that clears the dot, the pills already placed, and the inset plot.
     func resolve(
         anchors: [Label: CGPoint],
         sizes: [Label: CGSize],
@@ -69,13 +70,17 @@ struct HeroChartLabelLayout {
         // A pill longer than the inset plot is drawn capped to it, so it is placed capped too.
         let width = min(size.width, bounds.width)
         let offset = spacing + push * (size.height + spacing)
-        // Today's word is anchored on the dot itself: it clears from the dot's edge.
+        // Today's word is anchored on the dot itself: it clears from the dot's edges, and
+        // to its right, the one side of it the real stroke never reaches.
+        // ponytail: the last days of a period leave no room there and the clamp below hangs
+        // the pill back over the stroke; give it a left fallback if that reads badly.
         let onDot = dot.contains(anchor)
+        let x = onDot ? dot.maxX + spacing : anchor.x - width
         let y = side == .bottom
             ? (onDot ? dot.maxY : anchor.y) + offset
             : (onDot ? dot.minY : anchor.y) - offset - size.height
         return CGRect(
-            x: min(max(anchor.x - width, bounds.minX), bounds.maxX - width),
+            x: min(max(x, bounds.minX), bounds.maxX - width),
             y: min(max(y, bounds.minY), bounds.maxY - size.height),
             width: width,
             height: size.height

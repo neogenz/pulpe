@@ -305,12 +305,26 @@ struct OnboardingFlow: View {
         state.isSubmitting = true
         defer { state.isSubmitting = false }
 
+        var completingUser = user
+        do {
+            try await state.persistFirstName { name in
+                try await AuthService.shared.updateUserFirstName(name)
+            }
+            if let updated = state.authenticatedUser {
+                completingUser = updated
+            }
+        } catch _ {
+            // Last-chance persist is best-effort, like email/social signup:
+            // the account already exists, the name stays in memory, Compte can
+            // retry. Returning here would trap the user on the final CTA.
+        }
+
         // Currency persistence is deferred to `OnboardingBootstrapper.bootstrapIfNeeded`,
         // which runs post-PIN-setup. Calling `userSettingsStore.updateCurrency` here would
         // 403 with `AUTH_CLIENT_KEY_MISSING` because the client key only exists after PIN
         // setup, leaving the dashboard stuck on the default CHF.
         await appState.completeOnboarding(
-            user: user,
+            user: completingUser,
             onboardingData: state.createTemplateData(),
             signupMethod: state.authMethodProperty,
             currency: state.currency,

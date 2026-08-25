@@ -12,6 +12,7 @@ enum AuthErrorKind: Equatable {
     case sessionExpired
     case reauthenticationNeeded
     case userBanned
+    case emptyFirstName
     case unknown
 }
 
@@ -87,13 +88,8 @@ enum AuthErrorLocalizer {
     /// Fast path for typed errors thrown by the auth layer.
     /// Extracted to keep `classify(_:)` under the cyclomatic complexity budget.
     private static func classifyTypedError(_ error: Error) -> AuthErrorKind? {
-        if let authError = error as? AuthServiceError {
-            switch authError {
-            case .sessionExpired:
-                return .sessionExpired
-            case .signupFailed, .loginFailed:
-                return nil
-            }
+        if let kind = classifyAuthServiceError(error) {
+            return kind
         }
         if let apiError = error as? APIError {
             switch apiError {
@@ -106,6 +102,18 @@ enum AuthErrorLocalizer {
             }
         }
         return nil
+    }
+
+    private static func classifyAuthServiceError(_ error: Error) -> AuthErrorKind? {
+        guard let authError = error as? AuthServiceError else { return nil }
+        switch authError {
+        case .sessionExpired:
+            return .sessionExpired
+        case .emptyFirstName:
+            return .emptyFirstName
+        case .signupFailed, .loginFailed:
+            return nil
+        }
     }
 
     private static let keywordPatterns: [(String, AuthErrorKind)] = [
@@ -169,6 +177,7 @@ enum AuthErrorLocalizer {
         .sessionExpired: "Ta session a expiré — reconnecte-toi",
         .reauthenticationNeeded: "Tu dois te reconnecter avant de modifier ton mot de passe",
         .userBanned: "Ton compte est en cours de suppression.",
+        .emptyFirstName: AuthServiceError.emptyFirstNamePrompt,
         .unknown: "Quelque chose n'a pas fonctionné — réessaie",
     ]
 

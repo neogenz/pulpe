@@ -47,6 +47,23 @@ struct HeroChartLabelLayoutTests {
         assertClean(rects, count: 3)
         // Today's word sits right against the dot, not a pill away from it.
         #expect(rects[.today]?.maxY == dot.minY - spacing)
+        // The last days of a period leave no room right of the dot: the word hangs back
+        // from the inset edge rather than off the plot.
+        #expect(rects[.today]?.maxX == plot.insetBy(dx: inset, dy: 0).maxX)
+    }
+
+    @Test func todaysWord_hangsRightOfItsDot() throws {
+        // The real stroke ends on the dot and runs only left of it, so the word takes the
+        // free side. The two labels that end the plot keep hanging leftward from theirs.
+        let dot = CGRect(x: 180, y: 89, width: 12, height: 12)
+        let rects = HeroChartLabelLayout(plot: plot, dot: dot, spacing: spacing, inset: inset)
+            .resolve(
+                anchors: [.today: CGPoint(x: 186, y: 95), .plan: CGPoint(x: 390, y: 60)],
+                sizes: sizes,
+                preferredSide: [.today: .top, .plan: .top]
+            )
+        #expect(rects[.today]?.minX == dot.maxX + spacing)
+        #expect(rects[.plan]?.maxX == plot.insetBy(dx: inset, dy: 0).maxX)
     }
 
     @Test func heldMonth_twoPillsStayApart() {

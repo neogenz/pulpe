@@ -263,12 +263,14 @@ extension HomeHeroCard {
         return trend(for: trajectory) < current.balance ? .bottom : .top
     }
 
-    /// Today's word takes the side the trend's figure does not, since both grow leftward
-    /// from nearly the same point once the month is well along.
+    /// Today's word hangs to the right of its dot, where the real stroke never runs: the one
+    /// stroke it can meet there is the dashed projection, so it reads the same slope as the
+    /// trend's figure and takes the same side. Two pills on one side is the layout's push
+    /// loop's business, not this rule's.
     static func todayLabelPosition(
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> HeroChartLabelLayout.Side {
-        trendLabelPosition(for: trajectory) == .bottom ? .top : .bottom
+        trendLabelPosition(for: trajectory)
     }
 
     /// Speaks the three strokes VoiceOver cannot see, in the drawing's own order: what the
