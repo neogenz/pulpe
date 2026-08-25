@@ -6,11 +6,14 @@ status: blocked
 
 ## Blocker
 
-The verified Vercel preview is ready, but promoting it to `pulpe.app` is a
-production mutation that has not been authorized. On August 25, 2026,
-production still served the old version: `Accept: text/markdown` returned HTML,
-and `/llms.txt`, `/index.md`, `/about`, and `/privacy` returned 404. Search
-Console and external submissions also require Maxime's access or approval.
+Commit `954303d96bd600f0ac85e246fef038df12ec6f25` passed the exact matrix at the
+immutable Vercel preview
+`https://pulpe-landing-4xqnnaylp-maximes-projects-56d66b35.vercel.app`, but
+promoting it to `pulpe.app` is a production mutation that has not been
+authorized. On August 25, 2026, production still served the old version:
+`Accept: text/markdown` returned HTML, and `/llms.txt`, `/index.md`, `/about`,
+and `/privacy` returned 404. Search Console and external submissions also
+require Maxime's access or approval.
 
 The clean `Pulpe` query observed the same day placed `pulpe.app` first. The brand
 finding can therefore be revalidated without a new campaign or rank promise.

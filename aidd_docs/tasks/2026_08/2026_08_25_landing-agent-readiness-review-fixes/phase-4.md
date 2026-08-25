@@ -1,8 +1,18 @@
 ---
-status: in-progress
+status: blocked
 ---
 
 # Instruction: promote, verify, and rescan the public site
+
+## Blocker
+
+Commit `954303d96bd600f0ac85e246fef038df12ec6f25` passed the exact protected
+preview matrix at
+`https://pulpe-landing-4xqnnaylp-maximes-projects-56d66b35.vercel.app` and the
+required PR check. Production still serves the previous negotiation behavior.
+Promotion to `pulpe.app`, Search Console inspection, and the post-deployment Is
+Agentic rescan require human authorization or credentials. See
+[`verification.md`](./verification.md) for the recorded evidence.
 
 ## Architecture projection
 
@@ -76,8 +86,8 @@ journey
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria                                                                                                                                                                                                                                                                        |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1    | The tracked report identifies the immutable preview URL and SHA and contains a passing supported endpoint matrix with no secret values. Direct negotiated responses require exact `Accept, Accept-Encoding`; HTML requires native RSC tokens and records the upstream `Accept` limitation. |
-| 2    | `pulpe.app` serves the same proven statuses, types, recovery content, discovery files, and structured data after a human-approved release.                                                                                                                                                 |
-| 3    | Search Console/profile evidence, the new Is Agentic score, the clean-brand observation, and an approved final review are recorded; unavailable credentials are named precisely.                                                                                                            |
+| Task | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                     |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | The tracked report identifies the immutable preview URL and SHA and contains a passing supported endpoint matrix with no secret values. Direct negotiated responses require exact `Accept, Accept-Encoding`; HTML 404s require both tokens and may include native RSC additions; homepage HTML requires native RSC tokens and records the upstream `Accept` limitation. |
+| 2    | `pulpe.app` serves the same proven statuses, types, recovery content, discovery files, and structured data after a human-approved release.                                                                                                                                                                                                                              |
+| 3    | Search Console/profile evidence, the new Is Agentic score, the clean-brand observation, and an approved final review are recorded; unavailable credentials are named precisely.                                                                                                                                                                                         |

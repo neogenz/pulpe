@@ -82,14 +82,14 @@ journey
 
 > Require cache-safe negotiated responses while making the upstream HTML limitation visible.
 
-1. Preserve RSC `Vary` tokens on HTML and exact `Accept, Accept-Encoding` on direct negotiated responses.
+1. Preserve RSC `Vary` tokens on homepage HTML and exact `Accept, Accept-Encoding` on direct negotiated responses. Require both keys on HTML 404s while allowing native RSC additions.
 2. Report missing `Accept` on final HTML as the accepted Next/Vercel limitation, not as a passing implementation claim.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria |
-| ---- | ------------------- |
-| 1 | `next build` succeeds without mutating `node_modules`, forcing Webpack, or pinning Next solely for a private-runtime patch. |
-| 2 | `/` returns the tracked Markdown as a direct GET/HEAD response without duplicating its content; an unavailable source returns 503 with `Vary: Accept, Accept-Encoding`. |
-| 3 | One command validates the same observable endpoint matrix against local, protected preview, and production URLs without exposing credentials. |
-| 4 | Markdown, Markdown 404, 406, and Markdown-source 503 responses vary on `Accept`; HTML keeps native RSC tokens and the unresolved upstream gap is explicit. |
+| Task | Acceptance criteria                                                                                                                                                                                                                                   |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `next build` succeeds without mutating `node_modules`, forcing Webpack, or pinning Next solely for a private-runtime patch.                                                                                                                           |
+| 2    | `/` returns the tracked Markdown as a direct GET/HEAD response without duplicating its content; an unavailable source returns 503 with `Vary: Accept, Accept-Encoding`.                                                                               |
+| 3    | One command validates the same observable endpoint matrix against local, protected preview, and production URLs without exposing credentials.                                                                                                         |
+| 4    | Markdown, Markdown 404, 406, and Markdown-source 503 responses vary on `Accept`; HTML 404s include both negotiated cache keys and may retain native RSC additions; homepage HTML keeps native RSC tokens and the unresolved upstream gap is explicit. |

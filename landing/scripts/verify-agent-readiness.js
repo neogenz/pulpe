@@ -121,7 +121,7 @@ const checks = [
     accept: "text/html",
     status: 404,
     type: "text/html",
-    vary: "html",
+    vary: "negotiated-html",
     contains: ['name="robots"', "noindex", ...RECOVERY_LINKS],
   },
   {
@@ -190,6 +190,12 @@ for (const check of checks) {
       errors.push(
         `vary ${vary || "missing"}, expected Accept, Accept-Encoding`,
       );
+    if (check.vary === "negotiated-html") {
+      const tokens = varyTokens(vary);
+      for (const token of NEGOTIATED_VARY) {
+        if (!tokens.includes(token)) errors.push(`vary is missing ${token}`);
+      }
+    }
     if (check.vary === "html") {
       const tokens = varyTokens(vary);
       for (const token of HTML_RSC_VARY) {
