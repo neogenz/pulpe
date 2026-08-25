@@ -10,6 +10,7 @@ struct ActivityCard: View {
     var onDelete: (Transaction) -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var window: Window = .week
 
     enum Window: String, CaseIterable {
@@ -148,7 +149,7 @@ struct ActivityCard: View {
                         bottom: DesignTokens.Spacing.none,
                         trailing: DesignTokens.Spacing.xxl
                     ))
-                    .listRowBackground(Color.clear)
+                    .listRowBackground(swipeActionBackdrop)
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) { onDelete(transaction) } label: {
@@ -178,6 +179,47 @@ struct ActivityCard: View {
         }
         .textCase(nil)
         .listSectionSeparator(.hidden)
+    }
+
+    /// iOS 26 can expose the native swipe hit targets while leaving their compact chrome transparent.
+    @ViewBuilder
+    private var swipeActionBackdrop: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            Color.clear
+        } else {
+            HStack(spacing: DesignTokens.Spacing.compactGap) {
+                swipeActionVisual(title: AppLocale.string("Modifier"), systemImage: "pencil", tint: .editAction)
+                swipeActionVisual(
+                    title: AppLocale.string("Supprimer"),
+                    systemImage: "trash",
+                    tint: .destructivePrimary
+                )
+            }
+            .padding(.horizontal, DesignTokens.Spacing.compactGap)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            // ponytail: mirrors two native 60pt slots plus their 10pt gutters; remove when iOS paints them.
+            .offset(
+                x: (DesignTokens.TapTarget.minimum + DesignTokens.Spacing.lg) * 2
+                    + DesignTokens.Spacing.compactGap * 3
+            )
+            .accessibilityHidden(true)
+        }
+    }
+
+    private func swipeActionVisual(title: String, systemImage: String, tint: Color) -> some View {
+        VStack(spacing: DesignTokens.Spacing.xxs) {
+            Image(systemName: systemImage)
+                .font(PulpeTypography.metricLabelBold)
+                .foregroundStyle(Color.textOnPrimary)
+                .frame(width: DesignTokens.IconSize.badge, height: DesignTokens.IconSize.badge)
+                .background(tint, in: Circle())
+
+            Text(title)
+                .font(PulpeTypography.metricMini)
+                .foregroundStyle(tint)
+                .lineLimit(1)
+        }
+        .frame(width: DesignTokens.TapTarget.minimum + DesignTokens.Spacing.lg)
     }
 
     private func row(_ transaction: Transaction) -> some View {
