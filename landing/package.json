@@ -13,9 +13,9 @@
   ],
   "scripts": {
     "dev": "next dev --port 3001",
-    "prebuild": "node scripts/patch-next-vary.js",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start",
+    "verify:agents": "node scripts/verify-agent-readiness.js",
     "test": "tsx --test --experimental-test-module-mocks app/accessibility.test.tsx app/agent-readiness.test.tsx components/guides/ArticleLayout.test.tsx content/dictionaries.test.ts data/releases.test.ts lib/amount.test.ts lib/budgetCalculator.test.ts lib/visitorCurrency.test.ts lib/bodyScrollLock.test.ts scripts/create-release.test.js",
     "lint": "eslint .",
     "format": "prettier --write \"{app,components,content,lib,scripts}/**/*.{ts,tsx,css}\" \"*.{ts,json}\"",
@@ -27,7 +27,7 @@
   "dependencies": {
     "lucide-react": "^1.25.0",
     "negotiator": "1.0.0",
-    "next": "16.3.1",
+    "next": "^16.3.1",
     "posthog-js": "^1.407.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

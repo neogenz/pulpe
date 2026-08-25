@@ -9,7 +9,6 @@ import sitemap from "./sitemap";
 import fr from "../content/dictionaries/fr";
 import { homeMetadata } from "../components/pages/metadata";
 import { ABOUT_ROUTE, PRIVACY_ROUTE, SITE_URL } from "../lib/routes";
-import { patchVaryHeaderSource } from "../scripts/patch-next-vary.js";
 
 const nextFontMock = {
   cache: false,
@@ -34,21 +33,11 @@ const { default: PrivacyPage, generateMetadata: privacyMetadata } =
   await import("./(fr)/privacy/page");
 const { default: LandingPage } = await import("./(fr)/page");
 
+const MARKDOWN = "text/markdown";
 const VARY = "Accept, Accept-Encoding";
 const rootDocumentSource = readFileSync(
   new URL("../components/RootDocument.tsx", import.meta.url),
   "utf8",
-);
-const nextConfigSource = readFileSync(
-  new URL("../next.config.ts", import.meta.url),
-  "utf8",
-);
-const deploymentIgnore = readFileSync(
-  new URL("../../.vercelignore", import.meta.url),
-  "utf8",
-);
-const landingPackage = JSON.parse(
-  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
 const notFoundSource = readFileSync(
   new URL("./global-not-found.tsx", import.meta.url),
@@ -62,18 +51,10 @@ const llms = readFileSync(
   new URL("../public/llms.txt", import.meta.url),
   "utf8",
 );
-const nextPackage = JSON.parse(
-  readFileSync(
-    new URL("../node_modules/next/package.json", import.meta.url),
-    "utf8",
-  ),
-);
-const nextAppPageRuntime = readFileSync(
-  new URL(
-    "../node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
-    import.meta.url,
-  ),
-  "utf8",
+const markdownFetch = mock.method(
+  globalThis,
+  "fetch",
+  async () => new Response(markdown),
 );
 
 function request(path: string, accept?: string, method = "GET") {
@@ -104,50 +85,87 @@ function assertTrustPage(markup: string) {
 }
 
 describe("agent representation negotiation", () => {
-  it("keeps HTML as the default and advertises the cache key", () => {
+  it("keeps HTML as the default and advertises the cache key", async () => {
     for (const accept of [undefined, "*/*", "text/markdown;q=0, text/html"]) {
-      const response = proxy(request("/", accept));
+      const response = await proxy(request("/", accept));
       assert.equal(response.headers.get("x-middleware-next"), "1");
       assert.equal(response.headers.get("vary"), VARY);
     }
   });
 
-  it("rewrites the homepage when Markdown is preferred", () => {
+  it("returns the tracked Markdown directly when it is preferred", async () => {
     for (const accept of [
       "text/markdown",
       "text/markdown, text/html",
       "text/html;q=0.2, text/markdown;q=0.8",
     ]) {
-      const response = proxy(request("/", accept));
-      assert.equal(
-        response.headers.get("x-middleware-rewrite"),
-        "https://pulpe.app/index.md",
-      );
+      const response = await proxy(request("/", accept));
+      assert.equal(response.status, 200);
       assert.equal(
         response.headers.get("content-type"),
         "text/markdown; charset=utf-8",
       );
       assert.equal(response.headers.get("vary"), VARY);
+      assert.equal(await response.text(), markdown);
     }
   });
 
-  it("falls back to HTML only when the requested route can serve it", () => {
-    const fallback = proxy(
+  it("forwards only same-origin preview credentials", async () => {
+    const response = await proxy(
+      new NextRequest("https://preview.pulpe.app/", {
+        headers: {
+          accept: "text/markdown",
+          cookie: "preview=allowed",
+          authorization: "Bearer private",
+          "x-vercel-protection-bypass": "bypass-value",
+        },
+      }),
+    );
+    assert.equal(response.status, 200);
+
+    const call = markdownFetch.mock.calls.at(-1)!;
+    assert.equal(
+      String(call.arguments[0]),
+      "https://preview.pulpe.app/index.md",
+    );
+    const headers = new Headers((call.arguments[1] as RequestInit).headers);
+    assert.equal(headers.get("cookie"), "preview=allowed");
+    assert.equal(headers.get("x-vercel-protection-bypass"), "bypass-value");
+    assert.equal(headers.has("authorization"), false);
+  });
+
+  it("returns 503 instead of HTML when the Markdown source fails", async () => {
+    markdownFetch.mock.mockImplementationOnce(
+      async () => new Response(null, { status: 500 }),
+    );
+    const response = await proxy(request("/", "text/markdown"));
+
+    assert.equal(response.status, 503);
+    assert.equal(
+      response.headers.get("content-type"),
+      `${MARKDOWN}; charset=utf-8`,
+    );
+    assert.equal(response.headers.get("vary"), VARY);
+    assert.match(await response.text(), /^# Contenu Markdown/m);
+  });
+
+  it("falls back to HTML only when the requested route can serve it", async () => {
+    const fallback = await proxy(
       request("/de/support", "text/markdown, text/html;q=0.5"),
     );
     assert.equal(fallback.headers.get("x-middleware-next"), "1");
     assert.equal(fallback.headers.get("vary"), VARY);
 
-    const rejected = proxy(request("/de/support", "text/markdown"));
+    const rejected = await proxy(request("/de/support", "text/markdown"));
     assert.equal(rejected.status, 406);
     assert.equal(rejected.headers.get("vary"), VARY);
 
-    const unsupported = proxy(request("/", "application/json"));
+    const unsupported = await proxy(request("/", "application/json"));
     assert.equal(unsupported.status, 406);
     assert.equal(unsupported.headers.get("vary"), VARY);
 
     for (const locale of ["en", "de", "it"]) {
-      const localized = proxy(request(`/${locale}`, "text/markdown"));
+      const localized = await proxy(request(`/${locale}`, "text/markdown"));
       assert.equal(localized.status, 406, locale);
       assert.equal(localized.headers.get("vary"), VARY);
     }
@@ -156,7 +174,7 @@ describe("agent representation negotiation", () => {
 
 describe("agent-friendly 404s", () => {
   it("returns a recoverable Markdown 404 for GET and HEAD", async () => {
-    const get = proxy(request("/missing-agent-path", "text/markdown"));
+    const get = await proxy(request("/missing-agent-path", "text/markdown"));
     assert.equal(get.status, 404);
     assert.equal(
       get.headers.get("content-type"),
@@ -170,7 +188,9 @@ describe("agent-friendly 404s", () => {
       assert.ok(body.includes(`${SITE_URL}${path}`));
     }
 
-    const head = proxy(request("/missing-agent-path", "text/markdown", "HEAD"));
+    const head = await proxy(
+      request("/missing-agent-path", "text/markdown", "HEAD"),
+    );
     assert.equal(head.status, 404);
     assert.equal(
       head.headers.get("content-type"),
@@ -186,20 +206,22 @@ describe("agent-friendly 404s", () => {
       "text/html;q=0",
       "text/html;q=0, text/markdown;q=0",
     ]) {
-      const response = proxy(request("/missing-unsupported-path", accept));
+      const response = await proxy(
+        request("/missing-unsupported-path", accept),
+      );
       assert.equal(response.status, 406, accept);
       assert.equal(response.headers.get("vary"), VARY);
       assert.equal(await response.text(), "");
     }
   });
 
-  it("lets Next render the visual 404 and keeps every sitemap page valid", () => {
-    const html = proxy(request("/missing-human-path", "text/html"));
+  it("lets Next render the visual 404 and keeps every sitemap page valid", async () => {
+    const html = await proxy(request("/missing-human-path", "text/html"));
     assert.equal(html.headers.get("x-middleware-next"), "1");
     assert.equal(html.headers.get("vary"), VARY);
 
     for (const { url } of sitemap()) {
-      const response = proxy(
+      const response = await proxy(
         request(new URL(url).pathname, "text/markdown, text/html;q=0.5"),
       );
       assert.notEqual(response.status, 404, url);
@@ -263,21 +285,6 @@ describe("agent discovery files", () => {
     assert.match(
       rootDocumentSource,
       /<link rel="describedby" href="\/llms\.txt" \/>/,
-    );
-  });
-
-  it("patches the exact final Vary header imposed by Next", () => {
-    assert.equal(nextPackage.version, "16.3.1");
-    assert.doesNotMatch(nextConfigSource, /\bdistDir\s*:/);
-    assert.match(deploymentIgnore, /^!landing\/public\/index\.md$/m);
-    assert.equal(landingPackage.scripts.build, "next build --webpack");
-
-    const patched = patchVaryHeaderSource(nextAppPageRuntime);
-    assert.match(patched, /getVaryHeader\(e,t\).*?qm}, Accept`/);
-    assert.equal(patchVaryHeaderSource(patched), patched);
-    assert.throws(
-      () => patchVaryHeaderSource("unexpected runtime"),
-      /Vary patch target changed/,
     );
   });
 });

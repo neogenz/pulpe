@@ -6,6 +6,7 @@ import { SITE_URL } from "@/lib/routes";
 const HTML = "text/html";
 const MARKDOWN = "text/markdown";
 const VARY = "Accept, Accept-Encoding";
+const MARKDOWN_SOURCE = "/index.md";
 const PUBLIC_PATHS = new Set(
   sitemap().map(({ url }) => new URL(url).pathname.replace(/\/$/, "") || "/"),
 );
@@ -31,7 +32,46 @@ function withVary(response: NextResponse) {
   return response;
 }
 
-export default function proxy(request: NextRequest) {
+function markdownUnavailable(request: NextRequest) {
+  return withVary(
+    new NextResponse(
+      request.method === "HEAD"
+        ? null
+        : "# Contenu Markdown temporairement indisponible\n",
+      {
+        status: 503,
+        headers: { "Content-Type": `${MARKDOWN}; charset=utf-8` },
+      },
+    ),
+  );
+}
+
+async function markdownResponse(request: NextRequest) {
+  const headers = new Headers();
+  for (const name of ["cookie", "x-vercel-protection-bypass"]) {
+    const value = request.headers.get(name);
+    if (value) headers.set(name, value);
+  }
+
+  try {
+    const source = await fetch(new URL(MARKDOWN_SOURCE, request.url), {
+      method: request.method === "HEAD" ? "HEAD" : "GET",
+      headers,
+    });
+
+    if (!source.ok) return markdownUnavailable(request);
+
+    return withVary(
+      new NextResponse(request.method === "HEAD" ? null : source.body, {
+        headers: { "Content-Type": `${MARKDOWN}; charset=utf-8` },
+      }),
+    );
+  } catch {
+    return markdownUnavailable(request);
+  }
+}
+
+export default async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname.replace(/\/$/, "") || "/";
   const accepted = negotiator(request);
 
@@ -61,9 +101,7 @@ export default function proxy(request: NextRequest) {
     const preferred = accepted.mediaType([HTML, MARKDOWN]);
 
     if (preferred === MARKDOWN) {
-      const response = NextResponse.rewrite(new URL("/index.md", request.url));
-      response.headers.set("Content-Type", `${MARKDOWN}; charset=utf-8`);
-      return withVary(response);
+      return markdownResponse(request);
     }
 
     if (preferred !== HTML) {
