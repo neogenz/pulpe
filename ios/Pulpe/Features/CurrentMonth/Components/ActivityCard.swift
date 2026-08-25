@@ -152,16 +152,19 @@ struct ActivityCard: View {
                 .foregroundStyle(Color.textTertiary)
                 .accessibilityAddTraits(.isHeader)
 
-            // The inset lives on each row rather than on the stack, so a swiped row's
-            // buttons reach the card's edge instead of stopping at its padding.
+            // Every inset lives on the rows, none on the stack, so a swiped row's buttons
+            // run to the card's edge on all four sides the way an inset-grouped `List`
+            // section's do — clipped by the card's corner radius and nothing else. A
+            // vertical inset here would leave them floating short of the top and bottom
+            // edges, which on a one-row day reads as a pill dropped on the card.
             VStack(spacing: DesignTokens.Spacing.none) {
                 ForEach(Array(group.transactions.enumerated()), id: \.element.id) { index, transaction in
                     if index > 0 { Divider().padding(.horizontal, DesignTokens.Spacing.lg) }
                     row(transaction)
                         .padding(.horizontal, DesignTokens.Spacing.lg)
                         .trailingSwipeActions(id: transaction.id, openId: $openRowId) {
-                            swipeButton("Modifier", systemImage: "pencil", fill: .editAction) { onEdit(transaction) }
-                            swipeButton("Supprimer", systemImage: "trash", fill: .destructivePrimary) {
+                            swipeButton(systemImage: "pencil", fill: .editAction) { onEdit(transaction) }
+                            swipeButton(systemImage: "trash", fill: .destructivePrimary) {
                                 pendingDeletion = transaction
                             }
                         }
@@ -169,7 +172,6 @@ struct ActivityCard: View {
                         .accessibilityAction(named: AppLocale.string("Supprimer")) { pendingDeletion = transaction }
                 }
             }
-            .padding(.vertical, DesignTokens.Spacing.xs)
             .pulpeRowCard()
         }
     }
@@ -203,26 +205,30 @@ struct ActivityCard: View {
 
     /// One revealed action: a full-height tinted column with its glyph. Tapping it closes
     /// the row before acting, so the row is at rest whatever the action does next.
+    ///
+    /// A tinted column and a tap, not a `Button`: on iOS 26 a `Button` insets and rounds its
+    /// own chrome even under `.buttonStyle(.plain)`, which drew the pair as two floating
+    /// squircles with the row showing through between them instead of one strip. Nothing is
+    /// lost by dropping it — the strip is `.accessibilityHidden`, so VoiceOver reaches these
+    /// actions through the row's `.accessibilityAction`s and never through this view.
     private func swipeButton(
-        _ title: String.LocalizationValue,
         systemImage: String,
         fill: Color,
         action: @escaping () -> Void
     ) -> some View {
-        Button {
-            openRowId = nil
-            action()
-        } label: {
-            Label(AppLocale.string(title), systemImage: systemImage)
-                .labelStyle(.iconOnly)
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.textOnPrimary)
-                .frame(width: DesignTokens.TapTarget.minimum + DesignTokens.Spacing.lg)
-                .frame(maxHeight: .infinity)
-                .background(fill)
-        }
-        .buttonStyle(.plain)
-        .contentShape(Rectangle())
+        fill
+            .frame(width: DesignTokens.TapTarget.minimum + DesignTokens.Spacing.lg)
+            .frame(maxHeight: .infinity)
+            .overlay {
+                Image(systemName: systemImage)
+                    .font(PulpeTypography.metricLabelBold)
+                    .foregroundStyle(Color.textOnPrimary)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                openRowId = nil
+                action()
+            }
     }
 
     /// Mock renders activity amounts in neutral ink (not kind-colored);

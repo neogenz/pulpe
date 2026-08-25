@@ -1,6 +1,6 @@
 ---
 objective: "A vertical flick anywhere on the budget ledger scrolls the page on that same finger, however fast the finger was already moving when it landed; and a home « Activité » row tracks the finger 1:1, opens on a flick, and never stays stuck part-open."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Swipeable rows stop stealing the scroll, and swipe like iOS rows
