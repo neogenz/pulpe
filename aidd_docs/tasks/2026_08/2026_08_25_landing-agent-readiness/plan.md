@@ -1,6 +1,6 @@
 ---
 objective: "pulpe.app exposes accurate, cache-safe agent entry points, recoverable 404s, verifiable trust information, and a prerendered homepage while preserving the current human experience."
-status: in-progress
+status: blocked
 ---
 
 # Plan: améliorer la lisibilité de la landing par les agents

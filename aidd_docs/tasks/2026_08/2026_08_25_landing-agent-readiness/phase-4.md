@@ -1,8 +1,20 @@
 ---
-status: pending
+status: blocked
 ---
 
 # Instruction: activation de marque et vérification publique
+
+## Blocker
+
+La preview Vercel vérifiée est prête, mais sa promotion vers `pulpe.app` est une
+mutation de production qui n'a pas été autorisée. La production du 25 août 2026
+sert encore l'ancienne version : `Accept: text/markdown` renvoie du HTML et
+`/llms.txt`, `/index.md`, `/about` et `/privacy` répondent 404. Search Console et
+les soumissions externes demandent en plus les accès ou l'accord de Maxime.
+
+La requête propre `Pulpe` observée le même jour place désormais `pulpe.app` en
+premier résultat. Le constat de marque peut donc être revalidé, sans nouvelle
+campagne ni promesse de rang.
 
 ## Architecture projection
 
