@@ -174,6 +174,19 @@ describe("agent-friendly 404s", () => {
     assert.equal(await head.text(), "");
   });
 
+  it("rejects unavailable representations on missing routes", async () => {
+    for (const accept of [
+      "application/json",
+      "text/html;q=0",
+      "text/html;q=0, text/markdown;q=0",
+    ]) {
+      const response = proxy(request("/missing-unsupported-path", accept));
+      assert.equal(response.status, 406, accept);
+      assert.equal(response.headers.get("vary"), VARY);
+      assert.equal(await response.text(), "");
+    }
+  });
+
   it("lets Next render the visual 404 and keeps every sitemap page valid", () => {
     const html = proxy(request("/missing-human-path", "text/html"));
     assert.equal(html.headers.get("x-middleware-next"), "1");

@@ -36,7 +36,9 @@ export default function proxy(request: NextRequest) {
   const accepted = negotiator(request);
 
   if (!PUBLIC_PATHS.has(path)) {
-    if (accepted.mediaType([HTML, MARKDOWN]) === MARKDOWN) {
+    const preferred = accepted.mediaType([HTML, MARKDOWN]);
+
+    if (preferred === MARKDOWN) {
       return withVary(
         new NextResponse(
           request.method === "HEAD" ? null : NOT_FOUND_MARKDOWN,
@@ -46,6 +48,10 @@ export default function proxy(request: NextRequest) {
           },
         ),
       );
+    }
+
+    if (preferred !== HTML) {
+      return withVary(new NextResponse(null, { status: 406 }));
     }
 
     return withVary(NextResponse.next());
