@@ -22,16 +22,16 @@ struct EditFirstNameSheet: View {
 
     var body: some View {
         SheetFormContainer(
-            title: "Prénom",
+            title: AppLocale.string("Prénom"),
             isLoading: viewModel.isSubmitting,
             focus: $focusedField,
             focusOrder: [Field.firstName]
         ) {
             FormTextField(
-                hint: "Ton prénom",
+                hint: AppLocale.string("Ton prénom"),
                 text: $viewModel.draft,
-                label: "Prénom",
-                accessibilityLabel: "Prénom",
+                label: AppLocale.string("Prénom"),
+                accessibilityLabel: AppLocale.string("Prénom"),
                 focusBinding: $focusedField,
                 field: Field.firstName,
                 textContentType: .givenName
@@ -44,7 +44,7 @@ struct EditFirstNameSheet: View {
             Button {
                 Task { await save() }
             } label: {
-                Text("Enregistrer")
+                Text(AppLocale.string("Enregistrer"))
             }
             .primaryButtonStyle(isEnabled: viewModel.canSubmit)
             .disabled(!viewModel.canSubmit)
@@ -100,9 +100,10 @@ final class EditFirstNameViewModel {
         defer { isSubmitting = false }
 
         do {
+            guard let name = FirstNameResolver.normalized(draft) else { return }
             let user = FirstNameResolver.coalescing(
-                try await dependencies.updateFirstName(draft),
-                fallbackFirstName: draft
+                try await dependencies.updateFirstName(name),
+                fallbackFirstName: name
             )
             savedUser = user
             if let persisted = FirstNameResolver.normalized(user.firstName) {

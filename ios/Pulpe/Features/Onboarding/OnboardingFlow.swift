@@ -313,12 +313,10 @@ struct OnboardingFlow: View {
             if let updated = state.authenticatedUser {
                 completingUser = updated
             }
-        } catch {
-            state.error = APIError.serverError(
-                message: AuthErrorLocalizer.localize(error)
-            )
-            state.readyToComplete = false
-            return
+        } catch _ {
+            // Last-chance persist is best-effort, like email/social signup:
+            // the account already exists, the name stays in memory, Compte can
+            // retry. Returning here would trap the user on the final CTA.
         }
 
         // Currency persistence is deferred to `OnboardingBootstrapper.bootstrapIfNeeded`,

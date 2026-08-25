@@ -83,6 +83,10 @@ struct AuthErrorLocalizerTests {
         #expect(message == "Saisis ton prénom")
     }
 
+    @Test func classifyAuthServiceErrorEmptyFirstName() {
+        #expect(AuthErrorLocalizer.classify(AuthServiceError.emptyFirstName) == .emptyFirstName)
+    }
+
     @Test func infoPlist_requiredRuntimeConfigKeysArePresent() throws {
         let info = try #require(loadAppInfoPlist())
 

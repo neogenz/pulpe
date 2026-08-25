@@ -74,12 +74,12 @@ extension AccountView {
                     Text(email.isEmpty ? AppLocale.string("Non connecté(e)") : email)
                         .font(PulpeTypography.bodyLarge)
                     firstNameActionButton(
-                        title: "Modifier",
+                        title: AppLocale.string("Modifier"),
                         identifier: "editFirstNameButton"
                     )
                 } else {
                     firstNameActionButton(
-                        title: "Ajouter un prénom",
+                        title: AppLocale.string("Ajouter un prénom"),
                         identifier: "addFirstNameButton"
                     )
                     Text(email.isEmpty ? AppLocale.string("Non connecté(e)") : email)

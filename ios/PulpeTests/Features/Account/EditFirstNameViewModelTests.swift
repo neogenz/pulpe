@@ -35,7 +35,7 @@ struct EditFirstNameViewModelTests {
         let viewModel = EditFirstNameViewModel(
             initialFirstName: "  Marie  ",
             dependencies: EditFirstNameDependencies(updateFirstName: { name in
-                #expect(name == "  Marie  ")
+                #expect(name == "Marie")
                 return UserInfo(id: "1", email: "a@b.com", firstName: "Marie")
             })
         )

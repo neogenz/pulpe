@@ -55,16 +55,16 @@ struct FirstNameStep: View {
 
         state.isLoading = true
         state.error = nil
+        defer {
+            state.isLoading = false
+            state.nextStep()
+        }
         do {
             try await state.persistFirstName { name in
                 try await AuthService.shared.updateUserFirstName(name)
             }
-            state.isLoading = false
-            state.nextStep()
         } catch {
             state.error = APIError.serverError(message: AuthErrorLocalizer.localize(error))
-            state.isLoading = false
-            state.nextStep()
         }
     }
 }
