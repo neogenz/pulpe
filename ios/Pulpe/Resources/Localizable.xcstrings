@@ -682,6 +682,28 @@
         }
       }
     },
+    "%@ n'a pas pu être supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ liess sich nicht löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ could not be deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non è stato eliminato"
+          }
+        }
+      }
+    },
     "%@ n'a pas pu être pointé — réessaie" : {
       "localizations" : {
         "de" : {
@@ -23373,6 +23395,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eliminare questo modello?"
+          }
+        }
+      }
+    },
+    "Supprimer cette opération ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Eintrag löschen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this entry?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminare questa operazione?"
           }
         }
       }

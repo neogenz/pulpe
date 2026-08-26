@@ -5,10 +5,10 @@ import SwiftUI
 /// action on release with a haptic. The row snaps back either way; it never stays open.
 ///
 /// Off under VoiceOver and Switch Control, where the row's own button carries the action.
-/// A vertical pan keeps scrolling: the drag is attached at the lowest priority (`gesture`,
-/// never `highPriorityGesture` or `simultaneousGesture`, both of which let its radial
-/// `minimumDistance` claim a downward pan and leave the finger scrolling nothing), so the
-/// scroll view takes the vertical pulls and hands over only the horizontal ones it refuses.
+/// A vertical pan keeps scrolling because the pull runs on `HorizontalPanGesture`, which
+/// declines the touch outright when the finger is going vertically — see that type for why
+/// no `DragGesture` priority can do the same. The band tracks the finger 1:1 and springs
+/// only on release.
 struct LeadingSwipeAction: ViewModifier {
     let systemImage: String
     let tint: Color
@@ -40,28 +40,35 @@ struct LeadingSwipeAction: ViewModifier {
                         .accessibilityHidden(true)
                 }
             }
-            .animation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring, value: offset)
             .sensoryFeedback(.success, trigger: commitCount)
-            .gesture(drag, including: isEnabled && !voiceOver && !switchControl ? .all : .none)
+            .gesture(
+                HorizontalPanGesture(
+                    isEnabled: isEnabled && !voiceOver && !switchControl,
+                    onChange: track,
+                    onEnd: commitIfArmed,
+                    onCancel: settle
+                )
+            )
     }
 
-    private var drag: some Gesture {
-        DragGesture(minimumDistance: DesignTokens.Spacing.xl)
-            .onChanged { value in
-                let dx = value.translation.width
-                // Only a clearly horizontal, rightward pull reveals the action.
-                guard dx > 0, dx > abs(value.translation.height) else { offset = 0; return }
-                // Resists past the commit point so the row never flies off.
-                let over = max(0, dx - DesignTokens.Animation.swipeCommitDistance)
-                offset = min(dx, DesignTokens.Animation.swipeCommitDistance) + over / 4
-            }
-            .onEnded { _ in
-                if isArmed {
-                    commitCount += 1
-                    action()
-                }
-                offset = 0
-            }
+    /// The band follows the finger, resisting past the commit point so the row never flies off.
+    private func track(_ dx: CGFloat) {
+        // A leftward pull reveals nothing; the axis itself is the recognizer's call.
+        guard dx > 0 else { offset = 0; return }
+        let over = max(0, dx - DesignTokens.Animation.swipeCommitDistance)
+        offset = min(dx, DesignTokens.Animation.swipeCommitDistance) + over / 4
+    }
+
+    private func commitIfArmed() {
+        if isArmed {
+            commitCount += 1
+            action()
+        }
+        settle()
+    }
+
+    private func settle() {
+        withAnimation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring) { offset = 0 }
     }
 }
 

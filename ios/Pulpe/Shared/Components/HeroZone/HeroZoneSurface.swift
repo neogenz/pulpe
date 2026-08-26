@@ -21,6 +21,11 @@ extension View {
     func contentZone() -> some View {
         modifier(ContentZoneModifier())
     }
+
+    /// Paint a full-width neutral list row with no system-owned chrome.
+    func contentListRow() -> some View {
+        modifier(ContentListRowModifier())
+    }
 }
 
 private struct HeroZoneModifier: ViewModifier {
@@ -69,5 +74,15 @@ private struct ContentZoneModifier: ViewModifier {
                 .padding(.bottom, -DesignTokens.Layout.overscrollBleed)
             }
             .padding(.top, -DesignTokens.CornerRadius.zone)
+    }
+}
+
+private struct ContentListRowModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: .infinity)
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.appBackground)
     }
 }
