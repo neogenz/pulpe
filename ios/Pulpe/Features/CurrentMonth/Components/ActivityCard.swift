@@ -206,8 +206,8 @@ struct ActivityCard: View {
     }
 
     private func rowBackground(index: Int, count: Int) -> some View {
-        let topRadius = index == 0 ? DesignTokens.CornerRadius.card : DesignTokens.Spacing.none
-        let bottomRadius = index == count - 1 ? DesignTokens.CornerRadius.card : DesignTokens.Spacing.none
+        let topRadius = index == 0 ? DesignTokens.CornerRadius.card : DesignTokens.CornerRadius.none
+        let bottomRadius = index == count - 1 ? DesignTokens.CornerRadius.card : DesignTokens.CornerRadius.none
         return UnevenRoundedRectangle(
             topLeadingRadius: topRadius,
             bottomLeadingRadius: bottomRadius,

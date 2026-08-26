@@ -12,6 +12,8 @@ enum DesignTokens {
     // MARK: - Corner Radius
 
     enum CornerRadius {
+        /// No corner rounding
+        static let none: CGFloat = 0
         /// Progress bars, thin indicators (4pt)
         static let xs: CGFloat = 4
         /// Small elements: badges, chips (8pt)
