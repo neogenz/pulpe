@@ -114,6 +114,19 @@ struct ActivityCard: View {
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
         .accessibilityIdentifier("homeActivityCard")
+        .alert(
+            AppLocale.string("Supprimer cette opération ?"),
+            isPresented: Binding(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } }),
+            presenting: pendingDeletion
+        ) { transaction in
+            Button(AppLocale.string("Supprimer"), role: .destructive) {
+                openRowId = nil
+                onDelete(transaction)
+            }
+            Button(AppLocale.string("Annuler"), role: .cancel) { openRowId = nil }
+        } message: { transaction in
+            Text(transaction.name)
+        }
     }
 
     // MARK: - Window Picker
@@ -149,37 +162,23 @@ struct ActivityCard: View {
                     row(transaction)
                         .padding(.horizontal, DesignTokens.Spacing.lg)
                         .trailingSwipeActions(id: transaction.id, openId: $openRowId) {
-                            swipeButton("Modifier", systemImage: "pencil", fill: .editAction) { onEdit(transaction) }
+                            swipeButton("Modifier", systemImage: "pencil", fill: .editAction) {
+                                openRowId = nil
+                                onEdit(transaction)
+                            }
+                            // Deletion asks first, so the row stays open under the alert
+                            // and closes with the answer, not with the tap.
                             swipeButton("Supprimer", systemImage: "trash", fill: .destructivePrimary) {
                                 pendingDeletion = transaction
                             }
                         }
                         .accessibilityAction(named: AppLocale.string("Modifier")) { onEdit(transaction) }
                         .accessibilityAction(named: AppLocale.string("Supprimer")) { pendingDeletion = transaction }
-                        .confirmationDialog(
-                            AppLocale.string("Supprimer cette opération ?"),
-                            isPresented: deletionBinding(for: transaction),
-                            titleVisibility: .visible
-                        ) {
-                            Button(AppLocale.string("Supprimer"), role: .destructive) { onDelete(transaction) }
-                            Button(AppLocale.string("Annuler"), role: .cancel) {}
-                        } message: {
-                            Text(transaction.name)
-                        }
                 }
             }
             .padding(.vertical, DesignTokens.Spacing.xs)
             .pulpeRowCard()
         }
-    }
-
-    /// True only for the row being deleted, so the confirmation rides that row and iOS
-    /// anchors its popover there instead of somewhere in the middle of the whole card.
-    private func deletionBinding(for transaction: Transaction) -> Binding<Bool> {
-        Binding(
-            get: { pendingDeletion?.id == transaction.id },
-            set: { if !$0 { pendingDeletion = nil } }
-        )
     }
 
     private func row(_ transaction: Transaction) -> some View {
@@ -210,18 +209,15 @@ struct ActivityCard: View {
     }
 
     /// One revealed action: a tinted circle on the card's own surface, the shape iOS gives
-    /// its native list actions. Tapping it closes the row before acting, so the row is at
-    /// rest whatever the action does next.
+    /// its native list actions. Closing the row is the caller's call — an action that opens
+    /// a question leaves it open until the question is answered.
     private func swipeButton(
         _ title: String.LocalizationValue,
         systemImage: String,
         fill: Color,
         action: @escaping () -> Void
     ) -> some View {
-        Button {
-            openRowId = nil
-            action()
-        } label: {
+        Button(action: action) {
             Label(AppLocale.string(title), systemImage: systemImage)
                 .labelStyle(.iconOnly)
                 .font(PulpeTypography.metricLabelBold)
