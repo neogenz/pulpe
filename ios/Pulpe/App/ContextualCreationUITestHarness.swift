@@ -381,7 +381,7 @@ private func marketingGainTransactions(
         Transaction(
             id: "marketing-\(entry.id)", budgetId: budgetId, budgetLineId: nil,
             name: entry.name, amount: entry.amount, kind: .income,
-            transactionDate: start.addingTimeInterval(elapsed * Double(index + 1) / 4),
+            transactionDate: start.addingTimeInterval(elapsed * Double(index + 1) / Double(entries.count)),
             category: nil, checkedAt: now, createdAt: now, updatedAt: now
         )
     }
