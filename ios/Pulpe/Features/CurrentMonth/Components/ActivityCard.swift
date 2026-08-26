@@ -292,7 +292,7 @@ extension View {
             }
             .accessibilityIdentifier("homeActivityConfirmDelete")
         } message: { _ in
-            Text("Cette action est irréversible.")
+            Text(AppLocale.string("Cette action est irréversible."))
         }
     }
 }
