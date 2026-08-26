@@ -219,32 +219,33 @@ struct CurrentMonthView: View {
     private var dashboardContent: some View {
         ScrollViewReader { proxy in
             List {
-                HomeHeroCard(
-                    metrics: store.metrics,
-                    fallbackPlannedBalance: store.plannedRemaining,
-                    trajectory: store.balanceTrajectory,
-                    monthName: currentMonthName,
-                    uncheckedCount: store.uncheckedCount,
-                    isSettling: store.isSettling,
-                    onTapUnchecked: {
-                        withAnimation(DesignTokens.Animation.gentleSpring) {
-                            proxy.scrollTo(Self.uncheckedDeckId, anchor: .top)
-                        }
-                    },
-                    onTapVariance: { activeSheet = .realizedBalance },
-                    onTapDetail: { navigateToBudget = true }
-                )
-                .staggeredEntrance(isVisible: hasAppeared, index: 0)
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xxl)
-                .heroListRow(parallax: true)
+                VStack(spacing: DesignTokens.Spacing.none) {
+                    HomeHeroCard(
+                        metrics: store.metrics,
+                        fallbackPlannedBalance: store.plannedRemaining,
+                        trajectory: store.balanceTrajectory,
+                        monthName: currentMonthName,
+                        uncheckedCount: store.uncheckedCount,
+                        isSettling: store.isSettling,
+                        onTapUnchecked: {
+                            withAnimation(DesignTokens.Animation.gentleSpring) {
+                                proxy.scrollTo(Self.uncheckedDeckId, anchor: .top)
+                            }
+                        },
+                        onTapVariance: { activeSheet = .realizedBalance },
+                        onTapDetail: { navigateToBudget = true }
+                    )
+                    .staggeredEntrance(isVisible: hasAppeared, index: 0)
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.xxl)
+                    .heroZone(parallax: true)
 
-                if store.budget != nil {
-                    addOperationRow
-                        .dashboardListRow()
+                    if store.budget != nil {
+                        addOperationRow.padding([.horizontal, .top], DesignTokens.Spacing.xxl).contentZone()
+                    }
                 }
-
+                .contentListRow()
                 if !store.uncheckedItems.isEmpty {
                     UncheckedOperationsCard(
                         items: store.uncheckedItems,

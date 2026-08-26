@@ -33,7 +33,7 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["homeAddOperationButton"].exists, app.debugDescription)
         attachScreenshot("home-list-two-zone-top")
 
-        let activity = app.descendants(matching: .any)["homeActivityCard"].firstMatch
+        let activity = app.staticTexts["homeActivityRow-marketing-bonus"]
         scrollUntilHittable(activity)
         let initialY = hero.frame.minY
         activity.swipeDown()
