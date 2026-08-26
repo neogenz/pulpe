@@ -154,8 +154,9 @@ struct ActivityCard: View {
                 .foregroundStyle(Color.textTertiary)
                 .accessibilityAddTraits(.isHeader)
 
-            // The inset lives on each row rather than on the stack, so a swiped row takes
-            // its own padding with it instead of sliding inside the card's.
+            // The inset lives on each row rather than on the stack, so the swipe modifier
+            // wraps the row at the card's full width and the strip it reveals can reach the
+            // card's edge instead of stopping short inside the padding.
             VStack(spacing: DesignTokens.Spacing.none) {
                 ForEach(Array(group.transactions.enumerated()), id: \.element.id) { index, transaction in
                     if index > 0 { Divider().padding(.horizontal, DesignTokens.Spacing.lg) }

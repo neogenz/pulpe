@@ -84,6 +84,20 @@ struct HomeActivityCardArchitectureTests {
         #expect(source.contains("HorizontalPanGesture"))
     }
 
+    @Test("The strip covers the row instead of pushing it aside")
+    func swipeCoversRatherThanDisplaces() throws {
+        let source = try Self.read(Self.swipeComponent)
+        // Translating the row by the strip's own width — 124pt — took a short name
+        // ("Bonus", "Vente") clean off the leading edge and left most of the card
+        // blank. The strip rides over the row instead, on the card's own fill.
+        #expect(!source.contains(".offset(x: offset)"), "the row itself must not translate")
+        #expect(source.contains(".overlay(alignment: .trailing)"))
+        // Without an opaque fill the amount reads straight through the buttons.
+        #expect(source.contains("Color.surfaceContainerLowest"))
+        // A fill sized to the buttons alone leaves a sliver of amount above and below.
+        #expect(source.contains(".frame(maxHeight: .infinity)"))
+    }
+
     // MARK: - Deleting asks first
 
     @Test("Deletion opens a question instead of acting")

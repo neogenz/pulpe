@@ -2,11 +2,16 @@ import SwiftUI
 
 // ponytail: no full-swipe commit; add when asked.
 
-/// List-style trailing swipe on a row that lives outside a `List`: dragging the row to the
-/// left slides it off its buttons, which stay revealed once the flick's projected resting
-/// point passes half their width. One row per group is open at a time, through the shared
-/// `openId`. The row tracks the finger 1:1, resists past either end of its travel, and
-/// springs only on release.
+/// List-style trailing swipe on a row that lives outside a `List`: dragging to the left
+/// pulls a strip of buttons in over the row's trailing side, and they stay revealed once the
+/// flick's projected resting point passes half their width. One row per group is open at a
+/// time, through the shared `openId`. The strip tracks the finger 1:1, resists past either
+/// end of its travel, and springs only on release.
+///
+/// The strip covers rather than displaces. Sliding the row left by the strip's own width
+/// took a short name — "Macdo", "Bonus" — clean off the leading edge and left most of the
+/// card blank behind it. Carrying the card's own surface as an opaque fill keeps the name
+/// and its icon still: what you are about to delete stays readable while you decide.
 ///
 /// Off under VoiceOver and Switch Control, where the caller exposes the same actions as
 /// accessibility actions. A vertical pan keeps scrolling because the pull runs on
@@ -36,7 +41,6 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
             // Without a shape the pull only lands on the row's opaque pixels — the gap
             // between an amount and a name let the finger through to the scroll view.
             .contentShape(Rectangle())
-            .offset(x: offset)
             // A row that is open closes on a tap, the way a `List` row does; a closed one
             // carries no tap recognizer to compete with whatever the row holds.
             .gesture(
@@ -46,11 +50,15 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
                 },
                 including: isOpen ? .all : .none
             )
-            .background(alignment: .trailing) {
+            .overlay(alignment: .trailing) {
                 // The buttons stand apart on the card's own surface instead of butting
                 // into one slab, so the strip a swipe reveals still reads as the card.
+                // `maxHeight: .infinity` takes the row's full height, or the fill would
+                // stop at the buttons and leave a sliver of amount above and below.
                 HStack(spacing: DesignTokens.Spacing.md) { actions }
                     .padding(.horizontal, DesignTokens.Spacing.md)
+                    .frame(maxHeight: .infinity)
+                    .background(Color.surfaceContainerLowest)
                     .onGeometryChange(for: CGFloat.self, of: { $0.size.width }, action: { width = $0 })
                     .offset(x: width + offset)
                     .accessibilityHidden(true)
@@ -73,8 +81,8 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
             .animation(settleSpring(startingAt: launchVelocity), value: isOpen)
     }
 
-    /// The row follows the finger, resisting past either end of its travel so it never
-    /// slides off screen.
+    /// The strip follows the finger, resisting past either end of its travel so it never
+    /// pulls past the row it belongs to.
     private func track(_ dx: CGFloat) {
         // Before the buttons are measured every translation would clamp to zero, which
         // would swallow the first swipe of a freshly laid-out row.
@@ -118,7 +126,7 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
 
     /// The release speed expressed the way `interpolatingSpring` reads it: as multiples of
     /// the distance still to cover, per second. Positive means the finger was already going
-    /// where the row is headed; negative means the spring has to turn it around first.
+    /// where the strip is headed; negative means the spring has to turn it around first.
     static func normalizedVelocity(releasedAt velocity: CGFloat, from current: CGFloat, to target: CGFloat) -> CGFloat {
         let range = target - current
         // A row already home has no range to normalise against, and no distance to cross.
@@ -127,8 +135,8 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
         return min(max(velocity / range, -cap), cap)
     }
 
-    /// Where the row settles once the finger lifts: open past half the buttons' width,
-    /// closed before it, measured from where the row started. The point compared is the one
+    /// Where the strip settles once the finger lifts: open past half the buttons' width,
+    /// closed before it, measured from where it started. The point compared is the one
     /// the flick is *heading* for — WWDC18 *Designing Fluid Interfaces* projects it from the
     /// release velocity and the platform's deceleration rate — so a short fast flick opens
     /// the row the way a `List` row does. At zero velocity this is the raw translation.
