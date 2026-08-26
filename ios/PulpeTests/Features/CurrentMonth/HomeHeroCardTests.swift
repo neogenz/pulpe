@@ -232,7 +232,7 @@ struct HomeHeroCardTests {
         ).contains("Pile sur ton plan"))
     }
 
-    @Test func loadedDashboardUsesListCompatibleHeroSurface() throws {
+    @Test func loadedDashboardUsesOneFullScreenGradientBackground() throws {
         let iosRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -249,16 +249,12 @@ struct HomeHeroCardTests {
             encoding: .utf8
         )
 
-        #expect(viewSource.contains("List {"))
-        #expect(viewSource.contains(".heroZone(parallax: true)") && viewSource.contains(".contentZone()"))
-        #expect(viewSource.contains(".contentListRow()"))
-        #expect(viewSource.contains(".scrollContentBackground(.hidden)"))
+        #expect(viewSource.contains(".heroZone(parallax: true)"))
+        #expect(viewSource.contains(".contentZone()"))
         #expect(!viewSource.contains(".background(Color.homeBackground)"))
+        #expect(!viewSource.contains("HeroZoneTracker"))
         #expect(!viewSource.contains("LinearGradient("))
-        #expect(backgroundSource.contains("func heroZone(parallax: Bool = false)"))
-        #expect(backgroundSource.contains("func contentZone()"))
-        #expect(backgroundSource.contains("private struct ContentListRowModifier"))
-        #expect(backgroundSource.contains(".listRowBackground("))
+        #expect(backgroundSource.components(separatedBy: "LinearGradient(").count == 2)
     }
 
     /// The row used to state the tag count twice, in the same ink and the same size: once

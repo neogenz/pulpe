@@ -19,7 +19,6 @@ struct CurrentMonthView: View {
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
-    @State private var pendingActivityDeletion: Transaction?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var animationPhase: Int {
@@ -218,7 +217,7 @@ struct CurrentMonthView: View {
 
     private var dashboardContent: some View {
         ScrollViewReader { proxy in
-            List {
+            ScrollView {
                 VStack(spacing: DesignTokens.Spacing.none) {
                     HomeHeroCard(
                         metrics: store.metrics,
@@ -241,125 +240,117 @@ struct CurrentMonthView: View {
                     .padding(.bottom, DesignTokens.Spacing.xxl)
                     .heroZone(parallax: true)
 
-                    if store.budget != nil {
-                        addOperationRow.padding([.horizontal, .top], DesignTokens.Spacing.xxl).contentZone()
-                    }
+                    dashboardDetails
+                        .padding(.top, DesignTokens.Spacing.xxl)
+                        .padding(.bottom, DesignTokens.Spacing.lg)
+                        .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
+                        .contentZone()
                 }
-                .contentListRow()
-                if !store.uncheckedItems.isEmpty {
-                    UncheckedOperationsCard(
-                        items: store.uncheckedItems,
-                        tagNamesById: tagStore.namesById,
-                        syncingBudgetLineIds: store.syncingBudgetLineIds,
-                        syncingTransactionIds: store.syncingTransactionIds,
-                        onToggle: { item in
-                            ProductTips.checking.invalidate(reason: .actionPerformed)
-                            Task {
-                                let didSucceed: Bool
-                                switch item {
-                                case .transaction(let transaction, _):
-                                    didSucceed = await store.toggleTransaction(transaction)
-                                case .budgetLine(let line, _):
-                                    didSucceed = await store.toggleBudgetLine(line)
-                                }
-                                if didSucceed {
-                                    toastManager.showWithUndo(
-                                        AppLocale.string("\(item.name) pointé"),
-                                        undo: { await undoToggle(item) },
-                                        onFinishedWithoutUndo: {}
-                                    )
-                                    await maybePrimeReminders()
-                                } else {
-                                    toastManager.show(
-                                        AppLocale.string("\(item.name) n'a pas pu être pointé — réessaie"),
-                                        type: .error
-                                    )
-                                }
-                            }
-                        },
-                        onViewAll: { navigateToBudget = true }
-                    )
-                    .id(Self.uncheckedDeckId)
-                    .staggeredEntrance(isVisible: hasAppeared, index: 1)
-                    .dashboardListRow()
-                }
-
-                if !store.driftLines.isEmpty {
-                    DriftCard(
-                        drifts: store.driftLines,
-                        totalOver: store.driftTotal,
-                        tagNamesById: tagStore.namesById,
-                        overrunIsAbsorbed: overrunIsAbsorbed,
-                        onCatchUp: { navigateToBudget = true }
-                    )
-                    .staggeredEntrance(isVisible: hasAppeared, index: 2)
-                    .dashboardListRow()
-                } else if store.savingsSummary.isComplete {
-                    SavingsDoneCard(
-                        amount: store.savingsSummary.totalRealized,
-                        goalName: completedSavingsGoalName
-                    ) {
-                        appState.pushOnActiveStack(SavingsGoalDestination.list)
-                    }
-                    .staggeredEntrance(isVisible: hasAppeared, index: 2)
-                    .dashboardListRow()
-                }
-
-                if !store.transactions.isEmpty {
-                    ActivityCard(
-                        transactions: store.transactions,
-                        tagNamesById: tagStore.namesById,
-                        onViewAll: { navigateToBudget = true },
-                        onEdit: editTransaction,
-                        onDelete: { pendingActivityDeletion = $0 }
-                    )
-                    .staggeredEntrance(isVisible: hasAppeared, index: 3)
-                }
-                Color.clear
-                    .frame(height: DesignTokens.Spacing.lg)
-                    .contentListRow()
-                    .accessibilityHidden(true)
             }
-            .listStyle(.plain)
-            .listRowSpacing(DesignTokens.Spacing.none)
-            .listSectionSpacing(DesignTokens.Spacing.none)
-            .scrollContentBackground(.hidden)
-            .background {
-                VStack(spacing: DesignTokens.Spacing.none) {
-                    Color.heroSurfaceTop
-                    Color.appBackground
-                }
-                .ignoresSafeArea()
-            }
-            .environment(\.defaultMinListRowHeight, DesignTokens.Spacing.none)
-            .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
             .refreshable {
                 await store.forceRefresh()
             }
-            .activityDeletionConfirmation(pending: $pendingActivityDeletion) { transaction in
-                Task { await delete(transaction) }
-            }
         }
     }
+
+    /// Scroll anchor of the deck: the « À pointer » tile brings it to the top of the frame.
     static let uncheckedDeckId = "uncheckedDeck"
-}
 
-private extension View {
-    func dashboardListRow() -> some View {
-        padding(.horizontal, DesignTokens.Spacing.xxl)
-            .padding(.top, DesignTokens.Spacing.xxl)
-            .contentListRow()
+    private var dashboardDetails: some View {
+        // Wider than the gap inside a section: a section is now a heading on the page
+        // plus a card, so the space between two of them has to beat the space between a
+        // heading and the card it introduces, or the pairing reads the wrong way round.
+        VStack(spacing: DesignTokens.Spacing.xxl) {
+            if store.budget != nil {
+                addOperationRow
+            }
+            // Opérations à pointer — only while something needs checking
+            if !store.uncheckedItems.isEmpty {
+                UncheckedOperationsCard(
+                    items: store.uncheckedItems,
+                    tagNamesById: tagStore.namesById,
+                    syncingBudgetLineIds: store.syncingBudgetLineIds,
+                    syncingTransactionIds: store.syncingTransactionIds,
+                    onToggle: { item in
+                        ProductTips.checking.invalidate(reason: .actionPerformed)
+                        Task {
+                            let didSucceed: Bool
+                            switch item {
+                            case .transaction(let transaction, _):
+                                didSucceed = await store.toggleTransaction(transaction)
+                            case .budgetLine(let line, _):
+                                didSucceed = await store.toggleBudgetLine(line)
+                            }
+                            if didSucceed {
+                                toastManager.showWithUndo(
+                                    AppLocale.string("\(item.name) pointé"),
+                                    undo: { await undoToggle(item) },
+                                    onFinishedWithoutUndo: {}
+                                )
+                                await maybePrimeReminders()
+                            } else {
+                                toastManager.show(
+                                    AppLocale.string("\(item.name) n'a pas pu être pointé — réessaie"),
+                                    type: .error
+                                )
+                            }
+                        }
+                    },
+                    onViewAll: { navigateToBudget = true }
+                )
+                .id(Self.uncheckedDeckId)
+                .staggeredEntrance(isVisible: hasAppeared, index: 1)
+            }
+
+            // Ça dérive when the month drifts — else épargne versée when complete
+            if !store.driftLines.isEmpty {
+                DriftCard(
+                    drifts: store.driftLines,
+                    totalOver: store.driftTotal,
+                    tagNamesById: tagStore.namesById,
+                    overrunIsAbsorbed: overrunIsAbsorbed,
+                    onCatchUp: { navigateToBudget = true }
+                )
+                .staggeredEntrance(isVisible: hasAppeared, index: 2)
+            } else if store.savingsSummary.isComplete {
+                SavingsDoneCard(
+                    amount: store.savingsSummary.totalRealized,
+                    goalName: completedSavingsGoalName
+                ) {
+                    appState.pushOnActiveStack(SavingsGoalDestination.list)
+                }
+                .staggeredEntrance(isVisible: hasAppeared, index: 2)
+            }
+
+            // Activité — recent transactions with 7j/Mois window
+            if !store.transactions.isEmpty {
+                ActivityCard(
+                    transactions: store.transactions,
+                    tagNamesById: tagStore.namesById,
+                    onViewAll: { navigateToBudget = true },
+                    onEdit: editTransaction,
+                    onDelete: { transaction in Task { await delete(transaction) } }
+                )
+                .staggeredEntrance(isVisible: hasAppeared, index: 3)
+            }
+        }
+        // One content margin for the whole screen, aligned with the hero above, so the
+        // section headings and the cards they introduce hang off a single vertical rail.
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
     }
-}
 
-// MARK: - Retention hooks (post-onboarding handoff + notification priming)
-extension CurrentMonthView {
+    /// The edit page lives in the budget's stack: the home pushes the budget, which opens
+    /// from the cache this store already primed, and hands it the operation to push next.
+    /// Back returns to the budget, then here.
     private func editTransaction(_ transaction: Transaction) {
         guard let budgetId = store.budget?.id else { return }
         appState.pendingTransactionEdit = transaction.id
         appState.currentMonthPath.append(BudgetDestination.details(budgetId: budgetId))
     }
 
+    /// The one filled element in the content zone. Recording an operation is the act the
+    /// whole app depends on, and dressed as a white card with a chevron it had the same
+    /// weight as the records below it — and promised a list it doesn't open.
     private var addOperationRow: some View {
         Button { activeSheet = .addTransaction } label: {
             Label("Ajouter une opération", systemImage: "plus")
@@ -368,7 +359,14 @@ extension CurrentMonthView {
         .accessibilityLabel("Ajouter une opération")
         .accessibilityIdentifier("homeAddOperationButton")
     }
+}
 
+// MARK: - Retention hooks (post-onboarding handoff + notification priming)
+//
+// Kept in a same-file extension so the main `CurrentMonthView` body stays within its
+// type-length budget while still reaching the view's `private` state (same-file
+// access), rather than loosening encapsulation to move it to another file.
+extension CurrentMonthView {
     /// Failed and empty keep a flat canvas; loaded and skeleton paint the forest through
     /// `heroZone()`, so the navigation bar ink follows the same switch.
     /// Crossfade only: `blurReplace` washed the forest to a pale haze for a frame.

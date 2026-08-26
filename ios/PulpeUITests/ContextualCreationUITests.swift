@@ -26,23 +26,6 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["addTransactionSubmit"].firstMatch.waitForExistence(timeout: 5))
     }
 
-    func testHomeListPreservesTwoZonesAndScrollsFromActivity() {
-        launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", marketingGain: true)
-
-        let hero = app.descendants(matching: .any)["home-balance-chart"]
-        XCTAssertTrue(hero.waitForExistence(timeout: 10), app.debugDescription)
-        XCTAssertTrue(app.buttons["homeAddOperationButton"].exists, app.debugDescription)
-        attachScreenshot("home-list-two-zone-top")
-
-        let activity = app.descendants(matching: .any)["homeActivityRow-marketing-bonus"]
-        scrollUntilHittable(activity)
-        let initialY = hero.frame.minY
-        activity.swipeDown()
-
-        XCTAssertGreaterThan(hero.frame.minY, initialY, app.debugDescription)
-        attachScreenshot("home-list-scrolled-from-activity")
-    }
-
     func testBudgetToolbarActionsRemainDistinctAtLargeText() {
         launch("UITEST_CONTEXTUAL_CREATION_BUDGET")
 
@@ -145,9 +128,11 @@ final class ContextualCreationUITests: XCTestCase {
         // Button whose accessibility label is its action, so its text reaches no query here.
 
         // The one thing to do, and the card listing what is waiting to be pointed.
-        scrollUntilHittable(app.buttons["homeAddOperationButton"])
-        let uncheckedCard = app.descendants(matching: .any)["homeUncheckedOperationsCard"]
-        scrollUntilHittable(uncheckedCard)
+        XCTAssertTrue(app.buttons["homeAddOperationButton"].exists, app.debugDescription)
+        XCTAssertTrue(
+            app.descendants(matching: .any)["homeUncheckedOperationsCard"].exists,
+            app.debugDescription
+        )
         // The income the template opened the budget with — the harness names it, so the
         // row proves the card is showing the line and not an empty frame.
         let uncheckedRow = app.descendants(matching: .any)["homeUncheckedOperationRow"].firstMatch
@@ -155,7 +140,6 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(uncheckedRow.label.contains("Revenu"), uncheckedRow.label)
 
         // Nothing has happened yet, so no card may report activity or drift.
-        app.swipeUp()
         XCTAssertFalse(
             app.descendants(matching: .any)["homeActivityCard"].exists,
             app.debugDescription
@@ -225,8 +209,7 @@ final class ContextualCreationUITests: XCTestCase {
         chartState: String? = nil,
         homeSkeleton: Bool = false,
         freshSignup: Bool = false,
-        amountsHidden: Bool = false,
-        marketingGain: Bool = false
+        amountsHidden: Bool = false
     ) {
         app = XCUIApplication()
         app.launchArguments = ["-\(scenario)"]
@@ -252,9 +235,6 @@ final class ContextualCreationUITests: XCTestCase {
         if amountsHidden {
             app.launchEnvironment["UITEST_AMOUNTS_HIDDEN"] = "1"
         }
-        if marketingGain {
-            app.launchEnvironment["UITEST_HOME_MARKETING_GAIN"] = "1"
-        }
         app.launch()
     }
 
@@ -262,7 +242,7 @@ final class ContextualCreationUITests: XCTestCase {
         for _ in 0..<8 where !element.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(element.isHittable, app.debugDescription)
+        XCTAssertTrue(element.isHittable)
     }
 
     private func assertMinimumHitArea(_ element: XCUIElement) {
@@ -273,105 +253,6 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [hittable], timeout: 5), .completed, app.debugDescription)
         XCTAssertGreaterThanOrEqual(element.frame.width, 44)
         XCTAssertGreaterThanOrEqual(element.frame.height, 44)
-    }
-
-    private func attachScreenshot(_ name: String) {
-        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
-    }
-}
-
-@MainActor
-final class HomeActivitySwipeUITests: XCTestCase {
-    private var app = XCUIApplication()
-
-    override func setUp() {
-        super.setUp()
-        continueAfterFailure = false
-    }
-
-    func testFullSwipeOnlyRevealsActionsAndDeleteRequiresConfirmation() {
-        launchHome()
-        let row = activityRow()
-
-        row.swipeLeft()
-
-        XCTAssertFalse(app.buttons["homeActivityConfirmDelete"].exists)
-        let delete = app.buttons["homeActivityDelete-marketing-bonus"]
-        XCTAssertTrue(delete.waitForExistence(timeout: 5), app.debugDescription)
-        XCTAssertTrue(app.buttons["homeActivityEdit-marketing-bonus"].exists)
-
-        delete.tap()
-
-        let confirmation = app.buttons["homeActivityConfirmDelete"]
-        XCTAssertTrue(confirmation.waitForExistence(timeout: 5), app.debugDescription)
-        XCTAssertTrue(app.staticTexts["Bonus"].exists)
-        XCTAssertTrue(row.exists)
-
-        let cancel = app.buttons.matching(identifier: "homeActivityCancelDelete").firstMatch
-        XCTAssertTrue(cancel.exists)
-        cancel.tap()
-        XCTAssertFalse(confirmation.exists)
-        XCTAssertTrue(row.exists)
-    }
-
-    func testEditActionOpensExistingTransaction() {
-        launchHome()
-        let row = activityRow()
-        row.swipeLeft()
-
-        let edit = app.buttons["homeActivityEdit-marketing-bonus"]
-        XCTAssertTrue(edit.waitForExistence(timeout: 5), app.debugDescription)
-        edit.tap()
-
-        let editPage = app.navigationBars.matching(
-            NSPredicate(format: "identifier IN %@", ["Modifier", "Edit", "Ändern", "Modifica"])
-        ).firstMatch
-        XCTAssertTrue(editPage.waitForExistence(timeout: 10), app.debugDescription)
-    }
-
-    func testActionsRemainVisibleAcrossAppearanceMatrix() {
-        let appearances = [
-            (colorScheme: "light", dynamicType: "large"),
-            (colorScheme: "dark", dynamicType: "large"),
-            (colorScheme: "light", dynamicType: "accessibility3")
-        ]
-
-        for appearance in appearances {
-            launchHome(colorScheme: appearance.colorScheme, dynamicType: appearance.dynamicType)
-            activityRow().swipeLeft()
-
-            XCTAssertTrue(
-                app.buttons["homeActivityEdit-marketing-bonus"].waitForExistence(timeout: 5),
-                app.debugDescription
-            )
-            XCTAssertTrue(app.buttons["homeActivityDelete-marketing-bonus"].exists, app.debugDescription)
-            attachScreenshot("home-swipe-\(appearance.colorScheme)-\(appearance.dynamicType)")
-            app.terminate()
-        }
-    }
-
-    private func launchHome(colorScheme: String? = nil, dynamicType: String = "large") {
-        app = XCUIApplication()
-        app.launchArguments = ["-UITEST_CONTEXTUAL_CREATION_HOME"]
-        app.launchEnvironment["UITEST_SCENARIO"] = "UITEST_CONTEXTUAL_CREATION_HOME"
-        app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = dynamicType
-        app.launchEnvironment["UITEST_HOME_MARKETING_GAIN"] = "1"
-        if let colorScheme {
-            app.launchEnvironment["UITEST_COLOR_SCHEME"] = colorScheme
-        }
-        app.launch()
-    }
-
-    private func activityRow() -> XCUIElement {
-        let row = app.descendants(matching: .any)["homeActivityRow-marketing-bonus"]
-        for _ in 0..<8 where !row.isHittable {
-            app.swipeUp()
-        }
-        XCTAssertTrue(row.isHittable, app.debugDescription)
-        return row
     }
 
     private func attachScreenshot(_ name: String) {

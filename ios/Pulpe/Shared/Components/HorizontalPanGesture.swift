@@ -15,7 +15,7 @@ import UIKit
 /// in 090cf95b8. Only a UIKit recognizer can decline the touch, which is what
 /// `gestureRecognizerShouldBegin` does here.
 ///
-/// Translation is read in window space: the rows this drives carry an
+/// Translation and velocity are read in window space: the rows this drives carry an
 /// `.offset` that moves their own coordinate space mid-gesture, which would otherwise feed
 /// back into the translation.
 struct HorizontalPanGesture: UIGestureRecognizerRepresentable {
@@ -23,8 +23,8 @@ struct HorizontalPanGesture: UIGestureRecognizerRepresentable {
     let isEnabled: Bool
     /// Horizontal translation while the finger moves.
     let onChange: (CGFloat) -> Void
-    /// The finger lifted.
-    let onEnd: () -> Void
+    /// Horizontal translation and velocity (points per second) on lift.
+    let onEnd: (CGFloat, CGFloat) -> Void
     /// The gesture was taken away — by a system gesture, or by the recognizer failing.
     let onCancel: () -> Void
 
@@ -49,7 +49,7 @@ struct HorizontalPanGesture: UIGestureRecognizerRepresentable {
         case .changed:
             onChange(recognizer.translation(in: nil).x)
         case .ended:
-            onEnd()
+            onEnd(recognizer.translation(in: nil).x, recognizer.velocity(in: nil).x)
         case .cancelled, .failed:
             onCancel()
         default:

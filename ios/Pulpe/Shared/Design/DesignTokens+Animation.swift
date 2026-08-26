@@ -11,6 +11,9 @@ extension DesignTokens {
         static let microFadeOut: Double = 0.1
         /// Drag distance that commits a leading swipe action on a ledger row.
         static let swipeCommitDistance: CGFloat = 72
+        /// `UIScrollView.DecelerationRate.normal` — the rate WWDC18 *Designing Fluid
+        /// Interfaces* projects a flick's resting point with.
+        static let swipeDecelerationRate: CGFloat = 0.998
         static let quickSnap: Double = 0.25
         static let normal: Double = 0.3
         static let slow: Double = 0.5
