@@ -17,6 +17,7 @@ final class ContextualCreationUITests: XCTestCase {
         launch("UITEST_CONTEXTUAL_CREATION_HOME")
 
         let addOperation = app.buttons["homeAddOperationButton"]
+        XCTAssertTrue(addOperation.waitForExistence(timeout: 10), app.debugDescription)
         scrollUntilHittable(addOperation)
         assertMinimumHitArea(addOperation)
         attachScreenshot("contextual-creation-home-accessibility3")
@@ -33,7 +34,7 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["homeAddOperationButton"].exists, app.debugDescription)
         attachScreenshot("home-list-two-zone-top")
 
-        let activity = app.staticTexts["homeActivityRow-marketing-bonus"]
+        let activity = app.descendants(matching: .any)["homeActivityRow-marketing-bonus"]
         scrollUntilHittable(activity)
         let initialY = hero.frame.minY
         activity.swipeDown()
@@ -325,7 +326,10 @@ final class HomeActivitySwipeUITests: XCTestCase {
         XCTAssertTrue(edit.waitForExistence(timeout: 5), app.debugDescription)
         edit.tap()
 
-        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 10), app.debugDescription)
+        let editPage = app.navigationBars.matching(
+            NSPredicate(format: "identifier IN %@", ["Modifier", "Edit", "Ändern", "Modifica"])
+        ).firstMatch
+        XCTAssertTrue(editPage.waitForExistence(timeout: 10), app.debugDescription)
     }
 
     func testActionsRemainVisibleAcrossAppearanceMatrix() {

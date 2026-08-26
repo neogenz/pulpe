@@ -45,7 +45,7 @@ struct LeadingSwipeAction: ViewModifier {
                 HorizontalPanGesture(
                     isEnabled: isEnabled && !voiceOver && !switchControl,
                     onChange: track,
-                    onEnd: { _, _ in commitIfArmed() },
+                    onEnd: commitIfArmed,
                     onCancel: settle
                 )
             )

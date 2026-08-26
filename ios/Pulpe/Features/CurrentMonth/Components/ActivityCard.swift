@@ -133,12 +133,22 @@ struct ActivityCard: View {
 
     private func daySection(_ group: DayGroup) -> some View {
         Section {
+            Text(group.label)
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textTertiary)
+                .padding(.horizontal, DesignTokens.Spacing.xxl)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.sm)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityAddTraits(.isHeader)
+                .contentListRow()
+
             ForEach(Array(group.transactions.enumerated()), id: \.element.id) { index, transaction in
                 row(transaction)
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .overlay(alignment: .bottom) {
                         if index < group.transactions.count - 1 {
-                            Divider()
+                            Divider().padding(.horizontal, DesignTokens.Spacing.lg)
                         }
                     }
                     .listRowInsets(EdgeInsets(
@@ -164,18 +174,7 @@ struct ActivityCard: View {
                     }
                     .accessibilityIdentifier("homeActivityRow-\(transaction.id)")
             }
-        } header: {
-            Text(group.label)
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.textTertiary)
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.sm)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.appBackground)
-                .accessibilityAddTraits(.isHeader)
         }
-        .textCase(nil)
         .listSectionSeparator(.hidden)
     }
 
