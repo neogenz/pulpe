@@ -1454,7 +1454,7 @@
       "sharing": {
         "title": "7. Sharing data",
         "neverSell": "I never sell your personal data.",
-        "privateBody": "Your data only passes through the services listed above. The source code is open source on GitHub, but your data remains private.",
+        "privateBody": "Your data only passes through the services listed above. The source code can be viewed publicly on GitHub, but your data remains private.",
         "processors": "The listed third-party services (Supabase, Railway, Vercel, PostHog, Cloudflare and Google) act as processors under Article 28 GDPR. A dedicated Data Processing Agreement (DPA) has been signed with PostHog Inc. For the other processors, processing commitments are provided through their standard terms of service in accordance with Article 28 GDPR."
       },
       "retention": {
@@ -1554,8 +1554,8 @@
         "analyticsBody": "I use PostHog to understand how the application is used. This includes pages visited, features used, errors encountered and session recordings (interaction replays). Your financial data is always masked in these analyses and recordings."
       },
       "source": {
-        "title": "5. Open source and ownership",
-        "body": "Pulpe's source code is available on GitHub under the MIT licence. You may inspect, modify and host it yourself. Your personal data belongs to you and remains private."
+        "title": "5. Source code and ownership",
+        "body": "Pulpe's source code can be viewed publicly on GitHub. Your personal data belongs to you and remains private."
       },
       "liability": {
         "title": "6. Limitation of liability",
