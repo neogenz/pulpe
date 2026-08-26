@@ -250,14 +250,14 @@ struct HomeHeroCardTests {
         )
 
         #expect(viewSource.contains("List {"))
-        #expect(viewSource.contains(".heroListRow(parallax: true)"))
+        #expect(viewSource.contains(".heroZone(parallax: true)") && viewSource.contains(".contentZone()"))
         #expect(viewSource.contains(".contentListRow()"))
         #expect(viewSource.contains(".scrollContentBackground(.hidden)"))
         #expect(!viewSource.contains(".background(Color.homeBackground)"))
         #expect(!viewSource.contains("LinearGradient("))
         #expect(backgroundSource.contains("func heroZone(parallax: Bool = false)"))
         #expect(backgroundSource.contains("func contentZone()"))
-        #expect(backgroundSource.contains("private struct HeroListRowModifier"))
+        #expect(backgroundSource.contains("private struct ContentListRowModifier"))
         #expect(backgroundSource.contains(".listRowBackground("))
     }
 

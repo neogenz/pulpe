@@ -6274,19 +6274,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Karte %lld von %lld"
+            "value" : "Karte %@ von %@"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Card %lld of %lld"
+            "value" : "Card %@ of %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scheda %lld di %lld"
+            "value" : "Scheda %@ di %@"
           }
         }
       }

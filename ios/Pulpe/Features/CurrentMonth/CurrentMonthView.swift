@@ -313,8 +313,8 @@ struct CurrentMonthView: View {
                         onEdit: editTransaction,
                         onDelete: { pendingActivityDeletion = $0 }
                     )
+                    .staggeredEntrance(isVisible: hasAppeared, index: 3)
                 }
-
                 Color.clear
                     .frame(height: DesignTokens.Spacing.lg)
                     .contentListRow()
