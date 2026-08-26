@@ -14,6 +14,16 @@ extension DesignTokens {
         /// `UIScrollView.DecelerationRate.normal` — the rate WWDC18 *Designing Fluid
         /// Interfaces* projects a flick's resting point with.
         static let swipeDecelerationRate: CGFloat = 0.998
+        /// Settle of a row the finger just let go of. Direct manipulation, so it is short
+        /// and lands without bounce — an overshoot would carry the revealed actions past
+        /// their own trailing edge. `gentleSpring` is the wrong tool here: at a 0.6s
+        /// response it leaves a released row drifting long after the finger has moved on.
+        static let swipeSettleDuration: Double = 0.32
+        static let swipeSettleBounce: Double = 0
+        /// Ceiling on the release velocity handed to that settle, counted in travels-worth
+        /// of distance per second. Uncapped, a hard flick with a few points left to cover
+        /// normalises to a number that crosses the whole travel inside one frame.
+        static let swipeSettleMaxVelocity: CGFloat = 18
         static let quickSnap: Double = 0.25
         static let normal: Double = 0.3
         static let slow: Double = 0.5

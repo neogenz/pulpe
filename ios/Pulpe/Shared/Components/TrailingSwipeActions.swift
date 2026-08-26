@@ -19,6 +19,9 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
 
     @State private var dragOffset: CGFloat = 0
     @State private var width: CGFloat = 0
+    /// Speed the finger left with, normalised for the settle spring. Zero for every close
+    /// nobody flicked — a tap, a cancelled gesture, a dismissed confirmation.
+    @State private var launchVelocity: CGFloat = 0
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.accessibilitySwitchControlEnabled) private var switchControl
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -36,7 +39,13 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
             .offset(x: offset)
             // A row that is open closes on a tap, the way a `List` row does; a closed one
             // carries no tap recognizer to compete with whatever the row holds.
-            .gesture(TapGesture().onEnded { openId = nil }, including: isOpen ? .all : .none)
+            .gesture(
+                TapGesture().onEnded {
+                    launchVelocity = 0
+                    openId = nil
+                },
+                including: isOpen ? .all : .none
+            )
             .background(alignment: .trailing) {
                 // The buttons stand apart on the card's own surface instead of butting
                 // into one slab, so the strip a swipe reveals still reads as the card.
@@ -52,13 +61,16 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
                     isEnabled: !voiceOver && !switchControl,
                     onChange: track,
                     onEnd: settle,
-                    onCancel: { withAnimation(spring) { dragOffset = 0 } }
+                    onCancel: {
+                        launchVelocity = 0
+                        withAnimation(settleSpring(startingAt: 0)) { dragOffset = 0 }
+                    }
                 )
             )
             // The component owns what opening and closing look like, whoever asks for it.
             // Outermost, so the row and the strip behind it move as one — and keyed on
             // `isOpen` rather than the offset, so tracking the finger stays unanimated.
-            .animation(spring, value: isOpen)
+            .animation(settleSpring(startingAt: launchVelocity), value: isOpen)
     }
 
     /// The row follows the finger, resisting past either end of its travel so it never
@@ -75,15 +87,44 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
 
     private func settle(_ dx: CGFloat, _ velocity: CGFloat) {
         let rests = Self.restingOffset(translation: dx, velocity: velocity, wasOpen: isOpen, width: width)
-        withAnimation(spring) {
+        let launch = Self.normalizedVelocity(releasedAt: velocity, from: offset, to: rests)
+        // Read back by `.animation(_:value:)` on the body evaluation this update triggers,
+        // which is what actually drives the row when `isOpen` flips.
+        launchVelocity = launch
+        withAnimation(settleSpring(startingAt: launch)) {
             dragOffset = 0
             // Any pull that ends closed also closes whichever row of the group was open.
             openId = rests < 0 ? id : nil
+        } completion: {
+            // One release, one launch. Left standing, this speed would be handed to the next
+            // close nobody flicked — a dismissed confirmation, a tap — which normalised it
+            // against a different distance and would start that one far too fast.
+            launchVelocity = 0
         }
     }
 
-    private var spring: SwiftUI.Animation? {
-        reduceMotion ? nil : DesignTokens.Animation.gentleSpring
+    /// The spring a released row rides home on. Seeding it with the finger's own speed is
+    /// what separates a native row from one that replays the same canned curve whatever you
+    /// did to it: a flick finishes fast, a slow drag eases in, and letting go mid-pull picks
+    /// up exactly where the finger was.
+    private func settleSpring(startingAt velocity: CGFloat) -> SwiftUI.Animation? {
+        guard !reduceMotion else { return nil }
+        return .interpolatingSpring(
+            duration: DesignTokens.Animation.swipeSettleDuration,
+            bounce: DesignTokens.Animation.swipeSettleBounce,
+            initialVelocity: velocity
+        )
+    }
+
+    /// The release speed expressed the way `interpolatingSpring` reads it: as multiples of
+    /// the distance still to cover, per second. Positive means the finger was already going
+    /// where the row is headed; negative means the spring has to turn it around first.
+    static func normalizedVelocity(releasedAt velocity: CGFloat, from current: CGFloat, to target: CGFloat) -> CGFloat {
+        let range = target - current
+        // A row already home has no range to normalise against, and no distance to cross.
+        guard abs(range) > 0.5 else { return 0 }
+        let cap = DesignTokens.Animation.swipeSettleMaxVelocity
+        return min(max(velocity / range, -cap), cap)
     }
 
     /// Where the row settles once the finger lifts: open past half the buttons' width,
