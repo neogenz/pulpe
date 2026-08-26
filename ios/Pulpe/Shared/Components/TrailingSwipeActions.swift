@@ -55,6 +55,10 @@ struct TrailingSwipeActions<Actions: View>: ViewModifier {
                     onCancel: { withAnimation(spring) { dragOffset = 0 } }
                 )
             )
+            // The component owns what opening and closing look like, whoever asks for it.
+            // Outermost, so the row and the strip behind it move as one — and keyed on
+            // `isOpen` rather than the offset, so tracking the finger stays unanimated.
+            .animation(spring, value: isOpen)
     }
 
     /// The row follows the finger, resisting past either end of its travel so it never
