@@ -23399,6 +23399,28 @@
         }
       }
     },
+    "Supprimer cette opération ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Eintrag löschen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this entry?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminare questa operazione?"
+          }
+        }
+      }
+    },
     "Supprimer l'objectif" : {
       "localizations" : {
         "de" : {

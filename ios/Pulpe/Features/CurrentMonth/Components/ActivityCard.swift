@@ -276,7 +276,7 @@ extension View {
         onConfirm: @escaping (Transaction) -> Void
     ) -> some View {
         alert(
-            AppLocale.string("Supprimer « \(pending.wrappedValue?.name ?? "") » ?"),
+            AppLocale.string("Supprimer cette opération ?"),
             isPresented: Binding(
                 get: { pending.wrappedValue != nil },
                 set: { if !$0 { pending.wrappedValue = nil } }
@@ -290,8 +290,8 @@ extension View {
                 onConfirm(transaction)
             }
             .accessibilityIdentifier("homeActivityConfirmDelete")
-        } message: { _ in
-            Text(AppLocale.string("Cette action est irréversible."))
+        } message: { transaction in
+            Text(transaction.name)
         }
     }
 }

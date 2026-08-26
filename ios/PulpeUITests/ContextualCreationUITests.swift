@@ -307,7 +307,7 @@ final class HomeActivitySwipeUITests: XCTestCase {
 
         let confirmation = app.buttons["homeActivityConfirmDelete"]
         XCTAssertTrue(confirmation.waitForExistence(timeout: 5), app.debugDescription)
-        XCTAssertTrue(app.alerts.firstMatch.label.contains("Bonus"))
+        XCTAssertTrue(app.staticTexts["Bonus"].exists)
         XCTAssertTrue(row.exists)
 
         let cancel = app.buttons.matching(identifier: "homeActivityCancelDelete").firstMatch
