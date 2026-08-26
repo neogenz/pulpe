@@ -1,6 +1,6 @@
 ---
 objective: "Every finding in the native home swipe review is resolved while SwiftUI owns the revealed action chrome and the homepage keeps its shipped layout and motion."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Close the native home swipe review
