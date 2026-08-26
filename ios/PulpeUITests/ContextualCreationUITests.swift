@@ -328,11 +328,36 @@ final class HomeActivitySwipeUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 10), app.debugDescription)
     }
 
-    private func launchHome() {
+    func testActionsRemainVisibleAcrossAppearanceMatrix() {
+        let appearances = [
+            (colorScheme: "light", dynamicType: "large"),
+            (colorScheme: "dark", dynamicType: "large"),
+            (colorScheme: "light", dynamicType: "accessibility3")
+        ]
+
+        for appearance in appearances {
+            launchHome(colorScheme: appearance.colorScheme, dynamicType: appearance.dynamicType)
+            activityRow().swipeLeft()
+
+            XCTAssertTrue(
+                app.buttons["homeActivityEdit-marketing-bonus"].waitForExistence(timeout: 5),
+                app.debugDescription
+            )
+            XCTAssertTrue(app.buttons["homeActivityDelete-marketing-bonus"].exists, app.debugDescription)
+            attachScreenshot("home-swipe-\(appearance.colorScheme)-\(appearance.dynamicType)")
+            app.terminate()
+        }
+    }
+
+    private func launchHome(colorScheme: String? = nil, dynamicType: String = "large") {
+        app = XCUIApplication()
         app.launchArguments = ["-UITEST_CONTEXTUAL_CREATION_HOME"]
         app.launchEnvironment["UITEST_SCENARIO"] = "UITEST_CONTEXTUAL_CREATION_HOME"
-        app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = "large"
+        app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = dynamicType
         app.launchEnvironment["UITEST_HOME_MARKETING_GAIN"] = "1"
+        if let colorScheme {
+            app.launchEnvironment["UITEST_COLOR_SCHEME"] = colorScheme
+        }
         app.launch()
     }
 
@@ -343,5 +368,12 @@ final class HomeActivitySwipeUITests: XCTestCase {
         }
         XCTAssertTrue(row.isHittable, app.debugDescription)
         return row
+    }
+
+    private func attachScreenshot(_ name: String) {
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 }
