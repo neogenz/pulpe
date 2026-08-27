@@ -17,16 +17,22 @@ extension BudgetDetailsCoordinator {
         currentMonthStore: CurrentMonthStore,
         savingsGoalStore: SavingsGoalStore
     ) {
+        // A value, not `dataStore`: the closure is stored on the store itself.
+        let budgetId = dataStore.budgetId
         dataStore.onMutation = {
             budgetListStore.invalidateCache()
             dashboardStore.invalidateCache()
-            // `syncCache()` has just written the month this mutation touched: the
-            // accueil takes that snapshot instead of refetching, so a soft-deleted
-            // row stays gone during its undo window and comes back on undo or on a
-            // failed commit, without a fetch. A cross-month spread or withdrawal
-            // wipes the cache right after, and any miss marks the accueil stale so
-            // its next load refetches.
-            _ = currentMonthStore.adoptSharedSnapshotIfFresh()
+            // `syncCache()` has just written the month this mutation touched. The
+            // accueil's month: the accueil takes that snapshot instead of refetching,
+            // so a soft-deleted row stays gone during its undo window and comes back
+            // on undo or on a failed commit, without a fetch; a cross-month spread or
+            // withdrawal grafts this month before it wipes the others. Another month:
+            // stale, as before, so the accueil's next load reads the cache again.
+            if currentMonthStore.budget?.id == budgetId {
+                _ = currentMonthStore.adoptSharedSnapshotIfFresh()
+            } else {
+                currentMonthStore.invalidateCache()
+            }
             // Goals read the same budget lines: a linked saving moves the plan,
             // and realizing an announced withdrawal (PUL-329 v2) moves the
             // balance itself. Stating it here rather than at each mutation site

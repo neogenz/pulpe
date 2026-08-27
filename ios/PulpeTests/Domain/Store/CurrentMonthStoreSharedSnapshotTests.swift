@@ -10,6 +10,9 @@ import Testing
 ///
 /// `CurrentMonthStore` talks to the concrete `BudgetService`, so "no fetch" is observed
 /// through `error`: without a backend, any fetch surfaces one.
+///
+/// The reverse holds too: a row the accueil changed itself has to be in the entry, or
+/// the next adoption reverts it.
 @Suite(.serialized)
 @MainActor
 struct CurrentMonthStoreSharedSnapshotTests {
@@ -63,7 +66,6 @@ struct CurrentMonthStoreSharedSnapshotTests {
         await coordinator.dispatch(.softDeleteTransaction(rowA, makeToastContext()))
 
         #expect(accueil.transactions.map(\.id) == ["tx-b"])
-        #expect(accueil.error == nil, "Adopting the snapshot must not touch the network")
     }
 
     @Test
@@ -76,7 +78,6 @@ struct CurrentMonthStoreSharedSnapshotTests {
         await context.toastManager.currentToast?.undoAction?()
 
         #expect(Set(accueil.transactions.map(\.id)) == ["tx-a", "tx-b"])
-        #expect(accueil.error == nil)
     }
 
     @Test
@@ -98,16 +99,32 @@ struct CurrentMonthStoreSharedSnapshotTests {
         let other = TestDataFactory.createBudget(id: "budget-other", month: 7, year: 2026)
         let (accueil, coordinator) = makeBoundAccueil(coordinatorBudget: other)
         #expect(accueil.adoptSharedSnapshotIfFresh(), "Setup: the accueil's TTL is fresh")
-        // Its own entry expired meanwhile, so the only way rows change is a fetch.
-        cache.invalidate(budgetId: budget.id)
-        await accueil.loadDetailsIfNeeded()
-        #expect(accueil.error == nil, "Control: a fresh TTL skips the load")
 
         let otherRow = TestDataFactory.createTransaction(id: "tx-other", budgetId: other.id)
         await coordinator.dispatch(.addTransaction(otherRow))
 
-        #expect(accueil.transactions.map(\.id) == ["tx-a", "tx-b"])
+        #expect(accueil.transactions.map(\.id) == ["tx-a", "tx-b"], "Untouched")
+        // Stale: the next load reads the shared entry again instead of being skipped.
+        cache.store(budgetId: budget.id, budget: budget, budgetLines: [], transactions: [rowA])
         await accueil.loadDetailsIfNeeded()
-        #expect(accueil.error != nil, "Marked stale: the next load fetches, and fails without a backend")
+        #expect(accueil.transactions.map(\.id) == ["tx-a"], "A fresh TTL would have skipped the load")
+    }
+
+    @Test
+    func localAddition_isInTheSharedEntryAndSurvivesAdoption() {
+        let (accueil, _) = makeBoundAccueil()
+        let added = TestDataFactory.createTransaction(id: "tx-c", budgetId: budget.id, name: "C")
+
+        accueil.addTransaction(added)
+
+        #expect(
+            cache.get(budgetId: budget.id)?.transactions.map(\.id) == ["tx-a", "tx-b", "tx-c"],
+            "The entry is what a tap on the new row opens"
+        )
+        #expect(accueil.adoptSharedSnapshotIfFresh(), "Setup: the entry is fresh")
+        #expect(
+            accueil.transactions.map(\.id) == ["tx-a", "tx-b", "tx-c"],
+            "Adoption must not revert a local change"
+        )
     }
 }

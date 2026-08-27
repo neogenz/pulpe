@@ -9,6 +9,8 @@ import SwiftUI
 /// The page is only shown once the budget is present: it auto-pops after
 /// `autoPopGraceMs` when its operation is missing, which is also what an empty store
 /// looks like during the first load.
+/// A tapped row is always in the entry or the entry is absent: the accueil mirrors its
+/// own row changes into it (`CurrentMonthStore.applyLocalRowChange`).
 struct EditTransactionHost: View {
     let budgetId: String
     let transactionId: String
@@ -59,10 +61,11 @@ struct EditTransactionHost: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .pulpeBackground()
-                    .localizedNavigationTitle("Modifier")
-                    .navigationBarTitleDisplayMode(.inline)
             }
         }
+        // The page sets the same title itself; this covers the spinner and the error.
+        .localizedNavigationTitle("Modifier")
+        .navigationBarTitleDisplayMode(.inline)
         .environment(coordinator)
         .environment(projector)
         .sheet(item: $router.sheet) { destination in
