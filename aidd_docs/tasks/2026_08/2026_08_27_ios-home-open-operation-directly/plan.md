@@ -1,6 +1,6 @@
 ---
 objective: "A tap on an accueil activity row opens the operation's « Modifier » page in one push, Back returns to the accueil, and every mutation made there (edit, soft delete + undo, report) is reflected on the accueil without a stale window."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Open an operation from the accueil in one push
