@@ -37,7 +37,9 @@ export function useDeleteTag() {
 
 /**
  * Tags are shown on forecasts and operations, so a rename or a removal has to
- * reach the budget trees too, not just the list.
+ * reach the budget trees too, not just the list. A tag can sit on any month's
+ * rows: every detail on screen refetches, the rest and the budget list wait
+ * for their next focus.
  */
 function useTagMutation<TInput, TResult>(
   mutationFn: (input: TInput) => Promise<TResult>,
@@ -48,7 +50,11 @@ function useTagMutation<TInput, TResult>(
     mutationFn,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: tagKeys.all });
-      void queryClient.invalidateQueries({ queryKey: budgetKeys.all });
+      void queryClient.invalidateQueries({ queryKey: budgetKeys.details() });
+      void queryClient.invalidateQueries({
+        queryKey: budgetKeys.list(),
+        refetchType: "none",
+      });
     },
   });
 }

@@ -16,8 +16,8 @@ export const spreadKeys = {
 
 /**
  * A spread writes into several months at once, so both mutations sweep the
- * whole budget prefix rather than naming the entries they touched — the months
- * the server had to create along the way are not knowable from here.
+ * whole budget prefix rather than going through `invalidateBudget` — the
+ * months the server had to create along the way are not knowable from here.
  */
 function useSpreadMutation<TInput, TResult>(
   mutationFn: (input: TInput) => Promise<TResult>,

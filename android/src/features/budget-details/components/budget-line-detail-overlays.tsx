@@ -55,7 +55,7 @@ export const BudgetLineDetailOverlays = forwardRef<
   ref,
 ) {
   const { locale, t } = useTranslation();
-  const remove = useDeleteBudgetLine();
+  const remove = useDeleteBudgetLine(budgetId);
   const removePair = useDeleteSavingsWithdrawal();
   const postpone = usePostponeBudgetLine();
   const removal = useTransactionRemoval();

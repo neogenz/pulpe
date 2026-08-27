@@ -8,6 +8,7 @@ import { uniqueBudgets } from "./budget-list-selectors";
 
 const mockScrollToLocation = jest.fn();
 const mockInvalidateBudgets = jest.fn(async () => undefined);
+const mockRefetchStaleList = jest.fn(async () => undefined);
 const mockInvalidateSettings = jest.fn(async () => undefined);
 const mockBudgets = {
   data: [] as BudgetSparse[],
@@ -24,9 +25,13 @@ const mockSettings = {
   isError: false,
 };
 
-jest.mock("expo-router", () => ({
-  router: { push: jest.fn() },
-}));
+jest.mock("expo-router", () => {
+  const React = jest.requireActual("react");
+  return {
+    router: { push: jest.fn() },
+    useFocusEffect: (effect: () => void) => React.useEffect(effect, [effect]),
+  };
+});
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: jest.requireActual("react-native").View,
 }));
@@ -192,6 +197,7 @@ jest.mock("@/core/user-settings/user-settings-queries", () => ({
 }));
 jest.mock("@/features/budgets/budget-queries", () => ({
   invalidateBudgetData: () => mockInvalidateBudgets(),
+  refetchStaleBudgetList: () => mockRefetchStaleList(),
   useBudgetList: () => mockBudgets,
 }));
 
@@ -219,6 +225,12 @@ beforeEach(() => {
     isPending: false,
     isError: false,
   });
+});
+
+it("asks once for a stale list when the tab gains focus", async () => {
+  await render(<BudgetsScreen />);
+
+  expect(mockRefetchStaleList).toHaveBeenCalledTimes(1);
 });
 
 it("renders loading, retryable failure and empty creation states", async () => {

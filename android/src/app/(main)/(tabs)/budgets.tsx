@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
   getBudgetPeriodDates,
   getBudgetPeriodForDate,
@@ -31,6 +31,7 @@ import {
 } from "@/features/budgets/budget-list-selectors";
 import {
   invalidateBudgetData,
+  refetchStaleBudgetList,
   useBudgetList,
 } from "@/features/budgets/budget-queries";
 import { monthSubtitle } from "@/features/budgets/month-subtitle";
@@ -60,6 +61,14 @@ export default function BudgetsScreen() {
   const { locale, t } = useTranslation();
   const settings = useUserSettings();
   const budgets = useBudgetList();
+
+  // A write inside a month only marks this list stale (`invalidateBudget`);
+  // coming to the tab is when its totals are looked at, so it asks once here.
+  useFocusEffect(
+    useCallback(() => {
+      void refetchStaleBudgetList();
+    }, []),
+  );
 
   // Derived above the gates below, and the anchor with it: the loading and error
   // returns sit between here and the list, and a hook declared past an early

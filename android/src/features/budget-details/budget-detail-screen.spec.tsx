@@ -205,6 +205,7 @@ jest.mock("@/features/budgets/budget-queries", () => ({
     all: ["budgets"],
     detail: (id: string) => ["budgets", "detail", id],
   },
+  invalidateBudget: jest.fn(async () => undefined),
   invalidateBudgetData: jest.fn(async () => undefined),
   useBudgetDetails: () => mockDetails,
   useBudgetPeriods: (year: number | null) => mockUseBudgetPeriods(year),
