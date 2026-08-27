@@ -18,7 +18,14 @@ extension DesignTokens {
         /// and lands without bounce — an overshoot would carry the revealed actions past
         /// their own trailing edge. `gentleSpring` is the wrong tool here: at a 0.6s
         /// response it leaves a released row drifting long after the finger has moved on.
-        static let swipeSettleDuration: Double = 0.32
+        ///
+        /// `interpolatingSpring` reads this as the spring's *period*, not as how long it
+        /// takes to arrive: the settling time constant is `duration / 2π`, and the strip
+        /// needs about five of those to land. At 0.32 that measured 59ms per constant and
+        /// 390ms to come to rest — a finger crossing 80pt in 60ms was answered by a strip
+        /// that took three times as long to cover half that, which is the stutter a fast
+        /// flick showed. 0.18 measures 37ms per constant and 232ms to come to rest.
+        static let swipeSettleDuration: Double = 0.18
         static let swipeSettleBounce: Double = 0
         /// Ceiling on the release velocity handed to that settle, counted in travels-worth
         /// of distance per second. Uncapped, a hard flick with a few points left to cover

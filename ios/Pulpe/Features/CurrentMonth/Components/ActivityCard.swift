@@ -13,7 +13,6 @@ struct ActivityCard: View {
     @State private var window: Window = .week
     /// The one row whose swipe actions are revealed, shared across the day cards.
     @State private var openRowId: AnyHashable?
-    @State private var pendingDeletion: Transaction?
 
     enum Window: String, CaseIterable {
         case week = "7 jours"
@@ -114,19 +113,6 @@ struct ActivityCard: View {
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
         .accessibilityIdentifier("homeActivityCard")
-        .alert(
-            AppLocale.string("Supprimer cette opération ?"),
-            isPresented: Binding(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } }),
-            presenting: pendingDeletion
-        ) { transaction in
-            Button(AppLocale.string("Supprimer"), role: .destructive) {
-                openRowId = nil
-                onDelete(transaction)
-            }
-            Button(AppLocale.string("Annuler"), role: .cancel) { openRowId = nil }
-        } message: { transaction in
-            Text(transaction.name)
-        }
     }
 
     // MARK: - Window Picker
@@ -167,14 +153,16 @@ struct ActivityCard: View {
                                 openRowId = nil
                                 onEdit(transaction)
                             }
-                            // Deletion asks first, so the row stays open under the alert
-                            // and closes with the answer, not with the tap.
+                            // No question asked: the row goes, and the undo toast the
+                            // caller raises is where the answer lives. An alert put the
+                            // decision before the result, and covered the screen to do it.
                             swipeButton("Supprimer", systemImage: "trash", fill: .destructivePrimary) {
-                                pendingDeletion = transaction
+                                openRowId = nil
+                                onDelete(transaction)
                             }
                         }
                         .accessibilityAction(named: AppLocale.string("Modifier")) { onEdit(transaction) }
-                        .accessibilityAction(named: AppLocale.string("Supprimer")) { pendingDeletion = transaction }
+                        .accessibilityAction(named: AppLocale.string("Supprimer")) { onDelete(transaction) }
                 }
             }
             .padding(.vertical, DesignTokens.Spacing.xs)
@@ -210,8 +198,7 @@ struct ActivityCard: View {
     }
 
     /// One revealed action: a tinted circle on the card's own surface, the shape iOS gives
-    /// its native list actions. Closing the row is the caller's call — an action that opens
-    /// a question leaves it open until the question is answered.
+    /// its native list actions. Closing the row is each action's own call.
     private func swipeButton(
         _ title: String.LocalizationValue,
         systemImage: String,

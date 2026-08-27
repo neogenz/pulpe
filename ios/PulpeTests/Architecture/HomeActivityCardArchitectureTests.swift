@@ -31,6 +31,11 @@ struct HomeActivityCardArchitectureTests {
             .appendingPathComponent("Pulpe/Features/CurrentMonth/Components/ActivityCard.swift")
     }
 
+    private static var deletionPath: URL {
+        iosDirectory()
+            .appendingPathComponent("Pulpe/Features/CurrentMonth/HomeDeletion.swift")
+    }
+
     private static var swipeComponent: URL {
         iosDirectory()
             .appendingPathComponent("Pulpe/Shared/Components/TrailingSwipeActions.swift")
@@ -98,14 +103,24 @@ struct HomeActivityCardArchitectureTests {
         #expect(source.contains(".frame(maxHeight: .infinity)"))
     }
 
-    // MARK: - Deleting asks first
+    // MARK: - Deleting is undoable, not confirmed
 
-    @Test("Deletion opens a question instead of acting")
-    func deleteAsksBeforeItActs() throws {
-        let source = try Self.read(Self.activityCard)
-        // The destructive button arms the alert; only the alert's own button
-        // calls onDelete. Wiring it straight to the button deletes on tap.
-        #expect(source.contains("pendingDeletion = transaction"))
-        #expect(source.contains(".alert("))
+    @Test("Deletion acts at once and answers in an undo toast")
+    func deleteIsUndoableRatherThanConfirmed() throws {
+        let card = try Self.read(Self.activityCard)
+        // The alert asked its question before the user could see the answer, and
+        // covering a ScrollView row with it is what broke the card behind it.
+        #expect(!card.contains(".alert("), "deletion must not open a confirmation")
+        #expect(card.contains("onDelete(transaction)"))
+
+        let home = try Self.read(Self.deletionPath)
+        // Off the screen first, onto the server only once the toast dismisses with
+        // no undo — the grace checking a line already had.
+        #expect(home.contains("softDeleteTransaction("))
+        #expect(home.contains("undoPendingDeletions("))
+        #expect(home.contains("commitPendingDeletions("))
+        // A second deletion inside the window refreshes the toast; re-presenting it
+        // fires the outgoing toast's commit and closes the window early.
+        #expect(home.contains("refreshUndoToast("))
     }
 }

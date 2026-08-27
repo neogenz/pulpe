@@ -329,7 +329,7 @@ struct CurrentMonthView: View {
                     tagNamesById: tagStore.namesById,
                     onViewAll: { navigateToBudget = true },
                     onEdit: editTransaction,
-                    onDelete: { transaction in Task { await delete(transaction) } }
+                    onDelete: { HomeDeletion.delete($0, store: store, toastManager: toastManager) }
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 3)
             }
@@ -382,13 +382,6 @@ extension CurrentMonthView {
     /// Drives insert/remove animations of the conditional blocks.
     private var conditionalBlocksState: [Bool] {
         [store.uncheckedItems.isEmpty, store.driftLines.isEmpty, store.savingsSummary.isComplete]
-    }
-
-    /// The store puts the row back when the server refuses, so the failure needs saying.
-    private func delete(_ transaction: Transaction) async {
-        let deleted = await store.deleteTransaction(transaction)
-        guard !deleted else { return }
-        toastManager.show(AppLocale.string("\(transaction.name) n'a pas pu être supprimé"), type: .error)
     }
 
     /// Reverse a successful check from the undo toast. The store toggles based on the
