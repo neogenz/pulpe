@@ -199,6 +199,11 @@ jobs:
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Les specs Bun importent `pulpe-shared`, qui résout vers shared/dist —
+      # ce runner ne partage aucun artefact avec workspace, il le compile donc.
+      - name: 🏗️ Build shared package
+        run: pnpm build:shared
+
       - name: 🔎 Detect DB contract changes
         id: db
         run: |
