@@ -73,6 +73,11 @@ jest.mock("react-native-paper", () => {
     }) => (
       <Action onPress={onPress} label={accessibilityLabel} testID={testID} />
     ),
+    Divider: () => null,
+    List: {
+      Item: ({ title }: { title: string }) => <Text>{title}</Text>,
+      Subheader: Text,
+    },
     Text,
     useTheme: () => ({
       colors: { background: "white", onSurfaceVariant: "gray" },

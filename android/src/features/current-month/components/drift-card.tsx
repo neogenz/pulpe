@@ -1,6 +1,6 @@
 import type { SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
-import { Divider, Text, useTheme } from "react-native-paper";
+import { Divider, List, Text, useTheme } from "react-native-paper";
 
 import {
   formatCompactAmount,
@@ -33,7 +33,11 @@ interface DriftCardProps {
   currency: SupportedCurrency;
 }
 
-/** Envelopes consumed past their plan, worst first. Absent when nothing drifts. */
+/**
+ * Envelopes consumed past their plan, worst first, as plain rows on the page:
+ * secondary news, so it wears no surface of its own. Absent when nothing
+ * drifts.
+ */
 export function DriftCard({
   drifts,
   totalOver,
@@ -56,41 +60,30 @@ export function DriftCard({
   );
 
   return (
-    <View style={styles.card}>
-      <View style={styles.heading}>
-        <Text variant="titleSmall">{t("home.drift.title")}</Text>
-        <Text
-          variant="bodySmall"
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
-          {t(
-            absorbsOverrun
-              ? "home.drift.summaryAbsorbed"
-              : "home.drift.summary",
-            { amount: formatCompactCurrency(totalOver, currency) },
-          )}
-        </Text>
-      </View>
-
-      <View
-        style={[styles.rows, { backgroundColor: theme.colors.surfaceVariant }]}
+    <View style={styles.section}>
+      <List.Subheader style={styles.subheader}>
+        {t("home.drift.title")}
+      </List.Subheader>
+      <Text
+        variant="bodySmall"
+        style={{ color: theme.colors.onSurfaceVariant }}
       >
-        {shown.map((drift, index) => {
-          const overBy = -drift.consumption.available;
-          return (
-            <View key={drift.line.id}>
-              {index > 0 && <Divider />}
-              <View style={styles.row}>
-                <View style={styles.rowHeading}>
-                  <Text variant="bodyMedium" numberOfLines={1}>
-                    {drift.line.name}
-                  </Text>
-                  <Amount size="meta" style={{ color: driftColor }}>
-                    {t("home.drift.overBy", {
-                      amount: formatCompactAmount(overBy, currency),
-                    })}
-                  </Amount>
-                </View>
+        {t(
+          absorbsOverrun ? "home.drift.summaryAbsorbed" : "home.drift.summary",
+          { amount: formatCompactCurrency(totalOver, currency) },
+        )}
+      </Text>
+
+      {shown.map((drift, index) => {
+        const overBy = -drift.consumption.available;
+        return (
+          <View key={drift.line.id}>
+            {index > 0 && <Divider />}
+            <List.Item
+              title={drift.line.name}
+              titleNumberOfLines={1}
+              style={styles.item}
+              description={() => (
                 <View
                   style={[
                     styles.track,
@@ -107,44 +100,44 @@ export function DriftCard({
                     ]}
                   />
                 </View>
-              </View>
-            </View>
-          );
-        })}
+              )}
+              right={() => (
+                <Amount size="meta" style={{ color: driftColor }}>
+                  {t("home.drift.overBy", {
+                    amount: formatCompactAmount(overBy, currency),
+                  })}
+                </Amount>
+              )}
+            />
+          </View>
+        );
+      })}
 
-        {hidden > 0 && (
-          <>
-            <Divider />
-            <Text
-              variant="labelMedium"
-              style={[styles.row, { color: theme.colors.onSurfaceVariant }]}
-            >
-              {t("home.drift.hidden", { count: hidden })}
-            </Text>
-          </>
-        )}
-      </View>
+      {hidden > 0 && (
+        <>
+          <Divider />
+          <Text
+            variant="labelMedium"
+            style={[styles.hidden, { color: theme.colors.onSurfaceVariant }]}
+          >
+            {t("home.drift.hidden", { count: hidden })}
+          </Text>
+        </>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { gap: SPACING.sm },
-  heading: { gap: SPACING.xxs },
-  rows: {
-    borderRadius: RADIUS.card,
-    paddingHorizontal: SPACING.md,
-  },
-  row: { paddingVertical: SPACING.md, gap: SPACING.sm },
-  rowHeading: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-    gap: SPACING.sm,
-  },
+  section: { gap: SPACING.xs },
+  // Paper pads its list chrome to its own gutter; the page already has one.
+  subheader: { paddingHorizontal: 0, paddingVertical: 0 },
+  item: { paddingHorizontal: 0 },
+  hidden: { paddingVertical: SPACING.sm },
   track: {
     flexDirection: "row",
     height: BAR_HEIGHT,
+    marginTop: SPACING.xs,
     borderRadius: RADIUS.xs,
     overflow: "hidden",
   },

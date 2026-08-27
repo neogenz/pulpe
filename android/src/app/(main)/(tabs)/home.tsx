@@ -183,23 +183,6 @@ export default function HomeScreen() {
           {t("home.periodRemaining", { count: viewModel.daysRemaining })}
         </Text>
 
-        {viewModel.driftLines.length > 0 ? (
-          <DriftCard
-            drifts={viewModel.driftLines}
-            totalOver={viewModel.driftTotal}
-            absorbsOverrun={presentation.absorbsEnvelopeOverrun}
-            currency={currency}
-          />
-        ) : (
-          viewModel.savings.isComplete && (
-            <SavingsDoneCard
-              amount={viewModel.savings.totalRealized}
-              currency={currency}
-              onPress={() => router.push("/goals")}
-            />
-          )
-        )}
-
         {viewModel.uncheckedItems.length > 0 && (
           <>
             <Tooltip
@@ -232,6 +215,23 @@ export default function HomeScreen() {
               }}
             />
           </>
+        )}
+
+        {viewModel.driftLines.length > 0 ? (
+          <DriftCard
+            drifts={viewModel.driftLines}
+            totalOver={viewModel.driftTotal}
+            absorbsOverrun={presentation.absorbsEnvelopeOverrun}
+            currency={currency}
+          />
+        ) : (
+          viewModel.savings.isComplete && (
+            <SavingsDoneCard
+              amount={viewModel.savings.totalRealized}
+              currency={currency}
+              onPress={() => router.push("/goals")}
+            />
+          )
         )}
 
         <ActivityCard
