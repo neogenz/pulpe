@@ -33,8 +33,10 @@ interface FormModalProps {
 }
 
 /**
- * The one shape every form modal in the app takes: a capped card, a scrolling
- * body, and actions that stay put.
+ * The one shape every form modal in the app takes: a card anchored to the
+ * bottom edge, a scrolling body, and actions that stay put. It slides up and
+ * rounds its top corners like a Material bottom sheet, and stops there: no
+ * drag handle, no swipe, no sheet library — `android/DESIGN.md` says why.
  *
  * Getting out of the keyboard's way is this component's job alone, which is why
  * no call site owns a `KeyboardAvoidingView`: eleven of the seventeen sheets
@@ -68,7 +70,7 @@ export function FormModal({
       testID="form-modal"
       visible={isVisible}
       transparent
-      animationType="fade"
+      animationType="slide"
       presentationStyle="overFullScreen"
       statusBarTranslucent
       onRequestClose={isBusy ? () => undefined : onDismiss}
@@ -130,10 +132,10 @@ export function FormModal({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: "center" },
+  backdrop: { flex: 1, justifyContent: "flex-end" },
   sheet: {
-    marginHorizontal: SPACING.md,
-    borderRadius: RADIUS.md,
+    borderTopLeftRadius: RADIUS.md,
+    borderTopRightRadius: RADIUS.md,
     overflow: "hidden",
   },
   header: {

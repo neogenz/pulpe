@@ -80,13 +80,20 @@ that only shows up on someone else's phone.
 
 ## Form modals
 
-Android forms open in the native `Modal`-based `FormModal`: a centered,
-height-capped surface whose body scrolls above the keyboard and whose footer
-stays pinned. Its header always exposes a translated close button. While a
-write is pending, that button, the backdrop and the Android back action all
-refuse dismissal so partially applied changes cannot disappear. This is a
-modal form, not a bottom sheet: do not add a drag handle, swipe dismissal or a
-bottom-sheet dependency.
+Android forms open in the native `Modal`-based `FormModal`: a full-width
+surface anchored to the bottom edge that slides up, rounds its top corners
+(`RADIUS.md`) and caps its height at 88 percent of the room the keyboard
+leaves. The body scrolls, the footer stays pinned: above the keyboard while it
+is up, above the navigation bar inset (padded inside the surface, so its colour
+runs edge to edge) while it is down. Its header always exposes a translated
+close button. While a write is pending, that button, the scrim and the Android
+back action all refuse dismissal so partially applied changes cannot disappear.
+
+It looks like a bottom sheet and is deliberately not one: no drag handle, no
+swipe dismissal, no `@gorhom/bottom-sheet`. A form with a pinned submit button
+must not be flicked away mid-entry, the gesture would compete with the body's
+scroll and the date pickers inside it, and the native `Modal` already gives the
+accessibility focus trap and the back action for free.
 
 ## Shell
 

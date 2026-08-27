@@ -1,5 +1,4 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
-import { createElement } from "react";
 import { Text } from "react-native";
 import { PaperProvider } from "react-native-paper";
 
@@ -51,18 +50,39 @@ describe("sheets", () => {
   async function renderModal(isBusy: boolean) {
     const onDismiss = jest.fn();
     const view = await render(
-      createElement(
-        PaperProvider,
-        null,
-        createElement(
-          FormModal,
-          { isVisible: true, isBusy, title: "Form title", onDismiss },
-          createElement(Text, null, "Form body"),
-        ),
-      ),
+      <PaperProvider>
+        <FormModal
+          isVisible
+          isBusy={isBusy}
+          title="Form title"
+          subtitle="Form subtitle"
+          onDismiss={onDismiss}
+          footer={<Text>Form footer</Text>}
+        >
+          <Text>Form body</Text>
+        </FormModal>
+      </PaperProvider>,
     );
     return { onDismiss, view };
   }
+
+  it("shows its title, subtitle, body and pinned footer from the bottom edge", async () => {
+    const { view } = await renderModal(false);
+
+    for (const text of [
+      "Form title",
+      "Form subtitle",
+      "Form body",
+      "Form footer",
+    ]) {
+      expect(view.getByText(text)).toBeTruthy();
+    }
+    expect(view.getByTestId("form-modal").props.animationType).toBe("slide");
+    expect(
+      view.getByTestId("form-modal-backdrop", { includeHiddenElements: true })
+        .parent,
+    ).toHaveStyle({ justifyContent: "flex-end" });
+  });
 
   it("dismisses from its visible close, backdrop and Android back action", async () => {
     const { onDismiss, view } = await renderModal(false);
