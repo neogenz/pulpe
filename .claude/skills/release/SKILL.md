@@ -16,7 +16,7 @@ Analyze code changes to produce a unified product release with clear, user-focus
 - NEVER apply versions without explicit user approval
 - NEVER push directly to `preview` or `main`, create a tag, publish a GitHub Release, or mutate Railway from this skill
 - NEVER push the prepared `release/vX.Y.Z` branch or dispatch its PR without a separate explicit user approval after local validation
-- The GitHub App may open release PRs and fast-forward the proven release branch only; it has no ruleset bypass and cannot approve its own production PR
+- Production mutations (fast-forward, production PR, tag, Release) belong to the phase-9 protected apply path; until that cutover the only remote release action this skill may take is the preparation PR to `preview` and the read-only plan dispatch
 - NEVER tag or create the GitHub Release before the exact candidate tree is verified in production; update a `LATEST_*` gate only after its client is public (web deployment or App Store)
 - NEVER use `--force`, `--force-with-lease`, or `git push --tags`
 - If changes are ambiguous, ASK — do not guess
@@ -510,7 +510,7 @@ Run `git status` and confirm only the expected files are staged. If anything unr
 
 ### Step 9: Commit and hand off to GitHub
 
-Show the exact release commit, the branch `release/vX.Y.Z`, the approved French GitHub Release notes, and the two protected PR targets. Then ask: "Prêt à publier la branche de release et ouvrir la PR vers preview ?"
+Show the exact release commit, the branch `release/vX.Y.Z`, the approved French GitHub Release notes, and the preparation PR target (`preview`). Then ask: "Prêt à publier la branche de release et ouvrir la PR vers preview ?"
 
 Only after "oui":
 
@@ -540,7 +540,21 @@ Only after "oui":
    test "$(git ls-remote --heads origin "refs/heads/$BRANCH" | awk '{print $1}')" = "$RELEASE_SHA"
    ```
 
-3. Resolve the remote state of this exact release intention before any dispatch. The identity is the run-name `🚦 prepare release/vX.Y.Z`; GitHub run lists — never agent memory — are the source of truth:
+3. Open the preparation PR to `preview` with the approved **GitHub Release** template from Step 5 as its body, written to a temporary UTF-8 file whose first line is `## vX.Y.Z` (the finalizer later extracts the notes from this exact section):
+
+   ```bash
+   test "$(sed -n '1p' "$NOTES_FILE")" = "## v${VERSION}"
+   gh pr create \
+     --repo neogenz/pulpe \
+     --base preview \
+     --head "$BRANCH" \
+     --title "chore(release): v${VERSION}" \
+     --body-file "$NOTES_FILE"
+   ```
+
+   Merge it only after complete CI, exact staging provider SHAs and `✅ Staging Ready (shadow)` are green, like any preview PR.
+
+4. After the preparation PR is merged with a merge commit, resolve the remote state of this exact release intention before any dispatch. The identity is the run-name `🚦 prepare release/vX.Y.Z`; GitHub run lists — never agent memory — are the source of truth:
 
    ```bash
    STATE=$(node .github/scripts/resolve-release-state.mjs --workflow release-promotion.yml --version "$VERSION")
@@ -549,41 +563,25 @@ Only after "oui":
    ```
 
    - `absent`: continue to the dispatch step. This is the only state that allows a new dispatch.
-   - `active` or `succeeded`: report the returned run URL and any open release PR; do not dispatch again — the identical invocation is a no-op.
+   - `active` or `succeeded`: report the returned run URL; do not dispatch again — the identical invocation is a no-op.
    - `failed`: after understanding the failure, rerun the exact run instead of dispatching a duplicate: validate with `--retry <run-id>` (the resolver accepts only the latest terminal run), then `gh run rerun <run-id> --repo neogenz/pulpe`.
    - `published`: the tag `vX.Y.Z` already exists; nothing to prepare.
    - Any resolver error (duplicate active runs, ambiguous refs or PRs, incomplete pagination, drift) stops the workflow without mutating anything.
 
-4. Put the exact approved **GitHub Release** template from Step 5 in a temporary UTF-8 file using the available file-editing capability. Its first line must be `## vX.Y.Z`. Dispatch the trusted workflow with that file as JSON input:
+5. Dispatch the read-only plan and report its manifest:
 
    ```bash
-   test "$(sed -n '1p' "$NOTES_FILE")" = "## v${VERSION}"
-   jq -n \
-     --arg release_branch "$BRANCH" \
-     --rawfile release_notes "$NOTES_FILE" \
-     '{release_branch: $release_branch, release_notes: $release_notes}' |
-     gh workflow run release-promotion.yml \
-       --repo neogenz/pulpe \
-       --ref preview \
-       --json
+   gh workflow run release-promotion.yml \
+     --repo neogenz/pulpe \
+     --ref preview \
+     -f release_branch="$BRANCH"
    ```
 
-5. Watch the dispatched `🚦 Release Promotion` run and report the preparation PR URL. A failure leaves `preview`, `main`, tags, GitHub Releases, and providers untouched.
+   The single `plan` job — read-only permissions, no secret, no environment — resolves the proven staging candidate, verifies that current `main` is already fully published (the rollback anchor), replays the content lineage, lists the migrations in scope and the provider deployment IDs, then uploads the `release-plan` manifest. A failure leaves `preview`, `main`, tags, GitHub Releases, and providers untouched.
 
-After the preparation PR is reviewed and merged with a merge commit:
+**Apply does not exist yet.** Production promotion is frozen until the phase-9 cutover: phase 9 first configures the protection of the GitHub `production` environment, then activates the apply path — the protected job calling the reusable production workflow — in its own preparation PR, never through a temporary flag. After that cutover, Railway's successful production `deployment_status` triggers `✅ Production Finalized` (`production-finalize.yml`), which verifies the exact active Railway/Vercel deployments and public services before idempotently creating the annotated tag and GitHub Release; the finalizer is never a Railway-required check.
 
-- the preview providers deploy that merge commit without rebuilding the complete CI matrix;
-- Railway's successful preview `deployment_status` triggers `✅ Staging Ready (shadow)`;
-- `✅ Staging Ready (shadow)` proves the canonical PR tree, exact merged commit, unchanged release base, provider deployments and health checks; if `preview` advanced after the release branch was created, promotion stops and the release must be reprepared;
-- the trusted promotion workflow fast-forwards the same release branch to that proven commit;
-- the App opens the production PR to `main`;
-- new feature PRs may then continue merging into `preview` without changing the frozen candidate;
-- `✅ Release Gate` validates the production PR without secrets or executing candidate code, resolves the exact immutable workflow attempt and proves that current `main` is already fully published;
-- a human other than the App approves production; this is the only human release approval;
-- `🏭 Production Preflight` revalidates provenance, applies migrations when present and uploads the exact context; Railway waits for this workflow, then remains the sole backend deployer;
-- Railway's successful production `deployment_status` triggers `✅ Production Finalized`, which verifies the exact active Railway/Vercel deployments and public services before idempotently creating the annotated tag and GitHub Release. The finalizer is never a Railway-required check.
-
-This skill does not push `preview` or `main`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release. Those production operations belong to the protected GitHub workflow after the approved production PR is merged.
+This skill does not push `preview` or `main`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release.
 
 ## Maintenance: Re-align an already published GitHub Release
 

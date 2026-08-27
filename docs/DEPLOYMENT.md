@@ -10,10 +10,10 @@ pnpm quality && pnpm test && pnpm test:e2e
 /release
 ```
 
-`/release` prepares one `release/vX.Y.Z` branch and one version commit. GitHub then
-promotes the same candidate through a preparation PR to `preview` and a production
-PR to `main`. A human approves production; the protected workflow publishes the tag
-and GitHub Release only after the exact production tree and deployments are proven.
+`/release` prepares one `release/vX.Y.Z` branch and one version commit, merged into
+`preview` through its preparation PR. The manual `🚦 Release Promotion` entry then
+produces a read-only release plan; the protected apply path that advances production
+and publishes the tag and GitHub Release arrives with the phase-9 cutover.
 
 ## Prerequisites
 
@@ -377,26 +377,34 @@ See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release ar
 
 ## Release Process
 
+Releases are **plan-only** until the phase-9 cutover: the manual entry can only
+compute and publish a read-only plan, and nothing can reach production.
+
 1. Run `/release` from a clean synchronized `preview`. It creates one
-   `release/vX.Y.Z` commit and opens the preparation PR to `preview`.
+   `release/vX.Y.Z` commit and its preparation PR to `preview`.
 2. Merge only after CI, staging provider SHAs and `✅ Staging Ready (shadow)` are green.
    Its proof is bound to the exact workflow run, attempt, successful job and artifact.
-   Promotion freezes that proven merge commit and opens `release/vX.Y.Z → main`; while
-   that PR is open, no other release PR can be opened toward `main`.
-3. `✅ Release Gate` verifies the frozen candidate, content lineage, absent future tag,
-   and that current `main` already has its exact annotated tag and published release.
-4. Approve and merge the production PR. **This is the single human release approval.**
-5. `🏭 Production Preflight` revalidates provenance and migrations, waits for the
-   exact frontend, then uploads the immutable context. Railway `Wait for CI` waits for
-   this workflow only; the backend version is embedded in the artifact.
-6. Railway deploys `main`. Its exact successful status starts `✅ Production Finalized`;
-   that workflow must never be a Railway-required check. It proves Railway, Vercel,
-   `/health` and `/api/v1/app/version`, then idempotently publishes `vX.Y.Z` and the
-   GitHub Release.
+3. Dispatch `🚦 Release Promotion` with the release branch. Its single `plan`
+   job — read-only permissions, no secret, no environment — resolves the proven
+   staging candidate, verifies that current `main` is already fully published
+   (annotated tag + GitHub Release: the rollback anchor), replays the content
+   lineage, lists the migrations in scope and the provider deployment IDs, then
+   uploads the `release-plan` manifest with the planned mutations and rollback.
+4. **Apply does not exist yet.** Phase 9 first configures the protection of the
+   GitHub `production` environment (one required reviewer), then activates the
+   apply path — the protected job calling the reusable `production.yml` — in
+   its own preparation PR. Protection always lands before activation, and never
+   through a temporary flag. `production.yml` keeps the migration dry-run →
+   apply order and the replayed migration contract; DB secrets stay reserved
+   for that future apply job.
+5. After the cutover, Railway's exact successful production `deployment_status`
+   starts `✅ Production Finalized`, which proves Railway, Vercel, `/health` and
+   `/api/v1/app/version`, then idempotently publishes `vX.Y.Z` and the GitHub
+   Release. That workflow must never be a Railway-required check.
 
-`main` must require strict up-to-date status checks so an older green release PR cannot
-merge after `main` advances. The `production` environment stores secrets but has no
-reviewers; adding one would reintroduce a second approval after the production PR.
+Rollback: applications roll back by redeploying the published `main` anchor
+recorded in the plan manifest (Vercel rollback / Railway redeploy of the exact
+SHA); migrations stay forward-only — ship a corrective migration instead.
 
 ### Release identity and resume
 

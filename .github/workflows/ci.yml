@@ -617,8 +617,10 @@ jobs:
         run: |
           # Workaround: xcodebuild hangs after tests on Xcode 26+ (actions/runner-images#13143)
           touch test-output.log
+          # PulpeLocal compile l'app et le widget puis exécute PulpeTests —
+          # l'unique invocation iOS de la CI (pas de second workflow de build).
           xcodebuild test \
-            -scheme PulpeTests \
+            -scheme PulpeLocal \
             -destination 'id=${{ steps.sim.outputs.udid }}' \
             CODE_SIGNING_ALLOWED=NO \
             -resultBundlePath TestResults \

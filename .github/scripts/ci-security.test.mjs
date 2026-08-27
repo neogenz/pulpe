@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import test from "node:test";
 
@@ -22,7 +22,6 @@ const workflow = read(".github/workflows/ci.yml");
 const androidE2eWorkflow = read(".github/workflows/android-e2e.yml");
 const stagingProof = read(".github/workflows/staging-proof.yml");
 const releasePromotion = read(".github/workflows/release-promotion.yml");
-const releaseGate = read(".github/workflows/release-gate.yml");
 const production = read(".github/workflows/production.yml");
 const productionFinalize = readOptional(
   ".github/workflows/production-finalize.yml",
@@ -436,65 +435,57 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
   }
 });
 
-test("release promotion writes only after a trusted immutable proof", () => {
-  assert.match(releasePromotion, /workflow_dispatch:/);
-  assert.match(
-    releasePromotion,
-    /workflow_run:\n\s+workflows: \["✅ Staging Ready \(shadow\)"\]/,
+test("release promotion is the single manual plan-only entry", () => {
+  // Only workflow_dispatch, one input, no automatic trigger of any kind.
+  const trigger = releasePromotion.slice(
+    releasePromotion.indexOf("\non:"),
+    releasePromotion.indexOf("\nconcurrency:"),
   );
-  assert.doesNotMatch(releasePromotion, /^\s{2}pull_request(?:_target)?:/m);
+  assert.match(trigger, /workflow_dispatch:\n\s+inputs:\n\s+release_branch:/);
+  assert.doesNotMatch(
+    trigger,
+    /workflow_run|pull_request|push:|schedule|deployment_status|release_notes/,
+  );
+
+  // The plan job is read-only: no write permission, secret, environment,
+  // App token, or mutating API call — and no apply input, job, or caller.
   assert.match(releasePromotion, /actions: read/);
   assert.match(releasePromotion, /contents: read/);
+  assert.match(releasePromotion, /deployments: read/);
   assert.match(releasePromotion, /pull-requests: read/);
   assert.doesNotMatch(
     releasePromotion,
     /:\s*write\b|--admin|enablePullRequestAutoMerge/,
   );
-  assert.match(
-    releasePromotion,
-    /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/,
-  );
-  assert.match(releasePromotion, /permissions:[\s\S]*pull-requests: read/);
-  assert.doesNotMatch(releasePromotion, /pull-requests: write/);
-  assert.match(releasePromotion, /workflow_run:[\s\S]*branches: \[preview\]/);
-  const validationJob = releasePromotion.slice(
-    releasePromotion.indexOf("\n  validate:"),
-    releasePromotion.indexOf("\n  promote:"),
-  );
-  const privilegedPromotion = releasePromotion.slice(
-    releasePromotion.indexOf("\n  promote:"),
-  );
-  assert.match(validationJob, /Checkout trusted release automation/);
-  assert.match(validationJob, /persist-credentials: false/);
-  assert.doesNotMatch(validationJob, /secrets\.|:\s*write\b/);
-  assert.match(privilegedPromotion, /needs: validate/);
   assert.doesNotMatch(
-    privilegedPromotion,
-    /actions\/checkout|git (?:fetch|pull|checkout|switch|reset|worktree)|gh run download|uses: \.\//,
+    releasePromotion,
+    /secrets\.|environment:|create-github-app-token|gh api -X (?:POST|PATCH|PUT|DELETE)|-f sha=|-F force=/,
   );
   assert.doesNotMatch(
     releasePromotion,
-    /git fetch[^\n]*(?:CANDIDATE_SHA|RELEASE_SHA|release_sha)|ref:.*workflow_run\.head_sha/,
+    /^\s+apply:|inputs\.(?:mode|apply)|uses:.*workflows\/production\.yml/m,
   );
-  assert.match(releasePromotion, /\.user\.login == "pulpe-release\[bot\]"/);
+  const jobs = [
+    ...releasePromotion
+      .slice(releasePromotion.indexOf("\njobs:"))
+      .matchAll(/^\s{2}([a-z-]+):$/gm),
+  ].map((match) => match[1]);
+  assert.deepEqual(jobs, ["plan"], "release promotion exposes only plan");
+  assert.match(releasePromotion, /Checkout trusted release automation/);
+  assert.match(releasePromotion, /persist-credentials: false/);
+
+  // The plan reuses the existing proof contracts instead of a second system.
   assert.match(releasePromotion, /\.parents\[1\]\.sha == \$release/);
   assert.match(releasePromotion, /\.parents\[0\]\.sha == \$base/);
   assert.match(
     releasePromotion,
     /--workflow staging-proof\.yml[\s\S]*--job "✅ Staging Ready \(shadow\)"[\s\S]*--artifact-template "staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
   );
-  assert.match(releasePromotion, /-F force=false/);
-  assert.match(releasePromotion, /base=preview/);
   assert.match(
     releasePromotion,
-    /pulls" -f state=open -f base=preview -f head=/,
+    /resolve-workflow-proof\.mjs --published-main "\$trusted_main_sha"/,
   );
-  assert.match(releasePromotion, /base=main/);
-  assert.match(releasePromotion, /pulls" -f state=open -f base=main -f head=/);
-  assert.match(
-    releasePromotion,
-    /pulls" -f state=open -f base=main -f per_page=100[\s\S]*pulpe-release\[bot\][\s\S]*startswith\("release\/"\)/,
-  );
+  assert.match(releasePromotion, /release-plan\.json/);
 
   for (const actionUse of releasePromotion.matchAll(
     /^\s*uses:\s*([^\s#]+)/gm,
@@ -521,7 +512,7 @@ test("release intention stays idempotent and every client stateless", () => {
   );
   assert.match(
     releasePromotion,
-    /run-name: .*format\('🚦 prepare \{0\}', inputs\.release_branch\).*format\('🚦 promote \{0\}', github\.event\.workflow_run\.head_sha\)/,
+    /run-name: "🚦 prepare \$\{\{ inputs\.release_branch \}\}"/,
   );
   assert.match(releaseState, /🚦 prepare release\/v\$\{options\.version\}/);
 
@@ -547,12 +538,7 @@ test("release intention stays idempotent and every client stateless", () => {
 });
 
 test("release lineage uses the shared content-integration check", () => {
-  const lineageSources = [
-    releasePromotion,
-    releaseGate,
-    production,
-    releaseSkill,
-  ];
+  const lineageSources = [releasePromotion, production, releaseSkill];
   for (const source of lineageSources) {
     assert.match(source, /node \.github\/scripts\/check-release-lineage\.mjs/);
     assert.doesNotMatch(
@@ -562,62 +548,54 @@ test("release lineage uses the shared content-integration check", () => {
   }
 });
 
-test("the production PR gate is read-only and proof-bound", () => {
-  assert.match(releaseGate, /pull_request:\n\s+branches: \[main\]/);
-  assert.doesNotMatch(releaseGate, /pull_request_target/);
-  assert.match(releaseGate, /actions: read/);
-  assert.match(releaseGate, /contents: read/);
-  assert.match(releaseGate, /pull-requests: read/);
-  assert.doesNotMatch(
-    releaseGate,
-    /secrets\.|:\s*write\b|git checkout|pull_request\.head\.repo/,
-  );
-  assert.match(
-    releaseGate,
-    /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/,
-  );
-  assert.match(
-    releaseGate,
-    /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/,
-  );
-  assert.match(releaseGate, /persist-credentials: false/);
-  assert.match(releaseGate, /PR_AUTHOR.*pull_request\.user\.login/);
-  assert.match(releaseGate, /test "\$PR_AUTHOR" = 'pulpe-release\[bot\]'/);
-  assert.match(releaseGate, /release\/v\(\[0-9\]/);
-  assert.match(releaseGate, /\.merge_commit_sha == \$candidate/);
-  assert.match(releaseGate, /\.parents\[1\]\.sha == \$release/);
-  assert.match(releaseGate, /\.parents\[0\]\.sha == \$base/);
-  assert.match(releaseGate, /\.tree_sha == \$tree/);
-  assert.match(
-    releaseGate,
-    /--workflow staging-proof\.yml[\s\S]*--job "✅ Staging Ready \(shadow\)"[\s\S]*--artifact-template "staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
-  );
-  assert.match(
-    releaseGate,
-    /node \.github\/scripts\/resolve-workflow-proof\.mjs --published-main "\$current_main"/,
-  );
-  assert.match(releaseGate, /matching-refs\/tags/);
-  assert.ok(
-    releaseGate.includes(
-      'gh api -X GET "repos/$GITHUB_REPOSITORY/contents/package.json" -f ref="$CANDIDATE_SHA"',
-    ),
-  );
+test("the legacy release flow stays deleted", () => {
+  // release-gate.yml and ios.yml are gone; nothing may reference the gate,
+  // and no workflow may call the reusable production workflow before the
+  // phase-9 cutover installs the protected apply path.
+  assert.equal(readOptional(".github/workflows/release-gate.yml"), "");
+  assert.equal(readOptional(".github/workflows/ios.yml"), "");
+  for (const [name, source] of [
+    ["ci.yml", workflow],
+    ["release-promotion.yml", releasePromotion],
+    ["production.yml", production],
+    ["production-finalize.yml", productionFinalize],
+    ["staging-proof.yml", stagingProof],
+    ["ios-distribute.yml", iosDistribution],
+    ["docs/CI.md", ciGuide],
+    ["docs/DEPLOYMENT.md", deploymentGuide],
+    ["release skill", releaseSkill],
+  ]) {
+    assert.doesNotMatch(
+      source,
+      /release-gate\.yml|✅ Release Gate/,
+      `${name} must not reference the deleted release gate`,
+    );
+    assert.doesNotMatch(
+      source,
+      /uses:.*workflows\/production\.yml/,
+      `${name} must not call the reusable production workflow yet`,
+    );
+  }
 });
 
 test("production finishes preflight before Railway deploys", () => {
-  assert.match(production, /push:\n\s+branches: \[main\]/);
+  // Reusable only: no automatic trigger, and no caller exists before phase 9.
+  const productionTrigger = production.slice(
+    production.indexOf("\non:"),
+    production.indexOf("\nconcurrency:"),
+  );
+  assert.match(productionTrigger, /workflow_call:/);
+  assert.doesNotMatch(
+    productionTrigger,
+    /push:|pull_request|workflow_run|workflow_dispatch|schedule/,
+  );
   assert.match(production, /actions: read/);
   assert.match(production, /contents: read/);
   assert.match(production, /pull-requests: read/);
   assert.doesNotMatch(production, /:\s*write\b|--force/);
   assert.match(production, /.user\.login == "pulpe-release\[bot\]"/);
   assert.match(production, /.state == "APPROVED"/);
-  assert.match(production, /release-gate\.yml/);
   assert.doesNotMatch(production, /\.pull_requests\[\]|\.pull_requests\[\]\?/);
-  assert.match(
-    production,
-    /node \.github\/scripts\/resolve-workflow-proof\.mjs[\s\S]*--workflow release-gate\.yml[\s\S]*--sha "\$candidate_sha"[\s\S]*--job "✅ Release Gate"/,
-  );
   assert.match(
     production,
     /--workflow staging-proof\.yml[\s\S]*--job "✅ Staging Ready \(shadow\)"[\s\S]*--artifact-template "staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
@@ -633,10 +611,6 @@ test("production finishes preflight before Railway deploys", () => {
   assert.match(
     production,
     /name: production-context-\$\{\{ github\.sha \}\}-run-\$\{\{ github\.run_id \}\}-attempt-\$\{\{ github\.run_attempt \}\}/,
-  );
-  assert.match(
-    production,
-    /release_gate:\{run_id:\$gate_run_id,attempt:\$gate_attempt,job_id:\$gate_job_id\}/,
   );
   assert.doesNotMatch(
     production,
@@ -955,6 +929,51 @@ test("iOS distribution resumes the exact App Store build idempotently", () => {
   assert.match(iosDistribution, /ios-distribution-proof-/);
   for (const field of ["marketing_version", "build_number", "source_sha"])
     assert.match(iosDistribution, new RegExp(`"${field}"`));
+});
+
+test("one CI invocation proves app, widget, and Swift tests through PulpeLocal", () => {
+  const iosJob = workflow.slice(
+    workflow.indexOf("\n  test-ios:"),
+    workflow.indexOf("\n  ci-success:"),
+  );
+  assert.match(iosJob, /-scheme PulpeLocal/);
+  assert.doesNotMatch(iosJob, /-scheme PulpeTests|xcodebuild build/);
+  assert.equal(
+    [...iosJob.matchAll(/xcodebuild test/g)].length,
+    1,
+    "exactly one xcodebuild invocation in CI",
+  );
+
+  // The distributor is the only other workflow allowed to run xcodebuild.
+  const workflowsDir = new URL("../workflows/", import.meta.url);
+  const buildWorkflows = readdirSync(workflowsDir).filter((file) =>
+    read(`.github/workflows/${file}`).includes("xcodebuild"),
+  );
+  assert.deepEqual(buildWorkflows.sort(), ["ci.yml", "ios-distribute.yml"]);
+
+  // The classifier keeps routing iOS: dedicated surfaces run the unit, and
+  // shared or mirrored-formula changes force the full run.
+  const classifier = read(".github/scripts/classify-ci-changes.mjs");
+  assert.match(classifier, /kind: "ios"/);
+  assert.ok(
+    classifier.includes('path.startsWith("ios/Pulpe/Domain/Formulas/")'),
+  );
+  assert.ok(classifier.includes('path.startsWith("shared/")'));
+
+  // PostHog publication happens only in the distributor, after the valid
+  // Apple proof, and only for the release channel.
+  const posthog = iosDistribution.indexOf(
+    "Create PostHog release and annotation",
+  );
+  const proofUpload = iosDistribution.indexOf("Upload iOS distribution proof");
+  const summary = iosDistribution.indexOf("Distribution summary");
+  assert.ok(proofUpload >= 0 && proofUpload < posthog && posthog < summary);
+  assert.match(
+    iosDistribution,
+    /Create PostHog release and annotation\n\s+if: inputs\.channel == 'release'/,
+  );
+  assert.doesNotMatch(production, /PostHog/);
+  assert.doesNotMatch(workflow, /PostHog/i);
 });
 
 test("the backend image does not install Bun", () => {

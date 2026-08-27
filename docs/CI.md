@@ -87,7 +87,9 @@ decision is routed, the workspace runs `build`, unit tests and `lint` with
   routing, and lexicon invariant tests) when the workspace does not run — the
   workspace quality gate is a strict superset of it.
 - `actionlint` validates workflow syntax and shell fragments.
-- `test-ios` generates the Xcode project and runs Swift tests on macOS.
+- `test-ios` generates the Xcode project and runs one `xcodebuild test -scheme
+PulpeLocal` invocation on macOS: the scheme compiles the app and the widget,
+  then executes the Swift tests. There is no second iOS build workflow.
 - `migration-contract` validates new migration metadata, additive SQL and immutable history.
 - `ci-success` is the single protected status and fails unless every required
   job succeeded — a unit may be skipped only when the routing decision
@@ -98,8 +100,8 @@ zero tests while reporting success.
 
 ## Release proofs
 
-The release path reuses the complete CI result from the App-authored preparation PR
-instead of treating a second build as the identity of the candidate:
+The release path reuses the complete CI result from the preparation PR instead
+of treating a second build as the identity of the candidate:
 
 ```mermaid
 flowchart LR
@@ -107,9 +109,8 @@ flowchart LR
     CI --> Merge["Merge commit P on preview"]
     Merge --> Deploy["Vercel and Railway preview"]
     Deploy --> Proof["Staging Ready from Railway deployment_status"]
-    Proof --> Gate["release/vX.Y.Z → main · Release Gate"]
-    Gate --> Human["Human approval"]
-    Human --> Production["Production deployments, proof and publication"]
+    Proof --> Plan["🚦 Release Promotion · read-only plan"]
+    Plan --> Apply["Phase 9: protected apply → production"]
 ```
 
 `Staging Ready` is triggered by Railway's successful preview `deployment_status`.
@@ -121,6 +122,15 @@ runs staging health checks. A release additionally proves that the release commi
 the merge commit share the same original `preview` base; a feature merged during the
 short release freeze therefore stops promotion. Normal preview PRs produce a proof but
 are not promoted.
+
+`🚦 Release Promotion` (`release-promotion.yml`) is the single manual release
+entry. Dispatching it runs one read-only `plan` job — no secret, environment,
+or write permission — that resolves the proven staging candidate, the fully
+published current `main`, the content lineage, the migrations in scope and the
+provider deployment IDs, then uploads a `release-plan` manifest with the
+planned mutations and the rollback anchor. No `apply` input, job, or caller
+exists: phase 9 first protects the GitHub `production` environment, then
+activates apply in its own preparation PR — never through a temporary flag.
 
 ## Quality boundary
 
@@ -137,14 +147,16 @@ rebase. CI always runs the complete gate.
 
 ## Migrations and production
 
-`production.yml` authenticates the App-authored and approved release PR before checking
-out repository code. It detects migration changes against the previous `main`; only a
-release containing migrations enters the protected `production` environment for dry-run
-and apply. The PR job checks its exact base/head range; production replays the exact
-merge-parent/merge range before touching Supabase. Each new migration declares `expand`
-or `contract` in its initial comment header, and published files cannot be changed.
-After provider deployment, `production-finalize.yml` verifies the exact Railway and
-Vercel deployments plus the public health and version endpoints, then publishes the
+`production.yml` is exposed only as a reusable `workflow_call` workflow and has
+no active caller: it becomes reachable in phase 9 through the protected apply
+path. Its jobs authenticate the approved release PR, detect migration changes
+against the previous `main`, and only a release containing migrations enters
+the protected `production` environment for dry-run and apply — the migration
+contract is replayed on the exact merge-parent/merge range before touching
+Supabase. Each new migration declares `expand` or `contract` in its initial
+comment header, and published files cannot be changed. After provider
+deployment, `production-finalize.yml` verifies the exact Railway and Vercel
+deployments plus the public health and version endpoints, then publishes the
 production proof, immutable tag and GitHub Release.
 
 ## Local equivalents
