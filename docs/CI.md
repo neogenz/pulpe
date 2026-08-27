@@ -16,10 +16,8 @@ comments.
 ```mermaid
 flowchart LR
     Workspace[Workspace] --> E2E[E2E]
-    Workspace --> Integration[Backend integration]
-    Supabase[Supabase setup] --> Integration
     Workspace --> Success[CI Success]
-    Integration --> Success
+    BackendDB[Backend & Database] --> Success
     E2E --> Success
     IOS[iOS tests] --> Success
     Actionlint[actionlint] --> Success
@@ -33,15 +31,19 @@ flowchart LR
   separate steps sharing the local Turbo cache, before uploading the build
   artifacts E2E consumes. There is no separate install prewarm job: every job
   that needs Node declares its own install and pnpm cache.
-- `supabase-setup` starts local Supabase once and uploads its state (`.env`,
-  `supabase/.temp/`) for dependent jobs. Stack images resolve from the GHCR
-  mirror (`SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io`, exported by the
+- `backend-db` is the single database runner, parallel to `workspace`: it
+  starts local Supabase exactly once, runs every SQL suite with
+  `ON_ERROR_STOP`, verifies the committed TypeScript types, then runs the Bun
+  integration and E2E specs against the same stack — no Supabase state
+  artifact crosses runners. Stack images resolve from the GHCR mirror
+  (`SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io`, exported by the
   setup-supabase-cli action) so Public ECR throttling stays off the critical
-  path; `postgres-meta` starts inside the retry boundary of
-  `start-supabase.sh`. Types are generated into a temporary file and compared
-  to the committed `database.types.ts` — a drift fails the job with a readable
-  diff and the tracked file is never rewritten.
-- `test-backend-integration` runs Bun integration and E2E specs against local Supabase.
+  path. `postgres-meta` only serves type generation, so both it and the types
+  check run only when the PR touches the DB contract (migrations,
+  `supabase/config.toml`, `database.types.ts`) — detection fails closed to
+  checking. Types are generated into a temporary file and compared to the
+  committed `database.types.ts`: a drift fails the job with a readable diff
+  and the tracked file is never rewritten.
 - `test-e2e` runs the two mocked Playwright projects (`Critical User Journeys`,
   `Feature Tests`) explicitly in one runner — Playwright parallelizes internally
   with a single checkout, pnpm install, Chromium and Angular `webServer`. One

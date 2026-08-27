@@ -197,17 +197,20 @@ test("Supabase type generation pulls postgres-meta inside the retry boundary", (
   assert.doesNotMatch(action, /public\.ecr\.aws/);
 
   // postgres-meta stays inside the start retry loop (3 attempts, clean stop
-  // between attempts); no second retry wraps the generation itself.
+  // between attempts); no second retry wraps the generation itself. The only
+  // sanctioned way to drop it is the explicit skip flag, wired to the
+  // DB-contract detection in the workflow.
   assert.doesNotMatch(
     startSupabase,
     /^EXCLUDE=.*postgres-meta/m,
     "postgres-meta must start inside the rate-limit retry loop",
   );
+  assert.match(startSupabase, /SUPABASE_SKIP_PG_META:-0/);
   assert.match(startSupabase, /SUPABASE_START_ATTEMPTS:-3/);
   assert.match(startSupabase, /supabase stop --no-backup/);
 
   // Types are generated into RUNNER_TEMP, refused when empty, compared to the
-  // tracked file — never written over it, and never re-shipped via artifact.
+  // tracked file — never written over it, and never shipped via artifact.
   assert.match(workflow, /generated="\$RUNNER_TEMP\/database\.types\.ts"/);
   assert.match(workflow, /trap 'rm -f "\$generated"' EXIT/);
   assert.match(
@@ -222,8 +225,54 @@ test("Supabase type generation pulls postgres-meta inside the retry boundary", (
   );
   assert.doesNotMatch(
     workflow,
-    /supabase-state[\s\S]{0,220}database\.types\.ts/,
-    "the state artifact must not ship a rewritten types file",
+    /supabase-state/,
+    "no artifact may ship Supabase state between runners",
+  );
+});
+
+test("one DB runner starts one stack for SQL, types, and backend integration", () => {
+  const backendDb = workflow.slice(
+    workflow.indexOf("\n  backend-db:"),
+    workflow.indexOf("\n  workspace:"),
+  );
+
+  // One stack, one CLI install, no artifact plumbing, parallel to workspace.
+  assert.equal([...workflow.matchAll(/start-supabase\.sh/g)].length, 1);
+  assert.equal(
+    [...workflow.matchAll(/uses: \.\/\.github\/actions\/setup-supabase-cli/g)]
+      .length,
+    1,
+  );
+  assert.ok(backendDb.length > 0, "the backend-db job must exist");
+  assert.doesNotMatch(backendDb, /needs:|download-artifact|upload-artifact/);
+
+  // postgres-meta starts only when the PR touches the DB contract, and the
+  // detection fails closed to verifying the types.
+  assert.match(
+    backendDb,
+    /SUPABASE_SKIP_PG_META: \$\{\{ steps\.db\.outputs\.contract == 'true' && '0' \|\| '1' \}\}/,
+  );
+  assert.match(backendDb, /contract=true\n/);
+  assert.match(backendDb, /backend-nest\/supabase\/migrations/);
+  assert.match(backendDb, /backend-nest\/supabase\/config\.toml/);
+  assert.match(backendDb, /backend-nest\/src\/types\/database\.types\.ts/);
+  assert.match(
+    backendDb,
+    /Verify TypeScript Types\n\s+if: steps\.db\.outputs\.contract == 'true'/,
+  );
+
+  // Order on the shared stack: SQL suites, then types, then integration —
+  // with diagnostics and cleanup surviving a red step.
+  const sql = backendDb.indexOf("SQL Integration Tests");
+  const types = backendDb.indexOf("Verify TypeScript Types");
+  const integration = backendDb.indexOf("Run backend integration tests");
+  assert.ok(sql >= 0 && sql < types && types < integration);
+  assert.match(backendDb, /ON_ERROR_STOP=1/);
+  assert.match(backendDb, /bun test \.integration\.spec \.e2e\.spec/);
+  assert.match(backendDb, /if: failure\(\)/);
+  assert.match(
+    backendDb,
+    /if: always\(\) && steps\.start-supabase\.outcome == 'success'/,
   );
 });
 
@@ -920,7 +969,7 @@ test("the workspace unit runs every gate once without a prewarm job", () => {
   assert.doesNotMatch(workflow, /^ {2}install:/m);
   const workspaceJob = workflow.slice(
     workflow.indexOf("\n  workspace:"),
-    workflow.indexOf("\n  test-backend-integration:"),
+    workflow.indexOf("\n  test-e2e:"),
   );
   for (const command of [
     "pnpm install --frozen-lockfile",
@@ -945,7 +994,7 @@ test("the workspace unit runs every gate once without a prewarm job", () => {
   const success = workflow.slice(workflow.indexOf("\n  ci-success:"));
   for (const dependency of [
     "workspace",
-    "test-backend-integration",
+    "backend-db",
     "test-e2e",
     "actionlint",
     "test-ios",
