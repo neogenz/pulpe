@@ -4,8 +4,12 @@
 requests targeting `preview`, with one active run per ref. Pushes and production PRs
 reuse immutable evidence instead of rebuilding the same tree.
 
-Security-sensitive workflow contracts are explicit: `pull-requests: write`,
-`NODE_VERSION: "24"`, and CLI Supabase 2.113.0.
+Security-sensitive workflow contracts are explicit: a read-only token
+(`contents: read` is the only workflow permission), `NODE_VERSION: "24"`, and
+CLI Supabase 2.113.0. E2E failures are diagnosed through the native Playwright
+reporters — GitHub annotations, JUnit and blob — plus the report and
+test-results artifacts uploaded on every outcome; no job writes checks or PR
+comments.
 
 ## Required jobs
 

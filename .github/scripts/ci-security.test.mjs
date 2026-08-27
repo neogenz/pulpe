@@ -197,6 +197,34 @@ test("Supabase type generation pulls postgres-meta inside the retry boundary", (
   );
 });
 
+test("the main CI token is read-only and E2E diagnostics stay native", () => {
+  const workflowPermissions = workflow.match(
+    /^permissions:\n((?:[ ]{2}.+\n)+)/m,
+  )?.[1];
+  assert.equal(
+    workflowPermissions,
+    "  contents: read\n",
+    "ci.yml must grant only contents: read at the workflow level",
+  );
+  assert.doesNotMatch(workflow, /checks:\s*write/);
+  assert.doesNotMatch(workflow, /pull-requests:\s*write/);
+  assert.doesNotMatch(workflow, /permissions:\s*(?:write-all|read-all)/);
+  assert.doesNotMatch(workflow, /publish-unit-test-result-action/);
+
+  const playwrightConfig = read("frontend/playwright.config.ts");
+  assert.match(playwrightConfig, /\['blob'\]/);
+  assert.match(playwrightConfig, /\['github'\]/);
+  assert.match(
+    playwrightConfig,
+    /\['junit', \{ outputFile: 'test-results\/junit\.xml' \}\]/,
+  );
+  assert.match(
+    workflow,
+    /Upload E2E artifacts\n\s+if: always\(\)[\s\S]{0,400}playwright-report\/[\s\S]{0,80}test-results\//,
+    "E2E diagnostics must stay uploaded even when the tests fail",
+  );
+});
+
 test("CI is PR-only and production owns migration credentials", () => {
   assert.match(workflow, /pull_request:\n\s+branches: \[preview\]/);
   assert.doesNotMatch(workflow, /^\s{2}push:|branches: \[main/m);

@@ -9,11 +9,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Sécurité : permissions minimales
+# Sécurité : token en lecture seule. Les diagnostics E2E passent par les
+# reporters Playwright natifs (annotations github, JUnit, blob) et les
+# artefacts — aucun job n'écrit sur la PR ni ne crée de check run.
 permissions:
   contents: read
-  checks: write
-  pull-requests: write
 
 # Variables globales
 env:
@@ -470,14 +470,6 @@ jobs:
 
       - name: 🎭 Run E2E tests
         run: cd frontend && pnpm test:e2e --project="${{ matrix.project }}"
-
-      - name: 📊 Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2
-        if: always()
-        with:
-          files: frontend/test-results/junit.xml
-          check_name: E2E Test Results - ${{ matrix.project }}
-          comment_title: 🎭 Playwright E2E Tests
 
       - name: 📤 Upload E2E artifacts
         if: always()
