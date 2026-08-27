@@ -32,9 +32,10 @@ export function shouldLockOnResume(
  * Closes the vault when the app has been away long enough.
  *
  * Nothing here navigates. `lockVault` flips the status, which closes the
- * `(main)` group; the router falls back to `/`, the one route no guard can
- * remove, and `landingRoute` sends it on to the unlock screen. That is the same
- * path a key rejection already takes — see `key-invalidation.ts`.
+ * `(main)` group and opens `(vault)`; the root Stack then restarts on `index`,
+ * declared first in `app/_layout.tsx`, which re-runs `landingRoute` and sends
+ * the user to the unlock screen. That is the same path a key rejection already
+ * takes — see `key-invalidation.ts`.
  */
 export function armAutoLock(): () => void {
   let backgroundedAt: number | null = null;

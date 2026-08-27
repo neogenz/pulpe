@@ -1,5 +1,7 @@
+import { API_ERROR_CODES } from "pulpe-shared";
 import { create } from "zustand";
 
+import { isApiError } from "@/core/api/api-error";
 import {
   clearAllKeys,
   clearLegacyClientKey,
@@ -13,6 +15,7 @@ import {
 import { deriveClientKey } from "@/core/crypto/pbkdf2";
 import { queryClient } from "@/core/query/query-client";
 
+import { isVaultKeyRejected } from "./key-rejection";
 import {
   changePin,
   fetchSalt,
@@ -121,9 +124,24 @@ export async function setupVaultPin(pin: string): Promise<void> {
     // A half-set-up vault must not leave a key behind that the app would then
     // treat as an unlocked session.
     await clearSessionKey();
-    setState({ status: "setupRequired" });
+    // The server saying "this vault already has a PIN" means the status here
+    // was stale, not that setup failed: re-asking it lands on `locked` and the
+    // unlock screen instead of a "Choisis ton code" nobody can get past.
+    if (isSetupRefused(error)) {
+      await bootstrapVault();
+    } else {
+      setState({ status: "setupRequired" });
+    }
     throw error;
   }
+}
+
+function isSetupRefused(error: unknown): boolean {
+  return (
+    (isApiError(error) &&
+      error.code === API_ERROR_CODES.RECOVERY_KEY_ALREADY_EXISTS) ||
+    isVaultKeyRejected(error)
+  );
 }
 
 export async function unlockVaultWithPin(pin: string): Promise<void> {
