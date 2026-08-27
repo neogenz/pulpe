@@ -152,13 +152,6 @@ export const HOME_HERO_COLORS = {
   },
 } as const;
 
-/** Hero gradient tints, keyed to financial state. The only red-adjacent surface. */
-export const HERO_TINTS = {
-  comfortable: "#14AD45",
-  tight: "#D88010",
-  deficit: "#C45028",
-} as const;
-
 /** Mirrors `DesignTokens.Spacing` on iOS so both apps share one rhythm. */
 export const SPACING = {
   none: 0,
