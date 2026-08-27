@@ -258,7 +258,7 @@ test("the main CI token is read-only and E2E diagnostics stay native", () => {
 test("E2E runs both mocked projects explicitly in one runner", () => {
   const e2e = workflow.slice(
     workflow.indexOf("\n  test-e2e:"),
-    workflow.indexOf("\n  quality:"),
+    workflow.indexOf("\n  actionlint:"),
   );
   assert.doesNotMatch(e2e, /strategy:|matrix:/);
   assert.match(
@@ -913,7 +913,57 @@ test("critical dependency audit stays in CI", () => {
     rootPackage.scripts["audit:critical"],
     "pnpm audit --audit-level critical",
   );
-  assert.match(workflow, /check:\s*\[[^\]]*"audit:critical"[^\]]*\]/);
+  assert.match(workflow, /run: pnpm audit:critical\n/);
+});
+
+test("the workspace unit runs every gate once without a prewarm job", () => {
+  assert.doesNotMatch(workflow, /^ {2}install:/m);
+  const workspaceJob = workflow.slice(
+    workflow.indexOf("\n  workspace:"),
+    workflow.indexOf("\n  test-backend-integration:"),
+  );
+  for (const command of [
+    "pnpm install --frozen-lockfile",
+    "pnpm build",
+    "pnpm test:unit",
+    "pnpm lint",
+    "pnpm format:check",
+    "pnpm quality",
+    "pnpm deps:check",
+    "pnpm audit:critical",
+  ]) {
+    assert.equal(
+      [...workspaceJob.matchAll(new RegExp(`run: ${command}\\n`, "g"))].length,
+      1,
+      `${command} must run exactly once in the workspace unit`,
+    );
+  }
+  assert.match(workspaceJob, /cache: "pnpm"/);
+  assert.match(workspaceJob, /name: build-artifacts/);
+  assert.doesNotMatch(workspaceJob, /matrix:|download-artifact/);
+
+  const success = workflow.slice(workflow.indexOf("\n  ci-success:"));
+  for (const dependency of [
+    "workspace",
+    "test-backend-integration",
+    "test-e2e",
+    "actionlint",
+    "test-ios",
+    "migration-contract",
+  ]) {
+    assert.match(
+      success,
+      new RegExp(`needs\\.${dependency}\\.result == 'success'`),
+    );
+    assert.match(
+      success,
+      new RegExp(`needs\\.${dependency}\\.result != 'success'`),
+    );
+  }
+  assert.doesNotMatch(
+    success,
+    /needs\.build\.|needs\.test-unit\.|needs\.quality\./,
+  );
 });
 
 test("Android E2E verifies Maestro and withholds preview secrets from forks", () => {

@@ -37,35 +37,6 @@ env:
   NPM_CONFIG_PROGRESS: "false"
 
 jobs:
-  # 📦 INSTALL & CACHE
-  install:
-    name: 📦 Install Dependencies
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm" # Cache pnpm store (via pnpm store path)
-          cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
   migration-contract:
     name: 🛡️ Migration Contract
     runs-on: ubuntu-latest
@@ -95,7 +66,6 @@ jobs:
     name: 🗄️ Setup Supabase Local
     runs-on: ubuntu-latest
     timeout-minutes: 8
-    needs: install
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -211,12 +181,16 @@ jobs:
             backend-nest/supabase/.temp/
           retention-days: 1
 
-  # 🏗️ BUILD (Modifié pour dépendre de supabase-setup)
-  build:
-    name: 🏗️ Build Projects
+  # 🧰 WORKSPACE — l'unité Node unique : build, tests unitaires et gates
+  # quality partagent un runner, une seule installation pnpm et le cache Turbo
+  # local (lint/format des sous-tâches turbo se dédoublonnent d'eux-mêmes).
+  # Chaque gate reste une étape distincte pour un diagnostic par commande.
+  # Les types Supabase versionnés sont vérifiés par supabase-setup : compiler
+  # ne parle à aucune base, donc aucune dépendance ni artefact Supabase ici.
+  workspace:
+    name: 🧰 Workspace
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [install, supabase-setup]
+    timeout-minutes: 25
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -238,15 +212,6 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      # Les types versionnés sont déjà vérifiés conformes au schéma local par
-      # supabase-setup : compiler ne parle à aucune base, donc pas de conteneurs
-      # Supabase à démarrer ici — l'artefact ne porte que .env et .temp.
-      - name: 📥 Download Supabase State
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: supabase-state
-          path: backend-nest/
-
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -254,6 +219,28 @@ jobs:
         env:
           DOTENV_CONFIG_PATH: .env.e2e
         run: pnpm build
+
+      - name: 🧪 Run unit tests
+        run: pnpm test:unit
+        env:
+          NODE_ENV: test
+          TURNSTILE_SECRET_KEY: ci-test-turnstile-key
+          ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+      - name: 🔍 Lint
+        run: pnpm lint
+
+      - name: 🔍 Check formatting
+        run: pnpm format:check
+
+      - name: 🔍 Run quality gate
+        run: pnpm quality
+
+      - name: 🔍 Check dependency graphs
+        run: pnpm deps:check
+
+      - name: 🔍 Audit critical dependencies
+        run: pnpm audit:critical
 
       - name: 📤 Upload build artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -265,55 +252,13 @@ jobs:
             backend-nest/dist/
           retention-days: 1
 
-  # 🧪 TESTS UNITAIRES (sans Supabase — les suites d'intégration tournent dans test-backend-integration)
-  test-unit:
-    name: 🧪 Unit Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [install, build]
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: 📥 Download build artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: build-artifacts
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🧪 Run unit tests
-        run: pnpm test:unit
-        env:
-          NODE_ENV: test
-          TURNSTILE_SECRET_KEY: ci-test-turnstile-key
-          ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
   # 🔌 TESTS D'INTÉGRATION BACKEND (seul job de test à démarrer Supabase — runner dédié,
   # pas de concurrence avec vitest frontend, donc pas de saturation ni de flake réseau)
   test-backend-integration:
     name: 🔌 Backend Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [install, build]
+    needs: [workspace, supabase-setup]
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -451,7 +396,7 @@ jobs:
     name: 🎭 E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    needs: [install, build]
+    needs: [workspace]
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -491,42 +436,6 @@ jobs:
             frontend/playwright-report/
             frontend/test-results/
           retention-days: 7
-
-  # 🔍 QUALITY CHECKS en parallèle
-  quality:
-    name: 🔍 Quality Checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [install, build]
-    strategy:
-      matrix:
-        check: [lint, format:check, quality, deps:check, "audit:critical"]
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🔍 Run ${{ matrix.check }}
-        run: pnpm ${{ matrix.check }}
 
   # 🕵️ LINT DES WORKFLOWS — Prettier aligne la forme, actionlint relit le fond :
   # expressions ${{ }}, références de job, labels de runner, entrées d'action, et
@@ -714,11 +623,9 @@ jobs:
       contents: read
     needs:
       [
-        build,
-        test-unit,
+        workspace,
         test-backend-integration,
         test-e2e,
-        quality,
         actionlint,
         test-ios,
         migration-contract,
@@ -727,11 +634,9 @@ jobs:
     steps:
       - name: ✅ Check all jobs
         if: >-
-          needs.build.result == 'success' &&
-          needs.test-unit.result == 'success' &&
+          needs.workspace.result == 'success' &&
           needs.test-backend-integration.result == 'success' &&
           needs.test-e2e.result == 'success' &&
-          needs.quality.result == 'success' &&
           needs.actionlint.result == 'success' &&
           needs.test-ios.result == 'success' &&
           needs.migration-contract.result == 'success'
@@ -739,21 +644,17 @@ jobs:
 
       - name: ❌ Check failures
         if: >-
-          needs.build.result != 'success' ||
-          needs.test-unit.result != 'success' ||
+          needs.workspace.result != 'success' ||
           needs.test-backend-integration.result != 'success' ||
           needs.test-e2e.result != 'success' ||
-          needs.quality.result != 'success' ||
           needs.actionlint.result != 'success' ||
           needs.test-ios.result != 'success' ||
           needs.migration-contract.result != 'success'
         run: |
           echo "❌ Some CI checks failed"
-          echo "Build: ${{ needs.build.result }}"
-          echo "Unit Tests: ${{ needs.test-unit.result }}"
+          echo "Workspace (build, unit, quality): ${{ needs.workspace.result }}"
           echo "Backend Integration: ${{ needs.test-backend-integration.result }}"
           echo "E2E Tests: ${{ needs.test-e2e.result }}"
-          echo "Quality: ${{ needs.quality.result }}"
           echo "Workflow Lint: ${{ needs.actionlint.result }}"
           echo "iOS Tests: ${{ needs.test-ios.result }}"
           echo "Migration Contract: ${{ needs.migration-contract.result }}"

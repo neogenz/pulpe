@@ -15,24 +15,24 @@ comments.
 
 ```mermaid
 flowchart LR
-    Install[Install] --> Supabase[Supabase setup]
-    Install --> Build[Build]
-    Supabase --> Build
-    Build --> Unit[Unit tests]
-    Build --> Integration[Backend integration]
-    Build --> E2E[E2E]
-    Build --> Quality[Quality]
-    Build --> Success[CI Success]
-    Unit --> Success[CI Success]
+    Workspace[Workspace] --> E2E[E2E]
+    Workspace --> Integration[Backend integration]
+    Supabase[Supabase setup] --> Integration
+    Workspace --> Success[CI Success]
     Integration --> Success
     E2E --> Success
-    Quality --> Success
     IOS[iOS tests] --> Success
     Actionlint[actionlint] --> Success
     Migration[Migration contract] --> Success
 ```
 
-- `install` installs the frozen pnpm workspace.
+- `workspace` is the single Node unit: one checkout, one frozen pnpm install,
+  then build, unit tests, lint, format, the root quality gate (repository
+  security and vocabulary tests included), `deps:check` (Expo compatibility
+  plus the frontend and Android circularity graphs) and the critical audit as
+  separate steps sharing the local Turbo cache, before uploading the build
+  artifacts E2E consumes. There is no separate install prewarm job: every job
+  that needs Node declares its own install and pnpm cache.
 - `supabase-setup` starts local Supabase once and uploads its state (`.env`,
   `supabase/.temp/`) for dependent jobs. Stack images resolve from the GHCR
   mirror (`SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io`, exported by the
@@ -41,15 +41,12 @@ flowchart LR
   `start-supabase.sh`. Types are generated into a temporary file and compared
   to the committed `database.types.ts` — a drift fails the job with a readable
   diff and the tracked file is never rewritten.
-- `build` builds the pnpm packages and uploads artifacts.
-- `test-unit` runs workspace unit tests.
 - `test-backend-integration` runs Bun integration and E2E specs against local Supabase.
 - `test-e2e` runs the two mocked Playwright projects (`Critical User Journeys`,
   `Feature Tests`) explicitly in one runner — Playwright parallelizes internally
   with a single checkout, pnpm install, Chromium and Angular `webServer`. One
   artifact set (report, JUnit, traces, screenshots, videos) is uploaded on
   every outcome; `Chromium - Smoke` never runs implicitly.
-- `quality` runs the root quality gate, including repository security and vocabulary tests.
 - `actionlint` validates workflow syntax and shell fragments.
 - `test-ios` generates the Xcode project and runs Swift tests on macOS.
 - `migration-contract` validates new migration metadata, additive SQL and immutable history.
