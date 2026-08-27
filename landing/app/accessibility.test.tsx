@@ -1301,6 +1301,9 @@ describe("landing accessibility contracts", () => {
     // tiret.
     assert.equal(testimonialMarkup.match(/— /g)?.length, 3);
     assert.equal(testimonialMarkup.match(/«/g)?.length, 3);
+    // La présence du bloc vient de l'échelle pull-quote, pas d'un décor :
+    // la citation est nettement plus grande que le corps de texte.
+    assert.match(componentSources.testimonials, /text-xl[\s\S]*sm:text-2xl/);
     assert.doesNotMatch(componentSources.testimonials, /testimonial-glyph/);
     assert.doesNotMatch(componentSources.testimonials, /charAt\(0\)/);
     assert.doesNotMatch(componentSources.testimonials, /outline-black/);
