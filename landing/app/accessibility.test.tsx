@@ -1289,14 +1289,18 @@ describe("landing accessibility contracts", () => {
       componentSources.testimonials,
       /dict\.items\.map[\s\S]*marker-highlight[\s\S]*font-semibold/,
     );
-    // Le feutre preuve est le seul signifiant de la citation. Pas de chrome
-    // de carte, pas de glyphe décoratif, pas de médaillon d'initiale : les
-    // témoignages restent des colonnes éditoriales plates.
+    // Un seul panneau menthe regroupe les trois voix ; les blockquotes eux
+    // restent plats. Le signifiant de la citation est le guillemet anglais
+    // courbe au jaune preuve — jamais les chevrons « en extrabold, qui lisent
+    // comme une icône — plus l'attribution éditoriale au tiret. Pas de
+    // médaillon d'initiale : aucune identité fabriquée.
+    assert.equal(testimonialMarkup.match(/bg-surface-alt/g)?.length, 1);
+    assert.equal(testimonialMarkup.match(/“/g)?.length, 3);
+    assert.equal(testimonialMarkup.match(/— /g)?.length, 3);
+    assert.doesNotMatch(testimonialMarkup, /«/);
     assert.doesNotMatch(componentSources.testimonials, /testimonial-glyph/);
     assert.doesNotMatch(componentSources.testimonials, /charAt\(0\)/);
-    assert.doesNotMatch(componentSources.testimonials, /rounded-\[var\(/);
     assert.doesNotMatch(componentSources.testimonials, /outline-black/);
-    assert.doesNotMatch(componentSources.testimonials, /bg-surface/);
     assert.doesNotMatch(globalsCss, /testimonial-glyph/);
     assert.doesNotMatch(componentSources.testimonials, /leadTestimonial/);
     assert.doesNotMatch(
