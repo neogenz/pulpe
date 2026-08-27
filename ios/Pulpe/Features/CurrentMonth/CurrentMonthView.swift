@@ -215,10 +215,12 @@ struct CurrentMonthView: View {
 
     // MARK: - Dashboard Content
 
+    // ponytail: spike — one `.insetGrouped` List so the activity rows get native `.swipeActions`.
+    // The forest is the hero row's own background; the system inset replaces the `xxl` rail.
     private var dashboardContent: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.none) {
+            List {
+                Section {
                     HomeHeroCard(
                         metrics: store.metrics,
                         fallbackPlannedBalance: store.plannedRemaining,
@@ -234,19 +236,20 @@ struct CurrentMonthView: View {
                         onTapVariance: { activeSheet = .realizedBalance },
                         onTapDetail: { navigateToBudget = true }
                     )
+                    .padding(DesignTokens.Spacing.lg)
                     .staggeredEntrance(isVisible: hasAppeared, index: 0)
-                    .padding(.horizontal, DesignTokens.Spacing.xxl)
-                    .padding(.top, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.xxl)
-                    .heroZone(parallax: true)
-
-                    dashboardDetails
-                        .padding(.top, DesignTokens.Spacing.xxl)
-                        .padding(.bottom, DesignTokens.Spacing.lg)
-                        .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
-                        .contentZone()
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        LinearGradient(colors: [.heroSurfaceTop, .heroSurface], startPoint: .top, endPoint: .bottom)
+                    )
                 }
+
+                dashboardDetails
             }
+            .listStyle(.insetGrouped)
+            .listSectionSpacing(DesignTokens.Spacing.xs)
+            .scrollContentBackground(.hidden)
             .refreshable {
                 await store.forceRefresh()
             }
@@ -256,16 +259,14 @@ struct CurrentMonthView: View {
     /// Scroll anchor of the deck: the « À pointer » tile brings it to the top of the frame.
     static let uncheckedDeckId = "uncheckedDeck"
 
+    @ViewBuilder
     private var dashboardDetails: some View {
-        // Wider than the gap inside a section: a section is now a heading on the page
-        // plus a card, so the space between two of them has to beat the space between a
-        // heading and the card it introduces, or the pairing reads the wrong way round.
-        VStack(spacing: DesignTokens.Spacing.xxl) {
-            if store.budget != nil {
-                addOperationRow
-            }
-            // Opérations à pointer — only while something needs checking
-            if !store.uncheckedItems.isEmpty {
+        if store.budget != nil {
+            canvasRow(addOperationRow)
+        }
+        // Opérations à pointer — only while something needs checking
+        if !store.uncheckedItems.isEmpty {
+            canvasRow(
                 UncheckedOperationsCard(
                     items: store.uncheckedItems,
                     tagNamesById: tagStore.namesById,
@@ -273,37 +274,18 @@ struct CurrentMonthView: View {
                     syncingTransactionIds: store.syncingTransactionIds,
                     onToggle: { item in
                         ProductTips.checking.invalidate(reason: .actionPerformed)
-                        Task {
-                            let didSucceed: Bool
-                            switch item {
-                            case .transaction(let transaction, _):
-                                didSucceed = await store.toggleTransaction(transaction)
-                            case .budgetLine(let line, _):
-                                didSucceed = await store.toggleBudgetLine(line)
-                            }
-                            if didSucceed {
-                                toastManager.showWithUndo(
-                                    AppLocale.string("\(item.name) pointé"),
-                                    undo: { await undoToggle(item) },
-                                    onFinishedWithoutUndo: {}
-                                )
-                                await maybePrimeReminders()
-                            } else {
-                                toastManager.show(
-                                    AppLocale.string("\(item.name) n'a pas pu être pointé — réessaie"),
-                                    type: .error
-                                )
-                            }
-                        }
+                        Task { await check(item) }
                     },
                     onViewAll: { navigateToBudget = true }
                 )
                 .id(Self.uncheckedDeckId)
                 .staggeredEntrance(isVisible: hasAppeared, index: 1)
-            }
+            )
+        }
 
-            // Ça dérive when the month drifts — else épargne versée when complete
-            if !store.driftLines.isEmpty {
+        // Ça dérive when the month drifts — else épargne versée when complete
+        if !store.driftLines.isEmpty {
+            canvasRow(
                 DriftCard(
                     drifts: store.driftLines,
                     totalOver: store.driftTotal,
@@ -312,7 +294,9 @@ struct CurrentMonthView: View {
                     onCatchUp: { navigateToBudget = true }
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 2)
-            } else if store.savingsSummary.isComplete {
+            )
+        } else if store.savingsSummary.isComplete {
+            canvasRow(
                 SavingsDoneCard(
                     amount: store.savingsSummary.totalRealized,
                     goalName: completedSavingsGoalName
@@ -320,23 +304,26 @@ struct CurrentMonthView: View {
                     appState.pushOnActiveStack(SavingsGoalDestination.list)
                 }
                 .staggeredEntrance(isVisible: hasAppeared, index: 2)
-            }
-
-            // Activité — recent transactions with 7j/Mois window
-            if !store.transactions.isEmpty {
-                ActivityCard(
-                    transactions: store.transactions,
-                    tagNamesById: tagStore.namesById,
-                    onViewAll: { navigateToBudget = true },
-                    onEdit: editTransaction,
-                    onDelete: { HomeDeletion.delete($0, store: store, toastManager: toastManager) }
-                )
-                .staggeredEntrance(isVisible: hasAppeared, index: 3)
-            }
+            )
         }
-        // One content margin for the whole screen, aligned with the hero above, so the
-        // section headings and the cards they introduce hang off a single vertical rail.
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
+
+        // Activité — recent transactions with 7j/Mois window, as native list sections
+        if !store.transactions.isEmpty {
+            ActivityCard(
+                transactions: store.transactions,
+                tagNamesById: tagStore.namesById,
+                onViewAll: { navigateToBudget = true },
+                onEdit: editTransaction,
+                onDelete: { HomeDeletion.delete($0, store: store, toastManager: toastManager) }
+            )
+        }
+    }
+
+    /// A block that paints its own card sits bare on the canvas, at the list's inset like the
+    /// hero. The section shape still clips its rows and its corner arc reaches ~9pt into a
+    /// heading set at the top edge, so the gap between blocks lives here, clear of the arc.
+    private func canvasRow(_ content: some View) -> some View {
+        Section { content.padding(.top, DesignTokens.Spacing.xl).listRowCustomStyled(insets: EdgeInsets()) }
     }
 
     /// The edit page lives in the budget's stack: the home pushes the budget, which opens
@@ -367,21 +354,41 @@ struct CurrentMonthView: View {
 // type-length budget while still reaching the view's `private` state (same-file
 // access), rather than loosening encapsulation to move it to another file.
 extension CurrentMonthView {
-    /// Failed and empty keep a flat canvas; loaded and skeleton paint the forest through
-    /// `heroZone()`, so the navigation bar ink follows the same switch.
     /// Crossfade only: `blurReplace` washed the forest to a pale haze for a frame.
     fileprivate var loadedTransition: AnyTransition { .opacity }
 
+    /// Only the skeleton paints the forest, so the navigation bar ink follows the same switch;
+    /// loaded rides a flat canvas, its hero being a card on it.
     fileprivate var paintsHeroSurface: Bool {
         switch store.contentState {
-        case .idle, .loading, .loaded: true
-        case .failed, .empty: false
+        case .idle, .loading: true
+        case .failed, .empty, .loaded: false
         }
     }
 
-    /// Drives insert/remove animations of the conditional blocks.
-    private var conditionalBlocksState: [Bool] {
-        [store.uncheckedItems.isEmpty, store.driftLines.isEmpty, store.savingsSummary.isComplete]
+    /// Checks an item off the deck and answers in an undo toast; the first real check is also
+    /// where reminders get offered.
+    private func check(_ item: CurrentMonthStore.CheckableItem) async {
+        let didSucceed: Bool
+        switch item {
+        case .transaction(let transaction, _):
+            didSucceed = await store.toggleTransaction(transaction)
+        case .budgetLine(let line, _):
+            didSucceed = await store.toggleBudgetLine(line)
+        }
+        if didSucceed {
+            toastManager.showWithUndo(
+                AppLocale.string("\(item.name) pointé"),
+                undo: { await undoToggle(item) },
+                onFinishedWithoutUndo: {}
+            )
+            await maybePrimeReminders()
+        } else {
+            toastManager.show(
+                AppLocale.string("\(item.name) n'a pas pu être pointé — réessaie"),
+                type: .error
+            )
+        }
     }
 
     /// Reverse a successful check from the undo toast. The store toggles based on the

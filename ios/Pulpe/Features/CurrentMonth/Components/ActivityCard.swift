@@ -11,8 +11,6 @@ struct ActivityCard: View {
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var window: Window = .week
-    /// The one row whose swipe actions are revealed, shared across the day cards.
-    @State private var openRowId: AnyHashable?
 
     enum Window: String, CaseIterable {
         case week = "7 jours"
@@ -89,30 +87,47 @@ struct ActivityCard: View {
         let windowed = filtered
         let groups = dayGroups(for: windowed)
 
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            SectionHeader(
-                title: AppLocale.string("Activité"),
-                amountSubtitle: headerTotal(for: windowed),
-                link: (label: AppLocale.string("Tout voir"), action: onViewAll)
-            )
+        // ponytail: spike — emits sections into the home's List instead of drawing a card:
+        // the rows are stock inset-grouped cells, the one shape iOS paints swipe chrome on.
+        Group {
+            Section {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    SectionHeader(
+                        title: AppLocale.string("Activité"),
+                        amountSubtitle: headerTotal(for: windowed),
+                        link: (label: AppLocale.string("Tout voir"), action: onViewAll)
+                    )
 
-            // Its own row, full width. Squeezed into the heading it fought the title for
-            // the line and had to be re-stacked by hand past `xxLarge`; on a row of its
-            // own it fits at every text size, and the labels get their whole word back.
-            windowPicker
+                    // Its own row, full width: squeezed into the heading it fought the title
+                    // for the line and had to be re-stacked by hand past `xxLarge`.
+                    windowPicker
+                }
+                // Clear of the section corner's arc, like every heading on the canvas.
+                .padding(.top, DesignTokens.Spacing.xl)
+                .listRowCustomStyled(insets: EdgeInsets())
+                .accessibilityIdentifier("homeActivityCard")
+            }
 
             if groups.isEmpty {
-                emptyState
+                Section { emptyState }
             } else {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    ForEach(groups) { group in
-                        dayGroup(group)
+                ForEach(groups) { group in
+                    Section {
+                        ForEach(group.transactions) { transaction in
+                            row(transaction)
+                        }
+                    } header: {
+                        // The day is said once, over its rows, and keeps the header trait
+                        // so VoiceOver can jump by day.
+                        Text(group.label)
+                            .font(PulpeTypography.labelMedium)
+                            .foregroundStyle(Color.textTertiary)
+                            .textCase(nil)
                     }
                 }
             }
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
-        .accessibilityIdentifier("homeActivityCard")
     }
 
     // MARK: - Window Picker
@@ -128,95 +143,51 @@ struct ActivityCard: View {
         .accessibilityLabel("Période d'activité")
     }
 
-    // MARK: - Day group
+    // MARK: - Row
 
-    private func dayGroup(_ group: DayGroup) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            // The day sits outside the card, said once, instead of repeating under every
-            // name inside it. It carries the header trait so VoiceOver can jump by day —
-            // which is the navigation the rows lost when they gave up their date.
-            Text(group.label)
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.textTertiary)
-                .accessibilityAddTraits(.isHeader)
-
-            // The inset lives on each row rather than on the stack, so the swipe modifier
-            // wraps the row at the card's full width and the strip it reveals can reach the
-            // card's edge instead of stopping short inside the padding.
-            VStack(spacing: DesignTokens.Spacing.none) {
-                ForEach(Array(group.transactions.enumerated()), id: \.element.id) { index, transaction in
-                    if index > 0 { Divider().padding(.horizontal, DesignTokens.Spacing.lg) }
-                    row(transaction)
-                        .padding(.horizontal, DesignTokens.Spacing.lg)
-                        .trailingSwipeActions(id: transaction.id, openId: $openRowId) {
-                            swipeButton("Modifier", systemImage: "pencil", fill: .editAction) {
-                                openRowId = nil
-                                onEdit(transaction)
-                            }
-                            // No question asked: the row goes, and the undo toast the
-                            // caller raises is where the answer lives. An alert put the
-                            // decision before the result, and covered the screen to do it.
-                            swipeButton("Supprimer", systemImage: "trash", fill: .destructivePrimary) {
-                                openRowId = nil
-                                onDelete(transaction)
-                            }
-                        }
-                        .accessibilityAction(named: AppLocale.string("Modifier")) { onEdit(transaction) }
-                        .accessibilityAction(named: AppLocale.string("Supprimer")) { onDelete(transaction) }
-                }
-            }
-            .padding(.vertical, DesignTokens.Spacing.xs)
-            .pulpeRowCard()
-        }
-    }
-
+    /// A stock cell: tap opens the operation, the way the budget's own rows do, and the
+    /// trailing swipe carries the same actions in the same order and tints.
     private func row(_ transaction: Transaction) -> some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            RowIcon(systemName: transaction.kind.icon, tint: transaction.kind.color)
+        Button {
+            onEdit(transaction)
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.lg) {
+                RowIcon(systemName: transaction.kind.icon, tint: transaction.kind.color)
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(transaction.name)
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.textPrimary)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text(transaction.name)
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(Color.textPrimary)
+                        .lineLimit(1)
 
-                // No date under the name any more: the day is named once, above the card
-                // these rows sit in. `followsText` goes with it — nothing precedes the
-                // chips on this line for them to trail.
-                let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
-                if !tagNames.isEmpty {
-                    TagChips(names: tagNames, presentation: .count)
+                    let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
+                    if !tagNames.isEmpty {
+                        TagChips(names: tagNames, presentation: .count)
+                    }
                 }
+
+                Spacer(minLength: DesignTokens.Spacing.sm)
+
+                amountColumn(transaction)
             }
-
-            Spacer(minLength: DesignTokens.Spacing.sm)
-
-            amountColumn(transaction)
         }
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .accessibilityElement(children: .combine)
-    }
+        .listRowBackground(Color.surfaceContainerLowest)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button {
+                onDelete(transaction)
+            } label: {
+                Label("Supprimer", systemImage: "trash")
+            }
+            .tint(Color.destructivePrimary)
 
-    /// One revealed action: a tinted circle on the card's own surface, the shape iOS gives
-    /// its native list actions. Closing the row is each action's own call.
-    private func swipeButton(
-        _ title: String.LocalizationValue,
-        systemImage: String,
-        fill: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Label(AppLocale.string(title), systemImage: systemImage)
-                .labelStyle(.iconOnly)
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.textOnPrimary)
-                .frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
-                .background(fill, in: .circle)
+            Button {
+                onEdit(transaction)
+            } label: {
+                Label("Modifier", systemImage: "pencil")
+            }
+            .tint(Color.editAction)
         }
-        .buttonStyle(.plain)
-        .contentShape(.circle)
     }
-
     /// Mock renders activity amounts in neutral ink (not kind-colored);
     /// the FX secondary line reuses the shared `TransactionAmountView` policy.
     private func amountColumn(_ transaction: Transaction) -> some View {
@@ -261,10 +232,7 @@ struct ActivityCard: View {
 
             Spacer(minLength: DesignTokens.Spacing.none)
         }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .pulpeRowCard()
+        .listRowBackground(Color.surfaceContainerLowest)
         .accessibilityElement(children: .combine)
     }
 }
