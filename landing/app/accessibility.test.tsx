@@ -1272,10 +1272,15 @@ describe("landing accessibility contracts", () => {
     );
     // Un seul extrait mis en avant par témoignage, dans les quatre langues :
     // la traduction ne peut ni en ajouter un second ni laisser la marque vide.
-    for (const catalog of Object.values(CATALOGS)) {
+    // Les guillemets vivent dans la copie avec la typographie de chaque
+    // langue : « … » suisses pour fr/de/it, “…” pour l'anglais.
+    for (const [locale, catalog] of Object.entries(CATALOGS)) {
+      const [open, close] = locale === "en" ? ["“", "”"] : ["«", "»"];
       assert.equal(catalog.home.testimonials.items.length, 3);
       for (const item of catalog.home.testimonials.items) {
         assert.ok(item.highlight.trim().length > 0);
+        assert.ok(item.lead.startsWith(open));
+        assert.ok(item.tail.endsWith(close));
       }
     }
     assert.equal(
@@ -1289,18 +1294,19 @@ describe("landing accessibility contracts", () => {
       componentSources.testimonials,
       /dict\.items\.map[\s\S]*marker-highlight[\s\S]*font-semibold/,
     );
-    // Un seul panneau menthe regroupe les trois voix ; les blockquotes eux
-    // restent plats. Le signifiant de la citation est le guillemet anglais
-    // courbe au jaune preuve — jamais les chevrons « en extrabold, qui lisent
-    // comme une icône — plus l'attribution éditoriale au tiret. Pas de
-    // médaillon d'initiale : aucune identité fabriquée.
-    assert.equal(testimonialMarkup.match(/bg-surface-alt/g)?.length, 1);
-    assert.equal(testimonialMarkup.match(/“/g)?.length, 3);
+    // Les colonnes restent éditoriales et plates : pas de chrome de carte,
+    // pas de glyphe décoratif agrandi — les quotes de Poppins lisent comme
+    // des barres en grand — et pas de médaillon d'initiale. Le signifiant
+    // tient à la typographie : guillemets dans la phrase et attribution au
+    // tiret.
     assert.equal(testimonialMarkup.match(/— /g)?.length, 3);
-    assert.doesNotMatch(testimonialMarkup, /«/);
+    assert.equal(testimonialMarkup.match(/«/g)?.length, 3);
     assert.doesNotMatch(componentSources.testimonials, /testimonial-glyph/);
     assert.doesNotMatch(componentSources.testimonials, /charAt\(0\)/);
     assert.doesNotMatch(componentSources.testimonials, /outline-black/);
+    assert.doesNotMatch(componentSources.testimonials, /bg-surface/);
+    assert.doesNotMatch(componentSources.testimonials, /rounded-\[var\(/);
+    assert.doesNotMatch(componentSources.testimonials, /text-\[[0-9.]+rem\]/);
     assert.doesNotMatch(globalsCss, /testimonial-glyph/);
     assert.doesNotMatch(componentSources.testimonials, /leadTestimonial/);
     assert.doesNotMatch(
