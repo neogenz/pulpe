@@ -443,18 +443,15 @@ jobs:
         working-directory: backend-nest
         run: supabase stop || true
 
-  # 🎭 E2E TESTS (Chromium only - matching playwright.config.ts projects)
+  # 🎭 E2E TESTS — un seul runner : Playwright parallélise les deux projets
+  # en interne avec un seul checkout, une installation pnpm, un Chromium et
+  # un webServer Angular. Les projets sont sélectionnés explicitement pour que
+  # `Chromium - Smoke` ou un futur projet ne s'ajoute jamais implicitement.
   test-e2e:
-    name: 🎭 E2E Tests (${{ matrix.project }})
+    name: 🎭 E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: [install, build]
-    strategy:
-      fail-fast: false
-      matrix:
-        project:
-          - "Critical User Journeys (Mocked)"
-          - "Feature Tests (Mocked)"
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -483,13 +480,13 @@ jobs:
         run: cd frontend && pnpm exec playwright install chromium --with-deps
 
       - name: 🎭 Run E2E tests
-        run: cd frontend && pnpm test:e2e --project="${{ matrix.project }}"
+        run: cd frontend && pnpm test:e2e --project="Critical User Journeys (Mocked)" --project="Feature Tests (Mocked)"
 
       - name: 📤 Upload E2E artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: playwright-report-${{ strategy.job-index }}
+          name: playwright-report
           path: |
             frontend/playwright-report/
             frontend/test-results/

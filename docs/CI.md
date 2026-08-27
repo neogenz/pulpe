@@ -44,7 +44,11 @@ flowchart LR
 - `build` builds the pnpm packages and uploads artifacts.
 - `test-unit` runs workspace unit tests.
 - `test-backend-integration` runs Bun integration and E2E specs against local Supabase.
-- `test-e2e` runs the Playwright matrix.
+- `test-e2e` runs the two mocked Playwright projects (`Critical User Journeys`,
+  `Feature Tests`) explicitly in one runner — Playwright parallelizes internally
+  with a single checkout, pnpm install, Chromium and Angular `webServer`. One
+  artifact set (report, JUnit, traces, screenshots, videos) is uploaded on
+  every outcome; `Chromium - Smoke` never runs implicitly.
 - `quality` runs the root quality gate, including repository security and vocabulary tests.
 - `actionlint` validates workflow syntax and shell fragments.
 - `test-ios` generates the Xcode project and runs Swift tests on macOS.

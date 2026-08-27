@@ -255,6 +255,23 @@ test("the main CI token is read-only and E2E diagnostics stay native", () => {
   );
 });
 
+test("E2E runs both mocked projects explicitly in one runner", () => {
+  const e2e = workflow.slice(
+    workflow.indexOf("\n  test-e2e:"),
+    workflow.indexOf("\n  quality:"),
+  );
+  assert.doesNotMatch(e2e, /strategy:|matrix:/);
+  assert.match(
+    e2e,
+    /pnpm test:e2e --project="Critical User Journeys \(Mocked\)" --project="Feature Tests \(Mocked\)"/,
+  );
+  assert.doesNotMatch(e2e, /Chromium - Smoke/);
+  assert.equal([...e2e.matchAll(/uses: actions\/checkout@/g)].length, 1);
+  assert.equal([...e2e.matchAll(/pnpm install --frozen-lockfile/g)].length, 1);
+  assert.equal([...e2e.matchAll(/playwright install chromium/g)].length, 1);
+  assert.match(e2e, /name: playwright-report\n/);
+});
+
 test("CI is PR-only and production owns migration credentials", () => {
   assert.match(workflow, /pull_request:\n\s+branches: \[preview\]/);
   assert.doesNotMatch(workflow, /^\s{2}push:|branches: \[main/m);
