@@ -1,5 +1,10 @@
 name: iOS Distribution
 
+# L'identité complète de l'intention, lisible dans la liste des runs sans
+# ouvrir les logs. Doit rester en lockstep avec releaseIdentity() dans
+# .github/scripts/resolve-release-state.mjs.
+run-name: "📲 iOS ${{ inputs.channel }} v${{ inputs.marketing_version }} (${{ inputs.build_number }}) ${{ inputs.source_sha }}"
+
 on:
   workflow_dispatch:
     inputs:

@@ -437,6 +437,45 @@ test("release promotion writes only after a trusted immutable proof", () => {
   }
 });
 
+test("release intention stays idempotent and every client stateless", () => {
+  const releaseState = read(".github/scripts/resolve-release-state.mjs");
+
+  // The run-name is the visible identity; workflow and resolver stay in lockstep.
+  assert.match(
+    iosDistribution,
+    /run-name: "📲 iOS \$\{\{ inputs\.channel \}\} v\$\{\{ inputs\.marketing_version \}\} \(\$\{\{ inputs\.build_number \}\}\) \$\{\{ inputs\.source_sha \}\}"/,
+  );
+  assert.match(
+    releaseState,
+    /📲 iOS \$\{options\.channel\} v\$\{options\.version\} \(\$\{options\.build\}\) \$\{options\.sha\}/,
+  );
+  assert.match(
+    releasePromotion,
+    /run-name: .*format\('🚦 prepare \{0\}', inputs\.release_branch\).*format\('🚦 promote \{0\}', github\.event\.workflow_run\.head_sha\)/,
+  );
+  assert.match(releaseState, /🚦 prepare release\/v\$\{options\.version\}/);
+
+  // The resolver reads GitHub, never local state, and fails closed.
+  assert.match(releaseState, /display_title === identity/);
+  assert.match(releaseState, /Incomplete workflow run pagination/);
+  assert.match(releaseState, /duplicate active runs/);
+  assert.match(releaseState, /Retry must target the latest terminal run/);
+
+  // Clients resolve the state before dispatching, and the gate runs the suite.
+  assert.ok(
+    releaseSkill.indexOf("resolve-release-state.mjs") <
+      releaseSkill.indexOf("gh workflow run release-promotion.yml"),
+    "the release skill must resolve remote state before dispatching",
+  );
+  assert.match(iosRelease, /resolve-release-state\.mjs/);
+  assert.match(deploymentGuide, /resolve-release-state\.mjs/);
+  assert.equal(
+    rootPackage.scripts["test:release-state"],
+    "node --test .github/scripts/resolve-release-state.test.mjs",
+  );
+  assert.match(rootPackage.scripts.quality, /test:release-state/);
+});
+
 test("release lineage uses the shared content-integration check", () => {
   const lineageSources = [
     releasePromotion,

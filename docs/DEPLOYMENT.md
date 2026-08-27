@@ -398,6 +398,26 @@ See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release ar
 merge after `main` advances. The `production` environment stores secrets but has no
 reviewers; adding one would reintroduce a second approval after the production PR.
 
+### Release identity and resume
+
+A release intention is identified by its workflow plus its exact fields — version for
+`release-promotion.yml`; SHA, marketing version, channel and build number for
+`ios-distribute.yml`. Each workflow exposes that identity as its `run-name`
+(`🚦 prepare release/vX.Y.Z`, `📲 iOS <channel> v<version> (<build>) <sha>`), so the
+GitHub run list is the source of truth — no client keeps local state, and the GitHub
+UI `workflow_dispatch` button and `gh` CLI are the reference interfaces. Agent skills
+only prepare inputs, invoke the workflow, and display the derived state.
+
+`node .github/scripts/resolve-release-state.mjs` resolves the unique remote state of
+one identity before any dispatch: `absent` (dispatch allowed — the only such state),
+`active`/`succeeded` (the existing run and open release PR are returned; an identical
+invocation is a no-op), `failed` (rerun the exact run with `--retry <run-id>` +
+`gh run rerun`, never a duplicate dispatch), `published` (the tag already exists).
+Duplicate active runs, ambiguous branch refs or PRs, drifted PR heads and incomplete
+pagination fail closed without mutating anything. Changing any identity field (new
+SHA, version, channel or build) is a new intention. The same identity fields feed the
+candidate manifest rather than a second format.
+
 ### Recovery
 
 - Railway `FAILED`: manually redeploy the **same SHA** once from Railway, then rerun or

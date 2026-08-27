@@ -1,5 +1,10 @@
 name: 🚦 Release Promotion
 
+# L'identité de l'intention, lisible dans la liste des runs. La forme
+# `🚦 prepare release/vX.Y.Z` doit rester en lockstep avec releaseIdentity()
+# dans .github/scripts/resolve-release-state.mjs.
+run-name: "${{ github.event_name == 'workflow_dispatch' && format('🚦 prepare {0}', inputs.release_branch) || format('🚦 promote {0}', github.event.workflow_run.head_sha) }}"
+
 on:
   workflow_dispatch:
     inputs:

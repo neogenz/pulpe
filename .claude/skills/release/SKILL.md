@@ -540,7 +540,21 @@ Only after "oui":
    test "$(git ls-remote --heads origin "refs/heads/$BRANCH" | awk '{print $1}')" = "$RELEASE_SHA"
    ```
 
-3. Put the exact approved **GitHub Release** template from Step 5 in a temporary UTF-8 file using the available file-editing capability. Its first line must be `## vX.Y.Z`. Dispatch the trusted workflow with that file as JSON input:
+3. Resolve the remote state of this exact release intention before any dispatch. The identity is the run-name `🚦 prepare release/vX.Y.Z`; GitHub run lists — never agent memory — are the source of truth:
+
+   ```bash
+   STATE=$(node .github/scripts/resolve-release-state.mjs --workflow release-promotion.yml --version "$VERSION")
+   echo "$STATE"
+   test "$(jq -r .state <<< "$STATE")" = absent
+   ```
+
+   - `absent`: continue to the dispatch step. This is the only state that allows a new dispatch.
+   - `active` or `succeeded`: report the returned run URL and any open release PR; do not dispatch again — the identical invocation is a no-op.
+   - `failed`: after understanding the failure, rerun the exact run instead of dispatching a duplicate: validate with `--retry <run-id>` (the resolver accepts only the latest terminal run), then `gh run rerun <run-id> --repo neogenz/pulpe`.
+   - `published`: the tag `vX.Y.Z` already exists; nothing to prepare.
+   - Any resolver error (duplicate active runs, ambiguous refs or PRs, incomplete pagination, drift) stops the workflow without mutating anything.
+
+4. Put the exact approved **GitHub Release** template from Step 5 in a temporary UTF-8 file using the available file-editing capability. Its first line must be `## vX.Y.Z`. Dispatch the trusted workflow with that file as JSON input:
 
    ```bash
    test "$(sed -n '1p' "$NOTES_FILE")" = "## v${VERSION}"
@@ -554,7 +568,7 @@ Only after "oui":
        --json
    ```
 
-4. Watch the dispatched `🚦 Release Promotion` run and report the preparation PR URL. A failure leaves `preview`, `main`, tags, GitHub Releases, and providers untouched.
+5. Watch the dispatched `🚦 Release Promotion` run and report the preparation PR URL. A failure leaves `preview`, `main`, tags, GitHub Releases, and providers untouched.
 
 After the preparation PR is reviewed and merged with a merge commit:
 
