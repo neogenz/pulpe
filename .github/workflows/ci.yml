@@ -37,6 +37,98 @@ env:
   NPM_CONFIG_PROGRESS: "false"
 
 jobs:
+  # 🧭 CLASSIFY — décide quelles unités cette PR doit prouver. Le classifier
+  # Git ne possède que les frontières hors graphe (automation GitHub, iOS,
+  # miroir de formules, branches release, contrats racine); les fichiers de
+  # packages pnpm passent par `turbo query` pour que le graphe existant reste
+  # l'unique source des dépendances. Toute erreur ou surface inconnue produit
+  # un run complet, et si ce job échoue, ci-success reste rouge : aucune unité
+  # ne peut être sautée sans une décision valide qui la déclare non requise.
+  classify:
+    name: 🧭 Classify Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      automation: ${{ steps.decision.outputs.automation }}
+      workspace: ${{ steps.decision.outputs.workspace }}
+      backend_db: ${{ steps.decision.outputs.backend_db }}
+      e2e: ${{ steps.decision.outputs.e2e }}
+      ios: ${{ steps.decision.outputs.ios }}
+      scope: ${{ steps.decision.outputs.scope }}
+      decision: ${{ steps.decision.outputs.decision }}
+    steps:
+      - name: 📥 Checkout full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
+
+      # --ignore-scripts : seule la présence du binaire turbo compte ici.
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: 🧭 Classify changes
+        id: decision
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          decision=$(node .github/scripts/classify-ci-changes.mjs \
+            --base "$BASE_SHA" --head "$HEAD_SHA" --head-ref "$HEAD_REF")
+          echo "$decision" | jq .
+          {
+            for unit in automation workspace backend_db e2e ios; do
+              echo "$unit=$(echo "$decision" | jq -r ".units.$unit")"
+            done
+            echo "scope=$(echo "$decision" | jq -r .scope)"
+            echo "decision=$decision"
+          } >> "$GITHUB_OUTPUT"
+
+  # 🧾 AUTOMATION — la part du gate quality qui vit hors des packages :
+  # format des workflows, invariants CI/release/routage, lexique produit.
+  # Ne tourne que quand le workspace ne tourne pas — son gate quality est un
+  # sur-ensemble strict de cette unité.
+  automation:
+    name: 🧾 Automation Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [classify]
+    if: needs.classify.outputs.automation == 'true'
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 Run automation quality gates
+        run: pnpm quality:automation
+
   migration-contract:
     name: 🛡️ Migration Contract
     runs-on: ubuntu-latest
@@ -72,6 +164,8 @@ jobs:
     name: 🗄️ Backend & Database
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: [classify]
+    if: needs.classify.outputs.backend_db == 'true'
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -303,9 +397,21 @@ jobs:
     name: 🧰 Workspace
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    needs: [classify]
+    if: needs.classify.outputs.workspace == 'true'
+    env:
+      # `--affected` (build, unités, lint) laisse le graphe Turbo réduire le
+      # travail aux packages touchés quand la décision est `routed`; un run
+      # complet n'émet pas le flag et exécute tout. Les gates racine
+      # (format:check, quality, deps:check, audit) restent entiers.
+      TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
+      TURBO_SCM_HEAD: ${{ github.event.pull_request.head.sha }}
+      TURBO_AFFECTED: ${{ needs.classify.outputs.scope == 'affected' && '1' || '' }}
     steps:
-      - name: 📥 Checkout
+      - name: 📥 Checkout full history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
@@ -330,17 +436,17 @@ jobs:
       - name: 🏗️ Build all projects
         env:
           DOTENV_CONFIG_PATH: .env.e2e
-        run: pnpm build
+        run: pnpm build ${TURBO_AFFECTED:+"--affected"}
 
       - name: 🧪 Run unit tests
-        run: pnpm test:unit
+        run: pnpm test:unit ${TURBO_AFFECTED:+"--affected"}
         env:
           NODE_ENV: test
           TURNSTILE_SECRET_KEY: ci-test-turnstile-key
           ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
       - name: 🔍 Lint
-        run: pnpm lint
+        run: pnpm lint ${TURBO_AFFECTED:+"--affected"}
 
       - name: 🔍 Check formatting
         run: pnpm format:check
@@ -372,7 +478,8 @@ jobs:
     name: 🎭 E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    needs: [workspace]
+    needs: [classify, workspace]
+    if: needs.classify.outputs.e2e == 'true'
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -460,6 +567,8 @@ jobs:
     name: 🍎 iOS Unit Tests
     runs-on: macos-26
     timeout-minutes: 15
+    needs: [classify]
+    if: needs.classify.outputs.ios == 'true'
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -590,15 +699,20 @@ jobs:
         if: always()
         run: xcrun simctl shutdown all 2>/dev/null || true
 
-  # ✅ SUCCESS JOB pour status checks
+  # ✅ SUCCESS JOB pour status checks — le seul required. Un job routé ne
+  # peut être `skipped` que si la décision du classifier le déclare non
+  # requis; toute autre issue (échec, annulation, skip non autorisé, classify
+  # rouge) rend le check rouge au lieu de le laisser Pending.
   ci-success:
     name: ✅ CI Success
     runs-on: ubuntu-latest
-    timeout-minutes: 1
+    timeout-minutes: 2
     permissions:
       contents: read
     needs:
       [
+        classify,
+        automation,
         workspace,
         backend-db,
         test-e2e,
@@ -609,32 +723,50 @@ jobs:
     if: always()
     steps:
       - name: ✅ Check all jobs
-        if: >-
-          needs.workspace.result == 'success' &&
-          needs.backend-db.result == 'success' &&
-          needs.test-e2e.result == 'success' &&
-          needs.actionlint.result == 'success' &&
-          needs.test-ios.result == 'success' &&
-          needs.migration-contract.result == 'success'
-        run: echo "🎉 All CI checks passed!"
-
-      - name: ❌ Check failures
-        if: >-
-          needs.workspace.result != 'success' ||
-          needs.backend-db.result != 'success' ||
-          needs.test-e2e.result != 'success' ||
-          needs.actionlint.result != 'success' ||
-          needs.test-ios.result != 'success' ||
-          needs.migration-contract.result != 'success'
+        env:
+          RESULT_CLASSIFY: ${{ needs.classify.result }}
+          RESULT_AUTOMATION: ${{ needs.automation.result }}
+          RESULT_WORKSPACE: ${{ needs.workspace.result }}
+          RESULT_BACKEND_DB: ${{ needs.backend-db.result }}
+          RESULT_E2E: ${{ needs.test-e2e.result }}
+          RESULT_ACTIONLINT: ${{ needs.actionlint.result }}
+          RESULT_IOS: ${{ needs.test-ios.result }}
+          RESULT_MIGRATION: ${{ needs.migration-contract.result }}
+          REQUIRED_AUTOMATION: ${{ needs.classify.outputs.automation }}
+          REQUIRED_WORKSPACE: ${{ needs.classify.outputs.workspace }}
+          REQUIRED_BACKEND_DB: ${{ needs.classify.outputs.backend_db }}
+          REQUIRED_E2E: ${{ needs.classify.outputs.e2e }}
+          REQUIRED_IOS: ${{ needs.classify.outputs.ios }}
         run: |
-          echo "❌ Some CI checks failed"
-          echo "Workspace (build, unit, quality): ${{ needs.workspace.result }}"
-          echo "Backend & Database: ${{ needs.backend-db.result }}"
-          echo "E2E Tests: ${{ needs.test-e2e.result }}"
-          echo "Workflow Lint: ${{ needs.actionlint.result }}"
-          echo "iOS Tests: ${{ needs.test-ios.result }}"
-          echo "Migration Contract: ${{ needs.migration-contract.result }}"
-          exit 1
+          set -euo pipefail
+          fail=0
+          require() {
+            echo "$1: $2"
+            if [ "$2" != "success" ]; then
+              echo "::error::$1 must succeed (got: $2)"
+              fail=1
+            fi
+          }
+          routed() {
+            echo "$1: $2 (required: $3)"
+            if [ "$2" = "success" ]; then return; fi
+            if [ "$2" = "skipped" ] && [ "$3" = "false" ]; then return; fi
+            echo "::error::$1 is required but finished '$2'"
+            fail=1
+          }
+          require "Classify" "$RESULT_CLASSIFY"
+          require "Workflow Lint" "$RESULT_ACTIONLINT"
+          require "Migration Contract" "$RESULT_MIGRATION"
+          routed "Automation Gates" "$RESULT_AUTOMATION" "$REQUIRED_AUTOMATION"
+          routed "Workspace" "$RESULT_WORKSPACE" "$REQUIRED_WORKSPACE"
+          routed "Backend & Database" "$RESULT_BACKEND_DB" "$REQUIRED_BACKEND_DB"
+          routed "E2E Tests" "$RESULT_E2E" "$REQUIRED_E2E"
+          routed "iOS Tests" "$RESULT_IOS" "$REQUIRED_IOS"
+          if [ "$fail" -ne 0 ]; then
+            echo "❌ Some CI checks failed"
+            exit 1
+          fi
+          echo "🎉 All required CI checks passed!"
 
       - name: 📥 Checkout tested tree
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -651,6 +783,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
+          ROUTING: ${{ needs.classify.outputs.decision }}
         run: |
           set -euo pipefail
           if [[ "$HEAD_REF" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -673,6 +806,7 @@ jobs:
               "head_sha": os.environ["HEAD_SHA"],
               "merge_sha": os.environ["MERGE_SHA"],
               "tree_sha": os.environ["TREE_SHA"],
+              "routing": json.loads(os.environ["ROUTING"]),
               "created_at": datetime.now(timezone.utc).isoformat(),
           }
           with open("ci-evidence.json", "w", encoding="utf-8") as handle:

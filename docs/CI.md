@@ -15,14 +15,47 @@ comments.
 
 ```mermaid
 flowchart LR
-    Workspace[Workspace] --> E2E[E2E]
-    Workspace --> Success[CI Success]
-    BackendDB[Backend & Database] --> Success
+    Classify[Classify] --> Automation[Automation gates]
+    Classify --> Workspace[Workspace]
+    Classify --> BackendDB[Backend & Database]
+    Classify --> IOS[iOS tests]
+    Workspace --> E2E[E2E]
+    Classify --> Success[CI Success]
+    Automation --> Success
+    Workspace --> Success
+    BackendDB --> Success
     E2E --> Success
-    IOS[iOS tests] --> Success
+    IOS --> Success
     Actionlint[actionlint] --> Success
     Migration[Migration contract] --> Success
 ```
+
+### Routing
+
+`classify` decides which units a PR must prove. The Git classifier owns only
+the boundaries the package graph cannot see; files inside pnpm packages go
+through `turbo query` so the existing graph stays the single source of
+dependency truth. Any error, unknown surface, or ambiguity degrades to a full
+run with its reason, and `✅ CI Success` accepts a skipped unit only when the
+decision explicitly declares it not required — the decision is recorded in
+`ci-evidence.json` under `routing`. `on.pull_request` keeps no `paths` filter,
+so the required check exists (and can never hang Pending) on every PR.
+
+| Change surface                                                                                           | Units that run                           |
+| -------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `.github/**` (automation)                                                                                | Automation gates                         |
+| `ios/**`                                                                                                 | Automation gates, iOS tests              |
+| `frontend/**`                                                                                            | Workspace (affected), E2E                |
+| `backend-nest/**`                                                                                        | Workspace (affected), Backend & Database |
+| `landing/**`, `android/**`                                                                               | Workspace (affected)                     |
+| `shared/**`, `ios/Pulpe/Domain/Formulas/**`, release branches, root contracts, self-edits, anything else | Full run (all units)                     |
+
+`classify`, `actionlint` and `migration-contract` run on every PR. Self-edits
+are `ci.yml`, the classifier and its test, and the CI security test; root
+contracts are `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`,
+`turbo.json`, `.changeset/config.json` and `android/app.json`. When the
+decision is routed, the workspace runs `build`, unit tests and `lint` with
+`turbo --affected` against the PR base; full runs execute everything.
 
 - `workspace` is the single Node unit: one checkout, one frozen pnpm install,
   then build, unit tests, lint, format, the root quality gate (repository
@@ -49,10 +82,16 @@ flowchart LR
   with a single checkout, pnpm install, Chromium and Angular `webServer`. One
   artifact set (report, JUnit, traces, screenshots, videos) is uploaded on
   every outcome; `Chromium - Smoke` never runs implicitly.
+- `automation` runs the root gate that lives outside the packages
+  (`pnpm quality:automation`: automation formatting plus the CI, release,
+  routing, and lexicon invariant tests) when the workspace does not run — the
+  workspace quality gate is a strict superset of it.
 - `actionlint` validates workflow syntax and shell fragments.
 - `test-ios` generates the Xcode project and runs Swift tests on macOS.
 - `migration-contract` validates new migration metadata, additive SQL and immutable history.
-- `ci-success` is the single protected status and fails unless every required job succeeded.
+- `ci-success` is the single protected status and fails unless every required
+  job succeeded — a unit may be skipped only when the routing decision
+  declares it not required.
 
 There is no performance-test job: the former job selected a deleted test file, so Bun ran
 zero tests while reporting success.

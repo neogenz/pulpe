@@ -244,7 +244,11 @@ test("one DB runner starts one stack for SQL, types, and backend integration", (
     1,
   );
   assert.ok(backendDb.length > 0, "the backend-db job must exist");
-  assert.doesNotMatch(backendDb, /needs:|download-artifact|upload-artifact/);
+  assert.match(
+    backendDb,
+    /needs: \[classify\]\n\s+if: needs\.classify\.outputs\.backend_db == 'true'/,
+  );
+  assert.doesNotMatch(backendDb, /download-artifact|upload-artifact/);
 
   // postgres-meta starts only when the PR touches the DB contract, and the
   // detection fails closed to verifying the types.
@@ -339,7 +343,7 @@ test("CI is PR-only and production owns migration credentials", () => {
 test("the migration contract is required and replayed before production apply", () => {
   assert.match(
     workflow,
-    /\n  migration-contract:[\s\S]*migration-contract\.test\.cjs[\s\S]*github\.event\.pull_request\.base\.sha[\s\S]*github\.event\.pull_request\.head\.sha[\s\S]*check-migration-contract\.cjs[\s\S]*\n  ci-success:[\s\S]*migration-contract[\s\S]*needs\.migration-contract\.result\s*==\s*'success'[\s\S]*needs\.migration-contract\.result\s*!=\s*'success'/,
+    /\n  migration-contract:[\s\S]*migration-contract\.test\.cjs[\s\S]*github\.event\.pull_request\.base\.sha[\s\S]*github\.event\.pull_request\.head\.sha[\s\S]*check-migration-contract\.cjs[\s\S]*\n  ci-success:[\s\S]*RESULT_MIGRATION: \$\{\{ needs\.migration-contract\.result \}\}[\s\S]*require "Migration Contract" "\$RESULT_MIGRATION"/,
   );
   const replay = production.indexOf("Verify migration contract");
   const dryRun = production.indexOf("run: supabase db push --dry-run");
@@ -539,7 +543,7 @@ test("release intention stays idempotent and every client stateless", () => {
     rootPackage.scripts["test:release-state"],
     "node --test .github/scripts/resolve-release-state.test.mjs",
   );
-  assert.match(rootPackage.scripts.quality, /test:release-state/);
+  assert.match(rootPackage.scripts["quality:automation"], /test:release-state/);
 });
 
 test("release lineage uses the shared content-integration check", () => {
@@ -971,18 +975,23 @@ test("the workspace unit runs every gate once without a prewarm job", () => {
     workflow.indexOf("\n  workspace:"),
     workflow.indexOf("\n  test-e2e:"),
   );
+  const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   for (const command of [
     "pnpm install --frozen-lockfile",
-    "pnpm build",
-    "pnpm test:unit",
-    "pnpm lint",
+    'pnpm build ${TURBO_AFFECTED:+"--affected"}',
+    'pnpm test:unit ${TURBO_AFFECTED:+"--affected"}',
+    'pnpm lint ${TURBO_AFFECTED:+"--affected"}',
     "pnpm format:check",
     "pnpm quality",
     "pnpm deps:check",
     "pnpm audit:critical",
   ]) {
     assert.equal(
-      [...workspaceJob.matchAll(new RegExp(`run: ${command}\\n`, "g"))].length,
+      [
+        ...workspaceJob.matchAll(
+          new RegExp(`run: ${escapeRegExp(command)}\\n`, "g"),
+        ),
+      ].length,
       1,
       `${command} must run exactly once in the workspace unit`,
     );
@@ -993,6 +1002,8 @@ test("the workspace unit runs every gate once without a prewarm job", () => {
 
   const success = workflow.slice(workflow.indexOf("\n  ci-success:"));
   for (const dependency of [
+    "classify",
+    "automation",
     "workspace",
     "backend-db",
     "test-e2e",
@@ -1000,19 +1011,116 @@ test("the workspace unit runs every gate once without a prewarm job", () => {
     "test-ios",
     "migration-contract",
   ]) {
-    assert.match(
-      success,
-      new RegExp(`needs\\.${dependency}\\.result == 'success'`),
-    );
-    assert.match(
-      success,
-      new RegExp(`needs\\.${dependency}\\.result != 'success'`),
-    );
+    assert.match(success, new RegExp(`needs\\.${dependency}\\.result`));
   }
   assert.doesNotMatch(
     success,
     /needs\.build\.|needs\.test-unit\.|needs\.quality\./,
   );
+});
+
+test("changes route through a fail-closed classifier and an explicit skip contract", () => {
+  const classifier = read(".github/scripts/classify-ci-changes.mjs");
+
+  // The trigger keeps no paths filter: the required check exists on every PR.
+  const trigger = workflow.slice(0, workflow.indexOf("\njobs:"));
+  assert.doesNotMatch(trigger, /paths/);
+
+  // The classifier owns only the boundaries the package graph cannot see,
+  // and every uncertain surface degrades to a full run with its reason.
+  for (const marker of [
+    '".github/workflows/ci.yml"',
+    '".github/scripts/classify-ci-changes.mjs"',
+    '".github/scripts/classify-ci-changes.test.mjs"',
+    '".github/scripts/ci-security.test.mjs"',
+    '"pnpm-lock.yaml"',
+    '"turbo.json"',
+    '".changeset/config.json"',
+    '"android/app.json"',
+    "ios/Pulpe/Domain/Formulas/",
+    "^release\\/v\\d+\\.\\d+\\.\\d+$",
+    "shared package:",
+    "unknown surface:",
+    "turbo graph unavailable:",
+    "unknown package:",
+    "affectedPackages(base:",
+    "classification failed:",
+  ]) {
+    assert.ok(classifier.includes(marker), `classifier must keep: ${marker}`);
+  }
+
+  // The classify job resolves full history and hands validated SHAs over.
+  assert.match(workflow, /\n  classify:[\s\S]{0,900}fetch-depth: 0/);
+  assert.match(
+    workflow,
+    /classify-ci-changes\.mjs \\\n\s+--base "\$BASE_SHA" --head "\$HEAD_SHA" --head-ref "\$HEAD_REF"/,
+  );
+
+  // Every routed unit is gated by an explicit classifier output.
+  assert.match(
+    workflow,
+    /\n  automation:[\s\S]{0,400}needs: \[classify\]\n\s+if: needs\.classify\.outputs\.automation == 'true'/,
+  );
+  assert.match(
+    workflow,
+    /\n  workspace:[\s\S]{0,400}needs: \[classify\]\n\s+if: needs\.classify\.outputs\.workspace == 'true'/,
+  );
+  assert.match(
+    workflow,
+    /\n  test-e2e:[\s\S]{0,400}needs: \[classify, workspace\]\n\s+if: needs\.classify\.outputs\.e2e == 'true'/,
+  );
+  assert.match(
+    workflow,
+    /\n  test-ios:[\s\S]{0,400}needs: \[classify\]\n\s+if: needs\.classify\.outputs\.ios == 'true'/,
+  );
+  assert.match(workflow, /run: pnpm quality:automation\n/);
+
+  // The affected scope comes from the same decision, never a local guess.
+  assert.match(
+    workflow,
+    /TURBO_SCM_BASE: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/,
+  );
+  assert.match(
+    workflow,
+    /TURBO_AFFECTED: \$\{\{ needs\.classify\.outputs\.scope == 'affected' && '1' \|\| '' \}\}/,
+  );
+
+  // ci-success accepts a skip only when the decision declares the unit not
+  // required, and the decision itself lands in the tested-tree evidence.
+  const success = workflow.slice(workflow.indexOf("\n  ci-success:"));
+  assert.match(
+    success,
+    /if \[ "\$2" = "skipped" \] && \[ "\$3" = "false" \]; then return; fi/,
+  );
+  assert.match(success, /require "Classify" "\$RESULT_CLASSIFY"/);
+  assert.match(success, /require "Workflow Lint" "\$RESULT_ACTIONLINT"/);
+  for (const [label, envKey] of [
+    ["Automation Gates", "AUTOMATION"],
+    ["Workspace", "WORKSPACE"],
+    ["Backend & Database", "BACKEND_DB"],
+    ["E2E Tests", "E2E"],
+    ["iOS Tests", "IOS"],
+  ]) {
+    assert.match(
+      success,
+      new RegExp(
+        `routed "${label}" "\\$RESULT_${envKey}" "\\$REQUIRED_${envKey}"`,
+      ),
+    );
+  }
+  assert.match(success, /"routing": json\.loads\(os\.environ\["ROUTING"\]\)/);
+
+  // The root gate owns the classifier's own tests, in one shared chain.
+  assert.equal(
+    rootPackage.scripts.quality,
+    "turbo quality && pnpm quality:automation",
+  );
+  assert.equal(
+    rootPackage.scripts["test:ci-routing"],
+    "node --test .github/scripts/classify-ci-changes.test.mjs",
+  );
+  assert.match(rootPackage.scripts["quality:automation"], /test:ci-routing/);
+  assert.match(rootPackage.scripts["quality:automation"], /test:ci-security/);
 });
 
 test("Android E2E verifies Maestro and withholds preview secrets from forks", () => {
