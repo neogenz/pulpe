@@ -115,6 +115,7 @@ jest.mock("react-native-paper", () => {
     }) => (
       <Pressable onPress={onPress} accessibilityLabel={accessibilityLabel} />
     ),
+    List: { Subheader: Text },
     Text,
     useTheme: () => ({
       colors: {
@@ -124,6 +125,10 @@ jest.mock("react-native-paper", () => {
       },
     }),
   };
+});
+jest.mock("@/core/ui/tab-header", () => {
+  const { Text } = jest.requireActual("react-native");
+  return { TabHeader: ({ title }: { title: string }) => <Text>{title}</Text> };
 });
 jest.mock("@/core/ui/card", () => {
   const { Pressable, View } = jest.requireActual("react-native");

@@ -88,6 +88,17 @@ refuse dismissal so partially applied changes cannot disappear. This is a
 modal form, not a bottom sheet: do not add a drag handle, swipe dismissal or a
 bottom-sheet dependency.
 
+## Shell
+
+The navigation bar and the top app bar are Paper chrome, configured once in
+`core/ui`. `NavigationBar` wraps `BottomNavigation.Bar` for the router's
+`tabBar` prop: four labelled destinations, an active pill on
+`secondaryContainer`, a filled icon inside the pill and its outlined twin at
+rest, no elevation. `TabHeader` puts `Appbar.Content` in the same flat bar on
+`background` that every pushed screen wears (`ScreenAppBar`), with a trailing
+slot for the account action. Neither is styled per screen: a tab that needs a
+different bar is a tab that needs a different design, not a prop.
+
 ## Icon and splash
 
 One brand mark, four renderings. `assets/images/brand-mark.png` is byte-for-byte the file iOS

@@ -22,6 +22,7 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatMonthName } from "@/core/ui/date-format";
 import { hapticFailure, hapticSuccess } from "@/core/ui/haptics";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
+import { TabHeader } from "@/core/ui/tab-header";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { Notice } from "@/core/ui/notice";
 import { useTranslation } from "@/core/i18n/locale-store";
@@ -134,10 +135,22 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView
-      edges={["top"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    // The app bar carries the status bar inset; asking the safe area for the
+    // top edge too would double it.
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+      <TabHeader
+        title={
+          monthName.charAt(0).toLocaleUpperCase(locale) + monthName.slice(1)
+        }
+        trailing={
+          <IconButton
+            testID="home-account"
+            icon="account-circle-outline"
+            onPress={() => router.push("/settings")}
+            accessibilityLabel={t("home.accountAccessibility")}
+          />
+        }
+      />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -147,22 +160,6 @@ export default function HomeScreen() {
           />
         }
       >
-        <View style={styles.header}>
-          <Text variant="headlineSmall" style={styles.title}>
-            {monthName}
-          </Text>
-          <IconButton
-            testID="home-account"
-            icon="account-circle-outline"
-            onPress={() => router.push("/settings")}
-            accessibilityLabel={t("home.accountAccessibility")}
-            // Paper's own margin would push the glyph six points past the
-            // right gutter every card below it lines up against. The target
-            // stays 48 without it — `IconButton` supplies its own hitSlop.
-            style={styles.headerAction}
-          />
-        </View>
-
         <HomeHeroCard
           presentation={presentation}
           trajectory={viewModel.trajectory}
@@ -340,7 +337,7 @@ export default function HomeScreen() {
           }}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -352,12 +349,5 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     paddingBottom: FAB_CLEARANCE,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  title: { textTransform: "capitalize" },
-  headerAction: { margin: 0 },
   fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

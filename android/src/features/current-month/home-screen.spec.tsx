@@ -79,6 +79,23 @@ jest.mock("react-native-paper", () => {
     }),
   };
 });
+jest.mock("@/core/ui/tab-header", () => {
+  const { Text, View } = jest.requireActual("react-native");
+  return {
+    TabHeader: ({
+      title,
+      trailing,
+    }: {
+      title: string;
+      trailing?: React.ReactNode;
+    }) => (
+      <View>
+        <Text>{title}</Text>
+        {trailing}
+      </View>
+    ),
+  };
+});
 jest.mock("@/core/ui/theme", () => ({
   SPACING: { md: 16 },
   FAB_CLEARANCE: 80,
