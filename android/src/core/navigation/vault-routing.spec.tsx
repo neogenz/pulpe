@@ -35,6 +35,9 @@ jest.mock("@/core/auth/session-store", () => {
     })),
   };
 });
+jest.mock("@/core/auth/session-invalidation", () => ({
+  observeSessionRejection: jest.fn(() => () => {}),
+}));
 jest.mock("@/core/auth/supabase", () => ({
   startSupabaseAutoRefresh: jest.fn(() => () => {}),
 }));

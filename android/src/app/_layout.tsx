@@ -8,6 +8,7 @@ import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
 
+import { observeSessionRejection } from "@/core/auth/session-invalidation";
 import { observeSession, useSessionStore } from "@/core/auth/session-store";
 import { startSupabaseAutoRefresh } from "@/core/auth/supabase";
 import { useTranslation } from "@/core/i18n/locale-store";
@@ -70,6 +71,7 @@ function RootLayout() {
   useEffect(() => startSupabaseAutoRefresh(), []);
   useEffect(() => armPrivacyShield(), []);
   useEffect(() => observeVaultKeyRejection(), []);
+  useEffect(() => observeSessionRejection(), []);
   useEffect(() => armAutoLock(), []);
   useEffect(() => startAnalytics(), []);
   useEffect(() => {
