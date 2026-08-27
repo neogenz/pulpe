@@ -3,61 +3,32 @@ import Testing
 
 /// Structural invariants for the home screen's "Activité" card.
 ///
-/// PR #685 rebuilt this card on a `List` with `listRowInsets` and a transparent
-/// `listRowBackground`, and deleted the shared swipe component in the process.
-/// Nothing failed: the app compiled, the tests stayed green, and the screen
-/// shipped with its rows bleeding to both edges of the display and the hero's
-/// green showing through the gaps where the card used to be.
-///
-/// The home is a `ScrollView`, so a row here carries its own surface. These
-/// tests walk the source on disk and fail loud the next time that surface is
-/// traded for list chrome — the one thing a screenshotless CI cannot see.
+/// PR #685 rebuilt this card on a `List` for `.swipeActions` and shipped rows bleeding to
+/// both edges of the display over a transparent cell: the app compiled, the tests stayed
+/// green, and a screenshotless CI saw nothing. A hand-rolled swipe followed and never
+/// rendered like the system's. The card is a card of tappable rows now, and these tests
+/// walk the source on disk to fail loud the next time either comes back.
 @Suite("Home activity card structure")
 struct HomeActivityCardArchitectureTests {
-    // MARK: - Sources
-
-    /// This file lives in `<repo>/ios/PulpeTests/Architecture/`, so `ios/` is
-    /// three levels up. Resolved from `#filePath` to work on dev machines and
-    /// CI alike, as long as the repository layout is intact at test time.
-    private static func iosDirectory() -> URL {
+    /// This file lives in `<repo>/ios/PulpeTests/Architecture/`, so `ios/` is three
+    /// levels up. Resolved from `#filePath` to work on dev machines and CI alike.
+    private static var activityCard: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-    }
-
-    private static var activityCard: URL {
-        iosDirectory()
             .appendingPathComponent("Pulpe/Features/CurrentMonth/Components/ActivityCard.swift")
     }
 
-    private static var deletionPath: URL {
-        iosDirectory()
-            .appendingPathComponent("Pulpe/Features/CurrentMonth/HomeDeletion.swift")
+    private static func source() throws -> String {
+        try String(contentsOf: activityCard, encoding: .utf8)
     }
-
-    private static var swipeComponent: URL {
-        iosDirectory()
-            .appendingPathComponent("Pulpe/Shared/Components/TrailingSwipeActions.swift")
-    }
-
-    private static func read(_ url: URL) throws -> String {
-        try String(contentsOf: url, encoding: .utf8)
-    }
-
-    // MARK: - The card owns its surface
 
     @Test("A day group sits on the shared row card")
     func dayGroupCarriesItsOwnSurface() throws {
-        let source = try Self.read(Self.activityCard)
-        // Opaque, rounded, inset — the boundary that tells a row apart from the
-        // page it scrolls over.
+        let source = try Self.source()
+        // Opaque, rounded, inset — the boundary that tells a row apart from the page.
         #expect(source.contains("pulpeRowCard()"))
-    }
-
-    @Test("The card never borrows List chrome")
-    func noListRowModifiers() throws {
-        let source = try Self.read(Self.activityCard)
         // Each of these silently widens a row to the full display and drops its
         // background, because the enclosing ScrollView has no list to inset it.
         for modifier in ["listRowInsets", "listRowBackground", "listRowSeparator", "listStyle"] {
@@ -65,62 +36,24 @@ struct HomeActivityCardArchitectureTests {
         }
     }
 
-    // MARK: - The swipe stays the shared one
-
-    @Test("Rows swipe through the shared component")
-    func swipeGoesThroughTrailingSwipeActions() throws {
-        let source = try Self.read(Self.activityCard)
-        #expect(source.contains("trailingSwipeActions("))
-        // `.swipeActions` only resolves inside a List. Reaching for it here is
-        // the exact move that took the card away.
-        #expect(!source.contains(".swipeActions("))
+    @Test("A row opens its page on a tap and says so with a chevron")
+    func rowIsATapTarget() throws {
+        let source = try Self.source()
+        #expect(source.contains("Button { onEdit(transaction) }"))
+        #expect(source.contains("RowChevron()"))
+        #expect(source.contains("accessibilityHint(\"Touche pour modifier\")"))
     }
 
-    @Test("The shared swipe component is still on disk")
-    func swipeComponentExists() throws {
-        let path = Self.swipeComponent.path
-        try #require(
-            FileManager.default.fileExists(atPath: path),
-            "TrailingSwipeActions.swift missing at \(path)"
-        )
-        let source = try Self.read(Self.swipeComponent)
-        // The pan bridge is what lets a horizontal pull decline to the scroll
-        // view; a plain DragGesture cannot, and the home scroll dies with it.
-        #expect(source.contains("HorizontalPanGesture"))
-    }
-
-    @Test("The strip covers the row instead of pushing it aside")
-    func swipeCoversRatherThanDisplaces() throws {
-        let source = try Self.read(Self.swipeComponent)
-        // Translating the row by the strip's own width — 124pt — took a short name
-        // ("Bonus", "Vente") clean off the leading edge and left most of the card
-        // blank. The strip rides over the row instead, on the card's own fill.
-        #expect(!source.contains(".offset(x: offset)"), "the row itself must not translate")
-        #expect(source.contains(".overlay(alignment: .trailing)"))
-        // Without an opaque fill the amount reads straight through the buttons.
-        #expect(source.contains("Color.surfaceContainerLowest"))
-        // A fill sized to the buttons alone leaves a sliver of amount above and below.
-        #expect(source.contains(".frame(maxHeight: .infinity)"))
-    }
-
-    // MARK: - Deleting is undoable, not confirmed
-
-    @Test("Deletion acts at once and answers in an undo toast")
-    func deleteIsUndoableRatherThanConfirmed() throws {
-        let card = try Self.read(Self.activityCard)
-        // The alert asked its question before the user could see the answer, and
-        // covering a ScrollView row with it is what broke the card behind it.
-        #expect(!card.contains(".alert("), "deletion must not open a confirmation")
-        #expect(card.contains("onDelete(transaction)"))
-
-        let home = try Self.read(Self.deletionPath)
-        // Off the screen first, onto the server only once the toast dismisses with
-        // no undo — the grace checking a line already had.
-        #expect(home.contains("softDeleteTransaction("))
-        #expect(home.contains("undoPendingDeletions("))
-        #expect(home.contains("commitPendingDeletions("))
-        // A second deletion inside the window refreshes the toast; re-presenting it
-        // fires the outgoing toast's commit and closes the window early.
-        #expect(home.contains("refreshUndoToast("))
+    @Test("Nothing swipes and nothing deletes on the home")
+    func noSwipeAndNoDeletion() throws {
+        let source = try Self.source()
+        // `.swipeActions` only resolves inside a List, and a pan of our own never painted
+        // like the system's; each took the card away once.
+        for gesture in [".swipeActions(", "trailingSwipeActions(", "HorizontalPanGesture", "DragGesture"] {
+            #expect(!source.contains(gesture), "\(gesture) brings the swipe back")
+        }
+        // Deleting lives on the operation's page, behind its own undo toast.
+        #expect(!source.contains("onDelete"))
+        #expect(!source.contains(".alert("))
     }
 }

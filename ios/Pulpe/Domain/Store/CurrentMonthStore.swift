@@ -84,8 +84,6 @@ final class CurrentMonthStore: StoreProtocol {
     /// ponytail: one flag, so two overlapping mutations clear it on the first response;
     /// a counter if that ever shows.
     private(set) var isSettling = false
-    /// Rows already off the screen whose server DELETE the undo toast still owns.
-    private var pendingDeletions: [Transaction] = []
     private(set) var error: APIError?
 
     /// Derived from `contentState` — satisfies `StoreProtocol.isLoading`
@@ -391,12 +389,7 @@ final class CurrentMonthStore: StoreProtocol {
     private func applyDetails(_ details: BudgetDetails) {
         budget = details.budget
         budgetLines = details.budgetLines
-        // The server still holds rows the undo toast has not committed yet, so a refresh
-        // landing inside that window would put them back on screen (PUL-271).
-        let held = Set(pendingDeletions.map(\.id))
-        transactions = held.isEmpty
-            ? details.transactions
-            : details.transactions.filter { !held.contains($0.id) }
+        transactions = details.transactions
         history = details.history
         recomputeMetrics()
         lastLoadTime = Date()
@@ -736,77 +729,6 @@ extension CurrentMonthStore {
         recomputeMetrics()
         syncWidgetAfterChange()
         onMutation?()
-    }
-
-    /// How many rows the undo toast still owns, so the caller can tell a first deletion
-    /// (which presents a toast) from a follow-up (which refreshes the one on screen).
-    var pendingDeletionCount: Int { pendingDeletions.count }
-
-    /// Takes the row off the screen and holds its deletion until the undo toast resolves.
-    /// Nothing reaches the server here — deleting is the one action on this screen with no
-    /// way back, so it gets the same grace period as checking a line does.
-    func softDeleteTransaction(_ transaction: Transaction) {
-        transactions.removeAll { $0.id == transaction.id }
-        pendingDeletions.append(transaction)
-        recomputeMetrics()
-        // No `onMutation` yet: nothing has changed on the server, so there is nothing for
-        // the other stores to refetch — and invalidating them here rebuilds the root the
-        // toast window hangs off, which took the undo toast down with it. It fires on
-        // commit instead, when the deletion becomes real.
-    }
-
-    /// Puts every held row back. The undo window is fronted by a single toast that counts
-    /// all of them ("3 opérations supprimées"), and its one "Annuler" has to undo what it
-    /// says — restoring only the last would leave the other two gone with no way back.
-    @discardableResult
-    func undoPendingDeletions() -> [Transaction] {
-        guard !pendingDeletions.isEmpty else { return [] }
-        let restored = pendingDeletions
-        pendingDeletions.removeAll()
-        // A refresh landing inside the undo window already re-injected some from the server.
-        for transaction in restored where !transactions.contains(where: { $0.id == transaction.id }) {
-            transactions.append(transaction)
-        }
-        recomputeMetrics()
-        // Nothing was ever sent, so nothing to tell the other stores about.
-        return restored
-    }
-
-    /// Sends every held deletion to the server, oldest first. Rows the server refuses come
-    /// back on screen and are returned, so the caller can name them.
-    func commitPendingDeletions() async -> [Transaction] {
-        guard !pendingDeletions.isEmpty else { return [] }
-        isSettling = true
-        defer { isSettling = false }
-
-        // Drained up front: the queue is the record of what the user confirmed, and an
-        // undo arriving mid-commit must not be able to cancel a DELETE already in flight.
-        let batch = pendingDeletions
-        pendingDeletions.removeAll()
-        var refused: [Transaction] = []
-
-        for transaction in batch {
-            do {
-                try await transactionService.deleteTransaction(id: transaction.id)
-                // A refresh racing the undo window re-injects the row from the server,
-                // where it still existed. The DELETE has landed, so drop it again.
-                transactions.removeAll { $0.id == transaction.id }
-            } catch let apiError as APIError {
-                error = apiError
-                refused.append(transaction)
-            } catch {
-                self.error = .networkError(error)
-                refused.append(transaction)
-            }
-        }
-
-        for transaction in refused where !transactions.contains(where: { $0.id == transaction.id }) {
-            transactions.append(transaction)
-        }
-        recomputeMetrics()
-        onMutation?()
-        syncWidgetAfterChange()
-        return refused
     }
 
     func deleteBudgetLine(_ line: BudgetLine) async {

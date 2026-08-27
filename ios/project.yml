@@ -116,9 +116,9 @@ targets:
         LSRequiresIPhoneOS: true
         # Without this, Core Animation clamps the app to 60 Hz on every ProMotion iPhone
         # while the touch digitizer keeps sampling at 120 — so anything driven frame by
-        # frame from a finger (the swipe on an activity row) renders on a cadence that
-        # does not divide into the one it is fed, and judders. Opting in is the only way
-        # to render above 60 Hz; Apple leaves it off by default to save battery.
+        # frame from a finger (scrubbing the balance chart on the accueil) renders on a
+        # cadence that does not divide into the one it is fed, and judders. Opting in is
+        # the only way to render above 60 Hz; Apple leaves it off by default to save battery.
         CADisableMinimumFrameDurationOnPhone: true
         # Declared explicitly rather than left to .lproj discovery, so the App Store
         # listing and the system language picker both name the four we actually ship.

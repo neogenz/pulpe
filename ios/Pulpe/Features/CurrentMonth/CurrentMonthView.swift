@@ -328,8 +328,7 @@ struct CurrentMonthView: View {
                     transactions: store.transactions,
                     tagNamesById: tagStore.namesById,
                     onViewAll: { navigateToBudget = true },
-                    onEdit: editTransaction,
-                    onDelete: { HomeDeletion.delete($0, store: store, toastManager: toastManager) }
+                    onEdit: editTransaction
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 3)
             }

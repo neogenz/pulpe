@@ -7,12 +7,9 @@ struct ActivityCard: View {
     var tagNamesById: [String: String] = [:]
     var onViewAll: () -> Void
     var onEdit: (Transaction) -> Void
-    var onDelete: (Transaction) -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var window: Window = .week
-    /// The one row whose swipe actions are revealed, shared across the day cards.
-    @State private var openRowId: AnyHashable?
 
     enum Window: String, CaseIterable {
         case week = "7 jours"
@@ -112,6 +109,9 @@ struct ActivityCard: View {
             }
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
+        // `.contain` first: a bare identifier on the container overwrites every row's own,
+        // and the rows are what the UI tests tap.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("homeActivityCard")
     }
 
@@ -140,29 +140,10 @@ struct ActivityCard: View {
                 .foregroundStyle(Color.textTertiary)
                 .accessibilityAddTraits(.isHeader)
 
-            // The inset lives on each row rather than on the stack, so the swipe modifier
-            // wraps the row at the card's full width and the strip it reveals can reach the
-            // card's edge instead of stopping short inside the padding.
             VStack(spacing: DesignTokens.Spacing.none) {
                 ForEach(Array(group.transactions.enumerated()), id: \.element.id) { index, transaction in
                     if index > 0 { Divider().padding(.horizontal, DesignTokens.Spacing.lg) }
                     row(transaction)
-                        .padding(.horizontal, DesignTokens.Spacing.lg)
-                        .trailingSwipeActions(id: transaction.id, openId: $openRowId) {
-                            swipeButton("Modifier", systemImage: "pencil", fill: .editAction) {
-                                openRowId = nil
-                                onEdit(transaction)
-                            }
-                            // No question asked: the row goes, and the undo toast the
-                            // caller raises is where the answer lives. An alert put the
-                            // decision before the result, and covered the screen to do it.
-                            swipeButton("Supprimer", systemImage: "trash", fill: .destructivePrimary) {
-                                openRowId = nil
-                                onDelete(transaction)
-                            }
-                        }
-                        .accessibilityAction(named: AppLocale.string("Modifier")) { onEdit(transaction) }
-                        .accessibilityAction(named: AppLocale.string("Supprimer")) { onDelete(transaction) }
                 }
             }
             .padding(.vertical, DesignTokens.Spacing.xs)
@@ -170,51 +151,43 @@ struct ActivityCard: View {
         }
     }
 
+    /// A tap opens the operation's own page, where it is edited and — behind that page's
+    /// own undo — deleted. The chevron makes the promise before any gesture; a swipe kept
+    /// both actions hidden until guessed, and never rendered like the system's outside a
+    /// `List`.
     private func row(_ transaction: Transaction) -> some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            RowIcon(systemName: transaction.kind.icon, tint: transaction.kind.color)
+        Button { onEdit(transaction) } label: {
+            HStack(spacing: DesignTokens.Spacing.lg) {
+                RowIcon(systemName: transaction.kind.icon, tint: transaction.kind.color)
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(transaction.name)
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.textPrimary)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text(transaction.name)
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(Color.textPrimary)
+                        .lineLimit(1)
 
-                // No date under the name any more: the day is named once, above the card
-                // these rows sit in. `followsText` goes with it — nothing precedes the
-                // chips on this line for them to trail.
-                let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
-                if !tagNames.isEmpty {
-                    TagChips(names: tagNames, presentation: .count)
+                    // No date under the name: the day is named once, above the card these
+                    // rows sit in. `followsText` goes with it — nothing precedes the chips
+                    // on this line for them to trail.
+                    let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
+                    if !tagNames.isEmpty {
+                        TagChips(names: tagNames, presentation: .count)
+                    }
                 }
+
+                Spacer(minLength: DesignTokens.Spacing.sm)
+
+                amountColumn(transaction)
+
+                RowChevron()
             }
-
-            Spacer(minLength: DesignTokens.Spacing.sm)
-
-            amountColumn(transaction)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .accessibilityElement(children: .combine)
-    }
-
-    /// One revealed action: a tinted circle on the card's own surface, the shape iOS gives
-    /// its native list actions. Closing the row is each action's own call.
-    private func swipeButton(
-        _ title: String.LocalizationValue,
-        systemImage: String,
-        fill: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Label(AppLocale.string(title), systemImage: systemImage)
-                .labelStyle(.iconOnly)
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.textOnPrimary)
-                .frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
-                .background(fill, in: .circle)
-        }
-        .buttonStyle(.plain)
-        .contentShape(.circle)
+        .plainPressedButtonStyle()
+        .accessibilityHint("Touche pour modifier")
+        .accessibilityIdentifier("homeActivityRow-\(transaction.id)")
     }
 
     /// Mock renders activity amounts in neutral ink (not kind-colored);

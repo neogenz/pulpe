@@ -26,6 +26,19 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["addTransactionSubmit"].firstMatch.waitForExistence(timeout: 5))
     }
 
+    func testTappingAnActivityRowOpensItsEditPage() {
+        launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", marketingGain: true)
+
+        let row = app.buttons["homeActivityRow-marketing-bonus"]
+        scrollUntilHittable(row)
+        row.tap()
+
+        let editPage = app.navigationBars.matching(
+            NSPredicate(format: "identifier IN %@", ["Modifier", "Edit", "Ändern", "Modifica"])
+        ).firstMatch
+        XCTAssertTrue(editPage.waitForExistence(timeout: 10), app.debugDescription)
+    }
+
     func testBudgetToolbarActionsRemainDistinctAtLargeText() {
         launch("UITEST_CONTEXTUAL_CREATION_BUDGET")
 
@@ -209,7 +222,8 @@ final class ContextualCreationUITests: XCTestCase {
         chartState: String? = nil,
         homeSkeleton: Bool = false,
         freshSignup: Bool = false,
-        amountsHidden: Bool = false
+        amountsHidden: Bool = false,
+        marketingGain: Bool = false
     ) {
         app = XCUIApplication()
         app.launchArguments = ["-\(scenario)"]
@@ -234,6 +248,9 @@ final class ContextualCreationUITests: XCTestCase {
         }
         if amountsHidden {
             app.launchEnvironment["UITEST_AMOUNTS_HIDDEN"] = "1"
+        }
+        if marketingGain {
+            app.launchEnvironment["UITEST_HOME_MARKETING_GAIN"] = "1"
         }
         app.launch()
     }

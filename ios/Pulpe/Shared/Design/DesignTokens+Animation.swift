@@ -11,26 +11,6 @@ extension DesignTokens {
         static let microFadeOut: Double = 0.1
         /// Drag distance that commits a leading swipe action on a ledger row.
         static let swipeCommitDistance: CGFloat = 72
-        /// `UIScrollView.DecelerationRate.normal` — the rate WWDC18 *Designing Fluid
-        /// Interfaces* projects a flick's resting point with.
-        static let swipeDecelerationRate: CGFloat = 0.998
-        /// Settle of a row the finger just let go of. Direct manipulation, so it is short
-        /// and lands without bounce — an overshoot would carry the revealed actions past
-        /// their own trailing edge. `gentleSpring` is the wrong tool here: at a 0.6s
-        /// response it leaves a released row drifting long after the finger has moved on.
-        ///
-        /// `interpolatingSpring` reads this as the spring's *period*, not as how long it
-        /// takes to arrive: the settling time constant is `duration / 2π`, and the strip
-        /// needs about five of those to land. At 0.32 that measured 59ms per constant and
-        /// 390ms to come to rest — a finger crossing 80pt in 60ms was answered by a strip
-        /// that took three times as long to cover half that, which is the stutter a fast
-        /// flick showed. 0.18 measures 37ms per constant and 232ms to come to rest.
-        static let swipeSettleDuration: Double = 0.18
-        static let swipeSettleBounce: Double = 0
-        /// Ceiling on the release velocity handed to that settle, counted in travels-worth
-        /// of distance per second. Uncapped, a hard flick with a few points left to cover
-        /// normalises to a number that crosses the whole travel inside one frame.
-        static let swipeSettleMaxVelocity: CGFloat = 18
         static let quickSnap: Double = 0.25
         static let normal: Double = 0.3
         static let slow: Double = 0.5
