@@ -527,7 +527,10 @@
     },
     "deletion": {
       "actual": "Actual",
-      "budgetCount": { "one": "%{count} budget", "other": "%{count} budgets" },
+      "budgetCount": {
+        "one": "%{count} budget",
+        "other": "%{count} budgets"
+      },
       "confirm": {
         "goal_and_forecasts": "Delete goal and forecasts",
         "goal_forecasts_and_transactions": "Delete everything",
@@ -583,7 +586,10 @@
         "other": "View the whole plan (%{count} months)"
       },
       "showLess": "View less",
-      "state": { "checked": "Checked", "locked": "Locked" },
+      "state": {
+        "checked": "Checked",
+        "locked": "Locked"
+      },
       "thisMonth": "This month",
       "title": "Your plan, month by month",
       "unlinked": {
@@ -604,7 +610,10 @@
       "emptyHint": "Your entries will appear here",
       "title": "Activity",
       "viewAll": "View all",
-      "window": { "month": "This month", "week": "7 days" },
+      "window": {
+        "month": "This month",
+        "week": "7 days"
+      },
       "windowAccessibility": "Activity for %{window}"
     },
     "add": "Add",
@@ -646,7 +655,10 @@
         "overrun": "You have less left than planned.",
         "overrunDated": "Below your plan since %{date}."
       },
-      "vsPlanned": "vs planned"
+      "vsPlanned": "vs planned",
+      "chart": {
+        "today": "today"
+      }
     },
     "periodRemaining": {
       "one": "Last day of the period",
@@ -703,10 +715,22 @@
       "title": "Your budget is ready"
     },
     "tabs": {
-      "budgets": { "accessibility": "Budgets tab", "short": "Budgets" },
-      "goals": { "accessibility": "Goals tab", "short": "Goals" },
-      "home": { "accessibility": "Home tab", "short": "Home" },
-      "templates": { "accessibility": "Templates tab", "short": "Templates" }
+      "budgets": {
+        "accessibility": "Budgets tab",
+        "short": "Budgets"
+      },
+      "goals": {
+        "accessibility": "Goals tab",
+        "short": "Goals"
+      },
+      "home": {
+        "accessibility": "Home tab",
+        "short": "Home"
+      },
+      "templates": {
+        "accessibility": "Templates tab",
+        "short": "Templates"
+      }
     }
   },
   "onboarding": {
@@ -1179,7 +1203,14 @@
     }
   },
   "vocabulary": {
-    "kind": { "expense": "Expense", "income": "Income", "saving": "Savings" },
-    "recurrence": { "fixed": "Recurring", "one_off": "Planned" }
+    "kind": {
+      "expense": "Expense",
+      "income": "Income",
+      "saving": "Savings"
+    },
+    "recurrence": {
+      "fixed": "Recurring",
+      "one_off": "Planned"
+    }
   }
 }

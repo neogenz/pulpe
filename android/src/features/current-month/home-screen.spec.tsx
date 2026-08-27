@@ -150,6 +150,14 @@ jest.mock("@/features/current-month/home-hero-presentation", () => ({
 jest.mock("@/features/current-month/components/home-hero-card", () => ({
   HomeHeroCard: () => null,
 }));
+jest.mock("@/features/current-month/components/home-hero-skeleton", () => {
+  const { View } = jest.requireActual("react-native");
+  return {
+    HomeHeroSkeleton: () => (
+      <View testID="home-hero-skeleton" accessibilityLabel="common.loading" />
+    ),
+  };
+});
 jest.mock("@/features/current-month/components/drift-card", () => ({
   DriftCard: () => null,
 }));
@@ -270,7 +278,10 @@ beforeEach(() => {
 
 it("renders loading, retryable failure and empty creation states", async () => {
   const loading = await render(<HomeScreen />);
-  expect(loading.getByText("common.loading")).toBeTruthy();
+  expect(loading.getByTestId("home-hero-skeleton")).toBeTruthy();
+  expect(loading.getByLabelText("common.loading")).toBeTruthy();
+  // The mocked spinner prints its label as text; the skeleton only labels it.
+  expect(loading.queryByText("common.loading")).toBeNull();
 
   Object.assign(mockCurrentMonth, { status: "failed", refresh: mockRefresh });
   await loading.rerender(<HomeScreen />);

@@ -2,10 +2,11 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
   CURRENCY_METADATA,
   type BalanceTrajectory,
+  type BudgetPeriodDates,
   type SupportedCurrency,
 } from "pulpe-shared";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Text } from "react-native-paper";
+import { Button, Text } from "react-native-paper";
 
 import { hapticCommit } from "@/core/ui/haptics";
 import { Amount } from "@/core/ui/amount";
@@ -31,6 +32,8 @@ interface HomeHeroCardProps {
    */
   presentation: HeroPresentation;
   trajectory: BalanceTrajectory | null;
+  /** What the chart's captions date: the period the trajectory spans. */
+  period: BudgetPeriodDates;
   monthName: string;
   uncheckedCount: number;
   currency: SupportedCurrency;
@@ -38,6 +41,12 @@ interface HomeHeroCardProps {
   /** Absent until there is a budget detail to open — the verdict then reads as
    * the sentence it is, with no chevron promising a screen that is not there. */
   onPressDetail?: () => void;
+  /**
+   * Present only while a next month can be prepared. The forward-looking
+   * action sits in the hero's footer, where the eye already is, rather than at
+   * the bottom of a page it had to be scrolled to.
+   */
+  onPrepareNextMonth?: () => void;
 }
 
 /**
@@ -51,11 +60,13 @@ interface HomeHeroCardProps {
 export function HomeHeroCard({
   presentation,
   trajectory,
+  period,
   monthName,
   uncheckedCount,
   currency,
   onPressMetrics,
   onPressDetail,
+  onPrepareNextMonth,
 }: HomeHeroCardProps) {
   const hero = useHeroColors();
   const accent = useAccentColor(presentation);
@@ -114,6 +125,7 @@ export function HomeHeroCard({
       {trajectory !== null && (
         <BalanceTrajectoryChart
           trajectory={trajectory}
+          period={period}
           accent={accent}
           ruleColor={hero.support}
         />
@@ -143,6 +155,19 @@ export function HomeHeroCard({
             />
           </Text>
         </Pressable>
+      )}
+
+      {onPrepareNextMonth !== undefined && (
+        <Button
+          mode="text"
+          icon="chevron-right"
+          textColor={hero.ink}
+          onPress={onPrepareNextMonth}
+          style={styles.footer}
+          contentStyle={styles.footerContent}
+        >
+          {t("home.prepareNextMonth")}
+        </Button>
       )}
     </View>
   );
@@ -223,4 +248,7 @@ const styles = StyleSheet.create({
   },
   metricLabel: { flexDirection: "row", alignItems: "center" },
   verdict: { minHeight: TOUCH_TARGET, justifyContent: "center" },
+  footer: { alignSelf: "flex-start", marginLeft: -SPACING.sm },
+  // The chevron follows the label: it points at the screen the tap opens.
+  footerContent: { flexDirection: "row-reverse" },
 });

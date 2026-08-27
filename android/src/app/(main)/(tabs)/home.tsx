@@ -1,15 +1,8 @@
 import { router } from "expo-router";
+import { getBudgetPeriodDates } from "pulpe-shared";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import {
-  ActivityIndicator,
-  Button,
-  FAB,
-  IconButton,
-  Text,
-  useTheme,
-} from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { FAB, IconButton, Text, useTheme } from "react-native-paper";
 
 import {
   consumeAddExpenseRequest,
@@ -32,6 +25,7 @@ import { ActivityCard } from "@/features/current-month/components/activity-card"
 import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
 import { DriftCard } from "@/features/current-month/components/drift-card";
 import { HomeHeroCard } from "@/features/current-month/components/home-hero-card";
+import { HomeHeroSkeleton } from "@/features/current-month/components/home-hero-skeleton";
 import { NotificationPrimeSheet } from "@/features/current-month/components/notification-prime-sheet";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { SavingsDoneCard } from "@/features/current-month/components/savings-done-card";
@@ -75,14 +69,36 @@ export default function HomeScreen() {
     budgets.data !== undefined &&
     hasAvailableMonth(budgets.data, new Date(), currentMonth.payDayOfMonth);
 
+  // The calendar month while the details are still on their way, so the app
+  // bar does not change its title once they land on the same month.
+  const month = currentMonth.details?.budget.month ?? new Date().getMonth() + 1;
+  const year = currentMonth.details?.budget.year ?? new Date().getFullYear();
+  const monthName = formatMonthName(month, year, locale);
+  const period = getBudgetPeriodDates(month, year, currentMonth.payDayOfMonth);
+  const header = (
+    <TabHeader
+      title={monthName.charAt(0).toLocaleUpperCase(locale) + monthName.slice(1)}
+      trailing={
+        <IconButton
+          testID="home-account"
+          icon="account-circle-outline"
+          onPress={() => router.push("/settings")}
+          accessibilityLabel={t("home.accountAccessibility")}
+        />
+      }
+    />
+  );
+
   if (currentMonth.status === "loading") {
     return (
-      <SafeAreaView
-        edges={["top"]}
-        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator accessibilityLabel={t("common.loading")} />
-      </SafeAreaView>
+        {header}
+        <View style={styles.content}>
+          <HomeHeroSkeleton />
+        </View>
+      </View>
     );
   }
 
@@ -128,29 +144,11 @@ export default function HomeScreen() {
     consumeAddExpenseRequest();
   }
 
-  const monthName = formatMonthName(
-    currentMonth.details?.budget.month ?? new Date().getMonth() + 1,
-    currentMonth.details?.budget.year ?? new Date().getFullYear(),
-    locale,
-  );
-
   return (
     // The app bar carries the status bar inset; asking the safe area for the
     // top edge too would double it.
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <TabHeader
-        title={
-          monthName.charAt(0).toLocaleUpperCase(locale) + monthName.slice(1)
-        }
-        trailing={
-          <IconButton
-            testID="home-account"
-            icon="account-circle-outline"
-            onPress={() => router.push("/settings")}
-            accessibilityLabel={t("home.accountAccessibility")}
-          />
-        }
-      />
+      {header}
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -163,6 +161,7 @@ export default function HomeScreen() {
         <HomeHeroCard
           presentation={presentation}
           trajectory={viewModel.trajectory}
+          period={period}
           monthName={monthName}
           uncheckedCount={viewModel.uncheckedCount}
           currency={currency}
@@ -172,7 +171,17 @@ export default function HomeScreen() {
               ? undefined
               : () => router.push(`/budget/${currentMonth.budgetId}`)
           }
+          onPrepareNextMonth={
+            hasMonthToPrepare ? () => router.push("/budget/create") : undefined
+          }
         />
+
+        <Text
+          variant="bodyMedium"
+          style={{ color: theme.colors.onSurfaceVariant }}
+        >
+          {t("home.periodRemaining", { count: viewModel.daysRemaining })}
+        </Text>
 
         {viewModel.driftLines.length > 0 ? (
           <DriftCard
@@ -234,23 +243,6 @@ export default function HomeScreen() {
               : () => router.push(`/budget/${currentMonth.budgetId}`)
           }
         />
-
-        <Text
-          variant="bodyMedium"
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
-          {t("home.periodRemaining", { count: viewModel.daysRemaining })}
-        </Text>
-
-        {hasMonthToPrepare && (
-          <Button
-            mode="outlined"
-            icon="calendar-plus"
-            onPress={() => router.push("/budget/create")}
-          >
-            {t("home.prepareNextMonth")}
-          </Button>
-        )}
       </ScrollView>
 
       {/* Hidden while a sheet is up: the FAB floats above the Portal's scrim
@@ -343,7 +335,6 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: {
     padding: SPACING.md,
     gap: SPACING.md,

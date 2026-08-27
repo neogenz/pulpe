@@ -527,7 +527,10 @@
     },
     "deletion": {
       "actual": "Réel",
-      "budgetCount": { "one": "%{count} budget", "other": "%{count} budgets" },
+      "budgetCount": {
+        "one": "%{count} budget",
+        "other": "%{count} budgets"
+      },
       "confirm": {
         "goal_and_forecasts": "Supprimer l'objectif et les prévisions",
         "goal_forecasts_and_transactions": "Tout supprimer",
@@ -583,7 +586,10 @@
         "other": "Voir tout le plan (%{count} mois)"
       },
       "showLess": "Voir moins",
-      "state": { "checked": "Pointé", "locked": "Verrouillé" },
+      "state": {
+        "checked": "Pointé",
+        "locked": "Verrouillé"
+      },
       "thisMonth": "Ce mois",
       "title": "Ton plan, mois par mois",
       "unlinked": {
@@ -597,11 +603,17 @@
     "accountAccessibility": "Mon compte",
     "activity": {
       "added": "Opération ajoutée",
-      "empty": { "month": "Rien ce mois-ci", "week": "Rien sur ces 7 jours" },
+      "empty": {
+        "month": "Rien ce mois-ci",
+        "week": "Rien sur ces 7 jours"
+      },
       "emptyHint": "Tes opérations s'afficheront ici",
       "title": "Activité",
       "viewAll": "Tout voir",
-      "window": { "month": "Ce mois", "week": "7 jours" },
+      "window": {
+        "month": "Ce mois",
+        "week": "7 jours"
+      },
       "windowAccessibility": "Activité sur %{window}"
     },
     "add": "Ajouter",
@@ -643,7 +655,10 @@
         "overrun": "Il te reste moins que prévu.",
         "overrunDated": "Sous ton plan depuis le %{date}."
       },
-      "vsPlanned": "vs prévu"
+      "vsPlanned": "vs prévu",
+      "chart": {
+        "today": "aujourd'hui"
+      }
     },
     "periodRemaining": {
       "one": "Dernier jour de la période",
@@ -700,10 +715,22 @@
       "title": "Ton budget est prêt"
     },
     "tabs": {
-      "budgets": { "accessibility": "Onglet Budgets", "short": "Budgets" },
-      "goals": { "accessibility": "Onglet Objectifs", "short": "Objectifs" },
-      "home": { "accessibility": "Onglet Accueil", "short": "Accueil" },
-      "templates": { "accessibility": "Onglet Modèles", "short": "Modèles" }
+      "budgets": {
+        "accessibility": "Onglet Budgets",
+        "short": "Budgets"
+      },
+      "goals": {
+        "accessibility": "Onglet Objectifs",
+        "short": "Objectifs"
+      },
+      "home": {
+        "accessibility": "Onglet Accueil",
+        "short": "Accueil"
+      },
+      "templates": {
+        "accessibility": "Onglet Modèles",
+        "short": "Modèles"
+      }
     }
   },
   "onboarding": {
@@ -1176,7 +1203,14 @@
     }
   },
   "vocabulary": {
-    "kind": { "expense": "Dépense", "income": "Revenu", "saving": "Épargne" },
-    "recurrence": { "fixed": "Récurrent", "one_off": "Prévu" }
+    "kind": {
+      "expense": "Dépense",
+      "income": "Revenu",
+      "saving": "Épargne"
+    },
+    "recurrence": {
+      "fixed": "Récurrent",
+      "one_off": "Prévu"
+    }
   }
 }
