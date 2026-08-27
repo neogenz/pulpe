@@ -166,12 +166,26 @@ jobs:
           done
           echo "✅ ${#suites[@]} SQL suites passed"
 
-      - name: 🔧 Generate TypeScript Types
+      # Génère dans un fichier temporaire et compare : une redirection directe
+      # tronquerait le fichier suivi avant même que la commande ait réussi, et
+      # un fichier réécrit en CI masquerait une dérive du type commité.
+      - name: 🔧 Verify TypeScript Types
         working-directory: backend-nest
         run: |
+          set -euo pipefail
           echo "📝 Generating TypeScript types from local schema..."
-          supabase gen types typescript --local > src/types/database.types.ts
-          echo "✅ Types generated"
+          generated="$RUNNER_TEMP/database.types.ts"
+          trap 'rm -f "$generated"' EXIT
+          supabase gen types typescript --local > "$generated"
+          if [ ! -s "$generated" ]; then
+            echo "::error::generated types are empty"
+            exit 1
+          fi
+          if ! diff -u src/types/database.types.ts "$generated"; then
+            echo "::error::src/types/database.types.ts drifts from the local schema — run 'bun run generate-types:local' in backend-nest and commit the result"
+            exit 1
+          fi
+          echo "✅ Committed types match the local schema"
 
       - name: 🔧 Setup CI Environment
         working-directory: backend-nest
@@ -194,7 +208,6 @@ jobs:
           include-hidden-files: true
           path: |
             backend-nest/.env
-            backend-nest/src/types/database.types.ts
             backend-nest/supabase/.temp/
           retention-days: 1
 
@@ -225,8 +238,9 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      # Les types régénérés depuis le schéma local suffisent : compiler ne parle
-      # à aucune base, donc pas de conteneurs Supabase à démarrer ici.
+      # Les types versionnés sont déjà vérifiés conformes au schéma local par
+      # supabase-setup : compiler ne parle à aucune base, donc pas de conteneurs
+      # Supabase à démarrer ici — l'artefact ne porte que .env et .temp.
       - name: 📥 Download Supabase State
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:

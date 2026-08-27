@@ -33,7 +33,14 @@ flowchart LR
 ```
 
 - `install` installs the frozen pnpm workspace.
-- `supabase-setup` starts local Supabase once and uploads its state for dependent jobs.
+- `supabase-setup` starts local Supabase once and uploads its state (`.env`,
+  `supabase/.temp/`) for dependent jobs. Stack images resolve from the GHCR
+  mirror (`SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io`, exported by the
+  setup-supabase-cli action) so Public ECR throttling stays off the critical
+  path; `postgres-meta` starts inside the retry boundary of
+  `start-supabase.sh`. Types are generated into a temporary file and compared
+  to the committed `database.types.ts` — a drift fails the job with a readable
+  diff and the tracked file is never rewritten.
 - `build` builds the pnpm packages and uploads artifacts.
 - `test-unit` runs workspace unit tests.
 - `test-backend-integration` runs Bun integration and E2E specs against local Supabase.

@@ -189,11 +189,41 @@ test("Supabase CLI version stays aligned across CI, local tooling, and docs", ()
 });
 
 test("Supabase type generation pulls postgres-meta inside the retry boundary", () => {
-  assert.match(workflow, /supabase gen types typescript --local/);
+  // Every stack image resolves from the GHCR mirror, never Public ECR.
+  assert.match(
+    action,
+    /echo "SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr\.io" >> "\$GITHUB_ENV"/,
+  );
+  assert.doesNotMatch(action, /public\.ecr\.aws/);
+
+  // postgres-meta stays inside the start retry loop (3 attempts, clean stop
+  // between attempts); no second retry wraps the generation itself.
   assert.doesNotMatch(
     startSupabase,
     /^EXCLUDE=.*postgres-meta/m,
     "postgres-meta must start inside the rate-limit retry loop",
+  );
+  assert.match(startSupabase, /SUPABASE_START_ATTEMPTS:-3/);
+  assert.match(startSupabase, /supabase stop --no-backup/);
+
+  // Types are generated into RUNNER_TEMP, refused when empty, compared to the
+  // tracked file — never written over it, and never re-shipped via artifact.
+  assert.match(workflow, /generated="\$RUNNER_TEMP\/database\.types\.ts"/);
+  assert.match(workflow, /trap 'rm -f "\$generated"' EXIT/);
+  assert.match(
+    workflow,
+    /supabase gen types typescript --local > "\$generated"/,
+  );
+  assert.doesNotMatch(workflow, /--local > src\/types\/database\.types\.ts/);
+  assert.match(workflow, /\[ ! -s "\$generated" \]/);
+  assert.match(
+    workflow,
+    /diff -u src\/types\/database\.types\.ts "\$generated"/,
+  );
+  assert.doesNotMatch(
+    workflow,
+    /supabase-state[\s\S]{0,220}database\.types\.ts/,
+    "the state artifact must not ship a rewritten types file",
   );
 });
 
