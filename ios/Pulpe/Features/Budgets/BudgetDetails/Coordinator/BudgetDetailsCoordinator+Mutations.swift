@@ -20,10 +20,13 @@ extension BudgetDetailsCoordinator {
         dataStore.onMutation = {
             budgetListStore.invalidateCache()
             dashboardStore.invalidateCache()
-            // A budget-detail mutation can change the current month's aggregates
-            // (a cross-month spread especially) — invalidate it too so the
-            // CurrentMonth tab refetches instead of serving a stale 30s-TTL copy.
-            currentMonthStore.invalidateCache()
+            // `syncCache()` has just written the month this mutation touched: the
+            // accueil takes that snapshot instead of refetching, so a soft-deleted
+            // row stays gone during its undo window and comes back on undo or on a
+            // failed commit, without a fetch. A cross-month spread or withdrawal
+            // wipes the cache right after, and any miss marks the accueil stale so
+            // its next load refetches.
+            _ = currentMonthStore.adoptSharedSnapshotIfFresh()
             // Goals read the same budget lines: a linked saving moves the plan,
             // and realizing an announced withdrawal (PUL-329 v2) moves the
             // balance itself. Stating it here rather than at each mutation site

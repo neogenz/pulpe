@@ -231,6 +231,9 @@ final class CurrentMonthStore: StoreProtocol {
 
         // Budget exists — loading details in background, stay .loaded (no skeleton)
         error = nil
+        // A detail screen may have just written this month: take it rather than refetch.
+        // `forceRefresh` never comes through here, so pull-to-refresh still hits the server.
+        if adoptSharedSnapshotIfFresh() { return }
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
@@ -387,19 +390,62 @@ final class CurrentMonthStore: StoreProtocol {
 
     /// Apply fetched details to local state, recompute metrics, and update cache.
     private func applyDetails(_ details: BudgetDetails) {
-        budget = details.budget
-        budgetLines = details.budgetLines
-        transactions = details.transactions
-        history = details.history
-        recomputeMetrics()
-        lastLoadTime = Date()
-        contentState = .loaded
+        apply(
+            budget: details.budget,
+            budgetLines: details.budgetLines,
+            transactions: details.transactions,
+            history: details.history
+        )
         BudgetDetailCache.shared.store(
             budgetId: details.budget.id,
             budget: details.budget,
             budgetLines: details.budgetLines,
             transactions: details.transactions
         )
+    }
+}
+
+// MARK: - Shared detail snapshot
+
+extension CurrentMonthStore {
+    /// In-memory apply shared by a server snapshot and an adopted cache entry. Kept apart
+    /// from the cache write so adopting an entry never refreshes its `fetchedAt`.
+    private func apply(
+        budget: Budget,
+        budgetLines: [BudgetLine],
+        transactions: [Transaction],
+        history: DriftHistory?
+    ) {
+        self.budget = budget
+        self.budgetLines = budgetLines
+        self.transactions = transactions
+        self.history = history
+        recomputeMetrics()
+        lastLoadTime = Date()
+        contentState = .loaded
+    }
+
+    /// Takes the shared detail entry of this month when it is fresh, instead of fetching.
+    ///
+    /// Every detail mutation ends in `BudgetDataStore.syncCache()`, so the entry is the
+    /// latest truth. A fetch is wrong during the undo window of a soft delete: the server
+    /// keeps the row until the toast commits, so the row would come back; and after the
+    /// commit nothing reloads a visible accueil, so it would stay. Same 30 s cross-device
+    /// lag as the budget page. The entry carries no `history`; the current one is kept.
+    /// On a miss the store is marked stale, as it always was after a detail mutation.
+    func adoptSharedSnapshotIfFresh() -> Bool {
+        guard let budgetId = budget?.id,
+              let entry = BudgetDetailCache.shared.get(budgetId: budgetId) else {
+            invalidateCache()
+            return false
+        }
+        apply(
+            budget: entry.budget,
+            budgetLines: entry.budgetLines,
+            transactions: entry.transactions,
+            history: history
+        )
+        return true
     }
 }
 
