@@ -26,7 +26,7 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["addTransactionSubmit"].firstMatch.waitForExistence(timeout: 5))
     }
 
-    func testTappingAnActivityRowOpensItsEditPage() {
+    func testTappingAnActivityRowOpensItsEditPageAndBackReturnsToTheAccueil() {
         launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", marketingGain: true)
 
         let row = app.buttons["homeActivityRow-marketing-bonus"]
@@ -37,6 +37,12 @@ final class ContextualCreationUITests: XCTestCase {
             NSPredicate(format: "identifier IN %@", ["Modifier", "Edit", "Ändern", "Modifica"])
         ).firstMatch
         XCTAssertTrue(editPage.waitForExistence(timeout: 10), app.debugDescription)
+
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(
+            app.descendants(matching: .any)["homeActivityCard"].waitForExistence(timeout: 5),
+            app.debugDescription
+        )
     }
 
     func testBudgetToolbarActionsRemainDistinctAtLargeText() {

@@ -338,13 +338,13 @@ struct CurrentMonthView: View {
         .padding(.horizontal, DesignTokens.Spacing.xxl)
     }
 
-    /// The edit page lives in the budget's stack: the home pushes the budget, which opens
-    /// from the cache this store already primed, and hands it the operation to push next.
-    /// Back returns to the budget, then here.
+    /// One push straight to the operation's page, hosted on this stack with the budget's
+    /// own stores, which open from the cache this store already primed. Back returns here.
     private func editTransaction(_ transaction: Transaction) {
         guard let budgetId = store.budget?.id else { return }
-        appState.pendingTransactionEdit = transaction.id
-        appState.currentMonthPath.append(BudgetDestination.details(budgetId: budgetId))
+        appState.currentMonthPath.append(
+            BudgetDestination.editTransaction(budgetId: budgetId, transactionId: transaction.id)
+        )
     }
 
     /// The one filled element in the content zone. Recording an operation is the act the

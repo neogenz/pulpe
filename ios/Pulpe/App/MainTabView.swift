@@ -62,11 +62,13 @@ struct MainTabView: View {
 /// Resolves a budget destination for the stacks that use the default services.
 /// `BudgetsTab` keeps its own switch — it is the one entry point that injects
 /// test doubles.
-@ViewBuilder
+@MainActor @ViewBuilder
 private func budgetDestination(_ destination: BudgetDestination) -> some View {
     switch destination {
     case .details(let budgetId):
         BudgetDetailsView(budgetId: budgetId)
+    case .editTransaction(let budgetId, let transactionId):
+        EditTransactionHost(budgetId: budgetId, transactionId: transactionId)
     }
 }
 
@@ -165,6 +167,13 @@ struct BudgetsTab: View {
                     case .details(let budgetId):
                         BudgetDetailsView(
                             budgetId: budgetId,
+                            budgetService: budgetService,
+                            budgetLineService: budgetLineService
+                        )
+                    case .editTransaction(let budgetId, let transactionId):
+                        EditTransactionHost(
+                            budgetId: budgetId,
+                            transactionId: transactionId,
                             budgetService: budgetService,
                             budgetLineService: budgetLineService
                         )
