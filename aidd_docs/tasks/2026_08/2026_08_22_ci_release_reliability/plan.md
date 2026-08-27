@@ -1,7 +1,12 @@
 ---
 objective: "Préparer sans effet production la nouvelle procédure de release, puis activer son chemin apply et basculer main vers le staging pendant la prochaine vraie release approuvée."
-status: in-progress
+status: blocked
 ---
+
+> Phases 1-8 implémentées et poussées (zéro effet production). Les phases 9
+> (première vraie release + cutover, mutations GitHub/providers) et 10 (mesures
+> post-release) exigent une autorisation de release explicite de Maxime — elles
+> ne peuvent pas être exécutées de manière autonome.
 
 # Plan: Fiabiliser la CI et adopter le staging continu
 
