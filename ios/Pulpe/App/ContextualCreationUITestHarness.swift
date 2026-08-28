@@ -57,6 +57,9 @@ struct ContextualCreationUITestHarness: View {
         #endif
         _currentMonthStore = State(initialValue: currentMonthStore)
 
+        // Warm on purpose: these tests exercise contextual creation and the home, and
+        // `testHomeShortcutPushesTheBudgetDetail` opens the page without a stub service.
+        // The cold list → page path is `BudgetOpensFromListUITests`, on its own harness.
         BudgetDetailCache.shared.invalidateAll()
         BudgetDetailCache.shared.store(
             budgetId: budgetId,

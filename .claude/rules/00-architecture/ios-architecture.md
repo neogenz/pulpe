@@ -126,6 +126,7 @@ final class TemplateDetailsViewModel {
 - Same `@Observable @MainActor final class` pattern as stores
 - Owned by view via `@State private var viewModel`
 - Use when feature needs local state beyond global store
+- A page body renders exactly one of loading / failed / loaded through a `switch` on a content enum (`CurrentMonthStore.ContentState`, `BudgetDetailsScreenState.Content`, `TemplateDetailsViewModel.Content`), never through `if` chains on booleans: a container that renders nothing never runs its modifiers, `.task` included, so the load never starts.
 - **Ceiling**: a single ViewModel stops holding once **all five** criteria in `budget-details-feature-architecture.md` are met at once — then split into Stores + Projector + Coordinator + Router. Meeting one or two is not enough; that rule says so and warns against over-engineering. `Features/Budgets/BudgetDetails` went through that split, and `PulpeTests/Architecture/BudgetDetailsArchitectureTests.swift` keeps the monolithic `BudgetDetailsViewModel.swift` from coming back — leaf-sheet ViewModels still live in the folder.
 
 ## Service Pattern (Data Access)

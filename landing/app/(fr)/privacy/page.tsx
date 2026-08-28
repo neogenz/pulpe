@@ -90,13 +90,14 @@ export default async function PrivacyPage() {
                   Diagnostics contrôlables
                 </h2>
                 <p className="mt-4">
-                  PostHog, hébergé en Europe, aide à comprendre les parcours et
-                  les erreurs techniques. Les montants, mots de passe, clés de
-                  récupération et libellés financiers en sont exclus. Le partage
-                  des diagnostics peut être arrêté immédiatement dans les
-                  préférences de chaque appareil ; ce choix coupe les nouvelles
-                  captures et efface l’association locale à l’identité PostHog.
-                  Le replay est désactivé en production.
+                  PostHog, hébergé en Europe, aide à comprendre les parcours,
+                  les erreurs techniques et les plantages de l’app. Les
+                  montants, mots de passe, clés de récupération et libellés
+                  financiers en sont exclus. Le partage des diagnostics peut
+                  être arrêté immédiatement dans les préférences de chaque
+                  appareil ; ce choix coupe les nouvelles captures et efface
+                  l’association locale à l’identité PostHog. Le replay est
+                  désactivé en production.
                 </p>
               </section>
 

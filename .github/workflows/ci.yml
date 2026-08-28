@@ -581,10 +581,19 @@ jobs:
       - name: 🔧 Setup Xcode
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
-          xcode-version: "26.2"
+          xcode-version: "26.6"
 
-      - name: 📦 Install XcodeGen
-        run: brew install xcodegen
+      - name: 📦 Install XcodeGen and SwiftLint
+        # The macos-26 image ships neither; the lint step below needs swiftlint on PATH.
+        run: brew install xcodegen swiftlint
+
+      # lefthook lints staged files only and skips on merge/rebase; this is the
+      # gate on the whole tree. Warnings-as-errors stays off on purpose: the
+      # type-check-time guards (-warn-long-function-bodies,
+      # -warn-long-expression-type-checking) are meant to be read, not to block.
+      - name: 🧹 SwiftLint
+        working-directory: ios
+        run: swiftlint lint --strict --reporter github-actions-logging
 
       - name: 💾 Cache SPM packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -602,15 +611,18 @@ jobs:
       - name: 📱 Resolve iOS Simulator
         id: sim
         run: |
-          # Pick the first available iPhone 17 (iOS 26.2) — avoids duplicate-name ambiguity
+          # Newest iOS 26 runtime the image ships, first iPhone 17 in it: the
+          # store build runs on the runtime users have, not on a pinned old one.
+          xcodebuild -version
           UDID=$(xcrun simctl list devices available -j \
             | python3 -c "
-          import sys, json
-          for rt, devs in json.load(sys.stdin)['devices'].items():
-            if '26-2' in rt:
-              for d in devs:
-                if d['name'] == 'iPhone 17':
-                  print(d['udid']); sys.exit(0)
+          import re, sys, json
+          devices = json.load(sys.stdin)['devices']
+          def minor(rt): return int(re.search(r'iOS-26-(\d+)', rt).group(1))
+          for rt in sorted((k for k in devices if 'iOS-26-' in k), key=minor, reverse=True):
+            for d in devices[rt]:
+              if d['name'] == 'iPhone 17':
+                print(rt, file=sys.stderr); print(d['udid']); sys.exit(0)
           sys.exit(1)
           ")
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
@@ -706,6 +718,100 @@ jobs:
         if: always()
         run: xcrun simctl shutdown all 2>/dev/null || true
 
+  # One XCUITest, the journey that shipped blank in build 10, on a cold cache.
+  # Only this test: the full UI suite flakes under load and is not a CI gate.
+  smoke-ios:
+    name: 🍎 iOS Smoke (cold budget page)
+    runs-on: macos-26
+    timeout-minutes: 20
+    needs: [classify, test-ios]
+    if: needs.classify.outputs.ios == 'true'
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 🔧 Setup Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
+        with:
+          xcode-version: "26.6"
+
+      - name: 📦 Install XcodeGen
+        run: brew install xcodegen
+
+      - name: 💾 Cache SPM packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ hashFiles('ios/project.yml') }}
+          restore-keys: spm-
+
+      - name: 🔨 Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: 📱 Resolve iOS Simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j \
+            | python3 -c "
+          import re, sys, json
+          devices = json.load(sys.stdin)['devices']
+          def minor(rt): return int(re.search(r'iOS-26-(\d+)', rt).group(1))
+          for rt in sorted((k for k in devices if 'iOS-26-' in k), key=minor, reverse=True):
+            for d in devices[rt]:
+              if d['name'] == 'iPhone 17':
+                print(rt, file=sys.stderr); print(d['udid']); sys.exit(0)
+          sys.exit(1)
+          ")
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      - name: 🧪 Run the smoke test
+        working-directory: ios
+        env:
+          NSUnbufferedIO: "YES"
+        run: |
+          # Same post-test hang guard as the unit job (actions/runner-images#13143).
+          touch smoke-output.log
+          xcodebuild test \
+            -scheme PulpeUITests \
+            -destination 'id=${{ steps.sim.outputs.udid }}' \
+            -only-testing:PulpeUITests/BudgetOpensFromListUITests \
+            CODE_SIGNING_ALLOWED=NO \
+            -parallel-testing-enabled NO \
+            -collect-test-diagnostics never \
+            >> smoke-output.log 2>&1 &
+          XCODE_PID=$!
+          ELAPSED=0
+          while kill -0 $XCODE_PID 2>/dev/null && [ $ELAPSED -lt 960 ]; do
+            if grep -q '\*\* TEST SUCCEEDED \*\*\|\*\* TEST FAILED \*\*' smoke-output.log; then
+              sleep 5
+              break
+            fi
+            sleep 10
+            ELAPSED=$((ELAPSED + 10))
+          done
+          kill $XCODE_PID 2>/dev/null || true
+
+          grep -E 'Test Case|Executed|error:|XCTAssert|TEST (SUCCEEDED|FAILED)' smoke-output.log || true
+          # -only-testing on a name that matches nothing is a silent success: demand the one run.
+          if ! grep -q 'Executed 1 test' smoke-output.log; then
+            echo "❌ Expected exactly one executed test"
+            tail -40 smoke-output.log
+            exit 1
+          fi
+          grep -q '\*\* TEST SUCCEEDED \*\*' smoke-output.log
+
+      - name: 📋 Show the tree on failure
+        if: failure()
+        working-directory: ios
+        run: grep -B2 -A60 'XCTAssert' smoke-output.log | head -200 || tail -80 smoke-output.log
+
+      - name: 🧹 Cleanup Simulator
+        if: always()
+        run: xcrun simctl shutdown all 2>/dev/null || true
+
   # ✅ SUCCESS JOB pour status checks — le seul required. Un job routé ne
   # peut être `skipped` que si la décision du classifier le déclare non
   # requis; toute autre issue (échec, annulation, skip non autorisé, classify
@@ -725,6 +831,7 @@ jobs:
         test-e2e,
         actionlint,
         test-ios,
+        smoke-ios,
         migration-contract,
       ]
     if: always()
@@ -738,6 +845,7 @@ jobs:
           RESULT_E2E: ${{ needs.test-e2e.result }}
           RESULT_ACTIONLINT: ${{ needs.actionlint.result }}
           RESULT_IOS: ${{ needs.test-ios.result }}
+          RESULT_SMOKE_IOS: ${{ needs.smoke-ios.result }}
           RESULT_MIGRATION: ${{ needs.migration-contract.result }}
           REQUIRED_AUTOMATION: ${{ needs.classify.outputs.automation }}
           REQUIRED_WORKSPACE: ${{ needs.classify.outputs.workspace }}
@@ -769,6 +877,10 @@ jobs:
           routed "Backend & Database" "$RESULT_BACKEND_DB" "$REQUIRED_BACKEND_DB"
           routed "E2E Tests" "$RESULT_E2E" "$REQUIRED_E2E"
           routed "iOS Tests" "$RESULT_IOS" "$REQUIRED_IOS"
+          # The smoke is skipped by GitHub when the unit job fails; one culprit is enough.
+          if [ "$RESULT_IOS" = "success" ]; then
+            routed "iOS Smoke" "$RESULT_SMOKE_IOS" "$REQUIRED_IOS"
+          fi
           if [ "$fail" -ne 0 ]; then
             echo "❌ Some CI checks failed"
             exit 1

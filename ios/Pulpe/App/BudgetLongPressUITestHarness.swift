@@ -212,14 +212,6 @@ struct BudgetGoalSpreadUITestHarness: View {
         )
         ProductTips.tourDismissed = true
 
-        BudgetDetailCache.shared.store(
-            budgetId: seed.budget.id,
-            budget: seed.budget,
-            budgetLines: [seed.line],
-            transactions: []
-        )
-        BudgetDetailCache.shared.storeAllBudgets([sparse])
-
         self.routeService = routeService
         self.savingsGoalService = savingsGoalService
         _appState = State(initialValue: appState)

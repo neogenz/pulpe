@@ -1,7 +1,14 @@
 import Foundation
 
+/// The reads a template page needs. `TemplateDetailsViewModel` takes this so
+/// a test can drive the page without the network.
+protocol TemplateServicing: Sendable {
+    func getTemplate(id: String) async throws -> BudgetTemplate
+    func getTemplateLines(templateId: String) async throws -> [TemplateLine]
+}
+
 /// Service for budget template API operations
-actor TemplateService {
+actor TemplateService: TemplateServicing {
     static let shared = TemplateService()
 
     private let apiClient: APIClient

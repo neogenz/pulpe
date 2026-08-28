@@ -13,6 +13,7 @@ excluded:
   - Pulpe.xcodeproj
   - .build
   - DerivedData
+  - build # local archives and their SourcePackages checkouts
 
 # Rules
 disabled_rules:

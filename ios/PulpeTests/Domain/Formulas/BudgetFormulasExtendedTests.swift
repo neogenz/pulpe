@@ -319,7 +319,9 @@ struct BudgetFormulasExtendedTests {
         let metrics = BudgetFormulas.calculateAllMetrics(budgetLines: [])
         #expect(metrics.emotionState == .comfortable)
     }
+}
 
+extension BudgetFormulasExtendedTests {
     // MARK: - Emotion State (static — optional Decimal? paths)
 
     @Test func emotionState_static_nilRemaining_returnsComfortable() {

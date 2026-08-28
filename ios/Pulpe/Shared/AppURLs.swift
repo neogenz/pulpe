@@ -1,13 +1,11 @@
 import Foundation
 
 enum AppURLs {
-    // swiftlint:disable force_unwrapping
     static let terms = URL(string: "https://app.pulpe.app/legal/cgu")!
     static let privacy = URL(string: "https://app.pulpe.app/legal/confidentialite")!
     static let support = URL(string: "https://pulpe.app/support")!
     static let changelog = URL(string: "https://pulpe.app/changelog")!
     static let webappBudgetTemplates = URL(string: "https://app.pulpe.app/budget-templates")!
-    // swiftlint:enable force_unwrapping
 
     /// Where the disclosure is shown. The sentence differs by more than a word, so each
     /// one is its own catalog entry rather than a template assembled from fragments —

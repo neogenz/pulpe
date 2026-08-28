@@ -208,6 +208,13 @@ jobs:
               ;;
           esac
 
+      - name: Setup Ruby
+        # The App Store status queries below run .github/scripts/app-store-build-status.rb,
+        # which needs a Ruby macos-26 does not promise. With no `ruby-version` given the
+        # action reads .ruby-version at the repo root — `defaults.run.working-directory`
+        # only applies to `run:` steps, so this step still resolves from there.
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
+
       - name: Prepare App Store status credential
         env:
           ASC_PRIVATE_KEY_P8_BASE64: ${{ secrets.ASC_PRIVATE_KEY_P8_BASE64 }}

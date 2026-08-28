@@ -170,7 +170,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
 
                 amountColumn
 
-                chevron
+                RowChevron()
             }
             .padding(.vertical, DesignTokens.Spacing.md)
             .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
@@ -240,13 +240,5 @@ private struct BudgetDetailsFreeTransactionRow: View {
         }
         .sensitiveAmount()
         .layoutPriority(1)
-    }
-
-    private var chevron: some View {
-        Image(systemName: "chevron.right")
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(Color.textTertiary)
-            .padding(.leading, DesignTokens.Spacing.xs)
-            .accessibilityHidden(true)
     }
 }
