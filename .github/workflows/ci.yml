@@ -734,8 +734,9 @@ jobs:
         with:
           xcode-version: "26.6"
 
-      - name: 📦 Install XcodeGen
-        run: brew install xcodegen
+      - name: 📦 Install XcodeGen and SwiftLint
+        # The macos-26 image ships neither; the lint step below needs swiftlint on PATH.
+        run: brew install xcodegen swiftlint
 
       - name: 💾 Cache SPM packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
