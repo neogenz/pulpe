@@ -9,11 +9,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Sécurité : permissions minimales
+# Sécurité : token en lecture seule. Les diagnostics E2E passent par les
+# reporters Playwright natifs (annotations github, JUnit, blob) et les
+# artefacts — aucun job n'écrit sur la PR ni ne crée de check run.
 permissions:
   contents: read
-  checks: write
-  pull-requests: write
 
 # Variables globales
 env:
@@ -37,11 +37,76 @@ env:
   NPM_CONFIG_PROGRESS: "false"
 
 jobs:
-  # 📦 INSTALL & CACHE
-  install:
-    name: 📦 Install Dependencies
+  # 🧭 CLASSIFY — décide quelles unités cette PR doit prouver. Le classifier
+  # Git ne possède que les frontières hors graphe (automation GitHub, iOS,
+  # miroir de formules, branches release, contrats racine); les fichiers de
+  # packages pnpm passent par `turbo query` pour que le graphe existant reste
+  # l'unique source des dépendances. Toute erreur ou surface inconnue produit
+  # un run complet, et si ce job échoue, ci-success reste rouge : aucune unité
+  # ne peut être sautée sans une décision valide qui la déclare non requise.
+  classify:
+    name: 🧭 Classify Changes
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      automation: ${{ steps.decision.outputs.automation }}
+      workspace: ${{ steps.decision.outputs.workspace }}
+      backend_db: ${{ steps.decision.outputs.backend_db }}
+      e2e: ${{ steps.decision.outputs.e2e }}
+      ios: ${{ steps.decision.outputs.ios }}
+      scope: ${{ steps.decision.outputs.scope }}
+      decision: ${{ steps.decision.outputs.decision }}
+    steps:
+      - name: 📥 Checkout full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
+
+      # --ignore-scripts : seule la présence du binaire turbo compte ici.
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: 🧭 Classify changes
+        id: decision
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          decision=$(node .github/scripts/classify-ci-changes.mjs \
+            --base "$BASE_SHA" --head "$HEAD_SHA" --head-ref "$HEAD_REF")
+          echo "$decision" | jq .
+          {
+            for unit in automation workspace backend_db e2e ios; do
+              echo "$unit=$(echo "$decision" | jq -r ".units.$unit")"
+            done
+            echo "scope=$(echo "$decision" | jq -r .scope)"
+            echo "decision=$decision"
+          } >> "$GITHUB_OUTPUT"
+
+  # 🧾 AUTOMATION — la part du gate quality qui vit hors des packages :
+  # format des workflows, invariants CI/release/routage, lexique produit.
+  # Ne tourne que quand le workspace ne tourne pas — son gate quality est un
+  # sur-ensemble strict de cette unité.
+  automation:
+    name: 🧾 Automation Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [classify]
+    if: needs.classify.outputs.automation == 'true'
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,16 +120,14 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm" # Cache pnpm store (via pnpm store path)
+          cache: "pnpm"
           cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: 🔍 Run automation quality gates
+        run: pnpm quality:automation
 
   migration-contract:
     name: 🛡️ Migration Contract
@@ -90,41 +153,136 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: node .github/scripts/check-migration-contract.cjs "$BASE_SHA" "$HEAD_SHA"
 
-  # 🗄️ SUPABASE SETUP (Approche officielle 2025)
-  supabase-setup:
-    name: 🗄️ Setup Supabase Local
+  # 🗄️ BACKEND & DATABASE — le runner DB unique : une seule stack Supabase
+  # sert les suites SQL, la vérification des types puis l'intégration backend.
+  # postgres-meta n'existe que pour `gen types` : son image n'est tirée que si
+  # le contrat DB (migrations, config.toml, database.types.ts) change dans la
+  # PR — un changement Nest pur démarre la stack sans lui. Tourne en parallèle
+  # du workspace : rien ici ne consomme un artefact de build, et aucun état
+  # Supabase ne transite plus entre runners.
+  backend-db:
+    name: 🗄️ Backend & Database
     runs-on: ubuntu-latest
-    timeout-minutes: 8
-    needs: install
+    timeout-minutes: 15
+    needs: [classify]
+    if: needs.classify.outputs.backend_db == 'true'
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # HEAD est le merge synthétique de la PR : profondeur 2 embarque ses
+          # deux parents, assez pour diff HEAD^1..HEAD — l'effet exact de la PR.
+          fetch-depth: 2
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: 🗄️ Setup Supabase CLI
         uses: ./.github/actions/setup-supabase-cli
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
 
-      - name: 🐳 Start Supabase Local (Optimisé)
-        working-directory: backend-nest
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Les specs Bun importent `pulpe-shared`, qui résout vers shared/dist —
+      # ce runner ne partage aucun artefact avec workspace, il le compile donc.
+      - name: 🏗️ Build shared package
+        run: pnpm build:shared
+
+      - name: 🔎 Detect DB contract changes
+        id: db
         run: |
-          echo "🚀 Starting Supabase local instance..."
+          set -euo pipefail
+          # Fail closed : sans parent de merge résolvable, vérifier les types.
+          contract=true
+          if base=$(git rev-parse -q --verify HEAD^1); then
+            changed=$(git diff --name-only "$base" HEAD -- \
+              backend-nest/supabase/migrations \
+              backend-nest/supabase/config.toml \
+              backend-nest/src/types/database.types.ts)
+            [ -n "$changed" ] || contract=false
+          fi
+          echo "contract=$contract" >> "$GITHUB_OUTPUT"
+          echo "DB contract changed: $contract"
+
+      - name: 🐳 Start Supabase Local
+        id: start-supabase
+        working-directory: backend-nest
+        env:
+          SUPABASE_SKIP_PG_META: ${{ steps.db.outputs.contract == 'true' && '0' || '1' }}
+        run: |
           bash "$GITHUB_WORKSPACE/.github/scripts/start-supabase.sh"
 
-          echo "⏳ Health check robuste..."
+          # Health check — REST (postgrest) d'abord, sur le timeout long du
+          # démarrage à froid.
           timeout=180
           counter=0
           until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
             if [ $counter -gt $timeout ]; then
               echo "❌ Timeout waiting for Supabase"
-              supabase status  # Debug en cas d'échec
+              supabase status
               exit 1
             fi
-            echo "Waiting for Supabase... ($counter/180s)"
             sleep 1
             counter=$((counter + 1))
           done
-          echo "✅ Supabase ready!"
+
+          # GoTrue boots last (DB migrations at startup) and the encryption
+          # integration/e2e specs probe /auth/v1/health (reachable = status < 500).
+          # Mirror that exact criterion here so tests never start before auth is up.
+          timeout=60
+          counter=0
+          until code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:54321/auth/v1/health); [ "$code" -ge 200 ] && [ "$code" -lt 500 ]; do
+            if [ $counter -gt $timeout ]; then
+              echo "❌ Supabase auth (GoTrue) not ready"
+              supabase status
+              exit 1
+            fi
+            sleep 1
+            counter=$((counter + 1))
+          done
+          echo "✅ Supabase ready"
+
+          # Export local Supabase keys as outputs (using heredoc for robust special character handling).
+          # Newer local stacks may only expose sb_publishable_/sb_secret_ keys
+          # (PUBLISHABLE_KEY/SECRET_KEY) — fall back to those when the legacy
+          # JWT keys are absent.
+          status_env="$(supabase status -o env 2>/dev/null)"
+          read_status_env() { echo "$status_env" | grep "^$1=" | cut -d'=' -f2- | tr -d '"'; }
+          anon_key="$(read_status_env ANON_KEY)"
+          [ -n "$anon_key" ] || anon_key="$(read_status_env PUBLISHABLE_KEY)"
+          service_key="$(read_status_env SERVICE_ROLE_KEY)"
+          [ -n "$service_key" ] || service_key="$(read_status_env SECRET_KEY)"
+          {
+            echo 'SUPABASE_URL<<EOF'
+            read_status_env API_URL
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo 'SUPABASE_ANON_KEY<<EOF'
+            echo "$anon_key"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo 'SUPABASE_SERVICE_ROLE_KEY<<EOF'
+            echo "$service_key"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
       # Couvre la couche SQL, que les tests Bun mockent par construction :
       # RPC SECURITY DEFINER, RLS, triggers, casts d'enum. Chaque suite
@@ -166,12 +324,29 @@ jobs:
           done
           echo "✅ ${#suites[@]} SQL suites passed"
 
-      - name: 🔧 Generate TypeScript Types
+      # Génère dans un fichier temporaire et compare : une redirection directe
+      # tronquerait le fichier suivi avant même que la commande ait réussi, et
+      # un fichier réécrit en CI masquerait une dérive du type commité.
+      # Conditionné au contrat DB : sans changement de schéma, le fichier suivi
+      # est réputé fidèle et postgres-meta n'a même pas démarré.
+      - name: 🔧 Verify TypeScript Types
+        if: steps.db.outputs.contract == 'true'
         working-directory: backend-nest
         run: |
+          set -euo pipefail
           echo "📝 Generating TypeScript types from local schema..."
-          supabase gen types typescript --local > src/types/database.types.ts
-          echo "✅ Types generated"
+          generated="$RUNNER_TEMP/database.types.ts"
+          trap 'rm -f "$generated"' EXIT
+          supabase gen types typescript --local > "$generated"
+          if [ ! -s "$generated" ]; then
+            echo "::error::generated types are empty"
+            exit 1
+          fi
+          if ! diff -u src/types/database.types.ts "$generated"; then
+            echo "::error::src/types/database.types.ts drifts from the local schema — run 'bun run generate-types:local' in backend-nest and commit the result"
+            exit 1
+          fi
+          echo "✅ Committed types match the local schema"
 
       - name: 🔧 Setup CI Environment
         working-directory: backend-nest
@@ -187,227 +362,15 @@ jobs:
           echo "ENCRYPTION_MASTER_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" >> .env
           echo "✅ Environment ready"
 
-      - name: 💾 Save Supabase State
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: supabase-state
-          include-hidden-files: true
-          path: |
-            backend-nest/.env
-            backend-nest/src/types/database.types.ts
-            backend-nest/supabase/.temp/
-          retention-days: 1
-
-  # 🏗️ BUILD (Modifié pour dépendre de supabase-setup)
-  build:
-    name: 🏗️ Build Projects
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [install, supabase-setup]
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      # Les types régénérés depuis le schéma local suffisent : compiler ne parle
-      # à aucune base, donc pas de conteneurs Supabase à démarrer ici.
-      - name: 📥 Download Supabase State
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: supabase-state
-          path: backend-nest/
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🏗️ Build all projects
-        env:
-          DOTENV_CONFIG_PATH: .env.e2e
-        run: pnpm build
-
-      - name: 📤 Upload build artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: build-artifacts
-          path: |
-            shared/dist/
-            frontend/dist/
-            backend-nest/dist/
-          retention-days: 1
-
-  # 🧪 TESTS UNITAIRES (sans Supabase — les suites d'intégration tournent dans test-backend-integration)
-  test-unit:
-    name: 🧪 Unit Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [install, build]
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: 📥 Download build artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: build-artifacts
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🧪 Run unit tests
-        run: pnpm test:unit
-        env:
-          NODE_ENV: test
-          TURNSTILE_SECRET_KEY: ci-test-turnstile-key
-          ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
-  # 🔌 TESTS D'INTÉGRATION BACKEND (seul job de test à démarrer Supabase — runner dédié,
-  # pas de concurrence avec vitest frontend, donc pas de saturation ni de flake réseau)
-  test-backend-integration:
-    name: 🔌 Backend Integration Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [install, build]
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: 🗄️ Setup Supabase CLI
-        uses: ./.github/actions/setup-supabase-cli
-        with:
-          version: ${{ env.SUPABASE_CLI_VERSION }}
-
-      - name: 📥 Download Supabase State
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: supabase-state
-          path: backend-nest/
-
-      - name: 📥 Download build artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: build-artifacts
-
-      - name: 🐳 Start Supabase for Tests
-        id: start-supabase-tests
-        working-directory: backend-nest
-        run: |
-          bash "$GITHUB_WORKSPACE/.github/scripts/start-supabase.sh"
-
-          # Health check pour tests — REST (postgrest) puis Auth (gotrue, sondé par les specs encryption)
-          timeout=60
-          counter=0
-          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null && curl -sf http://127.0.0.1:54321/auth/v1/health >/dev/null; do
-            if [ $counter -gt $timeout ]; then
-              echo "❌ Supabase not ready for tests"
-              exit 1
-            fi
-            sleep 1
-            counter=$((counter + 1))
-          done
-
-          # GoTrue boots last (DB migrations at startup) and the encryption
-          # integration/e2e specs probe /auth/v1/health (reachable = status < 500).
-          # Mirror that exact criterion here so tests never start before auth is up.
-          counter=0
-          until code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:54321/auth/v1/health); [ "$code" -ge 200 ] && [ "$code" -lt 500 ]; do
-            if [ $counter -gt $timeout ]; then
-              echo "❌ Supabase auth (GoTrue) not ready for tests"
-              supabase status
-              exit 1
-            fi
-            sleep 1
-            counter=$((counter + 1))
-          done
-          echo "✅ Supabase ready for tests"
-
-          # Export local Supabase keys as outputs (using heredoc for robust special character handling).
-          # Newer local stacks may only expose sb_publishable_/sb_secret_ keys
-          # (PUBLISHABLE_KEY/SECRET_KEY) — fall back to those when the legacy
-          # JWT keys are absent.
-          status_env="$(supabase status -o env 2>/dev/null)"
-          read_status_env() { echo "$status_env" | grep "^$1=" | cut -d'=' -f2- | tr -d '"'; }
-          anon_key="$(read_status_env ANON_KEY)"
-          [ -n "$anon_key" ] || anon_key="$(read_status_env PUBLISHABLE_KEY)"
-          service_key="$(read_status_env SERVICE_ROLE_KEY)"
-          [ -n "$service_key" ] || service_key="$(read_status_env SECRET_KEY)"
-          {
-            echo 'SUPABASE_URL<<EOF'
-            read_status_env API_URL
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-          {
-            echo 'SUPABASE_ANON_KEY<<EOF'
-            echo "$anon_key"
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-          {
-            echo 'SUPABASE_SERVICE_ROLE_KEY<<EOF'
-            echo "$service_key"
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
       - name: 🔌 Run backend integration tests
         working-directory: backend-nest
         run: bun test .integration.spec .e2e.spec
         env:
           NODE_ENV: test
           RUN_INTEGRATION_TESTS: "true"
-          SUPABASE_URL: ${{ steps.start-supabase-tests.outputs.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ steps.start-supabase.outputs.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ steps.start-supabase.outputs.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase.outputs.SUPABASE_SERVICE_ROLE_KEY }}
           TURNSTILE_SECRET_KEY: ci-test-turnstile-key
           ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -425,22 +388,103 @@ jobs:
           done
 
       - name: 🧹 Cleanup Supabase
-        if: always() && steps.start-supabase-tests.outcome == 'success'
+        if: always() && steps.start-supabase.outcome == 'success'
         working-directory: backend-nest
         run: supabase stop || true
 
-  # 🎭 E2E TESTS (Chromium only - matching playwright.config.ts projects)
-  test-e2e:
-    name: 🎭 E2E Tests (${{ matrix.project }})
+  # 🧰 WORKSPACE — l'unité Node unique : build, tests unitaires et gates
+  # quality partagent un runner, une seule installation pnpm et le cache Turbo
+  # local (lint/format des sous-tâches turbo se dédoublonnent d'eux-mêmes).
+  # Chaque gate reste une étape distincte pour un diagnostic par commande.
+  # Les types Supabase versionnés sont vérifiés par backend-db : compiler
+  # ne parle à aucune base, donc aucune dépendance ni artefact Supabase ici.
+  workspace:
+    name: 🧰 Workspace
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    needs: [install, build]
-    strategy:
-      fail-fast: false
-      matrix:
-        project:
-          - "Critical User Journeys (Mocked)"
-          - "Feature Tests (Mocked)"
+    needs: [classify]
+    if: needs.classify.outputs.workspace == 'true'
+    env:
+      # `--affected` (build, unités, lint) laisse le graphe Turbo réduire le
+      # travail aux packages touchés quand la décision est `routed`; un run
+      # complet n'émet pas le flag et exécute tout. Les gates racine
+      # (format:check, quality, deps:check, audit) restent entiers.
+      TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
+      TURBO_SCM_HEAD: ${{ github.event.pull_request.head.sha }}
+      TURBO_AFFECTED: ${{ needs.classify.outputs.scope == 'affected' && '1' || '' }}
+    steps:
+      - name: 📥 Checkout full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ Build all projects
+        env:
+          DOTENV_CONFIG_PATH: .env.e2e
+        run: pnpm build ${TURBO_AFFECTED:+"--affected"}
+
+      - name: 🧪 Run unit tests
+        run: pnpm test:unit ${TURBO_AFFECTED:+"--affected"}
+        env:
+          NODE_ENV: test
+          TURNSTILE_SECRET_KEY: ci-test-turnstile-key
+          ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+      - name: 🔍 Lint
+        run: pnpm lint ${TURBO_AFFECTED:+"--affected"}
+
+      - name: 🔍 Check formatting
+        run: pnpm format:check
+
+      - name: 🔍 Run quality gate
+        run: pnpm quality
+
+      - name: 🔍 Check dependency graphs
+        run: pnpm deps:check
+
+      - name: 🔍 Audit critical dependencies
+        run: pnpm audit:critical
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: build-artifacts
+          path: |
+            shared/dist/
+            frontend/dist/
+            backend-nest/dist/
+          retention-days: 1
+
+  # 🎭 E2E TESTS — un seul runner : Playwright parallélise les deux projets
+  # en interne avec un seul checkout, une installation pnpm, un Chromium et
+  # un webServer Angular. Les projets sont sélectionnés explicitement pour que
+  # `Chromium - Smoke` ou un futur projet ne s'ajoute jamais implicitement.
+  test-e2e:
+    name: 🎭 E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [classify, workspace]
+    if: needs.classify.outputs.e2e == 'true'
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -469,61 +513,17 @@ jobs:
         run: cd frontend && pnpm exec playwright install chromium --with-deps
 
       - name: 🎭 Run E2E tests
-        run: cd frontend && pnpm test:e2e --project="${{ matrix.project }}"
-
-      - name: 📊 Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2
-        if: always()
-        with:
-          files: frontend/test-results/junit.xml
-          check_name: E2E Test Results - ${{ matrix.project }}
-          comment_title: 🎭 Playwright E2E Tests
+        run: cd frontend && pnpm test:e2e --project="Critical User Journeys (Mocked)" --project="Feature Tests (Mocked)"
 
       - name: 📤 Upload E2E artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: playwright-report-${{ strategy.job-index }}
+          name: playwright-report
           path: |
             frontend/playwright-report/
             frontend/test-results/
           retention-days: 7
-
-  # 🔍 QUALITY CHECKS en parallèle
-  quality:
-    name: 🔍 Quality Checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [install, build]
-    strategy:
-      matrix:
-        check: [lint, format:check, quality, deps:check, "audit:critical"]
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: "**/pnpm-lock.yaml"
-
-      - name: 📦 Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🔍 Run ${{ matrix.check }}
-        run: pnpm ${{ matrix.check }}
 
   # 🕵️ LINT DES WORKFLOWS — Prettier aligne la forme, actionlint relit le fond :
   # expressions ${{ }}, références de job, labels de runner, entrées d'action, et
@@ -572,6 +572,8 @@ jobs:
     name: 🍎 iOS Unit Tests
     runs-on: macos-26
     timeout-minutes: 15
+    needs: [classify]
+    if: needs.classify.outputs.ios == 'true'
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -620,8 +622,10 @@ jobs:
         run: |
           # Workaround: xcodebuild hangs after tests on Xcode 26+ (actions/runner-images#13143)
           touch test-output.log
+          # PulpeLocal compile l'app et le widget puis exécute PulpeTests —
+          # l'unique invocation iOS de la CI (pas de second workflow de build).
           xcodebuild test \
-            -scheme PulpeTests \
+            -scheme PulpeLocal \
             -destination 'id=${{ steps.sim.outputs.udid }}' \
             CODE_SIGNING_ALLOWED=NO \
             -resultBundlePath TestResults \
@@ -702,20 +706,23 @@ jobs:
         if: always()
         run: xcrun simctl shutdown all 2>/dev/null || true
 
-  # ✅ SUCCESS JOB pour status checks
+  # ✅ SUCCESS JOB pour status checks — le seul required. Un job routé ne
+  # peut être `skipped` que si la décision du classifier le déclare non
+  # requis; toute autre issue (échec, annulation, skip non autorisé, classify
+  # rouge) rend le check rouge au lieu de le laisser Pending.
   ci-success:
     name: ✅ CI Success
     runs-on: ubuntu-latest
-    timeout-minutes: 1
+    timeout-minutes: 2
     permissions:
       contents: read
     needs:
       [
-        build,
-        test-unit,
-        test-backend-integration,
+        classify,
+        automation,
+        workspace,
+        backend-db,
         test-e2e,
-        quality,
         actionlint,
         test-ios,
         migration-contract,
@@ -723,38 +730,50 @@ jobs:
     if: always()
     steps:
       - name: ✅ Check all jobs
-        if: >-
-          needs.build.result == 'success' &&
-          needs.test-unit.result == 'success' &&
-          needs.test-backend-integration.result == 'success' &&
-          needs.test-e2e.result == 'success' &&
-          needs.quality.result == 'success' &&
-          needs.actionlint.result == 'success' &&
-          needs.test-ios.result == 'success' &&
-          needs.migration-contract.result == 'success'
-        run: echo "🎉 All CI checks passed!"
-
-      - name: ❌ Check failures
-        if: >-
-          needs.build.result != 'success' ||
-          needs.test-unit.result != 'success' ||
-          needs.test-backend-integration.result != 'success' ||
-          needs.test-e2e.result != 'success' ||
-          needs.quality.result != 'success' ||
-          needs.actionlint.result != 'success' ||
-          needs.test-ios.result != 'success' ||
-          needs.migration-contract.result != 'success'
+        env:
+          RESULT_CLASSIFY: ${{ needs.classify.result }}
+          RESULT_AUTOMATION: ${{ needs.automation.result }}
+          RESULT_WORKSPACE: ${{ needs.workspace.result }}
+          RESULT_BACKEND_DB: ${{ needs.backend-db.result }}
+          RESULT_E2E: ${{ needs.test-e2e.result }}
+          RESULT_ACTIONLINT: ${{ needs.actionlint.result }}
+          RESULT_IOS: ${{ needs.test-ios.result }}
+          RESULT_MIGRATION: ${{ needs.migration-contract.result }}
+          REQUIRED_AUTOMATION: ${{ needs.classify.outputs.automation }}
+          REQUIRED_WORKSPACE: ${{ needs.classify.outputs.workspace }}
+          REQUIRED_BACKEND_DB: ${{ needs.classify.outputs.backend_db }}
+          REQUIRED_E2E: ${{ needs.classify.outputs.e2e }}
+          REQUIRED_IOS: ${{ needs.classify.outputs.ios }}
         run: |
-          echo "❌ Some CI checks failed"
-          echo "Build: ${{ needs.build.result }}"
-          echo "Unit Tests: ${{ needs.test-unit.result }}"
-          echo "Backend Integration: ${{ needs.test-backend-integration.result }}"
-          echo "E2E Tests: ${{ needs.test-e2e.result }}"
-          echo "Quality: ${{ needs.quality.result }}"
-          echo "Workflow Lint: ${{ needs.actionlint.result }}"
-          echo "iOS Tests: ${{ needs.test-ios.result }}"
-          echo "Migration Contract: ${{ needs.migration-contract.result }}"
-          exit 1
+          set -euo pipefail
+          fail=0
+          require() {
+            echo "$1: $2"
+            if [ "$2" != "success" ]; then
+              echo "::error::$1 must succeed (got: $2)"
+              fail=1
+            fi
+          }
+          routed() {
+            echo "$1: $2 (required: $3)"
+            if [ "$2" = "success" ]; then return; fi
+            if [ "$2" = "skipped" ] && [ "$3" = "false" ]; then return; fi
+            echo "::error::$1 is required but finished '$2'"
+            fail=1
+          }
+          require "Classify" "$RESULT_CLASSIFY"
+          require "Workflow Lint" "$RESULT_ACTIONLINT"
+          require "Migration Contract" "$RESULT_MIGRATION"
+          routed "Automation Gates" "$RESULT_AUTOMATION" "$REQUIRED_AUTOMATION"
+          routed "Workspace" "$RESULT_WORKSPACE" "$REQUIRED_WORKSPACE"
+          routed "Backend & Database" "$RESULT_BACKEND_DB" "$REQUIRED_BACKEND_DB"
+          routed "E2E Tests" "$RESULT_E2E" "$REQUIRED_E2E"
+          routed "iOS Tests" "$RESULT_IOS" "$REQUIRED_IOS"
+          if [ "$fail" -ne 0 ]; then
+            echo "❌ Some CI checks failed"
+            exit 1
+          fi
+          echo "🎉 All required CI checks passed!"
 
       - name: 📥 Checkout tested tree
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -771,6 +790,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
+          ROUTING: ${{ needs.classify.outputs.decision }}
         run: |
           set -euo pipefail
           if [[ "$HEAD_REF" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -793,6 +813,7 @@ jobs:
               "head_sha": os.environ["HEAD_SHA"],
               "merge_sha": os.environ["MERGE_SHA"],
               "tree_sha": os.environ["TREE_SHA"],
+              "routing": json.loads(os.environ["ROUTING"]),
               "created_at": datetime.now(timezone.utc).isoformat(),
           }
           with open("ci-evidence.json", "w", encoding="utf-8") as handle:
