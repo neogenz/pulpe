@@ -3,8 +3,22 @@ import SwiftUI
 struct CheckedToggle: View {
     @Binding var isOn: Bool
     let tintColor: Color
+    var style: FormRowStyle = .standalone
 
     var body: some View {
+        switch style {
+        case .standalone:
+            toggle
+                .padding(DesignTokens.Spacing.lg)
+                .background(Color.inputBackgroundSoft)
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        case .row:
+            toggle
+                .frame(minHeight: DesignTokens.ListRow.minHeight)
+        }
+    }
+
+    private var toggle: some View {
         // Les mêmes mots que sur le web. Le contrôle énonce un fait sur
         // l'argent, il ne demande pas une action : « Pointer » se lisait comme
         // un bouton, et disait autre chose que le même contrôle sur la webapp.
@@ -25,9 +39,6 @@ struct CheckedToggle: View {
             }
         }
         .tint(tintColor)
-        .padding(DesignTokens.Spacing.lg)
-        .background(Color.inputBackgroundSoft)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         .accessibilityValue(isOn ? "Pointé" : "À pointer")
     }
 }

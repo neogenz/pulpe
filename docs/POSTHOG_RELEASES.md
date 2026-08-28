@@ -90,23 +90,27 @@ La landing utilise `output: 'export'` (site statique) — pas de sourcemaps. Le 
 
 ---
 
-## iOS — Release + Annotation via CI
+## iOS — Release + Annotation via la distribution
 
-**Fichier** : `.github/workflows/ios.yml`
-**Déclenché par** : Push sur `main` avec changements dans `ios/**`
+**Fichier** : `.github/workflows/ios-distribute.yml`
+**Déclenché par** : preuve Apple valide d'une distribution `channel=release`
 
 ### Flux
 
 ```
-Push main (paths: ios/**) → iOS CI build →
-  1. Extraction MARKETING_VERSION + CURRENT_PROJECT_VERSION depuis project.yml
-  2. Release PostHog "ios-X.Y.Z+BUILD" via API REST
-  3. Annotation PostHog "iOS vX.Y.Z"
+Distribution iOS (channel=release) → build App Store vérifié « valid » →
+  preuve de distribution publiée →
+  1. Release PostHog "ios-X.Y.Z+BUILD" (identité version/build/SHA du dispatch)
+  2. Annotation PostHog "iOS vX.Y.Z (sha7)"
 ```
 
 ### Fonctionnement
 
 L'iOS a son propre cycle de release (App Store) avec un versioning indépendant. Pas de sourcemaps (Swift natif), mais les releases permettent le filtrage des erreurs par version iOS dans le même projet PostHog que le webapp (87621).
+
+La publication PostHog est rattachée à une distribution réellement livrée : elle
+n'arrive qu'après la preuve Apple (`state=valid`), jamais pour `channel=internal`, et
+reste non bloquante — un échec PostHog ne fait pas échouer une distribution prouvée.
 
 Le format de version `ios-X.Y.Z+BUILD` distingue les releases iOS des releases webapp dans PostHog.
 
@@ -118,11 +122,11 @@ PostHog supporte l'upload de dSYMs via `posthog-cli` pour la symbolication des c
 
 ## Production — Annotations automatiques
 
-**Fichier** : `.github/workflows/production.yml`
-**Étape** : `Create PostHog annotation`
-**Condition** : preuve de production et publication réussies
+**État** : non émises actuellement. L'étape `Create PostHog annotation` a disparu avec
+l'ancien flux `push: main` de `production.yml`; le rattachement web se décidera au
+cutover de la phase 9, après une production réellement prouvée.
 
-### Flux
+### Flux cible
 
 ```
 Production exacte et prouvée →

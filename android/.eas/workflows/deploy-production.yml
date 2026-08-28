@@ -1,0 +1,26 @@
+name: Android production
+
+# `main` is not this repo's default branch — `preview` is — so a push to `main`
+# is already a deliberate act, which is what makes it a safe release trigger.
+# The submit lands on the internal track as a draft (see `eas.json`), so
+# nothing reaches a user until it is promoted by hand in the Play Console.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    name: Production AAB
+    type: build
+    params:
+      platform: android
+      profile: production
+
+  submit:
+    name: Play internal track
+    type: submit
+    needs: [build]
+    params:
+      build_id: ${{ needs.build.outputs.build_id }}
+      profile: production

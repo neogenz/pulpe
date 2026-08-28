@@ -16,12 +16,12 @@ Analyze code changes to produce a unified product release with clear, user-focus
 - NEVER apply versions without explicit user approval
 - NEVER push directly to `preview` or `main`, create a tag, publish a GitHub Release, or mutate Railway from this skill
 - NEVER push the prepared `release/vX.Y.Z` branch or dispatch its PR without a separate explicit user approval after local validation
-- The GitHub App may open release PRs and fast-forward the proven release branch only; it has no ruleset bypass and cannot approve its own production PR
+- Production mutations (fast-forward, production PR, tag, Release) belong to the phase-9 protected apply path; until that cutover the only remote release action this skill may take is the preparation PR to `preview` and the read-only plan dispatch
 - NEVER tag or create the GitHub Release before the exact candidate tree is verified in production; update a `LATEST_*` gate only after its client is public (web deployment or App Store)
 - NEVER use `--force`, `--force-with-lease`, or `git push --tags`
 - If changes are ambiguous, ASK — do not guess
 - When uncertain about bump severity, prefer the HIGHER bump
-- After bumping, ALL of: root, frontend, landing, backend-nest, shared MUST show the same version. If they don't, stop.
+- After bumping, ALL of: root, frontend, landing, backend-nest, shared, Android package and Android app MUST show the same version. If they don't, stop.
 - Use the interaction, file-editing, GitHub, and Railway capabilities available in the current agent. Never assume a Claude Code or Codex-specific tool name.
 
 ## Input
@@ -55,20 +55,20 @@ Run this before modifying release files. A failed check stops the workflow witho
 
    test "$(git branch --show-current)" = preview
    test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
-   git merge-base --is-ancestor origin/main HEAD
+   node .github/scripts/check-release-lineage.mjs "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
    ```
 
    A feature branch must reach `preview` through its normal PR first. A hotfix present only on `main` must be reconciled through the normal branch flow before releasing.
 
-2. Require both trusted release workflows and their four credential names. Secret values are never readable and must not be requested:
+2. Require all three trusted production workflows and their three credential names. Secret values are never readable and must not be requested:
 
    ```bash
    gh workflow view release-promotion.yml --repo neogenz/pulpe >/dev/null
    gh workflow view production.yml --repo neogenz/pulpe >/dev/null
+   gh workflow view production-finalize.yml --repo neogenz/pulpe >/dev/null
    SECRET_NAMES=$(gh secret list --repo neogenz/pulpe --json name --jq '.[].name')
    grep -qx PULPE_RELEASE_APP_ID <<< "$SECRET_NAMES"
    grep -qx PULPE_RELEASE_APP_PRIVATE_KEY <<< "$SECRET_NAMES"
-   grep -qx RAILWAY_PREVIEW_TOKEN <<< "$SECRET_NAMES"
    grep -qx RAILWAY_PRODUCTION_TOKEN <<< "$SECRET_NAMES"
    ```
 
@@ -109,6 +109,7 @@ Map files to packages:
 | `shared/**`       | Shared   |
 | `landing/**`      | Landing  |
 | `ios/**`          | iOS      |
+| `android/**`      | Android  |
 
 Extract relevant commits per package:
 
@@ -118,6 +119,7 @@ git log $BASE_REF..HEAD --oneline -- backend-nest/
 git log $BASE_REF..HEAD --oneline -- shared/
 git log $BASE_REF..HEAD --oneline -- landing/
 git log $BASE_REF..HEAD --oneline -- ios/
+git log $BASE_REF..HEAD --oneline -- android/
 ```
 
 Only `feat:`, `fix:`, `feat!:`, `BREAKING CHANGE:`, `perf:` trigger version bumps. See [references/semver-conventions.md](references/semver-conventions.md).
@@ -300,7 +302,7 @@ Each entry: `{ "title": "Bold title from Step 5", "description": "Description fr
 
 - `frontend/**`, `backend-nest/**`, `shared/**`, `landing/**` (with bumping commits) → `"web"`
 - `ios/**` (with bumping commits) → `"ios"`
-- `android/**` (with bumping commits) → `"android"` (future)
+- `android/**` (with bumping commits) → `"android"`
 
 Deduplicate: if both frontend and backend contributed bumping commits, `"web"` appears once.
 Empty sections stay as `[]` (never omit the key).
@@ -412,20 +414,20 @@ Execute ONLY after user confirms.
 
 1. **Bump root product version** in root `package.json` — use the available file-editing tool to replace the `"version"` field with the target version computed in Step 4.
 
-2. **Bump all JS/TS sub-packages via Changesets fixed mode** — this is NOT optional and NOT conditional on which packages were touched. Fixed mode keeps all four npm packages in lockstep with root. See [references/jsts-release.md](references/jsts-release.md) for the exact procedure (create one changeset file at the right bump level, then `pnpm changeset version`).
+2. **Bump all JS/TS sub-packages via Changesets fixed mode** — this is NOT optional and NOT conditional on which packages were touched. Fixed mode keeps all five npm packages in lockstep with root, including the private Android workspace. See [references/jsts-release.md](references/jsts-release.md) for the exact procedure (create one changeset file at the right bump level, then `pnpm changeset version`).
 
-3. **Sanity check the lockstep** — after Step 6.2, all five versions MUST match:
+3. **Sync the Expo manifest and sanity-check the lockstep** — after Step 6.2, copy the approved target version into `android/app.json`. All seven product-version fields MUST then match:
 
    ```bash
-   grep -H '"version"' package.json frontend/package.json landing/package.json backend-nest/package.json shared/package.json
+   grep -H '"version"' package.json frontend/package.json landing/package.json backend-nest/package.json shared/package.json android/package.json android/app.json
    ```
 
    **If they don't match, recover before continuing:**
-   - **Diagnosis A — bump level mismatch.** Most common. The root was bumped to (say) `0.34.0` but the changeset said `patch`, so sub-packages went to `0.33.2`. Fix: re-edit root `package.json` to match what fixed mode produced (the four sub-package versions are the ground truth here, since they reflect the actual bump level in the changeset file). OR fix the changeset bump level and re-run `pnpm changeset version` — but only if the changeset hasn't been consumed yet.
+   - **Diagnosis A — bump level mismatch.** Most common. The root was bumped to (say) `0.34.0` but the changeset said `patch`, so sub-packages went to `0.33.2`. Fix: re-edit root `package.json` to match what fixed mode produced (the five sub-package versions are the ground truth here, since they reflect the actual bump level in the changeset file). OR fix the changeset bump level and re-run `pnpm changeset version` — but only if the changeset hasn't been consumed yet.
    - **Diagnosis B — `.changeset/config.json` lost its `fixed` group.** Rare, but possible if someone reset the file. Symptom: only ONE sub-package bumped. Fix: restore the `fixed` array (see `references/jsts-release.md`), reset all sub-package versions to match root manually, re-run.
    - **Diagnosis C — packages were already drifted before the run.** Symptom: bump amounts look right but starting points were different. Fix: align all sub-packages to root's pre-bump version, then re-run from Step 6.1.
 
-   In all three cases, end with a fresh sanity check and only continue when all five versions match.
+   In all three cases, end with a fresh sanity check and only continue when all seven version fields match.
 
 4. **iOS** (only if `ios/**` files changed): Apply the decision approved in Step 5 using [references/ios-release.md](references/ios-release.md). After the command, verify the resulting `MARKETING_VERSION` equals `IOS_MARKETING_VERSION` when that value is set. iOS is intentionally NOT in the Changesets fixed group — Changesets only sees npm packages.
 
@@ -473,16 +475,17 @@ Fix issues before proceeding.
 
 ### Step 8: Stage release files
 
-Stage only release files. Under fixed mode, **all four sub-packages always change** even when only one was named in the changeset, so always stage all of them:
+Stage only release files. Under fixed mode, **all five sub-packages always change** even when only one was named in the changeset, so always stage all of them:
 
 ```bash
-# Always: root + all four sub-package versions and changelogs (fixed mode bumped them all)
+# Always: root + all five sub-package versions and changelogs (fixed mode bumped them all)
 git add \
   package.json \
   frontend/package.json frontend/CHANGELOG.md \
   landing/package.json landing/CHANGELOG.md \
   backend-nest/package.json backend-nest/CHANGELOG.md \
   shared/package.json shared/CHANGELOG.md \
+  android/package.json android/app.json android/CHANGELOG.md \
   .changeset/
 
 # Only if Step 5b was NOT skipped (i.e. SKIP_WHATS_NEW=false):
@@ -507,7 +510,7 @@ Run `git status` and confirm only the expected files are staged. If anything unr
 
 ### Step 9: Commit and hand off to GitHub
 
-Show the exact release commit, the branch `release/vX.Y.Z`, the approved French GitHub Release notes, and the two protected PR targets. Then ask: "Prêt à publier la branche de release et ouvrir la PR vers preview ?"
+Show the exact release commit, the branch `release/vX.Y.Z`, the approved French GitHub Release notes, and the preparation PR target (`preview`). Then ask: "Prêt à publier la branche de release et ouvrir la PR vers preview ?"
 
 Only after "oui":
 
@@ -520,7 +523,7 @@ Only after "oui":
    test "$(git branch --show-current)" = "$BRANCH"
    git fetch origin main preview --tags
    test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
-   git merge-base --is-ancestor origin/main HEAD
+   node .github/scripts/check-release-lineage.mjs "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
    test -z "$(git tag -l "v${VERSION}")"
    test -z "$(git ls-remote --tags origin "refs/tags/v${VERSION}")"
    git commit -m "chore(release): v${VERSION}"
@@ -537,35 +540,48 @@ Only after "oui":
    test "$(git ls-remote --heads origin "refs/heads/$BRANCH" | awk '{print $1}')" = "$RELEASE_SHA"
    ```
 
-3. Put the exact approved **GitHub Release** template from Step 5 in a temporary UTF-8 file using the available file-editing capability. Its first line must be `## vX.Y.Z`. Dispatch the trusted workflow with that file as JSON input:
+3. Open the preparation PR to `preview` with the approved **GitHub Release** template from Step 5 as its body, written to a temporary UTF-8 file whose first line is `## vX.Y.Z` (the finalizer later extracts the notes from this exact section):
 
    ```bash
    test "$(sed -n '1p' "$NOTES_FILE")" = "## v${VERSION}"
-   jq -n \
-     --arg release_branch "$BRANCH" \
-     --rawfile release_notes "$NOTES_FILE" \
-     '{release_branch: $release_branch, release_notes: $release_notes}' |
-     gh workflow run release-promotion.yml \
-       --repo neogenz/pulpe \
-       --ref preview \
-       --json
+   gh pr create \
+     --repo neogenz/pulpe \
+     --base preview \
+     --head "$BRANCH" \
+     --title "chore(release): v${VERSION}" \
+     --body-file "$NOTES_FILE"
    ```
 
-4. Watch the dispatched `🚦 Release Promotion` run and report the preparation PR URL. A failure leaves `preview`, `main`, tags, GitHub Releases, and providers untouched.
+   Merge it only after complete CI, exact staging provider SHAs and `✅ Staging Ready (shadow)` are green, like any preview PR.
 
-After the preparation PR is reviewed and merged with a merge commit:
+4. After the preparation PR is merged with a merge commit, resolve the remote state of this exact release intention before any dispatch. The identity is the run-name `🚦 prepare release/vX.Y.Z`; GitHub run lists — never agent memory — are the source of truth:
 
-- the preview providers deploy that merge commit without rebuilding the complete CI matrix;
-- Railway's successful preview `deployment_status` triggers `✅ Staging Ready (shadow)`;
-- `✅ Staging Ready (shadow)` proves the canonical PR tree, exact merged commit, unchanged release base, provider deployments and health checks; if `preview` advanced after the release branch was created, promotion stops and the release must be reprepared;
-- the trusted promotion workflow fast-forwards the same release branch to that proven commit;
-- the App opens the production PR to `main`;
-- new feature PRs may then continue merging into `preview` without changing the frozen candidate;
-- `✅ Release Gate` validates the production PR without secrets or executing PR code; production correlates that gate through the exact PR head branch and SHA, then checks every immutable run attempt and its named job. It never relies on `workflow_run.pull_requests[]`, and a later failed rerun does not erase an earlier successful attempt;
-- a human other than the App approves production.
-- `🏭 Production Release` revalidates every proof, applies migrations when present, waits for exact production deployments, deploys the exact production commit through Railway when its active deployment differs, verifies Railway directly rather than trusting only GitHub's deployment status, verifies CSP, publishes the tag and GitHub Release, then synchronizes Railway's web version gate.
+   ```bash
+   STATE=$(node .github/scripts/resolve-release-state.mjs --repository neogenz/pulpe --workflow release-promotion.yml --version "$VERSION")
+   echo "$STATE"
+   test "$(jq -r .state <<< "$STATE")" = absent
+   ```
 
-This skill does not push `preview` or `main`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release. Those production operations belong to the protected GitHub workflow after the approved production PR is merged.
+   - `absent`: continue to the dispatch step. This is the only state that allows a new dispatch.
+   - `active` or `succeeded`: report the returned run URL; do not dispatch again — the identical invocation is a no-op.
+   - `failed`: after understanding the failure, rerun the exact run instead of dispatching a duplicate: validate with `--retry <run-id>` (the resolver accepts only the latest terminal run), then `gh run rerun <run-id> --repo neogenz/pulpe`.
+   - `published`: the tag `vX.Y.Z` already exists; nothing to prepare.
+   - Any resolver error (duplicate active runs, ambiguous refs or PRs, incomplete pagination, drift) stops the workflow without mutating anything.
+
+5. Dispatch the read-only plan and report its manifest:
+
+   ```bash
+   gh workflow run release-promotion.yml \
+     --repo neogenz/pulpe \
+     --ref preview \
+     -f release_branch="$BRANCH"
+   ```
+
+   The single `plan` job — read-only permissions, no secret, no environment — resolves the proven staging candidate, verifies that current `main` is already fully published (the rollback anchor), replays the content lineage, lists the migrations in scope and the provider deployment IDs, then uploads the `release-plan` manifest. A failure leaves `preview`, `main`, tags, GitHub Releases, and providers untouched.
+
+**Apply does not exist yet.** Production promotion is frozen until the phase-9 cutover: phase 9 first configures the protection of the GitHub `production` environment, then activates the apply path — the protected job calling the reusable production workflow — in its own preparation PR, never through a temporary flag. After that cutover, Railway's successful production `deployment_status` triggers `✅ Production Finalized` (`production-finalize.yml`), which verifies the exact active Railway/Vercel deployments and public services before idempotently creating the annotated tag and GitHub Release; the finalizer is never a Railway-required check.
+
+This skill does not push `preview` or `main`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release.
 
 ## Maintenance: Re-align an already published GitHub Release
 

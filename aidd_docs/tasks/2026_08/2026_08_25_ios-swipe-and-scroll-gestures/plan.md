@@ -1,0 +1,41 @@
+---
+objective: "A vertical flick anywhere on the budget ledger scrolls the page on that same finger, however fast the finger was already moving when it landed; and a home « Activité » row tracks the finger 1:1, opens on a flick, and never stays stuck part-open."
+status: implemented
+---
+
+# Plan: Swipeable rows stop stealing the scroll, and swipe like iOS rows
+
+## Overview
+
+| Field      | Value                                                                                                                                                                                                                                                    |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Goal**   | Replace the SwiftUI `DragGesture` behind both row-swipe primitives with a `UIPanGestureRecognizer` that refuses the pan whenever the finger is going vertically, and give the trailing swipe the release physics an iOS row has.                          |
+| **Source** | User report 2026-08-25: (1) the home « Activité » swipe "réagit pas du tout comme ça devrait"; (2) in the budget detail, a fast scroll whose finger is already moving when it touches down is not intercepted and the page does not scroll.               |
+
+## Phases
+
+| #   | Phase                                                        | File                         |
+| --- | ------------------------------------------------------------ | ---------------------------- |
+| 1   | A horizontal pan that yields the vertical pulls to the scroll | [`phase-1.md`](./phase-1.md) |
+| 2   | The trailing swipe gets an iOS row's release physics          | [`phase-2.md`](./phase-2.md) |
+
+## Resources
+
+| Source                                                                                                   | Verified                                                                                                                                                                                                             |
+| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `iPhoneOS26.5.sdk/.../SwiftUI.swiftinterface` lines 21063-21138                                          | `UIGestureRecognizerRepresentable` is iOS 18.0+, so it clears the project's 18.0 floor. Its four members and `View.gesture(_ representable:)` are quoted verbatim in phase 1.                                          |
+| `iPhoneOS26.5.sdk/.../UIKit.framework/Headers/UIGestureRecognizer.h:90`                                   | `UIGestureRecognizerDelegate` is `NS_SWIFT_UI_ACTOR`, i.e. `@MainActor` — it matches the representable's own `@MainActor` isolation, so the coordinator needs no `nonisolated` escape under Swift 6.                    |
+| `iPhoneOS26.5.sdk/.../UIKit.framework/Headers/UIPanGestureRecognizer.h:36,39`                             | `translationInView:` and `velocityInView:` both take a **nullable** `UIView *`; velocity is in points per second. This is what makes the direction test at `shouldBegin` possible.                                     |
+| https://fatbobman.com/en/posts/swiftuigesture/                                                           | The delegate is wired as `recognizer.delegate = context.coordinator` inside `makeUIGestureRecognizer(context:)`, with the coordinator an `NSObject & UIGestureRecognizerDelegate`. This is the documented attach point. |
+| WWDC18 *Designing Fluid Interfaces* velocity projection: `(v / 1000) * rate / (1 - rate)`, rate = `0.998` | The release decision needs no invented "flick threshold" constant — the projected resting point is the platform's own formula, and it degrades to the current behaviour at zero velocity, so the existing unit tests hold. |
+
+## Decisions
+
+| Decision                                                                                                                | Why                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| One shared `UIGestureRecognizerRepresentable` pan replaces the `DragGesture` in **both** swipe modifiers                 | The bug is arbitration, not either modifier's logic. `LeadingSwipeAction` has already shipped all three SwiftUI priorities — `highPriorityGesture` (e03ba3661), `simultaneousGesture` (1e9709ad0), plain `gesture` (090cf95b8) — and the scroll still dies. None of the three orders a SwiftUI gesture against a `ScrollView`'s **UIKit** pan; only a UIKit recognizer can refuse to begin. |
+| The pan refuses to begin when `abs(velocity.y) >= abs(velocity.x)`, decided once in `gestureRecognizerShouldBegin`       | This is the canonical UIKit test for a horizontal pan inside a vertical scroll view, and it is exactly the failing case: a finger already moving downward on touchdown has a large `velocity.y` from the first delivered event. Deciding once also removes the per-frame axis flip-flop that currently snaps a curving drag back to zero mid-gesture.                                     |
+| Keep the two modifiers; do **not** migrate the two screens to `List` + `.swipeActions`                                   | `.swipeActions` is the more standard answer, but both screens are `ScrollView` trees whose visuals were just shipped in #678: the hero zone with its parallax and `onGeometryChange` tracker, the filter rail clipped to the zone curve, the sticky pager overlay, and per-day `pulpeRowCard` groups. A `List` migration is a redesign of two screens, not a gesture fix.                 |
+| The release point is the **projected** resting point, not the raw translation                                            | A 40pt flick on a 120pt button pair currently closes the row, because `restingOffset` compares raw translation to half the button width. Velocity projection is what makes an iOS row open on a flick, and it keeps `restingOffset` a pure, unit-tested function rather than moving the decision into the gesture callback.                                                              |
+| The live drag stops being animated; the spring runs only on release                                                      | `.animation(gentleSpring, value: offset)` currently interpolates every tracking frame, so the row visibly trails the finger. An iOS row is pinned to the finger and springs only once it lifts. This is the single largest part of "réagit pas du tout comme ça devrait".                                                                                                                |
+| `.cancelled` and `.failed` settle the row explicitly                                                                     | A SwiftUI `DragGesture` that is cancelled never calls `onEnded`, so `@State dragOffset` keeps its last value and the row stays stuck part-open with no way back. A `UIPanGestureRecognizer` reports both states, so the settle is handled rather than hoped for.                                                                                                                        |

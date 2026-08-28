@@ -32,7 +32,7 @@ interface CleanupSummary {
  * - savings_goal (user_id)
  *
  * Alerting: failure paths emit `severity: 'critical'` with `op` tag —
- * matchable in PostHog/Sentry/structured logs to escalate RGPD-impacting
+ * matchable in PostHog and structured logs to escalate RGPD-impacting
  * deletion failures (Art. 17).
  */
 @Injectable()

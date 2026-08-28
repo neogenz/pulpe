@@ -1,0 +1,75 @@
+{
+  "cli": {
+    "version": ">= 21.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "local",
+        "EXPO_PUBLIC_API_BASE_URL": "http://localhost:3000/api/v1",
+        "EXPO_PUBLIC_SUPABASE_URL": "http://localhost:54321",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com",
+        "EXPO_PUBLIC_POSTHOG_ENABLED": "false"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "preview",
+        "EXPO_PUBLIC_API_BASE_URL": "https://backend-preview-34f4.up.railway.app/api/v1",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://lrphlfjkzkwyllejanrd.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_6bhOTXKoB7NtR0EeRKg8kA_EdBZeyJb",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "894420283180-chlgsmfheqfks78iamv72n80nfo8kgsl.apps.googleusercontent.com",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com",
+        "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_TQXZF60iqsU5m3HpGGtTRjGx5vFvggoBt1Gzr4zWLar",
+        "EXPO_PUBLIC_POSTHOG_ENABLED": "false"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.pulpe.app/api/v1",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://qhhlloqisgzwcsrbdppn.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_sOPmrqc7yz2nnZRxAOUhwQ_Yr8lfRY2",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "894420283180-chlgsmfheqfks78iamv72n80nfo8kgsl.apps.googleusercontent.com",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com",
+        "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_TQXZF60iqsU5m3HpGGtTRjGx5vFvggoBt1Gzr4zWLar",
+        "EXPO_PUBLIC_POSTHOG_ENABLED": "true"
+      }
+    },
+    "production-apk": {
+      "extends": "production",
+      "distribution": "internal",
+      "environment": "production",
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft",
+        "changesNotSentForReview": false
+      }
+    }
+  }
+}

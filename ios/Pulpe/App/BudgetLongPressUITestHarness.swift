@@ -15,6 +15,7 @@ enum UITestLaunchScenario {
     case savingsGoalTemplateLines
     case contextualCreationHome
     case contextualCreationBudget
+    case languageSettings
     case loginScreen
 
     private static let longPressWithTransactionsKey = "UITEST_BUDGET_LONG_PRESS_WITH_TRANSACTIONS"
@@ -31,6 +32,7 @@ enum UITestLaunchScenario {
     private static let savingsGoalTemplateLinesKey = "UITEST_SAVINGS_GOAL_TEMPLATE_LINES"
     private static let contextualCreationHomeKey = "UITEST_CONTEXTUAL_CREATION_HOME"
     private static let contextualCreationBudgetKey = "UITEST_CONTEXTUAL_CREATION_BUDGET"
+    private static let languageSettingsKey = "UITEST_LANGUAGE_SETTINGS"
     private static let loginScreenKey = "UITEST_LOGIN_SCREEN"
     private static let scenarioEnvironmentKey = "UITEST_SCENARIO"
 
@@ -70,6 +72,7 @@ enum UITestLaunchScenario {
             savingsGoalTemplateLinesKey: .savingsGoalTemplateLines,
             contextualCreationHomeKey: .contextualCreationHome,
             contextualCreationBudgetKey: .contextualCreationBudget,
+            languageSettingsKey: .languageSettings,
             loginScreenKey: .loginScreen,
         ][key]
     }
@@ -91,6 +94,7 @@ enum UITestLaunchScenario {
         case .savingsGoalTemplateLines: "savings-goal-template-lines"
         case .contextualCreationHome: "contextual-creation-home"
         case .contextualCreationBudget: "contextual-creation-budget"
+        case .languageSettings: "language-settings"
         case .loginScreen: "login-screen"
         }
     }
@@ -127,7 +131,11 @@ private final class BudgetGoalSpreadUITestService: BudgetServicing, BudgetLineSe
     func getAll() async throws -> [Tag] { [] }
     func create(_: TagCreate) async throws -> Tag { throw URLError(.unsupportedURL) }
     func deleteBudgetLine(id _: String) async throws { throw URLError(.unsupportedURL) }
-    func toggleCheck(id _: String) async throws -> BudgetLine { throw URLError(.unsupportedURL) }
+    /// Pointing a line is the one mutation the detail ledger exercises from a UI test.
+    func toggleCheck(id: String) async throws -> BudgetLine {
+        guard let line = details.budgetLines.first(where: { $0.id == id }) else { throw URLError(.unsupportedURL) }
+        return line.toggled()
+    }
     func postpone(id _: String) async throws -> BudgetLine { throw URLError(.unsupportedURL) }
     func createSpread(_: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse {
         throw URLError(.unsupportedURL)

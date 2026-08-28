@@ -37,7 +37,7 @@ aidd_docs/memory/
 > 211 lignes de fiction. La plus grosse suppression du plan.
 
 1. Vérifier avant de supprimer : le glob `frontend/**/core/error-handling/**/*.ts` matche **0 fichier** ; `frontend/projects/webapp/src/app/core/` ne contient pas de dossier `error-handling`.
-2. Vérifier que le module décrit (`FatalError` / `OperationalError` / `BusinessError` + intégration Sentry) n'existe nulle part dans le repo. Si un équivalent existe sous un autre nom, s'arrêter et le signaler plutôt que supprimer.
+2. Vérifier que le module décrit (`FatalError` / `OperationalError` / `BusinessError` + intégration d'observabilité) n'existe nulle part dans le repo. Si un équivalent existe sous un autre nom, s'arrêter et le signaler plutôt que supprimer.
 3. Supprimer le fichier avec `trash`, jamais `rm -r`.
 4. Purger les 2 références entrantes dans `aidd_docs/memory/`.
 

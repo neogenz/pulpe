@@ -77,6 +77,13 @@ final class CurrentMonthStore: StoreProtocol {
     private(set) var budget: Budget?
     private(set) var budgetLines: [BudgetLine] = []
     private(set) var transactions: [Transaction] = []
+    /// The server's reading of the user's closed months; `nil` until the details load.
+    private(set) var history: DriftHistory?
+    /// A home mutation is in flight: the chart shimmers its projection, which is drawn from
+    /// an optimistic store until the server has settled the entry.
+    /// ponytail: one flag, so two overlapping mutations clear it on the first response;
+    /// a counter if that ever shows.
+    private(set) var isSettling = false
     private(set) var error: APIError?
 
     /// Derived from `contentState` — satisfies `StoreProtocol.isLoading`
@@ -268,6 +275,7 @@ final class CurrentMonthStore: StoreProtocol {
         budget = nil
         budgetLines = []
         transactions = []
+        history = nil
         payDayOfMonth = nil
         syncingTransactionIds = []
         syncingBudgetLineIds = []
@@ -382,6 +390,7 @@ final class CurrentMonthStore: StoreProtocol {
         budget = details.budget
         budgetLines = details.budgetLines
         transactions = details.transactions
+        history = details.history
         recomputeMetrics()
         lastLoadTime = Date()
         contentState = .loaded
@@ -392,7 +401,35 @@ final class CurrentMonthStore: StoreProtocol {
             transactions: details.transactions
         )
     }
+}
 
+#if DEBUG
+extension CurrentMonthStore {
+    /// Test-only: hold the dashboard on its production loading state.
+    func prepareLoadingForTesting() {
+        contentState = .loading
+    }
+
+    /// Test-only: populate store with data for unit testing
+    func populateForTesting(
+        budget: Budget? = nil,
+        budgetLines: [BudgetLine] = [],
+        transactions: [Transaction] = [],
+        history: DriftHistory? = nil
+    ) {
+        self.budget = budget
+        self.budgetLines = budgetLines
+        self.transactions = transactions
+        self.history = history
+        contentState = budget != nil ? .loaded : .empty
+        recomputeMetrics()
+    }
+}
+#endif
+
+// MARK: - Computed Properties
+
+extension CurrentMonthStore {
     /// Recompute and cache metrics - call after data changes
     private func recomputeMetrics() {
         cachedMetrics = BudgetFormulas.calculateAllMetrics(
@@ -411,33 +448,7 @@ final class CurrentMonthStore: StoreProtocol {
         cachedBalanceTrajectory = computeBalanceTrajectory()
         cachedPlannedRemaining = computePlannedRemaining()
     }
-}
 
-#if DEBUG
-extension CurrentMonthStore {
-    /// Test-only: hold the dashboard on its production loading state.
-    func prepareLoadingForTesting() {
-        contentState = .loading
-    }
-
-    /// Test-only: populate store with data for unit testing
-    func populateForTesting(
-        budget: Budget? = nil,
-        budgetLines: [BudgetLine] = [],
-        transactions: [Transaction] = []
-    ) {
-        self.budget = budget
-        self.budgetLines = budgetLines
-        self.transactions = transactions
-        contentState = budget != nil ? .loaded : .empty
-        recomputeMetrics()
-    }
-}
-#endif
-
-// MARK: - Computed Properties
-
-extension CurrentMonthStore {
     /// Days remaining in the current budget period, today included.
     /// Both ends are normalized to `startOfDay` — diffing a timestamped now against a
     /// midnight boundary makes `.day` truncate today away for most of the day, which
@@ -600,7 +611,8 @@ extension CurrentMonthStore {
             budgetLines: budgetLines,
             transactions: transactions,
             budget: budget,
-            payDayOfMonth: payDayOfMonth
+            payDayOfMonth: payDayOfMonth,
+            history: history
         )
     }
 
@@ -707,13 +719,24 @@ extension CurrentMonthStore {
     }
 
     func addTransaction(_ transaction: Transaction) {
+        guard budget?.id == transaction.budgetId else {
+            invalidateCache()
+            onMutation?()
+            return
+        }
+        transactions.removeAll { $0.id == transaction.id }
         transactions.append(transaction)
         recomputeMetrics()
         syncWidgetAfterChange()
         onMutation?()
     }
 
-    func deleteTransaction(_ transaction: Transaction) async {
+    /// `false` when the deletion was rolled back: `error` alone is only read by the loading
+    /// states, so the caller is the one that can tell the user a mutation failed.
+    @discardableResult
+    func deleteTransaction(_ transaction: Transaction) async -> Bool {
+        isSettling = true
+        defer { isSettling = false }
         // Optimistic update
         let originalTransactions = transactions
         transactions.removeAll { $0.id == transaction.id }
@@ -723,20 +746,25 @@ extension CurrentMonthStore {
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
             syncWidgetAfterChange()
+            return true
         } catch let apiError as APIError {
             transactions = originalTransactions
             self.error = apiError
             recomputeMetrics()
+            return false
         } catch {
             transactions = originalTransactions
             self.error = .networkError(error)
             recomputeMetrics()
+            return false
         }
     }
 
     func deleteBudgetLine(_ line: BudgetLine) async {
         // Skip virtual rollover lines
         guard !(line.isRollover ?? false) else { return }
+        isSettling = true
+        defer { isSettling = false }
 
         // Optimistic update
         let originalLines = budgetLines
@@ -759,6 +787,8 @@ extension CurrentMonthStore {
 
     func updateBudgetLine(_ line: BudgetLine) async {
         guard !(line.isRollover ?? false) else { return }
+        isSettling = true
+        defer { isSettling = false }
 
         // Optimistic update
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
@@ -772,6 +802,8 @@ extension CurrentMonthStore {
     }
 
     func updateTransaction(_ transaction: Transaction) async {
+        isSettling = true
+        defer { isSettling = false }
         // Optimistic update
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction

@@ -1,5 +1,10 @@
 name: iOS Distribution
 
+# L'identité complète de l'intention, lisible dans la liste des runs sans
+# ouvrir les logs. Doit rester en lockstep avec releaseIdentity() dans
+# .github/scripts/resolve-release-state.mjs.
+run-name: "📲 iOS ${{ inputs.channel }} v${{ inputs.marketing_version }} (${{ inputs.build_number }}) ${{ inputs.source_sha }}"
+
 on:
   workflow_dispatch:
     inputs:
@@ -19,12 +24,12 @@ on:
         required: true
         type: string
       build_number:
-        description: Unused App Store Connect build number
+        description: Next App Store Connect build number under the selected marketing version
         required: true
         type: string
 
 concurrency:
-  group: ios-distribution-${{ inputs.channel }}
+  group: ios-distribution
   cancel-in-progress: false
 
 permissions:
@@ -35,7 +40,7 @@ jobs:
   distribute:
     name: Archive & Upload iOS
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 75
     environment: ios-distribution
     defaults:
       run:
@@ -54,7 +59,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.source_sha }}
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Validate source and distribution inputs
@@ -65,8 +70,8 @@ jobs:
           case "$CHANNEL" in
             internal)
               expected_branch="preview"
-              scheme="PulpePreview"
-              configuration="Preview"
+              scheme="PulpeProd"
+              configuration="Prod"
               ;;
             release)
               expected_branch="main"
@@ -79,9 +84,14 @@ jobs:
               ;;
           esac
 
+          tagged_release_recovery=false
           if [ "$GITHUB_REF_NAME" != "$expected_branch" ]; then
-            echo "::error::Channel '$CHANNEL' must be dispatched from '$expected_branch', not '$GITHUB_REF_NAME'"
-            exit 1
+            if [ "$CHANNEL" = release ] && [ "$GITHUB_REF_NAME" = preview ]; then
+              tagged_release_recovery=true
+            else
+              echo "::error::Channel '$CHANNEL' must be dispatched from '$expected_branch', not '$GITHUB_REF_NAME'"
+              exit 1
+            fi
           fi
           if ! printf '%s' "$SOURCE_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
             echo "::error::source_sha must be a full lowercase 40-character SHA"
@@ -109,13 +119,39 @@ jobs:
           fi
 
           checked_out_sha=$(git rev-parse HEAD)
-          remote_sha=$(git ls-remote origin "refs/heads/$expected_branch" | cut -f1)
           if [ "$checked_out_sha" != "$SOURCE_SHA" ]; then
             echo "::error::Checked out $checked_out_sha instead of approved $SOURCE_SHA"
             exit 1
           fi
-          if [ "$remote_sha" != "$SOURCE_SHA" ]; then
-            echo "::error::$expected_branch moved: expected $SOURCE_SHA, current $remote_sha"
+          git fetch --force --tags origin "refs/heads/$expected_branch:refs/remotes/origin/$expected_branch"
+          if [ "$tagged_release_recovery" = true ]; then
+            release_version=$(node -p "require('../package.json').version")
+            if ! printf '%s' "$release_version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "::error::Tagged release recovery requires a semantic root package version"
+              exit 1
+            fi
+            recovery_tag="refs/tags/v$release_version"
+            echo "Require exact annotated release tag for recovery: $recovery_tag"
+            if [ "$(git cat-file -t "$recovery_tag" 2>/dev/null || true)" != tag ] ||
+               [ "$(git rev-parse "$recovery_tag^{commit}" 2>/dev/null || true)" != "$SOURCE_SHA" ]; then
+              echo "::error::Release recovery from preview requires $recovery_tag to be an annotated tag for $SOURCE_SHA"
+              exit 1
+            fi
+          fi
+          reachable=false
+          if git merge-base --is-ancestor "$SOURCE_SHA" "refs/remotes/origin/$expected_branch"; then
+            reachable=true
+          elif [ "$CHANNEL" = release ]; then
+            while IFS= read -r tag; do
+              if [[ "$tag" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+                && [ "$(git cat-file -t "$tag")" = tag ] \
+                && [ "$(git rev-parse "$tag^{commit}")" = "$SOURCE_SHA" ]; then
+                reachable=true
+              fi
+            done < <(git for-each-ref --format='%(refname)' refs/tags)
+          fi
+          if [ "$reachable" != true ]; then
+            echo "::error::$SOURCE_SHA is not an authorized $CHANNEL source"
             exit 1
           fi
 
@@ -133,7 +169,7 @@ jobs:
             echo "::error::Release build $BUILD_NUMBER is not recorded in project.yml (found $project_build)"
             exit 1
           fi
-          if [ "$CHANNEL" = "internal" ] && [ "$BUILD_NUMBER" -lt "$project_build" ]; then
+          if [ "$CHANNEL" != "release" ] && [ "$BUILD_NUMBER" -lt "$project_build" ]; then
             echo "::error::Internal build $BUILD_NUMBER must be at least project.yml build $project_build"
             exit 1
           fi
@@ -149,30 +185,112 @@ jobs:
           EXPECTED_BRANCH: ${{ steps.release.outputs.branch }}
         run: |
           set -euo pipefail
-          if [ "$CHANNEL" = internal ]; then
-            workflow=staging-proof.yml
-            event=deployment_status
-            artifact="staging-proof-$SOURCE_SHA"
-          else
-            workflow=production.yml
-            event=push
-            artifact="production-proof-$SOURCE_SHA"
+          case "$CHANNEL" in
+            internal)
+              node ../.github/scripts/resolve-workflow-proof.mjs \
+                --workflow staging-proof.yml \
+                --event deployment_status \
+                --branch "$EXPECTED_BRANCH" \
+                --sha "$SOURCE_SHA" \
+                --job "✅ Staging Ready (shadow)" \
+                --artifact-template "staging-proof-{sha}-run-{run_id}-attempt-{attempt}" \
+                >/dev/null
+              ;;
+            release)
+              node ../.github/scripts/resolve-workflow-proof.mjs \
+                --workflow production-finalize.yml \
+                --event deployment_status \
+                --branch "$EXPECTED_BRANCH" \
+                --sha "$SOURCE_SHA" \
+                --job "✅ Publish proven production" \
+                --artifact-template "production-proof-{sha}-run-{run_id}-attempt-{attempt}" \
+                >/dev/null
+              ;;
+          esac
+
+      - name: Prepare App Store status credential
+        env:
+          ASC_PRIVATE_KEY_P8_BASE64: ${{ secrets.ASC_PRIVATE_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${ASC_PRIVATE_KEY_P8_BASE64:?Missing ASC_PRIVATE_KEY_P8_BASE64}"
+          asc_key_path="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_PRIVATE_KEY_P8_BASE64" | base64 -D > "$asc_key_path"
+          chmod 600 "$asc_key_path"
+          openssl pkey -in "$asc_key_path" -check -noout
+          echo "ASC_KEY_PATH=$asc_key_path" >> "$GITHUB_ENV"
+      - name: Query exact App Store build
+        id: asc
+        run: |
+          set -euo pipefail
+          state=$(ruby ../.github/scripts/app-store-build-status.rb app.pulpe.ios "$EXPECTED_MARKETING_VERSION" "$BUILD_NUMBER")
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          echo "ASC_INITIAL_STATE=$state" >> "$GITHUB_ENV"
+          if [ "$state" = invalid ]; then
+            echo "::error::App Store Connect reports this exact build as invalid"
+            exit 1
           fi
-
-          gh api -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs" \
-            -f event="$event" -f branch="$EXPECTED_BRANCH" -f head_sha="$SOURCE_SHA" -f per_page=100 \
-            > "$RUNNER_TEMP/proof-runs.json"
-          run_id=$(jq -r --arg path ".github/workflows/$workflow" --arg event "$event" --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.path == $path and .event == $event and .head_sha == $sha and .status == "completed" and .conclusion == "success")] | max_by(.id) | .id // empty' "$RUNNER_TEMP/proof-runs.json")
-          test -n "$run_id"
-          artifact_count=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" | jq --arg artifact "$artifact" '[.artifacts[] | select(.name == $artifact and .expired == false)] | length')
-          test "$artifact_count" = 1
-
+      - name: Verify marketing version accepts new builds
+        if: steps.asc.outputs.state == 'not_found'
+        run: |
+          set -euo pipefail
+          state=$(ruby ../.github/scripts/app-store-build-status.rb --marketing-version-status app.pulpe.ios "$EXPECTED_MARKETING_VERSION")
+          case "$state" in
+            open) ;;
+            closed)
+              echo "::error::Marketing version $EXPECTED_MARKETING_VERSION is already distributed and its pre-release train is closed"
+              exit 1
+              ;;
+            *)
+              echo "::error::App Store Connect returned an invalid marketing-version state"
+              exit 1
+              ;;
+          esac
+      - name: Verify next build number for marketing version
+        if: steps.asc.outputs.state == 'not_found'
+        run: |
+          set -euo pipefail
+          expected_build=$(ruby ../.github/scripts/app-store-build-status.rb --next-build-number app.pulpe.ios "$EXPECTED_MARKETING_VERSION")
+          if [ "$expected_build" = invalid ]; then
+            echo "::error::App Store Connect returned invalid build data for marketing version $EXPECTED_MARKETING_VERSION"
+            exit 1
+          fi
+          if [ "$BUILD_NUMBER" != "$expected_build" ]; then
+            echo "::error::Build $BUILD_NUMBER is not next for marketing version $EXPECTED_MARKETING_VERSION (expected $expected_build)"
+            exit 1
+          fi
+      - name: Verify existing App Store build provenance
+        if: steps.asc.outputs.state != 'not_found'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node ../.github/scripts/resolve-ios-distribution-intent.mjs \
+            --sha "$SOURCE_SHA" \
+            --marketing-version "$EXPECTED_MARKETING_VERSION" \
+            --build-number "$BUILD_NUMBER" \
+            --channel "$CHANNEL" \
+            --automation-branch "$GITHUB_REF_NAME" \
+            >/dev/null
+      - name: Poll App Store build processing
+        if: steps.asc.outputs.state == 'processing'
+        run: |
+          for _ in {1..30}; do
+            sleep 60
+            state=$(ruby ../.github/scripts/app-store-build-status.rb app.pulpe.ios "$EXPECTED_MARKETING_VERSION" "$BUILD_NUMBER")
+            [ "$state" = valid ] && exit 0
+            [ "$state" = processing ] || { echo "::error::App Store build became $state"; exit 1; }
+          done
+          echo "::error::App Store build processing timed out"
+          exit 1
       - name: Setup Xcode
+        if: steps.asc.outputs.state == 'not_found'
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
           xcode-version: "26.2"
 
       - name: Install XcodeGen
+        if: steps.asc.outputs.state == 'not_found'
         run: |
           if command -v xcodegen >/dev/null 2>&1; then
             xcodegen --version
@@ -181,6 +299,7 @@ jobs:
           fi
 
       - name: Cache SPM packages
+        if: steps.asc.outputs.state == 'not_found'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -191,24 +310,21 @@ jobs:
             ios-distribution-spm-
 
       - name: Import signing credentials
+        if: steps.asc.outputs.state == 'not_found'
         env:
-          ASC_PRIVATE_KEY_P8_BASE64: ${{ secrets.ASC_PRIVATE_KEY_P8_BASE64 }}
           IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
           IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
         run: |
           set -euo pipefail
           umask 077
-          : "${ASC_PRIVATE_KEY_P8_BASE64:?Missing ASC_PRIVATE_KEY_P8_BASE64}"
           : "${IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64:?Missing IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64}"
           : "${IOS_DISTRIBUTION_CERTIFICATE_PASSWORD:?Missing IOS_DISTRIBUTION_CERTIFICATE_PASSWORD}"
 
           keychain_path="$RUNNER_TEMP/ios-distribution.keychain-db"
           certificate_path="$RUNNER_TEMP/distribution-certificate.p12"
-          asc_key_path="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
           keychain_password=$(openssl rand -base64 32)
           echo "KEYCHAIN_PATH=$keychain_path" >> "$GITHUB_ENV"
           echo "CERTIFICATE_PATH=$certificate_path" >> "$GITHUB_ENV"
-          echo "ASC_KEY_PATH=$asc_key_path" >> "$GITHUB_ENV"
 
           security list-keychains -d user \
             | sed -E 's/^[[:space:]]*"(.*)"$/\1/' \
@@ -241,11 +357,10 @@ jobs:
             exit 1
           fi
 
-          printf '%s' "$ASC_PRIVATE_KEY_P8_BASE64" | base64 -D > "$asc_key_path"
-          chmod 600 "$asc_key_path" "$certificate_path"
-          openssl pkey -in "$asc_key_path" -check -noout
+          chmod 600 "$certificate_path"
 
       - name: Install App Store provisioning profiles
+        if: steps.asc.outputs.state == 'not_found'
         env:
           IOS_APP_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_APP_PROVISIONING_PROFILE_BASE64 }}
           IOS_WIDGET_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_WIDGET_PROVISIONING_PROFILE_BASE64 }}
@@ -305,10 +420,43 @@ jobs:
             "$APPLE_TEAM_ID.app.pulpe.ios.widget" \
             WIDGET_INSTALLED_PROFILE
 
+      - name: Configure manual App Store signing
+        if: steps.asc.outputs.state == 'not_found'
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("project.yml")
+          text = path.read_text(encoding="utf-8")
+          profiles = {
+              '        INFOPLIST_KEY_CFBundleDisplayName: Pulpe':
+                  '$(PULPE_APP_PROVISIONING_PROFILE_SPECIFIER)',
+              '        INFOPLIST_KEY_CFBundleDisplayName: "Pulpe Widget"':
+                  '$(PULPE_WIDGET_PROVISIONING_PROFILE_SPECIFIER)',
+          }
+          for marker, profile_variable in profiles.items():
+              setting = f'          PROVISIONING_PROFILE_SPECIFIER: "{profile_variable}"'
+              if setting in text:
+                  continue
+              if text.count(marker) != 1:
+                  raise SystemExit(f"expected one signing marker, found {text.count(marker)}: {marker}")
+              replacement = (
+                  f"{marker}\n"
+                  "      configs:\n"
+                  "        Prod:\n"
+                  f"{setting}"
+              )
+              text = text.replace(marker, replacement)
+          path.write_text(text, encoding="utf-8")
+          PY
+
       - name: Generate Xcode project
+        if: steps.asc.outputs.state == 'not_found'
         run: xcodegen generate --use-cache
 
       - name: Archive signed application
+        if: steps.asc.outputs.state == 'not_found'
         run: |
           set -euo pipefail
           archive_path="$RUNNER_TEMP/Pulpe.xcarchive"
@@ -318,17 +466,17 @@ jobs:
             -configuration "${{ steps.release.outputs.configuration }}" \
             -destination 'generic/platform=iOS' \
             -archivePath "$archive_path" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PULPE_APP_PROVISIONING_PROFILE_SPECIFIER="Pulpe App Store CI" \
+            PULPE_WIDGET_PROVISIONING_PROFILE_SPECIFIER="Pulpe Widget App Store CI" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             ONLY_ACTIVE_ARCH=NO
           echo "ARCHIVE_PATH=$archive_path" >> "$GITHUB_ENV"
 
       - name: Export signed IPA
+        if: steps.asc.outputs.state == 'not_found'
         run: |
           set -euo pipefail
           export_options="$RUNNER_TEMP/ExportOptions.plist"
@@ -376,6 +524,7 @@ jobs:
           echo "IPA_PATH=$ipa_path" >> "$GITHUB_ENV"
 
       - name: Verify exported application identity
+        if: steps.asc.outputs.state == 'not_found'
         run: |
           set -euo pipefail
           app_plist=$(unzip -Z1 "$IPA_PATH" | grep -E '^Payload/[^/]+\.app/Info\.plist$' | head -1)
@@ -401,7 +550,20 @@ jobs:
             exit 1
           fi
 
+      - name: Create iOS distribution intent
+        if: steps.asc.outputs.state == 'not_found'
+        run: |
+          python3 -c 'import json,os; json.dump({"repository":os.environ["GITHUB_REPOSITORY"],"source_sha":os.environ["SOURCE_SHA"],"marketing_version":os.environ["EXPECTED_MARKETING_VERSION"],"build_number":os.environ["BUILD_NUMBER"],"channel":os.environ["CHANNEL"],"state":"uploading","run_id":int(os.environ["GITHUB_RUN_ID"]),"run_attempt":int(os.environ["GITHUB_RUN_ATTEMPT"])},open(os.environ["RUNNER_TEMP"]+"/ios-distribution-intent.json","w"))'
+      - name: Upload iOS distribution intent
+        if: steps.asc.outputs.state == 'not_found'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ios-distribution-intent-${{ inputs.marketing_version }}-${{ inputs.build_number }}-${{ inputs.source_sha }}-${{ inputs.channel }}
+          path: ${{ runner.temp }}/ios-distribution-intent.json
+          retention-days: 30
+
       - name: Upload to App Store Connect
+        if: steps.asc.outputs.state == 'not_found'
         run: |
           set -euo pipefail
           upload_options="$RUNNER_TEMP/UploadOptions.plist"
@@ -444,6 +606,53 @@ jobs:
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
 
+      - name: Poll uploaded App Store build
+        if: steps.asc.outputs.state == 'not_found'
+        run: |
+          for _ in {1..30}; do
+            sleep 60
+            state=$(ruby ../.github/scripts/app-store-build-status.rb app.pulpe.ios "$EXPECTED_MARKETING_VERSION" "$BUILD_NUMBER")
+            [ "$state" = valid ] && exit 0
+            [ "$state" = processing ] || [ "$state" = not_found ] || { echo "::error::Uploaded App Store build is $state"; exit 1; }
+          done
+          echo "::error::Uploaded App Store build processing timed out"
+          exit 1
+      - name: Create iOS distribution proof
+        run: |
+          python3 -c 'import json,os; json.dump({"repository":os.environ["GITHUB_REPOSITORY"],"source_sha":os.environ["SOURCE_SHA"],"marketing_version":os.environ["EXPECTED_MARKETING_VERSION"],"build_number":os.environ["BUILD_NUMBER"],"channel":os.environ["CHANNEL"],"state":"valid","uploaded":os.environ["ASC_INITIAL_STATE"]=="not_found","run_id":int(os.environ["GITHUB_RUN_ID"]),"run_attempt":int(os.environ["GITHUB_RUN_ATTEMPT"])},open(os.environ["RUNNER_TEMP"]+"/ios-distribution-proof.json","w"))'
+      - name: Upload iOS distribution proof
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ios-distribution-proof-${{ inputs.marketing_version }}-${{ inputs.build_number }}-${{ inputs.source_sha }}
+          path: ${{ runner.temp }}/ios-distribution-proof.json
+          retention-days: 30
+      # Publication PostHog uniquement après la preuve Apple valide, et
+      # seulement pour le canal release. Non bloquant : l'analytics ne doit
+      # jamais faire échouer une distribution déjà prouvée.
+      - name: Create PostHog release and annotation
+        if: inputs.channel == 'release'
+        env:
+          POSTHOG_HOST: https://eu.i.posthog.com
+          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          # All apps share one PostHog project (87621) — secret name is webapp-specific for historical reasons
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_WEBAPP_PROJECT_ID }}
+        run: |
+          release_version="ios-${EXPECTED_MARKETING_VERSION}+${BUILD_NUMBER}"
+          echo "📦 Creating PostHog release $release_version"
+          curl -sf -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/error_tracking/releases/" \
+            -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"version\":\"${release_version}\",\"hash_id\":\"${SOURCE_SHA}\",\"project\":\"${POSTHOG_PROJECT_ID}\"}" \
+            && echo "✅ PostHog iOS release created" \
+            || echo "⚠️ PostHog release creation failed (non-blocking)"
+
+          curl -sf -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/annotations/" \
+            -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\":\"iOS v${EXPECTED_MARKETING_VERSION} (${SOURCE_SHA:0:7})\",\"scope\":\"project\",\"date_marker\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
+            && echo "✅ PostHog iOS annotation created" \
+            || echo "⚠️ PostHog annotation failed (non-blocking)"
+
       - name: Distribution summary
         env:
           DISTRIBUTION_BRANCH: ${{ steps.release.outputs.branch }}
@@ -451,7 +660,7 @@ jobs:
           DISTRIBUTION_SCHEME: ${{ steps.release.outputs.scheme }}
         run: |
           {
-            echo "### iOS upload accepted"
+            echo "### iOS distribution valid"
             echo ""
             echo "- Channel: \`$CHANNEL\`"
             echo "- Source: \`$SOURCE_SHA\`"
@@ -460,7 +669,7 @@ jobs:
             echo "- Build: \`$BUILD_NUMBER\`"
             echo "- Scheme: \`$DISTRIBUTION_SCHEME\`"
             echo ""
-            echo "App Store Connect processing and TestFlight/App Store distribution are verified separately by Alfred."
+            echo "App Store Connect processing is verified here; TestFlight/App Store availability is read back separately by Alfred."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Cleanup signing credentials
@@ -493,7 +702,9 @@ jobs:
             "$RUNNER_TEMP/pulpe-widget-app-store.plist" \
             "$RUNNER_TEMP/ci-workflow-runs.json" \
             "$RUNNER_TEMP/ci-workflow-jobs.json" \
-            "$RUNNER_TEMP/original-keychains.txt"
+            "$RUNNER_TEMP/original-keychains.txt" \
+            "$RUNNER_TEMP/ios-distribution-intent.json" \
+            "$RUNNER_TEMP/ios-distribution-proof.json"
           rm -rf \
             "$RUNNER_TEMP/Pulpe.xcarchive" \
             "$RUNNER_TEMP/export" \

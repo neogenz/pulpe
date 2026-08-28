@@ -12,6 +12,8 @@ enum DesignTokens {
     // MARK: - Corner Radius
 
     enum CornerRadius {
+        /// No corner rounding
+        static let none: CGFloat = 0
         /// Progress bars, thin indicators (4pt)
         static let xs: CGFloat = 4
         /// Small elements: badges, chips (8pt)
@@ -43,7 +45,7 @@ enum DesignTokens {
         /// Tight vertical gap (3pt) — icon/label stacks in badges, tab items
         static let dividerGap: CGFloat = 3
         static let xs: CGFloat = 4
-        /// Compact badge padding / inter-badge gap (6pt) — KindBadge, status capsules
+        /// Compact badge padding / inter-badge gap (6pt) — status capsules
         static let tightGap: CGFloat = 6
         static let sm: CGFloat = 8
         /// Compact horizontal gap (10pt) — tab bar segment gap
@@ -87,6 +89,8 @@ enum DesignTokens {
         static let thin: CGFloat = 1
         static let medium: CGFloat = 1.5
         static let thick: CGFloat = 2
+        /// Tracked series on hero charts (`HomeHeroCard+Chart`, `GoalProjectionChart`)
+        static let chartLine: CGFloat = 2
     }
 
     // MARK: - Shadows
@@ -115,10 +119,11 @@ enum DesignTokens {
         /// die-cut from the same sheet, so it stays close to the edge that casts it:
         /// spread over a wide blur it dissolved into the canvas and read as nothing.
         /// Scheme-aware colour, because dark mode gets its depth from tone instead.
+        /// Negative offset: the content card casts it upward onto the forest it rises over.
         static let zoneBoundary = ShadowStyle(
             color: .homeZoneBoundaryShadow,
             radius: 6,
-            y: 3
+            y: -3
         )
         /// Input fields (auth, currency)
         static let input = ShadowStyle(
@@ -161,11 +166,19 @@ enum DesignTokens {
         static let borderFocused: Double = 0.45
         /// Heavy overlays
         static let heavy: Double = 0.5
+        /// The skeleton pulse's low point, shared with the projection while an entry settles.
+        static let settling: Double = 0.4
         /// Muted ink on the mint hero card — suffixes, chevrons, progress-track hairline.
         /// Floor set by WCAG 1.4.11: at `heavy` (0.5) these composite to 2.69:1 against the
         /// hero gradient's darkest light-mode stop; 0.6 lifts them to 3.42–3.57:1 light and
         /// 4.01–4.68:1 dark across both gradient stops.
         static let heroInkMuted: Double = 0.6
+        /// Translucent metric tile on the forest hero surface (`Color.heroTile`)
+        static let heroTile: Double = 0.12
+        /// A 36pt toolbar disc on the forest: the tile tint vanishes at that size.
+        static let heroDisc: Double = 0.2
+        /// Area fill under the tracked series on the hero chart
+        static let heroArea: Double = 0.22
         /// Disabled controls (e.g. type pills with count==0)
         static let disabled: Double = 0.4
         /// Dimmed row card — DM2.1.b.c5 pointed state on per-row card
@@ -179,6 +192,8 @@ enum DesignTokens {
     // MARK: - Icon Sizes
 
     enum IconSize {
+        /// Disc behind a toolbar glyph on the hero surface (`HeroToolbarButtonStyle`).
+        static let heroToolbarDisc: CGFloat = 36
         /// List row icons
         static let listRow: CGFloat = 40
         /// Compact badges
@@ -207,131 +222,9 @@ enum DesignTokens {
         /// Pinning budget line rows to the same minimum keeps the rhythm
         /// consistent regardless of subtitle presence.
         static let minHeight: CGFloat = IconSize.listRow + verticalPadding * 2
-    }
-
-    // MARK: - Animation
-
-    enum Animation {
-        // MARK: - Duration
-
-        static let fast: Double = 0.2
-        static let quickSnap: Double = 0.25
-        static let normal: Double = 0.3
-        static let slow: Double = 0.5
-
-        // MARK: - Stagger
-
-        static let staggerStep: Double = 0.05
-
-        // MARK: - Spring Configurations
-
-        static let springResponse: Double = 0.5
-        static let springDamping: Double = 0.8
-
-        static var defaultSpring: SwiftUI.Animation {
-            .spring(response: springResponse, dampingFraction: springDamping)
-        }
-
-        static var gentleSpring: SwiftUI.Animation {
-            .spring(response: 0.6, dampingFraction: 0.85)
-        }
-
-        static var bouncySpring: SwiftUI.Animation {
-            .spring(response: 0.4, dampingFraction: 0.65)
-        }
-
-        static var entranceSpring: SwiftUI.Animation {
-            .spring(response: 0.6, dampingFraction: 0.8)
-        }
-
-        // MARK: - Easing
-
-        /// Scale a confirmed element settles to as it resolves away (check-exit transition).
-        static let settleScale: CGFloat = 0.94
-
-        static var smoothEaseOut: SwiftUI.Animation {
-            .easeOut(duration: normal)
-        }
-
-        static var smoothEaseInOut: SwiftUI.Animation {
-            .easeInOut(duration: normal)
-        }
-
-        static var quickEaseInOut: SwiftUI.Animation {
-            .easeInOut(duration: quickSnap)
-        }
-
-        // MARK: - Step Transitions
-
-        static var stepTransition: SwiftUI.Animation {
-            .spring(response: 0.5, dampingFraction: 0.85)
-        }
-
-        /// FAB ↔ full-width onboarding CTA — one continuous control (layout + content).
-        static var onboardingCTAMorph: SwiftUI.Animation {
-            .spring(response: 0.48, dampingFraction: 0.88)
-        }
-
-        static var iconEntrance: SwiftUI.Animation {
-            .spring(response: 0.5, dampingFraction: 0.7)
-        }
-
-        // MARK: - Toast
-
-        static var toastEntrance: SwiftUI.Animation {
-            .spring(response: 0.4, dampingFraction: 0.7)
-        }
-
-        static var toastDismiss: SwiftUI.Animation {
-            .easeOut(duration: fast)
-        }
-
-        /// Beat between the last PIN digit landing and the auto-submission that
-        /// follows it. Without it the final dot fills and clears in the same
-        /// frame, and the user never sees the code they just typed.
-        static let pinAutoSubmitSettle: Duration = .milliseconds(180)
-
-        static let pulseDuration: Double = 0.6
-
-        static var pulse: SwiftUI.Animation {
-            .easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)
-        }
-
-        /// Slow breathing effect for brand heroes (glow/shadow opacity oscillation).
-        /// Deliberately slow so it feels like ambient life, not a notification.
-        static let heroBreathingDuration: Double = 3.5
-
-        static var heroBreathing: SwiftUI.Animation {
-            .easeInOut(duration: heroBreathingDuration).repeatForever(autoreverses: true)
-        }
-
-        // MARK: - Push transition timings (BudgetDetails feature pattern)
-
-        /// Grace window after a pushed page detects its target model has
-        /// disappeared, before auto-popping. Gives Observation the chance to
-        /// settle on the first push frame so a transient lookup miss during
-        /// reload races does not pop a freshly-pushed page.
-        static let autoPopGraceMs: UInt64 = 150
-
-        /// Delay between view appearance and programmatic focus on a form
-        /// field, so the push transition completes before the keyboard rises.
-        /// Matches `SheetFormContainer` autofocus behavior.
-        static let pushAutofocusDelayMs: UInt64 = 200
-
-        // MARK: - Skeleton
-
-        /// Minimum skeleton display time to prevent jarring flash on fast loads
-        static let skeletonMinimumDuration: Duration = .milliseconds(400)
-
-        /// Waits until at least the minimum skeleton duration has elapsed since `start`.
-        /// Call after an async fetch that was preceded by showing a skeleton.
-        /// - Important: Throws `CancellationError` if the task is cancelled during the wait.
-        static func ensureMinimumSkeletonTime(since start: ContinuousClock.Instant) async throws {
-            let elapsed = ContinuousClock.now - start
-            if elapsed < skeletonMinimumDuration {
-                try await Task.sleep(for: skeletonMinimumDuration - elapsed)
-            }
-        }
+        /// Leading inset of the hairline between two ledger rows: past the disc and its gap,
+        /// so the rule starts where the text does.
+        static let dividerInset: CGFloat = TapTarget.minimum + Spacing.sm
     }
 
     // MARK: - Sync indicators
@@ -351,6 +244,8 @@ enum DesignTokens {
         static let button: CGFloat = 54
         /// Progress bar track
         static let progressBar: CGFloat = 8
+        /// Onboarding progress bar, a hairline under the CTA
+        static let progressBarThin: CGFloat = 4
         /// Thin separator lines
         static let separator: CGFloat = 1
         /// Inline vertical divider inside a horizontally scrollable filter bar
@@ -368,6 +263,10 @@ enum DesignTokens {
 
     enum Checkbox {
         static let size: CGFloat = 24
+        /// Ring around an unpointed disc: what says "to tick" before the first tap.
+        static let ringWidth: CGFloat = 1.5
+        /// Disc scale while pressed (`PointCircle`).
+        static let pressedScale: CGFloat = 0.92
         /// Pulls the sync badge back in from the circle's bounding-box corner so it
         /// straddles the stroke instead of floating diagonally off it.
         static let syncBadgeInset: CGFloat = 2
@@ -444,6 +343,8 @@ enum DesignTokens {
         static let greetingWidth = longTextWidth
         /// A single line of placeholder text.
         static let lineHeight: CGFloat = 18
+        /// A `HeroMetricTile` placeholder: value + label lines plus `md` padding on each side.
+        static let heroTileHeight: CGFloat = 64
         static let sectionHeight: CGFloat = 20
         static let tagHeight: CGFloat = 20
         static let chipHeight: CGFloat = 30
@@ -466,6 +367,19 @@ enum DesignTokens {
     }
 
     // MARK: - Progress Bar
+
+    enum Layout {
+        /// How far a scroll-native zone background is bled past its own edge, so overscroll
+        /// (pull-to-refresh, rubber-banding) and the status bar never show the canvas behind
+        /// it. Any value taller than a screen works; 1000pt is just comfortably past it.
+        static let overscrollBleed: CGFloat = 1000
+    }
+
+    enum Motion {
+        /// Fraction of the scroll offset the home hero follows, so the content card appears
+        /// to rise over it. 0 = scrolls 1:1 with the card (what Reduce Motion gets).
+        static let heroParallax: CGFloat = 0.35
+    }
 
     enum ProgressBar {
         /// Standard thin progress bar height

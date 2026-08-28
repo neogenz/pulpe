@@ -510,7 +510,7 @@ const fr = {
 
   notFound: {
     title: "Cette page n’existe pas",
-    text: "L’application Pulpe a déménagé. Tu peux y accéder directement sur son nouveau domaine.",
+    text: "Le chemin demandé est inconnu. Utilise les liens ci-dessous pour retrouver une page utile.",
     appCta: "Accéder à l’app",
     homeCta: "Retour à l’accueil",
   },

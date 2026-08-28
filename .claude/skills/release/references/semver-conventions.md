@@ -18,7 +18,7 @@ No other tags are created — no per-package tags, no date-based tags.
 
 ## Single-Version Lockstep
 
-All four npm sub-packages always carry the **same version as the root**:
+All five npm sub-packages always carry the **same version as the root**:
 
 | Package                  | Version source                                 |
 | ------------------------ | ---------------------------------------------- |
@@ -27,12 +27,14 @@ All four npm sub-packages always carry the **same version as the root**:
 | `pulpe-landing`          | Mirrors root via Changesets `fixed` mode       |
 | `backend-nest`           | Mirrors root via Changesets `fixed` mode       |
 | `pulpe-shared`           | Mirrors root via Changesets `fixed` mode       |
+| `pulpe-android`          | Mirrors root via Changesets `fixed` mode       |
+| `android/app.json`       | Mirrors the approved target after Changesets   |
 
 The lockstep is enforced by `.changeset/config.json`:
 
 ```json
 "fixed": [
-  ["pulpe-frontend", "pulpe-landing", "backend-nest", "pulpe-shared"]
+  ["pulpe-frontend", "pulpe-landing", "backend-nest", "pulpe-shared", "pulpe-android"]
 ]
 ```
 

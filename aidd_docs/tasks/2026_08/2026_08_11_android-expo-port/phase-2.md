@@ -30,8 +30,7 @@ android/
 │   │   │   ├── session-store.ts       ✅ Zustand : session, user, état auth (machine : loading/unauthenticated/authenticated/locked)
 │   │   │   └── auth-listener.ts       ✅ onAuthStateChange → store, sign-out global
 │   │   ├── analytics/
-│   │   │   ├── posthog.ts             ✅ init EU host, opt-out, events typés depuis shared (ANALYTICS_EVENTS)
-│   │   │   └── sentry.ts              ✅ init, release/dist EAS, scrubbing
+│   │   │   └── posthog.ts             ✅ init EU host, opt-out, events typés depuis shared (ANALYTICS_EVENTS)
 │   │   ├── ui/
 │   │   │   ├── theme.ts               ✅ tokens DESIGN.md (couleurs, spacing, radius, typo) en thème RN
 │   │   │   ├── toast.tsx              ✅ ToastManager global + undo (overlay)

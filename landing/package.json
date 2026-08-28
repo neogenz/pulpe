@@ -1,6 +1,6 @@
 {
   "name": "pulpe-landing",
-  "version": "0.45.1",
+  "version": "0.46.0",
   "private": true,
   "type": "module",
   "browserslist": [
@@ -15,7 +15,8 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test --experimental-test-module-mocks app/accessibility.test.tsx components/guides/ArticleLayout.test.tsx content/dictionaries.test.ts data/releases.test.ts lib/amount.test.ts lib/budgetCalculator.test.ts lib/visitorCurrency.test.ts lib/bodyScrollLock.test.ts scripts/create-release.test.js",
+    "verify:agents": "node scripts/verify-agent-readiness.js",
+    "test": "tsx --test --experimental-test-module-mocks app/accessibility.test.tsx app/agent-readiness.test.tsx components/guides/ArticleLayout.test.tsx content/dictionaries.test.ts data/releases.test.ts lib/amount.test.ts lib/budgetCalculator.test.ts lib/visitorCurrency.test.ts lib/bodyScrollLock.test.ts scripts/create-release.test.js",
     "lint": "eslint .",
     "format": "prettier --write \"{app,components,content,lib,scripts}/**/*.{ts,tsx,css}\" \"*.{ts,json}\"",
     "format:check": "prettier --check \"{app,components,content,lib,scripts}/**/*.{ts,tsx,css}\" \"*.{ts,json}\"",
@@ -25,6 +26,7 @@
   },
   "dependencies": {
     "lucide-react": "^1.25.0",
+    "negotiator": "1.0.0",
     "next": "^16.3.1",
     "posthog-js": "^1.407.0",
     "react": "^19.2.8",
@@ -33,6 +35,7 @@
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4.3.3",
+    "@types/negotiator": "^0.6.5",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

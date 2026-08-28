@@ -11,7 +11,7 @@ paths:
 ## Rule
 
 `shared/src/calculators/` is the source of truth for every business formula.
-Four of its files have a hand-written Swift twin in `ios/Pulpe/Domain/Formulas/`.
+Six of its files have a hand-written Swift twin in `ios/Pulpe/Domain/Formulas/`.
 
 **Changing a formula on one side is a change on BOTH sides, plus both test suites, in the same commit.** A silent divergence does not fail any build: web and iOS simply display two different amounts for the same account, and nobody finds out until a user does.
 
@@ -23,6 +23,8 @@ Four of its files have a hand-written Swift twin in `ios/Pulpe/Domain/Formulas/`
 | `shared/src/calculators/budget-period.ts`     | `ios/Pulpe/Domain/Formulas/BudgetPeriodCalculator.swift` |
 | `shared/src/calculators/spread-split.ts`      | `ios/Pulpe/Domain/Formulas/SpreadSplit.swift`            |
 | `shared/src/calculators/savings-goal-plan.ts` | `ios/Pulpe/Domain/Formulas/SavingsPlanCalculator.swift`  |
+| `shared/src/calculators/balance-trajectory.ts` | `ios/Pulpe/Domain/Formulas/BalanceTrajectory.swift`     |
+| `shared/src/calculators/spread-progress.ts`   | `ios/Pulpe/Domain/Formulas/SpreadProgress.swift`         |
 
 The mapping is **per function, not strictly per file**: `suggestedMonthlyContribution` lives in `savings-goal-progress.ts` on the TS side and in `SavingsPlanCalculator.swift` on the Swift side. Grep the function name across both trees before assuming it has no twin.
 

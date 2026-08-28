@@ -20,6 +20,7 @@ final class MockBudgetService: BudgetServicing {
     )
     var stubbedSparse: [BudgetSparse] = []
     var detailsError: Error?
+    var sparseError: Error?
 
     private(set) var getBudgetWithDetailsCallCount = 0
     private(set) var getBudgetsSparseCallCount = 0
@@ -30,7 +31,7 @@ final class MockBudgetService: BudgetServicing {
 
     private var gateContinuation: CheckedContinuation<Void, Never>?
     private var isGated = false
-    private var sparseGateContinuation: CheckedContinuation<Void, Never>?
+    private var sparseGateContinuations: [CheckedContinuation<Void, Never>] = []
     private var isSparseGated = false
 
     /// Arm a one-shot gate: the next `getBudgetWithDetails` call suspends until
@@ -49,10 +50,16 @@ final class MockBudgetService: BudgetServicing {
 
     func gateSparse() { isSparseGated = true }
 
+    func releaseNextSparse() {
+        sparseGateContinuations.removeFirst().resume()
+    }
+
     func releaseSparse() {
         isSparseGated = false
-        sparseGateContinuation?.resume()
-        sparseGateContinuation = nil
+        for continuation in sparseGateContinuations {
+            continuation.resume()
+        }
+        sparseGateContinuations.removeAll()
     }
 
     func getBudgetWithDetails(id: String) async throws -> BudgetDetails {
@@ -70,12 +77,13 @@ final class MockBudgetService: BudgetServicing {
     func getBudgetsSparse(fields: String, limit: Int?, year: Int?) async throws -> [BudgetSparse] {
         getBudgetsSparseCallCount += 1
         didEnterSparse = true
-        let snapshot = stubbedSparse
+        let response = (stubbedSparse, sparseError)
         if isSparseGated {
             await withCheckedContinuation { continuation in
-                sparseGateContinuation = continuation
+                sparseGateContinuations.append(continuation)
             }
         }
-        return snapshot
+        if let error = response.1 { throw error }
+        return response.0
     }
 }

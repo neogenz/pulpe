@@ -12,7 +12,7 @@ Report **unexpected** errors, filter **expected** ones. An error the app already
 refused token, a rate limit, a stale chunk, an offline request — is not a bug, and capturing it
 drowns the real ones. Every filter below exists because something legitimate was producing noise.
 
-The vendor is **PostHog** (`captureException`). There is no Sentry in this project.
+**PostHog** (`captureException`) is the sole error-reporting vendor.
 
 ## The two capture points
 

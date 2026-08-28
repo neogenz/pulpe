@@ -682,6 +682,28 @@
         }
       }
     },
+    "%@ n'a pas pu être supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ liess sich nicht löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ could not be deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non è stato eliminato"
+          }
+        }
+      }
+    },
     "%@ n'a pas pu être pointé — réessaie" : {
       "localizations" : {
         "de" : {
@@ -822,6 +844,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ · obiettivo %@"
+          }
+        }
+      }
+    },
+    "%@ · Prévu %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · Geplant %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · Planned %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · Previsto %@"
           }
         }
       }
@@ -1305,6 +1349,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@. Saldo stimato a fine mese, importo nascosto. Confronto col budget nascosto. %@"
+          }
+        }
+      }
+    },
+    "%@/mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@/Monat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@/month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@/mese"
           }
         }
       }
@@ -4209,6 +4275,28 @@
         }
       }
     },
+    "Ajouter un prénom" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vornamen hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a first name"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi un nome"
+          }
+        }
+      }
+    },
     "Ajouter un revenu" : {
       "localizations" : {
         "de" : {
@@ -4447,6 +4535,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sistema il mio piano"
+          }
+        }
+      }
+    },
+    "Aller aux opérations à pointer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu den offenen Vorgängen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to the operations to check"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vai alle operazioni da spuntare"
           }
         }
       }
@@ -6181,6 +6291,28 @@
         }
       }
     },
+    "Carte %lld sur %lld" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karte %@ von %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Card %@ of %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheda %@ di %@"
+          }
+        }
+      }
+    },
     "Ce Réel sera créé pointé." : {
       "localizations" : {
         "de" : {
@@ -6459,6 +6591,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Questo mese"
+          }
+        }
+      }
+    },
+    "Ce mois est un peu juste." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Monat ist etwas knapp."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This month is a bit tight."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo mese è un po' stretto."
           }
         }
       }
@@ -8101,6 +8255,50 @@
         }
       }
     },
+    "Combien gagnes-tu par mois ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie viel verdienst du pro Monat?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How much do you earn per month?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quanto guadagni al mese?"
+          }
+        }
+      }
+    },
+    "Combien mets-tu de côté ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie viel legst du zur Seite?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How much do you set aside?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quanto metti da parte?"
+          }
+        }
+      }
+    },
     "Combien te manque-t-il ?" : {
       "localizations" : {
         "de" : {
@@ -9333,6 +9531,28 @@
         }
       }
     },
+    "Créer le budget" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget erstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create the budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea il budget"
+          }
+        }
+      }
+    },
     "Créer le modèle" : {
       "localizations" : {
         "de" : {
@@ -10287,6 +10507,28 @@
         }
       }
     },
+    "Disponible prévu %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geplant verfügbar %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planned available %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibile previsto %@."
+          }
+        }
+      }
+    },
     "Disponible · %@" : {
       "localizations" : {
         "de" : {
@@ -10399,6 +10641,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Di cui %@ di partenza"
+          }
+        }
+      }
+    },
+    "Du %@ au %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vom %@ bis %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %@ to %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dal %@ al %@"
           }
         }
       }
@@ -11737,6 +12001,50 @@
         }
       }
     },
+    "Estimé fin %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschätzt Ende %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Est. end of %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stimato a fine %@"
+          }
+        }
+      }
+    },
+    "Estimé le %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschätzt am %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimated on %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stimato il %@"
+          }
+        }
+      }
+    },
     "Et tu sauras toujours où tu en es" : {
       "localizations" : {
         "de" : {
@@ -12745,6 +13053,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impossibile verificare lo stato"
+          }
+        }
+      }
+    },
+    "Imprévus" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unvorhergesehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unplanned"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imprevisti"
           }
         }
       }
@@ -16711,6 +17041,28 @@
         }
       }
     },
+    "Noté · %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erfasst · %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noted · %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annotato · %@"
+          }
+        }
+      }
+    },
     "Nouveau\ndans Pulpe" : {
       "localizations" : {
         "de" : {
@@ -17747,6 +18099,28 @@
         }
       }
     },
+    "Origine" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herkunft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Origin"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Origine"
+          }
+        }
+      }
+    },
     "Origine du revenu" : {
       "localizations" : {
         "de" : {
@@ -17897,6 +18271,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apri il budget per regolare le tue buste"
+          }
+        }
+      }
+    },
+    "Ouvre le choix de la langue de l'app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet die Auswahl der App-Sprache"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the app language picker"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apre la selezione della lingua dell'app"
+          }
+        }
+      }
+    },
+    "Ouvre les réglages de langue d'iOS" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet die iOS-Spracheinstellungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the iOS language settings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apre le impostazioni della lingua di iOS"
           }
         }
       }
@@ -18705,28 +19123,6 @@
         }
       }
     },
-    "Potentiel %@" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Potenzial %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Potential %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Potenziale %@"
-          }
-        }
-      }
-    },
     "Potentiel de l'année" : {
       "localizations" : {
         "de" : {
@@ -19177,6 +19573,28 @@
         }
       }
     },
+    "Prénom enregistré" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorname gespeichert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First name saved"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome salvato"
+          }
+        }
+      }
+    },
     "Prénom, requis" : {
       "localizations" : {
         "de" : {
@@ -19605,6 +20023,50 @@
         }
       }
     },
+    "Prévu ce mois · %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Monat geplant · %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planned this month · %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previsto questo mese · %@"
+          }
+        }
+      }
+    },
+    "Prévu fin de période %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geplant zum Periodenende %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planned at period end %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previsto a fine periodo %@."
+          }
+        }
+      }
+    },
     "Prévu vs Réalisé" : {
       "localizations" : {
         "de" : {
@@ -19785,6 +20247,28 @@
         }
       }
     },
+    "Quel montant ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcher Betrag?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How much?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quale importo?"
+          }
+        }
+      }
+    },
     "Quelles prévisions supprimer ?" : {
       "localizations" : {
         "de" : {
@@ -19813,24 +20297,24 @@
         }
       }
     },
-    "Quel montant ?" : {
+    "Quelles sont tes charges fixes ?" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Welcher Betrag?"
+            "value" : "Was sind deine Fixkosten?"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "How much?"
+            "value" : "What are your fixed expenses?"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quale importo?"
+            "value" : "Quali sono le tue spese fisse?"
           }
         }
       }
@@ -21605,6 +22089,50 @@
         }
       }
     },
+    "Réel aujourd’hui %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tatsächlich heute %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actual today %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reale oggi %@."
+          }
+        }
+      }
+    },
+    "Réel le %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tatsächlich am %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actual on %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reale il %@"
+          }
+        }
+      }
+    },
     "Réessayer" : {
       "localizations" : {
         "de" : {
@@ -22235,6 +22763,50 @@
       "localizations" : {},
       "shouldTranslate" : false
     },
+    "Si tu continues : %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn du so weitermachst: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you keep going: %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se continui così: %@"
+          }
+        }
+      }
+    },
+    "Si tu continues, %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn du so weitermachst, %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you keep going, %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se continui così, %@."
+          }
+        }
+      }
+    },
     "Si un compte existe avec cette adresse, tu recevras un email avec un lien de réinitialisation." : {
       "localizations" : {
         "de" : {
@@ -22297,6 +22869,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saldo attuale · %@"
+          }
+        }
+      }
+    },
+    "Solde fin d'année" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saldo zum Jahresende"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Year-end balance"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saldo di fine anno"
+          }
+        }
+      }
+    },
+    "Solde fin d'année %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saldo zum Jahresende %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Year-end balance %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saldo di fine anno %@"
           }
         }
       }
@@ -22779,6 +23395,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eliminare questo modello?"
+          }
+        }
+      }
+    },
+    "Supprimer cette opération ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Eintrag löschen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this entry?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminare questa operazione?"
           }
         }
       }
@@ -25123,28 +25761,6 @@
         }
       }
     },
-    "Tu auras quelques secondes pour annuler." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Du hast ein paar Sekunden zum Widerrufen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You’ll have a few seconds to undo."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avrai qualche secondo per annullare."
-          }
-        }
-      }
-    },
     "Tu as pris %@ sur ton épargne en %@ et prévu de les remettre en %@." : {
       "localizations" : {
         "de" : {
@@ -25169,6 +25785,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nel mese di %2$@ hai preso %1$@ dai tuoi risparmi e hai previsto di rimetterli nel mese di %3$@."
+          }
+        }
+      }
+    },
+    "Tu auras quelques secondes pour annuler." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast ein paar Sekunden zum Widerrufen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’ll have a few seconds to undo."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avrai qualche secondo per annullare."
           }
         }
       }
@@ -25257,6 +25895,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Devi accedere di nuovo prima di cambiare la password"
+          }
+        }
+      }
+    },
+    "Tu dépenses moins que prévu depuis le %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seit dem %@ gibst du weniger aus als geplant."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are spending less than planned since %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dal %@ spendi meno del previsto."
+          }
+        }
+      }
+    },
+    "Tu dépenses plus que prévu depuis le %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seit dem %@ gibst du mehr aus als geplant."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are spending more than planned since %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dal %@ spendi più del previsto."
+          }
+        }
+      }
+    },
+    "Tu dépenses plus que tu ne gagnes ce mois-ci." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du gibst diesen Monat mehr aus, als du verdienst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're spending more than you earn this month."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo mese spendi più di quanto guadagni."
+          }
+        }
+      }
+    },
+    "Tu es large ce mois-ci." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast diesen Monat viel Spielraum."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have plenty of room this month."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo mese hai ampio margine."
           }
         }
       }
@@ -26247,6 +26973,28 @@
         }
       }
     },
+    "Voir le budget" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi budget"
+          }
+        }
+      }
+    },
     "Voir le budget précédent" : {
       "localizations" : {
         "de" : {
@@ -26265,6 +27013,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vedi il budget precedente"
+          }
+        }
+      }
+    },
+    "Voir le détail" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See details"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi i dettagli"
           }
         }
       }
@@ -26881,6 +27651,28 @@
         }
       }
     },
+    "clos" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "abgeschlossen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "closed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "chiuso"
+          }
+        }
+      }
+    },
     "conditions d'utilisation" : {
       "localizations" : {
         "de" : {
@@ -27239,6 +28031,28 @@
         }
       }
     },
+    "en cours" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "laufend"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in progress"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in corso"
+          }
+        }
+      }
+    },
     "estimé fin %@" : {
       "localizations" : {
         "de" : {
@@ -27451,6 +28265,28 @@
         }
       }
     },
+    "mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monate"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "months"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mesi"
+          }
+        }
+      }
+    },
     "montant masqué" : {
       "localizations" : {
         "de" : {
@@ -27649,6 +28485,28 @@
         }
       }
     },
+    "projeté %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "prognostiziert %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "projected %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "previsto %@"
+          }
+        }
+      }
+    },
     "prévu" : {
       "localizations" : {
         "de" : {
@@ -27805,6 +28663,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "entrate"
+          }
+        }
+      }
+    },
+    "rythme requis" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nötiges Tempo"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "required pace"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ritmo necessario"
           }
         }
       }
@@ -28083,6 +28963,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A: %@"
+          }
+        }
+      }
+    },
+    "À ce rythme, %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei diesem Tempo: %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At this pace, %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A questo ritmo, %@."
           }
         }
       }
@@ -28945,6 +29847,28 @@
         }
       }
     },
+    "à ce rythme %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bei diesem Tempo %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "at this pace %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a questo ritmo %@"
+          }
+        }
+      }
+    },
     "à combler" : {
       "localizations" : {
         "de" : {
@@ -28985,6 +29909,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "da spuntare"
+          }
+        }
+      }
+    },
+    "échéance" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fälligkeit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "deadline"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "scadenza"
           }
         }
       }

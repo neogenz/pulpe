@@ -3,6 +3,7 @@ import SwiftUI
 /// Shared multi-select field for attaching up to ten tags to a form.
 struct TagPickerField: View {
     @Binding var selection: Set<String>
+    var style: FormRowStyle = .standalone
 
     @Environment(TagStore.self) private var store
     @State private var isPresented = false
@@ -12,6 +13,45 @@ struct TagPickerField: View {
     }
 
     var body: some View {
+        Group {
+            switch style {
+            case .standalone: standalone
+            case .row: row
+            }
+        }
+        .task { await store.loadIfNeeded() }
+        .sheet(isPresented: $isPresented) {
+            TagPickerSheet(selection: $selection)
+        }
+    }
+
+    /// One line of a `FormCard`: the title on the left, the selection and a chevron on the right.
+    private var row: some View {
+        Button {
+            isPresented = true
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Text("Tags")
+                    .font(PulpeTypography.bodyLarge)
+                    .foregroundStyle(Color.textPrimary)
+                Spacer()
+                Text(summary)
+                    .font(PulpeTypography.bodyLarge)
+                    .foregroundStyle(selection.isEmpty ? Color.onSurfaceVariant : Color.textPrimary)
+                    .lineLimit(1)
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
+            .frame(minHeight: DesignTokens.ListRow.minHeight)
+        }
+        .contentShape(Rectangle())
+        .plainPressedButtonStyle()
+        .accessibilityLabel("Tags")
+        .accessibilityValue(summary)
+    }
+
+    private var standalone: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Tags")
                 .font(PulpeTypography.labelMedium)
@@ -42,10 +82,6 @@ struct TagPickerField: View {
             .plainPressedButtonStyle()
             .accessibilityLabel("Tags")
             .accessibilityValue(summary)
-        }
-        .task { await store.loadIfNeeded() }
-        .sheet(isPresented: $isPresented) {
-            TagPickerSheet(selection: $selection)
         }
     }
 

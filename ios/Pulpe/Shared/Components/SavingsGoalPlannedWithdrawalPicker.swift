@@ -20,6 +20,7 @@ struct SavingsGoalPlannedWithdrawalPicker: View {
     let withdrawalAmount: Decimal?
     /// The budget the forecast lands in — the month the projection is read at.
     let budgetPeriod: BudgetPeriod?
+    let style: FormRowStyle
     let onReadinessChange: (Bool) -> Void
 
     @Environment(SavingsGoalStore.self) private var store
@@ -95,7 +96,7 @@ struct SavingsGoalPlannedWithdrawalPicker: View {
         } else if !store.hasLoadedOnce {
             savingsGoalFieldLoading()
         } else if store.goals.isEmpty {
-            savingsGoalFieldSurface {
+            savingsGoalFieldSurface(style: style) {
                 Text("Aucun objectif disponible")
                     .foregroundStyle(Color.onSurfaceVariant)
             }
@@ -114,14 +115,12 @@ struct SavingsGoalPlannedWithdrawalPicker: View {
                 }
             }
         } label: {
-            savingsGoalFieldSurface {
-                Text(selectedGoal?.name ?? AppLocale.string("Choisis un objectif"))
-                    .foregroundStyle(selectedGoal == nil ? Color.onSurfaceVariant : Color.textPrimary)
-                Spacer()
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption)
-                    .foregroundStyle(Color.onSurfaceVariant)
-            }
+            savingsGoalMenuLabel(
+                style: style,
+                title: AppLocale.string("Objectif utilisé"),
+                value: selectedGoal?.name ?? AppLocale.string("Choisis un objectif"),
+                isPlaceholder: selectedGoal == nil
+            )
         }
         .accessibilityLabel("Objectif utilisé")
         .accessibilityValue(selectedGoal?.name ?? AppLocale.string("Aucun objectif choisi"))

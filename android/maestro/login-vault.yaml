@@ -1,0 +1,73 @@
+# Journey 2 — sign in, unlock the vault, land on the month.
+#
+# The one that must never break: the vault is the only screen in Pulpe with no
+# way around it, so a user who cannot get past the PIN has no app at all.
+#
+# GitHub Actions injects protected MAESTRO_* secrets. Local runs fall back to
+# the seed account (`backend-nest/supabase/seed.sql`), which exists nowhere else.
+appId: app.pulpe.android
+env:
+  EMAIL: ${MAESTRO_EMAIL || "demo@pulpe.test"}
+  PASSWORD: ${MAESTRO_PASSWORD || "local-demo-only"}
+  PIN: ${MAESTRO_PIN || "1234"}
+---
+- launchApp
+
+# CI clears the app state before applying the French app locale. Wait for React
+# Native's first frame instead of treating a slow cold start as a skip.
+- extendedWaitUntil:
+    visible: "J'ai déjà un compte"
+    timeout: 30000
+- tapOn: "J'ai déjà un compte"
+
+- assertVisible: "Content de te revoir"
+
+- tapOn:
+    id: "sign-in-email"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "sign-in-password"
+- inputText: ${PASSWORD}
+- assertVisible: "Afficher le mot de passe"
+- tapOn: "Afficher le mot de passe"
+- assertVisible: "Masquer le mot de passe"
+- tapOn: "Masquer le mot de passe"
+- hideKeyboard
+- tapOn:
+    id: "sign-in-submit"
+
+# The vault status comes from the server, so this is the slow step.
+- extendedWaitUntil:
+    visible:
+      id: "vault-unlock"
+    timeout: 30000
+
+# One tap per digit — the pad has no submit, the fourth digit validates.
+- tapOn: ${PIN.charAt(0)}
+- tapOn: ${PIN.charAt(1)}
+- tapOn: ${PIN.charAt(2)}
+- tapOn: ${PIN.charAt(3)}
+
+# The FAB is on the month screen and nowhere before it.
+- extendedWaitUntil:
+    visible:
+      id: "home-add-entry"
+    timeout: 30000
+
+# A restart keeps the session and must ask for the existing PIN, never a new one.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "vault-unlock"
+    timeout: 30000
+- assertNotVisible:
+    id: "vault-setup"
+- tapOn: ${PIN.charAt(0)}
+- tapOn: ${PIN.charAt(1)}
+- tapOn: ${PIN.charAt(2)}
+- tapOn: ${PIN.charAt(3)}
+- extendedWaitUntil:
+    visible:
+      id: "home-add-entry"
+    timeout: 30000

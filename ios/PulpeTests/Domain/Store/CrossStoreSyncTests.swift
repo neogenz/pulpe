@@ -66,23 +66,21 @@ struct BudgetListStoreCacheInvalidationTests {
 
         // List screen loaded → TTL fresh
         let mockService = MockBudgetService()
-        mockService.stubbedSparse = [
-            TestDataFactory.createBudgetSparse(id: "budget-current", month: 2, year: 2025)
-        ]
+        mockService.stubbedSparse = sparseBudgets(september: "-4199.78", october: "-2096.80")
         let listStore = BudgetListStore(budgetService: mockService)
         await listStore.forceRefresh()
         #expect(mockService.getBudgetsSparseCallCount == 1, "Setup: initial list load")
 
         // User opens detail and mutates (optimistic apply ends in syncCache())
-        let currentBudget = TestDataFactory.createBudget(id: "budget-current", month: 2, year: 2025)
-        cache.store(budgetId: "budget-current", budget: currentBudget, budgetLines: [], transactions: [])
+        let currentBudget = TestDataFactory.createBudget(id: "budget-september", month: 9, year: 2026)
+        cache.store(budgetId: currentBudget.id, budget: currentBudget, budgetLines: [], transactions: [])
         // Dashboard store loaded too (300s TTL, projects the same sparse aggregates)
         let dashboardMock = MockBudgetService()
         let dashboardStore = DashboardStore(budgetService: dashboardMock)
         await dashboardStore.forceRefresh()
         let dashboardBaseline = dashboardMock.getBudgetsSparseCallCount
 
-        let coordinator = BudgetDetailsCoordinator(budgetId: "budget-current")
+        let coordinator = BudgetDetailsCoordinator(budgetId: currentBudget.id)
         // CurrentMonthStore (concrete service, not mock-injectable) backs the
         // CurrentMonth tab; bind() must wire it into the same onMutation closure
         // whose execution the list + dashboard assertions below already prove.
@@ -100,15 +98,18 @@ struct BudgetListStoreCacheInvalidationTests {
             currentMonthStore: currentMonthStore,
             savingsGoalStore: savingsGoalStore
         )
-        let tx = TestDataFactory.createTransaction(id: "new-tx", budgetId: "budget-current")
+        let tx = TestDataFactory.createTransaction(id: "new-tx", budgetId: currentBudget.id)
         await coordinator.dispatch(.addTransaction(tx))
 
-        // Pop back within the 30s TTL: BudgetListView's .task re-fires loadIfNeeded()
+        mockService.stubbedSparse = sparseBudgets(september: "-2096.80", october: "39.18")
+
+        #expect(BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets))
         await listStore.loadIfNeeded()
         #expect(
             mockService.getBudgetsSparseCallCount == 2,
             "A detail mutation must invalidate the list TTL so pop-back refetches the aggregates (PUL-270)"
         )
+        assertBalances(listStore.budgets, september: "-2096.80", october: "39.18")
 
         // Same mutation must also mark the dashboard stale (trend chart)
         await dashboardStore.loadIfNeeded()
@@ -123,6 +124,50 @@ struct BudgetListStoreCacheInvalidationTests {
             goalService.getAllCallCount > goalBaseline,
             "A detail mutation must invalidate the savings-goal TTL too (PUL-270)"
         )
+    }
+
+    @Test
+    func invalidationAfterVisibleReturn_refetchesListAggregates() async {
+        let mockService = MockBudgetService()
+        mockService.stubbedSparse = sparseBudgets(september: "-4199.78", october: "-2096.80")
+        let store = BudgetListStore(budgetService: mockService)
+        await store.forceRefresh()
+        #expect(store.invalidationGeneration == 0)
+
+        #expect(BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets))
+        await store.loadIfNeeded()
+        #expect(mockService.getBudgetsSparseCallCount == 1, "Visible return precedes the late invalidation")
+
+        mockService.stubbedSparse = sparseBudgets(september: "-2096.80", october: "39.18")
+        store.invalidateCache()
+        #expect(store.invalidationGeneration == 1)
+        #expect(BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets, pathCount: 0))
+        await store.loadIfNeeded()
+
+        #expect(mockService.getBudgetsSparseCallCount == 2)
+        assertBalances(store.budgets, september: "-2096.80", october: "39.18")
+    }
+
+    private func sparseBudgets(september: String, october: String) -> [BudgetSparse] {
+        [
+            TestDataFactory.createBudgetSparse(
+                id: "budget-september",
+                month: 9,
+                year: 2026,
+                remaining: Decimal(string: september)
+            ),
+            TestDataFactory.createBudgetSparse(
+                id: "budget-october",
+                month: 10,
+                year: 2026,
+                remaining: Decimal(string: october)
+            )
+        ]
+    }
+
+    private func assertBalances(_ budgets: [BudgetSparse], september: String, october: String) {
+        #expect(budgets.first { $0.id == "budget-september" }?.remaining == Decimal(string: september))
+        #expect(budgets.first { $0.id == "budget-october" }?.remaining == Decimal(string: october))
     }
 
     @Test
@@ -174,14 +219,48 @@ struct BudgetListStoreCacheInvalidationTests {
 @MainActor
 struct CurrentMonthStoreMutationSeamTests {
     @Test
-    func addTransaction_firesOnMutation() {
+    func addTransaction_onlyAppendsToMatchingBudget_andFiresOnMutation() {
         let store = CurrentMonthStore()
         nonisolated(unsafe) var fired = 0
         store.onMutation = { fired += 1 }
-
-        store.addTransaction(TestDataFactory.createTransaction(id: "tx-seam"))
-
-        #expect(fired == 1, "Amount-changing dashboard mutation must fire onMutation")
+        store.addTransaction(TestDataFactory.createTransaction(id: "without-budget"))
+        #expect(store.transactions.isEmpty)
+        let budget = TestDataFactory.createBudget(id: "current")
+        store.populateForTesting(budget: budget)
+        store.addTransaction(TestDataFactory.createTransaction(id: "other", budgetId: "other"))
+        #expect(store.transactions.isEmpty)
+        store.addTransaction(TestDataFactory.createTransaction(id: "matching", budgetId: budget.id))
+        store.addTransaction(TestDataFactory.createTransaction(id: "matching", budgetId: budget.id))
+        #expect(store.transactions.map(\.id) == ["matching"])
+        #expect(fired == 4, "Every confirmed mutation must invalidate sibling projections")
+    }
+    @Test
+    func deepLinkQuickAdd_seamInvalidatesListAndDashboard() async {
+        let listService = MockBudgetService()
+        let dashboardService = MockBudgetService()
+        let listStore = BudgetListStore(budgetService: listService)
+        let dashboardStore = DashboardStore(budgetService: dashboardService)
+        await listStore.forceRefresh()
+        await dashboardStore.forceRefresh()
+        let dashboardFetchBaseline = dashboardService.getBudgetsSparseCallCount
+        let currentMonthStore = CurrentMonthStore()
+        currentMonthStore.onMutation = { [listStore, dashboardStore] in
+            listStore.invalidateCache()
+            dashboardStore.invalidateCache()
+        }
+        let transaction = TestDataFactory.createTransaction(id: "deep-link-quick-add")
+        currentMonthStore.populateForTesting(budget: TestDataFactory.createBudget(id: transaction.budgetId))
+        currentMonthStore.addTransaction(transaction)
+        let containsTransaction = currentMonthStore.transactions.contains { $0.id == transaction.id }
+        #expect(containsTransaction)
+        #expect(listStore.invalidationGeneration == 1)
+        await listStore.loadIfNeeded()
+        await dashboardStore.loadIfNeeded()
+        #expect(listService.getBudgetsSparseCallCount == 2)
+        #expect(
+            dashboardService.getBudgetsSparseCallCount == dashboardFetchBaseline + 2,
+            "Dashboard invalidation must trigger a full refresh (current year + recent history = 2 API calls)"
+        )
     }
 
     @Test

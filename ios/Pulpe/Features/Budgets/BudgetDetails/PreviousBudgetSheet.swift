@@ -90,6 +90,7 @@ final class PreviousBudgetSheetViewModel {
 // MARK: - View
 
 struct PreviousBudgetSheet: View {
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var viewModel: PreviousBudgetSheetViewModel
 
     init(budgetId: String) {
@@ -134,12 +135,11 @@ struct PreviousBudgetSheet: View {
         .pulpeBackground()
     }
 
+    /// Compact hero on its own rounded forest surface: the sheet has no navigation
+    /// bar to run under, so the zone is a card, not a full-bleed band.
     private var heroSection: some View {
         Section {
-            HeroBalanceCard(
-                metrics: viewModel.metrics,
-                rolloverAmount: viewModel.rolloverInfo?.amount
-            )
+            PreviousBudgetHero(metrics: viewModel.metrics, currency: userSettingsStore.currency)
         }
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
@@ -191,5 +191,41 @@ struct PreviousBudgetSheet: View {
                 syncingIds: []
             )
         }
+    }
+}
+
+// MARK: - Hero
+
+private struct PreviousBudgetHero: View {
+    let metrics: BudgetFormulas.Metrics
+    let currency: SupportedCurrency
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            HeroFigure(
+                eyebrow: metrics.isDeficit ? AppLocale.string("Déficit") : AppLocale.string("Disponible à dépenser"),
+                amount: metrics.remaining,
+                currency: currency,
+                alignment: .leading
+            )
+            HeroMetricTileRow {
+                HeroMetricTile(
+                    icon: "arrow.up.circle",
+                    label: AppLocale.string("Dépensé"),
+                    value: metrics.totalExpenses.asAmount(for: currency)
+                )
+                HeroMetricTile(
+                    icon: "arrow.down.circle",
+                    label: AppLocale.string("Revenus"),
+                    value: metrics.totalIncome.asAmount(for: currency)
+                )
+            }
+        }
+        .padding(DesignTokens.Spacing.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(colors: [.heroSurfaceTop, .heroSurface], startPoint: .top, endPoint: .bottom),
+            in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
+        )
     }
 }

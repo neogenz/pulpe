@@ -165,31 +165,16 @@ struct AddBudgetLineSheet: View {
             )
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
 
-            descriptionField
-
-            if Self.showsSavingsGoalPicker(kind: kind) {
-                SavingsGoalPickerField(
-                    selection: $savingsGoalId,
-                    budgetPeriod: Self.savingsGoalPeriod(
-                        spreadMonths: isSpreadMode ? spreadCalculator.selectedMonths : [],
-                        anchorMonth: anchorMonth,
-                        anchorYear: anchorYear
-                    )
-                )
+            // Three blocks: the amount above, what it is, then the details.
+            FormCard {
+                descriptionField
+                if Self.showsTagPicker(spread: isSpreadMode, withdrawal: isSavingsWithdrawalMode) {
+                    FormRowDivider()
+                    TagPickerField(selection: $selectedTagIds, style: .row)
+                }
             }
 
-            if kind == .income {
-                originPicker
-            }
-
-            if isPlannedWithdrawalMode {
-                SavingsGoalPickerField(
-                    selection: $sourceSavingsGoalId,
-                    mode: .plannedWithdrawal,
-                    budgetPeriod: BudgetPeriod(month: anchorMonth, year: anchorYear),
-                    withdrawalAmount: convertedAmount
-                )
-            }
+            detailsCard
 
             if isSpreadMode {
                 SpreadFormSection(
@@ -199,15 +184,6 @@ struct AddBudgetLineSheet: View {
                     currency: inputCurrency,
                     accentColor: kind.color
                 )
-            } else {
-                if Self.showsTagPicker(spread: isSpreadMode, withdrawal: isSavingsWithdrawalMode) {
-                    TagPickerField(selection: $selectedTagIds)
-                }
-                // An announced withdrawal is realized by creating the real income,
-                // never by arriving already pointed.
-                if !Self.forbidsChecked(kind: kind, origin: incomeOrigin) {
-                    CheckedToggle(isOn: $isChecked, tintColor: kind.color)
-                }
             }
 
             if let error {
@@ -242,8 +218,54 @@ struct AddBudgetLineSheet: View {
             label: AppLocale.string("Description"),
             accessibilityLabel: AppLocale.string("Description de la prévision"),
             focusBinding: $focusedField,
-            field: .description
+            field: .description,
+            style: .row,
+            onSubmit: {
+                guard canSubmit else { return }
+                Task { await submit() }
+            }
         )
+    }
+
+    // MARK: - Details
+
+    /// Never empty: an expense or a saving can be pointed, an income always names its origin.
+    private var detailsCard: some View {
+        FormCard {
+            // An announced withdrawal is realized by creating the real income,
+            // never by arriving already pointed.
+            if !Self.forbidsChecked(kind: kind, origin: incomeOrigin) {
+                CheckedToggle(isOn: $isChecked, tintColor: kind.color, style: .row)
+            }
+            if Self.showsSavingsGoalPicker(kind: kind) {
+                FormRowDivider()
+                SavingsGoalPickerField(
+                    selection: $savingsGoalId,
+                    budgetPeriod: Self.savingsGoalPeriod(
+                        spreadMonths: isSpreadMode ? spreadCalculator.selectedMonths : [],
+                        anchorMonth: anchorMonth,
+                        anchorYear: anchorYear
+                    ),
+                    style: .row
+                )
+            }
+            if kind == .income {
+                if !Self.forbidsChecked(kind: kind, origin: incomeOrigin) {
+                    FormRowDivider()
+                }
+                originPicker
+            }
+            if isPlannedWithdrawalMode {
+                FormRowDivider()
+                SavingsGoalPickerField(
+                    selection: $sourceSavingsGoalId,
+                    mode: .plannedWithdrawal,
+                    budgetPeriod: BudgetPeriod(month: anchorMonth, year: anchorYear),
+                    withdrawalAmount: convertedAmount,
+                    style: .row
+                )
+            }
+        }
     }
 
     // MARK: - Add Button

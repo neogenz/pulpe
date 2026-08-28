@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { GetIosWhatsNewUseCase } from './application/get-ios-whats-new.use-case';
+import { GetWhatsNewUseCase } from './application/get-whats-new.use-case';
 import { WhatsNewController } from './infrastructure/http/whats-new.controller';
 
 @Module({
   controllers: [WhatsNewController],
-  providers: [GetIosWhatsNewUseCase],
+  providers: [GetWhatsNewUseCase],
 })
 export class WhatsNewModule {}

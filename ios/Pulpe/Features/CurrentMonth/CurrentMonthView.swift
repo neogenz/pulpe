@@ -19,8 +19,7 @@ struct CurrentMonthView: View {
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
-    /// Screen-space bottom edge of the hero, owned here and read only by the mint layer.
-    @State private var heroSurfaceTracker = HomeHeroSurfaceTracker()
+    @State private var pendingActivityDeletion: Transaction?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var animationPhase: Int {
@@ -43,7 +42,7 @@ struct CurrentMonthView: View {
     /// Same verdict the hero renders — `DriftCard`'s subtitle reads off this instead of
     /// re-deriving the planned/estimated subtraction on its own.
     private var overrunIsAbsorbed: Bool {
-        HomeHeroCard.PresentationState(
+        HeroVerdictPresentation(
             plannedBalance: store.plannedRemaining,
             estimatedBalance: store.metrics.remaining
         ).absorbsEnvelopeOverrun
@@ -60,7 +59,7 @@ struct CurrentMonthView: View {
         ZStack {
             switch store.contentState {
             case .idle, .loading:
-                CurrentMonthSkeletonView(onHeroSurfaceBottomChange: { heroSurfaceTracker.update($0) })
+                CurrentMonthSkeletonView()
                     .transition(.opacity)
             case .failed:
                 ErrorView(error: store.error ?? .networkError(URLError(.unknown))) {
@@ -80,10 +79,16 @@ struct CurrentMonthView: View {
                 .transition(.opacity)
             case .loaded:
                 dashboardContent
-                    .transition(.opacity)
+                    // The skeleton already holds every slot; the data arrives by coming into
+                    // focus over it rather than popping in. Reduce Motion gets a plain fade.
+                    .transition(loadedTransition)
             }
         }
-        .background { dashboardBackground.ignoresSafeArea() }
+        .background { Color.appBackground.ignoresSafeArea() }
+        // The hero runs under the navigation bar: its title and avatar go to light ink
+        // while the forest is painted, and back to the default on a flat canvas.
+        .toolbarColorScheme(paintsHeroSurface ? .dark : nil, for: .navigationBar)
+        .heroNavigationBar()
         .trackScreen("Dashboard")
         .animation(DesignTokens.Animation.smoothEaseOut, value: animationPhase)
         .navigationTitle(currentMonthName.capitalized)
@@ -99,12 +104,16 @@ struct CurrentMonthView: View {
                         firstName: appState.currentUser?.firstName,
                         email: appState.currentUser?.email,
                         avatarUrl: appState.currentUser?.avatarUrl,
-                        diameter: DesignTokens.IconSize.compact
+                        diameter: DesignTokens.IconSize.compact,
+                        background: paintsHeroSurface ? .heroDisc : .surfaceContainerLowest,
+                        foreground: paintsHeroSurface ? .heroInk : .textTertiary
                     )
                 }
+                .heroToolbarButtonStyle(paintsHeroSurface)
                 .accessibilityLabel("Mon compte")
                 .accessibilityIdentifier("homeAccountButton")
             }
+            .heroToolbarGroup(paintsHeroSurface)
         }
         .sheet(item: $activeSheet) { sheet in
             Group {
@@ -154,18 +163,21 @@ struct CurrentMonthView: View {
             await userSettingsStore.loadIfNeeded()
             store.setPayDay(userSettingsStore.payDayOfMonth)
             await store.loadDetailsIfNeeded()
-            // Sparse budget list feeds "retour au vert" (deficit hero) + create-budget gating
-            await budgetListStore.loadIfNeeded()
-            // Goal names for the "épargne versée" card — only when the month links to goals
-            if store.budgetLines.contains(where: { $0.savingsGoalId != nil }) {
-                await savingsGoalStore.loadIfNeeded()
-            }
+            // Reveal with the details: waiting for the secondary loads below left the
+            // loaded screen on stage with every block still at opacity 0 (bare forest
+            // square under the bar, then a pop).
             if reduceMotion {
                 hasAppeared = true
             } else {
                 withAnimation(DesignTokens.Animation.smoothEaseOut) {
                     hasAppeared = true
                 }
+            }
+            // Sparse budget list feeds "retour au vert" (deficit hero) + create-budget gating
+            await budgetListStore.loadIfNeeded()
+            // Goal names for the "épargne versée" card — only when the month links to goals
+            if store.budgetLines.contains(where: { $0.savingsGoalId != nil }) {
+                await savingsGoalStore.loadIfNeeded()
             }
         }
         .task(id: referencedTagIds) {
@@ -205,121 +217,149 @@ struct CurrentMonthView: View {
     // MARK: - Dashboard Content
 
     private var dashboardContent: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.none) {
-                HomeHeroCard(
-                    metrics: store.metrics,
-                    fallbackPlannedBalance: store.plannedRemaining,
-                    trajectory: store.balanceTrajectory,
-                    monthName: currentMonthName,
-                    uncheckedCount: store.uncheckedCount,
-                    onTapMetrics: { activeSheet = .realizedBalance },
-                    onTapDetail: { navigateToBudget = true }
-                )
-                .staggeredEntrance(isVisible: hasAppeared, index: 0)
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xxl)
-                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
-                    heroSurfaceTracker.update($0)
+        ScrollViewReader { proxy in
+            List {
+                VStack(spacing: DesignTokens.Spacing.none) {
+                    HomeHeroCard(
+                        metrics: store.metrics,
+                        fallbackPlannedBalance: store.plannedRemaining,
+                        trajectory: store.balanceTrajectory,
+                        monthName: currentMonthName,
+                        uncheckedCount: store.uncheckedCount,
+                        isSettling: store.isSettling,
+                        onTapUnchecked: {
+                            withAnimation(DesignTokens.Animation.gentleSpring) {
+                                proxy.scrollTo(Self.uncheckedDeckId, anchor: .top)
+                            }
+                        },
+                        onTapVariance: { activeSheet = .realizedBalance },
+                        onTapDetail: { navigateToBudget = true }
+                    )
+                    .staggeredEntrance(isVisible: hasAppeared, index: 0)
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.xxl)
+                    .heroZone(parallax: true)
+
+                    if store.budget != nil {
+                        addOperationRow.padding([.horizontal, .top], DesignTokens.Spacing.xxl).contentZone()
+                    }
+                }
+                .contentListRow()
+                if !store.uncheckedItems.isEmpty {
+                    UncheckedOperationsCard(
+                        items: store.uncheckedItems,
+                        tagNamesById: tagStore.namesById,
+                        syncingBudgetLineIds: store.syncingBudgetLineIds,
+                        syncingTransactionIds: store.syncingTransactionIds,
+                        onToggle: { item in
+                            ProductTips.checking.invalidate(reason: .actionPerformed)
+                            Task {
+                                let didSucceed: Bool
+                                switch item {
+                                case .transaction(let transaction, _):
+                                    didSucceed = await store.toggleTransaction(transaction)
+                                case .budgetLine(let line, _):
+                                    didSucceed = await store.toggleBudgetLine(line)
+                                }
+                                if didSucceed {
+                                    toastManager.showWithUndo(
+                                        AppLocale.string("\(item.name) pointé"),
+                                        undo: { await undoToggle(item) },
+                                        onFinishedWithoutUndo: {}
+                                    )
+                                    await maybePrimeReminders()
+                                } else {
+                                    toastManager.show(
+                                        AppLocale.string("\(item.name) n'a pas pu être pointé — réessaie"),
+                                        type: .error
+                                    )
+                                }
+                            }
+                        },
+                        onViewAll: { navigateToBudget = true }
+                    )
+                    .id(Self.uncheckedDeckId)
+                    .staggeredEntrance(isVisible: hasAppeared, index: 1)
+                    .dashboardListRow()
                 }
 
-                dashboardDetails
-                .frame(maxWidth: .infinity)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.lg)
-                .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
-            }
-        }
-        .refreshable {
-            await store.forceRefresh()
-        }
-    }
-
-    private var dashboardDetails: some View {
-        // Wider than the gap inside a section: a section is now a heading on the page
-        // plus a card, so the space between two of them has to beat the space between a
-        // heading and the card it introduces, or the pairing reads the wrong way round.
-        VStack(spacing: DesignTokens.Spacing.xxl) {
-            if store.budget != nil {
-                addOperationRow
-            }
-            // Opérations à pointer — only while something needs checking
-            if !store.uncheckedItems.isEmpty {
-                UncheckedOperationsCard(
-                    items: store.uncheckedItems,
-                    tagNamesById: tagStore.namesById,
-                    syncingBudgetLineIds: store.syncingBudgetLineIds,
-                    syncingTransactionIds: store.syncingTransactionIds,
-                    onToggle: { item in
-                        ProductTips.checking.invalidate(reason: .actionPerformed)
-                        Task {
-                            let didSucceed: Bool
-                            switch item {
-                            case .transaction(let transaction, _):
-                                didSucceed = await store.toggleTransaction(transaction)
-                            case .budgetLine(let line, _):
-                                didSucceed = await store.toggleBudgetLine(line)
-                            }
-                            if didSucceed {
-                                toastManager.showWithUndo(
-                                    AppLocale.string("\(item.name) pointé"),
-                                    undo: { await undoToggle(item) },
-                                    onFinishedWithoutUndo: {}
-                                )
-                                await maybePrimeReminders()
-                            } else {
-                                toastManager.show(
-                                    AppLocale.string("\(item.name) n'a pas pu être pointé — réessaie"),
-                                    type: .error
-                                )
-                            }
-                        }
-                    },
-                    onViewAll: { navigateToBudget = true }
-                )
-                .popoverTip(ProductTips.checking)
-                .staggeredEntrance(isVisible: hasAppeared, index: 1)
-            }
-
-            // Ça dérive when the month drifts — else épargne versée when complete
-            if !store.driftLines.isEmpty {
-                DriftCard(
-                    drifts: store.driftLines,
-                    totalOver: store.driftTotal,
-                    tagNamesById: tagStore.namesById,
-                    overrunIsAbsorbed: overrunIsAbsorbed,
-                    onCatchUp: { navigateToBudget = true }
-                )
-                .staggeredEntrance(isVisible: hasAppeared, index: 2)
-            } else if store.savingsSummary.isComplete {
-                SavingsDoneCard(
-                    amount: store.savingsSummary.totalRealized,
-                    goalName: completedSavingsGoalName
-                ) {
-                    appState.pushOnActiveStack(SavingsGoalDestination.list)
+                if !store.driftLines.isEmpty {
+                    DriftCard(
+                        drifts: store.driftLines,
+                        totalOver: store.driftTotal,
+                        tagNamesById: tagStore.namesById,
+                        overrunIsAbsorbed: overrunIsAbsorbed,
+                        onCatchUp: { navigateToBudget = true }
+                    )
+                    .staggeredEntrance(isVisible: hasAppeared, index: 2)
+                    .dashboardListRow()
+                } else if store.savingsSummary.isComplete {
+                    SavingsDoneCard(
+                        amount: store.savingsSummary.totalRealized,
+                        goalName: completedSavingsGoalName
+                    ) {
+                        appState.pushOnActiveStack(SavingsGoalDestination.list)
+                    }
+                    .staggeredEntrance(isVisible: hasAppeared, index: 2)
+                    .dashboardListRow()
                 }
-                .staggeredEntrance(isVisible: hasAppeared, index: 2)
-            }
 
-            // Activité — recent transactions with 7j/Mois window
-            if !store.transactions.isEmpty {
-                ActivityCard(
-                    transactions: store.transactions,
-                    tagNamesById: tagStore.namesById,
-                    onViewAll: { navigateToBudget = true }
-                )
-                .staggeredEntrance(isVisible: hasAppeared, index: 3)
+                if !store.transactions.isEmpty {
+                    ActivityCard(
+                        transactions: store.transactions,
+                        tagNamesById: tagStore.namesById,
+                        onViewAll: { navigateToBudget = true },
+                        onEdit: editTransaction,
+                        onDelete: { pendingActivityDeletion = $0 }
+                    )
+                    .staggeredEntrance(isVisible: hasAppeared, index: 3)
+                }
+                Color.clear
+                    .frame(height: DesignTokens.Spacing.lg)
+                    .contentListRow()
+                    .accessibilityHidden(true)
+            }
+            .listStyle(.plain)
+            .listRowSpacing(DesignTokens.Spacing.none)
+            .listSectionSpacing(DesignTokens.Spacing.none)
+            .scrollContentBackground(.hidden)
+            .background {
+                VStack(spacing: DesignTokens.Spacing.none) {
+                    Color.heroSurfaceTop
+                    Color.appBackground
+                }
+                .ignoresSafeArea()
+            }
+            .environment(\.defaultMinListRowHeight, DesignTokens.Spacing.none)
+            .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
+            .refreshable {
+                await store.forceRefresh()
+            }
+            .activityDeletionConfirmation(pending: $pendingActivityDeletion) { transaction in
+                Task { await delete(transaction) }
             }
         }
-        // One content margin for the whole screen, aligned with the hero above, so the
-        // section headings and the cards they introduce hang off a single vertical rail.
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
+    }
+    static let uncheckedDeckId = "uncheckedDeck"
+}
+
+private extension View {
+    func dashboardListRow() -> some View {
+        padding(.horizontal, DesignTokens.Spacing.xxl)
+            .padding(.top, DesignTokens.Spacing.xxl)
+            .contentListRow()
+    }
+}
+
+// MARK: - Retention hooks (post-onboarding handoff + notification priming)
+extension CurrentMonthView {
+    private func editTransaction(_ transaction: Transaction) {
+        guard let budgetId = store.budget?.id else { return }
+        appState.pendingTransactionEdit = transaction.id
+        appState.currentMonthPath.append(BudgetDestination.details(budgetId: budgetId))
     }
 
-    /// The one filled element in the content zone. Recording an operation is the act the
-    /// whole app depends on, and dressed as a white card with a chevron it had the same
-    /// weight as the records below it — and promised a list it doesn't open.
     private var addOperationRow: some View {
         Button { activeSheet = .addTransaction } label: {
             Label("Ajouter une opération", systemImage: "plus")
@@ -328,29 +368,29 @@ struct CurrentMonthView: View {
         .accessibilityLabel("Ajouter une opération")
         .accessibilityIdentifier("homeAddOperationButton")
     }
-}
 
-// MARK: - Retention hooks (post-onboarding handoff + notification priming)
-//
-// Kept in a same-file extension so the main `CurrentMonthView` body stays within its
-// type-length budget while still reaching the view's `private` state (same-file
-// access), rather than loosening encapsulation to move it to another file.
-extension CurrentMonthView {
-    /// Failed and empty keep a flat canvas. Loaded and skeleton paint the mint through
-    /// `HomeHeroSurfaceBackground`, which is the only reader of `tracker.height`.
-    @ViewBuilder
-    fileprivate var dashboardBackground: some View {
+    /// Failed and empty keep a flat canvas; loaded and skeleton paint the forest through
+    /// `heroZone()`, so the navigation bar ink follows the same switch.
+    /// Crossfade only: `blurReplace` washed the forest to a pale haze for a frame.
+    fileprivate var loadedTransition: AnyTransition { .opacity }
+
+    fileprivate var paintsHeroSurface: Bool {
         switch store.contentState {
-        case .idle, .loading, .loaded:
-            HomeHeroSurfaceBackground(tracker: heroSurfaceTracker)
-        case .failed, .empty:
-            Color.appBackground
+        case .idle, .loading, .loaded: true
+        case .failed, .empty: false
         }
     }
 
     /// Drives insert/remove animations of the conditional blocks.
     private var conditionalBlocksState: [Bool] {
         [store.uncheckedItems.isEmpty, store.driftLines.isEmpty, store.savingsSummary.isComplete]
+    }
+
+    /// The store puts the row back when the server refuses, so the failure needs saying.
+    private func delete(_ transaction: Transaction) async {
+        let deleted = await store.deleteTransaction(transaction)
+        guard !deleted else { return }
+        toastManager.show(AppLocale.string("\(transaction.name) n'a pas pu être supprimé"), type: .error)
     }
 
     /// Reverse a successful check from the undo toast. The store toggles based on the

@@ -1,10 +1,20 @@
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
-import type { SpreadSourceLine } from './budget-line.entity';
+import type { BudgetLine, SpreadSourceLine } from './budget-line.entity';
+
+interface PlannedWithdrawalCandidate {
+  kind: BudgetLine['kind'];
+  recurrence: BudgetLine['recurrence'];
+  checkedAt?: string | null;
+  savingsGoalId?: string | null;
+  sourceSavingsGoalId?: string | null;
+}
 
 /** `null` quand la prévision source est valide, sinon la règle enfreinte. */
-function plannedWithdrawalRejection(dto: BudgetLineCreate): string | null {
+function plannedWithdrawalRejection(
+  dto: PlannedWithdrawalCandidate,
+): string | null {
   if (dto.kind !== 'income') {
     return 'only an income can be drawn from a savings goal';
   }
@@ -50,7 +60,9 @@ export class BudgetLineInvariants {
    * projection de l'objectif jusqu'à ce que quelqu'un la remarque. Le domaine
    * les rejoue donc pour son propre compte.
    */
-  private static validatePlannedWithdrawal(dto: BudgetLineCreate): void {
+  private static validatePlannedWithdrawal(
+    dto: PlannedWithdrawalCandidate,
+  ): void {
     if (!dto.sourceSavingsGoalId) return;
 
     const reason = plannedWithdrawalRejection(dto);
@@ -75,6 +87,15 @@ export class BudgetLineInvariants {
         fields: ['name'],
       });
     }
+  }
+
+  static validateMergedUpdate(entity: BudgetLine): void {
+    this.validateUpdate({
+      id: entity.id,
+      amount: entity.amount,
+      name: entity.name,
+    });
+    this.validatePlannedWithdrawal(entity);
   }
 
   static validateTemplateLineIdExists(templateLineId: string | null): void {

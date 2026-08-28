@@ -9,10 +9,14 @@
 # self-heal instead of failing the job.
 set -uo pipefail
 
-# Only db + kong + gotrue + postgrest are exercised. The extra services
-# (Alpine-based realtime/storage-api among them) destabilize the stack on the
-# 20260607+ runner images, waste runner RAM/CPU, and add images to pull.
-EXCLUDE="studio,mailpit,imgproxy,edge-runtime,realtime,storage-api,logflare,vector,postgres-meta"
+# Keep postgres-meta because the type-generation step needs it. Its image
+# pull must happen inside this script's retry loop, not afterward. It only
+# serves `gen types`, so a caller whose DB contract is untouched skips its
+# pull entirely with SUPABASE_SKIP_PG_META=1.
+EXCLUDE="studio,mailpit,imgproxy,edge-runtime,realtime,storage-api,logflare,vector"
+if [ "${SUPABASE_SKIP_PG_META:-0}" = "1" ]; then
+  EXCLUDE="$EXCLUDE,postgres-meta"
+fi
 ATTEMPTS="${SUPABASE_START_ATTEMPTS:-3}"
 BACKOFF="${SUPABASE_START_BACKOFF:-60}"
 

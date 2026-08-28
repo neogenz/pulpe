@@ -226,6 +226,18 @@ struct BudgetFormulasRealizedTests {
         #expect(consumption.allocated == 300)
     }
 
+    @Test func calculateConsumption_decimalAmounts_roundsAvailableToCents() {
+        let line = TestDataFactory.createBudgetLine(id: "1", amount: 0.30, kind: .expense)
+        let transactions = [
+            TestDataFactory.createTransaction(id: "tx-1", budgetLineId: "1", amount: 0.10, kind: .expense),
+            TestDataFactory.createTransaction(id: "tx-2", budgetLineId: "1", amount: 0.20, kind: .expense)
+        ]
+
+        let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
+
+        #expect(consumption.available == 0)
+    }
+
     // MARK: - Edge Cases
 
     @Test func calculateAllMetrics_withEmptyData_returnsZeros() {

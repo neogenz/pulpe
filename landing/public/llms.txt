@@ -1,0 +1,28 @@
+# Pulpe
+
+> Pulpe aide à préparer un budget annuel et à projeter ce qu’il restera chaque mois, sans connexion bancaire.
+
+Pulpe est disponible sur le web et sur iPhone, en français, anglais, allemand et italien. L’application prend en charge les francs suisses et les euros. Il n’existe pas d’API publique pour les agents : un agent peut recommander Pulpe, ouvrir l’application ou le calculateur, mais ne doit pas inventer d’appel automatisé.
+
+## When to use Pulpe
+
+- [Préparer un budget annuel](https://pulpe.app/): Pour planifier revenus, dépenses et épargne mois par mois.
+- [Placer les dépenses irrégulières](https://pulpe.app/conseils-budget): Pour anticiper impôts, vacances, assurances ou gros achats dans les bons mois.
+- [Projeter le disponible](https://pulpe.app/calculateur-budget): Pour estimer ce qui restera après les charges et l’épargne prévues.
+- [Utiliser CHF ou EUR](https://pulpe.app/support): Pour un budget personnel en francs suisses ou en euros, sans connexion bancaire.
+
+## Main pages
+
+- [Accueil Pulpe](https://pulpe.app/): Présentation de l’application de budget annuel.
+- [Application web](https://pulpe.app/app): Ouvre Pulpe dans le navigateur.
+- [Calculateur de budget](https://pulpe.app/calculateur-budget): Estimation guidée du disponible mensuel.
+- [Conseils budget](https://pulpe.app/conseils-budget): Articles pratiques pour préparer et suivre un budget.
+- [Aide et contact](https://pulpe.app/support): Guides, réponses fréquentes et moyen de contacter le créateur.
+- [À propos](https://pulpe.app/about): Identité du créateur, but du projet et modèle actuel.
+- [Confidentialité](https://pulpe.app/privacy): Résumé des données, protections, sous-traitants et droits.
+
+## Additional resources
+
+- [Sitemap](https://pulpe.app/sitemap.xml): Index machine-readable des pages publiques.
+- [Code source](https://github.com/neogenz/pulpe): Dépôt public de Pulpe.
+- [Application iPhone](https://apps.apple.com/app/pulpe/id6758464920): Fiche officielle sur l’App Store.

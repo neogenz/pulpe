@@ -24,6 +24,7 @@ enum TestDataFactory {
         kind: TransactionKind = .expense,
         recurrence: TransactionRecurrence = .fixed,
         isChecked: Bool = false,
+        checkedAt: Date? = nil,
         isRollover: Bool = false
     ) -> BudgetLine {
         BudgetLine(
@@ -36,7 +37,7 @@ enum TestDataFactory {
             kind: kind,
             recurrence: recurrence,
             isManuallyAdjusted: false,
-            checkedAt: isChecked ? fixedCheckedDate : nil,
+            checkedAt: checkedAt ?? (isChecked ? fixedCheckedDate : nil),
             createdAt: fixedDate,
             updatedAt: fixedDate,
             isRollover: isRollover,

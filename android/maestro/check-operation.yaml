@@ -1,0 +1,44 @@
+# Journey 3 — point an operation, then take it back.
+#
+# Pointing is the whole product: with no bank link, it is the only signal Pulpe
+# has that a planned movement actually happened. A toggle that silently fails
+# to persist is the worst bug this app can ship, so the flow toggles twice and
+# checks the label both ways rather than trusting the first repaint.
+#
+# Runs against a signed-in, unlocked device — chain it after `login-vault.yaml`.
+# `LINE` defaults to a line the local seed always creates.
+appId: app.pulpe.android
+env:
+  LINE: Loyer
+---
+- extendedWaitUntil:
+    visible: "Voir le détail du budget"
+    timeout: 30000
+- tapOn: "Voir le détail du budget"
+- tapOn: "Tout"
+
+# On the Pixel 2 at 130% font scale, the expense section starts below the
+# viewport. Bring the stable test line into view before reading its state.
+- scrollUntilVisible:
+    element: ".*${LINE}.*"
+    direction: DOWN
+    timeout: 30000
+    centerElement: true
+
+# The circle carries the state in its accessibility label, which is the only
+# place the two states are named in words.
+- runFlow:
+    when:
+      visible: "Pointé · ${LINE}"
+    commands:
+      - tapOn: "Pointé · ${LINE}"
+- extendedWaitUntil:
+    visible: "À pointer · ${LINE}"
+    timeout: 30000
+- tapOn: "À pointer · ${LINE}"
+- assertVisible: "Pointé · ${LINE}"
+
+# And back, because an undo that does not undo is the same bug wearing a
+# different hat.
+- tapOn: "Pointé · ${LINE}"
+- assertVisible: "À pointer · ${LINE}"

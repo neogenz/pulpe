@@ -72,6 +72,10 @@ final class AppState {
 
     var selectedTab: Tab = .currentMonth
     var currentMonthPath = NavigationPath()
+    /// An operation the accueil asked to edit: its budget is pushed first, and the
+    /// details page pushes the edit page once it is on screen, the only place its
+    /// route resolves. Consumed on read.
+    var pendingTransactionEdit: String?
     var budgetPath = NavigationPath()
     var savingsGoalsPath = NavigationPath()
     var templatePath = NavigationPath()

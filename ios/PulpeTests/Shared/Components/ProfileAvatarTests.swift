@@ -35,4 +35,13 @@ struct ProfileAvatarTests {
     @Test func initials_emptyEmail_returnsNil() {
         #expect(ProfileAvatar.initials(firstName: nil, email: "") == nil)
     }
+
+    @Test func initials_privateRelayEmail_isGlyphNotAStoredFirstName() {
+        #expect(
+            ProfileAvatar.initials(
+                firstName: nil,
+                email: "xyz@privaterelay.appleid.com"
+            ) == "X"
+        )
+    }
 }

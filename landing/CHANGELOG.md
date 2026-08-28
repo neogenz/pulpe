@@ -1,5 +1,11 @@
 # pulpe-landing
 
+## 0.46.0
+
+### Minor Changes
+
+- Ajoute un calculateur de budget suisse, de nouveaux guides et comparatifs, et publie les améliorations iOS de connexion et de préférences.
+
 ## 0.45.1
 
 ## 0.45.0

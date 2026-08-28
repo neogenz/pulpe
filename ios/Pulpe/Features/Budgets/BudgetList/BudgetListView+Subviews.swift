@@ -12,12 +12,17 @@ private func availabilityLabel(
     return AppLocale.string("disponible \(remaining.rounded(2).asAdaptiveCurrency(currency))")
 }
 
-// MARK: - Current Month Hero Card
+// MARK: - Budget Month Row
 
-struct CurrentMonthHeroCard: View {
+/// One month of the yearly ledger (The One Ledger Rule): month name, a status caption,
+/// the amount block and a chevron. Current, past and future months share the row; only
+/// the ink changes.
+struct BudgetMonthRow: View {
     let budget: BudgetSparse
     var periodLabel: String?
-    let onTap: () -> Void
+    var isCurrent: Bool = false
+    var isPast: Bool = false
+    let action: () -> Void
 
     @State private var tapTrigger = false
     @Environment(\.amountsHidden) private var amountsHidden
@@ -27,55 +32,65 @@ struct CurrentMonthHeroCard: View {
         Formatters.monthName(for: budget.month ?? 0)
     }
 
+    private var titleColor: Color {
+        if isCurrent { return .pulpePrimary }
+        return isPast ? .textSecondary : .textPrimary
+    }
+
+    private var caption: String {
+        if isCurrent { return AppLocale.string("en cours") }
+        if isPast { return AppLocale.string("clos") }
+        return periodLabel ?? ""
+    }
+
+    static func accessibilityIdentifier(for budget: BudgetSparse) -> String {
+        "budgetMonthRow-\(budget.id)"
+    }
+
+    static func accessibilityTraits(isCurrent: Bool) -> AccessibilityTraits {
+        isCurrent ? [.isButton, .isSelected] : .isButton
+    }
+
+    private var accessibilityStatus: String {
+        isCurrent ? ", " + AppLocale.string("en cours") : (isPast ? ", " + AppLocale.string("clos") : "")
+    }
+
     var body: some View {
         Button {
             tapTrigger.toggle()
-            onTap()
+            action()
         } label: {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                // Badge
-                Text("Mois actuel")
-                    .font(PulpeTypography.metricMini)
-                    .fontWeight(.heavy)
-                    .foregroundStyle(Color.textOnPrimary)
-                    .textCase(.uppercase)
-                    .tracking(DesignTokens.Tracking.uppercaseWide)
-                    .padding(.horizontal, DesignTokens.Spacing.sm)
-                    .padding(.vertical, DesignTokens.Spacing.xxs)
-                    .background(Color.pulpePrimary, in: Capsule())
-
-                // Content row
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(monthName)
-                            .font(PulpeTypography.amountCard)
-                            .foregroundStyle(.primary)
-                        Text(Formatters.monthSubtitle(
-                                for: budget.month ?? 0,
-                                isPositive: budget.emotionState == .comfortable
-                            ))
-                            .font(PulpeTypography.labelMedium)
-                            .foregroundStyle(Color.secondary)
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text(monthName)
+                        .font(PulpeTypography.listRowTitle)
+                        .foregroundStyle(titleColor)
+                    if !caption.isEmpty {
+                        Text(caption)
+                            .font(PulpeTypography.caption)
+                            .foregroundStyle(Color.textSecondary)
                     }
-                    Spacer()
-                    BudgetAmountBlock(
-                        remaining: budget.remaining,
-                        emotionColor: budget.emotionState.color
-                    )
                 }
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                BudgetAmountBlock(
+                    remaining: budget.remaining,
+                    emotionColor: budget.emotionState.color,
+                    isPast: isPast
+                )
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.textTertiary)
+                    .accessibilityHidden(true)
             }
-            .padding(DesignTokens.Spacing.xxl)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
-        .shadow(DesignTokens.Shadow.subtle)
-        // A hero card at 32pt, not a row card at 18pt: it takes the border alone
-        // rather than `pulpeRowCard()`, which would impose the row radius.
-        .pulpeCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
-        .sensoryFeedback(.impact(weight: .medium), trigger: tapTrigger)
+        .sensoryFeedback(.selection, trigger: tapTrigger)
         .accessibilityLabel(
-            AppLocale.string("\(monthName), mois actuel")
+            monthName
+            + accessibilityStatus
             + ", "
             + availabilityLabel(
                 remaining: budget.remaining,
@@ -84,70 +99,8 @@ struct CurrentMonthHeroCard: View {
             )
         )
         .accessibilityHint("Appuie pour voir les détails")
-        .accessibilityAddTraits(.isButton)
-        .accessibilityIdentifier("budgetCard-\(budget.id)")
-    }
-}
-
-// MARK: - Budget Month Card
-
-struct BudgetMonthCard: View {
-    let budget: BudgetSparse
-    var periodLabel: String?
-    var isPast: Bool = false
-    let onTap: () -> Void
-
-    @State private var tapTrigger = false
-    @Environment(\.amountsHidden) private var amountsHidden
-    @Environment(UserSettingsStore.self) private var userSettingsStore
-
-    private var monthName: String {
-        Formatters.monthName(for: budget.month ?? 0)
-    }
-
-    var body: some View {
-        Button {
-            tapTrigger.toggle()
-            onTap()
-        } label: {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(monthName)
-                        .font(PulpeTypography.amountCard)
-                        .foregroundStyle(isPast ? .secondary : .primary)
-                    Text(Formatters.monthSubtitle(
-                                for: budget.month ?? 0,
-                                isPositive: budget.emotionState == .comfortable
-                            ))
-                        .font(PulpeTypography.labelMedium)
-                        .foregroundStyle(Color.secondary)
-                }
-                Spacer()
-                BudgetAmountBlock(
-                    remaining: budget.remaining,
-                    emotionColor: budget.emotionState.color,
-                    isPast: isPast
-                )
-            }
-            .padding(DesignTokens.Spacing.xxl)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
-        .shadow(DesignTokens.Shadow.subtle)
-        .pulpeCardBorder(cornerRadius: DesignTokens.CornerRadius.xl)
-        .sensoryFeedback(.selection, trigger: tapTrigger)
-        .accessibilityLabel(
-            "\(monthName), "
-            + availabilityLabel(
-                remaining: budget.remaining,
-                amountsHidden: amountsHidden,
-                currency: userSettingsStore.currency
-            )
-        )
-        .accessibilityHint("Appuie pour voir les détails")
-        .accessibilityAddTraits(.isButton)
-        .accessibilityIdentifier("budgetCard-\(budget.id)")
+        .accessibilityAddTraits(Self.accessibilityTraits(isCurrent: isCurrent))
+        .accessibilityIdentifier(Self.accessibilityIdentifier(for: budget))
     }
 }
 
@@ -171,123 +124,55 @@ struct BudgetAmountBlock: View {
             if let remaining {
                 let amount = remaining.rounded(2)
                 Text("\(amount > 0 ? "+" : "")\(amount.asAdaptiveCurrency(userSettingsStore.currency))")
-                    .font(PulpeTypography.amountXL)
+                    .font(PulpeTypography.listRowTitle)
                     .monospacedDigit()
                     .foregroundStyle(isPast ? .secondary : emotionColor)
                     .sensitiveAmount()
                 Text(amountLabel)
-                    .font(PulpeTypography.metricMini)
-                    .foregroundStyle(isPast ? Color.textTertiary : emotionColor)
-                    .textCase(.uppercase)
-                    .tracking(DesignTokens.Tracking.uppercaseWide)
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
             }
         }
     }
 }
 
-// MARK: - Next Month Placeholder
+// MARK: - Next Month Row
 
-struct NextMonthPlaceholder: View {
+/// Last row of the ledger: the next month without a budget and the text link that creates it.
+struct NextMonthRow: View {
     let month: Int
-    let year: Int
     var adjustment: Decimal?
-    let onTap: () -> Void
+    let action: () -> Void
 
-    @State private var tapTrigger = false
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
     private var monthName: String {
         Formatters.monthName(for: month)
     }
 
-    private var isNegative: Bool {
-        guard let adjustment else { return false }
-        return adjustment.rounded(2) < 0
-    }
-
-    private var adjustmentColor: Color {
-        isNegative ? Color.financialExpense : Color.pulpePrimary
-    }
-
-    private var subtitle: String {
-        isNegative
-            ? AppLocale.string("Tu peux encore corriger si tu y vois plus clair")
-            : AppLocale.string("Tes objectifs pour ce mois n'attendent que toi.")
-    }
-
     var body: some View {
-        Button {
-            tapTrigger.toggle()
-            onTap()
-        } label: {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                headerRow
-                ctaButton
-            }
-            .padding(DesignTokens.Spacing.xxl)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl, style: .continuous)
-                .strokeBorder(
-                    adjustmentColor,
-                    style: StrokeStyle(
-                        lineWidth: DesignTokens.BorderWidth.medium,
-                        dash: [8, 6]
-                    )
-                )
-        }
-        .shadow(DesignTokens.Shadow.subtle)
-        .sensoryFeedback(.selection, trigger: tapTrigger)
-        .accessibilityLabel("Créer un budget pour \(monthName)")
-        .accessibilityHint("Appuie pour créer un budget")
-        .accessibilityAddTraits(.isButton)
-    }
-
-    private var headerRow: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text(monthName)
-                    .font(PulpeTypography.amountCard)
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(Color.textPrimary)
-                Text(subtitle)
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.secondary)
-            }
-            Spacer()
-            if let adjustment, adjustment.rounded(2) != 0 {
-                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                    let amount = adjustment.rounded(2)
-                    Text("\(amount > 0 ? "+" : "")\(amount.asAdaptiveCurrency(userSettingsStore.currency))")
-                        .font(PulpeTypography.amountXL)
-                        .monospacedDigit()
-                        .foregroundStyle(adjustmentColor)
+                if let adjustment, adjustment.rounded(2) != 0 {
+                    let projected = adjustment.rounded(2).asAdaptiveCurrency(userSettingsStore.currency)
+                    Text(AppLocale.string("projeté \(projected)"))
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
                         .sensitiveAmount()
-                    (isNegative ? Text("Ajustement") : Text("Potentiel"))
-                        .font(PulpeTypography.metricMini)
-                        .foregroundStyle(adjustmentColor)
-                        .textCase(.uppercase)
-                        .tracking(DesignTokens.Tracking.uppercaseWide)
                 }
             }
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            Button(action: action) {
+                Text("Créer le budget")
+            }
+            .textLinkButtonStyle()
+            .accessibilityLabel("Créer un budget pour \(monthName)")
+            .accessibilityIdentifier("nextMonthRow")
         }
-    }
-
-    private var ctaButton: some View {
-        HStack {
-            Text("Créer mon budget")
-                .font(PulpeTypography.labelLargeBold)
-                .textCase(.uppercase)
-                .tracking(DesignTokens.Tracking.uppercaseNarrow)
-            Spacer()
-            Image(systemName: "sparkles")
-                .font(PulpeTypography.detailLabel)
-        }
-        .foregroundStyle(Color.textOnPrimary)
-        .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, DesignTokens.Spacing.md)
-        .background(Color.pulpePrimary, in: Capsule())
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
     }
 }

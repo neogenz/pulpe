@@ -6,7 +6,7 @@
 
 ## Tools
 
-- Vitest for Angular/shared, Bun Test for backend, `tsx --test` for landing, Swift Testing for iOS units, Playwright/XCUITest for UI.
+- Vitest for Angular/shared, Bun Test for backend, `tsx --test` for landing, Swift Testing for iOS units, Playwright/XCUITest for web/iOS UI and Maestro for Android E2E.
 
 ## Conventions
 
