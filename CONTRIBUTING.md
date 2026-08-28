@@ -32,19 +32,20 @@ feature/* ──PR──▶ preview
 Enforced by GitHub rulesets (`preview-protection`, `main-protection` and `tag-protection`):
 
 - `preview`: no deletion or force-push; PR, one approval, resolved threads and `✅ CI Success` are required. The solo maintainer keeps the administrator bypass for ordinary PRs authored with the maintainer account.
-- `main`: no deletion, force-push or administrator bypass; the App-authored release PR requires one human approval, resolved threads and `✅ Release Gate`.
+- `main`: no deletion, force-push or administrator bypass; release PRs are frozen until the plan/apply cutover — the ruleset still lists the legacy gate check, which phase 9 replaces with the protected apply path.
 - Release tags `v*`: immutable (no deletion, no force-move).
 
 ## Release
 
-A release uses one `release/vX.Y.Z` branch and one version commit. The App first opens
-that branch toward `preview`; after complete CI, merge, exact staging deployments and
-QA, it advances the same branch to the proven merge commit and opens the production PR
-toward `main`. A human approves that PR. GitHub then verifies production, creates the
-single tag and GitHub Release, and synchronizes the web version gate. Later feature
-merges into `preview` do not alter the frozen candidate. If `preview` advances before
-the preparation merge, the immutable-base check stops promotion and the release is
-reprepared rather than silently absorbing extra features.
+A release uses one `release/vX.Y.Z` branch and one version commit, merged into
+`preview` through its preparation PR after complete CI, exact staging deployments and
+QA. The single manual entry, `🚦 Release Promotion`, currently runs a read-only plan
+that resolves the proven candidate, lineage, migrations and rollback anchor; the
+protected apply path that advances production, then creates the single tag and GitHub
+Release, arrives with the phase-9 cutover. Later feature merges into `preview` do not
+alter the frozen candidate: if `preview` advances before the preparation merge, the
+immutable-base check stops promotion and the release is reprepared rather than
+silently absorbing extra features.
 
 - Full steps: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md#release-process)
 - Versioning rules: [docs/VERSIONING.md](./docs/VERSIONING.md)

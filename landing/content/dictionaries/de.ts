@@ -174,6 +174,7 @@ const de: Dictionary = {
     },
 
     testimonials: {
+      eyebrow: "Erfahrungsberichte",
       heading: "Warum sie Pulpe nutzen.",
       items: [
         {
@@ -181,7 +182,6 @@ const de: Dictionary = {
           highlight: "die Ausgaben, die ich nie kommen sah",
           tail: ", sehe ich jetzt kommen.",
           name: "Ismaël S.",
-          role: "Software-Ingenieur",
           since: "Nutzer seit November 2025",
         },
         {
@@ -196,7 +196,6 @@ const de: Dictionary = {
           highlight: "unsere Ferien übers Jahr planen",
           tail: " und sehe sofort, ob sie in unser Budget passen. Das beruhigt mich.",
           name: "Julie D.",
-          role: "Kauffrau",
           since: "Nutzerin seit Dezember 2025",
         },
       ],

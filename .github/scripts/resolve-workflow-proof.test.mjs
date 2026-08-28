@@ -8,21 +8,21 @@ import {
 
 const sha = "a".repeat(40);
 const identity = {
-  path: ".github/workflows/release-gate.yml",
-  event: "pull_request",
-  head_branch: "release/v1.2.3",
+  path: ".github/workflows/staging-proof.yml",
+  event: "deployment_status",
+  head_branch: "preview",
   head_sha: sha,
 };
 const job = {
   id: 99,
-  name: "✅ Release Gate",
+  name: "✅ Staging Ready (shadow)",
   status: "completed",
   conclusion: "success",
 };
 
 function workflowApi({ duplicateJob = false, duplicateArtifact = false } = {}) {
   return (path, paginate = false) => {
-    if (path.includes("/workflows/release-gate.yml/runs?")) {
+    if (path.includes("/workflows/staging-proof.yml/runs?")) {
       return [{ workflow_runs: [{ id: 42, ...identity }] }];
     }
     if (path.endsWith("/actions/runs/42")) return { run_attempt: 2 };
@@ -58,8 +58,8 @@ function workflowApi({ duplicateJob = false, duplicateArtifact = false } = {}) {
 
 const options = {
   repository: "neogenz/pulpe",
-  workflow: "release-gate.yml",
-  event: "pull_request",
+  workflow: "staging-proof.yml",
+  event: "deployment_status",
   branch: identity.head_branch,
   sha,
   job: job.name,
@@ -103,7 +103,7 @@ test("selects a successful rerun after a failed first attempt", () => {
 test("ignores a newer skipped run for the same identity", () => {
   const base = workflowApi();
   const api = (path, paginate) => {
-    if (path.includes("/workflows/release-gate.yml/runs?"))
+    if (path.includes("/workflows/staging-proof.yml/runs?"))
       return [
         {
           workflow_runs: [
