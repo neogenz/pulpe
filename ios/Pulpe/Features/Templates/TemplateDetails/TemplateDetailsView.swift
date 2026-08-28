@@ -33,18 +33,17 @@ struct TemplateDetailsView: View {
     }
 
     var body: some View {
-        // Every branch renders something: see `BudgetDetailsView.body`, a `Group`
-        // with no child never runs its `.task`, so the load would never start.
         Group {
-            if let template = viewModel.template {
+            switch viewModel.content {
+            case .loaded(let template):
                 content(template: template)
                     .transition(.opacity)
-            } else if let error = viewModel.error {
+            case .failed(let error):
                 ErrorView(error: error) {
                     await viewModel.loadDetails()
                 }
                 .transition(.opacity)
-            } else {
+            case .loading:
                 TemplateDetailsSkeletonView()
                     .transition(.opacity)
             }
@@ -239,11 +238,25 @@ final class TemplateDetailsViewModel {
     private(set) var error: Error?
     private var hasLoadedOnce = false
 
-    private let templateService = TemplateService.shared
+    private let templateService: any TemplateServicing
     @ObservationIgnored var onBudgetDataMutation: (@MainActor () -> Void)?
 
-    init(templateId: String) {
+    init(templateId: String, templateService: any TemplateServicing = TemplateService.shared) {
         self.templateId = templateId
+        self.templateService = templateService
+    }
+
+    /// What the page renders; the body `switch`es on it so no state renders nothing.
+    enum Content {
+        case loading
+        case failed(Error)
+        case loaded(BudgetTemplate)
+    }
+
+    var content: Content {
+        if let template { return .loaded(template) }
+        if let error { return .failed(error) }
+        return .loading
     }
 
     var totals: BudgetFormulas.TemplateTotals {

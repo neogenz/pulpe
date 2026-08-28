@@ -51,13 +51,14 @@ struct EditTransactionHost: View {
         let screenState = projector.screenState
 
         return Group {
-            if screenState.isBudgetPresent {
+            switch screenState.content {
+            case .loaded:
                 EditTransactionPage(transactionId: transactionId)
-            } else if screenState.errorIsTerminal, let error = projector.terminalError {
-                ErrorView(error: error) {
+            case .failed:
+                ErrorView(error: projector.terminalError ?? APIError.invalidResponse) {
                     await coordinator.dispatch(.loadDetails(force: false))
                 }
-            } else {
+            case .loading:
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .pulpeBackground()

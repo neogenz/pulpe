@@ -143,15 +143,18 @@ final class BudgetDetailsProjector {
         let transactionsByLineId: [String: [Transaction]]
     }
 
+    static func content(budget: Budget?, error: Error?) -> BudgetDetailsScreenState.Content {
+        if budget != nil { return .loaded }
+        return error == nil ? .loading : .failed
+    }
+
     private static func assembleScreenState(
         _ ctx: AssemblyContext
     ) -> BudgetDetailsScreenState {
         BudgetDetailsScreenState(
             budgetId: ctx.dataStore.budgetId,
             monthYear: ctx.dataStore.budget?.monthYear ?? "",
-            isLoading: ctx.syncStore.isLoading,
-            errorIsTerminal: ctx.syncStore.error != nil && ctx.dataStore.budget == nil,
-            isBudgetPresent: ctx.dataStore.budget != nil,
+            content: content(budget: ctx.dataStore.budget, error: ctx.syncStore.error),
             hasAllBudgets: !ctx.dataStore.allBudgets.isEmpty,
             hero: BudgetDetailsScreenState.HeroState(
                 metrics: ctx.dataStore.metrics,
