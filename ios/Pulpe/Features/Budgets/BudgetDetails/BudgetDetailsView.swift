@@ -90,17 +90,21 @@ struct BudgetDetailsView: View {
         @Bindable var syncStore = coordinator.syncStore
         let screenState = projector.screenState
 
+        // Every branch renders something: the first pass runs before the load below
+        // is dispatched, and the modifiers of a `Group` with no child, `.task`
+        // included, never fire. That pass used to fall through, so a month absent
+        // from the cache opened on a blank page: no title, no toolbar, no load.
         return Group {
-            if screenState.isLoading && !screenState.isBudgetPresent {
-                BudgetDetailsSkeletonView()
+            if screenState.isBudgetPresent {
+                content
                     .transition(.opacity)
             } else if screenState.errorIsTerminal, let error = projector.terminalError {
                 ErrorView(error: error) {
                     await coordinator.dispatch(.loadDetails(force: false))
                 }
                 .transition(.opacity)
-            } else if screenState.isBudgetPresent {
-                content
+            } else {
+                BudgetDetailsSkeletonView()
                     .transition(.opacity)
             }
         }

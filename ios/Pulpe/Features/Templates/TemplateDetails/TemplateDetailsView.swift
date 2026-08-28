@@ -33,17 +33,19 @@ struct TemplateDetailsView: View {
     }
 
     var body: some View {
+        // Every branch renders something: see `BudgetDetailsView.body`, a `Group`
+        // with no child never runs its `.task`, so the load would never start.
         Group {
-            if viewModel.isLoading && viewModel.template == nil {
-                TemplateDetailsSkeletonView()
+            if let template = viewModel.template {
+                content(template: template)
                     .transition(.opacity)
-            } else if let error = viewModel.error, viewModel.template == nil {
+            } else if let error = viewModel.error {
                 ErrorView(error: error) {
                     await viewModel.loadDetails()
                 }
                 .transition(.opacity)
-            } else if let template = viewModel.template {
-                content(template: template)
+            } else {
+                TemplateDetailsSkeletonView()
                     .transition(.opacity)
             }
         }
