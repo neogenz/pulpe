@@ -135,6 +135,9 @@ export function resolveReleaseState(options, api) {
       : undefined;
 
   const state = (() => {
+    // A published version wins over any run history: the tag is the terminal
+    // fact, so neither a leftover failed run nor `--retry` may relaunch it.
+    if (resources?.tag_exists) return { state: "published" };
     if (active.length === 1)
       return { state: "active", run: describeRun(active[0]) };
     if (options.retry !== undefined) {
@@ -150,7 +153,6 @@ export function resolveReleaseState(options, api) {
       return { state: "succeeded", run: describeRun(succeeded[0]) };
     if (failed.length > 0)
       return { state: "failed", run: describeRun(failed[0]) };
-    if (resources?.tag_exists) return { state: "published" };
     return { state: "absent" };
   })();
 

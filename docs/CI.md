@@ -43,7 +43,8 @@ so the required check exists (and can never hang Pending) on every PR.
 
 | Change surface                                                                                           | Units that run                           |
 | -------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| `.github/**` (automation)                                                                                | Automation gates                         |
+| `.github/**` (static automation)                                                                         | Automation gates                         |
+| `.github/actions/**`, `.github/scripts/start-supabase.sh` (executed inside runtime jobs)                 | Full run (all units)                     |
 | `ios/**`                                                                                                 | Automation gates, iOS tests              |
 | `frontend/**`                                                                                            | Workspace (affected), E2E                |
 | `backend-nest/**`                                                                                        | Workspace (affected), Backend & Database |

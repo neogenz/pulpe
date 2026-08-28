@@ -557,7 +557,7 @@ Only after "oui":
 4. After the preparation PR is merged with a merge commit, resolve the remote state of this exact release intention before any dispatch. The identity is the run-name `🚦 prepare release/vX.Y.Z`; GitHub run lists — never agent memory — are the source of truth:
 
    ```bash
-   STATE=$(node .github/scripts/resolve-release-state.mjs --workflow release-promotion.yml --version "$VERSION")
+   STATE=$(node .github/scripts/resolve-release-state.mjs --repository neogenz/pulpe --workflow release-promotion.yml --version "$VERSION")
    echo "$STATE"
    test "$(jq -r .state <<< "$STATE")" = absent
    ```

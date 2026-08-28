@@ -63,6 +63,14 @@ export function classifyPath(path) {
     return { kind: "full", reason: `formula mirror: ${path}` };
   if (path.startsWith("shared/"))
     return { kind: "full", reason: `shared package: ${path}` };
+  // Ces fichiers s'exécutent DANS les jobs runtime (setup-supabase-cli et
+  // start-supabase.sh dans backend-db) : l'unité automation ne les prouve que
+  // statiquement, seul un run complet exerce leur comportement.
+  if (
+    path.startsWith(".github/actions/") ||
+    path === ".github/scripts/start-supabase.sh"
+  )
+    return { kind: "full", reason: `runtime CI dependency: ${path}` };
   if (path.startsWith(".github/")) return { kind: "github" };
   if (path.startsWith("ios/")) return { kind: "ios" };
   if (PACKAGE_PREFIXES.some((prefix) => path.startsWith(prefix)))

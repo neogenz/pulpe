@@ -86,6 +86,7 @@ Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
 
   ```bash
   node .github/scripts/resolve-release-state.mjs \
+    --repository neogenz/pulpe \
     --workflow ios-distribute.yml \
     --sha "$SOURCE_SHA" --version "$MARKETING_VERSION" \
     --channel "$CHANNEL" --build "$BUILD_NUMBER"

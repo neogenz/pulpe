@@ -39,7 +39,7 @@ test("path classes cover automation, iOS, packages, and fail closed elsewhere", 
     "github",
   );
   assert.equal(
-    classifyPath(".github/scripts/start-supabase.sh").kind,
+    classifyPath(".github/scripts/resolve-workflow-proof.mjs").kind,
     "github",
   );
   assert.equal(
@@ -70,6 +70,8 @@ test("path classes cover automation, iOS, packages, and fail closed elsewhere", 
     "docs/CI.md",
     "CLAUDE.md",
     ".claude/skills/release/SKILL.md",
+    ".github/actions/setup-supabase-cli/action.yml",
+    ".github/scripts/start-supabase.sh",
   ]) {
     assert.equal(classifyPath(fullPath).kind, "full", fullPath);
   }

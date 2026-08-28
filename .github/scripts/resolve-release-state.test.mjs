@@ -241,3 +241,18 @@ test("an existing tag marks the version published instead of dispatchable", () =
   assert.equal(state.state, "published");
   assert.equal(state.resources.tag_exists, true);
 });
+
+test("a published version wins over run history and rejects retries", () => {
+  const published = {
+    runs: [run(4, "completed", "failure", "🚦 prepare release/v0.47.0")],
+    tagRefs: [{ ref: "refs/tags/v0.47.0" }],
+  };
+  const state = resolveReleaseState(promotion, stub(published));
+  assert.equal(state.state, "published");
+
+  const retry = resolveReleaseState(
+    { ...promotion, retry: "4" },
+    stub(published),
+  );
+  assert.equal(retry.state, "published");
+});

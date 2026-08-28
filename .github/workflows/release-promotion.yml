@@ -68,11 +68,12 @@ jobs:
           test "$tag_count" = 0
 
           # Candidat staging = merge commit de la PR de préparation fusionnée
-          # dans preview; le plan exige un candidat déjà prouvé.
+          # dans preview; le plan exige exactement un candidat déjà prouvé.
+          # Les PR fermées sans merge (CI rouge puis nouvelle PR) sont ignorées.
           gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=all -f base=preview -f head="$owner:$RELEASE_BRANCH" -f per_page=100 > "$RUNNER_TEMP/preparation-pulls.json"
-          jq -e 'length == 1 and .[0].merged_at != null' "$RUNNER_TEMP/preparation-pulls.json"
-          preparation_pr=$(jq -r '.[0].number' "$RUNNER_TEMP/preparation-pulls.json")
-          candidate_sha=$(jq -r '.[0].merge_commit_sha' "$RUNNER_TEMP/preparation-pulls.json")
+          jq -e 'map(select(.merged_at != null)) | length == 1' "$RUNNER_TEMP/preparation-pulls.json"
+          preparation_pr=$(jq -r 'map(select(.merged_at != null)) | .[0].number' "$RUNNER_TEMP/preparation-pulls.json")
+          candidate_sha=$(jq -r 'map(select(.merged_at != null)) | .[0].merge_commit_sha' "$RUNNER_TEMP/preparation-pulls.json")
           release_sha=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$preparation_pr/commits?per_page=100" --jq '.[].sha' | tail -n 1)
           test -n "$release_sha"
           test "$branch_sha" = "$release_sha" || test "$branch_sha" = "$candidate_sha"
