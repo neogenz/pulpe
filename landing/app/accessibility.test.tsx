@@ -17,6 +17,7 @@ import type { PostHog } from "posthog-js/dist/module.slim";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Testimonials } from "../components/sections/Testimonials";
+import { TESTIMONIAL_SIGNATURES } from "../components/sections/testimonialSignatures";
 import { AccordionItem } from "../components/ui/AccordionItem";
 // Nommés `…Dict` : `it` importé nu masquerait le `it` de `node:test`, et la
 // suite entière se charge alors sans exécuter un seul bloc.
@@ -1296,14 +1297,38 @@ describe("landing accessibility contracts", () => {
     );
     // Les colonnes restent éditoriales et plates : pas de chrome de carte,
     // pas de glyphe décoratif agrandi — les quotes de Poppins lisent comme
-    // des barres en grand — et pas de médaillon d'initiale. Le signifiant
-    // tient à la typographie : guillemets dans la phrase et attribution au
-    // tiret.
-    assert.equal(testimonialMarkup.match(/— /g)?.length, 3);
+    // des barres en grand — et pas de médaillon d'initiale. Le signifiant,
+    // c'est la signature manuscrite : chaque témoignage est signé d'un tracé
+    // de stylo qui s'encre lettre par lettre au scroll, et le nom reste
+    // accessible via l'aria-label du SVG.
     assert.equal(testimonialMarkup.match(/«/g)?.length, 3);
-    // La présence du bloc vient de l'échelle pull-quote, pas d'un décor :
-    // la citation est nettement plus grande que le corps de texte.
-    assert.match(componentSources.testimonials, /text-xl[\s\S]*sm:text-2xl/);
+    assert.equal(testimonialMarkup.match(/class="signature\b/g)?.length, 3);
+    assert.equal(testimonialMarkup.match(/role="img"/g)?.length, 3);
+    for (const item of frDict.home.testimonials.items) {
+      assert.match(testimonialMarkup, new RegExp(`aria-label="${item.name}"`));
+      // Chaque personne du catalogue a sa signature ; un nom sans tracé
+      // retomberait silencieusement sur du texte imprimé.
+      assert.ok(TESTIMONIAL_SIGNATURES[item.name]);
+    }
+    // L'écriture est un vrai tracé (pathLength + dashoffset), jamais un fade :
+    // chaque lettre part non encrée et se dessine, décalée par --signature-order.
+    assert.match(testimonialMarkup, /pathLength="1"/);
+    assert.match(
+      globalsCss,
+      /\.signature-ready path\s*\{\s*stroke-dashoffset:\s*1;/,
+    );
+    assert.match(
+      globalsCss,
+      /\.signature-ready\.signature-drawn path\s*\{[\s\S]*?animation:\s*signature-draw[\s\S]*?--signature-order/,
+    );
+    assert.match(
+      globalsCss,
+      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.signature-ready path\s*\{\s*stroke-dashoffset:\s*0;/,
+    );
+    // La présence du bloc vient de la citation posée et de la signature,
+    // pas d'un pavé : la citation reste au-dessus du corps de texte sans
+    // écraser les sections voisines déjà denses.
+    assert.match(componentSources.testimonials, /text-lg[\s\S]*sm:text-xl/);
     assert.doesNotMatch(componentSources.testimonials, /testimonial-glyph/);
     assert.doesNotMatch(componentSources.testimonials, /charAt\(0\)/);
     assert.doesNotMatch(componentSources.testimonials, /outline-black/);
