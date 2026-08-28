@@ -173,6 +173,7 @@ const en: Dictionary = {
     },
 
     testimonials: {
+      eyebrow: "Testimonials",
       heading: "Why they use Pulpe.",
       items: [
         {
@@ -180,7 +181,6 @@ const en: Dictionary = {
           highlight: "the expenses I never saw coming",
           tail: ", I see them coming now.",
           name: "Ismaël S.",
-          role: "Software engineer",
           since: "User since November 2025",
         },
         {
@@ -195,7 +195,6 @@ const en: Dictionary = {
           highlight: "plan our holidays across the year",
           tail: " and see straight away whether they fit our budget. That reassures me.",
           name: "Julie D.",
-          role: "Sales assistant",
           since: "User since December 2025",
         },
       ],
