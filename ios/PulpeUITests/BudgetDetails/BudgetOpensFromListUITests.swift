@@ -32,9 +32,10 @@ final class BudgetOpensFromListUITests: XCTestCase {
         XCTAssertTrue(back.exists, app.debugDescription)
         XCTAssertEqual(back.label, "Budgets", app.debugDescription)
 
-        // The seed budget is August 2026; the scheme runs in French.
-        let title = app.descendants(matching: .any).matching(
-            NSPredicate(format: "label MATCHES[c] %@", "ao[uû]t 2026|august 2026")
+        // The seed budget is August 2026; the scheme runs in French. SwiftUI puts
+        // the title on the bar itself; its title view may be a button (title menu).
+        let title = app.navigationBars.matching(
+            NSPredicate(format: "identifier MATCHES[c] %@", "ao[uû]t 2026|august 2026")
         ).firstMatch
         XCTAssertTrue(title.exists, app.debugDescription)
     }
