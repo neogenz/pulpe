@@ -52,8 +52,13 @@ export function landingRoute(state: GateState): string | null {
       return "/vault-setup";
     case "unlocked":
       // The handoff is the first thing a freshly onboarded user sees, and the
-      // only thing that ever explains the pointing ritual from scratch.
-      return state.hasSeenHandoff ? "/home" : "/post-onboarding";
+      // only thing that ever explains the pointing ritual from scratch. It is
+      // owed to a run that finished on this device: an account that signs in
+      // on a fresh install has nothing to be handed off, and `hasSeenHandoff`
+      // alone cannot tell the two apart — both flags start false.
+      return hasCompletedOnboarding && !state.hasSeenHandoff
+        ? "/post-onboarding"
+        : "/home";
   }
 }
 
