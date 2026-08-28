@@ -11,13 +11,13 @@ status: blocked
 ```txt
 .
 ├── .claude-plugin/
-│   ├── plugin.json                                                ✅ manifeste du plugin Pulpe
-│   └── marketplace.json                                           ✅ catalogue du dépôt, Claude Code seulement
+│   └── marketplace.json                                           ✅ catalogue du dépôt, entrée plugin sans version
+├── plugins/pulpe/
+│   ├── .claude-plugin/plugin.json                                 ✅ manifeste sans version, le SHA Git signale les mises à jour
+│   └── .mcp.json                                                  ✅ serveur MCP distant https, ni stdio ni variable à renseigner
 ├── landing/
-│   └── app/
-│       ├── connecter-un-assistant/page.tsx                        ✅ guide grand public
-│       ├── legal/privacy/                                         ✏️ section assistants déjà posée en phase 2
-│       └── legal/terms/                                           ✏️ mention du canal agent
+│   └── app/{(fr),[lang]}/support/connecter-un-assistant/          ✅ guide grand public, quatre langues
+├── frontend/…/feature/legal/                                      ✏️ sections assistants IA, CGU et confidentialité (les pages légales vivent dans la webapp, pas la landing)
 ├── backend-nest/src/modules/demo/                                 ✏️ compte de revue peuplé de données réalistes
 └── aidd_docs/tasks/2026_08/2026_08_23_pulpe-mcp-agent-connector/
     └── submission-checklist.md                                    ✅ état des deux soumissions
@@ -67,6 +67,14 @@ journey
 
 ## Tasks to do
 
+### `0)` Lever les préalables techniques
+
+> Trois restes de review à solder avant toute soumission.
+
+1. Lancer le flux OAuth réel depuis Claude Code, puis Codex CLI, contre `mcp-spike`, et consigner le constat dans `spike-client-registration.md` ; si le DCR refuse le port éphémère (supabase#41695), demander le client ID fixe détenu par Anthropic.
+2. Lancer `xcodebuild test` sur un simulateur dédié et consigner le verdict — critère resté ouvert de la phase 4.
+3. Poser `MCP_RESOURCE_URL` sur chaque environnement Railway, puis seulement ensuite retirer le `.default` de `environment.ts` pour rendre la variable obligatoire — dans cet ordre, sous peine de panne de l'API au boot.
+
 ### `1)` Publier pour Claude Code
 
 > La surface la moins chère, et celle qui sert de source aux deux autres.
@@ -115,6 +123,7 @@ journey
 
 | Task | Acceptance criteria                                                                                           |
 | ---- | --------------------------------------------------------------------------------------------------------------- |
+| 0    | Le spike porte un constat pour Claude Code et Codex CLI, `xcodebuild test` a un verdict consigné, et `MCP_RESOURCE_URL` est obligatoire après avoir été posée sur chaque environnement |
 | 1    | Depuis un poste vierge, une seule commande installe le plugin et les outils apparaissent                        |
 | 2    | La soumission OpenAI est acceptée en revue, sans rejet pour identité ou URL manquante                           |
 | 3    | Le portail Anthropic synchronise les quinze outils sans signaler de titre ni d'annotation manquants             |
