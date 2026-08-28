@@ -719,6 +719,98 @@ jobs:
         if: always()
         run: xcrun simctl shutdown all 2>/dev/null || true
 
+  # One XCUITest, the journey that shipped blank in build 10, on a cold cache.
+  # Only this test: the full UI suite flakes under load and is not a CI gate.
+  smoke-ios:
+    name: 🍎 iOS Smoke (cold budget page)
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 🔧 Setup Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
+        with:
+          xcode-version: "26.6"
+
+      - name: 📦 Install XcodeGen
+        run: brew install xcodegen
+
+      - name: 💾 Cache SPM packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ hashFiles('ios/project.yml') }}
+          restore-keys: spm-
+
+      - name: 🔨 Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: 📱 Resolve iOS Simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j \
+            | python3 -c "
+          import re, sys, json
+          devices = json.load(sys.stdin)['devices']
+          def minor(rt): return int(re.search(r'iOS-26-(\d+)', rt).group(1))
+          for rt in sorted((k for k in devices if 'iOS-26-' in k), key=minor, reverse=True):
+            for d in devices[rt]:
+              if d['name'] == 'iPhone 17':
+                print(rt, file=sys.stderr); print(d['udid']); sys.exit(0)
+          sys.exit(1)
+          ")
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      - name: 🧪 Run the smoke test
+        working-directory: ios
+        env:
+          NSUnbufferedIO: "YES"
+        run: |
+          # Same post-test hang guard as the unit job (actions/runner-images#13143).
+          touch smoke-output.log
+          xcodebuild test \
+            -scheme PulpeUITests \
+            -destination 'id=${{ steps.sim.outputs.udid }}' \
+            -only-testing:PulpeUITests/BudgetOpensFromListUITests \
+            CODE_SIGNING_ALLOWED=NO \
+            -parallel-testing-enabled NO \
+            -collect-test-diagnostics never \
+            >> smoke-output.log 2>&1 &
+          XCODE_PID=$!
+          ELAPSED=0
+          while kill -0 $XCODE_PID 2>/dev/null && [ $ELAPSED -lt 960 ]; do
+            if grep -q '\*\* TEST SUCCEEDED \*\*\|\*\* TEST FAILED \*\*' smoke-output.log; then
+              sleep 5
+              break
+            fi
+            sleep 10
+            ELAPSED=$((ELAPSED + 10))
+          done
+          kill $XCODE_PID 2>/dev/null || true
+
+          grep -E 'Test Case|Executed|error:|XCTAssert|TEST (SUCCEEDED|FAILED)' smoke-output.log || true
+          # -only-testing on a name that matches nothing is a silent success: demand the one run.
+          if ! grep -q 'Executed 1 test' smoke-output.log; then
+            echo "❌ Expected exactly one executed test"
+            tail -40 smoke-output.log
+            exit 1
+          fi
+          grep -q '\*\* TEST SUCCEEDED \*\*' smoke-output.log
+
+      - name: 📋 Show the tree on failure
+        if: failure()
+        working-directory: ios
+        run: grep -B2 -A60 'XCTAssert' smoke-output.log | head -200 || tail -80 smoke-output.log
+
+      - name: 🧹 Cleanup Simulator
+        if: always()
+        run: xcrun simctl shutdown all 2>/dev/null || true
+
   # ✅ SUCCESS JOB pour status checks
   ci-success:
     name: ✅ CI Success
@@ -735,6 +827,7 @@ jobs:
         quality,
         actionlint,
         test-ios,
+        smoke-ios,
         migration-contract,
       ]
     if: always()
@@ -748,6 +841,7 @@ jobs:
           needs.quality.result == 'success' &&
           needs.actionlint.result == 'success' &&
           needs.test-ios.result == 'success' &&
+          needs.smoke-ios.result == 'success' &&
           needs.migration-contract.result == 'success'
         run: echo "🎉 All CI checks passed!"
 
@@ -760,6 +854,7 @@ jobs:
           needs.quality.result != 'success' ||
           needs.actionlint.result != 'success' ||
           needs.test-ios.result != 'success' ||
+          needs.smoke-ios.result != 'success' ||
           needs.migration-contract.result != 'success'
         run: |
           echo "❌ Some CI checks failed"

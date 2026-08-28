@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: ui-smoke-in-ci-on-the-cold-path
