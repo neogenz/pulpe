@@ -104,11 +104,7 @@ final class AnalyticsService {
     func initialize() {
         guard let apiKey = AppConfiguration.postHogApiKey else { return }
 
-        let config = PostHogConfig(apiKey: apiKey, host: AppConfiguration.postHogHost)
-        config.captureScreenViews = false
-        config.captureApplicationLifecycleEvents = false
-        Self.disableSensitiveCapture(in: config)
-        PostHogSDK.shared.setup(config)
+        PostHogSDK.shared.setup(Self.makeConfig(apiKey: apiKey, host: AppConfiguration.postHogHost))
 
         isDiagnosticSharingEnabled = !PostHogSDK.shared.isOptOut()
         isInitialized = true
@@ -116,11 +112,6 @@ final class AnalyticsService {
         if isDiagnosticSharingEnabled {
             registerGlobalProperties()
         }
-    }
-
-    nonisolated static func disableSensitiveCapture(in config: PostHogConfig) {
-        config.sessionReplay = false
-        config.sessionReplayConfig.captureNetworkTelemetry = false
     }
 
     private func registerGlobalProperties() {
@@ -439,5 +430,25 @@ extension AnalyticsService {
         else { return }
         let sanitized = Self.sanitizeProperties(properties)
         PostHogSDK.shared.screen(name, properties: sanitized)
+    }
+}
+
+// MARK: - PostHog configuration
+
+extension AnalyticsService {
+    nonisolated static func makeConfig(apiKey: String, host: String) -> PostHogConfig {
+        let config = PostHogConfig(apiKey: apiKey, host: host)
+        config.captureScreenViews = false
+        config.captureApplicationLifecycleEvents = false
+        // Crashes (Mach exceptions, POSIX signals) are sent on the next launch;
+        // the user's diagnostics opt-out gates them like every other event.
+        config.errorTrackingConfig.autoCapture = true
+        disableSensitiveCapture(in: config)
+        return config
+    }
+
+    nonisolated static func disableSensitiveCapture(in config: PostHogConfig) {
+        config.sessionReplay = false
+        config.sessionReplayConfig.captureNetworkTelemetry = false
     }
 }

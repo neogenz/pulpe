@@ -220,13 +220,14 @@ struct AnalyticsServiceTests {
         #expect(steps?[1]["recovery_key"] == nil)
     }
 
-    @Test func postHogConfig_disablesReplayAndNetworkTelemetry() {
-        let config = PostHogConfig(apiKey: "test")
+    @Test func postHogConfig_capturesCrashesAndNothingSensitive() {
+        let config = AnalyticsService.makeConfig(apiKey: "test", host: "https://eu.i.posthog.com")
 
-        AnalyticsService.disableSensitiveCapture(in: config)
-
+        #expect(config.errorTrackingConfig.autoCapture == true)
         #expect(config.sessionReplay == false)
         #expect(config.sessionReplayConfig.captureNetworkTelemetry == false)
+        #expect(config.captureScreenViews == false)
+        #expect(config.captureApplicationLifecycleEvents == false)
     }
 
     @Test func diagnosticSharing_optOutAndOptInRestoresIdentityAndPreferences() {
