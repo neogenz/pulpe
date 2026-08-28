@@ -1,7 +1,6 @@
 ---
 objective: "A detail page always renders one of loading, failed, loaded, and the standard iOS gates this project lacked (crash reporting, lint in CI, the shipping toolchain, one cold UI smoke, catalog parity) are in place."
-status: blocked
-blocked_on: "Phase 2 criterion 3: uploading the archive dSYMs needs a PostHog personal API key with error-tracking write scope (the stored one is rejected: authentication_failed). Run `posthog-cli login`, then `ios/scripts/upload-dsyms.sh ios/build/Pulpe.xcarchive`. Phases 1, 3, 4, 5 are done and validated; every other phase-2 criterion holds."
+status: implemented
 ---
 
 # Plan: A cold page starts its load
