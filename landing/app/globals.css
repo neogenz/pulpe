@@ -293,6 +293,70 @@ h3,
   }
 }
 
+/* Signature manuscrite des témoignages : chaque lettre est un tracé de stylo
+   (pathLength=1) encré de gauche à droite, l'une après l'autre, comme une
+   main qui signe la feuille. Par défaut la signature est entière — le JS ne
+   pose `signature-ready` qu'une fois le bloc confirmé à l'écran, donc sans
+   JavaScript ou avec réduction de mouvement rien ne disparaît. */
+.signature {
+  display: block;
+  height: 52px;
+  width: auto;
+  overflow: visible;
+  transform: rotate(-4deg);
+  transform-origin: left center;
+  color: var(--color-text);
+}
+
+@media (min-width: 768px) {
+  .signature {
+    height: 58px;
+  }
+}
+
+.signature path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.signature-ready path {
+  stroke-dashoffset: 1;
+}
+
+.signature-ready.signature-drawn path {
+  animation: signature-draw 0.3s cubic-bezier(0.4, 0, 0.6, 1) both;
+  animation-delay: calc(
+    var(--signature-delay, 0s) + 0.2s + var(--signature-order, 0) * 0.11s
+  );
+}
+
+@keyframes signature-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signature-ready path {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+}
+
+/* Glyphe de citation des cartes témoignage : deux virgules au feutre dans le
+   jaune preuve, statiques — l'encre animée reste réservée à la signature. */
+.quote-doodle path {
+  fill: none;
+  stroke: var(--color-marker-highlight-proof);
+  stroke-width: 6.5;
+  stroke-linecap: round;
+}
+
 /* Desktop shares one ambient field. Mobile scopes its halos to the opening sections. */
 .hero-mesh,
 .pain-points-mesh {

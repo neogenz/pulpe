@@ -17,6 +17,7 @@ import type { PostHog } from "posthog-js/dist/module.slim";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Testimonials } from "../components/sections/Testimonials";
+import { TESTIMONIAL_SIGNATURES } from "../components/sections/testimonialSignatures";
 import { AccordionItem } from "../components/ui/AccordionItem";
 // Nommés `…Dict` : `it` importé nu masquerait le `it` de `node:test`, et la
 // suite entière se charge alors sans exécuter un seul bloc.
@@ -1236,7 +1237,7 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.testimonials, /background="primary"/);
   });
 
-  it("uses one scannable emphasis per testimonial without card chrome", () => {
+  it("keeps testimonials flat and editorial with one proof emphasis each", () => {
     const testimonialMarkup = renderToStaticMarkup(
       <Testimonials dict={frDict.home.testimonials} />,
     );
@@ -1270,12 +1271,17 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /\.marker-highlight-proof\s*\{[\s\S]*?--marker-color:\s*var\(--color-marker-highlight-proof\);[\s\S]*?color:\s*var\(--color-text\);/,
     );
-    // Un seul passage surligné par témoignage, dans les quatre langues : la
-    // traduction ne peut ni en ajouter un second ni laisser la marque vide.
+    // Un seul extrait mis en avant par témoignage, dans les quatre langues :
+    // la traduction ne peut ni en ajouter un second ni laisser la marque vide.
+    // Le glyphe de citation dessiné porte le code du genre : la copie ne
+    // double pas les guillemets, et chaque langue garde son eyebrow.
     for (const catalog of Object.values(CATALOGS)) {
       assert.equal(catalog.home.testimonials.items.length, 3);
+      assert.ok(catalog.home.testimonials.eyebrow.trim().length > 0);
       for (const item of catalog.home.testimonials.items) {
         assert.ok(item.highlight.trim().length > 0);
+        assert.doesNotMatch(item.lead, /^[«“"]/);
+        assert.doesNotMatch(item.tail, /[»”"]$/);
       }
     }
     assert.equal(
@@ -1289,6 +1295,56 @@ describe("landing accessibility contracts", () => {
       componentSources.testimonials,
       /dict\.items\.map[\s\S]*marker-highlight[\s\S]*font-semibold/,
     );
+    // Les codes du genre — carte éditoriale, glyphe de citation, eyebrow,
+    // pied identité — dans la grammaire de la page : porcelaine + filet du
+    // reste du site, glyphe dessiné à la main (jamais le caractère Poppins,
+    // qui lit comme des barres en grand), pas de médaillon d'initiale, et la
+    // signature manuscrite à la place de l'avatar, nom porté par l'aria-label.
+    assert.match(
+      testimonialMarkup,
+      new RegExp(frDict.home.testimonials.eyebrow),
+    );
+    assert.match(
+      componentSources.testimonials,
+      /rounded-\[var\(--radius-card\)\] bg-surface[\s\S]*outline-black\/5/,
+    );
+    assert.match(componentSources.testimonials, /border-t border-text\/10/);
+    assert.equal(testimonialMarkup.match(/class="quote-doodle/g)?.length, 3);
+    assert.match(
+      globalsCss,
+      /\.quote-doodle path\s*\{[\s\S]*?stroke:\s*var\(--color-marker-highlight-proof\);/,
+    );
+    assert.equal(testimonialMarkup.match(/class="signature\b/g)?.length, 3);
+    assert.equal(testimonialMarkup.match(/role="img"/g)?.length, 3);
+    for (const item of frDict.home.testimonials.items) {
+      assert.match(testimonialMarkup, new RegExp(`aria-label="${item.name}"`));
+      // Chaque personne du catalogue a sa signature ; un nom sans tracé
+      // retomberait silencieusement sur du texte imprimé.
+      assert.ok(TESTIMONIAL_SIGNATURES[item.name]);
+    }
+    // L'écriture est un vrai tracé (pathLength + dashoffset), jamais un fade :
+    // chaque lettre part non encrée et se dessine, décalée par --signature-order.
+    assert.match(testimonialMarkup, /pathLength="1"/);
+    assert.match(
+      globalsCss,
+      /\.signature-ready path\s*\{\s*stroke-dashoffset:\s*1;/,
+    );
+    assert.match(
+      globalsCss,
+      /\.signature-ready\.signature-drawn path\s*\{[\s\S]*?animation:\s*signature-draw[\s\S]*?--signature-order/,
+    );
+    assert.match(
+      globalsCss,
+      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.signature-ready path\s*\{\s*stroke-dashoffset:\s*0;/,
+    );
+    // La citation reste calme au-dessus du corps de texte : la présence de la
+    // carte vient du glyphe, du feutre preuve et de la signature, pas d'un
+    // pavé typographique.
+    assert.match(componentSources.testimonials, /text-lg/);
+    assert.doesNotMatch(componentSources.testimonials, /testimonial-glyph/);
+    assert.doesNotMatch(componentSources.testimonials, /charAt\(0\)/);
+    assert.doesNotMatch(componentSources.testimonials, /text-\[[0-9.]+rem\]/);
+    assert.doesNotMatch(globalsCss, /testimonial-glyph/);
     assert.doesNotMatch(componentSources.testimonials, /leadTestimonial/);
     assert.doesNotMatch(
       componentSources.testimonials,
@@ -1297,10 +1353,6 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(
       joined(frDict.home.testimonials),
       /Trois usages différents, un même résultat/,
-    );
-    assert.doesNotMatch(
-      componentSources.testimonials,
-      /rounded-\[var\(--radius-card\)\]/,
     );
   });
 
