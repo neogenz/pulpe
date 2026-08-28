@@ -490,6 +490,16 @@ test("chaque traduction iOS garde les spécificateurs de sa clé", () => {
   assert.deepEqual(specifierMismatches(broken), [
     "  en → %lld chiffres sur %lld saisis : [@,lld] au lieu de [lld,lld]",
   ]);
+
+  // Et sous une substitution aussi, là où `%arg` prend le spécificateur déclaré.
+  const brokenSubstitution = structuredClone(catalog);
+  const plural =
+    brokenSubstitution.strings["%lld chiffres sur %lld saisis"].localizations.it
+      .substitutions.digits.variations.plural.other.stringUnit;
+  plural.value = plural.value.replace("%2$lld", "%@");
+  assert.deepEqual(specifierMismatches(brokenSubstitution), [
+    "  it → %lld chiffres sur %lld saisis : [@,lld] au lieu de [lld,lld]",
+  ]);
 });
 
 /**

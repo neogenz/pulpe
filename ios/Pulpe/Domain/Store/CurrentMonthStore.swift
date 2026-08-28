@@ -396,6 +396,7 @@ final class CurrentMonthStore: StoreProtocol {
             transactions: details.transactions,
             history: details.history
         )
+        lastLoadTime = Date()
         BudgetDetailCache.shared.store(
             budgetId: details.budget.id,
             budget: details.budget,
@@ -421,7 +422,6 @@ extension CurrentMonthStore {
         self.transactions = transactions
         self.history = history
         recomputeMetrics()
-        lastLoadTime = Date()
         contentState = .loaded
     }
 
@@ -449,6 +449,7 @@ extension CurrentMonthStore {
     /// commit nothing reloads a visible accueil, so it would stay. Same 30 s cross-device
     /// lag as the budget page. The entry carries no `history`; the current one is kept.
     /// On a miss the store is marked stale, as it always was after a detail mutation.
+    @discardableResult
     func adoptSharedSnapshotIfFresh() -> Bool {
         guard let budgetId = budget?.id,
               let entry = BudgetDetailCache.shared.get(budgetId: budgetId) else {

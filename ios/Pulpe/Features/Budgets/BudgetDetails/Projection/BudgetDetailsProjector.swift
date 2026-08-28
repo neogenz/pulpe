@@ -143,7 +143,7 @@ final class BudgetDetailsProjector {
         let transactionsByLineId: [String: [Transaction]]
     }
 
-    static func content(budget: Budget?, error: Error?) -> BudgetDetailsScreenState.Content {
+    private static func content(budget: Budget?, error: Error?) -> BudgetDetailsScreenState.Content {
         if budget != nil { return .loaded }
         return error == nil ? .loading : .failed
     }

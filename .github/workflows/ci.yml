@@ -877,7 +877,10 @@ jobs:
           routed "Backend & Database" "$RESULT_BACKEND_DB" "$REQUIRED_BACKEND_DB"
           routed "E2E Tests" "$RESULT_E2E" "$REQUIRED_E2E"
           routed "iOS Tests" "$RESULT_IOS" "$REQUIRED_IOS"
-          routed "iOS Smoke" "$RESULT_SMOKE_IOS" "$REQUIRED_IOS"
+          # The smoke is skipped by GitHub when the unit job fails; one culprit is enough.
+          if [ "$RESULT_IOS" = "success" ]; then
+            routed "iOS Smoke" "$RESULT_SMOKE_IOS" "$REQUIRED_IOS"
+          fi
           if [ "$fail" -ne 0 ]; then
             echo "❌ Some CI checks failed"
             exit 1

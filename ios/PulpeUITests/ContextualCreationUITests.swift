@@ -265,7 +265,7 @@ final class ContextualCreationUITests: XCTestCase {
         for _ in 0..<8 where !element.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(element.isHittable)
+        XCTAssertTrue(element.isHittable, app.debugDescription)
     }
 
     private func assertMinimumHitArea(_ element: XCUIElement) {
@@ -274,8 +274,12 @@ final class ContextualCreationUITests: XCTestCase {
             object: element
         )
         XCTAssertEqual(XCTWaiter.wait(for: [hittable], timeout: 5), .completed, app.debugDescription)
-        XCTAssertGreaterThanOrEqual(element.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(element.frame.height, 44)
+        // Frames come back with float noise (a 44 pt button reads 43.999…); what the
+        // finger gets is pixel-snapped, so compare that.
+        let scale = UIScreen.main.scale
+        let snapped = { (points: CGFloat) in (points * scale).rounded() / scale }
+        XCTAssertGreaterThanOrEqual(snapped(element.frame.width), 44)
+        XCTAssertGreaterThanOrEqual(snapped(element.frame.height), 44)
     }
 
     private func attachScreenshot(_ name: String) {

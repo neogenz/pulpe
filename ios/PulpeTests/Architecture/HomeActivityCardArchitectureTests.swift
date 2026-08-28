@@ -39,7 +39,8 @@ struct HomeActivityCardArchitectureTests {
     @Test("A row opens its page on a tap and says so with a chevron")
     func rowIsATapTarget() throws {
         let source = try Self.source()
-        #expect(source.contains("Button { onEdit(transaction) }"))
+        // Whitespace-tolerant: a reformatted closure must not let this pass on nothing.
+        #expect(source.range(of: #"Button \{\s*onEdit\(transaction\)\s*\}"#, options: .regularExpression) != nil)
         #expect(source.contains("RowChevron()"))
         #expect(source.contains("accessibilityHint(\"Touche pour modifier\")"))
     }

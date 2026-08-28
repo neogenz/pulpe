@@ -29,7 +29,7 @@ extension BudgetDetailsCoordinator {
             // withdrawal grafts this month before it wipes the others. Another month:
             // stale, as before, so the accueil's next load reads the cache again.
             if currentMonthStore.budget?.id == budgetId {
-                _ = currentMonthStore.adoptSharedSnapshotIfFresh()
+                currentMonthStore.adoptSharedSnapshotIfFresh()
             } else {
                 currentMonthStore.invalidateCache()
             }

@@ -183,8 +183,8 @@ struct ActivityCard: View {
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.md)
-            .contentShape(Rectangle())
         }
+        .contentShape(Rectangle())
         .plainPressedButtonStyle()
         .accessibilityHint("Touche pour modifier")
         .accessibilityIdentifier("homeActivityRow-\(transaction.id)")
