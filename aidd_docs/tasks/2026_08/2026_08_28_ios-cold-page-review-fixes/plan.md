@@ -1,6 +1,6 @@
 ---
 objective: "Every warning of the 2026-08-28 review is closed: Preview builds send no crash, the catalog guards see substitutions and run pre-commit, the template page's cold load is tested through its seam, and one CI run proves the new gates."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Close the cold-page review
