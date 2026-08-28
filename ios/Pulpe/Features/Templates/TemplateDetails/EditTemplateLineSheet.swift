@@ -298,7 +298,9 @@ struct EditTemplateLineSheet: View {
         pendingUpdate = nil
         dismiss()
     }
+}
 
+extension EditTemplateLineSheet {
     // MARK: - Pure Helpers (testable)
 
     static func shouldShowAlternateCurrency(

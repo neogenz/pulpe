@@ -10,7 +10,7 @@ import Testing
 /// optimistically and reverted when the server call fails.
 @Suite(.serialized)
 @MainActor
-struct BudgetDetailsCoordinatorToggleTransactionTests {
+struct BudgetDetailsToggleTransactionTests {
     @Test
     func toggleTransaction_freeTransaction_pointsOptimistically() async {
         let txService = MockTransactionService()

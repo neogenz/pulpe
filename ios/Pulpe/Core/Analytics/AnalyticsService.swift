@@ -437,7 +437,7 @@ extension AnalyticsService {
 
 extension AnalyticsService {
     nonisolated static func makeConfig(apiKey: String, host: String) -> PostHogConfig {
-        let config = PostHogConfig(apiKey: apiKey, host: host)
+        let config = PostHogConfig(projectToken: apiKey, host: host)
         config.captureScreenViews = false
         config.captureApplicationLifecycleEvents = false
         // Crashes (Mach exceptions, POSIX signals) are sent on the next launch;
