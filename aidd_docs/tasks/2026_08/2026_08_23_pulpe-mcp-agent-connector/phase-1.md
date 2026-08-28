@@ -139,7 +139,7 @@ journey
 
 | Task | Acceptance criteria                                                                                                          |
 | ---- | ---------------------------------------------------------------------------------------------------------------------------- |
-| 1    | Le fichier de spike indique, pour chacun des quatre clients, si la connexion aboutit et l'erreur exacte sinon                 |
+| 1    | Le fichier de spike consigne ChatGPT et claude.ai (OK, 2026-08-23) ; décision actée « 2/4 suffisent pour avancer ». Claude Code et Codex CLI restent à constater — repris comme préalable de la phase 6, ce socle n'en dépend pas |
 | 2    | `bun run lint:arch` passe : aucune dépendance de l'application vers l'infrastructure dans le nouveau module                    |
 | 3    | Un appel sans jeton renvoie `401` et son en-tête permet à un client de trouver seul l'authorization server                     |
 | 4    | Un jeton valide mais destiné à un autre service est rejeté ; un jeton MCP présenté à l'API REST est rejeté aussi                |

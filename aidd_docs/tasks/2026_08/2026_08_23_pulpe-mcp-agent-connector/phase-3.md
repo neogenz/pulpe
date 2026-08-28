@@ -148,7 +148,7 @@ journey
 2. Détruire la clé enveloppée et marquer la connexion révoquée dans la même transaction logique.
 3. Faire échouer tout appel d'outil portant un jeton d'une connexion révoquée.
 4. Déclarer `REVOKE_AGENT_CONNECTIONS_PORT` dans `mcp/domain/ports/`, l'implémenter et l'exporter depuis `McpModule`. L'injecter dans `ScheduleAccountDeletionUseCase` (`user/`), pas dans le cron de purge.
-5. Injecter le même port dans `ChangePinUseCase` et `RecoverWithRecoveryKeyUseCase`, appelé dans la transaction qui re-chiffre : les copies enveloppées de l'ancien `clientKey` seraient mortes.
+5. Injecter le même port dans `ChangePinUseCase` et `RecoverWithRecoveryKeyUseCase`, appelé en best effort juste après le rekey — l'échec est journalisé dans `revokeAll`, jamais remonté : les copies enveloppées de l'ancien `clientKey` sont mortes de toute façon, seule la ligne resterait à marquer.
 
 ### `4)` Construire l'écran Connexions
 

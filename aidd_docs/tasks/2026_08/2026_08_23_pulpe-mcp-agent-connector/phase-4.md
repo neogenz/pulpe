@@ -117,7 +117,7 @@ journey
 > Les trois appels de la phase 3, côté iOS.
 
 1. Ajouter le service appelant la liste des connexions, le journal d'une connexion et la révocation.
-2. Décoder les dates ISO nues en `String`, jamais en `Date`, conformément à l'usage du projet.
+2. Décoder `authorized_at` et `created_at` — des timestamps ISO complets — en `Date` via la stratégie ISO-8601 d'`APIClient` ; la règle « date ISO nue = `String` » ne vise que les dates sans heure, absentes de ces écrans.
 3. Laisser les erreurs remonter telles quelles jusqu'au store, sans les avaler.
 
 ### `2)` Construire le store
@@ -153,4 +153,4 @@ journey
 | 2    | Une erreur réseau produit un message exploitable, jamais un écran vide qui ressemble à une absence de données |
 | 3    | Couper l'accès demande une confirmation destructive et la connexion disparaît après succès                  |
 | 3    | Avec le masquage des montants actif, aucune valeur chiffrée n'apparaît à l'écran ni en accessibilité         |
-| 4    | `xcodebuild test` passe sur le simulateur dédié                                                             |
+| 4    | `xcodebuild test` passe sur le simulateur dédié — jamais exécuté (review 2026-08-23, re-vérification 2026-08-28) ; repris comme préalable de la phase 6 |
