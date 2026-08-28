@@ -345,11 +345,21 @@ const IOS_CATALOG = "ios/Pulpe/Resources/Localizable.xcstrings";
  * Une entrée porte soit un `stringUnit`, soit des `variations` — pluriel,
  * genre — imbriquées à profondeur libre. Ne lire que le premier cas rendrait le
  * garde muet sur les formes plurielles, sans le dire.
+ *
+ * Une localisation à `substitutions` porte les deux : son `stringUnit` n'est
+ * que le gabarit `%#@nom@`, et les phrases que l'utilisateur lit vivent sous
+ * les variations de chaque substitution. S'arrêter au gabarit les cachait à
+ * tous les gardes.
  */
 const stringUnits = (node) => {
   if (node === null || typeof node !== "object") return [];
-  if (typeof node.stringUnit?.value === "string") return [node.stringUnit];
-  return Object.values(node).flatMap(stringUnits);
+  const own =
+    typeof node.stringUnit?.value === "string" ? [node.stringUnit] : [];
+  const below =
+    own.length === 0
+      ? Object.values(node)
+      : Object.values(node.substitutions ?? {});
+  return [...own, ...below.flatMap(stringUnits)];
 };
 
 const stringUnitValues = (node) => stringUnits(node).map(({ value }) => value);
@@ -415,6 +425,71 @@ test("aucune traduction du catalogue iOS ne vouvoie", () => {
     "Pulpe tutoie dans les quatre langues (docs/I18N.md).\n" +
       `Dans ${IOS_CATALOG} :\n${offenders.join("\n")}`,
   );
+});
+
+// `%@` là où l'appelant passe un `Int` est un SIGSEGV dans `String(localized:)`,
+// et rien d'autre ne le vérifie : le catalogue compile, et seule la langue de
+// l'appareil qui tombe sur la mauvaise ligne plante (build 10, anglais, le
+// pavé PIN). Les préfixes de position tombent : `%1$lld` et `%lld` remplissent
+// le même argument. `%%` est un pour cent littéral.
+const specifiers = (format) =>
+  [...format.replaceAll("%%", "").matchAll(/%(?:\d+\$)?(lld|ld|d|@|f|s|u)/g)]
+    .map(([, type]) => type)
+    .sort();
+
+/**
+ * Les formats que `String(localized:)` rendra vraiment, par clé et par langue.
+ *
+ * Une localisation à `substitutions` est lue par ses variations, `%arg` tenant
+ * la place du spécificateur propre à la substitution ; son gabarit `%#@nom@`
+ * ne porte aucun spécificateur et n'est pas comparé.
+ */
+const iosFormats = (catalog) =>
+  Object.entries(catalog.strings).flatMap(([key, entry]) =>
+    Object.entries(entry.localizations ?? {}).flatMap(([lang, node]) => {
+      const values = node.substitutions
+        ? Object.values(node.substitutions).flatMap(
+            ({ formatSpecifier, variations }) =>
+              stringUnitValues(variations).map((value) =>
+                value.replaceAll("%arg", `%${formatSpecifier}`),
+              ),
+          )
+        : stringUnitValues(node);
+      return values.map((value) => ({ key, lang, value }));
+    }),
+  );
+
+const specifierMismatches = (catalog) =>
+  iosFormats(catalog).flatMap(({ key, lang, value }) => {
+    const expected = specifiers(key);
+    const found = specifiers(value);
+    return found.join() === expected.join()
+      ? []
+      : [`  ${lang} → ${key} : [${found}] au lieu de [${expected}]`];
+  });
+
+test("chaque traduction iOS garde les spécificateurs de sa clé", () => {
+  const catalog = JSON.parse(read(IOS_CATALOG));
+
+  // Un changement de forme du catalogue rendrait le garde vert sur zéro ligne.
+  assert.ok(
+    iosFormats(catalog).length > 1000,
+    `Moins de 1000 formats lus dans ${IOS_CATALOG}. Le garde ne prouverait rien.`,
+  );
+  assert.deepEqual(
+    specifierMismatches(catalog),
+    [],
+    `Chaque traduction de ${IOS_CATALOG} garde les spécificateurs de sa clé.`,
+  );
+
+  // Et il voit bien une ligne fautive : le crash du build 10, rejoué en mémoire.
+  const broken = structuredClone(catalog);
+  const node =
+    broken.strings["%lld chiffres sur %lld saisis"].localizations.en.stringUnit;
+  node.value = node.value.replace("%lld", "%@");
+  assert.deepEqual(specifierMismatches(broken), [
+    "  en → %lld chiffres sur %lld saisis : [@,lld] au lieu de [lld,lld]",
+  ]);
 });
 
 /**
