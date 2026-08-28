@@ -174,27 +174,28 @@ const it: Dictionary = {
     },
 
     testimonials: {
+      eyebrow: "Testimonianze",
       heading: "Perché usano Pulpe.",
       items: [
         {
-          lead: "«Sono meno stressato. Ho una visione d’insieme, e ",
+          lead: "Sono meno stressato. Ho una visione d’insieme, e ",
           highlight: "le spese che non vedevo arrivare",
-          tail: ", adesso le vedo arrivare.»",
+          tail: ", adesso le vedo arrivare.",
           name: "Ismaël S.",
           role: "Ingegnere informatico",
           since: "Utente da novembre 2025",
         },
         {
-          lead: "«Vedo subito ",
+          lead: "Vedo subito ",
           highlight: "a che punto è il mio budget",
-          tail: ". È comodo, chiaro e molto più semplice da seguire.»",
+          tail: ". È comodo, chiaro e molto più semplice da seguire.",
           name: "Sylvie G.",
           since: "Utente da maggio 2026",
         },
         {
-          lead: "«Posso ",
+          lead: "Posso ",
           highlight: "pianificare le nostre vacanze sull’anno",
-          tail: " e vedere subito se rientrano nel nostro budget. Mi tranquillizza.»",
+          tail: " e vedere subito se rientrano nel nostro budget. Mi tranquillizza.",
           name: "Julie D.",
           role: "Impiegata di commercio",
           since: "Utente da dicembre 2025",

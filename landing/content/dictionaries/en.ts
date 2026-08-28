@@ -173,27 +173,28 @@ const en: Dictionary = {
     },
 
     testimonials: {
+      eyebrow: "Testimonials",
       heading: "Why they use Pulpe.",
       items: [
         {
-          lead: "“I stress less. I have the whole picture, and ",
+          lead: "I stress less. I have the whole picture, and ",
           highlight: "the expenses I never saw coming",
-          tail: ", I see them coming now.”",
+          tail: ", I see them coming now.",
           name: "Ismaël S.",
           role: "Software engineer",
           since: "User since November 2025",
         },
         {
-          lead: "“I can see straight away ",
+          lead: "I can see straight away ",
           highlight: "where my budget stands",
-          tail: ". It’s handy, clear and far simpler to keep up with.”",
+          tail: ". It’s handy, clear and far simpler to keep up with.",
           name: "Sylvie G.",
           since: "User since May 2026",
         },
         {
-          lead: "“I can ",
+          lead: "I can ",
           highlight: "plan our holidays across the year",
-          tail: " and see straight away whether they fit our budget. That reassures me.”",
+          tail: " and see straight away whether they fit our budget. That reassures me.",
           name: "Julie D.",
           role: "Sales assistant",
           since: "User since December 2025",

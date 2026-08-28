@@ -348,6 +348,15 @@ h3,
   }
 }
 
+/* Glyphe de citation des cartes témoignage : deux virgules au feutre dans le
+   jaune preuve, statiques — l'encre animée reste réservée à la signature. */
+.quote-doodle path {
+  fill: none;
+  stroke: var(--color-marker-highlight-proof);
+  stroke-width: 6.5;
+  stroke-linecap: round;
+}
+
 /* Desktop shares one ambient field. Mobile scopes its halos to the opening sections. */
 .hero-mesh,
 .pain-points-mesh {

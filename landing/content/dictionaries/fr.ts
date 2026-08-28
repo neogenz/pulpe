@@ -17,24 +17,24 @@ interface Testimonial {
 
 const testimonials: Testimonial[] = [
   {
-    lead: "« Je stresse moins. J’ai une vue d’ensemble, et ",
+    lead: "Je stresse moins. J’ai une vue d’ensemble, et ",
     highlight: "les dépenses que je ne voyais pas venir",
-    tail: ", je les vois arriver maintenant. »",
+    tail: ", je les vois arriver maintenant.",
     name: "Ismaël S.",
     role: "Ingénieur en informatique",
     since: "Utilisateur depuis novembre 2025",
   },
   {
-    lead: "« Je vois tout de suite ",
+    lead: "Je vois tout de suite ",
     highlight: "où en est mon budget",
-    tail: ". C’est pratique, clair et beaucoup plus simple à suivre. »",
+    tail: ". C’est pratique, clair et beaucoup plus simple à suivre.",
     name: "Sylvie G.",
     since: "Utilisatrice depuis mai 2026",
   },
   {
-    lead: "« Je peux ",
+    lead: "Je peux ",
     highlight: "prévoir nos vacances sur l’année",
-    tail: " et voir tout de suite si ça rentre dans notre budget. Ça me rassure. »",
+    tail: " et voir tout de suite si ça rentre dans notre budget. Ça me rassure.",
     name: "Julie D.",
     role: "Employée de commerce",
     since: "Utilisatrice depuis décembre 2025",
@@ -218,6 +218,7 @@ const fr = {
     },
 
     testimonials: {
+      eyebrow: "Témoignages",
       heading: "Pourquoi ils utilisent Pulpe.",
       // Les prénoms ne se traduisent pas ; le rôle et l’ancienneté oui, et
       // l’ancienneté s’accorde au genre en français.

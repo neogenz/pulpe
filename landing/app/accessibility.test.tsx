@@ -1273,15 +1273,15 @@ describe("landing accessibility contracts", () => {
     );
     // Un seul extrait mis en avant par témoignage, dans les quatre langues :
     // la traduction ne peut ni en ajouter un second ni laisser la marque vide.
-    // Les guillemets vivent dans la copie avec la typographie de chaque
-    // langue : « … » suisses pour fr/de/it, “…” pour l'anglais.
-    for (const [locale, catalog] of Object.entries(CATALOGS)) {
-      const [open, close] = locale === "en" ? ["“", "”"] : ["«", "»"];
+    // Le glyphe de citation dessiné porte le code du genre : la copie ne
+    // double pas les guillemets, et chaque langue garde son eyebrow.
+    for (const catalog of Object.values(CATALOGS)) {
       assert.equal(catalog.home.testimonials.items.length, 3);
+      assert.ok(catalog.home.testimonials.eyebrow.trim().length > 0);
       for (const item of catalog.home.testimonials.items) {
         assert.ok(item.highlight.trim().length > 0);
-        assert.ok(item.lead.startsWith(open));
-        assert.ok(item.tail.endsWith(close));
+        assert.doesNotMatch(item.lead, /^[«“"]/);
+        assert.doesNotMatch(item.tail, /[»”"]$/);
       }
     }
     assert.equal(
@@ -1295,13 +1295,25 @@ describe("landing accessibility contracts", () => {
       componentSources.testimonials,
       /dict\.items\.map[\s\S]*marker-highlight[\s\S]*font-semibold/,
     );
-    // Les colonnes restent éditoriales et plates : pas de chrome de carte,
-    // pas de glyphe décoratif agrandi — les quotes de Poppins lisent comme
-    // des barres en grand — et pas de médaillon d'initiale. Le signifiant,
-    // c'est la signature manuscrite : chaque témoignage est signé d'un tracé
-    // de stylo qui s'encre lettre par lettre au scroll, et le nom reste
-    // accessible via l'aria-label du SVG.
-    assert.equal(testimonialMarkup.match(/«/g)?.length, 3);
+    // Les codes du genre — carte éditoriale, glyphe de citation, eyebrow,
+    // pied identité — dans la grammaire de la page : porcelaine + filet du
+    // reste du site, glyphe dessiné à la main (jamais le caractère Poppins,
+    // qui lit comme des barres en grand), pas de médaillon d'initiale, et la
+    // signature manuscrite à la place de l'avatar, nom porté par l'aria-label.
+    assert.match(
+      testimonialMarkup,
+      new RegExp(frDict.home.testimonials.eyebrow),
+    );
+    assert.match(
+      componentSources.testimonials,
+      /rounded-\[var\(--radius-card\)\] bg-surface[\s\S]*outline-black\/5/,
+    );
+    assert.match(componentSources.testimonials, /border-t border-text\/10/);
+    assert.equal(testimonialMarkup.match(/class="quote-doodle/g)?.length, 3);
+    assert.match(
+      globalsCss,
+      /\.quote-doodle path\s*\{[\s\S]*?stroke:\s*var\(--color-marker-highlight-proof\);/,
+    );
     assert.equal(testimonialMarkup.match(/class="signature\b/g)?.length, 3);
     assert.equal(testimonialMarkup.match(/role="img"/g)?.length, 3);
     for (const item of frDict.home.testimonials.items) {
@@ -1325,15 +1337,12 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.signature-ready path\s*\{\s*stroke-dashoffset:\s*0;/,
     );
-    // La présence du bloc vient de la citation posée et de la signature,
-    // pas d'un pavé : la citation reste au-dessus du corps de texte sans
-    // écraser les sections voisines déjà denses.
-    assert.match(componentSources.testimonials, /text-lg[\s\S]*sm:text-xl/);
+    // La citation reste calme au-dessus du corps de texte : la présence de la
+    // carte vient du glyphe, du feutre preuve et de la signature, pas d'un
+    // pavé typographique.
+    assert.match(componentSources.testimonials, /text-lg/);
     assert.doesNotMatch(componentSources.testimonials, /testimonial-glyph/);
     assert.doesNotMatch(componentSources.testimonials, /charAt\(0\)/);
-    assert.doesNotMatch(componentSources.testimonials, /outline-black/);
-    assert.doesNotMatch(componentSources.testimonials, /bg-surface/);
-    assert.doesNotMatch(componentSources.testimonials, /rounded-\[var\(/);
     assert.doesNotMatch(componentSources.testimonials, /text-\[[0-9.]+rem\]/);
     assert.doesNotMatch(globalsCss, /testimonial-glyph/);
     assert.doesNotMatch(componentSources.testimonials, /leadTestimonial/);
