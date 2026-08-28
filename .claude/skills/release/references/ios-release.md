@@ -82,6 +82,18 @@ Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
 - Both modes require a full source SHA reachable from their channel branch; release recovery may instead use an exact annotated `vX.Y.Z` tag resolving to that SHA. Internal distribution consumes its
   immutable `Staging Ready` proof; release distribution consumes the successful
   `Production Release` proof for that exact SHA.
+- Before dispatching, resolve the exact intention state; dispatch only on `absent`:
+
+  ```bash
+  node .github/scripts/resolve-release-state.mjs \
+    --repository neogenz/pulpe \
+    --workflow ios-distribute.yml \
+    --sha "$SOURCE_SHA" --version "$MARKETING_VERSION" \
+    --channel "$CHANNEL" --build "$BUILD_NUMBER"
+  ```
+
+  The run-name `📲 iOS <channel> v<version> (<build>) <sha>` is the visible identity in the GitHub run list. `active`/`succeeded` return the existing run — an identical invocation is a no-op; a terminal failure is rerun exactly via `--retry <run-id>` then `gh run rerun`; duplicate active runs or incomplete pagination fail closed without dispatching.
+
 - Signing credentials live only in the `ios-distribution` GitHub Environment. The workflow uses an ephemeral keychain and removes certificates, API keys, archives, and exported IPA files in an `always()` cleanup step.
 - GitHub queries the exact ASC version/build before archiving and polls processing to `valid`. A build already present in ASC is reusable only when an unexpired prior upload intent proves the exact same source SHA, marketing version, build number, channel, trusted channel branch, verified IPA, and successful upload step. Otherwise the workflow fails closed instead of certifying a stale binary. Alfred performs the separately approved TestFlight-group or App Store operation.
 

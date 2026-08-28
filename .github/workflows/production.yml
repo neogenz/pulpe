@@ -1,8 +1,10 @@
 name: 🏭 Production Release
 
+# Réutilisable uniquement : aucun trigger automatique et aucun caller actif.
+# La phase 9 branche l'unique appel depuis le job apply protégé de
+# release-promotion.yml, derrière l'environnement production.
 on:
-  push:
-    branches: [main]
+  workflow_call:
 
 concurrency:
   group: production-release
@@ -20,9 +22,6 @@ jobs:
     timeout-minutes: 10
     outputs:
       candidate_sha: ${{ steps.release.outputs.candidate_sha }}
-      gate_attempt: ${{ steps.release.outputs.gate_attempt }}
-      gate_job_id: ${{ steps.release.outputs.gate_job_id }}
-      gate_run_id: ${{ steps.release.outputs.gate_run_id }}
       migration_changed: ${{ steps.migrations.outputs.changed }}
       preparation_pr: ${{ steps.release.outputs.preparation_pr }}
       production_pr: ${{ steps.release.outputs.production_pr }}
@@ -60,16 +59,6 @@ jobs:
 
           gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$production_pr/reviews?per_page=100" --jq '.[]' > "$RUNNER_TEMP/reviews.jsonl"
           jq -se 'any(.state == "APPROVED" and .user.type == "User" and .user.login != "pulpe-release[bot]")' "$RUNNER_TEMP/reviews.jsonl"
-
-          selected_gate=$(node .github/scripts/resolve-workflow-proof.mjs \
-            --workflow release-gate.yml \
-            --event pull_request \
-            --branch "$release_branch" \
-            --sha "$candidate_sha" \
-            --job "✅ Release Gate")
-          gate_run_id=$(jq -r .run_id <<< "$selected_gate")
-          gate_attempt=$(jq -r .attempt <<< "$selected_gate")
-          gate_job_id=$(jq -r .job_id <<< "$selected_gate")
 
           gh api "repos/$GITHUB_REPOSITORY/git/commits/$GITHUB_SHA" > "$RUNNER_TEMP/production-commit.json"
           jq -e --arg candidate "$candidate_sha" '(.parents | length) == 2 and .parents[1].sha == $candidate' "$RUNNER_TEMP/production-commit.json"
@@ -109,9 +98,6 @@ jobs:
             echo "production_pr=$production_pr"
             echo "preparation_pr=$preparation_pr"
             echo "candidate_sha=$candidate_sha"
-            echo "gate_run_id=$gate_run_id"
-            echo "gate_attempt=$gate_attempt"
-            echo "gate_job_id=$gate_job_id"
             echo "production_tree=$production_tree"
             echo "staging_run_id=$staging_run_id"
             echo "version=$version"
@@ -202,7 +188,7 @@ jobs:
 
       - name: Record authorized production context
         run: |
-          jq -n --arg repository "$GITHUB_REPOSITORY" --arg production "$GITHUB_SHA" --arg candidate "${{ needs.authorize.outputs.candidate_sha }}" --arg tree "${{ needs.authorize.outputs.production_tree }}" --arg version "$VERSION" --argjson workflow_run_id "$GITHUB_RUN_ID" --argjson run_attempt "$GITHUB_RUN_ATTEMPT" --argjson production_pr "${{ needs.authorize.outputs.production_pr }}" --argjson preparation_pr "${{ needs.authorize.outputs.preparation_pr }}" --argjson staging_run_id "${{ needs.authorize.outputs.staging_run_id }}" --argjson gate_run_id "${{ needs.authorize.outputs.gate_run_id }}" --argjson gate_attempt "${{ needs.authorize.outputs.gate_attempt }}" --argjson gate_job_id "${{ needs.authorize.outputs.gate_job_id }}" --argjson migrations_applied "${{ needs.authorize.outputs.migration_changed }}" '{repository:$repository,production_sha:$production,candidate_sha:$candidate,tree_sha:$tree,version:$version,workflow_run_id:$workflow_run_id,run_attempt:$run_attempt,production_pr:$production_pr,preparation_pr:$preparation_pr,staging_run_id:$staging_run_id,release_gate:{run_id:$gate_run_id,attempt:$gate_attempt,job_id:$gate_job_id},migration_changed:$migrations_applied}' > production-context.json
+          jq -n --arg repository "$GITHUB_REPOSITORY" --arg production "$GITHUB_SHA" --arg candidate "${{ needs.authorize.outputs.candidate_sha }}" --arg tree "${{ needs.authorize.outputs.production_tree }}" --arg version "$VERSION" --argjson workflow_run_id "$GITHUB_RUN_ID" --argjson run_attempt "$GITHUB_RUN_ATTEMPT" --argjson production_pr "${{ needs.authorize.outputs.production_pr }}" --argjson preparation_pr "${{ needs.authorize.outputs.preparation_pr }}" --argjson staging_run_id "${{ needs.authorize.outputs.staging_run_id }}" --argjson migrations_applied "${{ needs.authorize.outputs.migration_changed }}" '{repository:$repository,production_sha:$production,candidate_sha:$candidate,tree_sha:$tree,version:$version,workflow_run_id:$workflow_run_id,run_attempt:$run_attempt,production_pr:$production_pr,preparation_pr:$preparation_pr,staging_run_id:$staging_run_id,migration_changed:$migrations_applied}' > production-context.json
 
       - name: Upload authorized production context
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

@@ -89,6 +89,13 @@ runs:
         chmod +x "$dest/supabase"
         echo "$dest" >> "$GITHUB_PATH"
 
+    # Public ECR throttles anonymous pulls per NAT pool and GitHub runners
+    # share one. The pinned CLI (supabase/cli#5786) resolves every stack image
+    # from this mirror instead, for all supabase commands run after this action.
+    - name: Route Supabase images through the GHCR mirror
+      shell: bash
+      run: echo "SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io" >> "$GITHUB_ENV"
+
     - name: Verify installation
       shell: bash
       run: supabase --version
