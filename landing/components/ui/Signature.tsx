@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { SignatureData } from "@/components/sections/testimonialSignatures";
+
+export interface SignatureStroke {
+  d: string;
+  x: number;
+}
+
+export interface SignatureData {
+  width: number;
+  strokes: SignatureStroke[];
+}
 
 /**
  * Handwritten signature: each stroke is a single pen path that draws itself

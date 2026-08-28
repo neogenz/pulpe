@@ -3,15 +3,7 @@
    1000/em, baseline at y=0). Regenerate by re-assembling the glyphs of a new
    name from that font; the last stroke is the underline flourish. */
 
-export interface SignatureStroke {
-  d: string;
-  x: number;
-}
-
-export interface SignatureData {
-  width: number;
-  strokes: SignatureStroke[];
-}
+import type { SignatureData } from "@/components/ui/Signature";
 
 export const TESTIMONIAL_SIGNATURES: Record<string, SignatureData> = {
   "Ismaël S.": {
