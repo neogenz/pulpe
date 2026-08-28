@@ -95,7 +95,7 @@ struct BudgetDetailsView: View {
             case .loaded:
                 content
                     .transition(.opacity)
-            case .failed:
+            case .failed: // the projector sets terminalError in the same pass; the fallback never renders
                 ErrorView(error: projector.terminalError ?? APIError.invalidResponse) {
                     await coordinator.dispatch(.loadDetails(force: false))
                 }

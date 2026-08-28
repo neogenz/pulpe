@@ -48,7 +48,7 @@ struct TemplateDetailsView: View {
                     .transition(.opacity)
             }
         }
-        .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.content)
         .navigationTitle(viewModel.template?.name ?? AppLocale.string("Modèle"))
         .navigationBarTitleDisplayMode(.inline)
         .task(id: savingsGoalStore.templateDataVersion) {
@@ -234,7 +234,6 @@ final class TemplateDetailsViewModel {
 
     private(set) var template: BudgetTemplate?
     private(set) var lines: [TemplateLine] = []
-    private(set) var isLoading = false
     private(set) var error: Error?
     private var hasLoadedOnce = false
 
@@ -282,10 +281,8 @@ final class TemplateDetailsViewModel {
 
     func loadDetails() async {
         let showsSkeleton = template == nil
-        isLoading = true
         error = nil
         let loadStart = ContinuousClock.now
-        defer { isLoading = false }
 
         do {
             async let templateTask = templateService.getTemplate(id: templateId)
@@ -453,4 +450,16 @@ private struct TemplateDetailsSkeletonView: View {
     .environment(CurrentMonthStore())
     .environment(SavingsGoalStore())
     .environment(TagStore())
+}
+
+// The body switches on `content` and the transition animates on it: one rule.
+extension TemplateDetailsViewModel.Content: Equatable {
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        switch (lhs, rhs) {
+        case (.loading, .loading): true
+        case let (.failed(lhs), .failed(rhs)): lhs.localizedDescription == rhs.localizedDescription
+        case let (.loaded(lhs), .loaded(rhs)): lhs == rhs
+        default: false
+        }
+    }
 }
