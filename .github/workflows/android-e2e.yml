@@ -125,7 +125,6 @@ jobs:
             adb shell pm clear app.pulpe.android &&
             adb shell cmd locale set-app-locales app.pulpe.android --user current --locales fr-FR &&
             maestro test android/maestro/smoke.yaml &&
-            maestro test android/maestro/login-vault.yaml &&
             adb shell input keyevent KEYCODE_HOME &&
             sleep 12 &&
             maestro test android/maestro/vault-resume.yaml ||

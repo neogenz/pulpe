@@ -1,9 +1,9 @@
 # Journey 2b — come back from the background after the auto-lock delay.
 #
-# Runs after `login-vault.yaml` with the app sent to the background by the
-# runner (`adb shell input keyevent KEYCODE_HOME`), then a wait longer than
-# the delay the build was given (`EXPO_PUBLIC_AUTO_LOCK_DELAY_MS`, 10 s in
-# CI). A return has to go back through the PIN, and it is the *existing* PIN
+# Runs after `smoke.yaml`, which ends signed in and unlocked, with the app sent
+# to the background by the runner (`adb shell input keyevent KEYCODE_HOME`),
+# then a wait longer than the delay the build was given
+# (`EXPO_PUBLIC_AUTO_LOCK_DELAY_MS`, 10 s in CI). A return has to go back through the PIN, and it is the *existing* PIN
 # that must be asked for: the vault is locked, not forgotten.
 appId: app.pulpe.android
 env:
