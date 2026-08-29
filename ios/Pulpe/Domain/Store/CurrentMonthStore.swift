@@ -231,6 +231,9 @@ final class CurrentMonthStore: StoreProtocol {
 
         // Budget exists — loading details in background, stay .loaded (no skeleton)
         error = nil
+        // A detail screen may have just written this month: take it rather than refetch.
+        // `forceRefresh` never comes through here, so pull-to-refresh still hits the server.
+        if adoptSharedSnapshotIfFresh() { return }
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
@@ -387,19 +390,81 @@ final class CurrentMonthStore: StoreProtocol {
 
     /// Apply fetched details to local state, recompute metrics, and update cache.
     private func applyDetails(_ details: BudgetDetails) {
-        budget = details.budget
-        budgetLines = details.budgetLines
-        transactions = details.transactions
-        history = details.history
-        recomputeMetrics()
+        apply(
+            budget: details.budget,
+            budgetLines: details.budgetLines,
+            transactions: details.transactions,
+            history: details.history
+        )
         lastLoadTime = Date()
-        contentState = .loaded
         BudgetDetailCache.shared.store(
             budgetId: details.budget.id,
             budget: details.budget,
             budgetLines: details.budgetLines,
             transactions: details.transactions
         )
+    }
+}
+
+// MARK: - Shared detail snapshot
+
+extension CurrentMonthStore {
+    /// In-memory apply shared by a server snapshot and an adopted cache entry. Kept apart
+    /// from the cache write so adopting an entry never refreshes its `fetchedAt`.
+    private func apply(
+        budget: Budget,
+        budgetLines: [BudgetLine],
+        transactions: [Transaction],
+        history: DriftHistory?
+    ) {
+        self.budget = budget
+        self.budgetLines = budgetLines
+        self.transactions = transactions
+        self.history = history
+        recomputeMetrics()
+        contentState = .loaded
+    }
+
+    /// A local row change ends here, as a detail mutation ends in
+    /// `BudgetDataStore.syncCache()`: adoption reads the shared entry as the latest truth,
+    /// so a row this store changed itself has to be in it before anything adopts, and a
+    /// row it added has to be in it before a tap opens it (`EditTransactionHost`).
+    private func applyLocalRowChange() {
+        recomputeMetrics()
+        guard let budget else { return }
+        BudgetDetailCache.shared.store(
+            budgetId: budget.id, budget: budget, budgetLines: budgetLines, transactions: transactions
+        )
+    }
+
+    /// Takes the shared detail entry of this month when it is fresh, instead of fetching.
+    ///
+    /// Every detail mutation ends in `BudgetDataStore.syncCache()` and every local row
+    /// change in `applyLocalRowChange()`, so the entry is the latest truth. A page's
+    /// post-save reload only rewrites the entry (no `onMutation`); what the server
+    /// recomputed then waits for the next load, and nothing on the accueil shows it.
+    ///
+    /// A fetch is wrong during the undo window of a soft delete: the server
+    /// keeps the row until the toast commits, so the row would come back; and after the
+    /// commit nothing reloads a visible accueil, so it would stay. Same 30 s cross-device
+    /// lag as the budget page. The entry carries no `history`; the current one is kept.
+    /// On a miss the store is marked stale, as it always was after a detail mutation.
+    @discardableResult
+    func adoptSharedSnapshotIfFresh() -> Bool {
+        guard let budgetId = budget?.id,
+              let entry = BudgetDetailCache.shared.get(budgetId: budgetId) else {
+            invalidateCache()
+            return false
+        }
+        apply(
+            budget: entry.budget,
+            budgetLines: entry.budgetLines,
+            transactions: entry.transactions,
+            history: history
+        )
+        // Fresh for as long as the data is, not for 30 s past its adoption.
+        lastLoadTime = entry.fetchedAt
+        return true
     }
 }
 
@@ -649,7 +714,7 @@ extension CurrentMonthStore {
         let originalLines = budgetLines
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line.toggled()
-            recomputeMetrics()
+            applyLocalRowChange()
         }
 
         var didSucceed = true
@@ -661,13 +726,13 @@ extension CurrentMonthStore {
             // Only refresh on error to rollback
             budgetLines = originalLines
             self.error = apiError
-            recomputeMetrics()
+            applyLocalRowChange()
             await forceRefresh()
             didSucceed = false
         } catch {
             budgetLines = originalLines
             self.error = .networkError(error)
-            recomputeMetrics()
+            applyLocalRowChange()
             await forceRefresh()
             didSucceed = false
         }
@@ -691,7 +756,7 @@ extension CurrentMonthStore {
         let originalTransactions = transactions
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction.toggled()
-            recomputeMetrics()
+            applyLocalRowChange()
         }
 
         var didSucceed = true
@@ -703,13 +768,13 @@ extension CurrentMonthStore {
             // Only refresh on error to rollback
             transactions = originalTransactions
             self.error = apiError
-            recomputeMetrics()
+            applyLocalRowChange()
             await forceRefresh()
             didSucceed = false
         } catch {
             transactions = originalTransactions
             self.error = .networkError(error)
-            recomputeMetrics()
+            applyLocalRowChange()
             await forceRefresh()
             didSucceed = false
         }
@@ -726,38 +791,9 @@ extension CurrentMonthStore {
         }
         transactions.removeAll { $0.id == transaction.id }
         transactions.append(transaction)
-        recomputeMetrics()
+        applyLocalRowChange()
         syncWidgetAfterChange()
         onMutation?()
-    }
-
-    /// `false` when the deletion was rolled back: `error` alone is only read by the loading
-    /// states, so the caller is the one that can tell the user a mutation failed.
-    @discardableResult
-    func deleteTransaction(_ transaction: Transaction) async -> Bool {
-        isSettling = true
-        defer { isSettling = false }
-        // Optimistic update
-        let originalTransactions = transactions
-        transactions.removeAll { $0.id == transaction.id }
-        recomputeMetrics()
-        onMutation?()
-
-        do {
-            try await transactionService.deleteTransaction(id: transaction.id)
-            syncWidgetAfterChange()
-            return true
-        } catch let apiError as APIError {
-            transactions = originalTransactions
-            self.error = apiError
-            recomputeMetrics()
-            return false
-        } catch {
-            transactions = originalTransactions
-            self.error = .networkError(error)
-            recomputeMetrics()
-            return false
-        }
     }
 
     func deleteBudgetLine(_ line: BudgetLine) async {
@@ -769,7 +805,7 @@ extension CurrentMonthStore {
         // Optimistic update
         let originalLines = budgetLines
         budgetLines.removeAll { $0.id == line.id }
-        recomputeMetrics()
+        applyLocalRowChange()
         onMutation?()
 
         do {
@@ -777,11 +813,11 @@ extension CurrentMonthStore {
         } catch let apiError as APIError {
             budgetLines = originalLines
             self.error = apiError
-            recomputeMetrics()
+            applyLocalRowChange()
         } catch {
             budgetLines = originalLines
             self.error = .networkError(error)
-            recomputeMetrics()
+            applyLocalRowChange()
         }
     }
 
@@ -793,7 +829,7 @@ extension CurrentMonthStore {
         // Optimistic update
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line
-            recomputeMetrics()
+            applyLocalRowChange()
         }
         onMutation?()
 
@@ -807,7 +843,7 @@ extension CurrentMonthStore {
         // Optimistic update
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction
-            recomputeMetrics()
+            applyLocalRowChange()
         }
         onMutation?()
         await forceRefresh()

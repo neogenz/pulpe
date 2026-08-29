@@ -22,7 +22,7 @@ packages:
     from: "4.0.0"
   posthog-ios:
     url: https://github.com/PostHog/posthog-ios
-    from: "3.0.0"
+    from: "3.56.0"
   google-sign-in-ios:
     url: https://github.com/google/GoogleSignIn-iOS
     from: "8.0.0"
@@ -37,8 +37,8 @@ settings:
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
     EAGER_LINKING: YES
     ONLY_ACTIVE_ARCH: YES
-    MARKETING_VERSION: "1.4.2"
-    CURRENT_PROJECT_VERSION: "17"
+    MARKETING_VERSION: "1.4.3"
+    CURRENT_PROJECT_VERSION: "10"
     DEVELOPMENT_TEAM: AJ37X7C82G
     CODE_SIGN_STYLE: Automatic
   configs:
@@ -114,6 +114,12 @@ targets:
         CFBundlePackageType: APPL
         CFBundleExecutable: $(EXECUTABLE_NAME)
         LSRequiresIPhoneOS: true
+        # Without this, Core Animation clamps the app to 60 Hz on every ProMotion iPhone
+        # while the touch digitizer keeps sampling at 120 — so anything driven frame by
+        # frame from a finger (scrubbing the balance chart on the accueil) renders on a
+        # cadence that does not divide into the one it is fed, and judders. Opting in is
+        # the only way to render above 60 Hz; Apple leaves it off by default to save battery.
+        CADisableMinimumFrameDurationOnPhone: true
         # Declared explicitly rather than left to .lproj discovery, so the App Store
         # listing and the system language picker both name the four we actually ship.
         CFBundleLocalizations:

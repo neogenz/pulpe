@@ -91,31 +91,32 @@ struct BudgetDetailsView: View {
         let screenState = projector.screenState
 
         return Group {
-            if screenState.isLoading && !screenState.isBudgetPresent {
-                BudgetDetailsSkeletonView()
+            switch screenState.content {
+            case .loaded:
+                content
                     .transition(.opacity)
-            } else if screenState.errorIsTerminal, let error = projector.terminalError {
-                ErrorView(error: error) {
+            case .failed: // the projector sets terminalError in the same pass; the fallback never renders
+                ErrorView(error: projector.terminalError ?? APIError.invalidResponse) {
                     await coordinator.dispatch(.loadDetails(force: false))
                 }
                 .transition(.opacity)
-            } else if screenState.isBudgetPresent {
-                content
+            case .loading:
+                BudgetDetailsSkeletonView()
                     .transition(.opacity)
             }
         }
         .trackScreen("BudgetDetails")
-        .animation(DesignTokens.Animation.smoothEaseOut, value: screenState.isLoading)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: screenState.content)
         .navigationTitle(screenState.monthYear.isEmpty ? "Budget" : screenState.monthYear)
         .navigationBarTitleDisplayMode(.inline)
         // Hero under the nav bar on the forest surface: light ink when loaded, default ink on error / skeleton.
-        .toolbarColorScheme(projector.screenState.isBudgetPresent ? .dark : nil, for: .navigationBar)
+        .toolbarColorScheme(screenState.content == .loaded ? .dark : nil, for: .navigationBar)
         .heroNavigationBar()
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 trailingToolbarButtons
             }
-            .heroToolbarGroup(screenState.isBudgetPresent)
+            .heroToolbarGroup(screenState.content == .loaded)
         }
         // Scroll-independent month navigation (system title chevron). The sticky
         // pager only reveals once the hero has scrolled under the bar — a short
@@ -133,7 +134,6 @@ struct BudgetDetailsView: View {
             }
         }
         .task(id: screenState.budgetId) {
-            pushPendingTransactionEdit()
             coordinator.bind(
                 budgetListStore: budgetListStore,
                 dashboardStore: dashboardStore,
@@ -153,8 +153,9 @@ struct BudgetDetailsView: View {
         }
         .task(id: screenState.referencedTagIds) { await tagStore.loadIfNeeded(for: screenState.referencedTagIds) }
         .onChange(of: searchText) { _, newValue in projector.setSearchText(newValue) }
-        .sheet(item: $router.sheet) { dest in
-            sheetContent(for: dest)
+        .sheet(item: $router.sheet) { destination in
+            BudgetDetailSheetContent(destination: destination)
+                .environment(coordinator)
         }
         .navigationDestination(for: BudgetLinePushRoute.self) { route in
             pushDestination(for: route)
@@ -187,16 +188,16 @@ struct BudgetDetailsView: View {
 
     @ViewBuilder
     private var trailingToolbarButtons: some View {
-        let screenState = projector.screenState
+        let isLoaded = projector.screenState.content == .loaded
         Button {
             router.present(.realizedBalance)
         } label: {
             Image(systemName: "chart.bar.fill")
         }
-        .heroToolbarButtonStyle(screenState.isBudgetPresent)
+        .heroToolbarButtonStyle(isLoaded)
         .accessibilityLabel("Suivi du budget")
         .accessibilityIdentifier("budgetTrackingButton")
-        if screenState.isBudgetPresent {
+        if isLoaded {
             Button { router.present(.addBudgetLine) } label: {
                 Image(systemName: "plus")
             }

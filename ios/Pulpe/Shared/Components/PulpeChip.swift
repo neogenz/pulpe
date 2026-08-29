@@ -92,7 +92,7 @@ struct PulpeChip<Trailing: View>: View {
         style: Style = .outlined,
         size: Size = .standard,
         isDisabled: Bool = false,
-        @ViewBuilder trailing: () -> Trailing = { EmptyView() }
+        @ViewBuilder trailing: () -> Trailing
     ) {
         self.icon = icon
         self.dotColor = dotColor
@@ -237,4 +237,30 @@ struct PulpeChip<Trailing: View>: View {
     .padding()
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(Color.appBackground)
+}
+
+// MARK: - No trailing view
+
+extension PulpeChip where Trailing == EmptyView {
+    /// A defaulted `@ViewBuilder` closure would make the compiler infer `Trailing`
+    /// from the default; Swift warns on it today and rejects it in a future mode.
+    init(
+        icon: String? = nil,
+        dotColor: Color? = nil,
+        label: String,
+        count: Int? = nil,
+        style: Style = .outlined,
+        size: Size = .standard,
+        isDisabled: Bool = false
+    ) {
+        self.init(
+            icon: icon,
+            dotColor: dotColor,
+            label: label,
+            count: count,
+            style: style,
+            size: size,
+            isDisabled: isDisabled
+        ) { EmptyView() }
+    }
 }

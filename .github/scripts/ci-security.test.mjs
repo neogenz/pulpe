@@ -932,9 +932,10 @@ test("iOS distribution resumes the exact App Store build idempotently", () => {
 });
 
 test("one CI invocation proves app, widget, and Swift tests through PulpeLocal", () => {
+  // The smoke job that follows runs its own xcodebuild on the UI scheme.
   const iosJob = workflow.slice(
     workflow.indexOf("\n  test-ios:"),
-    workflow.indexOf("\n  ci-success:"),
+    workflow.indexOf("\n  smoke-ios:"),
   );
   assert.match(iosJob, /-scheme PulpeLocal/);
   assert.doesNotMatch(iosJob, /-scheme PulpeTests|xcodebuild build/);

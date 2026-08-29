@@ -127,14 +127,14 @@ struct BudgetLineMixedRow: View {
                         HStack {
                             Spacer(minLength: DesignTokens.Spacing.none)
                             amountColumn
-                            chevron
+                            RowChevron()
                         }
                     }
                 } else {
                     centerColumn
                     Spacer(minLength: DesignTokens.Spacing.sm)
                     amountColumn
-                    chevron
+                    RowChevron()
                 }
             }
             .padding(.vertical, DesignTokens.Spacing.md)
@@ -286,14 +286,6 @@ struct BudgetLineMixedRow: View {
     private var overBudgetSubtitle: some View {
         Text("Budget dépassé")
             .foregroundStyle(Color.financialOverBudget)
-    }
-
-    private var chevron: some View {
-        Image(systemName: "chevron.right")
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(Color.textTertiary)
-            .padding(.leading, DesignTokens.Spacing.xs)
-            .accessibilityHidden(true)
     }
 
     // MARK: - Actions

@@ -59,14 +59,28 @@ struct MainTabView: View {
 
 // MARK: - Budget destinations
 
-/// Resolves a budget destination for the stacks that use the default services.
-/// `BudgetsTab` keeps its own switch — it is the one entry point that injects
-/// test doubles.
-@ViewBuilder
-private func budgetDestination(_ destination: BudgetDestination) -> some View {
+/// Resolves a budget destination for every stack. Only `BudgetsTab` passes
+/// services: it is the one entry point that injects test doubles.
+@MainActor @ViewBuilder
+private func budgetDestination(
+    _ destination: BudgetDestination,
+    budgetService: any BudgetServicing = BudgetService.shared,
+    budgetLineService: any BudgetLineServicing = BudgetLineService.shared
+) -> some View {
     switch destination {
     case .details(let budgetId):
-        BudgetDetailsView(budgetId: budgetId)
+        BudgetDetailsView(
+            budgetId: budgetId,
+            budgetService: budgetService,
+            budgetLineService: budgetLineService
+        )
+    case .editTransaction(let budgetId, let transactionId):
+        EditTransactionHost(
+            budgetId: budgetId,
+            transactionId: transactionId,
+            budgetService: budgetService,
+            budgetLineService: budgetLineService
+        )
     }
 }
 
@@ -161,14 +175,11 @@ struct BudgetsTab: View {
         NavigationStack(path: $state.budgetPath) {
             BudgetListView()
                 .navigationDestination(for: BudgetDestination.self) { destination in
-                    switch destination {
-                    case .details(let budgetId):
-                        BudgetDetailsView(
-                            budgetId: budgetId,
-                            budgetService: budgetService,
-                            budgetLineService: budgetLineService
-                        )
-                    }
+                    budgetDestination(
+                        destination,
+                        budgetService: budgetService,
+                        budgetLineService: budgetLineService
+                    )
                 }
                 // A saving prévision's detail can push its linked goal's
                 // progression (PUL-12) — same destination as the CurrentMonth

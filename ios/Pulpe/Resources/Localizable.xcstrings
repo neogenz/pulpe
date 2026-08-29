@@ -1781,18 +1781,28 @@
           }
         },
         "it" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld cifra su %lld inserita"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld cifre su %lld inserite"
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@digits@"
+          },
+          "substitutions" : {
+            "digits" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg cifra su %2$lld inserita"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg cifre su %2$lld inserite"
+                    }
+                  }
                 }
               }
             }
@@ -6296,19 +6306,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Karte %@ von %@"
+            "value" : "Karte %lld von %lld"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Card %@ of %@"
+            "value" : "Card %lld of %lld"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scheda %@ di %@"
+            "value" : "Scheda %lld di %lld"
           }
         }
       }
