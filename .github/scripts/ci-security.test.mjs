@@ -637,6 +637,34 @@ test("production finishes preflight before Railway deploys", () => {
     /\.merged_by\.type == "User" and \.merged_by\.login == \$owner/,
   );
   assert.doesNotMatch(production, /\.state == "APPROVED"/);
+  // `authorize` contrôle le tip de main AVANT la porte d'environnement : main
+  // peut avancer pendant l'attente d'approbation. Les deux jobs protégés qui
+  // écrivent — migrations et pointeur — refont le contrôle avant leur première
+  // mutation, sinon la release publierait un candidat qui n'est plus le tip.
+  assert.equal(
+    [
+      ...production.matchAll(
+        /test "\$\(gh api "repos\/\$GITHUB_REPOSITORY\/branches\/main" --jq \.commit\.sha\)" = "\$GITHUB_SHA"/g,
+      ),
+    ].length,
+    3,
+  );
+  assert.equal(
+    [
+      ...production.matchAll(
+        /- name: 🔒 Recheck the candidate is still the tip of main/g,
+      ),
+    ].length,
+    2,
+  );
+  for (const job of ["migrate", "advance"]) {
+    const body = production.slice(production.indexOf(`\n  ${job}:\n`));
+    assert.match(
+      body.slice(0, body.indexOf("\n      - name: ", 1)),
+      /environment: production/,
+      `${job} recheck stays behind the protected environment`,
+    );
+  }
   assert.doesNotMatch(production, /\.pull_requests\[\]|\.pull_requests\[\]\?/);
   assert.match(
     production,
@@ -925,14 +953,20 @@ test("internal production-config builds stay bound to main staging proof", () =>
     iosDistribution,
     /release\)\n\s+expected_branch="production"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
   );
+  // Le résolveur exige une égalité stricte sur l'événement : chaque canal doit
+  // demander celui que déclenche réellement le workflow qu'il prouve —
+  // staging-proof.yml sur `push` de main, production-finalize.yml sur
+  // `deployment_status`. Une dérive ici bloque silencieusement tous les builds.
   assert.match(
     iosDistribution,
-    /internal\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow staging-proof\.yml/,
+    /internal\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow staging-proof\.yml \\\n\s+--event push \\/,
   );
+  assert.match(stagingProof, /on:\n  push:\n    branches: \[main\]/);
   assert.match(
     iosDistribution,
-    /release\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow production-finalize\.yml/,
+    /release\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow production-finalize\.yml \\\n\s+--event deployment_status \\/,
   );
+  assert.match(productionFinalize, /on:\n  deployment_status:/);
   assert.match(
     iosDistribution,
     /if \[ "\$CHANNEL" != "release" \] && \[ "\$BUILD_NUMBER" -lt "\$project_build" \]/,

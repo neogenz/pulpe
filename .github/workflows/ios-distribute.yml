@@ -189,7 +189,7 @@ jobs:
             internal)
               node ../.github/scripts/resolve-workflow-proof.mjs \
                 --workflow staging-proof.yml \
-                --event deployment_status \
+                --event push \
                 --branch "$EXPECTED_BRANCH" \
                 --sha "$SOURCE_SHA" \
                 --job "✅ Staging Ready (shadow)" \
