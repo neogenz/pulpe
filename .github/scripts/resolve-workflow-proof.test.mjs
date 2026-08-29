@@ -9,8 +9,8 @@ import {
 const sha = "a".repeat(40);
 const identity = {
   path: ".github/workflows/staging-proof.yml",
-  event: "deployment_status",
-  head_branch: "preview",
+  event: "push",
+  head_branch: "main",
   head_sha: sha,
 };
 const job = {
@@ -59,7 +59,7 @@ function workflowApi({ duplicateJob = false, duplicateArtifact = false } = {}) {
 const options = {
   repository: "neogenz/pulpe",
   workflow: "staging-proof.yml",
-  event: "deployment_status",
+  event: "push",
   branch: identity.head_branch,
   sha,
   job: job.name,

@@ -76,10 +76,11 @@ Android version as a separate release step.
 
 One file in `.eas/workflows/` handles distributable builds:
 
-- **`deploy-production.yml`** — pushes to `main` build the AAB and submit it to
-  the Play **internal** track as a **draft**. `main` is not this repo's default
-  branch (`preview` is), so a push there is already a deliberate act; the draft
-  status means nothing reaches a user until it is promoted by hand.
+- **`deploy-production.yml`** — pushes to `production` build the AAB and submit
+  it to the Play **internal** track as a **draft**. `production` is the
+  production pointer, advanced only by the release publish job, so a push there
+  is already a deliberate act; the draft status means nothing reaches a user
+  until it is promoted by hand. `main` is the trunk and never builds here.
 
 There is no per-pull-request EAS build on purpose. The Free plan meters cloud
 builds per month, and a build on every Android PR spent the quota the

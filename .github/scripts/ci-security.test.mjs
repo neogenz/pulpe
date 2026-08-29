@@ -1244,6 +1244,15 @@ test("Android E2E verifies Maestro and withholds preview secrets from forks", ()
   assert.ok(download < verify && verify < extract);
 });
 
+test("the Android production build follows the production pointer", () => {
+  // `main` est le tronc : chaque merge de feature y arrive. Un build EAS
+  // déclenché depuis `main` consommerait le quota du plan Free et pousserait
+  // un brouillon Play à chaque feature.
+  const easProduction = read("android/.eas/workflows/deploy-production.yml");
+  assert.match(easProduction, /on:\n  push:\n    branches: \[production\]/);
+  assert.doesNotMatch(easProduction, /branches: \[main\]/);
+});
+
 test("the boundaries upgrade keeps a modern explicit policy", () => {
   const settings = frontendEslintConfig.find(
     (config) => config.settings?.["boundaries/dependency-nodes"],
