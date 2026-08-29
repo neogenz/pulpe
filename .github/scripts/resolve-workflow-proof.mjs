@@ -126,11 +126,6 @@ export function resolveWorkflowProof(options, api) {
 export function resolvePublishedMain(options, api) {
   assertRepositorySha(options);
   const prefix = `repos/${options.repository}`;
-  const encoded = api(
-    `${prefix}/contents/package.json?ref=${options.sha}`,
-  ).content;
-  const version = JSON.parse(Buffer.from(encoded, "base64")).version;
-  invariant(/^\d+\.\d+\.\d+$/.test(version ?? ""), "Invalid main version");
 
   // L'ancre de rollback est la dernière release publiée, pas la version du
   // tip de main : quand une publication échoue après le merge de release,

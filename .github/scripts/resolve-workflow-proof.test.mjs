@@ -182,9 +182,6 @@ const main = "b".repeat(40);
 const anchor = "c".repeat(40);
 function publicationApi(state = "published") {
   return (path) => {
-    if (path.includes("contents/package.json")) {
-      return { content: Buffer.from('{"version":"1.3.0"}').toString("base64") };
-    }
     if (path.endsWith("releases/latest")) {
       if (state === "missing release") throw new Error("Not Found");
       return {
