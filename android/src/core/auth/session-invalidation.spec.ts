@@ -80,6 +80,30 @@ it("refetches the failed query with the new token and keeps the session", async 
   expect(mockSignOut).not.toHaveBeenCalled();
 });
 
+it("refreshes once for a query the fresh token did not unlock", async () => {
+  mockedRefresh.mockResolvedValue(refreshAnswer(true));
+  const key = ["budgets", "list"];
+
+  await failQuery(apiError(HTTP_UNAUTHORIZED), key);
+  await settle();
+  await failQuery(apiError(HTTP_UNAUTHORIZED), key);
+  await settle();
+
+  expect(mockedRefresh).toHaveBeenCalledTimes(1);
+  expect(mockSignOut).not.toHaveBeenCalled();
+
+  await queryClient.fetchQuery({
+    queryKey: key,
+    queryFn: () => "ok",
+    gcTime: 0,
+  });
+  await settle();
+  await failQuery(apiError(HTTP_UNAUTHORIZED), key);
+  await settle();
+
+  expect(mockedRefresh).toHaveBeenCalledTimes(2);
+});
+
 it("signs this device out when the refresh yields no session", async () => {
   mockedRefresh.mockResolvedValue(refreshAnswer(false));
 
