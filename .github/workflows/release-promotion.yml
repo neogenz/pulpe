@@ -116,8 +116,10 @@ jobs:
             --job "✅ Staging Ready (shadow)" \
             --artifact-template "staging-proof-{sha}-run-{run_id}-attempt-{attempt}")
 
-          # Production live : le main courant doit déjà être entièrement
-          # publié (tag annoté + GitHub Release) — c'est l'ancre de rollback.
+          # Production live : la dernière release publiée (tag annoté +
+          # GitHub Release, ancêtre de main) est l'ancre de rollback. Main
+          # peut être en avance dessus quand une publication a échoué après
+          # merge — la re-promotion reste alors possible.
           trusted_main_sha=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)
           published_main=$(node .github/scripts/resolve-workflow-proof.mjs --published-main "$trusted_main_sha")
           node .github/scripts/check-release-lineage.mjs "$trusted_main_sha" "$candidate_sha"
@@ -167,7 +169,7 @@ jobs:
               ],
               rollback: {
                 application: "Vercel rollback / Railway redeploy of the published main anchor; migrations stay forward-only",
-                anchor_sha: $trusted_main_sha,
+                anchor_sha: $published_main.sha,
                 anchor_tag: $published_main.tag
               }
             }' > "$RUNNER_TEMP/release-plan.json"
@@ -176,7 +178,7 @@ jobs:
             echo "### Release plan v$version (read-only)"
             echo ""
             echo "- Candidate: \`$candidate_sha\` (preparation PR #$preparation_pr)"
-            echo "- Published main anchor: \`$trusted_main_sha\` ($(jq -r .tag <<< "$published_main"))"
+            echo "- Published rollback anchor: \`$(jq -r .sha <<< "$published_main")\` ($(jq -r .tag <<< "$published_main"))"
             echo "- Staging proof run: $staging_run_id (attempt $(jq -r .attempt <<< "$staging"))"
             echo "- Migrations in scope: $(jq 'length' <<< "$migrations")"
             echo ""
