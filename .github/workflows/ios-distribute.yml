@@ -67,6 +67,15 @@ jobs:
         run: |
           set -euo pipefail
 
+          # `expected_branch` est la branche d'autorisation : celle depuis
+          # laquelle le SHA doit être joignable. `proof_branch` est le
+          # `head_branch` du run qui porte la preuve, et les deux ne coïncident
+          # pas pour le canal `release` : Railway crée son déploiement de
+          # production avec un `ref` égal au SHA brut — `production-finalize.yml`
+          # l'exige — donc le run `deployment_status` ne porte aucun nom de
+          # branche et GitHub retombe sur `main`. Chercher la preuve sur
+          # `production` ne trouverait jamais rien.
+          proof_branch="main"
           case "$CHANNEL" in
             internal)
               expected_branch="main"
@@ -175,6 +184,7 @@ jobs:
           fi
 
           echo "branch=$expected_branch" >> "$GITHUB_OUTPUT"
+          echo "proof_branch=$proof_branch" >> "$GITHUB_OUTPUT"
           echo "scheme=$scheme" >> "$GITHUB_OUTPUT"
           echo "configuration=$configuration" >> "$GITHUB_OUTPUT"
           echo "marketing_version=$actual_marketing_version" >> "$GITHUB_OUTPUT"
@@ -182,7 +192,7 @@ jobs:
       - name: Require immutable deployment proof for source SHA
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_BRANCH: ${{ steps.release.outputs.branch }}
+          PROOF_BRANCH: ${{ steps.release.outputs.proof_branch }}
         run: |
           set -euo pipefail
           case "$CHANNEL" in
@@ -190,7 +200,7 @@ jobs:
               node ../.github/scripts/resolve-workflow-proof.mjs \
                 --workflow staging-proof.yml \
                 --event push \
-                --branch "$EXPECTED_BRANCH" \
+                --branch "$PROOF_BRANCH" \
                 --sha "$SOURCE_SHA" \
                 --job "✅ Staging Ready (shadow)" \
                 --artifact-template "staging-proof-{sha}-run-{run_id}-attempt-{attempt}" \
@@ -200,7 +210,7 @@ jobs:
               node ../.github/scripts/resolve-workflow-proof.mjs \
                 --workflow production-finalize.yml \
                 --event deployment_status \
-                --branch "$EXPECTED_BRANCH" \
+                --branch "$PROOF_BRANCH" \
                 --sha "$SOURCE_SHA" \
                 --job "✅ Publish proven production" \
                 --artifact-template "production-proof-{sha}-run-{run_id}-attempt-{attempt}" \

@@ -959,14 +959,25 @@ test("internal production-config builds stay bound to main staging proof", () =>
   // `deployment_status`. Une dérive ici bloque silencieusement tous les builds.
   assert.match(
     iosDistribution,
-    /internal\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow staging-proof\.yml \\\n\s+--event push \\/,
+    /internal\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow staging-proof\.yml \\\n\s+--event push \\\n\s+--branch "\$PROOF_BRANCH" \\/,
   );
   assert.match(stagingProof, /on:\n  push:\n    branches: \[main\]/);
   assert.match(
     iosDistribution,
-    /release\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow production-finalize\.yml \\\n\s+--event deployment_status \\/,
+    /release\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow production-finalize\.yml \\\n\s+--event deployment_status \\\n\s+--branch "\$PROOF_BRANCH" \\/,
   );
   assert.match(productionFinalize, /on:\n  deployment_status:/);
+  // La branche d'autorisation et celle qui indexe la preuve divergent pour le
+  // canal `release` : Railway déploie la production avec un `ref` égal au SHA
+  // brut, donc le run `deployment_status` retombe sur `main`. Chercher la
+  // preuve sur `production` ne trouverait jamais rien et bloquerait chaque
+  // publication App Store.
+  assert.match(iosDistribution, /\n          proof_branch="main"\n/);
+  assert.match(
+    productionFinalize,
+    /test "\$DEPLOYMENT_REF" = "\$PRODUCTION_SHA"/,
+  );
+  assert.doesNotMatch(iosDistribution, /--branch "\$EXPECTED_BRANCH"/);
   assert.match(
     iosDistribution,
     /if \[ "\$CHANNEL" != "release" \] && \[ "\$BUILD_NUMBER" -lt "\$project_build" \]/,
