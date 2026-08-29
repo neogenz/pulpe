@@ -68,8 +68,8 @@ Règles :
 
 ```text
 git log → proposition approuvée → branche release/vX.Y.Z → bump fixed-mode
-→ PR preview + preuve staging → PR main approuvée → preuve production
-→ tag vX.Y.Z + GitHub Release
+→ PR de préparation vers main approuvée → preuve staging → publish
+→ pointeur production + preuve production → tag vX.Y.Z + GitHub Release
 ```
 
 Automatisé via le skill `/release`.

@@ -70,12 +70,11 @@ All must be staged in the release commit, alongside the manually-bumped root `pa
 The backend embeds `backend-nest/package.json` in its build artifact and serves that
 version as `web.latestVersion`; no Railway variable is synchronized during release.
 
-Promotion is three-staged through the single manual `🚦 Release Promotion` entry:
-`plan` (read-only manifest), `apply` (GitHub `production` environment approval, then
-the App-token `promote` job freezes the release branch and opens the production PR),
-and `publish` on `main` after that PR merges (the protected reusable `production.yml`
-re-verifies everything, applies any migrations, then fast-forwards the `production`
-pointer — the push that providers deploy). The preflight proves the exact frontend
+Promotion is two-staged through the single manual `🚦 Release Promotion` entry:
+`plan` (read-only manifest) and `publish` on `main` after the preparation PR merges
+(the protected reusable `production.yml` re-verifies everything behind the GitHub
+`production` environment approval, applies any migrations, then fast-forwards the
+`production` pointer — the push that providers deploy). The preflight proves the exact frontend
 SHA is public and publishes its immutable context; Railway `Wait for CI` deploys the
 `production` branch as the sole backend deployment owner. `production-finalize.yml`
 verifies the exact active Railway SHA and the public `GET /api/v1/app/version`

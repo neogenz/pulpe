@@ -1,6 +1,11 @@
 name: ✅ Staging Ready (shadow)
 
-on: deployment_status
+# Une preuve par push de main : le run attend les trois déploiements staging
+# exacts du SHA poussé (Railway backend, Vercel frontend et landing), sans
+# runs sautés par des événements providers intermédiaires.
+on:
+  push:
+    branches: [main]
 
 permissions:
   actions: read
@@ -11,10 +16,6 @@ permissions:
 jobs:
   staging-ready:
     name: ✅ Staging Ready (shadow)
-    if: >-
-      github.event.deployment_status.state == 'success' &&
-      github.event.deployment.environment == 'pulpe-backend / preview' &&
-      github.event.deployment.creator.login == 'railway-app[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 55
     env:
@@ -45,11 +46,11 @@ jobs:
               for pr in pulls
               if pr.get("merged_at")
               and pr.get("merge_commit_sha") == sha
-              and pr.get("base", {}).get("ref") == "preview"
+              and pr.get("base", {}).get("ref") == "main"
           ]
           if len(matches) != 1:
               raise SystemExit(
-                  f"expected one merged PR for preview commit {sha}, found {len(matches)}"
+                  f"expected one merged PR for main commit {sha}, found {len(matches)}"
               )
           pr = matches[0]
           data = {
@@ -111,9 +112,9 @@ jobs:
                 break
                 ;;
               queued|in_progress)
-                current_sha=$(gh api "repos/$GITHUB_REPOSITORY/branches/preview" --jq .commit.sha)
+                current_sha=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)
                 if [ "$current_sha" != "$GITHUB_SHA" ]; then
-                  echo "::error::preview moved from $GITHUB_SHA to $current_sha while waiting for CI"
+                  echo "::error::main moved from $GITHUB_SHA to $current_sha while waiting for CI"
                   exit 1
                 fi
                 if [ "$iteration" -eq 180 ]; then
@@ -155,7 +156,7 @@ jobs:
         run: |
           set -euo pipefail
           merged_tree=$(git rev-parse "${GITHUB_SHA}^{tree}")
-          jq -e --arg repository "$GITHUB_REPOSITORY" --argjson pr_number "$PR_NUMBER" --argjson run_id "$CI_RUN_ID" --argjson run_attempt "$CI_RUN_ATTEMPT" --arg head_sha "$HEAD_SHA" --arg tree_sha "$merged_tree" '.repository == $repository and .pr_number == $pr_number and .run_id == $run_id and .run_attempt == $run_attempt and .workflow_path == ".github/workflows/ci.yml" and .base_ref == "preview" and .head_sha == $head_sha and .tree_sha == $tree_sha' "$RUNNER_TEMP/ci-evidence/ci-evidence.json"
+          jq -e --arg repository "$GITHUB_REPOSITORY" --argjson pr_number "$PR_NUMBER" --argjson run_id "$CI_RUN_ID" --argjson run_attempt "$CI_RUN_ATTEMPT" --arg head_sha "$HEAD_SHA" --arg tree_sha "$merged_tree" '.repository == $repository and .pr_number == $pr_number and .run_id == $run_id and .run_attempt == $run_attempt and .workflow_path == ".github/workflows/ci.yml" and .base_ref == "main" and .head_sha == $head_sha and .tree_sha == $tree_sha' "$RUNNER_TEMP/ci-evidence/ci-evidence.json"
           if [[ "$HEAD_REF" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             tested_base=$(jq -r .base_sha "$RUNNER_TEMP/ci-evidence/ci-evidence.json")
             test "$(git rev-parse "${HEAD_SHA}^")" = "$tested_base"
@@ -163,7 +164,7 @@ jobs:
           fi
           echo "tree_sha=$merged_tree" >> "$GITHUB_OUTPUT"
 
-      - name: 🚦 Wait for exact preview deployments
+      - name: 🚦 Wait for exact staging deployments
         id: deployments
         env:
           GH_TOKEN: ${{ github.token }}
@@ -192,9 +193,9 @@ jobs:
           railway_state=
 
           for _ in {1..120}; do
-            current_sha=$(gh api "repos/$GITHUB_REPOSITORY/branches/preview" --jq .commit.sha)
+            current_sha=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)
             if [ "$current_sha" != "$GITHUB_SHA" ]; then
-              echo "::error::preview moved from $GITHUB_SHA to $current_sha"
+              echo "::error::main moved from $GITHUB_SHA to $current_sha"
               exit 1
             fi
 
@@ -253,7 +254,7 @@ jobs:
           curl --fail --silent --show-error --location --max-time 20 "$FRONTEND_URL/" >/dev/null
           curl --fail --silent --show-error --location --max-time 20 "$LANDING_URL/" >/dev/null
           curl --fail --silent --show-error --location --max-time 20 "$PREVIEW_BACKEND_HEALTH_URL" >/dev/null
-          current_sha=$(gh api "repos/$GITHUB_REPOSITORY/branches/preview" --jq .commit.sha)
+          current_sha=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)
           test "$current_sha" = "$GITHUB_SHA"
 
       - name: 🧾 Record staging proof

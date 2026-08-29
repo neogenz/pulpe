@@ -69,12 +69,12 @@ jobs:
 
           case "$CHANNEL" in
             internal)
-              expected_branch="preview"
+              expected_branch="main"
               scheme="PulpeProd"
               configuration="Prod"
               ;;
             release)
-              expected_branch="main"
+              expected_branch="production"
               scheme="PulpeProd"
               configuration="Prod"
               ;;
@@ -86,7 +86,7 @@ jobs:
 
           tagged_release_recovery=false
           if [ "$GITHUB_REF_NAME" != "$expected_branch" ]; then
-            if [ "$CHANNEL" = release ] && [ "$GITHUB_REF_NAME" = preview ]; then
+            if [ "$CHANNEL" = release ] && [ "$GITHUB_REF_NAME" = main ]; then
               tagged_release_recovery=true
             else
               echo "::error::Channel '$CHANNEL' must be dispatched from '$expected_branch', not '$GITHUB_REF_NAME'"
@@ -134,7 +134,7 @@ jobs:
             echo "Require exact annotated release tag for recovery: $recovery_tag"
             if [ "$(git cat-file -t "$recovery_tag" 2>/dev/null || true)" != tag ] ||
                [ "$(git rev-parse "$recovery_tag^{commit}" 2>/dev/null || true)" != "$SOURCE_SHA" ]; then
-              echo "::error::Release recovery from preview requires $recovery_tag to be an annotated tag for $SOURCE_SHA"
+              echo "::error::Release recovery from main requires $recovery_tag to be an annotated tag for $SOURCE_SHA"
               exit 1
             fi
           fi

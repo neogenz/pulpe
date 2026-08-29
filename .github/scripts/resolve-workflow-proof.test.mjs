@@ -179,50 +179,59 @@ test("binds one unexpired artifact to SHA, run, and attempt", () => {
 });
 
 const main = "b".repeat(40);
+const anchor = "c".repeat(40);
 function publicationApi(state = "published") {
   return (path) => {
     if (path.includes("contents/package.json")) {
-      return { content: Buffer.from('{"version":"1.2.3"}').toString("base64") };
+      return { content: Buffer.from('{"version":"1.3.0"}').toString("base64") };
     }
-    if (path.endsWith("git/ref/tags/v1.2.3")) {
-      if (state === "unpublished") throw new Error("Not Found");
-      return { object: { type: "tag", sha: "c".repeat(40) } };
-    }
-    if (path.includes("git/tags/")) {
-      return {
-        tag: "v1.2.3",
-        object: {
-          type: "commit",
-          sha: state === "mismatched tag" ? "d".repeat(40) : main,
-        },
-      };
-    }
-    if (path.endsWith("releases/tags/v1.2.3")) {
+    if (path.endsWith("releases/latest")) {
       if (state === "missing release") throw new Error("Not Found");
       return {
         tag_name: "v1.2.3",
-        target_commitish: main,
-        draft: false,
+        draft: state === "draft release",
         prerelease: false,
       };
+    }
+    if (path.endsWith("git/ref/tags/v1.2.3")) {
+      return {
+        object: {
+          type: state === "unannotated tag" ? "commit" : "tag",
+          sha: "e".repeat(40),
+        },
+      };
+    }
+    if (path.includes("git/tags/")) {
+      return {
+        tag: state === "mismatched tag" ? "v9.9.9" : "v1.2.3",
+        object: { type: "commit", sha: anchor },
+      };
+    }
+    if (path.endsWith(`compare/${anchor}...${main}`)) {
+      if (state === "diverged anchor") return { status: "diverged" };
+      return { status: state === "published" ? "identical" : "ahead" };
     }
     throw new Error(`Unexpected publication path: ${path}`);
   };
 }
 
 for (const [state, accepted] of [
-  ["fully published", true],
-  ["unpublished", false],
-  ["mismatched tag", false],
+  ["published", true],
+  ["merged unpublished", true],
   ["missing release", false],
+  ["draft release", false],
+  ["unannotated tag", false],
+  ["mismatched tag", false],
+  ["diverged anchor", false],
 ]) {
-  test(`${accepted ? "accepts" : "rejects"} ${state} current main`, () => {
+  test(`${accepted ? "accepts" : "rejects"} ${state} main anchor`, () => {
     const run = () =>
       resolvePublishedMain(
         { repository: "neogenz/pulpe", sha: main },
         publicationApi(state),
       );
-    if (accepted) assert.deepEqual(run(), { version: "1.2.3", tag: "v1.2.3" });
+    if (accepted)
+      assert.deepEqual(run(), { version: "1.2.3", tag: "v1.2.3", sha: anchor });
     else assert.throws(run);
   });
 }

@@ -42,9 +42,9 @@ function assertOptions(options) {
   );
   invariant(
     options.channel === "internal"
-      ? options.automationBranch === "preview"
-      : options.automationBranch === "main" ||
-          options.automationBranch === "preview",
+      ? options.automationBranch === "main"
+      : options.automationBranch === "production" ||
+          options.automationBranch === "main",
     "Invalid automation branch",
   );
 }

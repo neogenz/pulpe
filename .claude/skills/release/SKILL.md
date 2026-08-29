@@ -14,9 +14,9 @@ Analyze code changes to produce a unified product release with clear, user-focus
 **Critical rules:**
 
 - NEVER apply versions without explicit user approval
-- NEVER push directly to `preview` or `main`, create a tag, publish a GitHub Release, or mutate Railway from this skill
+- NEVER push directly to `main` or `production`, create a tag, publish a GitHub Release, or mutate Railway from this skill
 - NEVER push the prepared `release/vX.Y.Z` branch or dispatch its PR without a separate explicit user approval after local validation
-- Production mutations (release-branch freeze, production PR, `production` pointer advance, tag, Release) run only inside the protected `apply` and `publish` modes of `release-promotion.yml`, each behind the GitHub `production` environment approval; the only remote actions this skill takes directly are the preparation PR to `preview` and the three `gh workflow run` dispatches
+- Production mutations (migrations, `production` pointer advance, tag, Release) run only inside the protected `publish` mode of `release-promotion.yml`, behind the GitHub `production` environment approval; the only remote actions this skill takes directly are the preparation PR to `main` and the two `gh workflow run` dispatches
 - NEVER tag or create the GitHub Release before the exact candidate tree is verified in production; update a `LATEST_*` gate only after its client is public (web deployment or App Store)
 - NEVER use `--force`, `--force-with-lease`, or `git push --tags`
 - If changes are ambiguous, ASK — do not guess
@@ -31,7 +31,7 @@ Use the user's invocation text as the argument (`$ARGUMENTS` in Claude Code, the
 | Format                  | Meaning                                                                                               |
 | ----------------------- | ----------------------------------------------------------------------------------------------------- |
 | `depuis le dernier tag` | Analyze since last git tag                                                                            |
-| `depuis main`           | Analyze since divergence from main                                                                    |
+| `depuis production`     | Analyze since divergence from the `production` pointer                                                |
 | _(empty)_               | Default to "depuis le dernier tag"                                                                    |
 | `--skip-whats-new`      | Keep public and visible in-app What's New quiet; Step 5c still records an intentional silent release. |
 
@@ -47,18 +47,18 @@ Use the user's invocation text as the argument (`$ARGUMENTS` in Claude Code, the
 
 Run this before modifying release files. A failed check stops the workflow without changing local or remote state.
 
-1. Require a clean, synchronized `preview` worktree and fetch the release branches and tags:
+1. Require a clean, synchronized `main` worktree and fetch the release branches and tags:
 
    ```bash
    test -z "$(git status --porcelain)"
-   git fetch origin main preview --tags
+   git fetch origin main production --tags
 
-   test "$(git branch --show-current)" = preview
-   test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
-   node .github/scripts/check-release-lineage.mjs "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
+   test "$(git branch --show-current)" = main
+   test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+   node .github/scripts/check-release-lineage.mjs "$(git rev-parse origin/production)" "$(git rev-parse HEAD)"
    ```
 
-   A feature branch must reach `preview` through its normal PR first. A hotfix present only on `main` must be reconciled through the normal branch flow before releasing.
+   A feature branch must reach `main` through its normal PR first. A hotfix present only on `production` must be reconciled through the normal branch flow before releasing.
 
 2. Require all three trusted production workflows and their three credential names. Secret values are never readable and must not be requested:
 
@@ -82,7 +82,7 @@ BASE_REF=$(git tag -l "v*" --sort=-creatordate | head -1)
 # BASE_REF=$(git tag -l --sort=-creatordate | head -1)
 ```
 
-If "depuis main": `BASE_REF="main"`
+If "depuis production": `BASE_REF="origin/production"`
 
 ### Step 2: Analyze git changes
 
@@ -401,12 +401,12 @@ export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
 
 Execute ONLY after user confirms.
 
-0. **Create the unique release branch** after rechecking that `preview` has not moved:
+0. **Create the unique release branch** after rechecking that `main` has not moved:
 
    ```bash
-   git fetch origin preview
-   test "$(git branch --show-current)" = preview
-   test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
+   git fetch origin main
+   test "$(git branch --show-current)" = main
+   test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
    test -z "$(git branch --list "release/vX.Y.Z")"
    test -z "$(git ls-remote --heads origin "refs/heads/release/vX.Y.Z")"
    git switch -c "release/vX.Y.Z"
@@ -444,7 +444,7 @@ pnpm build:shared
   --include 'projects/webapp/src/app/layout/whats-new/whats-new-toast.spec.ts')
 ```
 
-Stop on any contract failure. These targeted tests are the local fail-fast gate; the complete CI on the preparation PR to `preview` remains the second barrier.
+Stop on any contract failure. These targeted tests are the local fail-fast gate; the complete CI on the preparation PR to `main` remains the second barrier.
 
 Validate the exact cross-platform outcome from the repository root for every release:
 
@@ -510,26 +510,26 @@ Run `git status` and confirm only the expected files are staged. If anything unr
 
 ### Step 9: Commit and hand off to GitHub
 
-Show the exact release commit, the branch `release/vX.Y.Z`, the approved French GitHub Release notes, and the preparation PR target (`preview`). Then ask: "Prêt à publier la branche de release et ouvrir la PR vers preview ?"
+Show the exact release commit, the branch `release/vX.Y.Z`, the approved French GitHub Release notes, and the preparation PR target (`main`). Then ask: "Prêt à publier la branche de release et ouvrir la PR vers main ?"
 
 Only after "oui":
 
-1. Recheck that the release branch still has the synchronized `preview` commit as its unchanged `HEAD`, then create exactly one release commit:
+1. Recheck that the release branch still has the synchronized `main` commit as its unchanged `HEAD`, then create exactly one release commit:
 
    ```bash
    set -euo pipefail
    VERSION=$(node -p 'require("./package.json").version')
    BRANCH="release/v${VERSION}"
    test "$(git branch --show-current)" = "$BRANCH"
-   git fetch origin main preview --tags
-   test "$(git rev-parse HEAD)" = "$(git rev-parse origin/preview)"
-   node .github/scripts/check-release-lineage.mjs "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
+   git fetch origin main production --tags
+   test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+   node .github/scripts/check-release-lineage.mjs "$(git rev-parse origin/production)" "$(git rev-parse HEAD)"
    test -z "$(git tag -l "v${VERSION}")"
    test -z "$(git ls-remote --tags origin "refs/tags/v${VERSION}")"
    git commit -m "chore(release): v${VERSION}"
    RELEASE_SHA=$(git rev-parse --verify 'HEAD^{commit}')
-   test "$(git rev-list --count origin/preview..HEAD)" -eq 1
-   test "$(git rev-parse HEAD^)" = "$(git rev-parse origin/preview)"
+   test "$(git rev-list --count origin/main..HEAD)" -eq 1
+   test "$(git rev-parse HEAD^)" = "$(git rev-parse origin/main)"
    test "$(git show -s --format=%s "$RELEASE_SHA")" = "chore(release): v${VERSION}"
    ```
 
@@ -540,7 +540,7 @@ Only after "oui":
    test "$(git ls-remote --heads origin "refs/heads/$BRANCH" | awk '{print $1}')" = "$RELEASE_SHA"
    ```
 
-3. Open the preparation PR to `preview`. Its body is a temporary UTF-8 file whose **first line is the machine marker** `<!-- pulpe-release:vX.Y.Z:RELEASE_SHA -->` (the production authorization later re-verifies it verbatim), followed by a blank line, then the approved **GitHub Release** template from Step 5 starting with `## vX.Y.Z` (the finalizer extracts the notes from this exact section):
+3. Open the preparation PR to `main`. This single PR is the whole release: its merge commit is the candidate, and no second promotion PR follows. Its body is a temporary UTF-8 file whose **first line is the machine marker** `<!-- pulpe-release:vX.Y.Z:RELEASE_SHA -->` (the production authorization later re-verifies it verbatim), followed by a blank line, then the approved **GitHub Release** template from Step 5 starting with `## vX.Y.Z` (the finalizer extracts the notes from this exact section):
 
    ```bash
    BODY_FILE=$(mktemp)
@@ -550,15 +550,15 @@ Only after "oui":
    test "$(sed -n '3p' "$BODY_FILE")" = "## v${VERSION}"
    gh pr create \
      --repo neogenz/pulpe \
-     --base preview \
+     --base main \
      --head "$BRANCH" \
      --title "chore(release): v${VERSION}" \
      --body-file "$BODY_FILE"
    ```
 
-   Merge it only after complete CI, exact staging provider SHAs and `✅ Staging Ready (shadow)` are green — and merge it **with a merge commit** (never squash): the promotion contract requires the candidate to be a 2-parent merge whose second parent is `RELEASE_SHA`. Never edit the PR body afterwards.
+   Approve it, then merge it once `✅ CI Success` is green — **with a merge commit** (never squash): the authorization contract requires the candidate to be a 2-parent merge whose second parent is `RELEASE_SHA`. Never edit the PR body afterwards. The merge deploys nothing to production; it pushes `main`, which deploys staging and produces the `✅ Staging Ready (shadow)` proof the plan consumes. Nothing else may land on `main` between that merge and `publish` — any later commit moves the tip away from the candidate and forces a new release branch.
 
-4. Before **every** dispatch (plan, apply, publish), resolve the remote state of that exact intention. The identity is the run-name `🚦 <mode> release/vX.Y.Z`; GitHub run lists — never agent memory — are the source of truth:
+4. Before **every** dispatch (plan, publish), resolve the remote state of that exact intention. The identity is the run-name `🚦 <mode> release/vX.Y.Z`; GitHub run lists — never agent memory — are the source of truth:
 
    ```bash
    STATE=$(node .github/scripts/resolve-release-state.mjs --repository neogenz/pulpe --workflow release-promotion.yml --version "$VERSION" --mode plan)
@@ -577,28 +577,14 @@ Only after "oui":
    ```bash
    gh workflow run release-promotion.yml \
      --repo neogenz/pulpe \
-     --ref preview \
+     --ref main \
      -f release_branch="$BRANCH" \
      -f mode=plan
    ```
 
-   The `plan` job — read-only permissions, no secret, no environment — resolves the proven staging candidate, verifies that current `main` is already fully published (the rollback anchor), replays the content lineage, lists the migrations in scope and the provider deployment IDs, then uploads the `release-plan` manifest. A failure leaves `preview`, `main`, tags, GitHub Releases, and providers untouched.
+   The `plan` job — read-only permissions, no secret, no environment — resolves the proven staging candidate, verifies that the candidate is still the exact tip of `main`, anchors the rollback on the latest published release, lists the migrations in scope since that anchor and the provider deployment IDs, then uploads the `release-plan` manifest. A failure leaves `main`, `production`, tags, GitHub Releases, and providers untouched.
 
-6. After reviewing the plan manifest with the user, resolve state for `--mode apply` (same contract as step 4), then dispatch apply:
-
-   ```bash
-   gh workflow run release-promotion.yml \
-     --repo neogenz/pulpe \
-     --ref preview \
-     -f release_branch="$BRANCH" \
-     -f mode=apply
-   ```
-
-   Apply recomputes the plan, then **waits for the GitHub `production` environment approval** — that human approval is the release authorization. Once approved, the `promote` job (short-lived App token, fast-forward only) freezes `release/vX.Y.Z` on the proven candidate and opens the single production PR to `main`. Nothing else moves.
-
-7. Review and approve the production PR on GitHub, then merge it **with a merge commit** once `✅ CI Success` is green. The merge alone deploys nothing: providers track the `production` branch, which has not moved yet.
-
-8. Resolve state for `--mode publish` (same contract as step 4), then dispatch publish **on `main`** — the production authorization requires `GITHUB_SHA` to be the merge commit at the head of `main`:
+6. After reviewing the plan manifest with the user, resolve state for `--mode publish` (same contract as step 4), then dispatch publish **on `main`** — the production authorization requires `GITHUB_SHA` to be the preparation merge commit at the head of `main`:
 
    ```bash
    gh workflow run release-promotion.yml \
@@ -608,9 +594,9 @@ Only after "oui":
      -f mode=publish
    ```
 
-   Publish calls the reusable production workflow: `authorize` re-verifies the whole chain without credentials, then — behind a second `production` environment approval — `migrate` applies migrations when the release contains any, `advance` fast-forwards the `production` pointer (this push is what triggers the Vercel and Railway production deploys), and the final job waits for the exact web client before uploading the production context. Railway's successful production `deployment_status` then triggers `✅ Production Finalized` (`production-finalize.yml`), which verifies the exact active Railway/Vercel deployments and public services before idempotently creating the annotated tag and GitHub Release; the finalizer is never a Railway-required check.
+   Publish calls the reusable production workflow: `authorize` re-verifies the whole chain without credentials, then — behind the `production` environment approval — `migrate` applies migrations when the release contains any, `advance` fast-forwards the `production` pointer (this push is what triggers the Vercel and Railway production deploys), and the final job waits for the exact web client before uploading the production context. Railway's successful production `deployment_status` then triggers `✅ Production Finalized` (`production-finalize.yml`), which verifies the exact active Railway/Vercel deployments and public services before idempotently creating the annotated tag and GitHub Release; the finalizer is never a Railway-required check.
 
-This skill does not push `preview` or `main`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release.
+This skill does not push `main` or `production`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release.
 
 ## Maintenance: Re-align an already published GitHub Release
 

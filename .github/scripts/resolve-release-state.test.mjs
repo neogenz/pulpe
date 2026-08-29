@@ -41,8 +41,6 @@ const stub =
         : runs;
     if (path.includes("/matching-refs/heads/")) return branchRefs;
     if (path.includes("/matching-refs/tags/")) return tagRefs;
-    if (path.includes("/pulls?state=open&base=preview"))
-      return prs.preview ?? [];
     if (path.includes("/pulls?state=open&base=main")) return prs.main ?? [];
     throw new Error(`Unexpected API path: ${path}`);
   };
@@ -54,13 +52,10 @@ const branchRef = (sha) => [
 test("identity binds every required field and changes with any of them", () => {
   assert.equal(releaseIdentity(promotion), "🚦 plan release/v0.47.0");
   assert.equal(
-    releaseIdentity({ ...promotion, mode: "apply" }),
-    "🚦 apply release/v0.47.0",
-  );
-  assert.equal(
     releaseIdentity({ ...promotion, mode: "publish" }),
     "🚦 publish release/v0.47.0",
   );
+  assert.throws(() => releaseIdentity({ ...promotion, mode: "apply" }));
   assert.throws(() => releaseIdentity({ ...promotion, mode: "deploy" }));
   assert.equal(releaseIdentity(ios), `📲 iOS release v1.4.2 (18) ${SHA}`);
   assert.notEqual(
@@ -115,14 +110,14 @@ test("a succeeded run returns the existing resource for the same key", () => {
       runs: [run(5, "completed", "success", "🚦 plan release/v0.47.0")],
       branchRefs: branchRef(SHA),
       prs: {
-        preview: [{ number: 42, html_url: "u", head: { sha: SHA } }],
+        main: [{ number: 42, html_url: "u", head: { sha: SHA } }],
       },
     }),
   );
   assert.equal(state.state, "succeeded");
   assert.equal(state.run.run_id, 5);
   assert.deepEqual(state.resources.open_prs, [
-    { base: "preview", number: 42, url: "u" },
+    { base: "main", number: 42, url: "u" },
   ]);
 });
 
@@ -232,7 +227,7 @@ test("resource drift and ambiguity fail closed", () => {
       stub({
         branchRefs: branchRef(SHA),
         prs: {
-          preview: [
+          main: [
             { number: 1, html_url: "u", head: { sha: SHA } },
             { number: 2, html_url: "u", head: { sha: SHA } },
           ],

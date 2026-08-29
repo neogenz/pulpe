@@ -19,7 +19,7 @@ export function releaseIdentity(options) {
   if (options.workflow === "release-promotion.yml") {
     invariant(VERSION.test(options.version ?? ""), "Invalid version");
     const mode = options.mode ?? "plan";
-    invariant(["plan", "apply", "publish"].includes(mode), "Invalid mode");
+    invariant(["plan", "publish"].includes(mode), "Invalid mode");
     return `🚦 ${mode} release/v${options.version}`;
   }
   if (options.workflow === "ios-distribute.yml") {
@@ -65,7 +65,7 @@ function resolveVersionResources({ repository, version }, api) {
 
   const owner = repository.split("/")[0];
   const openPrs = [];
-  for (const base of ["preview", "main"]) {
+  for (const base of ["main"]) {
     const list = api(
       `${prefix}/pulls?state=open&base=${base}&head=${encodeURIComponent(
         `${owner}:${branch}`,
