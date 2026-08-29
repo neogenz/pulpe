@@ -1,6 +1,6 @@
 {
   "name": "pulpe-android",
-  "version": "0.47.0",
+  "version": "0.47.1",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {

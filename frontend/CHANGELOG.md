@@ -1,5 +1,12 @@
 # pulpe-frontend
 
+## 0.47.1
+
+### Patch Changes
+
+- Publication du build iOS 1.4.3 (11) contenant l'ouverture d'une opération de l'accueil d'un simple tap.
+  - pulpe-shared@0.47.1
+
 ## 0.47.0
 
 ### Minor Changes
