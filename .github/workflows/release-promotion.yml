@@ -89,13 +89,16 @@ jobs:
           tag_count=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$encoded_tag" | jq --arg ref "refs/tags/v$version" '[.[] | select(.ref == $ref)] | length')
           test "$tag_count" = 0
 
-          # Candidat staging = merge commit de la PR de préparation fusionnée
-          # dans preview; le plan exige exactement un candidat déjà prouvé.
-          # Les PR fermées sans merge (CI rouge puis nouvelle PR) sont ignorées.
+          # Candidat staging = merge commit de la DERNIÈRE PR de préparation
+          # fusionnée dans preview. Une re-promotion (nouveau candidat après un
+          # publish refusé) laisse les anciennes PR mergées derrière elle : le
+          # candidat le plus récent gagne, et chaque étape aval (marqueur,
+          # parents, preuve staging, authorize) re-vérifie ce choix. Les PR
+          # fermées sans merge (CI rouge puis nouvelle PR) sont ignorées.
           gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=all -f base=preview -f head="$owner:$RELEASE_BRANCH" -f per_page=100 > "$RUNNER_TEMP/preparation-pulls.json"
-          jq -e 'map(select(.merged_at != null)) | length == 1' "$RUNNER_TEMP/preparation-pulls.json"
-          preparation_pr=$(jq -r 'map(select(.merged_at != null)) | .[0].number' "$RUNNER_TEMP/preparation-pulls.json")
-          candidate_sha=$(jq -r 'map(select(.merged_at != null)) | .[0].merge_commit_sha' "$RUNNER_TEMP/preparation-pulls.json")
+          jq -e 'map(select(.merged_at != null)) | length >= 1' "$RUNNER_TEMP/preparation-pulls.json"
+          preparation_pr=$(jq -r 'map(select(.merged_at != null)) | sort_by(.merged_at) | last | .number' "$RUNNER_TEMP/preparation-pulls.json")
+          candidate_sha=$(jq -r 'map(select(.merged_at != null)) | sort_by(.merged_at) | last | .merge_commit_sha' "$RUNNER_TEMP/preparation-pulls.json")
           release_sha=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$preparation_pr/commits?per_page=100" --jq '.[].sha' | tail -n 1)
           test -n "$release_sha"
           test "$branch_sha" = "$release_sha" || test "$branch_sha" = "$candidate_sha"
