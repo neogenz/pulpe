@@ -53,6 +53,116 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.47.0',
+    iosVersion: '1.4.3',
+    date: '2026-08-29',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Un accueil repensé sur iOS',
+          description:
+            'L’accueil fait peau neuve : nouvelle en-tête illustrée, courbe du disponible à explorer du doigt et écrans harmonisés.',
+        },
+        {
+          title: 'Modifier une ligne depuis l’accueil',
+          description:
+            'Touche une dépense ou un revenu dans l’activité récente pour l’ouvrir, le modifier ou le supprimer.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Prénom affiché correctement',
+          description:
+            'Le prénom apparaît désormais quelle que soit la méthode de connexion : e-mail, Apple ou Google.',
+        },
+        {
+          title: 'Soldes à jour dans la liste des budgets iOS',
+          description:
+            'Les soldes restent synchronisés après chaque modification.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'A redesigned iOS home',
+            description:
+              'The home screen gets a fresh look: a new illustrated header, a spending curve you can explore with your finger, and harmonised screens.',
+          },
+          {
+            title: 'Edit a line from the home screen',
+            description:
+              'Tap an expense or income in the recent activity to open, edit or delete it.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'First name displayed correctly',
+            description:
+              'Your first name now appears regardless of the sign-in method: email, Apple or Google.',
+          },
+          {
+            title: 'Up-to-date balances in the iOS budget list',
+            description: 'Balances stay in sync after every change.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Ein neu gestalteter iOS-Startbildschirm',
+            description:
+              'Der Startbildschirm im neuen Look: illustrierter Header, eine mit dem Finger erkundbare Ausgabenkurve und harmonisierte Ansichten.',
+          },
+          {
+            title: 'Einträge direkt vom Start aus bearbeiten',
+            description:
+              'Tippe in der letzten Aktivität auf eine Ausgabe oder Einnahme, um sie zu öffnen, zu bearbeiten oder zu löschen.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Vorname korrekt angezeigt',
+            description:
+              'Der Vorname erscheint jetzt unabhängig von der Anmeldemethode: E-Mail, Apple oder Google.',
+          },
+          {
+            title: 'Aktuelle Salden in der iOS-Budgetliste',
+            description: 'Die Salden bleiben nach jeder Änderung synchron.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Una home iOS ridisegnata',
+            description:
+              'La schermata iniziale si rinnova: nuova intestazione illustrata, curva delle spese da esplorare con il dito e schermate armonizzate.',
+          },
+          {
+            title: 'Modificare una riga dalla home',
+            description:
+              'Tocca una spesa o un’entrata nell’attività recente per aprirla, modificarla o eliminarla.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Nome visualizzato correttamente',
+            description:
+              'Il nome appare ora indipendentemente dal metodo di accesso: e-mail, Apple o Google.',
+          },
+          {
+            title: 'Saldi aggiornati nell’elenco budget iOS',
+            description: 'I saldi restano sincronizzati dopo ogni modifica.',
+          },
+        ],
+      },
+    },
+  },
+  {
     version: '0.46.0',
     iosVersion: '1.4.2',
     date: '2026-08-22',

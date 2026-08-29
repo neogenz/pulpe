@@ -111,7 +111,8 @@ flowchart LR
     Merge --> Deploy["Vercel and Railway preview"]
     Deploy --> Proof["Staging Ready from Railway deployment_status"]
     Proof --> Plan["🚦 Release Promotion · read-only plan"]
-    Plan --> Apply["Phase 9: protected apply → production"]
+    Plan --> Apply["apply · production env approval → production PR"]
+    Apply --> Publish["publish on main → production.yml"]
 ```
 
 `Staging Ready` is triggered by Railway's successful preview `deployment_status`.
@@ -125,13 +126,16 @@ short release freeze therefore stops promotion. Normal preview PRs produce a pro
 are not promoted.
 
 `🚦 Release Promotion` (`release-promotion.yml`) is the single manual release
-entry. Dispatching it runs one read-only `plan` job — no secret, environment,
-or write permission — that resolves the proven staging candidate, the fully
-published current `main`, the content lineage, the migrations in scope and the
-provider deployment IDs, then uploads a `release-plan` manifest with the
-planned mutations and the rollback anchor. No `apply` input, job, or caller
-exists: phase 9 first protects the GitHub `production` environment, then
-activates apply in its own preparation PR — never through a temporary flag.
+entry, with three dispatch modes. `plan` runs one read-only job — no secret,
+environment, or write permission — that resolves the proven staging candidate,
+the fully published current `main`, the content lineage, the migrations in
+scope and the provider deployment IDs, then uploads a `release-plan` manifest
+with the planned mutations and the rollback anchor. `apply` recomputes that
+plan, waits for the GitHub `production` environment approval, then a
+short-lived App token freezes the release branch on the candidate
+(fast-forward only) and opens the single production PR to `main`. `publish`,
+dispatched on `main` after that PR merges, is the sole caller of the reusable
+`production.yml`.
 
 ## Quality boundary
 
@@ -148,17 +152,20 @@ rebase. CI always runs the complete gate.
 
 ## Migrations and production
 
-`production.yml` is exposed only as a reusable `workflow_call` workflow and has
-no active caller: it becomes reachable in phase 9 through the protected apply
-path. Its jobs authenticate the approved release PR, detect migration changes
-against the previous `main`, and only a release containing migrations enters
-the protected `production` environment for dry-run and apply — the migration
-contract is replayed on the exact merge-parent/merge range before touching
-Supabase. Each new migration declares `expand` or `contract` in its initial
-comment header, and published files cannot be changed. After provider
-deployment, `production-finalize.yml` verifies the exact Railway and Vercel
-deployments plus the public health and version endpoints, then publishes the
-production proof, immutable tag and GitHub Release.
+`production.yml` is exposed only as a reusable `workflow_call` workflow whose
+single caller is the `publish` mode of `release-promotion.yml`, dispatched on
+`main`. Its jobs authenticate the approved release PR, detect migration
+changes against the previous `main`, and only a release containing migrations
+enters the protected `production` environment for dry-run and apply — the
+migration contract is replayed on the exact merge-parent/merge range before
+touching Supabase. Each new migration declares `expand` or `contract` in its
+initial comment header, and published files cannot be changed. Once migrations
+are in, the `advance` job fast-forwards the `production` branch pointer to the
+authorized merge SHA — that push is what triggers the Vercel and Railway
+production deployments — and the final job waits for the exact web client.
+After provider deployment, `production-finalize.yml` verifies the exact
+Railway and Vercel deployments plus the public health and version endpoints,
+then publishes the production proof, immutable tag and GitHub Release.
 
 ## Local equivalents
 

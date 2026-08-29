@@ -71,7 +71,10 @@ jobs:
 
           gh api "repos/$GITHUB_REPOSITORY/pulls/$preparation_pr" > "$RUNNER_TEMP/preparation-pr.json"
           release_sha=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$preparation_pr/commits?per_page=100" --jq '.[].sha' | tail -n 1)
-          jq -e --arg candidate "$candidate_sha" --arg branch "$release_branch" '.user.login == "pulpe-release[bot]" and .base.ref == "preview" and .head.ref == $branch and .merged_at != null and .merge_commit_sha == $candidate' "$RUNNER_TEMP/preparation-pr.json"
+          # La PR de préparation est ouverte par le releaser (owner) via la
+          # skill; l'App reste acceptée pour une préparation automatisée.
+          owner="${GITHUB_REPOSITORY%%/*}"
+          jq -e --arg candidate "$candidate_sha" --arg branch "$release_branch" --arg owner "$owner" '(.user.login == "pulpe-release[bot]" or .user.login == $owner) and .base.ref == "preview" and .head.ref == $branch and .merged_at != null and .merge_commit_sha == $candidate' "$RUNNER_TEMP/preparation-pr.json"
           test "$(jq -r '.body | split("\n")[0]' "$RUNNER_TEMP/preparation-pr.json")" = "<!-- pulpe-release:v$version:$release_sha -->"
           release_base=$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$release_sha" --jq '.parents[0].sha')
           jq -e --arg release "$release_sha" --arg base "$release_base" '(.parents | length) == 2 and .parents[0].sha == $base and .parents[1].sha == $release' "$RUNNER_TEMP/candidate.json"
@@ -164,10 +167,41 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
         run: supabase db push
 
-  prepare:
-    name: 🚦 Record production authorization
+  # Avance le pointeur `production` sur le merge SHA autorisé, en fast-forward
+  # strict (force=false) : c'est ce push qui déclenche les déploiements
+  # production Vercel et Railway, une fois les migrations déjà appliquées.
+  advance:
+    name: ⏩ Advance production pointer
     needs: [authorize, migrate]
     if: ${{ always() && needs.authorize.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - name: Create short-lived GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.PULPE_RELEASE_APP_ID }}
+          private-key: ${{ secrets.PULPE_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: pulpe
+
+      - name: Fast-forward production to the authorized merge SHA
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/production" --jq .object.sha)
+          if [ "$current" != "$GITHUB_SHA" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/production" -f sha="$GITHUB_SHA" -F force=false >/dev/null
+          fi
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/production" --jq .object.sha)" = "$GITHUB_SHA"
+
+  prepare:
+    name: 🚦 Record production authorization
+    needs: [authorize, migrate, advance]
+    if: ${{ always() && needs.authorize.result == 'success' && needs.advance.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production

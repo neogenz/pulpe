@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.47.0
+
+### Minor Changes
+
+- Refonte de l'accueil iOS, ouverture des mouvements d'un geste, corrections d'affichage des montants et fiabilisation de la chaîne de release.
+
+### Patch Changes
+
+- pulpe-shared@0.47.0
+
 ## 0.46.0
 
 ### Patch Changes

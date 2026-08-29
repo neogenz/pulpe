@@ -70,15 +70,16 @@ All must be staged in the release commit, alongside the manually-bumped root `pa
 The backend embeds `backend-nest/package.json` in its build artifact and serves that
 version as `web.latestVersion`; no Railway variable is synchronized during release.
 
-Promotion is two-staged: the manual `🚦 Release Promotion` entry runs a read-only
-`plan` job today, and the apply path is **activated at the phase-9 cutover** — GitHub
-`production` environment protection first, then the protected job calling the
-reusable `production.yml` in phase 9's own preparation PR, never a temporary flag.
-Once active, that preflight proves the exact frontend SHA is public, publishes its
-immutable context, and finishes; Railway `Wait for CI` then deploys `main` as the
-sole backend deployment owner. `production-finalize.yml` verifies the exact active
-Railway SHA and the public `GET /api/v1/app/version` payload before publishing the
-tag and GitHub Release. A contradictory provider state fails closed; operators must
-not substitute a local variable write or redeploy.
+Promotion is three-staged through the single manual `🚦 Release Promotion` entry:
+`plan` (read-only manifest), `apply` (GitHub `production` environment approval, then
+the App-token `promote` job freezes the release branch and opens the production PR),
+and `publish` on `main` after that PR merges (the protected reusable `production.yml`
+re-verifies everything, applies any migrations, then fast-forwards the `production`
+pointer — the push that providers deploy). The preflight proves the exact frontend
+SHA is public and publishes its immutable context; Railway `Wait for CI` deploys the
+`production` branch as the sole backend deployment owner. `production-finalize.yml`
+verifies the exact active Railway SHA and the public `GET /api/v1/app/version`
+payload before publishing the tag and GitHub Release. A contradictory provider state
+fails closed; operators must not substitute a local variable write or redeploy.
 
 > **Never** touch `MIN_WEB_VERSION` from this skill. That value is a deliberate kill switch — only bumped when a release contains a breaking change or critical fix that must force users off old binaries. Always require explicit user confirmation before changing it.

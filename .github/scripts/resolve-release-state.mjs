@@ -18,7 +18,9 @@ export function releaseIdentity(options) {
   invariant(REPOSITORY.test(options.repository ?? ""), "Invalid repository");
   if (options.workflow === "release-promotion.yml") {
     invariant(VERSION.test(options.version ?? ""), "Invalid version");
-    return `🚦 prepare release/v${options.version}`;
+    const mode = options.mode ?? "plan";
+    invariant(["plan", "apply", "publish"].includes(mode), "Invalid mode");
+    return `🚦 ${mode} release/v${options.version}`;
   }
   if (options.workflow === "ios-distribute.yml") {
     invariant(SHA.test(options.sha ?? ""), "Invalid SHA");

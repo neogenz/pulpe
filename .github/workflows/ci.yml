@@ -1,8 +1,10 @@
 name: 🚀 CI Pipeline
 
+# `main` couvre l'unique PR de production d'une release : depuis la
+# suppression du gate de release dédié, c'est ✅ CI Success qui la prouve.
 on:
   pull_request:
-    branches: [preview]
+    branches: [preview, main]
 
 # Éviter les runs multiples pour la même ref
 concurrency:

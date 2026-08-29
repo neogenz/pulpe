@@ -51,12 +51,15 @@ jobs:
           railway_url='https://railway.com/project/33ba829c-d4d6-4096-b0dc-57c89c367063?environmentId=a28b6826-ecbe-4c0f-9856-e0ba3ce14e93'
           jq -e --argjson id "$DEPLOYMENT_STATUS_ID" --arg url "$railway_url" '[.[] | select(.id == $id and .state == "success" and .creator.login == "railway-app[bot]" and .environment_url == $url and .log_url == $url and .target_url == $url)] | length == 1' "$RUNNER_TEMP/statuses.json"
 
+          # Le workflow production tourne en réutilisable dans le run
+          # `🚦 publish` dispatché sur main; son job apparaît sous le nom
+          # préfixé du job appelant.
           proof=$(node .github/scripts/resolve-workflow-proof.mjs \
-            --workflow production.yml \
-            --event push \
+            --workflow release-promotion.yml \
+            --event workflow_dispatch \
             --branch main \
             --sha "$PRODUCTION_SHA" \
-            --job "🚦 Record production authorization" \
+            --job "🏭 Production / 🚦 Record production authorization" \
             --artifact-template "production-context-{sha}-run-{run_id}-attempt-{attempt}")
           context_run_id=$(jq -r .run_id <<< "$proof")
           context_attempt=$(jq -r .attempt <<< "$proof")
@@ -130,7 +133,7 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
         run: |
           railway deployment list --project "$RAILWAY_PROJECT" --environment production --service "$RAILWAY_SERVICE" --limit 50 --json > "$RUNNER_TEMP/railway.json"
-          jq -e --arg sha "$PRODUCTION_SHA" '.[0].status == "SUCCESS" and .[0].meta.commitHash == $sha and .[0].meta.branch == "main"' "$RUNNER_TEMP/railway.json"
+          jq -e --arg sha "$PRODUCTION_SHA" '.[0].status == "SUCCESS" and .[0].meta.commitHash == $sha and .[0].meta.branch == "production"' "$RUNNER_TEMP/railway.json"
           echo "deployment_id=$(jq -r '.[0].id' "$RUNNER_TEMP/railway.json")" >> "$GITHUB_OUTPUT"
 
       - name: Create short-lived GitHub App token
