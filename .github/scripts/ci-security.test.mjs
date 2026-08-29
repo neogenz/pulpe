@@ -630,7 +630,13 @@ test("production finishes preflight before Railway deploys", () => {
   assert.match(production, /pull-requests: read/);
   assert.doesNotMatch(production, /:\s*write\b|--force/);
   assert.match(production, /.user\.login == "pulpe-release\[bot\]"/);
-  assert.match(production, /.state == "APPROVED"/);
+  // Une review APPROVED est impossible en solo (auto-approbation interdite) :
+  // l'intention humaine est le merge manuel puis l'environnement protégé.
+  assert.match(
+    production,
+    /\.merged_by\.type == "User" and \.merged_by\.login == \$owner/,
+  );
+  assert.doesNotMatch(production, /\.state == "APPROVED"/);
   assert.doesNotMatch(production, /\.pull_requests\[\]|\.pull_requests\[\]\?/);
   assert.match(
     production,

@@ -61,8 +61,13 @@ jobs:
           test -n "$release_sha"
           test "$(jq -r '.body | split("\n")[0]' "$RUNNER_TEMP/preparation-pr.json")" = "<!-- pulpe-release:v$version:$release_sha -->"
 
-          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$preparation_pr/reviews?per_page=100" --jq '.[]' > "$RUNNER_TEMP/reviews.jsonl"
-          jq -se 'any(.state == "APPROVED" and .user.type == "User" and .user.login != "pulpe-release[bot]")' "$RUNNER_TEMP/reviews.jsonl"
+          # En solo, GitHub interdit d'approuver sa propre PR : la PR de
+          # préparation est ouverte par le releaser, donc aucune review
+          # `APPROVED` ne peut exister. L'intention humaine est prouvée par
+          # le merge manuel ici, puis par l'approbation de l'environnement
+          # `production` avant la moindre écriture.
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$preparation_pr" > "$RUNNER_TEMP/preparation-full.json"
+          jq -e --arg owner "$owner" '.merged == true and .merged_by.type == "User" and .merged_by.login == $owner' "$RUNNER_TEMP/preparation-full.json"
 
           gh api "repos/$GITHUB_REPOSITORY/git/commits/$candidate_sha" > "$RUNNER_TEMP/candidate.json"
           release_base=$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$release_sha" --jq '.parents[0].sha')
