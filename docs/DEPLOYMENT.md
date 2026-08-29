@@ -387,11 +387,14 @@ approval; the read-only `plan` mode is the only one without it.
 1. Run `/release` from a clean synchronized `main`. It creates one
    `release/vX.Y.Z` commit and its single preparation PR to `main` (body line 1:
    the `pulpe-release` marker; then the `## vX.Y.Z` notes).
-2. Approve and merge it once `✅ CI Success` is green, **with a merge commit** — the
-   candidate must be a 2-parent merge of the release commit. The merge pushes `main`,
-   which deploys staging and produces `✅ Staging Ready (shadow)`, bound to the exact
-   workflow run, attempt, successful job and artifact. Nothing else may land on `main`
-   until publish: the candidate must stay the exact tip.
+2. Merge it once `✅ CI Success` is green, **with a merge commit** — the candidate
+   must be a 2-parent merge of the release commit, merged by the repository owner
+   (`authorize` re-verifies both). No approving review exists on a solo repository;
+   the human authorization is the `production` environment approval in step 4.
+   The merge pushes `main`, which deploys staging and produces
+   `✅ Staging Ready (shadow)`, bound to the exact workflow run, attempt,
+   successful job and artifact.
+   Nothing else may land on `main` until publish: the candidate must stay the exact tip.
 3. Dispatch `🚦 Release Promotion` in `plan` mode. The read-only job — no
    secret, no environment — resolves the proven staging candidate, verifies it
    is still the tip of `main`, anchors the rollback on the latest published

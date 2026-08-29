@@ -556,7 +556,7 @@ Only after "oui":
      --body-file "$BODY_FILE"
    ```
 
-   Approve it, then merge it once `✅ CI Success` is green — **with a merge commit** (never squash): the authorization contract requires the candidate to be a 2-parent merge whose second parent is `RELEASE_SHA`. Never edit the PR body afterwards. The merge deploys nothing to production; it pushes `main`, which deploys staging and produces the `✅ Staging Ready (shadow)` proof the plan consumes. Nothing else may land on `main` between that merge and `publish` — any later commit moves the tip away from the candidate and forces a new release branch.
+   Merge it yourself once `✅ CI Success` is green — **with a merge commit** (never squash): the authorization contract requires the candidate to be a 2-parent merge whose second parent is `RELEASE_SHA`, and it re-verifies that the merge was performed by the repository owner. No approving review is possible or required here; the human authorization is the `production` environment approval during `publish`. Never edit the PR body afterwards. The merge deploys nothing to production; it pushes `main`, which deploys staging and produces the `✅ Staging Ready (shadow)` proof the plan consumes. Nothing else may land on `main` between that merge and `publish` — any later commit moves the tip away from the candidate and forces a new release branch.
 
 4. Before **every** dispatch (plan, publish), resolve the remote state of that exact intention. The identity is the run-name `🚦 <mode> release/vX.Y.Z`; GitHub run lists — never agent memory — are the source of truth:
 

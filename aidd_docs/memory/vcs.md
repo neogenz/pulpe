@@ -13,4 +13,4 @@
 ## Commits
 
 - Conventional Commits, commonly `feat`, `fix`, `chore`, `refactor`, `test`, and `docs`, optionally scoped.
-- `main` requires PR, approval, resolved threads and `✅ CI Success`; its admin bypass remains for the solo maintainer's own ordinary PRs. `production` has no bypass and is advanced fast-forward only by the publish job, behind the GitHub `production` environment approval plus the exact staging proof. Proof resolution binds to exact run/attempt/job and never infers PR identity from an Actions run's optional `pull_requests[]`. `v*` tags are immutable. See `CONTRIBUTING.md`.
+- `main` requires PR, resolved threads and `✅ CI Success`, but NO approving review: GitHub forbids approving your own PR, so on a solo repository that rule would block every merge, the release preparation PR included. `production` has no bypass and is advanced fast-forward only by the publish job, behind the GitHub `production` environment approval plus the exact staging proof. Proof resolution binds to exact run/attempt/job and never infers PR identity from an Actions run's optional `pull_requests[]`. `v*` tags are immutable. See `CONTRIBUTING.md`.

@@ -23,7 +23,7 @@ feature/* ──PR──▶ main
 1. **Branch off `main`**: `git switch main && git pull && git switch -c feature/my-thing`
 2. **Develop**, using [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, `refactor:`, …).
 3. **Quality gate before pushing**: `pnpm quality` (type-check + lint + format) plus the relevant tests (`pnpm test`, `pnpm test:e2e`).
-4. **Open a PR into `main`**. The `✅ CI Success` check must pass, and the PR needs 1 approving review with all review threads resolved.
+4. **Open a PR into `main`**. The `✅ CI Success` check must pass and all review threads must be resolved.
 5. **Validate on the QA environment.** Once merged, `main` deploys to staging — verify the change there.
 6. **Release** from a synchronized `main` with `/release`; one preparation PR merges back into `main` and the protected publish advances `production` (see [Release](#release)).
 
@@ -31,7 +31,7 @@ feature/* ──PR──▶ main
 
 Enforced by GitHub rulesets (`main-protection`, `production-protection` and `tag-protection`):
 
-- `main`: no deletion or force-push; PR, one approval, resolved threads and `✅ CI Success` are required. The solo maintainer keeps the administrator bypass for ordinary PRs authored with the maintainer account.
+- `main`: no deletion or force-push; a PR, resolved review threads and `✅ CI Success` are required. No approving review is required: GitHub forbids approving your own pull request, so on a solo repository that rule would block every merge, including the release preparation PR. The human authorization for a release is the GitHub `production` environment approval instead.
 - `production`: no deletion, force-push or administrator bypass; only the release publish job advances it, fast-forward only.
 - Release tags `v*`: immutable (no deletion, no force-move).
 
