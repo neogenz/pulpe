@@ -5,7 +5,7 @@ import { Button, Switch, Text, TextInput, useTheme } from "react-native-paper";
 
 import { hapticSuccess } from "@/core/ui/haptics";
 import { useTranslation } from "@/core/i18n/locale-store";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 
@@ -89,7 +89,7 @@ export function TemplateFormSheet({
   }
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={dismiss}
       isBusy={mutation.isPending}
@@ -149,7 +149,7 @@ export function TemplateFormSheet({
           accessibilityLabel={t("templates.form.default")}
         />
       </View>
-    </Sheet>
+    </FormModal>
   );
 }
 

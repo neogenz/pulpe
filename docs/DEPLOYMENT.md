@@ -10,10 +10,11 @@ pnpm quality && pnpm test && pnpm test:e2e
 /release
 ```
 
-`/release` prepares one `release/vX.Y.Z` branch and one version commit. GitHub then
-promotes the same candidate through a preparation PR to `preview` and a production
-PR to `main`. A human approves production; the protected workflow publishes the tag
-and GitHub Release only after the exact production tree and deployments are proven.
+`/release` prepares one `release/vX.Y.Z` branch and one version commit, merged into
+`preview` through its preparation PR. The manual `🚦 Release Promotion` entry then
+drives three modes: `plan` (read-only manifest), `apply` (production environment
+approval, then the production PR to `main`), and `publish` on the merged `main`
+(migrations, `production` pointer advance, provider deploys, tag and Release).
 
 ## Prerequisites
 
@@ -377,26 +378,61 @@ See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release ar
 
 ## Release Process
 
-1. Run `/release` from a clean synchronized `preview`. It creates one
-   `release/vX.Y.Z` commit and opens the preparation PR to `preview`.
-2. Merge only after CI, staging provider SHAs and `✅ Staging Ready (shadow)` are green.
-   Its proof is bound to the exact workflow run, attempt, successful job and artifact.
-   Promotion freezes that proven merge commit and opens `release/vX.Y.Z → main`; while
-   that PR is open, no other release PR can be opened toward `main`.
-3. `✅ Release Gate` verifies the frozen candidate, content lineage, absent future tag,
-   and that current `main` already has its exact annotated tag and published release.
-4. Approve and merge the production PR. **This is the single human release approval.**
-5. `🏭 Production Preflight` revalidates provenance and migrations, waits for the
-   exact frontend, then uploads the immutable context. Railway `Wait for CI` waits for
-   this workflow only; the backend version is embedded in the artifact.
-6. Railway deploys `main`. Its exact successful status starts `✅ Production Finalized`;
-   that workflow must never be a Railway-required check. It proves Railway, Vercel,
-   `/health` and `/api/v1/app/version`, then idempotently publishes `vX.Y.Z` and the
-   GitHub Release.
+Every production mutation runs behind the GitHub `production` environment
+approval; the read-only `plan` mode is the only one without it.
 
-`main` must require strict up-to-date status checks so an older green release PR cannot
-merge after `main` advances. The `production` environment stores secrets but has no
-reviewers; adding one would reintroduce a second approval after the production PR.
+1. Run `/release` from a clean synchronized `preview`. It creates one
+   `release/vX.Y.Z` commit and its preparation PR to `preview` (body line 1:
+   the `pulpe-release` marker; then the `## vX.Y.Z` notes).
+2. Merge only after CI, staging provider SHAs and `✅ Staging Ready (shadow)` are green,
+   **with a merge commit** — the candidate must be a 2-parent merge of the release commit.
+   Its proof is bound to the exact workflow run, attempt, successful job and artifact.
+3. Dispatch `🚦 Release Promotion` in `plan` mode. The read-only job — no
+   secret, no environment — resolves the proven staging candidate, verifies
+   that current `main` is already fully published (annotated tag + GitHub
+   Release: the rollback anchor), replays the content lineage, lists the
+   migrations in scope and the provider deployment IDs, then uploads the
+   `release-plan` manifest with the planned mutations and rollback.
+4. Dispatch `apply` on `preview`. It recomputes the plan, waits for the
+   `production` environment approval, then the App-token `promote` job freezes
+   `release/vX.Y.Z` on the candidate (fast-forward only) and opens the single
+   production PR to `main` with the `pulpe-promotion` marker. Approve and
+   merge that PR (merge commit) once `✅ CI Success` is green — the merge
+   deploys nothing because providers track the `production` branch.
+5. Dispatch `publish` on `main`. The reusable `production.yml` re-verifies the
+   whole chain, keeps the migration dry-run → apply order and the replayed
+   migration contract behind the `production` environment (skipped entirely
+   when the release carries no migration), then `advance` fast-forwards the
+   `production` pointer — the push that triggers the Vercel and Railway
+   production deploys — and waits for the exact web client.
+6. Railway's exact successful production `deployment_status` starts
+   `✅ Production Finalized`, which proves Railway, Vercel, `/health` and
+   `/api/v1/app/version`, then idempotently publishes `vX.Y.Z` and the GitHub
+   Release. That workflow must never be a Railway-required check.
+
+Rollback: applications roll back by redeploying the published `main` anchor
+recorded in the plan manifest (Vercel rollback / Railway redeploy of the exact
+SHA); migrations stay forward-only — ship a corrective migration instead.
+
+### Release identity and resume
+
+A release intention is identified by its workflow plus its exact fields — version for
+`release-promotion.yml`; SHA, marketing version, channel and build number for
+`ios-distribute.yml`. Each workflow exposes that identity as its `run-name`
+(`🚦 <mode> release/vX.Y.Z`, `📲 iOS <channel> v<version> (<build>) <sha>`), so the
+GitHub run list is the source of truth — no client keeps local state, and the GitHub
+UI `workflow_dispatch` button and `gh` CLI are the reference interfaces. Agent skills
+only prepare inputs, invoke the workflow, and display the derived state.
+
+`node .github/scripts/resolve-release-state.mjs` resolves the unique remote state of
+one identity before any dispatch: `absent` (dispatch allowed — the only such state),
+`active`/`succeeded` (the existing run and open release PR are returned; an identical
+invocation is a no-op), `failed` (rerun the exact run with `--retry <run-id>` +
+`gh run rerun`, never a duplicate dispatch), `published` (the tag already exists).
+Duplicate active runs, ambiguous branch refs or PRs, drifted PR heads and incomplete
+pagination fail closed without mutating anything. Changing any identity field (new
+SHA, version, channel or build) is a new intention. The same identity fields feed the
+candidate manifest rather than a second format.
 
 ### Recovery
 

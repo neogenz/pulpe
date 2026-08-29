@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import { PostHogProvider } from "./PostHogProvider";
 import {
   DESKTOP_BREAKPOINT_PX,
+  CONTACT_EMAIL,
   GITHUB_URL,
   IOS_APP_URL,
   MOBILE_NAV_ID,
@@ -23,15 +24,14 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
-// L'en-tête vit hors de React : le bundle applicatif arrive plusieurs secondes
-// après la peinture sur mobile, et un `useEffect` laisserait la navbar
-// transparente et le menu inerte pendant tout ce temps. L'ouverture du menu est
-// native (`<details>`) ; ce script ne fournit que ce que le navigateur ne fait
-// pas seul, et pose l'attribut de défilement sur `<html>` avant l'hydratation.
-// Cet écart attendu est ignoré directement sur l'élément racine.
-// L'en-tête est reconstruit à chaque navigation client, donc aucun écouteur ne
-// s'attache à ses éléments : tout est délégué au document, qui redemande
-// l'élément à chaque événement. `toggle` ne remonte pas, il est donc capturé.
+// The header runs outside React because the application bundle can arrive
+// several seconds after first paint on mobile. A `useEffect` would leave the
+// navbar transparent and the menu inert in the meantime. Menu disclosure is
+// native (`<details>`); this script only supplies missing browser behavior and
+// sets the scroll attribute on `<html>` before hydration. The expected mismatch
+// is suppressed on the root element. Client navigation rebuilds the header, so
+// listeners are delegated to the document and look up elements per event.
+// `toggle` does not bubble and is therefore captured.
 const headerScript = `(function(){
 if(window.pulpeHeaderReady)return;
 window.pulpeHeaderReady=1;
@@ -83,7 +83,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 else start();
 })();`;
 
-function buildJsonLd(
+export function buildJsonLd(
   locale: Locale,
   description: string,
   featureList: readonly string[],
@@ -92,13 +92,24 @@ function buildJsonLd(
     "@context": "https://schema.org",
     "@graph": [
       {
-        // Entité unique : les articles de /conseils-budget référencent son
-        // `@id` comme éditeur au lieu de la redéclarer.
+        // Single entity: /conseils-budget articles reference its `@id` as the
+        // publisher instead of declaring it again.
         "@type": "Organization",
         "@id": ORGANIZATION_ID,
         name: "Pulpe",
         url: SITE_URL,
         logo: `${SITE_URL}/icon-192.png`,
+        contactPoint: {
+          "@type": "ContactPoint",
+          email: CONTACT_EMAIL,
+          contactType: "customer support",
+          url: `${SITE_URL}/support`,
+          availableLanguage: [...LOCALES],
+        },
+        address: {
+          "@type": "PostalAddress",
+          addressCountry: "CH",
+        },
       },
       {
         "@type": "WebSite",
@@ -135,15 +146,13 @@ function buildJsonLd(
 }
 
 /**
- * Le document complet, partagé par les deux root layouts.
+ * Complete document shared by both root layouts.
  *
- * `app/(fr)/layout.tsx` et `app/[lang]/layout.tsx` sont deux racines
- * indépendantes : sous `output: 'export'` il n'existe ni middleware ni rewrite,
- * et c'est la seule forme qui garde le français à `/`. Chacune doit donc monter
- * pour son compte tout ce qui est global — la police, `globals.css`, le script
- * d'en-tête, `PostHogProvider`. Un fournisseur monté d'un seul côté échouerait
- * en silence pour les trois autres langues ; ce composant est ce qui empêche
- * les deux racines de diverger.
+ * `app/(fr)/layout.tsx` and `app/[lang]/layout.tsx` are independent roots so
+ * French can remain at `/`. Each must mount every global concern—the font,
+ * `globals.css`, header script, and `PostHogProvider`. A provider mounted in
+ * only one root would silently disappear from the other three languages; this
+ * component keeps both roots aligned.
  */
 export function RootDocument({
   locale,
@@ -160,11 +169,12 @@ export function RootDocument({
 
   return (
     <html lang={locale} className={poppins.variable} suppressHydrationWarning>
-      {/* Ce document est un root layout : `<head>` y est la bonne balise. La
-          règle ne reconnaît l'App Router qu'au chemin du fichier, et celui-ci
-          vit dans `components/`. */}
+      {/* This document is a root layout, so `<head>` is the correct element.
+          The rule detects the App Router from the file path, while this shared
+          component lives under `components/`. */}
       {/* eslint-disable-next-line @next/next/no-head-element */}
       <head>
+        <link rel="describedby" href="/llms.txt" />
         <script dangerouslySetInnerHTML={{ __html: headerScript }} />
         <script
           type="application/ld+json"
@@ -174,8 +184,8 @@ export function RootDocument({
         />
       </head>
       <body className="font-sans antialiased">
-        {/* Rendue par le document et jamais recréée par une navigation client,
-            pour que l'IntersectionObserver posé au premier chargement survive. */}
+        {/* Rendered by the document and never recreated by client navigation,
+            so the IntersectionObserver installed on first load survives. */}
         <div
           id={SCROLL_SENTINEL_ID}
           aria-hidden="true"

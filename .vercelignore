@@ -29,6 +29,7 @@ backend-nest/
 **/docs/
 **/*.md
 !README.md
+!landing/public/index.md
 
 # Test configuration
 **/playwright.config.ts

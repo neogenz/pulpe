@@ -41,3 +41,5 @@ Fail-closed checks were rejected because a backend outage would become a total c
 - `backend-nest/src/modules/app-version/`
 - `frontend/projects/webapp/src/app/core/app-version/`
 - `ios/Pulpe/Domain/Store/AppVersionStore.swift`
+- `android/src/core/system/system-store.ts`, which applies the same rule: fail open on the
+  first check, then never lower a gate a later failure cannot re-confirm

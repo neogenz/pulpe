@@ -11,7 +11,6 @@ interface Testimonial {
   highlight: string;
   tail: string;
   name: string;
-  role?: string;
   since: string;
 }
 
@@ -21,7 +20,6 @@ const testimonials: Testimonial[] = [
     highlight: "les dépenses que je ne voyais pas venir",
     tail: ", je les vois arriver maintenant.",
     name: "Ismaël S.",
-    role: "Ingénieur en informatique",
     since: "Utilisateur depuis novembre 2025",
   },
   {
@@ -36,7 +34,6 @@ const testimonials: Testimonial[] = [
     highlight: "prévoir nos vacances sur l’année",
     tail: " et voir tout de suite si ça rentre dans notre budget. Ça me rassure.",
     name: "Julie D.",
-    role: "Employée de commerce",
     since: "Utilisatrice depuis décembre 2025",
   },
 ];
@@ -218,6 +215,7 @@ const fr = {
     },
 
     testimonials: {
+      eyebrow: "Témoignages",
       heading: "Pourquoi ils utilisent Pulpe.",
       // Les prénoms ne se traduisent pas ; le rôle et l’ancienneté oui, et
       // l’ancienneté s’accorde au genre en français.
@@ -509,7 +507,7 @@ const fr = {
 
   notFound: {
     title: "Cette page n’existe pas",
-    text: "L’application Pulpe a déménagé. Tu peux y accéder directement sur son nouveau domaine.",
+    text: "Le chemin demandé est inconnu. Utilise les liens ci-dessous pour retrouver une page utile.",
     appCta: "Accéder à l’app",
     homeCta: "Retour à l’accueil",
   },

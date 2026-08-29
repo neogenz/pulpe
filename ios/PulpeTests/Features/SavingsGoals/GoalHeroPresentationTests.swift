@@ -258,4 +258,45 @@ struct GoalHeroPresentationTests {
         #expect(makePresentation(makeProgress()).initialAmountLine == nil)
         #expect(makePresentation(makeProgress(initialAmount: 500)).initialAmountLine?.isEmpty == false)
     }
+
+    // MARK: - Tiles and accent (HeroZone)
+
+    @Test("day 1: no verdict, the beat stands in, and no date tile yet")
+    func tiles_dayOneHasNoDateTile() {
+        let progress = makeProgress(months: [makeMonth(month: 6, state: .current, isLocked: false)])
+
+        let presentation = makePresentation(progress)
+
+        #expect(presentation.verdict == nil)
+        #expect(presentation.dayOneBeat != nil)
+        #expect(presentation.tiles.isEmpty)
+        #expect(presentation.accent == .neutral)
+    }
+
+    @Test("without a target there is no bar and no pace tile")
+    func tiles_noTargetHasNoBarNorPaceTile() {
+        let presentation = makePresentation(makeProgress(targetAmount: nil))
+
+        let hasPaceTile = presentation.tiles.contains { $0.identifier == "savingsGoalPaceTile" }
+        #expect(presentation.bar == nil)
+        #expect(!hasPaceTile)
+    }
+
+    @Test("a plan that falls behind reads as caution, never as deficit")
+    func accent_behindIsCaution() {
+        let presentation = makePresentation(makeProgress(
+            plannedProjection: 2_400,
+            projected: 2_400,
+            paceStatus: .behind
+        ))
+
+        let hasPaceTile = presentation.tiles.contains { $0.identifier == "savingsGoalPaceTile" }
+        #expect(presentation.accent == .caution)
+        #expect(hasPaceTile)
+    }
+
+    @Test("on track reads as positive once a month has closed")
+    func accent_onTrackIsPositive() {
+        #expect(makePresentation(makeProgress()).accent == .positive)
+    }
 }

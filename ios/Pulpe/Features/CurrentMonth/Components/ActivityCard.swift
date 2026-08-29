@@ -6,6 +6,7 @@ struct ActivityCard: View {
     let transactions: [Transaction]
     var tagNamesById: [String: String] = [:]
     var onViewAll: () -> Void
+    var onEdit: (Transaction) -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var window: Window = .week
@@ -108,39 +109,23 @@ struct ActivityCard: View {
             }
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
+        // `.contain` first: a bare identifier on the container overwrites every row's own,
+        // and the rows are what the UI tests tap.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("homeActivityCard")
     }
 
     // MARK: - Window Picker
 
-    /// Two `PulpeChip`s, on the model of `BudgetTypeFilter.typePill`: this is a selector,
-    /// not the filter pastille `SegmentedPicker` renders, and it sat as the biggest solid
-    /// green below the fold — the same ink as the CTA, for a state instead of the action
-    /// the product depends on.
+    /// A 1-of-N choice, so the app's single segmented control (The Three Families Rule).
     private var windowPicker: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ForEach(Window.allCases, id: \.self) { option in
-                windowChip(option)
-            }
+        SegmentedPicker(
+            selection: $window.animation(.snappy(duration: DesignTokens.Animation.fast)),
+            title: nil
+        ) { option in
+            Text(option.label)
         }
-        .sensoryFeedback(.selection, trigger: window)
-        .accessibilityElement(children: .contain)
         .accessibilityLabel("Période d'activité")
-    }
-
-    @ViewBuilder
-    private func windowChip(_ option: Window) -> some View {
-        let isSelected = window == option
-
-        Button {
-            withAnimation(.snappy(duration: DesignTokens.Animation.fast)) {
-                window = option
-            }
-        } label: {
-            PulpeChip(label: option.label, style: isSelected ? .solid : .outlined)
-        }
-        .plainPressedButtonStyle()
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     // MARK: - Day group
@@ -157,41 +142,52 @@ struct ActivityCard: View {
 
             VStack(spacing: DesignTokens.Spacing.none) {
                 ForEach(Array(group.transactions.enumerated()), id: \.element.id) { index, transaction in
-                    if index > 0 { Divider() }
+                    if index > 0 { Divider().padding(.horizontal, DesignTokens.Spacing.lg) }
                     row(transaction)
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.xs)
             .pulpeRowCard()
         }
     }
 
+    /// A tap opens the operation's own page, where it is edited and — behind that page's
+    /// own undo — deleted. The chevron makes the promise before any gesture; a swipe kept
+    /// both actions hidden until guessed, and never rendered like the system's outside a
+    /// `List`.
     private func row(_ transaction: Transaction) -> some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            RowIcon(systemName: transaction.kind.icon, tint: transaction.kind.color)
+        Button { onEdit(transaction) } label: {
+            HStack(spacing: DesignTokens.Spacing.lg) {
+                RowIcon(systemName: transaction.kind.icon, tint: transaction.kind.color)
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(transaction.name)
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.textPrimary)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text(transaction.name)
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(Color.textPrimary)
+                        .lineLimit(1)
 
-                // No date under the name any more: the day is named once, above the card
-                // these rows sit in. `followsText` goes with it — nothing precedes the
-                // chips on this line for them to trail.
-                let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
-                if !tagNames.isEmpty {
-                    TagChips(names: tagNames, presentation: .count)
+                    // No date under the name: the day is named once, above the card these
+                    // rows sit in. `followsText` goes with it — nothing precedes the chips
+                    // on this line for them to trail.
+                    let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
+                    if !tagNames.isEmpty {
+                        TagChips(names: tagNames, presentation: .count)
+                    }
                 }
+
+                Spacer(minLength: DesignTokens.Spacing.sm)
+
+                amountColumn(transaction)
+
+                RowChevron()
             }
-
-            Spacer(minLength: DesignTokens.Spacing.sm)
-
-            amountColumn(transaction)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.md)
         }
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .accessibilityElement(children: .combine)
+        .contentShape(Rectangle())
+        .plainPressedButtonStyle()
+        .accessibilityHint("Touche pour modifier")
+        .accessibilityIdentifier("homeActivityRow-\(transaction.id)")
     }
 
     /// Mock renders activity amounts in neutral ink (not kind-colored);

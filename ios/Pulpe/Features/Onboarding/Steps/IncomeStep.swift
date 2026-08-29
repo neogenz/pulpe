@@ -25,10 +25,6 @@ struct IncomeStep: View {
                             Text("Tu comptes en francs ou en euros ?")
                                 .font(PulpeTypography.labelMedium)
                                 .foregroundStyle(Color.onSurfaceVariant)
-                            Text("Tu pourras changer plus tard si besoin.")
-                                .font(PulpeTypography.caption)
-                                .foregroundStyle(Color.textTertiaryOnboarding)
-                                .fixedSize(horizontal: false, vertical: true)
                             SegmentedPicker(
                                 selection: Binding(
                                     get: { state.currency },

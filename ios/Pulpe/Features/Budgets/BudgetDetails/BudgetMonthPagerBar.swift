@@ -1,8 +1,9 @@
 import SwiftUI
 
 /// Sticky horizontal month pager that appears under the nav bar once the user has scrolled
-/// past the hero on `BudgetDetailsView`. Inspired by Revolut's transactions screen: shows every
-/// month with an existing budget (chronological, cross-year), centered focused chip, edge fade.
+/// past the hero on `BudgetDetailsView`, drawn in hero ink for the forest chrome that carries
+/// it. Inspired by Revolut's transactions screen: shows every month with an existing budget
+/// (chronological, cross-year), centered focused chip, edge fade.
 ///
 /// Behavior:
 /// - **Tap** a chip → switches budget, scroll-snaps the chip to center.
@@ -65,9 +66,13 @@ private struct BudgetMonthPagerChip: View {
 
     var body: some View {
         Button(action: onTap) {
+            // Hero ink on the forest chrome: the selected month is the one solid chip,
+            // the others are tiles (The Hero Depth Rule: a tint, never a stroke).
             PulpeChip(
                 label: shortLabel,
-                style: isSelected ? .solid : .outlined
+                style: isSelected
+                    ? .tinted(surface: .heroInk, foreground: .heroSurface)
+                    : .tinted(surface: .heroTile, foreground: .heroInk)
             )
         }
         .plainPressedButtonStyle()

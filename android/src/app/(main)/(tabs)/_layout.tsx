@@ -1,8 +1,7 @@
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Tabs } from "expo-router";
 import { useTheme } from "react-native-paper";
 
-import { ICON_SIZE } from "@/core/ui/theme";
+import { NavigationBar } from "@/core/ui/navigation-bar";
 import { useTranslation } from "@/core/i18n/locale-store";
 
 /**
@@ -10,6 +9,9 @@ import { useTranslation } from "@/core/i18n/locale-store";
  * push on the stack one level up: a screen that cannot be reached from the bar
  * has no business being a tab, and registering it here — even hidden behind
  * `href: null` — is what left the bar with no active item on a detail screen.
+ *
+ * Icons are the bar's own (`NavigationBar`); the options keep what the bar
+ * reads back — the title and the accessibility label.
  */
 export default function TabsLayout() {
   const theme = useTheme();
@@ -17,17 +19,9 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      tabBar={(props) => <NavigationBar {...props} />}
       screenOptions={{
         headerShown: false,
-        // No `tabBarVariant: "material"` here, however much the bar looks like
-        // UIKit: that variant is the Material navigation *rail*, and asking for
-        // it at the bottom throws on render — "only supported when
-        // 'tabBarPosition' is set to 'left' or 'right'"
-        // (`BottomTabBar.js:122`). A Material 3 bottom bar with its active
-        // pill would have to be a `tabBar` of our own.
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-        tabBarStyle: { backgroundColor: theme.colors.surface },
         sceneStyle: { backgroundColor: theme.colors.background },
       }}
     >
@@ -36,13 +30,6 @@ export default function TabsLayout() {
         options={{
           title: t("main.tabs.home.short"),
           tabBarAccessibilityLabel: t("main.tabs.home.accessibility"),
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons
-              name="home-variant-outline"
-              size={ICON_SIZE.lg}
-              color={color}
-            />
-          ),
         }}
       />
       <Tabs.Screen
@@ -50,13 +37,6 @@ export default function TabsLayout() {
         options={{
           title: t("main.tabs.budgets.short"),
           tabBarAccessibilityLabel: t("main.tabs.budgets.accessibility"),
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons
-              name="calendar-month-outline"
-              size={ICON_SIZE.lg}
-              color={color}
-            />
-          ),
         }}
       />
       <Tabs.Screen
@@ -64,13 +44,6 @@ export default function TabsLayout() {
         options={{
           title: t("main.tabs.goals.short"),
           tabBarAccessibilityLabel: t("main.tabs.goals.accessibility"),
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons
-              name="target"
-              size={ICON_SIZE.lg}
-              color={color}
-            />
-          ),
         }}
       />
       <Tabs.Screen
@@ -78,13 +51,6 @@ export default function TabsLayout() {
         options={{
           title: t("main.tabs.templates.short"),
           tabBarAccessibilityLabel: t("main.tabs.templates.accessibility"),
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons
-              name="file-document-outline"
-              size={ICON_SIZE.lg}
-              color={color}
-            />
-          ),
         }}
       />
     </Tabs>

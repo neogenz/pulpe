@@ -91,49 +91,37 @@ struct BudgetDetailsView: View {
         let screenState = projector.screenState
 
         return Group {
-            if screenState.isLoading && !screenState.isBudgetPresent {
-                BudgetDetailsSkeletonView()
+            switch screenState.content {
+            case .loaded:
+                content
                     .transition(.opacity)
-            } else if screenState.errorIsTerminal, let error = projector.terminalError {
-                ErrorView(error: error) {
+            case .failed: // the projector sets terminalError in the same pass; the fallback never renders
+                ErrorView(error: projector.terminalError ?? APIError.invalidResponse) {
                     await coordinator.dispatch(.loadDetails(force: false))
                 }
                 .transition(.opacity)
-            } else if screenState.isBudgetPresent {
-                content
+            case .loading:
+                BudgetDetailsSkeletonView()
                     .transition(.opacity)
             }
         }
         .trackScreen("BudgetDetails")
-        .animation(DesignTokens.Animation.smoothEaseOut, value: screenState.isLoading)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: screenState.content)
         .navigationTitle(screenState.monthYear.isEmpty ? "Budget" : screenState.monthYear)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.appBackground, for: .navigationBar)
-        .toolbarBackgroundVisibility(.visible, for: .navigationBar)
+        // Hero under the nav bar on the forest surface: light ink when loaded, default ink on error / skeleton.
+        .toolbarColorScheme(screenState.content == .loaded ? .dark : nil, for: .navigationBar)
+        .heroNavigationBar()
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    router.present(.realizedBalance)
-                } label: {
-                    Image(systemName: "chart.bar.fill")
-                }
-                .iconButtonStyle()
-                .accessibilityLabel("Suivi du budget")
-                .accessibilityIdentifier("budgetTrackingButton")
-                if screenState.isBudgetPresent {
-                    Button { router.present(.addBudgetLine) } label: {
-                        Image(systemName: "plus")
-                    }
-                    .iconButtonStyle()
-                    .accessibilityLabel("Ajouter une prévision")
-                    .accessibilityIdentifier("budgetAddLineButton")
-                }
+                trailingToolbarButtons
             }
+            .heroToolbarGroup(screenState.content == .loaded)
         }
         // Scroll-independent month navigation (system title chevron). The sticky
-        // pager only reveals after ~32pt of scroll — a short filtered list (e.g.
-        // "À pointer" fully checked) can never produce that, so the title menu is
-        // the guaranteed path; the pager stays as the scrolled fast path.
+        // pager only reveals once the hero has scrolled under the bar — a short
+        // filtered list (e.g. "À pointer" fully checked) can never produce that, so
+        // the title menu is the guaranteed path; the pager stays as the scrolled fast path.
         .toolbarTitleMenu {
             // Newest first: a title menu is a quick-jump list and the recent
             // months are the target in practice — chronological order would bury
@@ -152,21 +140,22 @@ struct BudgetDetailsView: View {
                 currentMonthStore: currentMonthStore,
                 savingsGoalStore: savingsGoalStore
             )
-            // Resolve "Objectif" names for saving rows / the line detail chip.
-            await savingsGoalStore.loadIfNeeded()
-            await tagStore.loadIfNeeded()
+            // The budget first: until its load is dispatched the screen has neither a
+            // skeleton nor content, and the two lookups below cost a round trip each.
             if !screenState.hasAllBudgets {
                 await coordinator.dispatch(.loadDetails(force: false))
             } else {
                 await coordinator.dispatch(.reloadCurrentBudget)
             }
+            // Resolve "Objectif" names for saving rows / the line detail chip.
+            await savingsGoalStore.loadIfNeeded()
+            await tagStore.loadIfNeeded()
         }
         .task(id: screenState.referencedTagIds) { await tagStore.loadIfNeeded(for: screenState.referencedTagIds) }
-        .onChange(of: searchText) { _, newValue in
-            projector.setSearchText(newValue)
-        }
-        .sheet(item: $router.sheet) { dest in
-            sheetContent(for: dest)
+        .onChange(of: searchText) { _, newValue in projector.setSearchText(newValue) }
+        .sheet(item: $router.sheet) { destination in
+            BudgetDetailSheetContent(destination: destination)
+                .environment(coordinator)
         }
         .navigationDestination(for: BudgetLinePushRoute.self) { route in
             pushDestination(for: route)
@@ -197,9 +186,31 @@ struct BudgetDetailsView: View {
         }
     }
 
+    @ViewBuilder
+    private var trailingToolbarButtons: some View {
+        let isLoaded = projector.screenState.content == .loaded
+        Button {
+            router.present(.realizedBalance)
+        } label: {
+            Image(systemName: "chart.bar.fill")
+        }
+        .heroToolbarButtonStyle(isLoaded)
+        .accessibilityLabel("Suivi du budget")
+        .accessibilityIdentifier("budgetTrackingButton")
+        if isLoaded {
+            Button { router.present(.addBudgetLine) } label: {
+                Image(systemName: "plus")
+            }
+            .heroToolbarButtonStyle(true)
+            .accessibilityLabel("Ajouter une prévision")
+            .accessibilityIdentifier("budgetAddLineButton")
+        }
+    }
+
     private var content: some View {
         let screenState = projector.screenState
         let sections = screenState.sections
+        let checkingTipLineId = screenState.checkingTipLineId
         let free = screenState.free
 
         return ScrollView {
@@ -215,75 +226,91 @@ struct BudgetDetailsView: View {
                 )
                 .onGeometryChange(
                     for: CGFloat.self,
-                    of: { $0.frame(in: .scrollView).minY },
-                    action: { newMinY in scrollTracker.update(heroMinY: newMinY) }
+                    of: { $0.frame(in: .global).maxY },
+                    action: { maxY in scrollTracker.update(heroMaxY: maxY) }
                 )
+                .heroZone()
 
-                TipView(ProductTips.pessimisticCheck)
-                    .pulpeTipBackground()
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.sm)
+                VStack(spacing: 0) {
+                    TipView(ProductTips.pessimisticCheck)
+                        .pulpeTipBackground()
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .padding(.bottom, DesignTokens.Spacing.sm)
 
-                if let prefill = tightMonthCardPrefill {
-                    tightMonthCard(prefill: prefill)
-                }
+                    if let prefill = tightMonthCardPrefill {
+                        tightMonthCard(prefill: prefill)
+                    }
 
-                BudgetTypeFilter(
-                    kind: typeFilterBinding,
-                    checked: checkedFilterBinding,
-                    counts: screenState.kindCounts,
-                    checkedCounts: screenState.checkedCounts
-                )
-                .popoverTip(ProductTips.checking)
+                    BudgetTypeFilter(
+                        kind: typeFilterBinding,
+                        checked: checkedFilterBinding,
+                        counts: screenState.kindCounts,
+                        checkedCounts: screenState.checkedCounts
+                    )
+                    // The rail sits inside the zone's top curve: a chip scrolled to the edge
+                    // is cut along that same curve rather than drawn over the hero.
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .clipShape(
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: DesignTokens.CornerRadius.zone,
+                            topTrailingRadius: DesignTokens.CornerRadius.zone,
+                            style: .continuous
+                        )
+                    )
+                    .padding(.top, -DesignTokens.Spacing.lg)
 
-                if !searchText.isEmpty && sections.isEmpty && free.isEmpty {
-                    ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
+                    if !searchText.isEmpty && sections.isEmpty && free.isEmpty {
+                        ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, DesignTokens.Spacing.xxl)
+                    }
+
+                    if screenState.canShowEmptyChecked {
+                        ContentUnavailableView {
+                            Label("Tout est pointé", systemImage: "checkmark.circle.fill")
+                        } description: {
+                            Text("Bien joué ! Passe sur « Tout voir » pour revoir tes prévisions.")
+                        }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, DesignTokens.Spacing.xxl)
-                }
-
-                if screenState.canShowEmptyChecked {
-                    ContentUnavailableView {
-                        Label("Tout est pointé", systemImage: "checkmark.circle.fill")
-                    } description: {
-                        Text("Bien joué ! Passe sur « Tout voir » pour revoir tes prévisions.")
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DesignTokens.Spacing.xxl)
-                }
 
-                ForEach(sections) { section in
-                    BudgetMixedSection(
-                        kind: section.kind,
-                        items: section.items,
-                        currency: userSettingsStore.currency,
-                        goalNamesById: savingsGoalNamesById,
-                        tagNamesById: tagStore.namesById,
-                        savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
-                        onTap: { line in
-                            router.push(.lineDetail(lineId: line.id))
-                        },
-                        onTogglePointed: { line in handlePointGesture(on: line) }
-                    )
-                }
+                    ForEach(sections) { section in
+                        BudgetMixedSection(
+                            kind: section.kind,
+                            items: section.items,
+                            currency: userSettingsStore.currency,
+                            goalNamesById: savingsGoalNamesById,
+                            tagNamesById: tagStore.namesById,
+                            savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
+                            checkingTipLineId: checkingTipLineId,
+                            onTap: { line in
+                                router.push(.lineDetail(lineId: line.id))
+                            },
+                            onTogglePointed: { line in handlePointGesture(on: line) }
+                        )
+                    }
 
-                if !free.isEmpty {
-                    BudgetDetailsFreeTransactionsList(
-                        items: free,
-                        currency: userSettingsStore.currency,
-                        tagNamesById: tagStore.namesById,
-                        onTap: { transaction in
-                            router.push(.editTx(transactionId: transaction.id))
-                        },
-                        onTogglePointed: { transaction in
-                            Task {
-                                await coordinator.dispatch(.toggleTransaction(transaction))
+                    if !free.isEmpty {
+                        BudgetDetailsFreeTransactionsList(
+                            items: free,
+                            currency: userSettingsStore.currency,
+                            tagNamesById: tagStore.namesById,
+                            onTap: { transaction in
+                                router.push(.editTx(transactionId: transaction.id))
+                            },
+                            onTogglePointed: { transaction in
+                                Task {
+                                    await coordinator.dispatch(.toggleTransaction(transaction))
+                                }
                             }
-                        }
-                    )
-                }
+                        )
+                    }
 
-                Color.clear.frame(height: DesignTokens.Spacing.lg)
+                    Color.clear.frame(height: DesignTokens.Spacing.lg)
+                }
+                .padding(.top, DesignTokens.Spacing.lg)
+                .contentZone()
             }
         }
         .scrollContentBackground(.hidden)
@@ -305,7 +332,7 @@ struct BudgetDetailsView: View {
             reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
             value: screenState.checkedTickHash
         )
-        .pulpeBackground()
+        .background { Color.appBackground.ignoresSafeArea() }
         .searchable(
             text: $searchText,
             placement: .navigationBarDrawer(displayMode: .automatic),

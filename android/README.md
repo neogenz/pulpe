@@ -35,15 +35,21 @@ pnpm dev:android
 | --------------------------------------------- | --------------------------------------------------------- |
 | `pnpm dev:android`                            | Builds `shared`, then starts Metro against a device       |
 | `pnpm build:android`                          | `expo export` — the only check that Metro resolves it all |
-| `pnpm --filter pulpe-android test`            | Jest                                                      |
+| `pnpm --filter pulpe-android test`            | Jest, full `src` coverage and measured coverage floors    |
 | `pnpm --filter pulpe-android test:e2e`        | Maestro smoke flow on an installed preview APK            |
 | `pnpm --filter pulpe-android quality`         | tsc + eslint + prettier                                   |
 | `pnpm --filter pulpe-android native:generate` | Regenerates the native project                            |
+| `pnpm deps:check`                             | Expo compatibility and frontend/Android import cycles     |
 
 The existing GitHub jobs cover build, unit tests and quality through the
 Turborepo workspace. `.github/workflows/android-e2e.yml` adds the native gap: it
 builds a release APK, boots an emulator and runs the Maestro smoke journey. EAS
-Workflows remains responsible only for shareable preview builds.
+Workflows only builds the production AAB (`docs-android/RELEASE.md`).
+
+Jest collects every production TypeScript module, including modules no test
+imports. Global and auth/vault/API floors live in `jest.config.js`; raise them
+when coverage improves, never lower them to make a change pass. The HTML report
+is generated under `android/coverage/lcov-report/`.
 
 The E2E command expects a running Android emulator, a preview APK already
 installed, and a reachable backend. Local Supabase must contain the seeded

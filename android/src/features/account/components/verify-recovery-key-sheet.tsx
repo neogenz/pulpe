@@ -5,7 +5,7 @@ import { API_ERROR_CODES } from "pulpe-shared";
 import { isApiError } from "@/core/api/api-error";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { FieldError } from "@/core/ui/field-error";
 import {
   formatRecoveryKey,
@@ -67,7 +67,7 @@ export function VerifyRecoveryKeySheet({
   }
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={onDismiss}
       isBusy={isSubmitting}
@@ -108,6 +108,6 @@ export function VerifyRecoveryKeySheet({
           {t("settings.security.recoveryInvalidCharacters")}
         </FieldError>
       )}
-    </Sheet>
+    </FormModal>
   );
 }

@@ -131,7 +131,7 @@ export default function CreateBudgetScreen() {
         description: formatMonthName(period.month, period.year, locale),
         templateId: selectedTemplateId,
       },
-      { onSuccess: () => router.back() },
+      { onSuccess: (budget) => router.replace(`/budget/${budget.id}`) },
     );
   }
 

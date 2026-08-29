@@ -8,5 +8,6 @@ export { AccordionItem } from "./AccordionItem";
 export { GrainOverlay } from "./GrainOverlay";
 export { MarkerDraw } from "./MarkerDraw";
 export { ArrowNote } from "./ArrowNote";
+export { Signature } from "./Signature";
 export { StickyCTA } from "./StickyCTA";
 export { Amount, CurrencyUnit, Money } from "./Money";

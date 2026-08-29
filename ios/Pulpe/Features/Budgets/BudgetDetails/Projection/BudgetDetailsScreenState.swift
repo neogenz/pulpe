@@ -26,16 +26,18 @@ struct BudgetDetailsScreenState: Equatable {
     /// the underlying budget hasn't loaded yet.
     let monthYear: String
 
-    let isLoading: Bool
+    /// What the page renders. One case per branch of the body's `switch`, so
+    /// no combination of store state can leave the page without a view: a
+    /// budget on screen is `.loaded` even while it refreshes or after a stale
+    /// error; an error with nothing to show is `.failed`; everything else,
+    /// "not started" included, is `.loading`.
+    enum Content: Equatable {
+        case loading
+        case failed
+        case loaded
+    }
 
-    /// True only when the error path should replace the entire content
-    /// (skeleton + content branches removed). Mirrors the VM rule
-    /// "error visible AND budget == nil → ErrorView".
-    let errorIsTerminal: Bool
-
-    /// `dataStore.budget != nil`. Hoisted into the DTO so views never reach
-    /// into the data store for a presence check.
-    let isBudgetPresent: Bool
+    let content: Content
 
     /// `!dataStore.allBudgets.isEmpty`. Drives the "skip the full load when
     /// the pager already has all months" path inside `.task(id:)`.
@@ -103,9 +105,7 @@ struct BudgetDetailsScreenState: Equatable {
     static let empty = BudgetDetailsScreenState(
         budgetId: "",
         monthYear: "",
-        isLoading: false,
-        errorIsTerminal: false,
-        isBudgetPresent: false,
+        content: .loading,
         hasAllBudgets: false,
         hero: HeroState.empty,
         rollover: nil,
@@ -159,6 +159,17 @@ struct BudgetDetailsScreenState: Equatable {
         let amount: Decimal
         let previousBudgetId: String?
         let previousBudgetMonth: String?
+    }
+
+    /// The one disc the checking tip's arrow lands on: the first line still to point,
+    /// in display order. One anchor per tip, or TipKit pops a popover on every row.
+    var checkingTipLineId: String? { Self.checkingTipLineId(in: sections) }
+
+    static func checkingTipLineId(in sections: [Section]) -> String? {
+        sections.lazy
+            .flatMap(\.items)
+            .first { !$0.line.isChecked && !$0.line.isVirtualRollover && !$0.line.isPlannedSavingsWithdrawal }?
+            .line.id
     }
 
     struct Section: Identifiable, Equatable {

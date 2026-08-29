@@ -28,7 +28,10 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "  Impôts  ", kind: .expense, amount: 80, mode: .perMonth, conversion: nil, spreadGroupId: Self.testGroupId)
+            input: .init(
+                name: "  Impôts  ", kind: .expense, amount: 80,
+                mode: .perMonth, conversion: nil, spreadGroupId: Self.testGroupId
+            )
         )
 
         #expect(data.name == "Impôts")
@@ -54,7 +57,10 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Loyer", kind: .expense, amount: 500, mode: .perMonth, conversion: nil, spreadGroupId: Self.testGroupId)
+            input: .init(
+                name: "Loyer", kind: .expense, amount: 500,
+                mode: .perMonth, conversion: nil, spreadGroupId: Self.testGroupId
+            )
         )
 
         #expect(data.months.map { TranchePair($0.year, $0.month) } == [
@@ -71,7 +77,10 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Vacances", kind: .expense, amount: 90, mode: .total, conversion: nil, spreadGroupId: Self.testGroupId)
+            input: .init(
+                name: "Vacances", kind: .expense, amount: 90,
+                mode: .total, conversion: nil, spreadGroupId: Self.testGroupId
+            )
         )
 
         #expect(data.mode == .total)
@@ -97,7 +106,10 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Assurance", kind: .expense, amount: 100, mode: .total, conversion: conversion, spreadGroupId: Self.testGroupId)
+            input: .init(
+                name: "Assurance", kind: .expense, amount: 100,
+                mode: .total, conversion: conversion, spreadGroupId: Self.testGroupId
+            )
         )
 
         // FX figé: the converted total + the original total ride at request level.
@@ -127,7 +139,10 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Assurance", kind: .expense, amount: 100, mode: .perMonth, conversion: conversion, spreadGroupId: Self.testGroupId)
+            input: .init(
+                name: "Assurance", kind: .expense, amount: 100,
+                mode: .perMonth, conversion: conversion, spreadGroupId: Self.testGroupId
+            )
         )
 
         // One exchangeRate + one perMonthOriginalAmount at request level (FX figé).
@@ -203,7 +218,10 @@ struct AddBudgetLineSpreadLogicTests {
         // Mirror exactly what `AddBudgetLineSheet.addSpread()` does.
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Impôts", kind: .expense, amount: 80, mode: .perMonth, conversion: nil, spreadGroupId: Self.testGroupId)
+            input: .init(
+                name: "Impôts", kind: .expense, amount: 80,
+                mode: .perMonth, conversion: nil, spreadGroupId: Self.testGroupId
+            )
         )
         let response = try await dependencies.createSpread(data)
         dependencies.invalidateCrossBudgetCaches(BudgetListStore())

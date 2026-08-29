@@ -25,7 +25,7 @@ import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatRelativeDay } from "@/core/ui/date-format";
 import { FadingRail } from "@/core/ui/fading-rail";
 import { FilterChip } from "@/core/ui/filter-chip";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 import { useSavingsGoalWithdrawalOptions } from "@/features/savings-goals/goals-queries";
@@ -200,7 +200,7 @@ export function TransactionSheet({
 
   return (
     <>
-      <Sheet
+      <FormModal
         isVisible={isVisible}
         onDismiss={dismiss}
         isBusy={mutation.isPending}
@@ -414,7 +414,7 @@ export function TransactionSheet({
           selectedIds={draft.tagIds}
           onChange={(tagIds) => change({ tagIds })}
         />
-      </Sheet>
+      </FormModal>
 
       {/* Android's own dialog, not a full-page calendar: mounting this renders
           nothing and asks the platform to present its picker. */}

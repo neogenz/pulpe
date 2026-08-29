@@ -56,7 +56,6 @@ import {
   BudgetLineSavingsWithdrawalResponseDto,
 } from './dto/savings-withdrawal-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
-import { FindAllBudgetLinesUseCase } from '../../application/find-all-budget-lines.use-case';
 import { FindBudgetLineUseCase } from '../../application/find-budget-line.use-case';
 import { FindBudgetLinesByBudgetUseCase } from '../../application/find-budget-lines-by-budget.use-case';
 import { CreateBudgetLineUseCase } from '../../application/create-budget-line.use-case';
@@ -86,7 +85,6 @@ import { BudgetLineMapper } from '../mappers/budget-line.mapper';
 export class BudgetLineController {
   // eslint-disable-next-line max-params
   constructor(
-    private readonly findAllUseCase: FindAllBudgetLinesUseCase,
     private readonly findOneUseCase: FindBudgetLineUseCase,
     private readonly findByBudgetUseCase: FindBudgetLinesByBudgetUseCase,
     private readonly createUseCase: CreateBudgetLineUseCase,

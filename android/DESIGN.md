@@ -78,6 +78,34 @@ accents lighten so they still clear contrast on it. Anything that reads a color 
 through the theme or through the scheme-keyed export — a hard-coded hex is a dark-mode bug
 that only shows up on someone else's phone.
 
+## Form modals
+
+Android forms open in the native `Modal`-based `FormModal`: a full-width
+surface anchored to the bottom edge that slides up, rounds its top corners
+(`RADIUS.md`) and caps its height at 88 percent of the room the keyboard
+leaves. The body scrolls, the footer stays pinned: above the keyboard while it
+is up, above the navigation bar inset (padded inside the surface, so its colour
+runs edge to edge) while it is down. Its header always exposes a translated
+close button. While a write is pending, that button, the scrim and the Android
+back action all refuse dismissal so partially applied changes cannot disappear.
+
+It looks like a bottom sheet and is deliberately not one: no drag handle, no
+swipe dismissal, no `@gorhom/bottom-sheet`. A form with a pinned submit button
+must not be flicked away mid-entry, the gesture would compete with the body's
+scroll and the date pickers inside it, and the native `Modal` already gives the
+accessibility focus trap and the back action for free.
+
+## Shell
+
+The navigation bar and the top app bar are Paper chrome, configured once in
+`core/ui`. `NavigationBar` wraps `BottomNavigation.Bar` for the router's
+`tabBar` prop: four labelled destinations, an active pill on
+`secondaryContainer`, a filled icon inside the pill and its outlined twin at
+rest, no elevation. `TabHeader` puts `Appbar.Content` in the same flat bar on
+`background` that every pushed screen wears (`ScreenAppBar`), with a trailing
+slot for the account action. Neither is styled per screen: a tab that needs a
+different bar is a tab that needs a different design, not a prop.
+
 ## Icon and splash
 
 One brand mark, four renderings. `assets/images/brand-mark.png` is byte-for-byte the file iOS

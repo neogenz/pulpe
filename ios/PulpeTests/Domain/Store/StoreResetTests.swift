@@ -14,6 +14,7 @@ struct StoreResetTests {
         let store = CurrentMonthStore()
 
         // Populate state to simulate a loaded store
+        store.populateForTesting(budget: TestDataFactory.createBudget(id: "b1"))
         store.addTransaction(TestDataFactory.createTransaction(id: "tx-1", budgetId: "b1"))
 
         // Verify state is non-empty before reset

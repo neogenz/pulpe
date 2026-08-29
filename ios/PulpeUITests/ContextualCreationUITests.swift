@@ -26,6 +26,25 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["addTransactionSubmit"].firstMatch.waitForExistence(timeout: 5))
     }
 
+    func testTappingAnActivityRowOpensItsEditPageAndBackReturnsToTheAccueil() {
+        launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", marketingGain: true)
+
+        let row = app.buttons["homeActivityRow-marketing-bonus"]
+        scrollUntilHittable(row)
+        row.tap()
+
+        let editPage = app.navigationBars.matching(
+            NSPredicate(format: "identifier IN %@", ["Modifier", "Edit", "Ändern", "Modifica"])
+        ).firstMatch
+        XCTAssertTrue(editPage.waitForExistence(timeout: 10), app.debugDescription)
+
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(
+            app.descendants(matching: .any)["homeActivityCard"].waitForExistence(timeout: 5),
+            app.debugDescription
+        )
+    }
+
     func testBudgetToolbarActionsRemainDistinctAtLargeText() {
         launch("UITEST_CONTEXTUAL_CREATION_BUDGET")
 
@@ -47,7 +66,7 @@ final class ContextualCreationUITests: XCTestCase {
     /// unreadable next to its neighbours. Both schemes, because the two labels and the line
     /// carry the card's ink and only dark says whether it still separates from its surface.
     func testHomeChartStaysLegibleAcrossDataStates() {
-        let states = ["firstDay", "untouched", "onPlan", "quiet", "gain", "overrun", "deficit", "lastDay"]
+        let states = ["firstDay", "untouched", "onPlan", "quiet", "gain", "overrun", "deficit", "history", "lastDay"]
         for colorScheme in ["light", "dark"] {
             for state in states {
                 launch(
@@ -209,7 +228,8 @@ final class ContextualCreationUITests: XCTestCase {
         chartState: String? = nil,
         homeSkeleton: Bool = false,
         freshSignup: Bool = false,
-        amountsHidden: Bool = false
+        amountsHidden: Bool = false,
+        marketingGain: Bool = false
     ) {
         app = XCUIApplication()
         app.launchArguments = ["-\(scenario)"]
@@ -235,6 +255,9 @@ final class ContextualCreationUITests: XCTestCase {
         if amountsHidden {
             app.launchEnvironment["UITEST_AMOUNTS_HIDDEN"] = "1"
         }
+        if marketingGain {
+            app.launchEnvironment["UITEST_HOME_MARKETING_GAIN"] = "1"
+        }
         app.launch()
     }
 
@@ -242,7 +265,7 @@ final class ContextualCreationUITests: XCTestCase {
         for _ in 0..<8 where !element.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(element.isHittable)
+        XCTAssertTrue(element.isHittable, app.debugDescription)
     }
 
     private func assertMinimumHitArea(_ element: XCUIElement) {
@@ -251,8 +274,12 @@ final class ContextualCreationUITests: XCTestCase {
             object: element
         )
         XCTAssertEqual(XCTWaiter.wait(for: [hittable], timeout: 5), .completed, app.debugDescription)
-        XCTAssertGreaterThanOrEqual(element.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(element.frame.height, 44)
+        // Frames come back with float noise (a 44 pt button reads 43.999…); what the
+        // finger gets is pixel-snapped, so compare that.
+        let scale = UIScreen.main.scale
+        let snapped = { (points: CGFloat) in (points * scale).rounded() / scale }
+        XCTAssertGreaterThanOrEqual(snapped(element.frame.width), 44)
+        XCTAssertGreaterThanOrEqual(snapped(element.frame.height), 44)
     }
 
     private func attachScreenshot(_ name: String) {

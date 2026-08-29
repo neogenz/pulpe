@@ -38,35 +38,26 @@ struct BudgetDetailsFreeTransactionsList: View {
     private var hiddenItemsCount: Int { items.count - collapsedItemCount }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: DesignTokens.Spacing.xxs) {
-                Text("Hors prévisions")
-                    .font(PulpeTypography.headline)
-                    .foregroundStyle(Color.textPrimary)
-                Text(" · \(items.count)")
-                    .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.textSecondary)
-                Spacer()
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityLabel("Hors prévisions, \(items.count)")
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.sm)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            SectionHeader(title: AppLocale.string("Hors prévisions"), count: items.count)
 
-            ForEach(displayedItems) { item in
-                BudgetDetailsFreeTransactionRow(
-                    transaction: item.transaction,
-                    isSyncing: item.isSyncing,
-                    currency: currency,
-                    tagNames: TagChips.names(for: item.transaction.tagIds, namesById: tagNamesById),
-                    onTap: { onTap(item.transaction) },
-                    onTogglePointed: { onTogglePointed(item.transaction) }
-                )
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.md)
+            VStack(spacing: 0) {
+                ForEach(displayedItems) { item in
+                    if item.id != displayedItems.first?.id {
+                        Divider().padding(.leading, DesignTokens.ListRow.dividerInset)
+                    }
+                    BudgetDetailsFreeTransactionRow(
+                        transaction: item.transaction,
+                        isSyncing: item.isSyncing,
+                        currency: currency,
+                        tagNames: TagChips.names(for: item.transaction.tagIds, namesById: tagNamesById),
+                        onTap: { onTap(item.transaction) },
+                        onTogglePointed: { onTogglePointed(item.transaction) }
+                    )
+                }
             }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
 
             if hasMoreItems {
                 Button {
@@ -85,16 +76,17 @@ struct BudgetDetailsFreeTransactionsList: View {
                 }
                 .textLinkButtonStyle()
                 .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.md)
             }
         }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.top, DesignTokens.Spacing.xxl)
     }
 }
 
 // MARK: - Row
 
 /// Free-transaction row visually aligned with `BudgetLineMixedRow`: a leading
-/// `PointCircle` toggle, then kind tag + name + date subtitle on the left,
+/// `PointCircle` disc, then name + date subtitle on the left,
 /// kind-tinted amount + currency suffix on the right, chevron. Tapping the
 /// circle points/unpoints the transaction (`onTogglePointed`); tapping the row
 /// surface opens the edit sheet (`onTap`).
@@ -163,8 +155,9 @@ private struct BudgetDetailsFreeTransactionRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: DesignTokens.Spacing.xxs) {
+            HStack(spacing: DesignTokens.Spacing.sm) {
                 PointCircle(
+                    kind: kind,
                     isPointed: isPointed,
                     color: dotColor,
                     isSyncing: isSyncing,
@@ -177,11 +170,9 @@ private struct BudgetDetailsFreeTransactionRow: View {
 
                 amountColumn
 
-                chevron
+                RowChevron()
             }
             .padding(.vertical, DesignTokens.Spacing.md)
-            .padding(.leading, DesignTokens.Spacing.xs)
-            .padding(.trailing, DesignTokens.Spacing.md)
             .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
             .contentShape(Rectangle())
             .opacity(isPointed ? DesignTokens.Opacity.pointedDim : 1)
@@ -191,7 +182,11 @@ private struct BudgetDetailsFreeTransactionRow: View {
             )
         }
         .buttonStyle(.plain)
-        .pulpeRowCard(cornerRadius: DesignTokens.CornerRadius.xl)
+        .leadingSwipeAction(
+            systemImage: isPointed ? "arrow.uturn.backward" : "checkmark",
+            tint: dotColor,
+            action: handleTogglePointed
+        )
         .sensoryFeedback(.success, trigger: triggerToggleFeedback)
         // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
         // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
@@ -202,8 +197,6 @@ private struct BudgetDetailsFreeTransactionRow: View {
 
     private var centerColumn: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-            KindTagInline(kind: kind)
-
             Text(transaction.name)
                 .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(Color.textPrimary)
@@ -234,7 +227,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
     private var amountColumn: some View {
         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xxs) {
             Text(transaction.amount.asAmount(for: currency))
-                .font(PulpeTypography.amountCard)
+                .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(amountColor)
                 .monospacedDigit()
                 .lineLimit(1)
@@ -247,13 +240,5 @@ private struct BudgetDetailsFreeTransactionRow: View {
         }
         .sensitiveAmount()
         .layoutPriority(1)
-    }
-
-    private var chevron: some View {
-        Image(systemName: "chevron.right")
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(Color.textTertiary)
-            .padding(.leading, DesignTokens.Spacing.xs)
-            .accessibilityHidden(true)
     }
 }

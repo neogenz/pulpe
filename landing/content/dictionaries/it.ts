@@ -174,6 +174,7 @@ const it: Dictionary = {
     },
 
     testimonials: {
+      eyebrow: "Testimonianze",
       heading: "Perché usano Pulpe.",
       items: [
         {
@@ -181,7 +182,6 @@ const it: Dictionary = {
           highlight: "le spese che non vedevo arrivare",
           tail: ", adesso le vedo arrivare.",
           name: "Ismaël S.",
-          role: "Ingegnere informatico",
           since: "Utente da novembre 2025",
         },
         {
@@ -196,7 +196,6 @@ const it: Dictionary = {
           highlight: "pianificare le nostre vacanze sull’anno",
           tail: " e vedere subito se rientrano nel nostro budget. Mi tranquillizza.",
           name: "Julie D.",
-          role: "Impiegata di commercio",
           since: "Utente da dicembre 2025",
         },
       ],

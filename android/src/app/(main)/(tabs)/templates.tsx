@@ -18,6 +18,7 @@ import { Card } from "@/core/ui/card";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
+import { TabHeader } from "@/core/ui/tab-header";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { TemplateFormSheet } from "@/features/templates/components/template-form-sheet";
 import { useTemplates } from "@/features/templates/template-queries";
@@ -69,10 +70,10 @@ export default function TemplatesScreen() {
   const canAdd = canCreateTemplate(list.length);
 
   return (
-    <SafeAreaView
-      edges={["top"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    // The app bar carries the status bar inset; asking the safe area for the
+    // top edge too would double it.
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+      <TabHeader title={t("templates.list.title")} />
       {list.length === 0 ? (
         <PlaceholderScreen
           icon="file-document-outline"
@@ -93,18 +94,15 @@ export default function TemplatesScreen() {
             />
           }
         >
-          <View style={styles.header}>
-            <Text variant="headlineSmall">{t("templates.list.title")}</Text>
-            <Text
-              variant="labelMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              {t("templates.list.count", {
-                count: list.length,
-                max: MAX_TEMPLATES,
-              })}
-            </Text>
-          </View>
+          <Text
+            variant="labelMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {t("templates.list.count", {
+              count: list.length,
+              max: MAX_TEMPLATES,
+            })}
+          </Text>
 
           <Tooltip
             id="templates-web-parity"
@@ -156,7 +154,7 @@ export default function TemplatesScreen() {
           }}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -200,12 +198,6 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     gap: SPACING.md,
     paddingBottom: FAB_CLEARANCE,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-    gap: SPACING.md,
   },
   card: { gap: SPACING.xs },
   cardHeader: {

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Tour 11 "opérations à pointer": a cyclic deck of quick-check cards whose neighbours
-/// peek at the screen edges to make swiping discoverable.
+/// peek at the screen edges to say the deck slides; « 1 / 4 » says how far.
 struct UncheckedOperationsCard: View {
     let items: [CurrentMonthStore.CheckableItem]
     var tagNamesById: [String: String] = [:]
@@ -141,15 +141,14 @@ struct UncheckedOperationsCard: View {
     // MARK: - Deck
 
     /// The page hangs everything on one rail (the `Spacing.xxl` content margin applied
-    /// by CurrentMonthView). A deck can only peek if it escapes that rail: it cancels
-    /// the margin, runs full-bleed, and re-applies the same token as a scroll content
-    /// margin — the focused card sits exactly on the rail while its neighbours own the
-    /// edges. A plain HStack, not lazy: removal transitions don't play inside lazy
+    /// by CurrentMonthView). The deck escapes that rail to run full-bleed and re-applies
+    /// the same token as a scroll content margin — the focused card sits exactly on the
+    /// rail while its neighbours own the edges. A plain HStack, not lazy: removal transitions don't play inside lazy
     /// containers, and the list is at most a month's unchecked operations.
     private var deck: some View {
         let reduceDeckMotion = reduceMotion
         return ScrollView(.horizontal) {
-            HStack(spacing: DesignTokens.Spacing.xs) {
+            HStack(spacing: DesignTokens.Deck.slotGap) {
                 ForEach(deckSlots) { slot in
                     inlinePane(slot.item)
                         .pulpeRowCard()
@@ -281,7 +280,7 @@ struct UncheckedOperationsCard: View {
     /// of its own.
     @ViewBuilder
     private func tagChips(_ item: CurrentMonthStore.CheckableItem, isStacked: Bool) -> some View {
-        let names = tagNames(for: item)
+        let names = Self.tagNames(for: item, namesById: tagNamesById)
         if !names.isEmpty {
             TagChips(names: names, presentation: .count, followsText: !isStacked)
         }
@@ -300,15 +299,15 @@ struct UncheckedOperationsCard: View {
                 .foregroundStyle(Color.textPrimary)
                 .lineLimit(isStacked ? nil : 1)
 
-            Text(subtitle(for: item))
+            Text(Self.subtitle(for: item))
                 .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
                 .lineLimit(isStacked ? nil : 1)
         }
     }
 
     private func operationAmount(_ item: CurrentMonthStore.CheckableItem) -> some View {
-        Text(amountText(for: item))
+        Text(Self.amountText(for: item, in: currency))
             .font(PulpeTypography.amountMedium)
             .foregroundStyle(Color.textPrimary)
             .monospacedDigit()
@@ -324,7 +323,10 @@ struct UncheckedOperationsCard: View {
         if dynamicTypeSize >= .xxLarge {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 confirmButton(item)
-                skipButton(item)
+                if displayItems.count > 1 {
+                    skipButton(item)
+                }
+                positionIndicator(item)
             }
         } else {
             // Adjacent, both on the leading rail. Pushed to opposite ends of the card they
@@ -332,9 +334,26 @@ struct UncheckedOperationsCard: View {
             // read as one question with two answers, the affirmative first.
             HStack(spacing: DesignTokens.Spacing.md) {
                 confirmButton(item)
-                skipButton(item)
+                if displayItems.count > 1 {
+                    skipButton(item)
+                }
                 Spacer(minLength: DesignTokens.Spacing.none)
+                positionIndicator(item)
             }
+        }
+    }
+
+    /// « 2 / 4 »: where this card sits in the deck. Replaces the edge peek as the cue
+    /// that there is more to swipe to, and says how much. Nothing with a single card.
+    @ViewBuilder
+    private func positionIndicator(_ item: CurrentMonthStore.CheckableItem) -> some View {
+        let count = displayItems.count
+        if count > 1, let index = displayItems.firstIndex(where: { $0.id == item.id }) {
+            Text(verbatim: "\(index + 1) / \(count)")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textSecondary)
+                .monospacedDigit()
+                .accessibilityLabel(AppLocale.string("Carte \(index + 1) sur \(count)"))
         }
     }
 
@@ -381,51 +400,21 @@ struct UncheckedOperationsCard: View {
             // button so the choice stays explicit and reachable without the gesture.
             advance(after: item)
         } label: {
-            // A bounded shape, not bare grey text. Two boxes of one size read as the two
-            // terms of a choice; text alone at the far end of a row read as a caption that
-            // happened to be right-aligned. `.muted` gives it a fill of its own — `.outlined`
-            // draws a hairline meant for `appBackground`, which a card of the same
-            // `surfaceContainerLowest` tone swallows at 1,00:1.
-            PulpeChip(
-                label: AppLocale.string("Plus tard"),
-                style: .muted,
-                // Dead with one card left (nothing to turn to) or during the "Pointé" beat
-                // (guard already ignores taps); without the visual disable it looks live.
-                isDisabled: confirmingId != nil || displayItems.count <= 1
-            )
+            // A text link beside the one capsule: the card keeps a single chip family,
+            // and the affirmative is the only bounded shape.
+            Text("Plus tard")
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textSecondary)
+                .padding(.horizontal, DesignTokens.Spacing.md)
         }
-        .plainPressedButtonStyle()
-        .disabled(confirmingId != nil || displayItems.count <= 1)
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Rectangle())
+        .textLinkButtonStyle()
+        // Dead during the "Pointé" beat (guard already ignores taps); without the visual
+        // disable it looks live. With one card left the button is not shown at all.
+        .opacity(confirmingId != nil ? DesignTokens.Opacity.disabled : 1)
+        .disabled(confirmingId != nil)
         .accessibilityLabel("Plus tard pour \(item.name)")
-    }
-
-    private func subtitle(for item: CurrentMonthStore.CheckableItem) -> String {
-        switch item {
-        // No `.lowercased()`: German capitalizes nouns ("Heute", "Montag") and English its
-        // weekdays, and every other date subtitle in the app already renders capitalized.
-        case .transaction(let transaction, _):
-            transaction.transactionDate.relativeFormatted
-        case .budgetLine(let line, _):
-            line.recurrence.label
-        }
-    }
-
-    private func tagNames(for item: CurrentMonthStore.CheckableItem) -> [String] {
-        switch item {
-        case .transaction(let transaction, _):
-            TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
-        case .budgetLine(let line, _):
-            TagChips.names(for: line.tagIds, namesById: tagNamesById)
-        }
-    }
-
-    private func amountText(for item: CurrentMonthStore.CheckableItem) -> String {
-        switch item {
-        case .transaction(let transaction, _):
-            transaction.amount.asSignedAmount(for: transaction.kind, in: currency)
-        case .budgetLine(let line, _):
-            line.amount.asSignedAmount(for: line.kind, in: currency)
-        }
     }
 }
 
@@ -469,7 +458,7 @@ private extension UncheckedOperationsCard {
         // Assumes `contentSize.width` excludes the `contentMargins(.horizontal, Spacing.xxl)` below;
         // if wrong, `slotSpan` drifts by `2·xxl / (3N)` per slot — harmless only because
         // `uncheckedItems` caps at 5 (`CurrentMonthStore.maxDashboardItems`).
-        let slotSpan = (contentWidth + DesignTokens.Spacing.xs) / CGFloat(cardIds.count * 3)
+        let slotSpan = (contentWidth + DesignTokens.Deck.slotGap) / CGFloat(cardIds.count * 3)
         let cycleWidth = slotSpan * CGFloat(cardIds.count)
         let index = min(max(0, Int(midX / slotSpan)), cardIds.count * 3 - 1)
         let focused = DeckCycle.focusedId(atFlatIndex: index, cards: cardIds)

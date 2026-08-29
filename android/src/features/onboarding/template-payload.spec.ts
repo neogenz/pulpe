@@ -1,6 +1,6 @@
 import { budgetTemplateCreateFromOnboardingSchema } from "pulpe-shared";
 
-import type { OnboardingState } from "./onboarding-store";
+import type { OnboardingState } from "./onboarding-state";
 import type { OnboardingTransaction } from "./onboarding-transaction";
 import { toTemplatePayload } from "./template-payload";
 

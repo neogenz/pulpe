@@ -14,7 +14,7 @@ import { Amount } from "@/core/ui/amount";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 
 import { useApplySavingsGoalPlan } from "../../goals-queries";
@@ -128,7 +128,7 @@ export function GoalPlanSimulatorSheet({
 
   return (
     <>
-      <Sheet
+      <FormModal
         isVisible={isVisible && !isRecapVisible}
         onDismiss={dismiss}
         title={t("goals.simulator.title")}
@@ -210,7 +210,7 @@ export function GoalPlanSimulatorSheet({
             ))}
           </>
         )}
-      </Sheet>
+      </FormModal>
 
       <GoalPlanApplyRecap
         isVisible={isVisible && isRecapVisible}

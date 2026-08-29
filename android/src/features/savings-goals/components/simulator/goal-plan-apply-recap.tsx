@@ -11,7 +11,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 
@@ -43,7 +43,7 @@ export function GoalPlanApplyRecap({
   const { locale, t } = useTranslation();
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={onDismiss}
       isBusy={isApplying}
@@ -111,7 +111,7 @@ export function GoalPlanApplyRecap({
           ))}
         </Card.Content>
       </Card>
-    </Sheet>
+    </FormModal>
   );
 }
 

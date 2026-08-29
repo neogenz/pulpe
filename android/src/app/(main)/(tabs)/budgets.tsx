@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
   getBudgetPeriodDates,
   getBudgetPeriodForDate,
@@ -7,7 +7,13 @@ import {
 } from "pulpe-shared";
 import { useCallback, useMemo, useRef } from "react";
 import { RefreshControl, SectionList, StyleSheet, View } from "react-native";
-import { ActivityIndicator, FAB, Text, useTheme } from "react-native-paper";
+import {
+  ActivityIndicator,
+  FAB,
+  List,
+  Text,
+  useTheme,
+} from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
@@ -21,6 +27,7 @@ import { formatSignedCompactCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { StatusBadge } from "@/core/ui/status-badge";
+import { TabHeader } from "@/core/ui/tab-header";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { useTranslation } from "@/core/i18n/locale-store";
 import {
@@ -31,6 +38,7 @@ import {
 } from "@/features/budgets/budget-list-selectors";
 import {
   invalidateBudgetData,
+  refetchStaleBudgetList,
   useBudgetList,
 } from "@/features/budgets/budget-queries";
 import { monthSubtitle } from "@/features/budgets/month-subtitle";
@@ -60,6 +68,14 @@ export default function BudgetsScreen() {
   const { locale, t } = useTranslation();
   const settings = useUserSettings();
   const budgets = useBudgetList();
+
+  // A write inside a month only marks this list stale (`invalidateBudget`);
+  // coming to the tab is when its totals are looked at, so it asks once here.
+  useFocusEffect(
+    useCallback(() => {
+      void refetchStaleBudgetList();
+    }, []),
+  );
 
   // Derived above the gates below, and the anchor with it: the loading and error
   // returns sit between here and the list, and a hook declared past an early
@@ -181,10 +197,10 @@ export default function BudgetsScreen() {
   const { currency, payDayOfMonth } = settings.data;
 
   return (
-    <SafeAreaView
-      edges={["top"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    // The app bar carries the status bar inset; asking the safe area for the
+    // top edge too would double it.
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+      <TabHeader title={t("budgets.list.title")} />
       {/* Sectioned rather than flat: an account two years old is 24 months of
           cards, and mounting all of them to show four is the frame drop the
           list opens on. `SectionList` is the virtualiser that already speaks
@@ -222,24 +238,22 @@ export default function BudgetsScreen() {
             onRefresh={() => void invalidateBudgetData()}
           />
         }
-        ListHeaderComponent={
-          <Text variant="headlineSmall" style={styles.screenTitle}>
-            {t("budgets.list.title")}
-          </Text>
+        onEndReached={() => {
+          if (budgets.hasNextPage && !budgets.isFetchingNextPage) {
+            void budgets.fetchNextPage();
+          }
+        }}
+        ListFooterComponent={
+          budgets.isFetchingNextPage ? (
+            <ActivityIndicator accessibilityLabel={t("common.loading")} />
+          ) : null
         }
         renderSectionHeader={({ section }) => (
-          <Text
-            variant="titleSmall"
-            style={[
-              styles.year,
-              {
-                color: theme.colors.onSurfaceVariant,
-                backgroundColor: theme.colors.background,
-              },
-            ]}
+          <List.Subheader
+            style={[styles.year, { backgroundColor: theme.colors.background }]}
           >
             {section.year}
-          </Text>
+          </List.Subheader>
         )}
         renderItem={({ item: budget }) => (
           <View style={styles.row}>
@@ -261,7 +275,7 @@ export default function BudgetsScreen() {
         onPress={() => router.push("/budget/create")}
         accessibilityLabel={t("budgets.list.createAccessibility")}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -389,7 +403,6 @@ const styles = StyleSheet.create({
   // Rhythm per row, not a container `gap`: a virtualised list has no single
   // container to hold one.
   content: { padding: SPACING.md, paddingBottom: FAB_CLEARANCE },
-  screenTitle: { paddingBottom: SPACING.md },
   // Opaque, because a sticky header scrolls over the cards underneath it.
   year: { paddingTop: SPACING.sm, paddingBottom: SPACING.sm },
   row: { paddingBottom: SPACING.sm },

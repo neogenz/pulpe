@@ -65,7 +65,7 @@ struct UpdateAvailableSheet: View {
 #Preview("Update available") {
     UpdateAvailableSheet(
         version: "1.3.2",
-        storeURL: URL(string: "https://apps.apple.com/app/pulpe")!, // swiftlint:disable:this force_unwrapping
+        storeURL: URL(string: "https://apps.apple.com/app/pulpe")!,
         onClose: {}
     )
 }

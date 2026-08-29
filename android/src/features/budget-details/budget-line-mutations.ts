@@ -4,7 +4,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import { budgetKeys } from "@/features/budgets/budget-queries";
+import { invalidateBudget } from "@/features/budgets/budget-queries";
 import { goalKeys } from "@/features/savings-goals/goals-queries";
 
 import {
@@ -14,47 +14,54 @@ import {
   updateBudgetLine,
 } from "./budget-line-api";
 
-export async function invalidateBudgetLineData(
+/**
+ * A forecast write moves its month's totals and, when the line belongs to a
+ * goal, the goal's progress: the budgets it names refetch, the goals sweep.
+ */
+export async function invalidateBudgetLines(
   queryClient: QueryClient,
+  budgetIds: readonly string[],
 ): Promise<void> {
   await Promise.all([
-    queryClient.invalidateQueries({ queryKey: budgetKeys.all }),
+    ...budgetIds.map((budgetId) => invalidateBudget(queryClient, budgetId)),
     queryClient.invalidateQueries({ queryKey: goalKeys.all }),
   ]);
 }
 
 /**
- * Every forecast write moves the month's totals, and a postpone moves two
- * months at once, so they all sweep the same prefix rather than each guessing
- * which cache entries went stale.
- *
- * None of them is optimistic: unlike pointing, these happen behind a form or a
+ * None of these is optimistic: unlike pointing, they happen behind a form or a
  * confirmation the user is already waiting on, so there is no tap latency to
  * hide — and a rolled-back edit is far more confusing than a spinner.
  */
-function useBudgetDataMutation<TInput>(
-  mutationFn: (input: TInput) => Promise<unknown>,
+function useBudgetDataMutation<TInput, TResult>(
+  mutationFn: (input: TInput) => Promise<TResult>,
+  budgetIdsOf: (input: TInput, result: TResult) => readonly string[],
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn,
-    onSuccess: () => invalidateBudgetLineData(queryClient),
+    onSuccess: (result, input) =>
+      invalidateBudgetLines(queryClient, budgetIdsOf(input, result)),
   });
 }
 
 export function useCreateBudgetLine() {
-  return useBudgetDataMutation(createBudgetLine);
+  return useBudgetDataMutation(createBudgetLine, (_, line) => [line.budgetId]);
 }
 
 export function useUpdateBudgetLine() {
-  return useBudgetDataMutation(updateBudgetLine);
+  return useBudgetDataMutation(updateBudgetLine, (_, line) => [line.budgetId]);
 }
 
-export function useDeleteBudgetLine() {
-  return useBudgetDataMutation(deleteBudgetLine);
+/** The budget is the hook's, not the call's: a deletion answers with nothing. */
+export function useDeleteBudgetLine(budgetId: string) {
+  return useBudgetDataMutation(deleteBudgetLine, () => [budgetId]);
 }
 
 export function usePostponeBudgetLine() {
-  return useBudgetDataMutation(postponeBudgetLine);
+  return useBudgetDataMutation(postponeBudgetLine, (_, moved) => [
+    moved.sourceBudgetId,
+    moved.targetBudgetId,
+  ]);
 }

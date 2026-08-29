@@ -6,10 +6,11 @@ import { assertPrefixedLocale, PREFIXED_LOCALES } from "@/lib/i18n";
 import { rootMetadata, rootViewport } from "@/lib/metadata";
 import "../globals.css";
 
-// Racine des trois langues préfixées. `generateStaticParams` n'émet jamais
-// `fr` : ce segment produirait `/fr/…` en double de chaque URL française déjà
-// indexée. Pas de `dynamicParams = false` non plus — sous `output: 'export'` le
-// build le force déjà, la ligne ne serait que du bruit.
+// Root for the three prefixed languages. `generateStaticParams` never emits
+// `fr`, which would duplicate every indexed French URL under `/fr/…`.
+// Unsupported values remain explicitly closed so they still return a real 404.
+
+export const dynamicParams = false;
 
 export function generateStaticParams() {
   return PREFIXED_LOCALES.map((lang) => ({ lang }));

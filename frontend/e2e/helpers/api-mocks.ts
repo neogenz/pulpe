@@ -67,6 +67,7 @@ export function createBudgetDetailsMock(
       budget: defaultBudget,
       transactions: overrides?.transactions || [],
       budgetLines: overrides?.budgetLines || [],
+      history: null,
     },
   };
 }

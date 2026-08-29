@@ -7,7 +7,7 @@ import Testing
 /// in `BalanceTrajectoryTests`.
 struct HomeHeroCardTests {
     @Test func estimateComparison_keepsSignedMeaning() {
-        let state = HomeHeroCard.PresentationState(
+        let state = HeroVerdictPresentation(
             plannedBalance: 450,
             estimatedBalance: 800
         )
@@ -17,7 +17,7 @@ struct HomeHeroCardTests {
         #expect(state.verdict == .gain)
         #expect(state.tone == .favorable)
 
-        let onPlan = HomeHeroCard.PresentationState(
+        let onPlan = HeroVerdictPresentation(
             plannedBalance: 450,
             estimatedBalance: 450
         )
@@ -26,12 +26,12 @@ struct HomeHeroCardTests {
     }
 
     @Test func estimateComparison_usesCentPrecision() {
-        let dust = HomeHeroCard.PresentationState(plannedBalance: 58.50, estimatedBalance: 58.504)
+        let dust = HeroVerdictPresentation(plannedBalance: 58.50, estimatedBalance: 58.504)
         #expect(dust.estimatedBalance == 58.50)
         #expect(dust.variance == 0)
         #expect(dust.verdict == .onPlan)
 
-        let cent = HomeHeroCard.PresentationState(plannedBalance: 58.50, estimatedBalance: 58.49)
+        let cent = HeroVerdictPresentation(plannedBalance: 58.50, estimatedBalance: 58.49)
         #expect(cent.variance == -0.01)
         #expect(cent.verdict == .overrun)
         #expect(cent.varianceText(for: .chf) == "-0.01 CHF")
@@ -42,71 +42,71 @@ struct HomeHeroCardTests {
         // `DriftCard` gates its "compensé ailleurs ce mois" clause on this: without the
         // on-plan case it says "200 CHF au-delà du plan" flat while the hero says
         // "Tu es pile sur ton plan" — two claims that contradict each other.
-        let onPlan = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 450)
+        let onPlan = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 450)
         #expect(onPlan.verdict == .onPlan)
         #expect(onPlan.absorbsEnvelopeOverrun)
 
-        let gain = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 800)
+        let gain = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 800)
         #expect(gain.absorbsEnvelopeOverrun)
 
         // The one month that genuinely leaves the excess uncovered.
-        let overrun = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 300)
+        let overrun = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 300)
         #expect(!overrun.absorbsEnvelopeOverrun)
     }
 
     @Test func verdictSentence_datesTheDayTheMonthLeftItsPlan() throws {
         // The plot draws the gap and the metric beside it prints the figure. The one thing
         // neither can say is *when* it opened, so that is all the sentence is for.
-        let below = HomeHeroCard.PresentationState(
+        let below = HeroVerdictPresentation(
             plannedBalance: 2_500,
             estimatedBalance: 1_800,
             driftDate: try date(year: 2026, month: 7, day: 6)
         )
-        #expect(below.verdictText == "Sous ton plan depuis le 6 juillet.")
+        #expect(below.verdictText == "Tu dépenses plus que prévu depuis le 6 juillet.")
 
-        let above = HomeHeroCard.PresentationState(
+        let above = HeroVerdictPresentation(
             plannedBalance: 2_500,
             estimatedBalance: 2_900,
             driftDate: try date(year: 2026, month: 7, day: 6)
         )
-        #expect(above.verdictText == "Au-dessus de ton plan depuis le 6 juillet.")
+        #expect(above.verdictText == "Tu dépenses moins que prévu depuis le 6 juillet.")
 
         // "le 1 août" reads as a typo in a sentence; French declines this one day.
-        let firstOfMonth = HomeHeroCard.PresentationState(
+        let firstOfMonth = HeroVerdictPresentation(
             plannedBalance: 2_500,
             estimatedBalance: 1_800,
             driftDate: try date(year: 2026, month: 8, day: 1)
         )
-        #expect(firstOfMonth.verdictText == "Sous ton plan depuis le 1er août.")
+        #expect(firstOfMonth.verdictText == "Tu dépenses plus que prévu depuis le 1er août.")
 
         // Where a new account lands right after onboarding: lines exist, nothing spent, so
         // the forecast still sits on the plan it opened on. That is a fact about the month,
         // not a compliment paid for a comparison nobody has made.
-        let fresh = HomeHeroCard.PresentationState(plannedBalance: 2_500, estimatedBalance: 2_500)
+        let fresh = HeroVerdictPresentation(plannedBalance: 2_500, estimatedBalance: 2_500)
         #expect(fresh.verdict == .onPlan)
         #expect(fresh.verdictText == "Tu es pile sur ton plan.")
 
         // No plot to date the departure from: the sentence drops the clause, not the verdict.
-        let undated = HomeHeroCard.PresentationState(plannedBalance: 2_500, estimatedBalance: 1_800)
+        let undated = HeroVerdictPresentation(plannedBalance: 2_500, estimatedBalance: 1_800)
         #expect(undated.verdictText == "Il te reste moins que prévu.")
     }
 
     @Test func varianceMetric_carriesItsCurrencyBesideTheOperationCount() {
-        // "vs prévu" shares its row with "à pointer", which is a count of operations. With
+        // "Imprévus" shares its row with "à pointer", which is a count of operations. With
         // no unit the two are the same figure in the same type, and the money one is the
         // one that becomes unreadable.
-        let onPlan = HomeHeroCard.PresentationState(plannedBalance: 2_500, estimatedBalance: 2_500)
+        let onPlan = HeroVerdictPresentation(plannedBalance: 2_500, estimatedBalance: 2_500)
         #expect(onPlan.varianceText(for: .chf) == "0 CHF")
 
-        let gain = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 800)
+        let gain = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 800)
         #expect(gain.varianceText(for: .chf) == "+350 CHF")
 
-        let overrun = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 300)
+        let overrun = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 300)
         #expect(overrun.varianceText(for: .eur) == "-150 €")
     }
 
     @Test func deficitAcrossZero_isOverrunAndDeficit() {
-        let state = HomeHeroCard.PresentationState(
+        let state = HeroVerdictPresentation(
             plannedBalance: 450,
             estimatedBalance: -3000
         )
@@ -118,51 +118,48 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func chartDomain_floorsAQuietMonthOnWhatThePeriodPlannedToSpend() {
-        // Two real months of the production export, both on ~9 000 of planned outflows.
-        // Scaled to itself, May's 201 of drift plunges from one edge of the frame to the
-        // other and reads as an accident; floored on the plan it is the near-flat line it is.
+    @Test func chartDomain_framesTheWholePlanSoDriftReadsAgainstTheMonth() {
+        // A burn-down is read against what the month had: the frame holds the plan's
+        // opening and its end, so 201 of drift on 9 000 planned is the near-flat line it is,
+        // and 1 767 is a visible departure from the dashed plan without filling the frame.
         let quiet = trajectory(landing: [2_500, 2_400, 2_299], plannedOutflows: 9_000)
         let quietDomain = HomeHeroCard.chartYDomain(for: quiet)
-        let quietShare = 201.0 / (quietDomain.upperBound - quietDomain.lowerBound)
-        #expect(quietShare < 0.35)
+        #expect(quietDomain.contains(11_500))
+        #expect(quietDomain.contains(2_299))
+        #expect(201.0 / (quietDomain.upperBound - quietDomain.lowerBound) < 0.05)
 
-        // April's 1 767 still fills its frame: the floor must not flatten everything.
         let loud = trajectory(landing: [2_500, 1_500, 733], plannedOutflows: 9_000)
         let loudDomain = HomeHeroCard.chartYDomain(for: loud)
         let loudShare = 1_767.0 / (loudDomain.upperBound - loudDomain.lowerBound)
-        #expect(loudShare > 0.5)
+        #expect(loudShare > 0.1 && loudShare < 0.3)
     }
 
     @MainActor
-    @Test func chartLabels_sitOnOppositeSidesOfThePlanRule() {
-        // The mockups overlapped on an early day, with both labels in the same band. Placing
-        // them across the rule makes that arrangement unreachable rather than unlikely.
-        let below = trajectory(landing: [2_500, 1_800])
-        #expect(HomeHeroCard.ruleLabelPosition(for: below) == .top)
-        #expect(HomeHeroCard.gapLabelPosition(for: below) == .bottom)
-
-        let above = trajectory(landing: [2_500, 2_900])
-        #expect(HomeHeroCard.ruleLabelPosition(for: above) == .bottom)
-        #expect(HomeHeroCard.gapLabelPosition(for: above) == .top)
-
-        let held = trajectory(landing: [2_500, 2_500])
-        #expect(HomeHeroCard.ruleLabelPosition(for: held) == .top)
-        #expect(HomeHeroCard.gapLabelPosition(for: held) == .bottom)
+    @Test func labels_sitUnderAFallingStrokeAndOverAClimbingOne() {
+        // A label grows leftward from the stroke's end, where a falling line is higher:
+        // it goes under. A plan with outflows always falls; the trend follows its slope.
+        let spending = trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000, totalDays: 31)
+        #expect(HomeHeroCard.planLabelPosition(for: spending) == .bottom)
+        #expect(HomeHeroCard.trendLabelPosition(for: spending) == .bottom)
+        // Today's word hangs right of its dot, so the stroke it can meet is the projection:
+        // it reads the same slope as the trend's figure and lands on the same side.
+        #expect(HomeHeroCard.todayLabelPosition(for: spending) == .bottom)
+        // Even a month above its plan still has money to spend: the dashed stroke falls
+        // from what is left today to what is left at the end, and its figure goes under.
+        let recovering = trajectory(landing: [2_500, 2_900], plannedOutflows: 9_000, totalDays: 31)
+        #expect(HomeHeroCard.trendLabelPosition(for: recovering) == .bottom)
+        #expect(HomeHeroCard.todayLabelPosition(for: recovering) == .bottom)
+        // A month held on its plan draws a flat projection, and both words take the top.
+        #expect(HomeHeroCard.planLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
+        #expect(HomeHeroCard.trendLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
+        #expect(HomeHeroCard.todayLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
     }
 
     @MainActor
-    @Test func anchorLabel_namesTheGapOnlyWhenThePlotHasRoomForIt() {
-        let wide = trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000)
-        #expect(HomeHeroCard.anchorLabel(for: wide, currency: .chf) == "-700 CHF")
-
-        // 30 CHF on a plot floored at 450: closer to the plan's own label than a line height.
-        // The `vs prévu` metric above still prints it, so nothing is hidden by staying quiet.
-        let narrow = trajectory(landing: [2_500, 2_470], plannedOutflows: 9_000)
-        #expect(HomeHeroCard.anchorLabel(for: narrow, currency: .chf) == "Aujourd’hui")
-
-        let held = trajectory(landing: [2_500, 2_500], plannedOutflows: 9_000)
-        #expect(HomeHeroCard.anchorLabel(for: held, currency: .chf) == "Aujourd’hui")
+    @Test func plan_fallsFromTheOpeningAmountToWhatThePeriodKeeps() {
+        let plan = HomeHeroCard.plan(for: trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000, totalDays: 31))
+        #expect(plan.map(\.day) == [0, 31])
+        #expect(plan.map(\.balance) == [11_500, 2_500])
     }
 
     @MainActor
@@ -180,7 +177,7 @@ struct HomeHeroCardTests {
     }
 
     @Test func hiddenAmounts_accessibilityDescriptionContainsNoFinancialValue() {
-        let state = HomeHeroCard.PresentationState(
+        let state = HeroVerdictPresentation(
             plannedBalance: 450,
             estimatedBalance: -3000
         )
@@ -205,13 +202,13 @@ struct HomeHeroCardTests {
     }
 
     @Test func accessibilityDescription_explainsComparisonInEverydayFrench() throws {
-        let gain = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 800)
-        let overrun = HomeHeroCard.PresentationState(
+        let gain = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 800)
+        let overrun = HeroVerdictPresentation(
             plannedBalance: 450,
             estimatedBalance: 300,
             driftDate: try date(year: 2026, month: 7, day: 6)
         )
-        let onPlan = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 450)
+        let onPlan = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 450)
 
         #expect(gain.accessibilityDescription(
             monthName: "juillet",
@@ -247,14 +244,15 @@ struct HomeHeroCardTests {
         )
         let backgroundSource = try String(
             contentsOf: iosRoot.appending(
-                path: "Pulpe/Features/CurrentMonth/Components/HomeHeroSurfaceBackground.swift"
+                path: "Pulpe/Shared/Components/HeroZone/HeroZoneSurface.swift"
             ),
             encoding: .utf8
         )
 
-        #expect(viewSource.contains(".background { dashboardBackground.ignoresSafeArea() }"))
+        #expect(viewSource.contains(".heroZone(parallax: true)"))
+        #expect(viewSource.contains(".contentZone()"))
         #expect(!viewSource.contains(".background(Color.homeBackground)"))
-        #expect(viewSource.contains("HomeHeroSurfaceBackground(tracker:"))
+        #expect(!viewSource.contains("HeroZoneTracker"))
         #expect(!viewSource.contains("LinearGradient("))
         #expect(backgroundSource.components(separatedBy: "LinearGradient(").count == 2)
     }
@@ -272,7 +270,7 @@ struct HomeHeroCardTests {
             .appending(path: "Pulpe/Features/CurrentMonth/Components/UncheckedOperationsCard.swift")
         let source = try String(contentsOf: sourceFile, encoding: .utf8)
 
-        #expect(source.contains("Text(subtitle(for: item))"))
+        #expect(source.contains("Text(Self.subtitle(for: item))"))
         #expect(!source.contains("tag\\("))
         #expect(source.components(separatedBy: "presentation: .count").count == 2)
     }
@@ -305,31 +303,33 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func chartLabel_speaksTheSubtractionAndHidesAmountsOnDemand() throws {
+    @Test func chartLabel_speaksTheThreeStrokesAndHidesAmountsOnDemand() throws {
+        // 10 days in, 700 under plan, wide enough for the trend to get its figure.
         let drifted = trajectory(
-            landing: [1_000, 900],
-            driftDate: try date(year: 2026, month: 7, day: 6)
+            landing: Array(repeating: Decimal(2_500), count: 10) + [1_800],
+            driftDate: try date(year: 2026, month: 7, day: 6),
+            plannedOutflows: 9_000,
+            totalDays: 31
         )
 
-        // The three things the drawing shows, in the order it shows them. Not a reading of
-        // every point: VoiceOver would get a list where the plot gives one subtraction.
+        // The strokes in the order they are drawn: opening, plan's end, real today, trend.
         let spoken = HomeHeroCard.chartAccessibilityLabel(
             for: drifted,
             currency: .chf,
             amountsHidden: false
         )
-        #expect(spoken.hasPrefix("Prévu "))
-        #expect(spoken.contains("Atterrissage estimé"))
-        #expect(spoken.contains("Écart -100 CHF depuis le 6 juillet."))
+        #expect(spoken.hasPrefix(
+            "Disponible prévu 11’500 CHF. Prévu fin de période 2’500 CHF. Réel aujourd’hui 10’800 CHF."
+        ))
+        #expect(spoken.contains("Si tu continues, "))
 
-        // A month still on its plan has no gap to speak of, and says so rather than
-        // reciting a zero — the plot draws nothing there either.
+        // A month on its plan has no trend to speak of.
         let untouched = HomeHeroCard.chartAccessibilityLabel(
             for: trajectory(landing: [1_000, 1_000]),
             currency: .chf,
             amountsHidden: false
         )
-        #expect(untouched.contains("Aucun écart au plan."))
+        #expect(!untouched.contains("Si tu continues"))
 
         let masked = HomeHeroCard.chartAccessibilityLabel(
             for: drifted,
@@ -364,8 +364,16 @@ struct HomeHeroCardTests {
         totalDays: Int? = nil
     ) -> BudgetFormulas.BalanceTrajectory {
         let today = max(landing.count - 1, 1)
+        let points = landing.enumerated().map {
+            BudgetFormulas.BalanceTrajectory.Point(day: $0.offset, balance: $0.element)
+        }
+        // The real stroke opens on what the period had and falls by the same drift, so a
+        // fixture written in landing terms still draws a coherent burn-down.
+        let opening = (landing.first ?? 0) + plannedOutflows
         return BudgetFormulas.BalanceTrajectory(
-            landing: landing.enumerated().map { .init(day: $0.offset, balance: $0.element) },
+            landing: points,
+            plannedAvailable: opening,
+            real: points.map { .init(day: $0.day, balance: opening + $0.balance - (landing.first ?? 0)) },
             driftDate: driftDate,
             plannedOutflows: plannedOutflows,
             today: today,

@@ -89,8 +89,8 @@ test("public CI guide mirrors the enforced workflow contracts", () => {
   const workflow = read(".github/workflows/ci.yml");
   const guide = read("docs/CI.md");
 
-  assert.match(workflow, /pull-requests:\s*write/);
-  assert.match(guide, /pull-requests:\s*write/);
+  assert.doesNotMatch(workflow, /pull-requests:\s*write/);
+  assert.match(guide, /`contents: read`/);
   assert.match(workflow, /NODE_VERSION:\s*["']24["']/);
   assert.match(guide, /NODE_VERSION:\s*["']24["']/);
 });

@@ -10,6 +10,7 @@ import {
 
 const SESSION_STATUSES: SessionStatus[] = [
   "loading",
+  "error",
   "unauthenticated",
   "authenticated",
 ];
@@ -115,6 +116,26 @@ describe("landing contract", () => {
     ).toBe("/sign-in");
   });
 
+  // Seen in CI: `pm clear` before sign-in put a returning account on the
+  // handoff instead of the month, because a fresh install reports both device
+  // flags false. The handoff belongs to a run that finished here.
+  it("hands off only a run that finished on this device", () => {
+    const unlocked: GateState = {
+      status: "authenticated",
+      vaultStatus: "unlocked",
+      isOnboarding: false,
+      hasCompletedOnboarding: true,
+      hasSeenHandoff: false,
+      prefersSignIn: null,
+    };
+
+    expect(landingRoute(unlocked)).toBe("/post-onboarding");
+    expect(landingRoute({ ...unlocked, hasSeenHandoff: true })).toBe("/home");
+    expect(landingRoute({ ...unlocked, hasCompletedOnboarding: false })).toBe(
+      "/home",
+    );
+  });
+
   it("holds the landing decision while the session is still resolving", () => {
     expect(
       landingRoute({
@@ -126,6 +147,20 @@ describe("landing contract", () => {
         prefersSignIn: null,
       }),
     ).toBeNull();
+  });
+
+  it("keeps every route group closed after a restore error", () => {
+    const failedRestore: GateState = {
+      status: "error",
+      vaultStatus: "unlocked",
+      isOnboarding: true,
+      hasCompletedOnboarding: true,
+      hasSeenHandoff: true,
+      prefersSignIn: true,
+    };
+
+    expect(landingRoute(failedRestore)).toBeNull();
+    expect(openGroups(failedRestore)).toEqual([]);
   });
 
   it("keeps the run mounted once the user signs in mid-flow", () => {

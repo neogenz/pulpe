@@ -3,7 +3,7 @@ import type {
   SupportedLocale,
 } from "pulpe-shared";
 
-import type { OnboardingState } from "./onboarding-store";
+import type { OnboardingState } from "./onboarding-state";
 import { toWire } from "./onboarding-transaction";
 
 interface TemplateCopy {

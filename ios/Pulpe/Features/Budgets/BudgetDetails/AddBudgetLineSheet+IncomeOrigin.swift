@@ -60,18 +60,22 @@ extension AddBudgetLineSheet {
         Self.isPlannedWithdrawal(kind: kind, origin: incomeOrigin)
     }
 
+    /// One row of the details card: the title on the left, the origin menu on the right.
     var originPicker: some View {
-        Picker("Origine du revenu", selection: $incomeOrigin) {
-            ForEach(IncomeOrigin.allCases) { origin in
-                Text(origin.label).tag(origin)
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Text("Origine")
+                .font(PulpeTypography.bodyLarge)
+                .foregroundStyle(Color.textPrimary)
+            Spacer()
+            Picker("Origine du revenu", selection: $incomeOrigin) {
+                ForEach(IncomeOrigin.allCases) { origin in
+                    Text(origin.label).tag(origin)
+                }
             }
+            .pickerStyle(.menu)
+            .tint(kind.color)
         }
-        .pickerStyle(.menu)
-        .tint(kind.color)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(DesignTokens.Spacing.lg)
-        .background(Color.inputBackgroundSoft)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        .frame(minHeight: DesignTokens.ListRow.minHeight)
     }
 
     /// A type or origin change drops what the new combination cannot carry —

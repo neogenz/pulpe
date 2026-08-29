@@ -70,8 +70,9 @@ export function useTemplateUsage(templateId: string) {
 }
 
 /**
- * A model edit can reach the budgets generated from it, so both trees are
- * invalidated rather than each mutation naming what it happened to touch.
+ * A model edit can reach the budgets generated from it, and none of these
+ * inputs carries a budget id, so the budget prefix is swept rather than
+ * narrowed with `invalidateBudget`.
  */
 function useTemplateMutation<TInput, TResult>(
   mutationFn: (input: TInput) => Promise<TResult>,

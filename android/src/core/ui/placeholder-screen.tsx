@@ -21,7 +21,7 @@ interface PlaceholderScreenProps {
   /** Empty states guide rather than apologise — the Tutoiement Rule. */
   hint: string;
   /** A way out of the state, when there is one to offer. */
-  action?: { label: string; onPress: () => void };
+  action?: { label: string; loading?: boolean; onPress: () => void };
 }
 
 export function PlaceholderScreen({
@@ -51,7 +51,12 @@ export function PlaceholderScreen({
         {hint}
       </Text>
       {action !== undefined && (
-        <Button mode="contained" onPress={action.onPress}>
+        <Button
+          mode="contained"
+          loading={action.loading}
+          disabled={action.loading}
+          onPress={action.onPress}
+        >
           {action.label}
         </Button>
       )}

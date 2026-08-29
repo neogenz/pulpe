@@ -4,6 +4,10 @@ import SwiftUI
 
 enum BudgetDestination: Hashable {
     case details(budgetId: String)
+    /// An operation's « Modifier » page on its own, for the accueil: one push, and Back
+    /// returns where the tap came from. Inside the budget page the same page is reached
+    /// through `BudgetLinePushRoute.editTx`.
+    case editTransaction(budgetId: String, transactionId: String)
 }
 
 enum SavingsGoalDestination: Hashable {

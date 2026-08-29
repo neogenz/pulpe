@@ -7,6 +7,7 @@ import type {
   BudgetWithRelations,
   BudgetAggregates,
 } from '../budget.entity';
+import type { HistoryMonth } from '../drift-history';
 
 export const BUDGET_REPOSITORY = Symbol('BUDGET_REPOSITORY');
 
@@ -25,6 +26,7 @@ export interface BudgetRepositoryPort {
   fetchAllBudgets(): Promise<Budget[]>;
   fetchBudgetsWithFilters(filters: {
     limit?: number;
+    offset?: number;
     year?: number;
   }): Promise<Budget[]>;
   fetchAllBudgetsForExport(): Promise<Budget[]>;
@@ -61,6 +63,15 @@ export interface BudgetRepositoryPort {
   fetchBudgetAggregates(
     budgetIds: string[],
   ): Promise<Map<string, BudgetAggregates>>;
+
+  /**
+   * Lines and transactions of past budgets, decrypted, with the two dates the
+   * drift history needs (`checkedAt`, `transactionDate`). Same two selects as
+   * `fetchBudgetAggregates`; returns one entry per budget in `budgets` order.
+   */
+  fetchHistoryData(
+    budgets: { id: string; month: number; year: number }[],
+  ): Promise<HistoryMonth[]>;
 
   /**
    * Calls `create_budget_from_template` RPC. Returns the raw RPC payload.

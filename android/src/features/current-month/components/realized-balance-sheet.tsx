@@ -9,7 +9,7 @@ import {
 } from "@/core/ui/amount-format";
 import { Amount } from "@/core/ui/amount";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 
 import type {
@@ -50,7 +50,7 @@ export function RealizedBalanceSheet({
   const statusColor = isPositive ? financial.savings : financial.overBudget;
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={onDismiss}
       title={t("home.realized.title")}
@@ -132,7 +132,7 @@ export function RealizedBalanceSheet({
       >
         {t("home.realized.tip")}
       </Text>
-    </Sheet>
+    </FormModal>
   );
 }
 

@@ -13,21 +13,29 @@ export type BudgetDetails = BudgetDetailsResponse["data"];
 /** The same fieldset as `BudgetService.defaultSparseFields`. */
 const SPARSE_FIELDS =
   "month,year,totalIncome,totalExpenses,totalSavings,rollover,remaining";
+export const BUDGET_PAGE_SIZE = 36;
 
 /**
- * Every budget, as periods plus aggregates — enough for the budgets list and
- * for the dashboard to resolve which period it is living in, off one cache
- * entry rather than two requests asking the same endpoint for overlapping
- * columns.
- *
- * Deliberately unbounded, unlike the iOS `limit: 13` — the list comes back
- * newest period first, so a limit silently drops the current month as soon as
- * the user has more future budgets than the limit leaves room for.
+ * One ordered history page. The dashboard resolves its current period through
+ * the smaller yearly query below, so neither surface depends on an unbounded
+ * account history.
  */
-export function fetchBudgetList(): Promise<BudgetSparse[]> {
+export function fetchBudgetListPage(offset: number): Promise<BudgetSparse[]> {
   return api
     .get(ENDPOINTS.budgets, budgetSparseListResponseSchema, {
       fields: SPARSE_FIELDS,
+      limit: BUDGET_PAGE_SIZE,
+      offset,
+    })
+    .then((response) => response.data);
+}
+
+/** Period-only lookup used by dashboards and detail navigation without history. */
+export function fetchBudgetPeriods(year: number): Promise<BudgetSparse[]> {
+  return api
+    .get(ENDPOINTS.budgets, budgetSparseListResponseSchema, {
+      fields: "month,year",
+      year,
     })
     .then((response) => response.data);
 }

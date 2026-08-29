@@ -46,14 +46,9 @@ struct OnboardingFlow: View {
                 Color.loginGradientBackground
 
                 VStack(spacing: 0) {
-                    // Sticky navigation header (progress + back)
-                    if state.currentStep.showProgressBar {
-                        stickyHeader
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
-
                     // Step content — no TabView so swipe is impossible
                     stepContent
+                        .environment(\.onboardingBack, state.currentStep.showProgressBar ? goBack : nil)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .layoutPriority(1)
                         .id(state.currentStep)
@@ -181,35 +176,13 @@ struct OnboardingFlow: View {
         }
     }
 
-    // MARK: - Sticky Header
-
-    private var stickyHeader: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            OnboardingProgressIndicator(
-                currentStep: state.currentStep,
-                progressSteps: state.progressBarSteps
-            )
-
-            HStack {
-                Button {
-                    if state.wouldExitOnBack && state.editReturnStep == nil {
-                        showExitConfirmation = true
-                    } else {
-                        state.previousStep()
-                    }
-                } label: {
-                    HStack(spacing: DesignTokens.Spacing.xs) {
-                        Image(systemName: "chevron.left")
-                            .font(PulpeTypography.labelLarge)
-                        Text(state.editReturnStep != nil ? "Retour au résumé" : "Retour")
-                            .font(PulpeTypography.buttonSecondary)
-                    }
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-                }
-                .textLinkButtonStyle()
-                Spacer()
-            }
-            .padding(.horizontal, DesignTokens.Spacing.xxl)
+    /// Back lives in the step's bottom zone, beside the CTA; the flow keeps the exit
+    /// confirmation and hands the action down through the environment.
+    private func goBack() {
+        if state.wouldExitOnBack && state.editReturnStep == nil {
+            showExitConfirmation = true
+        } else {
+            state.previousStep()
         }
     }
 
@@ -332,12 +305,26 @@ struct OnboardingFlow: View {
         state.isSubmitting = true
         defer { state.isSubmitting = false }
 
+        var completingUser = user
+        do {
+            try await state.persistFirstName { name in
+                try await AuthService.shared.updateUserFirstName(name)
+            }
+            if let updated = state.authenticatedUser {
+                completingUser = updated
+            }
+        } catch _ {
+            // Last-chance persist is best-effort, like email/social signup:
+            // the account already exists, the name stays in memory, Compte can
+            // retry. Returning here would trap the user on the final CTA.
+        }
+
         // Currency persistence is deferred to `OnboardingBootstrapper.bootstrapIfNeeded`,
         // which runs post-PIN-setup. Calling `userSettingsStore.updateCurrency` here would
         // 403 with `AUTH_CLIENT_KEY_MISSING` because the client key only exists after PIN
         // setup, leaving the dashboard stuck on the default CHF.
         await appState.completeOnboarding(
-            user: user,
+            user: completingUser,
             onboardingData: state.createTemplateData(),
             signupMethod: state.authMethodProperty,
             currency: state.currency,

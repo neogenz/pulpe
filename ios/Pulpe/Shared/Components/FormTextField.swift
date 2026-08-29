@@ -14,9 +14,35 @@ struct FormTextField<Field: Hashable>: View {
     var accessibilityLabel: String?
     var focusBinding: FocusState<Field?>.Binding
     var field: Field
+    var textContentType: UITextContentType?
+    /// `.row`: title on the left, bare field on the right, for one line of a `FormCard`.
+    var style: FormRowStyle = .standalone
+    /// Runs on the keyboard's Return after the field drops focus: the form's own submit,
+    /// so a valid entry is created without reaching for the button under the keyboard.
+    var onSubmit: (() -> Void)?
 
     var body: some View {
-        if let label {
+        if style == .row, let label {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Text(label)
+                    .font(PulpeTypography.bodyLarge)
+                    .foregroundStyle(Color.textPrimary)
+                TextField(hint, text: $text)
+                    .font(PulpeTypography.bodyLarge)
+                    .multilineTextAlignment(.trailing)
+                    .submitLabel(.done)
+                    .focused(focusBinding, equals: field)
+                    .textContentType(textContentType)
+                    .onSubmit {
+                        focusBinding.wrappedValue = nil
+                        onSubmit?()
+                    }
+                    .accessibilityLabel(accessibilityLabel ?? label)
+            }
+            .frame(minHeight: DesignTokens.ListRow.minHeight)
+            .contentShape(.interaction, Rectangle())
+            .onTapGesture { focusBinding.wrappedValue = field }
+        } else if let label {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(label)
                     .font(PulpeTypography.labelMedium)
@@ -45,6 +71,10 @@ struct FormTextField<Field: Hashable>: View {
             // See type documentation — `Button` would not focus the inner `TextField` with this layout.
             .onTapGesture { focusBinding.wrappedValue = field }
             .focused(focusBinding, equals: field)
-            .onSubmit { focusBinding.wrappedValue = nil }
+            .textContentType(textContentType)
+            .onSubmit {
+                focusBinding.wrappedValue = nil
+                onSubmit?()
+            }
     }
 }

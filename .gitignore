@@ -154,5 +154,9 @@ supabase-migration-20260210/
 # asc CLI build artifacts (xcarchive, IPA, logs)
 .asc/
 
+# Per-worktree DerivedData: an iOS build there passes -derivedDataPath .dd-<worktree>
+# so it never reuses another worktree's products.
+.dd-*/
+
 # Local App Store captures
 /appstore-screenshots/

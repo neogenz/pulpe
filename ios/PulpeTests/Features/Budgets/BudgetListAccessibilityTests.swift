@@ -1,5 +1,6 @@
 import Foundation
 @testable import Pulpe
+import SwiftUI
 import Testing
 
 struct BudgetListAccessibilityTests {
@@ -118,5 +119,17 @@ struct BudgetListAccessibilityTests {
         } else {
             #expect(!Date.isPast(month: 1, year: currentYear + 1))
         }
+    }
+
+    // MARK: - Month row identifiers (The One Ledger Rule)
+
+    @Test func monthRow_identifierFollowsBudgetId() {
+        let budget = TestDataFactory.createBudgetSparse(month: 3, year: 2026)
+        #expect(BudgetMonthRow.accessibilityIdentifier(for: budget) == "budgetMonthRow-\(budget.id)")
+    }
+
+    @Test func monthRow_currentMonthCarriesSelectedTrait() {
+        #expect(BudgetMonthRow.accessibilityTraits(isCurrent: true).contains(.isSelected))
+        #expect(!BudgetMonthRow.accessibilityTraits(isCurrent: false).contains(.isSelected))
     }
 }

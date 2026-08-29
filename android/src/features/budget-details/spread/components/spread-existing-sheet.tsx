@@ -5,7 +5,7 @@ import { Button, Text, useTheme } from "react-native-paper";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatCurrency } from "@/core/ui/amount-format";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { FieldError } from "@/core/ui/field-error";
 
 import { useSpreadExistingLine } from "../spread-queries";
@@ -67,7 +67,7 @@ export function SpreadExistingSheet({
   }
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={onDismiss}
       isBusy={spread.isPending}
@@ -115,6 +115,6 @@ export function SpreadExistingSheet({
           )
         }
       />
-    </Sheet>
+    </FormModal>
   );
 }

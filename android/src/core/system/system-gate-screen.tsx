@@ -18,7 +18,6 @@ const ANIMATION_SIZE = 220;
 const COPY_KEYS: Record<Exclude<SystemGate, "ok">, string> = {
   maintenance: "maintenance",
   forceUpdate: "forceUpdate",
-  offline: "offline",
 };
 
 /**

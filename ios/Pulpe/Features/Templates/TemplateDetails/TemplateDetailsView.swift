@@ -34,20 +34,21 @@ struct TemplateDetailsView: View {
 
     var body: some View {
         Group {
-            if viewModel.isLoading && viewModel.template == nil {
-                TemplateDetailsSkeletonView()
+            switch viewModel.content {
+            case .loaded(let template):
+                content(template: template)
                     .transition(.opacity)
-            } else if let error = viewModel.error, viewModel.template == nil {
+            case .failed(let error):
                 ErrorView(error: error) {
                     await viewModel.loadDetails()
                 }
                 .transition(.opacity)
-            } else if let template = viewModel.template {
-                content(template: template)
+            case .loading:
+                TemplateDetailsSkeletonView()
                     .transition(.opacity)
             }
         }
-        .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.content)
         .navigationTitle(viewModel.template?.name ?? AppLocale.string("Modèle"))
         .navigationBarTitleDisplayMode(.inline)
         .task(id: savingsGoalStore.templateDataVersion) {
@@ -95,17 +96,11 @@ struct TemplateDetailsView: View {
                     }
 
                     if template.isDefaultTemplate {
-                        HStack(spacing: DesignTokens.Spacing.xs) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(PulpeTypography.caption2)
-                            Text("Par défaut")
-                                .font(PulpeTypography.caption2)
-                                .fontWeight(.medium)
-                        }
-                        .foregroundStyle(Color.financialSavings)
-                        .padding(.horizontal, DesignTokens.Spacing.sm)
-                        .padding(.vertical, DesignTokens.Spacing.xs)
-                        .background(Color.financialSavings.opacity(DesignTokens.Opacity.badgeBackground), in: Capsule())
+                        PulpeChip(
+                            icon: "checkmark.circle.fill",
+                            label: AppLocale.string("Par défaut"),
+                            style: .semantic(.financialSavings)
+                        )
                     }
                 }
                 .padding(.vertical, DesignTokens.Spacing.xs)
@@ -220,6 +215,7 @@ struct TemplateDetailsView: View {
         } header: {
             HStack {
                 Text(title)
+                Text(verbatim: "· \(lines.count)")
                 Spacer()
                 let total = lines.reduce(Decimal.zero) { $0 + $1.amount }
                 Text(total.asSignedCompactCurrency(userSettingsStore.currency, for: kind))
@@ -227,79 +223,6 @@ struct TemplateDetailsView: View {
                     .sensitiveAmount()
             }
         }
-    }
-}
-
-// MARK: - Template Line Row
-
-struct TemplateLineRow: View {
-    let line: TemplateLine
-    let tagNamesById: [String: String]
-    let onEdit: () -> Void
-
-    @Environment(UserSettingsStore.self) private var userSettingsStore
-    @Environment(SavingsGoalStore.self) private var savingsGoalStore
-
-    static func goalName(for goalId: String?, in goals: [SavingsGoal]) -> String? {
-        guard let goalId else { return nil }
-        return goals.first { $0.id == goalId }?.name
-    }
-
-    private var goalName: String? {
-        Self.goalName(for: line.savingsGoalId, in: savingsGoalStore.goals)
-    }
-
-    var body: some View {
-        Button(action: onEdit) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Circle()
-                    .fill(line.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
-                    .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
-                    .overlay {
-                        Image(systemName: line.kind.icon)
-                            .font(PulpeTypography.listRowTitle)
-                            .foregroundStyle(line.kind.color)
-                    }
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(line.name)
-                        .font(PulpeTypography.listRowTitle)
-                        .lineLimit(1)
-
-                    if let goalName {
-                        PulpeChip(
-                            icon: "target",
-                            label: AppLocale.string("Objectif : \(goalName)"),
-                            style: .semantic(.financialSavings)
-                        )
-                        .lineLimit(1)
-                        .accessibilityIdentifier("templateLineGoalChip-\(line.id)")
-                    }
-
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        RecurrenceBadge(line.recurrence, style: .compact)
-
-                        // No `·` here: the count follows a capsule, not text, and a
-                        // separator between the two would read as broken punctuation.
-                        let tagNames = TagChips.names(for: line.tagIds, namesById: tagNamesById)
-                        if !tagNames.isEmpty {
-                            TagChips(names: tagNames, presentation: .count)
-                        }
-                    }
-                }
-
-                Spacer()
-
-                Text(line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency))
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(line.kind.color)
-                    .sensitiveAmount()
-            }
-            .padding(.vertical, DesignTokens.ListRow.verticalPadding)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityHint("Touche pour modifier")
     }
 }
 
@@ -311,15 +234,28 @@ final class TemplateDetailsViewModel {
 
     private(set) var template: BudgetTemplate?
     private(set) var lines: [TemplateLine] = []
-    private(set) var isLoading = false
     private(set) var error: Error?
     private var hasLoadedOnce = false
 
-    private let templateService = TemplateService.shared
+    private let templateService: any TemplateServicing
     @ObservationIgnored var onBudgetDataMutation: (@MainActor () -> Void)?
 
-    init(templateId: String) {
+    init(templateId: String, templateService: any TemplateServicing = TemplateService.shared) {
         self.templateId = templateId
+        self.templateService = templateService
+    }
+
+    /// What the page renders; the body `switch`es on it so no state renders nothing.
+    enum Content {
+        case loading
+        case failed(Error)
+        case loaded(BudgetTemplate)
+    }
+
+    var content: Content {
+        if let template { return .loaded(template) }
+        if let error { return .failed(error) }
+        return .loading
     }
 
     var totals: BudgetFormulas.TemplateTotals {
@@ -345,10 +281,8 @@ final class TemplateDetailsViewModel {
 
     func loadDetails() async {
         let showsSkeleton = template == nil
-        isLoading = true
         error = nil
         let loadStart = ContinuousClock.now
-        defer { isLoading = false }
 
         do {
             async let templateTask = templateService.getTemplate(id: templateId)
@@ -398,10 +332,11 @@ private struct TemplateDetailsSkeletonView: View {
                         width: DesignTokens.Skeleton.longTextWidth,
                         height: DesignTokens.Skeleton.bodyHeight
                     )
+                    // `PulpeChip` is a capsule, not a rounded tag.
                     SkeletonShape(
                         width: DesignTokens.Skeleton.shortTextWidth,
-                        height: DesignTokens.Skeleton.tagHeight,
-                        cornerRadius: DesignTokens.CornerRadius.sm
+                        height: DesignTokens.Skeleton.chipHeight,
+                        cornerRadius: .infinity
                     )
                 }
                 .padding(.vertical, DesignTokens.Spacing.xs)
@@ -435,44 +370,57 @@ private struct TemplateDetailsSkeletonView: View {
                 )
             }
 
-            // Budget line sections (2 sections)
-            ForEach(0..<2, id: \.self) { _ in
+            // Line sections: revenus, dépenses, épargne
+            ForEach(0..<3, id: \.self) { _ in
                 Section {
                     ForEach(0..<3, id: \.self) { _ in
-                        HStack(spacing: DesignTokens.Spacing.md) {
-                            SkeletonShape(
-                                width: DesignTokens.IconSize.listRow,
-                                height: DesignTokens.IconSize.listRow,
-                                cornerRadius: DesignTokens.IconSize.listRow / 2
-                            )
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        // `TemplateLineRow`: disc, name over a single subtitle line that may
+                        // carry a tag chip beside it, the amount, then the chevron.
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            SkeletonCircle(size: DesignTokens.IconSize.listRow)
+
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                                 SkeletonShape(
                                     width: DesignTokens.Skeleton.mediumTextWidth,
-                                    height: DesignTokens.Skeleton.bodyHeight
+                                    height: DesignTokens.Skeleton.lineHeight
                                 )
-                                SkeletonShape(
-                                    width: DesignTokens.Skeleton.compactTextWidth,
-                                    height: DesignTokens.Skeleton.tagHeight,
-                                    cornerRadius: DesignTokens.CornerRadius.sm
-                                )
-                                SkeletonShape(
-                                    width: DesignTokens.Skeleton.compactTextWidth,
-                                    height: DesignTokens.Skeleton.tagHeight,
-                                    cornerRadius: DesignTokens.CornerRadius.sm
-                                )
+                                HStack(spacing: DesignTokens.Spacing.xs) {
+                                    SkeletonShape(
+                                        width: DesignTokens.Skeleton.shortTextWidth,
+                                        height: DesignTokens.Skeleton.captionHeight
+                                    )
+                                    SkeletonShape(
+                                        width: DesignTokens.Skeleton.numericWidth,
+                                        height: DesignTokens.Skeleton.tagHeight,
+                                        cornerRadius: .infinity
+                                    )
+                                }
                             }
-                            Spacer()
+
+                            Spacer(minLength: DesignTokens.Spacing.sm)
+
                             SkeletonShape(
                                 width: DesignTokens.Skeleton.compactTextWidth,
-                                height: DesignTokens.Skeleton.bodyHeight
+                                height: DesignTokens.Skeleton.lineHeight
+                            )
+
+                            SkeletonShape(
+                                width: DesignTokens.Spacing.xs,
+                                height: DesignTokens.Spacing.md,
+                                cornerRadius: DesignTokens.CornerRadius.xs
                             )
                         }
                         .padding(.vertical, DesignTokens.ListRow.verticalPadding)
                     }
                 } header: {
-                    HStack {
+                    HStack(spacing: DesignTokens.Spacing.xs) {
                         SkeletonShape(
                             width: DesignTokens.Skeleton.compactTextWidth,
+                            height: DesignTokens.Skeleton.captionHeight
+                        )
+                        // The « · 3 » count that follows the section title.
+                        SkeletonShape(
+                            width: DesignTokens.Skeleton.numericWidth,
                             height: DesignTokens.Skeleton.captionHeight
                         )
                         Spacer()
@@ -502,4 +450,16 @@ private struct TemplateDetailsSkeletonView: View {
     .environment(CurrentMonthStore())
     .environment(SavingsGoalStore())
     .environment(TagStore())
+}
+
+// The body switches on `content` and the transition animates on it: one rule.
+extension TemplateDetailsViewModel.Content: Equatable {
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        switch (lhs, rhs) {
+        case (.loading, .loading): true
+        case let (.failed(lhs), .failed(rhs)): lhs.localizedDescription == rhs.localizedDescription
+        case let (.loaded(lhs), .loaded(rhs)): lhs == rhs
+        default: false
+        }
+    }
 }

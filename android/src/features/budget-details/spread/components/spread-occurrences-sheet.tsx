@@ -19,7 +19,7 @@ import { Amount } from "@/core/ui/amount";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
-import { Sheet } from "@/core/ui/sheet";
+import { FormModal } from "@/core/ui/sheet";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 
 import { useSpreadOccurrences } from "../spread-queries";
@@ -70,7 +70,7 @@ export function SpreadOccurrencesSheet({
     livePeriod.year === viewedPeriod.year;
 
   return (
-    <Sheet
+    <FormModal
       isVisible={isVisible}
       onDismiss={onDismiss}
       title={t("budgets.actions.spread.occurrencesTitle")}
@@ -140,7 +140,7 @@ export function SpreadOccurrencesSheet({
           isLivePeriodViewed={isLivePeriodViewed}
         />
       ))}
-    </Sheet>
+    </FormModal>
   );
 }
 

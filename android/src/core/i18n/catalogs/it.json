@@ -30,6 +30,10 @@
       "title": "Reimposta password",
       "verifying": "Verifica del link in corso"
     },
+    "restore": {
+      "hint": "I tuoi dati sono ancora su questo dispositivo. Riprova ad aprire Pulpe.",
+      "title": "Impossibile aprire la sessione"
+    },
     "signIn": {
       "createAccount": "Crea un account",
       "emailPlaceholder": "Indirizzo email",
@@ -105,6 +109,8 @@
       },
       "loadErrorHint": "Controlla la connessione e riprova.",
       "loadErrorTitle": "Non è stato possibile caricare questo budget",
+      "missingHint": "Potrebbe essere stato eliminato da un altro dispositivo.",
+      "missingTitle": "Questo budget non esiste più",
       "monthSelector": "Selettore del mese",
       "noResults": "Nessun risultato per questo filtro.",
       "openForecast": "Apri i dettagli della previsione",
@@ -521,7 +527,10 @@
     },
     "deletion": {
       "actual": "Reale",
-      "budgetCount": { "one": "%{count} budget", "other": "%{count} budget" },
+      "budgetCount": {
+        "one": "%{count} budget",
+        "other": "%{count} budget"
+      },
       "confirm": {
         "goal_and_forecasts": "Elimina obiettivo e previsioni",
         "goal_forecasts_and_transactions": "Elimina tutto",
@@ -577,7 +586,10 @@
         "other": "Vedi tutto il piano (%{count} mesi)"
       },
       "showLess": "Vedi meno",
-      "state": { "checked": "Spuntato", "locked": "Bloccato" },
+      "state": {
+        "checked": "Spuntato",
+        "locked": "Bloccato"
+      },
       "thisMonth": "Questo mese",
       "title": "Il tuo piano, mese per mese",
       "unlinked": {
@@ -598,7 +610,10 @@
       "emptyHint": "I tuoi movimenti appariranno qui",
       "title": "Attività",
       "viewAll": "Vedi tutto",
-      "window": { "month": "Questo mese", "week": "7 giorni" },
+      "window": {
+        "month": "Questo mese",
+        "week": "7 giorni"
+      },
       "windowAccessibility": "Attività per %{window}"
     },
     "add": "Aggiungi",
@@ -640,7 +655,10 @@
         "overrun": "Ti resta meno del previsto.",
         "overrunDated": "Sotto il tuo piano dal %{date}."
       },
-      "vsPlanned": "vs previsto"
+      "vsPlanned": "vs previsto",
+      "chart": {
+        "today": "oggi"
+      }
     },
     "periodRemaining": {
       "one": "Ultimo giorno del periodo",
@@ -697,10 +715,22 @@
       "title": "Il tuo budget è pronto"
     },
     "tabs": {
-      "budgets": { "accessibility": "Scheda Budget", "short": "Budget" },
-      "goals": { "accessibility": "Scheda Obiettivi", "short": "Obiettivi" },
-      "home": { "accessibility": "Scheda Home", "short": "Home" },
-      "templates": { "accessibility": "Scheda Modelli", "short": "Modelli" }
+      "budgets": {
+        "accessibility": "Scheda Budget",
+        "short": "Budget"
+      },
+      "goals": {
+        "accessibility": "Scheda Obiettivi",
+        "short": "Obiettivi"
+      },
+      "home": {
+        "accessibility": "Scheda Home",
+        "short": "Home"
+      },
+      "templates": {
+        "accessibility": "Scheda Modelli",
+        "short": "Modelli"
+      }
     }
   },
   "onboarding": {
@@ -1041,10 +1071,6 @@
       "maintenance": {
         "hint": "Stiamo rimettendo tutto in ordine. Torna tra qualche minuto.",
         "title": "Pulpe è in manutenzione"
-      },
-      "offline": {
-        "hint": "I tuoi budget sono crittografati sul server. Senza connessione, Pulpe non può mostrarli.",
-        "title": "Nessuna connessione"
       }
     },
     "queryError": "Non è stato possibile caricare questa sezione.",
@@ -1177,7 +1203,14 @@
     }
   },
   "vocabulary": {
-    "kind": { "expense": "Spesa", "income": "Entrata", "saving": "Risparmio" },
-    "recurrence": { "fixed": "Ricorrente", "one_off": "Pianificato" }
+    "kind": {
+      "expense": "Spesa",
+      "income": "Entrata",
+      "saving": "Risparmio"
+    },
+    "recurrence": {
+      "fixed": "Ricorrente",
+      "one_off": "Pianificato"
+    }
   }
 }

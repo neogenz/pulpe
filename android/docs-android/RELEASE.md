@@ -67,19 +67,27 @@ distributions that still use them.
 
 `appVersionSource: "remote"` means EAS owns `versionCode`; nothing in the repo
 tracks it and nothing should. The user-facing `version` stays in `app.json`,
-in lockstep with the root `package.json` like every other Pulpe surface.
+in lockstep with the root `package.json` and `android/package.json` like every
+other Pulpe surface. The unified `/release` workflow bumps the private Android
+workspace through Changesets and synchronizes `app.json`; do not edit either
+Android version as a separate release step.
 
 ## Workflows
 
-Two files in `.eas/workflows/` handle distributable builds:
+One file in `.eas/workflows/` handles distributable builds:
 
-- **`deploy-preview.yml`** — relevant pull requests to `preview` or `main`
-  build a preview APK. Path filters skip unrelated monorepo changes; manual
-  dispatch remains available.
 - **`deploy-production.yml`** — pushes to `main` build the AAB and submit it to
   the Play **internal** track as a **draft**. `main` is not this repo's default
   branch (`preview` is), so a push there is already a deliberate act; the draft
   status means nothing reaches a user until it is promoted by hand.
+
+There is no per-pull-request EAS build on purpose. The Free plan meters cloud
+builds per month, and a build on every Android PR spent the quota the
+production AAB needs; the preview APK a PR requires is already built by
+`android-e2e.yml` on the GitHub runner. To hand a `preview` build to someone,
+run `eas build -p android -e preview` by hand, or wait for the Play internal
+track. A shareable APK per PR without the quota would be
+`eas build --local` on the runner with an `EXPO_TOKEN`; not wired today.
 
 This is a deliberate divergence from iOS, whose distribution workflow is
 `workflow_dispatch`-only with an explicit SHA. The safety comes from a

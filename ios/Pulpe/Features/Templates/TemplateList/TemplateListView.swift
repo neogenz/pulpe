@@ -166,24 +166,30 @@ private struct TemplateListSkeletonView: View {
 
             Section {
                 ForEach(0..<3, id: \.self) { _ in
-                    HStack {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    // Same slots as `TemplateRow`: the disc, name over subtitle, the chevron.
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        SkeletonCircle(size: DesignTokens.IconSize.listRow)
+
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                             SkeletonShape(
                                 width: DesignTokens.Skeleton.mediumTextWidth,
-                                height: DesignTokens.Spacing.lg
+                                height: DesignTokens.Skeleton.lineHeight
                             )
                             SkeletonShape(
                                 width: DesignTokens.Skeleton.longTextWidth,
                                 height: DesignTokens.Skeleton.captionHeight
                             )
                         }
-                        Spacer()
+
+                        Spacer(minLength: DesignTokens.Spacing.sm)
+
                         SkeletonShape(
-                            width: DesignTokens.Spacing.compactGap,
-                            height: DesignTokens.Skeleton.bodyHeight,
+                            width: DesignTokens.Spacing.xs,
+                            height: DesignTokens.Spacing.md,
                             cornerRadius: DesignTokens.CornerRadius.xs
                         )
                     }
+                    .padding(.vertical, DesignTokens.Spacing.xs)
                 }
             } footer: {
                 SkeletonShape(
@@ -208,36 +214,34 @@ struct TemplateRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    HStack {
-                        Text(template.name)
-                            .font(PulpeTypography.headline)
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                RowIcon(systemName: "doc.text", tint: .pulpePrimary)
 
-                        if template.isDefaultTemplate {
-                            Text("Par défaut")
-                                .font(PulpeTypography.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.accentColor.opacity(0.15), in: Capsule())
-                                .foregroundStyle(Color.accentColor)
-                        }
-                    }
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text(template.name)
+                        .font(PulpeTypography.listRowTitle)
+                        .foregroundStyle(Color.textPrimary)
 
-                    if let description = template.description, !description.isEmpty {
+                    if template.isDefaultTemplate {
+                        Text("Par défaut")
+                            .font(PulpeTypography.listRowSubtitle)
+                            .foregroundStyle(Color.textSecondary)
+                    } else if let description = template.description, !description.isEmpty {
                         Text(description)
-                            .font(PulpeTypography.caption)
+                            .font(PulpeTypography.listRowSubtitle)
                             .foregroundStyle(Color.textSecondary)
                             .lineLimit(1)
                     }
                 }
 
-                Spacer()
+                Spacer(minLength: DesignTokens.Spacing.sm)
 
                 Image(systemName: "chevron.right")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textSecondary)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.textTertiary)
+                    .accessibilityHidden(true)
             }
+            .padding(.vertical, DesignTokens.Spacing.xs)
         }
         .buttonStyle(.plain)
         .contentShape(.rect)

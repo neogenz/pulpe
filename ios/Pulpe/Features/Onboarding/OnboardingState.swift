@@ -46,6 +46,10 @@ final class OnboardingState {
     /// while the user is interacting with the form.
     private(set) var socialProvidedName: Bool = false
 
+    /// Session-only last-chance persist retry; written via `markFirstNamePersistFailed`.
+    private(set) var firstNamePersistFailedThisSession = false
+    func markFirstNamePersistFailed(_ failed: Bool) { firstNamePersistFailedThisSession = failed }
+
     /// Triggers `finishOnboarding` from BudgetPreview (the finale) for all auth paths.
     var readyToComplete: Bool = false
 
@@ -77,7 +81,7 @@ final class OnboardingState {
         resetDraftFields()
         authenticatedUser = user
         isSocialAuth = true
-        if let name = user.firstName, !name.isEmpty {
+        if let name = FirstNameResolver.normalized(user.firstName) {
             firstName = name
             socialProvidedName = true
         } else {
@@ -121,7 +125,7 @@ final class OnboardingState {
     // MARK: - Computed
 
     var isFirstNameValid: Bool {
-        !firstName.trimmingCharacters(in: .whitespaces).isEmpty
+        FirstNameResolver.normalized(firstName) != nil
     }
 
     var isIncomeValid: Bool {
@@ -281,25 +285,6 @@ final class OnboardingState {
             currentStep = next
         }
         saveToStorage()
-    }
-
-    /// Fire the `onboarding_step_completed` event for a given step.
-    /// Enriched with `step_index` (1-based), `step_count` (steps visible for this path), and
-    /// `auth_method` so PostHog funnels are resilient to future step reordering.
-    private func captureStepCompleted(_ step: OnboardingStep) {
-        let bar = progressBarSteps
-        let index = (bar.firstIndex(of: step).map { $0 + 1 }) ?? 0
-        AnalyticsService.shared.capture(
-            .onboardingStepCompleted,
-            properties: [
-                "step": step.analyticsName,
-                "step_index": index,
-                // Not `step_total`: `sanitizeProperties` drops any key carrying
-                // `total` as a component, so that name never left the device.
-                "step_count": bar.count,
-                "auth_method": authMethodProperty
-            ]
-        )
     }
 
     /// Stable string describing the auth method for analytics properties.

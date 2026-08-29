@@ -1,7 +1,8 @@
 # 0018 — Build Android with Expo and React Native
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-12
+**Accepted:** 2026-08-27
 **Deciders:** Pulpe team
 
 ## Context
@@ -10,7 +11,7 @@ Pulpe needs an Android client with functional parity to the native SwiftUI app. 
 maintained by one developer, and business contracts and calculators already live in a strict
 TypeScript workspace consumed by the web and backend.
 
-## Proposed decision
+## Decision
 
 Add an `android/` pnpm workspace built with Expo and React Native in strict TypeScript.
 
@@ -21,6 +22,9 @@ Add an `android/` pnpm workspace built with Expo and React Native in strict Type
 - Use Expo development builds from the start because PIN derivation and secure storage require
   native modules.
 - Keep iOS native and use it as the primary parity reference; Android widgets are outside v1.
+
+The workspace ships: EAS builds the production binary, the Play internal track distributes it,
+and Expo Updates carries the OTA path within the configured runtime version.
 
 ## Consequences
 

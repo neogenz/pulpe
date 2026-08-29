@@ -105,7 +105,7 @@ A neutral warm canvas with three semantic accents, one cautionary amber, and a t
 
 **The Anxiety Red Rule.** Red never represents a spending category or local budget overrun. The red family is reserved for a global deficit hero and for genuine error or irreversible-action feedback. Lines, rows, transactions, pills, and labels for expenses use **amber**, never red. _Le rouge n'est pas punitif_ — quoting our own design doctrine.
 
-**The Two-Zone Rule.** Every screen with a hero is split. The **emotion zone** at the top carries feeling — color-keyed to financial state. The **content zone** below is neutral warm and ruthlessly readable. Implementation differs per platform (gradient stops, fixed heights, transition values) but the conceptual split is universal. See platform docs for hex stops and pixel values.
+**The Two-Zone Rule.** Every screen with a hero is split. The **emotion zone** at the top is a deep, constant brand surface; the financial state is read in the verdict sentence, one chip and the chart accent — never in the color of the surface itself. The **content zone** below is neutral warm and ruthlessly readable. Implementation differs per platform (surface hex, corner radius, boundary shadow) but the conceptual split is universal. See platform docs for values.
 
 ## Typography
 
@@ -148,7 +148,7 @@ Spacing grows with the available surface without changing the information order.
 
 ## Elevation & Depth
 
-**Pulpe is flat by default with restrained tonal layering.** Shadows exist but they are diffuse and warm-tinted; they never define structure, only state. Depth comes from surface tone (warm hierarchy: app-background → surface containers → card surface), not from cast shadows. The hero card is gradient-filled; everything else is flat surface or hairline-bordered.
+**Pulpe is flat by default with restrained tonal layering.** Shadows exist but they are diffuse and warm-tinted; they never define structure, only state. Depth comes from surface tone (warm hierarchy: app-background → surface containers → card surface), not from cast shadows. Gradients are reserved for the hero surface; the primary CTA is a flat fill, and everything else is flat surface or hairline-bordered. One saturated element per screen.
 
 > **Per-platform shadow vocabulary** lives in the platform-specific docs. The principle (warm-tinted, state-only, never decorative) is universal.
 
@@ -191,7 +191,7 @@ What's universal is the **vocabulary**: every platform has a Primary Button, Sec
 - **Do** map every color to a financial concept or state — savings green, income blue, expense amber, deficit red.
 - **Do** address every user with "tu", everywhere, on every platform.
 - **Do** use Manrope for display and amounts on every platform; pair with the platform body font (SF Pro / Roboto / DM Sans / Poppins).
-- **Do** keep the emotion zone at the top (gradient, financial-state-keyed) and the content zone below (neutral warm) wherever a screen has a hero.
+- **Do** keep the emotion zone at the top (constant brand surface, state in the verdict) and the content zone below (neutral warm) wherever a screen has a hero.
 - **Do** use tabular digits (`monospacedDigit()` / `tabular-nums`) on every numeric amount.
 - **Do** preserve enough precision for every amount that explains a monetary state; a non-zero cent value must never be presented as zero.
 - **Do** route every chip / pill through the platform's chip atom — never reinvent the capsule + padding + count badge in feature code.

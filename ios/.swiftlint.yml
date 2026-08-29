@@ -13,6 +13,7 @@ excluded:
   - Pulpe.xcodeproj
   - .build
   - DerivedData
+  - build # local archives and their SourcePackages checkouts
 
 # Rules
 disabled_rules:
@@ -88,16 +89,11 @@ custom_rules:
       - ".*/Shared/Components/RealizedBalanceSheet\\.swift"
       - ".*/Shared/Components/ToastView\\.swift"
       - ".*/Features/CurrentMonth/Components/LinkedTransactionsSheet\\.swift"
-      - ".*/Features/CurrentMonth/Components/HeroBalanceCard\\.swift"
       - ".*/Features/Budgets/BudgetList/BudgetListView\\+YearComponents\\.swift"
-      - ".*/Features/Budgets/BudgetDetails/BudgetDetailHero\\.swift"
       - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\.swift"
       # PUL-17 spread progress tracker bar (filled capsule, not a chip).
       - ".*/Features/Budgets/BudgetDetails/Spread/SpreadTrackerHeader\\.swift"
-      # PUL-8 savings-goal prévu/confirmé progress bar (filled capsule, not a chip).
-      - ".*/Features/SavingsGoals/SavingsGoalDetailView\\.swift"
       - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\+Hero\\.swift"
-      - ".*/Features/Onboarding/Components/OnboardingProgressIndicator\\.swift"
       # Savings-goals intro page-dot indicator (filled capsule, not a chip).
       - ".*/Features/SavingsGoals/Intro/SavingsGoalsIntroCover\\.swift"
       - ".*/Features/Onboarding/Steps/BudgetPreviewFlowBars\\.swift"

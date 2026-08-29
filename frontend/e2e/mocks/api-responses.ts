@@ -72,6 +72,7 @@ export interface MockBudgetDetailsResponse {
       createdAt: string;
       updatedAt: string;
     }>;
+    history: null;
   };
 }
 
@@ -149,6 +150,7 @@ export const createMockBudgetDetailsResponse =
       budget: TEST_CONFIG.BUDGETS.CURRENT_MONTH,
       transactions: [],
       budgetLines: [],
+      history: null,
     },
   });
 
