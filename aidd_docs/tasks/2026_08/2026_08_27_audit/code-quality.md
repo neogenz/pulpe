@@ -1,0 +1,29 @@
+# Codebase Audit: android/ (code-quality)
+
+Clean tree: tsc, eslint, prettier green, no `any`, no `eslint-disable`, no `console`, no TODO, no skipped test. The debt is small and local.
+
+- **Date**: 2026-08-27
+- **Scope**: `android/` (379 source files, 28.8k LOC incl. specs)
+- **Health**: good
+- **Findings**: 0 critical, 1 warning, 4 minor
+
+## Findings
+
+| Sev | Category     | Location                                                                                                                                                                                                                                                                      | Issue                                                                                                                                                                                                                                                     | Suggested fix                                                                                                                                                 | Effort |
+| --- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 🟡  | code-quality | `android/src/core/vault/auto-lock.ts:34-37`                                                                                                                                                                                                                                   | Comment states that after `lockVault()` "the router falls back to `/`, the one route no guard can remove". It falls back to the first still-open declared group (`(vault)`), which is what let the PIN regression ship unnoticed (see `architecture.md`). | Rewrite the comment with the real contract once `index` is declared first in the root Stack; keep it short and point to `_layout.tsx`.                        | S      |
+| 🟢  | code-quality | `android/src/app/(vault)/vault-setup.tsx:18-51` and `android/src/features/onboarding/steps/pin-setup-step.tsx:23-61`                                                                                                                                                          | The two-phase PIN ceremony (`firstPin` ref, `isConfirming`, `restart`, mismatch message, `setupVaultPin` + `vault.error`) is duplicated line for line; only the footer and the post-success hook differ.                                                  | Extract `usePinCeremony(onConfirmed)` next to `usePinEntry` in `src/ui/`; both screens keep their footer.                                                     | S      |
+| 🟢  | code-quality | `android/src/core/ui/theme.ts:156-160`                                                                                                                                                                                                                                        | `HERO_TINTS` is exported and never imported (the hero reads `HOME_HERO_COLORS` through `useHeroColors`).                                                                                                                                                  | Delete the export.                                                                                                                                            | S      |
+| 🟢  | code-quality | `android/src/app/(main)/budget/[id].tsx` (576 LOC), `android/src/features/transactions/components/transaction-sheet.tsx` (491), `android/src/app/(main)/template/[id].tsx` (451), `android/src/features/savings-goals/components/goal-deletion-sheet.tsx` (437), 8 more > 350 | Twelve files above 350 LOC and no `max-lines` rule in `android/eslint.config.js`; the two detail screens orchestrate three to four sheets plus notices each. Nothing enforces a ceiling, so this is a decision, not a violation.                          | Either accept explicitly or add `max-lines` (e.g. 400) and split the two largest screens by sheet ownership (`useBudgetDetailActions`, `useTemplateActions`). | M      |
+| 🟢  | code-quality | `android/src/app/(main)/(tabs)/home.tsx:151`, `budgets.tsx:236`, `goals.tsx:117`, `templates.tsx:97`                                                                                                                                                                          | Each tab hand-rolls its `headlineSmall` title with a different wrapper (view, list header, scroll header) and only the home carries a trailing action.                                                                                                    | One `TabHeader` component in `core/ui` with a trailing slot (also a UI finding, see `ui.md`).                                                                 | S      |
+
+## Top actions
+
+1. Fix the `auto-lock.ts` comment together with the routing fix (row 1). Hand off to `refactor`.
+2. `usePinCeremony` + delete `HERO_TINTS` (rows 2-3): one small cleanup PR.
+3. Decide on a file-size rule (row 4); only then split the detail screens.
+
+## Coverage
+
+- **Scanned**: code-quality (`pnpm --filter pulpe-android type-check`, `lint`, `format:check` all green; grep for `any`, `eslint-disable`, `console.`, `TODO|FIXME`, `.skip|.only`: 0 hits; LOC distribution; duplicate-logic review of vault, onboarding, current-month, budgets, core/ui)
+- **Skipped**: none

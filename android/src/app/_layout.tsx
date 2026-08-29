@@ -8,6 +8,7 @@ import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
 
+import { observeSessionRejection } from "@/core/auth/session-invalidation";
 import { observeSession, useSessionStore } from "@/core/auth/session-store";
 import { startSupabaseAutoRefresh } from "@/core/auth/supabase";
 import { useTranslation } from "@/core/i18n/locale-store";
@@ -70,6 +71,7 @@ function RootLayout() {
   useEffect(() => startSupabaseAutoRefresh(), []);
   useEffect(() => armPrivacyShield(), []);
   useEffect(() => observeVaultKeyRejection(), []);
+  useEffect(() => observeSessionRejection(), []);
   useEffect(() => armAutoLock(), []);
   useEffect(() => startAnalytics(), []);
   useEffect(() => {
@@ -141,6 +143,14 @@ function RootLayout() {
           ) : (
             <>
               <Stack screenOptions={{ headerShown: false }}>
+                {/* First on purpose. When a guard flip empties the stack,
+                    react-navigation restarts it on `initialRouteName ??
+                    routeNames[0]`, and declared screens come before the
+                    discovered ones — so `index`, the one route no guard can
+                    remove, is where every flip lands and `landingRoute`
+                    decides again. Without it the first open group would
+                    become a second, silent decider. */}
+                <Stack.Screen name="index" />
                 {/* The server vault may temporarily outrank an interrupted run.
                     Which groups are open, and why, lives in `openGroups`. */}
                 <Stack.Protected guard={groups.includes("(onboarding)")}>

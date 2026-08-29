@@ -18,6 +18,7 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
+import { TabHeader } from "@/core/ui/tab-header";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { GoalFormSheet } from "@/features/savings-goals/components/goal-form-sheet";
@@ -90,10 +91,10 @@ export default function GoalsScreen() {
   const list = goals.data ?? [];
 
   return (
-    <SafeAreaView
-      edges={["top"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    // The app bar carries the status bar inset; asking the safe area for the
+    // top edge too would double it.
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+      <TabHeader title={t("goals.list.title")} />
       {list.length === 0 ? (
         <PlaceholderScreen
           icon="target"
@@ -114,8 +115,6 @@ export default function GoalsScreen() {
             />
           }
         >
-          <Text variant="headlineSmall">{t("goals.list.title")}</Text>
-
           {list.map((goal) => (
             <GoalRow key={goal.id} goal={goal} currency={currency} />
           ))}
@@ -140,7 +139,7 @@ export default function GoalsScreen() {
         payDayOfMonth={payDayOfMonth}
         onSaved={() => setCreating(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

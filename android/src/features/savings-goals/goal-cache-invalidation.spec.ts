@@ -1,6 +1,6 @@
 import { queryClient } from "@/core/query/query-client";
 import { budgetKeys } from "@/features/budgets/budget-queries";
-import { invalidateBudgetLineData } from "@/features/budget-details/budget-line-mutations";
+import { invalidateBudgetLines } from "@/features/budget-details/budget-line-mutations";
 
 import { goalKeys } from "./goals-queries";
 
@@ -15,15 +15,15 @@ jest.mock("@/features/budget-details/budget-line-api", () => ({
 jest.mock("./goals-api", () => ({}));
 
 describe("goal cache invalidation", () => {
-  it("refreshes budgets and goals after every budget-line write", async () => {
+  it("refreshes the written budget and the goals after every budget-line write", async () => {
     const invalidate = jest
       .spyOn(queryClient, "invalidateQueries")
       .mockResolvedValue(undefined);
 
-    await invalidateBudgetLineData(queryClient);
+    await invalidateBudgetLines(queryClient, ["budget-1"]);
 
     expect(invalidate.mock.calls.map(([options]) => options?.queryKey)).toEqual(
-      [budgetKeys.all, goalKeys.all],
+      [budgetKeys.detail("budget-1"), budgetKeys.list(), goalKeys.all],
     );
 
     invalidate.mockRestore();

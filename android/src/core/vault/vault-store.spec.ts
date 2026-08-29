@@ -1,3 +1,6 @@
+import { API_ERROR_CODES } from "pulpe-shared";
+
+import { ApiError } from "@/core/api/api-error";
 import {
   clearAllKeys,
   clearLegacyClientKey,
@@ -176,6 +179,24 @@ describe("setupVaultPin", () => {
 
     expect(mocked.clearSessionKey).toHaveBeenCalled();
     expect(useVaultStore.getState().status).toBe("setupRequired");
+  });
+
+  it("should relock instead of re-asking for a PIN when the server refuses a second setup", async () => {
+    useVaultStore.setState({ status: "setupRequired" });
+    mocked.setupRecoveryKey.mockRejectedValue(
+      new ApiError(
+        "exists",
+        API_ERROR_CODES.RECOVERY_KEY_ALREADY_EXISTS,
+        409,
+        undefined,
+      ),
+    );
+    mocked.fetchVaultStatus.mockResolvedValue(vaultStatus(true));
+
+    await expect(setupVaultPin("1234")).rejects.toThrow("exists");
+
+    expect(mocked.clearSessionKey).toHaveBeenCalled();
+    expect(useVaultStore.getState().status).toBe("locked");
   });
 });
 

@@ -47,19 +47,24 @@ interface SheetBoxInput {
 interface SheetBox {
   maxHeight: number;
   marginBottom: number;
+  /** Inside the surface, so its colour runs under the navigation bar. */
+  paddingBottom: number;
 }
 
 /**
  * The box a sheet gets to draw in, given the keyboard currently on screen.
  *
- * Both halves are needed and neither is enough alone: the margin lifts a sheet
- * that is centred in the full window clear of the keyboard, and the cap keeps a
- * tall one from growing back into it.
+ * All three are needed and none is enough alone: the margin lifts a sheet
+ * anchored to the bottom of the full window clear of the keyboard, the cap
+ * keeps a tall one from growing back into it, and the padding keeps the
+ * pinned footer off the gesture pill while the keyboard is down.
  *
  * React Native reports the keyboard's height *above the navigation bar*
- * (`imeInsets.bottom - barInsets.bottom`), while the sheet is centred in a
- * window that runs under that bar — so the bar's own inset has to be added
- * back, or the sheet clears the keys and sits on the gesture pill.
+ * (`imeInsets.bottom - barInsets.bottom`), while the sheet sits in a window
+ * that runs under that bar — so the bar's own inset has to be added back, or
+ * the sheet clears the keys and sits on the gesture pill. With the keyboard
+ * down the same inset moves inside the sheet: the surface reaches the screen's
+ * edge, the footer stops short of the bar.
  */
 export function sheetBox({
   windowHeight,
@@ -71,5 +76,6 @@ export function sheetBox({
   return {
     maxHeight: (windowHeight - reserved) * SHEET_HEIGHT_RATIO,
     marginBottom: reserved,
+    paddingBottom: keyboardHeight === 0 ? safeBottom : 0,
   };
 }

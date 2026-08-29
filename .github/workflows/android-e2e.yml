@@ -87,6 +87,10 @@ jobs:
 
       - name: Build preview APK
         working-directory: android/android
+        env:
+          # Ten seconds instead of five minutes, so vault-resume.yaml can wait
+          # out the auto-lock on the runner. Production builds ignore it.
+          EXPO_PUBLIC_AUTO_LOCK_DELAY_MS: "10000"
         run: ./gradlew :app:assembleRelease -PreactNativeArchitectures=x86_64 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" --no-daemon
 
       - name: Install Maestro
@@ -120,7 +124,10 @@ jobs:
             adb install -r android/android/app/build/outputs/apk/release/app-release.apk &&
             adb shell pm clear app.pulpe.android &&
             adb shell cmd locale set-app-locales app.pulpe.android --user current --locales fr-FR &&
-            maestro test android/maestro/smoke.yaml ||
+            maestro test android/maestro/smoke.yaml &&
+            adb shell input keyevent KEYCODE_HOME &&
+            sleep 12 &&
+            maestro test android/maestro/vault-resume.yaml ||
             { status=$?; adb exec-out screencap -p > android/maestro-artifacts/failure.png || true; adb logcat -d > android/maestro-artifacts/logcat.txt || true; cp -R "$HOME/.maestro/tests" android/maestro-artifacts/maestro-tests || true; exit "$status"; }
 
       - name: Upload failure artifacts

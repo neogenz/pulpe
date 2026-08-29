@@ -41,7 +41,7 @@ export function useTransactionRemoval() {
     failure,
     isPending: remove.isPending || restore.isPending,
     remove: (transaction: Transaction, onRemoved?: () => void) =>
-      remove.mutate(transaction.id, {
+      remove.mutate(transaction, {
         onSuccess: () => {
           setUndoable((current) => [...current, transaction]);
           onRemoved?.();

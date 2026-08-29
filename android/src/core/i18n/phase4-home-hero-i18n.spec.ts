@@ -24,6 +24,8 @@ describe("phase 4 home hero presentation boundary", () => {
     expect(hero).toContain('t("home.hero.metricsAccessibility"');
     expect(chart).toContain('accessibilityRole="image"');
     expect(chart).toContain('t("home.hero.chartAccessibility")');
+    expect(chart).toContain('t("home.hero.chart.today")');
+    expect(chart).not.toMatch(/aujourd'hui/);
     expect(presentation).toContain("t(`home.hero.verdict.${verdict}Dated`");
     expect(`${home}\n${hero}`).not.toMatch(
       /On n'a pas pu charger ton mois|Estimé fin \$|Voir le détail du budget/,

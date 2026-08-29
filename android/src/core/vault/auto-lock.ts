@@ -1,5 +1,7 @@
 import { AppState } from "react-native";
 
+import { ENV } from "@/core/config/env";
+
 import { lockVault, useVaultStore } from "./vault-store";
 
 /**
@@ -10,9 +12,13 @@ import { lockVault, useVaultStore } from "./vault-store";
  * after each of them would make the one-tap pointing habit unusable. Not an
  * hour either — the vault exists so that a phone left on a table stops being a
  * salary on a table. Five minutes is the window banking apps settle on.
+ *
+ * The value comes from `ENV` so a test build can shorten it; production keeps
+ * the five minutes whatever the variable says (`env.ts`).
  */
-export const AUTO_LOCK_DELAY_MINUTES = 5;
-export const AUTO_LOCK_DELAY_MS = AUTO_LOCK_DELAY_MINUTES * 60_000;
+export const AUTO_LOCK_DELAY_MS = ENV.autoLockDelayMs;
+/** What the security settings quote. Rounded: a test build's seconds read as 0. */
+export const AUTO_LOCK_DELAY_MINUTES = Math.round(AUTO_LOCK_DELAY_MS / 60_000);
 
 /**
  * Whether a return to the foreground has to go back through the PIN.
@@ -32,9 +38,10 @@ export function shouldLockOnResume(
  * Closes the vault when the app has been away long enough.
  *
  * Nothing here navigates. `lockVault` flips the status, which closes the
- * `(main)` group; the router falls back to `/`, the one route no guard can
- * remove, and `landingRoute` sends it on to the unlock screen. That is the same
- * path a key rejection already takes — see `key-invalidation.ts`.
+ * `(main)` group and opens `(vault)`; the root Stack then restarts on `index`,
+ * declared first in `app/_layout.tsx`, which re-runs `landingRoute` and sends
+ * the user to the unlock screen. That is the same path a key rejection already
+ * takes — see `key-invalidation.ts`.
  */
 export function armAutoLock(): () => void {
   let backgroundedAt: number | null = null;

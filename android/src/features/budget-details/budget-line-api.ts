@@ -39,15 +39,20 @@ export function deleteBudgetLine(budgetLineId: string): Promise<void> {
 
 /**
  * Moves a forecast to the month after its own. Both budgets change, which is
- * why the response names them — the caller sweeps the whole budget prefix
- * rather than trying to guess which two entries went stale.
+ * why the response names them — and why the caller gets the two ids back
+ * rather than guessing which entries went stale.
  */
-export function postponeBudgetLine(budgetLineId: string): Promise<void> {
+export function postponeBudgetLine(
+  budgetLineId: string,
+): Promise<{ sourceBudgetId: string; targetBudgetId: string }> {
   return api
     .post(
       ENDPOINTS.budgetLinePostpone(budgetLineId),
       undefined,
       budgetLinePostponeResponseSchema,
     )
-    .then(() => undefined);
+    .then(({ data }) => ({
+      sourceBudgetId: data.sourceBudgetId,
+      targetBudgetId: data.targetBudgetId,
+    }));
 }

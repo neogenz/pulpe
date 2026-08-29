@@ -16,6 +16,7 @@ describe("sheetBox", () => {
     expect(box).toEqual({
       maxHeight: WINDOW_HEIGHT * SHEET_HEIGHT_RATIO,
       marginBottom: 0,
+      paddingBottom: NAV_BAR,
     });
   });
 
@@ -29,6 +30,9 @@ describe("sheetBox", () => {
     // React Native reports the keyboard above the navigation bar, so the sheet
     // has to step over both or it lands on the gesture pill.
     expect(box.marginBottom).toBe(324);
+    // The bar is already cleared by the margin; padding it again would leave a
+    // blank band between the footer and the keys.
+    expect(box.paddingBottom).toBe(0);
   });
 
   it("caps the body against the room the keyboard left, not the whole window", () => {

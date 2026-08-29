@@ -527,7 +527,10 @@
     },
     "deletion": {
       "actual": "Tatsächlich",
-      "budgetCount": { "one": "%{count} Budget", "other": "%{count} Budgets" },
+      "budgetCount": {
+        "one": "%{count} Budget",
+        "other": "%{count} Budgets"
+      },
       "confirm": {
         "goal_and_forecasts": "Ziel und Prognosen löschen",
         "goal_forecasts_and_transactions": "Alles löschen",
@@ -583,7 +586,10 @@
         "other": "Gesamten Plan anzeigen (%{count} Monate)"
       },
       "showLess": "Weniger anzeigen",
-      "state": { "checked": "Abgehakt", "locked": "Gesperrt" },
+      "state": {
+        "checked": "Abgehakt",
+        "locked": "Gesperrt"
+      },
       "thisMonth": "Dieser Monat",
       "title": "Dein Plan, Monat für Monat",
       "unlinked": {
@@ -604,7 +610,10 @@
       "emptyHint": "Deine Einträge erscheinen hier",
       "title": "Aktivität",
       "viewAll": "Alle ansehen",
-      "window": { "month": "Dieser Monat", "week": "7 Tage" },
+      "window": {
+        "month": "Dieser Monat",
+        "week": "7 Tage"
+      },
       "windowAccessibility": "Aktivität für %{window}"
     },
     "add": "Hinzufügen",
@@ -646,7 +655,10 @@
         "overrun": "Dir bleibt weniger als geplant.",
         "overrunDated": "Seit %{date} unter deinem Plan."
       },
-      "vsPlanned": "ggü. Plan"
+      "vsPlanned": "ggü. Plan",
+      "chart": {
+        "today": "heute"
+      }
     },
     "periodRemaining": {
       "one": "Letzter Tag der Periode",
@@ -703,10 +715,22 @@
       "title": "Dein Budget ist bereit"
     },
     "tabs": {
-      "budgets": { "accessibility": "Tab Budgets", "short": "Budgets" },
-      "goals": { "accessibility": "Tab Ziele", "short": "Ziele" },
-      "home": { "accessibility": "Tab Start", "short": "Start" },
-      "templates": { "accessibility": "Tab Vorlagen", "short": "Vorlagen" }
+      "budgets": {
+        "accessibility": "Tab Budgets",
+        "short": "Budgets"
+      },
+      "goals": {
+        "accessibility": "Tab Ziele",
+        "short": "Ziele"
+      },
+      "home": {
+        "accessibility": "Tab Start",
+        "short": "Start"
+      },
+      "templates": {
+        "accessibility": "Tab Vorlagen",
+        "short": "Vorlagen"
+      }
     }
   },
   "onboarding": {
@@ -1179,7 +1203,14 @@
     }
   },
   "vocabulary": {
-    "kind": { "expense": "Ausgabe", "income": "Einnahme", "saving": "Sparen" },
-    "recurrence": { "fixed": "Regelmässig", "one_off": "Geplant" }
+    "kind": {
+      "expense": "Ausgabe",
+      "income": "Einnahme",
+      "saving": "Sparen"
+    },
+    "recurrence": {
+      "fixed": "Regelmässig",
+      "one_off": "Geplant"
+    }
   }
 }

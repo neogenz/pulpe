@@ -1,6 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { budgetKeys } from "@/features/budgets/budget-queries";
+import {
+  budgetKeys,
+  invalidateBudget,
+} from "@/features/budgets/budget-queries";
 import { goalKeys } from "@/features/savings-goals/goals-queries";
 
 import {
@@ -9,28 +12,40 @@ import {
 } from "./withdrawal-api";
 
 /**
- * Both halves of a withdrawal live in different months, and the second one's
- * budget may have been created by the request itself, so the sweep covers the
- * whole prefix rather than the two months it knows about.
+ * Both halves of a withdrawal live in different months, and the response names
+ * them. The one case that still sweeps is the month the request had to create:
+ * a new budget is a new list entry and a new period, which no line id can say.
  */
-function useWithdrawalMutation<TInput, TResult>(
-  mutationFn: (input: TInput) => Promise<TResult>,
-) {
+export function useCreateSavingsWithdrawal() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: budgetKeys.all });
+    mutationFn: createSavingsWithdrawal,
+    onSuccess: ({ incomeLine, savingLine, createdBudget }) => {
+      void (createdBudget === null
+        ? Promise.all(
+            [incomeLine.budgetId, savingLine.budgetId].map((budgetId) =>
+              invalidateBudget(queryClient, budgetId),
+            ),
+          )
+        : queryClient.invalidateQueries({ queryKey: budgetKeys.all }));
       void queryClient.invalidateQueries({ queryKey: goalKeys.all });
     },
   });
 }
 
-export function useCreateSavingsWithdrawal() {
-  return useWithdrawalMutation(createSavingsWithdrawal);
-}
-
+/**
+ * Sweep kept: the group id names the pair, not the two months holding it, and
+ * the half being kept or dropped is never the one on screen.
+ */
 export function useDeleteSavingsWithdrawal() {
-  return useWithdrawalMutation(deleteSavingsWithdrawal);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteSavingsWithdrawal,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: budgetKeys.all });
+      void queryClient.invalidateQueries({ queryKey: goalKeys.all });
+    },
+  });
 }

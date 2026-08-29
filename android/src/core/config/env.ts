@@ -16,6 +16,7 @@ const RAW_ENV = {
   POSTHOG_API_KEY: process.env.EXPO_PUBLIC_POSTHOG_API_KEY,
   POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST,
   POSTHOG_ENABLED: process.env.EXPO_PUBLIC_POSTHOG_ENABLED,
+  AUTO_LOCK_DELAY_MS: process.env.EXPO_PUBLIC_AUTO_LOCK_DELAY_MS,
 } as const;
 
 const APP_ENVIRONMENTS = ["local", "preview", "production"] as const;
@@ -84,6 +85,30 @@ function requiredServiceUrl(
   return value;
 }
 
+/** Five minutes — the window banking apps settle on; `auto-lock.ts` says why. */
+const DEFAULT_AUTO_LOCK_DELAY_MS = 5 * 60_000;
+
+/**
+ * A test build may shorten the auto-lock so a background return can be
+ * scripted in seconds (`.github/workflows/android-e2e.yml`). Production
+ * ignores the variable outright: a delay that ships by accident is a vault
+ * that never closes.
+ */
+function autoLockDelayMs(environment: AppEnvironment): number {
+  const value = RAW_ENV.AUTO_LOCK_DELAY_MS;
+  if (environment === "production" || !value) {
+    return DEFAULT_AUTO_LOCK_DELAY_MS;
+  }
+
+  const delay = Number(value);
+  if (!Number.isInteger(delay) || delay <= 0) {
+    throw new Error(
+      `Invalid EXPO_PUBLIC_AUTO_LOCK_DELAY_MS "${value}". Expected a positive integer of milliseconds.`,
+    );
+  }
+  return delay;
+}
+
 const environment = requiredEnvironment();
 
 export const ENV = {
@@ -107,6 +132,7 @@ export const ENV = {
           host: RAW_ENV.POSTHOG_HOST ?? DEFAULT_POSTHOG_HOST,
         }
       : null,
+  autoLockDelayMs: autoLockDelayMs(environment),
 } as const;
 
 export const isProduction = ENV.environment === "production";

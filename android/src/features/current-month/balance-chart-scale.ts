@@ -1,5 +1,29 @@
 import type { BalanceTrajectory } from "pulpe-shared";
 
+export interface CaptionWidths {
+  row: number;
+  start: number;
+  today: number;
+  end: number;
+}
+
+/**
+ * Where the "today" caption starts, in the captions row under the plot. It is
+ * centred on the marker's x — the same fraction of the row the canvas uses,
+ * since the plot has no padding — and clamped so it never runs into the date
+ * at either end. A row too narrow for all three keeps it beside the start.
+ */
+export function todayCaptionLeft(
+  widths: CaptionWidths,
+  fraction: number,
+  gap: number,
+): number {
+  const centred = fraction * widths.row - widths.today / 2;
+  const min = widths.start + gap;
+  const max = widths.row - widths.end - gap - widths.today;
+  return Math.max(min, Math.min(centred, max));
+}
+
 /**
  * The plotted range never shrinks below this share of what the period planned
  * to spend. Without it, a month held to a couple of hundred francs of its plan

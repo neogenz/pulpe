@@ -17,6 +17,9 @@ interface DiagnosticsConsentState {
  * PostHog obeys this answer for analytics and JavaScript error reporting. It
  * lives outside the client so the preference remains available even when the
  * production-only client does not exist.
+ *
+ * The default is a decision, not an oversight: an informed opt-out, recorded
+ * with what is collected and how to refuse in `docs-android/ANALYTICS.md`.
  */
 export const useDiagnosticsConsent = create<DiagnosticsConsentState>(() => ({
   isDiagnosticSharingEnabled: storage.getBoolean(SHARING_KEY) !== false,

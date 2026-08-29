@@ -81,6 +81,9 @@ jest.mock("@/core/auth/session-store", () => ({
   useSessionStore: (selector: (state: typeof mockSession) => unknown) =>
     selector(mockSession),
 }));
+jest.mock("@/core/auth/session-invalidation", () => ({
+  observeSessionRejection: jest.fn(() => () => {}),
+}));
 jest.mock("@/core/auth/supabase", () => ({
   startSupabaseAutoRefresh: jest.fn(),
 }));

@@ -44,7 +44,7 @@ pnpm dev:android
 The existing GitHub jobs cover build, unit tests and quality through the
 Turborepo workspace. `.github/workflows/android-e2e.yml` adds the native gap: it
 builds a release APK, boots an emulator and runs the Maestro smoke journey. EAS
-Workflows remains responsible only for shareable preview builds.
+Workflows only builds the production AAB (`docs-android/RELEASE.md`).
 
 Jest collects every production TypeScript module, including modules no test
 imports. Global and auth/vault/API floors live in `jest.config.js`; raise them

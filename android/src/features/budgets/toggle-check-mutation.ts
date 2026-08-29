@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { BudgetDetails } from "./budget-api";
-import { budgetKeys } from "./budget-queries";
+import { budgetKeys, invalidateBudget } from "./budget-queries";
 import { type CheckTarget, toggleCheck } from "./toggle-check-api";
 
 /**
@@ -36,7 +36,9 @@ export function useToggleCheck(budgetId: string | null) {
     // Whether it succeeded or failed, the aggregates the toggle moved are only
     // right again once the server has been asked.
     onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all }),
+      budgetId === null
+        ? queryClient.invalidateQueries({ queryKey: budgetKeys.all })
+        : invalidateBudget(queryClient, budgetId),
   });
 }
 

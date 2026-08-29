@@ -63,8 +63,9 @@ jest.mock("@/core/crypto/biometrics", () => ({
   describeBiometrics: jest.fn(),
 }));
 jest.mock("@/core/ui/haptics", () => ({ hapticSuccess: jest.fn() }));
+// The real module reads `ENV`, which has no variables under Jest.
+jest.mock("@/core/vault/auto-lock", () => ({ AUTO_LOCK_DELAY_MINUTES: 5 }));
 jest.mock("@/core/ui/theme", () => ({
-  AUTO_LOCK_DELAY_MINUTES: 5,
   ICON_SIZE: { sm: 16 },
   SPACING: { xxs: 2, sm: 8, md: 16, lg: 24, xxl: 32 },
 }));
