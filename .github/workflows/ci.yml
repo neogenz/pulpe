@@ -773,8 +773,16 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           set -euo pipefail
+          # Deux formes légitimes pour une branche release, discriminées par
+          # la base de la PR : vers main, le candidat promu (commit de merge,
+          # re-vérifié par production.yml/authorize via le marqueur) ; sinon,
+          # la PR de préparation garde son unique commit posé sur la base.
           if [[ "$HEAD_REF" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            test "$(git rev-parse "${HEAD_SHA}^")" = "$BASE_SHA"
+            if [ "$BASE_REF" = "main" ]; then
+              git rev-parse -q --verify "${HEAD_SHA}^2" >/dev/null
+            else
+              test "$(git rev-parse "${HEAD_SHA}^")" = "$BASE_SHA"
+            fi
           fi
           tree_sha=$(git rev-parse "${GITHUB_SHA}^{tree}")
           TREE_SHA="$tree_sha" python3 - <<'PY'
