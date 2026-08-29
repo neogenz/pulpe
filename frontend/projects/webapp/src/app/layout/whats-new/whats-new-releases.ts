@@ -11,28 +11,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.45.0',
+  version: '0.47.0',
   features: {
-    fr: [
-      'Pulpe dans quatre langues',
-      'Des montants exacts au centime',
-      'Connexion et préférences plus fiables',
-    ],
-    en: [
-      'Pulpe in four languages',
-      'Amounts accurate to the cent',
-      'More reliable sign-in and preferences',
-    ],
-    de: [
-      'Pulpe in vier Sprachen',
-      'Beträge auf den Rappen genau',
-      'Zuverlässigere Anmeldung und Einstellungen',
-    ],
-    it: [
-      'Pulpe in quattro lingue',
-      'Importi precisi al centesimo',
-      'Accesso e preferenze più affidabili',
-    ],
+    fr: ['Montants exacts dans la liste des budgets et le récap annuel'],
+    en: ['Accurate amounts in the budget list and yearly recap'],
+    de: ['Genaue Beträge in Budgetliste und Jahresübersicht'],
+    it: ['Importi esatti nell’elenco budget e nel riepilogo annuale'],
   },
 };
 

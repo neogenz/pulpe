@@ -1,16 +1,20 @@
 name: 🚦 Release Promotion
 
 # L'identité de l'intention, lisible dans la liste des runs. La forme
-# `🚦 prepare release/vX.Y.Z` doit rester en lockstep avec releaseIdentity()
+# `🚦 <mode> release/vX.Y.Z` doit rester en lockstep avec releaseIdentity()
 # dans .github/scripts/resolve-release-state.mjs.
-run-name: "🚦 prepare ${{ inputs.release_branch }}"
+run-name: "🚦 ${{ inputs.mode }} ${{ inputs.release_branch }}"
 
-# Unique entrée manuelle de release. Ce workflow est plan-only : il résout
-# l'état complet d'un candidat (candidat staging, production publiée, lignée,
-# migrations, déploiements providers) et publie un manifeste en lecture seule.
-# Aucun input, job ou caller `apply` n'existe : la phase 9 installe d'abord la
-# protection GitHub de l'environnement production, puis active apply dans sa
-# propre PR de préparation. Jamais de flag temporaire.
+# Unique entrée manuelle de release, en trois intentions distinctes :
+# - `plan` (défaut) résout l'état complet d'un candidat et publie un manifeste
+#   en lecture seule, sans secret ni environnement.
+# - `apply`, dispatché sur `preview`, recalcule le plan puis attend
+#   l'approbation de l'environnement GitHub `production` avant la seule
+#   mutation pré-merge : figer la branche de release sur le candidat prouvé et
+#   ouvrir l'unique PR de production vers `main`.
+# - `publish`, dispatché sur `main` une fois la PR de production fusionnée,
+#   appelle l'unique workflow réutilisable production.yml qui migre, avance le
+#   pointeur `production` et attend le client web exact.
 on:
   workflow_dispatch:
     inputs:
@@ -18,6 +22,15 @@ on:
         description: Release branch created from the current preview head
         required: true
         type: string
+      mode:
+        description: plan (read-only) | apply (approve then open the production PR) | publish (run the production release)
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - publish
+        default: plan
 
 concurrency:
   group: release-promotion
@@ -32,8 +45,17 @@ permissions:
 jobs:
   plan:
     name: Plan release (read-only)
+    if: inputs.mode != 'publish'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      branch_sha: ${{ steps.plan.outputs.branch_sha }}
+      candidate_sha: ${{ steps.plan.outputs.candidate_sha }}
+      encoded_branch: ${{ steps.plan.outputs.encoded_branch }}
+      preparation_pr: ${{ steps.plan.outputs.preparation_pr }}
+      release_sha: ${{ steps.plan.outputs.release_sha }}
+      staging_run_id: ${{ steps.plan.outputs.staging_run_id }}
+      version: ${{ steps.plan.outputs.version }}
     steps:
       - name: Checkout trusted release automation
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -97,7 +119,7 @@ jobs:
           published_main=$(node .github/scripts/resolve-workflow-proof.mjs --published-main "$trusted_main_sha")
           node .github/scripts/check-release-lineage.mjs "$trusted_main_sha" "$candidate_sha"
 
-          # Migrations que l'apply de phase 9 rejouerait via le contrat
+          # Migrations que le job publish rejouerait via le contrat
           # expand/contract existant (check-migration-contract.cjs).
           git rev-parse --verify --quiet "$trusted_main_sha^{commit}" >/dev/null
           git rev-parse --verify --quiet "$candidate_sha^{commit}" >/dev/null
@@ -106,6 +128,8 @@ jobs:
 
           # IDs des déploiements providers, en lecture seule.
           gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -F per_page=20 --jq '[.[] | {id, environment, sha, created_at}]' > "$RUNNER_TEMP/deployments.json"
+
+          staging_run_id=$(jq -r .run_id <<< "$staging")
 
           jq -n \
             --arg repository "$GITHUB_REPOSITORY" \
@@ -132,10 +156,11 @@ jobs:
               migrations: $migrations,
               production_deployments: $deployments[0],
               planned: [
-                "phase 9 apply only: fast-forward the release branch to the proven candidate",
-                "phase 9 apply only: open the single production PR",
-                "phase 9 apply only: replay the migration contract, then supabase db push",
-                "phase 9 apply only: advance production and publish the annotated tag and GitHub Release"
+                "apply after approval: fast-forward the release branch to the proven candidate",
+                "apply after approval: open the single production PR",
+                "publish after merge and approval: replay the migration contract, then supabase db push",
+                "publish after merge and approval: advance production fast-forward, then wait for the exact web client",
+                "finalize on the exact Railway deployment: verify providers, then publish the annotated tag and GitHub Release"
               ],
               rollback: {
                 application: "Vercel rollback / Railway redeploy of the published main anchor; migrations stay forward-only",
@@ -149,15 +174,20 @@ jobs:
             echo ""
             echo "- Candidate: \`$candidate_sha\` (preparation PR #$preparation_pr)"
             echo "- Published main anchor: \`$trusted_main_sha\` ($(jq -r .tag <<< "$published_main"))"
-            echo "- Staging proof run: $(jq -r .run_id <<< "$staging") (attempt $(jq -r .attempt <<< "$staging"))"
+            echo "- Staging proof run: $staging_run_id (attempt $(jq -r .attempt <<< "$staging"))"
             echo "- Migrations in scope: $(jq 'length' <<< "$migrations")"
             echo ""
-            echo "No mutation was performed. Apply arrives in phase 9, behind the protected production environment."
+            echo "This job performed no mutation. Mutations run only behind the protected production environment."
           } >> "$GITHUB_STEP_SUMMARY"
 
           {
-            echo "version=$version"
+            echo "branch_sha=$branch_sha"
             echo "candidate_sha=$candidate_sha"
+            echo "encoded_branch=$encoded_branch"
+            echo "preparation_pr=$preparation_pr"
+            echo "release_sha=$release_sha"
+            echo "staging_run_id=$staging_run_id"
+            echo "version=$version"
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload release plan
@@ -166,3 +196,92 @@ jobs:
           name: release-plan-${{ steps.plan.outputs.version }}-${{ steps.plan.outputs.candidate_sha }}
           path: ${{ runner.temp }}/release-plan.json
           retention-days: 30
+
+  # L'approbation GitHub Environment est la seule autorisation de mutation.
+  # Ce job ne charge aucun token d'écriture ni secret : approuver signifie
+  # autoriser le job promote qui suit, puis les opérations de cutover
+  # documentées dans le plan.
+  approve-cutover:
+    name: 🔐 Approve release mutations
+    needs: plan
+    if: inputs.mode == 'apply'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - name: Record the approved candidate
+        env:
+          CANDIDATE_SHA: ${{ needs.plan.outputs.candidate_sha }}
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          set -euo pipefail
+          [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          echo "Approved v$VERSION on candidate $CANDIDATE_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+  promote:
+    name: Open proven release PR to main
+    needs: [plan, approve-cutover]
+    if: inputs.mode == 'apply'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Create short-lived GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.PULPE_RELEASE_APP_ID }}
+          private-key: ${{ secrets.PULPE_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: pulpe
+
+      - name: Freeze the candidate and open the production PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_BRANCH: ${{ inputs.release_branch }}
+          BRANCH_SHA: ${{ needs.plan.outputs.branch_sha }}
+          CANDIDATE_SHA: ${{ needs.plan.outputs.candidate_sha }}
+          ENCODED_BRANCH: ${{ needs.plan.outputs.encoded_branch }}
+          PREPARATION_PR: ${{ needs.plan.outputs.preparation_pr }}
+          RELEASE_SHA: ${{ needs.plan.outputs.release_sha }}
+          STAGING_RUN_ID: ${{ needs.plan.outputs.staging_run_id }}
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          # shellcheck disable=SC2016
+          set -euo pipefail
+          gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=open -f base=main -f per_page=100 > "$RUNNER_TEMP/open-main-prs.json"
+          jq -e --arg branch "$RELEASE_BRANCH" '[.[] | select(.user.login == "pulpe-release[bot]" and (.head.ref | startswith("release/")) and .head.ref != $branch)] | length == 0' "$RUNNER_TEMP/open-main-prs.json"
+
+          if [ "$BRANCH_SHA" = "$RELEASE_SHA" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/$ENCODED_BRANCH" -f sha="$CANDIDATE_SHA" -F force=false >/dev/null
+          fi
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$ENCODED_BRANCH" --jq .object.sha)" = "$CANDIDATE_SHA"
+
+          owner="${GITHUB_REPOSITORY%%/*}"
+          gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=open -f base=main -f head="$owner:$RELEASE_BRANCH" -f per_page=100 > "$RUNNER_TEMP/pulls.json"
+          count=$(jq 'length' "$RUNNER_TEMP/pulls.json")
+          if [ "$count" -gt 0 ]; then
+            jq -e --arg sha "$CANDIDATE_SHA" 'length == 1 and .[0].state == "open" and .[0].head.sha == $sha' "$RUNNER_TEMP/pulls.json"
+            jq -r '.[0].html_url' "$RUNNER_TEMP/pulls.json"
+            exit 0
+          fi
+
+          prep_body=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PREPARATION_PR" --jq .body)
+          marker="<!-- pulpe-promotion:v$VERSION:$CANDIDATE_SHA:$PREPARATION_PR:$STAGING_RUN_ID -->"
+          body=$(printf '%s\n\n# Promote v%s to production\n\nCandidate `%s` passed the canonical preview CI and exact staging proof. New preview features do not change this frozen branch.\n\nPreparation: #%s\nStaging proof: [run %s](https://github.com/%s/actions/runs/%s)\n\n%s\n' "$marker" "$VERSION" "$CANDIDATE_SHA" "$PREPARATION_PR" "$STAGING_RUN_ID" "$GITHUB_REPOSITORY" "$STAGING_RUN_ID" "$prep_body")
+          gh api -X POST "repos/$GITHUB_REPOSITORY/pulls" \
+            -f title="chore(release): v$VERSION" \
+            -f head="$RELEASE_BRANCH" \
+            -f base=main \
+            -f body="$body" \
+            -F maintainer_can_modify=false \
+            --jq .html_url
+
+  # Unique appel au workflow réutilisable de production. Dispatché sur `main`
+  # une fois la PR de production fusionnée : GITHUB_SHA est alors le merge
+  # commit que authorize revérifie intégralement, et les jobs migrate, advance
+  # et prepare restent derrière l'environnement production.
+  production:
+    name: 🏭 Production
+    if: inputs.mode == 'publish'
+    uses: ./.github/workflows/production.yml
+    secrets: inherit

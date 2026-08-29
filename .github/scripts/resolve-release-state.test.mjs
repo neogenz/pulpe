@@ -52,7 +52,16 @@ const branchRef = (sha) => [
 ];
 
 test("identity binds every required field and changes with any of them", () => {
-  assert.equal(releaseIdentity(promotion), "🚦 prepare release/v0.47.0");
+  assert.equal(releaseIdentity(promotion), "🚦 plan release/v0.47.0");
+  assert.equal(
+    releaseIdentity({ ...promotion, mode: "apply" }),
+    "🚦 apply release/v0.47.0",
+  );
+  assert.equal(
+    releaseIdentity({ ...promotion, mode: "publish" }),
+    "🚦 publish release/v0.47.0",
+  );
+  assert.throws(() => releaseIdentity({ ...promotion, mode: "deploy" }));
   assert.equal(releaseIdentity(ios), `📲 iOS release v1.4.2 (18) ${SHA}`);
   assert.notEqual(
     releaseIdentity(ios),
@@ -80,7 +89,7 @@ test("identity binds every required field and changes with any of them", () => {
 test("an absent identity is the only state that allows a new dispatch", () => {
   const state = resolveReleaseState(promotion, stub());
   assert.equal(state.state, "absent");
-  assert.equal(state.identity, "🚦 prepare release/v0.47.0");
+  assert.equal(state.identity, "🚦 plan release/v0.47.0");
   assert.equal(state.resources.branch_sha, null);
   assert.deepEqual(state.resources.open_prs, []);
 });
@@ -90,8 +99,8 @@ test("an active run is returned instead of creating a duplicate", () => {
     promotion,
     stub({
       runs: [
-        run(7, "in_progress", null, "🚦 prepare release/v0.47.0"),
-        run(6, "completed", "success", "🚦 prepare release/v0.46.0"),
+        run(7, "in_progress", null, "🚦 plan release/v0.47.0"),
+        run(6, "completed", "success", "🚦 plan release/v0.46.0"),
       ],
     }),
   );
@@ -103,7 +112,7 @@ test("a succeeded run returns the existing resource for the same key", () => {
   const state = resolveReleaseState(
     promotion,
     stub({
-      runs: [run(5, "completed", "success", "🚦 prepare release/v0.47.0")],
+      runs: [run(5, "completed", "success", "🚦 plan release/v0.47.0")],
       branchRefs: branchRef(SHA),
       prs: {
         preview: [{ number: 42, html_url: "u", head: { sha: SHA } }],
@@ -134,8 +143,8 @@ test("iOS identities resolve runs without version resources", () => {
 
 test("only the latest terminal run is retryable, and only explicitly", () => {
   const runs = [
-    run(4, "completed", "failure", "🚦 prepare release/v0.47.0"),
-    run(3, "completed", "cancelled", "🚦 prepare release/v0.47.0"),
+    run(4, "completed", "failure", "🚦 plan release/v0.47.0"),
+    run(3, "completed", "cancelled", "🚦 plan release/v0.47.0"),
   ];
   const failed = resolveReleaseState(promotion, stub({ runs }));
   assert.equal(failed.state, "failed");
@@ -158,7 +167,7 @@ test("only the latest terminal run is retryable, and only explicitly", () => {
       stub({
         runs: [
           ...runs,
-          run(5, "completed", "success", "🚦 prepare release/v0.47.0"),
+          run(5, "completed", "success", "🚦 plan release/v0.47.0"),
         ],
       }),
     ),
@@ -172,8 +181,8 @@ test("duplicate active runs fail closed without any dispatch", () => {
         promotion,
         stub({
           runs: [
-            run(2, "queued", null, "🚦 prepare release/v0.47.0"),
-            run(1, "in_progress", null, "🚦 prepare release/v0.47.0"),
+            run(2, "queued", null, "🚦 plan release/v0.47.0"),
+            run(1, "in_progress", null, "🚦 plan release/v0.47.0"),
           ],
         }),
       ),
@@ -244,7 +253,7 @@ test("an existing tag marks the version published instead of dispatchable", () =
 
 test("a published version wins over run history and rejects retries", () => {
   const published = {
-    runs: [run(4, "completed", "failure", "🚦 prepare release/v0.47.0")],
+    runs: [run(4, "completed", "failure", "🚦 plan release/v0.47.0")],
     tagRefs: [{ ref: "refs/tags/v0.47.0" }],
   };
   const state = resolveReleaseState(promotion, stub(published));

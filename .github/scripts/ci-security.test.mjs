@@ -325,7 +325,8 @@ test("E2E runs both mocked projects explicitly in one runner", () => {
 });
 
 test("CI is PR-only and production owns migration credentials", () => {
-  assert.match(workflow, /pull_request:\n\s+branches: \[preview\]/);
+  // `main` is limited to the single production PR of a release.
+  assert.match(workflow, /pull_request:\n\s+branches: \[preview, main\]/);
   assert.doesNotMatch(workflow, /^\s{2}push:|branches: \[main/m);
   assert.doesNotMatch(workflow, /secrets\.|supabase db push/);
   assert.match(production, /environment: production/);
@@ -435,44 +436,93 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
   }
 });
 
-test("release promotion is the single manual plan-only entry", () => {
-  // Only workflow_dispatch, one input, no automatic trigger of any kind.
+test("release promotion is the single manual entry with a protected apply", () => {
+  // Only workflow_dispatch, two inputs, no automatic trigger of any kind.
   const trigger = releasePromotion.slice(
     releasePromotion.indexOf("\non:"),
     releasePromotion.indexOf("\nconcurrency:"),
   );
   assert.match(trigger, /workflow_dispatch:\n\s+inputs:\n\s+release_branch:/);
+  assert.match(
+    trigger,
+    /mode:[\s\S]*type: choice[\s\S]*- plan\n\s+- apply\n\s+- publish[\s\S]*default: plan/,
+  );
   assert.doesNotMatch(
     trigger,
     /workflow_run|pull_request|push:|schedule|deployment_status|release_notes/,
   );
 
-  // The plan job is read-only: no write permission, secret, environment,
-  // App token, or mutating API call — and no apply input, job, or caller.
+  // The workflow token stays read-only: mutations go through the short-lived
+  // App token, and only after the production environment approval.
   assert.match(releasePromotion, /actions: read/);
   assert.match(releasePromotion, /contents: read/);
   assert.match(releasePromotion, /deployments: read/);
   assert.match(releasePromotion, /pull-requests: read/);
   assert.doesNotMatch(
     releasePromotion,
-    /:\s*write\b|--admin|enablePullRequestAutoMerge/,
+    /:\s*write\b|--admin|enablePullRequestAutoMerge|--force\b/,
   );
-  assert.doesNotMatch(
-    releasePromotion,
-    /secrets\.|environment:|create-github-app-token|gh api -X (?:POST|PATCH|PUT|DELETE)|-f sha=|-F force=/,
-  );
-  assert.doesNotMatch(
-    releasePromotion,
-    /^\s+apply:|inputs\.(?:mode|apply)|uses:.*workflows\/production\.yml/m,
-  );
+
   const jobs = [
     ...releasePromotion
       .slice(releasePromotion.indexOf("\njobs:"))
       .matchAll(/^\s{2}([a-z-]+):$/gm),
   ].map((match) => match[1]);
-  assert.deepEqual(jobs, ["plan"], "release promotion exposes only plan");
-  assert.match(releasePromotion, /Checkout trusted release automation/);
-  assert.match(releasePromotion, /persist-credentials: false/);
+  assert.deepEqual(jobs, ["plan", "approve-cutover", "promote", "production"]);
+
+  // The plan job stays read-only: no secret, environment, App token, or
+  // mutating API call — every client can run it without side effects.
+  const planJob = releasePromotion.slice(
+    releasePromotion.indexOf("\n  plan:"),
+    releasePromotion.indexOf("\n  approve-cutover:"),
+  );
+  assert.doesNotMatch(
+    planJob,
+    /secrets\.|environment:|create-github-app-token|gh api -X (?:POST|PATCH|PUT|DELETE)|-f sha=|-F force=/,
+  );
+  assert.match(planJob, /Checkout trusted release automation/);
+  assert.match(planJob, /persist-credentials: false/);
+
+  // The approval gate carries no credentials and precedes every mutation.
+  const approveJob = releasePromotion.slice(
+    releasePromotion.indexOf("\n  approve-cutover:"),
+    releasePromotion.indexOf("\n  promote:"),
+  );
+  assert.match(approveJob, /needs: plan/);
+  assert.match(approveJob, /if: inputs\.mode == 'apply'/);
+  assert.match(approveJob, /environment: production/);
+  assert.doesNotMatch(approveJob, /secrets\.|create-github-app-token/);
+
+  // promote is the only pre-merge mutation: App token, fast-forward only,
+  // reachable exclusively through the approved apply mode.
+  const promoteJob = releasePromotion.slice(
+    releasePromotion.indexOf("\n  promote:"),
+    releasePromotion.indexOf("\n  production:"),
+  );
+  assert.match(promoteJob, /needs: \[plan, approve-cutover\]/);
+  assert.match(promoteJob, /if: inputs\.mode == 'apply'/);
+  assert.match(
+    promoteJob,
+    /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/,
+  );
+  assert.match(promoteJob, /-F force=false/);
+  assert.doesNotMatch(promoteJob, /-F force=true|force=1/);
+  assert.match(
+    promoteJob,
+    /pulpe-promotion:v\$VERSION:\$CANDIDATE_SHA:\$PREPARATION_PR:\$STAGING_RUN_ID/,
+  );
+
+  // publish delegates to the single reusable production workflow.
+  const productionJob = releasePromotion.slice(
+    releasePromotion.indexOf("\n  production:"),
+  );
+  assert.match(productionJob, /if: inputs\.mode == 'publish'/);
+  assert.match(productionJob, /uses: \.\/\.github\/workflows\/production\.yml/);
+  assert.match(productionJob, /secrets: inherit/);
+  assert.equal(
+    [...releasePromotion.matchAll(/uses:.*workflows\/production\.yml/g)].length,
+    1,
+  );
 
   // The plan reuses the existing proof contracts instead of a second system.
   assert.match(releasePromotion, /\.parents\[1\]\.sha == \$release/);
@@ -492,7 +542,7 @@ test("release promotion is the single manual plan-only entry", () => {
   )) {
     assert.match(
       actionUse[1],
-      /@[0-9a-f]{40}$/,
+      /^(?:\.\/|.*@[0-9a-f]{40}$)/,
       `workflow action is not pinned: ${actionUse[1]}`,
     );
   }
@@ -512,9 +562,13 @@ test("release intention stays idempotent and every client stateless", () => {
   );
   assert.match(
     releasePromotion,
-    /run-name: "🚦 prepare \$\{\{ inputs\.release_branch \}\}"/,
+    /run-name: "🚦 \$\{\{ inputs\.mode \}\} \$\{\{ inputs\.release_branch \}\}"/,
   );
-  assert.match(releaseState, /🚦 prepare release\/v\$\{options\.version\}/);
+  assert.match(releaseState, /🚦 \$\{mode\} release\/v\$\{options\.version\}/);
+  assert.match(
+    releaseState,
+    /\["plan", "apply", "publish"\]\.includes\(mode\)/,
+  );
 
   // The resolver reads GitHub, never local state, and fails closed.
   assert.match(releaseState, /display_title === identity/);
@@ -550,8 +604,8 @@ test("release lineage uses the shared content-integration check", () => {
 
 test("the legacy release flow stays deleted", () => {
   // release-gate.yml and ios.yml are gone; nothing may reference the gate,
-  // and no workflow may call the reusable production workflow before the
-  // phase-9 cutover installs the protected apply path.
+  // and the reusable production workflow keeps exactly one caller: the
+  // publish mode of release-promotion.yml.
   assert.equal(readOptional(".github/workflows/release-gate.yml"), "");
   assert.equal(readOptional(".github/workflows/ios.yml"), "");
   for (const [name, source] of [
@@ -570,16 +624,18 @@ test("the legacy release flow stays deleted", () => {
       /release-gate\.yml|✅ Release Gate/,
       `${name} must not reference the deleted release gate`,
     );
-    assert.doesNotMatch(
-      source,
-      /uses:.*workflows\/production\.yml/,
-      `${name} must not call the reusable production workflow yet`,
-    );
+    if (name !== "release-promotion.yml") {
+      assert.doesNotMatch(
+        source,
+        /uses:.*workflows\/production\.yml/,
+        `${name} must not call the reusable production workflow`,
+      );
+    }
   }
 });
 
 test("production finishes preflight before Railway deploys", () => {
-  // Reusable only: no automatic trigger, and no caller exists before phase 9.
+  // Reusable only: no automatic trigger; the sole caller is publish mode.
   const productionTrigger = production.slice(
     production.indexOf("\non:"),
     production.indexOf("\nconcurrency:"),
@@ -614,7 +670,7 @@ test("production finishes preflight before Railway deploys", () => {
   );
   assert.doesNotMatch(
     production,
-    /serviceInstanceDeployV2|railway redeploy|railway deployment list|Wait for exact Vercel|Create short-lived GitHub App token|git\/tags|repos\/\$GITHUB_REPOSITORY\/releases|PostHog|Content-Security-Policy/,
+    /serviceInstanceDeployV2|railway redeploy|railway deployment list|Wait for exact Vercel|git\/tags|repos\/\$GITHUB_REPOSITORY\/releases|PostHog|Content-Security-Policy/,
   );
   const authorizeJob = production.slice(
     production.indexOf("\n  authorize:"),
@@ -625,6 +681,45 @@ test("production finishes preflight before Railway deploys", () => {
     authorizeJob.indexOf("Checkout release automation without credentials") <
       authorizeJob.indexOf("Verify the approved release and staging proof"),
     "candidate automation may run only in the unprivileged authorization job",
+  );
+
+  // The pointer advance is the only App-token mutation: fast-forward only,
+  // behind the production environment, strictly after migrations and before
+  // the exact web client wait — providers deploy an already-migrated DB.
+  const advanceJob = production.slice(
+    production.indexOf("\n  advance:"),
+    production.indexOf("\n  prepare:"),
+  );
+  assert.match(advanceJob, /needs: \[authorize, migrate\]/);
+  assert.match(advanceJob, /environment: production/);
+  assert.match(
+    advanceJob,
+    /needs\.migrate\.result == 'success' \|\| needs\.migrate\.result == 'skipped'/,
+  );
+  assert.match(
+    advanceJob,
+    /refs\/heads\/production" -f sha="\$GITHUB_SHA" -F force=false/,
+  );
+  assert.equal(
+    [...production.matchAll(/create-github-app-token/g)].length,
+    1,
+    "the App token may exist only in the advance job",
+  );
+  assert.match(
+    advanceJob,
+    /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/,
+  );
+  assert.match(production, /needs: \[authorize, migrate, advance\]/);
+  assert.match(production, /needs\.advance\.result == 'success'/);
+  assert.ok(
+    production.indexOf("run: supabase db push\n") <
+      production.indexOf("\n  advance:"),
+    "migrations must be applied before the production pointer advances",
+  );
+  assert.ok(
+    production.indexOf("Fast-forward production to the authorized merge SHA") <
+      production.indexOf("Wait for exact web client"),
+    "providers deploy only after the pointer advance",
   );
   assert.ok(
     production.indexOf("run: supabase db push\n") <
@@ -680,9 +775,11 @@ test("production finalizer proves exact providers before idempotent publication"
     vercelState.indexOf("max_by(.id)") < vercelState.indexOf("environment_url"),
     "Vercel URL checks must apply to the latest bot status",
   );
+  // The production job runs reusable inside the `🚦 publish` dispatch on
+  // main, so the proof lives in the caller's run under the prefixed job name.
   assert.match(
     productionFinalize,
-    /node \.github\/scripts\/resolve-workflow-proof\.mjs[\s\S]*--workflow production\.yml[\s\S]*--sha "\$PRODUCTION_SHA"[\s\S]*--artifact-template "production-context-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
+    /node \.github\/scripts\/resolve-workflow-proof\.mjs[\s\S]*--workflow release-promotion\.yml[\s\S]*--event workflow_dispatch[\s\S]*--branch main[\s\S]*--sha "\$PRODUCTION_SHA"[\s\S]*--job "🏭 Production \/ 🚦 Record production authorization"[\s\S]*--artifact-template "production-context-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
   );
   assert.doesNotMatch(productionFinalize, /branches\/main/);
 
@@ -699,7 +796,7 @@ test("production finalizer proves exact providers before idempotent publication"
   assert.doesNotMatch(publishJob, /actions\/checkout/);
   assert.match(publishJob, /\.\[0\]\.status == "SUCCESS"/);
   assert.match(publishJob, /\.\[0\]\.meta\.commitHash == \$sha/);
-  assert.match(publishJob, /\.\[0\]\.meta\.branch == "main"/);
+  assert.match(publishJob, /\.\[0\]\.meta\.branch == "production"/);
   assert.match(productionFinalize, /Production – pulpe-frontend/);
   assert.match(productionFinalize, /Production – pulpe-landing/);
   assert.match(productionFinalize, /https:\/\/app\.pulpe\.app\//);

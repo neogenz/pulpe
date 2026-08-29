@@ -16,7 +16,7 @@ Analyze code changes to produce a unified product release with clear, user-focus
 - NEVER apply versions without explicit user approval
 - NEVER push directly to `preview` or `main`, create a tag, publish a GitHub Release, or mutate Railway from this skill
 - NEVER push the prepared `release/vX.Y.Z` branch or dispatch its PR without a separate explicit user approval after local validation
-- Production mutations (fast-forward, production PR, tag, Release) belong to the phase-9 protected apply path; until that cutover the only remote release action this skill may take is the preparation PR to `preview` and the read-only plan dispatch
+- Production mutations (release-branch freeze, production PR, `production` pointer advance, tag, Release) run only inside the protected `apply` and `publish` modes of `release-promotion.yml`, each behind the GitHub `production` environment approval; the only remote actions this skill takes directly are the preparation PR to `preview` and the three `gh workflow run` dispatches
 - NEVER tag or create the GitHub Release before the exact candidate tree is verified in production; update a `LATEST_*` gate only after its client is public (web deployment or App Store)
 - NEVER use `--force`, `--force-with-lease`, or `git push --tags`
 - If changes are ambiguous, ASK — do not guess
@@ -540,24 +540,28 @@ Only after "oui":
    test "$(git ls-remote --heads origin "refs/heads/$BRANCH" | awk '{print $1}')" = "$RELEASE_SHA"
    ```
 
-3. Open the preparation PR to `preview` with the approved **GitHub Release** template from Step 5 as its body, written to a temporary UTF-8 file whose first line is `## vX.Y.Z` (the finalizer later extracts the notes from this exact section):
+3. Open the preparation PR to `preview`. Its body is a temporary UTF-8 file whose **first line is the machine marker** `<!-- pulpe-release:vX.Y.Z:RELEASE_SHA -->` (the production authorization later re-verifies it verbatim), followed by a blank line, then the approved **GitHub Release** template from Step 5 starting with `## vX.Y.Z` (the finalizer extracts the notes from this exact section):
 
    ```bash
-   test "$(sed -n '1p' "$NOTES_FILE")" = "## v${VERSION}"
+   BODY_FILE=$(mktemp)
+   printf '<!-- pulpe-release:v%s:%s -->\n\n' "$VERSION" "$RELEASE_SHA" > "$BODY_FILE"
+   cat "$NOTES_FILE" >> "$BODY_FILE"
+   test "$(sed -n '1p' "$BODY_FILE")" = "<!-- pulpe-release:v${VERSION}:${RELEASE_SHA} -->"
+   test "$(sed -n '3p' "$BODY_FILE")" = "## v${VERSION}"
    gh pr create \
      --repo neogenz/pulpe \
      --base preview \
      --head "$BRANCH" \
      --title "chore(release): v${VERSION}" \
-     --body-file "$NOTES_FILE"
+     --body-file "$BODY_FILE"
    ```
 
-   Merge it only after complete CI, exact staging provider SHAs and `✅ Staging Ready (shadow)` are green, like any preview PR.
+   Merge it only after complete CI, exact staging provider SHAs and `✅ Staging Ready (shadow)` are green — and merge it **with a merge commit** (never squash): the promotion contract requires the candidate to be a 2-parent merge whose second parent is `RELEASE_SHA`. Never edit the PR body afterwards.
 
-4. After the preparation PR is merged with a merge commit, resolve the remote state of this exact release intention before any dispatch. The identity is the run-name `🚦 prepare release/vX.Y.Z`; GitHub run lists — never agent memory — are the source of truth:
+4. Before **every** dispatch (plan, apply, publish), resolve the remote state of that exact intention. The identity is the run-name `🚦 <mode> release/vX.Y.Z`; GitHub run lists — never agent memory — are the source of truth:
 
    ```bash
-   STATE=$(node .github/scripts/resolve-release-state.mjs --repository neogenz/pulpe --workflow release-promotion.yml --version "$VERSION")
+   STATE=$(node .github/scripts/resolve-release-state.mjs --repository neogenz/pulpe --workflow release-promotion.yml --version "$VERSION" --mode plan)
    echo "$STATE"
    test "$(jq -r .state <<< "$STATE")" = absent
    ```
@@ -574,12 +578,37 @@ Only after "oui":
    gh workflow run release-promotion.yml \
      --repo neogenz/pulpe \
      --ref preview \
-     -f release_branch="$BRANCH"
+     -f release_branch="$BRANCH" \
+     -f mode=plan
    ```
 
-   The single `plan` job — read-only permissions, no secret, no environment — resolves the proven staging candidate, verifies that current `main` is already fully published (the rollback anchor), replays the content lineage, lists the migrations in scope and the provider deployment IDs, then uploads the `release-plan` manifest. A failure leaves `preview`, `main`, tags, GitHub Releases, and providers untouched.
+   The `plan` job — read-only permissions, no secret, no environment — resolves the proven staging candidate, verifies that current `main` is already fully published (the rollback anchor), replays the content lineage, lists the migrations in scope and the provider deployment IDs, then uploads the `release-plan` manifest. A failure leaves `preview`, `main`, tags, GitHub Releases, and providers untouched.
 
-**Apply does not exist yet.** Production promotion is frozen until the phase-9 cutover: phase 9 first configures the protection of the GitHub `production` environment, then activates the apply path — the protected job calling the reusable production workflow — in its own preparation PR, never through a temporary flag. After that cutover, Railway's successful production `deployment_status` triggers `✅ Production Finalized` (`production-finalize.yml`), which verifies the exact active Railway/Vercel deployments and public services before idempotently creating the annotated tag and GitHub Release; the finalizer is never a Railway-required check.
+6. After reviewing the plan manifest with the user, resolve state for `--mode apply` (same contract as step 4), then dispatch apply:
+
+   ```bash
+   gh workflow run release-promotion.yml \
+     --repo neogenz/pulpe \
+     --ref preview \
+     -f release_branch="$BRANCH" \
+     -f mode=apply
+   ```
+
+   Apply recomputes the plan, then **waits for the GitHub `production` environment approval** — that human approval is the release authorization. Once approved, the `promote` job (short-lived App token, fast-forward only) freezes `release/vX.Y.Z` on the proven candidate and opens the single production PR to `main`. Nothing else moves.
+
+7. Review and approve the production PR on GitHub, then merge it **with a merge commit** once `✅ CI Success` is green. The merge alone deploys nothing: providers track the `production` branch, which has not moved yet.
+
+8. Resolve state for `--mode publish` (same contract as step 4), then dispatch publish **on `main`** — the production authorization requires `GITHUB_SHA` to be the merge commit at the head of `main`:
+
+   ```bash
+   gh workflow run release-promotion.yml \
+     --repo neogenz/pulpe \
+     --ref main \
+     -f release_branch="$BRANCH" \
+     -f mode=publish
+   ```
+
+   Publish calls the reusable production workflow: `authorize` re-verifies the whole chain without credentials, then — behind a second `production` environment approval — `migrate` applies migrations when the release contains any, `advance` fast-forwards the `production` pointer (this push is what triggers the Vercel and Railway production deploys), and the final job waits for the exact web client before uploading the production context. Railway's successful production `deployment_status` then triggers `✅ Production Finalized` (`production-finalize.yml`), which verifies the exact active Railway/Vercel deployments and public services before idempotently creating the annotated tag and GitHub Release; the finalizer is never a Railway-required check.
 
 This skill does not push `preview` or `main`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release.
 
