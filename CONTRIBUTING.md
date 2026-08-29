@@ -4,55 +4,55 @@ Pulpe is a pnpm + Turborepo monorepo (Angular frontend, NestJS backend, SwiftUI 
 
 ## Branch model
 
-Pulpe uses a two-branch flow: one integration branch for the sprint, one release branch for production.
+Pulpe uses a trunk plus a production pointer: everything integrates on `main`, which is also the permanent staging environment.
 
-| Branch                                            | Role                                                                          | Deploys to                                                 |
-| ------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `preview`                                         | **Default branch.** Sprint integration + QA. All feature branches merge here. | Staging / QA (Vercel Preview, Railway `preview` env)       |
-| `main`                                            | **Release / production.** Fed by `preview` at release time only.              | Production (`pulpe.app`, `app.pulpe.app`, `api.pulpe.app`) |
-| `feature/*`, `fix/*` (and Linear-generated names) | Day-to-day work. Branch off `preview`.                                        | Per-branch Vercel preview                                  |
+| Branch                                            | Role                                                                            | Deploys to                                                 |
+| ------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `main`                                            | **Default branch.** Trunk + permanent staging. All feature branches merge here. | Staging / QA (Vercel Preview, Railway `preview` env)       |
+| `production`                                      | **Production pointer.** Advanced only by the release publish job.               | Production (`pulpe.app`, `app.pulpe.app`, `api.pulpe.app`) |
+| `feature/*`, `fix/*` (and Linear-generated names) | Day-to-day work. Branch off `main`.                                             | Per-branch Vercel preview                                  |
 
 ```text
-feature/* ──PR──▶ preview
-                     │
-              release/vX.Y.Z ──PR──▶ preview ──proof──▶ same frozen branch ──PR──▶ main
+feature/* ──PR──▶ main
+                    │
+             release/vX.Y.Z ──PR──▶ main ──proof──▶ publish ──▶ production
 ```
 
 ## Workflow
 
-1. **Branch off `preview`**: `git switch preview && git pull && git switch -c feature/my-thing`
+1. **Branch off `main`**: `git switch main && git pull && git switch -c feature/my-thing`
 2. **Develop**, using [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, `refactor:`, …).
 3. **Quality gate before pushing**: `pnpm quality` (type-check + lint + format) plus the relevant tests (`pnpm test`, `pnpm test:e2e`).
-4. **Open a PR into `preview`** (not `main`). The `✅ CI Success` check must pass, and the PR needs 1 approving review with all review threads resolved.
-5. **Validate on the QA environment.** Once merged, `preview` deploys to staging — verify the change there.
-6. **Release** from a synchronized `preview` with `/release`; the protected two-PR flow promotes one frozen candidate to `main` (see [Release](#release)).
+4. **Open a PR into `main`**. The `✅ CI Success` check must pass and all review threads must be resolved.
+5. **Validate on the QA environment.** Once merged, `main` deploys to staging — verify the change there.
+6. **Release** from a synchronized `main` with `/release`; one preparation PR merges back into `main` and the protected publish advances `production` (see [Release](#release)).
 
 ## Protected branches
 
-Enforced by GitHub rulesets (`preview-protection`, `main-protection` and `tag-protection`):
+Enforced by GitHub rulesets (`main-protection`, `production-protection` and `tag-protection`):
 
-- `preview`: no deletion or force-push; PR, one approval, resolved threads and `✅ CI Success` are required. The solo maintainer keeps the administrator bypass for ordinary PRs authored with the maintainer account.
-- `main`: no deletion, force-push or administrator bypass; release PRs are frozen until the plan/apply cutover — the ruleset still lists the legacy gate check, which phase 9 replaces with the protected apply path.
+- `main`: no deletion or force-push; a PR, resolved review threads and `✅ CI Success` are required. No approving review is required: GitHub forbids approving your own pull request, so on a solo repository that rule would block every merge, including the release preparation PR. The human authorization for a release is the GitHub `production` environment approval instead.
+- `production`: no deletion, force-push or administrator bypass; only the release publish job advances it, fast-forward only.
 - Release tags `v*`: immutable (no deletion, no force-move).
 
 ## Release
 
-A release uses one `release/vX.Y.Z` branch and one version commit, merged into
-`preview` through its preparation PR after complete CI, exact staging deployments and
-QA. The single manual entry, `🚦 Release Promotion`, currently runs a read-only plan
-that resolves the proven candidate, lineage, migrations and rollback anchor; the
-protected apply path that advances production, then creates the single tag and GitHub
-Release, arrives with the phase-9 cutover. Later feature merges into `preview` do not
-alter the frozen candidate: if `preview` advances before the preparation merge, the
-immutable-base check stops promotion and the release is reprepared rather than
-silently absorbing extra features.
+A release uses one `release/vX.Y.Z` branch and one version commit, merged back into
+`main` through its single preparation PR after complete CI. That merge commit is the
+candidate: it deploys staging, produces the exact staging proof, and must remain the
+tip of `main` until publication. The single manual entry, `🚦 Release Promotion`,
+runs a read-only `plan` that resolves the proven candidate, lineage, migrations and
+rollback anchor, then a protected `publish` that migrates, advances `production` and
+creates the single tag and GitHub Release. A feature merged into `main` before publish
+moves the tip away from the candidate: authorization fails closed and the release is
+reprepared rather than silently absorbing extra features.
 
 - Full steps: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md#release-process)
 - Versioning rules: [docs/VERSIONING.md](./docs/VERSIONING.md)
 
 ## Dependencies & security
 
-- Dependabot **security** PRs target the **default branch** (`preview`) and flow through the normal QA → release path. (GitHub only raises security updates against the default branch — that is the reason `preview` is the default.)
+- Dependabot **security** PRs target the **default branch** (`main`) and flow through the normal QA → release path. (GitHub only raises security updates against the default branch.)
 - Active GitHub security features: secret scanning + push protection, Dependabot alerts + security updates.
 - CI jobs that need repository secrets are skipped for `dependabot[bot]` (Dependabot PRs run with an isolated secret store), so a green Dependabot PR is expected.
 

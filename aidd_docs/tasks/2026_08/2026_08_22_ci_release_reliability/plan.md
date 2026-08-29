@@ -3,10 +3,15 @@ objective: "Préparer sans effet production la nouvelle procédure de release, p
 status: blocked
 ---
 
-> Phases 1-8 implémentées et poussées (zéro effet production). Les phases 9
-> (première vraie release + cutover, mutations GitHub/providers) et 10 (mesures
-> post-release) exigent une autorisation de release explicite de Maxime — elles
-> ne peuvent pas être exécutées de manière autonome.
+> Phases 1-8 implémentées et poussées. La phase 9 a publié `v0.47.0` sur la
+> nouvelle procédure, créé le pointeur `production` et fait de `main` la branche
+> par défaut. Elle reste bloquée sur deux actions provider qu'un agent ne peut
+> pas exécuter : rebrancher l'environnement Railway `preview` sur `main` et
+> réassocier la branche Supabase persistante à `main`. Tant qu'elles manquent, la
+> preuve staging du SHA `main` ne peut pas aboutir (jambe Railway absente), la
+> distribution iOS `internal` reste sans preuve, et la branche `preview` garde une
+> référence active qui interdit sa suppression. La phase 10 (mesures
+> post-release) attend la fin de la 9.
 
 # Plan: Fiabiliser la CI et adopter le staging continu
 

@@ -1,8 +1,9 @@
 # Continuous Integration
 
 `.github/workflows/ci.yml` is the executable source of truth. It runs once for pull
-requests targeting `preview`, with one active run per ref. Pushes and production PRs
-reuse immutable evidence instead of rebuilding the same tree.
+requests targeting `main`, with one active run per ref. There is no push trigger: the
+staging proof and the release path reuse that immutable evidence instead of rebuilding
+the same tree.
 
 Security-sensitive workflow contracts are explicit: a read-only token
 (`contents: read` is the only workflow permission), `NODE_VERSION: "24"`, and
@@ -101,41 +102,41 @@ zero tests while reporting success.
 
 ## Release proofs
 
-The release path reuses the complete CI result from the preparation PR instead
-of treating a second build as the identity of the candidate:
+`main` is both the trunk and the permanent staging environment; the `production`
+branch is the production pointer. The release path reuses the complete CI result
+from the single preparation PR instead of treating a second build as the identity
+of the candidate:
 
 ```mermaid
 flowchart LR
-    PR["release/vX.Y.Z → preview"] --> CI["Complete PR CI"]
-    CI --> Merge["Merge commit P on preview"]
-    Merge --> Deploy["Vercel and Railway preview"]
-    Deploy --> Proof["Staging Ready from Railway deployment_status"]
+    PR["release/vX.Y.Z → main"] --> CI["Complete PR CI"]
+    CI --> Merge["Merge commit P on main"]
+    Merge --> Deploy["Vercel and Railway staging"]
+    Deploy --> Proof["Staging Ready from the push to main"]
     Proof --> Plan["🚦 Release Promotion · read-only plan"]
-    Plan --> Apply["apply · production env approval → production PR"]
-    Apply --> Publish["publish on main → production.yml"]
+    Plan --> Publish["publish on main → production.yml"]
 ```
 
-`Staging Ready` is triggered by Railway's successful preview `deployment_status`.
-When an authorized bypass merges a PR before its canonical CI finishes, the proof
-waits on that exact run for at most 30 minutes and fails closed if the run fails,
-its state is unknown, the API is unavailable, or `preview` moves.
-The proof compares the tested and merged Git trees, requires exact provider SHAs, and
-runs staging health checks. A release additionally proves that the release commit and
-the merge commit share the same original `preview` base; a feature merged during the
-short release freeze therefore stops promotion. Normal preview PRs produce a proof but
-are not promoted.
+`Staging Ready` is triggered by the push to `main` and waits for the exact staging
+deployments of that SHA. When an authorized bypass merges a PR before its canonical
+CI finishes, the proof waits on that exact run for at most 30 minutes and fails
+closed if the run fails, its state is unknown, the API is unavailable, or `main`
+moves. The proof compares the tested and merged Git trees, requires exact provider
+SHAs, and runs staging health checks. A release additionally proves that the release
+commit and the merge commit share the same original `main` base; a feature merged
+during the short release freeze therefore stops promotion. Normal feature merges
+produce a proof but are not promoted.
 
 `🚦 Release Promotion` (`release-promotion.yml`) is the single manual release
-entry, with three dispatch modes. `plan` runs one read-only job — no secret,
+entry, with two dispatch modes. `plan` runs one read-only job — no secret,
 environment, or write permission — that resolves the proven staging candidate,
-the fully published current `main`, the content lineage, the migrations in
-scope and the provider deployment IDs, then uploads a `release-plan` manifest
-with the planned mutations and the rollback anchor. `apply` recomputes that
-plan, waits for the GitHub `production` environment approval, then a
-short-lived App token freezes the release branch on the candidate
-(fast-forward only) and opens the single production PR to `main`. `publish`,
-dispatched on `main` after that PR merges, is the sole caller of the reusable
-`production.yml`.
+verifies it is still the exact tip of `main`, anchors the rollback on the latest
+published release, then lists the content lineage, the migrations in scope since
+that anchor and the provider deployment IDs, and uploads a `release-plan` manifest
+with the planned mutations. `publish`, dispatched on `main` once the preparation PR
+has merged, is the sole caller of the reusable `production.yml`. There is no second
+promotion PR and no App token in this workflow: the merge of the preparation PR is
+already the candidate.
 
 ## Quality boundary
 
@@ -154,12 +155,14 @@ rebase. CI always runs the complete gate.
 
 `production.yml` is exposed only as a reusable `workflow_call` workflow whose
 single caller is the `publish` mode of `release-promotion.yml`, dispatched on
-`main`. Its jobs authenticate the approved release PR, detect migration
-changes against the previous `main`, and only a release containing migrations
+`main`. Its jobs authenticate the approved preparation PR, detect migration
+changes since the last published release, and only a release containing migrations
 enters the protected `production` environment for dry-run and apply — the
-migration contract is replayed on the exact merge-parent/merge range before
-touching Supabase. Each new migration declares `expand` or `contract` in its
-initial comment header, and published files cannot be changed. Once migrations
+migration contract is replayed on that exact published-anchor/candidate range
+before touching Supabase. The anchor is the published release rather than the
+merge parent because features land migrations on `main` between releases. Each
+new migration declares `expand` or `contract` in its initial comment header, and
+published files cannot be changed. Once migrations
 are in, the `advance` job fast-forwards the `production` branch pointer to the
 authorized merge SHA — that push is what triggers the Vercel and Railway
 production deployments — and the final job waits for the exact web client.

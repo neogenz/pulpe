@@ -126,31 +126,33 @@ export function resolveWorkflowProof(options, api) {
 export function resolvePublishedMain(options, api) {
   assertRepositorySha(options);
   const prefix = `repos/${options.repository}`;
-  const encoded = api(
-    `${prefix}/contents/package.json?ref=${options.sha}`,
-  ).content;
-  const version = JSON.parse(Buffer.from(encoded, "base64")).version;
-  invariant(/^\d+\.\d+\.\d+$/.test(version ?? ""), "Invalid published version");
 
-  const tag = `v${version}`;
+  // L'ancre de rollback est la dernière release publiée, pas la version du
+  // tip de main : quand une publication échoue après le merge de release,
+  // main porte déjà la version suivante alors que la production sert encore
+  // la précédente, et la re-promotion doit rester possible.
+  const release = api(`${prefix}/releases/latest`);
+  const tag = release.tag_name;
+  invariant(
+    /^v\d+\.\d+\.\d+$/.test(tag ?? "") && !release.draft && !release.prerelease,
+    "Latest release is not a published version",
+  );
   const ref = api(`${prefix}/git/ref/tags/${encodeURIComponent(tag)}`);
   invariant(ref.object?.type === "tag", "Tag is not annotated");
   const object = api(`${prefix}/git/tags/${ref.object.sha}`);
   invariant(
     object.tag === tag &&
       object.object?.type === "commit" &&
-      object.object.sha === options.sha,
-    "Tag does not publish current main",
+      SHA.test(object.object.sha ?? ""),
+    "Tag does not point to a commit",
   );
-  const release = api(`${prefix}/releases/tags/${encodeURIComponent(tag)}`);
+  const anchor = object.object.sha;
+  const compare = api(`${prefix}/compare/${anchor}...${options.sha}`);
   invariant(
-    release.tag_name === tag &&
-      release.target_commitish === options.sha &&
-      !release.draft &&
-      !release.prerelease,
-    "Release does not publish current main",
+    compare.status === "identical" || compare.status === "ahead",
+    "Published anchor is not an ancestor of main",
   );
-  return { version, tag };
+  return { version: tag.slice(1), tag, sha: anchor };
 }
 
 function githubApi(path, paginate = false) {

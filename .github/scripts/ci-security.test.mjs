@@ -325,9 +325,9 @@ test("E2E runs both mocked projects explicitly in one runner", () => {
 });
 
 test("CI is PR-only and production owns migration credentials", () => {
-  // `main` is limited to the single production PR of a release.
-  assert.match(workflow, /pull_request:\n\s+branches: \[preview, main\]/);
-  assert.doesNotMatch(workflow, /^\s{2}push:|branches: \[main/m);
+  // `main` is the trunk: feature PRs and the single preparation PR alike.
+  assert.match(workflow, /pull_request:\n\s+branches: \[main\]/);
+  assert.doesNotMatch(workflow, /^\s{2}push:/m);
   assert.doesNotMatch(workflow, /secrets\.|supabase db push/);
   assert.match(production, /environment: production/);
   const dryRun = production.indexOf("run: supabase db push --dry-run");
@@ -350,11 +350,11 @@ test("the migration contract is required and replayed before production apply", 
   assert.ok(replay >= 0 && replay < dryRun);
   assert.match(
     production.slice(replay, dryRun),
-    /check-migration-contract\.cjs "\$\{GITHUB_SHA\}\^1" "\$GITHUB_SHA"/,
+    /check-migration-contract\.cjs "\$ANCHOR_SHA" "\$GITHUB_SHA"/,
   );
 });
 
-test("successful preview PRs emit one immutable tested-tree proof", () => {
+test("successful PRs to main emit one immutable tested-tree proof", () => {
   const successStart = workflow.indexOf("\n  ci-success:");
   const success = workflow.slice(successStart);
 
@@ -376,11 +376,8 @@ test("successful preview PRs emit one immutable tested-tree proof", () => {
 });
 
 test("the shadow staging proof fails closed on identity or deployment drift", () => {
-  assert.match(stagingProof, /on: deployment_status/);
-  assert.match(
-    stagingProof,
-    /deployment_status\.state == 'success'.*deployment\.environment == 'pulpe-backend \/ preview'.*deployment\.creator\.login == 'railway-app\[bot\]'/s,
-  );
+  assert.match(stagingProof, /on:\n  push:\n    branches: \[main\]/);
+  assert.doesNotMatch(stagingProof, /deployment_status/);
   assert.doesNotMatch(
     stagingProof,
     /pull_request_target|secrets\.|:\s*write\b/,
@@ -407,7 +404,7 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
   assert.match(stagingProof, /pulpe-backend \/ preview/);
   assert.match(stagingProof, /vercel\[bot\]/);
   assert.match(stagingProof, /railway-app\[bot\]/);
-  assert.match(stagingProof, /preview moved from/);
+  assert.match(stagingProof, /main moved from/);
   assert.match(stagingProof, /git rev-parse "\$\{GITHUB_SHA\}\^1"/);
   assert.match(stagingProof, /backend-preview-34f4\.up\.railway\.app\/health/);
   assert.match(
@@ -420,11 +417,11 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
     "canonical CI success must be checked before evidence download",
   );
   assert.ok(
-    stagingProof.indexOf("branches/preview") <
+    stagingProof.indexOf("branches/main") <
       stagingProof.indexOf(
         "canonical CI run did not complete within 30 minutes",
       ),
-    "preview must remain fixed while canonical CI is pending",
+    "main must remain fixed while canonical CI is pending",
   );
 
   for (const actionUse of stagingProof.matchAll(/^\s*uses:\s*([^\s#]+)/gm)) {
@@ -436,7 +433,7 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
   }
 });
 
-test("release promotion is the single manual entry with a protected apply", () => {
+test("release promotion is the single manual entry with a read-only plan", () => {
   // Only workflow_dispatch, two inputs, no automatic trigger of any kind.
   const trigger = releasePromotion.slice(
     releasePromotion.indexOf("\non:"),
@@ -445,15 +442,15 @@ test("release promotion is the single manual entry with a protected apply", () =
   assert.match(trigger, /workflow_dispatch:\n\s+inputs:\n\s+release_branch:/);
   assert.match(
     trigger,
-    /mode:[\s\S]*type: choice[\s\S]*- plan\n\s+- apply\n\s+- publish[\s\S]*default: plan/,
+    /mode:[\s\S]*type: choice[\s\S]*- plan\n\s+- publish[\s\S]*default: plan/,
   );
   assert.doesNotMatch(
     trigger,
     /workflow_run|pull_request|push:|schedule|deployment_status|release_notes/,
   );
 
-  // The workflow token stays read-only: mutations go through the short-lived
-  // App token, and only after the production environment approval.
+  // The workflow token stays read-only: the only mutations live in the
+  // reusable production workflow, behind the production environment.
   assert.match(releasePromotion, /actions: read/);
   assert.match(releasePromotion, /contents: read/);
   assert.match(releasePromotion, /deployments: read/);
@@ -462,55 +459,28 @@ test("release promotion is the single manual entry with a protected apply", () =
     releasePromotion,
     /:\s*write\b|--admin|enablePullRequestAutoMerge|--force\b/,
   );
+  assert.doesNotMatch(
+    releasePromotion,
+    /create-github-app-token|gh api -X (?:POST|PATCH|PUT|DELETE)|-f sha=|-F force=/,
+  );
 
   const jobs = [
     ...releasePromotion
       .slice(releasePromotion.indexOf("\njobs:"))
       .matchAll(/^\s{2}([a-z-]+):$/gm),
   ].map((match) => match[1]);
-  assert.deepEqual(jobs, ["plan", "approve-cutover", "promote", "production"]);
+  assert.deepEqual(jobs, ["plan", "production"]);
 
   // The plan job stays read-only: no secret, environment, App token, or
   // mutating API call — every client can run it without side effects.
   const planJob = releasePromotion.slice(
     releasePromotion.indexOf("\n  plan:"),
-    releasePromotion.indexOf("\n  approve-cutover:"),
-  );
-  assert.doesNotMatch(
-    planJob,
-    /secrets\.|environment:|create-github-app-token|gh api -X (?:POST|PATCH|PUT|DELETE)|-f sha=|-F force=/,
-  );
-  assert.match(planJob, /Checkout trusted release automation/);
-  assert.match(planJob, /persist-credentials: false/);
-
-  // The approval gate carries no credentials and precedes every mutation.
-  const approveJob = releasePromotion.slice(
-    releasePromotion.indexOf("\n  approve-cutover:"),
-    releasePromotion.indexOf("\n  promote:"),
-  );
-  assert.match(approveJob, /needs: plan/);
-  assert.match(approveJob, /if: inputs\.mode == 'apply'/);
-  assert.match(approveJob, /environment: production/);
-  assert.doesNotMatch(approveJob, /secrets\.|create-github-app-token/);
-
-  // promote is the only pre-merge mutation: App token, fast-forward only,
-  // reachable exclusively through the approved apply mode.
-  const promoteJob = releasePromotion.slice(
-    releasePromotion.indexOf("\n  promote:"),
     releasePromotion.indexOf("\n  production:"),
   );
-  assert.match(promoteJob, /needs: \[plan, approve-cutover\]/);
-  assert.match(promoteJob, /if: inputs\.mode == 'apply'/);
-  assert.match(
-    promoteJob,
-    /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/,
-  );
-  assert.match(promoteJob, /-F force=false/);
-  assert.doesNotMatch(promoteJob, /-F force=true|force=1/);
-  assert.match(
-    promoteJob,
-    /pulpe-promotion:v\$VERSION:\$CANDIDATE_SHA:\$PREPARATION_PR:\$STAGING_RUN_ID/,
-  );
+  assert.doesNotMatch(planJob, /secrets\.|environment:/);
+  assert.match(planJob, /if: inputs\.mode == 'plan'/);
+  assert.match(planJob, /Checkout trusted release automation/);
+  assert.match(planJob, /persist-credentials: false/);
 
   // publish delegates to the single reusable production workflow.
   const productionJob = releasePromotion.slice(
@@ -524,13 +494,26 @@ test("release promotion is the single manual entry with a protected apply", () =
     1,
   );
 
-  // The plan reuses the existing proof contracts instead of a second system.
+  // The plan reuses the existing proof contracts instead of a second system,
+  // and refuses any candidate that is no longer the visible tip of main.
   assert.match(releasePromotion, /\.parents\[1\]\.sha == \$release/);
   assert.match(releasePromotion, /\.parents\[0\]\.sha == \$base/);
   assert.match(
     releasePromotion,
-    /--workflow staging-proof\.yml[\s\S]*--job "✅ Staging Ready \(shadow\)"[\s\S]*--artifact-template "staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
+    /--workflow staging-proof\.yml[\s\S]*--event push[\s\S]*--branch main[\s\S]*--job "✅ Staging Ready \(shadow\)"[\s\S]*--artifact-template "staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}"/,
   );
+  assert.match(
+    releasePromotion,
+    /test "\$trusted_main_sha" = "\$candidate_sha"/,
+  );
+  // La branche éphémère reste sur son commit de version : aucun job ne la fait
+  // avancer sur le candidat depuis la suppression de `promote`, donc accepter
+  // aussi le candidat rouvrirait une porte que rien n'emprunte.
+  assert.match(
+    releasePromotion,
+    /\n {10}test "\$branch_sha" = "\$release_sha"\n/,
+  );
+  assert.doesNotMatch(releasePromotion, /"\$branch_sha" = "\$candidate_sha"/);
   assert.match(
     releasePromotion,
     /resolve-workflow-proof\.mjs --published-main "\$trusted_main_sha"/,
@@ -565,10 +548,7 @@ test("release intention stays idempotent and every client stateless", () => {
     /run-name: "🚦 \$\{\{ inputs\.mode \}\} \$\{\{ inputs\.release_branch \}\}"/,
   );
   assert.match(releaseState, /🚦 \$\{mode\} release\/v\$\{options\.version\}/);
-  assert.match(
-    releaseState,
-    /\["plan", "apply", "publish"\]\.includes\(mode\)/,
-  );
+  assert.match(releaseState, /\["plan", "publish"\]\.includes\(mode\)/);
 
   // The resolver reads GitHub, never local state, and fails closed.
   assert.match(releaseState, /display_title === identity/);
@@ -592,9 +572,17 @@ test("release intention stays idempotent and every client stateless", () => {
 });
 
 test("release lineage uses the shared content-integration check", () => {
-  const lineageSources = [releasePromotion, production, releaseSkill];
-  for (const source of lineageSources) {
-    assert.match(source, /node \.github\/scripts\/check-release-lineage\.mjs/);
+  // The workflows enforce candidate == main tip; only the skill's local
+  // pre-flight still needs the content-integration script.
+  assert.match(
+    releaseSkill,
+    /node \.github\/scripts\/check-release-lineage\.mjs/,
+  );
+  assert.match(
+    production,
+    /branches\/main" --jq \.commit\.sha\)" = "\$GITHUB_SHA"/,
+  );
+  for (const source of [releasePromotion, production, releaseSkill]) {
     assert.doesNotMatch(
       source,
       /behind_by\s*==\s*0|git\s+merge-base\s+--is-ancestor\s+origin\/main\b/,
@@ -650,7 +638,41 @@ test("production finishes preflight before Railway deploys", () => {
   assert.match(production, /pull-requests: read/);
   assert.doesNotMatch(production, /:\s*write\b|--force/);
   assert.match(production, /.user\.login == "pulpe-release\[bot\]"/);
-  assert.match(production, /.state == "APPROVED"/);
+  // Une review APPROVED est impossible en solo (auto-approbation interdite) :
+  // l'intention humaine est le merge manuel puis l'environnement protégé.
+  assert.match(
+    production,
+    /\.merged_by\.type == "User" and \.merged_by\.login == \$owner/,
+  );
+  assert.doesNotMatch(production, /\.state == "APPROVED"/);
+  // `authorize` contrôle le tip de main AVANT la porte d'environnement : main
+  // peut avancer pendant l'attente d'approbation. Les deux jobs protégés qui
+  // écrivent — migrations et pointeur — refont le contrôle avant leur première
+  // mutation, sinon la release publierait un candidat qui n'est plus le tip.
+  assert.equal(
+    [
+      ...production.matchAll(
+        /test "\$\(gh api "repos\/\$GITHUB_REPOSITORY\/branches\/main" --jq \.commit\.sha\)" = "\$GITHUB_SHA"/g,
+      ),
+    ].length,
+    3,
+  );
+  assert.equal(
+    [
+      ...production.matchAll(
+        /- name: 🔒 Recheck the candidate is still the tip of main/g,
+      ),
+    ].length,
+    2,
+  );
+  for (const job of ["migrate", "advance"]) {
+    const body = production.slice(production.indexOf(`\n  ${job}:\n`));
+    assert.match(
+      body.slice(0, body.indexOf("\n      - name: ", 1)),
+      /environment: production/,
+      `${job} recheck stays behind the protected environment`,
+    );
+  }
   assert.doesNotMatch(production, /\.pull_requests\[\]|\.pull_requests\[\]\?/);
   assert.match(
     production,
@@ -878,7 +900,7 @@ test("iOS archive uses the imported App Store profiles without automatic provisi
   );
 });
 
-test("iOS release recovery from preview is bound to an exact annotated release tag", () => {
+test("iOS release recovery from main is bound to an exact annotated release tag", () => {
   const validation = iosDistribution.slice(
     iosDistribution.indexOf("Validate source and distribution inputs"),
     iosDistribution.indexOf(
@@ -889,7 +911,7 @@ test("iOS release recovery from preview is bound to an exact annotated release t
   assert.match(validation, /tagged_release_recovery=false/);
   assert.match(
     validation,
-    /CHANNEL" = release.*GITHUB_REF_NAME" = preview.*tagged_release_recovery=true/s,
+    /CHANNEL" = release.*GITHUB_REF_NAME" = main.*tagged_release_recovery=true/s,
   );
   assert.match(validation, /release_version=.*\.\.\/package\.json/);
   assert.match(validation, /recovery_tag="refs\/tags\/v\$release_version"/);
@@ -929,24 +951,41 @@ test("iOS distribution consumes staging or finalized production proofs", () => {
   assert.doesNotMatch(iosDistribution, /gh run download/);
 });
 
-test("internal production-config builds stay bound to preview staging proof", () => {
+test("internal production-config builds stay bound to main staging proof", () => {
   assert.match(iosDistribution, /options:\n\s+- internal\n\s+- release/);
   assert.match(
     iosDistribution,
-    /internal\)\n\s+expected_branch="preview"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
+    /internal\)\n\s+expected_branch="main"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
   );
   assert.match(
     iosDistribution,
-    /release\)\n\s+expected_branch="main"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
+    /release\)\n\s+expected_branch="production"\n\s+scheme="PulpeProd"\n\s+configuration="Prod"/,
   );
+  // Le résolveur exige une égalité stricte sur l'événement : chaque canal doit
+  // demander celui que déclenche réellement le workflow qu'il prouve —
+  // staging-proof.yml sur `push` de main, production-finalize.yml sur
+  // `deployment_status`. Une dérive ici bloque silencieusement tous les builds.
   assert.match(
     iosDistribution,
-    /internal\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow staging-proof\.yml/,
+    /internal\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow staging-proof\.yml \\\n\s+--event push \\\n\s+--branch "\$PROOF_BRANCH" \\/,
   );
+  assert.match(stagingProof, /on:\n  push:\n    branches: \[main\]/);
   assert.match(
     iosDistribution,
-    /release\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow production-finalize\.yml/,
+    /release\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow production-finalize\.yml \\\n\s+--event deployment_status \\\n\s+--branch "\$PROOF_BRANCH" \\/,
   );
+  assert.match(productionFinalize, /on:\n  deployment_status:/);
+  // La branche d'autorisation et celle qui indexe la preuve divergent pour le
+  // canal `release` : Railway déploie la production avec un `ref` égal au SHA
+  // brut, donc le run `deployment_status` retombe sur `main`. Chercher la
+  // preuve sur `production` ne trouverait jamais rien et bloquerait chaque
+  // publication App Store.
+  assert.match(iosDistribution, /\n          proof_branch="main"\n/);
+  assert.match(
+    productionFinalize,
+    /test "\$DEPLOYMENT_REF" = "\$PRODUCTION_SHA"/,
+  );
+  assert.doesNotMatch(iosDistribution, /--branch "\$EXPECTED_BRANCH"/);
   assert.match(
     iosDistribution,
     /if \[ "\$CHANNEL" != "release" \] && \[ "\$BUILD_NUMBER" -lt "\$project_build" \]/,
@@ -957,8 +996,9 @@ test("internal production-config builds stay bound to preview staging proof", ()
   );
   assert.match(
     iosRelease,
-    /internal.*preview.*PulpeProd.*Prod.*selected marketing version/,
+    /internal.*`main`.*PulpeProd.*Prod.*selected marketing version/,
   );
+  assert.match(iosRelease, /release.*`production`.*PulpeProd.*Prod/);
   assert.doesNotMatch(
     iosRelease,
     /global ASC build|highest existing build \+ 1/,
@@ -1255,6 +1295,15 @@ test("Android E2E verifies Maestro and withholds preview secrets from forks", ()
   const verify = androidE2eWorkflow.indexOf("sha256sum --check");
   const extract = androidE2eWorkflow.indexOf("unzip -q");
   assert.ok(download < verify && verify < extract);
+});
+
+test("the Android production build follows the production pointer", () => {
+  // `main` est le tronc : chaque merge de feature y arrive. Un build EAS
+  // déclenché depuis `main` consommerait le quota du plan Free et pousserait
+  // un brouillon Play à chaque feature.
+  const easProduction = read("android/.eas/workflows/deploy-production.yml");
+  assert.match(easProduction, /on:\n  push:\n    branches: \[production\]/);
+  assert.doesNotMatch(easProduction, /branches: \[main\]/);
 });
 
 test("the boundaries upgrade keeps a modern explicit policy", () => {

@@ -9,7 +9,7 @@ const options = {
   marketingVersion: "1.4.2",
   buildNumber: "17",
   channel: "release",
-  automationBranch: "main",
+  automationBranch: "production",
 };
 
 function artifactNameFor(intentOptions) {
@@ -20,7 +20,7 @@ function fixture({
   proof = {},
   steps = [],
   expired = false,
-  branch = "main",
+  branch = "production",
   intentOptions = options,
 } = {}) {
   const artifactName = artifactNameFor(intentOptions);
@@ -131,7 +131,7 @@ test("rejects expired artifacts and runs that did not upload successfully", () =
 
 test("rejects intents produced outside the channel branch", () => {
   const { api, readArtifact } = fixture({
-    branch: "preview",
+    branch: "main",
     steps: successfulSteps,
   });
   assert.throws(
@@ -140,14 +140,14 @@ test("rejects intents produced outside the channel branch", () => {
   );
 });
 
-test("accepts an internal intent produced from the preview branch", () => {
+test("accepts an internal intent produced from the main branch", () => {
   const internalOptions = {
     ...options,
     channel: "internal",
-    automationBranch: "preview",
+    automationBranch: "main",
   };
   const { api, readArtifact } = fixture({
-    branch: "preview",
+    branch: "main",
     intentOptions: internalOptions,
     steps: successfulSteps,
   });
@@ -157,10 +157,10 @@ test("accepts an internal intent produced from the preview branch", () => {
   );
 });
 
-test("accepts a tagged release recovery intent produced from preview", () => {
-  const recoveryOptions = { ...options, automationBranch: "preview" };
+test("accepts a tagged release recovery intent produced from main", () => {
+  const recoveryOptions = { ...options, automationBranch: "main" };
   const { api, readArtifact } = fixture({
-    branch: "preview",
+    branch: "main",
     intentOptions: recoveryOptions,
     steps: successfulSteps,
   });

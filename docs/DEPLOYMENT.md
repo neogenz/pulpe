@@ -6,15 +6,15 @@
 # 1. Quality check
 pnpm quality && pnpm test && pnpm test:e2e
 
-# 2. Run the agent release workflow from a clean, synchronized preview
+# 2. Run the agent release workflow from a clean, synchronized main
 /release
 ```
 
 `/release` prepares one `release/vX.Y.Z` branch and one version commit, merged into
-`preview` through its preparation PR. The manual `🚦 Release Promotion` entry then
-drives three modes: `plan` (read-only manifest), `apply` (production environment
-approval, then the production PR to `main`), and `publish` on the merged `main`
-(migrations, `production` pointer advance, provider deploys, tag and Release).
+`main` through its single preparation PR. The manual `🚦 Release Promotion` entry then
+drives two modes: `plan` (read-only manifest) and `publish` on the merged `main`
+(production environment approval, migrations, `production` pointer advance, provider
+deploys, tag and Release).
 
 ## Prerequisites
 
@@ -34,16 +34,17 @@ approval, then the production PR to `main`), and `publish` on the merged `main`
 
 ## Branch Model
 
-| Branch    | Role                                                                    | Environment                                     |
-| --------- | ----------------------------------------------------------------------- | ----------------------------------------------- |
-| `preview` | **Default branch** — sprint integration + QA. Feature branches PR here. | Staging (Vercel Preview, Railway `preview` env) |
-| `main`    | **Release / production** — fed by `preview` at release time.            | Production                                      |
+| Branch       | Role                                                                      | Environment                                     |
+| ------------ | ------------------------------------------------------------------------- | ----------------------------------------------- |
+| `main`       | **Default branch** — trunk + permanent staging. Feature branches PR here. | Staging (Vercel Preview, Railway `preview` env) |
+| `production` | **Production pointer** — advanced only by the release publish job.        | Production                                      |
 
-Day-to-day work branches off `preview` and merges back via PR. A release starts from
-the current `preview` head, adds one version commit on `release/vX.Y.Z`, validates its
-merge commit in staging, freezes that proven candidate, then promotes it to `main`
-without another version change. `preview` and production remain independent
-environments. Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
+Day-to-day work branches off `main` and merges back via PR; every merge deploys
+staging. A release starts from the current `main` head, adds one version commit on
+`release/vX.Y.Z`, and merges it back into `main` through its preparation PR — that
+merge commit is the candidate. Publishing fast-forwards `production` onto it without
+another version change. Staging and production remain independent environments.
+Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Initial Setup
 
@@ -67,7 +68,8 @@ supabase unlink
 ```
 
 - `🏭 Production Release` detects changes in `backend-nest/supabase/migrations/`
-  against the previous `main`. No pull-request job receives production secrets.
+  between the last published release and the candidate. No pull-request job receives
+  production secrets.
 - Published migration files are immutable. Every new file starts, before any SQL, with
   `-- pulpe:migration-phase expand` or `-- pulpe:migration-phase contract`. Contract
   files also require `-- pulpe:safe-after vX.Y.Z`; that release tag must already be an
@@ -78,7 +80,8 @@ supabase unlink
 - The checker is deliberately conservative and heuristic, not a PostgreSQL parser or
   a substitute for SQL review. Split ambiguous changes or classify them as contract.
 - CI checks the PR range and includes the result in `ci-success`. Production replays
-  the exact merge range before the protected Supabase dry-run and apply.
+  the exact published-anchor/candidate range before the protected Supabase dry-run
+  and apply.
 - Create locally with `supabase migration new [description]`. Never run `db push`
   against the linked production project outside the protected workflow.
 
@@ -363,16 +366,16 @@ borné au slug réel de l’équipe propriétaire, puis le consigner ici.
 
 > Repository Settings → Secrets and variables → Actions → New repository secret
 
-| Secret                          | Value                    | Used by                            |
-| ------------------------------- | ------------------------ | ---------------------------------- |
-| `SUPABASE_ACCESS_TOKEN`         | Supabase CLI token       | Production Release migrations      |
-| `PRODUCTION_DB_PASSWORD`        | Supabase DB password     | Production Release migrations      |
-| `PRODUCTION_PROJECT_ID`         | Supabase project ref     | Production Release migrations      |
-| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | iOS releases                       |
-| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | iOS releases                       |
-| `PULPE_RELEASE_APP_ID`          | GitHub App ID            | Opens protected release PRs        |
-| `PULPE_RELEASE_APP_PRIVATE_KEY` | GitHub App private key   | Creates short-lived release tokens |
-| `RAILWAY_PRODUCTION_TOKEN`      | Railway project token    | Verifies the active production SHA |
+| Secret                          | Value                    | Used by                              |
+| ------------------------------- | ------------------------ | ------------------------------------ |
+| `SUPABASE_ACCESS_TOKEN`         | Supabase CLI token       | Production Release migrations        |
+| `PRODUCTION_DB_PASSWORD`        | Supabase DB password     | Production Release migrations        |
+| `PRODUCTION_PROJECT_ID`         | Supabase project ref     | Production Release migrations        |
+| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | iOS releases                         |
+| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | iOS releases                         |
+| `PULPE_RELEASE_APP_ID`          | GitHub App ID            | Advances `production`, tags releases |
+| `PULPE_RELEASE_APP_PRIVATE_KEY` | GitHub App private key   | Creates short-lived release tokens   |
+| `RAILWAY_PRODUCTION_TOKEN`      | Railway project token    | Verifies the active production SHA   |
 
 See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release architecture.
 
@@ -381,38 +384,38 @@ See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release ar
 Every production mutation runs behind the GitHub `production` environment
 approval; the read-only `plan` mode is the only one without it.
 
-1. Run `/release` from a clean synchronized `preview`. It creates one
-   `release/vX.Y.Z` commit and its preparation PR to `preview` (body line 1:
+1. Run `/release` from a clean synchronized `main`. It creates one
+   `release/vX.Y.Z` commit and its single preparation PR to `main` (body line 1:
    the `pulpe-release` marker; then the `## vX.Y.Z` notes).
-2. Merge only after CI, staging provider SHAs and `✅ Staging Ready (shadow)` are green,
-   **with a merge commit** — the candidate must be a 2-parent merge of the release commit.
-   Its proof is bound to the exact workflow run, attempt, successful job and artifact.
+2. Merge it once `✅ CI Success` is green, **with a merge commit** — the candidate
+   must be a 2-parent merge of the release commit, merged by the repository owner
+   (`authorize` re-verifies both). No approving review exists on a solo repository;
+   the human authorization is the `production` environment approval in step 4.
+   The merge pushes `main`, which deploys staging and produces
+   `✅ Staging Ready (shadow)`, bound to the exact workflow run, attempt,
+   successful job and artifact.
+   Nothing else may land on `main` until publish: the candidate must stay the exact tip.
 3. Dispatch `🚦 Release Promotion` in `plan` mode. The read-only job — no
-   secret, no environment — resolves the proven staging candidate, verifies
-   that current `main` is already fully published (annotated tag + GitHub
-   Release: the rollback anchor), replays the content lineage, lists the
-   migrations in scope and the provider deployment IDs, then uploads the
-   `release-plan` manifest with the planned mutations and rollback.
-4. Dispatch `apply` on `preview`. It recomputes the plan, waits for the
-   `production` environment approval, then the App-token `promote` job freezes
-   `release/vX.Y.Z` on the candidate (fast-forward only) and opens the single
-   production PR to `main` with the `pulpe-promotion` marker. Approve and
-   merge that PR (merge commit) once `✅ CI Success` is green — the merge
-   deploys nothing because providers track the `production` branch.
-5. Dispatch `publish` on `main`. The reusable `production.yml` re-verifies the
-   whole chain, keeps the migration dry-run → apply order and the replayed
-   migration contract behind the `production` environment (skipped entirely
-   when the release carries no migration), then `advance` fast-forwards the
-   `production` pointer — the push that triggers the Vercel and Railway
-   production deploys — and waits for the exact web client.
-6. Railway's exact successful production `deployment_status` starts
+   secret, no environment — resolves the proven staging candidate, verifies it
+   is still the tip of `main`, anchors the rollback on the latest published
+   release (annotated tag + GitHub Release), replays the content lineage, lists
+   the migrations in scope since that anchor and the provider deployment IDs,
+   then uploads the `release-plan` manifest with the planned mutations and rollback.
+4. Dispatch `publish` on `main`. The reusable `production.yml` re-verifies the
+   whole chain, waits for the `production` environment approval, keeps the
+   migration dry-run → apply order and the replayed migration contract behind
+   that environment (skipped entirely when the release carries no migration),
+   then `advance` fast-forwards the `production` pointer — the push that
+   triggers the Vercel and Railway production deploys — and waits for the exact
+   web client.
+5. Railway's exact successful production `deployment_status` starts
    `✅ Production Finalized`, which proves Railway, Vercel, `/health` and
    `/api/v1/app/version`, then idempotently publishes `vX.Y.Z` and the GitHub
    Release. That workflow must never be a Railway-required check.
 
-Rollback: applications roll back by redeploying the published `main` anchor
-recorded in the plan manifest (Vercel rollback / Railway redeploy of the exact
-SHA); migrations stay forward-only — ship a corrective migration instead.
+Rollback: applications roll back by redeploying the published anchor recorded in
+the plan manifest (Vercel rollback / Railway redeploy of the exact SHA);
+migrations stay forward-only — ship a corrective migration instead.
 
 ### Release identity and resume
 
@@ -445,9 +448,9 @@ candidate manifest rather than a second format.
   exact annotated tag and creates only the missing Release; a mismatch fails closed.
 - **Duplicate Railway success**: duplicate events for the same SHA are serialized and
   idempotent. Let the existing finalizer finish or rerun its failed attempt; do not deploy.
-- **Main advances**: strict checks block a stale production PR. If a prior `main` is not
-  fully tagged and published, the next promotion remains blocked until its finalizer
-  completes successfully.
+- **Main advances**: any commit landing on `main` between the preparation merge and
+  `publish` moves the tip away from the candidate, and authorization fails closed.
+  Prepare a new release branch from the new head; never force the stale candidate.
 - Migration failure: keep recovery forward-only and ship a corrective migration; do
   not automate rollback.
 - iOS build already valid succeeds without archive/upload; processing polls the same version/build without allocating or uploading another.

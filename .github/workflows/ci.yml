@@ -1,10 +1,10 @@
 name: 🚀 CI Pipeline
 
-# `main` couvre l'unique PR de production d'une release : depuis la
-# suppression du gate de release dédié, c'est ✅ CI Success qui la prouve.
+# `main` est le trunk : chaque PR de feature comme l'unique PR de préparation
+# d'une release est prouvée par ✅ CI Success.
 on:
   pull_request:
-    branches: [preview, main]
+    branches: [main]
 
 # Éviter les runs multiples pour la même ref
 concurrency:
@@ -907,16 +907,11 @@ jobs:
           ROUTING: ${{ needs.classify.outputs.decision }}
         run: |
           set -euo pipefail
-          # Deux formes légitimes pour une branche release, discriminées par
-          # la base de la PR : vers main, le candidat promu (commit de merge,
-          # re-vérifié par production.yml/authorize via le marqueur) ; sinon,
-          # la PR de préparation garde son unique commit posé sur la base.
+          # Une branche release ne porte que la PR de préparation : son unique
+          # commit de version est posé directement sur la base. Le merge de
+          # cette PR est le candidat que production.yml/authorize re-vérifie.
           if [[ "$HEAD_REF" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            if [ "$BASE_REF" = "main" ]; then
-              git rev-parse -q --verify "${HEAD_SHA}^2" >/dev/null
-            else
-              test "$(git rev-parse "${HEAD_SHA}^")" = "$BASE_SHA"
-            fi
+            test "$(git rev-parse "${HEAD_SHA}^")" = "$BASE_SHA"
           fi
           tree_sha=$(git rev-parse "${GITHUB_SHA}^{tree}")
           TREE_SHA="$tree_sha" python3 - <<'PY'
