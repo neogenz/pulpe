@@ -506,6 +506,14 @@ test("release promotion is the single manual entry with a read-only plan", () =>
     releasePromotion,
     /test "\$trusted_main_sha" = "\$candidate_sha"/,
   );
+  // La branche éphémère reste sur son commit de version : aucun job ne la fait
+  // avancer sur le candidat depuis la suppression de `promote`, donc accepter
+  // aussi le candidat rouvrirait une porte que rien n'emprunte.
+  assert.match(
+    releasePromotion,
+    /\n {10}test "\$branch_sha" = "\$release_sha"\n/,
+  );
+  assert.doesNotMatch(releasePromotion, /"\$branch_sha" = "\$candidate_sha"/);
   assert.match(
     releasePromotion,
     /resolve-workflow-proof\.mjs --published-main "\$trusted_main_sha"/,

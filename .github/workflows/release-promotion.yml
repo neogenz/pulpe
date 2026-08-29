@@ -98,7 +98,11 @@ jobs:
           candidate_sha=$(jq -r 'map(select(.merged_at != null)) | sort_by(.merged_at) | last | .merge_commit_sha' "$RUNNER_TEMP/preparation-pulls.json")
           release_sha=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$preparation_pr/commits?per_page=100" --jq '.[].sha' | tail -n 1)
           test -n "$release_sha"
-          test "$branch_sha" = "$release_sha" || test "$branch_sha" = "$candidate_sha"
+          # La branche éphémère reste sur son commit de version : plus aucun job
+          # ne la fait avancer sur le candidat depuis la suppression de
+          # `promote`. Accepter le candidat ici rouvrirait une porte que rien
+          # n'emprunte.
+          test "$branch_sha" = "$release_sha"
 
           gh api "repos/$GITHUB_REPOSITORY/git/commits/$candidate_sha" > "$RUNNER_TEMP/candidate.json"
           release_base=$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$release_sha" --jq '.parents[0].sha')
