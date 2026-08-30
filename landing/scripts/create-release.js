@@ -1,84 +1,120 @@
 #!/usr/bin/env node
 
-/**
- * PostHog Release Creation for Landing Page
- *
- * Creates a release in PostHog to track deployments.
- * The landing page uses static export (no sourcemaps needed),
- * but releases enable version-based error filtering.
- *
- * Environment Variables:
- * - POSTHOG_PERSONAL_API_KEY: Personal API key for PostHog
- * - POSTHOG_CLI_ENV_ID: PostHog project ID (same project as webapp: 87621)
- * - POSTHOG_HOST: PostHog instance URL (optional, defaults to EU)
- */
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
-import { readFileSync } from 'fs';
-import { execSync } from 'child_process';
+const DEFAULT_HOST = "https://eu.i.posthog.com";
+const LANDING_PROJECT = "pulpe-landing";
 
-const isCI = !!(process.env.CI || process.env.VERCEL || process.env.GITHUB_ACTIONS);
-const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
-const envId = process.env.POSTHOG_CLI_ENV_ID;
-const host = process.env.POSTHOG_HOST || 'https://eu.i.posthog.com';
+export function releasePayload(project, version, commitHash) {
+  return {
+    project,
+    version,
+    hash_id: createHash("sha512").update(project).update(version).digest("hex"),
+    metadata: { git: { commit_id: commitHash } },
+  };
+}
 
-async function main() {
-  if (!apiKey || !envId) {
-    console.log('⚠️  PostHog credentials not configured for landing releases. Skipping.');
-    return;
-  }
-
-  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production') {
-    console.log('⏭️  Non-production Vercel deploy, skipping release creation.');
-    return;
-  }
-
-  let version;
+async function errorBody(response) {
+  const text = await response.text();
   try {
-    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-    if (!pkg.version) throw new Error('Missing version field in package.json');
-    version = pkg.version;
-  } catch (error) {
-    console.error('❌ Failed to read version from package.json:', error.message);
-    process.exit(isCI ? 1 : 0);
-    return;
-  }
-
-  let commitHash;
-  try {
-    commitHash = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+    return { text, json: JSON.parse(text) };
   } catch {
-    commitHash = 'unknown';
-  }
-
-  console.log(`📦 Creating PostHog release for landing v${version} (${commitHash.substring(0, 7)})`);
-
-  try {
-    const response = await fetch(`${host}/api/projects/${envId}/error_tracking/releases/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        version: `landing-${version}`,
-        hash_id: commitHash,
-        project: envId,
-      }),
-      signal: AbortSignal.timeout(10_000),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`${response.status} - ${errorText}`);
-    }
-
-    console.log(`✅ PostHog release landing-${version} created`);
-  } catch (error) {
-    console.warn(`⚠️  Release creation failed (non-blocking): ${error.message}`);
+    return { text, json: null };
   }
 }
 
-main().catch((error) => {
-  console.error('❌ Unhandled error:', error.message);
-  process.exit(isCI ? 1 : 0);
-});
+export async function createRelease({
+  apiKey,
+  envId,
+  fetchImpl = fetch,
+  host,
+  payload,
+}) {
+  const endpoint = `${host.replace(/\/$/, "")}/api/projects/${envId}/error_tracking/releases/`;
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  };
+  const response = await fetchImpl(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (response.ok) return "created";
+
+  const failure = await errorBody(response);
+  if (response.status !== 400 || failure.json?.code !== "release_hash_in_use") {
+    throw new Error(`${response.status} - ${failure.text}`);
+  }
+
+  const existingResponse = await fetchImpl(
+    `${endpoint}hash/${payload.hash_id}`,
+    {
+      headers,
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+  if (!existingResponse.ok) {
+    const existingFailure = await errorBody(existingResponse);
+    throw new Error(`${existingResponse.status} - ${existingFailure.text}`);
+  }
+  const existing = await existingResponse.json();
+  if (
+    existing.project !== payload.project ||
+    existing.version !== payload.version ||
+    existing.hash_id !== payload.hash_id
+  ) {
+    throw new Error("PostHog release hash belongs to another release");
+  }
+  return "reused";
+}
+
+export async function main(env = process.env) {
+  const apiKey = env.POSTHOG_PERSONAL_API_KEY;
+  const envId = env.POSTHOG_CLI_ENV_ID;
+  if (!apiKey || !envId) {
+    console.log(
+      "⚠️  PostHog credentials not configured for landing releases. Skipping.",
+    );
+    return;
+  }
+  if (env.VERCEL_ENV && env.VERCEL_ENV !== "production") {
+    console.log("⏭️  Non-production Vercel deploy, skipping release creation.");
+    return;
+  }
+
+  const { version } = JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  );
+  if (!version) throw new Error("Missing version field in package.json");
+  const commitHash =
+    env.VERCEL_GIT_COMMIT_SHA ||
+    execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  if (!/^[0-9a-f]{40}$/.test(commitHash))
+    throw new Error("Invalid Git commit SHA");
+
+  const payload = releasePayload(LANDING_PROJECT, version, commitHash);
+  const result = await createRelease({
+    apiKey,
+    envId,
+    host: env.POSTHOG_HOST || DEFAULT_HOST,
+    payload,
+  });
+  console.log(
+    `✅ PostHog release ${payload.project} ${payload.version} ${result}`,
+  );
+}
+
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  main().catch((error) => {
+    console.error(`❌ PostHog release failed: ${error.message}`);
+    process.exitCode = 1;
+  });
+}

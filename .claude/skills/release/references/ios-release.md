@@ -78,8 +78,8 @@ Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
 `.github/workflows/ios-distribute.yml` is the only automated archive/sign/upload path. It is manually dispatched and never submits a build for App Review.
 
 - `internal`: dispatch from `main`, archive `PulpeProd` / `Prod`, and use the next unused build number under the selected marketing version. A new marketing version starts at `1`; otherwise use that release train's highest uploaded build plus `1`. The workflow verifies this against App Store Connect before starting Xcode. The source file is not changed for these temporary builds.
-- `release`: dispatch from `production`, archive `PulpeProd` / `Prod`, and use the exact build number recorded in the approved release changes.
-- Both modes require a full source SHA reachable from their channel branch; release recovery may instead dispatch from `main` with an exact annotated `vX.Y.Z` tag resolving to that SHA. Internal distribution consumes its
+- `release`: dispatch from `production`, archive `PulpeProd` / `Prod`, and use the exact build number recorded in the approved release changes. To promote a build already tested through `internal`, dispatch the same SHA/version/build from `main`: the build must already exist in App Store Connect and its unexpired internal upload intent must match exactly; no archive or upload runs again.
+- Both modes require a full source SHA reachable from their channel branch; release recovery may instead dispatch from `main` with an exact annotated `vX.Y.Z` tag resolving to that SHA. An untagged release dispatch from `main` is only the exact internal-promotion path described above. Internal distribution and internal promotion consume their
   immutable `Staging Ready` proof; release distribution consumes the successful
   `Production Release` proof for that exact SHA.
 - Before dispatching, resolve the exact intention state; dispatch only on `absent`:
