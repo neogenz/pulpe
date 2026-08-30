@@ -60,12 +60,14 @@ Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ```bash
 cd backend-nest
-supabase migration up
+supabase link --project-ref [PROJECT_REF]
+supabase db push
+supabase unlink
 ```
 
-Use `supabase link --project-ref [PROJECT_REF]` only for the one-time project
-bootstrap. The persistent staging branch follows Git `main`; production migrations
-are applied only by the protected release workflow described below.
+This remote bootstrap is only for the newly created project above. The persistent
+staging branch follows Git `main`; subsequent production migrations are applied only
+by the protected release workflow described below.
 
 - `🏭 Production Release` detects changes in `backend-nest/supabase/migrations/`
   between the last published release and the candidate. No pull-request job receives
@@ -437,7 +439,7 @@ verify both successful jobs plus the `production-proof-*` artifact. Then open
 only `main` and `production` are durable. The same proof is available from the CLI:
 
 ```bash
-gh release view "$VERSION" --json tagName,targetCommitish,isDraft,isPrerelease
+gh release view "v$VERSION" --json tagName,targetCommitish,isDraft,isPrerelease
 gh run list --workflow production-finalize.yml --commit "$SHA"
 gh run view "$FINALIZER_RUN_ID"
 gh run list --workflow ios-distribute.yml --commit "$SHA"
