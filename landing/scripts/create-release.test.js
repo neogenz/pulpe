@@ -1,203 +1,122 @@
-import { describe, it, beforeEach, afterEach, mock } from 'node:test';
-import assert from 'node:assert/strict';
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import test from "node:test";
 
-/**
- * Tests for create-release.js
- *
- * Run: node --test landing/scripts/create-release.test.js
- *
- * Tests the guards (missing credentials, non-production env),
- * the API payload structure, and error handling.
- */
+import { createRelease, main, releasePayload } from "./create-release.js";
 
-// Save original env
-const originalEnv = { ...process.env };
+const commitHash = "a".repeat(40);
 
-// Track console output
-let logs = [];
-let warns = [];
-const originalLog = console.log;
-const originalWarn = console.warn;
-const originalError = console.error;
-
-beforeEach(() => {
-  // Reset env
-  delete process.env.POSTHOG_PERSONAL_API_KEY;
-  delete process.env.POSTHOG_CLI_ENV_ID;
-  delete process.env.POSTHOG_HOST;
-  delete process.env.VERCEL_ENV;
-  delete process.env.CI;
-  delete process.env.VERCEL;
-  delete process.env.GITHUB_ACTIONS;
-  logs = [];
-  warns = [];
-  console.log = (...args) => logs.push(args.join(' '));
-  console.warn = (...args) => warns.push(args.join(' '));
-  console.error = () => {};
+test("builds the official stable PostHog release identity", () => {
+  const payload = releasePayload("pulpe-landing", "0.47.0", commitHash);
+  assert.deepEqual(payload, {
+    project: "pulpe-landing",
+    version: "0.47.0",
+    hash_id: createHash("sha512")
+      .update("pulpe-landing")
+      .update("0.47.0")
+      .digest("hex"),
+    metadata: { git: { commit_id: commitHash } },
+  });
+  assert.notEqual(
+    payload.hash_id,
+    releasePayload("pulpe-ios", "0.47.0", commitHash).hash_id,
+  );
 });
 
-afterEach(() => {
-  console.log = originalLog;
-  console.warn = originalWarn;
-  console.error = originalError;
-  Object.assign(process.env, originalEnv);
+test("accepts only the exact release when PostHog reports a reused hash", async () => {
+  const payload = releasePayload("pulpe-landing", "0.47.0", commitHash);
+  const calls = [];
+  const fetchImpl = async (url, options) => {
+    calls.push({ url, options });
+    if (calls.length === 1) {
+      return new Response(JSON.stringify({ code: "release_hash_in_use" }), {
+        status: 400,
+      });
+    }
+    return Response.json(payload);
+  };
+
+  assert.equal(
+    await createRelease({
+      apiKey: "phx_test",
+      envId: "87621",
+      fetchImpl,
+      host: "https://test.posthog.com/",
+      payload,
+    }),
+    "reused",
+  );
+  assert.equal(
+    calls[1].url,
+    `https://test.posthog.com/api/projects/87621/error_tracking/releases/hash/${payload.hash_id}`,
+  );
+  assert.deepEqual(JSON.parse(calls[0].options.body), payload);
+
+  await assert.rejects(
+    createRelease({
+      apiKey: "phx_test",
+      envId: "87621",
+      host: "https://test.posthog.com",
+      payload,
+      fetchImpl: async (_url, options) =>
+        options?.method === "POST"
+          ? new Response(JSON.stringify({ code: "release_hash_in_use" }), {
+              status: 400,
+            })
+          : Response.json({ ...payload, project: "pulpe-ios" }),
+    }),
+    /belongs to another release/,
+  );
 });
 
-describe('create-release.js guards', () => {
-  it('should skip when POSTHOG_PERSONAL_API_KEY is missing', async () => {
-    process.env.POSTHOG_CLI_ENV_ID = '87621';
+test("surfaces real API failures while guards remain no-ops", async () => {
+  const payload = releasePayload("pulpe-landing", "0.47.0", commitHash);
+  await assert.rejects(
+    createRelease({
+      apiKey: "phx_test",
+      envId: "87621",
+      host: "https://test.posthog.com",
+      payload,
+      fetchImpl: async () => new Response("Unauthorized", { status: 401 }),
+    }),
+    /401 - Unauthorized/,
+  );
 
-    // Import fresh module (node --test isolates)
-    const exitMock = mock.fn();
-    const origExit = process.exit;
-    process.exit = exitMock;
-
-    try {
-      await import('./create-release.js?skip1');
-    } catch {
-      // Module may throw or exit
-    }
-
-    process.exit = origExit;
-
-    assert.ok(
-      logs.some((l) => l.includes('not configured') || l.includes('Skipping')),
-      'Should log skip message when API key is missing',
-    );
-  });
-
-  it('should skip when POSTHOG_CLI_ENV_ID is missing', async () => {
-    process.env.POSTHOG_PERSONAL_API_KEY = 'phx_test';
-
-    const exitMock = mock.fn();
-    const origExit = process.exit;
-    process.exit = exitMock;
-
-    try {
-      await import('./create-release.js?skip2');
-    } catch {
-      // Module may throw or exit
-    }
-
-    process.exit = origExit;
-
-    assert.ok(
-      logs.some((l) => l.includes('not configured') || l.includes('Skipping')),
-      'Should log skip message when ENV_ID is missing',
-    );
-  });
-
-  it('should skip on non-production Vercel deploy', async () => {
-    process.env.POSTHOG_PERSONAL_API_KEY = 'phx_test';
-    process.env.POSTHOG_CLI_ENV_ID = '87621';
-    process.env.VERCEL_ENV = 'preview';
-
-    const exitMock = mock.fn();
-    const origExit = process.exit;
-    process.exit = exitMock;
-
-    try {
-      await import('./create-release.js?skip3');
-    } catch {
-      // Module may throw or exit
-    }
-
-    process.exit = origExit;
-
-    assert.ok(
-      logs.some((l) => l.includes('Non-production') || l.includes('skipping')),
-      'Should log skip message for preview deploys',
-    );
+  await main({ POSTHOG_CLI_ENV_ID: "87621" });
+  await main({
+    POSTHOG_PERSONAL_API_KEY: "phx_test",
+    POSTHOG_CLI_ENV_ID: "87621",
+    VERCEL_ENV: "preview",
   });
 });
 
-describe('create-release.js API call', () => {
-  it('should call PostHog API with correct payload structure', async () => {
-    process.env.POSTHOG_PERSONAL_API_KEY = 'phx_test_key';
-    process.env.POSTHOG_CLI_ENV_ID = '87621';
-    process.env.POSTHOG_HOST = 'https://test.posthog.com';
-    process.env.VERCEL_ENV = 'production';
+test("main posts the package release with stable identity", async () => {
+  const version = JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  ).version;
+  let request;
 
-    let capturedUrl = '';
-    let capturedOptions = {};
+  await main(
+    {
+      POSTHOG_PERSONAL_API_KEY: "phx_test",
+      POSTHOG_CLI_ENV_ID: "87621",
+      POSTHOG_HOST: "https://test.posthog.com/",
+      VERCEL_ENV: "production",
+      VERCEL_GIT_COMMIT_SHA: commitHash,
+    },
+    async (url, options) => {
+      request = { url, options };
+      return new Response("{}", { status: 201 });
+    },
+  );
 
-    // Mock global fetch
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async (url, options) => {
-      capturedUrl = url;
-      capturedOptions = options;
-      return { ok: true, json: async () => ({}) };
-    };
-
-    const exitMock = mock.fn();
-    const origExit = process.exit;
-    process.exit = exitMock;
-
-    try {
-      await import('./create-release.js?api1');
-      // Give the async main() time to complete
-      await new Promise((r) => setTimeout(r, 100));
-    } catch {
-      // Module may throw
-    }
-
-    process.exit = origExit;
-    globalThis.fetch = originalFetch;
-
-    // Verify URL
-    assert.ok(
-      capturedUrl.includes('/api/projects/87621/error_tracking/releases/'),
-      `URL should target project 87621, got: ${capturedUrl}`,
-    );
-    assert.ok(
-      capturedUrl.startsWith('https://test.posthog.com'),
-      `URL should use custom host, got: ${capturedUrl}`,
-    );
-
-    // Verify headers
-    assert.equal(capturedOptions.method, 'POST');
-    assert.equal(capturedOptions.headers['Content-Type'], 'application/json');
-    assert.equal(capturedOptions.headers['Authorization'], 'Bearer phx_test_key');
-
-    // Verify payload
-    const body = JSON.parse(capturedOptions.body);
-    assert.ok(body.version.startsWith('landing-'), `Version should start with "landing-", got: ${body.version}`);
-    assert.ok(body.hash_id, 'Should include hash_id');
-    assert.equal(body.project, '87621', 'Should include project ID');
-  });
-
-  it('should handle API errors gracefully (non-blocking)', async () => {
-    process.env.POSTHOG_PERSONAL_API_KEY = 'phx_test_key';
-    process.env.POSTHOG_CLI_ENV_ID = '87621';
-    process.env.VERCEL_ENV = 'production';
-
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => ({
-      ok: false,
-      status: 401,
-      text: async () => 'Unauthorized',
-    });
-
-    const exitMock = mock.fn();
-    const origExit = process.exit;
-    process.exit = exitMock;
-
-    try {
-      await import('./create-release.js?api2');
-      await new Promise((r) => setTimeout(r, 100));
-    } catch {
-      // Module may throw
-    }
-
-    process.exit = origExit;
-    globalThis.fetch = originalFetch;
-
-    // Should warn but not crash
-    assert.ok(
-      warns.some((w) => w.includes('Release creation failed')),
-      'Should warn about failure, not crash',
-    );
-    // process.exit should NOT have been called (non-blocking)
-    assert.equal(exitMock.mock.callCount(), 0, 'Should not exit on API error');
-  });
+  assert.equal(
+    request.url,
+    "https://test.posthog.com/api/projects/87621/error_tracking/releases/",
+  );
+  assert.deepEqual(
+    JSON.parse(request.options.body),
+    releasePayload("pulpe-landing", version, commitHash),
+  );
 });

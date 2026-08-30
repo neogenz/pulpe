@@ -179,7 +179,15 @@ jobs:
           }
 
           deployment_state() {
-            gh api "repos/$GITHUB_REPOSITORY/deployments/$1/statuses" --jq 'max_by(.id) | .state // empty'
+            local output
+            if output=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$1/statuses" --jq 'max_by(.id) | .state // empty' 2>&1); then
+              printf '%s\n' "$output"
+            elif [[ "$output" == *"HTTP 404"* ]]; then
+              return 0
+            else
+              printf '%s\n' "$output" >&2
+              return 1
+            fi
           }
 
           frontend_id=

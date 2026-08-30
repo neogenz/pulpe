@@ -402,6 +402,9 @@ test("the shadow staging proof fails closed on identity or deployment drift", ()
   assert.match(stagingProof, /if \[ "\$conclusion" != success \]/);
   assert.match(stagingProof, /\.run_attempt \| select\(type == "number"\)/);
   assert.match(stagingProof, /for _ in \{1\.\.120\}/);
+  assert.match(stagingProof, /output=\$\(gh api [^\n]+\/statuses[^\n]+ 2>&1\)/);
+  assert.match(stagingProof, /elif \[\[ "\$output" == \*"HTTP 404"\* \]\]/);
+  assert.match(stagingProof, /HTTP 404[\s\S]*return 0[\s\S]*return 1/);
   assert.match(stagingProof, /\.tree_sha == \$tree_sha/);
   assert.match(stagingProof, /Preview – pulpe-frontend/);
   assert.match(stagingProof, /Preview – pulpe-landing/);
@@ -940,22 +943,20 @@ test("iOS release recovery from main is bound to an exact annotated release tag"
   );
 
   assert.match(validation, /tagged_release_recovery=false/);
-  assert.match(
-    validation,
-    /CHANNEL" = release.*GITHUB_REF_NAME" = main.*tagged_release_recovery=true/s,
-  );
+  assert.match(validation, /internal_promotion=false/);
+  assert.match(validation, /CHANNEL" != release.*GITHUB_REF_NAME" != main/s);
   assert.match(validation, /release_version=.*\.\.\/package\.json/);
   assert.match(validation, /recovery_tag="refs\/tags\/v\$release_version"/);
-  assert.match(validation, /git cat-file -t "\$recovery_tag".*!= tag/s);
   assert.match(
     validation,
-    /git rev-parse "\$recovery_tag\^\{commit\}".*!= "\$SOURCE_SHA"/s,
+    /git cat-file -t "\$recovery_tag" 2>\/dev\/null \|\| true\)" = tag \] &&/,
+  );
+  assert.match(
+    validation,
+    /git rev-parse "\$recovery_tag\^\{commit\}" 2>\/dev\/null \|\| true\)" = "\$SOURCE_SHA" \]; then/,
   );
   assert.match(validation, /Require exact annotated release tag for recovery/);
-  assert.match(
-    iosDistribution,
-    /resolve-ios-distribution-intent\.mjs[\s\S]*--automation-branch "\$GITHUB_REF_NAME"/,
-  );
+  assert.match(validation, /tagged_release_recovery=true/);
 });
 
 test("iOS distribution consumes staging or finalized production proofs", () => {
@@ -965,10 +966,10 @@ test("iOS distribution consumes staging or finalized production proofs", () => {
         /node \.\.\/\.github\/scripts\/resolve-workflow-proof\.mjs/g,
       ),
     ].length,
-    2,
+    1,
   );
-  assert.match(iosDistribution, /--workflow staging-proof\.yml/);
-  assert.match(iosDistribution, /--workflow production-finalize\.yml/);
+  assert.match(iosDistribution, /proof_workflow=staging-proof\.yml/);
+  assert.match(iosDistribution, /proof_workflow=production-finalize\.yml/);
   assert.match(
     iosDistribution,
     /staging-proof-\{sha\}-run-\{run_id\}-attempt-\{attempt\}/,
@@ -998,12 +999,16 @@ test("internal production-config builds stay bound to main staging proof", () =>
   // `deployment_status`. Une dérive ici bloque silencieusement tous les builds.
   assert.match(
     iosDistribution,
-    /internal\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow staging-proof\.yml \\\n\s+--event push \\\n\s+--branch "\$PROOF_BRANCH" \\/,
+    /internal:\*\|release:true\)\n\s+proof_workflow=staging-proof\.yml\n\s+proof_event=push/,
   );
   assert.match(stagingProof, /on:\n  push:\n    branches: \[main\]/);
   assert.match(
     iosDistribution,
-    /release\)\n\s+node [^\n]+resolve-workflow-proof\.mjs \\\n\s+--workflow production-finalize\.yml \\\n\s+--event deployment_status \\\n\s+--branch "\$PROOF_BRANCH" \\/,
+    /release:false\)\n\s+proof_workflow=production-finalize\.yml\n\s+proof_event=deployment_status/,
+  );
+  assert.match(
+    iosDistribution,
+    /\*\)\n\s+echo "::error::Unexpected distribution state CHANNEL=\$CHANNEL INTERNAL_PROMOTION=\$INTERNAL_PROMOTION"\n\s+exit 1/,
   );
   assert.match(productionFinalize, /on:\n  deployment_status:/);
   // La branche d'autorisation et celle qui indexe la preuve divergent pour le
@@ -1036,6 +1041,34 @@ test("internal production-config builds stay bound to main staging proof", () =>
   );
   assert.doesNotMatch(iosRelease, /PulpePreview|archive .*Preview/);
   assert.doesNotMatch(iosDistribution, /--submit|MVP/);
+});
+
+test("release can promote only an exact internal build from main", () => {
+  assert.match(
+    iosDistribution,
+    /GITHUB_REF_NAME" != main[\s\S]*expected_branch="main"\n\s+internal_promotion=true/,
+  );
+  assert.match(
+    iosDistribution,
+    /CHANNEL" = release.*project_build" != "\$BUILD_NUMBER"/,
+  );
+  assert.match(
+    iosDistribution,
+    /Require existing App Store build for internal promotion\n\s+if: steps\.release\.outputs\.internal_promotion == 'true' && steps\.asc\.outputs\.state == 'not_found'/,
+  );
+  assert.match(
+    iosDistribution,
+    /provenance_channel=internal[\s\S]*provenance_branch=main/,
+  );
+  assert.match(
+    iosDistribution,
+    /--channel "\$PROVENANCE_CHANNEL"[\s\S]*--automation-branch "\$PROVENANCE_BRANCH"/,
+  );
+  assert.ok(
+    iosDistribution.indexOf(
+      "Require existing App Store build for internal promotion",
+    ) < iosDistribution.indexOf("Setup Xcode"),
+  );
 });
 
 test("iOS distribution resumes the exact App Store build idempotently", () => {
@@ -1131,16 +1164,30 @@ test("one CI invocation proves app, widget, and Swift tests through PulpeLocal",
 
   // PostHog publication happens only in the distributor, after the valid
   // Apple proof, and only for the release channel.
-  const posthog = iosDistribution.indexOf(
-    "Create PostHog release and annotation",
-  );
+  const posthog = iosDistribution.indexOf("Create PostHog release");
+  const annotation = iosDistribution.indexOf("Create PostHog annotation");
   const proofUpload = iosDistribution.indexOf("Upload iOS distribution proof");
   const summary = iosDistribution.indexOf("Distribution summary");
-  assert.ok(proofUpload >= 0 && proofUpload < posthog && posthog < summary);
+  assert.ok(
+    proofUpload >= 0 &&
+      proofUpload < posthog &&
+      posthog < annotation &&
+      annotation < summary,
+  );
   assert.match(
     iosDistribution,
-    /Create PostHog release and annotation\n\s+if: inputs\.channel == 'release'/,
+    /Create PostHog release\n\s+if: inputs\.channel == 'release'\n\s+continue-on-error: true/,
   );
+  assert.match(
+    iosDistribution,
+    /release_project="pulpe-ios"[\s\S]*release_version="\$\{EXPECTED_MARKETING_VERSION\}\+\$\{BUILD_NUMBER\}"[\s\S]*shasum -a 512/,
+  );
+  assert.match(iosDistribution, /metadata:\{git:\{commit_id:\$sha\}\}/);
+  assert.match(
+    iosDistribution,
+    /release_hash_in_use[\s\S]*\/hash\/\$release_hash/,
+  );
+  assert.doesNotMatch(iosDistribution, /hash_id[^\n]+SOURCE_SHA/);
   assert.doesNotMatch(production, /PostHog/);
   assert.doesNotMatch(workflow, /PostHog/i);
 });

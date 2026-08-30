@@ -12,14 +12,17 @@ Architecture de tracking multi-plateforme pour le monorepo Pulpe — sourcemaps,
 
 Toutes les apps utilisent le **même projet PostHog** : **Pulpe Webapp** (ID `87621`).
 
-| App               | Domaine       | Plateforme (super property) | Release format        |
-| ----------------- | ------------- | --------------------------- | --------------------- |
-| Angular Webapp    | app.pulpe.app | `web`                       | `pulpe-webapp` vX.Y.Z |
-| Landing (Next.js) | pulpe.app     | `landing`                   | `landing-X.Y.Z`       |
-| iOS (SwiftUI)     | App Store     | `ios`                       | `ios-X.Y.Z+BUILD`     |
-| Backend (NestJS)  | api.pulpe.app | —                           | Non concerné          |
+| App               | Domaine       | Plateforme (super property) | Release format           |
+| ----------------- | ------------- | --------------------------- | ------------------------ |
+| Angular Webapp    | app.pulpe.app | `web`                       | `pulpe-webapp` vX.Y.Z    |
+| Landing (Next.js) | pulpe.app     | `landing`                   | `pulpe-landing` vX.Y.Z   |
+| iOS (SwiftUI)     | App Store     | `ios`                       | `pulpe-ios` vX.Y.Z+BUILD |
+| Backend (NestJS)  | api.pulpe.app | —                           | Non concerné             |
 
-Les events se distinguent via la super property `platform`. Les releases se distinguent par leur préfixe de nom.
+Les événements se distinguent via la super property `platform`. Pour l'API de
+releases, `project` est le nom stable de l'application, `version` sa version de
+plateforme, `hash_id` le SHA-512 stable de leur concaténation et le SHA Git vit
+dans `metadata.git.commit_id`. L'ID `87621` appartient uniquement à l'URL de l'environnement.
 
 > **Note** : Le projet PostHog "Pulpe Landing" (ID 75556) est un ancien projet de collecte d'emails, plus utilisé.
 
@@ -72,13 +75,18 @@ Chaque frame de stack trace dans PostHog Error Tracking devient cliquable vers l
 
 ```
 Release PR → preuve immuable → Vercel deploy → Build Next.js →
-  1. node scripts/create-release.js → Release "landing-X.Y.Z" créée via API REST (même projet 87621)
+  1. node scripts/create-release.js → Release "pulpe-landing" vX.Y.Z créée via API REST
   2. Production Release → annotation sur projet 87621
 ```
 
 ### Fonctionnement
 
-La landing utilise `output: 'export'` (site statique) — pas de sourcemaps. Le script crée une release PostHog via l'API REST pour le tracking de version. Non-bloquant : si les credentials manquent, le script skip silencieusement.
+La landing utilise `output: 'export'` (site statique) — pas de sourcemaps. Le
+script crée la release via l'API REST et accepte une collision de hash uniquement
+si la relecture retourne exactement le même projet, la même version et le même
+hash. Les credentials manquants ou un déploiement non-production sont ignorés;
+une erreur API sort en erreur, puis `vercel.json` choisit explicitement de ne pas
+bloquer le déploiement.
 
 ### Variables d'environnement requises (Vercel — projet Landing)
 
@@ -100,7 +108,7 @@ La landing utilise `output: 'export'` (site statique) — pas de sourcemaps. Le 
 ```
 Distribution iOS (channel=release) → build App Store vérifié « valid » →
   preuve de distribution publiée →
-  1. Release PostHog "ios-X.Y.Z+BUILD" (identité version/build/SHA du dispatch)
+  1. Release PostHog "pulpe-ios" vX.Y.Z+BUILD (SHA Git dans les métadonnées)
   2. Annotation PostHog "iOS vX.Y.Z (sha7)"
 ```
 
@@ -109,15 +117,15 @@ Distribution iOS (channel=release) → build App Store vérifié « valid » →
 L'iOS a son propre cycle de release (App Store) avec un versioning indépendant. Pas de sourcemaps (Swift natif), mais les releases permettent le filtrage des erreurs par version iOS dans le même projet PostHog que le webapp (87621).
 
 La publication PostHog est rattachée à une distribution réellement livrée : elle
-n'arrive qu'après la preuve Apple (`state=valid`), jamais pour `channel=internal`, et
-reste non bloquante — un échec PostHog ne fait pas échouer une distribution prouvée.
+n'arrive qu'après la preuve Apple (`state=valid`), jamais pour `channel=internal`.
+Les étapes release et annotation sont séparées et `continue-on-error`: un échec
+reste visible dans le run sans invalider une distribution Apple déjà prouvée.
 
 Première preuve observée : le run GitHub `33298625338` a validé la distribution
 App Store `1.4.3` build `11` du SHA `aefa93bd66cd45ebbfdc0aa474056c63d7e02a1a`,
 puis créé l'annotation `iOS v1.4.3 (aefa93b)`. La création de la release PostHog
-`ios-1.4.3+11` a échoué sans bloquer la distribution, conformément au contrat.
-
-Le format de version `ios-X.Y.Z+BUILD` distingue les releases iOS des releases webapp dans PostHog.
+`ios-1.4.3+11`, avec l'ancien payload, a échoué sans bloquer la distribution. Ce
+constat a conduit au contrat `pulpe-ios` + version séparée décrit ci-dessus.
 
 ### Pas encore implémenté : dSYM upload
 

@@ -471,7 +471,8 @@ reconstructed without local agent memory.
   Prepare a new release branch from the new head; never force the stale candidate.
 - Migration failure: keep recovery forward-only and ship a corrective migration; do
   not automate rollback.
-- iOS build already valid succeeds without archive/upload; processing polls the same version/build without allocating or uploading another.
+- iOS build already valid succeeds without archive/upload; processing polls the same version/build without allocating or uploading another. A `release` dispatch from `main` without the release tag is accepted only as promotion of an exact, unexpired `internal` upload intent from `main`; it consumes the staging proof and refuses a missing App Store build before Xcode.
+- A transient GitHub `HTTP 404` while a just-created staging deployment exposes no status is retried inside the bounded proof loop. Every other API error still fails closed.
 - PostHog and CSP diagnostics are useful monitoring signals, not publication gates.
 
 The retired pre-cutover Git branch `preview` ended at
