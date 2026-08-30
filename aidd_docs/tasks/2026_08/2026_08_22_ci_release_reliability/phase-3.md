@@ -36,7 +36,7 @@ flowchart TD
   C --> D{État unique}
   D -->|Absent| E[Créer un dispatch]
   D -->|Queued actif ou réussi| F[Retourner la ressource existante]
-  D -->|Échec terminal| G[Autoriser le rerun exact]
+  D -->|Échec terminal explicite| G[Redéclencher la même identité]
   D -->|Ambigu| H[Arrêt sans mutation]
 ```
 

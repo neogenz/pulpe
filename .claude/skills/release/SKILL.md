@@ -566,9 +566,9 @@ Only after "oui":
    test "$(jq -r .state <<< "$STATE")" = absent
    ```
 
-   - `absent`: continue to the dispatch step. This is the only state that allows a new dispatch.
+   - `absent`: continue to the dispatch step for the first attempt.
    - `active` or `succeeded`: report the returned run URL; do not dispatch again — the identical invocation is a no-op.
-   - `failed`: after understanding the failure, rerun the exact run instead of dispatching a duplicate: validate with `--retry <run-id>` (the resolver accepts only the latest terminal run), then `gh run rerun <run-id> --repo neogenz/pulpe`.
+   - `failed`: after understanding the failure, validate the latest terminal run with `--retry <run-id>`, then repeat the same dispatch command from the current protected workflow ref. Do not use `gh run rerun` after a workflow fix: it would reuse the failed run's workflow definition and SHA.
    - `published`: the tag `vX.Y.Z` already exists; nothing to prepare.
    - Any resolver error (duplicate active runs, ambiguous refs or PRs, incomplete pagination, drift) stops the workflow without mutating anything.
 
