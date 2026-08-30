@@ -219,6 +219,10 @@ jobs:
               proof_job="✅ Publish proven production"
               proof_artifact="production-proof-{sha}-run-{run_id}-attempt-{attempt}"
               ;;
+            *)
+              echo "::error::Unexpected distribution state CHANNEL=$CHANNEL INTERNAL_PROMOTION=$INTERNAL_PROMOTION"
+              exit 1
+              ;;
           esac
           node ../.github/scripts/resolve-workflow-proof.mjs \
             --workflow "$proof_workflow" \

@@ -1006,6 +1006,10 @@ test("internal production-config builds stay bound to main staging proof", () =>
     iosDistribution,
     /release:false\)\n\s+proof_workflow=production-finalize\.yml\n\s+proof_event=deployment_status/,
   );
+  assert.match(
+    iosDistribution,
+    /\*\)\n\s+echo "::error::Unexpected distribution state CHANNEL=\$CHANNEL INTERNAL_PROMOTION=\$INTERNAL_PROMOTION"\n\s+exit 1/,
+  );
   assert.match(productionFinalize, /on:\n  deployment_status:/);
   // La branche d'autorisation et celle qui indexe la preuve divergent pour le
   // canal `release` : Railway déploie la production avec un `ref` égal au SHA
