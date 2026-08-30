@@ -1,17 +1,14 @@
 ---
 objective: "Préparer sans effet production la nouvelle procédure de release, puis activer son chemin apply et basculer main vers le staging pendant la prochaine vraie release approuvée."
-status: blocked
+status: complete
 ---
 
-> Phases 1-8 implémentées et poussées. La phase 9 a publié `v0.47.0` sur la
-> nouvelle procédure, créé le pointeur `production` et fait de `main` la branche
-> par défaut. Elle reste bloquée sur deux actions provider qu'un agent ne peut
-> pas exécuter : rebrancher l'environnement Railway `preview` sur `main` et
-> réassocier la branche Supabase persistante à `main`. Tant qu'elles manquent, la
-> preuve staging du SHA `main` ne peut pas aboutir (jambe Railway absente), la
-> distribution iOS `internal` reste sans preuve, et la branche `preview` garde une
-> référence active qui interdit sa suppression. La phase 10 (mesures
-> post-release) attend la fin de la 9.
+> Phases 1-10 terminées. `v0.47.1` a prouvé le SHA production
+> `aefa93bd66cd45ebbfdc0aa474056c63d7e02a1a`; `main` alimente uniquement le
+> staging, `production` alimente la production, et la branche/ruleset `preview`
+> ont été supprimés après vérification de leurs dépendances. Les mesures finales
+> sont publiées dans `docs/CI.md`; elles montrent moins de runs, jobs, installs et
+> démarrages Supabase, mais une régression des runner-minutes sur l'échantillon.
 
 # Plan: Fiabiliser la CI et adopter le staging continu
 

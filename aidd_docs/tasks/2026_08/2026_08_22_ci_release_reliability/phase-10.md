@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 ---
 
 # Instruction: Mesurer et documenter le modèle final

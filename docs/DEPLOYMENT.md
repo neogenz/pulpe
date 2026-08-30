@@ -60,12 +60,12 @@ Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ```bash
 cd backend-nest
-supabase link --project-ref [PROJECT_REF]
-supabase db push
-For preview branch:
-supabase db push --db-url "postgresql://postgres.uzsgvcwchwqcuwejjtdb:[PASSWORD]@aws-1-us-east-2.pooler.supabase.com:5432/postgres"
-supabase unlink
+supabase migration up
 ```
+
+Use `supabase link --project-ref [PROJECT_REF]` only for the one-time project
+bootstrap. The persistent staging branch follows Git `main`; production migrations
+are applied only by the protected release workflow described below.
 
 - `🏭 Production Release` detects changes in `backend-nest/supabase/migrations/`
   between the last published release and the candidate. No pull-request job receives
@@ -84,14 +84,6 @@ supabase unlink
   and apply.
 - Create locally with `supabase migration new [description]`. Never run `db push`
   against the linked production project outside the protected workflow.
-
-##### Apply migrations locally
-
-```bash
-supabase migration up
-```
-
-Then `db push` will apply new migrations to the remote database.
 
 #### Pre-rollout data gates
 
@@ -437,13 +429,37 @@ pagination fail closed without mutating anything. Changing any identity field (n
 SHA, version, channel or build) is a new intention. The same identity fields feed the
 candidate manifest rather than a second format.
 
+### Audit without an agent
+
+In GitHub, open **Actions → Production Finalized** for the production SHA and
+verify both successful jobs plus the `production-proof-*` artifact. Then open
+**Releases** to verify the immutable annotated tag, and **Branches** to verify that
+only `main` and `production` are durable. The same proof is available from the CLI:
+
+```bash
+gh release view "$VERSION" --json tagName,targetCommitish,isDraft,isPrerelease
+gh run list --workflow production-finalize.yml --commit "$SHA"
+gh run view "$FINALIZER_RUN_ID"
+gh run list --workflow ios-distribute.yml --commit "$SHA"
+git ls-remote --heads origin main production preview
+gh api repos/neogenz/pulpe/rulesets --jq '.[].name'
+```
+
+For the first observed release, `v0.47.1` and its annotated tag resolve to
+`aefa93bd66cd45ebbfdc0aa474056c63d7e02a1a`; finalizer run `33278908054`
+succeeded on attempt 3, and iOS run `33298625338` proved release `1.4.3` build 11.
+PR #701 retains the release marker and notes, so the complete intention can be
+reconstructed without local agent memory.
+
 ### Recovery
 
 - Railway `FAILED`: manually redeploy the **same SHA** once from Railway, then rerun or
   wait for the finalizer. Never call `serviceInstanceDeployV2` or `railway redeploy` in
   the normal workflow.
-- Finalizer failure: rerun it after the provider issue is fixed. An identical tag or
-  release is accepted; any contradictory existing object fails closed.
+- Finalizer failure: fix the provider issue, then use **Re-run failed jobs** in the
+  same Actions run or `gh run rerun <run-id> --failed`. An identical tag or Release
+  is accepted; any contradictory existing object fails closed. Never dispatch a
+  second release intention.
 - **Tag exists but the GitHub Release is missing**: rerun the finalizer. It accepts the
   exact annotated tag and creates only the missing Release; a mismatch fails closed.
 - **Duplicate Railway success**: duplicate events for the same SHA are serialized and
@@ -455,6 +471,15 @@ candidate manifest rather than a second format.
   not automate rollback.
 - iOS build already valid succeeds without archive/upload; processing polls the same version/build without allocating or uploading another.
 - PostHog and CSP diagnostics are useful monitoring signals, not publication gates.
+
+The retired pre-cutover Git branch `preview` ended at
+`35117a4fc7930f609c9e4f8708d3307d98842f82`; its ruleset and remote branch were
+removed after every active dependency was checked. Recreate that archival ref only
+for incident investigation with:
+
+```bash
+git push origin 35117a4fc7930f609c9e4f8708d3307d98842f82:refs/heads/preview
+```
 
 Detailed versioning and force-update rules: [VERSIONING.md](./VERSIONING.md).
 

@@ -112,6 +112,11 @@ La publication PostHog est rattachée à une distribution réellement livrée : 
 n'arrive qu'après la preuve Apple (`state=valid`), jamais pour `channel=internal`, et
 reste non bloquante — un échec PostHog ne fait pas échouer une distribution prouvée.
 
+Première preuve observée : le run GitHub `33298625338` a validé la distribution
+App Store `1.4.3` build `11` du SHA `aefa93bd66cd45ebbfdc0aa474056c63d7e02a1a`,
+puis créé l'annotation `iOS v1.4.3 (aefa93b)`. La création de la release PostHog
+`ios-1.4.3+11` a échoué sans bloquer la distribution, conformément au contrat.
+
 Le format de version `ios-X.Y.Z+BUILD` distingue les releases iOS des releases webapp dans PostHog.
 
 ### Pas encore implémenté : dSYM upload
@@ -122,17 +127,9 @@ PostHog supporte l'upload de dSYMs via `posthog-cli` pour la symbolication des c
 
 ## Production — Annotations automatiques
 
-**État** : non émises actuellement. L'étape `Create PostHog annotation` a disparu avec
-l'ancien flux `push: main` de `production.yml`; le rattachement web se décidera au
-cutover de la phase 9, après une production réellement prouvée.
-
-### Flux cible
-
-```
-Production exacte et prouvée →
-  1. Lecture de la version webapp (frontend/package.json)
-  2. Annotation "v0.30.0 (abc1234)" sur projet 87621
-```
+**État** : non émises actuellement. Le finalizer prouve la production mais ne crée
+pas d'annotation PostHog web; ces annotations restent un signal optionnel et ne font
+pas partie du gate de publication.
 
 ### Fonctionnement
 

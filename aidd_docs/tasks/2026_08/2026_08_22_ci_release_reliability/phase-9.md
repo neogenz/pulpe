@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 ---
 
 # Instruction: Exécuter la première vraie release et le cutover
