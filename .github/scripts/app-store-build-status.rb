@@ -94,7 +94,7 @@ class AppStoreMarketingVersionStatus
       attributes["appStoreState"].is_a?(String) && attributes["appVersionState"].is_a?(String)
     return "invalid" unless complete
     return "closed" if attributes["appStoreState"] == "READY_FOR_SALE" || attributes["appVersionState"] == "READY_FOR_DISTRIBUTION"
-    return "open" if attributes["appStoreState"] == "PREPARE_FOR_SUBMISSION" && attributes["appVersionState"] == "PREPARE_FOR_SUBMISSION"
+    return "open" if %w[PREPARE_FOR_SUBMISSION DEVELOPER_REJECTED].include?(attributes["appStoreState"]) && attributes["appVersionState"] == attributes["appStoreState"]
     "invalid"
   end
 end
