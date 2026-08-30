@@ -947,10 +947,13 @@ test("iOS release recovery from main is bound to an exact annotated release tag"
   assert.match(validation, /CHANNEL" != release.*GITHUB_REF_NAME" != main/s);
   assert.match(validation, /release_version=.*\.\.\/package\.json/);
   assert.match(validation, /recovery_tag="refs\/tags\/v\$release_version"/);
-  assert.match(validation, /git cat-file -t "\$recovery_tag".*= tag/s);
   assert.match(
     validation,
-    /git rev-parse "\$recovery_tag\^\{commit\}".*= "\$SOURCE_SHA"/s,
+    /git cat-file -t "\$recovery_tag" 2>\/dev\/null \|\| true\)" = tag \] &&/,
+  );
+  assert.match(
+    validation,
+    /git rev-parse "\$recovery_tag\^\{commit\}" 2>\/dev\/null \|\| true\)" = "\$SOURCE_SHA" \]; then/,
   );
   assert.match(validation, /Require exact annotated release tag for recovery/);
   assert.match(validation, /tagged_release_recovery=true/);
