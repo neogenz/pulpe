@@ -176,7 +176,7 @@ jobs:
             echo "::error::CURRENT_PROJECT_VERSION is not a positive integer: $project_build"
             exit 1
           fi
-          if [ "$CHANNEL" = release ] && [ "$project_build" != "$BUILD_NUMBER" ]; then
+          if [ "$CHANNEL" = release ] && [ "$internal_promotion" != true ] && [ "$project_build" != "$BUILD_NUMBER" ]; then
             echo "::error::Release build $BUILD_NUMBER is not recorded in project.yml (found $project_build)"
             exit 1
           fi
