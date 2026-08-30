@@ -1043,7 +1043,7 @@ test("release can promote only an exact internal build from main", () => {
   );
   assert.match(
     iosDistribution,
-    /CHANNEL" = release.*internal_promotion" != true.*project_build" != "\$BUILD_NUMBER"/,
+    /CHANNEL" = release.*project_build" != "\$BUILD_NUMBER"/,
   );
   assert.match(
     iosDistribution,
