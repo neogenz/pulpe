@@ -81,7 +81,7 @@ test("identity binds every required field and changes with any of them", () => {
   );
 });
 
-test("an absent identity is the only state that allows a new dispatch", () => {
+test("an absent identity allows the first dispatch", () => {
   const state = resolveReleaseState(promotion, stub());
   assert.equal(state.state, "absent");
   assert.equal(state.identity, "🚦 plan release/v0.47.0");
@@ -136,7 +136,7 @@ test("iOS identities resolve runs without version resources", () => {
   assert.equal(state.resources, undefined);
 });
 
-test("only the latest terminal run is retryable, and only explicitly", () => {
+test("only the latest terminal run authorizes an explicit fresh dispatch", () => {
   const runs = [
     run(4, "completed", "failure", "🚦 plan release/v0.47.0"),
     run(3, "completed", "cancelled", "🚦 plan release/v0.47.0"),

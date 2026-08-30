@@ -422,10 +422,12 @@ UI `workflow_dispatch` button and `gh` CLI are the reference interfaces. Agent s
 only prepare inputs, invoke the workflow, and display the derived state.
 
 `node .github/scripts/resolve-release-state.mjs` resolves the unique remote state of
-one identity before any dispatch: `absent` (dispatch allowed — the only such state),
+one identity before any dispatch: `absent` (first dispatch allowed),
 `active`/`succeeded` (the existing run and open release PR are returned; an identical
-invocation is a no-op), `failed` (rerun the exact run with `--retry <run-id>` +
-`gh run rerun`, never a duplicate dispatch), `published` (the tag already exists).
+invocation is a no-op), `failed` (pass the latest failed run to `--retry <run-id>`,
+then dispatch the same identity once from the current protected workflow ref),
+`published` (the tag already exists). Do not use `gh run rerun` after a workflow fix:
+GitHub would execute the workflow definition and SHA associated with the failed run.
 Duplicate active runs, ambiguous branch refs or PRs, drifted PR heads and incomplete
 pagination fail closed without mutating anything. Changing any identity field (new
 SHA, version, channel or build) is a new intention. The same identity fields feed the

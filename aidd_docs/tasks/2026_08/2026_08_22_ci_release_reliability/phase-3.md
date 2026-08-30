@@ -36,7 +36,7 @@ flowchart TD
   C --> D{État unique}
   D -->|Absent| E[Créer un dispatch]
   D -->|Queued actif ou réussi| F[Retourner la ressource existante]
-  D -->|Échec terminal| G[Autoriser le rerun exact]
+  D -->|Échec terminal explicite| G[Redéclencher la même identité]
   D -->|Ambigu| H[Arrêt sans mutation]
 ```
 
@@ -76,7 +76,7 @@ journey
 1. Lister et paginer les runs `workflow_dispatch` puis filtrer l’identité déterministe.
 2. Vérifier aussi PR, branche, tag annoté, GitHub Release et build iOS exacts lorsqu’ils existent.
 3. Refuser doublon, pagination incomplète ou dérive et retourner URL/run-id sur un état unique.
-4. Autoriser un nouveau dispatch uniquement en absence; exiger `--retry <run-id>` pour un échec terminal.
+4. Autoriser un premier dispatch en absence; pour un échec terminal, exiger `--retry <run-id>` avant de redéclencher la même identité depuis le workflow courant.
 
 ### `3)` Garder tous les clients stateless
 

@@ -105,8 +105,8 @@ function describeRun(run) {
 }
 
 // Resolves the unique remote state of one release intention. Never mutates:
-// clients dispatch only on `absent`, rerun the exact run only on
-// `retry-allowed`, and otherwise show the existing resource.
+// clients dispatch on `absent`, or dispatch the same identity from the current
+// workflow ref on `retry-allowed`; otherwise they show the existing resource.
 export function resolveReleaseState(options, api) {
   const identity = releaseIdentity(options);
   const prefix = `repos/${options.repository}`;
