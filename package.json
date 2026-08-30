@@ -32,7 +32,7 @@
     "format:check:automation": "prettier --check \".github/**/*.{yml,yaml,mjs}\"",
     "type-check": "turbo type-check",
     "quality": "turbo quality && pnpm quality:automation",
-    "quality:automation": "pnpm format:check:automation && pnpm test:migration-contract && pnpm test:app-store-build-status && pnpm test:ios-distribution-intent && pnpm test:release-state && pnpm test:ci-routing && pnpm test:ci-security && pnpm test:public-surface && pnpm test:lexicon",
+    "quality:automation": "pnpm format:check:automation && pnpm test:migration-contract && pnpm test:app-store-build-status && pnpm test:ios-distribution-intent && pnpm test:release-state && pnpm test:workflow-proof && pnpm test:ci-routing && pnpm test:ci-security && pnpm test:public-surface && pnpm test:lexicon",
     "quality:fix": "turbo quality:fix && pnpm format:automation",
     "audit:critical": "pnpm audit --audit-level critical",
     "test:ci-routing": "node --test .github/scripts/classify-ci-changes.test.mjs",
@@ -54,7 +54,8 @@
     "dev:backend-only": "turbo build --filter=pulpe-shared && cd backend-nest && bun run dev",
     "changeset": "changeset",
     "changeset:version": "changeset version && pnpm install",
-    "build:landing": "cd landing && pnpm build"
+    "build:landing": "cd landing && pnpm build",
+    "test:workflow-proof": "node --test .github/scripts/resolve-workflow-proof.test.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.5",

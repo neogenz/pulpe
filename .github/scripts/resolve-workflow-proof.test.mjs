@@ -135,6 +135,50 @@ for (const field of ["sha", "event", "workflow", "job"]) {
   });
 }
 
+test("ignores a newer successful run of another intention", () => {
+  // release-promotion.yml carries `plan` and `publish` in the same file: a
+  // successful `plan` at the same SHA must not prevent resolving the proof
+  // that `publish` produced.
+  const base = workflowApi();
+  const api = (path, paginate) => {
+    if (path.includes("/workflows/staging-proof.yml/runs?"))
+      return [
+        {
+          workflow_runs: [
+            { id: 43, ...identity },
+            { id: 42, ...identity },
+          ],
+        },
+      ];
+    if (path.endsWith("/actions/runs/43")) return { run_attempt: 1 };
+    if (path.endsWith("/actions/runs/43/attempts/1"))
+      return {
+        ...identity,
+        run_attempt: 1,
+        status: "completed",
+        conclusion: "success",
+      };
+    if (path.includes("/runs/43/attempts/1/jobs?"))
+      return [
+        { jobs: [{ ...job, id: 101, name: "Plan release (read-only)" }] },
+      ];
+    return base(path, paginate);
+  };
+  assert.equal(resolveWorkflowProof(options, api).run_id, 42);
+});
+
+test("still fails closed when the named job exists but did not succeed", () => {
+  const base = workflowApi();
+  const api = (path, paginate) =>
+    path.includes("/attempts/1/jobs?")
+      ? [{ jobs: [{ ...job, conclusion: "skipped" }] }]
+      : base(path, paginate);
+  assert.throws(
+    () => resolveWorkflowProof(options, api),
+    /exactly one successful job/,
+  );
+});
+
 test("fails closed when the named successful job is ambiguous", () => {
   assert.throws(
     () => resolveWorkflowProof(options, workflowApi({ duplicateJob: true })),

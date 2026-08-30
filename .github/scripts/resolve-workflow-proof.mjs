@@ -84,6 +84,11 @@ export function resolveWorkflowProof(options, api) {
         api(`${base}/attempts/${attempt}/jobs?per_page=100`, true),
         "jobs",
       ).filter((job) => job.name === options.job);
+      // Several intentions share one workflow file: the `plan` mode of
+      // release-promotion.yml succeeds without ever carrying `publish`'s jobs.
+      // Such a run has nothing to prove here, and that is not drift. A run that
+      // does carry the job still owes exactly one, completed and successful.
+      if (jobs.length === 0) continue;
       invariant(
         jobs.length === 1 &&
           jobs[0].status === "completed" &&

@@ -27,6 +27,10 @@ const productionFinalize = readOptional(
   ".github/workflows/production-finalize.yml",
 );
 const iosDistribution = read(".github/workflows/ios-distribute.yml");
+const workflowProof = read(".github/scripts/resolve-workflow-proof.mjs");
+const workflowProofTest = read(
+  ".github/scripts/resolve-workflow-proof.test.mjs",
+);
 const appStoreBuildStatus = readOptional(
   ".github/scripts/app-store-build-status.rb",
 );
@@ -569,6 +573,33 @@ test("release intention stays idempotent and every client stateless", () => {
     "node --test .github/scripts/resolve-release-state.test.mjs",
   );
   assert.match(rootPackage.scripts["quality:automation"], /test:release-state/);
+});
+
+test("the proof resolver's own suite runs in the automation gate", () => {
+  // Every release proof — staging, production authorization, iOS
+  // distribution — flows through resolve-workflow-proof.mjs. Its suite was
+  // never wired into a script, so it never ran in CI.
+  assert.equal(
+    rootPackage.scripts["test:workflow-proof"],
+    "node --test .github/scripts/resolve-workflow-proof.test.mjs",
+  );
+  assert.match(
+    rootPackage.scripts["quality:automation"],
+    /test:workflow-proof/,
+  );
+
+  // A run of another intention must be skipped, not fatal: `plan` and
+  // `publish` share release-promotion.yml, and a successful `plan` carries
+  // none of `publish`'s jobs.
+  assert.match(workflowProof, /\n {6}if \(jobs\.length === 0\) continue;\n/);
+  assert.match(
+    workflowProofTest,
+    /ignores a newer successful run of another intention/,
+  );
+  assert.match(
+    workflowProofTest,
+    /still fails closed when the named job exists but did not succeed/,
+  );
 });
 
 test("release lineage uses the shared content-integration check", () => {
