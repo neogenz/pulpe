@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 ---
 
 # Instruction: Clore le refactor historique
