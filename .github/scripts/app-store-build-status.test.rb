@@ -84,6 +84,7 @@ class AppStoreMarketingVersionStatusTest < Minitest::Test
   def test_open_when_version_is_absent_or_editable
     assert_equal "open", status([])
     assert_equal "open", status([version(store_state: "PREPARE_FOR_SUBMISSION", version_state: "PREPARE_FOR_SUBMISSION")])
+    assert_equal "open", status([version(store_state: "DEVELOPER_REJECTED", version_state: "DEVELOPER_REJECTED")])
   end
   def test_uses_the_official_app_versions_relationship_and_filters
     api = FakeApi.new(versions: [])
