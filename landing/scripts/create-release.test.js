@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { createRelease, main, releasePayload } from "./create-release.js";
@@ -88,4 +89,34 @@ test("surfaces real API failures while guards remain no-ops", async () => {
     POSTHOG_CLI_ENV_ID: "87621",
     VERCEL_ENV: "preview",
   });
+});
+
+test("main posts the package release with stable identity", async () => {
+  const version = JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  ).version;
+  let request;
+
+  await main(
+    {
+      POSTHOG_PERSONAL_API_KEY: "phx_test",
+      POSTHOG_CLI_ENV_ID: "87621",
+      POSTHOG_HOST: "https://test.posthog.com/",
+      VERCEL_ENV: "production",
+      VERCEL_GIT_COMMIT_SHA: commitHash,
+    },
+    async (url, options) => {
+      request = { url, options };
+      return new Response("{}", { status: 201 });
+    },
+  );
+
+  assert.equal(
+    request.url,
+    "https://test.posthog.com/api/projects/87621/error_tracking/releases/",
+  );
+  assert.deepEqual(
+    JSON.parse(request.options.body),
+    releasePayload("pulpe-landing", version, commitHash),
+  );
 });

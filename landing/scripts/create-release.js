@@ -73,7 +73,7 @@ export async function createRelease({
   return "reused";
 }
 
-export async function main(env = process.env) {
+export async function main(env = process.env, fetchImpl = fetch) {
   const apiKey = env.POSTHOG_PERSONAL_API_KEY;
   const envId = env.POSTHOG_CLI_ENV_ID;
   if (!apiKey || !envId) {
@@ -101,6 +101,7 @@ export async function main(env = process.env) {
   const result = await createRelease({
     apiKey,
     envId,
+    fetchImpl,
     host: env.POSTHOG_HOST || DEFAULT_HOST,
     payload,
   });
