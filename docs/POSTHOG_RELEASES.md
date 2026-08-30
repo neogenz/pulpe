@@ -121,6 +121,12 @@ n'arrive qu'après la preuve Apple (`state=valid`), jamais pour `channel=interna
 Les étapes release et annotation sont séparées et `continue-on-error`: un échec
 reste visible dans le run sans invalider une distribution Apple déjà prouvée.
 
+Première preuve observée : le run GitHub `33298625338` a validé la distribution
+App Store `1.4.3` build `11` du SHA `aefa93bd66cd45ebbfdc0aa474056c63d7e02a1a`,
+puis créé l'annotation `iOS v1.4.3 (aefa93b)`. La création de la release PostHog
+`ios-1.4.3+11`, avec l'ancien payload, a échoué sans bloquer la distribution. Ce
+constat a conduit au contrat `pulpe-ios` + version séparée décrit ci-dessus.
+
 ### Pas encore implémenté : dSYM upload
 
 PostHog supporte l'upload de dSYMs via `posthog-cli` pour la symbolication des crash reports natifs. À intégrer dans le workflow de release App Store (archive build).
@@ -129,17 +135,9 @@ PostHog supporte l'upload de dSYMs via `posthog-cli` pour la symbolication des c
 
 ## Production — Annotations automatiques
 
-**État** : non émises actuellement. L'étape `Create PostHog annotation` a disparu avec
-l'ancien flux `push: main` de `production.yml`; le rattachement web se décidera au
-cutover de la phase 9, après une production réellement prouvée.
-
-### Flux cible
-
-```
-Production exacte et prouvée →
-  1. Lecture de la version webapp (frontend/package.json)
-  2. Annotation "v0.30.0 (abc1234)" sur projet 87621
-```
+**État** : non émises actuellement. Le finalizer prouve la production mais ne crée
+pas d'annotation PostHog web; ces annotations restent un signal optionnel et ne font
+pas partie du gate de publication.
 
 ### Fonctionnement
 
