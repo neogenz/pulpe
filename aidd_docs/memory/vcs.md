@@ -9,6 +9,7 @@
 
 - Branch from and PR into `main`. A release uses one `release/vX.Y.Z` branch and its single preparation PR to `main`; production is reached through the plan/publish promotion, and any later merge to `main` moves the tip away from the candidate and fails authorization closed.
 - Formats include `feature/*`, `fix/*`, and Linear-generated names.
+- The former durable `preview` branch and its ruleset were removed after the cutover; no active workflow or provider depends on them.
 
 ## Commits
 

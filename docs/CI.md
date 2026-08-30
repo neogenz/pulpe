@@ -170,6 +170,31 @@ After provider deployment, `production-finalize.yml` verifies the exact
 Railway and Vercel deployments plus the public health and version endpoints,
 then publishes the production proof, immutable tag and GitHub Release.
 
+## Observed cutover measurements
+
+The first comparable 2 h 30 window after the cutover (2026-08-29 21:00–23:30 UTC)
+used only existing runs; no synthetic release or distribution was triggered.
+
+| Measure                                    | Baseline | Observed                                      |
+| ------------------------------------------ | -------: | --------------------------------------------- |
+| Workflow runs in the window                |      129 | 75 (-41.9%); 50 were skipped                  |
+| Jobs in a successful complete CI           |       16 | 10 (-37.5%)                                   |
+| pnpm installs per successful complete CI   |       11 | 5 (-54.5%)                                    |
+| Supabase starts per successful complete CI |        2 | 1 (-50.0%)                                    |
+| Runner-minutes per successful complete CI  |     36.9 | p50 44.8; p95 47.4 (+21.5% at p50), n=2       |
+| macOS minutes / wall time                  |        — | p50 20.2 / 21.6; p95 21.5 / 22.9, n=2         |
+| External failures among five CI attempts   |        — | 0; one internal failure and two supersessions |
+
+The release preparation PR needed four CI attempts: 123.9 runner-minutes,
+58.1 macOS minutes and 69.7 minutes elapsed. The observed release chain after
+that PR used six workflow runs, 14.8 runner-minutes and 12.2 macOS minutes;
+`Production Finalized` succeeded on its third attempt. One release and two
+successful complete CI runs are too small for stable percentiles, so these are
+descriptive results, not targets. No post-cutover GitHub-only, frontend-only,
+backend/DB-only, iOS-only or shared-only sample existed; those classes remain
+unmeasured. The lower job/install count is proven, while runner time regressed,
+so no provider skip or remote Turbo cache is justified by this sample.
+
 ## Local equivalents
 
 ```bash

@@ -50,6 +50,9 @@ reprepared rather than silently absorbing extra features.
 - Full steps: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md#release-process)
 - Versioning rules: [docs/VERSIONING.md](./docs/VERSIONING.md)
 
+The process is fully recoverable from the GitHub Actions UI or `gh`; agent-local
+state is never part of the release identity or proof.
+
 ## Dependencies & security
 
 - Dependabot **security** PRs target the **default branch** (`main`) and flow through the normal QA → release path. (GitHub only raises security updates against the default branch.)

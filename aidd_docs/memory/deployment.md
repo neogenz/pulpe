@@ -17,6 +17,8 @@
 - iOS crash reports symbolicate only if the archive's dSYMs reached PostHog: after `xcodebuild archive`, run `ios/scripts/upload-dsyms.sh` (auth: `posthog-cli login` once, or `POSTHOG_CLI_PROJECT_ID` + `POSTHOG_CLI_API_KEY` in the shell; never committed).
 - iOS distribution treats proof artifacts as existence markers: it verifies the exact SHA, trusted workflow success and one unexpired named artifact, but never downloads the payload; `ci-security` preserves this artifact-poisoning boundary.
 - Application rollback uses Vercel rollback or Railway redeploy; no database-migration rollback procedure is codified. See `docs/TROUBLESHOOTING.md`.
+- The cutover was proven by `v0.47.1` at `aefa93bd66cd45ebbfdc0aa474056c63d7e02a1a`: finalizer run `33278908054` succeeded on attempt 3 and iOS run `33298625338` proved `1.4.3` build 11. Audit and rerun remain available from GitHub UI/CLI without agent state.
+- The retired Git `preview` ref ended at `35117a4fc7930f609c9e4f8708d3307d98842f82`; its branch and ruleset are deleted. Its archival recreation command is recorded in `docs/DEPLOYMENT.md`.
 
 ## Monitoring
 
