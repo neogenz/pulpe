@@ -107,8 +107,7 @@ describe('computeBudgetPeriodDateConstraints', () => {
     const result = computeBudgetPeriodDateConstraints(1, 2026, null, now);
 
     expect(result.defaultDate).toEqual(now);
-    expect(result.maxDate.getHours()).toBe(23);
-    expect(result.maxDate.getMinutes()).toBe(59);
+    expect(result.maxDate).toEqual(new Date(2026, 0, 31, 23, 59, 59, 999));
   });
 
   it('should return minDate as defaultDate when today is outside the period', () => {
