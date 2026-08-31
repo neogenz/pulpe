@@ -495,6 +495,10 @@ test("release promotion is the single manual entry with a read-only plan", () =>
   );
   assert.match(productionJob, /if: inputs\.mode == 'publish'/);
   assert.match(productionJob, /uses: \.\/\.github\/workflows\/production\.yml/);
+  assert.match(
+    productionJob,
+    /with:\n\s+release_branch: \$\{\{ inputs\.release_branch \}\}/,
+  );
   assert.match(productionJob, /secrets: inherit/);
   assert.equal(
     [...releasePromotion.matchAll(/uses:.*workflows\/production\.yml/g)].length,
@@ -662,7 +666,10 @@ test("production finishes preflight before Railway deploys", () => {
     production.indexOf("\non:"),
     production.indexOf("\nconcurrency:"),
   );
-  assert.match(productionTrigger, /workflow_call:/);
+  assert.match(
+    productionTrigger,
+    /workflow_call:\n\s+inputs:\n\s+release_branch:\n\s+description: [^\n]+\n\s+required: true\n\s+type: string/,
+  );
   assert.doesNotMatch(
     productionTrigger,
     /push:|pull_request|workflow_run|workflow_dispatch|schedule/,
@@ -672,6 +679,18 @@ test("production finishes preflight before Railway deploys", () => {
   assert.match(production, /pull-requests: read/);
   assert.doesNotMatch(production, /:\s*write\b|--force/);
   assert.match(production, /.user\.login == "pulpe-release\[bot\]"/);
+  const authorize = production.slice(
+    production.indexOf("\n  authorize:"),
+    production.indexOf("\n  migrate:"),
+  );
+  assert.match(
+    authorize,
+    /REQUESTED_RELEASE_BRANCH: \$\{\{ inputs\.release_branch \}\}/,
+  );
+  assert.match(
+    authorize,
+    /release_branch=\$\(jq -r \.head\.ref [^\n]+\)\n\s+test "\$release_branch" = "\$REQUESTED_RELEASE_BRANCH"/,
+  );
   // Une review APPROVED est impossible en solo (auto-approbation interdite) :
   // l'intention humaine est le merge manuel puis l'environnement protégé.
   assert.match(

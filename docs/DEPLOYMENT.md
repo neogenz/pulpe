@@ -396,7 +396,9 @@ approval; the read-only `plan` mode is the only one without it.
    the migrations in scope since that anchor and the provider deployment IDs,
    then uploads the `release-plan` manifest with the planned mutations and rollback.
 4. Dispatch `publish` on `main`. The reusable `production.yml` re-verifies the
-   whole chain, waits for the `production` environment approval, keeps the
+   whole chain, including an exact match between the submitted release branch
+   and the preparation PR. A mismatch stops `authorize` before any protected
+   job or production mutation. It then waits for the `production` environment approval, keeps the
    migration dry-run → apply order and the replayed migration contract behind
    that environment (skipped entirely when the release carries no migration),
    then `advance` fast-forwards the `production` pointer — the push that

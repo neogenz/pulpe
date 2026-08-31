@@ -213,4 +213,6 @@ jobs:
     name: 🏭 Production
     if: inputs.mode == 'publish'
     uses: ./.github/workflows/production.yml
+    with:
+      release_branch: ${{ inputs.release_branch }}
     secrets: inherit
