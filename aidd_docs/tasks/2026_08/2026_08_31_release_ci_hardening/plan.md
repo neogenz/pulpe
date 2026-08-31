@@ -1,6 +1,6 @@
 ---
 objective: "L'intention affichée d'une release correspond exactement au candidat publié, le contrat expand refuse les opérations ambiguës identifiées et la CI iOS évite son second runner sans perdre de preuve."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Durcir la release et raccourcir la CI
