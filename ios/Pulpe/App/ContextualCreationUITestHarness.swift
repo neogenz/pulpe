@@ -376,16 +376,24 @@ private func marketingGainTransactions(
     ).startDate
     let elapsed = max(now.timeIntervalSince(start), 0)
     let entries = [
-        MarketingGainEntry(id: "freelance", name: "Mission freelance", amount: 200),
-        MarketingGainEntry(id: "sale", name: "Vente", amount: 250),
-        MarketingGainEntry(id: "bonus", name: "Bonus", amount: 350),
+        MarketingGainEntry(id: "groceries", name: "Courses", amount: 185, kind: .expense, progress: 0.12),
+        MarketingGainEntry(id: "insurance", name: "Assurance maladie", amount: 420, kind: .expense, progress: 0.20),
+        MarketingGainEntry(id: "freelance", name: "Mission freelance", amount: 850, kind: .income, progress: 0.25),
+        MarketingGainEntry(id: "transport", name: "Transports", amount: 95, kind: .expense, progress: 0.31),
+        MarketingGainEntry(id: "electricity", name: "Électricité", amount: 145, kind: .expense, progress: 0.43),
+        MarketingGainEntry(id: "sale", name: "Vente d'occasion", amount: 400, kind: .income, progress: 0.50),
+        MarketingGainEntry(id: "restaurants", name: "Restaurants", amount: 160, kind: .expense, progress: 0.56),
+        MarketingGainEntry(id: "leisure", name: "Loisirs", amount: 125, kind: .expense, progress: 0.71),
+        MarketingGainEntry(id: "pharmacy", name: "Pharmacie", amount: 70, kind: .expense, progress: 0.86),
+        MarketingGainEntry(id: "bonus", name: "Prime", amount: 750, kind: .income, progress: 0.93),
     ]
-    return entries.enumerated().map { index, entry in
-        Transaction(
+    return entries.map { entry in
+        let date = start.addingTimeInterval(elapsed * entry.progress)
+        return Transaction(
             id: "marketing-\(entry.id)", budgetId: budgetId, budgetLineId: nil,
-            name: entry.name, amount: entry.amount, kind: .income,
-            transactionDate: start.addingTimeInterval(elapsed * Double(index + 1) / Double(entries.count)),
-            category: nil, checkedAt: now, createdAt: now, updatedAt: now
+            name: entry.name, amount: entry.amount, kind: entry.kind,
+            transactionDate: date, category: nil, checkedAt: date,
+            createdAt: date, updatedAt: date
         )
     }
 }
@@ -394,4 +402,6 @@ private struct MarketingGainEntry {
     let id: String
     let name: String
     let amount: Decimal
+    let kind: TransactionKind
+    let progress: Double
 }
