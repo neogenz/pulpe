@@ -85,6 +85,7 @@ function lex(sql, path) {
 function validateExpand(sql, path) {
   const { clean, dollars, strings } = lex(sql, path);
   if (/(?:^|;)\s*DO\b/i.test(clean)) throw Error(`${path}: DO blocks are forbidden in expand`);
+  if (/\bCREATE\s+OR\s+REPLACE\s+(?:(?:TEMP|TEMPORARY)\s+)?(?:RECURSIVE\s+)?VIEW\b/i.test(clean)) throw Error(`${path}: CREATE OR REPLACE VIEW is forbidden in expand; create a new view or use a contract migration`);
   for (const start of strings) {
     const prefix = clean.slice(clean.lastIndexOf(";", start - 1) + 1, start).trim();
     if (/\b(?:FUNCTION|PROCEDURE)\b[\s\S]*\bAS(?:\s+(?:E|U&))?\s*$/i.test(prefix)) throw Error(`${path}: single-quoted procedural bodies are forbidden in expand`);
@@ -103,6 +104,12 @@ function validateExpand(sql, path) {
     for (const addition of statement.split(/\bADD\s+(?:COLUMN\s+)?/i).slice(1)) {
       const clause = addition.split(/,\s*(?=(?:ADD|ALTER|DROP|RENAME|VALIDATE|ENABLE|DISABLE|ATTACH|DETACH|OWNER|SET|RESET|INHERIT|NO|OF|NOT|CLUSTER|FORCE|REPLICA)\b)/i)[0];
       if (/\bNOT\s+NULL\b/i.test(clause) && !/\bDEFAULT\b/i.test(clause)) throw Error(`${path}: expand cannot ADD a NOT NULL column without DEFAULT`);
+      const constraint = /^\s*(?:CONSTRAINT\b[\s\S]*?)?\b(CHECK|FOREIGN\s+KEY|UNIQUE|PRIMARY\s+KEY|EXCLUDE)\b/i.exec(clause);
+      if (/^\s*CONSTRAINT\b/i.test(clause) && !constraint) throw Error(`${path}: unknown ADD CONSTRAINT is forbidden in expand; use a contract migration`);
+      if (!constraint) continue;
+      const type = constraint[1].replace(/\s+/g, " ").toUpperCase();
+      if (type !== "CHECK" && type !== "FOREIGN KEY") throw Error(`${path}: ${type} constraints cannot be added safely in expand; use a contract migration`);
+      if (!/\bNOT\s+VALID\b/i.test(clause)) throw Error(`${path}: expand ${type} constraints must use NOT VALID and be validated in a later contract migration`);
     }
   }
 }

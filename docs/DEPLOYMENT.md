@@ -76,9 +76,17 @@ by the protected release workflow described below.
   `-- pulpe:migration-phase expand` or `-- pulpe:migration-phase contract`. Contract
   files also require `-- pulpe:safe-after vX.Y.Z`; that release tag must already be an
   ancestor of, or content-integrated into, the release baseline.
-- Expand migrations reject destructive/security-weakening SQL, `DO`, dynamic `EXECUTE`, unsafe required
-  columns and unclassified procedural bodies. Prefer additive tables, columns with a
-  default, indexes, policies and explicit `CREATE OR REPLACE FUNCTION` definitions.
+- Expand migrations reject destructive/security-weakening SQL, `DO`, dynamic
+  `EXECUTE`, unsafe required columns and unclassified procedural bodies. Added
+  `CHECK` and `FOREIGN KEY` table constraints require `NOT VALID`; `UNIQUE`,
+  `PRIMARY KEY`, `EXCLUDE` and unknown immediate constraints belong in a later
+  contract migration. A new `CREATE VIEW` is additive, but `CREATE OR REPLACE VIEW`
+  is rejected because it can change existing client behavior. Prefer additive tables,
+  columns with a default, indexes, policies and explicit `CREATE OR REPLACE FUNCTION`
+  definitions.
+- On PostgreSQL 17, `NOT VALID` skips the initial table scan for `CHECK` and
+  `FOREIGN KEY`, while still enforcing the constraint on new writes. It reduces
+  rollout scan and lock pressure; it does not prove compatibility with older clients.
 - The checker is deliberately conservative and heuristic, not a PostgreSQL parser or
   a substitute for SQL review. Split ambiguous changes or classify them as contract.
 - CI checks the PR range and includes the result in `ci-success`. Production replays
