@@ -108,7 +108,7 @@ function validateExpand(sql, path) {
       if (constraint) {
         const type = constraint[1].replace(/\s+/g, " ").toUpperCase();
         if (type !== "CHECK" && type !== "FOREIGN KEY") throw Error(`${path}: ${type} constraints cannot be added safely in expand; use a contract migration`);
-        if (!/\bNOT\s+VALID\s*$/i.test(clause)) throw Error(`${path}: expand ${type} constraints must use NOT VALID and be validated in a later contract migration`);
+        if (!/\bNOT\s+VALID[\s,]*$/i.test(clause)) throw Error(`${path}: expand ${type} constraints must use NOT VALID and be validated in a later contract migration`);
         continue;
       }
       const inline = /\b(CHECK|REFERENCES|UNIQUE|PRIMARY\s+KEY)\b/i.exec(clause)?.[1];
