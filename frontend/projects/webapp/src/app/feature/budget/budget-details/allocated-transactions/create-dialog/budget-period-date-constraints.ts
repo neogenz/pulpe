@@ -22,10 +22,12 @@ export function computeBudgetPeriodDateConstraints(
     budgetYear,
     payDayOfMonth,
   );
+  const maxDate = new Date(endDate);
+  maxDate.setHours(23, 59, 59, 999);
 
-  const defaultDate = now >= startDate && now <= endDate ? now : startDate;
+  const defaultDate = now >= startDate && now <= maxDate ? now : startDate;
 
-  return { minDate: startDate, maxDate: endDate, defaultDate };
+  return { minDate: startDate, maxDate, defaultDate };
 }
 
 export function createDateRangeValidator(

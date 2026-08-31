@@ -89,9 +89,11 @@ decision is routed, the workspace runs `build`, unit tests and `lint` with
   routing, and lexicon invariant tests) when the workspace does not run — the
   workspace quality gate is a strict superset of it.
 - `actionlint` validates workflow syntax and shell fragments.
-- `test-ios` generates the Xcode project and runs one `xcodebuild test -scheme
-PulpeLocal` invocation on macOS: the scheme compiles the app and the widget,
-  then executes the Swift tests. There is no second iOS build workflow.
+- `test-ios` uses one macOS runner and one generated Xcode project. It first runs
+  `xcodebuild test -scheme PulpeLocal` to compile the app and widget and execute
+  the Swift tests, then reuses the simulator and DerivedData for the single targeted
+  `BudgetOpensFromListUITests` smoke. Either proof failing or running zero tests fails
+  the same job; there is no second iOS runner.
 - `migration-contract` validates new migration metadata, additive SQL and immutable history.
 - `ci-success` is the single protected status and fails unless every required
   job succeeded — a unit may be skipped only when the routing decision
@@ -194,6 +196,18 @@ descriptive results, not targets. No post-cutover GitHub-only, frontend-only,
 backend/DB-only, iOS-only or shared-only sample existed; those classes remain
 unmeasured. The lower job/install count is proven, while runner time regressed,
 so no provider skip or remote Turbo cache is justified by this sample.
+
+The first full route after consolidating the iOS proofs, [PR #713 run
+33366420996](https://github.com/neogenz/pulpe/actions/runs/33366420996), proved
+both `PulpeLocal` and the exact one-test smoke in one 19.2-minute macOS job. The
+two-job references used 18.8 and 21.7 macOS-minutes; their median was 20.25.
+The first attempt used 44.5 runner-minutes in total and 21.0 minutes wall time,
+versus the previous 44.8 runner-minute median and 20.2/23.1-minute wall-time
+references. This is a small measured improvement in the iOS chain with no wall
+time regression, while total runner time is effectively unchanged. The run
+remained red after the same unrelated frontend E2E case failed on the initial
+attempt and its targeted rerun, so this is not a successful-CI sample or a
+stable trend. Reassess after five comparable green complete CIs.
 
 ## Local equivalents
 

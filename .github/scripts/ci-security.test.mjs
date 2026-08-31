@@ -495,6 +495,10 @@ test("release promotion is the single manual entry with a read-only plan", () =>
   );
   assert.match(productionJob, /if: inputs\.mode == 'publish'/);
   assert.match(productionJob, /uses: \.\/\.github\/workflows\/production\.yml/);
+  assert.match(
+    productionJob,
+    /with:\n\s+release_branch: \$\{\{ inputs\.release_branch \}\}/,
+  );
   assert.match(productionJob, /secrets: inherit/);
   assert.equal(
     [...releasePromotion.matchAll(/uses:.*workflows\/production\.yml/g)].length,
@@ -662,7 +666,10 @@ test("production finishes preflight before Railway deploys", () => {
     production.indexOf("\non:"),
     production.indexOf("\nconcurrency:"),
   );
-  assert.match(productionTrigger, /workflow_call:/);
+  assert.match(
+    productionTrigger,
+    /workflow_call:\n\s+inputs:\n\s+release_branch:\n\s+description: [^\n]+\n\s+required: true\n\s+type: string/,
+  );
   assert.doesNotMatch(
     productionTrigger,
     /push:|pull_request|workflow_run|workflow_dispatch|schedule/,
@@ -672,6 +679,18 @@ test("production finishes preflight before Railway deploys", () => {
   assert.match(production, /pull-requests: read/);
   assert.doesNotMatch(production, /:\s*write\b|--force/);
   assert.match(production, /.user\.login == "pulpe-release\[bot\]"/);
+  const authorize = production.slice(
+    production.indexOf("\n  authorize:"),
+    production.indexOf("\n  migrate:"),
+  );
+  assert.match(
+    authorize,
+    /REQUESTED_RELEASE_BRANCH: \$\{\{ inputs\.release_branch \}\}/,
+  );
+  assert.match(
+    authorize,
+    /release_branch=\$\(jq -r \.head\.ref [^\n]+\)\n\s+test "\$release_branch" = "\$REQUESTED_RELEASE_BRANCH"/,
+  );
   // Une review APPROVED est impossible en solo (auto-approbation interdite) :
   // l'intention humaine est le merge manuel puis l'environnement protégé.
   assert.match(
@@ -1132,19 +1151,46 @@ test("iOS distribution resumes the exact App Store build idempotently", () => {
     assert.match(iosDistribution, new RegExp(`"${field}"`));
 });
 
-test("one CI invocation proves app, widget, and Swift tests through PulpeLocal", () => {
-  // The smoke job that follows runs its own xcodebuild on the UI scheme.
+test("one macOS CI job proves units and the targeted iOS smoke", () => {
   const iosJob = workflow.slice(
     workflow.indexOf("\n  test-ios:"),
-    workflow.indexOf("\n  smoke-ios:"),
+    workflow.indexOf("\n  ci-success:"),
   );
   assert.match(iosJob, /-scheme PulpeLocal/);
+  assert.match(iosJob, /-scheme PulpeUITests/);
+  assert.match(
+    iosJob,
+    /-only-testing:PulpeUITests\/BudgetOpensFromListUITests/,
+  );
+  assert.match(iosJob, /Executed 1 test/);
   assert.doesNotMatch(iosJob, /-scheme PulpeTests|xcodebuild build/);
   assert.equal(
     [...iosJob.matchAll(/xcodebuild test/g)].length,
-    1,
-    "exactly one xcodebuild invocation in CI",
+    2,
+    "units and smoke must remain separate, explicit xcodebuild invocations",
   );
+  assert.equal([...iosJob.matchAll(/uses: actions\/checkout@/g)].length, 1);
+  assert.equal(
+    [...iosJob.matchAll(/uses: maxim-lobanov\/setup-xcode@/g)].length,
+    1,
+  );
+  assert.equal([...iosJob.matchAll(/uses: actions\/cache@/g)].length, 1);
+  assert.equal(
+    [...iosJob.matchAll(/name: 🔨 Generate Xcode project/g)].length,
+    1,
+  );
+  assert.ok(
+    iosJob.indexOf("🧪 Run Unit Tests") <
+      iosJob.indexOf("🧪 Run the smoke test") &&
+      iosJob.indexOf("🧪 Run the smoke test") <
+        iosJob.indexOf("🧹 Cleanup Simulator"),
+  );
+  assert.doesNotMatch(workflow, /\n  smoke-ios:/);
+
+  const success = workflow.slice(workflow.indexOf("\n  ci-success:"));
+  const successNeeds = success.slice(0, success.indexOf("\n    steps:"));
+  assert.equal([...successNeeds.matchAll(/\btest-ios\b/g)].length, 1);
+  assert.doesNotMatch(success, /smoke-ios|RESULT_SMOKE_IOS|iOS Smoke/);
 
   // The distributor is the only other workflow allowed to run xcodebuild.
   const workflowsDir = new URL("../workflows/", import.meta.url);

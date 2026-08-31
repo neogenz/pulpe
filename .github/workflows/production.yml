@@ -5,6 +5,11 @@ name: 🏭 Production Release
 # reste derrière l'environnement GitHub production.
 on:
   workflow_call:
+    inputs:
+      release_branch:
+        description: Release branch approved by the operator
+        required: true
+        type: string
 
 concurrency:
   group: production-release
@@ -39,6 +44,7 @@ jobs:
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
+          REQUESTED_RELEASE_BRANCH: ${{ inputs.release_branch }}
         run: |
           # shellcheck disable=SC2016
           set -euo pipefail
@@ -53,6 +59,7 @@ jobs:
 
           preparation_pr=$(jq -r .number "$RUNNER_TEMP/preparation-pr.json")
           release_branch=$(jq -r .head.ref "$RUNNER_TEMP/preparation-pr.json")
+          test "$release_branch" = "$REQUESTED_RELEASE_BRANCH"
           [[ "$release_branch" =~ ^release/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]
           version="${BASH_REMATCH[1]}"
           candidate_sha="$GITHUB_SHA"
