@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Réutiliser le runner iOS et mesurer le gain

@@ -569,11 +569,11 @@ jobs:
           tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
           "$RUNNER_TEMP/actionlint" -color
 
-  # 🍎 iOS UNIT TESTS
+  # 🍎 iOS TESTS
   test-ios:
-    name: 🍎 iOS Unit Tests
+    name: 🍎 iOS Tests
     runs-on: macos-26
-    timeout-minutes: 15
+    timeout-minutes: 30
     needs: [classify]
     if: needs.classify.outputs.ios == 'true'
     steps:
@@ -636,8 +636,7 @@ jobs:
         run: |
           # Workaround: xcodebuild hangs after tests on Xcode 26+ (actions/runner-images#13143)
           touch test-output.log
-          # PulpeLocal compile l'app et le widget puis exécute PulpeTests —
-          # l'unique invocation iOS de la CI (pas de second workflow de build).
+          # PulpeLocal compile l'app et le widget puis exécute PulpeTests.
           xcodebuild test \
             -scheme PulpeLocal \
             -destination 'id=${{ steps.sim.outputs.udid }}' \
@@ -652,7 +651,7 @@ jobs:
           tail -f test-output.log | grep --line-buffered -E '(✔|✘|Test Case|passed|failed|error:|Suite|TEST SUCCEEDED|TEST FAILED)' &
           TAIL_PID=$!
 
-          # Wait for test completion or timeout (13 min — leaves 2 min buffer for 15 min step timeout)
+          # Wait for test completion or timeout (13 min, leaving time for the smoke).
           ELAPSED=0
           LAST_SIZE=0
           IDLE=0
@@ -715,59 +714,6 @@ jobs:
           grep -E "(Test Case.*failed|✘|error:)" test-output.log || echo "No explicit failures found"
           echo "=== LAST 50 LINES ==="
           tail -50 test-output.log
-
-      - name: 🧹 Cleanup Simulator
-        if: always()
-        run: xcrun simctl shutdown all 2>/dev/null || true
-
-  # One XCUITest, the journey that shipped blank in build 10, on a cold cache.
-  # Only this test: the full UI suite flakes under load and is not a CI gate.
-  smoke-ios:
-    name: 🍎 iOS Smoke (cold budget page)
-    runs-on: macos-26
-    timeout-minutes: 20
-    needs: [classify, test-ios]
-    if: needs.classify.outputs.ios == 'true'
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 🔧 Setup Xcode
-        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
-        with:
-          xcode-version: "26.6"
-
-      - name: 📦 Install XcodeGen
-        run: brew install xcodegen
-
-      - name: 💾 Cache SPM packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
-            ~/Library/Caches/org.swift.swiftpm
-          key: spm-${{ hashFiles('ios/project.yml') }}
-          restore-keys: spm-
-
-      - name: 🔨 Generate Xcode project
-        working-directory: ios
-        run: xcodegen generate
-
-      - name: 📱 Resolve iOS Simulator
-        id: sim
-        run: |
-          UDID=$(xcrun simctl list devices available -j \
-            | python3 -c "
-          import re, sys, json
-          devices = json.load(sys.stdin)['devices']
-          def minor(rt): return int(re.search(r'iOS-26-(\d+)', rt).group(1))
-          for rt in sorted((k for k in devices if 'iOS-26-' in k), key=minor, reverse=True):
-            for d in devices[rt]:
-              if d['name'] == 'iPhone 17':
-                print(rt, file=sys.stderr); print(d['udid']); sys.exit(0)
-          sys.exit(1)
-          ")
-          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
       - name: 🧪 Run the smoke test
         working-directory: ios
@@ -833,7 +779,6 @@ jobs:
         test-e2e,
         actionlint,
         test-ios,
-        smoke-ios,
         migration-contract,
       ]
     if: always()
@@ -847,7 +792,6 @@ jobs:
           RESULT_E2E: ${{ needs.test-e2e.result }}
           RESULT_ACTIONLINT: ${{ needs.actionlint.result }}
           RESULT_IOS: ${{ needs.test-ios.result }}
-          RESULT_SMOKE_IOS: ${{ needs.smoke-ios.result }}
           RESULT_MIGRATION: ${{ needs.migration-contract.result }}
           REQUIRED_AUTOMATION: ${{ needs.classify.outputs.automation }}
           REQUIRED_WORKSPACE: ${{ needs.classify.outputs.workspace }}
@@ -879,10 +823,6 @@ jobs:
           routed "Backend & Database" "$RESULT_BACKEND_DB" "$REQUIRED_BACKEND_DB"
           routed "E2E Tests" "$RESULT_E2E" "$REQUIRED_E2E"
           routed "iOS Tests" "$RESULT_IOS" "$REQUIRED_IOS"
-          # The smoke is skipped by GitHub when the unit job fails; one culprit is enough.
-          if [ "$RESULT_IOS" = "success" ]; then
-            routed "iOS Smoke" "$RESULT_SMOKE_IOS" "$REQUIRED_IOS"
-          fi
           if [ "$fail" -ne 0 ]; then
             echo "❌ Some CI checks failed"
             exit 1
