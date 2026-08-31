@@ -103,13 +103,17 @@ function validateExpand(sql, path) {
     if (/\b(?:DROP|RENAME|TRUNCATE|REVOKE)\b|\bDELETE\s+FROM\b|\bSET\s+SCHEMA\b|\bDISABLE\s+(?:ROW\s+LEVEL\s+SECURITY|TRIGGER|RULE)\b|\bNO\s+FORCE\s+ROW\s+LEVEL\s+SECURITY\b/i.test(statement) || /\bALTER\s+(?:COLUMN\s+)?\b[\s\S]*?\b(?:TYPE|SET\s+NOT\s+NULL)\b/i.test(statement)) throw Error(`${path}: destructive or security-weakening SQL is forbidden in expand`);
     for (const addition of statement.split(/\bADD\s+(?:COLUMN\s+)?/i).slice(1)) {
       const clause = addition.split(/,\s*(?=(?:ADD|ALTER|DROP|RENAME|VALIDATE|ENABLE|DISABLE|ATTACH|DETACH|OWNER|SET|RESET|INHERIT|NO|OF|NOT|CLUSTER|FORCE|REPLICA)\b)/i)[0];
-      if (/\bNOT\s+NULL\b/i.test(clause) && !/\bDEFAULT\b/i.test(clause)) throw Error(`${path}: expand cannot ADD a NOT NULL column without DEFAULT`);
       const constraint = /^\s*(?:CONSTRAINT\b[\s\S]*?)?\b(CHECK|FOREIGN\s+KEY|UNIQUE|PRIMARY\s+KEY|EXCLUDE)\b/i.exec(clause);
       if (/^\s*CONSTRAINT\b/i.test(clause) && !constraint) throw Error(`${path}: unknown ADD CONSTRAINT is forbidden in expand; use a contract migration`);
-      if (!constraint) continue;
-      const type = constraint[1].replace(/\s+/g, " ").toUpperCase();
-      if (type !== "CHECK" && type !== "FOREIGN KEY") throw Error(`${path}: ${type} constraints cannot be added safely in expand; use a contract migration`);
-      if (!/\bNOT\s+VALID\b/i.test(clause)) throw Error(`${path}: expand ${type} constraints must use NOT VALID and be validated in a later contract migration`);
+      if (constraint) {
+        const type = constraint[1].replace(/\s+/g, " ").toUpperCase();
+        if (type !== "CHECK" && type !== "FOREIGN KEY") throw Error(`${path}: ${type} constraints cannot be added safely in expand; use a contract migration`);
+        if (!/\bNOT\s+VALID\s*$/i.test(clause)) throw Error(`${path}: expand ${type} constraints must use NOT VALID and be validated in a later contract migration`);
+        continue;
+      }
+      const inline = /\b(CHECK|REFERENCES|UNIQUE|PRIMARY\s+KEY)\b/i.exec(clause)?.[1];
+      if (inline) throw Error(`${path}: inline ${inline.replace(/\s+/g, " ").toUpperCase()} column constraints are forbidden in expand; use ADD CONSTRAINT ... NOT VALID`);
+      if (/\bNOT\s+NULL\b/i.test(clause) && !/\bDEFAULT\b/i.test(clause)) throw Error(`${path}: expand cannot ADD a NOT NULL column without DEFAULT`);
     }
   }
 }
