@@ -384,8 +384,8 @@ private func marketingGainTransactions(
         MarketingGainEntry(id: "sale", name: "Vente d'occasion", amount: 400, kind: .income, progress: 0.50),
         MarketingGainEntry(id: "restaurants", name: "Restaurants", amount: 160, kind: .expense, progress: 0.56),
         MarketingGainEntry(id: "leisure", name: "Loisirs", amount: 125, kind: .expense, progress: 0.71),
-        MarketingGainEntry(id: "bonus", name: "Prime", amount: 750, kind: .income, progress: 0.93),
         MarketingGainEntry(id: "pharmacy", name: "Pharmacie", amount: 70, kind: .expense, progress: 0.86),
+        MarketingGainEntry(id: "bonus", name: "Prime", amount: 750, kind: .income, progress: 0.93),
     ]
     return entries.map { entry in
         let date = start.addingTimeInterval(elapsed * entry.progress)
