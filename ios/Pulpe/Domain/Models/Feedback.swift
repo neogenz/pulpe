@@ -32,11 +32,11 @@ enum FeedbackArea: String, CaseIterable, Codable, Hashable, Identifiable, Sendab
 
     var title: String {
         switch self {
-        case .onboarding: AppLocale.string("Bien démarrer")
-        case .budgetClarity: AppLocale.string("Comprendre mon budget")
-        case .currentMonth: AppLocale.string("Budget du mois")
-        case .futurePlanning: AppLocale.string("Mois à venir")
-        case .homeClarity: AppLocale.string("Écran d'accueil")
+        case .onboarding: AppLocale.string("Création de mon premier budget")
+        case .budgetClarity: AppLocale.string("Clarté de l'interface")
+        case .currentMonth: AppLocale.string("Gestion du budget du mois")
+        case .futurePlanning: AppLocale.string("Planification des prochains mois")
+        case .homeClarity: AppLocale.string("Clarté de l'accueil")
         case .other: AppLocale.string("Autre")
         }
     }

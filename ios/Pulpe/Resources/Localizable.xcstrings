@@ -30036,18 +30036,18 @@
         "it" : { "stringUnit" : { "state" : "translated", "value" : "Bene" } }
       }
     },
-    "Bien démarrer" : {
+    "Clarté de l'accueil" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gut starten" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Getting started" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Iniziare bene" } }
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Klarheit der Startseite" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home screen clarity" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Chiarezza della schermata iniziale" } }
       }
     },
-    "Budget du mois" : {
+    "Clarté de l'interface" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Monatsbudget" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "This month's budget" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Budget del mese" } }
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verständlichkeit der App" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Interface clarity" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Chiarezza dell'interfaccia" } }
       }
     },
     "Comment ça se passe avec Pulpe ?" : {
@@ -30064,11 +30064,11 @@
         "it" : { "stringUnit" : { "state" : "translated", "value" : "Commento facoltativo" } }
       }
     },
-    "Comprendre mon budget" : {
+    "Création de mon premier budget" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Budget verstehen" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Understanding my budget" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Capire il mio budget" } }
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Erstellung meines ersten Budgets" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Creating my first budget" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Creazione del mio primo budget" } }
       }
     },
     "Correct" : {
@@ -30099,11 +30099,11 @@
         "it" : { "stringUnit" : { "state" : "translated", "value" : "Invia" } }
       }
     },
-    "Écran d'accueil" : {
+    "Gestion du budget du mois" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Startseite" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home screen" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Schermata iniziale" } }
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verwaltung des Monatsbudgets" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Managing this month's budget" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Gestione del budget del mese" } }
       }
     },
     "Merci. Ton avis fait progresser Pulpe." : {
@@ -30113,18 +30113,11 @@
         "it" : { "stringUnit" : { "state" : "translated", "value" : "Grazie. La tua opinione aiuta Pulpe a migliorare." } }
       }
     },
-    "Mois à venir" : {
+    "Planification des prochains mois" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kommende Monate" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Coming months" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Mesi futuri" } }
-      }
-    },
-    "Noter" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bewerten" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Rate" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Valuta" } }
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Planung der kommenden Monate" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Planning the coming months" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Pianificazione dei prossimi mesi" } }
       }
     },
     "Partage une impression en 30 secondes" : {

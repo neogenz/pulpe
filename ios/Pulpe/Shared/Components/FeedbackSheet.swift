@@ -92,7 +92,10 @@ struct FeedbackSheet: View {
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    FeedbackRatingControl(selection: $viewModel.overallRating)
+                    FeedbackRatingControl(
+                        selection: $viewModel.overallRating,
+                        accessibilityContext: nil
+                    )
                         .accessibilityIdentifier("feedbackOverallRating")
 
                     if let overallRating = viewModel.overallRating {
@@ -146,7 +149,7 @@ struct FeedbackSheet: View {
 
     private var detailsContent: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
-            ForEach(Array(FeedbackArea.allCases.enumerated()), id: \.element) { index, area in
+            ForEach(Array(FeedbackArea.allCases.filter { $0 != .other }.enumerated()), id: \.element) { index, area in
                 if index > 0 {
                     FormRowDivider()
                 }
@@ -190,37 +193,20 @@ struct FeedbackSheet: View {
     }
 
     private func areaRatingRow(_ area: FeedbackArea) -> some View {
-        Menu {
-            Picker(area.title, selection: viewModel.ratingBinding(for: area)) {
-                ForEach(FeedbackRating.allCases) { rating in
-                    Text(rating.accessibilityLabel)
-                        .tag(Optional(rating))
-                }
-            }
-        } label: {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Text(area.title)
-                    .foregroundStyle(Color.textPrimary)
-                    .accessibilityIdentifier("feedbackArea.\(area.rawValue)")
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(area.title)
+                .font(PulpeTypography.bodyLarge)
+                .foregroundStyle(Color.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("feedbackArea.\(area.rawValue)")
 
-                Spacer(minLength: DesignTokens.Spacing.sm)
-
-                Text(viewModel.ratings[area]?.accessibilityLabel ?? AppLocale.string("Noter"))
-                    .foregroundStyle(viewModel.ratings[area] == nil ? Color.textTertiary : Color.pulpePrimary)
-
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
-                    .accessibilityHidden(true)
-            }
-            .font(PulpeTypography.body)
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(Rectangle())
+            FeedbackRatingControl(
+                selection: viewModel.ratingBinding(for: area),
+                accessibilityContext: area.title
+            )
         }
-        .buttonStyle(.plain)
-        .padding(.vertical, DesignTokens.Spacing.sm)
+        .padding(.vertical, DesignTokens.Spacing.lg)
         .accessibilityIdentifier("feedbackAreaRating.\(area.rawValue)")
-        .sensoryFeedback(.selection, trigger: viewModel.ratings[area])
     }
 
     private var footer: some View {
@@ -269,6 +255,7 @@ struct FeedbackSheet: View {
 
 private struct FeedbackRatingControl: View {
     @Binding var selection: FeedbackRating?
+    var accessibilityContext: String?
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
@@ -285,7 +272,7 @@ private struct FeedbackRatingControl: View {
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum)
                 .contentShape(Rectangle())
-                .accessibilityLabel(rating.accessibilityLabel)
+                .accessibilityLabel(accessibilityLabel(for: rating))
                 .accessibilityValue(selection == rating ? Text("Sélectionné") : Text(""))
                 .accessibilityAddTraits(selection == rating ? .isSelected : [])
             }
@@ -295,6 +282,12 @@ private struct FeedbackRatingControl: View {
 
     private func isFilled(_ rating: FeedbackRating) -> Bool {
         rating.rawValue <= (selection?.rawValue ?? 0)
+    }
+
+    private func accessibilityLabel(for rating: FeedbackRating) -> String {
+        [accessibilityContext, rating.accessibilityLabel]
+            .compactMap { $0 }
+            .joined(separator: ", ")
     }
 }
 

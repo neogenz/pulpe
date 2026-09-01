@@ -3,6 +3,13 @@ import XCTest
 @MainActor
 final class FeedbackUITests: XCTestCase {
     private static let scenario = "UITEST_LANGUAGE_SETTINGS"
+    private static let feedbackAreaLabels = [
+        "Création de mon premier budget",
+        "Clarté de l'interface",
+        "Gestion du budget du mois",
+        "Planification des prochains mois",
+        "Clarté de l'accueil",
+    ]
     private var app = XCUIApplication()
 
     func testFormRemainsAccessibleAtAccessibilityDynamicType() throws {
@@ -33,6 +40,9 @@ final class FeedbackUITests: XCTestCase {
         let details = app.buttons["Préciser mon avis"]
         scrollUntilHittable(details)
         details.tap()
+        for label in Self.feedbackAreaLabels {
+            XCTAssertTrue(app.staticTexts[label].exists, "Missing concrete feedback area \(label)")
+        }
 
         let comment = app.textFields["feedbackComment"]
         for _ in 0..<4 {
