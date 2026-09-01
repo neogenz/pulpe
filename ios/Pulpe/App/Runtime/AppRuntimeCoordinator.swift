@@ -12,6 +12,7 @@ final class AppRuntimeCoordinator {
     private let budgetListStore: BudgetListStore
     private let dashboardStore: DashboardStore
     private let widgetSyncViewModel: WidgetSyncViewModel
+    private let onAppOpened: @MainActor () -> Void
     private var foregroundTask: Task<Void, Never>?
     @ObservationIgnored private var hasRequestedVisibleStartup = false
     private var hasTrackedInitialOpen = false
@@ -21,13 +22,15 @@ final class AppRuntimeCoordinator {
         currentMonthStore: CurrentMonthStore,
         budgetListStore: BudgetListStore,
         dashboardStore: DashboardStore,
-        widgetSyncViewModel: WidgetSyncViewModel = WidgetSyncViewModel()
+        widgetSyncViewModel: WidgetSyncViewModel = WidgetSyncViewModel(),
+        onAppOpened: @escaping @MainActor () -> Void = {}
     ) {
         self.appState = appState
         self.currentMonthStore = currentMonthStore
         self.budgetListStore = budgetListStore
         self.dashboardStore = dashboardStore
         self.widgetSyncViewModel = widgetSyncViewModel
+        self.onAppOpened = onAppOpened
     }
 
     /// UI authentication must wait for an interactive scene. Background refresh has
@@ -80,6 +83,7 @@ final class AppRuntimeCoordinator {
             // Skips notification center / control center dismissals (inactive → active after initial).
             if !hasTrackedInitialOpen || oldPhase == .background {
                 AnalyticsService.shared.capture(.appOpened)
+                onAppOpened()
                 hasTrackedInitialOpen = true
             }
         }

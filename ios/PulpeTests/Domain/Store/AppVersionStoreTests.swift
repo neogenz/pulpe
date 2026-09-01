@@ -16,15 +16,18 @@ struct AppVersionStoreTests {
         await store.check()
 
         #expect(store.status == .forceUpdate(storeURL: URL(string: "https://apps.apple.com/app/pulpe")))
+        #expect(!store.allowsLowerPriorityPresentation)
     }
 
     @Test func check_currentEqualsMin_emitsOk() async {
         let service = StubAppVersionService(response: .makeFixture(iosMin: "1.0.1"))
         let store = AppVersionStore(service: service, currentVersion: "1.0.1")
+        #expect(!store.allowsLowerPriorityPresentation)
 
         await store.check()
 
         #expect(store.status == .ok)
+        #expect(store.allowsLowerPriorityPresentation)
     }
 
     @Test func check_currentAboveMinNumerically_emitsOk() async {
@@ -96,6 +99,21 @@ struct AppVersionStoreTests {
         await rolledBackStore.check()
         #expect(rolledBackStore.status == .ok)
         #expect(flagsStore.lastPromptedVersion == "1.3.3")
+    }
+
+    @Test func lowerPriorityPresentation_waitsUntilOptionalUpdateIsDismissed() async {
+        let service = StubAppVersionService(response: .makeFixture(
+            iosMin: "1.0.0",
+            iosLatest: "1.3.2",
+            iosStoreURL: "https://apps.apple.com/app/id6758464920"
+        ))
+        let store = AppVersionStore(service: service, currentVersion: "1.3.1")
+
+        await store.check()
+        #expect(!store.allowsLowerPriorityPresentation)
+
+        store.dismissUpdateAvailable()
+        #expect(store.allowsLowerPriorityPresentation)
     }
 
     @Test("Minimum version keeps priority over the optional update")

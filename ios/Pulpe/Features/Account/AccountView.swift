@@ -8,6 +8,7 @@ struct AccountView: View {
     @State private var debugToggleTrigger = false
     @State private var showEditFirstName = false
     @State private var showFeedback = false
+    private let feedbackPromptPreferences = FeedbackPromptPreferences()
 
     var body: some View {
         NavigationStack {
@@ -45,7 +46,10 @@ struct AccountView: View {
                 EditFirstNameSheet(initialFirstName: appState.currentUser?.firstName)
             }
             .sheet(isPresented: $showFeedback) {
-                FeedbackSheet()
+                FeedbackSheet {
+                    guard let userID = appState.currentUser?.id else { return }
+                    feedbackPromptPreferences.markAutomaticPromptHandled(for: userID)
+                }
             }
         }
     }

@@ -24,6 +24,10 @@ final class AppVersionStore {
 
     private(set) var status: Status = .unknown
 
+    var allowsLowerPriorityPresentation: Bool {
+        status == .ok
+    }
+
     private let service: AppVersionServiceProtocol
     private let flagsStore: AppUpdateFlagsStoring
     private let currentVersion: String
