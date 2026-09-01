@@ -155,6 +155,7 @@ extension AccountView {
             ) {
                 showFeedback = true
             }
+            .accessibilityIdentifier("openFeedback")
 
             iconChevronLink(
                 icon: "sparkles",
@@ -361,7 +362,6 @@ extension AccountView {
         .plainPressedButtonStyle()
         .accessibilityLabel(title)
         .accessibilityHint(subtitle)
-        .accessibilityIdentifier("openFeedback")
     }
 }
 
