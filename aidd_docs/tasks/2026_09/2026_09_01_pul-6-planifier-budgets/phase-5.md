@@ -1,5 +1,5 @@
 ---
-status: completed
+status: done
 ---
 
 # Instruction: Ajouter la planification à la liste Android

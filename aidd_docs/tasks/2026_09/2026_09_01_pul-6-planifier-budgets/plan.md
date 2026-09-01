@@ -1,6 +1,6 @@
 ---
 objective: "Un utilisateur peut planifier jusqu'à 36 budgets consécutifs depuis un Mois Type sur le Web, iOS et Android, avec une création atomique et un résultat distinguant les mois créés des mois déjà existants."
-status: in-progress
+status: implemented
 ---
 
 # Plan: PUL-6 — Planifier une période de budgets
