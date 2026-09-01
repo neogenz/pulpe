@@ -21,6 +21,11 @@ export interface BudgetDataForRecalc {
   }[];
 }
 
+export interface GenerateBudgetsAtomicallyResult {
+  createdBudgetIds: string[];
+  skippedMonths: { month: number; year: number }[];
+}
+
 export interface BudgetRepositoryPort {
   hasAnyBudget(): Promise<boolean>;
   fetchAllBudgets(): Promise<Budget[]>;
@@ -88,6 +93,12 @@ export interface BudgetRepositoryPort {
     budget_lines_created: number;
     template_name: string;
   }>;
+
+  generateBudgetsFromTemplateAtomically(input: {
+    userId: string;
+    templateId: string;
+    targetMonths: { month: number; year: number }[];
+  }): Promise<GenerateBudgetsAtomicallyResult>;
 
   /**
    * Persist the recomputed ending balance. Accepts a plain number; repo encrypts

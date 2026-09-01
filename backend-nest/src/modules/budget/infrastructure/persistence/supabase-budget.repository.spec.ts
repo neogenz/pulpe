@@ -357,12 +357,12 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     query.eq.mockReturnValue(query);
 
     const client = {
-      from: (table: string) => {
+      from: jest.fn((table: string) => {
         if (table !== 'savings_goal') {
           throw new Error(`unexpected table: ${table}`);
         }
         return { select: () => query };
-      },
+      }),
       auth: { getUser },
       rpc,
     } as unknown as AuthenticatedSupabaseClient;
@@ -549,6 +549,88 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
         p_month: 11,
         p_year: 2026,
       }),
+    );
+  });
+
+  it('loads goal horizons once and sends payDay-aware exclusions for every target period', async () => {
+    const rpc = jest.fn().mockResolvedValue({
+      data: {
+        created_budget_ids: [BUDGET_UUID],
+        skipped_months: [{ month: 11, year: 2026 }],
+      },
+      error: null,
+    });
+    const provider = generationProvider(
+      [
+        {
+          id: OVERDUE_GOAL_UUID,
+          created_at: '2026-01-01T00:00:00Z',
+          start_date: null,
+          target_date: '2026-10-12',
+        },
+        {
+          id: ON_TIME_GOAL_UUID,
+          created_at: '2026-01-01T00:00:00Z',
+          start_date: '2026-11-01',
+          target_date: null,
+        },
+      ],
+      27,
+      rpc,
+    );
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    const result = await repo.generateBudgetsFromTemplateAtomically({
+      userId: USER_UUID,
+      templateId: TEMPLATE_UUID,
+      targetMonths: [
+        { month: 10, year: 2026 },
+        { month: 11, year: 2026 },
+      ],
+    });
+
+    expect(provider.client.from).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith('generate_budgets_from_template', {
+      p_user_id: USER_UUID,
+      p_template_id: TEMPLATE_UUID,
+      p_start_month: 10,
+      p_start_year: 2026,
+      p_count: 2,
+      p_excluded_savings_goal_ids_by_period: {
+        '10/2026': [ON_TIME_GOAL_UUID],
+        '11/2026': [OVERDUE_GOAL_UUID],
+      },
+    });
+    expect(result).toEqual({
+      createdBudgetIds: [BUDGET_UUID],
+      skippedMonths: [{ month: 11, year: 2026 }],
+    });
+  });
+
+  it('rejects a malformed atomic generation response', async () => {
+    const rpc = jest.fn().mockResolvedValue({
+      data: { created_budget_ids: [BUDGET_UUID] },
+      error: null,
+    });
+    const repo = new SupabaseBudgetRepository(
+      generationProvider([], null, rpc),
+      createMockEncryption(),
+    );
+
+    let caught: unknown;
+    try {
+      await repo.generateBudgetsFromTemplateAtomically({
+        userId: USER_UUID,
+        templateId: TEMPLATE_UUID,
+        targetMonths: [{ month: 10, year: 2026 }],
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).code).toBe(
+      ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED.code,
     );
   });
 

@@ -896,6 +896,17 @@ export type Database = {
         Args: { p_expected_revision: number; p_transaction_id: string };
         Returns: undefined;
       };
+      generate_budgets_from_template: {
+        Args: {
+          p_count?: number;
+          p_excluded_savings_goal_ids_by_period?: Json;
+          p_start_month: number;
+          p_start_year: number;
+          p_template_id: string;
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
       get_savings_goal_deletion_impact: {
         Args: { p_goal_id: string };
         Returns: Json;

@@ -52,23 +52,19 @@ export class GenerateBudgetsUseCase {
       'Starting budget generation',
     );
 
-    const existingPeriods = await this.repo.getExistingPeriods(
-      user.id,
-      targetMonths,
-    );
-
-    const createdBudgetIds: string[] = [];
-    const skippedMonths: { month: number; year: number }[] = [];
+    let createdBudgetIds: string[] = [];
+    let skippedMonths: { month: number; year: number }[] = [];
 
     try {
-      for (const target of targetMonths) {
-        if (existingPeriods.has(`${target.month}/${target.year}`)) {
-          skippedMonths.push(target);
-          continue;
-        }
+      const generated = await this.repo.generateBudgetsFromTemplateAtomically({
+        userId: user.id,
+        templateId: dto.templateId,
+        targetMonths,
+      });
+      createdBudgetIds = generated.createdBudgetIds;
+      skippedMonths = generated.skippedMonths;
 
-        const budgetId = await this.tryCreateSingleBudget(target, dto, user);
-        createdBudgetIds.push(budgetId);
+      for (const budgetId of createdBudgetIds) {
         await this.budgetRecalculation.recalculate(budgetId);
       }
     } catch (error) {
@@ -103,33 +99,6 @@ export class GenerateBudgetsUseCase {
     );
 
     return { budgets: createdBudgets, skippedMonths };
-  }
-
-  private async tryCreateSingleBudget(
-    target: { month: number; year: number },
-    dto: BudgetGenerate,
-    user: AuthenticatedUser,
-  ): Promise<string> {
-    try {
-      const result = await this.repo.createBudgetFromTemplateRpc({
-        p_user_id: user.id,
-        p_template_id: dto.templateId,
-        p_month: target.month,
-        p_year: target.year,
-        p_description: `Budget ${target.month}/${target.year}`,
-      });
-      return result.budget.id;
-    } catch (error) {
-      if (error instanceof BusinessException) {
-        throw error;
-      }
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
-        undefined,
-        { userId: user.id, templateId: dto.templateId },
-        { cause: error },
-      );
-    }
   }
 
   private async rollbackCreatedBudgets(

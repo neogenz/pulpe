@@ -35,13 +35,17 @@ import type {
 import type {
   BudgetDataForRecalc,
   BudgetRepositoryPort,
+  GenerateBudgetsAtomicallyResult,
 } from '../../domain/ports/budget-repository.port';
 import type { HistoryMonth } from '../../domain/drift-history';
 import type {
   MaterializedBudgetPeriod,
   SavingsGoalHorizonPort,
 } from '../../domain/ports/savings-goal-horizon.port';
-import { validateCreateBudgetResponse } from '../../schemas/rpc-responses.schema';
+import {
+  validateCreateBudgetResponse,
+  validateGenerateBudgetsResponse,
+} from '../../schemas/rpc-responses.schema';
 
 export type { BudgetAggregates };
 
@@ -519,23 +523,84 @@ export class SupabaseBudgetRepository
     }
   }
 
+  async generateBudgetsFromTemplateAtomically(input: {
+    userId: string;
+    templateId: string;
+    targetMonths: { month: number; year: number }[];
+  }): Promise<GenerateBudgetsAtomicallyResult> {
+    const first = input.targetMonths[0];
+    if (!first) return { createdBudgetIds: [], skippedMonths: [] };
+
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase.rpc(
+      'generate_budgets_from_template',
+      {
+        p_user_id: input.userId,
+        p_template_id: input.templateId,
+        p_start_month: first.month,
+        p_start_year: first.year,
+        p_count: input.targetMonths.length,
+        p_excluded_savings_goal_ids_by_period:
+          await this.goalIdsExcludedByPeriod(input.targetMonths),
+      },
+    );
+
+    if (error) throw error;
+
+    try {
+      const result = validateGenerateBudgetsResponse(data);
+      return {
+        createdBudgetIds: result.created_budget_ids,
+        skippedMonths: result.skipped_months,
+      };
+    } catch (err) {
+      if (err instanceof ZodError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
+          { reason: 'Invalid result structure from RPC' },
+          {
+            operation: 'generateBudgetsFromTemplateAtomically',
+            validationErrors: err.issues,
+          },
+          { cause: err },
+        );
+      }
+      throw err;
+    }
+  }
+
   async goalIdsExcludedFromPeriod(period: BudgetPeriod): Promise<string[]> {
+    const exclusions = await this.goalIdsExcludedByPeriod([period]);
+    return exclusions[`${period.month}/${period.year}`] ?? [];
+  }
+
+  private async goalIdsExcludedByPeriod(
+    periods: BudgetPeriod[],
+  ): Promise<Record<string, string[]>> {
     const goals = await this.fetchGoalHorizons();
     const payDayOfMonth = this.supabaseProvider.user.payDayOfMonth ?? null;
-    const budgetPeriodIndex = periodIndex(period);
-    return goals
-      .filter(
-        (goal) =>
-          budgetPeriodIndex < this.goalStartPeriodIndex(goal, payDayOfMonth) ||
-          (goal.target_date != null &&
-            periodIndex(
-              getBudgetPeriodForDate(
-                parseIsoDateLocal(goal.target_date),
-                payDayOfMonth,
-              ),
-            ) < budgetPeriodIndex),
-      )
-      .map((goal) => goal.id);
+    return Object.fromEntries(
+      periods.map((period) => {
+        const budgetPeriodIndex = periodIndex(period);
+        return [
+          `${period.month}/${period.year}`,
+          goals
+            .filter(
+              (goal) =>
+                budgetPeriodIndex <
+                  this.goalStartPeriodIndex(goal, payDayOfMonth) ||
+                (goal.target_date != null &&
+                  periodIndex(
+                    getBudgetPeriodForDate(
+                      parseIsoDateLocal(goal.target_date),
+                      payDayOfMonth,
+                    ),
+                  ) < budgetPeriodIndex),
+            )
+            .map((goal) => goal.id),
+        ];
+      }),
+    );
   }
 
   async periodsOutsideInterval(
