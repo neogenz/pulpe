@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Offrir le formulaire rapide depuis le menu Compte

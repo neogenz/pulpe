@@ -6,9 +6,56 @@ import SwiftUI
 /// `itemLabel` must return plain `Text` (emoji allowed): `UISegmentedControl`
 /// flattens anything richer into extra segments.
 struct SegmentedPicker<T: CaseIterable & Hashable>: View where T.AllCases: RandomAccessCollection {
-    @Binding var selection: T
+    private enum Selection {
+        case required(Binding<T>)
+        case optional(Binding<T?>)
+    }
+
+    private let selection: Selection
     let title: String?
     let itemLabel: (T) -> Text
+    let itemAccessibilityLabel: ((T) -> String)?
+
+    init(
+        selection: Binding<T>,
+        title: String?,
+        itemAccessibilityLabel: ((T) -> String)? = nil,
+        itemLabel: @escaping (T) -> Text
+    ) {
+        self.selection = .required(selection)
+        self.title = title
+        self.itemLabel = itemLabel
+        self.itemAccessibilityLabel = itemAccessibilityLabel
+    }
+
+    /// Optional selection keeps a required choice visibly undecided until the
+    /// person taps a segment. Existing non-optional call sites keep their binding.
+    init(
+        selection: Binding<T?>,
+        title: String?,
+        itemAccessibilityLabel: ((T) -> String)? = nil,
+        itemLabel: @escaping (T) -> Text
+    ) {
+        self.selection = .optional(selection)
+        self.title = title
+        self.itemLabel = itemLabel
+        self.itemAccessibilityLabel = itemAccessibilityLabel
+    }
+
+    private var optionalSelection: Binding<T?> {
+        switch selection {
+        case .required(let binding):
+            Binding(
+                get: { binding.wrappedValue },
+                set: { newValue in
+                    guard let newValue else { return }
+                    binding.wrappedValue = newValue
+                }
+            )
+        case .optional(let binding):
+            binding
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -21,13 +68,19 @@ struct SegmentedPicker<T: CaseIterable & Hashable>: View where T.AllCases: Rando
                     .accessibilityHidden(true)
             }
 
-            Picker(title ?? "", selection: $selection) {
+            Picker(title ?? "", selection: optionalSelection) {
                 ForEach(T.allCases, id: \.self) { item in
-                    itemLabel(item).tag(item)
+                    if let itemAccessibilityLabel {
+                        itemLabel(item)
+                            .tag(Optional(item))
+                            .accessibilityLabel(itemAccessibilityLabel(item))
+                    } else {
+                        itemLabel(item).tag(Optional(item))
+                    }
                 }
             }
             .pickerStyle(.segmented)
-            .sensoryFeedback(.selection, trigger: selection)
+            .sensoryFeedback(.selection, trigger: optionalSelection.wrappedValue)
         }
     }
 }

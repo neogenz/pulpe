@@ -30015,6 +30015,160 @@
         }
       }
     },
+    "À améliorer" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ausbaufähig" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Needs improvement" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Da migliorare" } }
+      }
+    },
+    "Autre" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sonstiges" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Other" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Altro" } }
+      }
+    },
+    "Bien" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gut" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Good" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Bene" } }
+      }
+    },
+    "Bien démarrer" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gut starten" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Getting started" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Iniziare bene" } }
+      }
+    },
+    "Budget du mois" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Monatsbudget" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "This month's budget" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Budget del mese" } }
+      }
+    },
+    "Comment ça se passe avec Pulpe ?" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wie läuft es mit Pulpe?" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "How is it going with Pulpe?" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Come ti trovi con Pulpe?" } }
+      }
+    },
+    "Commentaire facultatif" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Optionaler Kommentar" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Optional comment" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Commento facoltativo" } }
+      }
+    },
+    "Comprendre mon budget" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Budget verstehen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Understanding my budget" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Capire il mio budget" } }
+      }
+    },
+    "Correct" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Okay" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Okay" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Discreto" } }
+      }
+    },
+    "Difficile" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Schwierig" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Difficult" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Difficile" } }
+      }
+    },
+    "Donner mon avis" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feedback geben" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Give feedback" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Lascia un'opinione" } }
+      }
+    },
+    "Envoyer" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Senden" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Invia" } }
+      }
+    },
+    "Écran d'accueil" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Startseite" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home screen" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Schermata iniziale" } }
+      }
+    },
+    "Merci. Ton avis fait progresser Pulpe." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Danke. Dein Feedback bringt Pulpe weiter." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Thanks. Your feedback helps Pulpe improve." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Grazie. La tua opinione aiuta Pulpe a migliorare." } }
+      }
+    },
+    "Mois à venir" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kommende Monate" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Coming months" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Mesi futuri" } }
+      }
+    },
+    "Partage une impression en 30 secondes" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Teile deinen Eindruck in 30 Sekunden" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Share an impression in 30 seconds" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Condividi un'impressione in 30 secondi" } }
+      }
+    },
+    "Préciser mon avis" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feedback ergänzen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add details" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Aggiungi dettagli" } }
+      }
+    },
+    "Ton avis n'est pas parti. Réessaie." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Feedback wurde nicht gesendet. Versuch es noch einmal." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your feedback wasn't sent. Try again." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "La tua opinione non è stata inviata. Riprova." } }
+      }
+    },
+    "Ton avis reste privé. Il n'est pas publié sur l'App Store." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Feedback bleibt privat. Es wird nicht im App Store veröffentlicht." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your feedback stays private. It isn't published on the App Store." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "La tua opinione resta privata. Non viene pubblicata sull'App Store." } }
+      }
+    },
+    "Ton avis sur Pulpe" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Feedback zu Pulpe" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your feedback on Pulpe" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "La tua opinione su Pulpe" } }
+      }
+    },
+    "Très bien" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sehr gut" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Very good" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Molto bene" } }
+      }
+    },
+    "Un commentaire à ajouter ?" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Möchtest du etwas ergänzen?" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Anything you'd like to add?" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Vuoi aggiungere un commento?" } }
+      }
+    },
     "≈ %@/mois · %lld mois" : {
       "localizations" : {
         "de" : {
