@@ -55,7 +55,7 @@ struct MaintenanceView: View {
         errorMessage = nil
 
         do {
-            let stillInMaintenance = try await appState.maintenanceChecking()
+            let stillInMaintenance = try await MaintenanceService.shared.checkStatus()
             if !stillInMaintenance {
                 appState.setMaintenanceMode(false)
             } else {

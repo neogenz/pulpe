@@ -70,6 +70,14 @@ final class SessionLifecycleCoordinator {
         isRestoringSession = false
     }
 
+    /// Consumes the background timestamp without attempting an unlock, for a resume that
+    /// routes elsewhere before reaching `handleEnterForeground` (PUL-337, maintenance).
+    /// Leaving it set would re-lock on the next `.inactive` → `.active` bounce, which never
+    /// calls `handleEnterBackground` and so never refreshes the date.
+    func clearBackgroundDate() {
+        backgroundDate = nil
+    }
+
     // MARK: - Foreground
 
     /// Handles foreground entry after grace period: clears background date,

@@ -31,6 +31,10 @@ extension AppState {
         if sessionLifecycleCoordinator.backgroundLockApplies(authState: authState),
            await probeMaintenanceFailingOpen() {
             guard !Task.isCancelled else { return }
+            // This resume never reaches `handleEnterForeground`, the only other consumer of the
+            // background timestamp, so consume it here: a leftover date re-locks on the next
+            // `.inactive` → `.active` bounce once maintenance lifts and the user has unlocked.
+            sessionLifecycleCoordinator.clearBackgroundDate()
             // `.needsPinEntry` first: the reducer promotes maintenance from `.locked`, never
             // from `.authenticated`. No await separates the two, so the PIN screen never renders.
             authState = .needsPinEntry

@@ -56,6 +56,21 @@ struct AppStateMaintenanceForegroundTests {
         #expect(sut.flowState == .maintenance)
     }
 
+    /// The maintenance resume returns before `handleEnterForeground`, the only other consumer
+    /// of the background timestamp. A leftover date re-locks on the next `.inactive` →
+    /// `.active` bounce, which never calls `handleEnterBackground` and so never refreshes it.
+    @Test("Resume under maintenance consumes the background timestamp")
+    func resume_whenServerInMaintenance_consumesBackgroundDate() async {
+        let sut = await makeLockedSUT(maintenanceChecking: { true })
+
+        await sut.handleEnterForeground()
+        let locksAgain = sut.sessionLifecycleCoordinator.backgroundLockApplies(
+            authState: .authenticated
+        )
+
+        #expect(locksAgain == false, "A stale background date would re-lock an unlocked user")
+    }
+
     @Test("Resume under maintenance never prompts Face ID")
     func resume_whenServerInMaintenance_skipsBiometricUnlock() async {
         nonisolated(unsafe) var resolveCalls = 0
