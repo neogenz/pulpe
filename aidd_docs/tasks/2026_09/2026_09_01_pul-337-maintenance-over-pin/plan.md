@@ -1,6 +1,6 @@
 ---
 objective: "Une indisponibilité serveur typée MAINTENANCE conduit toujours l'utilisateur iOS vers l'écran « Maintenance en cours », jamais vers un message de code PIN incorrect, et le réessai le ramène au bon écran d'authentification."
-status: implemented
+status: reviewed
 ---
 
 # Plan: PUL-337 — Afficher la maintenance au lieu d'invalider le PIN sur iOS
