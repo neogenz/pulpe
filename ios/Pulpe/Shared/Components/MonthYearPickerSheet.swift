@@ -1,13 +1,12 @@
 import SwiftUI
 
-/// Wheel month + year picker presented as a sheet from a `De`/`À` row.
-/// Owns its dismiss; reports the chosen month through `onSelect`.
-struct SpreadMonthPickerSheet: View {
+/// Wheel month + year picker presented from a `De`/`À` row.
+struct MonthYearPickerSheet: View {
     let title: String
-    let initial: SpreadMonth
+    let initial: BudgetPeriod
     let yearRange: ClosedRange<Int>
     let accentColor: Color
-    let onSelect: (SpreadMonth) -> Void
+    let onSelect: (BudgetPeriod) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var month: Int
@@ -15,10 +14,10 @@ struct SpreadMonthPickerSheet: View {
 
     init(
         title: String,
-        initial: SpreadMonth,
+        initial: BudgetPeriod,
         yearRange: ClosedRange<Int>,
         accentColor: Color = .pulpePrimary,
-        onSelect: @escaping (SpreadMonth) -> Void
+        onSelect: @escaping (BudgetPeriod) -> Void
     ) {
         self.title = title
         self.initial = initial
@@ -57,7 +56,7 @@ struct SpreadMonthPickerSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("OK") {
-                        onSelect(SpreadMonth(year: year, month: month))
+                        onSelect(BudgetPeriod(month: month, year: year))
                         dismiss()
                     }
                     .fontWeight(.semibold)
@@ -70,9 +69,9 @@ struct SpreadMonthPickerSheet: View {
 }
 
 #Preview {
-    SpreadMonthPickerSheet(
+    MonthYearPickerSheet(
         title: "Premier mois",
-        initial: SpreadMonth(year: 2026, month: 6),
+        initial: BudgetPeriod(month: 6, year: 2026),
         yearRange: 2026...2029
     ) { _ in }
 }

@@ -66,6 +66,23 @@ struct BudgetUpdate: Encodable {
     var year: Int?
 }
 
+struct BudgetGenerate: Encodable, Sendable {
+    let templateId: String
+    let startMonth: Int
+    let startYear: Int
+    let count: Int
+}
+
+struct BudgetGenerateResponse: Decodable, Sendable {
+    let budgets: [Budget]
+    let skippedMonths: [BudgetGenerateSkippedPeriod]
+}
+
+struct BudgetGenerateSkippedPeriod: Decodable, Equatable, Sendable {
+    let month: Int
+    let year: Int
+}
+
 // MARK: - Response Types
 
 struct BudgetDetailsResponse: Decodable {

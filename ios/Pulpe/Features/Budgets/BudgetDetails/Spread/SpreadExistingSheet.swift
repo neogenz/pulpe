@@ -74,12 +74,12 @@ struct SpreadExistingSheet: View {
             // matters: a bare spinner on a multi-month fan-out reads as frozen.
             .loadingOverlay(isSubmitting, message: AppLocale.string("Lissage en cours…"))
             .sheet(isPresented: $isPickingEnd) {
-                SpreadMonthPickerSheet(
+                MonthYearPickerSheet(
                     title: AppLocale.string("Dernier mois"),
-                    initial: calculator.end,
+                    initial: BudgetPeriod(month: calculator.end.month, year: calculator.end.year),
                     yearRange: yearRange,
                     accentColor: accentColor
-                ) { calculator.setEnd($0) }
+                ) { calculator.setEnd(SpreadMonth(year: $0.year, month: $0.month)) }
             }
         }
         .standardSheetPresentation(detents: [.medium, .large])

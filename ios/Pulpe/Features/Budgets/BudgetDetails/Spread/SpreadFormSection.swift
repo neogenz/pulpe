@@ -182,19 +182,19 @@ struct SpreadFormSection: View {
     private func pickerSheet(for picker: SpreadPicker) -> some View {
         switch picker {
         case .start:
-            SpreadMonthPickerSheet(
+            MonthYearPickerSheet(
                 title: AppLocale.string("Premier mois"),
-                initial: calculator.start,
+                initial: BudgetPeriod(month: calculator.start.month, year: calculator.start.year),
                 yearRange: yearRange,
                 accentColor: accentColor
-            ) { calculator.setStart($0) }
+            ) { calculator.setStart(SpreadMonth(year: $0.year, month: $0.month)) }
         case .end:
-            SpreadMonthPickerSheet(
+            MonthYearPickerSheet(
                 title: AppLocale.string("Dernier mois"),
-                initial: calculator.end,
+                initial: BudgetPeriod(month: calculator.end.month, year: calculator.end.year),
                 yearRange: yearRange,
                 accentColor: accentColor
-            ) { calculator.setEnd($0) }
+            ) { calculator.setEnd(SpreadMonth(year: $0.year, month: $0.month)) }
         }
     }
 }

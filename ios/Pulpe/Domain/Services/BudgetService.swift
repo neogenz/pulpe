@@ -20,7 +20,7 @@ actor BudgetService: BudgetServicing {
 
     private let apiClient: APIClient
 
-    private init(apiClient: APIClient = .shared) {
+    init(apiClient: APIClient = .shared) {
         self.apiClient = apiClient
     }
 
@@ -48,6 +48,10 @@ actor BudgetService: BudgetServicing {
     /// Create a new budget from a template
     func createBudget(_ data: BudgetCreate) async throws -> Budget {
         try await apiClient.request(.budgets, body: data, method: .post)
+    }
+
+    func generateBudgets(_ data: BudgetGenerate) async throws -> BudgetGenerateResponse {
+        try await apiClient.request(.budgetsGenerate, body: data, method: .post)
     }
 
     /// Update an existing budget
