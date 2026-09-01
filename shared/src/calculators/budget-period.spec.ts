@@ -17,6 +17,8 @@ import {
   getBudgetPeriodDates,
   formatBudgetPeriod,
   compareBudgetPeriods,
+  periodFromIndex,
+  periodIndex,
   type BudgetPeriod,
 } from './budget-period.js';
 
@@ -452,5 +454,24 @@ describe('compareBudgetPeriods', () => {
     const b: BudgetPeriod = { month: 12, year: 2025 };
 
     expect(compareBudgetPeriods(a, b)).toBe(1);
+  });
+});
+
+describe('period index conversions', () => {
+  it.each([
+    { month: 1, year: 2025 },
+    { month: 12, year: 2025 },
+    { month: 1, year: 2026 },
+    { month: 6, year: 2031 },
+  ] satisfies BudgetPeriod[])('round-trips $month/$year', (period) => {
+    expect(periodFromIndex(periodIndex(period))).toEqual(period);
+  });
+
+  it('computes an inclusive count across year boundaries', () => {
+    const start = periodIndex({ month: 12, year: 2025 });
+    const end = periodIndex({ month: 11, year: 2026 });
+
+    expect(periodFromIndex(start + 1)).toEqual({ month: 1, year: 2026 });
+    expect(end - start + 1).toBe(12);
   });
 });
