@@ -1,5 +1,5 @@
 ---
-status: blocked
+status: in-progress
 ---
 
 # Public agent discoverability verification
@@ -100,14 +100,11 @@ priority URL. The non-indexed states are discovery or provider-processing
 states, not a repository-controlled robots, canonical, fetch, or response
 defect.
 
-## Manual submission guard
+## Manual indexing submissions
 
-No manual indexing request was submitted. `/about` and the three Bing guides
-are already discovered; Bing's imported sitemap is still processing. Only
-Google `/privacy` and `/conseils-budget` remain eligible for an immediate manual
-request, which requires explicit owner approval before external submission.
-
-Phase 2 was not started because it changes third-party state and requires
-explicit approval of each submission. Phase 3 was not started because its
-comparable follow-up observation is due 30 days after the approved citation
-work.
+At 2026-09-01 13:25 CEST, the owner authorized both eligible Google requests.
+Search Console acknowledged `Indexation demandée` for `/privacy` and
+`/conseils-budget` and added each canonical URL to its priority crawl queue.
+No request was sent for `/about`, which Google had already discovered, or to
+Bing while the imported sitemap is processing. Google notes that repeated
+submission does not improve queue priority.

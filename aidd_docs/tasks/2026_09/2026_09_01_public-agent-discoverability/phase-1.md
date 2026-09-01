@@ -1,16 +1,8 @@
 ---
-status: blocked
+status: done
 ---
 
 # Instruction: prove crawlability and index coverage
-
-## Blocker
-
-All public, repository, Vercel, Google, and Bing read-only checks pass or have
-an explicit provider state. Google manual indexing remains eligible for
-`/privacy` and `/conseils-budget`; submitting those requests needs explicit
-owner approval. Bing's imported sitemap is still processing, so its eligible
-URLs must not receive duplicate requests yet. Later phases were not started.
 
 ## Architecture projection
 

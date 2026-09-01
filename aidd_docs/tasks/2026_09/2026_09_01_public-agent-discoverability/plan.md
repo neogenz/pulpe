@@ -1,17 +1,9 @@
 ---
 objective: "Pulpe's public site has verified Google, Bing, and ChatGPT-search discovery, consistent independent citations, and a repeatable measure of whether assistants recommend it for its real use cases."
-status: blocked
+status: in-progress
 ---
 
 # Plan: improve public discovery and recommendation by AI assistants
-
-## Blocker
-
-Dashboard access is resolved and every priority URL now has an explicit Google
-and Bing state. Completing phase 1 requires owner authorization for the two
-manual Google indexing requests that remain eligible. Bing's imported sitemap
-is processing, so no duplicate Bing request should be sent yet. See
-[`verification.md`](./verification.md) for the exact states.
 
 ## Overview
 
