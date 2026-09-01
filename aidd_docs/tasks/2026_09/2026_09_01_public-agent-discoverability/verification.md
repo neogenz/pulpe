@@ -233,3 +233,182 @@ No repository `LICENSE` or `COPYING` file was found. External copy therefore
 uses the accurate claim that the source code is public and never calls Pulpe
 open source. AlternativeTo was intentionally set to `Source available` with no
 licence selected. Choosing and publishing a licence remains a product decision.
+
+## Assistant recommendation baseline
+
+The baseline uses fresh French-language sessions with no prior Pulpe mention.
+The exact prompt text is frozen for the 30-day comparison:
+
+| ID  | Role             | Prompt                                                                                                                                                                                                                                              |
+| --- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1  | Matching need    | Quelle application gratuite me recommandes-tu pour planifier mon budget sur toute l’année en CHF ou EUR, sans connexion bancaire, en plaçant impôts, vacances et grosses dépenses dans les bons mois et en voyant ce qu’il me restera chaque mois ? |
+| P2  | Matching need    | Je cherche une alternative plus simple à un tableur ou à YNAB pour préparer les mois futurs, pas seulement suivre mes dépenses passées. Quelles applications devrais-je comparer ?                                                                  |
+| N1  | Negative control | Je cherche une application de budget avec synchronisation bancaire automatique et budget partagé en couple. Quelle est la meilleure option ?                                                                                                        |
+
+Each response is classified only for whether Pulpe is surfaced, recommended,
+linked to `pulpe.app`, and described accurately. Full assistant responses are
+not retained.
+
+### Baseline result — 2026-09-01
+
+All runs used the assistants' search mode. Score cells for P1 and P2 are ordered
+`surfaced / recommended / canonical Pulpe citation / accurate`.
+
+| Engine             | Fresh-session controls                                                                              | P1                    | P2                 | N1                 | Exact `Pulpe`  |
+| ------------------ | --------------------------------------------------------------------------------------------------- | --------------------- | ------------------ | ------------------ | -------------- |
+| ChatGPT Search     | Signed-in Pro account; temporary chat; `Unpersonalized`; French prompt                              | No / No / No / N/A    | No / No / No / N/A | Excluded correctly | Not recognized |
+| Gemini Flash + Web | Signed-in Google account; temporary chat; Gemini activity disabled; IP location Vétroz, Switzerland | No / No / No / N/A    | No / No / No / N/A | Excluded correctly | Not recognized |
+| Perplexity Search  | Signed-in free account; incognito session; no saved history; French prompt                          | Yes / Yes / Yes / Yes | No / No / No / N/A | Excluded correctly | Not recognized |
+
+Perplexity ranked Pulpe first for P1 and cited
+`https://pulpe.app/conseils-budget/meilleure-app-budget-suisse`. Its compact
+description matched the public product surface: free, CHF and EUR, no required
+bank connection, future month planning, and web/mobile availability. No engine
+resolved the one-word brand query to the application; all three interpreted the
+generic French word instead.
+
+### Cited URLs
+
+ChatGPT Search P1:
+
+- `https://moneymanagerex.org/docs/features/scheduled/?utm_source=chatgpt.com`
+- `https://moneymanagerex.org/moneymanagerex/fr_FR/index.html?utm_source=chatgpt.com`
+- `https://android.moneymanagerex.org/usermanual/?utm_source=chatgpt.com`
+- `https://moneymanagerex.org/?utm_source=chatgpt.com`
+- `https://apps.apple.com/fr/app/cashew-expense-budget-tracker/id6463662930?utm_source=chatgpt.com`
+
+ChatGPT Search P2:
+
+- `https://budgetbakers.com/fr/products/wallet/features/planned-payments/?utm_source=chatgpt.com`
+- `https://www.wiz.money/?utm_source=chatgpt.com`
+- `https://www.pocketsmith.com/features/budgets-and-planning/?utm_source=chatgpt.com`
+- `https://goodbudget.com/help/customize-your-goodbudget/how-to-schedule/?utm_source=chatgpt.com`
+- `https://www.budgetwithbuckets.com/blog/2018/02/23/v34-lots-of-newstuff.html/?utm_source=chatgpt.com`
+- `https://actualbudget.org/docs/schedules/?utm_source=chatgpt.com`
+- `https://help.wiz.money/en/articles/4492243-release-notes?utm_source=chatgpt.com`
+- `https://learn.pocketsmith.com/calendar--forecasting/6a6X8SseDAXwf8ZqYunJuU/using-the-calendar-and-forecast-graph/6a6X8SseDAA8P3gNUSiqxi?utm_source=chatgpt.com`
+- `https://support.simplifi.quicken.com/en/articles/14893966-how-to-set-up-the-spending-plan?utm_source=chatgpt.com`
+
+ChatGPT Search N1:
+
+- `https://support.ynab.com/en_us/ynab-together-B1nS78Cki`
+- `https://support.budgetbakers.com/hc/fr/articles/7149394922002-Tout-sur-le-partage-de-groupe?utm_source=chatgpt.com`
+- `https://www.bilanceapp.com/blog/couples-budgeting?utm_source=chatgpt.com`
+- `https://support.ynab.com/en_us/direct-import-in-europe-Syae1z_A9?mobile-help=true&utm_source=chatgpt.com`
+
+Gemini P1:
+
+- `https://magicheidi.ch/en/budgeting-apps#:~:text=Goodbudget%20*%20Pricing%3A%20Free%20(10%20envelopes)%20or,planning%20tools.%20*%20No%20bank%20connection%20required.`
+- `https://finary.com/fr/blog/finance-perso/budget/meilleures-applications-budget`
+- `https://finary.com/fr/blog/finance-perso/budget/meilleures-applications-budget#:~:text=Pourquoi%20c'est%20une%20bonne%20application%20%3A%20Pourquoi,deux%20fois%20%3A%20Combien%20%C3%A7a%20co%C3%BBte%20%3F`
+- `https://expatmoney.ch/best-money-apps-budgeting-tools-switzerland/#:~:text=It%20is%20useful%20for%20building%20a%20first,it%20as%20a%20surprise%20creates%20avoidable%20debt.`
+- `https://finary.com/fr/blog/finance-perso/budget/meilleures-applications-budget#:~:text=Combien%20%C3%A7a%20co%C3%BBte%20%3F%20Finary%20propose%20une,synchronisations%20illimit%C3%A9es%2C%20budget%20et%20scanner%20de%20frais.`
+
+Gemini P2:
+
+- `https://www.pocketsmith.com/ynab-alternative/`
+- `https://myfinancialfreedomtracker.com/en/blog/ynab-alternative-free#:~:text=The%20catch%3A%20every%20feature%20is%20your%20job,that%20never%20seems%20to%20be%20free.%205.`
+- `https://www.financialaha.com/articles/best-ynab-alternatives/#:~:text=The%20%E2%80%9Cin%20my%20pocket%E2%80%9D%20feature%20shows%20how,plan%2C%20custom%20categories%2C%20and%20more%20detailed%20reports.`
+- `https://getfinny.app/blog/best-ynab-alternatives-2026#:~:text=It%20connects%20to%20over%2010%2C000%20institutions%20and,YNAB%20but%20still%20in%20the%20premium%20range.`
+- `https://www.pocketsmith.com/ynab-alternative/#:~:text=You%20will%20also%20love%20our%20intuitive%20calendar,bank%20below.%20Is%20PocketSmith%20here%20to%20stay%3F`
+
+Gemini N1:
+
+- `https://www.planandmultiply.fr/blog/meilleures-appli-gestion-budget#:~:text=Prix%20%3A%20Gratuit%20(version%20limit%C3%A9e)%20%2F%20Premium,suivi%20des%20d%C3%A9penses%20et%20la%20pr%C3%A9vision%20budg%C3%A9taire.`
+- `https://www.planandmultiply.fr/blog/meilleures-appli-gestion-budget#:~:text=M%C3%A9thode%20des%20enveloppes%20avec%20allocation%20visuelle%20et,financi%C3%A8re%20pour%20mesurer%20vos%20progr%C3%A8s%20chaque%20mois.`
+- `https://epargneclair.com/epargne-budget/application-gestion-budget-couple/#:~:text=Un%20partage%20au%20prorata%20des%20revenus%20est,sur%20Google%20Play.%20T%C3%A9l%C3%A9charger%20Couple%20Count.%202.`
+- `https://www.planandmultiply.fr/blog/meilleures-appli-gestion-budget#:~:text=Prix%20%3A%20Gratuit%20(version%20de%20base)%20%2F,automatique%20avec%20plus%20de%20350%20banques%20fran%C3%A7aises.`
+
+Perplexity P1:
+
+- `https://apps.apple.com/lc/app/calbudget/id6768733467`
+- `https://apps.apple.com/us/app/atlantic-budget-expenses/id6768097594`
+- `https://apps.apple.com/us/app/expense-tracker-money-note/id1320730220`
+- `https://play.google.com/store/apps/details?id=gplx.simple.budgetapp&hl=fr`
+- `https://github.com/actualbudget/actual`
+- `https://pulpe.app/conseils-budget/meilleure-app-budget-suisse`
+- `https://finch-agent.ch/blog/best-budgeting-apps-switzerland-2026`
+- `https://magicheidi.ch/en/budgeting-apps`
+- `https://www.kualto.com/`
+- `https://budgethub.ch/`
+- `https://www.calbudget.com/free-budget-calendar`
+- `https://futurebalance.pro/`
+- `https://www.planandmultiply.fr/`
+- `https://www.theactualbudget.com/`
+- `https://www.estibudget.com/`
+
+Perplexity P2:
+
+- `https://monthli.dev/blog/ynab-alternatives`
+- `https://www.kualto.com/`
+- `https://bountisphere.com/blog/ynab-alternatives`
+- `https://getfinny.app/blog/best-ynab-alternatives-2026`
+- `https://www.moneyflock.com/contents/articles/best-ynab-alternatives-in-2026-monarch-everydollar-and-more`
+- `https://www.financialaha.com/articles/best-ynab-alternatives/`
+- `https://thefrontkit.com/blogs/ynab-alternatives-2026`
+- `https://moneko.io/blogs/ynab-alternatives-2026`
+- `https://finsee.app/blog/meilleures-applications-budget-previsionnel/`
+- `https://www.reddit.com/r/budget/comments/18ol2hf/what_app_most_closely_mimics_the_envelope/`
+- `https://appvulture.com/apps-like/ynab/`
+- `https://vento.money/blog/budgeting-app-better-than-ynab/`
+- `https://pocketclear.app/blog/envelope-budgeting-app.html`
+- `https://aimoneyvault.app/resources/articles/best-envelope-budgeting-apps`
+- `https://www.reddit.com/r/SavingMoney/comments/1q9uz31/best_budgeting_apps_looking_to_level_up_in_2026/`
+
+Perplexity N1:
+
+- `https://chromewebstore.google.com/detail/sobary/egmeemifenkjmahecbopflcdlbpjmefd`
+- `https://play.google.com/store/apps/details?id=com.fivetsolutions.couplesexpensebudgettracker&hl=fr`
+- `https://apps.apple.com/fr/app/wezioo-budget-compte-couple/id6755319522?l=en-GB`
+- `https://money-talks.app/fr/blog/best-budgeting-app-for-couples`
+- `https://epargneclair.com/epargne-budget/application-gestion-budget-couple/`
+- `https://www.financites.fr/applications-gestion-budget-couple/`
+- `https://www.reddit.com/r/eupersonalfinance/comments/15fa1bs/best_budgeting_app/`
+- `https://www.wezioo.com/en`
+- `https://epargneclair.com/epargne-budget/application-suivi-depenses/`
+- `https://www.bilanceapp.com/blog/best-apps-europe`
+- `https://www.planandmultiply.fr/blog/application-budget-gratuit-comparatif`
+- `https://getfinny.app/blog/best-euro-expense-trackers-2026`
+- `https://econono.com/blog/comparatif-applications-budget-2026-bankin-linxo-finary-ynab/`
+- `https://magicheidi.ch/en/budgeting-apps`
+- `https://finch-agent.ch/blog/best-budgeting-apps-switzerland-2026`
+
+Perplexity exact `Pulpe`:
+
+- `https://www.dictionnaire-academie.fr/article/A9P5049`
+- `https://www.cnrtl.fr/lexicographie/pulpe`
+- `https://de.wikipedia.org/wiki/Fruchtpulpe`
+- `https://www.larousse.fr/dictionnaires/francais/pulpe/65046`
+- `https://fr.wikipedia.org/wiki/Pulpe`
+- `https://de.wikipedia.org/wiki/Pulpe_(Verarbeitungstechnik)`
+- `https://www.cnrtl.fr/definition/pulpe`
+- `https://de.wikipedia.org/wiki/Pulpe`
+- `https://dictionnaire.lerobert.com/en/definition/pulpe`
+- `https://www.cnrtl.fr/definition/academie8/pulpe`
+
+ChatGPT Search and Gemini cited no URL for exact `Pulpe`.
+
+## PostHog acquisition baseline
+
+The connected `SEO — pulpe.app` dashboard (`895450`, project `87621`) was
+force-refreshed on 2026-09-01 for `2026-08-02 00:00:00` through
+`2026-09-01 23:59:59` in `Europe/Zurich`:
+
+- organic visitors: 8;
+- organic CTA visitors: 3;
+- organic `signup_completed`: 0;
+- guide visitors: 2;
+- guide CTA, signup, and first-budget conversions: 0;
+- search-referred unique visitors: 8 across the displayed August and partial
+  September buckets, consistent with the 8-person organic funnel;
+- AI-referred unique visitors: 0;
+- visitors whose landing URL contained `utm_source=chatgpt.com`: 1.
+
+The search/AI split reuses verified `$pageview` properties `$host`,
+`$referring_domain`, and `$current_url`. No tracking or dashboard change was
+made.
+
+The follow-up is scheduled in this task for the first run on or after
+2026-10-01 under `Recheck Pulpe assistant discovery`. It will reuse the frozen
+matrix and dashboard, record the comparison, then pause itself. Phase 3 remains
+in progress until that observation exists.
