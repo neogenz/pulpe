@@ -8,7 +8,7 @@ enum AppFlowReducer {
     /// Computes the next state given the current state and an event.
     /// Returns `nil` if the event is not valid for the current state (no-op).
     static func reduce(state: AppFlowState, event: AppFlowEvent) -> AppFlowState? {
-        if let globalTransition = reduceGlobal(event: event) {
+        if let globalTransition = reduceGlobal(state: state, event: event) {
             return globalTransition
         }
 
@@ -34,19 +34,31 @@ enum AppFlowReducer {
 
     // MARK: - Helpers
 
-    private static func reduceGlobal(event: AppFlowEvent) -> AppFlowState? {
+    private static func reduceGlobal(state: AppFlowState, event: AppFlowEvent) -> AppFlowState? {
         switch event {
         case .sessionExpired, .logoutCompleted:
             return .unauthenticated
+        case .maintenanceChecked(true):
+            return maintenanceTransition(from: state)
         default:
+            return nil
+        }
+    }
+
+    /// Maintenance outranks every authentication and unlock screen (PUL-337). Handled here
+    /// rather than per state: a `reduce*` that omits the case swallows the event silently.
+    /// `.authenticated` is excluded — a 503 mid-session must not eject the user.
+    private static func maintenanceTransition(from state: AppFlowState) -> AppFlowState? {
+        switch state {
+        case .initializing, .unauthenticated, .securitySetup, .locked, .recovering:
+            return .maintenance
+        case .maintenance, .networkUnavailable, .authenticated:
             return nil
         }
     }
 
     private static func reduceInitializing(event: AppFlowEvent) -> AppFlowState? {
         switch event {
-        case .maintenanceChecked(let isInMaintenance):
-            return isInMaintenance ? .maintenance : nil
         case .networkBecameUnavailable:
             return .networkUnavailable(retryable: true)
         case .startupTimedOut:

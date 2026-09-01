@@ -35,8 +35,17 @@ extension AppState {
             startBackgroundSessionRefresh()
             authDebug("AUTH_FG", "biometric unlock success, background refresh started")
         case .lockRequired, .staleKeyLockRequired:
-            authDebug("AUTH_FG", "lock required, setting needsPinEntry")
+            // PUL-337: under maintenance the PIN validation answers 503, which the PIN screen
+            // shows as a wrong code. Probe first — fail-open, so a failed probe still shows the
+            // PIN screen. `.needsPinEntry` is set before the event because the reducer promotes
+            // maintenance from `.locked`, never from `.authenticated`; no await separates the
+            // two, so the PIN screen never renders.
+            let maintenanceActive = await isMaintenanceActive()
+            authDebug("AUTH_FG", "lock required maintenance=\(maintenanceActive), setting needsPinEntry")
             authState = .needsPinEntry
+            if maintenanceActive {
+                send(.maintenanceChecked(isInMaintenance: true))
+            }
         }
     }
 

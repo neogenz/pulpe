@@ -20,6 +20,15 @@ extension AppState {
         }
     }
 
+    /// Fail-open maintenance probe for the foreground unlock path (PUL-337): any failure
+    /// answers `false` and leaves the caller on its usual route. Unlike
+    /// `checkMaintenanceStatus()`, it never assumes maintenance on error and never touches
+    /// `isNetworkUnavailable` — a transient 500 must not trap a returning user behind the
+    /// maintenance screen.
+    func isMaintenanceActive() async -> Bool {
+        (try? await maintenanceChecking()) ?? false
+    }
+
     func retryNetworkCheck() async {
         await retryStartup()
     }

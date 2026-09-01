@@ -48,6 +48,33 @@ struct AppFlowReducerTests {
         #expect(result == .initializing)
     }
 
+    // MARK: - Maintenance Priority (PUL-337)
+
+    @Test(
+        "maintenanceChecked(true) outranks every authentication and unlock screen",
+        arguments: [
+            AppFlowState.unauthenticated,
+            .securitySetup(.pinSetup),
+            .locked(.backgroundTimeout),
+            .recovering
+        ]
+    )
+    func authScreens_maintenanceTrue_transitionsToMaintenance(state: AppFlowState) {
+        let result = AppFlowReducer.reduce(
+            state: state,
+            event: .maintenanceChecked(isInMaintenance: true)
+        )
+        #expect(result == .maintenance)
+    }
+
+    @Test func authenticated_maintenanceTrue_staysAuthenticated() {
+        let result = AppFlowReducer.reduce(
+            state: .authenticated,
+            event: .maintenanceChecked(isInMaintenance: true)
+        )
+        #expect(result == nil) // A 503 mid-session must not eject the user
+    }
+
     // MARK: - Session Validation Transitions
 
     @Test func initializing_sessionValidated_authenticated_transitionsToAuthenticated() {
