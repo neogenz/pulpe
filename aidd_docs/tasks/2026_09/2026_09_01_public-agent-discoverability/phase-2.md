@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: earn consistent independent citations
@@ -9,6 +9,9 @@ status: pending
 > Tree of the final files. ✅ create · ✏️ modify · ❌ delete
 
 ```txt
+landing/
+├── components/guides/ArticleLayout.tsx       ✏️ link each article author to the existing About identity
+└── components/guides/ArticleLayout.test.tsx  ✏️ assert the author identity URL
 aidd_docs/tasks/2026_09/2026_09_01_public-agent-discoverability/
 └── verification.md  ✏️ authorized submissions, responses, and live canonical mentions
 ```
@@ -59,7 +62,14 @@ journey
 2. Use `https://pulpe.app` as the canonical domain and link to the relevant public page when a target accepts a deep link.
 3. Verify time-sensitive claims such as price, platforms, languages, and Android availability on the day of submission.
 
-### `3)` Activate the smallest useful external set
+### `3)` Complete the article author identity
+
+> Apply the one missing field supported by current first-party guidance.
+
+1. Add the canonical `/about` URL to the existing `Person` author in Article JSON-LD.
+2. Assert the author name, type, and URL without changing visible article content.
+
+### `4)` Activate the smallest useful external set
 
 > Prefer a few relevant sources to a broad low-quality campaign.
 
@@ -67,7 +77,7 @@ journey
 2. After separate approval of each final message, contact at most two editorial targets whose current audience matches annual budget planning in France or Switzerland.
 3. Use App Store and GitHub as corroborating first-party identities, not independent citations, then wait for responses before opening more channels.
 
-### `4)` Verify and record outcomes
+### `5)` Verify and record outcomes
 
 > Count only public, factual evidence.
 
@@ -80,5 +90,6 @@ journey
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | Every used target was revalidated immediately before action, and no duplicate outreach corpus was created.                              |
 | 2    | Every external description uses the canonical domain and only claims supported by the current product and public pages.                 |
-| 3    | Only the explicitly approved minimal set is contacted, with no prohibited community promotion or deferred Product Hunt launch.          |
-| 4    | Every submission and response is dated in `verification.md`; every live mention resolves to `pulpe.app` and describes Pulpe accurately. |
+| 3    | Every Article author identifies Maxime De Sogus with the canonical `https://pulpe.app/about` URL in JSON-LD.                            |
+| 4    | Only the explicitly approved minimal set is contacted, with no prohibited community promotion or deferred Product Hunt launch.          |
+| 5    | Every submission and response is dated in `verification.md`; every live mention resolves to `pulpe.app` and describes Pulpe accurately. |

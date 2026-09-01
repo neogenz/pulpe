@@ -127,6 +127,11 @@ describe("guide article layout contract", async () => {
     assert.equal(article.description, guide.description);
     assert.equal(article.datePublished, guide.publishedAt);
     assert.equal(article.dateModified, guide.updatedAt);
+    assert.deepEqual(article.author, {
+      "@type": "Person",
+      name: "Maxime De Sogus",
+      url: "https://pulpe.app/about",
+    });
     assert.deepEqual(article.publisher, {
       "@type": "Organization",
       "@id": "https://pulpe.app/#org",
