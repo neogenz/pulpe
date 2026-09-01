@@ -306,9 +306,31 @@
       "emptyTitle": "Nessun budget per ora",
       "loadErrorHint": "Controlla la connessione, poi riprova.",
       "loadErrorTitle": "Non è stato possibile caricare i tuoi budget",
+      "planAccessibility": "Pianifica più budget",
       "potential": "Potenziale",
       "result": "Risultato",
       "title": "Budget"
+    },
+    "plan": {
+      "default": "predefinito",
+      "error": "Non è stato possibile pianificare i budget. Riprova.",
+      "existingHint": "I budget esistenti verranno ignorati.",
+      "from": "Da",
+      "loadErrorHint": "Controlla la connessione e riprova.",
+      "loadErrorTitle": "Impossibile preparare la pianificazione",
+      "monthAccessibility": "Scegli il mese per %{field}",
+      "noTemplatesHint": "La pianificazione parte da un modello di budget. Creane prima uno.",
+      "noTemplatesTitle": "Nessun modello di budget",
+      "periodCount": "%{count} periodi",
+      "rangeLimitError": "Scegli al massimo 36 periodi.",
+      "rangeOrderError": "Il periodo finale deve seguire quello iniziale.",
+      "result": "%{createdCount} budget creati, %{skippedCount} budget esistenti ignorati",
+      "submit": "Pianifica",
+      "template": "Modello di budget",
+      "title": "Pianifica i budget",
+      "to": "A",
+      "viewTemplates": "Vedi i miei modelli di budget",
+      "yearAccessibility": "Scegli l'anno per %{field}"
     },
     "monthSubtitle": {
       "negative": {

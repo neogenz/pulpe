@@ -306,9 +306,31 @@
       "emptyTitle": "No budgets yet",
       "loadErrorHint": "Check your connection, then try again.",
       "loadErrorTitle": "We couldn't load your budgets",
+      "planAccessibility": "Plan multiple budgets",
       "potential": "Potential",
       "result": "Result",
       "title": "Budgets"
+    },
+    "plan": {
+      "default": "default",
+      "error": "The budgets couldn't be planned. Try again.",
+      "existingHint": "Existing budgets will be skipped.",
+      "from": "From",
+      "loadErrorHint": "Check your connection, then try again.",
+      "loadErrorTitle": "Unable to prepare budget planning",
+      "monthAccessibility": "Choose the month for %{field}",
+      "noTemplatesHint": "Planning starts from a budget template. Create one first.",
+      "noTemplatesTitle": "No budget template yet",
+      "periodCount": "%{count} periods",
+      "rangeLimitError": "Choose no more than 36 periods.",
+      "rangeOrderError": "The end period must follow the start period.",
+      "result": "%{createdCount} budgets created, %{skippedCount} existing budgets skipped",
+      "submit": "Plan",
+      "template": "Budget template",
+      "title": "Plan budgets",
+      "to": "To",
+      "viewTemplates": "View my budget templates",
+      "yearAccessibility": "Choose the year for %{field}"
     },
     "monthSubtitle": {
       "negative": {

@@ -10,6 +10,10 @@ const mockScrollToLocation = jest.fn();
 const mockInvalidateBudgets = jest.fn(async () => undefined);
 const mockRefetchStaleList = jest.fn(async () => undefined);
 const mockInvalidateSettings = jest.fn(async () => undefined);
+const mockGenerationResult: {
+  createdCount?: string;
+  skippedCount?: string;
+} = {};
 const mockBudgets = {
   data: [] as BudgetSparse[],
   isPending: false,
@@ -28,8 +32,9 @@ const mockSettings = {
 jest.mock("expo-router", () => {
   const React = jest.requireActual("react");
   return {
-    router: { push: jest.fn() },
+    router: { push: jest.fn(), setParams: jest.fn() },
     useFocusEffect: (effect: () => void) => React.useEffect(effect, [effect]),
+    useLocalSearchParams: () => mockGenerationResult,
   };
 });
 jest.mock("react-native-safe-area-context", () => ({
@@ -106,6 +111,17 @@ jest.mock("react-native-paper", () => {
     }: {
       accessibilityLabel: string;
     }) => <Text>{accessibilityLabel}</Text>,
+    Appbar: {
+      Action: ({
+        onPress,
+        accessibilityLabel,
+      }: {
+        onPress: () => void;
+        accessibilityLabel: string;
+      }) => (
+        <Pressable onPress={onPress} accessibilityLabel={accessibilityLabel} />
+      ),
+    },
     FAB: ({
       onPress,
       accessibilityLabel,
@@ -127,8 +143,40 @@ jest.mock("react-native-paper", () => {
   };
 });
 jest.mock("@/core/ui/tab-header", () => {
-  const { Text } = jest.requireActual("react-native");
-  return { TabHeader: ({ title }: { title: string }) => <Text>{title}</Text> };
+  const { Text, View } = jest.requireActual("react-native");
+  return {
+    TabHeader: ({
+      title,
+      trailing,
+    }: {
+      title: string;
+      trailing?: React.ReactNode;
+    }) => (
+      <View>
+        <Text>{title}</Text>
+        {trailing}
+      </View>
+    ),
+  };
+});
+jest.mock("@/core/ui/notice", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    Notice: ({
+      visible,
+      onDismiss,
+      children,
+    }: {
+      visible: boolean;
+      onDismiss: () => void;
+      children: React.ReactNode;
+    }) =>
+      visible ? (
+        <Pressable accessibilityLabel="dismiss-result" onPress={onDismiss}>
+          <Text>{children}</Text>
+        </Pressable>
+      ) : null,
+  };
 });
 jest.mock("@/core/ui/card", () => {
   const { Pressable, View } = jest.requireActual("react-native");
@@ -187,7 +235,13 @@ jest.mock("@/core/ui/date-format", () => ({
   formatMonthName: (month: number, year: number) => `month:${year}-${month}`,
 }));
 jest.mock("@/core/i18n/locale-store", () => ({
-  useTranslation: () => ({ locale: "fr", t: (key: string) => key }),
+  useTranslation: () => ({
+    locale: "fr",
+    t: (key: string, options?: Record<string, unknown>) =>
+      key === "budgets.plan.result"
+        ? `${String(options?.createdCount)}/${String(options?.skippedCount)}`
+        : key,
+  }),
 }));
 jest.mock("@/core/ui/theme", () => ({
   FAB_CLEARANCE: 80,
@@ -217,6 +271,8 @@ function budget(
 
 beforeEach(() => {
   jest.clearAllMocks();
+  delete mockGenerationResult.createdCount;
+  delete mockGenerationResult.skippedCount;
   Object.assign(mockBudgets, {
     data: [],
     isPending: false,
@@ -251,8 +307,26 @@ it("renders loading, retryable failure and empty creation states", async () => {
 
   mockBudgets.isError = false;
   await view.rerender(<BudgetsScreen />);
+  await fireEvent.press(view.getByLabelText("budgets.list.planAccessibility"));
+  expect(router.push).toHaveBeenCalledWith("/budget/plan");
   await fireEvent.press(view.getByText("budgets.list.create"));
   expect(router.push).toHaveBeenCalledWith("/budget/create");
+});
+
+it("announces zero creations and clears both navigation counters", async () => {
+  Object.assign(mockGenerationResult, {
+    createdCount: "0",
+    skippedCount: "2",
+  });
+
+  const view = await render(<BudgetsScreen />);
+
+  expect(view.getByText("0/2")).toBeTruthy();
+  await fireEvent.press(view.getByLabelText("dismiss-result"));
+  expect(router.setParams).toHaveBeenCalledWith({
+    createdCount: undefined,
+    skippedCount: undefined,
+  });
 });
 
 it("anchors the current month, paginates and opens selected budgets", async () => {
