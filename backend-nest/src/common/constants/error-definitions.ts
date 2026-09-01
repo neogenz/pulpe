@@ -805,6 +805,13 @@ export const ERROR_DEFINITIONS = {
     httpStatus: HttpStatus.FORBIDDEN,
   },
 
+  // Feedback Errors
+  FEEDBACK_SUBMIT_FAILED: {
+    code: API_ERROR_CODES.FEEDBACK_SUBMIT_FAILED,
+    message: () => 'Failed to submit feedback',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+
   // Validation Errors
   VALIDATION_FAILED: {
     code: API_ERROR_CODES.VALIDATION_FAILED,

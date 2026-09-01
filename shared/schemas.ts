@@ -2603,3 +2603,32 @@ export const whatsNewQuerySchema = z.object({
   locale: supportedLocaleSchema.optional(),
 });
 export type WhatsNewQuery = z.infer<typeof whatsNewQuerySchema>;
+
+/**
+ * FEEDBACK — Private in-app feedback
+ *
+ * Authenticated clients submit an overall rating and may add area ratings or
+ * a short comment. Identity is always derived from the access token.
+ */
+export const feedbackRatingSchema = z.number().int().min(1).max(5);
+
+const optionalFeedbackRatingSchema = feedbackRatingSchema.optional();
+
+export const feedbackCreateSchema = z.strictObject({
+  overallRating: feedbackRatingSchema,
+  onboarding: optionalFeedbackRatingSchema,
+  budgetClarity: optionalFeedbackRatingSchema,
+  currentMonth: optionalFeedbackRatingSchema,
+  futurePlanning: optionalFeedbackRatingSchema,
+  homeClarity: optionalFeedbackRatingSchema,
+  other: optionalFeedbackRatingSchema,
+  comment: z
+    .string()
+    .trim()
+    .max(1_000)
+    .optional()
+    .transform((value) => value || undefined),
+  appVersion: z.string().trim().min(1).max(32),
+  iosVersion: z.string().trim().min(1).max(32),
+});
+export type FeedbackCreate = z.infer<typeof feedbackCreateSchema>;

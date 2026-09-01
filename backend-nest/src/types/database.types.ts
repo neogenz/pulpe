@@ -605,6 +605,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_feedback: {
+        Row: {
+          app_version: string;
+          budget_clarity: number | null;
+          comment: string | null;
+          created_at: string;
+          current_month: number | null;
+          future_planning: number | null;
+          home_clarity: number | null;
+          id: string;
+          ios_version: string;
+          onboarding: number | null;
+          other: number | null;
+          overall_rating: number;
+          user_id: string;
+        };
+        Insert: {
+          app_version: string;
+          budget_clarity?: number | null;
+          comment?: string | null;
+          created_at?: string;
+          current_month?: number | null;
+          future_planning?: number | null;
+          home_clarity?: number | null;
+          id?: string;
+          ios_version: string;
+          onboarding?: number | null;
+          other?: number | null;
+          overall_rating: number;
+          user_id: string;
+        };
+        Update: {
+          app_version?: string;
+          budget_clarity?: number | null;
+          comment?: string | null;
+          created_at?: string;
+          current_month?: number | null;
+          future_planning?: number | null;
+          home_clarity?: number | null;
+          id?: string;
+          ios_version?: string;
+          onboarding?: number | null;
+          other?: number | null;
+          overall_rating?: number;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       user_locale_preference: {
         Row: {
           created_at: string;
