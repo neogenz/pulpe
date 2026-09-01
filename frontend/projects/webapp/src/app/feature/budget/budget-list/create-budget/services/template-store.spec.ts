@@ -77,6 +77,12 @@ describe('TemplateStore', () => {
           message: 'Budget créé',
         }),
       ),
+      generateBudgets$: vi.fn().mockReturnValue(
+        of({
+          success: true,
+          data: { budgets: [], skippedMonths: [{ month: 2, year: 2026 }] },
+        }),
+      ),
       cache: mockBudgetCache as unknown as BudgetApi['cache'],
     };
 
@@ -237,6 +243,23 @@ describe('TemplateStore', () => {
 
       expect(result).toBeUndefined();
       expect(store.createBudgetError()).toBeDefined();
+    });
+  });
+
+  describe('budget planning', () => {
+    it('should generate budgets and invalidate budget cache', async () => {
+      const data = {
+        startMonth: 1,
+        startYear: 2026,
+        count: 12,
+        templateId: '00000000-0000-4000-8000-000000000001',
+      };
+
+      const result = await store.generateBudgets(data);
+
+      expect(result?.data.skippedMonths).toHaveLength(1);
+      expect(budgetApiMock.generateBudgets$).toHaveBeenCalledWith(data);
+      expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
     });
   });
 

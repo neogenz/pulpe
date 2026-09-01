@@ -12,6 +12,8 @@ import { map } from 'rxjs/operators';
 import { cachedMutation, cachedResource } from 'ngx-ziflux';
 import {
   type BudgetCreate,
+  type BudgetGenerate,
+  type BudgetGenerateResponse,
   type TemplateLine,
   BudgetFormulas,
 } from 'pulpe-shared';
@@ -167,6 +169,24 @@ export class TemplateStore {
     data: BudgetCreate,
   ): Promise<CreateBudgetApiResponse | undefined> {
     return this.#createBudgetMutation.mutate(data);
+  }
+
+  readonly #generateBudgetsMutation = cachedMutation<
+    BudgetGenerate,
+    BudgetGenerateResponse
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => [['budget']],
+    mutationFn: (data) => this.#budgetApi.generateBudgets$(data),
+  });
+
+  readonly isGeneratingBudgets = this.#generateBudgetsMutation.isPending;
+  readonly generateBudgetsError = this.#generateBudgetsMutation.error;
+
+  async generateBudgets(
+    data: BudgetGenerate,
+  ): Promise<BudgetGenerateResponse | undefined> {
+    return this.#generateBudgetsMutation.mutate(data);
   }
 
   #calculateTotals(lines: TemplateLine[]): TemplateTotals {
