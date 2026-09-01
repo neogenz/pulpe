@@ -315,6 +315,13 @@ struct RootView: View {
         ))
         .syncCurrencyAnalytics()
         .environment(\.amountsHidden, uiPreferences.amountsHidden)
+        .environment(\.hasPriorityRootPresentation, hasPriorityRootPresentation)
+    }
+
+    private var hasPriorityRootPresentation: Bool {
+        deepLinkDestination != nil || showAddExpenseSheet || resetPasswordDeepLink != nil
+            || appState.showPostAuthError || appState.isRecoveryConsentVisible
+            || appState.isRecoveryKeySheetVisible || showAmountsToggleAlert
     }
 
     private var recoveryKeySheetItemBinding: Binding<RecoveryKeySheetItem?> {

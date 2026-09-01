@@ -71,13 +71,20 @@ struct FeedbackViewModelTests {
         #expect(submissions.first?.comment == "Garde ma saisie")
     }
 
-    @Test
-    func comment_isCappedAtTheBackendLimit() {
+    @Test(
+        "Comment limit uses Unicode code points",
+        arguments: [
+            (String(repeating: "😀", count: 1_001), String(repeating: "😀", count: 1_000)),
+            (String(repeating: "e\u{301}", count: 501), String(repeating: "e\u{301}", count: 500)),
+        ]
+    )
+    func comment_isCappedAtTheBackendLimit(value: String, expected: String) {
         let viewModel = makeViewModel(recorder: FeedbackSubmissionRecorder())
 
-        viewModel.updateComment(String(repeating: "a", count: 1_005))
+        viewModel.updateComment(value)
 
-        #expect(viewModel.comment.count == 1_000)
+        #expect(viewModel.comment == expected)
+        #expect(viewModel.comment.unicodeScalars.count == 1_000)
     }
 
     private func makeViewModel(recorder: FeedbackSubmissionRecorder) -> FeedbackViewModel {

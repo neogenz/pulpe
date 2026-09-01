@@ -356,7 +356,11 @@ extension AccountView {
                     .foregroundStyle(Color.textTertiary)
             }
         }
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+        .contentShape(Rectangle())
         .plainPressedButtonStyle()
+        .accessibilityLabel(title)
+        .accessibilityHint(subtitle)
         .accessibilityIdentifier("openFeedback")
     }
 }

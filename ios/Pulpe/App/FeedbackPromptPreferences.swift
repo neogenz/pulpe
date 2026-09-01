@@ -100,6 +100,36 @@ struct FeedbackPromptPreferences: @unchecked Sendable {
     }
 }
 
+extension EnvironmentValues {
+    /// Transports RootView's presentation state to lower-priority feature prompts.
+    /// RootView remains the single writer of the sheet/alert bindings themselves.
+    @Entry var hasPriorityRootPresentation = false
+}
+
+struct AutomaticFeedbackPromptGate {
+    let isSceneActive: Bool
+    let isRestoringSession: Bool
+    let isAuthenticated: Bool
+    let isHomeAtRoot: Bool
+    let hasBlockingPresentation: Bool
+    let hasFinishedLoading: Bool
+    let appVersionAllowsPresentation: Bool
+    let whatsNewAllowsPresentation: Bool
+    let isEligible: Bool
+
+    var allowsPresentation: Bool {
+        isSceneActive
+            && !isRestoringSession
+            && isAuthenticated
+            && isHomeAtRoot
+            && !hasBlockingPresentation
+            && hasFinishedLoading
+            && appVersionAllowsPresentation
+            && whatsNewAllowsPresentation
+            && isEligible
+    }
+}
+
 /// Owns the two allowed evaluation moments: initial home load and a genuine
 /// background-to-active return. State changes that unblock a presentation do not
 /// trigger it, so a higher-priority sheet always defers feedback to the next use.
@@ -108,6 +138,7 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
     @Environment(AppVersionStore.self) private var appVersionStore
     @Environment(WhatsNewStore.self) private var whatsNewStore
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.hasPriorityRootPresentation) private var hasPriorityRootPresentation
 
     let contentState: CurrentMonthStore.ContentState
     let hasBlockingSheet: Bool
@@ -116,35 +147,67 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
     let onPresent: () -> Void
 
     @State private var hasEvaluatedInitialLoad = false
+    @State private var hasPendingForegroundEvaluation = false
     private let preferences = FeedbackPromptPreferences()
 
     func body(content: Content) -> some View {
         content
             .onChange(of: contentState, initial: true) { _, newState in
-                guard newState.hasFinishedLoading, !hasEvaluatedInitialLoad else { return }
-                hasEvaluatedInitialLoad = true
-                presentIfEligible()
+                guard newState.hasFinishedLoading else { return }
+                evaluateReadyMomentIfNeeded()
+            }
+            .onChange(of: appState.isRestoringSession, initial: true) { _, isRestoring in
+                guard !isRestoring else { return }
+                evaluateReadyMomentIfNeeded()
             }
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 guard oldPhase == .background, newPhase == .active else { return }
-                presentIfEligible()
+                hasPendingForegroundEvaluation = true
+                // RootView prepares foreground restoration and routes pending deep links
+                // from the same scene transition. Let those synchronous handlers publish
+                // their source-of-truth state before evaluating this lower-priority prompt.
+                Task { @MainActor in
+                    await Task.yield()
+                    evaluateReadyMomentIfNeeded()
+                }
             }
     }
 
-    private func presentIfEligible() {
-        guard scenePhase == .active,
-              appState.selectedTab == .currentMonth,
-              appState.currentMonthPath.isEmpty,
-              !hasBlockingSheet,
-              !isNavigating,
-              contentState.hasFinishedLoading,
-              appVersionStore.allowsLowerPriorityPresentation,
-              whatsNewStore.allowsLowerPriorityPresentation,
-              !isPostOnboardingHandoffPresented,
-              let userID = appState.currentUser?.id,
-              preferences.isEligible(for: userID) else {
+    private func evaluateReadyMomentIfNeeded() {
+        guard contentState.hasFinishedLoading, !appState.isRestoringSession else { return }
+
+        if hasPendingForegroundEvaluation {
+            hasPendingForegroundEvaluation = false
+            hasEvaluatedInitialLoad = true
+            presentIfEligible()
             return
         }
+
+        guard !hasEvaluatedInitialLoad else { return }
+        hasEvaluatedInitialLoad = true
+        // A foreground timeout can replace MainTabView with PIN and mount it again after
+        // unlock. That remount is not a cold-start evaluation opportunity.
+        guard appState.lastLockReason == .coldStart else { return }
+        presentIfEligible()
+    }
+
+    private func presentIfEligible() {
+        guard let userID = appState.currentUser?.id else { return }
+        let canPresent = AutomaticFeedbackPromptGate(
+            isSceneActive: scenePhase == .active,
+            isRestoringSession: appState.isRestoringSession,
+            isAuthenticated: appState.authState == .authenticated && appState.currentRoute == .main,
+            isHomeAtRoot: appState.selectedTab == .currentMonth && appState.currentMonthPath.isEmpty,
+            hasBlockingPresentation: hasBlockingSheet
+                || hasPriorityRootPresentation
+                || isNavigating
+                || isPostOnboardingHandoffPresented,
+            hasFinishedLoading: contentState.hasFinishedLoading,
+            appVersionAllowsPresentation: appVersionStore.allowsLowerPriorityPresentation,
+            whatsNewAllowsPresentation: whatsNewStore.allowsLowerPriorityPresentation,
+            isEligible: preferences.isEligible(for: userID)
+        ).allowsPresentation
+        guard canPresent else { return }
         onPresent()
     }
 }

@@ -5,6 +5,22 @@ import Testing
 @Suite("Feedback prompt preferences", .serialized)
 struct FeedbackPromptPreferencesTests {
     @Test
+    func presentationGate_blocksSessionRestorationAndPin() {
+        #expect(!allowsAutomaticPresentation(isRestoringSession: true))
+        #expect(!allowsAutomaticPresentation(isAuthenticated: false))
+    }
+
+    @Test
+    func presentationGate_blocksRootPresentation() {
+        #expect(!allowsAutomaticPresentation(hasBlockingPresentation: true))
+    }
+
+    @Test
+    func presentationGate_allowsLoadedCalmEligibleHome() {
+        #expect(allowsAutomaticPresentation())
+    }
+
+    @Test
     func eligibility_requiresSevenElapsedDays_andFiveActiveDaysInTheRecentWindow() throws {
         let fixture = try makeFixture()
         defer { fixture.cleanup() }
@@ -191,6 +207,24 @@ struct FeedbackPromptPreferencesTests {
     private func day(_ offset: Int, after date: Date, calendar: Calendar) throws -> Date {
         try #require(calendar.date(byAdding: .day, value: offset, to: date))
     }
+}
+
+private func allowsAutomaticPresentation(
+    isRestoringSession: Bool = false,
+    isAuthenticated: Bool = true,
+    hasBlockingPresentation: Bool = false
+) -> Bool {
+    AutomaticFeedbackPromptGate(
+        isSceneActive: true,
+        isRestoringSession: isRestoringSession,
+        isAuthenticated: isAuthenticated,
+        isHomeAtRoot: true,
+        hasBlockingPresentation: hasBlockingPresentation,
+        hasFinishedLoading: true,
+        appVersionAllowsPresentation: true,
+        whatsNewAllowsPresentation: true,
+        isEligible: true
+    ).allowsPresentation
 }
 
 private struct Fixture {

@@ -71,9 +71,9 @@ struct FeedbackSheet: View {
                 } label: {
                     Text("Préciser mon avis")
                         .font(PulpeTypography.bodyLarge)
+                        .accessibilityIdentifier("feedbackDetailsDisclosure")
                 }
                 .frame(minHeight: DesignTokens.TapTarget.minimum)
-                .accessibilityIdentifier("feedbackDetailsDisclosure")
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -150,6 +150,7 @@ struct FeedbackSheet: View {
         } label: {
             HStack {
                 Text(area.title)
+                    .accessibilityIdentifier("feedbackArea.\(area.rawValue)")
                 Spacer(minLength: DesignTokens.Spacing.sm)
                 if let rating = viewModel.ratings[area] {
                     Text("\(rating.rawValue)/5")
@@ -160,14 +161,13 @@ struct FeedbackSheet: View {
             .font(PulpeTypography.body)
         }
         .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .accessibilityIdentifier("feedbackArea.\(area.rawValue)")
     }
 
     private var successContent: some View {
         VStack(spacing: DesignTokens.Spacing.xl) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: DesignTokens.IconSize.heroBadge))
-                .foregroundStyle(Color.financialIncome)
+                .foregroundStyle(Color.pulpePrimary)
                 .accessibilityHidden(true)
 
             Text("Merci. Ton avis fait progresser Pulpe.")
@@ -196,7 +196,9 @@ struct FeedbackDependencies: Sendable {
 
 @Observable @MainActor
 final class FeedbackViewModel {
-    static let maximumCommentLength = 1_000
+    /// Shared contract unit: Unicode code points, matching JavaScript iteration
+    /// and PostgreSQL `char_length` rather than UTF-16 units or grapheme clusters.
+    static let maximumCommentCodePointCount = 1_000
 
     var overallRating: FeedbackRating?
     var ratings: [FeedbackArea: FeedbackRating] = [:]
@@ -231,7 +233,7 @@ final class FeedbackViewModel {
     }
 
     func updateComment(_ value: String) {
-        comment = String(value.prefix(Self.maximumCommentLength))
+        comment = String(value.unicodeScalars.prefix(Self.maximumCommentCodePointCount))
     }
 
     @discardableResult

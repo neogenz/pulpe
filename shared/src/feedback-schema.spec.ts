@@ -59,6 +59,36 @@ describe('feedbackCreateSchema', () => {
     ).toEqual(minimalFeedback);
   });
 
+  it('measures the comment limit in Unicode code points', () => {
+    const emojiAtLimit = '😀'.repeat(1_000);
+    const combinedAtLimit = 'e\u0301'.repeat(500);
+
+    expect(
+      feedbackCreateSchema.safeParse({
+        ...minimalFeedback,
+        comment: emojiAtLimit,
+      }).success,
+    ).toBe(true);
+    expect(
+      feedbackCreateSchema.safeParse({
+        ...minimalFeedback,
+        comment: combinedAtLimit,
+      }).success,
+    ).toBe(true);
+    expect(
+      feedbackCreateSchema.safeParse({
+        ...minimalFeedback,
+        comment: `${emojiAtLimit}😀`,
+      }).success,
+    ).toBe(false);
+    expect(
+      feedbackCreateSchema.safeParse({
+        ...minimalFeedback,
+        comment: `${combinedAtLimit}a`,
+      }).success,
+    ).toBe(false);
+  });
+
   it('rejects oversized text and versions', () => {
     expect(
       feedbackCreateSchema.safeParse({

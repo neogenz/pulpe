@@ -11,6 +11,7 @@ CREATE TABLE public.user_feedback (
   future_planning smallint CHECK (future_planning BETWEEN 1 AND 5),
   home_clarity smallint CHECK (home_clarity BETWEEN 1 AND 5),
   other smallint CHECK (other BETWEEN 1 AND 5),
+  -- Unicode code points, matching Swift `unicodeScalars` and JavaScript string iteration.
   comment text CHECK (comment IS NULL OR char_length(comment) BETWEEN 1 AND 1000),
   app_version text NOT NULL CHECK (char_length(app_version) BETWEEN 1 AND 32),
   ios_version text NOT NULL CHECK (char_length(ios_version) BETWEEN 1 AND 32),

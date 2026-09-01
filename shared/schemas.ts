@@ -2613,6 +2613,12 @@ export type WhatsNewQuery = z.infer<typeof whatsNewQuerySchema>;
 export const feedbackRatingSchema = z.number().int().min(1).max(5);
 
 const optionalFeedbackRatingSchema = feedbackRatingSchema.optional();
+const maximumFeedbackCommentCodePointCount = 1_000;
+
+// JavaScript string length counts UTF-16 units. Iteration counts Unicode code
+// points instead, matching Swift `unicodeScalars` and PostgreSQL `char_length`.
+const hasValidFeedbackCommentLength = (value: string): boolean =>
+  Array.from(value).length <= maximumFeedbackCommentCodePointCount;
 
 export const feedbackCreateSchema = z.strictObject({
   overallRating: feedbackRatingSchema,
@@ -2625,7 +2631,9 @@ export const feedbackCreateSchema = z.strictObject({
   comment: z
     .string()
     .trim()
-    .max(1_000)
+    .refine(hasValidFeedbackCommentLength, {
+      message: `Too big: expected string to have <=${maximumFeedbackCommentCodePointCount} Unicode code points`,
+    })
     .optional()
     .transform((value) => value || undefined),
   appVersion: z.string().trim().min(1).max(32),

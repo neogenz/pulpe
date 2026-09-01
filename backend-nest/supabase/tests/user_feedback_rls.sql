@@ -53,7 +53,7 @@ INSERT INTO public.user_feedback (
   current_setting('test.feedback_owner_id')::uuid,
   5,
   4,
-  'Rapide à remplir',
+  repeat(U&'e\0301', 500),
   '1.4.0',
   '19.0'
 );
@@ -62,6 +62,24 @@ DO $$
 DECLARE
   v_blocked boolean;
 BEGIN
+  v_blocked := false;
+  BEGIN
+    INSERT INTO public.user_feedback (
+      user_id, overall_rating, comment, app_version, ios_version
+    ) VALUES (
+      current_setting('test.feedback_owner_id')::uuid,
+      4,
+      repeat('😀', 1001),
+      '1.4.0',
+      '19.0'
+    );
+  EXCEPTION WHEN check_violation THEN
+    v_blocked := true;
+  END;
+  IF NOT v_blocked THEN
+    RAISE EXCEPTION 'FAIL: comment over 1000 Unicode code points must be rejected';
+  END IF;
+
   v_blocked := false;
   BEGIN
     INSERT INTO public.user_feedback (

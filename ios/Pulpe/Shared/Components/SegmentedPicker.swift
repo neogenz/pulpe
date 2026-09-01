@@ -80,6 +80,7 @@ struct SegmentedPicker<T: CaseIterable & Hashable>: View where T.AllCases: Rando
                 }
             }
             .pickerStyle(.segmented)
+            .accessibilityLabel(title ?? "")
             .sensoryFeedback(.selection, trigger: optionalSelection.wrappedValue)
         }
     }
