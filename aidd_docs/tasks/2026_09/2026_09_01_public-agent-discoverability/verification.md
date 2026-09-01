@@ -6,17 +6,26 @@ status: blocked
 
 ## Observation scope
 
-| Field               | Evidence                                                                            |
-| ------------------- | ----------------------------------------------------------------------------------- |
-| Observed            | 2026-09-01 12:56 CEST                                                               |
-| Repository baseline | `7bfc66bf1455d151f01227d3a94a9a442583c85b`                                          |
-| Production origin   | `https://pulpe.app`                                                                 |
-| Locale              | French, Switzerland                                                                 |
-| Production commit   | Not exposed by the public response; authenticated Vercel deployment access required |
+| Field               | Evidence                                                          |
+| ------------------- | ----------------------------------------------------------------- |
+| Observed            | 2026-09-01 12:56–13:15 CEST                                       |
+| Repository baseline | `7bfc66bf1455d151f01227d3a94a9a442583c85b`                        |
+| Production origin   | `https://pulpe.app`                                               |
+| Locale              | French, Switzerland                                               |
+| Production commit   | `aefa93bd66cd45ebbfdc0aa474056c63d7e02a1a`, Vercel status `Ready` |
 
 This report records public responses and repository checks only. Public search
 results are not used as a substitute for Google Search Console or Bing
 Webmaster Tools URL Inspection.
+
+## Dashboard access
+
+| Dashboard             | Result                                                                   |
+| --------------------- | ------------------------------------------------------------------------ |
+| Google Search Console | Connected to the verified URL-prefix property `https://pulpe.app/`       |
+| Bing Webmaster Tools  | Connected; only `https://pulpe.app/` imported from Google Search Console |
+| Vercel                | Connected to `pulpe-landing`; production deployment and commit verified  |
+| PostHog               | Connected to project 87621 and dashboard `SEO — pulpe.app`               |
 
 ## Reproduction and automated results
 
@@ -65,20 +74,38 @@ The generic `User-agent: *` rule allows `/`, so Googlebot, Bingbot, and
 OAI-SearchBot are not denied by the published robots policy. Sitemap receipt or
 processing still requires the relevant webmaster console.
 
-## Index coverage blocker
+## Webmaster sitemap evidence
 
-| URL set                 | Google state                                                  | Bing state                                                                      |
-| ----------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| All eight priority URLs | Unavailable: verified Search Console property access required | Unavailable: verified or imported Bing Webmaster Tools property access required |
+| Engine | Observed state                                                                                          |
+| ------ | ------------------------------------------------------------------------------------------------------- |
+| Google | `/sitemap.xml` submitted 2026-08-18, read 2026-09-01, successful, 30 pages discovered                   |
+| Bing   | `/sitemap.xml` imported 2026-09-01, 0 errors, 0 warnings, status `Processing`, up to 48 hours announced |
 
-Only an authorized property owner can now:
+## Priority URL index states
 
-1. Inspect every priority URL and record coverage reason and last crawl in
-   Google Search Console.
-2. Confirm sitemap processing and URL Inspection for the same URLs in Bing
-   Webmaster Tools.
-3. Request indexing only for canonical URLs that are neither indexed nor
-   already queued.
+| URL                                                   | Google Search Console                         | Bing Webmaster Tools                                   |
+| ----------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------ |
+| `/`                                                   | Indexed; last crawl 2026-08-30 07:05          | Indexed; last crawl 2026-08-26 23:09; no SEO/GEO issue |
+| `/about`                                              | Detected, currently not indexed; no crawl yet | Not discovered                                         |
+| `/privacy`                                            | Unknown to Google; no crawl yet               | Not discovered                                         |
+| `/support`                                            | Indexed; last crawl 2026-08-12 15:15          | Indexed; last crawl 2026-07-19 06:17; no SEO/GEO issue |
+| `/conseils-budget`                                    | Unknown to Google; no crawl yet               | Indexed; last crawl 2026-07-19 06:17; no SEO/GEO issue |
+| `/conseils-budget/meilleure-app-budget-suisse`        | Indexed; last crawl 2026-08-25 00:24          | Discovered 2026-09-01, not crawled                     |
+| `/conseils-budget/alternative-ynab-suisse`            | Indexed; last crawl 2026-08-24 01:26          | Discovered 2026-09-01, not crawled                     |
+| `/conseils-budget/comment-faire-son-budget-en-suisse` | Indexed; last crawl 2026-08-19 02:56          | Discovered 2026-09-01, not crawled                     |
+
+Google selected each indexed page's declared canonical. Both engines reported
+successful fetches, allowed crawling, and allowed indexing for every indexed
+priority URL. The non-indexed states are discovery or provider-processing
+states, not a repository-controlled robots, canonical, fetch, or response
+defect.
+
+## Manual submission guard
+
+No manual indexing request was submitted. `/about` and the three Bing guides
+are already discovered; Bing's imported sitemap is still processing. Only
+Google `/privacy` and `/conseils-budget` remain eligible for an immediate manual
+request, which requires explicit owner approval before external submission.
 
 Phase 2 was not started because it changes third-party state and requires
 explicit approval of each submission. Phase 3 was not started because its

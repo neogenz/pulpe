@@ -6,11 +6,11 @@ status: blocked
 
 ## Blocker
 
-All public and repository-controlled checks pass. Google URL coverage and Bing
-URL Inspection cannot be completed without access to the verified properties;
-the public response also does not expose its Vercel deployment commit. The
-missing access and completed baseline are recorded in
-[`verification.md`](./verification.md). Later phases were not started.
+All public, repository, Vercel, Google, and Bing read-only checks pass or have
+an explicit provider state. Google manual indexing remains eligible for
+`/privacy` and `/conseils-budget`; submitting those requests needs explicit
+owner approval. Bing's imported sitemap is still processing, so its eligible
+URLs must not receive duplicate requests yet. Later phases were not started.
 
 ## Architecture projection
 

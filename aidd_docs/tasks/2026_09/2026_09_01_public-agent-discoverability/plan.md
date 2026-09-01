@@ -7,11 +7,11 @@ status: blocked
 
 ## Blocker
 
-The repository-controlled and public HTTP baseline passes. Completing phase 1
-requires authorized Google Search Console and Bing Webmaster Tools property
-access to record URL coverage, last crawl, and sitemap processing. The exact
-production commit also requires authenticated Vercel deployment metadata. See
-[`verification.md`](./verification.md) for the evidence and owner actions.
+Dashboard access is resolved and every priority URL now has an explicit Google
+and Bing state. Completing phase 1 requires owner authorization for the two
+manual Google indexing requests that remain eligible. Bing's imported sitemap
+is processing, so no duplicate Bing request should be sent yet. See
+[`verification.md`](./verification.md) for the exact states.
 
 ## Overview
 
