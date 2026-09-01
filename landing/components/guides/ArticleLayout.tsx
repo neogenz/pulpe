@@ -6,7 +6,7 @@ import { Footer, Header } from "@/components/sections";
 import type { Dictionary } from "@/content/dictionary";
 import { angularUrl, ORGANIZATION_ID } from "@/lib/config";
 import { socialPreviewImage } from "@/lib/metadata";
-import { localizedPath, SITE_URL } from "@/lib/routes";
+import { ABOUT_ROUTE, localizedPath, SITE_URL } from "@/lib/routes";
 import { FR_GUIDE_CHROME, type GuideChrome } from "./chrome";
 import type { Guide } from "./guides";
 
@@ -59,7 +59,11 @@ export function ArticleLayout({
         inLanguage: chrome.inLanguage,
         datePublished: guide.publishedAt,
         dateModified: guide.updatedAt,
-        author: { "@type": "Person", name: "Maxime De Sogus" },
+        author: {
+          "@type": "Person",
+          name: "Maxime De Sogus",
+          url: `${SITE_URL}${ABOUT_ROUTE}`,
+        },
         // The complete entity lives in the root layout @graph. Repeat its type
         // and name for validators that read this block in isolation.
         publisher: {
