@@ -78,7 +78,7 @@ journey
 
 > Le signal existant `appOpened` reste la définition unique d'une ouverture.
 
-1. Ajouter à `AppRuntimeCoordinator` un callback injecté appelé au même endroit que `.appOpened` : première activation du processus ou retour `.background → .active`, jamais `.inactive → .active`.
+1. Ajouter à `AppRuntimeCoordinator` un callback injecté appelé au même endroit que `.appOpened` : première activation du processus ou activation après un passage par `.background`, y compris lorsque `.inactive` s'intercale avant `.active` ; une simple transition `.inactive → .active` ne compte pas.
 2. Depuis `PulpeApp`, connecter ce callback à `recordActiveDay` quand `currentUser` existe.
 3. Après `appState.start()` authentifié, enregistrer aussi le jour courant pour couvrir le lancement froid où l'identité n'était pas encore chargée lors de la première activation.
 4. Étendre `AppRuntimeCoordinatorTests` pour prouver l'appel unique au démarrage, le rappel après background et l'absence d'appel après Centre de contrôle ou notifications.
@@ -89,7 +89,7 @@ journey
 
 1. Ajouter `.feedback` à `CurrentMonthView.SheetDestination` et présenter la `FeedbackSheet` existante.
 2. Évaluer l'éligibilité après le chargement de l'accueil et à un vrai retour au premier plan, uniquement si la scène est active, la navigation de l'accueil est à sa racine et `activeSheet == nil`.
-3. Ajouter `AppVersionStore.allowsLowerPriorityPresentation` et exiger simultanément l'absence de force update/update proposée, `WhatsNewStore.allowsLowerPriorityPresentation` et l'absence du handoff post-onboarding.
+3. Ajouter `AppVersionStore.allowsLowerPriorityPresentation` et exiger simultanément qu'aucune vérification de version ne soit en cours, l'absence de force update/update proposée, `WhatsNewStore.allowsLowerPriorityPresentation` et l'absence du handoff post-onboarding.
 4. Si une présentation prioritaire ou une action bloque l'invitation, ne rien empiler et réessayer à une activation ultérieure plutôt qu'immédiatement après sa fermeture.
 5. Marquer la sollicitation traitée dès l'apparition effective de la sheet, avant qu'un swipe, une fermeture ou une interruption puisse la faire revenir.
 

@@ -116,6 +116,30 @@ struct AppVersionStoreTests {
         #expect(store.allowsLowerPriorityPresentation)
     }
 
+    @Test func lowerPriorityPresentation_blocksWhileRefreshIsInFlight() async {
+        let service = SwitchableStubService(
+            initialOutcome: .success(.makeFixture(iosMin: "1.0.0"))
+        )
+        let store = AppVersionStore(service: service, currentVersion: "1.0.0")
+        await store.check()
+        #expect(store.allowsLowerPriorityPresentation)
+
+        service.gateNextFetch()
+        let refresh = Task { await store.check() }
+        await waitForCondition("refresh must reach the version service") {
+            service.fetchCallCount == 2
+        }
+
+        #expect(store.isChecking)
+        #expect(!store.allowsLowerPriorityPresentation)
+
+        service.releaseFetch()
+        await refresh.value
+
+        #expect(!store.isChecking)
+        #expect(store.allowsLowerPriorityPresentation)
+    }
+
     @Test("Minimum version keeps priority over the optional update")
     func check_currentBelowMin_emitsForceUpdateBeforeLatest() async throws {
         let suiteName = "AppVersionStoreTests.\(UUID().uuidString)"
@@ -263,6 +287,9 @@ private final class StubAppVersionService: AppVersionServiceProtocol, @unchecked
 
 private final class SwitchableStubService: AppVersionServiceProtocol, @unchecked Sendable {
     private var outcome: StubFetchOutcome
+    private var shouldGateNextFetch = false
+    private var fetchContinuation: CheckedContinuation<Void, Never>?
+    private(set) var fetchCallCount = 0
 
     init(initialOutcome: StubFetchOutcome) {
         self.outcome = initialOutcome
@@ -272,7 +299,23 @@ private final class SwitchableStubService: AppVersionServiceProtocol, @unchecked
         outcome = newOutcome
     }
 
+    func gateNextFetch() {
+        shouldGateNextFetch = true
+    }
+
+    func releaseFetch() {
+        fetchContinuation?.resume()
+        fetchContinuation = nil
+    }
+
     func fetch() async throws -> AppVersionResponse {
+        fetchCallCount += 1
+        if shouldGateNextFetch {
+            shouldGateNextFetch = false
+            await withCheckedContinuation { continuation in
+                fetchContinuation = continuation
+            }
+        }
         switch outcome {
         case .success(let response):
             return response

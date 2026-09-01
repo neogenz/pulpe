@@ -23,9 +23,10 @@ final class AppVersionStore {
     }
 
     private(set) var status: Status = .unknown
+    private(set) var isChecking = false
 
     var allowsLowerPriorityPresentation: Bool {
-        status == .ok
+        status == .ok && !isChecking
     }
 
     private let service: AppVersionServiceProtocol
@@ -43,6 +44,10 @@ final class AppVersionStore {
     }
 
     func check() async {
+        guard !isChecking else { return }
+        isChecking = true
+        defer { isChecking = false }
+
         do {
             let response = try await service.fetch()
             let policy = response.data.ios

@@ -70,13 +70,15 @@ struct AppRuntimeCoordinatorTests {
         #expect(callCount == 1)
     }
 
-    @Test func appOpenedCallback_firesAgainOnlyAfterBackground() {
+    @Test func appOpenedCallback_firesAfterBackgroundEvenWhenInactivePrecedesActive() {
         var callCount = 0
         let sut = makeCoordinator(appState: AppState()) { callCount += 1 }
         sut.handleScenePhaseChange(from: .inactive, to: .active)
 
-        sut.handleScenePhaseChange(from: .active, to: .background)
-        sut.handleScenePhaseChange(from: .background, to: .active)
+        sut.handleScenePhaseChange(from: .active, to: .inactive)
+        sut.handleScenePhaseChange(from: .inactive, to: .background)
+        sut.handleScenePhaseChange(from: .background, to: .inactive)
+        sut.handleScenePhaseChange(from: .inactive, to: .active)
 
         #expect(callCount == 2)
     }

@@ -130,8 +130,8 @@ struct AutomaticFeedbackPromptGate {
     }
 }
 
-/// Owns the two allowed evaluation moments: initial home load and a genuine
-/// background-to-active return. State changes that unblock a presentation do not
+/// Owns the two allowed evaluation moments: initial home load and an activation
+/// after the scene entered background. State changes that unblock a presentation do not
 /// trigger it, so a higher-priority sheet always defers feedback to the next use.
 private struct AutomaticFeedbackPromptModifier: ViewModifier {
     @Environment(AppState.self) private var appState
@@ -148,6 +148,7 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
 
     @State private var hasEvaluatedInitialLoad = false
     @State private var hasPendingForegroundEvaluation = false
+    @State private var backgroundReturnTracker = SceneBackgroundReturnTracker()
     private let preferences = FeedbackPromptPreferences()
 
     func body(content: Content) -> some View {
@@ -160,8 +161,8 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
                 guard !isRestoring else { return }
                 evaluateReadyMomentIfNeeded()
             }
-            .onChange(of: scenePhase) { oldPhase, newPhase in
-                guard oldPhase == .background, newPhase == .active else { return }
+            .onChange(of: scenePhase) { _, newPhase in
+                guard backgroundReturnTracker.consumeReturn(to: newPhase) else { return }
                 hasPendingForegroundEvaluation = true
                 // RootView prepares foreground restoration and routes pending deep links
                 // from the same scene transition. Let those synchronous handlers publish
