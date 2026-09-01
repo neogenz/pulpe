@@ -20,13 +20,26 @@ extension AppState {
         }
     }
 
-    /// Fail-open maintenance probe for the foreground unlock path (PUL-337): any failure
-    /// answers `false` and leaves the caller on its usual route. Unlike
-    /// `checkMaintenanceStatus()`, it never assumes maintenance on error and never touches
-    /// `isNetworkUnavailable` — a transient 500 must not trap a returning user behind the
-    /// maintenance screen.
-    func isMaintenanceActive() async -> Bool {
-        (try? await maintenanceChecking()) ?? false
+    /// Asks the server whether it is in maintenance, for the foreground unlock path (PUL-337).
+    ///
+    /// A network round trip, not a state read, so it is bounded by
+    /// `AppConfiguration.maintenanceProbeTimeout` and abandoned when the caller is cancelled.
+    /// It fails OPEN: a timeout, an offline radio or any server error answers `false` and the
+    /// caller keeps its usual route. That is the opposite of `checkMaintenanceStatus()`, which
+    /// assumes maintenance on error — fail-closed here would trap a returning user behind the
+    /// maintenance screen on a transient 500.
+    func probeMaintenanceFailingOpen() async -> Bool {
+        let probe = Task(name: "AppState.maintenanceProbe") { try await maintenanceChecking() }
+        let deadline = Task(name: "AppState.maintenanceProbeDeadline") {
+            try? await Task.sleep(for: AppConfiguration.maintenanceProbeTimeout)
+            probe.cancel()
+        }
+        defer { deadline.cancel() }
+        return await withTaskCancellationHandler {
+            (try? await probe.value) ?? false
+        } onCancel: {
+            probe.cancel()
+        }
     }
 
     func retryNetworkCheck() async {

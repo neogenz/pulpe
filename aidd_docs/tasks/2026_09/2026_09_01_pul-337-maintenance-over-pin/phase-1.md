@@ -1,5 +1,5 @@
 ---
-status: pending
+status: implemented
 ---
 
 # Instruction: Prioriser la maintenance sur le déverrouillage iOS
@@ -17,12 +17,15 @@ status: pending
     │   │   │   └── AppFlowReducer.swift                    ✏️ `.maintenanceChecked(true)` devient une transition globale
     │   │   ├── AppState+Maintenance.swift                  ✏️ helper de contrôle « fail-open » pour la reprise à chaud
     │   │   └── AppState+SessionReset.swift                 ✏️ la reprise à chaud teste la maintenance avant de router vers le PIN
+    │   │   ├── Auth/SessionLifecycleCoordinator.swift      ✏️ `backgroundLockApplies` devient interne
+    │   │   └── BiometricManager.swift                      ✏️ `.maintenance` n'est plus un verdict sur la clé
+    │   ├── Core/Config/AppConfiguration.swift              ✏️ `maintenanceProbeTimeout`
     │   ├── Features/
-    │   │   ├── Auth/Pin/PinCryptoProtocols.swift           ✏️ `.maintenance` sort du `default` de `pinValidationMessage`
-    │   │   └── Maintenance/MaintenanceView.swift           ✏️ le réessai relance `retryStartup()`
+    │   │   └── Auth/Pin/PinCryptoProtocols.swift           ✏️ `.maintenance` sort du `default` de `pinValidationMessage`
     └── PulpeTests/
         ├── App/
         │   ├── Core/AppFlowReducerTests.swift              ✏️ maintenance depuis `.locked` et les autres états
+        │   ├── BiometricDefaultValidateKeyTests.swift      ✏️ le 503 de maintenance préserve l'inscription
         │   └── AppStateMaintenanceForegroundTests.swift    ✅ reprise à chaud sous maintenance
         └── Features/Auth/PinMaintenanceMessageTests.swift  ✅ mapping du message PIN
 ```
@@ -92,13 +95,19 @@ journey
 3. Quand il renvoie `true`, envoyer `.maintenanceChecked(isInMaintenance: true)` et ne pas poser `.needsPinEntry`.
 4. Ne pas ajouter ce contrôle sur `.noLockNeeded` ni `.biometricUnlockSuccess` : aucun écran PIN n'y est affiché.
 
-### `4)` Relancer la résolution de démarrage à la sortie de maintenance
+### `4)` Ne pas lire une maintenance comme un verdict sur la clé biométrique
 
-> Sortir de maintenance doit mener à un écran, pas à un spinner.
+> Une fenêtre de maintenance ne doit pas désinscrire Face ID.
 
-1. Dans `MaintenanceView.checkAndRetry()`, remplacer le `MaintenanceService.shared.checkStatus()` + `setMaintenanceMode(false)` par un `await appState.retryStartup()`.
-2. Après le retour, si `appState.isInMaintenance` est toujours vrai, afficher le message « toujours en maintenance » existant ; sinon ne rien afficher.
-3. Conserver l'état `isChecking`, le libellé du bouton et le style existants.
+Cette tâche remplace celle qui était prévue ici. La tâche initiale supposait qu'une sortie de maintenance laissait l'app sur un écran de chargement : c'est faux, `RootViewModifiers.swift:146-148` relance déjà `retryStartup()` sur le front `isInMaintenance` vrai→faux, et CA3 tenait déjà avant ce plan.
+
+Le défaut réel, découvert en revue : `BiometricManager.isTransportFailure` ne reconnaît que `.networkError`, donc le 503 `MAINTENANCE` renvoyé par `defaultValidateKey` tombe dans le `catch` « verdict serveur définitif » → clé jugée périmée → `SessionLifecycleCoordinator.swift:105` → `handleStaleKey()` → `clientKeyManager.clearAll()` et `isEnabled = false`. Chaque fenêtre de maintenance désinscrivait Face ID et effaçait la clé client de tous les utilisateurs biométriques, le dommage que PUL-280 avait écarté pour les coupures réseau.
+
+1. Ajouter `.maintenance` à côté de `.networkError` dans `isTransportFailure` : le serveur est joignable mais volontairement indisponible, il n'a jamais examiné la clé.
+2. Vérifier que le second appelant de `handleStaleKey` (`BiometricManager.swift:181`) passe par la même source et n'a donc pas besoin de garde propre.
+3. Sonder la maintenance **avant** la tentative de déverrouillage plutôt qu'après, en réutilisant `backgroundLockApplies(authState:)` : sous maintenance, aucune invite Face ID, aucun 503 vers `validateKey`, aucune entrée dans l'app.
+4. Borner le sondage par une constante propre (`maintenanceProbeTimeout`), plus courte que `requestTimeout` qui est partagée avec le démarrage : il s'ajoute au plafond de 10 s posé par PUL-279.
+5. Placer `guard !Task.isCancelled` après le sondage, sur les deux branches : `AppRuntimeCoordinator` annule le run à chaque réactivation, et un run abandonné ne doit pas écrire d'état derrière le run vivant.
 
 ### `5)` Couvrir les régressions par des tests
 
@@ -116,5 +125,5 @@ journey
 | 1    | Un `.maintenanceChecked(true)` reçu alors que l'app est verrouillée bascule sur l'écran de maintenance ; la sortie de maintenance reste possible.                |
 | 2    | Un `503 MAINTENANCE` pendant la validation du PIN n'affiche jamais « Ce code ne semble pas correct » ; un code réellement faux affiche toujours ce message.       |
 | 3    | Avec le serveur en maintenance, un retour au premier plan après le délai de verrouillage affiche la maintenance sans demander le code PIN ; un contrôle en échec continue d'afficher l'écran PIN. |
-| 4    | Une fois la maintenance terminée, « Réessayer » relance la résolution de démarrage et mène à l'écran d'authentification attendu, jamais à un écran de chargement figé. |
+| 4    | Une fenêtre de maintenance laisse Face ID inscrit et la clé client intacte ; sous maintenance aucune invite Face ID n'apparaît, et le sondage reste borné bien en deçà du plafond de PUL-279. |
 | 5    | La suite iOS s'exécute et chaque test ajouté échoue si l'on annule le correctif qu'il couvre.                                                                    |

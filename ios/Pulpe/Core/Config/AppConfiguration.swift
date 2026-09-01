@@ -128,6 +128,13 @@ enum AppConfiguration {
     /// (PUL-279). Aligned with `requestTimeout`; on timeout the app routes to PIN entry.
     static let foregroundUnlockTimeout: Duration = .seconds(requestTimeout)
 
+    /// Upper bound on the maintenance probe run before a foreground unlock (PUL-337).
+    /// Deliberately shorter than `requestTimeout`: this probe is spent BEFORE
+    /// `foregroundUnlockTimeout`, so it adds to the privacy shield PUL-279 bounded at 10s —
+    /// 13s worst case, not 20s. The probe only steers the route, so giving up early costs
+    /// nothing but showing the PIN screen the user would have seen anyway.
+    static let maintenanceProbeTimeout: Duration = .seconds(3)
+
     // MARK: - Private
 
     private static func requiredValue(for key: String) -> String {

@@ -168,7 +168,9 @@ final class SessionLifecycleCoordinator {
 
     // MARK: - Private
 
-    private func backgroundLockApplies(authState: AppState.AuthStatus) -> Bool {
+    /// Internal rather than private so `AppState` can probe maintenance before the unlock
+    /// attempt (PUL-337) using the same predicate the unlock itself applies.
+    func backgroundLockApplies(authState: AppState.AuthStatus) -> Bool {
         guard let bgDate = backgroundDate else {
             authDebug("AUTH_BG_CHECK", "no backgroundDate, skip lock")
             return false

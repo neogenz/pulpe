@@ -25,6 +25,22 @@ extension AppState {
             lastLockReason = .backgroundTimeout
         }
 
+        // PUL-337: probe once, before unlocking. Under maintenance every route answers 503:
+        // `validateKey` reads that as a stale key and wipes Face ID, and an unlocked user lands
+        // on empty screens. Probing first also spares a pointless Face ID prompt.
+        if sessionLifecycleCoordinator.backgroundLockApplies(authState: authState),
+           await probeMaintenanceFailingOpen() {
+            guard !Task.isCancelled else { return }
+            // `.needsPinEntry` first: the reducer promotes maintenance from `.locked`, never
+            // from `.authenticated`. No await separates the two, so the PIN screen never renders.
+            authState = .needsPinEntry
+            send(.maintenanceChecked(isInMaintenance: true))
+            return
+        }
+        // A foreground bounce cancels this run and starts another (AppRuntimeCoordinator):
+        // the abandoned run must not write state behind the live one.
+        guard !Task.isCancelled else { return }
+
         let result = await sessionLifecycleCoordinator.handleEnterForeground(authState: authState)
         authDebug("AUTH_FG", "result=\(result)")
 
@@ -35,17 +51,8 @@ extension AppState {
             startBackgroundSessionRefresh()
             authDebug("AUTH_FG", "biometric unlock success, background refresh started")
         case .lockRequired, .staleKeyLockRequired:
-            // PUL-337: under maintenance the PIN validation answers 503, which the PIN screen
-            // shows as a wrong code. Probe first — fail-open, so a failed probe still shows the
-            // PIN screen. `.needsPinEntry` is set before the event because the reducer promotes
-            // maintenance from `.locked`, never from `.authenticated`; no await separates the
-            // two, so the PIN screen never renders.
-            let maintenanceActive = await isMaintenanceActive()
-            authDebug("AUTH_FG", "lock required maintenance=\(maintenanceActive), setting needsPinEntry")
+            authDebug("AUTH_FG", "lock required, setting needsPinEntry")
             authState = .needsPinEntry
-            if maintenanceActive {
-                send(.maintenanceChecked(isInMaintenance: true))
-            }
         }
     }
 
