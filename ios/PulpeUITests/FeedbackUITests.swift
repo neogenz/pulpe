@@ -22,9 +22,10 @@ final class FeedbackUITests: XCTestCase {
         XCTAssertEqual(openFeedback.label, "Donner mon avis")
         openFeedback.tap()
 
-        let overallRating = app.segmentedControls["feedbackOverallRating"]
-        XCTAssertTrue(overallRating.waitForExistence(timeout: 10), app.debugDescription)
-        XCTAssertEqual(overallRating.label, "Comment ça se passe avec Pulpe ?")
+        XCTAssertTrue(
+            app.staticTexts["Comment ça se passe avec Pulpe ?"].waitForExistence(timeout: 10),
+            app.debugDescription
+        )
         for label in ["À améliorer", "Difficile", "Correct", "Bien", "Très bien"] {
             XCTAssertTrue(app.buttons[label].exists, "Missing accessible rating \(label)")
         }
@@ -34,7 +35,10 @@ final class FeedbackUITests: XCTestCase {
         details.tap()
 
         let comment = app.textFields["feedbackComment"]
-        scrollUntilHittable(comment)
+        for _ in 0..<4 {
+            app.swipeUp()
+        }
+        XCTAssertTrue(comment.isHittable, app.debugDescription)
         XCTAssertEqual(comment.label, "Commentaire facultatif")
         comment.tap()
         comment.typeText("Clair 😀 et utile")

@@ -30120,6 +30120,13 @@
         "it" : { "stringUnit" : { "state" : "translated", "value" : "Mesi futuri" } }
       }
     },
+    "Noter" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bewerten" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Rate" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Valuta" } }
+      }
+    },
     "Partage une impression en 30 secondes" : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Teile deinen Eindruck in 30 Sekunden" } },

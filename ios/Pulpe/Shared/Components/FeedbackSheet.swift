@@ -10,7 +10,6 @@ struct FeedbackSheet: View {
     @FocusState private var focusedField: Field?
     @State private var viewModel: FeedbackViewModel
     @State private var showsDetails = false
-    @State private var expandedArea: FeedbackArea?
 
     private let onSubmitted: () -> Void
 
@@ -23,57 +22,117 @@ struct FeedbackSheet: View {
     }
 
     var body: some View {
-        SheetFormContainer(
-            title: AppLocale.string("Ton avis sur Pulpe"),
-            isLoading: viewModel.isSubmitting,
-            focus: $focusedField,
-            focusOrder: []
-        ) {
-            if viewModel.isSubmitted {
-                successContent
-            } else {
-                formContent
+        VStack(spacing: DesignTokens.Spacing.none) {
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.xxxl) {
+                    if viewModel.isSubmitted {
+                        successContent
+                    } else {
+                        header
+                        formContent
+                    }
+                }
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.xxxl)
+                .padding(.bottom, DesignTokens.Spacing.xxl)
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
+
+            footer
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.vertical, DesignTokens.Spacing.lg)
+                .background(Color.sheetBackground)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.sheetBackground)
+        .loadingOverlay(viewModel.isSubmitting)
+        .dismissKeyboardOnTap()
+        .keyboardFieldNavigation(focus: $focusedField, order: [.comment])
         .sensoryFeedback(.success, trigger: viewModel.isSubmitted)
         .suppressesTips()
+        .standardSheetPresentation()
     }
 
-    private var formContent: some View {
-        Group {
+    private var header: some View {
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .font(.system(size: DesignTokens.IconSize.brand, weight: .semibold))
+                .foregroundStyle(Color.pulpePrimary)
+                .accessibilityHidden(true)
+
+            Text("Ton avis sur Pulpe")
+                .font(.title2.bold())
+                .foregroundStyle(Color.textPrimary)
+                .multilineTextAlignment(.center)
+
             Label {
                 Text("Ton avis reste privé. Il n'est pas publié sur l'App Store.")
-                    .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.textSecondary)
+                    .font(PulpeTypography.body)
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
                 Image(systemName: "lock.fill")
                     .foregroundStyle(Color.pulpePrimary)
                     .accessibilityHidden(true)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
 
+    private var formContent: some View {
+        VStack(spacing: DesignTokens.Spacing.xxl) {
             FormCard {
-                SegmentedPicker(
-                    selection: $viewModel.overallRating,
-                    title: AppLocale.string("Comment ça se passe avec Pulpe ?"),
-                    itemAccessibilityLabel: \.accessibilityLabel
-                ) { rating in
-                    Text(String(rating.rawValue))
+                VStack(spacing: DesignTokens.Spacing.md) {
+                    Text("Comment ça se passe avec Pulpe ?")
+                        .font(PulpeTypography.title3)
+                        .foregroundStyle(Color.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    FeedbackRatingControl(selection: $viewModel.overallRating)
+                        .accessibilityIdentifier("feedbackOverallRating")
+
+                    if let overallRating = viewModel.overallRating {
+                        Text(overallRating.accessibilityLabel)
+                            .font(PulpeTypography.labelLarge)
+                            .foregroundStyle(Color.pulpePrimary)
+                    }
                 }
-                .padding(.vertical, DesignTokens.Spacing.lg)
-                .accessibilityIdentifier("feedbackOverallRating")
+                .padding(.vertical, DesignTokens.Spacing.xl)
             }
 
-            FormCard {
-                DisclosureGroup(isExpanded: $showsDetails) {
-                    detailsContent
-                } label: {
-                    Text("Préciser mon avis")
-                        .font(PulpeTypography.bodyLarge)
-                        .accessibilityIdentifier("feedbackDetailsDisclosure")
+            Button {
+                withAnimation(DesignTokens.Animation.smoothEaseInOut) {
+                    showsDetails.toggle()
                 }
-                .frame(minHeight: DesignTokens.TapTarget.minimum)
+            } label: {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: showsDetails ? "minus.circle.fill" : "plus.circle.fill")
+                        .font(PulpeTypography.title2)
+                        .foregroundStyle(Color.pulpePrimary)
+                        .contentTransition(.symbolEffect(.replace))
+
+                    Text("Préciser mon avis")
+                        .font(PulpeTypography.headline)
+                        .foregroundStyle(Color.textPrimary)
+
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                }
+            }
+            .plainPressedButtonStyle()
+            .frame(minHeight: DesignTokens.TapTarget.minimum)
+            .contentShape(Rectangle())
+            .accessibilityHint(showsDetails ? Text("Appuie pour réduire") : Text("Appuie pour développer"))
+            .sensoryFeedback(.selection, trigger: showsDetails)
+
+            if showsDetails {
+                FormCard {
+                    detailsContent
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -82,28 +141,16 @@ struct FeedbackSheet: View {
                 }
                 .accessibilityIdentifier("feedbackError")
             }
-
-            Button {
-                Task {
-                    guard await viewModel.submit() else { return }
-                    onSubmitted()
-                }
-            } label: {
-                Text("Envoyer")
-            }
-            .disabled(!viewModel.canSubmit)
-            .primaryButtonStyle(isEnabled: viewModel.canSubmit)
-            .accessibilityIdentifier("feedbackSubmit")
         }
     }
 
     private var detailsContent: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
             ForEach(Array(FeedbackArea.allCases.enumerated()), id: \.element) { index, area in
                 if index > 0 {
                     FormRowDivider()
                 }
-                areaDisclosure(area)
+                areaRatingRow(area)
             }
 
             FormRowDivider()
@@ -122,7 +169,18 @@ struct FeedbackSheet: View {
                     axis: .vertical
                 )
                 .lineLimit(3...6)
+                .font(PulpeTypography.bodyLarge)
                 .textFieldStyle(.plain)
+                .padding(DesignTokens.Spacing.lg)
+                .background(Color.inputBackgroundSoft)
+                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+                .overlay {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                        .strokeBorder(
+                            Color.outlineVariant,
+                            lineWidth: DesignTokens.BorderWidth.thin
+                        )
+                }
                 .focused($focusedField, equals: .comment)
                 .accessibilityLabel("Commentaire facultatif")
                 .accessibilityIdentifier("feedbackComment")
@@ -131,36 +189,63 @@ struct FeedbackSheet: View {
         }
     }
 
-    private func areaDisclosure(_ area: FeedbackArea) -> some View {
-        DisclosureGroup(
-            isExpanded: Binding(
-                get: { expandedArea == area },
-                set: { expandedArea = $0 ? area : nil }
-            )
-        ) {
-            SegmentedPicker(
-                selection: viewModel.ratingBinding(for: area),
-                title: area.title,
-                itemAccessibilityLabel: \.accessibilityLabel
-            ) { rating in
-                Text(String(rating.rawValue))
-            }
-            .padding(.bottom, DesignTokens.Spacing.lg)
-            .accessibilityIdentifier("feedbackAreaRating.\(area.rawValue)")
-        } label: {
-            HStack {
-                Text(area.title)
-                    .accessibilityIdentifier("feedbackArea.\(area.rawValue)")
-                Spacer(minLength: DesignTokens.Spacing.sm)
-                if let rating = viewModel.ratings[area] {
-                    Text("\(rating.rawValue)/5")
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.textSecondary)
+    private func areaRatingRow(_ area: FeedbackArea) -> some View {
+        Menu {
+            Picker(area.title, selection: viewModel.ratingBinding(for: area)) {
+                ForEach(FeedbackRating.allCases) { rating in
+                    Text(rating.accessibilityLabel)
+                        .tag(Optional(rating))
                 }
             }
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Text(area.title)
+                    .foregroundStyle(Color.textPrimary)
+                    .accessibilityIdentifier("feedbackArea.\(area.rawValue)")
+
+                Spacer(minLength: DesignTokens.Spacing.sm)
+
+                Text(viewModel.ratings[area]?.accessibilityLabel ?? AppLocale.string("Noter"))
+                    .foregroundStyle(viewModel.ratings[area] == nil ? Color.textTertiary : Color.pulpePrimary)
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textTertiary)
+                    .accessibilityHidden(true)
+            }
             .font(PulpeTypography.body)
+            .frame(minHeight: DesignTokens.TapTarget.minimum)
+            .contentShape(Rectangle())
         }
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .buttonStyle(.plain)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .accessibilityIdentifier("feedbackAreaRating.\(area.rawValue)")
+        .sensoryFeedback(.selection, trigger: viewModel.ratings[area])
+    }
+
+    private var footer: some View {
+        VStack(spacing: DesignTokens.Spacing.md) {
+            if viewModel.isSubmitted {
+                Button("Fermer") { dismiss() }
+                    .primaryButtonStyle()
+                    .accessibilityIdentifier("feedbackSuccessClose")
+            } else {
+                Button("Envoyer", action: submit)
+                    .disabled(!viewModel.canSubmit)
+                    .primaryButtonStyle(isEnabled: viewModel.canSubmit)
+                    .accessibilityIdentifier("feedbackSubmit")
+
+                Button("Fermer") { dismiss() }
+                    .secondaryButtonStyle()
+            }
+        }
+    }
+
+    private func submit() {
+        Task {
+            guard await viewModel.submit() else { return }
+            onSubmitted()
+        }
     }
 
     private var successContent: some View {
@@ -176,13 +261,40 @@ struct FeedbackSheet: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("feedbackSuccessMessage")
-
-            Button("Fermer") { dismiss() }
-                .primaryButtonStyle()
-                .accessibilityIdentifier("feedbackSuccessClose")
         }
         .frame(maxWidth: .infinity)
         .padding(.top, DesignTokens.Spacing.xxl)
+    }
+}
+
+private struct FeedbackRatingControl: View {
+    @Binding var selection: FeedbackRating?
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            ForEach(FeedbackRating.allCases) { rating in
+                Button {
+                    selection = rating
+                } label: {
+                    Image(systemName: isFilled(rating) ? "star.fill" : "star")
+                        .font(PulpeTypography.title2)
+                        .foregroundStyle(isFilled(rating) ? Color.pulpePrimary : Color.textTertiary)
+                        .frame(maxWidth: .infinity)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Rectangle())
+                .accessibilityLabel(rating.accessibilityLabel)
+                .accessibilityValue(selection == rating ? Text("Sélectionné") : Text(""))
+                .accessibilityAddTraits(selection == rating ? .isSelected : [])
+            }
+        }
+        .sensoryFeedback(.selection, trigger: selection)
+    }
+
+    private func isFilled(_ rating: FeedbackRating) -> Bool {
+        rating.rawValue <= (selection?.rawValue ?? 0)
     }
 }
 
