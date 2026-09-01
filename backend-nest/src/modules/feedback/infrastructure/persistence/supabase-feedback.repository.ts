@@ -23,7 +23,6 @@ export class SupabaseFeedbackRepository implements FeedbackRepositoryPort {
         current_month: feedback.currentMonth,
         future_planning: feedback.futurePlanning,
         home_clarity: feedback.homeClarity,
-        other: feedback.other,
         comment: feedback.comment,
         app_version: feedback.appVersion,
         ios_version: feedback.iosVersion,

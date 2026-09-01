@@ -15,6 +15,7 @@ status: done
 │   ├── index.ts                                                                 ✏️ exports publics du contrat feedback
 │   └── src/feedback-schema.spec.ts                                              ✅ bornes, champs facultatifs et rejet des clés inconnues
 └── backend-nest
+    ├── .prettierignore                                                        ✏️ exclut le fichier de types généré du formatage
     ├── supabase
     │   ├── migrations/20260901130000_create_user_feedback.sql                   ✅ table contrainte, privilège INSERT seul et policy propriétaire
     │   └── tests/user_feedback_rls.sql                                           ✅ matrice anon/authenticated/service-role et isolation
@@ -71,7 +72,7 @@ journey
 
 > Une seule source Zod borne toutes les données acceptées avant l'accès à la base.
 
-1. Ajouter un `feedbackCreateSchema.strict()` dans `shared/schemas.ts` : `overallRating` entier de 1 à 5 ; six notes facultatives de 1 à 5 (`onboarding`, `budgetClarity`, `currentMonth`, `futurePlanning`, `homeClarity`, `other`) ; `comment` facultatif, trimé et limité à 1 000 caractères ; `appVersion` et `iosVersion` non vides, limités à 32 caractères.
+1. Ajouter un `feedbackCreateSchema.strict()` dans `shared/schemas.ts` : `overallRating` entier de 1 à 5 ; cinq notes facultatives de 1 à 5 (`onboarding`, `budgetClarity`, `currentMonth`, `futurePlanning`, `homeClarity`) ; `comment` facultatif, trimé et limité à 1 000 caractères ; `appVersion` et `iosVersion` non vides, limités à 32 caractères.
 2. Exporter `FeedbackCreate` et le schéma depuis `shared/index.ts`.
 3. Tester le payload minimal, le payload complet, chaque borne, le commentaire vide normalisé en absence et le rejet des propriétés inconnues.
 
@@ -79,11 +80,11 @@ journey
 
 > La base garantit l'appartenance et la qualité minimale même si un client contourne NestJS.
 
-1. Créer `public.user_feedback` avec UUID, `user_id` vers `auth.users` en cascade, note générale, six colonnes de notes facultatives, commentaire, versions et `created_at`.
+1. Créer `public.user_feedback` avec UUID, `user_id` vers `auth.users` en cascade, note générale, cinq colonnes de notes facultatives, commentaire, versions et `created_at`.
 2. Poser des `CHECK` SQL pour toutes les notes, les longueurs du commentaire et des versions, puis indexer `(user_id, created_at DESC)`.
 3. Activer RLS, révoquer tous les privilèges de `anon` et `authenticated`, rendre uniquement `INSERT` à `authenticated`, puis ajouter `WITH CHECK ((SELECT auth.uid()) = user_id)` ; ne créer aucune policy de lecture, modification ou suppression.
 4. Ajouter le test SQL `user_feedback_rls.sql` qui prouve l'insertion propriétaire et le refus des quatre opérations non autorisées.
-5. Appliquer la migration localement et régénérer `src/types/database.types.ts` avec la commande du projet.
+5. Appliquer la migration localement et régénérer `src/types/database.types.ts` avec la commande du projet ; exclure ce fichier généré de Prettier afin que son contenu reste identique à la sortie vérifiée en CI.
 
 ### `3)` Ajouter le module NestJS minimal
 

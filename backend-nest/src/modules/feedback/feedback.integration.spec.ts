@@ -123,7 +123,6 @@ describe('POST /api/v1/feedback (local Supabase)', () => {
         currentMonth: 5,
         futurePlanning: 2,
         homeClarity: 4,
-        other: 1,
         comment: 'Clair et rapide',
         appVersion: '1.4.0',
         iosVersion: '19.0',
@@ -203,7 +202,6 @@ describe('POST /api/v1/feedback (local Supabase)', () => {
       'currentMonth',
       'futurePlanning',
       'homeClarity',
-      'other',
       'comment',
     ]) {
       expect(paths).toContain(`req.body.${field}`);

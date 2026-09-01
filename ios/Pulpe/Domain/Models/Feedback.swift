@@ -26,7 +26,6 @@ enum FeedbackArea: String, CaseIterable, Codable, Hashable, Identifiable, Sendab
     case currentMonth
     case futurePlanning
     case homeClarity
-    case other
 
     var id: String { rawValue }
 
@@ -37,7 +36,6 @@ enum FeedbackArea: String, CaseIterable, Codable, Hashable, Identifiable, Sendab
         case .currentMonth: AppLocale.string("Gestion du budget du mois")
         case .futurePlanning: AppLocale.string("Planification des prochains mois")
         case .homeClarity: AppLocale.string("Clarté de l'accueil")
-        case .other: AppLocale.string("Autre")
         }
     }
 }
@@ -49,7 +47,6 @@ struct FeedbackSubmission: Codable, Equatable, Sendable {
     let currentMonth: FeedbackRating?
     let futurePlanning: FeedbackRating?
     let homeClarity: FeedbackRating?
-    let other: FeedbackRating?
     let comment: String?
     let appVersion: String
     let iosVersion: String
@@ -67,7 +64,6 @@ struct FeedbackSubmission: Codable, Equatable, Sendable {
         currentMonth = ratings[.currentMonth]
         futurePlanning = ratings[.futurePlanning]
         homeClarity = ratings[.homeClarity]
-        other = ratings[.other]
         self.comment = comment
         self.appVersion = appVersion
         self.iosVersion = iosVersion

@@ -209,7 +209,6 @@ export function createPinoLoggerConfig(configService: ConfigService) {
           'req.body.currentMonth',
           'req.body.futurePlanning',
           'req.body.homeClarity',
-          'req.body.other',
           'req.body.comment',
           'res.headers["set-cookie"]',
         ],

@@ -149,7 +149,7 @@ struct FeedbackSheet: View {
 
     private var detailsContent: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
-            ForEach(Array(FeedbackArea.allCases.filter { $0 != .other }.enumerated()), id: \.element) { index, area in
+            ForEach(Array(FeedbackArea.allCases.enumerated()), id: \.element) { index, area in
                 if index > 0 {
                     FormRowDivider()
                 }

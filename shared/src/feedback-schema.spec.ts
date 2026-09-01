@@ -21,7 +21,6 @@ describe('feedbackCreateSchema', () => {
         currentMonth: 3,
         futurePlanning: 4,
         homeClarity: 5,
-        other: 3,
         comment: '  Simple et utile.  ',
       }),
     ).toEqual({
@@ -31,7 +30,6 @@ describe('feedbackCreateSchema', () => {
       currentMonth: 3,
       futurePlanning: 4,
       homeClarity: 5,
-      other: 3,
       comment: 'Simple et utile.',
     });
   });
@@ -45,7 +43,6 @@ describe('feedbackCreateSchema', () => {
     ['currentMonth', 1.5],
     ['futurePlanning', -1],
     ['homeClarity', 7],
-    ['other', 0],
   ] as const)('rejects invalid %s rating', (field, value) => {
     expect(
       feedbackCreateSchema.safeParse({ ...minimalFeedback, [field]: value })

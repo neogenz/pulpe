@@ -30022,13 +30022,6 @@
         "it" : { "stringUnit" : { "state" : "translated", "value" : "Da migliorare" } }
       }
     },
-    "Autre" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sonstiges" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Other" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Altro" } }
-      }
-    },
     "Bien" : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Gut" } },

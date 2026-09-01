@@ -2627,7 +2627,6 @@ export const feedbackCreateSchema = z.strictObject({
   currentMonth: optionalFeedbackRatingSchema,
   futurePlanning: optionalFeedbackRatingSchema,
   homeClarity: optionalFeedbackRatingSchema,
-  other: optionalFeedbackRatingSchema,
   comment: z
     .string()
     .trim()

@@ -1,3 +1,5 @@
+-- pulpe:migration-phase contract
+-- pulpe:safe-after v0.47.1
 -- Private in-app feedback is write-only for authenticated clients. Reading and
 -- moderation stay on trusted server tooling, outside the mobile API surface.
 
@@ -10,7 +12,6 @@ CREATE TABLE public.user_feedback (
   current_month smallint CHECK (current_month BETWEEN 1 AND 5),
   future_planning smallint CHECK (future_planning BETWEEN 1 AND 5),
   home_clarity smallint CHECK (home_clarity BETWEEN 1 AND 5),
-  other smallint CHECK (other BETWEEN 1 AND 5),
   -- Unicode code points, matching Swift `unicodeScalars` and JavaScript string iteration.
   comment text CHECK (comment IS NULL OR char_length(comment) BETWEEN 1 AND 1000),
   app_version text NOT NULL CHECK (char_length(app_version) BETWEEN 1 AND 32),

@@ -19,8 +19,7 @@ status: done
     │   ├── Features/Account/AccountView.swift                                    ✏️ ligne Donner mon avis dans Support et présentation manuelle
     │   ├── Resources/Localizable.xcstrings                                       ✏️ microcopy FR, DE, EN et IT
     │   └── Shared/Components
-    │       ├── FeedbackSheet.swift                                               ✅ formulaire, états envoi/erreur/succès et view model local
-    │       └── SegmentedPicker.swift                                              ✏️ sélection facultative sans valeur précochée
+    │       └── FeedbackSheet.swift                                               ✅ formulaire, états envoi/erreur/succès et view model local
     └── PulpeTests
         ├── Domain/Services/FeedbackServiceTests.swift                            ✅ méthode, chemin et JSON transmis
         └── Shared/Components/FeedbackViewModelTests.swift                        ✅ validation, conservation de saisie et succès
@@ -84,8 +83,7 @@ Sheet — état compact
 │ (2) Contexte bref                    │
 │                                     │
 │ (3) Question générale               │
-│     [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ]       │
-│     repère bas          repère haut  │
+│        ☆   ☆   ☆   ☆   ☆            │
 │                                     │
 │ (4) Bloc facultatif                › │
 │                                     │
@@ -105,20 +103,18 @@ Sheet — précisions ouvertes
 │ (1) Note générale conservée          │
 ├─────────────────────────────────────┤
 │ (2) Zones facultatives               │
-│     [zone]                         › │
-│       [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ]     │
-│     [zone]                         › │
-│     [zone]                         › │
-│     [zone]                         › │
-│     [zone]                         › │
-│     [autre]                        › │
+│     [zone]        ☆  ☆  ☆  ☆  ☆     │
+│     [zone]        ☆  ☆  ☆  ☆  ☆     │
+│     [zone]        ☆  ☆  ☆  ☆  ☆     │
+│     [zone]        ☆  ☆  ☆  ☆  ☆     │
+│     [zone]        ☆  ☆  ☆  ☆  ☆     │
 │                                     │
 │ (3) Champ texte multiligne           │
 │ (4) [ Action principale ]            │
 └─────────────────────────────────────┘
 
 1. Note générale : reste lisible pendant la précision.
-2. Zones : une ligne par partie de l'app, avec échelle seulement dans la ligne ouverte.
+2. Zones : une ligne directe par partie de l'app, avec une échelle à cinq étoiles.
 3. Texte : commentaire libre facultatif, borné et adapté au clavier.
 4. Action : même envoi que dans l'état compact.
 
@@ -143,7 +139,7 @@ Sheet — succès
 > Le client envoie un objet typé et n'attend aucun contenu de réponse.
 
 1. Ajouter `.feedback` à `Endpoint`, avec chemin `/feedback` et méthode POST.
-2. Définir `FeedbackRating` de 1 à 5, les six `FeedbackArea`, et `FeedbackSubmission` avec les noms JSON du contrat, `AppConfiguration.appVersion` et `UIDevice.current.systemVersion`.
+2. Définir `FeedbackRating` de 1 à 5, les cinq `FeedbackArea`, et `FeedbackSubmission` avec les noms JSON du contrat, `AppConfiguration.appVersion` et `UIDevice.current.systemVersion`.
 3. Créer `FeedbackService.submit(_:)` autour de `APIClient.requestVoid`.
 4. Tester méthode, URL, authentification héritée d'`APIClient` et encodage du payload minimal puis complet.
 
@@ -153,10 +149,9 @@ Sheet — succès
 
 1. Construire `FeedbackSheet` avec `SheetFormContainer`, un view model local injectable et un callback `onSubmitted` ; aucune nouvelle dépendance UI.
 2. Afficher `Ton avis sur Pulpe`, la phrase `Ton avis reste privé. Il n'est pas publié sur l'App Store.`, puis `Comment ça se passe avec Pulpe ?`.
-3. Étendre `SegmentedPicker` avec un initializer acceptant `Binding<T?>`, sans modifier ses appelants non optionnels, afin qu'un choix requis puisse démarrer sans valeur précochée.
-4. Utiliser ce `SegmentedPicker` pour les cinq valeurs numériques, avec les libellés VoiceOver `À améliorer`, `Difficile`, `Correct`, `Bien`, `Très bien` ; ne pas afficher d'étoiles.
-5. Garder `Préciser mon avis` replié par défaut. À l'ouverture, proposer les six zones dans des `DisclosureGroup` et n'afficher l'échelle que pour la ligne ouverte, puis un `TextField(axis: .vertical)` facultatif limité à 1 000 caractères.
-6. Utiliser les libellés courts `Bien démarrer`, `Comprendre mon budget`, `Budget du mois`, `Mois à venir`, `Écran d'accueil`, `Autre`, puis l'action `Envoyer`.
+3. Afficher une échelle dédiée de cinq étoiles, vide au départ, avec les libellés VoiceOver `À améliorer`, `Difficile`, `Correct`, `Bien`, `Très bien` et un retour haptique à chaque sélection. La phrase de contexte précise que l'avis reste privé et n'est pas publié sur l'App Store.
+4. Garder `Préciser mon avis` replié par défaut. À l'ouverture, afficher directement les cinq zones et leur échelle, puis un `TextField(axis: .vertical)` facultatif limité à 1 000 caractères.
+5. Utiliser les libellés explicites `Création de mon premier budget`, `Clarté de l'interface`, `Gestion du budget du mois`, `Planification des prochains mois`, `Clarté de l'accueil`, puis l'action `Envoyer`.
 
 ### `3)` Traiter réussite et échec sans perdre de temps
 
@@ -189,7 +184,7 @@ Sheet — succès
 | Task | Acceptance criteria                                                                                                                                                       |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | Le service émet un POST `/v1/feedback` dont le JSON correspond exactement au contrat, avec versions de l'app et d'iOS, puis accepte une réponse 204.                      |
-| 2    | À l'ouverture, aucune note n'est précochée et seule la note générale requiert une décision ; les six zones et le commentaire restent repliés et facultatifs, sans étoile. |
+| 2    | À l'ouverture, aucune étoile n'est précochée et seule la note générale requiert une décision ; les cinq zones et le commentaire restent repliés et facultatifs.       |
 | 3    | Après un échec, toutes les valeurs restent visibles et réutilisées ; après succès, le texte exact `Merci. Ton avis fait progresser Pulpe.` apparaît.                      |
 | 4    | `Compte → Support → Donner mon avis` ouvre la même sheet, et toute la microcopy est disponible en FR, DE, EN et IT.                                                       |
 | 5    | Les tests `FeedbackServiceTests` et `FeedbackViewModelTests` passent ; le formulaire reste utilisable avec VoiceOver et aux tailles Dynamic Type d'accessibilité.         |
