@@ -17,6 +17,7 @@ struct PointCircle: View {
     /// Debounced sync state — only flips true if the toggle takes >300 ms,
     /// so fast optimistic updates don't trigger a green-dot flash.
     @State private var displayedSyncing = false
+    @State private var sheenTrigger = 0
     @State private var isCompleting = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -39,6 +40,52 @@ struct PointCircle: View {
                 RowIcon(systemName: kind.icon, tint: color)
                     .overlay {
                         Circle().strokeBorder(color, lineWidth: DesignTokens.Checkbox.ringWidth)
+                    }
+                    .overlay {
+                        Circle()
+                            .strokeBorder(
+                                AngularGradient(
+                                    colors: [
+                                        .clear,
+                                        .clear,
+                                        .clear,
+                                        .white.opacity(DesignTokens.Checkbox.sheenOpacity),
+                                        .clear,
+                                        .clear,
+                                        .clear,
+                                    ],
+                                    center: .center
+                                ),
+                                lineWidth: DesignTokens.Checkbox.ringWidth
+                            )
+                            .keyframeAnimator(
+                                initialValue: PointCircleSheenValues(),
+                                trigger: sheenTrigger
+                            ) { content, value in
+                                content
+                                    .rotationEffect(.degrees(value.angle))
+                                    .opacity(value.opacity)
+                            } keyframes: { _ in
+                                KeyframeTrack(\.angle) {
+                                    CubicKeyframe(
+                                        DesignTokens.Checkbox.sheenEndAngle,
+                                        duration: DesignTokens.Checkbox.sheenDuration
+                                    )
+                                }
+                                KeyframeTrack(\.opacity) {
+                                    CubicKeyframe(
+                                        DesignTokens.Checkbox.sheenOpacity,
+                                        duration: DesignTokens.Animation.fast
+                                    )
+                                    CubicKeyframe(
+                                        0,
+                                        duration: DesignTokens.Checkbox.sheenDuration
+                                            - DesignTokens.Animation.fast
+                                    )
+                                }
+                            }
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
                     }
                     .scaleEffect(displayedIsPointed && !reduceMotion ? DesignTokens.Animation.settleScale : 1)
                     .opacity(displayedIsPointed ? 0 : 1)
@@ -85,6 +132,12 @@ struct PointCircle: View {
             old && !new
         }
         .rampSyncIndicator(isSyncing: isSyncing, displayed: $displayedSyncing)
+        .task(id: displayedIsPointed) {
+            guard !reduceMotion, !displayedIsPointed else { return }
+            await delayedAction(DesignTokens.Checkbox.sheenDelay) {
+                sheenTrigger += 1
+            }
+        }
         .onChange(of: isPointed) {
             if isPointed { isCompleting = false }
         }
@@ -110,6 +163,11 @@ struct PointCircle: View {
             }
         }
     }
+}
+
+private struct PointCircleSheenValues {
+    var angle = DesignTokens.Checkbox.sheenStartAngle
+    var opacity = 0.0
 }
 
 /// A flick under the finger: the disc dips while pressed and springs back, faster out than
