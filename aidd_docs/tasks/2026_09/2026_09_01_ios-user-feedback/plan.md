@@ -1,6 +1,6 @@
 ---
 objective: "Une personne utilisant Pulpe sur iOS peut envoyer un avis général et des précisions facultatives en moins d'une minute, depuis le menu Compte ou une unique sollicitation après un usage régulier."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Recueillir un avis iOS rapide et actionnable
