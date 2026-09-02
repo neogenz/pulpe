@@ -23,22 +23,38 @@ private actor PreferencesUITestService: UserSettingsServicing {
 }
 
 struct PreferencesUITestHarness: View {
-    @State private var appState = AppState()
+    @State private var appState: AppState
     @State private var userSettingsStore: UserSettingsStore
     @State private var currentMonthStore = CurrentMonthStore()
     @State private var budgetListStore = BudgetListStore()
     @State private var dashboardStore = DashboardStore()
+    private let showsFeedback: Bool
 
     init() {
         AppLocale.persist(.fr)
+        let appState = AppState()
+        appState.authState = .authenticated
+        appState.currentUser = UserInfo(
+            id: "feedback-ui-test",
+            email: "feedback@local.test",
+            firstName: "Camille"
+        )
+        _appState = State(initialValue: appState)
         _userSettingsStore = State(
             initialValue: UserSettingsStore(service: PreferencesUITestService())
         )
+        showsFeedback = ProcessInfo.processInfo.environment["UITEST_FEEDBACK"] == "1"
     }
 
     var body: some View {
-        NavigationStack {
-            PreferencesView()
+        Group {
+            if showsFeedback {
+                AccountView()
+            } else {
+                NavigationStack {
+                    PreferencesView()
+                }
+            }
         }
         .environment(\.dynamicTypeSize, dynamicTypeSize)
         .preferredColorScheme(preferredColorScheme)

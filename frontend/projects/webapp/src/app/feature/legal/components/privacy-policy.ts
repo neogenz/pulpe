@@ -47,6 +47,9 @@ import { ROUTES } from '@core/routing';
             <li>
               {{ 'legal.privacy.collected.provided.preferences' | transloco }}
             </li>
+            <li>
+              {{ 'legal.privacy.collected.provided.feedback' | transloco }}
+            </li>
           </ul>
 
           <h3 class="text-title-large mb-2 mt-4">
@@ -79,6 +82,7 @@ import { ROUTES } from '@core/routing';
             <li>{{ 'legal.privacy.use.items.improve' | transloco }}</li>
             <li>{{ 'legal.privacy.use.items.communication' | transloco }}</li>
             <li>{{ 'legal.privacy.use.items.security' | transloco }}</li>
+            <li>{{ 'legal.privacy.use.items.feedback' | transloco }}</li>
           </ul>
         </section>
 
@@ -233,6 +237,7 @@ import { ROUTES } from '@core/routing';
             <li>{{ 'legal.privacy.retention.items.analytics' | transloco }}</li>
             <li>{{ 'legal.privacy.retention.items.deletion' | transloco }}</li>
             <li>{{ 'legal.privacy.retention.items.demo' | transloco }}</li>
+            <li>{{ 'legal.privacy.retention.items.feedback' | transloco }}</li>
           </ul>
           <p class="text-body-large mt-4">
             <strong>{{
@@ -374,5 +379,5 @@ export default class PrivacyPolicyComponent {
   protected readonly currentDate = new Intl.DateTimeFormat(
     this.#transloco.getActiveLang(),
     { dateStyle: 'long', timeZone: 'UTC' },
-  ).format(new Date('2026-07-28T00:00:00Z'));
+  ).format(new Date('2026-09-01T00:00:00Z'));
 }

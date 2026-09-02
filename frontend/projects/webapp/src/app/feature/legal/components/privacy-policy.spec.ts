@@ -15,39 +15,63 @@ import italian from '../../../../../public/i18n/it.json';
 const cases = [
   [
     'fr',
-    '28 juillet 2026',
+    '1 septembre 2026',
     '9. Tes droits (RGPD/LPD)',
     'le replay est désactivé en production',
     'sans stockage permanent',
     'langue, devise',
     'peut être consulté publiquement sur GitHub',
+    [
+      'Notes et commentaire facultatif',
+      'Analyser tes avis',
+      'Avis envoyés : conservés avec ton compte',
+      'avis envoyés compris',
+    ],
   ],
   [
     'en',
-    'July 28, 2026',
+    'September 1, 2026',
     '9. Your rights (GDPR/FADP)',
     'replay is disabled in production',
     'does not store it permanently',
     'language, currency',
     'can be viewed publicly on GitHub',
+    [
+      'Ratings and optional comment',
+      'Analyse your feedback',
+      'Submitted feedback: retained with your account',
+      'including submitted feedback',
+    ],
   ],
   [
     'de',
-    '28. Juli 2026',
+    '1. September 2026',
     '9. Deine Rechte (DSGVO/DSG)',
     'Wiedergabe ist in der Produktion deaktiviert',
     'speichert sie nicht dauerhaft',
     'Sprache, Währung',
     'kann öffentlich auf GitHub eingesehen werden',
+    [
+      'Bewertungen und optionaler Kommentar',
+      'Dein Feedback auszuwerten',
+      'Gesendetes Feedback: wird zusammen mit deinem Konto aufbewahrt',
+      'einschliesslich deines Feedbacks',
+    ],
   ],
   [
     'it',
-    '28 luglio 2026',
+    '1 settembre 2026',
     '9. I tuoi diritti (GDPR/LPD)',
     'replay è disattivato in produzione',
     'senza archiviarli in modo permanente',
     'lingua, valuta',
     'può essere consultato pubblicamente su GitHub',
+    [
+      'Valutazioni e commento facoltativo',
+      'Analizzare il tuo feedback',
+      'Feedback inviato: conservato insieme al tuo account',
+      'feedback inviato incluso',
+    ],
   ],
 ] as const;
 
@@ -84,6 +108,7 @@ describe('PrivacyPolicyComponent', () => {
       railwayNoStorage,
       localePreference,
       publicSourceStatement,
+      feedbackStatements,
     ) => {
       TestBed.configureTestingModule({
         imports: [PrivacyPolicyComponent],
@@ -112,6 +137,8 @@ describe('PrivacyPolicyComponent', () => {
       expect(text).toContain(railwayNoStorage);
       expect(text).toContain(localePreference);
       expect(text).toContain(publicSourceStatement);
+      for (const statement of feedbackStatements)
+        expect(text).toContain(statement);
       expect(text.toLowerCase()).not.toContain('open source');
       expect(text).toContain('12');
       expect(text).toContain('3');

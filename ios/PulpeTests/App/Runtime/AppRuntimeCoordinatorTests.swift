@@ -17,12 +17,16 @@ struct AppRuntimeCoordinatorTests {
         await appState.completePinEntry()
     }
 
-    private func makeCoordinator(appState: AppState) -> AppRuntimeCoordinator {
+    private func makeCoordinator(
+        appState: AppState,
+        onAppOpened: @escaping @MainActor () -> Void = {}
+    ) -> AppRuntimeCoordinator {
         AppRuntimeCoordinator(
             appState: appState,
             currentMonthStore: CurrentMonthStore(),
             budgetListStore: BudgetListStore(),
-            dashboardStore: DashboardStore()
+            dashboardStore: DashboardStore(),
+            onAppOpened: onAppOpened
         )
     }
 
@@ -51,6 +55,32 @@ struct AppRuntimeCoordinatorTests {
         sut.handleScenePhaseChange(from: .background, to: .active)
 
         #expect(!sut.consumeVisibleStartup(for: .active))
+    }
+
+    // MARK: - App-open Signal
+
+    @Test func appOpenedCallback_firesOnceOnInitialActivation() {
+        var callCount = 0
+        let sut = makeCoordinator(appState: AppState()) { callCount += 1 }
+
+        sut.handleScenePhaseChange(from: .inactive, to: .active)
+        sut.handleScenePhaseChange(from: .active, to: .inactive)
+        sut.handleScenePhaseChange(from: .inactive, to: .active)
+
+        #expect(callCount == 1)
+    }
+
+    @Test func appOpenedCallback_firesAfterBackgroundEvenWhenInactivePrecedesActive() {
+        var callCount = 0
+        let sut = makeCoordinator(appState: AppState()) { callCount += 1 }
+        sut.handleScenePhaseChange(from: .inactive, to: .active)
+
+        sut.handleScenePhaseChange(from: .active, to: .inactive)
+        sut.handleScenePhaseChange(from: .inactive, to: .background)
+        sut.handleScenePhaseChange(from: .background, to: .inactive)
+        sut.handleScenePhaseChange(from: .inactive, to: .active)
+
+        #expect(callCount == 2)
     }
 
     // MARK: - Privacy Shield: Activation

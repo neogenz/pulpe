@@ -7,6 +7,8 @@ struct AccountView: View {
     @State private var isDebugVisible = false
     @State private var debugToggleTrigger = false
     @State private var showEditFirstName = false
+    @State private var showFeedback = false
+    private let feedbackPromptPreferences = FeedbackPromptPreferences()
 
     var body: some View {
         NavigationStack {
@@ -42,6 +44,12 @@ struct AccountView: View {
             }
             .sheet(isPresented: $showEditFirstName) {
                 EditFirstNameSheet(initialFirstName: appState.currentUser?.firstName)
+            }
+            .sheet(isPresented: $showFeedback) {
+                FeedbackSheet {
+                    guard let userID = appState.currentUser?.id else { return }
+                    feedbackPromptPreferences.markAutomaticPromptHandled(for: userID)
+                }
             }
         }
     }
@@ -138,6 +146,16 @@ extension AccountView {
                 subtitle: AppLocale.string("Aide et questions fréquentes"),
                 url: AppURLs.support
             )
+
+            iconChevronButton(
+                icon: "bubble.left.and.bubble.right",
+                iconColor: Color.pulpePrimary,
+                title: AppLocale.string("Donner mon avis"),
+                subtitle: AppLocale.string("Partage une impression en 30 secondes")
+            ) {
+                showFeedback = true
+            }
+            .accessibilityIdentifier("openFeedback")
 
             iconChevronLink(
                 icon: "sparkles",
@@ -267,7 +285,7 @@ extension AccountView {
                         width: DesignTokens.IconSize.compact,
                         height: DesignTokens.IconSize.compact
                     )
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     Text(title)
                         .foregroundStyle(.primary)
                     Text(subtitle)
@@ -308,6 +326,42 @@ extension AccountView {
             }
         }
         .tint(.primary)
+    }
+
+    private func iconChevronButton(
+        icon: String,
+        iconColor: Color,
+        title: String,
+        subtitle: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: icon)
+                    .font(PulpeTypography.listRowTitle)
+                    .foregroundStyle(iconColor)
+                    .frame(
+                        width: DesignTokens.IconSize.compact,
+                        height: DesignTokens.IconSize.compact
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textTertiary)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+        .contentShape(Rectangle())
+        .plainPressedButtonStyle()
+        .accessibilityLabel(title)
+        .accessibilityHint(subtitle)
     }
 }
 
