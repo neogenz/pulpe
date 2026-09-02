@@ -47,6 +47,8 @@ enum ProductTips {
     // MARK: - Checking Tip
 
     struct CheckingTip: Tip {
+        var id: String { "checking-point-control-v2" }
+
         var title: Text {
             Text("Pointer un mouvement")
         }
