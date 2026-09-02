@@ -106,7 +106,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var triggerToggleFeedback = false
+    @State private var pointCompletionGate = PointCompletionGate()
 
     private var kind: TransactionKind { transaction.kind }
     private var isIncome: Bool { kind == .income }
@@ -154,11 +154,6 @@ private struct BudgetDetailsFreeTransactionRow: View {
         return "\(kind.label) · \(transaction.name) · \(amount) · \(date) · \(pointed)\(tags)\(origin)"
     }
 
-    private func handleTogglePointed() {
-        triggerToggleFeedback.toggle()
-        onTogglePointed()
-    }
-
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: DesignTokens.Spacing.sm) {
@@ -167,6 +162,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
                     isPointed: isPointed,
                     color: dotColor,
                     isSyncing: isSyncing,
+                    onCompletionStateChange: { pointCompletionGate.isPending = $0 },
                     onToggle: onTogglePointed
                 )
 
@@ -191,9 +187,9 @@ private struct BudgetDetailsFreeTransactionRow: View {
         .leadingSwipeAction(
             systemImage: isPointed ? "arrow.uturn.backward" : "checkmark",
             tint: dotColor,
-            action: handleTogglePointed
+            isEnabled: { !pointCompletionGate.isPending && !isSyncing },
+            action: onTogglePointed
         )
-        .sensoryFeedback(.success, trigger: triggerToggleFeedback)
         // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
         // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
         .accessibilityElement(children: .contain)

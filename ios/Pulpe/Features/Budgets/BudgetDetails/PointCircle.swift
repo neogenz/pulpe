@@ -12,6 +12,7 @@ struct PointCircle: View {
     let color: Color
     let isSyncing: Bool
     var onPrepareToggle: () -> Bool = { true }
+    var onCompletionStateChange: (Bool) -> Void = { _ in }
     let onToggle: () -> Void
 
     /// Debounced sync state — only flips true if the toggle takes >300 ms,
@@ -19,6 +20,8 @@ struct PointCircle: View {
     @State private var displayedSyncing = false
     @State private var sheenTrigger = 0
     @State private var isCompleting = false
+    @State private var successFeedbackTrigger = 0
+    @State private var selectionFeedbackTrigger = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var displayedIsPointed: Bool { isPointed || isCompleting }
@@ -32,6 +35,14 @@ struct PointCircle: View {
             ? fillAnimation
             : .spring(response: DesignTokens.Animation.quickSnap, dampingFraction: 0.9)
                 .delay(DesignTokens.Animation.microFadeOut)
+    }
+
+    private var completionAnimation: Animation {
+        .easeOut(
+            duration: reduceMotion
+                ? DesignTokens.Animation.microFadeIn
+                : DesignTokens.Checkbox.completionHold
+        )
     }
 
     var body: some View {
@@ -67,12 +78,17 @@ struct PointCircle: View {
                                     .opacity(value.opacity)
                             } keyframes: { _ in
                                 KeyframeTrack(\.angle) {
+                                    LinearKeyframe(
+                                        DesignTokens.Checkbox.sheenStartAngle,
+                                        duration: DesignTokens.Checkbox.sheenDelay
+                                    )
                                     CubicKeyframe(
                                         DesignTokens.Checkbox.sheenEndAngle,
                                         duration: DesignTokens.Checkbox.sheenDuration
                                     )
                                 }
                                 KeyframeTrack(\.opacity) {
+                                    LinearKeyframe(0, duration: DesignTokens.Checkbox.sheenDelay)
                                     CubicKeyframe(
                                         DesignTokens.Checkbox.sheenOpacity,
                                         duration: DesignTokens.Animation.fast
@@ -125,21 +141,15 @@ struct PointCircle: View {
         }
         .buttonStyle(PointCirclePressStyle(reduceMotion: reduceMotion))
         .disabled(isCompleting || isSyncing)
-        .sensoryFeedback(.success, trigger: displayedIsPointed) { old, new in
-            !old && new
-        }
-        .sensoryFeedback(.selection, trigger: isPointed) { old, new in
-            old && !new
-        }
+        .sensoryFeedback(.success, trigger: successFeedbackTrigger)
+        .sensoryFeedback(.selection, trigger: selectionFeedbackTrigger)
         .rampSyncIndicator(isSyncing: isSyncing, displayed: $displayedSyncing)
         .task(id: displayedIsPointed) {
             guard !reduceMotion, !displayedIsPointed else { return }
-            await delayedAction(DesignTokens.Checkbox.sheenDelay) {
-                sheenTrigger += 1
-            }
+            sheenTrigger += 1
         }
         .onChange(of: isPointed) {
-            if isPointed { isCompleting = false }
+            if isPointed { finishCompletion() }
         }
         .accessibilityLabel(displayedIsPointed ? "Pointé" : "À pointer")
         .accessibilityAddTraits(displayedIsPointed ? [.isButton, .isSelected] : .isButton)
@@ -149,20 +159,29 @@ struct PointCircle: View {
         guard !isCompleting else { return }
         guard onPrepareToggle() else { return }
         guard !isPointed else {
+            selectionFeedbackTrigger += 1
             onToggle()
             return
         }
 
-        isCompleting = true
-        Task { @MainActor in
-            await delayedAction(DesignTokens.Checkbox.completionHold) {
-                onToggle()
-            }
-            await delayedAction(DesignTokens.Animation.fast) {
-                isCompleting = false
-            }
+        successFeedbackTrigger += 1
+        withAnimation(completionAnimation) {
+            isCompleting = true
+            onCompletionStateChange(true)
+        } completion: {
+            onToggle()
         }
     }
+
+    private func finishCompletion() {
+        guard isCompleting else { return }
+        isCompleting = false
+        onCompletionStateChange(false)
+    }
+}
+
+final class PointCompletionGate {
+    var isPending = false
 }
 
 private struct PointCircleSheenValues {
