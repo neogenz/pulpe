@@ -21,3 +21,11 @@ func delayedAnimation(_ delay: Double, animation: Animation = .smooth, action: @
         action()
     }
 }
+
+/// Runs a delayed action without creating an animation transaction.
+@MainActor
+func delayedAction(_ delay: Double, action: @escaping () -> Void) async {
+    try? await Task.sleep(for: .seconds(delay))
+    guard !Task.isCancelled else { return }
+    action()
+}

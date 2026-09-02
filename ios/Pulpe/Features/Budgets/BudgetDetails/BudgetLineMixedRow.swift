@@ -18,6 +18,7 @@ struct BudgetLineMixedRow: View {
     var savingsWithdrawalOriginMonthName: String?
     /// Anchors the checking tip's arrow on this row's disc — the control it teaches.
     var showsCheckingTip = false
+    var onPrepareTogglePointed: () -> Bool = { true }
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
@@ -114,7 +115,8 @@ struct BudgetLineMixedRow: View {
                             isPointed: isPointed,
                             color: dotColor,
                             isSyncing: isSyncing,
-                            onToggle: handleTogglePointed
+                            onPrepareToggle: onPrepareTogglePointed,
+                            onToggle: handlePointCircleToggle
                         )
                         .popoverTip(showsCheckingTip ? ProductTips.checking : nil)
                     }
@@ -298,6 +300,11 @@ struct BudgetLineMixedRow: View {
     private func handleTogglePointed() {
         guard !line.isVirtualRollover else { return }
         triggerToggleFeedback.toggle()
+        onTogglePointed()
+    }
+
+    private func handlePointCircleToggle() {
+        guard !line.isVirtualRollover else { return }
         onTogglePointed()
     }
 

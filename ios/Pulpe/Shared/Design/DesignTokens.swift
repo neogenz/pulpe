@@ -265,6 +265,9 @@ enum DesignTokens {
         static let size: CGFloat = 24
         /// Ring around an unpointed disc: what says "to tick" before the first tap.
         static let ringWidth: CGFloat = 1.5
+        /// Lets the filled disc and check register before an unchecked-only list removes the row.
+        static let completionHold: Double = 0.5
+        static let fillStartScale: CGFloat = 0.12
         /// Disc scale while pressed (`PointCircle`).
         static let pressedScale: CGFloat = 0.92
         /// Pulls the sync badge back in from the circle's bounding-box corner so it

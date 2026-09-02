@@ -284,6 +284,9 @@ struct BudgetDetailsView: View {
                             tagNamesById: tagStore.namesById,
                             savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
                             checkingTipLineId: checkingTipLineId,
+                            onPrepareTogglePointed: { line in
+                                coordinator.prepareToggleBudgetLine(line)
+                            },
                             onTap: { line in
                                 router.push(.lineDetail(lineId: line.id))
                             },
@@ -329,7 +332,7 @@ struct BudgetDetailsView: View {
             )
         }
         .animation(
-            reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
+            reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut,
             value: screenState.checkedTickHash
         )
         .background { Color.appBackground.ignoresSafeArea() }

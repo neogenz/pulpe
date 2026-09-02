@@ -54,6 +54,12 @@ struct BudgetDetailsFreeTransactionsList: View {
                         onTap: { onTap(item.transaction) },
                         onTogglePointed: { onTogglePointed(item.transaction) }
                     )
+                    .transition(.asymmetric(
+                        insertion: .opacity,
+                        removal: .opacity.combined(
+                            with: .scale(scale: DesignTokens.Animation.settleScale)
+                        )
+                    ))
                 }
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -161,7 +167,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
                     isPointed: isPointed,
                     color: dotColor,
                     isSyncing: isSyncing,
-                    onToggle: handleTogglePointed
+                    onToggle: onTogglePointed
                 )
 
                 centerColumn
