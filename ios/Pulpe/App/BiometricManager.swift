@@ -273,15 +273,23 @@ final class BiometricManager {
         }
     }
 
-    /// Tolerate biometric key-validation ONLY when the check could not be COMPLETED
-    /// (transport failed) — never on a server verdict. APIClient wraps every URLSession
-    /// failure into `APIError.networkError`, including a cancelled in-flight request from a
-    /// foreground bounce (URLError.cancelled), so matching that single case covers both an
-    /// unreachable server and a cancelled request — both are races/transport events, not
-    /// verdicts. A genuine bad-key verdict is always `clientKeyInvalid` (HTTP 400), never
-    /// `.networkError`, so it correctly falls through to `return false`.
+    /// Tolerate biometric key-validation ONLY when the check could not be COMPLETED —
+    /// never on a server verdict. Two cases qualify:
+    ///
+    /// - `.networkError`: APIClient wraps every URLSession failure into it, including a
+    ///   cancelled in-flight request from a foreground bounce (URLError.cancelled) — races
+    ///   and transport events, not verdicts (PUL-280).
+    /// - `.maintenance`: the 503 the maintenance middleware returns for every route. The
+    ///   server is reachable but deliberately unavailable, so it never even looked at the
+    ///   key. Reading it as a verdict wiped the client key and disabled Face ID for every
+    ///   biometric user, on every maintenance window (PUL-337).
+    ///
+    /// A genuine bad-key verdict is always `clientKeyInvalid` (HTTP 400), so it correctly
+    /// falls through to `return false`.
     nonisolated private static func isTransportFailure(_ error: APIError) -> Bool {
-        if case .networkError = error { return true }
-        return false
+        switch error {
+        case .networkError, .maintenance: true
+        default: false
+        }
     }
 }

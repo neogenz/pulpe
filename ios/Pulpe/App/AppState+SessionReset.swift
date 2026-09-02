@@ -25,6 +25,26 @@ extension AppState {
             lastLockReason = .backgroundTimeout
         }
 
+        // PUL-337: probe once, before unlocking. Under maintenance every route answers 503:
+        // `validateKey` reads that as a stale key and wipes Face ID, and an unlocked user lands
+        // on empty screens. Probing first also spares a pointless Face ID prompt.
+        if sessionLifecycleCoordinator.backgroundLockApplies(authState: authState),
+           await probeMaintenanceFailingOpen() {
+            guard !Task.isCancelled else { return }
+            // This resume never reaches `handleEnterForeground`, the only other consumer of the
+            // background timestamp, so consume it here: a leftover date re-locks on the next
+            // `.inactive` → `.active` bounce once maintenance lifts and the user has unlocked.
+            sessionLifecycleCoordinator.clearBackgroundDate()
+            // `.needsPinEntry` first: the reducer promotes maintenance from `.locked`, never
+            // from `.authenticated`. No await separates the two, so the PIN screen never renders.
+            authState = .needsPinEntry
+            send(.maintenanceChecked(isInMaintenance: true))
+            return
+        }
+        // A foreground bounce cancels this run and starts another (AppRuntimeCoordinator):
+        // the abandoned run must not write state behind the live one.
+        guard !Task.isCancelled else { return }
+
         let result = await sessionLifecycleCoordinator.handleEnterForeground(authState: authState)
         authDebug("AUTH_FG", "result=\(result)")
 
