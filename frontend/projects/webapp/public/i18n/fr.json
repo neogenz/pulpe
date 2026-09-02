@@ -1374,7 +1374,8 @@
           "email": "Email et mot de passe (pour ton compte)",
           "google": "Si tu t'inscris via Google : email, nom et photo de profil transmis par Google",
           "financial": "Informations financières (revenus, dépenses, épargne)",
-          "preferences": "Préférences et paramètres de l'application"
+          "preferences": "Préférences et paramètres de l'application",
+          "feedback": "Notes et commentaire facultatif envoyés depuis « Donner mon avis »"
         },
         "automaticTitle": "Données collectées automatiquement :",
         "automatic": {
@@ -1392,7 +1393,8 @@
           "sync": "Sauvegarder et synchroniser tes budgets",
           "improve": "Améliorer l'application et corriger les bugs",
           "communication": "Communiquer des informations importantes sur le service",
-          "security": "Assurer la sécurité de ton compte"
+          "security": "Assurer la sécurité de ton compte",
+          "feedback": "Analyser tes avis pour améliorer Pulpe et prioriser les évolutions"
         }
       },
       "analytics": {
@@ -1463,8 +1465,9 @@
           "account": "Données de compte : tant que ton compte est actif",
           "financial": "Données financières : conservées avec ton compte",
           "analytics": "Données d'analyse : maximum 12 mois",
-          "deletion": "Après suppression du compte : effacement sous 3 jours",
-          "demo": "Données de session démo : supprimées automatiquement après 24 heures"
+          "deletion": "Après suppression du compte : effacement sous 3 jours, avis envoyés compris",
+          "demo": "Données de session démo : supprimées automatiquement après 24 heures",
+          "feedback": "Avis envoyés : conservés avec ton compte"
         },
         "analyticsDeletionTitle": "Suppression des données d'analyse :",
         "analyticsDeletionBody": "la suppression de ton compte Pulpe déclenche automatiquement celle de ton profil PostHog, événements et enregistrements de session inclus. L'effacement chez PostHog est asynchrone et finalisé sous quelques jours après la fin du délai de grâce de ton compte."
