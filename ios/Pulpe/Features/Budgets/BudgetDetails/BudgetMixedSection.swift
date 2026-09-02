@@ -20,6 +20,7 @@ struct BudgetMixedSection: View {
     let savingsWithdrawalOriginMonthName: String?
     /// The one line whose disc carries the checking tip popover, if any.
     let checkingTipLineId: String?
+    let onPrepareTogglePointed: (BudgetLine) -> Bool
     let onTap: (BudgetLine) -> Void
     let onTogglePointed: (BudgetLine) -> Void
 
@@ -31,6 +32,7 @@ struct BudgetMixedSection: View {
         tagNamesById: [String: String] = [:],
         savingsWithdrawalOriginMonthName: String? = nil,
         checkingTipLineId: String? = nil,
+        onPrepareTogglePointed: @escaping (BudgetLine) -> Bool = { _ in true },
         onTap: @escaping (BudgetLine) -> Void,
         onTogglePointed: @escaping (BudgetLine) -> Void
     ) {
@@ -41,6 +43,7 @@ struct BudgetMixedSection: View {
         self.tagNamesById = tagNamesById
         self.savingsWithdrawalOriginMonthName = savingsWithdrawalOriginMonthName
         self.checkingTipLineId = checkingTipLineId
+        self.onPrepareTogglePointed = onPrepareTogglePointed
         self.onTap = onTap
         self.onTogglePointed = onTogglePointed
     }
@@ -78,12 +81,15 @@ struct BudgetMixedSection: View {
                         tagNames: TagChips.names(for: item.line.tagIds, namesById: tagNamesById),
                         savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
                         showsCheckingTip: item.line.id == checkingTipLineId,
+                        onPrepareTogglePointed: { onPrepareTogglePointed(item.line) },
                         onTap: { onTap(item.line) },
                         onTogglePointed: { onTogglePointed(item.line) }
                     )
                     .transition(.asymmetric(
                         insertion: .opacity.combined(with: .move(edge: .leading)),
-                        removal: .opacity.combined(with: .scale(scale: 0.95))
+                        removal: .opacity.combined(
+                            with: .scale(scale: DesignTokens.Animation.settleScale)
+                        )
                     ))
                 }
             }

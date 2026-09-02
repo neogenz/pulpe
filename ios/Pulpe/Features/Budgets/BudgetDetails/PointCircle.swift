@@ -11,33 +11,119 @@ struct PointCircle: View {
     let isPointed: Bool
     let color: Color
     let isSyncing: Bool
+    var onPrepareToggle: () -> Bool = { true }
+    var onCompletionStateChange: (Bool) -> Void = { _ in }
     let onToggle: () -> Void
 
     /// Debounced sync state — only flips true if the toggle takes >300 ms,
     /// so fast optimistic updates don't trigger a green-dot flash.
     @State private var displayedSyncing = false
+    @State private var sheenTrigger = 0
+    @State private var isCompleting = false
+    @State private var successFeedbackTrigger = 0
+    @State private var selectionFeedbackTrigger = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private var displayedIsPointed: Bool { isPointed || isCompleting }
+
+    private var fillAnimation: Animation {
+        .easeOut(duration: reduceMotion ? DesignTokens.Animation.microFadeIn : DesignTokens.Animation.normal)
+    }
+
+    private var checkAnimation: Animation {
+        reduceMotion
+            ? fillAnimation
+            : .spring(response: DesignTokens.Animation.quickSnap, dampingFraction: 0.9)
+                .delay(DesignTokens.Animation.microFadeOut)
+    }
+
+    private var completionAnimation: Animation {
+        .easeOut(
+            duration: reduceMotion
+                ? DesignTokens.Animation.microFadeIn
+                : DesignTokens.Checkbox.completionHold
+        )
+    }
+
     var body: some View {
-        Button(action: onToggle) {
+        Button(action: handleToggle) {
             ZStack {
-                if isPointed {
-                    Circle()
-                        .fill(color)
-                        .frame(width: DesignTokens.IconSize.badge, height: DesignTokens.IconSize.badge)
-                        .overlay {
-                            Image(systemName: "checkmark")
-                                .font(PulpeTypography.metricLabelBold)
-                                .foregroundStyle(Color.textOnPrimary)
-                        }
-                        .transition(.scale.combined(with: .opacity))
-                } else {
-                    RowIcon(systemName: kind.icon, tint: color)
-                        .overlay {
-                            Circle().strokeBorder(color, lineWidth: DesignTokens.Checkbox.ringWidth)
-                        }
-                        .transition(.scale.combined(with: .opacity))
-                }
+                RowIcon(systemName: kind.icon, tint: color)
+                    .overlay {
+                        Circle().strokeBorder(color, lineWidth: DesignTokens.Checkbox.ringWidth)
+                    }
+                    .overlay {
+                        Circle()
+                            .strokeBorder(
+                                AngularGradient(
+                                    colors: [
+                                        .clear,
+                                        .clear,
+                                        .clear,
+                                        .white.opacity(DesignTokens.Checkbox.sheenOpacity),
+                                        .clear,
+                                        .clear,
+                                        .clear,
+                                    ],
+                                    center: .center
+                                ),
+                                lineWidth: DesignTokens.Checkbox.ringWidth
+                            )
+                            .keyframeAnimator(
+                                initialValue: PointCircleSheenValues(),
+                                trigger: sheenTrigger
+                            ) { content, value in
+                                content
+                                    .rotationEffect(.degrees(value.angle))
+                                    .opacity(value.opacity)
+                            } keyframes: { _ in
+                                KeyframeTrack(\.angle) {
+                                    LinearKeyframe(
+                                        DesignTokens.Checkbox.sheenStartAngle,
+                                        duration: DesignTokens.Checkbox.sheenDelay
+                                    )
+                                    CubicKeyframe(
+                                        DesignTokens.Checkbox.sheenEndAngle,
+                                        duration: DesignTokens.Checkbox.sheenDuration
+                                    )
+                                }
+                                KeyframeTrack(\.opacity) {
+                                    LinearKeyframe(0, duration: DesignTokens.Checkbox.sheenDelay)
+                                    CubicKeyframe(
+                                        DesignTokens.Checkbox.sheenOpacity,
+                                        duration: DesignTokens.Animation.fast
+                                    )
+                                    CubicKeyframe(
+                                        0,
+                                        duration: DesignTokens.Checkbox.sheenDuration
+                                            - DesignTokens.Animation.fast
+                                    )
+                                }
+                            }
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                    }
+                    .scaleEffect(displayedIsPointed && !reduceMotion ? DesignTokens.Animation.settleScale : 1)
+                    .opacity(displayedIsPointed ? 0 : 1)
+                    .animation(fillAnimation, value: displayedIsPointed)
+
+                Circle()
+                    .fill(color)
+                    .frame(width: DesignTokens.IconSize.badge, height: DesignTokens.IconSize.badge)
+                    .scaleEffect(
+                        reduceMotion || displayedIsPointed ? 1 : DesignTokens.Checkbox.fillStartScale
+                    )
+                    .opacity(displayedIsPointed ? 1 : 0)
+                    .animation(fillAnimation, value: displayedIsPointed)
+
+                Image(systemName: "checkmark")
+                    .font(PulpeTypography.metricLabelBold)
+                    .foregroundStyle(Color.textOnPrimary)
+                    .scaleEffect(
+                        reduceMotion || displayedIsPointed ? 1 : DesignTokens.Animation.settleScale
+                    )
+                    .opacity(displayedIsPointed ? 1 : 0)
+                    .animation(checkAnimation, value: displayedIsPointed)
 
                 if displayedSyncing {
                     SyncIndicator(isSyncing: true)
@@ -47,7 +133,6 @@ struct PointCircle: View {
                         )
                 }
             }
-            .animation(reduceMotion ? nil : .easeInOut(duration: DesignTokens.Animation.fast), value: isPointed)
             .frame(
                 width: DesignTokens.TapTarget.minimum,
                 height: DesignTokens.TapTarget.minimum
@@ -55,11 +140,54 @@ struct PointCircle: View {
             .contentShape(Circle())
         }
         .buttonStyle(PointCirclePressStyle(reduceMotion: reduceMotion))
-        .sensoryFeedback(.impact(flexibility: .soft), trigger: isPointed)
+        .disabled(isCompleting || isSyncing)
+        .sensoryFeedback(.success, trigger: successFeedbackTrigger)
+        .sensoryFeedback(.selection, trigger: selectionFeedbackTrigger)
         .rampSyncIndicator(isSyncing: isSyncing, displayed: $displayedSyncing)
-        .accessibilityLabel(isPointed ? "Pointé" : "À pointer")
-        .accessibilityAddTraits(isPointed ? [.isButton, .isSelected] : .isButton)
+        .task(id: displayedIsPointed) {
+            guard !reduceMotion, !displayedIsPointed else { return }
+            sheenTrigger += 1
+        }
+        .onChange(of: isPointed) {
+            if isPointed { finishCompletion() }
+        }
+        .accessibilityLabel(displayedIsPointed ? "Pointé" : "À pointer")
+        .accessibilityAddTraits(displayedIsPointed ? [.isButton, .isSelected] : .isButton)
     }
+
+    private func handleToggle() {
+        guard !isCompleting else { return }
+        guard onPrepareToggle() else { return }
+        guard !isPointed else {
+            selectionFeedbackTrigger += 1
+            onToggle()
+            return
+        }
+
+        successFeedbackTrigger += 1
+        withAnimation(completionAnimation) {
+            isCompleting = true
+            onCompletionStateChange(true)
+        } completion: {
+            onToggle()
+        }
+    }
+
+    private func finishCompletion() {
+        guard isCompleting else { return }
+        isCompleting = false
+        onCompletionStateChange(false)
+    }
+}
+
+@MainActor
+final class PointCompletionGate {
+    var isPending = false
+}
+
+private struct PointCircleSheenValues {
+    var angle = DesignTokens.Checkbox.sheenStartAngle
+    var opacity = 0.0
 }
 
 /// A flick under the finger: the disc dips while pressed and springs back, faster out than

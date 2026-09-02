@@ -265,6 +265,16 @@ enum DesignTokens {
         static let size: CGFloat = 24
         /// Ring around an unpointed disc: what says "to tick" before the first tap.
         static let ringWidth: CGFloat = 1.5
+        /// One-shot specular sweep that hints the ring is interactive without
+        /// leaving an ambient animation running in the ledger.
+        static let sheenDelay: Double = 0.45
+        static let sheenDuration: Double = 0.7
+        static let sheenOpacity: Double = 0.8
+        static let sheenStartAngle: Double = -120
+        static let sheenEndAngle: Double = 240
+        /// Lets the filled disc and check register before an unchecked-only list removes the row.
+        static let completionHold: Double = 0.5
+        static let fillStartScale: CGFloat = 0.12
         /// Disc scale while pressed (`PointCircle`).
         static let pressedScale: CGFloat = 0.92
         /// Pulls the sync badge back in from the circle's bounding-box corner so it

@@ -74,6 +74,22 @@ final class BudgetDetailsPointingUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 2), "The row should still be on the ledger")
     }
 
+    func testSwipeDuringTapCompletionDoesNotToggleTwice() {
+        let row = waitForRow()
+        let disc = pointingDisc()
+        XCTAssertTrue(disc.waitForExistence(timeout: 5))
+
+        disc.tap()
+        let start = row.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 140, dy: 0)))
+
+        XCTAssertTrue(pointedDisc().waitForExistence(timeout: 2), "The tap should point the line")
+        XCTAssertFalse(
+            pointingDisc().waitForExistence(timeout: 1),
+            "A swipe during completion must not send a second toggle"
+        )
+    }
+
     /// The swipe takes gesture priority over the row; a vertical pan must still scroll the ledger.
     func testVerticalPanOnARowStillScrollsTheLedger() {
         // Accessibility type makes the ledger taller than the screen, so it has room to scroll.

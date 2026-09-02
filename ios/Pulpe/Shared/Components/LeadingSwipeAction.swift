@@ -12,11 +12,13 @@ import SwiftUI
 struct LeadingSwipeAction: ViewModifier {
     let systemImage: String
     let tint: Color
-    let isEnabled: Bool
+    let isEnabled: () -> Bool
     let action: () -> Void
 
     @State private var offset: CGFloat = 0
     @State private var commitCount = 0
+    @State private var isTracking = false
+    @State private var gestureWasEnabled = false
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.accessibilitySwitchControlEnabled) private var switchControl
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -43,7 +45,7 @@ struct LeadingSwipeAction: ViewModifier {
             .sensoryFeedback(.success, trigger: commitCount)
             .gesture(
                 HorizontalPanGesture(
-                    isEnabled: isEnabled && !voiceOver && !switchControl,
+                    isEnabled: isEnabled() && !voiceOver && !switchControl,
                     onChange: track,
                     onEnd: commitIfArmed,
                     onCancel: settle
@@ -53,6 +55,11 @@ struct LeadingSwipeAction: ViewModifier {
 
     /// The band follows the finger, resisting past the commit point so the row never flies off.
     private func track(_ dx: CGFloat) {
+        if !isTracking {
+            isTracking = true
+            gestureWasEnabled = isEnabled()
+        }
+        guard gestureWasEnabled else { return }
         // A leftward pull reveals nothing; the axis itself is the recognizer's call.
         guard dx > 0 else { offset = 0; return }
         let over = max(0, dx - DesignTokens.Animation.swipeCommitDistance)
@@ -60,7 +67,7 @@ struct LeadingSwipeAction: ViewModifier {
     }
 
     private func commitIfArmed() {
-        if isArmed {
+        if gestureWasEnabled, isEnabled(), isArmed {
             commitCount += 1
             action()
         }
@@ -68,6 +75,8 @@ struct LeadingSwipeAction: ViewModifier {
     }
 
     private func settle() {
+        isTracking = false
+        gestureWasEnabled = false
         withAnimation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring) { offset = 0 }
     }
 }
@@ -77,7 +86,7 @@ extension View {
     func leadingSwipeAction(
         systemImage: String,
         tint: Color,
-        isEnabled: Bool = true,
+        isEnabled: @escaping () -> Bool = { true },
         action: @escaping () -> Void
     ) -> some View {
         modifier(LeadingSwipeAction(systemImage: systemImage, tint: tint, isEnabled: isEnabled, action: action))

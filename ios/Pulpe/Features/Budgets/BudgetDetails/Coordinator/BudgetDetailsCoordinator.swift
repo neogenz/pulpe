@@ -209,23 +209,23 @@ final class BudgetDetailsCoordinator {
     /// Returns true iff the toggle proceeded (i.e. did NOT divert to the alert).
     @discardableResult
     func toggleBudgetLine(_ line: BudgetLine) async -> Bool {
+        guard prepareToggleBudgetLine(line) else { return false }
+        return await performToggleBudgetLine(line)
+    }
+
+    /// Returns false after presenting the linked-movements alert when confirmation is required.
+    func prepareToggleBudgetLine(_ line: BudgetLine) -> Bool {
         guard !(line.isRollover ?? false) else { return false }
         guard !syncStore.isSyncing(lineId: line.id) else { return false }
 
-        let wasUnchecked = !line.isChecked
-
-        // If checking and there are unchecked transactions, divert to the alert.
-        if wasUnchecked {
-            let hasUnchecked = dataStore.transactions.contains {
+        if !line.isChecked,
+           dataStore.transactions.contains(where: {
                 $0.budgetLineId == line.id && !$0.isChecked
-            }
-            if hasUnchecked {
-                syncStore.presentCheckAllAlert(for: line)
-                return false
-            }
+           }) {
+            syncStore.presentCheckAllAlert(for: line)
+            return false
         }
-
-        return await performToggleBudgetLine(line)
+        return true
     }
 
     /// Outcome of confirming a "check all" toggle — drives the success vs
