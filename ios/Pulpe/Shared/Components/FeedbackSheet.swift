@@ -62,7 +62,7 @@ struct FeedbackSheet: View {
                 .accessibilityHidden(true)
 
             Text("Ton avis sur Pulpe")
-                .font(.title2.bold())
+                .font(PulpeTypography.title2)
                 .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
 
@@ -177,6 +177,8 @@ struct FeedbackSheet: View {
                 .padding(DesignTokens.Spacing.lg)
                 .background(Color.inputBackgroundSoft)
                 .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+                .contentShape(.interaction, Rectangle())
+                .onTapGesture { focusedField = .comment }
                 .overlay {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
                         .strokeBorder(

@@ -50,7 +50,8 @@ final class FeedbackUITests: XCTestCase {
         }
         XCTAssertTrue(comment.isHittable, app.debugDescription)
         XCTAssertEqual(comment.label, "Commentaire facultatif")
-        comment.tap()
+        comment.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.85)).tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 2), app.debugDescription)
         comment.typeText("Clair 😀 et utile")
         XCTAssertEqual(comment.value as? String, "Clair 😀 et utile")
         app.buttons["keyboardDismissButton"].tap()

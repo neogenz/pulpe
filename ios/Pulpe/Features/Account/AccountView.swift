@@ -285,7 +285,7 @@ extension AccountView {
                         width: DesignTokens.IconSize.compact,
                         height: DesignTokens.IconSize.compact
                     )
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     Text(title)
                         .foregroundStyle(.primary)
                     Text(subtitle)
