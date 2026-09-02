@@ -1,6 +1,6 @@
 ---
 objective: "La branche de feedback iOS intègre origin/main et ses checks Workspace, Maestro smoke et CI Success sont verts."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Remettre la PR feedback au vert
