@@ -180,6 +180,7 @@ struct PointCircle: View {
     }
 }
 
+@MainActor
 final class PointCompletionGate {
     var isPending = false
 }

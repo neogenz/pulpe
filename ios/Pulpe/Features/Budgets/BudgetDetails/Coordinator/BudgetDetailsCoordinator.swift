@@ -218,14 +218,12 @@ final class BudgetDetailsCoordinator {
         guard !(line.isRollover ?? false) else { return false }
         guard !syncStore.isSyncing(lineId: line.id) else { return false }
 
-        if !line.isChecked {
-            let hasUnchecked = dataStore.transactions.contains {
+        if !line.isChecked,
+           dataStore.transactions.contains(where: {
                 $0.budgetLineId == line.id && !$0.isChecked
-            }
-            if hasUnchecked {
-                syncStore.presentCheckAllAlert(for: line)
-                return false
-            }
+           }) {
+            syncStore.presentCheckAllAlert(for: line)
+            return false
         }
         return true
     }
