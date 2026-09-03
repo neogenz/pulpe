@@ -352,10 +352,8 @@ struct RootView: View {
         switch appState.currentRoute {
         case .loading:
             LoadingView(message: AppLocale.string("Chargement..."))
-
         case .maintenance:
             MaintenanceView()
-
         case .networkError:
             NetworkUnavailableView(
                 onRetry: {

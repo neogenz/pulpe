@@ -1,3 +1,5 @@
+-- pulpe:migration-phase contract
+-- pulpe:safe-after v0.47.1
 -- PUL-6 — generate a consecutive budget series in one transaction.
 -- The caller computes payDay-aware savings-goal exclusions; PostgreSQL owns
 -- concurrency, period existence checks and all-or-none materialization.
