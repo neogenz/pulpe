@@ -23,6 +23,7 @@ DECLARE
   v_created_budget_ids uuid[] := '{}'::uuid[];
   v_skipped_months jsonb := '[]'::jsonb;
   v_excluded_goal_ids uuid[];
+  v_constraint_name text;
 BEGIN
   IF p_user_id IS NULL
     OR (
@@ -86,14 +87,25 @@ BEGIN
       )
     ) AS value;
 
-    v_leaf_result := public.create_budget_from_template(
-      p_user_id := p_user_id,
-      p_template_id := p_template_id,
-      p_month := v_month,
-      p_year := v_year,
-      p_description := 'Budget ' || v_month || '/' || v_year,
-      p_excluded_savings_goal_ids := v_excluded_goal_ids
-    );
+    BEGIN
+      v_leaf_result := public.create_budget_from_template(
+        p_user_id := p_user_id,
+        p_template_id := p_template_id,
+        p_month := v_month,
+        p_year := v_year,
+        p_description := 'Budget ' || v_month || '/' || v_year,
+        p_excluded_savings_goal_ids := v_excluded_goal_ids
+      );
+    EXCEPTION WHEN unique_violation THEN
+      GET STACKED DIAGNOSTICS v_constraint_name = CONSTRAINT_NAME;
+      IF v_constraint_name IS DISTINCT FROM 'unique_month_year_per_user' THEN
+        RAISE;
+      END IF;
+      v_skipped_months := v_skipped_months || jsonb_build_array(
+        jsonb_build_object('month', v_month, 'year', v_year)
+      );
+      CONTINUE;
+    END;
     v_created_budget_ids := array_append(
       v_created_budget_ids,
       (v_leaf_result -> 'budget' ->> 'id')::uuid

@@ -5,6 +5,12 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
+  IF NEW.month = 7 AND NEW.year = 2026 THEN
+    RAISE unique_violation USING CONSTRAINT = 'unique_month_year_per_user';
+  END IF;
+  IF NEW.month = 6 AND NEW.year = 2026 THEN
+    RAISE unique_violation USING CONSTRAINT = 'unexpected_budget_uniqueness';
+  END IF;
   IF NEW.month = 5 AND NEW.year = 2026 THEN
     RAISE EXCEPTION 'late generation failure';
   END IF;
@@ -141,11 +147,41 @@ BEGIN
     RAISE EXCEPTION 'FAIL: a partial generation survived rollback';
   END IF;
 
+  v_result := public.generate_budgets_from_template(
+    v_owner_id, v_template_id, 7, 2026, 2, '{}'::jsonb
+  );
+  IF jsonb_array_length(v_result -> 'created_budget_ids') <> 1
+    OR (v_result -> 'skipped_months') <> '[{"month": 7, "year": 2026}]'::jsonb
+    OR NOT EXISTS (
+      SELECT 1 FROM public.monthly_budget
+      WHERE user_id = v_owner_id AND year = 2026 AND month = 8
+    )
+  THEN
+    RAISE EXCEPTION 'FAIL: period conflict did not skip and continue %', v_result;
+  END IF;
+
+  v_caught := false;
+  BEGIN
+    PERFORM public.generate_budgets_from_template(
+      v_owner_id, v_template_id, 6, 2026, 1, '{}'::jsonb
+    );
+  EXCEPTION WHEN unique_violation THEN
+    v_caught := true;
+  END;
+  IF NOT v_caught THEN
+    RAISE EXCEPTION 'FAIL: an unrelated uniqueness error was skipped';
+  END IF;
+
   SELECT pg_get_functiondef(
     'public.generate_budgets_from_template(uuid,uuid,integer,integer,integer,jsonb)'::regprocedure
   ) INTO v_definition;
   IF position('pg_advisory_xact_lock' in v_definition) = 0 THEN
     RAISE EXCEPTION 'FAIL: generation is not serialized per user';
+  END IF;
+  IF position('unique_month_year_per_user' in v_definition) = 0
+    OR position('GET STACKED DIAGNOSTICS' in v_definition) = 0
+  THEN
+    RAISE EXCEPTION 'FAIL: the period conflict is not handled explicitly';
   END IF;
 
   RAISE NOTICE 'GENERATE BUDGETS ATOMICALLY: ALL ASSERTIONS PASSED';
