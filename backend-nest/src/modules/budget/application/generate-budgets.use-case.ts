@@ -68,12 +68,24 @@ export class GenerateBudgetsUseCase {
         await this.budgetRecalculation.recalculate(budgetId);
       }
     } catch (error) {
-      await this.cacheService.invalidateForUser(user.id);
       const orphanedBudgetIds = await this.rollbackCreatedBudgets(
         createdBudgetIds,
         user.id,
         error,
       );
+      try {
+        await this.cacheService.invalidateForUser(user.id);
+      } catch (cacheError) {
+        this.logger.warn(
+          {
+            userId: user.id,
+            err: cacheError,
+            originalErr: error,
+            operation: 'budget.generate.cache-invalidation.failed',
+          },
+          'Cache invalidation failed after budget generation rollback',
+        );
+      }
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
         orphanedBudgetIds.length > 0 ? { orphanedBudgetIds } : undefined,

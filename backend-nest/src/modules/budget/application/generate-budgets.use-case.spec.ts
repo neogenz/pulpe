@@ -121,9 +121,10 @@ describe('GenerateBudgetsUseCase', () => {
   });
 
   it('deletes the whole created batch when an encrypted recalculation fails', async () => {
+    const recalculationError = new Error('decrypt failed');
     recalculate
       .mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(new Error('decrypt failed'));
+      .mockRejectedValueOnce(recalculationError);
 
     let caught: unknown;
     try {
@@ -144,11 +145,76 @@ describe('GenerateBudgetsUseCase', () => {
     expect((caught as BusinessException).code).toBe(
       'ERR_BUDGET_GENERATE_FAILED',
     );
+    expect((caught as BusinessException).cause).toBe(recalculationError);
     expect(repo.deleteBudgetsByIds).toHaveBeenCalledWith([
       'budget-1',
       'budget-2',
     ]);
     expect(repo.fetchBudgetById).not.toHaveBeenCalled();
+    expect(invalidateForUser).toHaveBeenCalledWith(user.id);
+  });
+
+  it('rolls back before cache invalidation and preserves the recalculation error when both fail', async () => {
+    const calls: string[] = [];
+    const recalculationError = new Error('decrypt failed');
+    recalculate.mockRejectedValueOnce(recalculationError);
+    repo.deleteBudgetsByIds.mockImplementationOnce(async () => {
+      calls.push('rollback');
+      return true;
+    });
+    invalidateForUser.mockImplementationOnce(async () => {
+      calls.push('cache');
+      throw new Error('cache unavailable');
+    });
+
+    let caught: unknown;
+    try {
+      await useCase.execute(
+        {
+          templateId: '11111111-1111-4111-8111-111111111111',
+          startMonth: 12,
+          startYear: 2026,
+          count: 2,
+        },
+        user,
+      );
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(calls).toEqual(['rollback', 'cache']);
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).cause).toBe(recalculationError);
+    expect((caught as BusinessException).details).toBeUndefined();
+  });
+
+  it('reports every created budget as orphaned when rollback fails', async () => {
+    const recalculationError = new Error('decrypt failed');
+    recalculate.mockRejectedValueOnce(recalculationError);
+    repo.deleteBudgetsByIds.mockRejectedValueOnce(
+      new Error('database unavailable'),
+    );
+
+    let caught: unknown;
+    try {
+      await useCase.execute(
+        {
+          templateId: '11111111-1111-4111-8111-111111111111',
+          startMonth: 12,
+          startYear: 2026,
+          count: 2,
+        },
+        user,
+      );
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).cause).toBe(recalculationError);
+    expect((caught as BusinessException).details).toEqual({
+      orphanedBudgetIds: ['budget-1', 'budget-2'],
+    });
     expect(invalidateForUser).toHaveBeenCalledWith(user.id);
   });
 });
