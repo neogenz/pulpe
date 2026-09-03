@@ -312,11 +312,8 @@ struct BudgetLineMixedRow: View {
 
     // MARK: - Accessibility
 
-    /// The row's spoken contract. Internal rather than private: the recurrence is
-    /// a bare glyph on screen, so this label is the only place that says the word
-    /// out loud, and a test asserts it here.
-    var accessibilityLabel: String {
-        let kindWord = line.kind.label
+    /// The row's state, resolved here and spoken by `Self.accessibilityLabel`.
+    private var accessibilityLabel: String {
         // An announced withdrawal is realized, not pointed. Either way the row
         // speaks its state, never its action: realizing one happens on the line's
         // own screen, so naming the verb here would announce a button that the
@@ -324,11 +321,12 @@ struct BudgetLineMixedRow: View {
         let status = line.isPlannedSavingsWithdrawal
             ? (realizationLabel == nil ? AppLocale.string("Réalisé") : AppLocale.string("À réaliser"))
             : (isPointed ? AppLocale.string("Pointé") : AppLocale.string("À pointer"))
-        let amount = displayAmount.asCurrency(currency)
-        let tags = tagNames.isEmpty
-            ? ""
-            : " · " + AppLocale.string("Tags : \(tagNames.joined(separator: ", "))")
-        let context = metadata.map { " · \($0)" } ?? ""
-        return "\(kindWord) · \(line.recurrence.label) · \(line.name)\(context) · \(amount) · \(status)\(tags)"
+        return Self.accessibilityLabel(
+            line: line,
+            status: status,
+            amount: displayAmount.asCurrency(currency),
+            metadata: metadata,
+            tagNames: tagNames
+        )
     }
 }

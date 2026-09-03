@@ -20055,24 +20055,24 @@
         }
       }
     },
-    "Prévu ce mois · %@" : {
+    "Prévu ce mois" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diesen Monat geplant · %@"
+            "value" : "Diesen Monat geplant"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Planned this month · %@"
+            "value" : "Planned this month"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Previsto questo mese · %@"
+            "value" : "Previsto questo mese"
           }
         }
       }

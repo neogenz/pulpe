@@ -37,9 +37,7 @@ struct BudgetLineRow: View {
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
-    private var hasConsumption: Bool {
-        consumption.allocated > 0
-    }
+    private var hasConsumption: Bool { Self.hasConsumption(consumption) }
 
     private var consumptionColor: Color {
         guard line.kind == .expense else { return .secondary }
@@ -74,6 +72,13 @@ struct BudgetLineRow: View {
             .sorted { $0.transactionDate > $1.transactionDate }
     }
 
+    /// Whether anything has landed on the line yet. Two things switch on it — the
+    /// tertiary sentence and the progress bar — and each used to spell the comparison
+    /// out for itself.
+    private static func hasConsumption(_ consumption: BudgetFormulas.Consumption) -> Bool {
+        consumption.allocated > 0
+    }
+
     static func consumptionSummary(
         consumption: BudgetFormulas.Consumption,
         currency: SupportedCurrency
@@ -96,7 +101,7 @@ struct BudgetLineRow: View {
         consumption: BudgetFormulas.Consumption,
         currency: SupportedCurrency
     ) -> String? {
-        if consumption.allocated > 0 {
+        if hasConsumption(consumption) {
             return consumptionSummary(consumption: consumption, currency: currency)
         }
         guard line.kind == .expense else { return nil }

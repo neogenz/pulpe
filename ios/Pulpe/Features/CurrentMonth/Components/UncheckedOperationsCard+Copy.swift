@@ -4,15 +4,26 @@ import SwiftUI
 
 extension UncheckedOperationsCard {
     /// What helps answer « is it passed? »: when the movement was noted, or that the line
-    /// is a forecast of this month, with its rhythm.
+    /// is a forecast of this month. The rhythm used to be spelled out here, after the
+    /// separator; `recurrence(for:)` now carries it as a glyph, because the word for a
+    /// one-off forecast is "Prévu" — the same word this sentence already opens on.
     static func subtitle(for item: CurrentMonthStore.CheckableItem) -> String {
         switch item {
         // The date keeps its own case after the separator: German capitalizes nouns
         // ("Heute", "Montag") and English its weekdays.
         case .transaction(let transaction, _):
             AppLocale.string("Noté · \(transaction.transactionDate.relativeFormatted)")
-        case .budgetLine(let line, _):
-            AppLocale.string("Prévu ce mois · \(line.recurrence.label)")
+        case .budgetLine:
+            AppLocale.string("Prévu ce mois")
+        }
+    }
+
+    /// The rhythm of a forecast, for the glyph beside the subtitle. A movement has none:
+    /// it happened once, on the date its own subtitle already gives.
+    static func recurrence(for item: CurrentMonthStore.CheckableItem) -> TransactionRecurrence? {
+        switch item {
+        case .transaction: nil
+        case .budgetLine(let line, _): line.recurrence
         }
     }
 

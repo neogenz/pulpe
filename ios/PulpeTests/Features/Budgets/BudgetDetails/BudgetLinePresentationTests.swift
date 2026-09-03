@@ -1,25 +1,23 @@
+import Foundation
 @testable import Pulpe
 import Testing
 
 @Suite("Budget line presentation")
 struct BudgetLinePresentationTests {
     /// The recurrence shows as a bare glyph, so the spoken label is the only
-    /// place the word survives — these build a row to read that label back.
-    @MainActor
-    private func row(
+    /// place the word survives — these read that label back.
+    private func label(
         recurrence: TransactionRecurrence = .fixed,
         name: String = "Loyer",
+        metadata: String? = nil,
         tagNames: [String] = []
-    ) -> BudgetLineMixedRow {
-        BudgetLineMixedRow(
+    ) -> String {
+        BudgetLineMixedRow.accessibilityLabel(
             line: TestDataFactory.createBudgetLine(name: name, recurrence: recurrence),
-            consumption: BudgetFormulas.Consumption(allocated: 0, available: 1000, percentage: 0),
-            isSyncing: false,
-            currency: .chf,
-            savingsGoalName: nil,
-            tagNames: tagNames,
-            onTap: {},
-            onTogglePointed: {}
+            status: "À pointer",
+            amount: Decimal(1000).asCurrency(.chf),
+            metadata: metadata,
+            tagNames: tagNames
         )
     }
 
@@ -30,17 +28,14 @@ struct BudgetLinePresentationTests {
             (TransactionRecurrence.oneOff, "Prévu"),
         ]
     )
-    @MainActor
     func accessibilityLabel_whenRecurrence_speaksItAfterTheKind(
         recurrence: TransactionRecurrence,
         expected: String
     ) {
-        let label = row(recurrence: recurrence).accessibilityLabel
-        #expect(label.hasPrefix("Dépense · \(expected) · Loyer"))
+        #expect(label(recurrence: recurrence).hasPrefix("Dépense · \(expected) · Loyer"))
     }
 
     @Test("a line with nothing else to say still carries its recurrence")
-    @MainActor
     func accessibilityLabel_whenNoMetadataNorTag_stillSpeaksTheRecurrence() {
         // `metadataText` is nil here: before the glyph, the tertiary line of such
         // a row rendered nothing at all.
@@ -51,7 +46,7 @@ struct BudgetLinePresentationTests {
                 isSavingsWithdrawalIncome: false
             ) == nil
         )
-        #expect(row().accessibilityLabel.contains("Récurrent"))
+        #expect(label().contains("Récurrent"))
     }
 
     @Test("spread and goal collapse into one metadata line")
