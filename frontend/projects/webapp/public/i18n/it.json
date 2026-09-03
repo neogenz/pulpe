@@ -1386,7 +1386,8 @@
           "email": "Email e password (per il tuo account)",
           "google": "Se ti registri tramite Google: email, nome e foto del profilo trasmessi da Google",
           "financial": "Informazioni finanziarie (entrate, spese e risparmi)",
-          "preferences": "Preferenze e impostazioni dell'applicazione"
+          "preferences": "Preferenze e impostazioni dell'applicazione",
+          "feedback": "Valutazioni e commento facoltativo inviati tramite «Invia un feedback»"
         },
         "automaticTitle": "Dati raccolti automaticamente:",
         "automatic": {
@@ -1404,7 +1405,8 @@
           "sync": "Salvare e sincronizzare i tuoi budget",
           "improve": "Migliorare l'applicazione e correggere i bug",
           "communication": "Comunicare informazioni importanti sul servizio",
-          "security": "Garantire la sicurezza del tuo account"
+          "security": "Garantire la sicurezza del tuo account",
+          "feedback": "Analizzare il tuo feedback per migliorare Pulpe e dare priorità agli sviluppi"
         }
       },
       "analytics": {
@@ -1475,8 +1477,9 @@
           "account": "Dati dell'account: finché il tuo account resta attivo",
           "financial": "Dati finanziari: conservati insieme al tuo account",
           "analytics": "Dati di analisi: massimo 12 mesi",
-          "deletion": "Dopo l'eliminazione dell'account: cancellazione entro 3 giorni",
-          "demo": "Dati della sessione demo: eliminati automaticamente dopo 24 ore"
+          "deletion": "Dopo l'eliminazione dell'account: cancellazione entro 3 giorni, feedback inviato incluso",
+          "demo": "Dati della sessione demo: eliminati automaticamente dopo 24 ore",
+          "feedback": "Feedback inviato: conservato insieme al tuo account"
         },
         "analyticsDeletionTitle": "Eliminazione dei dati di analisi:",
         "analyticsDeletionBody": "l'eliminazione del tuo account Pulpe avvia automaticamente l'eliminazione del tuo profilo PostHog, inclusi gli eventi e le registrazioni delle sessioni. La cancellazione da PostHog è asincrona e viene completata entro alcuni giorni dal termine del periodo di tolleranza del tuo account."

@@ -1386,7 +1386,8 @@
           "email": "E-Mail und Passwort (für dein Konto)",
           "google": "Bei der Registrierung über Google: E-Mail, Name und Profilbild, die Google übermittelt",
           "financial": "Finanzinformationen (Einnahmen, Ausgaben und Sparen)",
-          "preferences": "Einstellungen und Parameter der App"
+          "preferences": "Einstellungen und Parameter der App",
+          "feedback": "Bewertungen und optionaler Kommentar, die du über „Feedback geben“ sendest"
         },
         "automaticTitle": "Automatisch erhobene Daten:",
         "automatic": {
@@ -1404,7 +1405,8 @@
           "sync": "Deine Budgets zu speichern und zu synchronisieren",
           "improve": "Die App zu verbessern und Fehler zu beheben",
           "communication": "Wichtige Informationen zum Dienst mitzuteilen",
-          "security": "Die Sicherheit deines Kontos zu gewährleisten"
+          "security": "Die Sicherheit deines Kontos zu gewährleisten",
+          "feedback": "Dein Feedback auszuwerten, um Pulpe zu verbessern und Änderungen zu priorisieren"
         }
       },
       "analytics": {
@@ -1475,8 +1477,9 @@
           "account": "Kontodaten: solange dein Konto aktiv ist",
           "financial": "Finanzdaten: werden zusammen mit deinem Konto aufbewahrt",
           "analytics": "Analysedaten: höchstens 12 Monate",
-          "deletion": "Nach der Kontolöschung: Löschung innerhalb von 3 Tagen",
-          "demo": "Daten einer Demo-Sitzung: automatische Löschung nach 24 Stunden"
+          "deletion": "Nach der Kontolöschung: Löschung innerhalb von 3 Tagen, einschliesslich deines Feedbacks",
+          "demo": "Daten einer Demo-Sitzung: automatische Löschung nach 24 Stunden",
+          "feedback": "Gesendetes Feedback: wird zusammen mit deinem Konto aufbewahrt"
         },
         "analyticsDeletionTitle": "Löschung von Analysedaten:",
         "analyticsDeletionBody": "wenn du dein Pulpe-Konto löschst, wird automatisch auch dein PostHog-Profil einschliesslich Ereignissen und Sitzungsaufzeichnungen gelöscht. Die Löschung bei PostHog erfolgt asynchron und wird innerhalb weniger Tage nach Ablauf der Schonfrist deines Kontos abgeschlossen."

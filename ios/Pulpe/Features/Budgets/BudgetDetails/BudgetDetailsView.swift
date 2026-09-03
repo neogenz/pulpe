@@ -210,7 +210,6 @@ struct BudgetDetailsView: View {
     private var content: some View {
         let screenState = projector.screenState
         let sections = screenState.sections
-        let checkingTipLineId = screenState.checkingTipLineId
         let free = screenState.free
 
         return ScrollView {
@@ -283,7 +282,8 @@ struct BudgetDetailsView: View {
                             goalNamesById: savingsGoalNamesById,
                             tagNamesById: tagStore.namesById,
                             savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
-                            checkingTipLineId: checkingTipLineId,
+                            checkingTipLineId: screenState.checkingTipLineId,
+                            onPrepareTogglePointed: coordinator.prepareToggleBudgetLine,
                             onTap: { line in
                                 router.push(.lineDetail(lineId: line.id))
                             },
@@ -329,7 +329,7 @@ struct BudgetDetailsView: View {
             )
         }
         .animation(
-            reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
+            reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut,
             value: screenState.checkedTickHash
         )
         .background { Color.appBackground.ignoresSafeArea() }

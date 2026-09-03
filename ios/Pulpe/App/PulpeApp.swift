@@ -84,13 +84,19 @@ struct PulpeApp: App {
             appState: appState,
             currentMonthStore: currentMonthStore,
             budgetListStore: budgetListStore,
-            dashboardStore: dashboardStore
+            dashboardStore: dashboardStore,
+            onAppOpened: { [weak appState] in Self.recordActiveDay(for: appState) }
         ))
 
         try? Tips.configure([
             .datastoreLocation(.applicationDefault)
         ])
         BackgroundTaskService.shared.registerTasks()
+    }
+
+    private static func recordActiveDay(for appState: AppState?) {
+        guard let userID = appState?.currentUser?.id else { return }
+        FeedbackPromptPreferences().recordActiveDay(for: userID)
     }
 
     @Environment(\.scenePhase) private var scenePhase
@@ -275,6 +281,7 @@ struct RootView: View {
     @State private var resetPasswordDeepLink: ResetPasswordDeepLink?
     @State private var deepLinkHandler = DeepLinkHandler()
     @State private var showAmountsToggleAlert = false
+    private let feedbackPromptPreferences = FeedbackPromptPreferences()
 
     var body: some View {
         Group {
@@ -310,6 +317,13 @@ struct RootView: View {
         ))
         .syncCurrencyAnalytics()
         .environment(\.amountsHidden, uiPreferences.amountsHidden)
+        .environment(\.hasPriorityRootPresentation, hasPriorityRootPresentation)
+    }
+
+    private var hasPriorityRootPresentation: Bool {
+        deepLinkDestination != nil || showAddExpenseSheet || resetPasswordDeepLink != nil
+            || appState.showPostAuthError || appState.isRecoveryConsentVisible
+            || appState.isRecoveryKeySheetVisible || showAmountsToggleAlert
     }
 
     private var recoveryKeySheetItemBinding: Binding<RecoveryKeySheetItem?> {
@@ -446,6 +460,9 @@ struct RootView: View {
             "[AUTH_ROOT_TASK] done, auth=\(authDesc, privacy: .public) route=\(routeDesc, privacy: .public)"
         )
         #endif
+        if let userID = appState.currentUser?.id {
+            feedbackPromptPreferences.recordActiveDay(for: userID)
+        }
         if appState.authState == .authenticated {
             await userSettingsStore.loadIfNeeded()
             await currentMonthStore.loadBudgetSummary(

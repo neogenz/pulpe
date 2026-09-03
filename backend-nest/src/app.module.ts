@@ -38,6 +38,7 @@ import { AccountDeletionModule } from '@modules/account-deletion/account-deletio
 import { AppVersionModule } from '@modules/app-version/app-version.module';
 import { WhatsNewModule } from '@modules/whats-new/whats-new.module';
 import { AllocationModule } from '@modules/allocation/allocation.module';
+import { FeedbackModule } from '@modules/feedback/feedback.module';
 
 // Filters
 import { FiltersModule } from '@common/filters/filters.module';
@@ -202,6 +203,13 @@ export function createPinoLoggerConfig(configService: ConfigService) {
           'req.body.newClientKey',
           'req.body.recoveryKey',
           'req.body.token',
+          'req.body.overallRating',
+          'req.body.onboarding',
+          'req.body.budgetClarity',
+          'req.body.currentMonth',
+          'req.body.futurePlanning',
+          'req.body.homeClarity',
+          'req.body.comment',
           'res.headers["set-cookie"]',
         ],
         censor: '[REDACTED]',
@@ -318,6 +326,7 @@ export function createPinoLoggerConfig(configService: ConfigService) {
     AccountDeletionModule,
     AppVersionModule,
     WhatsNewModule,
+    FeedbackModule,
     // Only include DebugModule in non-production-like environments
     ...(!isProductionLike() ? [DebugModule] : []),
     FiltersModule,

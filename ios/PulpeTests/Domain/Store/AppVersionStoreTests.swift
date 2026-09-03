@@ -16,15 +16,18 @@ struct AppVersionStoreTests {
         await store.check()
 
         #expect(store.status == .forceUpdate(storeURL: URL(string: "https://apps.apple.com/app/pulpe")))
+        #expect(!store.allowsLowerPriorityPresentation)
     }
 
     @Test func check_currentEqualsMin_emitsOk() async {
         let service = StubAppVersionService(response: .makeFixture(iosMin: "1.0.1"))
         let store = AppVersionStore(service: service, currentVersion: "1.0.1")
+        #expect(!store.allowsLowerPriorityPresentation)
 
         await store.check()
 
         #expect(store.status == .ok)
+        #expect(store.allowsLowerPriorityPresentation)
     }
 
     @Test func check_currentAboveMinNumerically_emitsOk() async {
@@ -96,6 +99,45 @@ struct AppVersionStoreTests {
         await rolledBackStore.check()
         #expect(rolledBackStore.status == .ok)
         #expect(flagsStore.lastPromptedVersion == "1.3.3")
+    }
+
+    @Test func lowerPriorityPresentation_waitsUntilOptionalUpdateIsDismissed() async {
+        let service = StubAppVersionService(response: .makeFixture(
+            iosMin: "1.0.0",
+            iosLatest: "1.3.2",
+            iosStoreURL: "https://apps.apple.com/app/id6758464920"
+        ))
+        let store = AppVersionStore(service: service, currentVersion: "1.3.1")
+
+        await store.check()
+        #expect(!store.allowsLowerPriorityPresentation)
+
+        store.dismissUpdateAvailable()
+        #expect(store.allowsLowerPriorityPresentation)
+    }
+
+    @Test func lowerPriorityPresentation_blocksWhileRefreshIsInFlight() async {
+        let service = SwitchableStubService(
+            initialOutcome: .success(.makeFixture(iosMin: "1.0.0"))
+        )
+        let store = AppVersionStore(service: service, currentVersion: "1.0.0")
+        await store.check()
+        #expect(store.allowsLowerPriorityPresentation)
+
+        service.gateNextFetch()
+        let refresh = Task { await store.check() }
+        await waitForCondition("refresh must reach the version service") {
+            service.fetchCallCount == 2
+        }
+
+        #expect(store.isChecking)
+        #expect(!store.allowsLowerPriorityPresentation)
+
+        service.releaseFetch()
+        await refresh.value
+
+        #expect(!store.isChecking)
+        #expect(store.allowsLowerPriorityPresentation)
     }
 
     @Test("Minimum version keeps priority over the optional update")
@@ -245,6 +287,9 @@ private final class StubAppVersionService: AppVersionServiceProtocol, @unchecked
 
 private final class SwitchableStubService: AppVersionServiceProtocol, @unchecked Sendable {
     private var outcome: StubFetchOutcome
+    private var shouldGateNextFetch = false
+    private var fetchContinuation: CheckedContinuation<Void, Never>?
+    private(set) var fetchCallCount = 0
 
     init(initialOutcome: StubFetchOutcome) {
         self.outcome = initialOutcome
@@ -254,7 +299,23 @@ private final class SwitchableStubService: AppVersionServiceProtocol, @unchecked
         outcome = newOutcome
     }
 
+    func gateNextFetch() {
+        shouldGateNextFetch = true
+    }
+
+    func releaseFetch() {
+        fetchContinuation?.resume()
+        fetchContinuation = nil
+    }
+
     func fetch() async throws -> AppVersionResponse {
+        fetchCallCount += 1
+        if shouldGateNextFetch {
+            shouldGateNextFetch = false
+            await withCheckedContinuation { continuation in
+                fetchContinuation = continuation
+            }
+        }
         switch outcome {
         case .success(let response):
             return response

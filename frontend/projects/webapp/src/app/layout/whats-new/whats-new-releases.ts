@@ -11,12 +11,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.47.0',
+  version: '0.48.0',
   features: {
-    fr: ['Montants exacts dans la liste des budgets et le récap annuel'],
-    en: ['Accurate amounts in the budget list and yearly recap'],
-    de: ['Genaue Beträge in Budgetliste und Jahresübersicht'],
-    it: ['Importi esatti nell’elenco budget e nel riepilogo annuale'],
+    fr: ['Mouvements modifiables jusqu’au dernier jour'],
+    en: ['Movements editable through the final day'],
+    de: ['Bewegungen bis zum letzten Tag bearbeitbar'],
+    it: ['Movimenti modificabili fino all’ultimo giorno'],
   },
 };
 

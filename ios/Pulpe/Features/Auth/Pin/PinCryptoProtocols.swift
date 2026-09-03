@@ -91,6 +91,7 @@ extension APIError {
     /// User-facing message for PIN validation errors (entry, change).
     var pinValidationMessage: String {
         switch self {
+        case .maintenance: AppLocale.string("Maintenance en cours, réessaie dans quelques instants")
         case .rateLimited: AppLocale.string("Trop de tentatives, patiente un moment")
         case .networkError: AppLocale.string("Erreur de connexion, réessaie")
         default: AppLocale.string("Ce code ne semble pas correct")

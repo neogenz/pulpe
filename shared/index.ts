@@ -204,6 +204,10 @@ export {
   whatsNewEntrySchema,
   whatsNewResponseSchema,
   whatsNewQuerySchema,
+
+  // Feedback
+  feedbackRatingSchema,
+  feedbackCreateSchema,
 } from './schemas.js';
 
 // Export error codes
@@ -508,4 +512,7 @@ export type {
   WhatsNewEntry,
   WhatsNewResponse,
   WhatsNewQuery,
+
+  // Feedback
+  FeedbackCreate,
 } from './schemas.js';

@@ -1386,7 +1386,8 @@
           "email": "Email and password (for your account)",
           "google": "If you sign up with Google: email, name and profile picture provided by Google",
           "financial": "Financial information (income, expenses and savings)",
-          "preferences": "Application preferences and settings"
+          "preferences": "Application preferences and settings",
+          "feedback": "Ratings and optional comment sent through “Share feedback”"
         },
         "automaticTitle": "Data collected automatically:",
         "automatic": {
@@ -1404,7 +1405,8 @@
           "sync": "Save and synchronise your budgets",
           "improve": "Improve the application and fix bugs",
           "communication": "Communicate important information about the service",
-          "security": "Keep your account secure"
+          "security": "Keep your account secure",
+          "feedback": "Analyse your feedback to improve Pulpe and prioritise changes"
         }
       },
       "analytics": {
@@ -1475,8 +1477,9 @@
           "account": "Account data: while your account remains active",
           "financial": "Financial data: retained with your account",
           "analytics": "Analytics data: no more than 12 months",
-          "deletion": "After account deletion: erased within 3 days",
-          "demo": "Demo session data: automatically deleted after 24 hours"
+          "deletion": "After account deletion: erased within 3 days, including submitted feedback",
+          "demo": "Demo session data: automatically deleted after 24 hours",
+          "feedback": "Submitted feedback: retained with your account"
         },
         "analyticsDeletionTitle": "Analytics deletion:",
         "analyticsDeletionBody": "deleting your Pulpe account automatically triggers deletion of your PostHog profile, including events and session recordings. Deletion by PostHog is asynchronous and completed within a few days after your account grace period ends."

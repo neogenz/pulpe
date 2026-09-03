@@ -18,6 +18,7 @@ struct BudgetLineMixedRow: View {
     var savingsWithdrawalOriginMonthName: String?
     /// Anchors the checking tip's arrow on this row's disc — the control it teaches.
     var showsCheckingTip = false
+    var onPrepareTogglePointed: () -> Bool = { true }
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
@@ -25,7 +26,7 @@ struct BudgetLineMixedRow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    @State private var triggerToggleFeedback = false
+    @State private var pointCompletionGate = PointCompletionGate()
 
     // MARK: - Derived values
 
@@ -114,6 +115,8 @@ struct BudgetLineMixedRow: View {
                             isPointed: isPointed,
                             color: dotColor,
                             isSyncing: isSyncing,
+                            onPrepareToggle: onPrepareTogglePointed,
+                            onCompletionStateChange: { pointCompletionGate.isPending = $0 },
                             onToggle: handleTogglePointed
                         )
                         .popoverTip(showsCheckingTip ? ProductTips.checking : nil)
@@ -151,12 +154,15 @@ struct BudgetLineMixedRow: View {
         .leadingSwipeAction(
             systemImage: isPointed ? "arrow.uturn.backward" : "checkmark",
             tint: dotColor,
-            isEnabled: !line.isPlannedSavingsWithdrawal,
+            isEnabled: {
+                !line.isPlannedSavingsWithdrawal
+                    && !pointCompletionGate.isPending
+                    && !isSyncing
+            },
             action: handleTogglePointed
         )
         // Explicit, or the button inherits the metadata Text's identifier from its label.
         .accessibilityIdentifier("budgetLineMixedRowButton-\(line.id)")
-        .sensoryFeedback(.success, trigger: triggerToggleFeedback)
         // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
         // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
         .accessibilityElement(children: .contain)
@@ -297,7 +303,6 @@ struct BudgetLineMixedRow: View {
 
     private func handleTogglePointed() {
         guard !line.isVirtualRollover else { return }
-        triggerToggleFeedback.toggle()
         onTogglePointed()
     }
 

@@ -89,6 +89,10 @@ enum Endpoint {
 
     case whatsNewIos(currentVersion: String, lastSeenVersion: String, locale: SupportedLocale)
 
+    // MARK: - Feedback
+
+    case feedback
+
     // MARK: - Encryption
 
     case encryptionVaultStatus
@@ -178,6 +182,9 @@ enum Endpoint {
         // What's New
         case .whatsNewIos: return "/whats-new/ios"
 
+        // Feedback
+        case .feedback: return "/feedback"
+
         // Encryption
         case .encryptionVaultStatus: return "/encryption/vault-status"
         case .encryptionSalt: return "/encryption/salt"
@@ -200,6 +207,7 @@ enum Endpoint {
              .templateLines, .templateFromOnboarding, .templateLinesBulk,
              .budgetLineToggle, .budgetLinePostpone, .budgetLineResetFromTemplate,
              .transactionToggle, .transactionPostpone,
+             .feedback,
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
              .encryptionVerifyRecoveryKey, .encryptionChangePin,
              .savingsGoalPlanApply, .savingsGoalGenerationStop, .savingsGoalDeletion:

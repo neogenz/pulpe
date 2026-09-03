@@ -15,6 +15,10 @@ struct ProductTipsTests {
         ProductTips.resetAllTips()
     }
 
+    @Test func checkingTip_usesVersionedIdentity() {
+        #expect(ProductTips.checking.id == "checking-point-control-v2")
+    }
+
     @Test func balancedAppearDisappear_isSheetPresentedFalse() {
         ProductTips.modalDidAppear()
         ProductTips.modalDidDisappear()

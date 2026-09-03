@@ -61,4 +61,46 @@ struct BiometricDefaultValidateKeyTests {
 
         #expect(result == false, "A genuinely rotated/revoked key must fall through to PIN, never tolerated")
     }
+
+    /// RED before the PUL-337 fix: the maintenance 503 fell into `catch { return false }`,
+    /// so every maintenance window read as a stale key.
+    @Test("maintenance 503 tolerates: the server never looked at the key")
+    func defaultValidateKey_maintenance_returnsTrue() async {
+        InterceptingURLProtocol.requestHandler = { request in
+            let body = Data(#"{"success":false,"code":"MAINTENANCE","message":"maintenance"}"#.utf8)
+            return (makeHTTPResponse(for: request, statusCode: 503), body)
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let validate = makeValidateClosure()
+        let result = await validate(clientKey)
+
+        #expect(result == true, "Maintenance means unavailable, never a verdict on the key")
+    }
+
+    /// The damage the verdict caused: `attemptUnlock` wiped the client key and turned Face ID
+    /// off for every biometric user, on every maintenance window.
+    @Test("attemptUnlock under maintenance leaves Face ID enrolled")
+    func attemptUnlock_maintenance_keepsBiometricEnabled() async {
+        InterceptingURLProtocol.requestHandler = { request in
+            let body = Data(#"{"success":false,"code":"MAINTENANCE","message":"maintenance"}"#.utf8)
+            return (makeHTTPResponse(for: request, statusCode: 503), body)
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let manager = BiometricManager(
+            preferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            clientKeyManager: .shared,
+            capability: { true },
+            authenticate: {},
+            resolveKey: { self.clientKey },
+            validateKey: makeValidateClosure()
+        )
+        manager.hydrate(true)
+
+        let unlocked = await manager.attemptUnlock()
+
+        #expect(unlocked == true)
+        #expect(manager.isEnabled == true, "handleStaleKey must not run: the enrollment survives")
+    }
 }

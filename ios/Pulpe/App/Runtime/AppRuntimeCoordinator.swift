@@ -1,6 +1,20 @@
 import OSLog
 import SwiftUI
 
+struct SceneBackgroundReturnTracker {
+    private var hasEnteredBackground = false
+
+    mutating func consumeReturn(to phase: ScenePhase) -> Bool {
+        if phase == .background {
+            hasEnteredBackground = true
+            return false
+        }
+        guard phase == .active, hasEnteredBackground else { return false }
+        hasEnteredBackground = false
+        return true
+    }
+}
+
 /// Coordinates runtime orchestration (scene phase, privacy shield, store refresh, widget sync)
 /// so that RootView remains purely declarative.
 @Observable @MainActor
@@ -12,22 +26,26 @@ final class AppRuntimeCoordinator {
     private let budgetListStore: BudgetListStore
     private let dashboardStore: DashboardStore
     private let widgetSyncViewModel: WidgetSyncViewModel
+    private let onAppOpened: @MainActor () -> Void
     private var foregroundTask: Task<Void, Never>?
     @ObservationIgnored private var hasRequestedVisibleStartup = false
     private var hasTrackedInitialOpen = false
+    private var backgroundReturnTracker = SceneBackgroundReturnTracker()
 
     init(
         appState: AppState,
         currentMonthStore: CurrentMonthStore,
         budgetListStore: BudgetListStore,
         dashboardStore: DashboardStore,
-        widgetSyncViewModel: WidgetSyncViewModel = WidgetSyncViewModel()
+        widgetSyncViewModel: WidgetSyncViewModel = WidgetSyncViewModel(),
+        onAppOpened: @escaping @MainActor () -> Void = {}
     ) {
         self.appState = appState
         self.currentMonthStore = currentMonthStore
         self.budgetListStore = budgetListStore
         self.dashboardStore = dashboardStore
         self.widgetSyncViewModel = widgetSyncViewModel
+        self.onAppOpened = onAppOpened
     }
 
     /// UI authentication must wait for an interactive scene. Background refresh has
@@ -60,6 +78,7 @@ final class AppRuntimeCoordinator {
     }
 
     func handleScenePhaseChange(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
+        let isBackgroundReturn = backgroundReturnTracker.consumeReturn(to: newPhase)
         #if DEBUG
         let oldDesc = String(describing: oldPhase)
         let newDesc = String(describing: newPhase)
@@ -77,9 +96,10 @@ final class AppRuntimeCoordinator {
                 privacyShieldActive = false
             }
             // Fire app_opened on cold start (first activation) and warm returns from background.
-            // Skips notification center / control center dismissals (inactive → active after initial).
-            if !hasTrackedInitialOpen || oldPhase == .background {
+            // The normal warm-return path includes an inactive phase before active.
+            if !hasTrackedInitialOpen || isBackgroundReturn {
                 AnalyticsService.shared.capture(.appOpened)
+                onAppOpened()
                 hasTrackedInitialOpen = true
             }
         }

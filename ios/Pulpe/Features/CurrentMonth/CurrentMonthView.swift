@@ -4,7 +4,7 @@ import WidgetKit
 
 private enum SheetDestination: Identifiable {
     case realizedBalance, account, createBudget, notificationPrime
-    case addTransaction
+    case addTransaction, feedback
     var id: Self { self }
 }
 
@@ -20,15 +20,6 @@ struct CurrentMonthView: View {
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var animationPhase: Int {
-        switch store.contentState {
-        case .idle, .loading: 0
-        case .failed: 1
-        case .empty: 2
-        case .loaded: 3
-        }
-    }
 
     private var canCreateBudget: Bool {
         budgetListStore.nextAvailableMonth != nil
@@ -132,6 +123,8 @@ struct CurrentMonthView: View {
                     if let budgetId = store.budget?.id {
                         AddTransactionSheet(budgetId: budgetId, onAdd: store.addTransaction)
                     }
+                case .feedback:
+                    AutomaticFeedbackSheet()
                 case .createBudget:
                     if let nextMonth = budgetListStore.nextAvailableMonth {
                         CreateBudgetView(
@@ -202,6 +195,14 @@ struct CurrentMonthView: View {
         .onChange(of: appState.currentMonthPath.count) { oldCount, newCount in
             guard newCount == 0, oldCount > 0 else { return }
             refreshDetails()
+        }
+        .automaticFeedbackPrompt(
+            contentState: store.contentState,
+            hasBlockingSheet: activeSheet != nil,
+            isNavigating: navigateToBudget,
+            isPostOnboardingHandoffPresented: showPostOnboardingHandoff.wrappedValue
+        ) {
+            activeSheet = .feedback
         }
     }
 
@@ -362,11 +363,17 @@ struct CurrentMonthView: View {
 }
 
 // MARK: - Retention hooks (post-onboarding handoff + notification priming)
-//
-// Kept in a same-file extension so the main `CurrentMonthView` body stays within its
-// type-length budget while still reaching the view's `private` state (same-file
-// access), rather than loosening encapsulation to move it to another file.
+// Kept in a same-file extension so the main view stays focused while these helpers
 extension CurrentMonthView {
+    fileprivate var animationPhase: Int {
+        switch store.contentState {
+        case .idle, .loading: 0
+        case .failed: 1
+        case .empty: 2
+        case .loaded: 3
+        }
+    }
+
     /// Failed and empty keep a flat canvas; loaded and skeleton paint the forest through
     /// `heroZone()`, so the navigation bar ink follows the same switch.
     /// Crossfade only: `blurReplace` washed the forest to a pale haze for a frame.
@@ -488,4 +495,6 @@ extension CurrentMonthView {
     .environment(SavingsGoalStore())
     .environment(TagStore())
     .environment(ToastManager())
+    .environment(AppVersionStore())
+    .environment(WhatsNewStore())
 }
