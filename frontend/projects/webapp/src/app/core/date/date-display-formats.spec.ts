@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { getDateDisplayFormats } from './date-display-formats';
+import {
+  getDateDisplayFormats,
+  getMonthYearDateFormats,
+} from './date-display-formats';
 
 describe('getDateDisplayFormats', () => {
   it('returns dot-separated formats for CHF', () => {
@@ -19,4 +22,17 @@ describe('getDateDisplayFormats', () => {
       separator: '/',
     });
   });
+
+  it.each([
+    ['CHF', 'MM.yyyy'],
+    ['EUR', 'MM/yyyy'],
+  ] as const)(
+    'builds shared month/year formats for %s',
+    (currency, expected) => {
+      expect(getMonthYearDateFormats(currency)).toMatchObject({
+        parse: { dateInput: ['MM.yyyy', 'MM/yyyy'] },
+        display: { dateInput: expected, dateA11yLabel: expected },
+      });
+    },
+  );
 });

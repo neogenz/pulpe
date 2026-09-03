@@ -59,15 +59,19 @@ describe('PlanBudgetsDialog', () => {
   let component: PlanBudgetsDialog;
   let fixture: ComponentFixture<PlanBudgetsDialog>;
   const close = vi.fn();
+  const dialogRef = { close, disableClose: false };
   const generateBudgets = vi.fn();
   const selectedTemplateId = signal<string | null>(TEMPLATE_ID);
   const generateBudgetsError = signal<unknown>(undefined);
+  const isGeneratingBudgets = signal(false);
 
   beforeEach(async () => {
     close.mockClear();
     generateBudgets.mockReset().mockResolvedValue(response);
+    dialogRef.disableClose = false;
     selectedTemplateId.set(TEMPLATE_ID);
     generateBudgetsError.set(undefined);
+    isGeneratingBudgets.set(false);
 
     const templateStore = {
       templates: signal<BudgetTemplate[]>([]),
@@ -76,7 +80,7 @@ describe('PlanBudgetsDialog', () => {
       templateTotalsMap: signal<Record<string, TemplateTotals>>({}),
       isLoading: signal(false),
       error: signal<unknown>(undefined),
-      isGeneratingBudgets: signal(false),
+      isGeneratingBudgets,
       generateBudgetsError,
       generateBudgets,
       selectTemplate: vi.fn(),
@@ -101,7 +105,7 @@ describe('PlanBudgetsDialog', () => {
           provide: MAT_DIALOG_DATA,
           useValue: { currentPeriod: { month: 9, year: 2026 } },
         },
-        { provide: MatDialogRef, useValue: { close } },
+        { provide: MatDialogRef, useValue: dialogRef },
         { provide: MatDialog, useValue: { open: vi.fn() } },
         {
           provide: ApiErrorLocalizer,
@@ -142,6 +146,25 @@ describe('PlanBudgetsDialog', () => {
     expect(component.canSubmit()).toBe(false);
   });
 
+  it('announces a period rejected only by the shared contract', async () => {
+    const maxYear = new Date().getFullYear() + 10;
+    component.planForm.setValue({
+      startPeriod: new Date(maxYear, 11, 1),
+      endPeriod: new Date(maxYear + 1, 0, 1),
+    });
+    fixture.detectChanges();
+
+    expect(component.rangeErrorKey()).toBe('budget.planInvalidPeriod');
+    expect(component.canSubmit()).toBe(false);
+    expect(
+      fixture.nativeElement.querySelector('[role="alert"]')?.textContent,
+    ).toContain('La période sélectionnée est hors des dates autorisées');
+
+    await component.submit();
+
+    expect(generateBudgets).not.toHaveBeenCalled();
+  });
+
   it('submits the existing generation DTO and closes only on success', async () => {
     await component.submit();
 
@@ -152,6 +175,39 @@ describe('PlanBudgetsDialog', () => {
       count: 12,
     });
     expect(close).toHaveBeenCalledWith(response);
+    expect(dialogRef.disableClose).toBe(true);
+  });
+
+  it('blocks every exit while pending and restores them after an error', async () => {
+    let resolveGeneration!: (result: undefined) => void;
+    generateBudgets.mockImplementationOnce(() => {
+      isGeneratingBudgets.set(true);
+      return new Promise<undefined>((resolve) => {
+        resolveGeneration = resolve;
+      });
+    });
+
+    const submission = component.submit();
+    fixture.detectChanges();
+
+    const cancelButton = fixture.nativeElement.querySelector(
+      'button[mat-dialog-close]',
+    ) as HTMLButtonElement;
+    expect(dialogRef.disableClose).toBe(true);
+    expect(cancelButton.disabled).toBe(true);
+
+    generateBudgetsError.set(new Error('API failed'));
+    isGeneratingBudgets.set(false);
+    resolveGeneration(undefined);
+    await submission;
+    fixture.detectChanges();
+
+    expect(dialogRef.disableClose).toBe(false);
+    expect(cancelButton.disabled).toBe(false);
+    expect(component.planForm.getRawValue()).toEqual({
+      startPeriod: new Date(2026, 8, 1),
+      endPeriod: new Date(2027, 7, 1),
+    });
   });
 
   it('keeps the dialog open and exposes a localized error', async () => {

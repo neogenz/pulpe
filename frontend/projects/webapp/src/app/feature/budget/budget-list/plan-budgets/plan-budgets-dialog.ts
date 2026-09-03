@@ -8,7 +8,6 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
-import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import {
@@ -22,7 +21,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
-import { getDateDisplayFormats } from '@core/date/date-display-formats';
+import { getMonthYearDateFormats } from '@core/date/date-display-formats';
 import { UserSettingsStore } from '@core/user-settings';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { type BudgetGenerateResponse, type BudgetPeriod } from 'pulpe-shared';
@@ -32,30 +31,17 @@ import { TemplatesList } from '../create-budget/templates-list';
 import { TemplateStore } from '../create-budget/services/template-store';
 import {
   defaultPlanBudgetPeriods,
+  END_BEFORE_START,
   planBudgetCount,
   planBudgetsFormSchema,
+  RANGE_TOO_LONG,
 } from './plan-budgets-dialog.schema';
 
 export interface PlanBudgetsDialogData {
   currentPeriod: BudgetPeriod;
 }
 
-function monthYearFormats(monthYear: string) {
-  return {
-    ...MAT_DATE_FNS_FORMATS,
-    parse: {
-      ...MAT_DATE_FNS_FORMATS.parse,
-      dateInput: ['MM.yyyy', 'MM/yyyy'],
-    },
-    display: {
-      ...MAT_DATE_FNS_FORMATS.display,
-      dateInput: monthYear,
-      monthYearLabel: 'MMM yyyy',
-      dateA11yLabel: monthYear,
-      monthYearA11yLabel: 'MMMM yyyy',
-    },
-  };
-}
+const PERIOD_VALIDATION_TEMPLATE_ID = '00000000-0000-4000-8000-000000000001';
 
 @Component({
   selector: 'pulpe-plan-budgets-dialog',
@@ -75,9 +61,7 @@ function monthYearFormats(monthYear: string) {
     {
       provide: MAT_DATE_FORMATS,
       useFactory: () =>
-        monthYearFormats(
-          getDateDisplayFormats(inject(UserSettingsStore).currency()).monthYear,
-        ),
+        getMonthYearDateFormats(inject(UserSettingsStore).currency()),
     },
   ],
   template: `
@@ -172,6 +156,7 @@ function monthYearFormats(monthYear: string) {
         matButton
         mat-dialog-close
         type="button"
+        [disabled]="templateStore.isGeneratingBudgets()"
         class="w-full md:w-auto min-h-[44px]"
       >
         {{ 'common.cancel' | transloco }}
@@ -228,10 +213,16 @@ export class PlanBudgetsDialog {
   });
 
   readonly rangeErrorKey = computed(() => {
-    const count = this.inclusivePeriodCount();
-    if (count === 0) return 'budget.planEndBeforeStart';
-    if (count > 36) return 'budget.planRangeTooLong';
-    return null;
+    const result = planBudgetsFormSchema.safeParse({
+      ...this.#formValue(),
+      templateId: PERIOD_VALIDATION_TEMPLATE_ID,
+    });
+    if (result.success) return null;
+
+    const reason = result.error.issues[0]?.message;
+    if (reason === END_BEFORE_START) return 'budget.planEndBeforeStart';
+    if (reason === RANGE_TOO_LONG) return 'budget.planRangeTooLong';
+    return 'budget.planInvalidPeriod';
   });
 
   readonly canSubmit = computed(() => {
@@ -294,12 +285,14 @@ export class PlanBudgetsDialog {
     if (!parsed.success) return;
 
     this.submissionError.set(null);
+    this.#dialogRef.disableClose = true;
     const result = await this.templateStore.generateBudgets(parsed.data);
     if (result) {
       this.#dialogRef.close(result);
       return;
     }
 
+    this.#dialogRef.disableClose = false;
     const error = this.templateStore.generateBudgetsError();
     this.submissionError.set(
       isApiError(error)
