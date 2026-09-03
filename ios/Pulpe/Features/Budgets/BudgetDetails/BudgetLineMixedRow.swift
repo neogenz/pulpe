@@ -193,39 +193,43 @@ struct BudgetLineMixedRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Every secondary fact about the line — provenance, lissage, objectif, tag
-    /// count — on one tertiary line. Stacking one badge per fact pushed the row
-    /// to five lines and knocked the amount column out of vertical alignment.
-    @ViewBuilder
+    /// Every secondary fact about the line — recurrence, provenance, lissage,
+    /// objectif, tag count — on one tertiary line, now always present since the
+    /// recurrence glyph opens it. Stacking one badge per fact pushed the row to
+    /// five lines and knocked the amount column out of vertical alignment.
     private var metadataRow: some View {
-        if metadata != nil || !tagNames.isEmpty {
-            HStack(spacing: DesignTokens.Spacing.xs) {
-                if line.isSavingsWithdrawalIncome {
-                    // Decorative: `metadata` already carries "Pris sur ton épargne",
-                    // and the row is an accessibility container, so an unhidden symbol
-                    // would offer its SF name as a second reading of the same fact.
-                    Image(systemName: TransactionKind.savingsIcon)
-                        .accessibilityHidden(true)
-                }
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            // Where the line comes from, as a glyph: the word would collide with
+            // the `prévu` the amount suffix already writes on the same row.
+            // Decorative like its neighbour — the row's label speaks the word.
+            Image(systemName: line.recurrence.icon)
+                .accessibilityHidden(true)
 
-                if let metadata {
-                    Text(metadata)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                        .truncationMode(.tail)
-                        .accessibilityIdentifier("budgetLineMixedRowMetadata-\(line.id)")
-                }
-
-                if !tagNames.isEmpty {
-                    TagChips(
-                        names: tagNames,
-                        presentation: .count,
-                        followsText: metadata != nil
-                    )
-                }
+            if line.isSavingsWithdrawalIncome {
+                // Decorative: `metadata` already carries "Pris sur ton épargne",
+                // and the row is an accessibility container, so an unhidden symbol
+                // would offer its SF name as a second reading of the same fact.
+                Image(systemName: TransactionKind.savingsIcon)
+                    .accessibilityHidden(true)
             }
-            .font(PulpeTypography.labelMedium)
-            .foregroundStyle(Color.textTertiary)
+
+            if let metadata {
+                Text(metadata)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                    .truncationMode(.tail)
+                    .accessibilityIdentifier("budgetLineMixedRowMetadata-\(line.id)")
+            }
+
+            if !tagNames.isEmpty {
+                TagChips(
+                    names: tagNames,
+                    presentation: .count,
+                    followsText: metadata != nil
+                )
+            }
         }
+        .font(PulpeTypography.labelMedium)
+        .foregroundStyle(Color.textTertiary)
     }
 
     /// Spec §08 — subtitle rules. Empty when pointed, or for partial/empty
@@ -308,7 +312,10 @@ struct BudgetLineMixedRow: View {
 
     // MARK: - Accessibility
 
-    private var accessibilityLabel: String {
+    /// The row's spoken contract. Internal rather than private: the recurrence is
+    /// a bare glyph on screen, so this label is the only place that says the word
+    /// out loud, and a test asserts it here.
+    var accessibilityLabel: String {
         let kindWord = line.kind.label
         // An announced withdrawal is realized, not pointed. Either way the row
         // speaks its state, never its action: realizing one happens on the line's
@@ -322,6 +329,6 @@ struct BudgetLineMixedRow: View {
             ? ""
             : " · " + AppLocale.string("Tags : \(tagNames.joined(separator: ", "))")
         let context = metadata.map { " · \($0)" } ?? ""
-        return "\(kindWord) · \(line.name)\(context) · \(amount) · \(status)\(tags)"
+        return "\(kindWord) · \(line.recurrence.label) · \(line.name)\(context) · \(amount) · \(status)\(tags)"
     }
 }
