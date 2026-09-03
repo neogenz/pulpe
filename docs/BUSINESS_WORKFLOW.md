@@ -11,7 +11,7 @@
 
 **Aucune app bancaire ne permet de planifier une annee complete facilement.**
 
-Les apps du marche (Revolut, YNAB, etc.) sont faites pour _tracker_ --- pas pour _anticiper_. Elles repondent a "combien j'ai depense ?" mais jamais a "est-ce que je peux me permettre des vacances en juillet sans exploser mon budget d'aout ?".
+Les apps du marche (Revolut, YNAB, etc.) sont faites pour *tracker* --- pas pour *anticiper*. Elles repondent a "combien j'ai depense ?" mais jamais a "est-ce que je peux me permettre des vacances en juillet sans exploser mon budget d'aout ?".
 
 ### Le calvaire Excel
 
@@ -46,13 +46,13 @@ Les depenses sont reparties sur plusieurs comptes bancaires (ex: Revolut + compt
 
 Chaque intention utilisateur repond a une ou plusieurs de ces douleurs. Si une feature ne soulage aucune d'entre elles, elle est hors scope.
 
-| #   | Douleur                          | Le cri utilisateur                                                                                              |
-| --- | -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| D1  | **Pas de vision**                | "Je ne sais pas combien je peux depenser"                                                                       |
-| D2  | **Pas de propagation**           | "Changer un truc = le refaire partout a la main"                                                                |
-| D3  | **Pas d'anticipation**           | "Je decouvre les problemes trop tard"                                                                           |
-| D4  | **Pas de mobilite**              | "Excel est inutilisable sur telephone"                                                                          |
-| D5  | **Pas de projection long terme** | "Je dois jongler entre 2 documents et tout recalculer a la main chaque mois pour suivre mon objectif sur 4 ans" |
+| # | Douleur | Le cri utilisateur |
+|---|---------|-------------------|
+| D1 | **Pas de vision** | "Je ne sais pas combien je peux depenser" |
+| D2 | **Pas de propagation** | "Changer un truc = le refaire partout a la main" |
+| D3 | **Pas d'anticipation** | "Je decouvre les problemes trop tard" |
+| D4 | **Pas de mobilite** | "Excel est inutilisable sur telephone" |
+| D5 | **Pas de projection long terme** | "Je dois jongler entre 2 documents et tout recalculer a la main chaque mois pour suivre mon objectif sur 4 ans" |
 
 ---
 
@@ -69,7 +69,6 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 **Douleurs** : D1
 
 **Scenario** :
-
 1. L'utilisateur arrive sur Pulpe
 2. Il clique "Essayer la demo" --- zero email, zero mot de passe
 3. Une session temporaire est creee avec des donnees realistes
@@ -87,7 +86,6 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 **Douleurs** : D1, D4
 
 **Scenario** :
-
 1. Inscription (email ou OAuth)
 2. Onboarding : "Quel est ton salaire ?"
 3. "Quelles sont tes charges fixes ?" (loyer, assurance, tel, transport...)
@@ -108,20 +106,17 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 **Douleurs** : D2
 
 **Scenario** :
-
 1. L'utilisateur ouvre son modele
 2. Il gere ses lignes : ajouter, modifier, supprimer
 3. Verification de l'equilibre (revenus >= depenses + epargne)
 4. Choix de propagation : "appliquer aux budgets futurs" ou "modele uniquement"
 
 **3 types de lignes** :
-
 - **Revenu** --- ce qui entre (salaire, bonus)
 - **Depense** --- ce qui sort (loyer, courses)
 - **Epargne** --- ce qu'on met de cote (traite comme une depense pour garantir la realisation)
 
 **2 recurrences** :
-
 - **Recurrent** --- chaque mois (salaire, loyer)
 - **Prevu** --- ponctuel (cadeau, reparation)
 
@@ -136,7 +131,6 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 **Douleurs** : D1, D2, D3
 
 **Scenario** :
-
 1. Choisir un modele de reference
 2. Choisir une periode inclusive de 1 a 36 cycles (defaut : 12 cycles consecutifs depuis le cycle courant, calcule avec le jour de paie)
 3. Pulpe conserve et ignore les budgets deja presents, puis genere les autres depuis le modele
@@ -146,7 +140,7 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 7. Les reports se recalculent en cascade a chaque ajustement
 8. Vision complete : mois par mois, ce qu'il restera
 
-**Le report : le mecanisme qui change tout.** Sans report, 12 budgets = 12 feuilles independantes. Avec report, c'est une chaine : l'excedent ou le deficit de janvier impacte fevrier, qui impacte mars, etc. C'est _ca_ qui permet d'anticiper : "si j'ajoute des vacances en juillet, est-ce que j'ai assez en aout ?"
+**Le report : le mecanisme qui change tout.** Sans report, 12 budgets = 12 feuilles independantes. Avec report, c'est une chaine : l'excedent ou le deficit de janvier impacte fevrier, qui impacte mars, etc. C'est *ca* qui permet d'anticiper : "si j'ajoute des vacances en juillet, est-ce que j'ai assez en aout ?"
 
 ---
 
@@ -157,14 +151,12 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 **Douleurs** : D1, D4
 
 **Consulter** :
-
 1. Ouvrir l'app → Face ID / PIN
 2. Dashboard : le "hero number" = **Disponible a depenser**
 3. Si besoin de details → voir le budget du mois (enveloppes + transactions)
 4. Sinon → fermer l'app (< 5 secondes)
 
 **Noter une depense** :
-
 1. Ouvrir l'app → bouton "+"
 2. Saisir : montant + nom
 3. Rattacher a une enveloppe (ex: "Courses") ou laisser en depense libre
@@ -186,7 +178,6 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 **Douleurs** : D1, D3
 
 **Scenario** :
-
 1. Consommation < 80% → rien, tout va bien
 2. Consommation 80-100% → signal : "tu approches de ta limite"
 3. Consommation > 100% → alerte : "budget depasse"
@@ -207,7 +198,6 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 **Changement de paradigme** : dans la plupart des apps, l'epargne = "ce qui reste apres les depenses". Resultat : on n'epargne jamais assez. Dans Pulpe, **l'epargne est budgetee comme une depense** --- deduite du disponible des le debut du mois. Ce n'est pas un reste, c'est un engagement.
 
 **Scenario** :
-
 1. Ajouter une ligne de type "Epargne" dans le modele (ex: "Epargne vacances 300.-/mois")
 2. L'epargne reduit immediatement le "Disponible a depenser"
 3. Chaque mois, faire le virement reellement
@@ -223,13 +213,11 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 **Douleurs** : D2
 
 **Changement permanent** (augmentation, demenagement, nouvel abonnement) :
-
 1. Modifier le modele (→ Intention 3)
 2. Choisir de propager aux budgets futurs
 3. Les reports se recalculent en cascade
 
 **Changement temporaire** (13e salaire, reparation voiture, cadeau) :
-
 1. Ajuster uniquement le mois concerne
 2. Ce budget est marque "ajuste manuellement"
 3. Il ne sera plus ecrase par une propagation future
@@ -243,7 +231,6 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 **Douleurs** : D3, D5
 
 **Scenario** :
-
 1. Definir un objectif : nom, montant cible, echeance (ex: "Maison, 100'000.-, 48 mois")
 2. L'objectif se decompose en montant mensuel planifie
 3. Chaque mois, le reel est saisi via la transaction d'epargne (→ Intention 7)
@@ -261,7 +248,6 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 **Douleurs** : D1, D3
 
 **Scenario** :
-
 1. Apres quelques mois d'utilisation, l'IA analyse les patterns de depenses
 2. Identification des postes compressibles ("tu depenses X en Y, la moyenne est Z")
 3. Suggestions d'ajustement ("si tu reduis X de 50.-, tu atteins ton objectif maison 2 mois plus tot")
@@ -277,7 +263,6 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 **Douleurs** : confiance
 
 **Scenario** :
-
 1. Tous les montants financiers sont chiffres au repos avec AES-256-GCM
 2. Le PIN derive une cle client, combinee a la cle serveur pour dechiffrer les montants cote serveur pendant les requetes authentifiees
 3. La cle de secours est affichee une seule fois, jamais stockee cote serveur
@@ -289,14 +274,14 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 
 ## Frequence des intentions
 
-| Frequence            | Intentions                                                        |
-| -------------------- | ----------------------------------------------------------------- |
-| **Une fois**         | 1. Essayer, 2. S'inscrire                                         |
-| **1x / an**          | 3. Structurer, 4. Planifier                                       |
-| **1x / mois**        | 7. Epargner, 8. Changer (si besoin), 9. Suivi objectif long terme |
-| **Chaque jour**      | 5. Consulter / noter                                              |
-| **Quand ca arrive**  | 6. Depassement                                                    |
-| **Continu (passif)** | 10. Insights IA, 11. Securite                                     |
+| Frequence | Intentions |
+|-----------|------------|
+| **Une fois** | 1. Essayer, 2. S'inscrire |
+| **1x / an** | 3. Structurer, 4. Planifier |
+| **1x / mois** | 7. Epargner, 8. Changer (si besoin), 9. Suivi objectif long terme |
+| **Chaque jour** | 5. Consulter / noter |
+| **Quand ca arrive** | 6. Depassement |
+| **Continu (passif)** | 10. Insights IA, 11. Securite |
 
 **Le coeur du produit** : 90% du temps passe dans l'app = Intention 5. Tout le reste existe pour que ce moment quotidien de 10 secondes soit possible et fiable.
 
