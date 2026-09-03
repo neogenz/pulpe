@@ -24,7 +24,12 @@ import { isApiError } from '@core/api/api-error';
 import { getMonthYearDateFormats } from '@core/date/date-display-formats';
 import { UserSettingsStore } from '@core/user-settings';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { type BudgetGenerateResponse, type BudgetPeriod } from 'pulpe-shared';
+import {
+  BUDGET_MAX_YEAR,
+  BUDGET_MIN_YEAR,
+  type BudgetGenerateResponse,
+  type BudgetPeriod,
+} from 'pulpe-shared';
 import { TemplateDetailsDialog } from '../create-budget/template-details-dialog';
 import { type TemplateViewModel } from '../create-budget/template-view-model';
 import { TemplatesList } from '../create-budget/templates-list';
@@ -77,6 +82,8 @@ const PERIOD_VALIDATION_TEMPLATE_ID = '00000000-0000-4000-8000-000000000001';
               readonly
               formControlName="startPeriod"
               [matDatepicker]="startPicker"
+              [min]="minDate"
+              [max]="maxDate"
             />
             <mat-datepicker-toggle matSuffix [for]="startPicker" />
             <mat-datepicker
@@ -95,6 +102,8 @@ const PERIOD_VALIDATION_TEMPLATE_ID = '00000000-0000-4000-8000-000000000001';
               readonly
               formControlName="endPeriod"
               [matDatepicker]="endPicker"
+              [min]="minDate"
+              [max]="maxDate"
               [attr.aria-describedby]="rangeErrorKey() ? 'range-error' : null"
             />
             <mat-datepicker-toggle matSuffix [for]="endPicker" />
@@ -169,16 +178,18 @@ const PERIOD_VALIDATION_TEMPLATE_ID = '00000000-0000-4000-8000-000000000001';
         [disabled]="!canSubmit()"
         (click)="submit()"
       >
-        @if (templateStore.isGeneratingBudgets()) {
-          <mat-progress-spinner
-            mode="indeterminate"
-            [diameter]="24"
-            role="progressbar"
-            [attr.aria-label]="'budget.planInProgress' | transloco"
-            class="pulpe-loading-indicator pulpe-loading-small mr-2 shrink-0"
-          />
-        }
-        {{ 'budget.planAction' | transloco }}
+        <span class="flex items-center justify-center gap-2">
+          @if (templateStore.isGeneratingBudgets()) {
+            <mat-progress-spinner
+              mode="indeterminate"
+              [diameter]="24"
+              role="progressbar"
+              [attr.aria-label]="'budget.planInProgress' | transloco"
+              class="pulpe-loading-indicator pulpe-loading-small shrink-0"
+            />
+          }
+          {{ 'budget.planAction' | transloco }}
+        </span>
       </button>
     </mat-dialog-actions>
   `,
@@ -196,23 +207,25 @@ export class PlanBudgetsDialog {
   readonly #userSettings = inject(UserSettingsStore);
   protected readonly templateStore = inject(TemplateStore);
   protected readonly currency = this.#userSettings.currency;
-  readonly submissionError = signal<string | null>(null);
+  protected readonly minDate = new Date(BUDGET_MIN_YEAR, 0, 1);
+  protected readonly maxDate = new Date(BUDGET_MAX_YEAR, 11, 1);
+  protected readonly submissionError = signal<string | null>(null);
 
-  readonly planForm = inject(FormBuilder).nonNullable.group(
+  protected readonly planForm = inject(FormBuilder).nonNullable.group(
     defaultPlanBudgetPeriods(this.#data.currentPeriod),
   );
   readonly #formValue = toSignal(this.planForm.valueChanges, {
     initialValue: this.planForm.getRawValue(),
   });
 
-  readonly inclusivePeriodCount = computed(() => {
+  protected readonly inclusivePeriodCount = computed(() => {
     const { startPeriod, endPeriod } = this.#formValue();
     return startPeriod && endPeriod
       ? Math.max(0, planBudgetCount(startPeriod, endPeriod))
       : 0;
   });
 
-  readonly rangeErrorKey = computed(() => {
+  protected readonly rangeErrorKey = computed(() => {
     const result = planBudgetsFormSchema.safeParse({
       ...this.#formValue(),
       templateId: PERIOD_VALIDATION_TEMPLATE_ID,
@@ -225,7 +238,7 @@ export class PlanBudgetsDialog {
     return 'budget.planInvalidPeriod';
   });
 
-  readonly canSubmit = computed(() => {
+  protected readonly canSubmit = computed(() => {
     const templateId = this.templateStore.selectedTemplateId();
     return (
       !!templateId &&
@@ -237,7 +250,7 @@ export class PlanBudgetsDialog {
     );
   });
 
-  readonly templateViewModels = computed((): TemplateViewModel[] => {
+  protected readonly templateViewModels = computed((): TemplateViewModel[] => {
     const totals = this.templateStore.templateTotalsMap();
     return this.templateStore.sortedTemplates().map((template) => ({
       template,
@@ -250,7 +263,7 @@ export class PlanBudgetsDialog {
     }));
   });
 
-  onMonthSelected(
+  protected onMonthSelected(
     controlName: 'startPeriod' | 'endPeriod',
     date: Date,
     picker: { close: () => void },
@@ -262,7 +275,9 @@ export class PlanBudgetsDialog {
     picker.close();
   }
 
-  async showTemplateDetails(viewModel: TemplateViewModel): Promise<void> {
+  protected async showTemplateDetails(
+    viewModel: TemplateViewModel,
+  ): Promise<void> {
     this.#dialog.open(TemplateDetailsDialog, {
       data: {
         template: viewModel.template,
@@ -277,7 +292,7 @@ export class PlanBudgetsDialog {
     });
   }
 
-  async submit(): Promise<void> {
+  protected async submit(): Promise<void> {
     const parsed = planBudgetsFormSchema.safeParse({
       ...this.planForm.getRawValue(),
       templateId: this.templateStore.selectedTemplateId(),

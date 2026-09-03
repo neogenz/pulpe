@@ -37,6 +37,7 @@ import type {
   BudgetRepositoryPort,
   GenerateBudgetsAtomicallyResult,
 } from '../../domain/ports/budget-repository.port';
+import { computeTargetMonths } from '../../domain/budget.formulas';
 import type { HistoryMonth } from '../../domain/drift-history';
 import type {
   MaterializedBudgetPeriod,
@@ -526,10 +527,15 @@ export class SupabaseBudgetRepository
   async generateBudgetsFromTemplateAtomically(input: {
     userId: string;
     templateId: string;
-    targetMonths: { month: number; year: number }[];
+    startMonth: number;
+    startYear: number;
+    count: number;
   }): Promise<GenerateBudgetsAtomicallyResult> {
-    const first = input.targetMonths[0];
-    if (!first) return { createdBudgetIds: [], skippedMonths: [] };
+    const targetMonths = computeTargetMonths(
+      input.startMonth,
+      input.startYear,
+      input.count,
+    );
 
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase.rpc(
@@ -537,11 +543,11 @@ export class SupabaseBudgetRepository
       {
         p_user_id: input.userId,
         p_template_id: input.templateId,
-        p_start_month: first.month,
-        p_start_year: first.year,
-        p_count: input.targetMonths.length,
+        p_start_month: input.startMonth,
+        p_start_year: input.startYear,
+        p_count: input.count,
         p_excluded_savings_goal_ids_by_period:
-          await this.goalIdsExcludedByPeriod(input.targetMonths),
+          await this.goalIdsExcludedByPeriod(targetMonths),
       },
     );
 

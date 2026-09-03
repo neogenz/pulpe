@@ -11,6 +11,8 @@ const MAX_YEAR = CURRENT_YEAR + 10;
 const MONTHS_PER_YEAR = 12;
 const MONTH_MIN = 1;
 const MONTH_MAX = MONTHS_PER_YEAR;
+export const BUDGET_MIN_YEAR = MIN_YEAR;
+export const BUDGET_MAX_YEAR = MAX_YEAR;
 export const PAY_DAY_MIN = 1;
 export const PAY_DAY_MAX = 31;
 

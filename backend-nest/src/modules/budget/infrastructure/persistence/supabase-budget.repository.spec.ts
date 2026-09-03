@@ -583,10 +583,9 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     const result = await repo.generateBudgetsFromTemplateAtomically({
       userId: USER_UUID,
       templateId: TEMPLATE_UUID,
-      targetMonths: [
-        { month: 10, year: 2026 },
-        { month: 11, year: 2026 },
-      ],
+      startMonth: 10,
+      startYear: 2026,
+      count: 2,
     });
 
     expect(provider.client.from).toHaveBeenCalledTimes(1);
@@ -622,7 +621,9 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
       await repo.generateBudgetsFromTemplateAtomically({
         userId: USER_UUID,
         templateId: TEMPLATE_UUID,
-        targetMonths: [{ month: 10, year: 2026 }],
+        startMonth: 10,
+        startYear: 2026,
+        count: 1,
       });
     } catch (error) {
       caught = error;

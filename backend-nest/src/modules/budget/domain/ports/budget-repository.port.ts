@@ -97,7 +97,9 @@ export interface BudgetRepositoryPort {
   generateBudgetsFromTemplateAtomically(input: {
     userId: string;
     templateId: string;
-    targetMonths: { month: number; year: number }[];
+    startMonth: number;
+    startYear: number;
+    count: number;
   }): Promise<GenerateBudgetsAtomicallyResult>;
 
   /**

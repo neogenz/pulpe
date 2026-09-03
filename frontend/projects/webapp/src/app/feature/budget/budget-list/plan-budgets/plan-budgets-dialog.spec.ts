@@ -13,6 +13,8 @@ import {
   MatDialog,
   MatDialogRef,
 } from '@angular/material/dialog';
+import { MatDatepickerInput } from '@angular/material/datepicker';
+import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { provideLocale } from '@core/locale';
@@ -24,6 +26,7 @@ import type {
   SupportedCurrency,
   SupportedLocale,
 } from 'pulpe-shared';
+import { BUDGET_MAX_YEAR, BUDGET_MIN_YEAR } from 'pulpe-shared';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import {
   TemplateStore,
@@ -128,45 +131,57 @@ describe('PlanBudgetsDialog', () => {
   });
 
   it('starts on the current cycle with twelve inclusive periods', () => {
-    expect(component.planForm.getRawValue()).toEqual({
+    expect(component['planForm'].getRawValue()).toEqual({
       startPeriod: new Date(2026, 8, 1),
       endPeriod: new Date(2027, 7, 1),
     });
-    expect(component.inclusivePeriodCount()).toBe(12);
-    expect(component.canSubmit()).toBe(true);
+    expect(component['inclusivePeriodCount']()).toBe(12);
+    expect(component['canSubmit']()).toBe(true);
+  });
+
+  it('constrains both month pickers to the shared budget year range', () => {
+    const dateInputs = fixture.debugElement
+      .queryAll(By.directive(MatDatepickerInput))
+      .map((element) => element.injector.get(MatDatepickerInput));
+
+    expect(dateInputs).toHaveLength(2);
+    for (const input of dateInputs) {
+      expect(input.min).toEqual(new Date(BUDGET_MIN_YEAR, 0, 1));
+      expect(input.max).toEqual(new Date(BUDGET_MAX_YEAR, 11, 1));
+    }
   });
 
   it.each([
     [new Date(2026, 7, 1), 'budget.planEndBeforeStart'],
     [new Date(2029, 8, 1), 'budget.planRangeTooLong'],
   ])('blocks an invalid end period', (endPeriod, errorKey) => {
-    component.planForm.controls.endPeriod.setValue(endPeriod);
+    component['planForm'].controls.endPeriod.setValue(endPeriod);
 
-    expect(component.rangeErrorKey()).toBe(errorKey);
-    expect(component.canSubmit()).toBe(false);
+    expect(component['rangeErrorKey']()).toBe(errorKey);
+    expect(component['canSubmit']()).toBe(false);
   });
 
   it('announces a period rejected only by the shared contract', async () => {
     const maxYear = new Date().getFullYear() + 10;
-    component.planForm.setValue({
+    component['planForm'].setValue({
       startPeriod: new Date(maxYear, 11, 1),
       endPeriod: new Date(maxYear + 1, 0, 1),
     });
     fixture.detectChanges();
 
-    expect(component.rangeErrorKey()).toBe('budget.planInvalidPeriod');
-    expect(component.canSubmit()).toBe(false);
+    expect(component['rangeErrorKey']()).toBe('budget.planInvalidPeriod');
+    expect(component['canSubmit']()).toBe(false);
     expect(
       fixture.nativeElement.querySelector('[role="alert"]')?.textContent,
     ).toContain('La période sélectionnée est hors des dates autorisées');
 
-    await component.submit();
+    await component['submit']();
 
     expect(generateBudgets).not.toHaveBeenCalled();
   });
 
   it('submits the existing generation DTO and closes only on success', async () => {
-    await component.submit();
+    await component['submit']();
 
     expect(generateBudgets).toHaveBeenCalledWith({
       templateId: TEMPLATE_ID,
@@ -187,14 +202,18 @@ describe('PlanBudgetsDialog', () => {
       });
     });
 
-    const submission = component.submit();
+    const submission = component['submit']();
     fixture.detectChanges();
 
     const cancelButton = fixture.nativeElement.querySelector(
       'button[mat-dialog-close]',
     ) as HTMLButtonElement;
+    const submitContent = fixture.nativeElement.querySelector(
+      '[data-testid="plan-budgets-submit"] .flex.items-center.justify-center.gap-2',
+    );
     expect(dialogRef.disableClose).toBe(true);
     expect(cancelButton.disabled).toBe(true);
+    expect(submitContent?.querySelector('mat-progress-spinner')).not.toBeNull();
 
     generateBudgetsError.set(new Error('API failed'));
     isGeneratingBudgets.set(false);
@@ -204,7 +223,7 @@ describe('PlanBudgetsDialog', () => {
 
     expect(dialogRef.disableClose).toBe(false);
     expect(cancelButton.disabled).toBe(false);
-    expect(component.planForm.getRawValue()).toEqual({
+    expect(component['planForm'].getRawValue()).toEqual({
       startPeriod: new Date(2026, 8, 1),
       endPeriod: new Date(2027, 7, 1),
     });
@@ -214,10 +233,10 @@ describe('PlanBudgetsDialog', () => {
     generateBudgets.mockResolvedValueOnce(undefined);
     generateBudgetsError.set(new Error('API failed'));
 
-    await component.submit();
+    await component['submit']();
 
     expect(close).not.toHaveBeenCalled();
-    expect(component.submissionError()).toBe(
+    expect(component['submissionError']()).toBe(
       'La planification des budgets a échoué — réessaie',
     );
   });

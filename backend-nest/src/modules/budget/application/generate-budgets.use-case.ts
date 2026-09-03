@@ -13,7 +13,6 @@ import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
 } from '../domain/ports/budget-recalculation.port';
-import { computeTargetMonths } from '../domain/budget.formulas';
 import type { Budget } from '../domain/budget.entity';
 
 @Injectable()
@@ -35,12 +34,6 @@ export class GenerateBudgetsUseCase {
     budgets: Budget[];
     skippedMonths: { month: number; year: number }[];
   }> {
-    const targetMonths = computeTargetMonths(
-      dto.startMonth,
-      dto.startYear,
-      dto.count,
-    );
-
     this.logger.info(
       {
         userId: user.id,
@@ -59,7 +52,9 @@ export class GenerateBudgetsUseCase {
       const generated = await this.repo.generateBudgetsFromTemplateAtomically({
         userId: user.id,
         templateId: dto.templateId,
-        targetMonths,
+        startMonth: dto.startMonth,
+        startYear: dto.startYear,
+        count: dto.count,
       });
       createdBudgetIds = generated.createdBudgetIds;
       skippedMonths = generated.skippedMonths;
@@ -80,7 +75,8 @@ export class GenerateBudgetsUseCase {
           {
             userId: user.id,
             err: cacheError,
-            originalErr: error,
+            originalErrMessage:
+              error instanceof Error ? error.message : String(error),
             operation: 'budget.generate.cache-invalidation.failed',
           },
           'Cache invalidation failed after budget generation rollback',
@@ -138,7 +134,10 @@ export class GenerateBudgetsUseCase {
           userId,
           budgetIds,
           err: rollbackError,
-          originalErr: originalError,
+          originalErrMessage:
+            originalError instanceof Error
+              ? originalError.message
+              : String(originalError),
           operation: 'budget.generate.rollback.failed',
         },
         'Rollback of created budgets failed; budgets remain orphaned',

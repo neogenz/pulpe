@@ -49,6 +49,7 @@ describe('GenerateBudgetsUseCase', () => {
   };
   let recalculate: ReturnType<typeof jest.fn>;
   let invalidateForUser: ReturnType<typeof jest.fn>;
+  let warn: ReturnType<typeof jest.fn>;
 
   beforeEach(async () => {
     repo = {
@@ -65,6 +66,7 @@ describe('GenerateBudgetsUseCase', () => {
     };
     recalculate = jest.fn().mockResolvedValue(undefined);
     invalidateForUser = jest.fn().mockResolvedValue(undefined);
+    warn = jest.fn();
 
     const module = await Test.createTestingModule({
       providers: [
@@ -80,7 +82,7 @@ describe('GenerateBudgetsUseCase', () => {
         },
         {
           provide: `INFO_LOGGER:${GenerateBudgetsUseCase.name}`,
-          useValue: { info: () => {}, warn: () => {} },
+          useValue: { info: () => {}, warn },
         },
       ],
     }).compile();
@@ -106,11 +108,9 @@ describe('GenerateBudgetsUseCase', () => {
     expect(repo.generateBudgetsFromTemplateAtomically).toHaveBeenCalledWith({
       userId: user.id,
       templateId: '11111111-1111-4111-8111-111111111111',
-      targetMonths: [
-        { month: 12, year: 2026 },
-        { month: 1, year: 2027 },
-        { month: 2, year: 2027 },
-      ],
+      startMonth: 12,
+      startYear: 2026,
+      count: 3,
     });
     expect(recalculationOrder).toEqual(['budget-1', 'budget-2']);
     expect(result).toEqual({
@@ -157,6 +157,7 @@ describe('GenerateBudgetsUseCase', () => {
   it('rolls back before cache invalidation and preserves the recalculation error when both fail', async () => {
     const calls: string[] = [];
     const recalculationError = new Error('decrypt failed');
+    const cacheError = new Error('cache unavailable');
     recalculate.mockRejectedValueOnce(recalculationError);
     repo.deleteBudgetsByIds.mockImplementationOnce(async () => {
       calls.push('rollback');
@@ -164,7 +165,7 @@ describe('GenerateBudgetsUseCase', () => {
     });
     invalidateForUser.mockImplementationOnce(async () => {
       calls.push('cache');
-      throw new Error('cache unavailable');
+      throw cacheError;
     });
 
     let caught: unknown;
@@ -186,14 +187,20 @@ describe('GenerateBudgetsUseCase', () => {
     expect(caught).toBeInstanceOf(BusinessException);
     expect((caught as BusinessException).cause).toBe(recalculationError);
     expect((caught as BusinessException).details).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        err: cacheError,
+        originalErrMessage: 'decrypt failed',
+      }),
+      'Cache invalidation failed after budget generation rollback',
+    );
   });
 
   it('reports every created budget as orphaned when rollback fails', async () => {
     const recalculationError = new Error('decrypt failed');
+    const rollbackError = new Error('database unavailable');
     recalculate.mockRejectedValueOnce(recalculationError);
-    repo.deleteBudgetsByIds.mockRejectedValueOnce(
-      new Error('database unavailable'),
-    );
+    repo.deleteBudgetsByIds.mockRejectedValueOnce(rollbackError);
 
     let caught: unknown;
     try {
@@ -216,5 +223,12 @@ describe('GenerateBudgetsUseCase', () => {
       orphanedBudgetIds: ['budget-1', 'budget-2'],
     });
     expect(invalidateForUser).toHaveBeenCalledWith(user.id);
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        err: rollbackError,
+        originalErrMessage: 'decrypt failed',
+      }),
+      'Rollback of created budgets failed; budgets remain orphaned',
+    );
   });
 });
