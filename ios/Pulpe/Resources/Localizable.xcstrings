@@ -12627,6 +12627,28 @@
         }
       }
     },
+    "Hors prévision" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausserhalb der Planung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outside planned items"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fuori previsioni"
+          }
+        }
+      }
+    },
     "Hors prévisions" : {
       "localizations" : {
         "de" : {

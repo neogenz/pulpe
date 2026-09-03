@@ -149,6 +149,13 @@ struct TransactionRow: View {
         self.onEdit = onEdit
     }
 
+    /// The one word a movement adds when it consumes no forecast. The Home mixes
+    /// both natures in the same list, so the row has to say which it is; the
+    /// budget detail says it once in its section title and never per row.
+    static func outOfPlanMarker(for transaction: Transaction) -> String? {
+        transaction.isFree ? AppLocale.string("Hors prévision") : nil
+    }
+
     @ViewBuilder
     var body: some View {
         if let onEdit {
@@ -180,6 +187,18 @@ struct TransactionRow: View {
                     Text(transaction.transactionDate.relativeFormatted)
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textTertiary)
+
+                    if let marker = Self.outOfPlanMarker(for: transaction) {
+                        // Separator as its own Text, like SavingsGoalSourceLabel,
+                        // so the translated string never carries the bullet.
+                        Text("·")
+                            .font(PulpeTypography.caption)
+                            .foregroundStyle(Color.textTertiary)
+                        Text(marker)
+                            .font(PulpeTypography.caption)
+                            .foregroundStyle(Color.textTertiary)
+                            .lineLimit(1)
+                    }
 
                     if let source = transaction.savingsGoalSource {
                         SavingsGoalSourceLabel(source: source, followsText: true)
