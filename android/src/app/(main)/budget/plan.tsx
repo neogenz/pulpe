@@ -6,8 +6,8 @@ import {
   type BudgetPeriod,
   type BudgetTemplate,
 } from "pulpe-shared";
-import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { BackHandler, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Appbar,
@@ -71,6 +71,15 @@ export default function PlanBudgetsScreen() {
   const hasNoTemplates =
     !isLoading && !hasLoadError && templates.data?.length === 0;
 
+  useEffect(() => {
+    if (!generate.isPending) return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => true,
+    );
+    return () => subscription.remove();
+  }, [generate.isPending]);
+
   function submit() {
     if (selectedTemplateId === null || validationMessage !== null) return;
     generate.mutate(
@@ -101,6 +110,7 @@ export default function PlanBudgetsScreen() {
       <ScreenAppBar>
         <Appbar.BackAction
           onPress={() => router.back()}
+          disabled={generate.isPending}
           accessibilityLabel={t("common.back")}
         />
         <Appbar.Content title={t("budgets.plan.title")} />

@@ -58,6 +58,40 @@ struct PlanBudgetsViewModelTests {
         #expect(request?.count == 4)
     }
 
+    @Test("generation stays pending for the whole request", arguments: [false, true])
+    func generationPendingLifecycle(shouldFail: Bool) async {
+        let (started, startedContinuation) = AsyncStream<Void>.makeStream()
+        let (results, resultContinuation) = AsyncThrowingStream<BudgetGenerateResponse, Error>.makeStream()
+        let viewModel = PlanBudgetsViewModel(
+            payDayOfMonth: nil,
+            generate: { _ in
+                startedContinuation.yield()
+                guard let response = try await results.first(where: { _ in true }) else {
+                    throw TestError.expected
+                }
+                return response
+            }
+        )
+        viewModel.selectedTemplateId = "template-1"
+
+        let generation = Task { await viewModel.generate() }
+        _ = await started.first(where: { _ in true })
+        #expect(viewModel.isGenerating)
+        #expect(!viewModel.canGenerate)
+
+        if shouldFail {
+            resultContinuation.finish(throwing: TestError.expected)
+        } else {
+            resultContinuation.yield(BudgetGenerateResponse(budgets: [], skippedMonths: []))
+            resultContinuation.finish()
+        }
+        let response = await generation.value
+
+        #expect(!viewModel.isGenerating)
+        #expect((response == nil) == shouldFail)
+        #expect((viewModel.error != nil) == shouldFail)
+    }
+
     private static func template(id: String, isDefault: Bool) -> BudgetTemplate {
         BudgetTemplate(
             id: id,
@@ -68,5 +102,9 @@ struct PlanBudgetsViewModelTests {
             createdAt: TestDataFactory.fixedDate,
             updatedAt: TestDataFactory.fixedDate
         )
+    }
+
+    private enum TestError: Error {
+        case expected
     }
 }

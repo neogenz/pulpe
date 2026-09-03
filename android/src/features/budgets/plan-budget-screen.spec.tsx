@@ -1,5 +1,6 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { router } from "expo-router";
+import { BackHandler } from "react-native";
 
 import PlanBudgetsScreen from "@/app/(main)/budget/plan";
 
@@ -20,6 +21,9 @@ const mockGenerate = {
   isPending: false,
   isError: false,
 };
+const mockBackHandlers: Parameters<typeof BackHandler.addEventListener>[1][] =
+  [];
+const removeBackHandler = jest.fn();
 
 jest.mock("expo-router", () => ({
   router: { back: jest.fn(), replace: jest.fn() },
@@ -97,12 +101,18 @@ jest.mock("react-native-paper", () => {
     Appbar: {
       BackAction: ({
         onPress,
+        disabled,
         accessibilityLabel,
       }: {
         onPress: () => void;
+        disabled?: boolean;
         accessibilityLabel: string;
       }) => (
-        <Pressable onPress={onPress} accessibilityLabel={accessibilityLabel} />
+        <Pressable
+          onPress={onPress}
+          disabled={disabled}
+          accessibilityLabel={accessibilityLabel}
+        />
       ),
       Content: ({ title }: { title: string }) => <Text>{title}</Text>,
     },
@@ -187,9 +197,20 @@ beforeEach(() => {
     isError: false,
   });
   Object.assign(mockGenerate, { isPending: false, isError: false });
+  mockBackHandlers.length = 0;
+  removeBackHandler.mockClear();
+  jest
+    .spyOn(BackHandler, "addEventListener")
+    .mockImplementation((_event, listener) => {
+      mockBackHandlers.push(listener);
+      return { remove: removeBackHandler };
+    });
 });
 
-afterEach(() => jest.useRealTimers());
+afterEach(() => {
+  jest.useRealTimers();
+  jest.restoreAllMocks();
+});
 
 it("starts on twelve pay-day-aware periods and submits the shared payload", async () => {
   const view = await render(<PlanBudgetsScreen />);
@@ -260,6 +281,25 @@ it("blocks ranges over 36 periods and keeps mutation errors on screen", async ()
 
   expect(view.getByText("budgets.plan.rangeLimitError")).toBeTruthy();
   expect(view.getByText("budgets.plan.error")).toBeTruthy();
+});
+
+it("blocks visible and hardware back only while generation is pending", async () => {
+  const view = await render(<PlanBudgetsScreen />);
+
+  mockGenerate.isPending = true;
+  await view.rerender(<PlanBudgetsScreen />);
+  await fireEvent.press(view.getByLabelText("common.back"));
+
+  expect(router.back).not.toHaveBeenCalled();
+  expect(mockBackHandlers.at(-1)?.({} as never)).toBe(true);
+
+  mockGenerate.isPending = false;
+  mockGenerate.isError = true;
+  await view.rerender(<PlanBudgetsScreen />);
+  await fireEvent.press(view.getByLabelText("common.back"));
+
+  expect(removeBackHandler).toHaveBeenCalledTimes(1);
+  expect(router.back).toHaveBeenCalledTimes(1);
 });
 
 it("renders loading, retryable failure and missing-template states", async () => {

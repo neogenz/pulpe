@@ -218,6 +218,8 @@ struct PulpeApp: App {
             PreferencesUITestHarness()
         case .loginScreen:
             LoginFlowUITestHarness()
+        case .planBudgetsPending:
+            PlanBudgetsUITestHarness()
         case .savingsGoalForm,
              .savingsGoalFormInvalidInterval,
              .savingsGoalDetailNameOnly,

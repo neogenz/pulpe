@@ -1,5 +1,5 @@
 ---
-status: pending
+status: in-progress
 ---
 
 # Instruction: Bloquer les sorties mobiles pendant la génération

@@ -15,8 +15,12 @@ struct PlanBudgetsView: View {
     }
 
     init(payDayOfMonth: Int?, onSuccess: @escaping (BudgetGenerateResponse) -> Void) {
+        self.init(viewModel: PlanBudgetsViewModel(payDayOfMonth: payDayOfMonth), onSuccess: onSuccess)
+    }
+
+    init(viewModel: PlanBudgetsViewModel, onSuccess: @escaping (BudgetGenerateResponse) -> Void) {
         self.onSuccess = onSuccess
-        self._viewModel = State(initialValue: PlanBudgetsViewModel(payDayOfMonth: payDayOfMonth))
+        self._viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
@@ -46,6 +50,8 @@ struct PlanBudgetsView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     SheetCloseButton()
+                        .disabled(viewModel.isGenerating)
+                        .accessibilityIdentifier("planBudgetsClose")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Planifier") {
@@ -53,12 +59,14 @@ struct PlanBudgetsView: View {
                     }
                     .fontWeight(.semibold)
                     .disabled(!viewModel.canGenerate)
+                    .accessibilityIdentifier("planBudgetsSubmit")
                 }
             }
             .loadingOverlay(viewModel.isGenerating, message: AppLocale.string("Planification..."))
             .task { await viewModel.loadTemplates() }
         }
         .standardSheetPresentation()
+        .interactiveDismissDisabled(viewModel.isGenerating)
         .sheet(item: $activePicker) { picker in
             MonthYearPickerSheet(
                 title: picker == .start ? AppLocale.string("Premier mois") : AppLocale.string("Dernier mois"),
