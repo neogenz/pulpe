@@ -66,16 +66,16 @@ struct PlanBudgetsViewModelTests {
             payDayOfMonth: nil,
             generate: { _ in
                 startedContinuation.yield()
-                guard let response = try await results.first(where: { _ in true }) else {
-                    throw TestError.expected
+                for try await response in results {
+                    return response
                 }
-                return response
+                throw TestError.expected
             }
         )
         viewModel.selectedTemplateId = "template-1"
 
         let generation = Task { await viewModel.generate() }
-        _ = await started.first(where: { _ in true })
+        for await _ in started { break }
         #expect(viewModel.isGenerating)
         #expect(!viewModel.canGenerate)
 

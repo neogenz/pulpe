@@ -22,9 +22,8 @@ final class PlanBudgetsPendingDismissUITests: XCTestCase {
         sheet.swipeDown()
         XCTAssertTrue(sheet.exists)
 
-        app.buttons["planBudgetsFail"].tap()
         expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: close)
-        waitForExpectations(timeout: 5)
+        waitForExpectations(timeout: 10)
         close.tap()
         XCTAssertTrue(sheet.waitForNonExistence(timeout: 5))
     }

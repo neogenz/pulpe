@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 ---
 
 # Instruction: Bloquer les sorties mobiles pendant la génération
@@ -14,7 +14,8 @@ status: in-progress
 │   ├── Pulpe/App/
 │   │   ├── BudgetLongPressUITestHarness.swift                              ✏️ enregistre le scénario de planification suspendue
 │   │   ├── PlanBudgetsUITestHarness.swift                                  ✅ présente la vraie sheet avec une génération suspendue
-│   │   └── PulpeApp.swift                                                  ✏️ route le scénario vers le harness
+│   │   ├── PulpeApp.swift                                                  ✏️ route le scénario vers le harness
+│   │   └── SavingsGoalIntervalUITestHarness.swift                          ✏️ garde exhaustif le routage des scénarios hors périmètre
 │   ├── Pulpe/Features/Budgets/BudgetList/PlanBudgetsView.swift             ✏️ bloque fermeture et swipe avec l'état de génération existant
 │   ├── PulpeTests/Features/Budgets/PlanBudgetsViewModelTests.swift         ✏️ prouve la durée de l'état pending et sa libération
 │   └── PulpeUITests/PlanBudgetsPendingDismissUITests.swift                 ✅ tente réellement bouton et swipe pendant pending
@@ -89,7 +90,8 @@ journey
 2. Appliquer `interactiveDismissDisabled(viewModel.isGenerating)` au conteneur de sheet.
 3. Conserver l'initialiseur de production et ajouter une injection interne minimale du `PlanBudgetsViewModel` afin que le harness UI fournisse un modèle, un chargement immédiat et une génération suspendue sans réseau.
 4. Enregistrer ce scénario dans le routage UI test existant, présenter la vraie sheet, puis ajouter un test XCUITest qui soumet, tente le bouton de fermeture et un swipe descendant, et vérifie que la sheet reste affichée.
-5. Étendre le test du ViewModel avec une action suspendue afin de vérifier que l'état pending couvre toute la requête et retombe sur succès comme sur erreur.
+5. Ajouter le nouveau cas aux switches exhaustifs des harness existants qui doivent explicitement l'ignorer.
+6. Étendre le test du ViewModel avec une action suspendue afin de vérifier que l'état pending couvre toute la requête et retombe sur succès comme sur erreur.
 
 ### `2)` Protéger les deux retours Android
 

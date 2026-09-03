@@ -406,7 +406,8 @@ struct SavingsGoalIntervalUITestHarness: View {
              .contextualCreationHome,
              .contextualCreationBudget,
              .languageSettings,
-             .loginScreen:
+             .loginScreen,
+             .planBudgetsPending:
             EmptyView()
         }
     }
