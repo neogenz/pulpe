@@ -53,6 +53,99 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.48.0',
+    iosVersion: '1.5.0',
+    date: '2026-09-03',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Avis privé dans l’app',
+          description:
+            'Partage ton expérience en 30 secondes directement depuis Pulpe ; ton avis reste privé et n’est jamais publié sur l’App Store.',
+        },
+        {
+          title: 'Pointage plus intuitif',
+          description:
+            'Les ronds réagissent désormais avec une animation et un retour haptique, tandis que l’aide contextuelle réapparaît après la mise à jour.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Maintenance sans blocage',
+          description:
+            'Pulpe affiche correctement la maintenance au lieu de refuser un PIN valide et conserve Face ID activé.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Private in-app feedback',
+            description:
+              'Share your experience in 30 seconds directly from Pulpe; your feedback stays private and is never posted to the App Store.',
+          },
+          {
+            title: 'More intuitive checking',
+            description:
+              'Circles now respond with animation and haptic feedback, while the contextual guide reappears after the update.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Maintenance without lockouts',
+            description:
+              'Pulpe now displays maintenance correctly instead of rejecting a valid PIN and keeps Face ID enabled.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Privates Feedback in der App',
+            description:
+              'Teile deine Erfahrung in 30 Sekunden direkt aus Pulpe; dein Feedback bleibt privat und wird nie im App Store veröffentlicht.',
+          },
+          {
+            title: 'Intuitiveres Abgleichen',
+            description:
+              'Die Kreise reagieren neu mit Animation und haptischem Feedback; die kontextuelle Hilfe erscheint nach dem Update erneut.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Wartung ohne Aussperrung',
+            description:
+              'Pulpe zeigt Wartungsarbeiten korrekt an, statt einen gültigen PIN abzulehnen, und lässt Face ID aktiviert.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Feedback privato nell’app',
+            description:
+              'Condividi la tua esperienza in 30 secondi direttamente da Pulpe; la tua opinione resta privata e non viene mai pubblicata sull’App Store.',
+          },
+          {
+            title: 'Spunta più intuitiva',
+            description:
+              'I cerchi ora reagiscono con un’animazione e un feedback aptico, mentre la guida contestuale riappare dopo l’aggiornamento.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Manutenzione senza blocchi',
+            description:
+              'Pulpe mostra correttamente la manutenzione invece di rifiutare un PIN valido e mantiene Face ID attivo.',
+          },
+        ],
+      },
+    },
+  },
+  {
     version: '0.47.0',
     iosVersion: '1.4.3',
     date: '2026-08-29',

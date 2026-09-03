@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.48.0
+
+### Minor Changes
+
+- Ajoute le partage d’avis privé dans l’app iOS, améliore le pointage et corrige plusieurs parcours du budget et de la maintenance.
+
+### Patch Changes
+
+- pulpe-shared@0.48.0
+
 ## 0.47.1
 
 ### Patch Changes
