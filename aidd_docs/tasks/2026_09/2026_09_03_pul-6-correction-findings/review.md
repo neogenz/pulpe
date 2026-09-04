@@ -1,7 +1,7 @@
 # Review: PUL-6 — Corriger les findings de review
 
 - **Verdict**: approve
-- **Diff**: `7a22f34c55d8dc9c217089670a4e093b8bde5bd7...13b86b60ad2599d4aabce36d2df569afa29a697f`
+- **Diff**: `7a22f34c55d8dc9c217089670a4e093b8bde5bd7...8f3914fcd4b5c37fbda9f10c27086c0d1b9e169b`
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_09_04
 - **Findings**: 0 critical, 0 warning, 0 minor
@@ -39,6 +39,13 @@
 - [x] `origin/main` est ancêtre du candidat, aucun marqueur de conflit ne subsiste et les contrats PUL-6/feedback coexistent — `shared/schemas.ts:212`, `shared/schemas.ts:2618`, `backend-nest/src/types/database.types.ts:608`, `backend-nest/src/types/database.types.ts:944`, `ios/Pulpe/Core/Network/Endpoints.swift:28`, `ios/Pulpe/Core/Network/Endpoints.swift:94`
 - [x] Les preuves fraîches couvrent les suites ciblées des quatre plateformes, la qualité complète et le XCUITest final; les trois contrats CI tardifs sont satisfaits et le candidat poussé est propre — `backend-nest/supabase/migrations/20260901120000_generate_budgets_atomically.sql:1`, `backend-nest/src/types/database.types.ts:1338`, `ios/Pulpe/App/PulpeApp.swift:500`, `ios/PulpeUITests/PlanBudgetsPendingDismissUITests.swift:5`
 
+### Phase 7 — Lever les findings tardifs de la PR
+
+- [x] Les datepickers Web respectent les bornes partagées, le spinner reste aligné et les membres de template sont protégés — `frontend/projects/webapp/src/app/feature/budget/budget-list/plan-budgets/plan-budgets-dialog.ts:86`, `frontend/projects/webapp/src/app/feature/budget/budget-list/plan-budgets/plan-budgets-dialog.ts:186`, `frontend/projects/webapp/src/app/feature/budget/budget-list/plan-budgets/plan-budgets-dialog.ts:212`
+- [x] Les logs backend conservent l'erreur active et le port atomique expose uniquement la plage interprétée par le RPC — `backend-nest/src/modules/budget/application/generate-budgets.use-case.ts:77`, `backend-nest/src/modules/budget/domain/ports/budget-repository.port.ts:100`
+- [x] Android conserve des horizons réversibles, masque les plages invalides, attend l'invalidation et pluralise séparément périodes, créations et skips dans les quatre langues — `android/src/app/(main)/budget/plan.tsx:58`, `android/src/app/(main)/budget/plan.tsx:184`, `android/src/app/(main)/(tabs)/budgets.tsx:309`, `android/src/core/i18n/plan-budgets-i18n.spec.ts:3`, `android/src/features/budgets/generate-budgets-mutation.spec.tsx:46`
+- [x] iOS propose une relance après l'échec initial, masque le compteur invalide et résout le pluriel interpolé via le catalogue — `ios/Pulpe/Features/Budgets/BudgetList/PlanBudgetsView.swift:40`, `ios/Pulpe/Features/Budgets/BudgetList/PlanBudgetsView.swift:107`, `ios/PulpeTests/Features/Budgets/PlanBudgetsViewModelTests.swift:29`, `ios/PulpeTests/Shared/Localization/AppLocaleTests.swift:69`
+
 ## Findings
 
 None.
@@ -47,7 +54,7 @@ None.
 
 | Metric | Value |
 | --- | --- |
-| Verified | 100% (13/13) |
-| Files checked | 78 fichiers de `origin/main...13b86b60a`, couvrant plans PUL-6, contrats `shared`, backend/Nest/Supabase, Web, iOS, Android et documents; preuves fournies: checker migration réel (1 migration), contrats 10/10, types SHA-256 `4fbee7bc480e83564b3301736fe867013b9c93c861b53378b8b31c773fcd3b95`, SwiftLint ciblé/complet, qualité complète et XCUITest final verts |
+| Verified | 100% (17/17) |
+| Files checked | 82 fichiers de `origin/main...8f3914fcd`, couvrant plans PUL-6, contrats `shared`, backend/Nest/Supabase, Web, iOS, Android et documents; preuves fournies: checker migration réel (1 migration), contrats 10/10, types SHA-256 `4fbee7bc480e83564b3301736fe867013b9c93c861b53378b8b31c773fcd3b95`, Android ciblé 17/17, iOS ciblé 5 tests, SwiftLint sans violation, qualité complète 17/17 et checker indépendant à 100 % |
 | Unchecked | none |
 | Unplanned | none |

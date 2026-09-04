@@ -1,6 +1,6 @@
 ---
 objective: "Les findings de PUL-6 sont corrigés, y compris la concurrence entre création simple et génération par lot, puis la branche est réconciliée avec main et validée sur les quatre plateformes."
-status: in_progress
+status: reviewed
 ---
 
 # Plan: PUL-6 — Corriger les findings de review
