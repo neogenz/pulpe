@@ -1,9 +1,8 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  EventEmitter,
-  Input,
-  Output,
+  input,
+  output,
   provideZonelessChangeDetection,
   signal,
 } from '@angular/core';
@@ -49,14 +48,14 @@ const response: BudgetGenerateResponse = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 class MockTemplatesList {
-  @Input() templates: TemplateViewModel[] = [];
-  @Input() selectedTemplateId: string | null = null;
-  @Input() isLoading = false;
-  @Input() hasError = false;
-  @Input() currency: SupportedCurrency = 'CHF';
-  @Output() templateSelected = new EventEmitter<string>();
-  @Output() templateDetailsRequested = new EventEmitter<TemplateViewModel>();
-  @Output() retryRequested = new EventEmitter<void>();
+  readonly templates = input<TemplateViewModel[]>([]);
+  readonly selectedTemplateId = input<string | null>(null);
+  readonly isLoading = input(false);
+  readonly hasError = input(false);
+  readonly currency = input<SupportedCurrency>('CHF');
+  readonly templateSelected = output<string>();
+  readonly templateDetailsRequested = output<TemplateViewModel>();
+  readonly retryRequested = output<void>();
 }
 
 describe('PlanBudgetsDialog', () => {

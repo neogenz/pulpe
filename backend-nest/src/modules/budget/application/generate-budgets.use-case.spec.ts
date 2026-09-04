@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { CacheService } from '@modules/cache/cache.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BUDGET_REPOSITORY } from '../domain/ports/budget-repository.port';
 import { BUDGET_RECALCULATION_PORT } from '../domain/ports/budget-recalculation.port';
 import type { Budget } from '../domain/budget.entity';
@@ -154,6 +155,35 @@ describe('GenerateBudgetsUseCase', () => {
     expect(invalidateForUser).toHaveBeenCalledWith(user.id);
   });
 
+  it('deletes committed budgets when the RPC response fails validation', async () => {
+    const validationError = new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
+      undefined,
+      { createdBudgetIds: ['budget-1', 'budget-2'] },
+    );
+    repo.generateBudgetsFromTemplateAtomically.mockRejectedValueOnce(
+      validationError,
+    );
+
+    await expect(
+      useCase.execute(
+        {
+          templateId: '11111111-1111-4111-8111-111111111111',
+          startMonth: 12,
+          startYear: 2026,
+          count: 2,
+        },
+        user,
+      ),
+    ).rejects.toMatchObject({ cause: validationError });
+
+    expect(repo.deleteBudgetsByIds).toHaveBeenCalledWith([
+      'budget-1',
+      'budget-2',
+    ]);
+    expect(invalidateForUser).toHaveBeenCalledWith(user.id);
+  });
+
   it('rolls back before cache invalidation and preserves the recalculation error when both fail', async () => {
     const calls: string[] = [];
     const recalculationError = new Error('decrypt failed');
@@ -219,7 +249,8 @@ describe('GenerateBudgetsUseCase', () => {
 
     expect(caught).toBeInstanceOf(BusinessException);
     expect((caught as BusinessException).cause).toBe(recalculationError);
-    expect((caught as BusinessException).details).toEqual({
+    expect((caught as BusinessException).details).toBeUndefined();
+    expect((caught as BusinessException).loggingContext).toMatchObject({
       orphanedBudgetIds: ['budget-1', 'budget-2'],
     });
     expect(invalidateForUser).toHaveBeenCalledWith(user.id);

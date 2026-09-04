@@ -133,6 +133,8 @@ describe('BudgetListPage', () => {
     it.each([
       [2, 1, '2 budgets créés · 1 déjà existant ignoré'],
       [1, 2, '1 budget créé · 2 déjà existants ignorés'],
+      [12, 0, '12 budgets créés'],
+      [0, 12, '12 déjà existants ignorés'],
     ])(
       'passes the current cycle and announces %i created and %i skipped',
       async (created, skipped, message) => {

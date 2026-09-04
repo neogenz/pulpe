@@ -63,6 +63,9 @@ export class GenerateBudgetsUseCase {
         await this.budgetRecalculation.recalculate(budgetId);
       }
     } catch (error) {
+      if (createdBudgetIds.length === 0) {
+        createdBudgetIds = this.createdBudgetIdsFrom(error);
+      }
       const orphanedBudgetIds = await this.rollbackCreatedBudgets(
         createdBudgetIds,
         user.id,
@@ -84,8 +87,12 @@ export class GenerateBudgetsUseCase {
       }
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
-        orphanedBudgetIds.length > 0 ? { orphanedBudgetIds } : undefined,
-        { operation: 'generateBudgets', userId: user.id },
+        undefined,
+        {
+          operation: 'generateBudgets',
+          userId: user.id,
+          ...(orphanedBudgetIds.length > 0 ? { orphanedBudgetIds } : {}),
+        },
         { cause: error },
       );
     }
@@ -107,6 +114,14 @@ export class GenerateBudgetsUseCase {
     );
 
     return { budgets: createdBudgets, skippedMonths };
+  }
+
+  private createdBudgetIdsFrom(error: unknown): string[] {
+    if (!(error instanceof BusinessException)) return [];
+    const ids = error.loggingContext.createdBudgetIds;
+    return Array.isArray(ids)
+      ? ids.filter((id): id is string => typeof id === 'string')
+      : [];
   }
 
   private async rollbackCreatedBudgets(

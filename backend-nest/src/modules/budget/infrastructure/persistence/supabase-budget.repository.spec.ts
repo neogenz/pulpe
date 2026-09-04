@@ -633,6 +633,9 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     expect((caught as BusinessException).code).toBe(
       ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED.code,
     );
+    expect(
+      (caught as BusinessException).loggingContext.createdBudgetIds,
+    ).toEqual([BUDGET_UUID]);
   });
 
   it('wraps an atomic generation RPC failure with operation context', async () => {

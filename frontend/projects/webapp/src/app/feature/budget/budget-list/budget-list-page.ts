@@ -280,19 +280,31 @@ export default class BudgetListPage {
 
       const created = result.data.budgets.length;
       const skipped = result.data.skippedMonths.length;
+      const messages = [
+        ...(created > 0
+          ? [
+              this.#transloco.translate(
+                created === 1
+                  ? 'budget.planSuccessCreatedOne'
+                  : 'budget.planSuccessCreated',
+                { count: created },
+              ),
+            ]
+          : []),
+        ...(skipped > 0
+          ? [
+              this.#transloco.translate(
+                skipped === 1
+                  ? 'budget.planSuccessSkippedOne'
+                  : 'budget.planSuccessSkipped',
+                { count: skipped },
+              ),
+            ]
+          : []),
+      ];
 
       this.#snackBar.open(
-        `${this.#transloco.translate(
-          created === 1
-            ? 'budget.planSuccessCreatedOne'
-            : 'budget.planSuccessCreated',
-          { count: created },
-        )} · ${this.#transloco.translate(
-          skipped === 1
-            ? 'budget.planSuccessSkippedOne'
-            : 'budget.planSuccessSkipped',
-          { count: skipped },
-        )}`,
+        messages.join(' · '),
         this.#transloco.translate('common.close'),
         {
           duration: 5000,

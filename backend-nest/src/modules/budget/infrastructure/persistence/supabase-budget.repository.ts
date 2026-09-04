@@ -44,6 +44,7 @@ import type {
   SavingsGoalHorizonPort,
 } from '../../domain/ports/savings-goal-horizon.port';
 import {
+  extractGeneratedBudgetIds,
   validateCreateBudgetResponse,
   validateGenerateBudgetsResponse,
 } from '../../schemas/rpc-responses.schema';
@@ -553,6 +554,7 @@ export class SupabaseBudgetRepository
 
     if (error) this.throwAtomicGenerationError(error, input.userId);
 
+    const createdBudgetIds = extractGeneratedBudgetIds(data);
     try {
       const result = validateGenerateBudgetsResponse(data);
       return {
@@ -566,6 +568,7 @@ export class SupabaseBudgetRepository
           { reason: 'Invalid result structure from RPC' },
           {
             operation: 'generateBudgetsFromTemplateAtomically',
+            createdBudgetIds,
             validationErrors: err.issues,
           },
           { cause: err },
