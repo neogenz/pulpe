@@ -58,15 +58,18 @@ extension UncheckedOperationsCard {
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.textPrimary)
                 .lineLimit(isStacked ? nil : 1)
+                // The rhythm rides the name, because only one of the two rhythms has a
+                // glyph: on screen a ponctuel forecast is marked by the absence of the
+                // arrows, and an absence says nothing out loud.
+                .accessibilityLabel(Self.spokenName(for: item))
 
             // The rhythm opens the subtitle as a glyph rather than closing it as a word:
-            // spelled out, a one-off forecast read "Prévu ce mois · Prévu".
+            // spelled out, a monthly forecast read "Prévu ce mois · Mensuel".
             HStack(spacing: DesignTokens.Spacing.xs) {
-                if let recurrence = Self.recurrence(for: item) {
-                    // Labelled, not hidden: the row combines its children, so this glyph
-                    // is the only place VoiceOver can hear the rhythm.
-                    Image(systemName: recurrence.icon)
-                        .accessibilityLabel(recurrence.label)
+                if let icon = Self.recurrence(for: item)?.icon {
+                    // Decorative: the title above speaks the rhythm for both.
+                    Image(systemName: icon)
+                        .accessibilityHidden(true)
                 }
 
                 Text(Self.subtitle(for: item))

@@ -193,43 +193,58 @@ struct BudgetLineMixedRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// A ponctuel line with nothing else to say has an empty tertiary line, and an
+    /// empty row still takes the `VStack` spacing on both sides — a hair taller than
+    /// its neighbours, for nothing.
+    private var hasMetadataRow: Bool {
+        line.recurrence.icon != nil
+            || line.isSavingsWithdrawalIncome
+            || metadata != nil
+            || !tagNames.isEmpty
+    }
+
     /// Every secondary fact about the line — recurrence, provenance, lissage,
-    /// objectif, tag count — on one tertiary line, now always present since the
-    /// recurrence glyph opens it. Stacking one badge per fact pushed the row to
-    /// five lines and knocked the amount column out of vertical alignment.
+    /// objectif, tag count — on one tertiary line. Stacking one badge per fact
+    /// pushed the row to five lines and knocked the amount column out of vertical
+    /// alignment.
+    @ViewBuilder
     private var metadataRow: some View {
-        HStack(spacing: DesignTokens.Spacing.xs) {
-            // Where the line comes from, as a glyph: the word would collide with
-            // the `prévu` the amount suffix already writes on the same row.
-            // Decorative like its neighbour — the row's label speaks the word.
-            Image(systemName: line.recurrence.icon)
-                .accessibilityHidden(true)
+        if hasMetadataRow {
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                // Only a monthly line carries a mark, and the arrows are it: a ponctuel
+                // line is the absence of them, which is what the word says too.
+                // Decorative like its neighbour — the row's label speaks both.
+                if let icon = line.recurrence.icon {
+                    Image(systemName: icon)
+                        .accessibilityHidden(true)
+                }
 
-            if line.isSavingsWithdrawalIncome {
-                // Decorative: `metadata` already carries "Pris sur ton épargne",
-                // and the row is an accessibility container, so an unhidden symbol
-                // would offer its SF name as a second reading of the same fact.
-                Image(systemName: TransactionKind.savingsIcon)
-                    .accessibilityHidden(true)
-            }
+                if line.isSavingsWithdrawalIncome {
+                    // Decorative: `metadata` already carries "Pris sur ton épargne",
+                    // and the row is an accessibility container, so an unhidden symbol
+                    // would offer its SF name as a second reading of the same fact.
+                    Image(systemName: TransactionKind.savingsIcon)
+                        .accessibilityHidden(true)
+                }
 
-            if let metadata {
-                Text(metadata)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                    .truncationMode(.tail)
-                    .accessibilityIdentifier("budgetLineMixedRowMetadata-\(line.id)")
-            }
+                if let metadata {
+                    Text(metadata)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                        .truncationMode(.tail)
+                        .accessibilityIdentifier("budgetLineMixedRowMetadata-\(line.id)")
+                }
 
-            if !tagNames.isEmpty {
-                TagChips(
-                    names: tagNames,
-                    presentation: .count,
-                    followsText: metadata != nil
-                )
+                if !tagNames.isEmpty {
+                    TagChips(
+                        names: tagNames,
+                        presentation: .count,
+                        followsText: metadata != nil
+                    )
+                }
             }
+            .font(PulpeTypography.labelMedium)
+            .foregroundStyle(Color.textTertiary)
         }
-        .font(PulpeTypography.labelMedium)
-        .foregroundStyle(Color.textTertiary)
     }
 
     /// Spec §08 — subtitle rules. Empty when pointed, or for partial/empty

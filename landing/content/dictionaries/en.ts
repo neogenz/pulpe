@@ -148,7 +148,7 @@ const en: Dictionary = {
         yearTitle: "Your year",
         monthTitle: "July, ahead",
         income: "Income",
-        recurring: "Recurring",
+        recurring: "Monthly",
         saving: "Savings",
         tax: "Taxes",
         available: "Available",

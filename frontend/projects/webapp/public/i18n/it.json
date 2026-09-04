@@ -97,7 +97,7 @@
       },
       "create": {
         "title": "Aggiungi una previsione",
-        "description": "<p>Scegli <strong>Ricorrente</strong> per quello che torna oppure <strong>Una tantum</strong> per un bisogno occasionale. Una previsione aggiunta qui riguarda questo budget; quelle che arrivano dal modello sono indicate come tali.</p>"
+        "description": "<p>Scegli <strong>Mensile</strong> per quello che torna ogni mese oppure <strong>Una tantum</strong> per un bisogno di un solo mese. Una previsione aggiunta qui riguarda questo budget; quelle che arrivano dal modello sono indicate come tali.</p>"
       }
     },
     "templatesList": {
@@ -1850,10 +1850,10 @@
     "saving": "un risparmio"
   },
   "recurrence": {
-    "fixed": "Ricorrente",
+    "fixed": "Mensile",
     "oneOff": "Una tantum",
-    "fixedHint": "Previsione che torna regolarmente",
-    "oneOffHint": "Previsione una tantum",
+    "fixedHint": "Previsione che torna ogni mese",
+    "oneOffHint": "Previsione per un solo mese",
     "fromTemplate": "Dal modello",
     "fromBudget": "Aggiunto a questo budget"
   },

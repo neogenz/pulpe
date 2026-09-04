@@ -24,8 +24,8 @@ struct BudgetLinePresentationTests {
     @Test(
         "the row speaks its recurrence between the kind and the name",
         arguments: [
-            (TransactionRecurrence.fixed, "Récurrent"),
-            (TransactionRecurrence.oneOff, "Prévu"),
+            (TransactionRecurrence.fixed, "Mensuel"),
+            (TransactionRecurrence.oneOff, "Ponctuel"),
         ]
     )
     func accessibilityLabel_whenRecurrence_speaksItAfterTheKind(
@@ -46,7 +46,17 @@ struct BudgetLinePresentationTests {
                 isSavingsWithdrawalIncome: false
             ) == nil
         )
-        #expect(label().contains("Récurrent"))
+        #expect(label().contains("Mensuel"))
+    }
+
+    /// Only one rhythm has a glyph. The word is the whole of what a ponctuel line
+    /// says, so a change that put a symbol back would break this pair.
+    @Test("only the monthly rhythm carries a mark", arguments: [
+        (TransactionRecurrence.fixed, "repeat"),
+        (TransactionRecurrence.oneOff, String?.none),
+    ])
+    func icon_marksTheMonthlyRhythmOnly(recurrence: TransactionRecurrence, expected: String?) {
+        #expect(recurrence.icon == expected)
     }
 
     @Test("spread and goal collapse into one metadata line")

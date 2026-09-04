@@ -15315,6 +15315,28 @@
         }
       }
     },
+    "Mensuel" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monatlich"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensile"
+          }
+        }
+      }
+    },
     "Mes prévisions" : {
       "localizations" : {
         "de" : {
@@ -22055,28 +22077,6 @@
         }
       }
     },
-    "Récurrent" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wiederkehrend"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recurring"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ricorrente"
-          }
-        }
-      }
-    },
     "Réduit la liste des mois" : {
       "localizations" : {
         "de" : {
@@ -28600,7 +28600,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prévu"
+            "value" : "Ponctuel"
           }
         },
         "it" : {

@@ -27,6 +27,14 @@ extension UncheckedOperationsCard {
         }
     }
 
+    /// The name VoiceOver hears, carrying the rhythm the glyph can only half state:
+    /// `repeat` marks a monthly forecast, a ponctuel one is marked by nothing at all,
+    /// and nothing at all is what an unsighted reader would get.
+    static func spokenName(for item: CurrentMonthStore.CheckableItem) -> String {
+        guard let recurrence = recurrence(for: item) else { return item.name }
+        return "\(item.name), \(recurrence.label)"
+    }
+
     static func tagNames(for item: CurrentMonthStore.CheckableItem, namesById: [String: String]) -> [String] {
         switch item {
         case .transaction(let transaction, _):

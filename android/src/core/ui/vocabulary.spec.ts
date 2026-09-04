@@ -4,10 +4,10 @@ import { recurrenceLabel, recurrenceOptions } from "./vocabulary";
 
 describe("localized product vocabulary", () => {
   it.each([
-    ["fr", ["Récurrent", "Prévu"]],
-    ["en", ["Recurring", "Planned"]],
-    ["de", ["Regelmässig", "Geplant"]],
-    ["it", ["Ricorrente", "Pianificato"]],
+    ["fr", ["Mensuel", "Ponctuel"]],
+    ["en", ["Monthly", "One-off"]],
+    ["de", ["Monatlich", "Einmalig"]],
+    ["it", ["Mensile", "Una tantum"]],
   ])(
     "resolves recurrence labels from the live %s catalog",
     (locale, expected) => {
@@ -24,6 +24,6 @@ describe("localized product vocabulary", () => {
       "fixed",
       "one_off",
     ]);
-    expect(recurrenceLabel(translate, "one_off")).toBe("Planned");
+    expect(recurrenceLabel(translate, "one_off")).toBe("One-off");
   });
 });

@@ -121,14 +121,19 @@ struct BudgetLineRow: View {
                     .foregroundStyle(line.isChecked ? .secondary : .primary)
                     .strikethrough(line.isChecked, color: .secondary)
                     .lineLimit(1)
+                    // The rhythm rides the name, because only one of the two rhythms
+                    // has a glyph: on screen a ponctuel line is marked by the absence
+                    // of the arrows, and an absence says nothing out loud.
+                    .accessibilityLabel("\(line.name), \(line.recurrence.label)")
 
                 // Where the line comes from, then what it has consumed — the
                 // glyph opens the line whether or not anything has been spent.
                 HStack(spacing: DesignTokens.Spacing.xs) {
-                    // Labelled rather than hidden: unlike the budget detail row,
-                    // this one carries no explicit label to speak the word for it.
-                    Image(systemName: line.recurrence.icon)
-                        .accessibilityLabel(line.recurrence.label)
+                    if let icon = line.recurrence.icon {
+                        // Decorative: the title above speaks the rhythm for both.
+                        Image(systemName: icon)
+                            .accessibilityHidden(true)
+                    }
 
                     if let tertiaryText = Self.tertiaryText(
                         line: line,
