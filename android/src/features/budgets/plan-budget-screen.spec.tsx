@@ -262,8 +262,29 @@ it("uses the month and year menus and blocks a reversed range", async () => {
   await fireEvent.press(view.getByLabelText("option:2026-8"));
 
   expect(view.getByText("budgets.plan.rangeOrderError")).toBeTruthy();
+  expect(view.queryByText("periods:0")).toBeNull();
   await fireEvent.press(view.getByLabelText("budgets.plan.submit"));
   expect(mockGenerate.mutate).not.toHaveBeenCalled();
+});
+
+it("keeps start years reversible and offers the full end horizon", async () => {
+  const view = await render(<PlanBudgetsScreen />);
+
+  await fireEvent.press(
+    view.getAllByLabelText("budgets.plan.yearAccessibility")[0],
+  );
+  await fireEvent.press(view.getByLabelText("option:2029"));
+
+  await fireEvent.press(
+    view.getAllByLabelText("budgets.plan.yearAccessibility")[1],
+  );
+  expect(view.getByLabelText("option:2032")).toBeTruthy();
+  await fireEvent.press(view.getByLabelText("option:2032"));
+
+  await fireEvent.press(
+    view.getAllByLabelText("budgets.plan.yearAccessibility")[0],
+  );
+  expect(view.getByLabelText("option:2026")).toBeTruthy();
 });
 
 it("blocks ranges over 36 periods and keeps mutation errors on screen", async () => {

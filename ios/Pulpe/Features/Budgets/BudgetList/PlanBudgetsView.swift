@@ -35,8 +35,16 @@ struct PlanBudgetsView: View {
                         .foregroundStyle(Color.textSecondary)
 
                     if let error = viewModel.error {
-                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                            viewModel.error = nil
+                        if viewModel.templates.isEmpty {
+                            ErrorBanner(message: DomainErrorLocalizer.localize(error))
+                            Button("Réessayer") {
+                                Task { await viewModel.loadTemplates() }
+                            }
+                            .buttonStyle(.borderedProminent)
+                        } else {
+                            ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                                viewModel.error = nil
+                            }
                         }
                     }
                 }

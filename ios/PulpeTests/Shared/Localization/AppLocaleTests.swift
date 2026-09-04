@@ -66,6 +66,13 @@ struct AppLocaleTests {
         #expect(german == "Einstellungen")
     }
 
+    @Test func interpolatedPeriodCount_usesTheCatalogPluralRules() {
+        let english = Locale(identifier: "en")
+
+        #expect(AppLocale.string("\(1) périodes", locale: english) == "1 period")
+        #expect(AppLocale.string("\(4) périodes", locale: english) == "4 periods")
+    }
+
     @Test func string_fallsBackToFrenchForAnUntranslatedKey() {
         let key: String.LocalizationValue = "Pulpe"
 

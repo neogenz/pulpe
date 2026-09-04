@@ -55,9 +55,13 @@ export default function PlanBudgetsScreen() {
   const count = periodIndex(end) - periodIndex(start) + 1;
   const selectedTemplateId =
     chosenTemplateId ?? defaultTemplateId(templates.data ?? []);
-  const years = Array.from(
+  const startYears = Array.from(
     { length: YEAR_OPTION_COUNT },
     (_, index) => defaultStart.year + index,
+  );
+  const endYears = Array.from(
+    { length: YEAR_OPTION_COUNT },
+    (_, index) => start.year + index,
   );
   const validationMessage =
     count < 1
@@ -153,7 +157,7 @@ export default function PlanBudgetsScreen() {
             <PeriodField
               label={t("budgets.plan.from")}
               period={start}
-              years={years}
+              years={startYears}
               locale={locale}
               monthAccessibilityLabel={t("budgets.plan.monthAccessibility", {
                 field: t("budgets.plan.from"),
@@ -166,7 +170,7 @@ export default function PlanBudgetsScreen() {
             <PeriodField
               label={t("budgets.plan.to")}
               period={end}
-              years={years}
+              years={endYears}
               locale={locale}
               monthAccessibilityLabel={t("budgets.plan.monthAccessibility", {
                 field: t("budgets.plan.to"),
@@ -177,12 +181,14 @@ export default function PlanBudgetsScreen() {
               onChange={setChosenEnd}
             />
 
-            <Text
-              variant="bodySmall"
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              {t("budgets.plan.periodCount", { count })}
-            </Text>
+            {validationMessage === null && (
+              <Text
+                variant="bodySmall"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {t("budgets.plan.periodCount", { count })}
+              </Text>
+            )}
             {validationMessage !== null && (
               <FieldError visible>{validationMessage}</FieldError>
             )}
