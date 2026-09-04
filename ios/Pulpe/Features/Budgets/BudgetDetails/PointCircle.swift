@@ -26,6 +26,20 @@ struct PointCircle: View {
 
     private var displayedIsPointed: Bool { isPointed || isCompleting }
 
+    /// The unpointed ring, broken into short segments: the row is a draft until the tap
+    /// closes it, and a solid outline said nothing about that. Pointed, the disc fills and
+    /// the ring goes with it, so there is no dashed state left to contradict the check.
+    ///
+    /// Derived from the stroked circle's own circumference — `strokeBorder` insets by half
+    /// the line width — so the segments meet where they started. A dash measured in points
+    /// leaves a short one at the seam on any disc size that does not divide by it.
+    private static var ringStrokeStyle: StrokeStyle {
+        let circumference = CGFloat.pi * (DesignTokens.IconSize.badge - DesignTokens.Checkbox.ringWidth)
+        let period = circumference / DesignTokens.Checkbox.ringDashSegments
+        let dash = period * DesignTokens.Checkbox.ringDashFill
+        return StrokeStyle(lineWidth: DesignTokens.Checkbox.ringWidth, dash: [dash, period - dash])
+    }
+
     private var fillAnimation: Animation {
         .easeOut(duration: reduceMotion ? DesignTokens.Animation.microFadeIn : DesignTokens.Animation.normal)
     }
@@ -50,7 +64,7 @@ struct PointCircle: View {
             ZStack {
                 RowIcon(systemName: kind.icon, tint: color)
                     .overlay {
-                        Circle().strokeBorder(color, lineWidth: DesignTokens.Checkbox.ringWidth)
+                        Circle().strokeBorder(color, style: Self.ringStrokeStyle)
                     }
                     .overlay {
                         Circle()
@@ -67,7 +81,9 @@ struct PointCircle: View {
                                     ],
                                     center: .center
                                 ),
-                                lineWidth: DesignTokens.Checkbox.ringWidth
+                                // Same broken pattern as the ring it lights: solid, the
+                                // sweep would paint a highlight across the gaps.
+                                style: Self.ringStrokeStyle
                             )
                             .keyframeAnimator(
                                 initialValue: PointCircleSheenValues(),

@@ -267,6 +267,12 @@ enum DesignTokens {
         static let size: CGFloat = 24
         /// Ring around an unpointed disc: what says "to tick" before the first tap.
         static let ringWidth: CGFloat = 1.5
+        /// The unpointed ring is broken into segments, which is what says the row is a
+        /// draft the tap will close. Counted, not measured in points, so the pattern
+        /// divides the circle evenly instead of leaving a ragged seam.
+        static let ringDashSegments: CGFloat = 16
+        /// Share of one segment drawn; the rest is the gap. Short lines, not dots.
+        static let ringDashFill: CGFloat = 0.58
         /// One-shot specular sweep that hints the ring is interactive without
         /// leaving an ambient animation running in the ledger.
         static let sheenDelay: Double = 0.45
