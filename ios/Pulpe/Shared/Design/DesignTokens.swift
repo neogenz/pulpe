@@ -250,6 +250,8 @@ enum DesignTokens {
         static let separator: CGFloat = 1
         /// Inline vertical divider inside a horizontally scrollable filter bar
         static let dividerInline: CGFloat = 22
+        /// Content-zone action card stacking an icon over its label (64pt)
+        static let actionCard: CGFloat = 64
     }
 
     // MARK: - Numpad

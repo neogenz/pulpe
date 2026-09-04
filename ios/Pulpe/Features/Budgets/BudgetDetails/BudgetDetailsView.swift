@@ -112,12 +112,6 @@ struct BudgetDetailsView: View {
         // Hero under the nav bar on the forest surface: light ink when loaded, default ink on error / skeleton.
         .toolbarColorScheme(screenState.content == .loaded ? .dark : nil, for: .navigationBar)
         .heroNavigationBar()
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                trailingToolbarButtons
-            }
-            .heroToolbarGroup(screenState.content == .loaded)
-        }
         // Scroll-independent month navigation (system title chevron). The sticky
         // pager only reveals once the hero has scrolled under the bar — a short
         // filtered list (e.g. "À pointer" fully checked) can never produce that, so
@@ -186,27 +180,6 @@ struct BudgetDetailsView: View {
         }
     }
 
-    @ViewBuilder
-    private var trailingToolbarButtons: some View {
-        let isLoaded = projector.screenState.content == .loaded
-        Button {
-            router.present(.realizedBalance)
-        } label: {
-            Image(systemName: "chart.bar.fill")
-        }
-        .heroToolbarButtonStyle(isLoaded)
-        .accessibilityLabel("Suivi du budget")
-        .accessibilityIdentifier("budgetTrackingButton")
-        if isLoaded {
-            Button { router.present(.addBudgetLine) } label: {
-                Image(systemName: "plus")
-            }
-            .heroToolbarButtonStyle(true)
-            .accessibilityLabel("Ajouter une prévision")
-            .accessibilityIdentifier("budgetAddLineButton")
-        }
-    }
-
     private var content: some View {
         let screenState = projector.screenState
         let sections = screenState.sections
@@ -231,6 +204,17 @@ struct BudgetDetailsView: View {
                 .heroZone()
 
                 VStack(spacing: 0) {
+                    // Above the tip and the rail: the two actions are what the screen
+                    // offers, and a reader who has to scroll past a filter to find them
+                    // reads them as belonging to the list rather than to the budget.
+                    BudgetDetailsActionCards(
+                        onAddLine: { router.present(.addBudgetLine) },
+                        onTrack: { router.present(.realizedBalance) }
+                    )
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.md)
+
                     TipView(ProductTips.pessimisticCheck)
                         .pulpeTipBackground()
                         .padding(.horizontal, DesignTokens.Spacing.lg)

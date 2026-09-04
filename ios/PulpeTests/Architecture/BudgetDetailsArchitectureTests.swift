@@ -279,19 +279,23 @@ struct BudgetDetailsArchitectureTests {
         #expect(source.contains("await tagStore.loadIfNeeded(for: screenState.referencedTagIds)"))
     }
 
-    @Test("Budget line creation belongs to the native toolbar")
-    func budgetLineCreationBelongsToToolbar() {
+    /// The two actions moved out of the navigation bar and into the content zone, where
+    /// they carry their words. What must not come back is a second affordance for the same
+    /// action: a toolbar glyph beside the card, or a floating button over the list.
+    @Test("Budget detail states its actions once, in the content zone")
+    func budgetActionsBelongToTheContentZone() {
         let directory = Self.featureDirectory()
         let source = Self.read(directory.appendingPathComponent("BudgetDetailsView.swift"))
+        let cards = Self.read(directory.appendingPathComponent("BudgetDetailsActionCards.swift"))
         let fabPath = directory.appendingPathComponent("BudgetDetailsAddFAB.swift").path
 
-        #expect(source.contains("ToolbarItemGroup(placement: .topBarTrailing)"))
-        #expect(source.contains("router.present(.addBudgetLine)"))
-        #expect(source.range(
-            of: #"if\s+isLoaded\s*\{\s*Button\s*\{\s*router\.present\(\.addBudgetLine\)"#,
-            options: .regularExpression
-        ) != nil)
-        #expect(source.contains(#".accessibilityLabel("Ajouter une prévision")"#))
+        #expect(source.contains("BudgetDetailsActionCards("))
+        #expect(source.contains("onAddLine: { router.present(.addBudgetLine) }"))
+        #expect(source.contains("onTrack: { router.present(.realizedBalance) }"))
+        #expect(cards.contains(#"AppLocale.string("Ajouter une prévision")"#))
+        #expect(cards.contains(#"AppLocale.string("Suivi du budget")"#))
+        #expect(cards.contains("DesignTokens.CornerRadius.card"))
+        #expect(!source.contains("ToolbarItemGroup(placement: .topBarTrailing)"))
         #expect(!source.contains(".overlay(alignment: .bottomTrailing)"))
         #expect(!FileManager.default.fileExists(atPath: fabPath))
     }
