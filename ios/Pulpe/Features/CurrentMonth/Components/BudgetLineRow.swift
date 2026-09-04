@@ -109,7 +109,7 @@ struct BudgetLineRow: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: DesignTokens.Spacing.none) {
             HStack(spacing: DesignTokens.Spacing.md) {
             // Kind icon circle (Revolut-style)
             kindIconCircle
@@ -148,7 +148,7 @@ struct BudgetLineRow: View {
                 }
             }
 
-            Spacer(minLength: 8)
+            Spacer(minLength: DesignTokens.Spacing.sm)
 
             // Sync indicator
             SyncIndicator(isSyncing: isSyncing)
