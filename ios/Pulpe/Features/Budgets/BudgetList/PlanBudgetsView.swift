@@ -79,7 +79,7 @@ struct PlanBudgetsView: View {
             MonthYearPickerSheet(
                 title: picker == .start ? AppLocale.string("Premier mois") : AppLocale.string("Dernier mois"),
                 initial: picker == .start ? viewModel.start : viewModel.end,
-                yearRange: viewModel.yearRange
+                yearRange: picker == .start ? viewModel.yearRange : viewModel.endYearRange
             ) { period in
                 if picker == .start {
                     viewModel.start = period
@@ -219,6 +219,13 @@ final class PlanBudgetsViewModel {
 
     var inclusiveCount: Int {
         BudgetPeriodCalculator.periodIndex(end) - BudgetPeriodCalculator.periodIndex(start) + 1
+    }
+
+    var endYearRange: ClosedRange<Int> {
+        let maximumEnd = BudgetPeriodCalculator.periodFromIndex(
+            BudgetPeriodCalculator.periodIndex(start) + Self.maximumCount - 1
+        )
+        return start.year...maximumEnd.year
     }
 
     var validationMessage: String? {

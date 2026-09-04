@@ -60,6 +60,16 @@ struct PlanBudgetsViewModelTests {
         #expect(request?.count == 4)
     }
 
+    @Test
+    func endPickerExtendsFromSelectedStart() throws {
+        let date = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 1)))
+        let viewModel = PlanBudgetsViewModel(payDayOfMonth: nil, now: date)
+        viewModel.start = BudgetPeriod(month: 12, year: 2029)
+
+        #expect(viewModel.yearRange == 2026...2029)
+        #expect(viewModel.endYearRange == 2029...2032)
+    }
+
     @Test("generation stays pending for the whole request", arguments: [false, true])
     func generationPendingLifecycle(shouldFail: Bool) async {
         let (started, startedContinuation) = AsyncStream<Void>.makeStream()
