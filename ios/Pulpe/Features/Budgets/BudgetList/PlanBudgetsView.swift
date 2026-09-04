@@ -104,9 +104,11 @@ struct PlanBudgetsView: View {
                 }
             }
 
-            Text(AppLocale.string("\(viewModel.inclusiveCount) périodes"))
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textSecondary)
+            if viewModel.showsPeriodCount {
+                Text(AppLocale.string("\(viewModel.inclusiveCount) périodes"))
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
+            }
 
             if let message = viewModel.validationMessage {
                 ErrorBanner(message: message)
@@ -227,6 +229,10 @@ final class PlanBudgetsViewModel {
             return AppLocale.string("Choisis au maximum 36 périodes.")
         }
         return nil
+    }
+
+    var showsPeriodCount: Bool {
+        validationMessage == nil
     }
 
     var generateRequest: BudgetGenerate? {

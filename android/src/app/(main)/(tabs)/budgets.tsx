@@ -306,7 +306,14 @@ export default function BudgetsScreen() {
         }
       >
         {showsGenerationResult
-          ? t("budgets.plan.result", { createdCount, skippedCount })
+          ? t("budgets.plan.result", {
+              created: t("budgets.plan.resultCreated", {
+                count: createdCount,
+              }),
+              skipped: t("budgets.plan.resultSkipped", {
+                count: skippedCount,
+              }),
+            })
           : ""}
       </Notice>
     </View>

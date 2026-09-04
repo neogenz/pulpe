@@ -12,6 +12,7 @@ struct PlanBudgetsViewModelTests {
         #expect(viewModel.start == BudgetPeriod(month: 9, year: 2026))
         #expect(viewModel.end == BudgetPeriod(month: 8, year: 2027))
         #expect(viewModel.inclusiveCount == 12)
+        #expect(viewModel.showsPeriodCount)
     }
 
     @Test("invalid ranges are rejected", arguments: [
@@ -25,6 +26,7 @@ struct PlanBudgetsViewModelTests {
         viewModel.selectedTemplateId = "template-1"
 
         #expect(viewModel.validationMessage != nil)
+        #expect(!viewModel.showsPeriodCount)
         #expect(viewModel.generateRequest == nil)
         #expect(!viewModel.canGenerate)
     }

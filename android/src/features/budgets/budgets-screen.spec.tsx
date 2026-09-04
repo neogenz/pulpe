@@ -237,10 +237,15 @@ jest.mock("@/core/ui/date-format", () => ({
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({
     locale: "fr",
-    t: (key: string, options?: Record<string, unknown>) =>
-      key === "budgets.plan.result"
-        ? `${String(options?.createdCount)}/${String(options?.skippedCount)}`
-        : key,
+    t: (key: string, options?: Record<string, unknown>) => {
+      if (key === "budgets.plan.resultCreated")
+        return `created:${String(options?.count)}`;
+      if (key === "budgets.plan.resultSkipped")
+        return `skipped:${String(options?.count)}`;
+      if (key === "budgets.plan.result")
+        return `${String(options?.created)}/${String(options?.skipped)}`;
+      return key;
+    },
   }),
 }));
 jest.mock("@/core/ui/theme", () => ({
@@ -321,13 +326,27 @@ it("announces zero creations and clears both navigation counters", async () => {
 
   const view = await render(<BudgetsScreen />);
 
-  expect(view.getByText("0/2")).toBeTruthy();
+  expect(view.getByText("created:0/skipped:2")).toBeTruthy();
   await fireEvent.press(view.getByLabelText("dismiss-result"));
   expect(router.setParams).toHaveBeenCalledWith({
     createdCount: undefined,
     skippedCount: undefined,
   });
 });
+
+it.each([
+  ["1", "2", "created:1/skipped:2"],
+  ["2", "1", "created:2/skipped:1"],
+])(
+  "pluralizes created %s and skipped %s independently",
+  async (createdCount, skippedCount, expected) => {
+    Object.assign(mockGenerationResult, { createdCount, skippedCount });
+
+    const view = await render(<BudgetsScreen />);
+
+    expect(view.getByText(expected)).toBeTruthy();
+  },
+);
 
 it("anchors the current month, paginates and opens selected budgets", async () => {
   const now = new Date();

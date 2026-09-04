@@ -321,10 +321,21 @@
       "monthAccessibility": "Scegli il mese per %{field}",
       "noTemplatesHint": "La pianificazione parte da un modello di budget. Creane prima uno.",
       "noTemplatesTitle": "Nessun modello di budget",
-      "periodCount": "%{count} periodi",
+      "periodCount": {
+        "one": "%{count} periodo",
+        "other": "%{count} periodi"
+      },
       "rangeLimitError": "Scegli al massimo 36 periodi.",
       "rangeOrderError": "Il periodo finale deve seguire quello iniziale.",
-      "result": "%{createdCount} budget creati, %{skippedCount} budget esistenti ignorati",
+      "result": "%{created}, %{skipped}",
+      "resultCreated": {
+        "one": "%{count} budget creato",
+        "other": "%{count} budget creati"
+      },
+      "resultSkipped": {
+        "one": "%{count} budget esistente ignorato",
+        "other": "%{count} budget esistenti ignorati"
+      },
       "submit": "Pianifica",
       "template": "Modello di budget",
       "title": "Pianifica i budget",
