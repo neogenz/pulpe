@@ -635,6 +635,41 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     );
   });
 
+  it('wraps an atomic generation RPC failure with operation context', async () => {
+    const rpcError = { code: 'XX000', message: 'RPC failed' };
+    const repo = new SupabaseBudgetRepository(
+      generationProvider(
+        [],
+        null,
+        jest.fn().mockResolvedValue({ data: null, error: rpcError }),
+      ),
+      createMockEncryption(),
+    );
+
+    let caught: unknown;
+    try {
+      await repo.generateBudgetsFromTemplateAtomically({
+        userId: USER_UUID,
+        templateId: TEMPLATE_UUID,
+        startMonth: 10,
+        startYear: 2026,
+        count: 1,
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect(caught).toMatchObject({
+      code: ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED.code,
+      cause: rpcError,
+      loggingContext: {
+        operation: 'generateBudgetsFromTemplateAtomically',
+        userId: USER_UUID,
+      },
+    });
+  });
+
   describe('periodsOutsideInterval (PUL-312/PUL-314)', () => {
     function horizonProvider(
       goals: {

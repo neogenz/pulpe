@@ -14,6 +14,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatDatepickerInput } from '@angular/material/datepicker';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
@@ -64,6 +65,9 @@ describe('PlanBudgetsDialog', () => {
   const close = vi.fn();
   const dialogRef = { close, disableClose: false };
   const generateBudgets = vi.fn();
+  const loadTemplateLines = vi.fn();
+  const dialogOpen = vi.fn();
+  const snackBarOpen = vi.fn();
   const selectedTemplateId = signal<string | null>(TEMPLATE_ID);
   const generateBudgetsError = signal<unknown>(undefined);
   const isGeneratingBudgets = signal(false);
@@ -71,6 +75,9 @@ describe('PlanBudgetsDialog', () => {
   beforeEach(async () => {
     close.mockClear();
     generateBudgets.mockReset().mockResolvedValue(response);
+    loadTemplateLines.mockReset().mockResolvedValue([]);
+    dialogOpen.mockReset();
+    snackBarOpen.mockReset();
     dialogRef.disableClose = false;
     selectedTemplateId.set(TEMPLATE_ID);
     generateBudgetsError.set(undefined);
@@ -88,7 +95,7 @@ describe('PlanBudgetsDialog', () => {
       generateBudgets,
       selectTemplate: vi.fn(),
       reloadTemplates: vi.fn(),
-      loadTemplateLines: vi.fn().mockResolvedValue([]),
+      loadTemplateLines,
     };
 
     await TestBed.configureTestingModule({
@@ -109,7 +116,8 @@ describe('PlanBudgetsDialog', () => {
           useValue: { currentPeriod: { month: 9, year: 2026 } },
         },
         { provide: MatDialogRef, useValue: dialogRef },
-        { provide: MatDialog, useValue: { open: vi.fn() } },
+        { provide: MatDialog, useValue: { open: dialogOpen } },
+        { provide: MatSnackBar, useValue: { open: snackBarOpen } },
         {
           provide: ApiErrorLocalizer,
           useValue: { localizeApiError: () => 'Erreur localisée' },
@@ -238,6 +246,25 @@ describe('PlanBudgetsDialog', () => {
     expect(close).not.toHaveBeenCalled();
     expect(component['submissionError']()).toBe(
       'La planification des budgets a échoué — réessaie',
+    );
+  });
+
+  it('reports a template details loading failure without opening the dialog', async () => {
+    loadTemplateLines.mockRejectedValueOnce(new Error('Network failure'));
+
+    await component['showTemplateDetails']({
+      template: { id: TEMPLATE_ID } as BudgetTemplate,
+      income: 0,
+      expenses: 0,
+      netBalance: 0,
+      loading: false,
+    });
+
+    expect(dialogOpen).not.toHaveBeenCalled();
+    expect(snackBarOpen).toHaveBeenCalledWith(
+      "Quelque chose n'a pas fonctionné — réessaie",
+      'Fermer',
+      { duration: 8000, panelClass: ['!bg-error', '!text-on-error'] },
     );
   });
 });

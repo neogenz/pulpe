@@ -19,6 +19,7 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
 import { getMonthYearDateFormats } from '@core/date/date-display-formats';
@@ -202,6 +203,7 @@ export class PlanBudgetsDialog {
       MatDialogRef,
     );
   readonly #dialog = inject(MatDialog);
+  readonly #snackBar = inject(MatSnackBar);
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #transloco = inject(TranslocoService);
   readonly #userSettings = inject(UserSettingsStore);
@@ -278,18 +280,28 @@ export class PlanBudgetsDialog {
   protected async showTemplateDetails(
     viewModel: TemplateViewModel,
   ): Promise<void> {
-    this.#dialog.open(TemplateDetailsDialog, {
-      data: {
-        template: viewModel.template,
-        templateLines: await this.templateStore.loadTemplateLines(
-          viewModel.template.id,
-        ),
-      },
-      width: '600px',
-      maxWidth: '95vw',
-      maxHeight: '85vh',
-      autoFocus: 'first-tabbable',
-    });
+    try {
+      this.#dialog.open(TemplateDetailsDialog, {
+        data: {
+          template: viewModel.template,
+          templateLines: await this.templateStore.loadTemplateLines(
+            viewModel.template.id,
+          ),
+        },
+        width: '600px',
+        maxWidth: '95vw',
+        maxHeight: '85vh',
+        autoFocus: 'first-tabbable',
+      });
+    } catch (error) {
+      this.#snackBar.open(
+        isApiError(error)
+          ? this.#apiErrorLocalizer.localizeApiError(error)
+          : this.#transloco.translate('common.somethingWentWrong'),
+        this.#transloco.translate('common.close'),
+        { duration: 8000, panelClass: ['!bg-error', '!text-on-error'] },
+      );
+    }
   }
 
   protected async submit(): Promise<void> {

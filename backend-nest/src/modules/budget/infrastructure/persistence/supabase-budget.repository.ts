@@ -551,7 +551,7 @@ export class SupabaseBudgetRepository
       },
     );
 
-    if (error) throw error;
+    if (error) this.throwAtomicGenerationError(error, input.userId);
 
     try {
       const result = validateGenerateBudgetsResponse(data);
@@ -578,6 +578,15 @@ export class SupabaseBudgetRepository
   async goalIdsExcludedFromPeriod(period: BudgetPeriod): Promise<string[]> {
     const exclusions = await this.goalIdsExcludedByPeriod([period]);
     return exclusions[`${period.month}/${period.year}`] ?? [];
+  }
+
+  private throwAtomicGenerationError(error: unknown, userId: string): never {
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
+      undefined,
+      { operation: 'generateBudgetsFromTemplateAtomically', userId },
+      { cause: error },
+    );
   }
 
   private async goalIdsExcludedByPeriod(
