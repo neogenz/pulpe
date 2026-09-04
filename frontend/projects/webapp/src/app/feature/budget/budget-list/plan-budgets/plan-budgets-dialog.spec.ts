@@ -147,6 +147,13 @@ describe('PlanBudgetsDialog', () => {
     expect(component['canSubmit']()).toBe(true);
   });
 
+  it('uses the singular label for a one-month period', () => {
+    component['planForm'].controls.endPeriod.setValue(new Date(2026, 8, 1));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('1 période');
+  });
+
   it('constrains both month pickers to the shared budget year range', () => {
     const dateInputs = fixture.debugElement
       .queryAll(By.directive(MatDatepickerInput))

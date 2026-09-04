@@ -278,11 +278,21 @@ export default class BudgetListPage {
       const result = await firstValueFrom(dialogRef.afterClosed());
       if (!result) return;
 
+      const created = result.data.budgets.length;
+      const skipped = result.data.skippedMonths.length;
+
       this.#snackBar.open(
-        this.#transloco.translate('budget.planSuccess', {
-          created: result.data.budgets.length,
-          skipped: result.data.skippedMonths.length,
-        }),
+        `${this.#transloco.translate(
+          created === 1
+            ? 'budget.planSuccessCreatedOne'
+            : 'budget.planSuccessCreated',
+          { count: created },
+        )} · ${this.#transloco.translate(
+          skipped === 1
+            ? 'budget.planSuccessSkippedOne'
+            : 'budget.planSuccessSkipped',
+          { count: skipped },
+        )}`,
         this.#transloco.translate('common.close'),
         {
           duration: 5000,

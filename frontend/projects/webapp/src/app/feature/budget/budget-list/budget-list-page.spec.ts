@@ -130,29 +130,38 @@ describe('BudgetListPage', () => {
   });
 
   describe('openPlanBudgetsDialog', () => {
-    it('passes the current cycle and announces created and skipped counts', async () => {
-      const result = {
-        success: true,
-        data: {
-          budgets: [{}, {}],
-          skippedMonths: [{ month: 10, year: 2026 }],
-        },
-      } as BudgetGenerateResponse;
-      dialogOpen.mockReturnValue({ afterClosed: () => of(result) });
+    it.each([
+      [2, 1, '2 budgets créés · 1 déjà existant ignoré'],
+      [1, 2, '1 budget créé · 2 déjà existants ignorés'],
+    ])(
+      'passes the current cycle and announces %i created and %i skipped',
+      async (created, skipped, message) => {
+        const result = {
+          success: true,
+          data: {
+            budgets: Array.from({ length: created }, () => ({})),
+            skippedMonths: Array.from({ length: skipped }, (_, index) => ({
+              month: 10 + index,
+              year: 2026,
+            })),
+          },
+        } as BudgetGenerateResponse;
+        dialogOpen.mockReturnValue({ afterClosed: () => of(result) });
 
-      await component.openPlanBudgetsDialog();
+        await component.openPlanBudgetsDialog();
 
-      expect(dialogOpen).toHaveBeenCalledWith(
-        PlanBudgetsDialog,
-        expect.objectContaining({
-          data: { currentPeriod: { month: 9, year: 2026 } },
-        }),
-      );
-      expect(snackBarOpen).toHaveBeenCalledWith(
-        '2 budgets créés · 1 déjà existants ignorés',
-        expect.any(String),
-        expect.any(Object),
-      );
-    });
+        expect(dialogOpen).toHaveBeenCalledWith(
+          PlanBudgetsDialog,
+          expect.objectContaining({
+            data: { currentPeriod: { month: 9, year: 2026 } },
+          }),
+        );
+        expect(snackBarOpen).toHaveBeenCalledWith(
+          message,
+          expect.any(String),
+          expect.any(Object),
+        );
+      },
+    );
   });
 });

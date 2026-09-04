@@ -126,8 +126,10 @@ const PERIOD_VALIDATION_TEMPLATE_ID = '00000000-0000-4000-8000-000000000001';
             aria-live="polite"
           >
             {{
-              'budget.planPeriodCount'
-                | transloco: { count: inclusivePeriodCount() }
+              (inclusivePeriodCount() === 1
+                ? 'budget.planPeriodCountOne'
+                : 'budget.planPeriodCount'
+              ) | transloco: { count: inclusivePeriodCount() }
             }}
           </p>
         }
@@ -227,11 +229,15 @@ export class PlanBudgetsDialog {
       : 0;
   });
 
-  protected readonly rangeErrorKey = computed(() => {
-    const result = planBudgetsFormSchema.safeParse({
+  readonly #periodValidation = computed(() =>
+    planBudgetsFormSchema.safeParse({
       ...this.#formValue(),
       templateId: PERIOD_VALIDATION_TEMPLATE_ID,
-    });
+    }),
+  );
+
+  protected readonly rangeErrorKey = computed(() => {
+    const result = this.#periodValidation();
     if (result.success) return null;
 
     const reason = result.error.issues[0]?.message;
@@ -245,10 +251,7 @@ export class PlanBudgetsDialog {
     return (
       !!templateId &&
       !this.templateStore.isGeneratingBudgets() &&
-      planBudgetsFormSchema.safeParse({
-        ...this.#formValue(),
-        templateId,
-      }).success
+      this.#periodValidation().success
     );
   });
 
