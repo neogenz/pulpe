@@ -13,7 +13,6 @@ import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
 } from '../domain/ports/budget-recalculation.port';
-import { computeTargetMonths } from '../domain/budget.formulas';
 import type { Budget } from '../domain/budget.entity';
 
 @Injectable()
@@ -35,12 +34,6 @@ export class GenerateBudgetsUseCase {
     budgets: Budget[];
     skippedMonths: { month: number; year: number }[];
   }> {
-    const targetMonths = computeTargetMonths(
-      dto.startMonth,
-      dto.startYear,
-      dto.count,
-    );
-
     this.logger.info(
       {
         userId: user.id,
@@ -52,36 +45,54 @@ export class GenerateBudgetsUseCase {
       'Starting budget generation',
     );
 
-    const existingPeriods = await this.repo.getExistingPeriods(
-      user.id,
-      targetMonths,
-    );
-
-    const createdBudgetIds: string[] = [];
-    const skippedMonths: { month: number; year: number }[] = [];
+    let createdBudgetIds: string[] = [];
+    let skippedMonths: { month: number; year: number }[] = [];
 
     try {
-      for (const target of targetMonths) {
-        if (existingPeriods.has(`${target.month}/${target.year}`)) {
-          skippedMonths.push(target);
-          continue;
-        }
+      const generated = await this.repo.generateBudgetsFromTemplateAtomically({
+        userId: user.id,
+        templateId: dto.templateId,
+        startMonth: dto.startMonth,
+        startYear: dto.startYear,
+        count: dto.count,
+      });
+      createdBudgetIds = generated.createdBudgetIds;
+      skippedMonths = generated.skippedMonths;
 
-        const budgetId = await this.tryCreateSingleBudget(target, dto, user);
-        createdBudgetIds.push(budgetId);
+      for (const budgetId of createdBudgetIds) {
         await this.budgetRecalculation.recalculate(budgetId);
       }
     } catch (error) {
-      await this.cacheService.invalidateForUser(user.id);
+      if (createdBudgetIds.length === 0) {
+        createdBudgetIds = this.createdBudgetIdsFrom(error);
+      }
       const orphanedBudgetIds = await this.rollbackCreatedBudgets(
         createdBudgetIds,
         user.id,
         error,
       );
+      try {
+        await this.cacheService.invalidateForUser(user.id);
+      } catch (cacheError) {
+        this.logger.warn(
+          {
+            userId: user.id,
+            err: cacheError,
+            originalErrMessage:
+              error instanceof Error ? error.message : String(error),
+            operation: 'budget.generate.cache-invalidation.failed',
+          },
+          'Cache invalidation failed after budget generation rollback',
+        );
+      }
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
-        orphanedBudgetIds.length > 0 ? { orphanedBudgetIds } : undefined,
-        { operation: 'generateBudgets', userId: user.id },
+        undefined,
+        {
+          operation: 'generateBudgets',
+          userId: user.id,
+          ...(orphanedBudgetIds.length > 0 ? { orphanedBudgetIds } : {}),
+        },
         { cause: error },
       );
     }
@@ -105,31 +116,12 @@ export class GenerateBudgetsUseCase {
     return { budgets: createdBudgets, skippedMonths };
   }
 
-  private async tryCreateSingleBudget(
-    target: { month: number; year: number },
-    dto: BudgetGenerate,
-    user: AuthenticatedUser,
-  ): Promise<string> {
-    try {
-      const result = await this.repo.createBudgetFromTemplateRpc({
-        p_user_id: user.id,
-        p_template_id: dto.templateId,
-        p_month: target.month,
-        p_year: target.year,
-        p_description: `Budget ${target.month}/${target.year}`,
-      });
-      return result.budget.id;
-    } catch (error) {
-      if (error instanceof BusinessException) {
-        throw error;
-      }
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
-        undefined,
-        { userId: user.id, templateId: dto.templateId },
-        { cause: error },
-      );
-    }
+  private createdBudgetIdsFrom(error: unknown): string[] {
+    if (!(error instanceof BusinessException)) return [];
+    const ids = error.loggingContext.createdBudgetIds;
+    return Array.isArray(ids)
+      ? ids.filter((id): id is string => typeof id === 'string')
+      : [];
   }
 
   private async rollbackCreatedBudgets(
@@ -157,7 +149,10 @@ export class GenerateBudgetsUseCase {
           userId,
           budgetIds,
           err: rollbackError,
-          originalErr: originalError,
+          originalErrMessage:
+            originalError instanceof Error
+              ? originalError.message
+              : String(originalError),
           operation: 'budget.generate.rollback.failed',
         },
         'Rollback of created budgets failed; budgets remain orphaned',

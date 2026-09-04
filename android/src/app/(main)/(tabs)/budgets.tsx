@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
   getBudgetPeriodDates,
   getBudgetPeriodForDate,
@@ -9,6 +9,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { RefreshControl, SectionList, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
+  Appbar,
   FAB,
   List,
   Text,
@@ -26,6 +27,7 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatSignedCompactCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
+import { Notice } from "@/core/ui/notice";
 import { StatusBadge } from "@/core/ui/status-badge";
 import { TabHeader } from "@/core/ui/tab-header";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
@@ -66,6 +68,10 @@ export default function BudgetsScreen() {
   useAmountMasking();
   const theme = useTheme();
   const { locale, t } = useTranslation();
+  const generationResult = useLocalSearchParams<{
+    createdCount?: string;
+    skippedCount?: string;
+  }>();
   const settings = useUserSettings();
   const budgets = useBudgetList();
 
@@ -109,6 +115,9 @@ export default function BudgetsScreen() {
 
   const list = useRef<SectionList<BudgetSparse, BudgetYearGroup>>(null);
   const hasAnchored = useRef(false);
+  const createdCount = navigationCount(generationResult.createdCount);
+  const skippedCount = navigationCount(generationResult.skippedCount);
+  const showsGenerationResult = createdCount !== null && skippedCount !== null;
 
   const scrollToAnchor = useCallback(() => {
     if (anchor === null) return;
@@ -180,94 +189,104 @@ export default function BudgetsScreen() {
     );
   }
 
-  if (sections.length === 0) {
-    return (
-      <PlaceholderScreen
-        icon="calendar-blank-outline"
-        title={t("budgets.list.emptyTitle")}
-        hint={t("budgets.list.emptyHint")}
-        action={{
-          label: t("budgets.list.create"),
-          onPress: () => router.push("/budget/create"),
-        }}
-      />
-    );
-  }
-
   const { currency, payDayOfMonth } = settings.data;
 
   return (
     // The app bar carries the status bar inset; asking the safe area for the
     // top edge too would double it.
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <TabHeader title={t("budgets.list.title")} />
+      <TabHeader
+        title={t("budgets.list.title")}
+        trailing={
+          <Appbar.Action
+            icon="calendar-plus"
+            onPress={() => router.push("/budget/plan")}
+            accessibilityLabel={t("budgets.list.planAccessibility")}
+          />
+        }
+      />
       {/* Sectioned rather than flat: an account two years old is 24 months of
           cards, and mounting all of them to show four is the frame drop the
           list opens on. `SectionList` is the virtualiser that already speaks
           year-then-months, so nothing has to be flattened by hand. */}
-      <SectionList
-        ref={list}
-        sections={groups}
-        keyExtractor={(budget) => budget.id}
-        contentContainerStyle={styles.content}
-        onContentSizeChange={anchorList}
-        // Not optional, whatever is on screen: `scrollToIndex` refuses outright
-        // unless one of these two is present, and it throws rather than returns
-        // — which on this tab came out as a native mounting crash, not a scroll
-        // that quietly did nothing. These cards have no fixed height (a subtitle
-        // wraps, a badge does not), so `getItemLayout` would have to lie; the
-        // honest half of the pair is to answer the failure. It means the row is
-        // rendered but not yet measured, and one frame later it is.
-        onScrollToIndexFailed={() => {
-          requestAnimationFrame(scrollToAnchor);
-        }}
-        // What makes that second attempt land: the row has to exist to be
-        // measured, and the window stops well short of a year of months.
-        initialNumToRender={
-          anchor === null
-            ? undefined
-            : Math.max(DEFAULT_RENDER_WINDOW, anchor.rowsAbove + 1)
-        }
-        // Off by default on Android, on by default on iOS. A year is the one
-        // thing a month card never says, so scrolling into 2025 without it
-        // leaves twelve "Décembre" with nothing to date them.
-        stickySectionHeadersEnabled
-        refreshControl={
-          <RefreshControl
-            refreshing={budgets.isRefetching}
-            onRefresh={() => void invalidateBudgetData()}
-          />
-        }
-        onEndReached={() => {
-          if (budgets.hasNextPage && !budgets.isFetchingNextPage) {
-            void budgets.fetchNextPage();
+      {sections.length === 0 ? (
+        <PlaceholderScreen
+          icon="calendar-blank-outline"
+          title={t("budgets.list.emptyTitle")}
+          hint={t("budgets.list.emptyHint")}
+          action={{
+            label: t("budgets.list.create"),
+            onPress: () => router.push("/budget/create"),
+          }}
+        />
+      ) : (
+        <SectionList
+          ref={list}
+          sections={groups}
+          keyExtractor={(budget) => budget.id}
+          contentContainerStyle={styles.content}
+          onContentSizeChange={anchorList}
+          // Not optional, whatever is on screen: `scrollToIndex` refuses outright
+          // unless one of these two is present, and it throws rather than returns
+          // — which on this tab came out as a native mounting crash, not a scroll
+          // that quietly did nothing. These cards have no fixed height (a subtitle
+          // wraps, a badge does not), so `getItemLayout` would have to lie; the
+          // honest half of the pair is to answer the failure. It means the row is
+          // rendered but not yet measured, and one frame later it is.
+          onScrollToIndexFailed={() => {
+            requestAnimationFrame(scrollToAnchor);
+          }}
+          // What makes that second attempt land: the row has to exist to be
+          // measured, and the window stops well short of a year of months.
+          initialNumToRender={
+            anchor === null
+              ? undefined
+              : Math.max(DEFAULT_RENDER_WINDOW, anchor.rowsAbove + 1)
           }
-        }}
-        ListFooterComponent={
-          budgets.isFetchingNextPage ? (
-            <ActivityIndicator accessibilityLabel={t("common.loading")} />
-          ) : null
-        }
-        renderSectionHeader={({ section }) => (
-          <List.Subheader
-            style={[styles.year, { backgroundColor: theme.colors.background }]}
-          >
-            {section.year}
-          </List.Subheader>
-        )}
-        renderItem={({ item: budget }) => (
-          <View style={styles.row}>
-            <BudgetRow
-              budget={budget}
-              currency={currency}
-              payDayOfMonth={payDayOfMonth}
-              timing={budgetTiming(budget, currentPeriod)}
-              locale={locale}
-              t={t}
+          // Off by default on Android, on by default on iOS. A year is the one
+          // thing a month card never says, so scrolling into 2025 without it
+          // leaves twelve "Décembre" with nothing to date them.
+          stickySectionHeadersEnabled
+          refreshControl={
+            <RefreshControl
+              refreshing={budgets.isRefetching}
+              onRefresh={() => void invalidateBudgetData()}
             />
-          </View>
-        )}
-      />
+          }
+          onEndReached={() => {
+            if (budgets.hasNextPage && !budgets.isFetchingNextPage) {
+              void budgets.fetchNextPage();
+            }
+          }}
+          ListFooterComponent={
+            budgets.isFetchingNextPage ? (
+              <ActivityIndicator accessibilityLabel={t("common.loading")} />
+            ) : null
+          }
+          renderSectionHeader={({ section }) => (
+            <List.Subheader
+              style={[
+                styles.year,
+                { backgroundColor: theme.colors.background },
+              ]}
+            >
+              {section.year}
+            </List.Subheader>
+          )}
+          renderItem={({ item: budget }) => (
+            <View style={styles.row}>
+              <BudgetRow
+                budget={budget}
+                currency={currency}
+                payDayOfMonth={payDayOfMonth}
+                timing={budgetTiming(budget, currentPeriod)}
+                locale={locale}
+                t={t}
+              />
+            </View>
+          )}
+        />
+      )}
 
       <FAB
         icon="plus"
@@ -275,8 +294,36 @@ export default function BudgetsScreen() {
         onPress={() => router.push("/budget/create")}
         accessibilityLabel={t("budgets.list.createAccessibility")}
       />
+
+      <Notice
+        clearsFab
+        visible={showsGenerationResult}
+        onDismiss={() =>
+          router.setParams({
+            createdCount: undefined,
+            skippedCount: undefined,
+          })
+        }
+      >
+        {showsGenerationResult
+          ? t("budgets.plan.result", {
+              created: t("budgets.plan.resultCreated", {
+                count: createdCount,
+              }),
+              skipped: t("budgets.plan.resultSkipped", {
+                count: skippedCount,
+              }),
+            })
+          : ""}
+      </Notice>
     </View>
   );
+}
+
+function navigationCount(value: unknown): number | null {
+  if (typeof value !== "string") return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
 /**

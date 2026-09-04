@@ -149,6 +149,15 @@ enum BudgetPeriodCalculator {
 
     // MARK: - Compare Periods
 
+    static func periodIndex(_ period: BudgetPeriod) -> Int {
+        period.year * 12 + period.month
+    }
+
+    static func periodFromIndex(_ index: Int) -> BudgetPeriod {
+        let year = (index - 1) / 12
+        return BudgetPeriod(month: index - year * 12, year: year)
+    }
+
     static func comparePeriods(_ lhs: BudgetPeriod, _ rhs: BudgetPeriod) -> Int {
         if lhs.year != rhs.year {
             return lhs.year < rhs.year ? -1 : 1

@@ -11,6 +11,8 @@ const MAX_YEAR = CURRENT_YEAR + 10;
 const MONTHS_PER_YEAR = 12;
 const MONTH_MIN = 1;
 const MONTH_MAX = MONTHS_PER_YEAR;
+export const BUDGET_MIN_YEAR = MIN_YEAR;
+export const BUDGET_MAX_YEAR = MAX_YEAR;
 export const PAY_DAY_MIN = 1;
 export const PAY_DAY_MAX = 31;
 
@@ -209,17 +211,27 @@ const MAX_GENERATE_COUNT = 36;
 const DEFAULT_GENERATE_COUNT = 12;
 
 /** Schema for bulk-generating consecutive monthly budgets from a template */
-export const budgetGenerateSchema = z.strictObject({
-  templateId: z.uuid(),
-  startMonth: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
-  startYear: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
-  count: z
-    .number()
-    .int()
-    .min(1)
-    .max(MAX_GENERATE_COUNT)
-    .default(DEFAULT_GENERATE_COUNT),
-});
+export const budgetGenerateSchema = z
+  .strictObject({
+    templateId: z.uuid(),
+    startMonth: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+    startYear: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+    count: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_GENERATE_COUNT)
+      .default(DEFAULT_GENERATE_COUNT),
+  })
+  .refine(
+    ({ startMonth, startYear, count }) =>
+      startYear + Math.floor((startMonth - 1 + count - 1) / MONTHS_PER_YEAR) <=
+      MAX_YEAR,
+    {
+      message: `Generated periods must end by ${MAX_YEAR}`,
+      path: ['count'],
+    },
+  );
 export type BudgetGenerate = z.infer<typeof budgetGenerateSchema>;
 
 /** Response for budget generation: created budgets + skipped months */

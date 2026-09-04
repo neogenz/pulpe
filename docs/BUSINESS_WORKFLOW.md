@@ -132,12 +132,13 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 
 **Scenario** :
 1. Choisir un modele de reference
-2. Choisir la periode (defaut : annee civile)
-3. Pulpe genere 12 budgets identiques
-4. Les reports se calculent : mois 1 → mois 2 → ... → mois 12
-5. Ajuster les mois speciaux (13e salaire en dec, vacances en juillet, impots en mars...)
-6. Les reports se recalculent en cascade a chaque ajustement
-7. Vision annuelle complete : mois par mois, ce qu'il restera
+2. Choisir une periode inclusive de 1 a 36 cycles (defaut : 12 cycles consecutifs depuis le cycle courant, calcule avec le jour de paie)
+3. Pulpe conserve et ignore les budgets deja presents, puis genere les autres depuis le modele
+4. Pulpe annonce separement le nombre de budgets crees et le nombre de mois ignores
+5. Les reports se calculent : mois 1 → mois 2 → ... → dernier mois cree
+6. Ajuster les mois speciaux (13e salaire en dec, vacances en juillet, impots en mars...)
+7. Les reports se recalculent en cascade a chaque ajustement
+8. Vision complete : mois par mois, ce qu'il restera
 
 **Le report : le mecanisme qui change tout.** Sans report, 12 budgets = 12 feuilles independantes. Avec report, c'est une chaine : l'excedent ou le deficit de janvier impacte fevrier, qui impacte mars, etc. C'est *ca* qui permet d'anticiper : "si j'ajoute des vacances en juillet, est-ce que j'ai assez en aout ?"
 

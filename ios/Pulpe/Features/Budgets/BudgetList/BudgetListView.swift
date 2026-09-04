@@ -6,6 +6,7 @@ struct BudgetListView: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var createBudgetTarget: (month: Int, year: Int)?
+    @State private var showsBudgetPlanner = false
     @State private var hasAppeared = false
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var templateBalance: Decimal?
@@ -42,7 +43,8 @@ struct BudgetListView: View {
         .toolbarColorScheme(isOnHeroSurface ? .dark : nil, for: .navigationBar)
         .heroNavigationBar()
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                planButton
                 createButton
             }
             .heroToolbarGroup(isOnHeroSurface)
@@ -58,6 +60,16 @@ struct BudgetListView: View {
                 ) { budget in
                     store.addBudget(budget)
                     appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
+                }
+            }
+        }
+        .sheet(isPresented: $showsBudgetPlanner) {
+            PlanBudgetsView(payDayOfMonth: userSettingsStore.payDayOfMonth) { response in
+                Task {
+                    await store.forceRefresh()
+                    AccessibilityNotification.Announcement(
+                        BudgetGenerationResultAnnouncement.message(for: response)
+                    ).post()
                 }
             }
         }
@@ -124,7 +136,13 @@ struct BudgetListView: View {
         Button(action: { createBudgetTarget = store.nextAvailableMonth }, label: { Image(systemName: "plus") })
         .disabled(store.nextAvailableMonth == nil)
         .heroToolbarButtonStyle(isOnHeroSurface)
-        .accessibilityLabel("Créer un nouveau budget")
+        .accessibilityLabel(BudgetListAccessibility.createOneLabel)
+    }
+
+    private var planButton: some View {
+        Button(action: { showsBudgetPlanner = true }, label: { Image(systemName: "calendar.badge.plus") })
+            .heroToolbarButtonStyle(isOnHeroSurface)
+            .accessibilityLabel(BudgetListAccessibility.planSeveralLabel)
     }
 
     // MARK: - Month Slots
@@ -239,6 +257,11 @@ struct BudgetListView: View {
         .scrollIndicators(.automatic)
         .background { Color.appBackground.ignoresSafeArea() }
     }
+}
+
+enum BudgetListAccessibility {
+    static let createOneLabel = AppLocale.string("Créer un nouveau budget")
+    static let planSeveralLabel = AppLocale.string("Planifier plusieurs budgets")
 }
 
 // MARK: - Period Label

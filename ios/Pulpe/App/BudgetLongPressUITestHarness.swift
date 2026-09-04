@@ -17,6 +17,7 @@ enum UITestLaunchScenario {
     case contextualCreationBudget
     case languageSettings
     case loginScreen
+    case planBudgetsPending
 
     private static let longPressWithTransactionsKey = "UITEST_BUDGET_LONG_PRESS_WITH_TRANSACTIONS"
     private static let longPressEmptyKey = "UITEST_BUDGET_LONG_PRESS_EMPTY"
@@ -34,6 +35,7 @@ enum UITestLaunchScenario {
     private static let contextualCreationBudgetKey = "UITEST_CONTEXTUAL_CREATION_BUDGET"
     private static let languageSettingsKey = "UITEST_LANGUAGE_SETTINGS"
     private static let loginScreenKey = "UITEST_LOGIN_SCREEN"
+    private static let planBudgetsPendingKey = "UITEST_PLAN_BUDGETS_PENDING"
     private static let scenarioEnvironmentKey = "UITEST_SCENARIO"
 
     static var current: Self? {
@@ -74,6 +76,7 @@ enum UITestLaunchScenario {
             contextualCreationBudgetKey: .contextualCreationBudget,
             languageSettingsKey: .languageSettings,
             loginScreenKey: .loginScreen,
+            planBudgetsPendingKey: .planBudgetsPending,
         ][key]
     }
 
@@ -96,6 +99,7 @@ enum UITestLaunchScenario {
         case .contextualCreationBudget: "contextual-creation-budget"
         case .languageSettings: "language-settings"
         case .loginScreen: "login-screen"
+        case .planBudgetsPending: "plan-budgets-pending"
         }
     }
 }

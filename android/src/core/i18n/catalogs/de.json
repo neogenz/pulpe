@@ -306,9 +306,42 @@
       "emptyTitle": "Noch keine Budgets",
       "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",
       "loadErrorTitle": "Deine Budgets konnten nicht geladen werden",
+      "planAccessibility": "Mehrere Budgets planen",
       "potential": "Potenzial",
       "result": "Ergebnis",
       "title": "Budgets"
+    },
+    "plan": {
+      "default": "Standard",
+      "error": "Die Budgets konnten nicht geplant werden. Versuch es erneut.",
+      "existingHint": "Vorhandene Budgets werden übersprungen.",
+      "from": "Von",
+      "loadErrorHint": "Prüfe deine Verbindung und versuch es erneut.",
+      "loadErrorTitle": "Die Budgetplanung kann nicht vorbereitet werden",
+      "monthAccessibility": "Monat für %{field} wählen",
+      "noTemplatesHint": "Die Planung beginnt mit einer Budgetvorlage. Erstelle zuerst eine.",
+      "noTemplatesTitle": "Noch keine Budgetvorlage",
+      "periodCount": {
+        "one": "%{count} Periode",
+        "other": "%{count} Perioden"
+      },
+      "rangeLimitError": "Wähle maximal 36 Perioden.",
+      "rangeOrderError": "Die Endperiode muss nach der Startperiode liegen.",
+      "result": "%{created}, %{skipped}",
+      "resultCreated": {
+        "one": "%{count} Budget erstellt",
+        "other": "%{count} Budgets erstellt"
+      },
+      "resultSkipped": {
+        "one": "%{count} vorhandenes Budget übersprungen",
+        "other": "%{count} vorhandene Budgets übersprungen"
+      },
+      "submit": "Planen",
+      "template": "Budgetvorlage",
+      "title": "Budgets planen",
+      "to": "Bis",
+      "viewTemplates": "Meine Budgetvorlagen ansehen",
+      "yearAccessibility": "Jahr für %{field} wählen"
     },
     "monthSubtitle": {
       "negative": {

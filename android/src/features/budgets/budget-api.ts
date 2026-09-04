@@ -1,6 +1,10 @@
 import {
+  type BudgetGenerate,
+  type BudgetGenerateResponse,
   type BudgetDetailsResponse,
   type BudgetSparse,
+  budgetGenerateResponseSchema,
+  budgetGenerateSchema,
   budgetDetailsResponseSchema,
   budgetSparseListResponseSchema,
 } from "pulpe-shared";
@@ -14,6 +18,17 @@ export type BudgetDetails = BudgetDetailsResponse["data"];
 const SPARSE_FIELDS =
   "month,year,totalIncome,totalExpenses,totalSavings,rollover,remaining";
 export const BUDGET_PAGE_SIZE = 36;
+
+export function generateBudgets(
+  payload: BudgetGenerate,
+): Promise<BudgetGenerateResponse> {
+  return api.post(
+    ENDPOINTS.budgetsGenerate,
+    payload,
+    budgetGenerateResponseSchema,
+    budgetGenerateSchema,
+  );
+}
 
 /**
  * One ordered history page. The dashboard resolves its current period through

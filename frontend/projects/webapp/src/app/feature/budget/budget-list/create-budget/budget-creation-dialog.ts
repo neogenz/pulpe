@@ -19,7 +19,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
-import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { startOfMonth, setMonth, setYear } from 'date-fns';
 import { TemplatesList } from './templates-list';
 import { type TemplateViewModel } from './template-view-model';
@@ -28,7 +27,10 @@ import { TemplateStore } from './services/template-store';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { getDateDisplayFormats } from '@core/date/date-display-formats';
+import {
+  getDateDisplayFormats,
+  getMonthYearDateFormats,
+} from '@core/date/date-display-formats';
 import { UserSettingsStore } from '@core/user-settings';
 import {
   BUDGET_DESCRIPTION_MAX_LENGTH,
@@ -41,25 +43,6 @@ interface BudgetCreationDialogData {
 }
 
 const DESCRIPTION_MAX_LENGTH = BUDGET_DESCRIPTION_MAX_LENGTH;
-
-// Format personnalisé pour le month/year picker — le séparateur d'affichage suit
-// la devise (CHF → 06.2026, EUR → 06/2026) ; le parse accepte les deux saisies.
-function buildMonthYearFormats(monthYear: string) {
-  return {
-    ...MAT_DATE_FNS_FORMATS,
-    parse: {
-      ...MAT_DATE_FNS_FORMATS.parse,
-      dateInput: ['MM.yyyy', 'MM/yyyy'],
-    },
-    display: {
-      ...MAT_DATE_FNS_FORMATS.display,
-      dateInput: monthYear,
-      monthYearLabel: 'MMM yyyy',
-      dateA11yLabel: monthYear,
-      monthYearA11yLabel: 'MMMM yyyy',
-    },
-  };
-}
 
 @Component({
   selector: 'pulpe-create-budget-dialog',
@@ -79,9 +62,7 @@ function buildMonthYearFormats(monthYear: string) {
     {
       provide: MAT_DATE_FORMATS,
       useFactory: () =>
-        buildMonthYearFormats(
-          getDateDisplayFormats(inject(UserSettingsStore).currency()).monthYear,
-        ),
+        getMonthYearDateFormats(inject(UserSettingsStore).currency()),
     },
   ],
   template: `

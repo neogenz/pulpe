@@ -30,10 +30,15 @@ import { firstValueFrom, map, shareReplay } from 'rxjs';
 import { MonthsError } from './ui/budget-error';
 import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
+import {
+  PlanBudgetsDialog,
+  type PlanBudgetsDialogData,
+} from './plan-budgets/plan-budgets-dialog';
 import SearchTransactionsDialogComponent from './search-transactions-dialog/search-transactions-dialog';
 import { Logger } from '@core/logging/logger';
 import {
   type BudgetExportResponse,
+  type BudgetGenerateResponse,
   type TransactionSearchResult,
 } from 'pulpe-shared';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
@@ -99,6 +104,20 @@ import { UserSettingsStore } from '@core/user-settings';
             data-testid="search-transactions-btn"
           >
             <mat-icon>search</mat-icon>
+          </button>
+          <button
+            matButton="tonal"
+            (click)="openPlanBudgetsDialog()"
+            [disabled]="state.budgets.isInitialLoading()"
+            [matTooltip]="'budget.planAction' | transloco"
+            [attr.aria-label]="'budget.planAction' | transloco"
+            class="min-h-[44px]"
+            data-testid="plan-budgets-btn"
+          >
+            <mat-icon>calendar_month</mat-icon>
+            <span class="hidden xl:inline">{{
+              'budget.planAction' | transloco
+            }}</span>
           </button>
           <button
             matButton="filled"
@@ -243,6 +262,63 @@ export default class BudgetListPage {
   async openCreateBudgetDialog(): Promise<void> {
     const { month, year } = this.state.nextAvailableMonth();
     return this.openCreateBudgetDialogForMonth(month, year);
+  }
+
+  async openPlanBudgetsDialog(): Promise<void> {
+    try {
+      const dialogRef = this.#dialog.open<
+        PlanBudgetsDialog,
+        PlanBudgetsDialogData,
+        BudgetGenerateResponse
+      >(PlanBudgetsDialog, {
+        ...this.#dialogConfig(),
+        data: { currentPeriod: this.state.currentDate() },
+        autoFocus: 'first-header',
+      });
+      const result = await firstValueFrom(dialogRef.afterClosed());
+      if (!result) return;
+
+      const created = result.data.budgets.length;
+      const skipped = result.data.skippedMonths.length;
+      const messages = [
+        ...(created > 0
+          ? [
+              this.#transloco.translate(
+                created === 1
+                  ? 'budget.planSuccessCreatedOne'
+                  : 'budget.planSuccessCreated',
+                { count: created },
+              ),
+            ]
+          : []),
+        ...(skipped > 0
+          ? [
+              this.#transloco.translate(
+                skipped === 1
+                  ? 'budget.planSuccessSkippedOne'
+                  : 'budget.planSuccessSkipped',
+                { count: skipped },
+              ),
+            ]
+          : []),
+      ];
+
+      this.#snackBar.open(
+        messages.join(' · '),
+        this.#transloco.translate('common.close'),
+        {
+          duration: 5000,
+          panelClass: ['!bg-primary', '!text-on-primary'],
+        },
+      );
+    } catch (error) {
+      this.#logger.error('Error opening plan budgets dialog', error);
+      this.#snackBar.open(
+        this.#transloco.translate('budget.openDialogError'),
+        this.#transloco.translate('common.close'),
+        { duration: 5000 },
+      );
+    }
   }
 
   onTabChange(selectedIndex: number): void {

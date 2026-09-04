@@ -6,7 +6,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { of } from 'rxjs';
-import { type BudgetExportResponse } from 'pulpe-shared';
+import {
+  type BudgetExportResponse,
+  type BudgetGenerateResponse,
+} from 'pulpe-shared';
 
 import { ExcelExportService } from '@core/budget/excel-export.service';
 import { FileDownloadService } from '@core/file-download';
@@ -18,13 +21,17 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import BudgetListPage from './budget-list-page';
 import { BudgetListStore } from './budget-list-store';
+import { PlanBudgetsDialog } from './plan-budgets/plan-budgets-dialog';
 
 describe('BudgetListPage', () => {
   const fileDownload = { asJson: vi.fn(), asExcel: vi.fn() };
   let fixture: ComponentFixture<BudgetListPage>;
   let component: BudgetListPage;
+  const dialogOpen = vi.fn();
+  const snackBarOpen = vi.fn();
   let mockStore: {
     budgets: { status: ReturnType<typeof signal<string>> };
+    currentDate: ReturnType<typeof signal<{ month: number; year: number }>>;
     refreshData: ReturnType<typeof vi.fn>;
     exportAllBudgets: ReturnType<typeof vi.fn>;
   };
@@ -34,12 +41,15 @@ describe('BudgetListPage', () => {
 
     mockStore = {
       budgets: { status: signal('resolved') },
+      currentDate: signal({ month: 9, year: 2026 }),
       refreshData: vi.fn(),
       exportAllBudgets: vi.fn().mockResolvedValue({
         success: true,
         data: { exportDate: '2026-01-01', totalBudgets: 0, budgets: [] },
       } satisfies BudgetExportResponse),
     };
+    dialogOpen.mockReset();
+    snackBarOpen.mockReset();
 
     await TestBed.configureTestingModule({
       imports: [BudgetListPage],
@@ -50,12 +60,12 @@ describe('BudgetListPage', () => {
         ...provideTranslocoForTest(),
         { provide: BudgetListStore, useValue: mockStore },
         { provide: TitleDisplay, useValue: { currentTitle: signal('') } },
-        { provide: MatDialog, useValue: { open: vi.fn() } },
+        { provide: MatDialog, useValue: { open: dialogOpen } },
         {
           provide: BreakpointObserver,
           useValue: { observe: () => of({ matches: false }) },
         },
-        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        { provide: MatSnackBar, useValue: { open: snackBarOpen } },
         { provide: Logger, useValue: { error: vi.fn() } },
         { provide: LoadingIndicator, useValue: { setLoading: vi.fn() } },
         {
@@ -117,5 +127,43 @@ describe('BudgetListPage', () => {
         'pulpe-export-2026-01-01',
       );
     });
+  });
+
+  describe('openPlanBudgetsDialog', () => {
+    it.each([
+      [2, 1, '2 budgets créés · 1 déjà existant ignoré'],
+      [1, 2, '1 budget créé · 2 déjà existants ignorés'],
+      [12, 0, '12 budgets créés'],
+      [0, 12, '12 déjà existants ignorés'],
+    ])(
+      'passes the current cycle and announces %i created and %i skipped',
+      async (created, skipped, message) => {
+        const result = {
+          success: true,
+          data: {
+            budgets: Array.from({ length: created }, () => ({})),
+            skippedMonths: Array.from({ length: skipped }, (_, index) => ({
+              month: 10 + index,
+              year: 2026,
+            })),
+          },
+        } as BudgetGenerateResponse;
+        dialogOpen.mockReturnValue({ afterClosed: () => of(result) });
+
+        await component.openPlanBudgetsDialog();
+
+        expect(dialogOpen).toHaveBeenCalledWith(
+          PlanBudgetsDialog,
+          expect.objectContaining({
+            data: { currentPeriod: { month: 9, year: 2026 } },
+          }),
+        );
+        expect(snackBarOpen).toHaveBeenCalledWith(
+          message,
+          expect.any(String),
+          expect.any(Object),
+        );
+      },
+    );
   });
 });

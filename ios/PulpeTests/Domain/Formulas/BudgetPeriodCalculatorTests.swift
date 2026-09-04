@@ -331,6 +331,29 @@ struct FormatPeriodTests {
 
 // MARK: - comparePeriods Tests
 
+struct PeriodIndexTests {
+    @Test(
+        arguments: [
+            BudgetPeriod(month: 1, year: 2025),
+            BudgetPeriod(month: 12, year: 2025),
+            BudgetPeriod(month: 1, year: 2026),
+            BudgetPeriod(month: 6, year: 2031)
+        ]
+    )
+    func roundTrips(_ period: BudgetPeriod) {
+        let index = BudgetPeriodCalculator.periodIndex(period)
+        #expect(BudgetPeriodCalculator.periodFromIndex(index) == period)
+    }
+
+    @Test func computesInclusiveCountAcrossYearBoundary() {
+        let start = BudgetPeriodCalculator.periodIndex(BudgetPeriod(month: 12, year: 2025))
+        let end = BudgetPeriodCalculator.periodIndex(BudgetPeriod(month: 11, year: 2026))
+
+        #expect(BudgetPeriodCalculator.periodFromIndex(start + 1) == BudgetPeriod(month: 1, year: 2026))
+        #expect(end - start + 1 == 12)
+    }
+}
+
 struct ComparePeriodsTests {
     @Test func equalPeriods_returnsZero() {
         let lhs = BudgetPeriod(month: 3, year: 2025)

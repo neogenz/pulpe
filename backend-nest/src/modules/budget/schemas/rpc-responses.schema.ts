@@ -20,6 +20,20 @@ export const createBudgetFromTemplateResponseSchema = z.object({
   template_name: z.string().min(1),
 });
 
+export const generateBudgetsFromTemplateResponseSchema = z.strictObject({
+  created_budget_ids: z.array(z.string().uuid()),
+  skipped_months: z.array(
+    z.strictObject({
+      month: z.number().int().min(1).max(12),
+      year: z.number().int().min(2020),
+    }),
+  ),
+});
+
+const generatedBudgetIdsSchema = z.object({
+  created_budget_ids: z.array(z.string().uuid()),
+});
+
 /**
  * Schema for the get_budget_with_rollover RPC function response
  * Validates the structure returned by the PostgreSQL function
@@ -36,6 +50,10 @@ export const getBudgetWithRolloverResponseSchema = z.object({
  */
 export type CreateBudgetFromTemplateResponse = z.infer<
   typeof createBudgetFromTemplateResponseSchema
+>;
+
+export type GenerateBudgetsFromTemplateResponse = z.infer<
+  typeof generateBudgetsFromTemplateResponseSchema
 >;
 
 /**
@@ -55,6 +73,17 @@ export function validateCreateBudgetResponse(
   data: unknown,
 ): CreateBudgetFromTemplateResponse {
   return createBudgetFromTemplateResponseSchema.parse(data);
+}
+
+export function validateGenerateBudgetsResponse(
+  data: unknown,
+): GenerateBudgetsFromTemplateResponse {
+  return generateBudgetsFromTemplateResponseSchema.parse(data);
+}
+
+export function extractGeneratedBudgetIds(data: unknown): string[] {
+  const result = generatedBudgetIdsSchema.safeParse(data);
+  return result.success ? result.data.created_budget_ids : [];
 }
 
 /**

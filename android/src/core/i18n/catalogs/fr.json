@@ -306,9 +306,42 @@
       "emptyTitle": "Aucun budget pour l'instant",
       "loadErrorHint": "Vérifie ta connexion, puis réessaie.",
       "loadErrorTitle": "On n'a pas pu charger tes budgets",
+      "planAccessibility": "Planifier plusieurs budgets",
       "potential": "Potentiel",
       "result": "Résultat",
       "title": "Budgets"
+    },
+    "plan": {
+      "default": "par défaut",
+      "error": "Les budgets n'ont pas pu être planifiés. Réessaie.",
+      "existingHint": "Les budgets existants seront ignorés.",
+      "from": "De",
+      "loadErrorHint": "Vérifie ta connexion, puis réessaie.",
+      "loadErrorTitle": "Impossible de préparer la planification",
+      "monthAccessibility": "Choisir le mois de %{field}",
+      "noTemplatesHint": "La planification part d'un Mois Type. Crée-en un d'abord.",
+      "noTemplatesTitle": "Pas encore de Mois Type",
+      "periodCount": {
+        "one": "%{count} période",
+        "other": "%{count} périodes"
+      },
+      "rangeLimitError": "Choisis au maximum 36 périodes.",
+      "rangeOrderError": "La période de fin doit suivre la période de début.",
+      "result": "%{created}, %{skipped}",
+      "resultCreated": {
+        "one": "%{count} budget créé",
+        "other": "%{count} budgets créés"
+      },
+      "resultSkipped": {
+        "one": "%{count} budget existant ignoré",
+        "other": "%{count} budgets existants ignorés"
+      },
+      "submit": "Planifier",
+      "template": "Mois Type",
+      "title": "Planifier des budgets",
+      "to": "À",
+      "viewTemplates": "Voir mes Mois Types",
+      "yearAccessibility": "Choisir l'année de %{field}"
     },
     "monthSubtitle": {
       "negative": {

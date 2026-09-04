@@ -132,4 +132,24 @@ struct BudgetListAccessibilityTests {
         #expect(BudgetMonthRow.accessibilityTraits(isCurrent: true).contains(.isSelected))
         #expect(!BudgetMonthRow.accessibilityTraits(isCurrent: false).contains(.isSelected))
     }
+
+    @Test func creationActionsHaveDistinctAccessibleLabels() {
+        #expect(!BudgetListAccessibility.createOneLabel.isEmpty)
+        #expect(!BudgetListAccessibility.planSeveralLabel.isEmpty)
+        #expect(BudgetListAccessibility.createOneLabel != BudgetListAccessibility.planSeveralLabel)
+    }
+
+    @Test func generationAnnouncementIncludesCreatedAndSkippedZeroCounts() {
+        let response = BudgetGenerateResponse(
+            budgets: [],
+            skippedMonths: [
+                BudgetGenerateSkippedPeriod(month: 9, year: 2026),
+                BudgetGenerateSkippedPeriod(month: 10, year: 2026),
+            ]
+        )
+        let message = BudgetGenerationResultAnnouncement.message(for: response)
+
+        #expect(message.contains("0"))
+        #expect(message.contains("2"))
+    }
 }
