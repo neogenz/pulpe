@@ -11,15 +11,10 @@
 
 ## Release
 
-- `/release` creates one `release/vX.Y.Z` branch and one lockstep version commit from synchronized `main`, merged back through its single preparation PR — that merge commit is the candidate and must stay the exact tip of `main` until publication. The single manual entry `🚦 Release Promotion` has two modes: a read-only `plan` job (no secret, environment, or write permission) that resolves the proven candidate, the latest published release (rollback anchor), lineage, migrations and provider deployment IDs into a `release-plan` manifest, and `publish` on `main`, the sole caller of the reusable `production.yml`.
-- `publish` replays the migration contract on the published-anchor/candidate range before `supabase db push`, verifies the same tree and exact deployments before the immutable `vX.Y.Z` tag/GitHub Release; the web version comes from the deployed backend artifact. Proof resolution never depends on `workflow_run.pull_requests[]`, which may be empty after merge. See `docs/DEPLOYMENT.md`.
-- GitHub deployment success is not sufficient proof for Railway: the finalizer reads Railway directly, verifies that the existing latest successful `production` deployment matches the exact production commit, and records its ID in the final proof. The normal workflow must not invoke `serviceInstanceDeployV2` or trigger a redeploy. A recovery stays fail-closed and idempotent, with maintenance kept or restored until migrations, the exact backend, version gates and public health are verified.
-- iOS crash reports symbolicate only if the archive's dSYMs reached PostHog: after `xcodebuild archive`, run `ios/scripts/upload-dsyms.sh` (auth: `posthog-cli login` once, or `POSTHOG_CLI_PROJECT_ID` + `POSTHOG_CLI_API_KEY` in the shell; never committed).
-- An exact App Store build uploaded by `internal` from `main` can be promoted by a `release` dispatch from `main` without rebuilding: the workflow requires the same staging proof and unexpired upload intent, then emits a release proof. Fresh release uploads still require `production` or an exact annotated release tag.
-- iOS distribution treats proof artifacts as existence markers: it verifies the exact SHA, trusted workflow success and one unexpired named artifact, but never downloads the payload; `ci-security` preserves this artifact-poisoning boundary.
-- Application rollback uses Vercel rollback or Railway redeploy; no database-migration rollback procedure is codified. See `docs/TROUBLESHOOTING.md`.
-- The cutover was proven by `v0.47.1` at `aefa93bd66cd45ebbfdc0aa474056c63d7e02a1a`: finalizer run `33278908054` succeeded on attempt 3 and iOS run `33298625338` proved `1.4.3` build 11. Audit and rerun remain available from GitHub UI/CLI without agent state.
-- The retired Git `preview` ref ended at `35117a4fc7930f609c9e4f8708d3307d98842f82`; its branch and ruleset are deleted. Its archival recreation command is recorded in `docs/DEPLOYMENT.md`.
+- Canonical operations and cutover settings: `docs/DEPLOYMENT.md#release-process`; canonical version/notes approval: `.claude/skills/release/SKILL.md`.
+- Native GitHub auto-merge applies only to the explicitly approved release PR. One main-push run sequences staging → reusable production → reusable finalization → optional iOS submission. Exact source, notes, deployments and terminal remote objects remain verified.
+- No lock branch, custom auto-merger or automatic recovery. Stop on main drift, partial production advance, existing automatic iOS build/version or ambiguous submission. Internal TestFlight is a separate dispatch.
+- Auto-merge enablement and production reviewer removal require a separately approved one-time settings change; repository YAML alone cannot enact them.
 
 ## Monitoring
 

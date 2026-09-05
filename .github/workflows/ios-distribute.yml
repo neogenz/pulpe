@@ -6,6 +6,20 @@ name: iOS Distribution
 run-name: "📲 iOS ${{ inputs.channel }} v${{ inputs.marketing_version }} (${{ inputs.build_number }}) ${{ inputs.source_sha }}"
 
 on:
+  workflow_call:
+    inputs:
+      channel:
+        required: true
+        type: string
+      source_sha:
+        required: true
+        type: string
+      marketing_version:
+        required: true
+        type: string
+      build_number:
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       channel:
@@ -14,7 +28,6 @@ on:
         type: choice
         options:
           - internal
-          - release
       source_sha:
         description: Exact 40-character commit SHA to archive
         required: true
@@ -46,6 +59,9 @@ jobs:
       run:
         working-directory: ios
     env:
+      ASC_CLI_VERSION: "4.11.0"
+      ASC_BYPASS_KEYCHAIN: "true"
+      ASC_STRICT_AUTH: "true"
       ASC_KEY_ID: ${{ vars.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ vars.ASC_ISSUER_ID }}
       APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
@@ -67,14 +83,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          # `expected_branch` est la branche d'autorisation : celle depuis
-          # laquelle le SHA doit être joignable. `proof_branch` est le
-          # `head_branch` du run qui porte la preuve, et les deux ne coïncident
-          # pas pour le canal `release` : Railway crée son déploiement de
-          # production avec un `ref` égal au SHA brut — `production-finalize.yml`
-          # l'exige — donc le run `deployment_status` ne porte aucun nom de
-          # branche et GitHub retombe sur `main`. Chercher la preuve sur
-          # `production` ne trouverait jamais rien.
+          # Internal uses the existing exact staging proof; release uses the caller DAG.
           proof_branch="main"
           case "$CHANNEL" in
             internal)
@@ -93,8 +102,6 @@ jobs:
               ;;
           esac
 
-          tagged_release_recovery=false
-          internal_promotion=false
           if ! printf '%s' "$SOURCE_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
             echo "::error::source_sha must be a full lowercase 40-character SHA"
             exit 1
@@ -125,45 +132,22 @@ jobs:
             echo "::error::Checked out $checked_out_sha instead of approved $SOURCE_SHA"
             exit 1
           fi
-          git fetch --force --tags origin
-          if [ "$GITHUB_REF_NAME" != "$expected_branch" ]; then
-            if [ "$CHANNEL" != release ] || [ "$GITHUB_REF_NAME" != main ]; then
-              echo "::error::Channel '$CHANNEL' must be dispatched from '$expected_branch', not '$GITHUB_REF_NAME'"
-              exit 1
-            fi
-            release_version=$(node -p "require('../package.json').version")
-            if ! printf '%s' "$release_version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-              echo "::error::Tagged release recovery requires a semantic root package version"
-              exit 1
-            fi
-            recovery_tag="refs/tags/v$release_version"
-            if [ "$(git cat-file -t "$recovery_tag" 2>/dev/null || true)" = tag ] &&
-               [ "$(git rev-parse "$recovery_tag^{commit}" 2>/dev/null || true)" = "$SOURCE_SHA" ]; then
-              echo "Require exact annotated release tag for recovery: $recovery_tag"
-              tagged_release_recovery=true
-            else
-              expected_branch="main"
-              internal_promotion=true
-            fi
-          fi
-          git fetch --force origin "refs/heads/$expected_branch:refs/remotes/origin/$expected_branch"
-          reachable=false
-          if git merge-base --is-ancestor "$SOURCE_SHA" "refs/remotes/origin/$expected_branch"; then
-            reachable=true
-          elif [ "$tagged_release_recovery" = true ]; then
-            reachable=true
-          elif [ "$CHANNEL" = release ]; then
-            while IFS= read -r tag; do
-              if [[ "$tag" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
-                && [ "$(git cat-file -t "$tag")" = tag ] \
-                && [ "$(git rev-parse "$tag^{commit}")" = "$SOURCE_SHA" ]; then
-                reachable=true
-              fi
-            done < <(git for-each-ref --format='%(refname)' refs/tags)
-          fi
-          if [ "$reachable" != true ]; then
-            echo "::error::$SOURCE_SHA is not an authorized $CHANNEL source"
-            exit 1
+          if [ "$CHANNEL" = release ]; then
+            test "$GITHUB_EVENT_NAME" = push
+            test "$GITHUB_REF" = refs/heads/main
+            test "$GITHUB_RUN_ATTEMPT" = 1
+            test "$SOURCE_SHA" = "$GITHUB_SHA"
+            test "$(git ls-remote origin refs/heads/production | cut -f1)" = "$SOURCE_SHA"
+            product_version=$(node -p 'require("../package.json").version')
+            git fetch origin "refs/tags/v$product_version:refs/tags/v$product_version"
+            test "$(git cat-file -t "refs/tags/v$product_version")" = tag
+            test "$(git rev-parse "refs/tags/v$product_version^{commit}")" = "$SOURCE_SHA"
+            node ../.github/scripts/validate-app-store-release.mjs --file app-store-release.json --product-version "$product_version" --marketing-version "$EXPECTED_MARKETING_VERSION" --build-number "$BUILD_NUMBER" >/dev/null
+          else
+            test "$GITHUB_EVENT_NAME" = workflow_dispatch
+            test "$GITHUB_REF" = refs/heads/main
+            git fetch origin main
+            git merge-base --is-ancestor "$SOURCE_SHA" origin/main
           fi
 
           actual_marketing_version=$(python3 -c 'import re; text=open("project.yml", encoding="utf-8").read(); match=re.search(r"^\s+MARKETING_VERSION:\s*\"?([^\"\s]+)", text, re.M); print(match.group(1) if match else "")')
@@ -176,7 +160,7 @@ jobs:
             echo "::error::CURRENT_PROJECT_VERSION is not a positive integer: $project_build"
             exit 1
           fi
-          if [ "$CHANNEL" = release ] && [ "$internal_promotion" != true ] && [ "$project_build" != "$BUILD_NUMBER" ]; then
+          if [ "$CHANNEL" = release ] && [ "$project_build" != "$BUILD_NUMBER" ]; then
             echo "::error::Release build $BUILD_NUMBER is not recorded in project.yml (found $project_build)"
             exit 1
           fi
@@ -185,45 +169,27 @@ jobs:
             exit 1
           fi
 
-          echo "branch=$expected_branch" >> "$GITHUB_OUTPUT"
-          echo "proof_branch=$proof_branch" >> "$GITHUB_OUTPUT"
-          echo "scheme=$scheme" >> "$GITHUB_OUTPUT"
-          echo "configuration=$configuration" >> "$GITHUB_OUTPUT"
-          echo "marketing_version=$actual_marketing_version" >> "$GITHUB_OUTPUT"
-          echo "internal_promotion=$internal_promotion" >> "$GITHUB_OUTPUT"
-          if [ "$internal_promotion" = true ]; then
-            echo "provenance_channel=internal" >> "$GITHUB_OUTPUT"
-            echo "provenance_branch=main" >> "$GITHUB_OUTPUT"
-          else
-            echo "provenance_channel=$CHANNEL" >> "$GITHUB_OUTPUT"
-            echo "provenance_branch=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
-          fi
+          {
+            echo "branch=$expected_branch"
+            echo "proof_branch=$proof_branch"
+            echo "scheme=$scheme"
+            echo "configuration=$configuration"
+            echo "marketing_version=$actual_marketing_version"
+            echo "provenance_channel=$CHANNEL"
+            echo "provenance_branch=$GITHUB_REF_NAME"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Require immutable deployment proof for source SHA
+        if: inputs.channel == 'internal'
         env:
           GH_TOKEN: ${{ github.token }}
           PROOF_BRANCH: ${{ steps.release.outputs.proof_branch }}
-          INTERNAL_PROMOTION: ${{ steps.release.outputs.internal_promotion }}
         run: |
           set -euo pipefail
-          case "$CHANNEL:$INTERNAL_PROMOTION" in
-            internal:*|release:true)
-              proof_workflow=staging-proof.yml
-              proof_event=push
-              proof_job="✅ Staging Ready (shadow)"
-              proof_artifact="staging-proof-{sha}-run-{run_id}-attempt-{attempt}"
-              ;;
-            release:false)
-              proof_workflow=production-finalize.yml
-              proof_event=deployment_status
-              proof_job="✅ Publish proven production"
-              proof_artifact="production-proof-{sha}-run-{run_id}-attempt-{attempt}"
-              ;;
-            *)
-              echo "::error::Unexpected distribution state CHANNEL=$CHANNEL INTERNAL_PROMOTION=$INTERNAL_PROMOTION"
-              exit 1
-              ;;
-          esac
+          proof_workflow=staging-proof.yml
+          proof_event=push
+          proof_job="✅ Staging Ready (shadow)"
+          proof_artifact="staging-proof-{sha}-run-{run_id}-attempt-{attempt}"
           node ../.github/scripts/resolve-workflow-proof.mjs \
             --workflow "$proof_workflow" \
             --event "$proof_event" \
@@ -252,22 +218,47 @@ jobs:
           chmod 600 "$asc_key_path"
           openssl pkey -in "$asc_key_path" -check -noout
           echo "ASC_KEY_PATH=$asc_key_path" >> "$GITHUB_ENV"
+      - name: Install verified App Store Connect CLI
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          case "$(uname -m)" in
+            arm64)
+              asset="asc_${ASC_CLI_VERSION}_macOS_arm64"
+              checksum="b928a12dec6be975271a2d374ba811717447a211089c6c89d3318d32c61c8202"
+              ;;
+            x86_64)
+              asset="asc_${ASC_CLI_VERSION}_macOS_amd64"
+              checksum="276b0ca833041294983fa2506e428b2a5ad29915a141b709251ea90e4a4ef3b4"
+              ;;
+            *) echo "::error::Unsupported macOS architecture: $(uname -m)"; exit 1 ;;
+          esac
+          destination="$RUNNER_TEMP/asc"
+          curl --fail --silent --show-error --location --max-time 120 \
+            "https://github.com/rorkai/App-Store-Connect-CLI/releases/download/${ASC_CLI_VERSION}/${asset}" \
+            --output "$destination"
+          echo "$checksum  $destination" | shasum -a 256 --check
+          chmod 755 "$destination"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Preflight fresh App Store version
+        if: github.event_name == 'push'
+        run: node ../.github/scripts/submit-app-store.mjs --preflight
       - name: Query exact App Store build
         id: asc
         run: |
           set -euo pipefail
           state=$(ruby ../.github/scripts/app-store-build-status.rb app.pulpe.ios "$EXPECTED_MARKETING_VERSION" "$BUILD_NUMBER")
+          if [ "$CHANNEL" = release ] && [ "$state" != not_found ]; then
+            echo "::error::Exact release build already exists; inspect remote state, never upload or submit again automatically"
+            exit 1
+          fi
           echo "state=$state" >> "$GITHUB_OUTPUT"
           echo "ASC_INITIAL_STATE=$state" >> "$GITHUB_ENV"
           if [ "$state" = invalid ]; then
             echo "::error::App Store Connect reports this exact build as invalid"
             exit 1
           fi
-      - name: Require existing App Store build for internal promotion
-        if: steps.release.outputs.internal_promotion == 'true' && steps.asc.outputs.state == 'not_found'
-        run: |
-          echo "::error::Internal promotion requires the exact build to already exist in App Store Connect"
-          exit 1
       - name: Verify marketing version accepts new builds
         if: steps.asc.outputs.state == 'not_found'
         run: |
@@ -665,8 +656,20 @@ jobs:
           name: ios-distribution-proof-${{ inputs.marketing_version }}-${{ inputs.build_number }}-${{ inputs.source_sha }}
           path: ${{ runner.temp }}/ios-distribution-proof.json
           retention-days: 30
+      - name: Submit approved App Store version once
+        env:
+          GH_TOKEN: ${{ github.token }}
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$SOURCE_SHA"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/production" --jq .commit.sha)" = "$SOURCE_SHA"
+          build_id=$(ruby ../.github/scripts/app-store-build-status.rb --build-id app.pulpe.ios "$EXPECTED_MARKETING_VERSION" "$BUILD_NUMBER")
+          test -n "$build_id"
+          node ../.github/scripts/submit-app-store.mjs "$build_id"
+
       - name: Create PostHog release
-        if: inputs.channel == 'release'
+        if: github.event_name == 'push'
         continue-on-error: true
         env:
           POSTHOG_HOST: https://eu.i.posthog.com
@@ -682,38 +685,27 @@ jobs:
           release_hash=$(printf '%s%s' "$release_project" "$release_version" | shasum -a 512 | awk '{print $1}')
           endpoint="${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/error_tracking/releases"
           response="$RUNNER_TEMP/posthog-release.json"
+          readback="$RUNNER_TEMP/posthog-release-readback.json"
           status=$(curl -sS -o "$response" -w '%{http_code}' -X POST "$endpoint/" \
             -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "$(jq -nc --arg project "$release_project" --arg version "$release_version" --arg hash "$release_hash" --arg sha "$SOURCE_SHA" '{project:$project,version:$version,hash_id:$hash,metadata:{git:{commit_id:$sha}}}')")
           if [[ "$status" == 2* ]]; then
-            echo "✅ PostHog iOS release created"
+            :
           elif [ "$status" = 400 ] && [ "$(jq -r '.code // empty' "$response")" = release_hash_in_use ]; then
-            curl --fail-with-body --show-error --silent "$endpoint/hash/$release_hash" \
-              -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
-              | jq -e --arg project "$release_project" --arg version "$release_version" --arg hash "$release_hash" '.project == $project and .version == $version and .hash_id == $hash' >/dev/null
-            echo "✅ Exact PostHog iOS release already exists"
+            :
           else
             cat "$response" >&2
             exit 1
           fi
-
-      - name: Create PostHog annotation
-        if: inputs.channel == 'release'
-        continue-on-error: true
-        env:
-          POSTHOG_HOST: https://eu.i.posthog.com
-          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
-          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_WEBAPP_PROJECT_ID }}
-        run: |
-          set -euo pipefail
-          : "${POSTHOG_PERSONAL_API_KEY:?Missing POSTHOG_PERSONAL_API_KEY}"
-          : "${POSTHOG_PROJECT_ID:?Missing POSTHOG_PROJECT_ID}"
-          curl --fail-with-body --show-error --silent -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/annotations/" \
+          curl --fail-with-body --show-error --silent "$endpoint/hash/$release_hash" \
             -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
-            -H "Content-Type: application/json" \
-            -d "{\"content\":\"iOS v${EXPECTED_MARKETING_VERSION} (${SOURCE_SHA:0:7})\",\"scope\":\"project\",\"date_marker\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
-          echo "✅ PostHog iOS annotation created"
+            -o "$readback"
+          jq -e --arg project "$release_project" --arg version "$release_version" \
+            --arg hash "$release_hash" --arg sha "$SOURCE_SHA" \
+            '.project == $project and .version == $version and .hash_id == $hash and .metadata.git.commit_id == $sha' \
+            "$readback" >/dev/null
+          echo "✅ Exact PostHog iOS release verified"
 
       - name: Distribution summary
         env:
@@ -731,7 +723,7 @@ jobs:
             echo "- Build: \`$BUILD_NUMBER\`"
             echo "- Scheme: \`$DISTRIBUTION_SCHEME\`"
             echo ""
-            echo "App Store Connect processing is verified here; TestFlight/App Store availability is read back separately by Alfred."
+            echo "App Store Connect processing is verified here; App Store submission is verified for release; internal TestFlight group assignment remains separate."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Cleanup signing credentials
@@ -766,7 +758,8 @@ jobs:
             "$RUNNER_TEMP/ci-workflow-jobs.json" \
             "$RUNNER_TEMP/original-keychains.txt" \
             "$RUNNER_TEMP/ios-distribution-intent.json" \
-            "$RUNNER_TEMP/ios-distribution-proof.json"
+            "$RUNNER_TEMP/ios-distribution-proof.json" \
+            "$RUNNER_TEMP/asc"
           rm -rf \
             "$RUNNER_TEMP/Pulpe.xcarchive" \
             "$RUNNER_TEMP/export" \

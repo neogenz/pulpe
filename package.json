@@ -32,7 +32,7 @@
     "format:check:automation": "prettier --check \".github/**/*.{yml,yaml,mjs}\"",
     "type-check": "turbo type-check",
     "quality": "turbo quality && pnpm quality:automation",
-    "quality:automation": "pnpm format:check:automation && pnpm test:migration-contract && pnpm test:app-store-build-status && pnpm test:ios-distribution-intent && pnpm test:release-state && pnpm test:workflow-proof && pnpm test:ci-routing && pnpm test:ci-security && pnpm test:public-surface && pnpm test:lexicon",
+    "quality:automation": "pnpm format:check:automation && pnpm test:migration-contract && pnpm test:app-store-build-status && pnpm test:ios-distribution-intent && pnpm test:release-state && pnpm test:workflow-proof && pnpm test:ci-routing && pnpm test:ci-security && pnpm test:public-surface && pnpm test:lexicon && pnpm test:release-approval",
     "quality:fix": "turbo quality:fix && pnpm format:automation",
     "audit:critical": "pnpm audit --audit-level critical",
     "test:ci-routing": "node --test .github/scripts/classify-ci-changes.test.mjs",
@@ -55,11 +55,13 @@
     "changeset": "changeset",
     "changeset:version": "changeset version && pnpm install",
     "build:landing": "cd landing && pnpm build",
-    "test:workflow-proof": "node --test .github/scripts/resolve-workflow-proof.test.mjs"
+    "test:workflow-proof": "node --test .github/scripts/resolve-workflow-proof.test.mjs",
+    "test:release-approval": "node --test .github/scripts/release-approval.test.mjs .github/scripts/validate-release-manifest.test.mjs .github/scripts/validate-app-store-release.test.mjs .github/scripts/submit-app-store.test.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.5",
     "@types/node": "^24.0.4",
+    "bun": "1.2.17",
     "lefthook": "^1.9.2",
     "madge": "^8.0.0",
     "prettier": "^3.5.3",
