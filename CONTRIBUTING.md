@@ -15,7 +15,7 @@ Pulpe uses a trunk plus a production pointer: everything integrates on `main`, w
 ```text
 feature/* ──PR──▶ main
                     │
-             release/vX.Y.Z ──PR──▶ main ──proof──▶ publish ──▶ production
+             release/vX.Y.Z ──PR+CI──▶ auto-merge ──proof──▶ production ──▶ release
 ```
 
 ## Workflow
@@ -25,33 +25,24 @@ feature/* ──PR──▶ main
 3. **Quality gate before pushing**: `pnpm quality` (type-check + lint + format) plus the relevant tests (`pnpm test`, `pnpm test:e2e`).
 4. **Open a PR into `main`**. The `✅ CI Success` check must pass and all review threads must be resolved.
 5. **Validate on the QA environment.** Once merged, `main` deploys to staging — verify the change there.
-6. **Release** from a synchronized `main` with `/release`; one preparation PR merges back into `main` and the protected publish advances `production` (see [Release](#release)).
+6. **Release** from a synchronized `main` with `/release`; approving the exact version and notes authorizes the automatic PR → production → publication chain (see [Release](#release)).
 
 ## Protected branches
 
 Enforced by GitHub rulesets (`main-protection`, `production-protection` and `tag-protection`):
 
-- `main`: no deletion or force-push; a PR, resolved review threads and `✅ CI Success` are required. No approving review is required: GitHub forbids approving your own pull request, so on a solo repository that rule would block every merge, including the release preparation PR. The human authorization for a release is the GitHub `production` environment approval instead.
+- `main`: no deletion or force-push; a PR, resolved review threads and `✅ CI Success` are required. No approving review is required: GitHub forbids approving your own pull request on a solo repository. Native auto-merge is enabled only for the explicitly approved release PR, with no CI bypass.
 - `production`: no deletion, force-push or administrator bypass; only the release publish job advances it, fast-forward only.
 - Release tags `v*`: immutable (no deletion, no force-move).
 
 ## Release
 
-A release uses one `release/vX.Y.Z` branch and one version commit, merged back into
-`main` through its single preparation PR after complete CI. That merge commit is the
-candidate: it deploys staging, produces the exact staging proof, and must remain the
-tip of `main` until publication. The single manual entry, `🚦 Release Promotion`,
-runs a read-only `plan` that resolves the proven candidate, lineage, migrations and
-rollback anchor, then a protected `publish` that migrates, advances `production` and
-creates the single tag and GitHub Release. A feature merged into `main` before publish
-moves the tip away from the candidate: authorization fails closed and the release is
-reprepared rather than silently absorbing extra features.
+A release uses one approved version/notes proposal, one `release/vX.Y.Z` commit and one PR to `main`. The approving releaser enables native auto-merge for that exact head. Its main-push run sequences staging, production, GitHub publication and optional iOS App Review; feature PRs stop after staging.
 
-- Full steps: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md#release-process)
-- Versioning rules: [docs/VERSIONING.md](./docs/VERSIONING.md)
+Never auto-merge the release-infrastructure PR. Repository auto-merge and removal of the production reviewer gate are separate, explicitly approved setup changes. No release lock or automatic recovery: exact-SHA drift or ambiguous mutation stops the chain.
 
-The process is fully recoverable from the GitHub Actions UI or `gh`; agent-local
-state is never part of the release identity or proof.
+- Canonical preparation: [.claude/skills/release/SKILL.md](./.claude/skills/release/SKILL.md)
+- Setup, execution and failure handling: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md#release-process)
 
 ## Dependencies & security
 
