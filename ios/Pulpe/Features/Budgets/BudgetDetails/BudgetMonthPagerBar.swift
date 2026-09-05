@@ -31,7 +31,7 @@ struct BudgetMonthPagerBar: View {
                 }
             }
             .scrollTargetLayout()
-            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.horizontal, DesignTokens.Spacing.xxl)
         }
         .scrollPosition(id: $scrollPosition, anchor: .center)
         .scrollTargetBehavior(.viewAligned(limitBehavior: .alwaysByOne))

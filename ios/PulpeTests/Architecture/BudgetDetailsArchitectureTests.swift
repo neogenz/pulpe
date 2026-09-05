@@ -279,20 +279,27 @@ struct BudgetDetailsArchitectureTests {
         #expect(source.contains("await tagStore.loadIfNeeded(for: screenState.referencedTagIds)"))
     }
 
-    @Test("Budget line creation belongs to the native toolbar")
-    func budgetLineCreationBelongsToToolbar() {
+    /// Each action has exactly one home: adding a forecast is the content zone's one filled
+    /// shape, reading the month back is a glyph in the bar. What must not come back is a
+    /// second affordance for either — a toolbar plus beside the button, a pair of cards, or a
+    /// floating button over the list.
+    @Test("Budget detail gives each of its two actions one home")
+    func budgetActionsEachHaveOneHome() {
         let directory = Self.featureDirectory()
         let source = Self.read(directory.appendingPathComponent("BudgetDetailsView.swift"))
+        let button = Self.read(directory.appendingPathComponent("BudgetDetailsAddLineButton.swift"))
         let fabPath = directory.appendingPathComponent("BudgetDetailsAddFAB.swift").path
+        let cardsPath = directory.appendingPathComponent("BudgetDetailsActionCards.swift").path
 
-        #expect(source.contains("ToolbarItemGroup(placement: .topBarTrailing)"))
-        #expect(source.contains("router.present(.addBudgetLine)"))
-        #expect(source.range(
-            of: #"if\s+isLoaded\s*\{\s*Button\s*\{\s*router\.present\(\.addBudgetLine\)"#,
-            options: .regularExpression
-        ) != nil)
-        #expect(source.contains(#".accessibilityLabel("Ajouter une prévision")"#))
+        #expect(source.contains("BudgetDetailsAddLineButton { router.present(.addBudgetLine) }"))
+        #expect(button.contains(#"AppLocale.string("Ajouter une prévision")"#))
+        #expect(button.contains(".primaryButtonStyle()"))
+        #expect(source.contains("router.present(.realizedBalance)"))
+        #expect(source.contains(#".accessibilityIdentifier("budgetTrackingButton")"#))
+        // The bar carries the reading action alone; a plus back beside it is the regression.
+        #expect(!source.contains("Image(systemName: \"plus\")"))
         #expect(!source.contains(".overlay(alignment: .bottomTrailing)"))
         #expect(!FileManager.default.fileExists(atPath: fabPath))
+        #expect(!FileManager.default.fileExists(atPath: cardsPath))
     }
 }

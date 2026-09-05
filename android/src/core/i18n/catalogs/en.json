@@ -1242,8 +1242,8 @@
       "saving": "Savings"
     },
     "recurrence": {
-      "fixed": "Recurring",
-      "one_off": "Planned"
+      "fixed": "Monthly",
+      "one_off": "One-off"
     }
   }
 }

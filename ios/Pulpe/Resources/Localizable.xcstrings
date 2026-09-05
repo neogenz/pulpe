@@ -12627,6 +12627,28 @@
         }
       }
     },
+    "Hors prévision" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausserhalb der Planung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outside planned items"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fuori previsioni"
+          }
+        }
+      }
+    },
     "Hors prévisions" : {
       "localizations" : {
         "de" : {
@@ -15289,6 +15311,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nascondere gli importi?"
+          }
+        }
+      }
+    },
+    "Mensuel" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monatlich"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensile"
           }
         }
       }
@@ -20033,24 +20077,24 @@
         }
       }
     },
-    "Prévu ce mois · %@" : {
+    "Prévu ce mois" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diesen Monat geplant · %@"
+            "value" : "Diesen Monat geplant"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Planned this month · %@"
+            "value" : "Planned this month"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Previsto questo mese · %@"
+            "value" : "Previsto questo mese"
           }
         }
       }
@@ -22029,28 +22073,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Frequenza"
-          }
-        }
-      }
-    },
-    "Récurrent" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wiederkehrend"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recurring"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ricorrente"
           }
         }
       }
@@ -28578,7 +28600,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prévu"
+            "value" : "Ponctuel"
           }
         },
         "it" : {

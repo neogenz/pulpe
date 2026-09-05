@@ -73,7 +73,7 @@ interface BudgetLineSheetProps {
 /**
  * One sheet for both writing a forecast and correcting one. They ask the same
  * four questions in the same order, and splitting them would have meant two
- * files drifting apart over the wording of "Récurrent".
+ * files drifting apart over the wording of "Mensuel".
  */
 export function BudgetLineSheet({
   isVisible,

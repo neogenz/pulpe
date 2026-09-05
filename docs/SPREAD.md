@@ -6,7 +6,7 @@
 
 Une grosse dépense irrégulière — prime d'assurance annuelle, impôts, gros achat planifié, versement 3ᵉ pilier / épargne retraite — tombe sur **un seul mois** et déforme le « Disponible à dépenser » de ce mois. La hero card vire ambre/rouge alors que l'utilisateur peut absorber le coût sans douleur s'il l'**étale**. C'est exactement l'angoisse que Pulpe existe pour tuer (_sérénité > contrôle_, _Planning > Tracking_).
 
-Avant le lissage, l'enum `recurrence` n'offrait que deux extrêmes : **Récurrent** (`fixed`, tous les mois indéfiniment) et **Prévu** (`one_off`, une seule fois, un seul mois). Aucun moyen de dire « pose 100 CHF/mois de janvier à juin, mais saute mars ».
+Avant le lissage, l'enum `recurrence` n'offrait que deux extrêmes : **Mensuel** (`fixed`, tous les mois indéfiniment) et **Ponctuel** (`one_off`, une seule fois, un seul mois). Aucun moyen de dire « pose 100 CHF/mois de janvier à juin, mais saute mars ».
 
 ## Création additive : deux modes de saisie (`mode`)
 
@@ -66,7 +66,7 @@ Migration : `20260626120000_spread_group_idempotency_guard.sql` (garde en tête 
 
 ## Lecture (Lot B — indicateur, Lot C — occurrences)
 
-- **Lot B** : pill « Lissé » sur la ligne (lecture locale de `spreadGroupId` déjà dans le payload, aucun round-trip). Icône calendrier — **jamais** `repeat` (réservé à Récurrent).
+- **Lot B** : pill « Lissé » sur la ligne (lecture locale de `spreadGroupId` déjà dans le payload, aucun round-trip). Icône calendrier — **jamais** `repeat` (réservé à Mensuel).
 - **Lot C** : `GET /v1/budget-lines/spread/:spreadGroupId` liste toutes les occurrences cross-mois (read-only). Passé grisé, pointé barré (UI pointée existante réutilisée). Le **client** calcule passé/courant/futur, **payDay-aware** (`compareBudgetPeriods`), jamais un `isBefore` calendaire naïf. Le serveur renvoie `{month, year}` brut (figer passé/courant = stale sur un cache court).
 
 ## v1.1 — Lisser une dépense EXISTANTE (total préservé)

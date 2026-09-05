@@ -85,10 +85,12 @@ enum TransactionRecurrence: String, Codable, CaseIterable, Sendable {
 
     var label: String {
         switch self {
-        case .fixed: AppLocale.string("Récurrent")
-        // French says "Prévu" for this type AND for the planned aggregate; the other
-        // languages split them (One-off vs Planned), so this sense needs its own key —
-        // the bare "Prévu" key stays the aggregate (docs/I18N.md, deliberate divergence 1).
+        // The rhythm, not a category: every fixed line falls once a month, and "Récurrent"
+        // named the repetition without ever saying how often it repeats.
+        case .fixed: AppLocale.string("Mensuel")
+        // The key predates the word. It survives the rename because the other three
+        // languages resolve it from the same key, and a key rename would cost every
+        // catalog a re-translation for no reader (docs/I18N.md).
         case .oneOff: AppLocale.string("recurrence.oneOff")
         }
     }
@@ -100,10 +102,13 @@ enum TransactionRecurrence: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    var icon: String {
+    /// Only the repeating rhythm has a mark. "1.circle" named a count, not a cadence, and
+    /// a reader who saw it asked what the 1 counted — so the absence of the arrows is what
+    /// says "this month only", which is the same thing the word says.
+    var icon: String? {
         switch self {
         case .fixed: "repeat"
-        case .oneOff: "1.circle"
+        case .oneOff: nil
         }
     }
 }

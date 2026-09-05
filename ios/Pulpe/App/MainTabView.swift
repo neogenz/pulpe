@@ -74,13 +74,34 @@ private func budgetDestination(
             budgetService: budgetService,
             budgetLineService: budgetLineService
         )
+        .ignoresForeignKeyboardInset()
     case .editTransaction(let budgetId, let transactionId):
+        // Bare: this one owns the field that raises the keyboard.
         EditTransactionHost(
             budgetId: budgetId,
             transactionId: transactionId,
             budgetService: budgetService,
             budgetLineService: budgetLineService
         )
+    }
+}
+
+// MARK: - Savings goal destinations
+
+/// Resolves a savings-goal destination for every stack. Only `BudgetsTab` passes a
+/// service: it is the one entry point that injects test doubles.
+@MainActor @ViewBuilder
+private func savingsGoalDestination(
+    _ destination: SavingsGoalDestination,
+    service: any SavingsGoalServicing = SavingsGoalService.shared
+) -> some View {
+    switch destination {
+    case .list:
+        SavingsGoalsListView()
+            .ignoresForeignKeyboardInset()
+    case .detail(let goal):
+        SavingsGoalDetailView(goal: goal, service: service)
+            .ignoresForeignKeyboardInset()
     }
 }
 
@@ -98,16 +119,12 @@ struct CurrentMonthTab: View {
         // the back button pointing at the other section's root.
         NavigationStack(path: $state.currentMonthPath) {
             CurrentMonthView()
+                .ignoresForeignKeyboardInset()
                 .navigationDestination(for: BudgetDestination.self) { destination in
                     budgetDestination(destination)
                 }
                 .navigationDestination(for: SavingsGoalDestination.self) { destination in
-                    switch destination {
-                    case .list:
-                        SavingsGoalsListView()
-                    case .detail(let goal):
-                        SavingsGoalDetailView(goal: goal)
-                    }
+                    savingsGoalDestination(destination)
                 }
         }
         .environment(router)
@@ -129,13 +146,9 @@ struct SavingsGoalsTab: View {
 
         NavigationStack(path: $state.savingsGoalsPath) {
             SavingsGoalsListView()
+                .ignoresForeignKeyboardInset()
                 .navigationDestination(for: SavingsGoalDestination.self) { destination in
-                    switch destination {
-                    case .list:
-                        SavingsGoalsListView()
-                    case .detail(let goal):
-                        SavingsGoalDetailView(goal: goal)
-                    }
+                    savingsGoalDestination(destination)
                 }
                 .navigationDestination(for: BudgetDestination.self) { destination in
                     budgetDestination(destination)
@@ -174,6 +187,7 @@ struct BudgetsTab: View {
 
         NavigationStack(path: $state.budgetPath) {
             BudgetListView()
+                .ignoresForeignKeyboardInset()
                 .navigationDestination(for: BudgetDestination.self) { destination in
                     budgetDestination(
                         destination,
@@ -185,12 +199,7 @@ struct BudgetsTab: View {
                 // progression (PUL-12) — same destination as the CurrentMonth
                 // stack, registered here for the budget branch.
                 .navigationDestination(for: SavingsGoalDestination.self) { destination in
-                    switch destination {
-                    case .list:
-                        SavingsGoalsListView()
-                    case .detail(let goal):
-                        SavingsGoalDetailView(goal: goal, service: savingsGoalService)
-                    }
+                    savingsGoalDestination(destination, service: savingsGoalService)
                 }
         }
         .environment(router)
@@ -208,11 +217,13 @@ struct TemplatesTab: View {
 
         NavigationStack(path: $state.templatePath) {
             TemplateListView()
+                .ignoresForeignKeyboardInset()
                 .navigationDestination(for: TemplateDestination.self) { destination in
                     switch destination {
                     case .details(let templateId):
                         TemplateDetailsView(templateId: templateId)
                             .accessibilityIdentifier("templateDetailsRoot")
+                            .ignoresForeignKeyboardInset()
                     }
                 }
         }

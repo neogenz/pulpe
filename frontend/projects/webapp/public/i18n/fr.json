@@ -97,7 +97,7 @@
       },
       "create": {
         "title": "Ajoute une prévision",
-        "description": "<p>Choisis <strong>Récurrent</strong> pour ce qui revient ou <strong>Prévu</strong> pour un besoin ponctuel. Une prévision ajoutée ici concerne ce budget ; celles issues du modèle sont indiquées comme telles.</p>"
+        "description": "<p>Choisis <strong>Mensuel</strong> pour ce qui revient chaque mois ou <strong>Ponctuel</strong> pour un besoin d'un seul mois. Une prévision ajoutée ici concerne ce budget ; celles issues du modèle sont indiquées comme telles.</p>"
       }
     },
     "templatesList": {
@@ -1850,10 +1850,10 @@
     "saving": "une épargne"
   },
   "recurrence": {
-    "fixed": "Récurrent",
-    "oneOff": "Prévu",
-    "fixedHint": "Prévision qui revient régulièrement",
-    "oneOffHint": "Prévision ponctuelle",
+    "fixed": "Mensuel",
+    "oneOff": "Ponctuel",
+    "fixedHint": "Prévision qui revient chaque mois",
+    "oneOffHint": "Prévision d'un seul mois",
     "fromTemplate": "Issu du modèle",
     "fromBudget": "Ajouté à ce budget"
   },
