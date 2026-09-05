@@ -1,6 +1,6 @@
 ---
 objective: "Assistants can use Pulpe through consented MCP tools without receiving any credential usable against Supabase Auth or the Data API."
-status: pending
+status: blocked
 ---
 
 # Plan: Isolate MCP credentials before public activation
@@ -30,8 +30,16 @@ status: pending
 
 ## Decisions
 
-| Decision                                                                                                                                         | Why                                                                                                                                                                             |
-| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Proposed, awaiting user approval: issue opaque MCP-only credentials in the existing backend using the installed MCP SDK's OAuth provider/router. | Keeps the current product and user-owned RLS, without giving assistants a Supabase credential. The SDK proxy provider alone passes upstream tokens through and is insufficient. |
-| Supabase OAuth, if retained upstream, is confidential and backend-only; disable its public dynamic registration.                                 | A second public issuance route must not bypass the isolated MCP issuer. Never store or reuse the user's ordinary frontend refresh token.                                        |
-| No SQL-only fix and no service-role replacement for user-data access.                                                                            | SQL cannot guard Auth, and privileged user-data access would discard existing tenant isolation.                                                                                 |
+| Decision                                                                                                                             | Why                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Approved by the user: issue opaque MCP-only credentials in the existing backend using the installed MCP SDK's OAuth provider/router. | Keeps the current product and user-owned RLS, without giving assistants a Supabase credential. The SDK proxy provider alone passes upstream tokens through and is insufficient. |
+| Supabase OAuth, if retained upstream, is confidential and backend-only; disable its public dynamic registration.                     | A second public issuance route must not bypass the isolated MCP issuer. Never store or reuse the user's ordinary frontend refresh token.                                        |
+| No SQL-only fix and no service-role replacement for user-data access.                                                                | SQL cannot guard Auth, and privileged user-data access would discard existing tenant isolation.                                                                                 |
+
+## Execution checkpoint — 2026-09-05
+
+The user approved the architecture change and storing generated credentials in an ignored local file. No actual credential has been generated yet.
+
+Phase 1 is incomplete. The private-session adapter and seven mocked protocol checks are prepared; all 21 MCP tests, targeted ESLint and the full backend type check pass. The public OAuth flow is unchanged and the confirmed credential-isolation finding remains open.
+
+The real confidential-client proof (`upstream-session-probe.ts`) cannot reach the isolated Supabase stack. Docker Desktop is running but its API socket times out, and the isolated Auth endpoint refuses connections. Restarting Docker would interrupt other projects' containers, so execution is paused pending the user's permission to restart it or their manual recovery of Docker. No later phase has run.
