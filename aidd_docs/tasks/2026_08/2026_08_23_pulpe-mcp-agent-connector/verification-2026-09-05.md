@@ -20,6 +20,10 @@ claims, not the historical implementation record.
   the expected disclosure and client-specific instructions.
 - Native iOS tests and real-client OAuth/tool round trips are not verified by
   these checks. iOS changes concern connection management, not the MCP transport.
+- All 19 existing SQL suites passed against the isolated replayed schema.
+  Generated types were compared byte-for-byte; MCP formatting drift was corrected.
+  The two feature migrations now carry the required contract metadata, safe after
+  the verified integrated `v0.47.1` release. Their SQL behavior is unchanged.
 
 ## Confirmed release blocker: direct database authorization
 
@@ -35,11 +39,28 @@ user's budget description without any MCP grant (`UPDATE 1`). It was rolled back
 no real data or persistent schema changes were made. Preview policies were
 inspected read-only and have the same owner-only checks.
 
-This is a database-policy reproduction, not a completed OAuth or HTTP exploit
-test. Before release, direct Data API access and callable SECURITY DEFINER RPCs
-must enforce the intended boundary, while legitimate MCP requests keep tenant
-isolation, encryption, read-only mode and revocation. A UI-only or guard-only
-change cannot close the direct database path.
+An isolated Supabase stack subsequently replayed every branch migration and
+confirmed the problem over HTTP with a real authorization-code/PKCE exchange.
+The tested Auth image was `public.ecr.aws/supabase/gotrue:v2.195.0`.
+
+| Probe                                            | Result                                                          |
+| ------------------------------------------------ | --------------------------------------------------------------- |
+| First-party profile metadata update              | HTTP 200, legitimate control                                    |
+| OAuth bearer profile metadata update             | HTTP 200, persisted and read back using the first-party session |
+| OAuth bearer budget update without any MCP grant | HTTP 200, one row updated                                       |
+| Same budget update after OAuth grant revocation  | HTTP 200, one row updated                                       |
+
+The disposable user, OAuth client and linked test data were removed afterwards.
+[oauth-isolation-probe.ts](./oauth-isolation-probe.ts) reproduces the observations
+against a disposable local stack on port 56421; it never prints tokens. It is a
+diagnostic, not a passing release gate. Run it with Bun and the isolated Supabase
+project directory as its sole argument.
+
+This also crosses the Auth boundary: a PostgREST pre-request function cannot
+protect GoTrue's account endpoints. The assistant must never receive a credential
+that authenticates as the real Supabase user. Before release, complete credential
+isolation must preserve ordinary user access, owner RLS, encryption, read-only
+mode and revocation. A UI-only, guard-only or table-policy-only fix is insufficient.
 
 Supabase documents that OAuth scopes do not restrict database access:
 [OAuth token security and RLS](https://supabase.com/docs/guides/auth/oauth-server/token-security).

@@ -1,0 +1,37 @@
+---
+objective: "Assistants can use Pulpe through consented MCP tools without receiving any credential usable against Supabase Auth or the Data API."
+status: pending
+---
+
+# Plan: Isolate MCP credentials before public activation
+
+## Overview
+
+| Field      | Value                                                                                                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Goal**   | Close the confirmed Auth and database bypass while retaining ordinary Pulpe sessions, tenant isolation and useful MCP tools.                                                                      |
+| **Source** | User request to verify and prepare a functional ChatGPT/Claude connector; `../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md` records the isolated HTTP reproduction. |
+
+## Phases
+
+| #   | Phase                                                             | File                       |
+| --- | ----------------------------------------------------------------- | -------------------------- |
+| 1   | Separate external MCP credentials from internal Supabase sessions | [phase-1.md](./phase-1.md) |
+| 2   | Verify real flows and prepare activation                          | [phase-2.md](./phase-2.md) |
+
+## Resources
+
+| Source                                                                        | Verified                                                                                          |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| https://supabase.com/docs/guides/auth/oauth-server/token-security             | OAuth scopes do not restrict database access.                                                     |
+| https://supabase.com/docs/guides/api/securing-your-api                        | PostgREST pre-request checks do not cover other products, including Auth.                         |
+| https://raw.githubusercontent.com/supabase/auth/v2.195.0/internal/api/user.go | Account metadata mutation does not reject OAuth-origin sessions; confirmed by isolated HTTP test. |
+| https://supabase.com/docs/guides/auth/oauth-server/oauth-flows                | Native confidential-client code exchange can remain an internal upstream flow.                    |
+
+## Decisions
+
+| Decision                                                                                                                                         | Why                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Proposed, awaiting user approval: issue opaque MCP-only credentials in the existing backend using the installed MCP SDK's OAuth provider/router. | Keeps the current product and user-owned RLS, without giving assistants a Supabase credential. The SDK proxy provider alone passes upstream tokens through and is insufficient. |
+| Supabase OAuth, if retained upstream, is confidential and backend-only; disable its public dynamic registration.                                 | A second public issuance route must not bypass the isolated MCP issuer. Never store or reuse the user's ordinary frontend refresh token.                                        |
+| No SQL-only fix and no service-role replacement for user-data access.                                                                            | SQL cannot guard Auth, and privileged user-data access would discard existing tenant isolation.                                                                                 |
