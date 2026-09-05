@@ -10,7 +10,7 @@ import {
 } from '@nestjs/throttler';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { Request } from 'express';
-import { isIP } from 'node:net';
+import { proxyClientIp } from '@common/utils/proxy-client-ip';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import { isDemoPath, PUBLIC_THROTTLER_NAME } from '@config/throttler.config';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -147,6 +147,7 @@ export class UserThrottlerGuard extends ThrottlerGuard {
       const req = requestProps.context
         .switchToHttp()
         .getRequest<RequestWithThrottlerCache>();
+      if (typeof req.auth?.extra?.userId === 'string') return true;
       const user = await this.#resolveCachedUser(req);
       if (user?.id) return true;
     }
@@ -207,6 +208,11 @@ export class UserThrottlerGuard extends ThrottlerGuard {
       return this.#getClientIpTracker(req);
     }
 
+    // Set only by the MCP SDK's verified-bearer middleware, never from a header/body.
+    if (typeof req.auth?.extra?.userId === 'string') {
+      return `user:${req.auth.extra.userId}`;
+    }
+
     const user = await this.#resolveCachedUser(req);
 
     // Use user ID for authenticated requests
@@ -238,9 +244,8 @@ export class UserThrottlerGuard extends ThrottlerGuard {
    * so per-IP caps could be rotated away one request at a time.
    */
   async #getClientIpTracker(req: RequestWithThrottlerCache): Promise<string> {
-    const realIp = req.headers?.['x-real-ip'];
-    const clientIp = Array.isArray(realIp) ? realIp[0] : realIp;
-    if (clientIp && isIP(clientIp) !== 0) {
+    const clientIp = proxyClientIp(req);
+    if (clientIp) {
       return clientIp;
     }
     return super.getTracker(req);

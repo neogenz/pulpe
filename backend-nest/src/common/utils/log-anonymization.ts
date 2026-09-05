@@ -67,6 +67,11 @@ function isSensitiveLogKey(key: string): boolean {
     [
       'auth',
       'authorization',
+      'authorizationid',
+      'code',
+      'codeverifier',
+      'redirecturl',
+      'location',
       'proxyauthorization',
       'cookie',
       'setcookie',

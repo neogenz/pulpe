@@ -1,3 +1,5 @@
+import type { NewMcpConnection } from '../mcp-connection.entity';
+
 export const OAUTH_AUTHORIZATION_PORT = Symbol('OAUTH_AUTHORIZATION_PORT');
 
 /** A pending OAuth 2.1 authorization request held by the authorization server. */
@@ -16,8 +18,12 @@ export interface OAuthAuthorizationPort {
     authorizationId: string,
     accessToken: string,
   ): Promise<OAuthAuthorizationRequest>;
-  approve(authorizationId: string, accessToken: string): Promise<string>;
+  approve(
+    authorizationId: string,
+    accessToken: string,
+    connection: NewMcpConnection,
+  ): Promise<string>;
   deny(authorizationId: string, accessToken: string): Promise<string>;
-  /** Drops the user's grant to one client: its sessions and refresh tokens die with it. */
+  /** Retires legacy native grants; opaque grants are revoked in the connection store. */
   revokeGrant(clientId: string, accessToken: string): Promise<void>;
 }

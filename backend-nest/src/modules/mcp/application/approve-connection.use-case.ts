@@ -6,10 +6,6 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AccessMode } from '../domain/access-mode';
 import {
-  MCP_CONNECTION_REPOSITORY,
-  type McpConnectionRepositoryPort,
-} from '../domain/ports/mcp-connection-repository.port';
-import {
   OAUTH_AUTHORIZATION_PORT,
   type OAuthAuthorizationPort,
 } from '../domain/ports/oauth-authorization.port';
@@ -34,8 +30,6 @@ export class ApproveConnectionUseCase {
   constructor(
     @Inject(OAUTH_AUTHORIZATION_PORT)
     private readonly authorizations: OAuthAuthorizationPort,
-    @Inject(MCP_CONNECTION_REPOSITORY)
-    private readonly connections: McpConnectionRepositoryPort,
     @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
   ) {}
 
@@ -49,13 +43,12 @@ export class ApproveConnectionUseCase {
       authorizationId,
       user.accessToken,
     );
-    await this.connections.save({
+    return this.authorizations.approve(authorizationId, user.accessToken, {
       userId: user.id,
       clientId,
       clientName,
       mode,
       wrappedClientKey: this.encryption.wrapSecret(user.clientKey),
     });
-    return this.authorizations.approve(authorizationId, user.accessToken);
   }
 }

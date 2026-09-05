@@ -208,6 +208,9 @@ export type Database = {
           authorized_at: string
           client_id: string
           client_name: string
+          encrypted_upstream: string | null
+          generation: string
+          grant_expires_at: string | null
           id: string
           mode: string
           revoked_at: string | null
@@ -218,6 +221,9 @@ export type Database = {
           authorized_at?: string
           client_id: string
           client_name: string
+          encrypted_upstream?: string | null
+          generation?: string
+          grant_expires_at?: string | null
           id?: string
           mode: string
           revoked_at?: string | null
@@ -228,6 +234,9 @@ export type Database = {
           authorized_at?: string
           client_id?: string
           client_name?: string
+          encrypted_upstream?: string | null
+          generation?: string
+          grant_expires_at?: string | null
           id?: string
           mode?: string
           revoked_at?: string | null
@@ -235,6 +244,125 @@ export type Database = {
           wrapped_client_key?: string | null
         }
         Relationships: []
+      }
+      mcp_oauth_authorization: {
+        Row: {
+          challenge: string
+          client_id: string
+          code_hash: string | null
+          connection_id: string | null
+          expires_at: string
+          generation: string | null
+          id: string
+          redirect_uri: string
+          resource: string
+          state: string | null
+          status: string
+        }
+        Insert: {
+          challenge: string
+          client_id: string
+          code_hash?: string | null
+          connection_id?: string | null
+          expires_at?: string
+          generation?: string | null
+          id?: string
+          redirect_uri: string
+          resource: string
+          state?: string | null
+          status?: string
+        }
+        Update: {
+          challenge?: string
+          client_id?: string
+          code_hash?: string | null
+          connection_id?: string | null
+          expires_at?: string
+          generation?: string | null
+          id?: string
+          redirect_uri?: string
+          resource?: string
+          state?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_oauth_authorization_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_oauth_client"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mcp_oauth_authorization_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_connection"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcp_oauth_client: {
+        Row: {
+          created_at: string
+          encrypted_metadata: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          encrypted_metadata: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          encrypted_metadata?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      mcp_oauth_token: {
+        Row: {
+          access_expires_at: string
+          access_hash: string
+          connection_id: string
+          consumed_at: string | null
+          generation: string
+          id: string
+          refresh_expires_at: string
+          refresh_hash: string
+          replaced_at: string | null
+        }
+        Insert: {
+          access_expires_at: string
+          access_hash: string
+          connection_id: string
+          consumed_at?: string | null
+          generation: string
+          id?: string
+          refresh_expires_at: string
+          refresh_hash: string
+          replaced_at?: string | null
+        }
+        Update: {
+          access_expires_at?: string
+          access_hash?: string
+          connection_id?: string
+          consumed_at?: string | null
+          generation?: string
+          id?: string
+          refresh_expires_at?: string
+          refresh_hash?: string
+          replaced_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_oauth_token_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_connection"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       monthly_budget: {
         Row: {
@@ -1027,6 +1155,45 @@ export type Database = {
       lock_savings_goal_for_withdrawal: {
         Args: { p_expected_revision: number; p_goal_id: string }
         Returns: string
+      }
+      mcp_oauth_claim_refresh: {
+        Args: { p_client_id: string; p_hash: string }
+        Returns: Json
+      }
+      mcp_oauth_complete_authorization: {
+        Args: {
+          p_client_name: string
+          p_code_hash: string
+          p_generation: string
+          p_id: string
+          p_mode: string
+          p_upstream: string
+          p_user_id: string
+          p_wrapped_key: string
+        }
+        Returns: string
+      }
+      mcp_oauth_exchange_code: {
+        Args: {
+          p_access_expires_at: string
+          p_access_hash: string
+          p_client_id: string
+          p_code_hash: string
+          p_redirect_uri: string
+          p_refresh_hash: string
+          p_resource: string
+        }
+        Returns: boolean
+      }
+      mcp_oauth_finish_refresh: {
+        Args: {
+          p_access_expires_at: string
+          p_access_hash: string
+          p_refresh_hash: string
+          p_token_id: string
+          p_upstream: string
+        }
+        Returns: boolean
       }
       reconcile_savings_goal_target_date: {
         Args: {

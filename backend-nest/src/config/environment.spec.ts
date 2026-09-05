@@ -37,6 +37,47 @@ describe('Environment Validation', () => {
         'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
     };
 
+    it('requires a complete confidential MCP configuration and HTTPS outside local development', () => {
+      const configured = {
+        ...baseConfig,
+        NODE_ENV: 'test',
+        MCP_UPSTREAM_CLIENT_ID: '10000000-0000-4000-8000-000000000001',
+        MCP_UPSTREAM_CLIENT_SECRET: 'test-private-secret',
+      };
+      expect(() => validateConfig(configured)).not.toThrow();
+      for (const field of [
+        'MCP_UPSTREAM_CLIENT_ID',
+        'MCP_UPSTREAM_CLIENT_SECRET',
+      ]) {
+        expect(() =>
+          validateConfig({ ...configured, [field]: undefined }),
+        ).toThrow(/MCP_UPSTREAM/);
+      }
+      expect(() =>
+        validateConfig({ ...configured, NODE_ENV: 'production' }),
+      ).toThrow(/MCP/);
+      expect(() =>
+        validateConfig({
+          ...configured,
+          NODE_ENV: 'production',
+          MCP_RESOURCE_URL: 'https://api.example/mcp',
+          MCP_CONSENT_URL: 'https://app.example/mcp-consent',
+        }),
+      ).not.toThrow();
+      for (const invalid of [
+        'not a URL',
+        'http://remote.example/mcp',
+        'https://user:pass@api.example/mcp',
+        'https://api.example/mcp#fragment',
+        'https://api.example/mcp?query=yes',
+        'https://api.example/another-resource',
+      ]) {
+        expect(() =>
+          validateConfig({ ...configured, MCP_RESOURCE_URL: invalid }),
+        ).toThrow(/MCP_RESOURCE_URL/);
+      }
+    });
+
     it('should refuse to boot when MCP_WRAPPING_KEY is missing or mis-sized', () => {
       const { MCP_WRAPPING_KEY: _omitted, ...without } = baseConfig;
       expect(() => validateConfig({ ...without, NODE_ENV: 'test' })).toThrow(

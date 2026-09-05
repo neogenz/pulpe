@@ -1,17 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import {
+  SupabaseMcpOAuthRepository,
+  hashMcpCredential,
+} from '../persistence/supabase-mcp-oauth.repository';
+import type { NewMcpConnection } from '../../domain/mcp-connection.entity';
 import type {
   OAuthAuthorizationPort,
   OAuthAuthorizationRequest,
 } from '../../domain/ports/oauth-authorization.port';
 
-const detailsSchema = z.object({
-  client: z.object({ id: z.string(), name: z.string() }),
-});
 const decisionSchema = z.object({ redirect_url: z.url() });
 
 type Action = 'approve' | 'deny';
@@ -29,10 +31,8 @@ export interface PrivateMcpSession {
 }
 
 /**
- * GoTrue's OAuth 2.1 consent API (supabase-js 2.56 has no binding for it):
- * `GET  /auth/v1/oauth/authorizations/{id}` and
- * `POST /auth/v1/oauth/authorizations/{id}/consent {action}`,
- * both as the signed-in user. A consumed or unknown id answers 400 → 422 here.
+ * Pulpe consent only accepts requests from its own issuer. GoTrue's native
+ * code and session are exchanged privately after the user's consent and PIN.
  */
 @Injectable()
 export class SupabaseOAuthAuthorizationAdapter implements OAuthAuthorizationPort {
@@ -40,7 +40,10 @@ export class SupabaseOAuthAuthorizationAdapter implements OAuthAuthorizationPort
   readonly #baseUrl: string;
   readonly #anonKey: string;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly store: SupabaseMcpOAuthRepository,
+  ) {
     this.#authUrl = `${config.getOrThrow<string>('SUPABASE_URL')}/auth/v1`;
     this.#baseUrl = `${this.#authUrl}/oauth/authorizations`;
     this.#anonKey = config.getOrThrow<string>('SUPABASE_ANON_KEY');
@@ -166,27 +169,75 @@ export class SupabaseOAuthAuthorizationAdapter implements OAuthAuthorizationPort
 
   async getDetails(
     authorizationId: string,
-    accessToken: string,
+    _accessToken: string,
   ): Promise<OAuthAuthorizationRequest> {
-    const { client } = detailsSchema.parse(
-      await this.#call(authorizationId, accessToken),
+    const request = await this.store.pending(authorizationId);
+    if (!request) this.#fail('getDetails');
+    const client = await this.store.getClient(request.client_id);
+    if (!client) this.#fail('getDetails');
+    return {
+      clientId: client.client_id,
+      clientName: client.client_name ?? 'MCP client',
+    };
+  }
+
+  async approve(
+    authorizationId: string,
+    accessToken: string,
+    connection: NewMcpConnection,
+  ): Promise<string> {
+    const request = await this.store.decide(authorizationId, 'approving');
+    if (!request || request.client_id !== connection.clientId)
+      this.#fail('approve');
+    const session = await this.createPrivateSession(
+      accessToken,
+      connection.userId,
     );
-    return { clientId: client.id, clientName: client.name };
+    const code = `mcp_ac_${randomBytes(32).toString('base64url')}`;
+    if (
+      !(await this.store.complete(
+        authorizationId,
+        connection,
+        session,
+        randomUUID(),
+        hashMcpCredential(code),
+      ))
+    ) {
+      this.#fail('approve');
+    }
+    return this.#callback(request, 'code', code);
   }
 
-  approve(authorizationId: string, accessToken: string): Promise<string> {
-    return this.#decide(authorizationId, accessToken, 'approve');
+  async deny(authorizationId: string, _accessToken: string): Promise<string> {
+    const request = await this.store.decide(authorizationId, 'denied');
+    if (!request) this.#fail('deny');
+    return this.#callback(request, 'error', 'access_denied');
   }
 
-  deny(authorizationId: string, accessToken: string): Promise<string> {
-    return this.#decide(authorizationId, accessToken, 'deny');
+  #callback(
+    request: { redirect_uri: string; state: string | null },
+    field: 'code' | 'error',
+    value: string,
+  ): string {
+    const callback = new URL(request.redirect_uri);
+    for (const key of ['code', 'error', 'state'])
+      callback.searchParams.delete(key);
+    callback.searchParams.set(field, value);
+    if (request.state !== null)
+      callback.searchParams.set('state', request.state);
+    return callback.href;
   }
 
   /** `DELETE /auth/v1/user/oauth/grants?client_id=` answers 204; a grant already gone is not an error. */
   async revokeGrant(clientId: string, accessToken: string): Promise<void> {
+    // New grants destroy their private credentials locally. Revoking the
+    // shared native client would disconnect this owner's other assistants.
+    if (clientId.startsWith('pulpe_')) return;
     const url = `${this.#authUrl}/user/oauth/grants?client_id=${encodeURIComponent(clientId)}`;
     const response = await fetch(url, {
       method: 'DELETE',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(10_000),
       headers: this.#headers(accessToken),
     });
     if (!response.ok && response.status !== 404) {

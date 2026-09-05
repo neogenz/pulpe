@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, spyOn } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseOAuthAuthorizationAdapter } from './supabase-oauth-authorization.adapter';
+import { SupabaseService } from '@modules/supabase/supabase.service';
+import { SupabaseMcpOAuthRepository } from '../persistence/supabase-mcp-oauth.repository';
 
 const native = 'https://supabase.test/auth/v1';
 const callback = 'https://api.pulpe.test/mcp/oauth/upstream-callback';
@@ -19,14 +21,17 @@ function upstream(
 ) {
   let authorize: URL | undefined;
   const requests: string[] = [];
+  const config = new ConfigService({
+    SUPABASE_URL: 'https://supabase.test',
+    SUPABASE_ANON_KEY: 'test-anon',
+    MCP_RESOURCE_URL: 'https://api.pulpe.test/mcp',
+    MCP_UPSTREAM_CLIENT_ID: 'private-client',
+    MCP_UPSTREAM_CLIENT_SECRET: 'test-secret',
+    MCP_WRAPPING_KEY: 'cd'.repeat(32),
+  });
   const adapter = new SupabaseOAuthAuthorizationAdapter(
-    new ConfigService({
-      SUPABASE_URL: 'https://supabase.test',
-      SUPABASE_ANON_KEY: 'test-anon',
-      MCP_RESOURCE_URL: 'https://api.pulpe.test/mcp',
-      MCP_UPSTREAM_CLIENT_ID: 'private-client',
-      MCP_UPSTREAM_CLIENT_SECRET: 'test-secret',
-    }),
+    config,
+    new SupabaseMcpOAuthRepository(new SupabaseService(config), config),
   );
   const approval = () => ({
     redirect_url: `${callback}?${new URLSearchParams({
@@ -103,6 +108,59 @@ function upstream(
 }
 
 describe('MCP confidential upstream session', () => {
+  it('authenticates private ciphertext against its owner, client, generation and wrapping key', () => {
+    const config = new ConfigService({
+      MCP_WRAPPING_KEY: 'cd'.repeat(32),
+      SUPABASE_URL: native,
+      SUPABASE_ANON_KEY: 'test-anon',
+    });
+    const store = new SupabaseMcpOAuthRepository(
+      new SupabaseService(config),
+      config,
+    );
+    const session = {
+      accessToken: 'test-private-access',
+      refreshToken: 'test-private-refresh',
+      expiresAt: 2_000_000_000,
+    };
+    const grant = {
+      id: crypto.randomUUID(),
+      user_id: crypto.randomUUID(),
+      client_id: 'pulpe_test',
+      generation: crypto.randomUUID(),
+      grant_expires_at: '2030-01-01T00:00:00Z',
+      encrypted_upstream: '',
+    };
+    grant.encrypted_upstream = store.sealSession(
+      session,
+      grant.user_id,
+      grant.client_id,
+      grant.generation,
+    );
+    expect(store.readSession(grant)).toEqual(session);
+    expect(grant.encrypted_upstream).not.toContain(session.refreshToken);
+    for (const field of ['user_id', 'client_id', 'generation']) {
+      expect(() =>
+        store.readSession({ ...grant, [field]: crypto.randomUUID() }),
+      ).toThrow();
+    }
+    const wrongKey = new ConfigService({ MCP_WRAPPING_KEY: 'ef'.repeat(32) });
+    expect(() =>
+      new SupabaseMcpOAuthRepository(
+        new SupabaseService(config),
+        wrongKey,
+      ).readSession(grant),
+    ).toThrow();
+    const tampered = Buffer.from(grant.encrypted_upstream, 'base64');
+    tampered[tampered.length - 1] ^= 1;
+    expect(() =>
+      store.readSession({
+        ...grant,
+        encrypted_upstream: tampered.toString('base64'),
+      }),
+    ).toThrow();
+  });
+
   it.each([false, true])(
     'keeps PKCE, code and session backend-only (cached native grant: %s)',
     async (cached) => {

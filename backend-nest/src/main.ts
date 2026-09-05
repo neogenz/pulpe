@@ -13,6 +13,14 @@ import {
   type Environment,
 } from '@config/environment';
 import { REQUEST_ID_HEADER } from 'pulpe-shared';
+import type { Request } from 'express';
+import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
+import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
+import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
+import { McpOAuthProvider } from '@modules/mcp/infrastructure/oauth/mcp-oauth.provider';
+import { proxyClientIp } from '@common/utils/proxy-client-ip';
+import { protectedResourceMetadataUrl } from '@modules/mcp/infrastructure/auth/mcp-token.guard';
 
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
 
@@ -23,7 +31,7 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
     configService.get<string>('RAILWAY_ENVIRONMENT_NAME'),
   );
 
-  app.enableCors({
+  const restCors = {
     origin: createOriginValidator(configService, productionLike),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: [
@@ -35,7 +43,79 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
     ],
     exposedHeaders: [REQUEST_ID_HEADER],
     credentials: true,
-  });
+  };
+  app.enableCors(
+    (
+      req: Request,
+      callback: (error: Error | null, options: CorsOptions) => void,
+    ) =>
+      callback(
+        null,
+        /^\/mcp\/?$/.test(req.path)
+          ? {
+              origin: '*',
+              methods: ['GET', 'POST', 'DELETE'],
+              credentials: false,
+              allowedHeaders: [
+                'Content-Type',
+                'Authorization',
+                'mcp-protocol-version',
+                'mcp-session-id',
+                'Last-Event-ID',
+                REQUEST_ID_HEADER,
+              ],
+              exposedHeaders: [
+                'WWW-Authenticate',
+                'mcp-session-id',
+                REQUEST_ID_HEADER,
+              ],
+            }
+          : restCors,
+      ),
+  );
+}
+
+const mcpIpKey = (req: Request): string =>
+  ipKeyGenerator(proxyClientIp(req) ?? req.ip ?? 'unknown');
+
+function setupMcpOAuth(app: import('@nestjs/common').INestApplication): void {
+  const provider = app.get(McpOAuthProvider);
+  if (!provider.enabled) return;
+  const limit = { keyGenerator: mcpIpKey };
+  app.use(
+    mcpAuthRouter({
+      provider,
+      issuerUrl: new URL(provider.resource.origin),
+      resourceServerUrl: provider.resource,
+      resourceName: 'Pulpe',
+      scopesSupported: ['mcp'],
+      authorizationOptions: { rateLimit: limit },
+      tokenOptions: { rateLimit: limit },
+      revocationOptions: { rateLimit: limit },
+      clientRegistrationOptions: {
+        rateLimit: limit,
+        clientSecretExpirySeconds: 0,
+      },
+    }),
+  );
+}
+
+function setupMcpBearer(app: import('@nestjs/common').INestApplication): void {
+  const provider = app.get(McpOAuthProvider);
+  app.use(
+    '/mcp',
+    rateLimit({
+      windowMs: 60_000,
+      limit: 1000,
+      keyGenerator: mcpIpKey,
+      standardHeaders: true,
+      legacyHeaders: false,
+    }),
+    requireBearerAuth({
+      verifier: provider,
+      resourceMetadataUrl: protectedResourceMetadataUrl(provider.resource.href),
+    }),
+  );
 }
 
 function createOriginValidator(
@@ -278,6 +358,7 @@ async function bootstrap() {
     TURNSTILE_SECRET_KEY: configService.get('TURNSTILE_SECRET_KEY')!,
     ENCRYPTION_MASTER_KEY: configService.get('ENCRYPTION_MASTER_KEY')!,
     MCP_RESOURCE_URL: configService.get('MCP_RESOURCE_URL')!,
+    MCP_CONSENT_URL: configService.get('MCP_CONSENT_URL')!,
     MCP_WRAPPING_KEY: configService.get('MCP_WRAPPING_KEY')!,
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
     RAILWAY_ENVIRONMENT_NAME: configService.get('RAILWAY_ENVIRONMENT_NAME'),
@@ -299,8 +380,12 @@ async function bootstrap() {
   // Setup security middleware
   setupSecurity(app, productionLike);
 
+  // OAuth endpoints own their SDK CORS policy; do not send them through REST CORS.
+  setupMcpOAuth(app);
+
   // Setup CORS after security middleware
   setupCors(app);
+  setupMcpBearer(app);
 
   // Setup API versioning
   setupApiVersioning(app);
@@ -321,4 +406,6 @@ async function bootstrap() {
   logApplicationInfo(logger, env.PORT, env, !productionLike);
 }
 
-bootstrap();
+// Integration tests exercise the production middleware without starting a second server.
+export { setupCors, setupMcpOAuth, setupMcpBearer, setupApiVersioning };
+if (require.main === module) void bootstrap();

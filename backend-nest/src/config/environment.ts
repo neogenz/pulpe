@@ -28,8 +28,44 @@ const envSchema = z
       .regex(/^[0-9a-f]+$/i, {
         error: 'ENCRYPTION_MASTER_KEY must be a valid hex string',
       }),
-    // MCP agent connector: the public URL clients present as audience.
-    MCP_RESOURCE_URL: z.url().default('http://localhost:3000/mcp'),
+    // MCP agent connector: the public URL bound to each opaque credential.
+    MCP_RESOURCE_URL: z
+      .url()
+      .default('http://localhost:3000/mcp')
+      .refine(
+        (value) => {
+          if (!URL.canParse(value)) return false;
+          const url = new URL(value);
+          return (
+            url.pathname === '/mcp' &&
+            !url.search &&
+            !url.hash &&
+            !url.username &&
+            !url.password
+          );
+        },
+        {
+          error:
+            'MCP_RESOURCE_URL must end in /mcp without credentials, query or fragment',
+        },
+      ),
+    MCP_CONSENT_URL: z
+      .url()
+      .default('http://localhost:4200/mcp-consent')
+      .refine(
+        (value) => {
+          if (!URL.canParse(value)) return false;
+          const url = new URL(value);
+          return !url.search && !url.hash && !url.username && !url.password;
+        },
+        {
+          error:
+            'MCP_CONSENT_URL must not contain credentials, query or fragment',
+        },
+      ),
+    // Both absent keeps MCP disabled without disrupting ordinary Pulpe sessions.
+    MCP_UPSTREAM_CLIENT_ID: z.uuid().optional(),
+    MCP_UPSTREAM_CLIENT_SECRET: z.string().min(1).optional(),
     // Wraps each agent connection's vault key at rest. Distinct from the
     // master key so rotating one never exposes the other.
     MCP_WRAPPING_KEY: z
@@ -85,6 +121,36 @@ const envSchema = z
       ),
   })
   .strip()
+  .superRefine((env, context) => {
+    if (!!env.MCP_UPSTREAM_CLIENT_ID !== !!env.MCP_UPSTREAM_CLIENT_SECRET) {
+      context.addIssue({
+        code: 'custom',
+        path: ['MCP_UPSTREAM_CLIENT_SECRET'],
+        message:
+          'MCP upstream client ID and secret must be configured together',
+      });
+    }
+    for (const field of ['MCP_RESOURCE_URL', 'MCP_CONSENT_URL'] as const) {
+      if (!URL.canParse(env[field])) continue;
+      const url = new URL(env[field]);
+      const localHttp =
+        url.protocol === 'http:' &&
+        ['localhost', '127.0.0.1'].includes(url.hostname);
+      if (
+        url.protocol !== 'https:' &&
+        (!localHttp ||
+          (!!env.MCP_UPSTREAM_CLIENT_ID &&
+            isProductionLike(env.NODE_ENV, env.RAILWAY_ENVIRONMENT_NAME)))
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: [field],
+          message:
+            'MCP URLs must use HTTPS, except loopback in local development',
+        });
+      }
+    }
+  })
   .refine(
     (env) =>
       isVersionAtMost(env.MIN_ANDROID_VERSION, env.LATEST_ANDROID_VERSION),

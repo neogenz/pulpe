@@ -80,6 +80,26 @@ try {
     ),
     "first-party login",
   );
+  const registration = await request(
+    "/auth/v1/oauth/clients/register",
+    config.ANON_KEY,
+    "POST",
+    {
+      client_name: "Pulpe isolated security audit",
+      redirect_uris: [callback],
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "none",
+    },
+  );
+  if (registration.ok) clientId = (await registration.json()).client_id;
+  assert.ok(
+    [400, 403, 404].includes(registration.status),
+    "public upstream registration must be disabled",
+  );
+  console.log(
+    `Public upstream registration rejected (HTTP ${registration.status}).`,
+  );
   const client = await json(
     await request(
       "/auth/v1/admin/oauth/clients",
