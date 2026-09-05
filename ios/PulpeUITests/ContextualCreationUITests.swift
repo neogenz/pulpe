@@ -66,9 +66,17 @@ final class ContextualCreationUITests: XCTestCase {
         // assert nothing. What the largest text size can still break is the rail: the
         // button spans the content zone, DesignTokens.Spacing.xxl on each side, which is
         // the width the accueil gives its own.
+        // A UI test bundle runs out of process and cannot import the app's module, so the
+        // rail is restated here rather than read from the token. The failure says which
+        // token to look at, since the number alone would not.
         let rail: CGFloat = 24
         let contentWidth = app.windows.firstMatch.frame.width - 2 * rail
-        XCTAssertEqual(addForecast.frame.width, contentWidth, accuracy: 1, app.debugDescription)
+        XCTAssertEqual(
+            addForecast.frame.width,
+            contentWidth,
+            accuracy: 1,
+            "The add button no longer spans the \(rail) pt rail (DesignTokens.Spacing.xxl)"
+        )
 
         addForecast.tap()
         XCTAssertTrue(app.buttons["addBudgetLineSubmit"].firstMatch.waitForExistence(timeout: 5))
