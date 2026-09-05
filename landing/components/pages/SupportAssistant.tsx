@@ -189,6 +189,9 @@ export function SupportAssistant({
               <h3 className="text-2xl font-semibold tracking-[-0.025em] text-text">
                 {assistant.consentTitle}
               </h3>
+              <p className="mt-4 leading-relaxed text-text-secondary">
+                {assistant.dataSharing}
+              </p>
               <Steps items={assistant.consentSteps} />
             </div>
           </div>

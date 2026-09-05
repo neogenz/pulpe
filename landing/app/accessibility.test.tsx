@@ -23,6 +23,7 @@ import type { PostHog } from "posthog-js/dist/module.slim";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Testimonials } from "../components/sections/Testimonials";
+import { Assistants } from "../components/sections/Assistants";
 import { TESTIMONIAL_SIGNATURES } from "../components/sections/testimonialSignatures";
 import { AccordionItem } from "../components/ui/AccordionItem";
 // Nommés `…Dict` : `it` importé nu masquerait le `it` de `node:test`, et la
@@ -1594,6 +1595,20 @@ describe("landing accessibility contracts", () => {
   });
 
   it("tells a reader what an assistant may do before how to plug it in", async () => {
+    for (const locale of LOCALES) {
+      const dict = CATALOGS[locale].assistant;
+      const html = renderToStaticMarkup(
+        <Assistants dict={dict} locale={locale} />,
+      );
+      assert.ok(html.includes(dict.promo.heading));
+      assert.ok(html.includes(dict.promo.status));
+      assert.ok(html.includes(dict.dataSharing));
+      assert.ok(
+        html.includes(
+          `href="${locale === "fr" ? "" : `/${locale}`}${ASSISTANT_ROUTE}"`,
+        ),
+      );
+    }
     const assistant = joined(frDict.assistant);
     assert.match(assistant, /lecture seule/i);
     assert.match(assistant, /lecture et écriture/i);
