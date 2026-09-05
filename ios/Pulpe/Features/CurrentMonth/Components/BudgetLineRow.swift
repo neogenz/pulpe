@@ -39,6 +39,18 @@ struct BudgetLineRow: View {
 
     private var hasConsumption: Bool { Self.hasConsumption(consumption) }
 
+    private var tertiaryText: String? {
+        Self.tertiaryText(line: line, consumption: consumption, currency: userSettingsStore.currency)
+    }
+
+    /// A ponctuel income or saving with nothing spent on it yet has neither glyph nor
+    /// sentence, and an empty row still takes the `VStack` spacing above it — a hair
+    /// taller than its neighbours, for nothing. `BudgetLineMixedRow` gates its own
+    /// tertiary line on the same rule.
+    private var hasTertiaryRow: Bool {
+        line.recurrence.icon != nil || tertiaryText != nil
+    }
+
     private var consumptionColor: Color {
         guard line.kind == .expense else { return .secondary }
         if consumption.isOverBudget { return .financialOverBudget }
@@ -128,25 +140,23 @@ struct BudgetLineRow: View {
 
                 // Where the line comes from, then what it has consumed — the
                 // glyph opens the line whether or not anything has been spent.
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    if let icon = line.recurrence.icon {
-                        // Decorative: the title above speaks the rhythm for both.
-                        Image(systemName: icon)
-                            .accessibilityHidden(true)
-                    }
+                if hasTertiaryRow {
+                    HStack(spacing: DesignTokens.Spacing.xs) {
+                        if let icon = line.recurrence.icon {
+                            // Decorative: the title above speaks the rhythm for both.
+                            Image(systemName: icon)
+                                .accessibilityHidden(true)
+                        }
 
-                    if let tertiaryText = Self.tertiaryText(
-                        line: line,
-                        consumption: consumption,
-                        currency: userSettingsStore.currency
-                    ) {
-                        Text(tertiaryText)
-                            .lineLimit(1)
-                            .sensitiveAmount()
+                        if let tertiaryText {
+                            Text(tertiaryText)
+                                .lineLimit(1)
+                                .sensitiveAmount()
+                        }
                     }
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
                 }
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textSecondary)
 
                 if hasConsumption {
                     progressBar

@@ -53,12 +53,19 @@ struct BudgetLineRowPresentationTests {
         #expect(text?.hasPrefix("sur ") == true)
     }
 
+    /// Ponctuel is the case that matters: with no sentence and no `repeat` glyph either,
+    /// the tertiary line has nothing at all to draw, and the row must drop it rather than
+    /// keep an empty one — the `VStack` pads an empty child on both sides.
     @Test(
-        "an untouched income or saving leaves the glyph alone on the line",
-        arguments: [TransactionKind.income, .saving]
+        "an untouched income or saving says nothing on the tertiary line",
+        arguments: [TransactionKind.income, .saving],
+        [TransactionRecurrence.fixed, .oneOff]
     )
-    func tertiaryText_whenUntouchedIncomeOrSaving_returnsNil(kind: TransactionKind) {
-        let line = TestDataFactory.createBudgetLine(amount: 4200, kind: kind)
+    func tertiaryText_whenUntouchedIncomeOrSaving_returnsNil(
+        kind: TransactionKind,
+        recurrence: TransactionRecurrence
+    ) {
+        let line = TestDataFactory.createBudgetLine(amount: 4200, kind: kind, recurrence: recurrence)
 
         #expect(
             BudgetLineRow.tertiaryText(
