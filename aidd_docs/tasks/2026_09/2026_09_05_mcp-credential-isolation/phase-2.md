@@ -8,7 +8,9 @@ status: blocked
 
 Server verification passed: all 15 tools execute through real HTTP and encrypted owner data, within 18 MCP scenarios and 121 passing backend integration/e2e tests. Account-currency edits, destructive annotations and literal search were corrected. Existing CI already runs this test file. Client requirements, evaluation prompts and current evidence are recorded in the linked readiness documents.
 
-Blocked before real ChatGPT/Claude acceptance: the non-production Supabase target and authority to migrate/configure its confidential upstream must be resolved with the user. The existing Railway `mcp-spike` deployment is successful but its OAuth discovery returns 404. No claim of real-client or universal mobile support is made.
+The dedicated `pulpe-mcp-test` Supabase project in `Pulpe Tests` is healthy on Free with 102 migrations, closed public signup and a configured confidential OAuth upstream. The separate Vercel test site is READY and publicly accessible with verified test-only configuration, disabled analytics and a no-index header. The [plan checkpoint](./plan.md#execution-checkpoint--2026-09-05) records exact resources and local secret storage.
+
+Blocked: automatic security review requires explicit approval to send the newly generated service-role, encryption, wrapping and OAuth secrets to the existing Railway `mcp-spike` backend. That mutation was rejected, so Railway configuration is unchanged. No synthetic account or real ChatGPT/Claude association has been created. No claim of real-client or universal mobile support is made.
 
 ## Architecture projection
 
