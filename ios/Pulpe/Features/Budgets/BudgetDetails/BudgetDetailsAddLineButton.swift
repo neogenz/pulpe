@@ -12,7 +12,6 @@ struct BudgetDetailsAddLineButton: View {
             Label(AppLocale.string("Ajouter une prévision"), systemImage: "plus")
         }
         .primaryButtonStyle()
-        .accessibilityLabel(AppLocale.string("Ajouter une prévision"))
         .accessibilityIdentifier("budgetAddLineButton")
     }
 }

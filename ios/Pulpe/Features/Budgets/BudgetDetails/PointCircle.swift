@@ -33,12 +33,12 @@ struct PointCircle: View {
     /// Derived from the stroked circle's own circumference — `strokeBorder` insets by half
     /// the line width — so the segments meet where they started. A dash measured in points
     /// leaves a short one at the seam on any disc size that does not divide by it.
-    private static var ringStrokeStyle: StrokeStyle {
+    private static let ringStrokeStyle: StrokeStyle = {
         let circumference = CGFloat.pi * (DesignTokens.IconSize.badge - DesignTokens.Checkbox.ringWidth)
         let period = circumference / DesignTokens.Checkbox.ringDashSegments
         let dash = period * DesignTokens.Checkbox.ringDashFill
         return StrokeStyle(lineWidth: DesignTokens.Checkbox.ringWidth, dash: [dash, period - dash])
-    }
+    }()
 
     private var fillAnimation: Animation {
         .easeOut(duration: reduceMotion ? DesignTokens.Animation.microFadeIn : DesignTokens.Animation.normal)

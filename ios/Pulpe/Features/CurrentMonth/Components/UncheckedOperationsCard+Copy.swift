@@ -5,8 +5,9 @@ import SwiftUI
 extension UncheckedOperationsCard {
     /// What helps answer « is it passed? »: when the movement was noted, or that the line
     /// is a forecast of this month. The rhythm used to be spelled out here, after the
-    /// separator; `recurrence(for:)` now carries it as a glyph, because the word for a
-    /// one-off forecast is "Prévu" — the same word this sentence already opens on.
+    /// separator; `recurrence(for:)` now carries it as a glyph, because the absence of the
+    /// repeat arrows already says "this month only" — a second word after the separator
+    /// only restated the sentence it follows.
     static func subtitle(for item: CurrentMonthStore.CheckableItem) -> String {
         switch item {
         // The date keeps its own case after the separator: German capitalizes nouns

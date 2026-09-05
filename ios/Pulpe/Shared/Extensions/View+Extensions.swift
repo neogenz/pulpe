@@ -443,10 +443,12 @@ extension View {
     /// the parent keeps a dead band exactly one keyboard tall, which scrolls but
     /// holds nothing. Five bugs have been filed on that band under different names.
     ///
-    /// Apply it to every navigation screen that owns **no inline text field**. Sheets
-    /// don't count — they are their own presentation hosts and never share the stack's
-    /// inset. A screen that does own a field (`EditTransactionPage`,
-    /// `AddAllocatedTransactionPage`) stays bare: it needs the inset it raises itself.
+    /// Apply it to every navigation screen that raises **no keyboard of its own from the
+    /// bottom**. A screen that does (`EditTransactionPage`, `AddAllocatedTransactionPage`)
+    /// stays bare: it needs the inset it raises. A field in the top search drawer
+    /// (`BudgetDetailsView`) is not one — nothing of its own sits under the keyboard, so
+    /// refusing the bottom inset hides nothing. Sheets don't count either: they are their
+    /// own presentation hosts and never share the stack's inset.
     ///
     /// It goes on the screen at its **call site** — where the destination or the stack
     /// root is declared — so it wraps that screen's whole modifier chain, overlays

@@ -48,6 +48,10 @@ struct NavigationKeyboardInsetTests {
         "Pulpe/Features/Budgets/BudgetDetails/BudgetDetailsView+Routing.swift",
     ]
 
+    /// SwiftUI containers the composition files build that are not screens of their own.
+    /// `TabView` hosts the four stacks; it never receives a destination's inset.
+    private static let containers: Set<String> = ["TabView"]
+
     private static func iosRoot() -> URL {
         // This file lives in <repo>/ios/PulpeTests/App/.
         URL(fileURLWithPath: #filePath)
@@ -85,6 +89,22 @@ struct NavigationKeyboardInsetTests {
         return found
     }
 
+    /// Every screen type the composition files construct, declared or not. Reading only
+    /// `expected` would make the inventory self-confirming: a destination nobody ruled on
+    /// is exactly the one that never appears in the map.
+    private static func constructedScreens() -> Set<String> {
+        let sources = compositionFiles.map(read).joined(separator: "\n")
+        let pattern = "\\b([A-Z][A-Za-z0-9]*(?:View|Page|Host))\\s*\\("
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        let range = NSRange(sources.startIndex..., in: sources)
+        var names: Set<String> = []
+        for match in regex.matches(in: sources, range: range) {
+            guard let nameRange = Range(match.range(at: 1), in: sources) else { continue }
+            names.insert(String(sources[nameRange]))
+        }
+        return names.subtracting(containers)
+    }
+
     /// Runs before every other assertion: a scan that read nothing would otherwise
     /// satisfy each rule below vacuously and report the invariant as held.
     @Test("Composition sources are readable and name every expected screen")
@@ -99,6 +119,15 @@ struct NavigationKeyboardInsetTests {
         )
         for screen in Self.expected.keys {
             #expect(screens.contains(screen), "\(screen) is no longer composed in the scanned files")
+        }
+    }
+
+    @Test("A destination cannot reach a stack without a ruling on the inset")
+    func everyConstructedScreenIsRuledOn() {
+        for screen in Self.constructedScreens() where Self.expected[screen] == nil {
+            let why = "\(screen) is pushed onto a stack but appears in no rule — decide "
+                + "whether it refuses the stack's keyboard inset or raises one of its own"
+            Issue.record("\(why)")
         }
     }
 

@@ -121,7 +121,7 @@ struct BudgetDetailsView: View {
                 Button { router.present(.realizedBalance) } label: {
                     Image(systemName: "chart.bar")
                 }
-                .accessibilityLabel("Suivi du budget")
+                .accessibilityLabel(AppLocale.string("Suivi du budget"))
                 .accessibilityIdentifier("budgetTrackingButton")
             }
         }

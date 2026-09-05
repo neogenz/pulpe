@@ -32,7 +32,7 @@ struct BudgetLineRowPresentationTests {
         // Both states must actually say something: a regression to `nil` would satisfy
         // a bare `!contains` on either of them without stating anything at all.
         #expect(untouched == "sur \(Decimal(1450).asCurrency(.chf))")
-        #expect(consumed == "180 CHF dépensés · 12% utilisé")
+        #expect(consumed == "\(Decimal(180).asAdaptiveCurrency(.chf)) dépensés · 12% utilisé")
         for text in [untouched, consumed] {
             #expect(text?.contains(recurrence.label) == false)
         }
