@@ -94,7 +94,7 @@ struct BudgetLineDetailPage: View {
 
             transactionsList(line: line, transactions: transactions)
         }
-        .pulpeStickyBottomCTA(avoidsKeyboard: false) { addTransactionButton(line: line) }
+        .pulpeStickyBottomCTA { addTransactionButton(line: line) }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 headerMenu(for: line)

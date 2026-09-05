@@ -35,6 +35,8 @@ extension BudgetDetailsView {
                 tagNamesById: tagStore.namesById,
                 onEditLine: { line in router.present(.editBudgetLine(line)) }
             )
+            .ignoresForeignKeyboardInset()
+        // Bare below: both own the field that raises the keyboard.
         case .addAllocatedTx(let lineId):
             AddAllocatedTransactionPage(lineId: lineId)
         case .editTx(let transactionId):

@@ -332,11 +332,5 @@ struct BudgetDetailsView: View {
             prompt: "Rechercher..."
         )
         .searchPresentationToolbarBehavior(.avoidHidingContent)
-        // The only field lives in the top search drawer, so resetting the bottom
-        // keyboard inset hides nothing. It prevents a stale inset inherited from
-        // EditTransactionPage from creating phantom over-scroll after pop.
-        // Keep LAST so the sticky pager inherits it; if
-        // a bottom text field is ever added here, remove or scope this.
-        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 }
