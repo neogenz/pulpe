@@ -465,6 +465,23 @@ const en: Dictionary = {
   },
 
   assistant: {
+    promo: {
+      status: "Connection in preparation",
+      heading: "Your budget, in the conversation.",
+      intro:
+        "With ChatGPT or Claude, ask about your month, find an expense or ask the assistant to record it in Pulpe.",
+      cta: "Explore the connection",
+      examplesTitle: "What you’ll be able to ask",
+      examples: [
+        "How much can I still spend this month?",
+        "Find my grocery expenses.",
+        "Record yesterday’s restaurant expense.",
+      ],
+      availability:
+        "Depends on your assistant’s features and your plan. The guide explains which platforms are available.",
+    },
+    dataSharing:
+      "You choose what the assistant can read or change. The data it uses is sent to it and processed by its provider. You can cut off access at any time.",
     metaTitle: "Connect Pulpe to an AI assistant",
     metaDescription:
       "Connect Pulpe to ChatGPT, Claude or Claude Code: what the assistant can do, how to authorise it, and where to cut the access.",
@@ -472,7 +489,7 @@ const en: Dictionary = {
     eyebrow: "AI assistants",
     heading: "Talk about your budget from your assistant",
     intro:
-      "You can connect Pulpe to ChatGPT, to Claude or to Claude Code, then ask where you stand this month or record an expense without opening the app.",
+      "The public connection is in preparation. It will let you retrieve your figures and record an expense from ChatGPT or Claude. Here is how it works and the planned setup.",
     abilitiesHeading: "What your assistant can do.",
     abilities: [
       "Tell you what is left to spend this month, and where the figure comes from.",
@@ -483,7 +500,7 @@ const en: Dictionary = {
     ],
     sourceTitle: "The figures stay the ones from Pulpe",
     sourceText:
-      "The assistant recalculates nothing. It reads the same amounts as your app, and Pulpe is what counts. The way it turns them into sentences is its own, so read it the way you would read a draft.",
+      "Pulpe supplies your budget figures to the assistant. Its explanations may contain mistakes: check Pulpe if in doubt.",
     modeHeading: "Decide what it is allowed to do.",
     modeIntro:
       "You choose when you authorise the connection. You can change your mind later: cut it, then set it up again in the other mode.",
@@ -495,36 +512,36 @@ const en: Dictionary = {
     writeMode: {
       eyebrow: "Read and write",
       title: "It records for you",
-      text: "On top of reading, it can add an expense, check it off, or create next month’s budget. It says what it is about to do before doing it.",
+      text: "It can add an expense, check it off or create next month’s budget. Review requested actions; confirmations also depend on your assistant’s settings.",
     },
     connectEyebrow: "The setup",
     connectHeading: "Connect Pulpe, once.",
     addressLabel: "The address to paste, the same everywhere",
     availabilityNote:
-      "Custom connectors are open neither on every plan, nor on every version. If you cannot find the screen described here, your assistant does not offer them yet.",
+      "Claude supports remote connections on web, desktop and mobile. Custom MCP connections in ChatGPT are currently offered on the web; availability and write actions depend on your plan. Pulpe is not yet published in their directories.",
     clients: [
       {
         name: "ChatGPT",
         steps: [
-          "Open the settings, then the connectors section.",
-          "Add a connector and paste the address above.",
-          "Authorise the access on the Pulpe page that opens.",
+          "On ChatGPT web, open Settings > Apps and enable developer mode if available for your account.",
+          "Create an app, paste the address above and choose OAuth.",
+          "Authorise access in Pulpe, then select the app in your conversation.",
         ],
       },
       {
         name: "Claude",
         steps: [
-          "Open the settings, then the connectors section.",
-          "Add a custom connector with the address above.",
-          "Authorise the access on the Pulpe page that opens.",
+          "In Claude, open Customize > Connectors.",
+          "Add a custom connector using the address above.",
+          "Connect it to Pulpe, then enable it in your conversation.",
         ],
       },
       {
         name: "Claude Code",
         steps: [
           "Run the command below in your terminal.",
-          "Authorise the access in the browser that opens.",
-          "Come back to the terminal: the connection is live.",
+          "In Claude Code, open /mcp and start connecting to Pulpe.",
+          "Authorise access in the browser, then return to the terminal.",
         ],
       },
     ],

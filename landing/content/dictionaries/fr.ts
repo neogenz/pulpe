@@ -494,6 +494,23 @@ const fr = {
   },
 
   assistant: {
+    promo: {
+      status: "Connexion en préparation",
+      heading: "Ton budget, dans la conversation.",
+      intro:
+        "Avec ChatGPT ou Claude, pose une question sur ton mois, retrouve une dépense ou demande à l’assistant de la noter dans Pulpe.",
+      cta: "Découvrir la connexion",
+      examplesTitle: "Ce que tu pourras lui demander",
+      examples: [
+        "Combien me reste-t-il à dépenser ce mois-ci ?",
+        "Retrouve mes dépenses de courses.",
+        "Note ma dépense de restaurant d’hier.",
+      ],
+      availability:
+        "Selon les fonctions proposées par ton assistant et ton abonnement. Le guide précise les supports disponibles.",
+    },
+    dataSharing:
+      "Tu choisis ce que l’assistant peut consulter ou modifier. Les données utilisées lui sont envoyées et sont traitées par son fournisseur. Tu peux couper l’accès à tout moment.",
     metaTitle: "Connecter Pulpe à un assistant IA",
     metaDescription:
       "Brancher Pulpe sur ChatGPT, Claude ou Claude Code : ce que l’assistant sait faire, comment l’autoriser, et où couper l’accès.",
@@ -501,7 +518,7 @@ const fr = {
     eyebrow: "Assistants IA",
     heading: "Parler de ton budget à ton assistant",
     intro:
-      "Tu peux brancher Pulpe sur ChatGPT, sur Claude ou sur Claude Code, puis demander où tu en es ce mois-ci ou noter une dépense sans ouvrir l’app.",
+      "La connexion publique est en préparation. Elle permettra de retrouver tes chiffres et de noter une dépense depuis ChatGPT ou Claude. Voici le fonctionnement et les étapes prévues.",
     abilitiesHeading: "Ce que ton assistant sait faire.",
     abilities: [
       "Te dire ce qu’il te reste à dépenser ce mois-ci, et d’où vient le chiffre.",
@@ -512,7 +529,7 @@ const fr = {
     ],
     sourceTitle: "Les chiffres restent ceux de Pulpe",
     sourceText:
-      "L’assistant ne recalcule rien. Il lit les mêmes montants que ton app, et c’est Pulpe qui fait foi. La façon dont il les met en phrases lui appartient, donc relis-le comme tu relirais un brouillon.",
+      "Pulpe fournit les chiffres de ton budget à l’assistant. Ses explications peuvent contenir des erreurs : vérifie dans Pulpe en cas de doute.",
     modeHeading: "Décide ce qu’il a le droit de faire.",
     modeIntro:
       "Tu choisis au moment d’autoriser la connexion. Tu peux changer d’avis ensuite : coupe-la, puis rebranche-la dans l’autre mode.",
@@ -524,36 +541,36 @@ const fr = {
     writeMode: {
       eyebrow: "Lecture et écriture",
       title: "Il note à ta place",
-      text: "En plus de lire, il peut ajouter une dépense, la pointer, ou créer le budget du mois prochain. Il annonce ce qu’il s’apprête à faire avant de le faire.",
+      text: "Il peut ajouter une dépense, la pointer ou créer le budget du mois prochain. Vérifie les actions demandées ; les confirmations dépendent aussi des réglages de ton assistant.",
     },
     connectEyebrow: "Le branchement",
     connectHeading: "Brancher Pulpe, une seule fois.",
     addressLabel: "L’adresse à coller, la même partout",
     availabilityNote:
-      "Les connecteurs personnalisés ne sont ouverts ni sur toutes les formules, ni sur toutes les versions. Si tu ne trouves pas l’écran décrit ici, c’est que ton assistant ne les propose pas encore.",
+      "Claude propose les connexions distantes sur le web, sur ordinateur et sur mobile. Dans ChatGPT, les connexions MCP personnalisées sont actuellement proposées sur le web ; leur disponibilité et les modifications dépendent de ton abonnement. Pulpe n’est pas encore publié dans leurs catalogues.",
     clients: [
       {
         name: "ChatGPT",
         steps: [
-          "Ouvre les réglages, puis la section des connecteurs.",
-          "Ajoute un connecteur et colle l’adresse ci-dessus.",
-          "Autorise l’accès sur la page Pulpe qui s’ouvre.",
+          "Sur ChatGPT web, ouvre Paramètres > Apps et active le mode développeur s’il est disponible pour ton compte.",
+          "Crée une app, colle l’adresse ci-dessus et choisis OAuth.",
+          "Autorise l’accès dans Pulpe, puis sélectionne l’app dans ta conversation.",
         ],
       },
       {
         name: "Claude",
         steps: [
-          "Ouvre les réglages, puis la section des connecteurs.",
+          "Dans Claude, ouvre Personnaliser > Connecteurs.",
           "Ajoute un connecteur personnalisé avec l’adresse ci-dessus.",
-          "Autorise l’accès sur la page Pulpe qui s’ouvre.",
+          "Connecte-le à Pulpe, puis active-le dans ta conversation.",
         ],
       },
       {
         name: "Claude Code",
         steps: [
           "Lance la commande ci-dessous dans ton terminal.",
-          "Autorise l’accès dans le navigateur qui s’ouvre.",
-          "Reviens au terminal : la connexion est active.",
+          "Dans Claude Code, ouvre /mcp et lance la connexion à Pulpe.",
+          "Autorise l’accès dans le navigateur, puis reviens au terminal.",
         ],
       },
     ],
