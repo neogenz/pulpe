@@ -112,6 +112,20 @@ struct BudgetDetailsView: View {
         // Hero under the nav bar on the forest surface: light ink when loaded, default ink on error / skeleton.
         .toolbarColorScheme(screenState.content == .loaded ? .dark : nil, for: .navigationBar)
         .heroNavigationBar()
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                // Reads the month back rather than adding to it, so it stays a glyph in the
+                // bar: the content zone spends its one filled shape on the action that
+                // changes something.
+                Button { router.present(.realizedBalance) } label: {
+                    Image(systemName: "chart.bar.fill")
+                }
+                .heroToolbarButtonStyle(screenState.content == .loaded)
+                .accessibilityLabel("Suivi du budget")
+                .accessibilityIdentifier("budgetTrackingButton")
+            }
+            .heroToolbarGroup(screenState.content == .loaded)
+        }
         // Scroll-independent month navigation (system title chevron). The sticky
         // pager only reveals once the hero has scrolled under the bar — a short
         // filtered list (e.g. "À pointer" fully checked) can never produce that, so
@@ -204,13 +218,10 @@ struct BudgetDetailsView: View {
                 .heroZone()
 
                 VStack(spacing: 0) {
-                    // Above the tip and the rail: the two actions are what the screen
-                    // offers, and a reader who has to scroll past a filter to find them
-                    // reads them as belonging to the list rather than to the budget.
-                    BudgetDetailsActionCards(
-                        onAddLine: { router.present(.addBudgetLine) },
-                        onTrack: { router.present(.realizedBalance) }
-                    )
+                    // Above the tip and the rail: adding a forecast is what this screen is
+                    // for, and a reader who has to scroll past a filter to find it reads it
+                    // as belonging to the list rather than to the budget.
+                    BudgetDetailsAddLineButton { router.present(.addBudgetLine) }
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.top, DesignTokens.Spacing.lg)
                     .padding(.bottom, DesignTokens.Spacing.md)

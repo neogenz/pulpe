@@ -45,7 +45,7 @@ final class ContextualCreationUITests: XCTestCase {
         )
     }
 
-    func testBudgetActionCardsRemainDistinctAtLargeText() {
+    func testBudgetActionsRemainDistinctAtLargeText() {
         launch("UITEST_CONTEXTUAL_CREATION_BUDGET")
 
         let tracking = app.buttons["budgetTrackingButton"]

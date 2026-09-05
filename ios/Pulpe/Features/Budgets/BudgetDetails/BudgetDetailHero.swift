@@ -2,9 +2,13 @@ import SwiftUI
 
 /// Budget detail hero on the shared `HeroZone` family (The One Hero Rule).
 ///
-/// Figure: what is left to spend, to the cent (Two-Decimals rule). Three tiles: income,
-/// outflows, savings. A progress bar of the month's consumption, then the verdict sentence.
+/// Figure: what is left to spend, to the cent (Two-Decimals rule), carrying the rollover
+/// as its second line. A progress bar of the month's consumption, then the verdict sentence.
 /// The surface never carries the state; the verdict and its accent do.
+///
+/// The month's three totals are not here. « Suivi du budget » already shows those same three
+/// lines with the realized amount beside the planned one, so a tile could only ever state the
+/// weaker half of what one tap away states in full.
 struct BudgetDetailHero: View {
     let metrics: BudgetFormulas.Metrics
     var timeElapsedPercentage: Double = 0
@@ -56,10 +60,7 @@ struct BudgetDetailHero: View {
         }
         var desc = AppLocale.string("""
         \(eyebrow) \(abs(metrics.remaining).asCurrency(currency)). \
-        \(Int(metrics.usagePercentage))% utilisé. \
-        Revenus \(metrics.totalIncome.asCurrency(currency)). \
-        Dépenses \(metrics.totalExpenses.asCurrency(currency)), \
-        dont \(metrics.totalSavings.asCurrency(currency)) d'épargne
+        \(Int(metrics.usagePercentage))% utilisé
         """)
         if hasRollover, let rolloverAmount {
             let roundedAmount = rolloverAmount.rounded(2)
@@ -98,34 +99,22 @@ struct BudgetDetailHero: View {
 
     private var heroContent: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            HeroFigure(
-                eyebrow: eyebrow,
-                amount: metrics.remaining,
-                currency: currency,
-                alignment: .leading,
-                accessibilityIdentifier: "budgetDetailHeroAmount"
-            )
+            // The rollover is the figure's second line, not a block under it: it says what
+            // the amount above already includes, and set apart by a full gap it read as a
+            // third thing on the surface. No gap of its own — the row is a 44pt tap target,
+            // and its own slack is the space.
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
+                HeroFigure(
+                    eyebrow: eyebrow,
+                    amount: metrics.remaining,
+                    currency: currency,
+                    alignment: .leading,
+                    accessibilityIdentifier: "budgetDetailHeroAmount"
+                )
 
-            if hasRollover, let rolloverAmount {
-                rolloverDisclosure(amount: rolloverAmount)
-            }
-
-            HeroMetricTileRow {
-                HeroMetricTile(
-                    icon: "arrow.down.circle",
-                    label: AppLocale.string("Revenus"),
-                    value: metrics.totalIncome.asAmount(for: currency)
-                )
-                HeroMetricTile(
-                    icon: "arrow.up.circle",
-                    label: AppLocale.string("Dépenses"),
-                    value: metrics.totalExpenses.asAmount(for: currency)
-                )
-                HeroMetricTile(
-                    icon: "target",
-                    label: AppLocale.string("Épargne"),
-                    value: metrics.totalSavings.asAmount(for: currency)
-                )
+                if hasRollover, let rolloverAmount {
+                    rolloverDisclosure(amount: rolloverAmount)
+                }
             }
 
             progressRow
