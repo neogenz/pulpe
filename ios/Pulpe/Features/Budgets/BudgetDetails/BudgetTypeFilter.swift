@@ -148,7 +148,7 @@ struct BudgetTypeFilter: View {
             }
             .padding(.vertical, DesignTokens.Spacing.sm)
         }
-        .contentMargins(.horizontal, DesignTokens.Spacing.lg, for: .scrollContent)
+        .contentMargins(.horizontal, DesignTokens.Spacing.xxl, for: .scrollContent)
         .scrollIndicators(.hidden)
         .scrollClipDisabled()
         .frame(maxWidth: .infinity, alignment: .leading)

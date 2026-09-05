@@ -121,7 +121,7 @@ struct BudgetDetailHero: View {
 
             HeroVerdictRow(sentence: verdict.sentence, accent: verdict.accent)
         }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)

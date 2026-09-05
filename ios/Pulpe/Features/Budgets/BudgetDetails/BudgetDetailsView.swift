@@ -116,15 +116,14 @@ struct BudgetDetailsView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 // Reads the month back rather than adding to it, so it stays a glyph in the
                 // bar: the content zone spends its one filled shape on the action that
-                // changes something.
+                // changes something. Bare, so iOS 26 dresses it in its own Liquid Glass —
+                // the hero's tinted disc was our shape where the system already has one.
                 Button { router.present(.realizedBalance) } label: {
-                    Image(systemName: "chart.bar.fill")
+                    Image(systemName: "chart.bar")
                 }
-                .heroToolbarButtonStyle(screenState.content == .loaded)
                 .accessibilityLabel("Suivi du budget")
                 .accessibilityIdentifier("budgetTrackingButton")
             }
-            .heroToolbarGroup(screenState.content == .loaded)
         }
         // Scroll-independent month navigation (system title chevron). The sticky
         // pager only reveals once the hero has scrolled under the bar — a short
@@ -222,13 +221,12 @@ struct BudgetDetailsView: View {
                     // for, and a reader who has to scroll past a filter to find it reads it
                     // as belonging to the list rather than to the budget.
                     BudgetDetailsAddLineButton { router.present(.addBudgetLine) }
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
                     .padding(.bottom, DesignTokens.Spacing.md)
 
                     TipView(ProductTips.pessimisticCheck)
                         .pulpeTipBackground()
-                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
                         .padding(.bottom, DesignTokens.Spacing.sm)
 
                     if let prefill = tightMonthCardPrefill {
@@ -304,7 +302,7 @@ struct BudgetDetailsView: View {
 
                     Color.clear.frame(height: DesignTokens.Spacing.lg)
                 }
-                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.top, DesignTokens.Spacing.xxl)
                 .contentZone()
             }
         }
