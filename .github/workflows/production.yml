@@ -1,8 +1,6 @@
 name: 🏭 Production Release
 
-# Réutilisable uniquement : aucun trigger automatique. L'unique caller est le
-# mode publish de release-promotion.yml, dispatché sur main; chaque mutation
-# reste derrière l'environnement GitHub production.
+# Called only after staging succeeds in the same main-push run.
 on:
   workflow_call:
     inputs:
@@ -19,6 +17,7 @@ permissions:
   actions: read
   contents: read
   pull-requests: read
+  deployments: read
 
 jobs:
   authorize:
@@ -68,32 +67,18 @@ jobs:
           test -n "$release_sha"
           test "$(jq -r '.body | split("\n")[0]' "$RUNNER_TEMP/preparation-pr.json")" = "<!-- pulpe-release:v$version:$release_sha -->"
 
-          # En solo, GitHub interdit d'approuver sa propre PR : la PR de
-          # préparation est ouverte par le releaser, donc aucune review
-          # `APPROVED` ne peut exister. L'intention humaine est prouvée par
-          # le merge manuel ici, puis par l'approbation de l'environnement
-          # `production` avant la moindre écriture.
           gh api "repos/$GITHUB_REPOSITORY/pulls/$preparation_pr" > "$RUNNER_TEMP/preparation-full.json"
-          jq -e --arg owner "$owner" '.merged == true and .merged_by.type == "User" and .merged_by.login == $owner' "$RUNNER_TEMP/preparation-full.json"
+          node .github/scripts/release-approval.mjs "$RUNNER_TEMP/preparation-full.json" .release/manifest.json "$GITHUB_REPOSITORY"
+          test "$GITHUB_EVENT_NAME" = push
+          test "$GITHUB_REF" = refs/heads/main
 
           gh api "repos/$GITHUB_REPOSITORY/git/commits/$candidate_sha" > "$RUNNER_TEMP/candidate.json"
           release_base=$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$release_sha" --jq '.parents[0].sha')
           jq -e --arg release "$release_sha" --arg base "$release_base" '(.parents | length) == 2 and .parents[0].sha == $base and .parents[1].sha == $release' "$RUNNER_TEMP/candidate.json"
           production_tree=$(jq -r .tree.sha "$RUNNER_TEMP/candidate.json")
 
-          staging=$(node .github/scripts/resolve-workflow-proof.mjs \
-            --workflow staging-proof.yml \
-            --event push \
-            --branch main \
-            --sha "$candidate_sha" \
-            --job "✅ Staging Ready (shadow)" \
-            --artifact-template "staging-proof-{sha}-run-{run_id}-attempt-{attempt}")
-          proof_run_id=$(jq -r .run_id <<< "$staging")
-          proof_attempt=$(jq -r .attempt <<< "$staging")
-          artifact=$(jq -r .artifact_name <<< "$staging")
-          staging_run_id="$proof_run_id"
-          gh run download "$proof_run_id" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "$RUNNER_TEMP/staging-proof"
-          jq -e --arg repository "$GITHUB_REPOSITORY" --arg candidate "$candidate_sha" --arg tree "$production_tree" --argjson pr "$preparation_pr" --argjson run "$proof_run_id" --argjson attempt "$proof_attempt" '.repository == $repository and .candidate_sha == $candidate and .tree_sha == $tree and .pr_number == $pr and .staging_run_id == $run and .staging_run_attempt == $attempt' "$RUNNER_TEMP/staging-proof/staging-proof.json"
+          # The caller's needs: staging-ready is the exact-SHA staging gate.
+          staging_run_id="$GITHUB_RUN_ID"
 
           gh api -X GET "repos/$GITHUB_REPOSITORY/contents/package.json" -f ref="$GITHUB_SHA" --jq .content | tr -d '\n' | base64 --decode > "$RUNNER_TEMP/package.json"
           test "$(jq -r .version "$RUNNER_TEMP/package.json")" = "$version"
@@ -107,6 +92,7 @@ jobs:
           # features, pas par la PR de préparation.
           published_main=$(node .github/scripts/resolve-workflow-proof.mjs --published-main "$GITHUB_SHA")
           anchor_sha=$(jq -r .sha <<< "$published_main")
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/production" --jq .commit.sha)" = "$anchor_sha"
 
           {
             echo "anchor_sha=$anchor_sha"
@@ -183,7 +169,10 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
-        run: supabase db push
+        run: |
+          set -euo pipefail
+          supabase db push
+          supabase migration list --linked
 
   # Avance le pointeur `production` sur le merge SHA autorisé, en fast-forward
   # strict (force=false) : c'est ce push qui déclenche les déploiements
@@ -225,36 +214,11 @@ jobs:
           fi
           test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/production" --jq .object.sha)" = "$GITHUB_SHA"
 
-  prepare:
-    name: 🚦 Record production authorization
-    needs: [authorize, migrate, advance]
-    if: ${{ always() && needs.authorize.result == 'success' && needs.advance.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment: production
-    env:
-      VERSION: ${{ needs.authorize.outputs.version }}
-    steps:
-      - name: Wait for exact web client
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          for _ in {1..60}; do
-            deployment_id=$(gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f environment="Production – pulpe-frontend" -f sha="$GITHUB_SHA" -f per_page=100 | jq -r --arg sha "$GITHUB_SHA" '[.[] | select(.sha == $sha and .ref == $sha and .creator.login == "vercel[bot]")] | max_by(.id) | .id // empty')
-            state=${deployment_id:+$(gh api "repos/$GITHUB_REPOSITORY/deployments/$deployment_id/statuses" --jq 'max_by(.id) | .state // empty')}
-            case "$state" in error|failure) exit 1 ;; success) break ;; esac
-            sleep 10
-          done
-          test "$state" = success
-
-      - name: Record authorized production context
-        run: |
-          jq -n --arg repository "$GITHUB_REPOSITORY" --arg production "$GITHUB_SHA" --arg candidate "${{ needs.authorize.outputs.candidate_sha }}" --arg tree "${{ needs.authorize.outputs.production_tree }}" --arg version "$VERSION" --arg anchor "${{ needs.authorize.outputs.anchor_sha }}" --argjson workflow_run_id "$GITHUB_RUN_ID" --argjson run_attempt "$GITHUB_RUN_ATTEMPT" --argjson preparation_pr "${{ needs.authorize.outputs.preparation_pr }}" --argjson staging_run_id "${{ needs.authorize.outputs.staging_run_id }}" --argjson migrations_applied "${{ needs.authorize.outputs.migration_changed }}" '{repository:$repository,production_sha:$production,candidate_sha:$candidate,tree_sha:$tree,version:$version,anchor_sha:$anchor,workflow_run_id:$workflow_run_id,run_attempt:$run_attempt,preparation_pr:$preparation_pr,staging_run_id:$staging_run_id,migration_changed:$migrations_applied}' > production-context.json
-
-      - name: Upload authorized production context
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: production-context-${{ github.sha }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-          path: production-context.json
-          retention-days: 90
-          if-no-files-found: error
+  finalize:
+    name: ✅ Finalize
+    needs: [authorize, advance]
+    if: ${{ always() && needs.authorize.result == 'success' && needs.advance.result == 'success' }}
+    uses: ./.github/workflows/production-finalize.yml
+    with:
+      version: ${{ needs.authorize.outputs.version }}
+    secrets: inherit

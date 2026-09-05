@@ -88,7 +88,10 @@ decision is routed, the workspace runs `build`, unit tests and `lint` with
   (`pnpm quality:automation`: automation formatting plus the CI, release,
   routing, and lexicon invariant tests) when the workspace does not run — the
   workspace quality gate is a strict superset of it.
-- `actionlint` validates workflow syntax and shell fragments.
+- `actionlint` validates workflow syntax and shell fragments. The pinned
+  `1.7.12` predates GitHub's documented `queue: max` syntax, so CI suppresses
+  only that exact parser diagnostic; every other actionlint and ShellCheck
+  finding remains blocking.
 - `test-ios` uses one macOS runner and one generated Xcode project. It first runs
   `xcodebuild test -scheme PulpeLocal` to compile the app and widget and execute
   the Swift tests, then reuses the simulator and DerivedData for the single targeted
@@ -102,43 +105,9 @@ decision is routed, the workspace runs `build`, unit tests and `lint` with
 There is no performance-test job: the former job selected a deleted test file, so Bun ran
 zero tests while reporting success.
 
-## Release proofs
+## Release automation
 
-`main` is both the trunk and the permanent staging environment; the `production`
-branch is the production pointer. The release path reuses the complete CI result
-from the single preparation PR instead of treating a second build as the identity
-of the candidate:
-
-```mermaid
-flowchart LR
-    PR["release/vX.Y.Z → main"] --> CI["Complete PR CI"]
-    CI --> Merge["Merge commit P on main"]
-    Merge --> Deploy["Vercel and Railway staging"]
-    Deploy --> Proof["Staging Ready from the push to main"]
-    Proof --> Plan["🚦 Release Promotion · read-only plan"]
-    Plan --> Publish["publish on main → production.yml"]
-```
-
-`Staging Ready` is triggered by the push to `main` and waits for the exact staging
-deployments of that SHA. When an authorized bypass merges a PR before its canonical
-CI finishes, the proof waits on that exact run for at most 30 minutes and fails
-closed if the run fails, its state is unknown, the API is unavailable, or `main`
-moves. The proof compares the tested and merged Git trees, requires exact provider
-SHAs, and runs staging health checks. A release additionally proves that the release
-commit and the merge commit share the same original `main` base; a feature merged
-during the short release freeze therefore stops promotion. Normal feature merges
-produce a proof but are not promoted.
-
-`🚦 Release Promotion` (`release-promotion.yml`) is the single manual release
-entry, with two dispatch modes. `plan` runs one read-only job — no secret,
-environment, or write permission — that resolves the proven staging candidate,
-verifies it is still the exact tip of `main`, anchors the rollback on the latest
-published release, then lists the content lineage, the migrations in scope since
-that anchor and the provider deployment IDs, and uploads a `release-plan` manifest
-with the planned mutations. `publish`, dispatched on `main` once the preparation PR
-has merged, is the sole caller of the reusable `production.yml`. There is no second
-promotion PR and no App token in this workflow: the merge of the preparation PR is
-already the candidate.
+PR CI stays read-only and emits the tested-tree evidence used by staging. Native auto-merge is enabled only for the approved release PR. The main-push run sequences staging, production, GitHub publication and optional iOS submission with reusable workflows and `needs`. See [DEPLOYMENT.md](./DEPLOYMENT.md#release-process) for the canonical setup and stop-on-failure contract.
 
 ## Quality boundary
 
@@ -152,25 +121,6 @@ build job; `tsc` alone does not validate them.
 
 Lefthook runs a change-scoped variant before ordinary commits and skips it during merge and
 rebase. CI always runs the complete gate.
-
-## Migrations and production
-
-`production.yml` is exposed only as a reusable `workflow_call` workflow whose
-single caller is the `publish` mode of `release-promotion.yml`, dispatched on
-`main`. Its jobs authenticate the approved preparation PR, detect migration
-changes since the last published release, and only a release containing migrations
-enters the protected `production` environment for dry-run and apply — the
-migration contract is replayed on that exact published-anchor/candidate range
-before touching Supabase. The anchor is the published release rather than the
-merge parent because features land migrations on `main` between releases. Each
-new migration declares `expand` or `contract` in its initial comment header, and
-published files cannot be changed. Once migrations
-are in, the `advance` job fast-forwards the `production` branch pointer to the
-authorized merge SHA — that push is what triggers the Vercel and Railway
-production deployments — and the final job waits for the exact web client.
-After provider deployment, `production-finalize.yml` verifies the exact
-Railway and Vercel deployments plus the public health and version endpoints,
-then publishes the production proof, immutable tag and GitHub Release.
 
 ## Observed cutover measurements
 

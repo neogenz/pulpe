@@ -47,7 +47,6 @@ Release PR → preuve immuable → Vercel deploy → Build Angular →
   2. posthog-cli sourcemap upload --directory ./dist/webapp/browser \
        --release-name pulpe-webapp \
        --release-version 0.30.0
-  3. Production Release → annotation sur projet 87621
 ```
 
 ### Fonctionnement
@@ -76,7 +75,6 @@ Chaque frame de stack trace dans PostHog Error Tracking devient cliquable vers l
 ```
 Release PR → preuve immuable → Vercel deploy → Build Next.js →
   1. node scripts/create-release.js → Release "pulpe-landing" vX.Y.Z créée via API REST
-  2. Production Release → annotation sur projet 87621
 ```
 
 ### Fonctionnement
@@ -98,7 +96,7 @@ bloquer le déploiement.
 
 ---
 
-## iOS — Release + Annotation via la distribution
+## iOS — Release via la distribution
 
 **Fichier** : `.github/workflows/ios-distribute.yml`
 **Déclenché par** : preuve Apple valide d'une distribution `channel=release`
@@ -108,8 +106,7 @@ bloquer le déploiement.
 ```
 Distribution iOS (channel=release) → build App Store vérifié « valid » →
   preuve de distribution publiée →
-  1. Release PostHog "pulpe-ios" vX.Y.Z+BUILD (SHA Git dans les métadonnées)
-  2. Annotation PostHog "iOS vX.Y.Z (sha7)"
+  Release PostHog "pulpe-ios" vX.Y.Z+BUILD (SHA Git dans les métadonnées)
 ```
 
 ### Fonctionnement
@@ -118,8 +115,10 @@ L'iOS a son propre cycle de release (App Store) avec un versioning indépendant.
 
 La publication PostHog est rattachée à une distribution réellement livrée : elle
 n'arrive qu'après la preuve Apple (`state=valid`), jamais pour `channel=internal`.
-Les étapes release et annotation sont séparées et `continue-on-error`: un échec
-reste visible dans le run sans invalider une distribution Apple déjà prouvée.
+La Release utilise une identité déterministe et vérifie le conflit « déjà existant ».
+Elle reste `continue-on-error`: un échec reste visible dans le run sans invalider une
+distribution Apple déjà prouvée. L'ancienne annotation horodatée n'est plus émise :
+elle n'avait aucune identité stable et chaque reprise créait un doublon.
 
 Première preuve observée : le run GitHub `33298625338` a validé la distribution
 App Store `1.4.3` build `11` du SHA `aefa93bd66cd45ebbfdc0aa474056c63d7e02a1a`,
@@ -151,10 +150,10 @@ Les annotations créent des markers verticaux sur tous les graphiques PostHog. Q
 
 > Repository Settings → Secrets and variables → Actions → New repository secret
 
-| Secret                      | Valeur                      | Utilisé par                           |
-| --------------------------- | --------------------------- | ------------------------------------- |
-| `POSTHOG_PERSONAL_API_KEY`  | Clé API personnelle PostHog | Production annotations, iOS release   |
-| `POSTHOG_WEBAPP_PROJECT_ID` | `87621`                     | Production annotations + iOS releases |
+| Secret                      | Valeur                      | Utilisé par |
+| --------------------------- | --------------------------- | ----------- |
+| `POSTHOG_PERSONAL_API_KEY`  | Clé API personnelle PostHog | Release iOS |
+| `POSTHOG_WEBAPP_PROJECT_ID` | `87621`                     | Release iOS |
 
 ### Variables Vercel — projet Webapp (déjà configurées)
 

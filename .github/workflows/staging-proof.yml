@@ -7,6 +7,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
 permissions:
   actions: read
   contents: read
@@ -18,6 +22,8 @@ jobs:
     name: ✅ Staging Ready (shadow)
     runs-on: ubuntu-latest
     timeout-minutes: 55
+    outputs:
+      release_branch: ${{ steps.canonical.outputs.head_ref }}
     env:
       PREVIEW_BACKEND_HEALTH_URL: https://backend-preview-34f4.up.railway.app/health
     steps:
@@ -25,6 +31,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: 🔎 Resolve merged PR and canonical CI run
         id: canonical
@@ -180,7 +187,7 @@ jobs:
 
           deployment_state() {
             local output
-            if output=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$1/statuses" --jq 'max_by(.id) | .state // empty' 2>&1); then
+            if output=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$1/statuses" --jq '[.[] | select(.creator.login == "vercel[bot]" or .creator.login == "railway-app[bot]")] | max_by(.id) | .state // empty' 2>&1); then
               printf '%s\n' "$output"
             elif [[ "$output" == *"HTTP 404"* ]]; then
               return 0
@@ -307,3 +314,12 @@ jobs:
           path: staging-proof.json
           retention-days: 14
           if-no-files-found: error
+
+  production:
+    name: 🏭 Production
+    needs: staging-ready
+    if: startsWith(needs.staging-ready.outputs.release_branch, 'release/v')
+    uses: ./.github/workflows/production.yml
+    with:
+      release_branch: ${{ needs.staging-ready.outputs.release_branch }}
+    secrets: inherit
