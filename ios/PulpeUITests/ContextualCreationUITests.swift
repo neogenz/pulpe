@@ -53,9 +53,22 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(tracking.waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertTrue(addForecast.waitForExistence(timeout: 10), app.debugDescription)
         attachScreenshot("contextual-creation-budget-accessibility3")
-        assertMinimumHitArea(tracking)
+        // The tracking glyph is a system toolbar item: iOS 26 sizes its own glass capsule
+        // (36 pt tall) and extends the touch region around it, the way it does for the
+        // month chevron beside it, which reports 25 pt. Asserting a 44 pt accessibility
+        // frame here would force a button the system does not draw — exactly the
+        // non-standard shape this glyph was stripped bare to stop being.
+        XCTAssertTrue(tracking.isHittable, app.debugDescription)
+        // The add button we lay out ourselves, so the rule applies to it in full.
         assertMinimumHitArea(addForecast)
-        XCTAssertFalse(tracking.frame.intersects(addForecast.frame))
+        // The two no longer share a container — one is a toolbar glyph, the other lives in
+        // the content zone — so a frame intersection is structurally impossible and would
+        // assert nothing. What the largest text size can still break is the rail: the
+        // button spans the content zone, DesignTokens.Spacing.xxl on each side, which is
+        // the width the accueil gives its own.
+        let rail: CGFloat = 24
+        let contentWidth = app.windows.firstMatch.frame.width - 2 * rail
+        XCTAssertEqual(addForecast.frame.width, contentWidth, accuracy: 1, app.debugDescription)
 
         addForecast.tap()
         XCTAssertTrue(app.buttons["addBudgetLineSubmit"].firstMatch.waitForExistence(timeout: 5))
