@@ -1,3 +1,6 @@
+-- pulpe:migration-phase contract
+-- pulpe:safe-after v0.47.1
+-- Only MCP objects introduced with this feature are affected.
 -- Revocation destroys the wrapped vault key: the column must accept NULL.
 ALTER TABLE public.mcp_connection ALTER COLUMN wrapped_client_key DROP NOT NULL;
 

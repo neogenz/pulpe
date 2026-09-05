@@ -1,3 +1,6 @@
+-- pulpe:migration-phase contract
+-- pulpe:safe-after v0.47.1
+-- Only new MCP objects are affected; legacy clients do not depend on their grants.
 -- One row per (user, OAuth client): the grant an AI agent holds on a Pulpe vault.
 -- The JWT authenticates, this row authorizes: revocation is immediate (revoked_at),
 -- the access mode lives here (never in a claim), and wrapped_client_key is the
