@@ -58,10 +58,10 @@ describe('TermsOfServiceComponent', () => {
       lang,
       date,
       law,
-      assistants,
       publicSourceStatement,
       licenseClaim,
       selfHostingClaim,
+      assistants,
     ) => {
       TestBed.configureTestingModule({
         imports: [TermsOfServiceComponent],

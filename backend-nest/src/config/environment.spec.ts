@@ -15,6 +15,8 @@ describe('Environment Validation', () => {
       TURNSTILE_SECRET_KEY: 'test-turnstile-key',
       ENCRYPTION_MASTER_KEY:
         '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      MCP_WRAPPING_KEY:
+        'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
       MIN_WEB_VERSION: '0.40.0',
       LATEST_WEB_VERSION: '99.0.0',
     });
