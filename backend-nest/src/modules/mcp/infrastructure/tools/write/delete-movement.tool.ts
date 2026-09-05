@@ -21,7 +21,6 @@ export class DeleteMovementTool implements McpTool<Args> {
   readonly mode = 'read_write' as const;
   readonly annotations = {
     readOnlyHint: false,
-    // The only irreversible gesture the connector exposes.
     destructiveHint: true,
     idempotentHint: true,
     openWorldHint: false as const,

@@ -34,7 +34,7 @@ export class SpreadExpenseTool implements McpTool<Args> {
   readonly mode = 'read_write' as const;
   readonly annotations = {
     readOnlyHint: false,
-    destructiveHint: false,
+    destructiveHint: true,
     idempotentHint: false,
     openWorldHint: false as const,
   };

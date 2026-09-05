@@ -1,6 +1,6 @@
 ---
 objective: "Assistants can use Pulpe through consented MCP tools without receiving any credential usable against Supabase Auth or the Data API."
-status: in-progress
+status: blocked
 ---
 
 # Plan: Isolate MCP credentials before public activation
@@ -45,3 +45,7 @@ Phase 1 passed: the public MCP issuer now returns opaque credentials, and only i
 The independent candidate review identified a transient-refresh retry regression, the single-redirect client's optional parameter and legacy-token retirement. The first two are corrected with real HTTP checks. The retirement probe proves the necessary staged cutover: disable native issuance, retire the exact legacy clients, verify both refresh routes fail, then wait for access-token expiry. The SQL migration alone is not sufficient. [cutover.md](./cutover.md) makes this an activation gate.
 
 Only disposable test credentials were generated in memory and removed with their fixtures; there is no durable secret to save in Dashlane yet. Phase 2 has not been completed, and public availability remains unproven.
+
+Phase 2's server checks now pass: 121 integration/e2e cases include 18 MCP scenarios exercising all 15 tools, complete mode/annotation checks and encrypted amount concordance. They exposed and corrected stale conversion metadata, inaccurate destructive annotations and the shared literal-search filter. The standard CI integration command already discovers these cases; no parallel workflow was added.
+
+Real-client acceptance needs a human decision on the non-production Supabase target and authorization to migrate/configure its confidential upstream with the existing Railway `mcp-spike` service. Railway automatically deployed the first commit successfully, but public discovery returns 404; the environment is not yet a verified client fixture. Production and directory submissions remain untouched. This is an activation blocker, not a failed local server test.

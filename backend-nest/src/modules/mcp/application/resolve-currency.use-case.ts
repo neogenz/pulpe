@@ -7,8 +7,8 @@ import {
 } from '@modules/user/domain/ports/user-repository.port';
 
 /**
- * The four currency fields the write schemas expect. Present together or not at
- * all — a half-filled quadruplet violates the `fx_metadata_coherent` constraint.
+ * A full conversion, or targetCurrency alone to clear previous source metadata
+ * through the existing write use cases.
  */
 export interface AgentAmount {
   readonly amount: number;
@@ -28,7 +28,7 @@ export class ResolveCurrencyUseCase {
 
   /**
    * An agent says "42 euros" or just "42". Unnamed means the currency of the
-   * user's settings, and carries no exchange metadata at all. Named and
+   * user's settings, and explicitly clears any previous conversion. Named and
    * different means a real conversion: the stored amount is the converted one,
    * the quoted amount survives beside it. A currency Pulpe does not support
    * never reaches here — the tool schemas only accept CHF and EUR, so the call
@@ -40,7 +40,7 @@ export class ResolveCurrencyUseCase {
   ): Promise<AgentAmount> {
     const settings = await this.users.findSettings();
     if (!currency || currency === settings.currency) {
-      return { amount };
+      return { amount, targetCurrency: settings.currency };
     }
     const { rate } = await this.currency.getRate(currency, settings.currency);
     return {

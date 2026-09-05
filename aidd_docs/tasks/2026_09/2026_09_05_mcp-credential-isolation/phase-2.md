@@ -1,8 +1,14 @@
 ---
-status: pending
+status: blocked
 ---
 
 # Instruction: Verify useful client flows and prepare activation
+
+## Execution checkpoint — 2026-09-05
+
+Server verification passed: all 15 tools execute through real HTTP and encrypted owner data, within 18 MCP scenarios and 121 passing backend integration/e2e tests. Account-currency edits, destructive annotations and literal search were corrected. Existing CI already runs this test file. Client requirements, evaluation prompts and current evidence are recorded in the linked readiness documents.
+
+Blocked before real ChatGPT/Claude acceptance: the non-production Supabase target and authority to migrate/configure its confidential upstream must be resolved with the user. The existing Railway `mcp-spike` deployment is successful but its OAuth discovery returns 404. No claim of real-client or universal mobile support is made.
 
 ## Architecture projection
 

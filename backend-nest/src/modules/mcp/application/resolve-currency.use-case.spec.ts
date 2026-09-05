@@ -22,15 +22,21 @@ function harness(rate = 0.94) {
 }
 
 describe('ResolveCurrencyUseCase', () => {
-  it('leaves an unnamed currency alone, with no exchange metadata', async () => {
+  it('marks an unnamed currency as the account currency to clear old conversion metadata', async () => {
     const { useCase, asked } = harness();
-    expect(await useCase.execute(42)).toEqual({ amount: 42 });
+    expect(await useCase.execute(42)).toEqual({
+      amount: 42,
+      targetCurrency: 'CHF',
+    });
     expect(asked).toEqual([]);
   });
 
-  it('leaves the settings currency alone, with no exchange metadata', async () => {
+  it('marks the explicit account currency to clear old conversion metadata', async () => {
     const { useCase, asked } = harness();
-    expect(await useCase.execute(42, 'CHF')).toEqual({ amount: 42 });
+    expect(await useCase.execute(42, 'CHF')).toEqual({
+      amount: 42,
+      targetCurrency: 'CHF',
+    });
     expect(asked).toEqual([]);
   });
 

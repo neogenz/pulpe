@@ -744,14 +744,14 @@ describe('SupabaseTransactionRepository', () => {
     function transactionQuery(data: unknown[]) {
       const query = {
         select: jest.fn(),
-        ilike: jest.fn(),
+        filter: jest.fn(),
         in: jest.fn(),
         order: jest.fn(),
         limit: jest.fn(),
         overrideTypes: jest.fn().mockResolvedValue({ data, error: null }),
       };
       query.select.mockReturnValue(query);
-      query.ilike.mockReturnValue(query);
+      query.filter.mockReturnValue(query);
       query.in.mockReturnValue(query);
       query.order.mockReturnValue(query);
       query.limit.mockReturnValue(query);
@@ -768,7 +768,7 @@ describe('SupabaseTransactionRepository', () => {
         if (table === 'tag') {
           const tagQuery = {
             eq: jest.fn(),
-            ilike: jest.fn().mockResolvedValue({
+            filter: jest.fn().mockResolvedValue({
               data: [{ id: 'tag-groceries' }],
               error: null,
             }),
@@ -788,7 +788,7 @@ describe('SupabaseTransactionRepository', () => {
 
       const result = await repo.fetchTransactionsByPattern({
         userId: 'user-1',
-        searchPattern: '%courses%',
+        searchPattern: '***=courses',
         budgetIds: null,
         tagIds: [],
       });
@@ -813,7 +813,7 @@ describe('SupabaseTransactionRepository', () => {
         if (table === 'tag') {
           const tagQuery = {
             eq: jest.fn(),
-            ilike: jest.fn().mockResolvedValue({
+            filter: jest.fn().mockResolvedValue({
               data: [{ id: 'tag-groceries' }],
               error: null,
             }),
@@ -833,7 +833,7 @@ describe('SupabaseTransactionRepository', () => {
 
       const result = await repo.fetchTransactionsByPattern({
         userId: 'user-1',
-        searchPattern: '%courses%',
+        searchPattern: '***=courses',
         budgetIds: ['budget-1', 'budget-2'],
         tagIds: [],
       });
@@ -861,7 +861,7 @@ describe('SupabaseTransactionRepository', () => {
         if (table === 'tag') {
           const tagQuery = {
             eq: jest.fn(),
-            ilike: jest.fn().mockResolvedValue({ data: [], error: null }),
+            filter: jest.fn().mockResolvedValue({ data: [], error: null }),
           };
           tagQuery.eq.mockReturnValue(tagQuery);
           return { select: () => tagQuery };
@@ -876,7 +876,7 @@ describe('SupabaseTransactionRepository', () => {
 
       const result = await repo.fetchTransactionsByPattern({
         userId: 'user-1',
-        searchPattern: '%courses%',
+        searchPattern: '***=courses',
         budgetIds: null,
         tagIds: ['tag-food'],
       });
@@ -885,7 +885,11 @@ describe('SupabaseTransactionRepository', () => {
       expect(query.in).toHaveBeenCalledWith('transaction_tag.tag_id', [
         'tag-food',
       ]);
-      expect(query.ilike).toHaveBeenCalledWith('name', '%courses%');
+      expect(query.filter).toHaveBeenCalledWith(
+        'name',
+        'imatch',
+        '***=courses',
+      );
     });
 
     it('keeps tag-name text matches when an exact tag filter is selected', async () => {
@@ -895,7 +899,7 @@ describe('SupabaseTransactionRepository', () => {
       ]);
       const tagQuery = {
         eq: jest.fn(),
-        ilike: jest.fn().mockResolvedValue({
+        filter: jest.fn().mockResolvedValue({
           data: [{ id: 'tag-groceries' }],
           error: null,
         }),
@@ -916,7 +920,7 @@ describe('SupabaseTransactionRepository', () => {
 
       const result = await repo.fetchTransactionsByPattern({
         userId: 'user-1',
-        searchPattern: '%courses%',
+        searchPattern: '***=courses',
         budgetIds: null,
         tagIds: ['tag-home'],
       });
@@ -945,13 +949,13 @@ describe('SupabaseTransactionRepository', () => {
     function budgetLineQuery(data: unknown[]) {
       const query = {
         select: jest.fn(),
-        ilike: jest.fn(),
+        filter: jest.fn(),
         in: jest.fn(),
         order: jest.fn(),
         limit: jest.fn().mockResolvedValue({ data, error: null }),
       };
       query.select.mockReturnValue(query);
-      query.ilike.mockReturnValue(query);
+      query.filter.mockReturnValue(query);
       query.in.mockReturnValue(query);
       query.order.mockReturnValue(query);
       return query;
@@ -968,7 +972,7 @@ describe('SupabaseTransactionRepository', () => {
 
       const result = await repo.fetchBudgetLinesByPattern({
         userId: 'user-1',
-        searchPattern: '%courses%',
+        searchPattern: '***=courses',
         budgetIds: ['budget-1'],
         tagIds: ['tag-food', 'tag-home'],
       });
@@ -978,7 +982,11 @@ describe('SupabaseTransactionRepository', () => {
         'tag-food',
         'tag-home',
       ]);
-      expect(bySelectedTag.ilike).toHaveBeenCalledWith('name', '%courses%');
+      expect(bySelectedTag.filter).toHaveBeenCalledWith(
+        'name',
+        'imatch',
+        '***=courses',
+      );
       expect(bySelectedTag.in).toHaveBeenCalledWith('budget_id', ['budget-1']);
     });
   });
