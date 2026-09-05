@@ -15,8 +15,9 @@ Analyze code changes to produce a unified product release with clear, user-focus
 
 - NEVER apply versions without explicit user approval
 - NEVER push directly to `main` or `production`, create a tag, publish a GitHub Release, or mutate Railway from this skill
-- NEVER push the prepared `release/vX.Y.Z` branch or dispatch its PR without a separate explicit user approval after local validation
-- Production mutations (migrations, `production` pointer advance, tag, Release) run only inside the protected `publish` mode of `release-promotion.yml`, behind the GitHub `production` environment approval; the only remote actions this skill takes directly are the preparation PR to `main` and the two `gh workflow run` dispatches
+- The explicit approval of the complete Step 5 proposal is the sole release authorization. It covers the mechanical release commit, preparation PR, exact-CI auto-merge, staging, production, tag/GitHub Release, and—when an iOS marketing version is approved—App Store submission with `AFTER_APPROVAL` publication.
+- NEVER ask for a second routine release approval. After Step 5 approval, continue automatically until the release succeeds or a fail-closed gate stops it.
+- Production mutations (migrations, `production` pointer advance, tag, Release) run only in the automatic chain rooted in the exact successful release PR and immutable staging proof. The skill never mutates production providers directly.
 - NEVER tag or create the GitHub Release before the exact candidate tree is verified in production; update a `LATEST_*` gate only after its client is public (web deployment or App Store)
 - NEVER use `--force`, `--force-with-lease`, or `git push --tags`
 - If changes are ambiguous, ASK — do not guess
@@ -60,17 +61,24 @@ Run this before modifying release files. A failed check stops the workflow witho
 
    A feature branch must reach `main` through its normal PR first. A hotfix present only on `production` must be reconciled through the normal branch flow before releasing.
 
-2. Require all three trusted production workflows and their three credential names. Secret values are never readable and must not be requested:
+2. Require the trusted automatic release workflows and credential names. Secret values are never readable and must not be requested:
 
    ```bash
-   gh workflow view release-promotion.yml --repo neogenz/pulpe >/dev/null
+   gh api repos/neogenz/pulpe --jq .allow_auto_merge | grep -qx true
+   gh workflow view staging-proof.yml --repo neogenz/pulpe >/dev/null
    gh workflow view production.yml --repo neogenz/pulpe >/dev/null
    gh workflow view production-finalize.yml --repo neogenz/pulpe >/dev/null
+   gh workflow view ios-distribute.yml --repo neogenz/pulpe >/dev/null
    SECRET_NAMES=$(gh secret list --repo neogenz/pulpe --json name --jq '.[].name')
    grep -qx PULPE_RELEASE_APP_ID <<< "$SECRET_NAMES"
    grep -qx PULPE_RELEASE_APP_PRIVATE_KEY <<< "$SECRET_NAMES"
    grep -qx RAILWAY_PRODUCTION_TOKEN <<< "$SECRET_NAMES"
+   gh api repos/neogenz/pulpe/environments/production \
+     --jq '[.protection_rules[] | select(.type == "required_reviewers")] | length == 0' \
+     | grep -qx true
    ```
+
+   The environment still scopes production database credentials, but it must not contain a reviewer gate: Step 5 approval is the release authorization. A reviewer rule here would reintroduce a second manual action and must be removed during the one-time automation cutover, never during an active release.
 
    Missing workflow or secret names stops preparation before any release file changes.
 
@@ -202,6 +210,12 @@ Repeat the same visible sections and items in German, using Swiss spelling witho
 ### Testi del prodotto — IT
 
 Repeat the same visible sections and items in Italian.
+
+### App Store (si une version marketing iOS est publiée)
+
+- **Notes de version FR** — texte exact envoyé dans `whatsNew`
+- **Instructions de review EN** — texte exact envoyé à App Review, sans identifiant ni secret
+- **Publication** — `AFTER_APPROVAL`
 ```
 
 Use this exact template for the **GitHub Release** (created in Step 9):
@@ -242,7 +256,7 @@ Rules for writing notes:
 - Keep an internal scope for every proposed feature/fix (`web`, `ios`, or both), derived from the actual diff and consumers. Do not publish these scope labels.
 - Never assume every note applies to every platform because the release-level `platforms` array contains both. Ask before approval when an item's scope is ambiguous.
 
-Then ask: "Approuves-tu cette proposition ?" → "Oui, appliquer" / "Non, ajuster" using the current agent's available user-input mechanism.
+Then ask: "Approuves-tu cette proposition et son déploiement automatique jusqu'en production et, si applicable, sa soumission App Store ?" → "Oui, publier automatiquement" / "Non, ajuster" using the current agent's available user-input mechanism. This is the only routine approval in the release.
 
 ### Step 5b: Update landing changelog data
 
@@ -397,6 +411,38 @@ export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
 - Max 3-4 features to keep the toast concise
 - Keep the existing release types and `SKIPPED_RELEASES` history unchanged except for the current version's explicit decision
 
+### Step 5d: Prepare the approved App Store contract
+
+Only when Step 4 approved a new iOS marketing version, prepare `ios/app-store-release.json`. This file is the immutable, non-secret contract consumed automatically after the exact production SHA is proven:
+
+```json
+{
+  "productVersion": "X.Y.Z",
+  "marketingVersion": "A.B.C",
+  "buildNumber": "1",
+  "releaseType": "AFTER_APPROVAL",
+  "whatsNew": {
+    "frFR": "Exact approved French App Store release notes"
+  },
+  "reviewNotes": "Exact approved English review instructions"
+}
+```
+
+The French notes must describe only iOS-visible changes and stay within 4000 characters. Review instructions explain how to exercise the changed paths using the already-configured demo account; never put credentials in this file. A build-only release or release without iOS must leave an older contract untouched: production ignores it unless `productVersion` equals the current release.
+
+### Step 5e: Freeze the approved GitHub Release notes
+
+Every release writes `.release/manifest.json` with exactly two fields:
+
+```json
+{
+  "productVersion": "X.Y.Z",
+  "githubReleaseNotes": "## vX.Y.Z\n\nExact approved French GitHub Release body"
+}
+```
+
+This immutable commit payload—not the editable PR body—is the publication source. The PR body must mirror it exactly below the release marker.
+
 ### Step 6: Apply versions
 
 Execute ONLY after user confirms.
@@ -430,6 +476,27 @@ Execute ONLY after user confirms.
    In all three cases, end with a fresh sanity check and only continue when all seven version fields match.
 
 4. **iOS** (only if `ios/**` files changed): Apply the decision approved in Step 5 using [references/ios-release.md](references/ios-release.md). After the command, verify the resulting `MARKETING_VERSION` equals `IOS_MARKETING_VERSION` when that value is set. iOS is intentionally NOT in the Changesets fixed group — Changesets only sees npm packages.
+
+5. **App Store contract** (only for a new iOS marketing version): write the exact approved Step 5d object to `ios/app-store-release.json`, then validate it:
+
+   ```bash
+   node .github/scripts/validate-app-store-release.mjs \
+     --file ios/app-store-release.json \
+     --product-version X.Y.Z \
+     --marketing-version A.B.C \
+     --build-number N
+   ```
+
+6. **GitHub Release manifest** (every release): write the exact approved French GitHub notes to `.release/manifest.json`, then validate it:
+
+   ```bash
+   mkdir -p .release
+   jq -n --arg productVersion X.Y.Z --rawfile githubReleaseNotes "$NOTES_FILE" \
+     '{productVersion:$productVersion,githubReleaseNotes:$githubReleaseNotes}' \
+     > .release/manifest.json
+   node .github/scripts/validate-release-manifest.mjs \
+     --file .release/manifest.json --product-version X.Y.Z
+   ```
 
 ### Step 7: Quality check
 
@@ -480,6 +547,7 @@ Stage only release files. Under fixed mode, **all five sub-packages always chang
 ```bash
 # Always: root + all five sub-package versions and changelogs (fixed mode bumped them all)
 git add \
+  .release/manifest.json \
   package.json \
   frontend/package.json frontend/CHANGELOG.md \
   landing/package.json landing/CHANGELOG.md \
@@ -499,6 +567,9 @@ git add frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts
 
 # Only if iOS files changed in this release:
 git add ios/project.yml
+
+# Only if a new iOS marketing version is approved:
+git add ios/app-store-release.json
 ```
 
 Run `git status` and confirm only the expected files are staged. If anything unrelated landed in the staging area (an unrelated edit you forgot, an untracked file `git add .changeset/` accidentally picked up), unstage it before continuing — release commits should be 100% mechanical.
@@ -508,13 +579,11 @@ Run `git status` and confirm only the expected files are staged. If anything unr
 - `ios/Pulpe.xcodeproj/` is gitignored (regenerated by xcodegen). Do NOT try to stage it.
 - Per-package `CHANGELOG.md` files all get new entries even for packages whose code didn't change — that's expected under fixed mode (see `references/jsts-release.md`).
 
-### Step 9: Commit and hand off to GitHub
+### Step 9: Commit once and start the automatic release
 
-Show the exact release commit, the branch `release/vX.Y.Z`, the approved French GitHub Release notes, and the preparation PR target (`main`). Then ask: "Prêt à publier la branche de release et ouvrir la PR vers main ?"
+The Step 5 approval already authorized this handoff. Do not ask again.
 
-Only after "oui":
-
-1. Recheck that the release branch still has the synchronized `main` commit as its unchanged `HEAD`, then create exactly one release commit:
+1. Recheck the exact synchronized base, then create exactly one release commit:
 
    ```bash
    set -euo pipefail
@@ -533,19 +602,15 @@ Only after "oui":
    test "$(git show -s --format=%s "$RELEASE_SHA")" = "chore(release): v${VERSION}"
    ```
 
-2. Push only the new release branch. Never push its commit directly to either protected branch:
+2. Push only the new release branch and open the preparation PR immediately. Its first-line marker carries the approved version and exact release commit; the remaining body must mirror the immutable manifest exactly:
 
    ```bash
    git push --set-upstream origin "$BRANCH"
    test "$(git ls-remote --heads origin "refs/heads/$BRANCH" | awk '{print $1}')" = "$RELEASE_SHA"
-   ```
 
-3. Open the preparation PR to `main`. This single PR is the whole release: its merge commit is the candidate, and no second promotion PR follows. Its body is a temporary UTF-8 file whose **first line is the machine marker** `<!-- pulpe-release:vX.Y.Z:RELEASE_SHA -->` (the production authorization later re-verifies it verbatim), followed by a blank line, then the approved **GitHub Release** template from Step 5 starting with `## vX.Y.Z` (the finalizer extracts the notes from this exact section):
-
-   ```bash
    BODY_FILE=$(mktemp)
    printf '<!-- pulpe-release:v%s:%s -->\n\n' "$VERSION" "$RELEASE_SHA" > "$BODY_FILE"
-   cat "$NOTES_FILE" >> "$BODY_FILE"
+   jq -r .githubReleaseNotes .release/manifest.json >> "$BODY_FILE"
    test "$(sed -n '1p' "$BODY_FILE")" = "<!-- pulpe-release:v${VERSION}:${RELEASE_SHA} -->"
    test "$(sed -n '3p' "$BODY_FILE")" = "## v${VERSION}"
    gh pr create \
@@ -556,47 +621,18 @@ Only after "oui":
      --body-file "$BODY_FILE"
    ```
 
-   Merge it yourself once `✅ CI Success` is green — **with a merge commit** (never squash): the authorization contract requires the candidate to be a 2-parent merge whose second parent is `RELEASE_SHA`, and it re-verifies that the merge was performed by the repository owner. No approving review is possible or required here; the human authorization is the `production` environment approval during `publish`. Never edit the PR body afterwards. The merge deploys nothing to production; it pushes `main`, which deploys staging and produces the `✅ Staging Ready (shadow)` proof the plan consumes. Nothing else may land on `main` between that merge and `publish` — any later commit moves the tip away from the candidate and forces a new release branch.
-
-4. Before **every** dispatch (plan, publish), resolve the remote state of that exact intention. The identity is the run-name `🚦 <mode> release/vX.Y.Z`; GitHub run lists — never agent memory — are the source of truth:
+3. Enable native auto-merge for this approved **release PR only** (never the infrastructure PR):
 
    ```bash
-   STATE=$(node .github/scripts/resolve-release-state.mjs --repository neogenz/pulpe --workflow release-promotion.yml --version "$VERSION" --mode plan)
-   echo "$STATE"
-   test "$(jq -r .state <<< "$STATE")" = absent
+   gh pr merge "$BRANCH" --repo neogenz/pulpe --auto --merge --match-head-commit "$RELEASE_SHA"
+   gh pr view "$BRANCH" --repo neogenz/pulpe --json headRefOid,autoMergeRequest,state,mergeCommit
    ```
 
-   - `absent`: continue to the dispatch step for the first attempt.
-   - `active` or `succeeded`: report the returned run URL; do not dispatch again — the identical invocation is a no-op.
-   - `failed`: after understanding the failure, validate the latest terminal run with `--retry <run-id>`, then repeat the same dispatch command from the current protected workflow ref. Do not use `gh run rerun` after a workflow fix: it would reuse the failed run's workflow definition and SHA.
-   - `published`: the tag `vX.Y.Z` already exists; nothing to prepare.
-   - Any resolver error (duplicate active runs, ambiguous refs or PRs, incomplete pagination, drift) stops the workflow without mutating anything.
+   Verify the head still equals `RELEASE_SHA` and auto-merge is enabled (or the PR already merged that exact head). Do not use `--admin`, change the approved head or bypass CI. A changed base that invalidates the one-commit topology stops production.
 
-5. Dispatch the read-only plan and report its manifest:
+4. Follow the single `main`-push Actions run: staging → production → GitHub publication → optional iOS App Review with `AFTER_APPROVAL`. There is no routine dispatch or second approval. Exact SHA/notes checks remain at mutation boundaries. See [deployment operations](../../../../docs/DEPLOYMENT.md#release-process) for setup, concurrency and failure handling.
 
-   ```bash
-   gh workflow run release-promotion.yml \
-     --repo neogenz/pulpe \
-     --ref main \
-     -f release_branch="$BRANCH" \
-     -f mode=plan
-   ```
-
-   The `plan` job — read-only permissions, no secret, no environment — resolves the proven staging candidate, verifies that the candidate is still the exact tip of `main`, anchors the rollback on the latest published release, lists the migrations in scope since that anchor and the provider deployment IDs, then uploads the `release-plan` manifest. A failure leaves `main`, `production`, tags, GitHub Releases, and providers untouched.
-
-6. After reviewing the plan manifest with the user, resolve state for `--mode publish` (same contract as step 4), then dispatch publish **on `main`** — the production authorization requires `GITHUB_SHA` to be the preparation merge commit at the head of `main`:
-
-   ```bash
-   gh workflow run release-promotion.yml \
-     --repo neogenz/pulpe \
-     --ref main \
-     -f release_branch="$BRANCH" \
-     -f mode=publish
-   ```
-
-   Publish calls the reusable production workflow: `authorize` re-verifies the whole chain without credentials, then — behind the `production` environment approval — `migrate` applies migrations when the release contains any, `advance` fast-forwards the `production` pointer (this push is what triggers the Vercel and Railway production deploys), and the final job waits for the exact web client before uploading the production context. Railway's successful production `deployment_status` then triggers `✅ Production Finalized` (`production-finalize.yml`), which verifies the exact active Railway/Vercel deployments and public services before idempotently creating the annotated tag and GitHub Release; the finalizer is never a Railway-required check.
-
-This skill does not push `main` or `production`, store a local release SHA, mutate Railway, create a tag, or publish a GitHub Release.
+5. Read back production SHA, provider identities, annotated tag, exact GitHub notes and—when included—the iOS build and App Review state. Any ambiguity stops automatic mutation; do not rerun upload/submission or invent a replacement build. A failed run is not a completed release.
 
 ## Maintenance: Re-align an already published GitHub Release
 

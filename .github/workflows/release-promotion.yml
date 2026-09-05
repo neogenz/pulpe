@@ -5,14 +5,7 @@ name: 🚦 Release Promotion
 # dans .github/scripts/resolve-release-state.mjs.
 run-name: "🚦 ${{ inputs.mode }} ${{ inputs.release_branch }}"
 
-# Unique entrée manuelle de release, en deux intentions distinctes :
-# - `plan` (défaut) résout l'état complet du candidat — le merge commit de la
-#   PR de préparation `release/vX.Y.Z` → `main` — et publie un manifeste en
-#   lecture seule, sans secret ni environnement.
-# - `publish`, dispatché sur `main` une fois la PR de préparation fusionnée,
-#   appelle l'unique workflow réutilisable production.yml qui migre, avance le
-#   pointeur `production` et attend le client web exact. Chacune de ses
-#   mutations reste derrière l'environnement GitHub `production`.
+# Read-only diagnostic; releases start from an approved preparation PR.
 on:
   workflow_dispatch:
     inputs:
@@ -21,12 +14,11 @@ on:
         required: true
         type: string
       mode:
-        description: plan (read-only) | publish (run the production release)
+        description: Read-only release plan
         required: true
         type: choice
         options:
           - plan
-          - publish
         default: plan
 
 concurrency:
@@ -166,8 +158,8 @@ jobs:
               migrations: $migrations,
               production_deployments: $deployments[0],
               planned: [
-                "publish after approval: replay the migration contract from the published anchor, then supabase db push",
-                "publish after approval: advance production fast-forward, then wait for the exact web client",
+                "automatic production: replay the migration contract from the published anchor, then supabase db push",
+                "automatic production: advance production fast-forward, then wait for the exact web client",
                 "finalize on the exact Railway deployment: verify providers, then publish the annotated tag and GitHub Release"
               ],
               rollback: {
@@ -204,15 +196,3 @@ jobs:
           name: release-plan-${{ steps.plan.outputs.version }}-${{ steps.plan.outputs.candidate_sha }}
           path: ${{ runner.temp }}/release-plan.json
           retention-days: 30
-
-  # Unique appel au workflow réutilisable de production. Dispatché sur `main`
-  # une fois la PR de préparation fusionnée : GITHUB_SHA est alors le merge
-  # commit que authorize revérifie intégralement, et les jobs migrate, advance
-  # et prepare restent derrière l'environnement production.
-  production:
-    name: 🏭 Production
-    if: inputs.mode == 'publish'
-    uses: ./.github/workflows/production.yml
-    with:
-      release_branch: ${{ inputs.release_branch }}
-    secrets: inherit

@@ -11,10 +11,10 @@ pnpm quality && pnpm test && pnpm test:e2e
 ```
 
 `/release` prepares one `release/vX.Y.Z` branch and one version commit, merged into
-`main` through its single preparation PR. The manual `🚦 Release Promotion` entry then
-drives two modes: `plan` (read-only manifest) and `publish` on the merged `main`
-(production environment approval, migrations, `production` pointer advance, provider
-deploys, tag and Release).
+`main` through its single preparation PR. Approval of the exact version and notes is
+the only human release gate. Canonical CI then drives the native auto-merge, staging
+proof, migrations, `production` pointer advance, provider proofs, tag/Release and,
+when declared, strict App Store validation and review submission.
 
 ## Prerequisites
 
@@ -70,8 +70,10 @@ staging branch follows Git `main`; subsequent production migrations are applied 
 by the protected release workflow described below.
 
 - `🏭 Production Release` detects changes in `backend-nest/supabase/migrations/`
-  between the last published release and the candidate. No pull-request job receives
-  production secrets.
+  between the last published release and the candidate. That published anchor must be
+  a strict ancestor of the candidate; the authorized `production` pointer must equal
+  the published anchor; partial production advancement stops for inspection. No
+  pull-request job receives production secrets.
 - Published migration files are immutable. Every new file starts, before any SQL, with
   `-- pulpe:migration-phase expand` or `-- pulpe:migration-phase contract`. Contract
   files also require `-- pulpe:safe-after vX.Y.Z`; that release tag must already be an
@@ -91,7 +93,9 @@ by the protected release workflow described below.
   a substitute for SQL review. Split ambiguous changes or classify them as contract.
 - CI checks the PR range and includes the result in `ci-success`. Production replays
   the exact published-anchor/candidate range before the protected Supabase dry-run
-  and apply.
+  and apply. It rechecks the authorized `production` SHA immediately before `db push`,
+  then queries `supabase_migrations.schema_migrations` and requires the complete remote
+  version list to equal the local migration filenames before the pointer can advance.
 - Create locally with `supabase migration new [description]`. Never run `db push`
   against the linked production project outside the protected workflow.
 
@@ -366,137 +370,47 @@ borné au slug réel de l’équipe propriétaire, puis le consigner ici.
 
 ### GitHub Actions Secrets
 
-> Repository Settings → Secrets and variables → Actions → New repository secret
+> Production and signing credentials belong to their restricted GitHub Environments. Never expose them to PR jobs.
 
-| Secret                          | Value                    | Used by                              |
-| ------------------------------- | ------------------------ | ------------------------------------ |
-| `SUPABASE_ACCESS_TOKEN`         | Supabase CLI token       | Production Release migrations        |
-| `PRODUCTION_DB_PASSWORD`        | Supabase DB password     | Production Release migrations        |
-| `PRODUCTION_PROJECT_ID`         | Supabase project ref     | Production Release migrations        |
-| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | iOS releases                         |
-| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | iOS releases                         |
+| Secret                          | Value                    | Used by                                                    |
+| ------------------------------- | ------------------------ | ---------------------------------------------------------- |
+| `SUPABASE_ACCESS_TOKEN`         | Supabase CLI token       | Production Release migrations                              |
+| `PRODUCTION_DB_PASSWORD`        | Supabase DB password     | Production Release migrations                              |
+| `PRODUCTION_PROJECT_ID`         | Supabase project ref     | Production Release migrations                              |
+| `POSTHOG_PERSONAL_API_KEY`      | PostHog personal API key | iOS releases                                               |
+| `POSTHOG_WEBAPP_PROJECT_ID`     | `87621`                  | iOS releases                                               |
 | `PULPE_RELEASE_APP_ID`          | GitHub App ID            | Advances `production`, tags releases |
-| `PULPE_RELEASE_APP_PRIVATE_KEY` | GitHub App private key   | Creates short-lived release tokens   |
-| `RAILWAY_PRODUCTION_TOKEN`      | Railway project token    | Verifies the active production SHA   |
+| `PULPE_RELEASE_APP_PRIVATE_KEY` | GitHub App private key   | Creates short-lived release tokens                         |
+| `RAILWAY_PRODUCTION_TOKEN`      | Railway project token    | Verifies the active production SHA                         |
 
 See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release architecture.
 
+### One-time automatic-release setup
+
+This is an infrastructure change, not a release authorization. Merge its PR manually.
+Afterward, with explicit owner consent and no release running:
+
+- Enable the repository's native **Allow auto-merge** setting (currently disabled).
+- Keep `main` PR-only with required `✅ CI Success`, strict/up-to-date checks and no bypass.
+- Remove the **production required reviewer** rule (currently `neogenz`) only after explicit security-setting consent. YAML does not remove it. Keep its secrets and branch restrictions; the automatic caller runs on protected `main`.
+- Keep `ios-distribution` restricted to protected `main` for automatic release and internal TestFlight; no reviewer gate. Preserve temporary signing credentials and cleanup.
+- The production GitHub App needs Contents write only, for fast-forward `production`, tags and releases. Native PR auto-merge uses the approving releaser's GitHub identity, not an App bypass.
+- Read back every changed repository/environment/ruleset setting before starting a release.
+
 ## Release Process
 
-Every production mutation runs behind the GitHub `production` environment
-approval; the read-only `plan` mode is the only one without it.
+The canonical proposal and preparation procedure is [.claude/skills/release/SKILL.md](../.claude/skills/release/SKILL.md).
+The owner's approval of the exact version, notes and optional iOS identity authorizes one preparation PR. GitHub does not attest chat approval: the approving releaser creates the one-commit `release/vX.Y.Z` PR and enables native auto-merge for its exact head. Never enable it on the infrastructure PR.
 
-1. Run `/release` from a clean synchronized `main`. It creates one
-   `release/vX.Y.Z` commit and its single preparation PR to `main` (body line 1:
-   the `pulpe-release` marker; then the `## vX.Y.Z` notes).
-2. Merge it once `✅ CI Success` is green, **with a merge commit** — the candidate
-   must be a 2-parent merge of the release commit, merged by the repository owner
-   (`authorize` re-verifies both). No approving review exists on a solo repository;
-   the human authorization is the `production` environment approval in step 4.
-   The merge pushes `main`, which deploys staging and produces
-   `✅ Staging Ready (shadow)`, bound to the exact workflow run, attempt,
-   successful job and artifact.
-   Nothing else may land on `main` until publish: the candidate must stay the exact tip.
-3. Dispatch `🚦 Release Promotion` in `plan` mode. The read-only job — no
-   secret, no environment — resolves the proven staging candidate, verifies it
-   is still the tip of `main`, anchors the rollback on the latest published
-   release (annotated tag + GitHub Release), replays the content lineage, lists
-   the migrations in scope since that anchor and the provider deployment IDs,
-   then uploads the `release-plan` manifest with the planned mutations and rollback.
-4. Dispatch `publish` on `main`. The reusable `production.yml` re-verifies the
-   whole chain, including an exact match between the submitted release branch
-   and the preparation PR. A mismatch stops `authorize` before any protected
-   job or production mutation. It then waits for the `production` environment approval, keeps the
-   migration dry-run → apply order and the replayed migration contract behind
-   that environment (skipped entirely when the release carries no migration),
-   then `advance` fast-forwards the `production` pointer — the push that
-   triggers the Vercel and Railway production deploys — and waits for the exact
-   web client.
-5. Railway's exact successful production `deployment_status` starts
-   `✅ Production Finalized`, which proves Railway, Vercel, `/health` and
-   `/api/v1/app/version`, then idempotently publishes `vX.Y.Z` and the GitHub
-   Release. That workflow must never be a Railway-required check.
+1. Native GitHub auto-merge waits for protected PR CI and creates a merge commit. The approved notes live in `.release/manifest.json`, mirrored in the PR body below the version/head-SHA marker. Do not edit or rebase the approved head.
+2. The `main` push runs `staging-proof.yml`: canonical PR CI, exact tested tree, three provider deployments and smoke checks. Feature PRs stop here.
+3. Only a release branch continues through `needs` to reusable `production.yml`: verify the one-commit approval, merge parents, exact manifest, unchanged `main` and published production anchor; migration contract → dry-run → apply → migration ledger readback; then fast-forward and read back `production`.
+4. The same run calls reusable `production-finalize.yml`. It waits for exact Vercel/Railway deployments, checks public health/version, creates the annotated tag and GitHub Release from committed notes and reads both back. No deployment webhook, cross-run production artifacts or release lock are needed.
+5. An iOS contract for this product version calls `ios-distribute.yml` after publication. It verifies the exact production SHA/tag, archives/uploads once, reads back a valid exact build, copies published metadata (no partial metadata directory/deletes), writes approved notes, validates strictly and submits once with `AFTER_APPROVAL`. Apple review is external. Internal TestFlight remains a separate manual dispatch and never submits for review.
 
-Rollback: applications roll back by redeploying the published anchor recorded in
-the plan manifest (Vercel rollback / Railway redeploy of the exact SHA);
-migrations stay forward-only — ship a corrective migration instead.
+The non-cancelling `release-main` concurrency group spans the complete DAG; iOS also shares `ios-distribution` with internal uploads. GitHub concurrency is not a merge freeze or FIFO queue. Avoid merging another PR during a release; if `main` moves, the exact-SHA checks stop rather than silently promoting a newer candidate. Pending runs may be replaced by GitHub; an interrupted release requires inspection, not automatic recovery.
 
-### Release identity and resume
-
-A release intention is identified by its workflow plus its exact fields — version for
-`release-promotion.yml`; SHA, marketing version, channel and build number for
-`ios-distribute.yml`. Each workflow exposes that identity as its `run-name`
-(`🚦 <mode> release/vX.Y.Z`, `📲 iOS <channel> v<version> (<build>) <sha>`), so the
-GitHub run list is the source of truth — no client keeps local state, and the GitHub
-UI `workflow_dispatch` button and `gh` CLI are the reference interfaces. Agent skills
-only prepare inputs, invoke the workflow, and display the derived state.
-
-`node .github/scripts/resolve-release-state.mjs` resolves the unique remote state of
-one identity before any dispatch: `absent` (first dispatch allowed),
-`active`/`succeeded` (the existing run and open release PR are returned; an identical
-invocation is a no-op), `failed` (pass the latest failed run to `--retry <run-id>`,
-then dispatch the same identity once from the current protected workflow ref),
-`published` (the tag already exists). Do not use `gh run rerun` after a workflow fix:
-GitHub would execute the workflow definition and SHA associated with the failed run.
-Duplicate active runs, ambiguous branch refs or PRs, drifted PR heads and incomplete
-pagination fail closed without mutating anything. Changing any identity field (new
-SHA, version, channel or build) is a new intention. The same identity fields feed the
-candidate manifest rather than a second format.
-
-### Audit without an agent
-
-In GitHub, open **Actions → Production Finalized** for the production SHA and
-verify both successful jobs plus the `production-proof-*` artifact. Then open
-**Releases** to verify the immutable annotated tag, and **Branches** to verify that
-only `main` and `production` are durable. The same proof is available from the CLI:
-
-```bash
-gh release view "v$VERSION" --json tagName,targetCommitish,isDraft,isPrerelease
-gh run list --workflow production-finalize.yml --commit "$SHA"
-gh run view "$FINALIZER_RUN_ID"
-gh run list --workflow ios-distribute.yml --commit "$SHA"
-git ls-remote --heads origin main production preview
-gh api repos/neogenz/pulpe/rulesets --jq '.[].name'
-```
-
-For the first observed release, `v0.47.1` and its annotated tag resolve to
-`aefa93bd66cd45ebbfdc0aa474056c63d7e02a1a`; finalizer run `33278908054`
-succeeded on attempt 3, and iOS run `33298625338` proved release `1.4.3` build 11.
-PR #701 retains the release marker and notes, so the complete intention can be
-reconstructed without local agent memory.
-
-### Recovery
-
-- Railway `FAILED`: manually redeploy the **same SHA** once from Railway, then rerun or
-  wait for the finalizer. Never call `serviceInstanceDeployV2` or `railway redeploy` in
-  the normal workflow.
-- Finalizer failure: fix the provider issue, then use **Re-run failed jobs** in the
-  same Actions run or `gh run rerun <run-id> --failed`. An identical tag or Release
-  is accepted; any contradictory existing object fails closed. Never dispatch a
-  second release intention.
-- **Tag exists but the GitHub Release is missing**: rerun the finalizer. It accepts the
-  exact annotated tag and creates only the missing Release; a mismatch fails closed.
-- **Duplicate Railway success**: duplicate events for the same SHA are serialized and
-  idempotent. Let the existing finalizer finish or rerun its failed attempt; do not deploy.
-- **Main advances**: any commit landing on `main` between the preparation merge and
-  `publish` moves the tip away from the candidate, and authorization fails closed.
-  Prepare a new release branch from the new head; never force the stale candidate.
-- Migration failure: keep recovery forward-only and ship a corrective migration; do
-  not automate rollback.
-- iOS build already valid succeeds without archive/upload; processing polls the same version/build without allocating or uploading another. A `release` dispatch from `main` without the release tag is accepted only as promotion of an exact, unexpired `internal` upload intent from `main`; it consumes the staging proof and refuses a missing App Store build before Xcode.
-- A transient GitHub `HTTP 404` while a just-created staging deployment exposes no status is retried inside the bounded proof loop. Every other API error still fails closed.
-- PostHog and CSP diagnostics are useful monitoring signals, not publication gates.
-
-The retired pre-cutover Git branch `preview` ended at
-`35117a4fc7930f609c9e4f8708d3307d98842f82`; its ruleset and remote branch were
-removed after every active dependency was checked. Recreate that archival ref only
-for incident investigation with:
-
-```bash
-git push origin 35117a4fc7930f609c9e4f8708d3307d98842f82:refs/heads/preview
-```
-
-Detailed versioning and force-update rules: [VERSIONING.md](./VERSIONING.md).
+On failure, stop and inspect the run plus remote production/tag/release/ASC state. No force push, provider deploy, compensating rollback or automatic retry. A partially advanced production pointer must be reconciled explicitly. Automatic iOS is first-attempt-only and requires a fresh version/build: an existing build/version, ambiguous upload or partial submission stops without uploading/submitting again. Even a successful Apple mutation can be followed by an eventual-consistency error; inspect the exact remote version before any separately authorized recovery. Never allocate a new identity to hide uncertainty.
 
 ## Post-Deployment Monitoring
 

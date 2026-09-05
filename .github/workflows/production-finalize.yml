@@ -1,11 +1,11 @@
 name: ✅ Production Finalized
 
 on:
-  deployment_status:
-
-concurrency:
-  group: production-finalize-${{ github.event.deployment.sha }}
-  cancel-in-progress: false
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
 
 permissions:
   actions: read
@@ -16,65 +16,41 @@ permissions:
 jobs:
   verify:
     name: 🔎 Verify exact production
-    if: github.event.deployment_status.state == 'success' && github.event.deployment_status.creator.login == 'railway-app[bot]' && github.event.deployment.environment == 'pulpe-backend / production' && github.event.deployment.creator.login == 'railway-app[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
-      PRODUCTION_SHA: ${{ github.event.deployment.sha }}
-      DEPLOYMENT_REF: ${{ github.event.deployment.ref }}
-      DEPLOYMENT_ID: ${{ github.event.deployment.id }}
-      DEPLOYMENT_STATUS_ID: ${{ github.event.deployment_status.id }}
+      PRODUCTION_SHA: ${{ github.sha }}
     outputs:
-      context: ${{ steps.context.outputs.context }}
-      frontend_deployment_id: ${{ steps.providers.outputs.frontend_deployment_id }}
-      landing_deployment_id: ${{ steps.providers.outputs.landing_deployment_id }}
+      ios: ${{ steps.metadata.outputs.ios }}
     steps:
-      - name: Checkout trusted production automation without credentials
+      - name: Checkout exact approved production
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.repository.default_branch }}
-          fetch-depth: 1
+          ref: ${{ github.sha }}
           persist-credentials: false
-
-      - name: Verify event and exact authorized preflight
-        id: context
+      - name: Read approved release metadata
+        id: metadata
         env:
+          VERSION: ${{ inputs.version }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$DEPLOYMENT_REF" = "$PRODUCTION_SHA"
-          [[ "$PRODUCTION_SHA" =~ ^[0-9a-f]{40}$ ]]
-
-          gh api "repos/$GITHUB_REPOSITORY/deployments/$DEPLOYMENT_ID" > "$RUNNER_TEMP/deployment.json"
-          jq -e --arg sha "$PRODUCTION_SHA" --argjson id "$DEPLOYMENT_ID" '.id == $id and .sha == $sha and .ref == $sha and .environment == "pulpe-backend / production" and .creator.login == "railway-app[bot]"' "$RUNNER_TEMP/deployment.json"
-          gh api "repos/$GITHUB_REPOSITORY/deployments/$DEPLOYMENT_ID/statuses" > "$RUNNER_TEMP/statuses.json"
-          railway_url='https://railway.com/project/33ba829c-d4d6-4096-b0dc-57c89c367063?environmentId=a28b6826-ecbe-4c0f-9856-e0ba3ce14e93'
-          jq -e --argjson id "$DEPLOYMENT_STATUS_ID" --arg url "$railway_url" '[.[] | select(.id == $id and .state == "success" and .creator.login == "railway-app[bot]" and .environment_url == $url and .log_url == $url and .target_url == $url)] | length == 1' "$RUNNER_TEMP/statuses.json"
-
-          # Le workflow production tourne en réutilisable dans le run
-          # `🚦 publish` dispatché sur main; son job apparaît sous le nom
-          # préfixé du job appelant.
-          proof=$(node .github/scripts/resolve-workflow-proof.mjs \
-            --workflow release-promotion.yml \
-            --event workflow_dispatch \
-            --branch main \
-            --sha "$PRODUCTION_SHA" \
-            --job "🏭 Production / 🚦 Record production authorization" \
-            --artifact-template "production-context-{sha}-run-{run_id}-attempt-{attempt}")
-          context_run_id=$(jq -r .run_id <<< "$proof")
-          context_attempt=$(jq -r .attempt <<< "$proof")
-          artifact=$(jq -r .artifact_name <<< "$proof")
-          gh run download "$context_run_id" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "$RUNNER_TEMP/context"
-          context="$RUNNER_TEMP/context/production-context.json"
-          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$PRODUCTION_SHA" --argjson run "$context_run_id" --argjson attempt "$context_attempt" '.repository == $repo and .production_sha == $sha and .workflow_run_id == $run and .run_attempt == $attempt and (.candidate_sha | test("^[0-9a-f]{40}$")) and (.tree_sha | test("^[0-9a-f]{40}$")) and (.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' "$context"
-
-          echo "context=$(jq -c . "$context")" >> "$GITHUB_OUTPUT"
+          test "$GITHUB_EVENT_NAME" = push
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$GITHUB_SHA"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/production" --jq .commit.sha)" = "$GITHUB_SHA"
+          node .github/scripts/validate-release-manifest.mjs --file .release/manifest.json --product-version "$VERSION" >/dev/null
+          ios=null
+          if [ -f ios/app-store-release.json ] && [ "$(jq -r .productVersion ios/app-store-release.json)" = "$VERSION" ]; then
+            ios=$(jq -c . ios/app-store-release.json)
+          fi
+          echo "ios=$ios" >> "$GITHUB_OUTPUT"
 
       - name: Verify exact Vercel deployments and public services
         id: providers
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ fromJSON(steps.context.outputs.context).version }}
+          VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
           deployment() {
@@ -93,10 +69,6 @@ jobs:
           test "$frontend_state $landing_state" = "success success"
           curl --fail --silent --show-error --location --max-time 20 https://app.pulpe.app/ >/dev/null
           curl --fail --silent --show-error --location --max-time 20 https://pulpe.app/ >/dev/null
-          curl --fail --silent --show-error --location --max-time 20 https://api.pulpe.app/health > "$RUNNER_TEMP/health.json"
-          jq -e '.status == "healthy"' "$RUNNER_TEMP/health.json"
-          curl --fail --silent --show-error --location --max-time 20 https://api.pulpe.app/api/v1/app/version > "$RUNNER_TEMP/version.json"
-          jq -e --arg version "$VERSION" '.success == true and .data.web.latestVersion == $version' "$RUNNER_TEMP/version.json"
           echo "frontend_deployment_id=$frontend_id" >> "$GITHUB_OUTPUT"
           echo "landing_deployment_id=$landing_id" >> "$GITHUB_OUTPUT"
 
@@ -104,17 +76,21 @@ jobs:
     name: ✅ Publish proven production
     needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     environment: production
     env:
-      CONTEXT: ${{ needs.verify.outputs.context }}
-      PRODUCTION_SHA: ${{ fromJSON(needs.verify.outputs.context).production_sha }}
-      VERSION: ${{ fromJSON(needs.verify.outputs.context).version }}
+      PRODUCTION_SHA: ${{ github.sha }}
+      VERSION: ${{ inputs.version }}
       RAILWAY_CLI_VERSION: "5.15.0"
       RAILWAY_CLI_SHA256: d302113b772b8f34d28ed2242c1d258953de989c282d4cc72291239ccb0fb041
       RAILWAY_PROJECT: 33ba829c-d4d6-4096-b0dc-57c89c367063
       RAILWAY_SERVICE: b1f9b1c0-7eca-4c58-b203-cdbbed8ae0a4
     steps:
+      - name: Checkout exact approved production
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - name: Install verified Railway CLI
         run: |
           set -euo pipefail
@@ -132,9 +108,21 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
         run: |
-          railway deployment list --project "$RAILWAY_PROJECT" --environment production --service "$RAILWAY_SERVICE" --limit 50 --json > "$RUNNER_TEMP/railway.json"
-          jq -e --arg sha "$PRODUCTION_SHA" '.[0].status == "SUCCESS" and .[0].meta.commitHash == $sha and .[0].meta.branch == "production"' "$RUNNER_TEMP/railway.json"
-          echo "deployment_id=$(jq -r '.[0].id' "$RUNNER_TEMP/railway.json")" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          for _ in {1..90}; do
+            railway deployment list --project "$RAILWAY_PROJECT" --environment production --service "$RAILWAY_SERVICE" --limit 50 --json > "$RUNNER_TEMP/railway.json"
+            if jq -e --arg sha "$PRODUCTION_SHA" '.[0].status == "SUCCESS" and .[0].meta.commitHash == $sha and .[0].meta.branch == "production"' "$RUNNER_TEMP/railway.json" >/dev/null; then break; fi
+            sleep 10
+          done
+          jq -e --arg sha "$PRODUCTION_SHA" '.[0].status == "SUCCESS" and .[0].meta.commitHash == $sha and .[0].meta.branch == "production"' "$RUNNER_TEMP/railway.json" >/dev/null
+
+      - name: Verify public backend after exact Railway deployment
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 20 https://api.pulpe.app/health > "$RUNNER_TEMP/health.json"
+          jq -e '.status == "healthy"' "$RUNNER_TEMP/health.json"
+          curl --fail --silent --show-error --location --max-time 20 https://api.pulpe.app/api/v1/app/version > "$RUNNER_TEMP/version.json"
+          jq -e --arg version "$VERSION" '.success == true and .data.web.latestVersion == $version' "$RUNNER_TEMP/version.json"
 
       - name: Create short-lived GitHub App token
         id: app-token
@@ -152,9 +140,10 @@ jobs:
           # shellcheck disable=SC2016
           set -euo pipefail
           notes="$RUNNER_TEMP/release-notes.md"
-          preparation_pr=$(jq -r .preparation_pr <<< "$CONTEXT")
-          gh api "repos/$GITHUB_REPOSITORY/pulls/$preparation_pr" --jq .body | sed -n "/^## v$VERSION$/,$ p" > "$notes"
-          test "$(sed -n '1p' "$notes")" = "## v$VERSION"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$PRODUCTION_SHA"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/production" --jq .commit.sha)" = "$PRODUCTION_SHA"
+          node .github/scripts/validate-release-manifest.mjs --file .release/manifest.json --product-version "$VERSION" >/dev/null
+          jq -r .githubReleaseNotes .release/manifest.json > "$notes"
           encoded_tag=$(jq -rn --arg value "v$VERSION" '$value | @uri')
 
           gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$encoded_tag" > "$RUNNER_TEMP/tags.json"
@@ -171,21 +160,29 @@ jobs:
 
           gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[]' > "$RUNNER_TEMP/releases.jsonl"
           release_count=$(jq -s --arg tag "v$VERSION" '[.[] | select(.tag_name == $tag)] | length' "$RUNNER_TEMP/releases.jsonl")
-          body=$(cat "$notes")
           if [ "$release_count" = 0 ]; then
-            gh api -X POST "repos/$GITHUB_REPOSITORY/releases" -f tag_name="v$VERSION" -f target_commitish="$PRODUCTION_SHA" -f name="v$VERSION" -F draft=false -F prerelease=false -F generate_release_notes=false --raw-field body="$body" --jq .html_url
+            jq -n --arg tag "v$VERSION" --arg sha "$PRODUCTION_SHA" --slurpfile manifest .release/manifest.json '{tag_name:$tag,target_commitish:$sha,name:$tag,draft:false,prerelease:false,generate_release_notes:false,body:$manifest[0].githubReleaseNotes}' | gh api -X POST "repos/$GITHUB_REPOSITORY/releases" --input - --jq .html_url
           else
-            jq -se --arg tag "v$VERSION" --arg target "$PRODUCTION_SHA" --arg body "$body" '[.[] | select(.tag_name == $tag)] | length == 1 and .[0].target_commitish == $target and .[0].name == $tag and .[0].body == $body and .[0].draft == false and .[0].prerelease == false' "$RUNNER_TEMP/releases.jsonl"
+            jq -se --arg tag "v$VERSION" --arg target "$PRODUCTION_SHA" --slurpfile manifest .release/manifest.json '[.[] | select(.tag_name == $tag)] | length == 1 and .[0].target_commitish == $target and .[0].name == $tag and .[0].body == $manifest[0].githubReleaseNotes and .[0].draft == false and .[0].prerelease == false' "$RUNNER_TEMP/releases.jsonl"
           fi
 
-      - name: Record immutable production proof
+      - name: Read back published tag and exact notes
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          jq -n --argjson context "$CONTEXT" --arg railway "${{ steps.railway.outputs.deployment_id }}" --argjson workflow_run_id "$GITHUB_RUN_ID" --argjson run_attempt "$GITHUB_RUN_ATTEMPT" --argjson frontend "${{ needs.verify.outputs.frontend_deployment_id }}" --argjson landing "${{ needs.verify.outputs.landing_deployment_id }}" '$context + {preflight:{run_id:$context.workflow_run_id,attempt:$context.run_attempt},workflow_run_id:$workflow_run_id,run_attempt:$run_attempt,deployments:{frontend:$frontend,landing:$landing,railway:$railway}}' > production-proof.json
+          set -euo pipefail
+          object=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq .object.sha)
+          gh api "repos/$GITHUB_REPOSITORY/git/tags/$object" | jq -e --arg sha "$PRODUCTION_SHA" '.object.type == "commit" and .object.sha == $sha'
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$VERSION" | jq -e --arg sha "$PRODUCTION_SHA" --arg tag "v$VERSION" --slurpfile manifest .release/manifest.json '.target_commitish == $sha and .tag_name == $tag and .name == $tag and .draft == false and .prerelease == false and .body == $manifest[0].githubReleaseNotes'
 
-      - name: Upload production proof
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: production-proof-${{ fromJSON(needs.verify.outputs.context).production_sha }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-          path: production-proof.json
-          retention-days: 90
-          if-no-files-found: error
+  ios:
+    name: 🍎 Submit approved iOS release
+    needs: [verify, publish]
+    if: needs.verify.outputs.ios != 'null'
+    uses: ./.github/workflows/ios-distribute.yml
+    with:
+      channel: release
+      source_sha: ${{ github.sha }}
+      marketing_version: ${{ fromJSON(needs.verify.outputs.ios).marketingVersion }}
+      build_number: ${{ fromJSON(needs.verify.outputs.ios).buildNumber }}
+    secrets: inherit

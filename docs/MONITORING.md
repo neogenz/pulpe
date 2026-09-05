@@ -150,16 +150,17 @@ POSTHOG_HOST=https://eu.i.posthog.com
 
 ## 📦 Releases & Annotations {#releases}
 
-PostHog releases et annotations sont créées automatiquement à chaque deploy. Voir [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) pour l'architecture complète.
+Les intégrations PostHog de release sont décrites dans
+[POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md). Les annotations horodatées ne sont pas
+émises automatiquement, car une reprise ne pourrait pas les dédupliquer sûrement.
 
 ### Ce qui se passe automatiquement
 
-| App               | Déclencheur                 | Actions PostHog                                        |
-| ----------------- | --------------------------- | ------------------------------------------------------ |
-| Webapp (Angular)  | Build Vercel                | Sourcemaps upload + release avec source linking GitHub |
-| Landing (Next.js) | Build Vercel                | Release via API (version + commit)                     |
-| iOS (SwiftUI)     | Push main (paths: ios/\*\*) | Release `ios-X.Y.Z+BUILD` + annotation                 |
-| Toutes            | Production Release prouvée  | Annotation sur le projet PostHog 87621                 |
+| App               | Déclencheur                  | Actions PostHog                                        |
+| ----------------- | ---------------------------- | ------------------------------------------------------ |
+| Webapp (Angular)  | Build Vercel                 | Sourcemaps upload + release avec source linking GitHub |
+| Landing (Next.js) | Build Vercel                 | Release via API (version + commit)                     |
+| iOS (SwiftUI)     | Distribution release prouvée | Release `pulpe-ios` version `X.Y.Z+BUILD`              |
 
 ### Source linking GitHub
 
@@ -170,7 +171,6 @@ Les stack traces dans Error Tracking incluent des liens cliquables vers le code 
 
 ### Vérifier après un deploy
 
-- **Annotations** : n'importe quel graphique PostHog → markers verticaux avec la version
 - **Releases** : Settings → Error Tracking → Releases
 - **Source linking** : Error Tracking → cliquer sur une erreur → liens "View in GitHub" sur les frames
 
