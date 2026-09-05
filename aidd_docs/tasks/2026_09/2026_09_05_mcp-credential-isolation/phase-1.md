@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 ---
 
 # Instruction: Separate MCP credentials from Supabase sessions
@@ -69,3 +69,7 @@ journey
 | 1    | No external client can obtain the internal Supabase bearer through registration, consent, callback, token response or errors.                          |
 | 2    | A valid MCP bearer succeeds only on its authorized tools; direct Auth/table/RPC/GraphQL requests fail, and normal Pulpe sessions still work.           |
 | 2    | Replays, wrong client/resource, read-only writes and revoked access cannot mutate data; internal credentials never appear in logs or public responses. |
+
+## Verification
+
+Passed on two dedicated local stacks, using only disposable accounts and encrypted financial fixtures. See [phase-1-verification.md](./phase-1-verification.md) for executable checks and [cutover.md](./cutover.md) for the mandatory retirement gate: already-issued native JWTs remain usable until expiry, even after deleting their OAuth client. Public activation remains gated on that retirement and phase 2's real-client checks.

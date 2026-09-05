@@ -145,7 +145,7 @@ password_requirements = ""
 # connector. The consent screen is the Pulpe webapp page, relative to site_url.
 [auth.oauth_server]
 enabled = true
-allow_dynamic_registration = true
+allow_dynamic_registration = false
 authorization_url_path = "/mcp-consent"
 
 [auth.rate_limit]

@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
+import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
+import type { User } from '@supabase/supabase-js';
 import { ClsService } from 'nestjs-cls';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -30,6 +32,7 @@ export function protectedResourceMetadataUrl(resourceUrl: string): string {
 }
 
 export interface McpRequest extends Request {
+  auth?: AuthInfo;
   user?: AuthenticatedUser;
   supabase?: SupabaseClient;
   mcpConnection?: ActiveMcpConnection;
@@ -54,24 +57,6 @@ export function decodeJwtClaims(token: string): SupabaseTokenClaims | null {
   }
 }
 
-/**
- * A token is ours when it was issued to an OAuth client (`client_id` present)
- * and every audience it names is either Supabase's default or this server.
- */
-export function isMcpAudience(
-  claims: SupabaseTokenClaims,
-  resourceUrl: string,
-): boolean {
-  if (typeof claims.client_id !== 'string' || !claims.client_id) return false;
-  const audiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
-  // `every` answers true on an empty array: a token naming no audience at
-  // all would slip through a check that reads as strict.
-  if (audiences.length === 0) return false;
-  return audiences.every(
-    (aud) => aud === 'authenticated' || aud === resourceUrl,
-  );
-}
-
 /** The REST API must never accept a token minted for an agent. */
 export function isAgentToken(token: string): boolean {
   const claims = decodeJwtClaims(token);
@@ -79,10 +64,8 @@ export function isAgentToken(token: string): boolean {
 }
 
 /**
- * Authenticates an agent: signature and expiry via Supabase, audience via
- * claims, authorization via the `mcp_connection` row. Mirrors `AuthGuard`'s
- * CLS contract so existing use cases run unchanged. The bearer never leaves
- * this guard.
+ * The SDK middleware verifies the external opaque bearer first. Only the
+ * private owner session enters CLS; ordinary repositories keep their RLS.
  */
 @Injectable()
 export class McpTokenGuard implements CanActivate {
@@ -106,20 +89,29 @@ export class McpTokenGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<McpRequest>();
     const response = context.switchToHttp().getResponse<Response>();
 
-    const { token, claims } = this.#readBearer(request, response);
+    const { token, userId, clientId, generation } = this.#readBearer(
+      request,
+      response,
+    );
 
     const supabase = this.supabaseService.createAuthenticatedClient(token);
     const {
       data: { user },
       error,
     } = await supabase.auth.getUser();
-    if (error || !user || user.app_metadata?.scheduledDeletionAt) {
+    if (
+      error ||
+      !user ||
+      user.id !== userId ||
+      user.app_metadata?.scheduledDeletionAt
+    ) {
       throw this.#unauthorized(response, 'token');
     }
 
     const connection = await this.connections.findActive(
       user.id,
-      claims.client_id as string,
+      clientId,
+      generation,
     );
     if (!connection) {
       throw this.#unauthorized(response, 'connection');
@@ -132,6 +124,17 @@ export class McpTokenGuard implements CanActivate {
       throw this.#unauthorized(response, 'vault');
     }
 
+    this.#attachRequest(request, user, token, connection, supabase);
+    return true;
+  }
+
+  #attachRequest(
+    request: McpRequest,
+    user: User,
+    token: string,
+    connection: ActiveMcpConnection,
+    supabase: SupabaseClient,
+  ): void {
     const authenticatedUser: AuthenticatedUser = {
       id: user.id,
       email: user.email!,
@@ -150,22 +153,29 @@ export class McpTokenGuard implements CanActivate {
       this.cls.set('user', authenticatedUser);
       this.cls.set('supabase', supabase);
     }
-    return true;
   }
 
   #readBearer(
     request: McpRequest,
     response: Response,
-  ): { token: string; claims: SupabaseTokenClaims } {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    if (type !== 'Bearer' || !token) {
-      throw this.#unauthorized(response, 'missing token');
+  ): { token: string; userId: string; clientId: string; generation: string } {
+    const auth = request.auth;
+    const {
+      userId,
+      generation,
+      upstreamAccessToken: token,
+    } = auth?.extra ?? {};
+    if (
+      !auth ||
+      auth.resource?.href !== this.#resourceUrl ||
+      !auth.clientId.startsWith('pulpe_') ||
+      typeof userId !== 'string' ||
+      typeof generation !== 'string' ||
+      typeof token !== 'string'
+    ) {
+      throw this.#unauthorized(response, 'invalid MCP authentication');
     }
-    const claims = decodeJwtClaims(token);
-    if (!claims || !isMcpAudience(claims, this.#resourceUrl)) {
-      throw this.#unauthorized(response, 'audience');
-    }
-    return { token, claims };
+    return { token, userId, clientId: auth.clientId, generation };
   }
 
   #unauthorized(response: Response, reason: string): UnauthorizedException {

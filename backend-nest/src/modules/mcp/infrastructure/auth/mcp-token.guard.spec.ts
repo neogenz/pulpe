@@ -2,7 +2,6 @@ import { describe, expect, it } from 'bun:test';
 import {
   decodeJwtClaims,
   isAgentToken,
-  isMcpAudience,
   protectedResourceMetadataUrl,
 } from './mcp-token.guard';
 import { ListToolsUseCase } from '../../application/list-tools.use-case';
@@ -21,29 +20,6 @@ function token(claims: Record<string, unknown>): string {
 }
 
 describe('MCP token claims', () => {
-  it('accepts an agent token whose audiences are Supabase default or the server', () => {
-    expect(
-      isMcpAudience({ client_id: 'c', aud: 'authenticated' }, RESOURCE),
-    ).toBe(true);
-    expect(
-      isMcpAudience(
-        { client_id: 'c', aud: ['authenticated', RESOURCE] },
-        RESOURCE,
-      ),
-    ).toBe(true);
-  });
-
-  it('rejects a token for another service or without client_id', () => {
-    expect(
-      isMcpAudience({ client_id: 'c', aud: 'https://other.example' }, RESOURCE),
-    ).toBe(false);
-    expect(isMcpAudience({ aud: 'authenticated' }, RESOURCE)).toBe(false);
-    expect(
-      isMcpAudience({ client_id: '', aud: 'authenticated' }, RESOURCE),
-    ).toBe(false);
-    expect(isMcpAudience({ client_id: 'c', aud: [] }, RESOURCE)).toBe(false);
-  });
-
   it('flags agent tokens so the REST API refuses them', () => {
     expect(isAgentToken(token({ client_id: 'c' }))).toBe(true);
     expect(isAgentToken(token({ sub: 'u' }))).toBe(false);

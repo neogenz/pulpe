@@ -7,14 +7,13 @@ import {
   type EncryptionPort,
 } from '@modules/encryption/encryption.tokens';
 import { isAccessMode } from '../../domain/access-mode';
-import type { NewMcpConnection } from '../../domain/mcp-connection.entity';
 import type {
   ActiveMcpConnection,
   McpConnectionRepositoryPort,
   McpConnectionSummary,
 } from '../../domain/ports/mcp-connection-repository.port';
 
-/** `mcp_connection` is service_role only: the row is the authorization, the JWT only authenticates. */
+/** Service-role grant storage; only the private owner session authenticates data access. */
 @Injectable()
 export class SupabaseMcpConnectionRepository implements McpConnectionRepositoryPort {
   constructor(
@@ -25,11 +24,13 @@ export class SupabaseMcpConnectionRepository implements McpConnectionRepositoryP
   async findActive(
     userId: string,
     clientId: string,
+    generation: string,
   ): Promise<ActiveMcpConnection | null> {
     const { data, error } = await this.#table()
       .select('id, mode, wrapped_client_key')
       .eq('user_id', userId)
       .eq('client_id', clientId)
+      .eq('generation', generation)
       .is('revoked_at', null)
       .maybeSingle();
     // A lookup failure reads as "no grant": the guard answers 401, never 500.
@@ -49,6 +50,7 @@ export class SupabaseMcpConnectionRepository implements McpConnectionRepositoryP
       .select('id, client_name, mode, authorized_at')
       .eq('user_id', userId)
       .is('revoked_at', null)
+      .gt('grant_expires_at', new Date().toISOString())
       .order('authorized_at', { ascending: false });
     if (error) this.#fail('mcpConnection.list', userId, error);
     return (data ?? []).flatMap((row) =>
@@ -65,27 +67,12 @@ export class SupabaseMcpConnectionRepository implements McpConnectionRepositoryP
     );
   }
 
-  async save(connection: NewMcpConnection): Promise<void> {
-    const { error } = await this.#table().upsert(
-      {
-        user_id: connection.userId,
-        client_id: connection.clientId,
-        client_name: connection.clientName,
-        mode: connection.mode,
-        wrapped_client_key: connection.wrappedClientKey,
-        authorized_at: new Date().toISOString(),
-        revoked_at: null,
-      },
-      { onConflict: 'user_id,client_id' },
-    );
-    if (error) this.#fail('mcpConnection.save', connection.userId, error);
-  }
-
   async revoke(userId: string, connectionId?: string): Promise<string[]> {
     let query = this.#table()
       .update({
         revoked_at: new Date().toISOString(),
         wrapped_client_key: null,
+        encrypted_upstream: null,
       })
       .eq('user_id', userId)
       .is('revoked_at', null);

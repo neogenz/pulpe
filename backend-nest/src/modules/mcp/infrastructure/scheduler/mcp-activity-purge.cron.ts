@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { SupabaseMcpOAuthRepository } from '../persistence/supabase-mcp-oauth.repository';
 import {
   MCP_ACTIVITY_REPOSITORY,
   type McpActivityRepositoryPort,
@@ -13,6 +14,7 @@ export class McpActivityPurgeCron {
   constructor(
     @Inject(MCP_ACTIVITY_REPOSITORY)
     private readonly activity: McpActivityRepositoryPort,
+    private readonly oauth: SupabaseMcpOAuthRepository,
   ) {}
 
   @Cron('0 3 * * *')
@@ -20,5 +22,6 @@ export class McpActivityPurgeCron {
     const cutoff = new Date();
     cutoff.setUTCMonth(cutoff.getUTCMonth() - RETENTION_MONTHS);
     await this.activity.purgeOlderThan(cutoff);
+    await this.oauth.purgeExpired();
   }
 }
