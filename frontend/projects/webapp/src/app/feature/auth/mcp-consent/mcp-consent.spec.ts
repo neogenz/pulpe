@@ -90,6 +90,15 @@ describe('McpConsent', () => {
     );
   });
 
+  it('explains data sharing before any authorization', async () => {
+    await setup({ authorization_id: 'auth-1' });
+    const page = text('mcp-consent-page');
+    expect(page).toContain('Tes données sont envoyées à ChatGPT');
+    expect(page).toContain('budgets, intitulés, montants, dates et objectifs');
+    expect(page).toContain('sans effacer les données déjà envoyées');
+    expect(store.approve).not.toHaveBeenCalled();
+  });
+
   it('reports a wrong code and keeps the page, without leaving', async () => {
     await setup({ authorization_id: 'auth-1' });
     store.approve.mockRejectedValue(
