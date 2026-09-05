@@ -10,20 +10,50 @@ claims, not the historical implementation record.
 - Preserved main's feedback, budget generation, legal wording and CI redesign.
   Fixed the environment fixture and localized legal test argument order.
 - `pnpm quality`: passed, including public surface, security and lexicon checks.
-- Backend suite: 1,624 passed; the one failing environment fixture was corrected
-  and its full test file then passed (31 tests). No backend runtime code changed.
+- Backend final clean sweep: all 1,625 tests passed across 152 files after the
+  environment fixture correction. Run outside the sandbox: its local socket
+  restrictions otherwise prevent 52 HTTP tests from starting their servers.
 - Frontend MCP, connections, legal and auth regression selection: 35 passed.
   Updated consent/legal selection: 9 passed, including the new disclosure check.
 - Production Angular build: passed outside the sandbox after esbuild aborted
   inside it. Landing: 138 tests passed and production build passed.
 - Browser: new home section renders; its CTA opens the assistant guide with
   the expected disclosure and client-specific instructions.
-- Native iOS tests and real-client OAuth/tool round trips are not verified by
-  these checks. iOS changes concern connection management, not the MCP transport.
+- Native connection-management checks: all eight tests in
+  `MCPConnectionsServiceTests` and `ConnectionsStoreTests` passed on the dedicated
+  `Pulpe Tests` simulator (iOS 26.5, Xcode 26.6). The executed count is verified,
+  not inferred from `TEST SUCCEEDED`. They cover mocked service contracts and
+  store behavior, not rendered UI or ChatGPT/Claude mobile MCP support.
+- Real-client OAuth/tool round trips remain unverified by these checks.
 - All 19 existing SQL suites passed against the isolated replayed schema.
   Generated types were compared byte-for-byte; MCP formatting drift was corrected.
   The two feature migrations now carry the required contract metadata, safe after
   the verified integrated `v0.47.1` release. Their SQL behavior is unchanged.
+
+## Tool behavior and coverage
+
+The registered catalog contains seven read tools and eight write tools. Read
+paths reuse Pulpe's budget and savings calculations; write paths reuse its
+existing application ports and encrypted repositories. This code trace does not
+replace a complete tool-to-database test.
+
+Existing MCP tests cover two numerical reports, currency conversion, consent
+approval, claim helpers and access-mode dispatch using a two-tool fake catalog.
+They do not exercise the fifteen real tools through the MCP HTTP controller.
+Transport validation, missing-information responses and the whole write catalog
+therefore remain unverified end to end. New coverage awaits user approval.
+
+Four tools incorrectly declare `destructiveHint: false`: `update_movement`,
+`update_forecast`, `spread_expense` and `toggle_check`. They change existing data;
+the spread use case explicitly deletes its source after creating the slices.
+The [MCP annotation contract](https://modelcontextprotocol.io/specification/2025-11-25/schema#toolannotations)
+reserves `false` for additive updates, not merely reversible operations. These
+annotations are hints, not authorization or guaranteed confirmation controls.
+The correction and regression coverage are pending.
+
+There is no current `CI Success` result for this head: the CI workflow runs on
+pull requests targeting `main`, and this branch has no pull request. Successful
+local checks must not be described as a successful GitHub CI run.
 
 ## Confirmed release blocker: direct database authorization
 
