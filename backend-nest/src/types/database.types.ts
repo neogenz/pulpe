@@ -166,76 +166,76 @@ export type Database = {
             referencedRelation: "tag"
             referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       mcp_activity: {
         Row: {
-          connection_id: string;
-          created_at: string;
-          id: string;
-          outcome: string;
-          tool: string;
-          user_id: string;
-        };
+          connection_id: string
+          created_at: string
+          id: string
+          outcome: string
+          tool: string
+          user_id: string
+        }
         Insert: {
-          connection_id: string;
-          created_at?: string;
-          id?: string;
-          outcome: string;
-          tool: string;
-          user_id: string;
-        };
+          connection_id: string
+          created_at?: string
+          id?: string
+          outcome: string
+          tool: string
+          user_id: string
+        }
         Update: {
-          connection_id?: string;
-          created_at?: string;
-          id?: string;
-          outcome?: string;
-          tool?: string;
-          user_id?: string;
-        };
+          connection_id?: string
+          created_at?: string
+          id?: string
+          outcome?: string
+          tool?: string
+          user_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: 'mcp_activity_connection_id_fkey';
-            columns: ['connection_id'];
-            isOneToOne: false;
-            referencedRelation: 'mcp_connection';
-            referencedColumns: ['id'];
+            foreignKeyName: "mcp_activity_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_connection"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       mcp_connection: {
         Row: {
-          authorized_at: string;
-          client_id: string;
-          client_name: string;
-          id: string;
-          mode: string;
-          revoked_at: string | null;
-          user_id: string;
-          wrapped_client_key: string | null;
-        };
+          authorized_at: string
+          client_id: string
+          client_name: string
+          id: string
+          mode: string
+          revoked_at: string | null
+          user_id: string
+          wrapped_client_key: string | null
+        }
         Insert: {
-          authorized_at?: string;
-          client_id: string;
-          client_name: string;
-          id?: string;
-          mode: string;
-          revoked_at?: string | null;
-          user_id: string;
-          wrapped_client_key?: string | null;
-        };
+          authorized_at?: string
+          client_id: string
+          client_name: string
+          id?: string
+          mode: string
+          revoked_at?: string | null
+          user_id: string
+          wrapped_client_key?: string | null
+        }
         Update: {
-          authorized_at?: string;
-          client_id?: string;
-          client_name?: string;
-          id?: string;
-          mode?: string;
-          revoked_at?: string | null;
-          user_id?: string;
-          wrapped_client_key?: string | null;
-        };
-        Relationships: [];
-      };
+          authorized_at?: string
+          client_id?: string
+          client_name?: string
+          id?: string
+          mode?: string
+          revoked_at?: string | null
+          user_id?: string
+          wrapped_client_key?: string | null
+        }
+        Relationships: []
+      }
       monthly_budget: {
         Row: {
           created_at: string
@@ -1405,3 +1405,4 @@ export const Constants = {
     },
   },
 } as const
+
