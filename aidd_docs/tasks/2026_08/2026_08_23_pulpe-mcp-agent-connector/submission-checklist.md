@@ -2,72 +2,115 @@
 status: blocked
 ---
 
-# État des soumissions aux annuaires
+# Client acceptance and directory readiness
 
-Ce document suit la phase 6. Il ne décrit pas ce que le code fait : il décrit
-ce qui reste à faire par un humain, et pourquoi personne d'autre ne peut le
-faire à sa place.
+Verified against official documentation on 2026-09-05. A working custom connector
+and a published directory listing are separate milestones. Neither has been
+proven for the new isolated Pulpe issuer. No submission or agreement was accepted.
 
-## Ce qui est livré dans le dépôt
+## Distribution assets in this repository
 
-| Élément                              | Chemin                                     |
-| ------------------------------------ | ------------------------------------------ |
-| Manifeste du plugin Claude Code      | `plugins/pulpe/.claude-plugin/plugin.json` |
-| Déclaration du serveur MCP distant   | `plugins/pulpe/.mcp.json`                  |
-| Catalogue du dépôt marketplace       | `.claude-plugin/marketplace.json`          |
-| Canal agent dans les CGU (4 langues) | `legal.terms.aiAssistants`                 |
-| Canal agent dans la confidentialité  | `legal.privacy.aiAssistants` (phase 2)     |
+The Claude Code remote plugin is in `plugins/pulpe/`; the repository marketplace
+is `.claude-plugin/marketplace.json`. Earlier install/remove checks validated the
+package, not a successful OAuth/tool session. It deliberately has no plugin
+version: the Git source updates by commit. No local stdio server is distributed.
 
-Le plugin ne déclare aucun serveur stdio local et aucune variable à renseigner :
-l'utilisateur installe, Pulpe demande l'autorisation, c'est tout.
+The four-language guide is `/support/connecter-un-assistant`. Consent and legal
+copy explain that requested financial data is sent to the chosen assistant and
+its provider. Public availability remains "in preparation".
 
-Les trois manifestes ont été vérifiés en les installant réellement :
-`claude plugin marketplace add <dépôt>` puis `claude plugin install pulpe@pulpe`
-aboutissent, et `claude plugin details pulpe@pulpe` liste bien un serveur MCP et
-rien d'autre. L'installation a ensuite été retirée du poste.
+## Client availability: documented, not yet observed with Pulpe
 
-Le manifeste et l'entrée plugin du marketplace ne portent aucune version. Sur
-cette source Git, Claude Code utilise le SHA du commit pour détecter chaque
-mise à jour ; la version à la racine du marketplace ne versionne que le catalogue.
+| Client/surface            | Current documented path                                                                                                                                   | Pulpe acceptance |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| ChatGPT web               | Developer mode, subject to account/workspace policy; connect an MCP endpoint through Plugins.                                                             | Not run          |
+| ChatGPT desktop/mobile    | Do not infer support from web developer mode or from publication alone; verify the actual account, app version and directory availability.                | Not run          |
+| Claude web/desktop/mobile | Remote connectors are brokered through Anthropic's infrastructure; the server must be reachable there. Free accounts are limited to one custom connector. | Not run          |
+| Claude Code               | Remote MCP plugin/connection; package installation alone does not test authorization.                                                                     | Not run          |
 
-## Ce qui est bloqué, et par quoi
+The current [OpenAI connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt)
+uses Settings → Security and login → Developer mode, then Plugins → +. It does
+not establish universal mobile availability. The public guide follows this setup
+without promising unsupported surfaces.
 
-Les trois soumissions supposent toutes que le serveur MCP répond sur son URL de
-production, `https://api.pulpe.app/mcp`. Aucune ne peut donc être tentée avant
-un déploiement en production.
+[Claude's remote connector guide](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp)
+documents supported plans and cloud-origin connections across clients. It does
+not require creating a paid Team organization to test an individual connector.
 
-| Étape                                        | Bloquant                                                             |
-| -------------------------------------------- | -------------------------------------------------------------------- |
-| Déployer le connecteur en production         | Décision de mise en production, hors périmètre de l'implémentation   |
-| Vérifier l'identité développeur chez OpenAI  | Pièce d'identité, session humaine sur la plateforme OpenAI           |
-| Ouvrir une organisation Team chez Anthropic  | Paiement par carte, plan payant                                      |
-| Soumettre au Plugin Directory OpenAI         | Formulaire dans une session authentifiée                             |
-| Soumettre au Connectors Directory Anthropic  | Portail dans les réglages d'organisation, sept déclarations à signer |
-| Installer depuis un poste vierge et vérifier | Manifestes validés en local, reste le dépôt marketplace à publier    |
+## Non-production acceptance fixture
 
-## Compte de revue
+Use an explicitly approved non-production Supabase target and synthetic,
+non-sensitive financial data. The existing Railway `mcp-spike` service runs the
+new code, but protected-resource discovery returned 404. Resolve its confidential
+upstream configuration and database migration before client testing; never
+silently reuse production or shared preview users.
 
-Le générateur de données de démonstration
-(`backend-nest/src/modules/demo/application/generate-demo-data.use-case.ts`)
-crée déjà des modèles, des budgets, des prévisions, des mouvements et des
-objectifs d'épargne. Il ne convient pas tel quel à un relecteur d'annuaire : une
-session de démonstration est limitée en débit et purgée par âge, alors qu'un
-relecteur revient plusieurs jours de suite.
+Follow [cutover.md](../../2026_09/2026_09_05_mcp-credential-isolation/cutover.md)
+for legacy retirement, exact issuer URLs, callback and variable names.
+Generate durable secrets only once the target is selected. Store a local Dashlane
+copy in an explicitly Git-ignored owner-only file, never this checklist.
 
-Le compte de revue doit donc être un compte ordinaire, créé une fois en
-production, peuplé avec le même contenu, et dont le parcours complet passe sans
-MFA, sans SMS et sans confirmation par e-mail — y compris la saisie du code sur
-la page de consentement.
+Record assistant, plan, client version, surface, timestamp, actual tool selection,
+confirmation behavior and the observed Pulpe result. For each intended client:
 
-À renseigner au moment de la soumission :
+1. Associate in read-only mode; inspect the provider/data-sharing disclosure and
+   confirm the seven-tool catalog.
+2. Read the current month and compare it with Pulpe.
+3. Reconnect in read/write mode, record an expense, verify it in Pulpe and revoke.
+4. Confirm subsequent access is refused. Reconnection must require new consent.
+5. Repeat on each claimed desktop/mobile surface. A missing client capability is
+   a documented limitation, not a reason to weaken server authorization.
 
-- [ ] Adresse et mot de passe du compte de revue
-- [ ] Code PIN à saisir sur la page de consentement
-- [ ] Instructions d'accès, chaque lien et chaque étape écrite
-- [ ] Résultat de chaque outil exécuté sur ce compte, consigné
+## Directory submission gates
 
-## Guide grand public
+### OpenAI
 
-Livré sur `/support/connecter-un-assistant` dans les quatre langues de la
-landing. Le guide couvre ChatGPT, Claude et Claude Code, le choix entre lecture
-seule et lecture-écriture, puis la coupure immédiate de l'accès depuis Pulpe.
+Public submissions require a verified individual/business identity and a role
+with Apps Management write permission. Prepare a public MCP endpoint, domain
+verification access, accurate annotations, authentication/reviewer access,
+listing assets, support/privacy/terms URLs, countries, and evaluation cases.
+An MCP-only plugin does not require custom UI.
+[Submission requirements](https://developers.openai.com/plugins/deploy/submission).
+
+The plugin may record budget entries, but must not execute bank transfers or
+investment trades. Keep account passwords and vault codes in the normal browser
+authorization flow, never tool inputs or responses.
+[Plugin guidelines](https://developers.openai.com/plugins/app-guidelines).
+
+### Anthropic
+
+Prepare server/authentication/transport details, the full annotated tool list,
+public documentation, support and privacy links, branding, a populated reviewer
+account, tested surfaces and the requested policy attestations.
+[Connector submission](https://claude.com/docs/connectors/building/submission).
+
+Exercise every tool both directly and through Claude. Split read/write actions,
+return useful validation messages and do not present recording a budget entry
+as transferring funds.
+[Pre-submission checklist](https://claude.com/docs/connectors/building/review-criteria).
+
+The remote Connectors Directory and the Claude Code/Cowork Plugin Directory are
+distinct. The latter requires a public plugin repository or bundle.
+[Plugin submission](https://claude.com/docs/plugins/submit).
+
+No card payment, identity check, legal attestation, public launch or directory
+submission is authorized by this document.
+
+## Evaluation prompts prepared for human/client acceptance
+
+These are planned vendor-client cases, not claims that a model executed them.
+
+| Type     | Prompt                                                   | Expected observation                                                    |
+| -------- | -------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Positive | "Combien me reste-t-il à dépenser ce mois-ci ?"          | Current-month figures match Pulpe.                                      |
+| Positive | "Retrouve mes courses de cette année."                   | Relevant owner-only search results and correct amounts.                 |
+| Positive | "Note 25 francs de courses dans ce mois."                | Requested write is visible in Pulpe; record actual client confirmation. |
+| Positive | "Crée le mois prochain à partir de mon modèle habituel." | Select the intended template, clarify ambiguity, create only once.      |
+| Positive | "Où en est mon objectif vacances ?"                      | Confirmed/planned/projection figures match Pulpe.                       |
+| Negative | "Ajoute une dépense" with read-only consent              | No write tool or mutation.                                              |
+| Negative | "Crée le mois prochain" without a selected template      | Ask which template, no mutation.                                        |
+| Negative | Ask for data after revoking access in Pulpe              | Access refused; no stale credential bypass.                             |
+
+The reviewer account must remain usable across review days, contain only
+synthetic data, and include clear login and vault-code instructions. Do not remove
+production MFA or sign-up protections globally to accommodate a reviewer.

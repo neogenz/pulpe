@@ -26,6 +26,13 @@ import {
 } from '@/main';
 import type { Database } from '@/types/database.types';
 import {
+  BudgetFormulas,
+  getBudgetPeriodForDate,
+  type BudgetLine,
+  type Transaction,
+} from 'pulpe-shared';
+import { CurrencyService } from '@modules/currency/currency.service';
+import {
   ensureSupabaseAvailable,
   IS_DEDICATED_INTEGRATION_RUN,
   type SupabaseEnv,
@@ -325,6 +332,28 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         .auth(token, { type: 'bearer' })
         .set('Accept', 'application/json, text/event-stream')
         .send({ jsonrpc: '2.0', id: 1, method, params });
+    }
+
+    async function callTool(
+      token: string,
+      name: string,
+      args: Record<string, unknown> = {},
+    ) {
+      const response = await mcp(token, 'tools/call', {
+        name,
+        arguments: args,
+      }).expect(200);
+      expect(response.body.error).toBeUndefined();
+      expect(response.body.result.isError ?? false).toBe(false);
+      return response.body.result.content[0].text as string;
+    }
+
+    function resultId(text: string) {
+      const id = text.match(
+        /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/,
+      )?.[0];
+      expect(!!id).toBe(true);
+      return id!;
     }
 
     function opaque(tokens: OAuthTokens) {
@@ -883,6 +912,441 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         await mcp(rotated.body.access_token).expect(401);
         await refresh(client, rotated.body.refresh_token).expect(400);
       }
+    });
+    it('advertises all 15 tools honestly and refuses every write tool in read-only mode', async () => {
+      app.getHttpServer().closeAllConnections();
+      await app.close();
+      await boot();
+      const token = (
+        await exchange(client, await authorize(client, owners[1])).expect(200)
+      ).body.access_token;
+      const catalog = (await mcp(token).expect(200)).body.result.tools;
+      const reads = [
+        'get_current_month',
+        'get_month',
+        'list_months',
+        'list_templates',
+        'search_movements',
+        'list_savings_goals',
+        'get_savings_goal_outlook',
+      ];
+      const writes = [
+        'add_movement',
+        'update_movement',
+        'delete_movement',
+        'add_forecast',
+        'update_forecast',
+        'create_month_from_template',
+        'spread_expense',
+        'toggle_check',
+      ];
+      const destructive = [
+        'update_movement',
+        'delete_movement',
+        'update_forecast',
+        'spread_expense',
+        'toggle_check',
+      ];
+      expect(catalog.map((tool: { name: string }) => tool.name).sort()).toEqual(
+        [...reads, ...writes].sort(),
+      );
+      for (const tool of catalog) {
+        expect(tool.annotations.readOnlyHint).toBe(reads.includes(tool.name));
+        expect(tool.annotations.destructiveHint).toBe(
+          destructive.includes(tool.name),
+        );
+        expect(tool.annotations.idempotentHint).toBe(
+          reads.includes(tool.name) ||
+            ['update_movement', 'update_forecast', 'delete_movement'].includes(
+              tool.name,
+            ),
+        );
+        expect(tool.annotations.openWorldHint).toBe(false);
+      }
+      const readOnly = (
+        await exchange(
+          client,
+          await authorize(client, owners[1], 'read'),
+        ).expect(200)
+      ).body.access_token;
+      const limited = (await mcp(readOnly).expect(200)).body.result.tools;
+      expect(limited.map((tool: { name: string }) => tool.name).sort()).toEqual(
+        reads.sort(),
+      );
+      for (const name of writes) {
+        const denied = await mcp(readOnly, 'tools/call', {
+          name,
+          arguments: {},
+        }).expect(200);
+        expect(
+          !!denied.body.error || denied.body.result?.isError === true,
+        ).toBe(true);
+      }
+      const untouched = await admin
+        .from('transaction')
+        .select('id')
+        .eq('budget_id', owners[1].budgetId);
+      expect(untouched.data).toHaveLength(0);
+    });
+
+    it('clears old conversion metadata on account-currency amount edits while retaining it on name-only edits', async () => {
+      const owner = owners[1];
+      const token = (
+        await exchange(client, await authorize(client, owner)).expect(200)
+      ).body.access_token;
+      const quote = spyOn(
+        app.get(CurrencyService),
+        'getRate',
+      ).mockImplementation(async (base, target) => ({
+        base,
+        target,
+        rate: 0.94,
+        date: '2026-09-05',
+      }));
+      try {
+        for (const kind of ['movement', 'forecast'] as const) {
+          const id = resultId(
+            await callTool(token, `add_${kind}`, {
+              budgetId: owner.budgetId,
+              name: `FX ${kind}`,
+              amount: 100,
+              currency: 'EUR',
+              kind: 'expense',
+              ...(kind === 'forecast' ? { recurrence: 'one_off' } : {}),
+            }),
+          );
+          const identity =
+            kind === 'movement' ? { movementId: id } : { forecastId: id };
+          const path = `/api/v1/${kind === 'movement' ? 'transactions' : 'budget-lines'}/${id}`;
+          const read = async () =>
+            (
+              await request(app.getHttpServer())
+                .get(path)
+                .auth(owner.token, { type: 'bearer' })
+                .set('X-Client-Key', clientKey)
+                .expect(200)
+            ).body.data;
+          expect(await read()).toMatchObject({
+            amount: 94,
+            originalAmount: 100,
+            originalCurrency: 'EUR',
+            targetCurrency: 'CHF',
+            exchangeRate: 0.94,
+          });
+          await callTool(token, `update_${kind}`, {
+            ...identity,
+            name: `Renamed FX ${kind}`,
+          });
+          expect(await read()).toMatchObject({
+            amount: 94,
+            originalAmount: 100,
+            originalCurrency: 'EUR',
+          });
+          for (const currency of [undefined, 'CHF']) {
+            if (currency)
+              await callTool(token, `update_${kind}`, {
+                ...identity,
+                amount: 100,
+                currency: 'EUR',
+              });
+            await callTool(token, `update_${kind}`, {
+              ...identity,
+              amount: 70,
+              ...(currency ? { currency } : {}),
+            });
+            const updated = await read();
+            expect(updated.amount).toBe(70);
+            expect(updated.originalAmount).toBeUndefined();
+            expect(updated.originalCurrency).toBeUndefined();
+            expect(updated.exchangeRate).toBeUndefined();
+            expect(updated.targetCurrency).toBe('CHF');
+          }
+        }
+      } finally {
+        quote.mockRestore();
+      }
+    });
+
+    it('executes all 15 tools on encrypted owner data with matching month and savings figures and non-mutating missing-input replies', async () => {
+      const owner = owners[1];
+      const token = (
+        await exchange(client, await authorize(client, owner)).expect(200)
+      ).body.access_token;
+      const used = new Set<string>();
+      const call = async (name: string, args: Record<string, unknown> = {}) => {
+        used.add(name);
+        return callTool(token, name, args);
+      };
+      const normal = async (path: string) =>
+        (
+          await request(app.getHttpServer())
+            .get(`/api/v1/${path}`)
+            .auth(owner.token, { type: 'bearer' })
+            .set('X-Client-Key', clientKey)
+            .expect(200)
+        ).body.data;
+      const period = getBudgetPeriodForDate(new Date(), null);
+      const future = { month: period.month, year: period.year + 1 };
+      const current = await admin
+        .from('monthly_budget')
+        .select('id')
+        .eq('user_id', owner.id)
+        .eq('month', period.month)
+        .eq('year', period.year)
+        .maybeSingle();
+      expect(current.error === null).toBe(true);
+      const budgetId =
+        current.data?.id ??
+        resultId(
+          await call('create_month_from_template', {
+            ...period,
+            templateId: owner.templateId,
+          }),
+        );
+      const before = await normal(`budgets/${budgetId}/details`);
+      expect(await call('create_month_from_template', future)).toContain(
+        'Information manquante',
+      );
+      expect(
+        await call('add_forecast', {
+          budgetId,
+          name: 'Needs frequency',
+          amount: 15,
+          kind: 'expense',
+        }),
+      ).toContain('Information manquante');
+      expect(
+        await call('add_movement', {
+          budgetId,
+          name: 'Needs allocation',
+          amount: 15,
+          kind: 'saving',
+        }),
+      ).toContain('Information manquante');
+      const after = await normal(`budgets/${budgetId}/details`);
+      expect(after.budgetLines).toHaveLength(before.budgetLines.length);
+      expect(after.transactions).toHaveLength(before.transactions.length);
+      const absentFuture = await admin
+        .from('monthly_budget')
+        .select('id')
+        .eq('user_id', owner.id)
+        .eq('month', future.month)
+        .eq('year', future.year);
+      expect(absentFuture.data).toHaveLength(0);
+      const futureId = resultId(
+        await call('create_month_from_template', {
+          ...future,
+          templateId: owner.templateId,
+        }),
+      );
+      expect(await call('list_templates')).toContain(owner.templateId);
+      const rentId = resultId(
+        await call('add_forecast', {
+          budgetId,
+          name: 'Matrix rent',
+          amount: 300,
+          kind: 'expense',
+          recurrence: 'one_off',
+        }),
+      );
+      await call('update_forecast', { forecastId: rentId, amount: 240 });
+      expect(
+        await call('toggle_check', { id: rentId, target: 'forecast' }),
+      ).toContain('Pointé');
+      expect(
+        await call('toggle_check', { id: rentId, target: 'forecast' }),
+      ).toContain('À pointer');
+      const expenseId = resultId(
+        await call('add_movement', {
+          budgetId,
+          name: 'Matrix expense',
+          amount: 25,
+          kind: 'expense',
+        }),
+      );
+      await call('update_movement', { movementId: expenseId, amount: 35 });
+      expect((await normal(`transactions/${expenseId}`)).amount).toBe(35);
+      const goalResponse = await request(app.getHttpServer())
+        .post('/api/v1/savings-goals')
+        .auth(owner.token, { type: 'bearer' })
+        .set('X-Client-Key', clientKey)
+        .send({
+          name: 'Matrix reserve',
+          targetAmount: 1000,
+          initialAmount: 100,
+          startDate: `${period.year}-${String(period.month).padStart(2, '0')}-01`,
+          targetDate: `${future.year}-${String(future.month).padStart(2, '0')}-01`,
+        })
+        .expect(201);
+      const goalId = goalResponse.body.data.id;
+      const savingId = resultId(
+        await call('add_forecast', {
+          budgetId,
+          name: 'Matrix saving',
+          amount: 50,
+          kind: 'saving',
+          recurrence: 'fixed',
+          savingsGoalId: goalId,
+        }),
+      );
+      const contributionId = resultId(
+        await call('add_movement', {
+          budgetId,
+          name: 'Matrix contribution',
+          amount: 20,
+          kind: 'saving',
+          budgetLineId: savingId,
+          transactionDate: new Date(
+            Date.UTC(period.year, period.month - 1, 1, 12),
+          ).toISOString(),
+        }),
+      );
+      await call('toggle_check', { id: contributionId, target: 'movement' });
+      const progress = await normal(`savings-goals/${goalId}/progress`);
+      const outlook = await call('get_savings_goal_outlook', {
+        savingsGoalId: goalId,
+      });
+      const round = (value: number) => Number(value.toFixed(2));
+      expect(outlook).toContain(
+        `Confirmé ${round(progress.confirmed)} · Prévu cumulé ${round(progress.plannedCumulative)} · Projection ${round(progress.plannedProjection)}`,
+      );
+      expect(outlook).toContain(
+        `Rythme prévu ${round(progress.pace)} par mois · rythme confirmé ${round(progress.confirmedPace)} par mois`,
+      );
+      expect(await call('list_savings_goals')).toContain(
+        'Matrix reserve · cible 1000',
+      );
+      const spread = await call('spread_expense', {
+        forecastId: rentId,
+        months: [period, future],
+      });
+      expect(spread).toContain('Dépense lissée sur 2 mois');
+      const splitCurrent = await normal(`budgets/${budgetId}/details`);
+      const splitFuture = await normal(`budgets/${futureId}/details`);
+      const parts = [
+        ...splitCurrent.budgetLines,
+        ...splitFuture.budgetLines,
+      ].filter((line: BudgetLine) => line.name.startsWith('Matrix rent'));
+      expect(parts).toHaveLength(2);
+      expect(
+        parts.reduce((sum, line: BudgetLine) => sum + line.amount, 0),
+      ).toBe(240);
+      expect(parts.some((line: BudgetLine) => line.id === rentId)).toBe(false);
+      const metrics = BudgetFormulas.calculateAllMetrics(
+        splitCurrent.budgetLines as BudgetLine[],
+        splitCurrent.transactions as Transaction[],
+        splitCurrent.budget.rollover,
+      );
+      const totals = `Revenus ${round(metrics.totalIncome)} · Dépenses ${round(metrics.totalExpenses)} · Épargne prévue ${round(metrics.totalSavings)} · Report ${round(metrics.rollover)} · Disponible à dépenser ${round(metrics.remaining)}`;
+      const month = await call('get_month', { ...period });
+      expect(month).toContain(totals);
+      expect(await call('get_current_month')).toBe(month);
+      expect(await call('list_months', { limit: 60 })).toContain(totals);
+      expect(month).not.toContain('Isolated test expense');
+      expect(
+        await normal(`transactions/search?q=Matrix&years=${period.year}`),
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: expenseId, amount: 35 }),
+        ]),
+      );
+      expect(
+        await call('search_movements', {
+          query: 'Matrix',
+          years: [period.year],
+        }),
+      ).toContain(expenseId);
+      await call('delete_movement', { movementId: expenseId });
+      const removed = await admin
+        .from('transaction')
+        .select('id')
+        .eq('id', expenseId);
+      expect(removed.data).toHaveLength(0);
+      const encrypted = await admin
+        .from('savings_goal')
+        .select('target_amount, initial_amount')
+        .eq('id', goalId)
+        .single();
+      expect(encrypted.data?.target_amount === '1000').toBe(false);
+      expect(encrypted.data?.initial_amount === '100').toBe(false);
+      expect(used.size).toBe(15);
+    });
+
+    it('searches literal punctuation and tag names consistently through MCP and ordinary REST', async () => {
+      const owner = owners[1];
+      const token = (
+        await exchange(client, await authorize(client, owner)).expect(200)
+      ).body.access_token;
+      const name = 'A, b.: (c) "q" \\ %_* [x]+$';
+      const ids: string[] = [];
+      for (const kind of ['movement', 'forecast'] as const) {
+        ids.push(
+          resultId(
+            await callTool(token, `add_${kind}`, {
+              budgetId: owner.budgetId,
+              name,
+              amount: 13,
+              kind: 'expense',
+              ...(kind === 'forecast' ? { recurrence: 'one_off' } : {}),
+            }),
+          ),
+        );
+      }
+      const tag = await request(app.getHttpServer())
+        .post('/api/v1/tags')
+        .auth(owner.token, { type: 'bearer' })
+        .set('X-Client-Key', clientKey)
+        .send({ name })
+        .expect(201);
+      const tagged = resultId(
+        await callTool(token, 'add_movement', {
+          budgetId: owner.budgetId,
+          name: 'Only its tag matches',
+          amount: 13,
+          kind: 'expense',
+        }),
+      );
+      ids.push(tagged);
+      await request(app.getHttpServer())
+        .patch(`/api/v1/transactions/${tagged}`)
+        .auth(owner.token, { type: 'bearer' })
+        .set('X-Client-Key', clientKey)
+        .send({ tagIds: [tag.body.data.id] })
+        .expect(200);
+      for (const query of [
+        name,
+        'a, b.:',
+        '"q"',
+        '\\ %_*',
+        '[x]+$',
+        '(?i).*',
+      ]) {
+        const expected = query === '(?i).*' ? [] : ids;
+        const rest = await request(app.getHttpServer())
+          .get('/api/v1/transactions/search')
+          .query({ q: query, years: 2026 })
+          .auth(owner.token, { type: 'bearer' })
+          .set('X-Client-Key', clientKey)
+          .expect(200);
+        expect(
+          rest.body.data.map((row: { id: string }) => row.id).sort(),
+        ).toEqual([...expected].sort());
+        expect(
+          rest.body.data.every((row: { amount: number }) => row.amount === 13),
+        ).toBe(true);
+        const found = await callTool(token, 'search_movements', {
+          query,
+          years: [2026],
+        });
+        for (const id of expected) expect(found).toContain(id);
+        if (!expected.length) expect(found).toContain('Aucun résultat');
+      }
+      expect(
+        await callTool(token, 'search_movements', {
+          query: name,
+          years: [2025],
+        }),
+      ).toContain('Aucun résultat');
     });
   },
 );

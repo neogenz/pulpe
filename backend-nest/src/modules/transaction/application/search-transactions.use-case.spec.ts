@@ -53,69 +53,35 @@ describe('SearchTransactionsUseCase', () => {
     useCase = module.get(SearchTransactionsUseCase);
   });
 
-  describe('PostgREST-safe search pattern (HI-29)', () => {
+  describe('literal standalone PostgREST search pattern', () => {
     const executeQuery = (query: string) =>
       useCase.execute({ q: query }, mockUser);
     const transactionPattern = () =>
       mockRepo.fetchTransactionsByPattern.mock.calls[0][0].searchPattern;
 
-    it('should wrap pattern in double quotes so commas do not break .or() parser', async () => {
-      await executeQuery('hello, world');
-
-      const pattern = transactionPattern();
-      expect(pattern.startsWith('"')).toBe(true);
-      expect(pattern.endsWith('"')).toBe(true);
-      expect(pattern).toContain('hello, world');
-    });
-
-    it('should preserve a plain alphanumeric query inside the quoted wrapper', async () => {
+    it('should use PostgreSQL literal mode without the obsolete .or() quotes', async () => {
       await executeQuery('Restaurant');
-
-      const pattern = transactionPattern();
-      expect(pattern).toBe('"*Restaurant*"');
+      expect(transactionPattern()).toBe('***=Restaurant');
     });
 
-    it('should not crash on queries containing PostgREST reserved chars: , . : ( )', async () => {
-      const queries = ['a, b', 'a.b.c', 'a:b', 'a(b)c', 'a, b.c: d (e)'];
+    it('keeps punctuation, quotes, backslashes, wildcards and regex directives literal', async () => {
+      const queries = [
+        'a, b.c: d (e)',
+        'a\\b',
+        'say "hi"',
+        '100%_off*deal',
+        '(?i).*|[x]+$',
+        '***=literal',
+      ];
 
       for (const q of queries) {
         await expect(executeQuery(q)).resolves.toEqual([]);
       }
-
-      expect(mockRepo.fetchTransactionsByPattern).toHaveBeenCalledTimes(
-        queries.length,
-      );
-      for (const call of mockRepo.fetchTransactionsByPattern.mock.calls) {
-        const pattern = call[0].searchPattern;
-        expect(pattern.startsWith('"')).toBe(true);
-        expect(pattern.endsWith('"')).toBe(true);
-      }
-    });
-
-    it('should escape backslash by doubling it inside the quoted value', async () => {
-      await executeQuery('a\\b');
-
-      const pattern = transactionPattern();
-      expect(pattern).toBe('"*a\\\\b*"');
-    });
-
-    it('should escape an embedded double quote so the wrapper stays balanced', async () => {
-      await executeQuery('say "hi"');
-
-      const pattern = transactionPattern();
-      // Internal " must become \" so the outer quote pair is unambiguous.
-      expect(pattern).toBe('"*say \\"hi\\"*"');
-    });
-
-    it('should escape user-typed ILIKE wildcards (* and _) so they are treated literally', async () => {
-      await executeQuery('100%_off*deal');
-
-      const pattern = transactionPattern();
-      // Outer * stay as ILIKE wildcards; user-typed * and _ are escaped with \.
-      expect(pattern.startsWith('"*')).toBe(true);
-      expect(pattern.endsWith('*"')).toBe(true);
-      expect(pattern).toContain('\\*deal');
-      expect(pattern).toContain('\\_off');
+      expect(
+        mockRepo.fetchTransactionsByPattern.mock.calls.map(
+          ([criteria]) => criteria.searchPattern,
+        ),
+      ).toEqual(queries.map((q) => `***=${q}`));
     });
 
     it('should pass identical pattern to both transaction and budget-line repo calls', async () => {
@@ -147,7 +113,7 @@ describe('SearchTransactionsUseCase', () => {
       );
       expect(mockRepo.fetchTransactionsByPattern).toHaveBeenCalledWith({
         userId: mockUser.id,
-        searchPattern: '"*Courses*"',
+        searchPattern: '***=Courses',
         budgetIds: ['budget-1', 'budget-2'],
         tagIds: ['tag-1'],
       });

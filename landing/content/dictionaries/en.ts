@@ -518,14 +518,14 @@ const en: Dictionary = {
     connectHeading: "Connect Pulpe, once.",
     addressLabel: "The address to paste, the same everywhere",
     availabilityNote:
-      "Claude supports remote connections on web, desktop and mobile. Custom MCP connections in ChatGPT are currently offered on the web; availability and write actions depend on your plan. Pulpe is not yet published in their directories.",
+      "Claude supports remote connections on web, desktop and mobile. For ChatGPT, start setup on the web if developer mode is available for your account. Capabilities vary by assistant, account and app. Pulpe is not yet published in their directories.",
     clients: [
       {
         name: "ChatGPT",
         steps: [
-          "On ChatGPT web, open Settings > Apps and enable developer mode if available for your account.",
-          "Create an app, paste the address above and choose OAuth.",
-          "Authorise access in Pulpe, then select the app in your conversation.",
+          "On ChatGPT web, open Settings > Security and login, then enable developer mode if available.",
+          "In Plugins, use the + button and paste the address above.",
+          "Authorise access in Pulpe, then select the connector in your conversation.",
         ],
       },
       {

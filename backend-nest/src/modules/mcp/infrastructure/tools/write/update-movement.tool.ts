@@ -39,7 +39,7 @@ export class UpdateMovementTool implements McpTool<Args> {
   readonly mode = 'read_write' as const;
   readonly annotations = {
     readOnlyHint: false,
-    destructiveHint: false,
+    destructiveHint: true,
     idempotentHint: true,
     openWorldHint: false as const,
   };

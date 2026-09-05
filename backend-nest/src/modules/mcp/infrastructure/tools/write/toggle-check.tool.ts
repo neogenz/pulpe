@@ -28,7 +28,7 @@ export class ToggleCheckTool implements McpTool<Args> {
   readonly mode = 'read_write' as const;
   readonly annotations = {
     readOnlyHint: false,
-    destructiveHint: false,
+    destructiveHint: true,
     // A toggle: calling it twice returns to the starting state, never idempotent.
     idempotentHint: false,
     openWorldHint: false as const,
