@@ -5,6 +5,14 @@ This supersedes earlier readiness claims, not the historical implementation reco
 
 ## Verified implementation
 
+Latest rebase (2026-09-06): `origin/main` is `d134937e4`, including 17 new commits
+since the previous base. All 45 feature commits replayed without conflicts;
+`git range-diff` reports every patch unchanged. The backend, shared package and
+CI files are byte-identical to the pre-rebase candidate, so the recorded server
+proofs retain that scope. `codex/mcp-before-rebase-20260906` preserves the old tip.
+The presentation commit is now `93f385521` and its evidence commit `b3127f5b0`;
+the original SHAs below identify what actually ran on the test deployment.
+
 The branch was rebased onto `origin/main` at `bb7e0e767` and remains attached to
 its named branch. `codex/mcp-before-rebase-20260905` preserves the previous tip.
 Credential isolation is committed as `fd28879e3`; its normal pre-commit hook passed.
