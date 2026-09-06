@@ -104,6 +104,10 @@ The executable `legacy-retirement-probe.ts` exercises this sequence only on a de
 
 1. Apply `20260905170811_isolate_mcp_oauth_credentials.sql` through the protected release workflow in section 3, together with its required preceding migrations; never apply it manually to production. Existing connection keys are cleared and those connections are marked revoked: their owners must associate again. The migration preserves financial data and activity history. It does not alter Supabase Auth tables or first-party sessions.
 2. Enable Supabase's OAuth server for the private upstream flow, with its authorization path `/mcp-consent` and production Auth Site URL `https://app.pulpe.app`. Register one **backend-only confidential** OAuth client using `client_secret_post`. Its only callback is `https://api.pulpe.app/mcp/oauth/upstream-callback`. Keep Supabase dynamic registration disabled. Verify the remote settings; the local `config.toml` does not prove they were applied. This client is not the client registered by ChatGPT or Claude; never enter its secret in a vendor connector form.
+   Separately verify that the first-party Google/Apple sign-in redirect allowlist
+   accepts `https://app.pulpe.app/mcp-consent?authorization_id=...`, so a signed-out
+   owner returns to the pending consent. Preserve the existing app-origin scope;
+   never add a cross-origin wildcard. [Supabase redirect rules](https://supabase.com/docs/guides/auth/redirect-urls).
 3. Configure these backend variables together:
 
    | Variable                     | Value                                                                            |

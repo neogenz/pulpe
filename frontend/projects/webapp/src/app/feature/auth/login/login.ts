@@ -72,6 +72,7 @@ import { LoadingButton } from '@ui/loading-button';
         <pulpe-oauth-provider-button
           [provider]="'apple'"
           testId="apple-login-button"
+          [returnUrl]="destination()"
           [disabled]="isBusy()"
           (authError)="errorMessage.set($event)"
           (loadingChange)="isOAuthLoading.set($event)"
@@ -79,6 +80,7 @@ import { LoadingButton } from '@ui/loading-button';
         <pulpe-oauth-provider-button
           [provider]="'google'"
           testId="google-login-button"
+          [returnUrl]="destination()"
           [disabled]="isBusy()"
           (authError)="errorMessage.set($event)"
           (loadingChange)="isOAuthLoading.set($event)"
@@ -267,7 +269,7 @@ export default class Login {
    * otherwise the dashboard. Only an in-app path is honoured — a value that
    * does not start with a single slash would be an open redirect.
    */
-  #destination(): string {
+  protected destination(): string {
     const returnUrl = this.#route.snapshot.queryParamMap.get('returnUrl');
     return returnUrl?.startsWith('/') && !returnUrl.startsWith('//')
       ? returnUrl
@@ -293,7 +295,7 @@ export default class Login {
       );
 
       if (result.success) {
-        this.#router.navigateByUrl(this.#destination());
+        this.#router.navigateByUrl(this.destination());
       } else {
         this.errorMessage.set(
           result.error || this.#transloco.translate('auth.login.errorDefault'),

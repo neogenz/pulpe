@@ -136,6 +136,51 @@ describe('AuthOAuthService', () => {
   });
 
   describe('signInWithOAuth', () => {
+    it.each(['google', 'apple'] as const)(
+      'should preserve the consent URL through %s sign-in',
+      async (provider) => {
+        mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+          data: { provider, url: 'https://provider.example/oauth' },
+          error: null,
+        });
+
+        await service.signInWithOAuth(
+          provider,
+          '/mcp-consent?authorization_id=abc',
+        );
+
+        expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
+          provider,
+          options: {
+            redirectTo: `${window.location.origin}/mcp-consent?authorization_id=abc`,
+          },
+        });
+      },
+    );
+
+    it.each([
+      'https://evil.example/path',
+      '//evil.example/path',
+      '/\\evil.example/path',
+      '/\n/evil.example/path',
+      '/\\[invalid',
+      'javascript:alert(1)',
+    ])('should reject an unsafe OAuth return URL: %s', async (returnUrl) => {
+      mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+        data: { provider: 'google', url: 'https://provider.example/oauth' },
+        error: null,
+      });
+
+      await service.signInWithOAuth('google', returnUrl);
+
+      expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/${ROUTES.DASHBOARD}`,
+        },
+      });
+    });
+
     it('should call Supabase OAuth with correct provider and redirect URL', async () => {
       vi.mocked(mockSupabaseClient.auth.signInWithOAuth).mockResolvedValue({
         data: { provider: 'google', url: 'https://google.com/oauth' },
