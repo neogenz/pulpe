@@ -104,9 +104,9 @@ The public issuer is `https://backend-mcp-spike.up.railway.app/`, with resource
 The dedicated Free Supabase project `jsjfammxsqyglxlqzpsl` has all 102 migrations,
 closed signup and a confidential upstream client with native dynamic registration
 disabled. The separate test app is https://pulpe-mcp-test.vercel.app. One synthetic
-account owns one September budget and four encrypted forecasts. Durable server
-secrets and synthetic login/recovery credentials are stored only in the ignored
-owner-only `backend-nest/.mcp-test/.env.local`, for the user's Dashlane backup.
+account owns one September budget and four encrypted forecasts. The local backup
+of durable server secrets and synthetic login/recovery credentials is stored in
+the ignored owner-only `backend-nest/.mcp-test/.env.local`, for Dashlane.
 
 The remote HTTP probe passed actual authorization/code exchange, a 15-tool
 catalog, `get_month`, `add_movement`, ordinary REST amount concordance (4.50),
@@ -116,6 +116,22 @@ subsequent MCP/refresh requests failed with 401/400. The probe expense was remov
 one user, one budget, four forecasts and zero movements remain for client testing.
 All 15 tools were executed in the existing local integration suite, not in this
 smaller remote probe or a vendor client. Temporary runner: `/tmp/pulpe-mcp-remote-proof.ts`.
+
+The browser check exposed one missing fixture-preparation step: the UI-routing
+metadata `vaultCodeConfigured` had not been set after API vault initialization.
+The runner's `finish-fixture` mode first verified server vault status, the existing
+PIN and recovery key, then completed the ordinary owner metadata update. No key
+was regenerated. A fresh browser login now asks for the existing PIN and opens
+the dashboard, which shows 2,400 CHF available, 5,000 CHF income, all four expected
+forecasts and no movements, matching the HTTP results.
+
+A consent request for the existing local verification client rendered the actual
+deployed page: client identity, read/read-write choices, transmitted data fields,
+provider processing, protected-key persistence and revocation limits were visible.
+Read-only selection worked. Cancel returned `error=access_denied` with the original
+state, and Settings → Connections showed no assistant connected. No provider
+grant was created. Railway also confirmed the documentation-only `8f9d4686c`
+deployment `0da76834-148b-4595-a06c-6a4c974b0950` reached `SUCCESS`.
 
 ChatGPT Pro and Claude Pro web sessions were inspected. ChatGPT's existing
 `Pulpe spike` advertises two old tools; Reconnect uses a deleted legacy Vercel
