@@ -25,11 +25,12 @@ export function renderMonth(details: BudgetWithDetails): string {
 
   const lines = budgetLines.map(
     (l) =>
-      `- [${l.id}] ${KIND_LABEL[l.kind]} · ${l.name} · ${round(l.amount)} · ${l.recurrence === 'fixed' ? 'Récurrent' : 'Prévu'}${l.checkedAt ? ' · Pointé' : ''}`,
+      `- [${l.id}] ${KIND_LABEL[l.kind]} · ${l.name} · ${round(l.amount)} · ${l.recurrence === 'fixed' ? 'Récurrent' : 'Prévu'} · ${l.checkedAt ? 'Pointé' : 'À pointer'}`,
   );
+  // Keep the timezone: a UTC date alone can be the previous local day.
   const moves = transactions.map(
     (t) =>
-      `- [${t.id}] ${KIND_LABEL[t.kind]} · ${t.name} · ${round(t.amount)} · ${t.transactionDate.slice(0, 10)}${t.checkedAt ? ' · Pointé' : ''}`,
+      `- [${t.id}] ${KIND_LABEL[t.kind]} · ${t.name} · ${round(t.amount)} · ${t.transactionDate} · ${t.checkedAt ? 'Pointé' : 'À pointer'}`,
   );
 
   return [

@@ -13,7 +13,7 @@ import type {
 import type { SavingsGoalReadPort } from '@modules/savings-goal/domain/ports/savings-goal-read.port';
 import { GetMonthTool } from './get-month.tool';
 import { GetSavingsGoalOutlookTool } from './get-savings-goal-outlook.tool';
-import { round } from './month-report';
+import { renderMonth, round } from './month-report';
 
 /**
  * The whole point of the connector is that an agent quotes the same figures the
@@ -121,6 +121,24 @@ const MONTH: BudgetWithDetails = {
 };
 
 describe('read tools · number concordance', () => {
+  it('preserves movement timestamps so UTC midnight crossings retain their timezone', () => {
+    const transactionDate = '2026-09-05T22:00:00+00:00';
+    const text = renderMonth({
+      ...MONTH,
+      transactions: [movement({ transactionDate })],
+    });
+
+    expect(text).toContain(` · ${transactionDate}`);
+    expect(
+      new Intl.DateTimeFormat('fr-CH', {
+        timeZone: 'Europe/Zurich',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(new Date(transactionDate)),
+    ).toBe('06.09.2026');
+  });
+
   it('prints the month totals the shared budget formulas produce', async () => {
     const budgets = {
       readMonth: async () => MONTH,
@@ -142,6 +160,12 @@ describe('read tools · number concordance', () => {
     // The spread slice is one prévision among the others, never a total of its own.
     expect(text).toContain(
       '[l-3] Dépense · Assurance (1/3) · 800 · Prévu · Pointé',
+    );
+    expect(text).toContain(
+      '[l-4] Dépense · Courses · 640.55 · Prévu · À pointer',
+    );
+    expect(text).toContain(
+      '[t-3] Dépense · Restaurant · 61.9 · 2026-03-12 · À pointer',
     );
   });
 
