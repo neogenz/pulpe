@@ -4,13 +4,13 @@ status: blocked
 
 # Instruction: Verify useful client flows and prepare activation
 
-## Execution checkpoint — 2026-09-05
+## Execution checkpoint — 2026-09-06
 
 Server verification passed: all 15 tools execute through real HTTP and encrypted owner data, within 18 MCP scenarios and 121 passing backend integration/e2e tests. Account-currency edits, destructive annotations and literal search were corrected. Existing CI already runs this test file. Client requirements, evaluation prompts and current evidence are recorded in the linked readiness documents.
 
-The dedicated `pulpe-mcp-test` Supabase project in `Pulpe Tests` is healthy on Free with 102 migrations, closed public signup and a configured confidential OAuth upstream. The separate Vercel test site is READY and publicly accessible with verified test-only configuration, disabled analytics and a no-index header. The [plan checkpoint](./plan.md#execution-checkpoint--2026-09-05) records exact resources and local secret storage.
+The dedicated `pulpe-mcp-test` Supabase project in `Pulpe Tests` is healthy on Free with 102 migrations, closed public signup and a configured confidential OAuth upstream. The separate Vercel test site is READY and publicly accessible with verified test-only configuration, disabled analytics and a no-index header. After explicit approval, Railway configuration was applied and verified; deployment `a891edbf-e357-4f6d-bad5-e2cd1239f28a` reached `SUCCESS`. The [plan checkpoint](./plan.md#execution-checkpoint--2026-09-06) records exact resources and local secret storage.
 
-Blocked: automatic security review requires explicit approval to send the newly generated service-role, encryption, wrapping and OAuth secrets to the existing Railway `mcp-spike` backend. That mutation was rejected, so Railway configuration is unchanged. No synthetic account or real ChatGPT/Claude association has been created. No claim of real-client or universal mobile support is made.
+The synthetic account and encrypted budget are ready. Remote HTTP authorization, 15-tool discovery, read/write concordance, direct Supabase denial, refresh and revocation passed; the probe movement was removed. Real ChatGPT/Claude acceptance remains pending: both Pro web sessions are accessible, but their legacy test connectors need replacement and new consent to the dedicated fixture. Specific permission for that provider access has been requested. No claim of real-client or universal mobile support is made.
 
 ## Architecture projection
 

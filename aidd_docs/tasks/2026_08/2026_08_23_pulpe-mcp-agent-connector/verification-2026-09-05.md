@@ -1,6 +1,6 @@
 # MCP readiness verification — 2026-09-05
 
-Status: **server verified locally; public activation and real assistant acceptance blocked**.
+Status, updated 2026-09-06: **server verified locally and on isolated remote infrastructure; real assistant acceptance and public activation pending**.
 This supersedes earlier readiness claims, not the historical implementation record.
 
 ## Verified implementation
@@ -93,19 +93,42 @@ stop old issuance, retire exactly the legacy clients, verify both refresh routes
 fail, wait out the previous access-token lifetime, then verify old bearers fail
 while ordinary Pulpe sessions still work.
 
-## Remote environment and client readiness
+## Remote environment and client readiness — updated 2026-09-06
 
-Railway automatically deployed `fd28879e3` to `pulpe-backend / mcp-spike / backend`
-(deployment `4ddae5ed-92ff-4548-9401-eb4682219091`, observed `SUCCESS`).
-The public protected-resource metadata returned **404** afterwards. The remote
-environment is not a usable acceptance fixture yet. Variable-value reads were
-unavailable through the connector, so missing values are not asserted as fact.
+The earlier discovery 404 is resolved. The explicitly approved Railway test
+configuration was applied and all 16 intended variables matched readback.
+Deployment `a891edbf-e357-4f6d-bad5-e2cd1239f28a` of `191f35a05` reached `SUCCESS`.
+The public issuer is `https://backend-mcp-spike.up.railway.app/`, with resource
+`https://backend-mcp-spike.up.railway.app/mcp`; both discovery documents return 200.
 
-No production configuration, shared database migration or directory submission
-was performed. Durable secrets have not been generated; disposable credentials
-stayed in test-process memory. Selecting and authorizing the non-production
-Supabase target, migrations and confidential upstream configuration is the next
-human decision before real-client acceptance.
+The dedicated Free Supabase project `jsjfammxsqyglxlqzpsl` has all 102 migrations,
+closed signup and a confidential upstream client with native dynamic registration
+disabled. The separate test app is https://pulpe-mcp-test.vercel.app. One synthetic
+account owns one September budget and four encrypted forecasts. Durable server
+secrets and synthetic login/recovery credentials are stored only in the ignored
+owner-only `backend-nest/.mcp-test/.env.local`, for the user's Dashlane backup.
+
+The remote HTTP probe passed actual authorization/code exchange, a 15-tool
+catalog, `get_month`, `add_movement`, ordinary REST amount concordance (4.50),
+refresh and revocation. Supabase Auth refused the opaque bearer with 403; the
+Data API refused it with 401. Revocation cleared private grant material and
+subsequent MCP/refresh requests failed with 401/400. The probe expense was removed;
+one user, one budget, four forecasts and zero movements remain for client testing.
+All 15 tools were executed in the existing local integration suite, not in this
+smaller remote probe or a vendor client. Temporary runner: `/tmp/pulpe-mcp-remote-proof.ts`.
+
+ChatGPT Pro and Claude Pro web sessions were inspected. ChatGPT's existing
+`Pulpe spike` advertises two old tools; Reconnect uses a deleted legacy Vercel
+deployment and returns `DEPLOYMENT_NOT_FOUND`. Refresh did not visibly update
+the catalog. Claude's `Pulpe (spike)` reports no tools and rejects another
+connector with the same URL. Neither was deleted or authorized against the new
+account. Specific permission to replace the legacy associations and grant access
+to only the synthetic fixture is pending. No vendor read/write/revoke proof or
+desktop/mobile claim follows from these observations.
+
+No production configuration, shared preview database migration, paid upgrade or
+directory submission was performed. Exact resource and fixture evidence is in
+the [plan checkpoint](../../2026_09/2026_09_05_mcp-credential-isolation/plan.md#execution-checkpoint--2026-09-06).
 
 Current vendor requirements and an acceptance script are in
 [submission-checklist.md](./submission-checklist.md). The landing retains its

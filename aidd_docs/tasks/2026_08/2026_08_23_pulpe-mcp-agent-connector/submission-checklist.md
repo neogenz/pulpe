@@ -19,13 +19,16 @@ The four-language guide is `/support/connecter-un-assistant`. Consent and legal
 copy explain that requested financial data is sent to the chosen assistant and
 its provider. Public availability remains "in preparation".
 
-## Client availability: documented, not yet observed with Pulpe
+## Client availability and observed acceptance
+
+Web settings were inspected on 2026-09-06. Neither legacy test association has
+completed acceptance against the isolated issuer.
 
 | Client/surface            | Current documented path                                                                                                                                   | Pulpe acceptance |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| ChatGPT web               | Developer mode, subject to account/workspace policy; connect an MCP endpoint through Plugins.                                                             | Not run          |
+| ChatGPT web               | Developer mode, subject to account/workspace policy; connect an MCP endpoint through Plugins.                                                             | Pro settings accessible; legacy OAuth redirects to a deleted deployment. New association pending. |
 | ChatGPT desktop/mobile    | Do not infer support from web developer mode or from publication alone; verify the actual account, app version and directory availability.                | Not run          |
-| Claude web/desktop/mobile | Remote connectors are brokered through Anthropic's infrastructure; the server must be reachable there. Free accounts are limited to one custom connector. | Not run          |
+| Claude web/desktop/mobile | Remote connectors are brokered through Anthropic's infrastructure; the server must be reachable there. Free accounts are limited to one custom connector. | Pro web settings accessible; legacy connector has no tools. New association and desktop/mobile testing pending. |
 | Claude Code               | Remote MCP plugin/connection; package installation alone does not test authorization.                                                                     | Not run          |
 
 The current [OpenAI connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt)
@@ -39,16 +42,26 @@ not require creating a paid Team organization to test an individual connector.
 
 ## Non-production acceptance fixture
 
-Use an explicitly approved non-production Supabase target and synthetic,
-non-sensitive financial data. The existing Railway `mcp-spike` service runs the
-new code, but protected-resource discovery returned 404. Resolve its confidential
-upstream configuration and database migration before client testing; never
-silently reuse production or shared preview users.
+The explicitly approved fixture is ready: Free Supabase project
+`jsjfammxsqyglxlqzpsl`, test app https://pulpe-mcp-test.vercel.app and MCP endpoint
+`https://backend-mcp-spike.up.railway.app/mcp`. Railway's configured deployment
+reached `SUCCESS`; discovery and a remote HTTP read/write/refresh/revoke check
+passed. Account `mcp-review-20260906@pulpe.test` contains only synthetic data:
+one September 2026 budget, four forecasts, 2,400 available to spend and no movements.
+See the [remote evidence](./verification-2026-09-05.md#remote-environment-and-client-readiness--updated-2026-09-06).
+
+The existing ChatGPT/Claude test connectors must be associated with this account,
+not an old shared preview user. Specific permission for replacing their legacy
+associations and sending the fictitious account's data to both providers is
+pending. ChatGPT's Refresh did not visibly replace its two-tool legacy catalog;
+Reconnect reached a deleted Vercel deployment. Claude rejects a duplicate URL
+and its existing connector has no tools. No replacement or new grant was made.
 
 Follow [cutover.md](../../2026_09/2026_09_05_mcp-credential-isolation/cutover.md)
 for legacy retirement, exact issuer URLs, callback and variable names.
-Generate durable secrets only once the target is selected. Store a local Dashlane
-copy in an explicitly Git-ignored owner-only file, never this checklist.
+Durable secrets and synthetic login/vault/recovery credentials already exist in
+the Git-ignored owner-only `backend-nest/.mcp-test/.env.local` for Dashlane.
+Do not regenerate them or put their values in this checklist or assistant prompts.
 
 Record assistant, plan, client version, surface, timestamp, actual tool selection,
 confirmation behavior and the observed Pulpe result. For each intended client:
