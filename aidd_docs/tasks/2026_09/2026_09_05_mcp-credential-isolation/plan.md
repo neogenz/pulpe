@@ -15,9 +15,13 @@ presentation fixes (`6a4768443`) are deployed on the test target and passed a
 fresh Claude regression/cleanup/revocation sequence and 19 isolated HTTP checks.
 Mobile acceptance is waived by the owner, not marked passed. The owner now
 authorizes scoped test retirement, PR/merge and protected production setup;
-dependency remediation and release gates remain open. Untested surfaces retain
+dependency remediation `158574cf3` passed local and deployed HTTP checks, and
+the dedicated test resources and vendor connectors have been retired.
+Protected release gates remain open. Untested surfaces retain
 explicit limitations. See the [current client matrix](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md)
 and [vendor evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#vendor-readwrite-and-revocation-acceptance--2026-09-06).
+The [retirement record](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#test-resource-retirement--2026-09-06)
+supersedes the historical live-fixture and local-secret statements below.
 
 | Field      | Value                                                                                                                                                                                             |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

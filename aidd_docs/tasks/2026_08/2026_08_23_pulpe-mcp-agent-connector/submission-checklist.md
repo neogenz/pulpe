@@ -9,6 +9,7 @@ and a published directory listing are separate milestones. Both vendors passed
 web read/write and revocation checks on the isolated test issuer. Additional
 surfaces remain unverified. The deployed timestamp/pointing regression passed
 in Claude web; mobile acceptance is waived by the owner, not marked passed.
+The disposable test environment and both test connectors are now retired.
 No submission or agreement was accepted.
 
 ## Distribution assets in this repository
@@ -48,14 +49,15 @@ not require creating a paid Team organization to test an individual connector.
 
 ## Non-production acceptance fixture
 
-The explicitly approved fixture is ready: Free Supabase project
+The explicitly approved fixture is now retired: Free Supabase project
 `jsjfammxsqyglxlqzpsl`, test app https://pulpe-mcp-test.vercel.app and MCP endpoint
-`https://backend-mcp-spike.up.railway.app/mcp`. Railway's configured deployment
-reached `SUCCESS`; discovery and a remote HTTP read/write/refresh/revoke check
-passed. Account `mcp-review-20260906@pulpe.test` contains only synthetic data:
+`https://backend-mcp-spike.up.railway.app/mcp`. Before deletion, Railway's final
+security candidate `158574cf3` reached `SUCCESS`; a fresh remote HTTP
+read/write/refresh/revoke and credential-boundary check passed.
+Account `mcp-review-20260906@pulpe.test` contained only synthetic data:
 one September 2026 budget, four forecasts, 2,400 available to spend and no movements.
-The latest read acceptance added one synthetic savings goal, target 1,000 CHF
-and starting amount 200 CHF, retained for the remaining client checks.
+Read acceptance also used one synthetic savings goal, target 1,000 CHF
+and starting amount 200 CHF. All were removed with the dedicated test project.
 See the [remote evidence](./verification-2026-09-05.md#remote-environment-and-client-readiness--updated-2026-09-06).
 
 The user explicitly authorized browser association, synthetic writes and
@@ -69,8 +71,8 @@ Creation, modification, checking and deletion of one movement passed, as did
 month creation, forecast creation/update and spreading 100 CHF across October
 and November. Expanded requests/results and independently reloaded Pulpe pages
 were checked. One-time approvals were used; no approval policy was relaxed.
-The movement and both newly created months were removed. September, its four
-forecasts, the template and populated goal remain intact.
+The movement and both newly created months were removed after the checks. The
+remaining base fixture was subsequently deleted with the test environment.
 
 Both grants were revoked in Pulpe. Fresh vendor calls then required reconnection
 (ChatGPT) or authentication (Claude), with no new financial result. Pulpe showed
@@ -87,7 +89,9 @@ See [the final regression evidence](./verification-2026-09-05.md#deployed-regres
 Mobile, Claude Code and ChatGPT's seven-tool read-only grant remain unverified.
 The owner explicitly waived mobile testing as a release gate; this is not a
 claim of mobile availability. Earlier desktop reads do not prove desktop writes
-or revocation behavior. The production dependency audit remains unresolved.
+or revocation behavior. Dependency remediation has passed local and deployed
+checks: zero high/critical findings and no backend/web dependency paths remain;
+four moderate and one low Android-only findings are explicitly recorded.
 
 Follow [cutover.md](../../2026_09/2026_09_05_mcp-credential-isolation/cutover.md)
 for the production handoff: target separation, approval gates, secrets/Dashlane,
@@ -95,9 +99,10 @@ legacy retirement, protected release order, branding and rollback. It is prepare
 but not executed. The owner now authorizes scoped test cleanup after validation,
 a PR to `main`, monitoring/merge when safe, and production setup through the
 protected release process. Exact release/version and publication gates remain.
-Durable secrets and synthetic login/vault/recovery credentials already exist in
-the Git-ignored owner-only `backend-nest/.mcp-test/.env.local` for Dashlane.
-Do not regenerate them or put their values in this checklist or assistant prompts.
+The former ignored `.mcp-test` secrets and local test directories are archived in
+the owner's private Trash, not active configuration. See the
+[retirement evidence](./verification-2026-09-05.md#test-resource-retirement--2026-09-06).
+Do not reuse those keys in production or put values in documentation or prompts.
 
 Record assistant, plan, client version, surface, timestamp, actual tool selection,
 confirmation behavior and the observed Pulpe result. For each intended client:

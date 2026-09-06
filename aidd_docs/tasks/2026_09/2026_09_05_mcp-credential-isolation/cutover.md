@@ -14,6 +14,10 @@ The owner subsequently authorized scoped test cleanup after validation, a PR to
 `main`, monitoring/merge when safe, and production setup. This resolves the broad
 production-setup permission, not the exact release/version, protected-environment,
 activation or legal/publication gates below. No production change has occurred.
+The isolated security candidate `158574cf3` passed deployed HTTP regression;
+all dedicated test projects/stacks and both vendor test connectors were then
+[retired](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#test-resource-retirement--2026-09-06).
+Test names and IDs below are separation references, not live resources.
 
 Use the existing production infrastructure, not a new project or a promotion of
 the disposable test environment. Resolve the actual provider IDs read-only at
@@ -30,7 +34,7 @@ below are the repository's intended production targets, not a fresh live audit.
 Before any production write, record and check:
 
 - [ ] Maxime has accepted the [client evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md) and the exact supported surfaces. Both vendors passed web read/write and revocation; all 15 tools have Claude success evidence across sessions. The deployed presentation regression passed in Claude web. The owner waived mobile testing; it remains unverified, alongside ChatGPT's seven-tool read-only grant, Claude Code and desktop writes. Retain limitations instead of marking them passed.
-- [ ] Resolve the [production dependency audit](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#dependency-gate), with supported updates and relevant regression/build checks. The critical-only CI audit is insufficient evidence for the remaining high/moderate advisories.
+- [x] Resolve the [backend/web dependency audit](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#dependency-gate) with supported updates and regression/build checks. Candidate `158574cf3` has zero high/critical findings and no backend/web paths; four moderate and one low Android-only findings remain. Recheck the exact release candidate; the critical-only CI audit alone is insufficient.
 - [ ] Production Supabase ref, Railway project/environment/service IDs and Vercel team/project IDs have been resolved and approved. Existing service health and ordinary login, refresh and encrypted budget access have a baseline.
 - [ ] The candidate SHA/version, published rollback anchor, **all** pending migrations since that anchor, backup/restore availability, cutover window and owner are recorded. No migration reset, force-push or test seed against production.
 - [ ] The applicable legacy retirement evidence in section 1 is complete before activation. If an old issuer is already live, agree how to stop it before the migration; do not assume this document proves production was never exposed.
@@ -152,7 +156,7 @@ The executable `legacy-retirement-probe.ts` exercises this sequence only on a de
 
 ### Branding and public distribution
 
-- Use `Pulpe` for production and keep `Pulpe Tests` on the separate test target.
+- Use `Pulpe` for production; `Pulpe Tests` was the retired test target's name.
   Prepare the existing [brand icon](../../../../landing/public/icon.png)
   (519 × 519 PNG), not a new design. OpenAI's submission form has a **Logo** field
   under Info; upload the approved asset and verify its actual appearance in the
@@ -171,7 +175,7 @@ The executable `legacy-retirement-probe.ts` exercises this sequence only on a de
 - Only after owner approval and the applicable acceptance/publication gates,
   update four-language availability copy through the normal release process.
   Record live listing URLs, supported surfaces and production verification;
-  keep the test environment separate unless its retirement is also approved.
+  never restore the retired test environment as a production target.
 
 ## 4. Stop and recover
 

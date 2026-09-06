@@ -1,6 +1,6 @@
 # MCP readiness verification — 2026-09-05
 
-Status, updated 2026-09-06: **isolated server and vendor web read/write/revocation verified; deployed presentation regression passed; dependency remediation validated locally, not yet pushed or deployed; protected production release pending**.
+Status, updated 2026-09-06: **isolated server and vendor web read/write/revocation verified; dependency remediation deployed and remotely verified; disposable test resources retired; protected production release pending**.
 This supersedes earlier readiness claims, not the historical implementation record.
 
 ## Verified implementation
@@ -446,7 +446,7 @@ are distinct from provider mobile acceptance.
 The owner authorizes test-resource retirement after validation, a PR to `main`,
 monitoring/merge when safe, and production setup through the existing protected
 release flow. No PR or production change has been made at this checkpoint.
-Test infrastructure is retained until the remaining security gate is resolved.
+The dependency gate and subsequent test retirement are recorded below.
 
 #### Dependency gate
 
@@ -454,7 +454,7 @@ Baseline `fe15796a7fdb75c8f4cdb638af193665cb8aabfb` had **45 advisory entries:
 19 high, 23 moderate, 3 low, zero critical** in `pnpm audit --prod --json`.
 These are dependency findings, not proof of 45 exploitable production paths.
 
-The local remediation updates Nest within version 11 (`11.2.3`), Config within
+Remediation `158574cf3` updates Nest within version 11 (`11.2.3`), Config within
 version 4 (`4.0.4`), Swagger within version 11 (`11.4.7`), `class-validator`
 within `0.14` (`0.14.4`) and `express-rate-limit` within version 8 (`8.7.0`).
 The MCP SDK stays pinned to `1.30.0`; Supabase and Android manifests are unchanged.
@@ -490,7 +490,43 @@ Checks on the installed local dependency candidate, 2026-09-06:
 Existing JSDOM navigation and Node deprecation warnings remain. The build's
 `eval` warning corresponds to the unchanged Lottie player; neither production
 CSP policy permits `unsafe-eval`, and no policy was relaxed for this patch.
-This dependency candidate is local only. The vendor sessions above tested the
-previous deployed dependency graph; they are not evidence of a remote deployment
-of this remediation. Test-resource retirement, PR submission and the protected
-production release have not occurred at this checkpoint.
+The normal commit hook passed, and `158574cf3b2f4ca2a01b23a6f27075e9b3cbcc11`
+was pushed. Railway deployment `262de657-3808-466b-9cc5-a06e2325ab20`, created
+2026-09-06 at 17:09:47 UTC, reached `SUCCESS` on that exact source.
+
+A fresh remote HTTP check passed opaque authorization/code/token exchange,
+15-tool discovery, the expected September budget, a synthetic 4.50 CHF write
+verified through ordinary REST, refresh and revocation. Supabase Auth refused
+the external bearer with 403, and the Data API with 401. After revocation, MCP
+returned 401 and refresh 400. The probe movement was deleted through REST (200).
+The earlier vendor sessions remain evidence for their recorded source versions;
+this last dependency regression was an HTTP check, not another vendor session.
+
+## Test-resource retirement — 2026-09-06
+
+After that verification, the owner-authorized teardown removed only MCP fixtures:
+
+- Supabase Free project `jsjfammxsqyglxlqzpsl` (`pulpe-mcp-test`): deletion
+  confirmed, absent from the subsequent project list, former host `ENOTFOUND`.
+  Its synthetic account, financial fixtures, OAuth clients and secrets are retired.
+- Vercel project `prj_AKlbi6Mdj51VN7M5dPVNY2csfFPz` (`pulpe-mcp-test`): deletion
+  confirmed; project lookup and the former app URL return 404.
+- Railway environment `37cb5d64-9aab-446a-9b43-82da1b40352b` (`mcp-spike`):
+  deleted, former MCP URL returns 404. The shared backend service was not deleted;
+  the subsequent environment list retains only the existing production and preview.
+- `Pulpe Tests` was removed from ChatGPT (`asdk_app_6a9d07d361c881919fc2050407c38043`)
+  and Claude (`bc5cb2a4-49b7-4831-a373-6a925e1246a8`), after checking their exact
+  test endpoint. Both connector lists confirm removal; existing chats are preserved.
+- Local Supabase stacks `pulpe-mcp-audit-20260905` and
+  `pulpe-mcp-cutover-20260905` were stopped without backup. Docker lists contain
+  no containers or volumes for either project; unrelated stacks were untouched.
+- The static test build, two local stack directories, temporary Railway link
+  directory and ignored `.mcp-test` secret directory were moved to the private
+  local Trash folder `pulpe-mcp-tests.HqddGf` (exact path handed to the owner).
+  Directory/file modes remain 700/600 for the retired secrets. These files are
+  recoverable until Trash is emptied; the remote fixture and local DB volume
+  deletions are permanent. Retired test secrets must never be reused in production.
+
+Versioned tests and sanitized verification logs are retained. No production
+configuration, financial data, unrelated preview project or directory listing was
+changed. PR checks, the protected production release and activation remain pending.
