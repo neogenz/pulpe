@@ -5,6 +5,13 @@ Do not activate the connector until the applicable retirement gate below has pas
 ## 0. Production handoff — prepared, not executed
 
 Updated 2026-09-06 against the checked-in configuration and release workflows.
+The owner requested a coordinated launch from one instruction. The
+[production-readiness plan](../2026_09_06_mcp-production-readiness/plan.md)
+orders the remaining evidence, exact release preparation and activation work.
+It reuses this runbook; it does not replace protected approvals or claim that
+production is ready while the candidate, backup, legacy-retirement or client
+gates remain unresolved. No parallel deployment script is required.
+
 The sequence is: **validate isolated tests → approve production setup → retire
 legacy issuance → deploy disabled → approve activation → verify → approve public
 distribution**. Test approval is not production approval; deployment is not
