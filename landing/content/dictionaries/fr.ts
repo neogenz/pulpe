@@ -583,7 +583,7 @@ const fr = {
     ],
     revokeHeading: "Couper l’accès quand tu veux.",
     revokeText:
-      "Une connexion coupée l’est tout de suite : l’assistant ne lit plus rien et n’écrit plus rien, sans délai.",
+      "Couper l’accès bloque les prochaines lectures et modifications. Une action déjà en cours peut se terminer. Les données déjà envoyées ne sont pas effacées.",
     revokeSteps: [
       "Ouvre Pulpe, puis les paramètres.",
       "Va dans la liste de tes connexions.",

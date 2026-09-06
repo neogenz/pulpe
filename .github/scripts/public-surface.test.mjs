@@ -76,6 +76,23 @@ test("public security and deletion claims describe the implemented model", () =>
     /tes montants et libellés financiers ne sont ni transmis\s+à des fins publicitaires ni revendus/i,
   );
 
+  for (const [locale, scope] of [
+    ["fr", /prochaines.*déjà en cours.*déjà envoyées/],
+    ["en", /future.*already in progress.*already sent/],
+    ["de", /künftige.*bereits laufende.*bereits gesendete/],
+    ["it", /future.*già in corso.*già inviati/],
+  ]) {
+    const copy = read(`landing/content/dictionaries/${locale}.ts`).match(
+      /revokeText:\s*"([^"]+)"/,
+    )?.[1];
+    assert.ok(copy, `${locale}: missing assistant revocation explanation`);
+    assert.match(
+      copy,
+      scope,
+      `${locale}: revocation must distinguish future access, in-flight actions and previously shared data`,
+    );
+  }
+
   const consent = read("docs/CONSENT.md");
   assert.match(consent, /Paramètres → Données de diagnostic/);
   assert.match(consent, /Préférences → Données et confidentialité/);

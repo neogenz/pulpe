@@ -554,7 +554,7 @@ const en: Dictionary = {
     ],
     revokeHeading: "Cut the access whenever you want.",
     revokeText:
-      "A connection you cut is cut right away: the assistant reads nothing and writes nothing any more, with no delay.",
+      "Cutting off access blocks future reads and changes. An action already in progress may finish. Data already sent is not deleted.",
     revokeSteps: [
       "Open Pulpe, then the settings.",
       "Go to the list of your connections.",

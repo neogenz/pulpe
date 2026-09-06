@@ -558,7 +558,7 @@ const it: Dictionary = {
     ],
     revokeHeading: "Taglia l’accesso quando vuoi.",
     revokeText:
-      "Un collegamento tagliato lo è subito: l’assistente non legge più nulla e non scrive più nulla, senza attesa.",
+      "Interrompere l’accesso blocca le letture e le modifiche future. Un’azione già in corso può terminare. I dati già inviati non vengono cancellati.",
     revokeSteps: [
       "Apri Pulpe, poi le impostazioni.",
       "Vai alla lista dei tuoi collegamenti.",

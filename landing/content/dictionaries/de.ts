@@ -559,7 +559,7 @@ const de: Dictionary = {
     ],
     revokeHeading: "Kappe den Zugang, wann du willst.",
     revokeText:
-      "Eine gekappte Verbindung ist sofort gekappt: der Assistent liest nichts mehr und schreibt nichts mehr, ohne Verzögerung.",
+      "Das Trennen blockiert künftige Lesezugriffe und Änderungen. Eine bereits laufende Aktion kann noch abgeschlossen werden; bereits gesendete Daten werden nicht gelöscht.",
     revokeSteps: [
       "Öffne Pulpe, dann die Einstellungen.",
       "Geh zur Liste deiner Verbindungen.",
