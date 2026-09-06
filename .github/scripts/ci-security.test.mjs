@@ -1430,6 +1430,22 @@ test("Android E2E verifies Maestro and withholds preview secrets from forks", ()
   assert.ok(download < verify && verify < extract);
 });
 
+test("Android E2E never publishes credential-bearing debug artifacts", () => {
+  assert.doesNotMatch(
+    androidE2eWorkflow,
+    /upload-artifact|maestro-artifacts|\.maestro\/tests|adb logcat|screencap/,
+  );
+  assert.match(
+    androidE2eWorkflow,
+    /maestro test android\/maestro\/smoke\.yaml > "\$RUNNER_TEMP\/maestro-smoke\.log" 2>&1 &&/,
+  );
+  assert.match(
+    androidE2eWorkflow,
+    /maestro test android\/maestro\/vault-resume\.yaml > "\$RUNNER_TEMP\/maestro-vault-resume\.log" 2>&1/,
+  );
+  assert.doesNotMatch(androidE2eWorkflow, /continue-on-error|\|\| true/);
+});
+
 test("the Android production build follows the production pointer", () => {
   // `main` est le tronc : chaque merge de feature y arrive. Un build EAS
   // déclenché depuis `main` consommerait le quota du plan Free et pousserait
