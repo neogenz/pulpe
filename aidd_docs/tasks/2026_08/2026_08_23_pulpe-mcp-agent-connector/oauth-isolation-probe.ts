@@ -66,22 +66,35 @@ try {
   const claims = JSON.parse(Buffer.from(oauth.split('.')[1], 'base64url').toString());
   assert.equal(claims.client_id, clientId);
   assert.equal(claims.sub, userId);
-  console.log('Real OAuth token issued:', { role: claims.role, hasClientId: true, subjectMatchesOwner: true });
+  console.log('Real OAuth token issued for the disposable owner.');
 
   const control = await request('/auth/v1/user', firstParty, 'PUT', { data: { firstName: 'First-party control' } });
   assert.equal(control.status, 200);
   const update = await request('/auth/v1/user', oauth, 'PUT', { data: { firstName: 'Changed by OAuth client' } });
   const checked = await json(await request('/auth/v1/user', firstParty), 'verify user metadata');
-  console.log('Auth metadata boundary:', { firstPartyStatus: control.status, oauthStatus: update.status, oauthChangePersisted: checked.user_metadata.firstName === 'Changed by OAuth client' });
+  // Keep observations useful without passing OAuth-derived values to log sinks.
+  if (update.status === 200 && checked.user_metadata.firstName === 'Changed by OAuth client') {
+    console.log('Auth metadata boundary: native OAuth write persisted.');
+  } else {
+    console.log('Auth metadata boundary: native OAuth write did not persist.');
+  }
 
   const [template] = await json(await request('/rest/v1/template', admin, 'POST', { user_id: userId, name: 'Audit template', description: '', is_default: false }), 'create disposable template');
   const [budget] = await json(await request('/rest/v1/monthly_budget', admin, 'POST', { user_id: userId, template_id: template.id, month: 9, year: 2026, description: 'Original audit budget' }), 'create disposable budget');
   const write = await request(`/rest/v1/monthly_budget?id=eq.${budget.id}`, oauth, 'PATCH', { description: 'Direct OAuth write' });
-  console.log('Data API without MCP grant:', { status: write.status, updatedRows: write.ok ? (await write.json()).length : null });
+  if (write.ok && (await write.json()).length === 1) {
+    console.log('Data API without MCP grant: owner row updated.');
+  } else {
+    console.log('Data API without MCP grant: owner row update not confirmed.');
+  }
   const revoke = await request(`/auth/v1/user/oauth/grants?client_id=${encodeURIComponent(clientId!)}`, firstParty, 'DELETE');
   assert.ok(revoke.ok, 'revoke disposable OAuth grant');
   const after = await request(`/rest/v1/monthly_budget?id=eq.${budget.id}`, oauth, 'PATCH', { description: 'Direct write after revocation' });
-  console.log('Data API after OAuth revocation:', { status: after.status, updatedRows: after.ok ? (await after.json()).length : null });
+  if (after.ok && (await after.json()).length === 1) {
+    console.log('Data API after OAuth revocation: owner row updated.');
+  } else {
+    console.log('Data API after OAuth revocation: owner row update not confirmed.');
+  }
 } finally {
   if (userId) assert.ok((await request(`/auth/v1/admin/users/${userId}`, admin, 'DELETE')).ok, 'remove disposable user');
   if (clientId) assert.ok((await request(`/auth/v1/admin/oauth/clients/${clientId}`, admin, 'DELETE')).ok, 'remove disposable OAuth client');
