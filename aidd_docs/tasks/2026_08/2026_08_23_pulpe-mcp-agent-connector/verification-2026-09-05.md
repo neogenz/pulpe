@@ -255,6 +255,39 @@ authentication methods. The [OpenAI troubleshooting guide](https://developers.op
 and [connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt)
 were consulted to keep client handoff evidence separate from server verification.
 
+### Claude macOS Chat read coverage — 2026-09-06
+
+The native application's Chat mode was explicitly selected and verified before
+starting chat `b6d757f6-ca5a-480b-b506-55ad60d66602`. The installed app reported
+`1.46388.4` for this run, on macOS `26.5.1`, Pro / Opus 5 High. This is separate
+from the earlier Cowork run and its recorded app version. The existing synthetic
+read-only grant was reused; every call received `Allow once`, never `Always allow`.
+
+Five additional successful tool results were expanded and inspected:
+`list_months` returned only September 2026 and the expected totals; `get_month`
+received `{month: 9, year: 2026}` and returned the matching budget and forecasts;
+`list_templates` returned the default `Budget fictif MCP`; `search_movements`
+received `courses` / `[2026]` and returned the single 600 CHF forecast; and
+`list_savings_goals` returned an empty list. Each result carried the CHF header.
+The model's summary matched these responses. Pulpe's ordinary UI independently
+showed one September budget, the same template and no savings goals.
+
+Three negative calls also received individual one-time approvals. `get_month`
+for October 2026 returned `Aucun budget pour 10/2026`. `search_movements` received
+the exact `%_,` query / `[2026]` and returned no result; this client check alone
+does not prove general SQL wildcard escaping. `get_savings_goal_outlook` received
+the synthetic absent UUID `00000000-0000-4000-8000-000000000001` and returned a
+specific not-found error. Claude reported the empty results and error rather
+than inventing data; no fallback connector or write was used.
+
+Across the Claude sessions, all seven read tools have now been invoked: six
+returned successful data/empty responses, while goal outlook was exercised only
+on a missing goal. Its existing-goal success remains covered by the isolated
+HTTP suite, not yet a vendor session. The final refreshed Pulpe dashboard still
+showed 2,400 CHF, the four forecasts and no movements. No data, grant or approval
+policy was changed. Vendor writes/revocation, ChatGPT authorization and mobile
+acceptance remain incomplete and are not established by these additional reads.
+
 Current vendor requirements and an acceptance script are in
 [submission-checklist.md](./submission-checklist.md). The landing retains its
 "in preparation" status and the concise four-language data-sharing disclosure.

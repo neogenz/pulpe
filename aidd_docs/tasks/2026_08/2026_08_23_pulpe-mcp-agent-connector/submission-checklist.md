@@ -29,7 +29,9 @@ associations. Neither client has completed read/write/revocation acceptance.
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | ChatGPT web               | Developer mode, subject to account/workspace policy; connect an MCP endpoint through Plugins.                                                             | Pro app `Pulpe Tests` has correct discovery. The in-app-browser handoff stalled; Arc 1.162.0 reached Pulpe consent with the synthetic account. Read-only selected, final authorization pending; no grant or tool call yet. |
 | ChatGPT desktop/mobile    | Do not infer support from web developer mode or from publication alone; verify the actual account, app version and directory availability.                | Not run          |
-| Claude web/desktop/mobile | Remote connectors are brokered through Anthropic's infrastructure; the server must be reachable there. Free accounts are limited to one custom connector. | Pro web consent, seven read tools, budget read and unavailable-write check passed. A read also passed in macOS Cowork (Claude 1.40609.1 / macOS 26.5.1). Write/revocation, desktop Chat and mobile remain unverified. |
+| Claude web                | Remote connectors are brokered through Anthropic's infrastructure; the server must be reachable there. Free accounts are limited to one custom connector. | Pro consent, seven-tool read-only catalog, current-budget read and unavailable-write check passed. |
+| Claude macOS              | The installed application exposes separate Chat and Cowork modes.                                                                                        | Cowork current-month read passed (1.40609.1); Chat five additional reads and three negative calls passed (1.46388.4), on macOS 26.5.1. Every Chat call used one-time approval. Writes/revocation and a successful existing-goal outlook remain unverified in the client. |
+| Claude mobile             | Verify the actual mobile application/account; web and macOS evidence is insufficient.                                                                     | Not run          |
 | Claude Code               | Remote MCP plugin/connection; package installation alone does not test authorization.                                                                     | Not run          |
 
 The current [OpenAI connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt)
@@ -63,6 +65,12 @@ result and the model's summary, using the same read-only grant and one-time appr
 A separate macOS Cowork read returned the same figures and explicit currency;
 its existing auto-approval setting was unchanged. This does not establish all
 desktop modes or mobile acceptance.
+The subsequent macOS Chat run exercised five additional successful read tools
+and three negative calls with one-time approvals. Together with the current-month
+read, all seven read tools have been invoked in Claude; goal outlook has only an
+absent-goal error case, not a successful existing-goal result. The expanded tool
+responses and refreshed Pulpe UI matched; no data or grants changed. Mobile and
+vendor write/revocation acceptance remain incomplete.
 ChatGPT's existing app now reaches the actual Pulpe consent in Arc, after the
 earlier in-app-browser handoff stalled. Read-only is selected; the PIN is empty
 and final authorization awaits confirmation. No ChatGPT grant was created.
