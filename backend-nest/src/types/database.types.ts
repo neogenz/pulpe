@@ -1195,6 +1195,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      mcp_oauth_purge_orphan_clients: { Args: never; Returns: undefined }
       reconcile_savings_goal_target_date: {
         Args: {
           p_budget_line_ids: string[]

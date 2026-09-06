@@ -69,6 +69,12 @@ No production setting, secret, account or financial data was changed. This
 baseline is not a release authorization or an authenticated first-party smoke
 test; recheck targets, backups and the exact pending set when releasing.
 
+The subsequent review adds `20260906201519_purge_orphan_mcp_clients.sql` to
+that pending set. The existing daily cleanup now removes registrations older
+than thirty days only when no authorization or connection references them.
+Previously associated clients, including revoked connections, remain available
+for reconnection. This backend-only cleanup does not delete financial data.
+
 Before any production write, record and check:
 
 - [ ] Maxime has accepted the [client evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md) and the exact supported surfaces. Both vendors passed web read/write and revocation; all 15 tools have Claude success evidence across sessions. The deployed presentation regression passed in Claude web. The owner waived mobile testing; it remains unverified, alongside ChatGPT's seven-tool read-only grant, Claude Code and desktop writes. Retain limitations instead of marking them passed.

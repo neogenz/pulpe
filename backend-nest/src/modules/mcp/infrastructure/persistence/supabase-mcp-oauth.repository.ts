@@ -301,6 +301,8 @@ export class SupabaseMcpOAuthRepository {
         .lt('refresh_expires_at', cutoff),
     ]);
     results.forEach(({ error }) => this.#check(error));
+    const { error } = await this.#db.rpc('mcp_oauth_purge_orphan_clients');
+    this.#check(error);
   }
 
   readSession(grant: McpOAuthGrant): Session {
