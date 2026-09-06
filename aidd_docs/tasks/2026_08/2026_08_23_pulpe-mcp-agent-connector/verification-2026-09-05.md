@@ -1,6 +1,6 @@
 # MCP readiness verification — 2026-09-05
 
-Status, updated 2026-09-06: **isolated server and vendor web read/write/revocation verified; deployed presentation regression passed; dependency remediation and protected production release pending**.
+Status, updated 2026-09-06: **isolated server and vendor web read/write/revocation verified; deployed presentation regression passed; dependency remediation validated locally, not yet pushed or deployed; protected production release pending**.
 This supersedes earlier readiness claims, not the historical implementation record.
 
 ## Verified implementation
@@ -450,17 +450,47 @@ Test infrastructure is retained until the remaining security gate is resolved.
 
 #### Dependency gate
 
-`pnpm audit --prod --json` reports **45 advisory entries: 19 high, 23 moderate,
-3 low, zero critical** on this candidate. This includes monorepo runtime-labeled
-Android build dependencies; it is not proof of 45 exploitable production paths.
-Backend/web paths include the MCP SDK, Nest, Supabase and chart dependencies.
-Affected transitives include `fast-uri`, `ws`, `multer`, `ip-address`, `validator`,
-`lodash`/`lodash-es`, `js-yaml`, `qs` and `path-to-regexp`. The existing
-critical-only CI audit does not establish that these findings are resolved.
+Baseline `fe15796a7fdb75c8f4cdb638af193665cb8aabfb` had **45 advisory entries:
+19 high, 23 moderate, 3 low, zero critical** in `pnpm audit --prod --json`.
+These are dependency findings, not proof of 45 exploitable production paths.
 
-A targeted `pnpm update --depth Infinity --lockfile-only` did not update the
-intended transitives and generated unrelated Metro/Terser lockfile churn.
-That generated diff was fully reverted; no dependency fix is claimed. Review
-reachability and apply supported dependency updates before production approval.
-The owner was offered a separate security commit in this PR or a separate
-security PR before production, in accordance with the repository diff-size gate.
+The local remediation updates Nest within version 11 (`11.2.3`), Config within
+version 4 (`4.0.4`), Swagger within version 11 (`11.4.7`), `class-validator`
+within `0.14` (`0.14.4`) and `express-rate-limit` within version 8 (`8.7.0`).
+The MCP SDK stays pinned to `1.30.0`; Supabase and Android manifests are unchanged.
+Nine version-scoped [native pnpm overrides](https://pnpm.io/10.x/settings#overrides)
+set patched floors for remaining vulnerable transitive ranges: Hono's Node
+adapter, `body-parser`, `fast-uri`, both used `fflate` branches, `ip-address`,
+`lodash-es`, `qs` and `ws`. There is no custom resolver or application workaround.
+Unrelated Metro/Terser resolution changes were removed before the frozen install.
+
+The fresh audit reports **zero high/critical findings and no backend/web paths**.
+Its remaining **4 moderate and 1 low** entries are exclusively Android paths:
+`uuid@7.0.3`, `decode-uri-component@0.2.2`, `@xmldom/xmldom@0.9.11` and `0.8.14`,
+and `diff@4.0.2`. No advisory is ignored or suppressed. The monorepo audit still
+exits 1 at its default threshold; it is not globally vulnerability-free.
+
+Checks on the installed local dependency candidate, 2026-09-06:
+
+- `CI=true pnpm install --frozen-lockfile`: passed with pnpm `10.12.1`;
+  normal lifecycle scripts and hooks remained enabled.
+- Backend `bun test`: **1,630 passed, 19 gated skips, zero failures**;
+  4,152 assertions, 86.69 seconds.
+- Dedicated `.integration.spec` / `.e2e.spec` run with
+  `RUN_INTEGRATION_TESTS=true`, explicitly pinned to the disposable local
+  Supabase at `127.0.0.1:56421`: **122 passed, zero failures**, 1,055 assertions,
+  94.07 seconds. This includes the 19 real MCP HTTP scenarios, not their skips.
+  Disposable account/client cleanup assertions passed.
+- Frontend `pnpm test`: **3,086 passed across 225 files**, zero failures.
+- Backend build, optimized Angular build and inline-script CSP check passed;
+  Angular initial output was **1.15 MB raw / 252.69 kB estimated transfer**.
+- Root `pnpm quality`: passed, including architecture, types, lint, formatting
+  and automation/security/public-surface/lexicon contracts.
+
+Existing JSDOM navigation and Node deprecation warnings remain. The build's
+`eval` warning corresponds to the unchanged Lottie player; neither production
+CSP policy permits `unsafe-eval`, and no policy was relaxed for this patch.
+This dependency candidate is local only. The vendor sessions above tested the
+previous deployed dependency graph; they are not evidence of a remote deployment
+of this remediation. Test-resource retirement, PR submission and the protected
+production release have not occurred at this checkpoint.

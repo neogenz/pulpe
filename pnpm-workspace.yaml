@@ -5,6 +5,18 @@ packages:
   - landing
   - android
 
+# Security floors for vulnerable transitive ranges; newer parent ranges are unaffected.
+overrides:
+  '@hono/node-server@>=1 <1.19.15': '^1.19.15'
+  'body-parser@>=2 <2.3.0': '^2.3.0'
+  'fast-uri@>=3 <3.1.6': '^3.1.6'
+  'fflate@>=0.4.5 <0.4.9': '^0.4.9'
+  'fflate@>=0.8 <0.8.3': '^0.8.3'
+  'ip-address@>=10 <10.3.1': '^10.3.1'
+  'lodash-es@>=4 <4.18.0': '^4.18.0'
+  'qs@>=6 <6.16.0': '^6.16.0'
+  'ws@>=8 <8.21.0': '^8.21.0'
+
 onlyBuiltDependencies:
   - '@nestjs/core'
   # Its postinstall downloads the prebuilt libskia.a per ABI. Without it the
