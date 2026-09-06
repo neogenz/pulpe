@@ -23,7 +23,7 @@ const inputSchema = {
   kind: transactionKindSchema.optional().describe('Nouvelle nature'),
   recurrence: transactionRecurrenceSchema
     .optional()
-    .describe('fixed = Récurrent, one_off = Prévu'),
+    .describe('fixed = Mensuel, one_off = Ponctuel'),
   currency: supportedCurrencySchema
     .optional()
     .describe(

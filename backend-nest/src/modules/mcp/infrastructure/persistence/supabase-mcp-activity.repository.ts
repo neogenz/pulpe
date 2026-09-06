@@ -22,13 +22,15 @@ export class SupabaseMcpActivityRepository implements McpActivityRepositoryPort 
   ) {}
 
   async record(activity: NewMcpActivity): Promise<void> {
-    const { error } = await this.#table().insert({
-      connection_id: activity.connectionId,
-      user_id: activity.userId,
-      tool: activity.tool,
-      outcome: activity.outcome,
-    });
-    if (error) {
+    try {
+      const { error } = await this.#table().insert({
+        connection_id: activity.connectionId,
+        user_id: activity.userId,
+        tool: activity.tool,
+        outcome: activity.outcome,
+      });
+      if (error) throw error;
+    } catch {
       this.logger.warn(
         { operation: 'mcpActivity.record', userId: activity.userId },
         'Agent activity could not be recorded',

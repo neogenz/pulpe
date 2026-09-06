@@ -25,7 +25,7 @@ const inputSchema = {
   ),
   recurrence: transactionRecurrenceSchema
     .optional()
-    .describe('fixed = Récurrent, one_off = Prévu. À demander si non dit'),
+    .describe('fixed = Mensuel, one_off = Ponctuel. À demander si non dit'),
   currency: supportedCurrencySchema
     .optional()
     .describe(
@@ -61,11 +61,11 @@ export class AddForecastTool implements McpTool<Args> {
   ) {}
 
   async execute(args: Args): Promise<McpToolResult> {
-    // Récurrent or Prévu changes what the month looks like every month after
+    // Monthly or one-off changes what the month looks like every month after
     // this one. Guessing it would quietly rewrite the user's plan.
     if (!args.recurrence) {
       return askUser(
-        'si cette prévision revient chaque mois (Récurrent) ou concerne ce mois seulement (Prévu), puis rappelle add_forecast avec recurrence.',
+        'si cette prévision revient chaque mois (Mensuel) ou concerne ce mois seulement (Ponctuel), puis rappelle add_forecast avec recurrence.',
       );
     }
 
@@ -78,7 +78,7 @@ export class AddForecastTool implements McpTool<Args> {
       isManuallyAdjusted: false,
     });
     return {
-      text: `Prévision ajoutée (id ${created.id}) : ${created.name}, ${created.amount}, ${recurrence === 'fixed' ? 'Récurrent' : 'Prévu'}.`,
+      text: `Prévision ajoutée (id ${created.id}) : ${created.name}, ${created.amount}, ${recurrence === 'fixed' ? 'Mensuel' : 'Ponctuel'}.`,
     };
   }
 }

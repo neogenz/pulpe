@@ -25,7 +25,7 @@ export function renderMonth(details: BudgetWithDetails): string {
 
   const lines = budgetLines.map(
     (l) =>
-      `- [${l.id}] ${KIND_LABEL[l.kind]} · ${l.name} · ${round(l.amount)} · ${l.recurrence === 'fixed' ? 'Récurrent' : 'Prévu'} · ${l.checkedAt ? 'Pointé' : 'À pointer'}`,
+      `- [${l.id}] ${KIND_LABEL[l.kind]} · ${l.name} · ${round(l.amount)} · ${l.recurrence === 'fixed' ? 'Mensuel' : 'Ponctuel'} · ${l.checkedAt ? 'Pointé' : 'À pointer'}`,
   );
   // Keep the timezone: a UTC date alone can be the previous local day.
   const moves = transactions.map(

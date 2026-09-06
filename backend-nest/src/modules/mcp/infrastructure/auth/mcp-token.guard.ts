@@ -82,7 +82,9 @@ export class McpTokenGuard implements CanActivate {
     @Inject(MCP_CONNECTION_REPOSITORY)
     private readonly connections: McpConnectionRepositoryPort,
   ) {
-    this.#resourceUrl = config.getOrThrow<string>('MCP_RESOURCE_URL');
+    this.#resourceUrl = new URL(
+      config.getOrThrow<string>('MCP_RESOURCE_URL'),
+    ).href;
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

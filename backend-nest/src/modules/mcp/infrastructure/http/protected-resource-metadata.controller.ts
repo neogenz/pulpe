@@ -24,11 +24,10 @@ export class ProtectedResourceMetadataController {
 
   constructor(config: ConfigService) {
     this.#enabled = !!config.get<string>('MCP_UPSTREAM_CLIENT_ID');
+    const resource = new URL(config.getOrThrow<string>('MCP_RESOURCE_URL'));
     this.#metadata = {
-      resource: config.getOrThrow<string>('MCP_RESOURCE_URL'),
-      authorization_servers: [
-        `${new URL(config.getOrThrow<string>('MCP_RESOURCE_URL')).origin}/`,
-      ],
+      resource: resource.href,
+      authorization_servers: [`${resource.origin}/`],
       bearer_methods_supported: ['header'],
       resource_name: 'Pulpe',
       scopes_supported: ['mcp'],
