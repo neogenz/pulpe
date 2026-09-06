@@ -1,4 +1,6 @@
--- pulpe:migration-phase expand
+-- pulpe:migration-phase contract
+-- pulpe:safe-after v0.48.0
+-- The published baseline has no MCP consumers; legacy grants still require retirement.
 -- MCP credentials are opaque, hashed, and separate from the private Supabase session.
 ALTER TABLE public.mcp_connection
   ADD COLUMN generation uuid NOT NULL DEFAULT gen_random_uuid(),
