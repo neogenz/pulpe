@@ -16,6 +16,13 @@ A separate macOS Cowork read also passed in Claude Desktop `1.40609.1` on macOS 
 
 ChatGPT's existing app subsequently reached the real Pulpe consent in Arc `1.162.0`; its transient blank page resolved. Read-only is selected, the synthetic account is authenticated and the sharing disclosure was verified. Final authorization was not submitted and awaits confirmation at the persistent-grant action. The earlier in-app-browser failure's root cause remains unproven; no backend change was needed to reach consent in Arc.
 
+The subsequent populated-goal read passed in the same Claude Chat session with
+one-time approvals and unchanged permissions. All seven read tools now have a
+successful vendor result. The fixture retains one synthetic goal (1,000 CHF
+target, 200 CHF starting amount); its expanded tool response and reloaded Pulpe
+page agree. [Current evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#existing-goal-client-acceptance--2026-09-06)
+supersedes the missing positive goal case above, not the access-change blocker.
+
 ## Architecture projection
 
 ```txt

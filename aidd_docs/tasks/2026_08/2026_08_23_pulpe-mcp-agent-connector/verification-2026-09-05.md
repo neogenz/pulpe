@@ -291,3 +291,31 @@ acceptance remain incomplete and are not established by these additional reads.
 Current vendor requirements and an acceptance script are in
 [submission-checklist.md](./submission-checklist.md). The landing retains its
 "in preparation" status and the concise four-language data-sharing disclosure.
+
+### Existing-goal client acceptance — 2026-09-06
+
+The remaining positive read case passed in the same native Claude Chat session
+`b6d757f6-ca5a-480b-b506-55ad60d66602`, using the unchanged read-only grant.
+Through the ordinary Pulpe test UI, the synthetic fixture was extended with
+`Objectif fictif validation MCP` (`29e1943c-9488-493d-b13a-4b3de8ca1550`): target
+1,000 CHF, starting amount 200 CHF, no deadline or attached planned item.
+This is test data, not a transfer or a production write.
+
+The prompt supplied only the goal name, not its ID or expected figures.
+`list_savings_goals` and `get_savings_goal_outlook` each received `Allow once`.
+Their expanded responses showed the correct ID and CHF currency, target 1,000,
+confirmed 200, planned cumulative 0, projection 200 and progress 20%. Both paces
+were zero and remaining months were not projectable. The model reported those
+values and explicitly identified requested fields absent from the tool response.
+No other connector or write tool was used. Reloading the ordinary goal page
+confirmed the same saved/target/planned totals and 20% progress.
+The refreshed dashboard still showed 2,400 CHF available, four forecasts and
+no movements; adding the standalone goal did not change that budget.
+
+All seven read tools now have a successful vendor result across the Claude
+sessions, including a populated goal outlook. The synthetic goal is retained
+for the remaining client acceptance; no assistant permissions were changed.
+ChatGPT final consent and vendor write/revocation tests still await the exact
+access-change confirmation. The local Claude Code CLI reports version `2.1.261`
+and `loggedIn: false` / `authMethod: none`; its OAuth/tool acceptance has not run.
+Actual mobile acceptance remains unverified. No production action was taken.

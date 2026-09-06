@@ -24,7 +24,7 @@ below are the repository's intended production targets, not a fresh live audit.
 
 Before any production write, record and check:
 
-- [ ] Maxime has accepted the [client evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md) and the exact supported surfaces. ChatGPT association/tool calls, vendor writes/revocation and mobile acceptance are still incomplete at this checkpoint; Claude's existing-goal outlook has no positive client result yet. Retain limitations instead of marking them passed.
+- [ ] Maxime has accepted the [client evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md) and the exact supported surfaces. Claude's seven read tools now have successful client results, including a populated goal outlook; ChatGPT association/tool calls, vendor writes/revocation, Claude Code and mobile acceptance are still incomplete. Retain limitations instead of marking them passed.
 - [ ] Production Supabase ref, Railway project/environment/service IDs and Vercel team/project IDs have been resolved and approved. Existing service health and ordinary login, refresh and encrypted budget access have a baseline.
 - [ ] The candidate SHA/version, published rollback anchor, **all** pending migrations since that anchor, backup/restore availability, cutover window and owner are recorded. No migration reset, force-push or test seed against production.
 - [ ] The applicable legacy retirement evidence in section 1 is complete before activation. If an old issuer is already live, agree how to stop it before the migration; do not assume this document proves production was never exposed.

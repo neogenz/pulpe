@@ -82,3 +82,9 @@ The [production handoff](./cutover.md) is prepared with target/secret separation
 retirement gates, the existing protected release workflow, activation checks,
 branding and recovery. This documentation does not complete vendor acceptance
 or authorize production operations; those remain separate owner decisions.
+
+The remaining positive goal-outlook read subsequently passed in native Claude
+Chat with the unchanged grant and one-time tool approvals. The test fixture now
+retains one synthetic goal; all seven read tools have successful client results.
+[Current acceptance evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#existing-goal-client-acceptance--2026-09-06)
+records the Pulpe/tool comparison and the still-pending access changes.
