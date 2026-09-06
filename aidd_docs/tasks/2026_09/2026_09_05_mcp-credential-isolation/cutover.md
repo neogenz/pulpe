@@ -2,6 +2,38 @@
 
 Do not activate the connector until the applicable retirement gate below has passed. Applying the SQL migration alone does **not** invalidate a Supabase JWT previously delivered to an assistant. No production operation is authorized by this document.
 
+## 0. Production handoff — prepared, not executed
+
+Updated 2026-09-06 against the checked-in configuration and release workflows.
+The sequence is: **validate isolated tests → approve production setup → retire
+legacy issuance → deploy disabled → approve activation → verify → approve public
+distribution**. Test approval is not production approval; deployment is not
+directory publication.
+
+Use the existing production infrastructure, not a new project or a promotion of
+the disposable test environment. Resolve the actual provider IDs read-only at
+execution time and record them alongside the approved release plan; the domains
+below are the repository's intended production targets, not a fresh live audit.
+
+| Surface | Production target | Must not be reused from tests |
+| --- | --- | --- |
+| Backend | Railway service serving `https://api.pulpe.app` | `mcp-spike` or `backend-mcp-spike.up.railway.app` |
+| Web app / consent | Vercel `pulpe-frontend`, `https://app.pulpe.app` | Vercel `pulpe-mcp-test` |
+| Landing / support | Vercel `pulpe-landing`, `https://pulpe.app` | Test availability copy or noindex configuration |
+| Auth / database | Existing production Supabase project; resolve its ref | Test ref `jsjfammxsqyglxlqzpsl`, fixtures or secrets |
+
+Before any production write, record and check:
+
+- [ ] Maxime has accepted the [client evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md) and the exact supported surfaces. ChatGPT association/tool calls, vendor writes/revocation and mobile acceptance are still incomplete at this checkpoint; Claude's existing-goal outlook has no positive client result yet. Retain limitations instead of marking them passed.
+- [ ] Production Supabase ref, Railway project/environment/service IDs and Vercel team/project IDs have been resolved and approved. Existing service health and ordinary login, refresh and encrypted budget access have a baseline.
+- [ ] The candidate SHA/version, published rollback anchor, **all** pending migrations since that anchor, backup/restore availability, cutover window and owner are recorded. No migration reset, force-push or test seed against production.
+- [ ] The applicable legacy retirement evidence in section 1 is complete before activation. If an old issuer is already live, agree how to stop it before the migration; do not assume this document proves production was never exposed.
+- [ ] Maxime approves the exact infrastructure/secret changes and any synthetic production account, assistant grants, writes and revocations. Directory submission, identity/legal attestations and public launch require their own approval.
+
+This is an MCP/backend, database, web-consent and distribution change. It does
+not require an iOS build, simulator or App Store release. Testing the ChatGPT or
+Claude mobile clients, when support is claimed, is a separate acceptance check.
+
 ## 1. Retire the native public issuer
 
 For a fresh installation, verify that no legacy MCP OAuth clients, grants or sessions have ever been issued. Record that evidence; absence of an active `mcp_connection` row alone is insufficient because previously revoked connections can still have native tokens.
@@ -20,23 +52,139 @@ The executable `legacy-retirement-probe.ts` exercises this sequence only on a de
 
 ## 2. Configure the isolated issuer
 
-1. Apply `20260905170811_isolate_mcp_oauth_credentials.sql`. Existing connection keys are cleared and those connections are marked revoked: their owners must associate again. The migration preserves financial data and activity history. It does not alter Supabase Auth tables or first-party sessions.
-2. Register one **backend-only confidential** Supabase OAuth client using `client_secret_post`. Its only callback is `<API origin>/mcp/oauth/upstream-callback`. Keep Supabase dynamic registration disabled. This client is not the client registered by ChatGPT or Claude.
+1. Apply `20260905170811_isolate_mcp_oauth_credentials.sql` through the protected release workflow in section 3, together with its required preceding migrations; never apply it manually to production. Existing connection keys are cleared and those connections are marked revoked: their owners must associate again. The migration preserves financial data and activity history. It does not alter Supabase Auth tables or first-party sessions.
+2. Enable Supabase's OAuth server for the private upstream flow, with its authorization path `/mcp-consent` and production Auth Site URL `https://app.pulpe.app`. Register one **backend-only confidential** OAuth client using `client_secret_post`. Its only callback is `https://api.pulpe.app/mcp/oauth/upstream-callback`. Keep Supabase dynamic registration disabled. Verify the remote settings; the local `config.toml` does not prove they were applied. This client is not the client registered by ChatGPT or Claude; never enter its secret in a vendor connector form.
 3. Configure these backend variables together:
 
    | Variable                     | Value                                                                            |
    | ---------------------------- | -------------------------------------------------------------------------------- |
-   | `MCP_RESOURCE_URL`           | Public HTTPS URL `<API origin>/mcp`                                              |
-   | `MCP_CONSENT_URL`            | Public HTTPS URL of the existing Pulpe `/mcp-consent` page                       |
+   | `MCP_RESOURCE_URL`           | `https://api.pulpe.app/mcp`                                                      |
+   | `MCP_CONSENT_URL`            | `https://app.pulpe.app/mcp-consent`                                              |
    | `MCP_UPSTREAM_CLIENT_ID`     | Confidential Supabase client UUID                                                |
    | `MCP_UPSTREAM_CLIENT_SECRET` | Its backend-only secret                                                          |
    | `MCP_WRAPPING_KEY`           | Existing stable 32-byte hex wrapping key; new installations generate it securely |
 
-   Never put these secrets in frontend configuration, tool results, shell arguments or Git. A local copy for Dashlane must be explicitly Git-ignored and readable only by its owner. Keep the upstream ID and secret both unset until activation is allowed.
+   Never put these secrets in frontend configuration, tool results, shell arguments or Git. Keep the upstream ID and secret both **absent**, not empty strings, until activation is allowed; a half-configured pair or empty value fails startup validation. `MCP_WRAPPING_KEY` is required even while MCP is disabled. Preserve its production value if one exists; otherwise generate a fresh cryptographically random 32-byte value encoded as 64 hex characters, distinct from the unchanged `ENCRYPTION_MASTER_KEY` and every test key.
+
+   After authorization, a new secret's local Dashlane handoff may use `backend-nest/.mcp-production/.env.local`, separate from the test file. Verify `git check-ignore` before writing, use directory mode 700 and file mode 600, and store the value without displaying it in logs or chat. Record only secret names and target IDs in versioned evidence. Confirm Dashlane backup before removing the local copy; never regenerate a live key just to recover a missing local file.
 
 4. Deploy the backend and existing consent page with the feature still unavailable publicly until the retirement gate is complete. Do not restore the former public native issuer as a rollback.
 5. Verify discovery advertises the **Pulpe API origin**, not Supabase: `/.well-known/oauth-authorization-server` and `/.well-known/oauth-protected-resource/mcp`. External registration is `/register`, authorization `/authorize`, token exchange `/token`, revocation `/revoke`.
 6. Test association, a useful read, an encrypted write and revocation with a synthetic account in each intended assistant client. Only then update public availability copy. A protocol test does not prove ChatGPT/Claude plan or mobile availability.
+
+## 3. Production execution order after approval
+
+### Prepare configuration and release
+
+1. Review the exact settings delta on the existing production targets. Preserve
+   production `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+   `ENCRYPTION_MASTER_KEY`, real Turnstile keys and existing analytics settings.
+   Set/verify `NODE_ENV=production`, `CORS_ORIGIN=https://app.pulpe.app` and
+   `DEBUG_HTTP_FULL=false`. Do not copy dummy Turnstile, test bypass variables,
+   fixture credentials or disabled test analytics into production.
+2. Prepare the MCP URLs and required wrapping key from section 2, with both
+   upstream variables absent for the first isolated deployment. Coordinate any
+   provider configuration-triggered restart with the approved cutover window;
+   the release workflow does not configure OAuth clients or provider secrets.
+3. Verify Vercel Production settings: `PUBLIC_ENVIRONMENT=production`,
+   `PUBLIC_BACKEND_API_URL=https://api.pulpe.app/api/v1`, and
+   `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` for the same production
+   project as the backend. Never add service-role, wrapping or upstream secrets
+   to `PUBLIC_*` or the generated browser `config.json`. Keep real signup/MFA,
+   redirect allowlists and anti-bot protections; no global relaxation for reviewers.
+4. Verify existing GitHub release credentials without printing their values:
+   `SUPABASE_ACCESS_TOKEN`, `PRODUCTION_DB_PASSWORD`, `PRODUCTION_PROJECT_ID`,
+   `PULPE_RELEASE_APP_ID`, `PULPE_RELEASE_APP_PRIVATE_KEY` and
+   `RAILWAY_PRODUCTION_TOKEN`. Confirm the protected `production` environment
+   approval is enabled. A missing credential is a stop, not permission to replace it.
+5. Follow the existing [release process](../../../../docs/DEPLOYMENT.md#release-process):
+   feature PR into `main`, then `/release` from clean synchronized `main` after
+   the owner approves release preparation. Use its single `release/vX.Y.Z`
+   preparation PR, owner merge commit and exact successful staging proof.
+   Keep `main` fixed at that candidate until publish; do not choose a version or
+   reuse an old test SHA from this document.
+6. Resolve the existing release intention before dispatching
+   `release-promotion.yml` in read-only `plan` mode. Review its manifest, provider
+   IDs, rollback anchor and complete migration range. Then obtain approval for
+   `publish` and the GitHub `production` environment. The workflow performs the
+   migration dry-run/apply and advances `production`; provider Git integrations
+   deploy the candidate. No manual production `supabase db push`, `railway up`,
+   direct protected-branch push, tag creation or duplicate release dispatch.
+
+### Verify disabled deployment, then activate
+
+1. Wait for exact backend, frontend and landing deployment evidence and
+   `Production Finalized`; inspect `/health`, `/api/v1/app/version`, the public
+   consent page and ordinary encrypted account access. With upstream variables
+   absent, discovery must not advertise an enabled issuer and MCP must reject
+   access. A healthy backend alone is not proof of a working consent build.
+2. Only after section 1 and the owner activation gate, install both confidential
+   upstream variables together on the approved Railway production service and
+   restart it with the same proven source SHA. Record the resulting deployment
+   ID and check that no old instance remains. This enables public OAuth/MCP
+   endpoints, **not a private tester allowlist**, even while listing copy remains
+   unpublished; the owner must approve that exposure.
+3. Check `https://api.pulpe.app/.well-known/oauth-authorization-server` and
+   `https://api.pulpe.app/.well-known/oauth-protected-resource/mcp`: issuer and
+   endpoints must use `api.pulpe.app`, resource must be
+   `https://api.pulpe.app/mcp`, and scope must be `mcp`. External `/register`
+   belongs to Pulpe; native Supabase DCR must still reject registration.
+   Requests to `/mcp` without a bearer must return 401 with a metadata challenge.
+4. Create/use only the explicitly approved synthetic production account and
+   normal browser login/PIN flow. Verify seven read-only tools, then separately
+   consented read/write access (15 tools), a useful read, one approved expense
+   visible in ordinary Pulpe with matching amount/currency, and revocation.
+   Confirm revoked access is refused and reconnection needs new consent.
+   Compare encrypted storage and credential-boundary results without logging
+   amounts, secrets or user data; retain only sanitized evidence.
+5. Recheck ordinary Pulpe login, refresh, budget access and service health.
+   Observe authorization/token failure rates, MCP errors/latency and activity
+   for the agreed validation window. On a boundary violation, unexpected
+   mutation or first-party regression, stop activation and use section 4.
+
+### Branding and public distribution
+
+- Use `Pulpe` for production and keep `Pulpe Tests` on the separate test target.
+  Prepare the existing [brand icon](../../../../landing/public/icon.png)
+  (519 × 519 PNG), not a new design. OpenAI's submission form has a **Logo** field
+  under Info; upload the approved asset and verify its actual appearance in the
+  listing and connection dialog. This is listing configuration, not a change to
+  the Claude Code `plugin.json`. Recheck current upload constraints when entering
+  the form. [Official OpenAI submission guide](https://developers.openai.com/plugins/deploy/submission).
+- Use the production MCP URL with OAuth discovery, not the private Supabase
+  client secret. Prepare support at `https://pulpe.app/support`, the guide at
+  `https://pulpe.app/support/connecter-un-assistant`, and the actual published
+  privacy/terms URLs. Verify they match the provider/data-sharing disclosure.
+- Complete the existing [directory gates](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md#directory-submission-gates),
+  including publisher identity, domain challenge, reviewer access and evaluation
+  cases. Resolve portal-generated values at execution; do not invent tokens or
+  overwrite another listing's domain verification. Custom connector acceptance
+  does not establish directory approval or universal mobile support.
+- Only after owner approval and the applicable acceptance/publication gates,
+  update four-language availability copy through the normal release process.
+  Record live listing URLs, supported surfaces and production verification;
+  keep the test environment separate unless its retirement is also approved.
+
+## 4. Stop and recover
+
+For the **isolated** deployment, remove both upstream variables and restart all
+instances while preserving `MCP_WRAPPING_KEY` and `ENCRYPTION_MASTER_KEY`.
+Verify MCP bearer rejection and unavailable OAuth discovery, then ordinary Pulpe
+access. `MAINTENANCE_MODE` is not an OAuth kill switch: the SDK routes are mounted
+before Nest's maintenance middleware. Retire an old native issuer using section 1,
+not this isolated-issuer switch.
+
+Disabling is not revocation: existing grants remain stored and may work again
+after re-enabling. For an incident requiring permanent retirement, revoke the
+exact affected connections through Pulpe's owner flow or an approved scoped
+administrative procedure, and verify rejection before reopening. Do not rotate
+wrapping/master keys as a substitute for revocation.
+
+Application rollback uses the published anchor in the release plan **only if**
+compatible with the applied schema and unable to restore the old public native
+issuer. Otherwise keep MCP disabled and release a forward fix. Database recovery
+is forward-only; no reset, down-migration, financial-data overwrite or automated
+backup restore. Obtain separate approval for any data restore or broader outage.
 
 ## Credential lifetime and recovery
 

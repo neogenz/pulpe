@@ -77,3 +77,8 @@ The existing ChatGPT app subsequently reached the actual `Connect Pulpe to ChatG
 Native Claude Chat was then verified separately (`1.46388.4`, macOS `26.5.1`, Pro / Opus 5 High), in chat `b6d757f6-ca5a-480b-b506-55ad60d66602`. Five additional read tools and three negative calls received one-time approvals; their expanded responses matched the ordinary Pulpe UI. Across Claude sessions all seven read tools have been invoked, with goal outlook covered only by its missing-ID error rather than a successful existing-goal result. The final refreshed dashboard remained at 2,400 CHF, four forecasts and no movements. No data or permission change was made; the persistent-access confirmations still block the remaining vendor acceptance.
 
 No production configuration, shared preview database or directory submission was changed, and no paid upgrade was selected.
+
+The [production handoff](./cutover.md) is prepared with target/secret separation,
+retirement gates, the existing protected release workflow, activation checks,
+branding and recovery. This documentation does not complete vendor acceptance
+or authorize production operations; those remain separate owner decisions.

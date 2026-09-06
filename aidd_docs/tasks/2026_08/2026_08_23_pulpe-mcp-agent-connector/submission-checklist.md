@@ -80,7 +80,9 @@ dialog left its read-only grant intact. That exact access-change authorization
 is the current blocker, not the superseded request to replace old connectors.
 
 Follow [cutover.md](../../2026_09/2026_09_05_mcp-credential-isolation/cutover.md)
-for legacy retirement, exact issuer URLs, callback and variable names.
+for the production handoff: target separation, approval gates, secrets/Dashlane,
+legacy retirement, protected release order, branding and rollback. It is prepared
+but not executed; accepting the test fixture does not authorize production setup.
 Durable secrets and synthetic login/vault/recovery credentials already exist in
 the Git-ignored owner-only `backend-nest/.mcp-test/.env.local` for Dashlane.
 Do not regenerate them or put their values in this checklist or assistant prompts.
