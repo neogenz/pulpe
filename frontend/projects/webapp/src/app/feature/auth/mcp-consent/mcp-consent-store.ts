@@ -1,12 +1,7 @@
 import { Service, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import {
-  type McpAccessMode,
-  mcpConsentApproveRequestSchema,
-  mcpConsentDetailsResponseSchema,
-  mcpConsentRedirectResponseSchema,
-} from 'pulpe-shared';
-import { ApiClient } from '@core/api/api-client';
+import { type McpAccessMode } from 'pulpe-shared';
+import { McpApi } from '@core/mcp/mcp-api';
 import { DERIVE_CLIENT_KEY, EncryptionApi } from '@core/encryption';
 
 /**
@@ -17,18 +12,18 @@ import { DERIVE_CLIENT_KEY, EncryptionApi } from '@core/encryption';
  */
 @Service({ autoProvided: false })
 export class McpConsentStore {
-  readonly #api = inject(ApiClient);
+  readonly #api = inject(McpApi);
   readonly #encryptionApi = inject(EncryptionApi);
   readonly #deriveClientKey = inject(DERIVE_CLIENT_KEY);
 
   readonly authorizationId = signal<string | null>(null);
   readonly clientName = signal<string | null>(null);
-  readonly mode = signal<McpAccessMode>('read_write');
+  readonly mode = signal<McpAccessMode>('read');
 
   async load(authorizationId: string): Promise<void> {
     this.authorizationId.set(authorizationId);
     const { clientName } = await firstValueFrom(
-      this.#api.get$(this.#path(), mcpConsentDetailsResponseSchema),
+      this.#api.getConsent$(this.#requestId()),
     );
     this.clientName.set(clientName);
   }
@@ -44,13 +39,7 @@ export class McpConsentStore {
       kdfIterations,
     );
     const { redirectUrl } = await firstValueFrom(
-      this.#api.post$(
-        `${this.#path()}/approve`,
-        { mode: this.mode() },
-        mcpConsentRedirectResponseSchema,
-        mcpConsentApproveRequestSchema,
-        { 'X-Client-Key': clientKeyHex },
-      ),
+      this.#api.approve$(this.#requestId(), this.mode(), clientKeyHex),
     );
     return redirectUrl;
   }
@@ -58,18 +47,14 @@ export class McpConsentStore {
   /** @returns the URL carrying `error=access_denied` for the client. */
   async deny(): Promise<string> {
     const { redirectUrl } = await firstValueFrom(
-      this.#api.post$(
-        `${this.#path()}/deny`,
-        {},
-        mcpConsentRedirectResponseSchema,
-      ),
+      this.#api.deny$(this.#requestId()),
     );
     return redirectUrl;
   }
 
-  #path(): string {
+  #requestId(): string {
     const id = this.authorizationId();
     if (!id) throw new Error('No authorization request loaded');
-    return `/mcp/consent/${encodeURIComponent(id)}`;
+    return id;
   }
 }

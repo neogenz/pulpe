@@ -485,8 +485,16 @@
       "seeAll": "Vedi tutto",
       "failed": "fallita",
       "tools": {
-        "add_movement": "Movimento aggiunto"
+        "add_movement": "Movimento aggiunto",
+        "add_forecast": "Previsione aggiunta",
+        "create_month_from_template": "Budget mensile creato",
+        "delete_movement": "Movimento eliminato",
+        "spread_expense": "Spesa ripartita",
+        "toggle_check": "Stato di verifica modificato",
+        "update_forecast": "Previsione aggiornata",
+        "update_movement": "Movimento aggiornato"
       },
+      "unknownAction": "Azione dell’assistente",
       "revoke": "Togli l'accesso",
       "revokeTitle": "Togliere l'accesso a {{ client }}?",
       "revokeMessage": "{{ client }} non potrà più leggere né modificare il tuo budget. Per ricollegarlo dovrai autorizzarlo di nuovo con il tuo codice.",

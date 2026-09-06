@@ -485,8 +485,16 @@
       "seeAll": "See all",
       "failed": "failed",
       "tools": {
-        "add_movement": "Movement added"
+        "add_movement": "Movement added",
+        "add_forecast": "Forecast added",
+        "create_month_from_template": "Monthly budget created",
+        "delete_movement": "Movement deleted",
+        "spread_expense": "Expense spread",
+        "toggle_check": "Checked status changed",
+        "update_forecast": "Forecast updated",
+        "update_movement": "Movement updated"
       },
+      "unknownAction": "Assistant action",
       "revoke": "Cut access",
       "revokeTitle": "Cut {{ client }}'s access?",
       "revokeMessage": "{{ client }} will no longer be able to read or change your budget. To plug it back in, you will have to allow it again with your code.",

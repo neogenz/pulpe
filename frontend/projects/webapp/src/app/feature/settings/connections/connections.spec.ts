@@ -91,6 +91,22 @@ describe('Connections', () => {
     expect(query('connection-card')).not.toBeNull();
   });
 
+  it('loads the selected connection history and never displays an unknown raw tool key', async () => {
+    await setup([chatgpt]);
+    store.loadActivity.mockResolvedValue([
+      { tool: 'future_tool', outcome: 'ok', createdAt: '2026-09-06T00:00:00Z' },
+    ]);
+    (query('connection-load-activity') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    expect(store.loadActivity).toHaveBeenCalledWith(chatgpt.id, 5);
+    expect(query('connection-activity-row')?.textContent).toContain(
+      'Action de l’assistant',
+    );
+    expect(query('connection-activity-row')?.textContent).not.toContain(
+      'future_tool',
+    );
+  });
+
   it('drops the card once the cut is confirmed, without reloading', async () => {
     await setup([chatgpt]);
     dialogResult.value = true;

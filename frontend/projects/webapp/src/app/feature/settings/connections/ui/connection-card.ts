@@ -2,13 +2,14 @@ import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  inject,
   input,
   output,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import type { McpActivity, McpConnection } from 'pulpe-shared';
 
 const PREVIEW_COUNT = 5;
@@ -79,9 +80,7 @@ const FULL_COUNT = 50;
                     data-testid="connection-activity-row"
                   >
                     <span [class.text-error]="entry.outcome === 'error'">
-                      {{
-                        'settings.connections.tools.' + entry.tool | transloco
-                      }}
+                      {{ toolLabel(entry.tool) }}
                       @if (entry.outcome === 'error') {
                         ({{ 'settings.connections.failed' | transloco }})
                       }
@@ -135,22 +134,37 @@ const FULL_COUNT = 50;
   `,
 })
 export class ConnectionCard {
+  readonly #transloco = inject(TranslocoService);
   readonly connection = input.required<McpConnection>();
   /** Fetches the newest entries; the parent owns the API. */
   readonly loadActivity =
-    input.required<(limit: number) => Promise<McpActivity[]>>();
+    input.required<
+      (connectionId: string, limit: number) => Promise<McpActivity[]>
+    >();
   readonly revoke = output<void>();
 
   protected readonly previewCount = PREVIEW_COUNT;
   protected readonly activity = signal<McpActivity[] | null>(null);
   protected readonly isExpanded = signal(false);
 
+  protected toolLabel(tool: string): string {
+    const key = `settings.connections.tools.${tool}`;
+    const label = this.#transloco.translate<string>(key);
+    return label === key
+      ? this.#transloco.translate('settings.connections.unknownAction')
+      : label;
+  }
+
   protected async preview(): Promise<void> {
-    this.activity.set(await this.loadActivity()(PREVIEW_COUNT));
+    this.activity.set(
+      await this.loadActivity()(this.connection().id, PREVIEW_COUNT),
+    );
   }
 
   protected async expand(): Promise<void> {
     this.isExpanded.set(true);
-    this.activity.set(await this.loadActivity()(FULL_COUNT));
+    this.activity.set(
+      await this.loadActivity()(this.connection().id, FULL_COUNT),
+    );
   }
 }

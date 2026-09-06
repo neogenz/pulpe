@@ -109,6 +109,27 @@ function webappSources(): string {
 const DYNAMIC_PREFIX = /[`'"]([a-zA-Z][\w.]*\.)(?:\$\{|['"]\s*\+)/g;
 
 describe('i18n catalogs', () => {
+  it('names every MCP write tool in all four activity catalogs', () => {
+    const root = '../backend-nest/src/modules/mcp/infrastructure/tools/write';
+    const tools = readdirSync(root)
+      .filter((name) => name.endsWith('.tool.ts'))
+      .map(
+        (name) =>
+          readFileSync(`${root}/${name}`, 'utf8').match(
+            /readonly name = '([^']+)'/,
+          )?.[1],
+      );
+    expect(tools.length).toBeGreaterThan(1);
+    for (const tool of tools) {
+      expect(tool).toBeDefined();
+      for (const catalog of Object.values(CATALOGS)) {
+        expect(
+          leaves(catalog).get(`settings.connections.tools.${tool}`),
+        ).toBeTruthy();
+      }
+    }
+  });
+
   it('holds a non-trivial French source', () => {
     // Guards the guard: an empty or unresolved import would make every
     // assertion below pass while proving nothing.

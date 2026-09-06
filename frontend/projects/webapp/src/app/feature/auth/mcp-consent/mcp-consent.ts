@@ -252,7 +252,6 @@ export default class McpConsent {
     } catch (error) {
       this.#fail(error);
       this.form.controls.vaultCode.setValue('');
-    } finally {
       this.isSubmitting.set(false);
     }
   }

@@ -29,7 +29,7 @@ describe('McpConsent', () => {
     store = {
       authorizationId: signal<string | null>(null),
       clientName: signal<string | null>(null),
-      mode: signal<'read' | 'read_write'>('read_write'),
+      mode: signal<'read' | 'read_write'>('read'),
       load: vi.fn(async () => {
         store.clientName.set('ChatGPT');
       }),
@@ -123,6 +123,10 @@ describe('McpConsent', () => {
     expect(store.approve).toHaveBeenCalledWith('1234');
     expect(assign).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Code PIN incorrect');
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="mcp-consent-deny"]')
+        .disabled,
+    ).toBe(false);
     vi.unstubAllGlobals();
   });
 
@@ -141,6 +145,15 @@ describe('McpConsent', () => {
     expect(assign).toHaveBeenCalledWith(
       'https://client.example/cb?error=access_denied',
     );
+    await (
+      fixture.componentInstance as unknown as { onDeny: () => Promise<void> }
+    ).onDeny();
+    expect(store.deny).toHaveBeenCalledTimes(1);
+    await fixture.whenStable();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="mcp-consent-deny"]')
+        .disabled,
+    ).toBe(true);
     vi.unstubAllGlobals();
   });
 });

@@ -69,7 +69,7 @@ import { ConnectionCard } from './ui/connection-card';
               @for (connection of store.connections(); track connection.id) {
                 <pulpe-connection-card
                   [connection]="connection"
-                  [loadActivity]="activityLoader(connection)"
+                  [loadActivity]="loadActivity"
                   (revoke)="onRevoke(connection)"
                 />
               }
@@ -92,9 +92,8 @@ export default class Connections {
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
 
-  protected activityLoader(connection: McpConnection) {
-    return (limit: number) => this.store.loadActivity(connection.id, limit);
-  }
+  protected readonly loadActivity = (connectionId: string, limit: number) =>
+    this.store.loadActivity(connectionId, limit);
 
   protected async onRevoke(connection: McpConnection): Promise<void> {
     const dialogRef = this.#dialog.open(ConfirmationDialog, {

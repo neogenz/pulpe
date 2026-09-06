@@ -485,8 +485,16 @@
       "seeAll": "Alle anzeigen",
       "failed": "fehlgeschlagen",
       "tools": {
-        "add_movement": "Bewegung hinzugefügt"
+        "add_movement": "Bewegung hinzugefügt",
+        "add_forecast": "Planung hinzugefügt",
+        "create_month_from_template": "Monatsbudget erstellt",
+        "delete_movement": "Bewegung gelöscht",
+        "spread_expense": "Ausgabe verteilt",
+        "toggle_check": "Prüfstatus geändert",
+        "update_forecast": "Planung aktualisiert",
+        "update_movement": "Bewegung aktualisiert"
       },
+      "unknownAction": "Aktion des Assistenten",
       "revoke": "Zugriff beenden",
       "revokeTitle": "Zugriff von {{ client }} beenden?",
       "revokeMessage": "{{ client }} kann dein Budget dann weder lesen noch ändern. Um es wieder zu verbinden, musst du es erneut mit deinem Code erlauben.",

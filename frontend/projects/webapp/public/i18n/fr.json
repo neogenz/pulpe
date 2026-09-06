@@ -485,8 +485,16 @@
       "seeAll": "Tout voir",
       "failed": "échec",
       "tools": {
-        "add_movement": "Mouvement ajouté"
+        "add_movement": "Mouvement ajouté",
+        "add_forecast": "Prévision ajoutée",
+        "create_month_from_template": "Budget mensuel créé",
+        "delete_movement": "Mouvement supprimé",
+        "spread_expense": "Dépense répartie",
+        "toggle_check": "Pointage modifié",
+        "update_forecast": "Prévision modifiée",
+        "update_movement": "Mouvement modifié"
       },
+      "unknownAction": "Action de l’assistant",
       "revoke": "Couper l'accès",
       "revokeTitle": "Couper l'accès à {{ client }} ?",
       "revokeMessage": "{{ client }} ne pourra plus lire ni modifier ton budget. Pour le rebrancher, il faudra l'autoriser à nouveau avec ton code.",
