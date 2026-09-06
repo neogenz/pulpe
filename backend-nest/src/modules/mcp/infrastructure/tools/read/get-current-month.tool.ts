@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { getBudgetPeriodForDate } from 'pulpe-shared';
+import { getBudgetPeriodForDate, parseIsoDateLocal } from 'pulpe-shared';
+import { formatBusinessCalendarDate } from '@common/utils/business-calendar-date';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import {
   BUDGET_MONTH_READ_PORT,
@@ -31,7 +32,7 @@ export class GetCurrentMonthTool implements McpTool {
 
   async execute(): Promise<McpToolResult> {
     const { month, year } = getBudgetPeriodForDate(
-      new Date(),
+      parseIsoDateLocal(formatBusinessCalendarDate()),
       this.session.user.payDayOfMonth,
     );
     const details = await this.budgets.readMonth(month, year);

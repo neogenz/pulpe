@@ -28,10 +28,12 @@ import type { Database } from '@/types/database.types';
 import {
   BudgetFormulas,
   getBudgetPeriodForDate,
+  parseIsoDateLocal,
   type BudgetLine,
   type Transaction,
 } from 'pulpe-shared';
 import { CurrencyService } from '@modules/currency/currency.service';
+import { formatBusinessCalendarDate } from '@common/utils/business-calendar-date';
 import {
   USER_REPOSITORY,
   type UserRepositoryPort,
@@ -1091,7 +1093,10 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
             .set('X-Client-Key', clientKey)
             .expect(200)
         ).body.data;
-      const period = getBudgetPeriodForDate(new Date(), null);
+      const period = getBudgetPeriodForDate(
+        parseIsoDateLocal(formatBusinessCalendarDate()),
+        null,
+      );
       const future = { month: period.month, year: period.year + 1 };
       const current = await admin
         .from('monthly_budget')
