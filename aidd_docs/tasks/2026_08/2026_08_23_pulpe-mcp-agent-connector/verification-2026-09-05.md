@@ -1,6 +1,6 @@
 # MCP readiness verification — 2026-09-05
 
-Status, updated 2026-09-06: **server verified locally and on isolated remote infrastructure; real assistant acceptance and public activation pending**.
+Status, updated 2026-09-06: **isolated server and vendor web read/write/revocation verified; deployed presentation regression passed; dependency remediation and protected production release pending**.
 This supersedes earlier readiness claims, not the historical implementation record.
 
 ## Verified implementation
@@ -71,8 +71,8 @@ The expanded checks reproduced and corrected three discrepancies:
   mobile support. No financial formula or native source changed in this follow-on.
 - There is no GitHub `CI Success` proof for the current work. The workflow is
   pull-request-only and no pull request has been created.
-- No real ChatGPT/Claude association → read → write → revoke session has yet been
-  verified against the isolated issuer. Local protocol success does not prove it.
+- The original server-only checkpoint is superseded by the vendor and deployed
+  regression evidence below; both vendors passed association → read → write → revoke.
 
 Local logs for the latest backend runs:
 `/tmp/pulpe-mcp-phase2-all-integration-20260905.log`,
@@ -319,3 +319,140 @@ ChatGPT final consent and vendor write/revocation tests still await the exact
 access-change confirmation. The local Claude Code CLI reports version `2.1.261`
 and `loggedIn: false` / `authMethod: none`; its OAuth/tool acceptance has not run.
 Actual mobile acceptance remains unverified. No production action was taken.
+
+### Vendor read/write and revocation acceptance — 2026-09-06
+
+The user explicitly authorized browser association, synthetic writes and
+revocation on the test origins for `mcp-review-20260906@pulpe.test` only.
+This supersedes the earlier access-change blocker. No production operation,
+paid upgrade, public submission or provider approval-policy change occurred.
+
+ChatGPT Pro web used the existing `Pulpe Tests` app and completed read/write
+consent through Arc. In [the validation conversation](https://chatgpt.com/c/6a9d84c6-8608-83eb-a7bd-3b534d0c0ff1)
+(`Validation lecture seule`, reasoning UI `Extra High`; exact model unverified),
+`get_month`, `list_templates`, `list_savings_goals` and populated
+`get_savings_goal_outlook` returned the expected CHF figures. The chat title and
+initial no-write prompt do not establish a read-only grant or seven-tool catalog.
+Settings briefly showed no actions even after refresh; actual chat calls worked.
+
+After one-time approval, `add_movement` created only
+`c839d5cd-cc33-40e5-995c-ff2b6d25b5bf`, `Courses fictives ChatGPT QA 20260906`,
+25 CHF, unchecked, with `2026-09-06T00:00:00+02:00`. Re-reading and exact-name
+search found one result; reloaded Pulpe showed 2,375 CHF and 6 September.
+The expanded MCP month report instead displayed 5 September, exposing the
+timestamp truncation defect below. One-time approved `delete_movement` removed
+that exact ID and a fresh read restored 2,400 CHF, four forecasts and no movements.
+Revoking ChatGPT in Pulpe removed its card. A subsequent fresh
+`get_current_month` request displayed `Reconnect Pulpe Tests` and said the
+connection had expired. `Not now` was selected; no grant was recreated.
+
+Claude's previous read-only association was disconnected in Claude and explicitly
+revoked in Pulpe; vendor disconnect alone had left its Pulpe card active.
+New read/write consent exposed seven read tools and eight writes, each configured
+as `Needs approval`. [The web validation conversation](https://claude.ai/chat/f1d9b6ea-6867-4187-8fbd-079a901551b8)
+(`Validation du compte fictif Pulpe Tests`, Pro / Opus 5 High) exercised all eight
+writes. Every executed call used one-time approval, not `Always allow`.
+
+| Tool                         | Observed result                                                                                                                                                                                                                                                                                                               |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `add_movement`               | Created `c3d8c3ff-c88f-43c1-83fa-9b2e3c188df5`, `Courses fictives Claude QA 20260906`, 25 CHF, 6 September at noon +02:00; Pulpe showed 2,375 CHF and one unchecked movement.                                                                                                                                                 |
+| `update_movement`            | Renamed that ID to `Courses fictives Claude QA modifiées 20260906`, changed amount to 30 CHF.                                                                                                                                                                                                                                 |
+| `toggle_check`               | Pointed that same movement; fresh MCP/Pulpe showed 2,370 CHF available and 30 CHF checked.                                                                                                                                                                                                                                    |
+| `create_month_from_template` | Created October `33590318-1488-496c-a5e3-c51fb1990778` from the verified default synthetic template after October/November absence checks.                                                                                                                                                                                    |
+| `add_forecast`               | Created October one-off expense `a4d51734-1416-49e4-a465-ba7c33d4634a`, `Assurance fictive Claude QA 20260906`, 120 CHF.                                                                                                                                                                                                      |
+| `update_forecast`            | Changed that exact forecast to 100 CHF; independently reloaded Pulpe showed it.                                                                                                                                                                                                                                               |
+| `spread_expense`             | Replaced it with October `8345bd8e-40c7-48e0-a786-48b5c683ca5e` and November `52afbe8f-ee59-4930-af86-0e125868ac2b`, 50 CHF each; authorized November budget creation produced `5ee28dbb-8632-494d-8b64-82bce99356e4`. Fresh MCP and Pulpe showed both tranches and 4,720/7,070 CHF available, including sequential rollover. |
+| `delete_movement`            | Deleted only the 30 CHF movement; re-reading September restored 2,400 CHF, four forecasts and no movements. The first approval expired (`No approval received`, no deletion); an explicitly requested new attempt succeeded after approval.                                                                                   |
+
+The two new months were then permanently removed through the ordinary encrypted
+test API with the synthetic user's session, not service-role database access.
+Before deletion, both exact IDs, owner, year/month, template, zero movements,
+five forecasts and named 50 CHF tranche were checked. Readback found only the
+original September budget with zero movements and four forecasts. The template
+and standalone savings goal were not modified or removed.
+
+Claude was revoked in Pulpe before a fresh one-time approved `get_current_month`
+call. The actual client tool panel showed request `{}` and
+`Authentication required to use this tool`, with `Connect`; no reconnect was
+performed. Pulpe showed `No assistant connected`. Neither vendor returned fresh
+financial data after revocation. Earlier conversation data remains with vendors;
+revocation does not erase it.
+
+Two minimal presentation fixes now live in `month-report.ts`, shared by both
+month read tools: retain the complete movement timestamp, and explicitly label
+unchecked forecasts/movements `À pointer`. No amount formula, schema or grant
+logic changed. Regression checks failed before their fixes, then passed. The
+complete backend run passed **1,630 tests, 19 gated skips, zero failures**
+(4,152 assertions). The normal suite skips the separate isolated MCP HTTP file;
+its prior 19-scenario result is not a new run. Sandboxed full runs failed when
+Supertest could not obtain a listening port; the full port-authorized run passed.
+`pnpm quality` then passed sequentially, including zero backend lint errors.
+
+A first normal commit attempt stopped at its quality hook: a concurrently
+running architecture test removed its temporary source fixture while Prettier
+read it. No hook bypass was used. The sequential quality run and subsequent
+normal commit hook passed; the checkpoint below records the deployed result.
+
+### Deployed regression and release checkpoint — 2026-09-06
+
+Source `6a476844302a1eeecbc5dc73e61891c600d85ac3` was committed and pushed with
+normal hooks (`fix(mcp): clarify movement dates and unchecked state`). Railway
+deployment `8215bf82-0162-4ffa-9bfa-b5a996c3fc53`, created at 16:09:07 UTC,
+reached `SUCCESS` in the isolated `mcp-spike` environment. Focused regression
+checks passed **3 tests / 11 assertions**. A fresh isolated HTTP run on this
+source passed **19 scenarios / 451 assertions, zero failures** in 46.43 seconds;
+its disposable account/client fixtures were removed. This is new evidence,
+not the earlier skipped-file result.
+
+Claude Pro web / Opus 5 High completed a fresh read/write association after the
+synthetic account was verified in Pulpe's user menu. In [the regression chat](https://claude.ai/chat/28336f36-c886-4d41-9d86-629cb648a796),
+each tool call received one-time approval; the first read approval expired
+without executing, then an explicitly requested retry succeeded. No approval
+policy was relaxed. The add request named the existing September budget, 1 CHF
+expense `Minuit QA 20260906`, `2026-09-06T00:00:00+02:00`, no forecast ID.
+
+- Created movement: `53f786d7-c058-44d1-b0ab-527802e6b654`.
+- Expanded MCP re-read: full `2026-09-05T22:00:00+00:00`, `À pointer` for the
+  movement and all four forecasts, available 2,399 CHF.
+- Claude correctly converted that instant to 6 September, 00:00 Europe/Zurich.
+  Independent Pulpe UI showed `06.09.2026`, 1 CHF outside planned items,
+  unchecked, with the same 2,399 CHF available.
+- One-time approved deletion targeted only the created ID. Fresh expanded MCP
+  read and reloaded Pulpe restored 2,400 CHF, four unchanged forecasts and zero
+  movements. This deletion is permanent; the remaining base fixture is intact.
+- Pulpe revoked the new grant. A fresh approved `get_current_month` request `{}`
+  displayed `Authentication required to use this tool` and `Connect`, with no
+  financial result. No reconnection was performed. Pulpe showed
+  `No assistant connected`; ChatGPT's earlier revocation remained unchanged.
+
+The model also suggested returning the user's timezone instead of UTC. That is
+not a reproduced defect: the complete offset-bearing timestamp preserves the
+instant and both observed consumers rendered the expected local day. No extra
+timezone setting or reporting abstraction was added.
+
+The owner waived mobile acceptance on 2026-09-06. Mobile remains **not tested**,
+not universally supported by inference. Claude Code, ChatGPT's read-only grant
+and desktop writes remain unverified. Existing native Pulpe connection tests
+are distinct from provider mobile acceptance.
+
+The owner authorizes test-resource retirement after validation, a PR to `main`,
+monitoring/merge when safe, and production setup through the existing protected
+release flow. No PR or production change has been made at this checkpoint.
+Test infrastructure is retained until the remaining security gate is resolved.
+
+#### Dependency gate
+
+`pnpm audit --prod --json` reports **45 advisory entries: 19 high, 23 moderate,
+3 low, zero critical** on this candidate. This includes monorepo runtime-labeled
+Android build dependencies; it is not proof of 45 exploitable production paths.
+Backend/web paths include the MCP SDK, Nest, Supabase and chart dependencies.
+Affected transitives include `fast-uri`, `ws`, `multer`, `ip-address`, `validator`,
+`lodash`/`lodash-es`, `js-yaml`, `qs` and `path-to-regexp`. The existing
+critical-only CI audit does not establish that these findings are resolved.
+
+A targeted `pnpm update --depth Infinity --lockfile-only` did not update the
+intended transitives and generated unrelated Metro/Terser lockfile churn.
+That generated diff was fully reverted; no dependency fix is claimed. Review
+reachability and apply supported dependency updates before production approval.
+The owner was offered a separate security commit in this PR or a separate
+security PR before production, in accordance with the repository diff-size gate.

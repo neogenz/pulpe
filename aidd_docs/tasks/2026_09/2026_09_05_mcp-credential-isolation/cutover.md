@@ -10,29 +10,37 @@ legacy issuance → deploy disabled → approve activation → verify → approv
 distribution**. Test approval is not production approval; deployment is not
 directory publication.
 
+The owner subsequently authorized scoped test cleanup after validation, a PR to
+`main`, monitoring/merge when safe, and production setup. This resolves the broad
+production-setup permission, not the exact release/version, protected-environment,
+activation or legal/publication gates below. No production change has occurred.
+
 Use the existing production infrastructure, not a new project or a promotion of
 the disposable test environment. Resolve the actual provider IDs read-only at
 execution time and record them alongside the approved release plan; the domains
 below are the repository's intended production targets, not a fresh live audit.
 
-| Surface | Production target | Must not be reused from tests |
-| --- | --- | --- |
-| Backend | Railway service serving `https://api.pulpe.app` | `mcp-spike` or `backend-mcp-spike.up.railway.app` |
-| Web app / consent | Vercel `pulpe-frontend`, `https://app.pulpe.app` | Vercel `pulpe-mcp-test` |
-| Landing / support | Vercel `pulpe-landing`, `https://pulpe.app` | Test availability copy or noindex configuration |
-| Auth / database | Existing production Supabase project; resolve its ref | Test ref `jsjfammxsqyglxlqzpsl`, fixtures or secrets |
+| Surface           | Production target                                     | Must not be reused from tests                        |
+| ----------------- | ----------------------------------------------------- | ---------------------------------------------------- |
+| Backend           | Railway service serving `https://api.pulpe.app`       | `mcp-spike` or `backend-mcp-spike.up.railway.app`    |
+| Web app / consent | Vercel `pulpe-frontend`, `https://app.pulpe.app`      | Vercel `pulpe-mcp-test`                              |
+| Landing / support | Vercel `pulpe-landing`, `https://pulpe.app`           | Test availability copy or noindex configuration      |
+| Auth / database   | Existing production Supabase project; resolve its ref | Test ref `jsjfammxsqyglxlqzpsl`, fixtures or secrets |
 
 Before any production write, record and check:
 
-- [ ] Maxime has accepted the [client evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md) and the exact supported surfaces. Claude's seven read tools now have successful client results, including a populated goal outlook; ChatGPT association/tool calls, vendor writes/revocation, Claude Code and mobile acceptance are still incomplete. Retain limitations instead of marking them passed.
+- [ ] Maxime has accepted the [client evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md) and the exact supported surfaces. Both vendors passed web read/write and revocation; all 15 tools have Claude success evidence across sessions. The deployed presentation regression passed in Claude web. The owner waived mobile testing; it remains unverified, alongside ChatGPT's seven-tool read-only grant, Claude Code and desktop writes. Retain limitations instead of marking them passed.
+- [ ] Resolve the [production dependency audit](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#dependency-gate), with supported updates and relevant regression/build checks. The critical-only CI audit is insufficient evidence for the remaining high/moderate advisories.
 - [ ] Production Supabase ref, Railway project/environment/service IDs and Vercel team/project IDs have been resolved and approved. Existing service health and ordinary login, refresh and encrypted budget access have a baseline.
 - [ ] The candidate SHA/version, published rollback anchor, **all** pending migrations since that anchor, backup/restore availability, cutover window and owner are recorded. No migration reset, force-push or test seed against production.
 - [ ] The applicable legacy retirement evidence in section 1 is complete before activation. If an old issuer is already live, agree how to stop it before the migration; do not assume this document proves production was never exposed.
 - [ ] Maxime approves the exact infrastructure/secret changes and any synthetic production account, assistant grants, writes and revocations. Directory submission, identity/legal attestations and public launch require their own approval.
 
-This is an MCP/backend, database, web-consent and distribution change. It does
-not require an iOS build, simulator or App Store release. Testing the ChatGPT or
-Claude mobile clients, when support is claimed, is a separate acceptance check.
+The credential-isolation and presentation corrections do not change native
+code or require a simulator. The complete feature PR does include earlier
+Pulpe iOS connection-management files; let the existing CI/release classifier
+determine its native checks and distribution requirements. Those are distinct
+from testing ChatGPT/Claude mobile applications, which the owner waived.
 
 ## 1. Retire the native public issuer
 

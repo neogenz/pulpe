@@ -1,10 +1,22 @@
 ---
-status: blocked
+status: in-progress
 ---
 
 # Instruction: Verify useful client flows and prepare activation
 
 ## Execution checkpoint — 2026-09-06
+
+**Latest checkpoint:** explicit account-scoped authorization superseded the
+access-change blocker recorded below. Both vendors passed web read/write and
+revocation; all eight write tools succeeded in Claude. Synthetic write data was
+removed and both grants revoked. Source `6a4768443` reached the test deployment;
+the fresh Claude midnight/pointing regression, cleanup and revocation passed,
+as did 19 isolated HTTP scenarios. Mobile acceptance is waived by the owner,
+not verified. The dependency audit and protected release remain incomplete;
+the owner now authorizes cleanup, PR/merge and production setup through those
+gates. The [current matrix](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md)
+and [final vendor evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#vendor-readwrite-and-revocation-acceptance--2026-09-06)
+supersede the historical checkpoints below.
 
 Server verification passed: all 15 tools execute through real HTTP and encrypted owner data, within 18 MCP scenarios and 121 passing backend integration/e2e tests. Account-currency edits, destructive annotations and literal search were corrected. Existing CI already runs this test file. Client requirements, evaluation prompts and current evidence are recorded in the linked readiness documents.
 

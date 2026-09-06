@@ -1,13 +1,15 @@
 ---
-status: blocked
+status: in-progress
 ---
 
 # Client acceptance and directory readiness
 
 Verified against official documentation on 2026-09-05. A working custom connector
-and a published directory listing are separate milestones. Claude web has partial
-read-only acceptance; complete vendor acceptance remains unproven for the new
-isolated issuer. No submission or agreement was accepted.
+and a published directory listing are separate milestones. Both vendors passed
+web read/write and revocation checks on the isolated test issuer. Additional
+surfaces remain unverified. The deployed timestamp/pointing regression passed
+in Claude web; mobile acceptance is waived by the owner, not marked passed.
+No submission or agreement was accepted.
 
 ## Distribution assets in this repository
 
@@ -23,16 +25,17 @@ its provider. Public availability remains "in preparation".
 ## Client availability and observed acceptance
 
 Web sessions were exercised on 2026-09-06 after replacing both legacy test
-associations. Neither client has completed read/write/revocation acceptance.
+associations. Explicit access-change authorization resolved the earlier blocker;
+both test grants are now revoked.
 
-| Client/surface            | Current documented path                                                                                                                                   | Pulpe acceptance |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| ChatGPT web               | Developer mode, subject to account/workspace policy; connect an MCP endpoint through Plugins.                                                             | Pro app `Pulpe Tests` has correct discovery. The in-app-browser handoff stalled; Arc 1.162.0 reached Pulpe consent with the synthetic account. Read-only selected, final authorization pending; no grant or tool call yet. |
-| ChatGPT desktop/mobile    | Do not infer support from web developer mode or from publication alone; verify the actual account, app version and directory availability.                | Not run          |
-| Claude web                | Remote connectors are brokered through Anthropic's infrastructure; the server must be reachable there. Free accounts are limited to one custom connector. | Pro consent, seven-tool read-only catalog, current-budget read and unavailable-write check passed. |
-| Claude macOS              | The installed application exposes separate Chat and Cowork modes.                                                                                        | Cowork current-month read passed (1.40609.1); Chat additional reads, three negative calls and a populated goal outlook passed (1.46388.4), on macOS 26.5.1. Every Chat call used one-time approval. Writes/revocation remain unverified. |
-| Claude mobile             | Verify the actual mobile application/account; web and macOS evidence is insufficient.                                                                     | Not run          |
-| Claude Code               | Remote MCP plugin/connection; package installation alone does not test authorization.                                                                     | Installed CLI 2.1.261 reports no authenticated account; OAuth/tool acceptance not run. |
+| Client/surface         | Current documented path                                                                                                                                   | Pulpe acceptance                                                                                                                                                                                                                         |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ChatGPT web            | Developer mode, subject to account/workspace policy; connect an MCP endpoint through Plugins.                                                             | Pro: read/write consent, useful reads, a 25 CHF movement, deletion and revocation passed. A subsequent request required reconnection. Seven-tool read-only grant not exercised.                                                          |
+| ChatGPT desktop/mobile | Do not infer support from web developer mode or from publication alone; verify the actual account, app version and directory availability.                | Not run; owner waived mobile acceptance on 2026-09-06.                                                                                                                                                                                   |
+| Claude web             | Remote connectors are brokered through Anthropic's infrastructure; the server must be reachable there. Free accounts are limited to one custom connector. | Pro / Opus 5 High: read-only checks and read/write reconnection passed. All eight write tools succeeded; a fresh call after revocation required authentication. Together with earlier reads, all 15 tools have vendor success evidence.  |
+| Claude macOS           | The installed application exposes separate Chat and Cowork modes.                                                                                         | Cowork current-month read passed (1.40609.1); Chat additional reads, three negative calls and a populated goal outlook passed (1.46388.4), on macOS 26.5.1. Every Chat call used one-time approval. Writes/revocation remain unverified. |
+| Claude mobile          | Verify the actual mobile application/account; web and macOS evidence is insufficient.                                                                     | Not run; owner waived mobile acceptance on 2026-09-06.                                                                                                                                                                                   |
+| Claude Code            | Remote MCP plugin/connection; package installation alone does not test authorization.                                                                     | Installed CLI 2.1.261 reports no authenticated account; OAuth/tool acceptance not run.                                                                                                                                                   |
 
 The current [OpenAI connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt)
 uses Settings → Security and login → Developer mode, then Plugins → +. It does
@@ -55,37 +58,43 @@ The latest read acceptance added one synthetic savings goal, target 1,000 CHF
 and starting amount 200 CHF, retained for the remaining client checks.
 See the [remote evidence](./verification-2026-09-05.md#remote-environment-and-client-readiness--updated-2026-09-06).
 
-The user approved replacing the legacy associations and testing only this
-account. Both replacements are done. Claude's synthetic read-only grant is active;
-its one-time approved `get_current_month` call returned the expected figures.
-No write was available, and a refreshed Pulpe dashboard remained unchanged.
-The missing explicit currency and the expense aggregate's inclusion of planned
-savings caused model uncertainty. Both are corrected and covered by 19 isolated
-HTTP scenarios. A fresh Claude web read after deploying `f778a6a9438` verified
-explicit CHF and the corrected spending/savings totals in both the expanded tool
-result and the model's summary, using the same read-only grant and one-time approval.
-A separate macOS Cowork read returned the same figures and explicit currency;
-its existing auto-approval setting was unchanged. This does not establish all
-desktop modes or mobile acceptance.
-The subsequent macOS Chat run exercised five additional successful read tools
-and three negative calls with one-time approvals. Together with the current-month
-read, all seven read tools were invoked in Claude. A subsequent populated-goal
-check now also passes: target 1,000 CHF, confirmed/projection 200 CHF and 20%
-progress match the reloaded Pulpe goal page. Each call used one-time approval;
-the existing grant was unchanged. The only fixture addition is the synthetic
-goal described above. Mobile and vendor write/revocation acceptance remain incomplete.
-ChatGPT's existing app now reaches the actual Pulpe consent in Arc, after the
-earlier in-app-browser handoff stalled. Read-only is selected; the PIN is empty
-and final authorization awaits confirmation. No ChatGPT grant was created.
-Automatic security
-review rejected disconnecting Claude before read/write testing; the cancelled
-dialog left its read-only grant intact. That exact access-change authorization
-is the current blocker, not the superseded request to replace old connectors.
+The user explicitly authorized browser association, synthetic writes and
+revocation for this account only. ChatGPT used a read/write grant: initially
+asking for no writes is not evidence of read-only authorization. Its successful
+reads included the populated goal; its 25 CHF movement reduced available funds
+to 2,375 CHF, then deletion restored 2,400 CHF.
+
+Claude's former read-only grant was revoked before new read/write consent.
+Creation, modification, checking and deletion of one movement passed, as did
+month creation, forecast creation/update and spreading 100 CHF across October
+and November. Expanded requests/results and independently reloaded Pulpe pages
+were checked. One-time approvals were used; no approval policy was relaxed.
+The movement and both newly created months were removed. September, its four
+forecasts, the template and populated goal remain intact.
+
+Both grants were revoked in Pulpe. Fresh vendor calls then required reconnection
+(ChatGPT) or authentication (Claude), with no new financial result. Pulpe showed
+`No assistant connected`. See [the final vendor evidence](./verification-2026-09-05.md#vendor-readwrite-and-revocation-acceptance--2026-09-06).
+
+These runs exposed two report-presentation defects: truncating a UTC timestamp
+could label the previous calendar day, and unchecked items had no explicit
+status. Source `6a4768443` fixes both and reached Railway `SUCCESS`. A fresh
+Claude web read/add/read/delete/read/revoke sequence passed with the minuit
+fixture, expanded tool results and independent Pulpe comparison. The fixture
+movement was removed and the new grant revoked; no assistant remains connected.
+See [the final regression evidence](./verification-2026-09-05.md#deployed-regression-and-release-checkpoint--2026-09-06).
+
+Mobile, Claude Code and ChatGPT's seven-tool read-only grant remain unverified.
+The owner explicitly waived mobile testing as a release gate; this is not a
+claim of mobile availability. Earlier desktop reads do not prove desktop writes
+or revocation behavior. The production dependency audit remains unresolved.
 
 Follow [cutover.md](../../2026_09/2026_09_05_mcp-credential-isolation/cutover.md)
 for the production handoff: target separation, approval gates, secrets/Dashlane,
 legacy retirement, protected release order, branding and rollback. It is prepared
-but not executed; accepting the test fixture does not authorize production setup.
+but not executed. The owner now authorizes scoped test cleanup after validation,
+a PR to `main`, monitoring/merge when safe, and production setup through the
+protected release process. Exact release/version and publication gates remain.
 Durable secrets and synthetic login/vault/recovery credentials already exist in
 the Git-ignored owner-only `backend-nest/.mcp-test/.env.local` for Dashlane.
 Do not regenerate them or put their values in this checklist or assistant prompts.
@@ -138,9 +147,9 @@ submission is authorized by this document.
 
 ## Evaluation prompts prepared for human/client acceptance
 
-These are acceptance cases; the current-month read and read-only unavailable-write
-case ran through Claude as recorded above. The remaining cases are not claims
-that a vendor model executed them.
+These are acceptance cases, not a claim that every prompt variant ran. The
+client matrix and linked evidence identify the actual calls, approvals and
+remaining limitations.
 
 | Type     | Prompt                                                   | Expected observation                                                    |
 | -------- | -------------------------------------------------------- | ----------------------------------------------------------------------- |
