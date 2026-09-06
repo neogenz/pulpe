@@ -8,6 +8,8 @@ const createMockLogger = () => ({
   trace: mock(() => {}),
 });
 
+const revoke = { revokeAll: mock(() => Promise.resolve()) };
+
 describe('ChangePinUseCase', () => {
   it('returns the rekey result from crypto service', async () => {
     const expected = {
@@ -19,6 +21,7 @@ describe('ChangePinUseCase', () => {
     };
     const useCase = new ChangePinUseCase(
       cryptoService as any,
+      revoke as any,
       createMockLogger() as any,
     );
 
@@ -27,9 +30,11 @@ describe('ChangePinUseCase', () => {
       Buffer.alloc(32, 0xab),
       Buffer.alloc(32, 0xcd),
       {} as any,
+      'jwt',
     );
 
     expect(result).toEqual(expected);
+    expect(revoke.revokeAll).toHaveBeenCalledWith('user-1', 'jwt');
   });
 
   it('logs pin_change.complete with recoveryKeyRegenerated on success', async () => {
@@ -42,13 +47,18 @@ describe('ChangePinUseCase', () => {
       ),
     };
     const logger = createMockLogger();
-    const useCase = new ChangePinUseCase(cryptoService as any, logger as any);
+    const useCase = new ChangePinUseCase(
+      cryptoService as any,
+      revoke as any,
+      logger as any,
+    );
 
     await useCase.execute(
       'user-7',
       Buffer.alloc(32, 0xab),
       Buffer.alloc(32, 0xcd),
       {} as any,
+      'jwt',
     );
 
     expect(logger.info).toHaveBeenCalledTimes(1);
@@ -72,6 +82,7 @@ describe('ChangePinUseCase', () => {
     };
     const useCase = new ChangePinUseCase(
       cryptoService as any,
+      revoke as any,
       createMockLogger() as any,
     );
 
@@ -79,7 +90,7 @@ describe('ChangePinUseCase', () => {
     const newBuf = Buffer.alloc(32, 0xbb);
     const supabase = { mock: 'client' } as any;
 
-    await useCase.execute('user-3', oldBuf, newBuf, supabase);
+    await useCase.execute('user-3', oldBuf, newBuf, supabase, 'jwt');
 
     expect(calls[0][0]).toBe('user-3');
     expect(calls[0][1]).toBe(oldBuf);
@@ -92,7 +103,11 @@ describe('ChangePinUseCase', () => {
       changePinRekey: mock(() => Promise.reject(new Error('rekey failed'))),
     };
     const logger = createMockLogger();
-    const useCase = new ChangePinUseCase(cryptoService as any, logger as any);
+    const useCase = new ChangePinUseCase(
+      cryptoService as any,
+      revoke as any,
+      logger as any,
+    );
 
     try {
       await useCase.execute(
@@ -100,6 +115,7 @@ describe('ChangePinUseCase', () => {
         Buffer.alloc(32, 0xab),
         Buffer.alloc(32, 0xcd),
         {} as any,
+        'jwt',
       );
       expect.unreachable('Should have thrown');
     } catch (error: any) {

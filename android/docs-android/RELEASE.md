@@ -97,8 +97,8 @@ closed track here — and both end with a human promoting the build.
 
 `.github/workflows/android-e2e.yml` owns the smoke gate without a paid Expo
 plan. It generates a release APK for x86_64, boots an API 35 emulator, verifies
-the pinned Maestro archive before installing it, and keeps a screenshot plus
-logcat when the journey fails.
+the pinned Maestro archive before installing it, and fails when either journey
+fails. Maestro output stays on the ephemeral runner, never in public artifacts.
 
 Android declares React and ReactDOM 19.2.3 together even though it does not ship
 a web build. `expo-router` has an optional ReactDOM peer; without the local
@@ -159,8 +159,10 @@ pnpm --filter pulpe-android test:e2e
 
 The local seed credentials are explicit fallbacks. GitHub Actions uses
 `MAESTRO_EMAIL`, `MAESTRO_PASSWORD` and `MAESTRO_PIN` secrets from the
-`Preview` environment instead. The workflow pins Maestro 2.7.0 and captures
-the screen plus logcat on failure.
+`Preview` environment instead. The workflow pins Maestro 2.7.0. Its console,
+debug metadata and screenshots can contain evaluated credentials or individual
+PIN digits: do not publish them. Reproduce failures locally with disposable
+credentials when the job status alone is insufficient.
 
 Run five consecutive green pull-request checks before making the Maestro smoke
 status required in branch protection.

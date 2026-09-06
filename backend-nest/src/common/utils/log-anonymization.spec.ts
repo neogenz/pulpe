@@ -117,6 +117,25 @@ describe('toLogPath', () => {
 });
 
 describe('sanitizeLogValue', () => {
+  it('redacts OAuth credentials and code-bearing callbacks in nested logs', () => {
+    const credential = 'OAUTH_PRIVATE_SENTINEL';
+    const sanitized = sanitizeLogValue({
+      body: {
+        client_secret: credential,
+        access_token: credential,
+        refresh_token: credential,
+        code: credential,
+        code_verifier: credential,
+        authorization_id: credential,
+        redirectUrl: credential,
+      },
+      headers: { location: `https://client.example/?code=${credential}` },
+      statusCode: 200,
+    });
+    expect(JSON.stringify(sanitized)).not.toContain(credential);
+    expect(sanitized).toMatchObject({ statusCode: 200 });
+  });
+
   it('redacts case-insensitive secrets in nested objects and arrays', () => {
     const sanitized = sanitizeLogValue({
       Authorization: 'Bearer AUTH_SENTINEL',

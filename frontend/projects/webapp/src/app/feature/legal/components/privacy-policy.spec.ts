@@ -130,7 +130,7 @@ describe('PrivacyPolicyComponent', () => {
         (link) => link.getAttribute('href'),
       );
 
-      expect(element.querySelectorAll('section')).toHaveLength(13);
+      expect(element.querySelectorAll('section')).toHaveLength(14);
       expect(text).toContain(date);
       expect(text).toContain(rightsTitle);
       expect(text).toContain(replayDisabled);

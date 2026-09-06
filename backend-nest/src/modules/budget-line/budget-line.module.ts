@@ -29,6 +29,8 @@ import { ResetBudgetLineFromTemplateUseCase } from './application/reset-budget-l
 import { ToggleBudgetLineCheckUseCase } from './application/toggle-budget-line-check.use-case';
 import { CheckTransactionsUseCase } from './application/check-transactions.use-case';
 import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.use-case';
+import { WriteBudgetLinesInProcessUseCase } from './application/write-budget-lines-in-process.use-case';
+import { BUDGET_LINE_WRITE_PORT } from './domain/ports/budget-line-write.port';
 
 @Module({
   imports: [
@@ -54,6 +56,7 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
     ToggleBudgetLineCheckUseCase,
     CheckTransactionsUseCase,
     PostponeBudgetLineUseCase,
+    WriteBudgetLinesInProcessUseCase,
     SupabaseBudgetLineSpreadReader,
     { provide: BUDGET_LINE_REPOSITORY, useClass: SupabaseBudgetLineRepository },
     {
@@ -67,6 +70,10 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
     {
       provide: BUDGET_LINE_CHECK_TRANSACTIONS_PORT,
       useExisting: CheckTransactionsUseCase,
+    },
+    {
+      provide: BUDGET_LINE_WRITE_PORT,
+      useExisting: WriteBudgetLinesInProcessUseCase,
     },
     BudgetLineMapper,
     createInfoLoggerProvider(BudgetLineController.name),
@@ -90,6 +97,7 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
     BUDGET_LINE_SPREAD_PORT,
     BUDGET_LINE_SPREAD_OCCURRENCES_PORT,
     BUDGET_LINE_CHECK_TRANSACTIONS_PORT,
+    BUDGET_LINE_WRITE_PORT,
   ],
 })
 export class BudgetLineModule {}

@@ -212,6 +212,7 @@ export class EncryptionController {
         body.recoveryKey,
         newKeyBuffer,
         supabase,
+        user.accessToken,
       );
     } finally {
       newKeyBuffer.fill(0);
@@ -280,6 +281,7 @@ export class EncryptionController {
         oldKeyBuffer,
         newKeyBuffer,
         supabase,
+        user.accessToken,
       );
     } finally {
       oldKeyBuffer?.fill(0);

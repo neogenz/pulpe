@@ -1,0 +1,89 @@
+---
+status: in-progress
+---
+
+# Instruction: Verify useful client flows and prepare activation
+
+## Execution checkpoint — 2026-09-06
+
+**Latest checkpoint:** explicit account-scoped authorization superseded the
+access-change blocker recorded below. Both vendors passed web read/write and
+revocation; all eight write tools succeeded in Claude. Synthetic write data was
+removed and both grants revoked. Source `6a4768443` reached the test deployment;
+the fresh Claude midnight/pointing regression, cleanup and revocation passed,
+as did 19 isolated HTTP scenarios. Mobile acceptance is waived by the owner,
+not verified. Dependency remediation `158574cf3` passed local and deployed HTTP
+checks; dedicated test resources and both vendor test connectors are retired.
+The protected release remains pending under the owner's PR/merge and production
+setup authorization. The [current matrix](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md)
+and [final vendor evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#vendor-readwrite-and-revocation-acceptance--2026-09-06)
+supersede the historical checkpoints below.
+See the [retirement record](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#test-resource-retirement--2026-09-06)
+for deletion evidence and the location of recoverable local test files.
+
+Server verification passed: all 15 tools execute through real HTTP and encrypted owner data, within 18 MCP scenarios and 121 passing backend integration/e2e tests. Account-currency edits, destructive annotations and literal search were corrected. Existing CI already runs this test file. Client requirements, evaluation prompts and current evidence are recorded in the linked readiness documents.
+
+The dedicated `pulpe-mcp-test` Supabase project in `Pulpe Tests` is healthy on Free with 102 migrations, closed public signup and a configured confidential OAuth upstream. The separate Vercel test site is READY and publicly accessible with verified test-only configuration, disabled analytics and a no-index header. After explicit approval, Railway configuration was applied and verified; deployment `a891edbf-e357-4f6d-bad5-e2cd1239f28a` reached `SUCCESS`. The [plan checkpoint](./plan.md#execution-checkpoint--2026-09-06) records exact resources and local secret storage.
+
+The synthetic account and encrypted budget are ready. Remote HTTP authorization, 15-tool discovery, read/write concordance, direct Supabase denial, refresh and revocation passed; the probe movement was removed. Following user approval, both legacy vendor connectors were replaced. Claude Pro web completed consent, seven-tool read-only discovery, a correct budget read and an unavailable-write check; the refreshed Pulpe dashboard remained unchanged. The currency and expense-label presentation gaps are corrected, with 19 isolated HTTP scenarios passing. After deployment, a fresh Claude web read verified explicit CHF and the corrected savings aggregate in both the actual tool result and model summary. ChatGPT's new app was created but OAuth stalled before consent. Automatic security review then rejected disconnecting the Claude test grant before read/write testing; no workaround was attempted and its read-only grant remains active. Phase 2 is blocked on that exact access-change authorization, with actual vendor write/revocation and desktop/mobile acceptance still incomplete.
+
+A separate macOS Cowork read also passed in Claude Desktop `1.40609.1` on macOS `26.5.1`, including the expanded tool result and model summary. Its existing auto-approval setting and read-only grant were unchanged. A subsequent explicit Chat-mode run (`1.46388.4`, same macOS) passed five additional read tools and three negative calls, each approved once; expanded responses and refreshed Pulpe UI matched. All seven read tools have been invoked across Claude sessions, but goal outlook only on an absent ID. Existing-goal outlook, vendor write/revocation and mobile acceptance remain incomplete.
+
+ChatGPT's existing app subsequently reached the real Pulpe consent in Arc `1.162.0`; its transient blank page resolved. Read-only is selected, the synthetic account is authenticated and the sharing disclosure was verified. Final authorization was not submitted and awaits confirmation at the persistent-grant action. The earlier in-app-browser failure's root cause remains unproven; no backend change was needed to reach consent in Arc.
+
+The subsequent populated-goal read passed in the same Claude Chat session with
+one-time approvals and unchanged permissions. All seven read tools now have a
+successful vendor result. The fixture retains one synthetic goal (1,000 CHF
+target, 200 CHF starting amount); its expanded tool response and reloaded Pulpe
+page agree. [Current evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#existing-goal-client-acceptance--2026-09-06)
+supersedes the missing positive goal case above, not the access-change blocker.
+
+## Architecture projection
+
+```txt
+backend-nest/src/modules/mcp/                              ✏️ focused HTTP integration checks using existing test conventions
+.github/workflows/ci.yml                                 ✏️ run the isolated credential boundary check
+aidd_docs/tasks/2026_08/2026_08_23_pulpe-mcp-agent-connector/
+  verification-2026-09-05.md                             ✏️ replace unresolved claims with current evidence
+  submission-checklist.md                               ✏️ current directory requirements and activation prerequisites
+landing/content/dictionaries/                           ✏️ only claims proven by actual client support
+```
+
+## Test Scope
+
+```mermaid
+journey
+  section Setup
+    Configure isolated non-production deployment and synthetic account => review fixture ready: 5: system
+  section Happy path
+    Connect ChatGPT and Claude => consent identifies the provider and data sharing: 5: browser
+    Ask a budget question and record an expense => figures match Pulpe and write is visible: 5: browser
+    Revoke in Pulpe => subsequent assistant request fails: 5: browser
+  section Edge case - Unsupported client surface
+    Client plan or mobile app lacks custom MCP => guide states the limitation without claiming support: 1: browser
+  section Teardown
+    Revoke review grants and remove synthetic data => fixture cleaned up: 5: system
+```
+
+## Tasks to do
+
+### `1)` Verify the complete connector
+
+1. Run all 15 tools against synthetic encrypted data and compare budgets, movements and savings metrics with Pulpe, including missing-input behavior and destructive-action annotations.
+2. Verify consent, login return, refresh, reconnection, wrong PIN, read-only mode, revocation and key rotation over HTTP. Exercise direct Auth, tables, invoker/definer RPCs and GraphQL with the external bearer.
+3. Run backend checks, SQL contracts, generated-type comparison, Angular production build, targeted web tests and native connection-management tests. Preserve frontend/landing disclosure and four-language rendering checks.
+
+### `2)` Validate clients and prepare the release handoff
+
+1. Use non-production credentials and synthetic data for real ChatGPT and Claude OAuth/tool round trips. Record client, account plan, surface and observable result, not just discovery responses.
+2. Verify each requested web/desktop/mobile surface against actual availability. Prepare directory submission requirements where custom connectors cannot satisfy that surface; never promise a vendor capability not available.
+3. Prepare exact issuer URLs, secrets names, migrations and activation order. Production changes, directory agreements and account-sensitive submissions require explicit human authorization; keep the public landing in preparation until readiness is proven.
+
+## Test acceptance criteria
+
+| Task | Acceptance criteria                                                                                                                                     |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Financial outputs match Pulpe, authorized writes persist encrypted, and every forbidden direct or MCP access leaves data unchanged.                     |
+| 1    | Existing web/native users keep their connection-management and ordinary authentication behavior.                                                        |
+| 2    | Each supported client completes association, useful read/write and revocation; unsupported surfaces and submission prerequisites are stated accurately. |
+| 2    | Activation can follow verified configuration and migration evidence without exposing unrestricted Supabase credentials.                                 |

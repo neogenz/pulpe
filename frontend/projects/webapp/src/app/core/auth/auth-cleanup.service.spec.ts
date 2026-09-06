@@ -8,6 +8,7 @@ import { BudgetApi } from '@core/budget';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { TagApi } from '@core/tag/tag-api';
+import { McpApi } from '@core/mcp/mcp-api';
 import { ClientKeyService } from '@core/encryption';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { PreloadService } from '../preload/preload.service';
@@ -24,6 +25,7 @@ describe('AuthCleanupService', () => {
   let mockBudgetTemplatesApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockSavingsGoalApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockTagApi: { clearCache: ReturnType<typeof vi.fn> };
+  let mockMcpApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockClientKey: Partial<ClientKeyService>;
   let mockDemoMode: Partial<DemoModeService>;
   let mockPreload: Partial<PreloadService>;
@@ -44,6 +46,7 @@ describe('AuthCleanupService', () => {
     mockBudgetTemplatesApi = { clearCache: vi.fn() };
     mockSavingsGoalApi = { clearCache: vi.fn() };
     mockTagApi = { clearCache: vi.fn() };
+    mockMcpApi = { clearCache: vi.fn() };
     mockClientKey = {
       clear: vi.fn(),
       clearPreservingDeviceTrust: vi.fn(),
@@ -64,6 +67,7 @@ describe('AuthCleanupService', () => {
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
         { provide: SavingsGoalApi, useValue: mockSavingsGoalApi },
         { provide: TagApi, useValue: mockTagApi },
+        { provide: McpApi, useValue: mockMcpApi },
         { provide: ClientKeyService, useValue: mockClientKey },
         { provide: DemoModeService, useValue: mockDemoMode },
         { provide: PreloadService, useValue: mockPreload },
@@ -97,6 +101,7 @@ describe('AuthCleanupService', () => {
     expect(mockBudgetTemplatesApi.clearCache).toHaveBeenCalled();
     expect(mockSavingsGoalApi.clearCache).toHaveBeenCalled();
     expect(mockTagApi.clearCache).toHaveBeenCalled();
+    expect(mockMcpApi.clearCache).toHaveBeenCalled();
     expect(mockPreload.reset).toHaveBeenCalled();
     expect(mockUserSettings.reset).toHaveBeenCalled();
     expect(mockPostHog.reset).toHaveBeenCalled();

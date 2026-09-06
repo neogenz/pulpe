@@ -104,6 +104,12 @@ enum Endpoint {
     case encryptionVerifyRecoveryKey
     case encryptionChangePin
 
+    // MARK: - Agent connections (MCP)
+
+    case mcpConnections
+    case mcpConnection(id: String)
+    case mcpConnectionActivity(id: String, limit: Int)
+
     // MARK: - Path
 
     var path: String {
@@ -194,6 +200,11 @@ enum Endpoint {
         case .encryptionRecover: return "/encryption/recover"
         case .encryptionVerifyRecoveryKey: return "/encryption/verify-recovery-key"
         case .encryptionChangePin: return "/encryption/change-pin"
+
+        // Agent connections
+        case .mcpConnections: return "/mcp/connections"
+        case .mcpConnection(let id): return "/mcp/connections/\(id)"
+        case .mcpConnectionActivity(let id, _): return "/mcp/connections/\(id)/activity"
         }
     }
 
@@ -220,7 +231,8 @@ enum Endpoint {
              .savingsGoalFutureLines, .savingsGoalDeletionImpact,
              .savingsGoalWithdrawalOptions, .savingsGoalWithdrawals,
              .encryptionVaultStatus, .encryptionSalt,
-             .userSettings, .tags, .currencyRate, .whatsNewIos:
+             .userSettings, .tags, .currencyRate, .whatsNewIos,
+             .mcpConnections, .mcpConnectionActivity:
             return .get
 
         case .updateUserSettings:
@@ -229,7 +241,7 @@ enum Endpoint {
         case .updateProfile:
             return .patch
 
-        case .deleteAccount, .budgetLinesSavingsWithdrawalDelete:
+        case .deleteAccount, .budgetLinesSavingsWithdrawalDelete, .mcpConnection:
             return .delete
         }
     }
@@ -265,6 +277,10 @@ enum Endpoint {
                 components?.queryItems = [URLQueryItem(name: "targetDate", value: targetDate)]
                 url = components?.url ?? url
             }
+        case let .mcpConnectionActivity(_, limit):
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            components?.queryItems = [URLQueryItem(name: "limit", value: String(limit))]
+            url = components?.url ?? url
         case let .whatsNewIos(currentVersion, lastSeenVersion, locale):
             var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             components?.queryItems = [

@@ -176,14 +176,16 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
-        run: supabase db push --dry-run
+        # Feature branches can merge migrations older than the remote tip.
+        # Select every unapplied version, without replaying applied history.
+        run: supabase db push --dry-run --include-all
 
       - name: 🚀 Apply migrations
         working-directory: backend-nest
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
-        run: supabase db push
+        run: supabase db push --include-all
 
   # Avance le pointeur `production` sur le merge SHA autorisé, en fast-forward
   # strict (force=false) : c'est ce push qui déclenche les déploiements

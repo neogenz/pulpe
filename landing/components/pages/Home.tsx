@@ -1,4 +1,5 @@
 import { MarkerDraw, StickyCTA } from "@/components/ui";
+import { Assistants } from "@/components/sections/Assistants";
 import {
   Header,
   Hero,
@@ -44,6 +45,7 @@ export function Home({ dict, locale }: { dict: Dictionary; locale: Locale }) {
         <Solution dict={home.solution} howItWorksDict={home.howItWorks} />
         <Testimonials dict={home.testimonials} />
         <Features dict={home.features} />
+        <Assistants dict={dict.assistant} locale={locale} />
         <Platforms dict={home.platforms} locale={locale} />
         <WhyFree dict={home.whyFree} />
         <FAQ dict={home.faq} />

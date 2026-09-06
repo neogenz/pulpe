@@ -334,13 +334,20 @@ test("CI is PR-only and production owns migration credentials", () => {
   assert.doesNotMatch(workflow, /^\s{2}push:/m);
   assert.doesNotMatch(workflow, /secrets\.|supabase db push/);
   assert.match(production, /environment: production/);
-  const dryRun = production.indexOf("run: supabase db push --dry-run");
-  const apply = production.indexOf("run: supabase db push\n");
+  const dryRun = production.indexOf(
+    "run: supabase db push --dry-run --include-all\n",
+  );
+  const apply = production.indexOf("run: supabase db push --include-all\n");
   assert.notEqual(dryRun, -1);
   assert.notEqual(apply, -1);
   assert.ok(
     dryRun < apply,
     "the production dry-run must precede migration apply",
+  );
+  assert.doesNotMatch(
+    production,
+    /supabase (?:migration repair|db reset)|--include-seed|--include-roles/,
+    "late migrations must not replay seeds, roles or repair remote history",
   );
 });
 
@@ -350,7 +357,9 @@ test("the migration contract is required and replayed before production apply", 
     /\n  migration-contract:[\s\S]*migration-contract\.test\.cjs[\s\S]*github\.event\.pull_request\.base\.sha[\s\S]*github\.event\.pull_request\.head\.sha[\s\S]*check-migration-contract\.cjs[\s\S]*\n  ci-success:[\s\S]*RESULT_MIGRATION: \$\{\{ needs\.migration-contract\.result \}\}[\s\S]*require "Migration Contract" "\$RESULT_MIGRATION"/,
   );
   const replay = production.indexOf("Verify migration contract");
-  const dryRun = production.indexOf("run: supabase db push --dry-run");
+  const dryRun = production.indexOf(
+    "run: supabase db push --dry-run --include-all\n",
+  );
   assert.ok(replay >= 0 && replay < dryRun);
   assert.match(
     production.slice(replay, dryRun),
@@ -733,8 +742,8 @@ test("production finishes preflight before Railway deploys", () => {
   );
   assert.doesNotMatch(production, /gate-candidates|for run_id in/);
   assert.match(production, /environment: production/);
-  assert.match(production, /run: supabase db push --dry-run/);
-  assert.match(production, /run: supabase db push\n/);
+  assert.match(production, /run: supabase db push --dry-run --include-all\n/);
+  assert.match(production, /run: supabase db push --include-all\n/);
   assert.doesNotMatch(
     production,
     /RAILWAY_PRODUCTION_TOKEN|RAILWAY_CLI_VERSION|railway variable set/,
@@ -787,7 +796,7 @@ test("production finishes preflight before Railway deploys", () => {
   assert.match(production, /needs: \[authorize, migrate, advance\]/);
   assert.match(production, /needs\.advance\.result == 'success'/);
   assert.ok(
-    production.indexOf("run: supabase db push\n") <
+    production.indexOf("run: supabase db push --include-all\n") <
       production.indexOf("\n  advance:"),
     "migrations must be applied before the production pointer advances",
   );
@@ -797,7 +806,7 @@ test("production finishes preflight before Railway deploys", () => {
     "providers deploy only after the pointer advance",
   );
   assert.ok(
-    production.indexOf("run: supabase db push\n") <
+    production.indexOf("run: supabase db push --include-all\n") <
       production.indexOf("Upload authorized production context"),
     "the context must be emitted only after migrations succeed",
   );
@@ -1419,6 +1428,22 @@ test("Android E2E verifies Maestro and withholds preview secrets from forks", ()
   const verify = androidE2eWorkflow.indexOf("sha256sum --check");
   const extract = androidE2eWorkflow.indexOf("unzip -q");
   assert.ok(download < verify && verify < extract);
+});
+
+test("Android E2E never publishes credential-bearing debug artifacts", () => {
+  assert.doesNotMatch(
+    androidE2eWorkflow,
+    /upload-artifact|maestro-artifacts|\.maestro\/tests|adb logcat|screencap/,
+  );
+  assert.match(
+    androidE2eWorkflow,
+    /maestro test android\/maestro\/smoke\.yaml > "\$RUNNER_TEMP\/maestro-smoke\.log" 2>&1 &&/,
+  );
+  assert.match(
+    androidE2eWorkflow,
+    /maestro test android\/maestro\/vault-resume\.yaml > "\$RUNNER_TEMP\/maestro-vault-resume\.log" 2>&1/,
+  );
+  assert.doesNotMatch(androidE2eWorkflow, /continue-on-error|\|\| true/);
 });
 
 test("the Android production build follows the production pointer", () => {

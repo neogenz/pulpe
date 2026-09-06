@@ -69,6 +69,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./feature/auth/recover-vault-code/recover-vault-code'),
       },
+      {
+        // OAuth consent for AI agents: signed-in user, no budget required.
+        path: ROUTES.MCP_CONSENT,
+        title: PAGE_TITLES.MCP_CONSENT,
+        canActivate: [maintenanceGuard, authGuard],
+        loadComponent: () => import('./feature/auth/mcp-consent/mcp-consent'),
+      },
     ],
   },
   {

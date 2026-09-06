@@ -240,6 +240,27 @@
       "accountBlocked": "Your account is being deleted.",
       "clientKeyMissing": "Your vault key is missing — type it to carry on",
       "userNotConnected": "User not signed in"
+    },
+    "mcpConsent": {
+      "title": "Connect Pulpe to {{client}}",
+      "subtitle": "{{client}} is asking for access to your budget.",
+      "modeRead": "Read only",
+      "modeReadDescription": "Look and analyse, change nothing.",
+      "modeReadWrite": "Read and write",
+      "modeReadWriteDescription": "Add, edit, delete and check off.",
+      "warningsTitle": "Before you allow access",
+      "warningDataTitle": "Your data is sent to {{client}}.",
+      "warningDataBody": "To answer or take action, {{client}} may receive your budgets, names, amounts, dates and goals. Its provider processes them under its own privacy rules.",
+      "warningKeyTitle": "Access stays active.",
+      "warningKeyBody": "Pulpe keeps a protected key to access your amounts, even when the app is closed. Your Pulpe code is never sent to {{client}}.",
+      "warningRevokeTitle": "You stay in control.",
+      "warningRevokeBody": "Cut off access in Settings > Connections. This stops future exchanges without deleting data already sent.",
+      "pinLabel": "Your Pulpe code",
+      "pinHint": "It never leaves this page and is never sent to {{client}}.",
+      "authorize": "Authorise",
+      "privacyLink": "What I do with your data",
+      "invalidRequest": "This request is no longer valid. Start the connection again from your assistant.",
+      "missingRequest": "No connection request in progress. Start the connection again from your assistant."
     }
   },
   "welcome": {
@@ -445,6 +466,40 @@
       "genericError": "Something went wrong — try again later",
       "changeFailed": "Changing the PIN failed — try again later",
       "rekeyFailed": "Re-encrypting failed — your old PIN stays active, try again later"
+    },
+    "connections": {
+      "title": "Connections",
+      "description": "The AI assistants allowed to access your budget.",
+      "subtitle": "The assistants allowed to access your budget. You can cut their access at any time.",
+      "loading": "Loading your connections...",
+      "errorTitle": "Could not load your connections",
+      "errorMessage": "Loading got stuck. Try again to see who has access to your budget.",
+      "emptyTitle": "No assistant connected",
+      "emptyMessage": "You can plug Pulpe into ChatGPT or Claude to manage your budget by talking. Nothing is shared until you allow it.",
+      "modeRead": "Read only",
+      "modeReadWrite": "Read and write",
+      "since": "since {{ date }}",
+      "recentActions": "Recent actions",
+      "showActions": "See what the assistant did",
+      "noActivity": "No action yet.",
+      "seeAll": "See all",
+      "failed": "failed",
+      "tools": {
+        "add_movement": "Movement added",
+        "add_forecast": "Forecast added",
+        "create_month_from_template": "Monthly budget created",
+        "delete_movement": "Movement deleted",
+        "spread_expense": "Expense spread",
+        "toggle_check": "Checked status changed",
+        "update_forecast": "Forecast updated",
+        "update_movement": "Movement updated"
+      },
+      "unknownAction": "Assistant action",
+      "revoke": "Cut access",
+      "revokeTitle": "Cut {{ client }}'s access?",
+      "revokeMessage": "{{ client }} will no longer be able to read or change your budget. To plug it back in, you will have to allow it again with your code.",
+      "revokeSuccess": "{{ client }}'s access cut.",
+      "revokeError": "Could not cut access. Try again."
     }
   },
   "budget": {
@@ -1526,8 +1581,20 @@
         "title": "12. Changes",
         "body": "This policy may be updated occasionally. Material changes will be notified by email."
       },
+      "aiAssistants": {
+        "title": "13. Connections to AI assistants",
+        "intro": "If you connect Pulpe to an AI assistant (ChatGPT, Claude, Codex or another compatible client), the following rules apply in addition.",
+        "items": {
+          "data": "Data involved: the budget details needed for each answer (labels, amounts, dates, goals), never your password or PIN.",
+          "purpose": "Purpose: answering your requests in natural language and, if you chose read and write mode, applying the changes you ask for.",
+          "recipients": "Recipients: the publisher of the assistant you connected, under its own terms of use. Pulpe does not pick that recipient, you do.",
+          "key": "Encryption key: so that the assistant can answer without your code, I keep a protected copy of your decryption key, encrypted with a dedicated server key. Neither the assistant nor the database can read it.",
+          "retention": "Duration: the connection and the protected copy of your key exist until you revoke them. Changing or recovering your PIN revokes every connection.",
+          "withdrawal": "Withdrawing consent: at any time, in Settings then Connections. The effect is immediate: access is removed and the copy of your key destroyed."
+        }
+      },
       "contact": {
-        "title": "13. Contact",
+        "title": "14. Contact",
         "intro": "For any question about your personal data:",
         "emailLabel": "Email:",
         "githubLabel": "GitHub:",
@@ -1572,12 +1639,23 @@
         "analyticsLabel": "Important:",
         "analyticsBody": "I use PostHog to understand how the application is used. This includes pages visited, features used, errors encountered and session recordings (interaction replays). Your financial data is always masked in these analyses and recordings."
       },
+      "aiAssistants": {
+        "title": "5. Connections to AI assistants",
+        "intro": "You can connect Pulpe to an AI assistant. This channel is optional, and the following rules apply to it.",
+        "items": {
+          "authority": "The assistant acts on your behalf, within the mode you chose: read-only, or read and write.",
+          "responsibility": "You remain responsible for what you ask it. A write made by the assistant counts as a write made by you.",
+          "editor": "The assistant's publisher is a third party you choose. Its terms apply to it, not to me, and I am not answerable for what it does with your requests.",
+          "figures": "The figures the assistant quotes come from Pulpe. How it words them is its own doing: where they differ, the app prevails.",
+          "revocation": "You cut access whenever you want, in Settings then Connections. It takes effect immediately."
+        }
+      },
       "source": {
-        "title": "5. Source code and ownership",
+        "title": "6. Source code and ownership",
         "body": "Pulpe's source code can be viewed publicly on GitHub. Your personal data belongs to you and remains private."
       },
       "liability": {
-        "title": "6. Limitation of liability",
+        "title": "7. Limitation of liability",
         "intro": "Pulpe is a personal project maintained in my spare time. The service is provided “as is”, and I cannot guarantee:",
         "warning": "Important warning:",
         "items": {
@@ -1591,19 +1669,19 @@
         }
       },
       "termination": {
-        "title": "7. Termination",
+        "title": "8. Termination",
         "body": "You may delete your account at any time from the settings. I reserve the right to suspend or delete your account if you breach these terms or misuse the service."
       },
       "changes": {
-        "title": "8. Changes to these terms",
+        "title": "9. Changes to these terms",
         "body": "I may amend these terms when necessary. Material changes will be notified by email. Continuing to use the service after a change constitutes acceptance of the new terms."
       },
       "law": {
-        "title": "9. Governing law",
+        "title": "10. Governing law",
         "body": "These terms are governed by Swiss law. Any dispute will be submitted to the competent courts of Geneva, Switzerland."
       },
       "contact": {
-        "title": "10. Contact",
+        "title": "11. Contact",
         "body": "For questions about these terms, contact me at:"
       }
     }
@@ -1731,7 +1809,9 @@
     "settings": "Settings",
     "settingsTags": "My tags",
     "designSystem": "Design System",
-    "maintenance": "Maintenance"
+    "maintenance": "Maintenance",
+    "mcpConsent": "Connect an AI assistant",
+    "settingsConnections": "Connections"
   },
   "authError": {
     "generic": "Something didn't work — try again",

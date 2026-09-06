@@ -2651,3 +2651,72 @@ export const feedbackCreateSchema = z.strictObject({
   iosVersion: z.string().trim().min(1).max(32),
 });
 export type FeedbackCreate = z.infer<typeof feedbackCreateSchema>;
+
+// ============================================================================
+// MCP agent connector — consent page (OAuth 2.1 authorization on Supabase)
+// ============================================================================
+
+/** What an agent may do with the vault. Stored on `mcp_connection`, never a JWT claim. */
+export const mcpAccessModeSchema = z.enum(['read', 'read_write']);
+export type McpAccessMode = z.infer<typeof mcpAccessModeSchema>;
+
+/** GET /mcp/consent/:authorizationId — the client as declared to Supabase */
+export const mcpConsentDetailsResponseSchema = z.object({
+  clientName: z.string(),
+});
+export type McpConsentDetailsResponse = z.infer<
+  typeof mcpConsentDetailsResponseSchema
+>;
+
+/** POST /mcp/consent/:authorizationId/approve */
+export const mcpConsentApproveRequestSchema = z.strictObject({
+  mode: mcpAccessModeSchema,
+});
+export type McpConsentApproveRequest = z.infer<
+  typeof mcpConsentApproveRequestSchema
+>;
+
+/** approve and deny both answer with where to send the browser back */
+export const mcpConsentRedirectResponseSchema = z.object({
+  redirectUrl: z.url(),
+});
+export type McpConsentRedirectResponse = z.infer<
+  typeof mcpConsentRedirectResponseSchema
+>;
+
+/** One agent connection as shown in Settings > Connexions */
+export const mcpConnectionSchema = z.object({
+  id: z.uuid(),
+  clientName: z.string(),
+  mode: mcpAccessModeSchema,
+  authorizedAt: z.iso.datetime({ offset: true }),
+});
+export type McpConnection = z.infer<typeof mcpConnectionSchema>;
+
+/** GET /mcp/connections */
+export const mcpConnectionListResponseSchema =
+  createListResponse(mcpConnectionSchema);
+export type McpConnectionListResponse = z.infer<
+  typeof mcpConnectionListResponseSchema
+>;
+
+/** One write gesture of an agent: the tool called, never the content. */
+export const mcpActivitySchema = z.object({
+  tool: z.string(),
+  outcome: z.enum(['ok', 'error']),
+  createdAt: z.iso.datetime({ offset: true }),
+});
+export type McpActivity = z.infer<typeof mcpActivitySchema>;
+
+/** GET /mcp/connections/:id/activity — newest first, keyset on `before` */
+export const mcpActivityQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  before: z.iso.datetime({ offset: true }).optional(),
+});
+export type McpActivityQuery = z.infer<typeof mcpActivityQuerySchema>;
+
+export const mcpActivityListResponseSchema =
+  createListResponse(mcpActivitySchema);
+export type McpActivityListResponse = z.infer<
+  typeof mcpActivityListResponseSchema
+>;

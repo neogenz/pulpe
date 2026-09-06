@@ -19,7 +19,9 @@ describe('authGuard', () => {
   };
 
   const mockRoute = {} as ActivatedRouteSnapshot;
-  const mockState = {} as RouterStateSnapshot;
+  const mockState = {
+    url: '/mcp-consent?authorization_id=abc',
+  } as RouterStateSnapshot;
 
   beforeEach(() => {
     stateSignal = signal<AuthState>({
@@ -72,7 +74,9 @@ describe('authGuard', () => {
 
     await TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
 
-    expect(mockRouter.createUrlTree).toHaveBeenCalledWith([ROUTES.LOGIN]);
+    expect(mockRouter.createUrlTree).toHaveBeenCalledWith([ROUTES.LOGIN], {
+      queryParams: { returnUrl: mockState.url },
+    });
   });
 
   it('should allow navigation asynchronously once auth state resolves to authenticated', async () => {
@@ -109,6 +113,8 @@ describe('authGuard', () => {
 
     await firstValueFrom(result as Observable<boolean | UrlTree>);
 
-    expect(mockRouter.createUrlTree).toHaveBeenCalledWith([ROUTES.LOGIN]);
+    expect(mockRouter.createUrlTree).toHaveBeenCalledWith([ROUTES.LOGIN], {
+      queryParams: { returnUrl: mockState.url },
+    });
   });
 });

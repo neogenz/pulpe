@@ -6,7 +6,7 @@ import { FinalCTA, Footer, Header } from "@/components/sections";
 import type { Dictionary } from "@/content/dictionary";
 import { angularUrl, CONTACT_EMAIL, GITHUB_URL } from "@/lib/config";
 import type { Locale } from "@/lib/i18n";
-import { localizedPath } from "@/lib/routes";
+import { ASSISTANT_ROUTE, GUIDE_ROUTE, localizedPath } from "@/lib/routes";
 
 const linkClass =
   "rounded-sm font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
@@ -92,6 +92,12 @@ export function Support({
 }) {
   const { support } = dict;
   const faqs = buildFaqs(support.faq, locale);
+  // L'ordre des tutoriels vit ici, avec leur destination ; seul le texte des
+  // cartes vient du catalogue.
+  const guides = [
+    { href: GUIDE_ROUTE, card: support.guideCard },
+    { href: ASSISTANT_ROUTE, card: support.assistantCard },
+  ];
 
   const faqJsonLd = {
     "@context": "https://schema.org",
@@ -147,29 +153,34 @@ export function Support({
               {support.guidesHeading}
             </h2>
 
-            <Link
-              href={localizedPath(locale, "/support/modeles-et-budgets")}
-              className="group mt-10 block rounded-[var(--radius-large)] border border-text/10 bg-surface p-6 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transform-none motion-reduce:transition-none sm:p-8"
-            >
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
-                {support.guideCard.eyebrow}
-              </p>
-              <div className="mt-4 flex items-start justify-between gap-6">
-                <div>
-                  <h3 className="text-2xl font-semibold leading-tight tracking-[-0.025em] text-text">
-                    {support.guideCard.title}
-                  </h3>
-                  <p className="mt-3 max-w-2xl leading-relaxed text-text-secondary">
-                    {support.guideCard.text}
+            <div className="mt-10 space-y-4">
+              {guides.map((guide) => (
+                <Link
+                  key={guide.href}
+                  href={localizedPath(locale, guide.href)}
+                  className="group block rounded-[var(--radius-large)] border border-text/10 bg-surface p-6 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transform-none motion-reduce:transition-none sm:p-8"
+                >
+                  <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
+                    {guide.card.eyebrow}
                   </p>
-                </div>
-                <ArrowRight
-                  aria-hidden="true"
-                  className="mt-1 shrink-0 text-primary transition-transform group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none"
-                  size={24}
-                />
-              </div>
-            </Link>
+                  <div className="mt-4 flex items-start justify-between gap-6">
+                    <div>
+                      <h3 className="text-2xl font-semibold leading-tight tracking-[-0.025em] text-text">
+                        {guide.card.title}
+                      </h3>
+                      <p className="mt-3 max-w-2xl leading-relaxed text-text-secondary">
+                        {guide.card.text}
+                      </p>
+                    </div>
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="mt-1 shrink-0 text-primary transition-transform group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none"
+                      size={24}
+                    />
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         </Section>
 

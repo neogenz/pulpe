@@ -240,6 +240,27 @@
       "accountBlocked": "Dein Konto wird gerade gelöscht.",
       "clientKeyMissing": "Dein Tresorschlüssel fehlt — gib ihn ein, um weiterzumachen",
       "userNotConnected": "Nutzer nicht angemeldet"
+    },
+    "mcpConsent": {
+      "title": "Pulpe mit {{client}} verbinden",
+      "subtitle": "{{client}} bittet um Zugriff auf dein Budget.",
+      "modeRead": "Nur lesen",
+      "modeReadDescription": "Ansehen und auswerten, nichts ändern.",
+      "modeReadWrite": "Lesen und schreiben",
+      "modeReadWriteDescription": "Hinzufügen, ändern, löschen und abhaken.",
+      "warningsTitle": "Bevor du den Zugriff erlaubst",
+      "warningDataTitle": "Deine Daten werden an {{client}} gesendet.",
+      "warningDataBody": "Um zu antworten oder zu handeln, kann {{client}} deine Budgets, Bezeichnungen, Beträge, Daten und Ziele erhalten. Der Anbieter verarbeitet sie nach seinen Datenschutzregeln.",
+      "warningKeyTitle": "Der Zugriff bleibt aktiv.",
+      "warningKeyBody": "Pulpe speichert einen geschützten Schlüssel für den Zugriff auf deine Beträge, auch wenn die App geschlossen ist. Dein Pulpe-Code wird nie an {{client}} gesendet.",
+      "warningRevokeTitle": "Du behältst die Kontrolle.",
+      "warningRevokeBody": "Beende den Zugriff unter Einstellungen > Verbindungen. Das stoppt künftige Übertragungen, löscht aber keine bereits gesendeten Daten.",
+      "pinLabel": "Dein Pulpe-Code",
+      "pinHint": "Er verlässt diese Seite nicht und wird nie an {{client}} übermittelt.",
+      "authorize": "Erlauben",
+      "privacyLink": "Was ich mit deinen Daten mache",
+      "invalidRequest": "Diese Anfrage ist nicht mehr gültig. Starte die Verbindung erneut aus deinem Assistenten.",
+      "missingRequest": "Keine Verbindungsanfrage aktiv. Starte die Verbindung erneut aus deinem Assistenten."
     }
   },
   "welcome": {
@@ -445,6 +466,40 @@
       "genericError": "Etwas ist schiefgelaufen — versuch es später nochmal",
       "changeFailed": "Das Ändern des PIN ist fehlgeschlagen — versuch es später nochmal",
       "rekeyFailed": "Die Neuverschlüsselung ist fehlgeschlagen — dein alter PIN bleibt aktiv, versuch es später nochmal"
+    },
+    "connections": {
+      "title": "Verbindungen",
+      "description": "Die KI-Assistenten, die auf dein Budget zugreifen dürfen.",
+      "subtitle": "Die Assistenten, die auf dein Budget zugreifen dürfen. Du kannst den Zugriff jederzeit beenden.",
+      "loading": "Deine Verbindungen werden geladen...",
+      "errorTitle": "Verbindungen konnten nicht geladen werden",
+      "errorMessage": "Das Laden ist hängen geblieben. Versuch es erneut, um zu sehen, wer Zugriff auf dein Budget hat.",
+      "emptyTitle": "Kein Assistent verbunden",
+      "emptyMessage": "Du kannst Pulpe mit ChatGPT oder Claude verbinden, um dein Budget im Gespräch zu verwalten. Es wird nichts geteilt, solange du nichts erlaubt hast.",
+      "modeRead": "Nur lesen",
+      "modeReadWrite": "Lesen und schreiben",
+      "since": "seit {{ date }}",
+      "recentActions": "Letzte Aktionen",
+      "showActions": "Anzeigen, was der Assistent getan hat",
+      "noActivity": "Noch keine Aktion.",
+      "seeAll": "Alle anzeigen",
+      "failed": "fehlgeschlagen",
+      "tools": {
+        "add_movement": "Bewegung hinzugefügt",
+        "add_forecast": "Planung hinzugefügt",
+        "create_month_from_template": "Monatsbudget erstellt",
+        "delete_movement": "Bewegung gelöscht",
+        "spread_expense": "Ausgabe verteilt",
+        "toggle_check": "Prüfstatus geändert",
+        "update_forecast": "Planung aktualisiert",
+        "update_movement": "Bewegung aktualisiert"
+      },
+      "unknownAction": "Aktion des Assistenten",
+      "revoke": "Zugriff beenden",
+      "revokeTitle": "Zugriff von {{ client }} beenden?",
+      "revokeMessage": "{{ client }} kann dein Budget dann weder lesen noch ändern. Um es wieder zu verbinden, musst du es erneut mit deinem Code erlauben.",
+      "revokeSuccess": "Zugriff von {{ client }} beendet.",
+      "revokeError": "Zugriff konnte nicht beendet werden. Versuch es erneut."
     }
   },
   "budget": {
@@ -1526,8 +1581,20 @@
         "title": "12. Änderungen",
         "body": "Diese Erklärung kann gelegentlich aktualisiert werden. Über wesentliche Änderungen wirst du per E-Mail informiert."
       },
+      "aiAssistants": {
+        "title": "13. Verbindungen zu KI-Assistenten",
+        "intro": "Wenn du Pulpe mit einem KI-Assistenten verbindest (ChatGPT, Claude, Codex oder ein anderer kompatibler Client), gelten zusätzlich die folgenden Regeln.",
+        "items": {
+          "data": "Betroffene Daten: die für jede Antwort nötigen Budgetangaben (Bezeichnungen, Beträge, Daten, Ziele), nie dein Passwort oder deine PIN.",
+          "purpose": "Zweck: deine Anfragen in natürlicher Sprache beantworten und, falls du den Modus Lesen und Schreiben gewählt hast, die gewünschten Änderungen ausführen.",
+          "recipients": "Empfänger: der Anbieter des von dir verbundenen Assistenten, nach dessen eigenen Nutzungsbedingungen. Pulpe wählt diesen Empfänger nicht, das tust du.",
+          "key": "Verschlüsselungsschlüssel: Damit der Assistent ohne deinen Code antworten kann, bewahre ich eine geschützte Kopie deines Entschlüsselungsschlüssels auf, verschlüsselt mit einem eigenen Serverschlüssel. Weder der Assistent noch die Datenbank können sie lesen.",
+          "retention": "Dauer: Die Verbindung und die geschützte Kopie deines Schlüssels bestehen, bis du sie widerrufst. Das Ändern oder Wiederherstellen deiner PIN widerruft alle Verbindungen.",
+          "withdrawal": "Widerruf der Einwilligung: jederzeit unter Einstellungen, dann Verbindungen. Die Wirkung ist sofort: Der Zugriff wird entzogen und die Kopie deines Schlüssels gelöscht."
+        }
+      },
       "contact": {
-        "title": "13. Kontakt",
+        "title": "14. Kontakt",
         "intro": "Bei Fragen zu deinen personenbezogenen Daten:",
         "emailLabel": "E-Mail:",
         "githubLabel": "GitHub:",
@@ -1572,12 +1639,23 @@
         "analyticsLabel": "Wichtig:",
         "analyticsBody": "Ich verwende PostHog, um die Nutzung der App zu verstehen. Dazu gehören besuchte Seiten, verwendete Funktionen, aufgetretene Fehler und Sitzungsaufzeichnungen (Wiedergabe von Interaktionen). Deine Finanzdaten werden in diesen Analysen und Aufzeichnungen immer maskiert."
       },
+      "aiAssistants": {
+        "title": "5. Verbindungen zu KI-Assistenten",
+        "intro": "Du kannst Pulpe mit einem KI-Assistenten verbinden. Dieser Kanal ist freiwillig, und dafür gelten zusätzlich die folgenden Regeln.",
+        "items": {
+          "authority": "Der Assistent handelt in deinem Namen, im Rahmen des von dir gewählten Modus: nur lesen oder lesen und schreiben.",
+          "responsibility": "Du bleibst verantwortlich für das, was du ihn bittest. Eine Änderung durch den Assistenten gilt wie eine Änderung durch dich.",
+          "editor": "Der Anbieter des Assistenten ist ein Dritter, den du auswählst. Seine Bedingungen gelten für ihn, nicht für mich, und ich hafte nicht dafür, was er mit deinen Anfragen macht.",
+          "figures": "Die Zahlen, die der Assistent nennt, stammen aus Pulpe. Wie er sie formuliert, liegt bei ihm: bei Abweichungen gilt die App.",
+          "revocation": "Du kannst den Zugriff jederzeit beenden, unter Einstellungen und dann Verbindungen. Die Wirkung ist sofort."
+        }
+      },
       "source": {
-        "title": "5. Quellcode und Eigentum",
+        "title": "6. Quellcode und Eigentum",
         "body": "Der Quellcode von Pulpe kann öffentlich auf GitHub eingesehen werden. Deine personenbezogenen Daten gehören dir und bleiben privat."
       },
       "liability": {
-        "title": "6. Haftungsbeschränkung",
+        "title": "7. Haftungsbeschränkung",
         "intro": "Pulpe ist ein persönliches Projekt, das ich in meiner Freizeit pflege. Der Dienst wird ohne Gewähr bereitgestellt. Ich kann Folgendes nicht garantieren:",
         "warning": "Wichtiger Hinweis:",
         "items": {
@@ -1591,19 +1669,19 @@
         }
       },
       "termination": {
-        "title": "7. Kündigung",
+        "title": "8. Kündigung",
         "body": "Du kannst dein Konto jederzeit in den Einstellungen löschen. Ich behalte mir das Recht vor, dein Konto bei einem Verstoss gegen diese Bedingungen oder bei missbräuchlicher Nutzung zu sperren oder zu löschen."
       },
       "changes": {
-        "title": "8. Änderungen der Bedingungen",
+        "title": "9. Änderungen der Bedingungen",
         "body": "Ich kann diese Bedingungen bei Bedarf ändern. Über wesentliche Änderungen wirst du per E-Mail informiert. Wenn du den Dienst danach weiter nutzt, akzeptierst du die neuen Bedingungen."
       },
       "law": {
-        "title": "9. Anwendbares Recht",
+        "title": "10. Anwendbares Recht",
         "body": "Diese Bedingungen unterliegen dem schweizerischen Recht. Für Streitigkeiten sind die zuständigen Gerichte in Genf, Schweiz, zuständig."
       },
       "contact": {
-        "title": "10. Kontakt",
+        "title": "11. Kontakt",
         "body": "Bei Fragen zu diesen Bedingungen erreichst du mich unter:"
       }
     }
@@ -1731,7 +1809,9 @@
     "settings": "Einstellungen",
     "settingsTags": "Meine Tags",
     "designSystem": "Design System",
-    "maintenance": "Wartung"
+    "maintenance": "Wartung",
+    "mcpConsent": "KI-Assistenten verbinden",
+    "settingsConnections": "Verbindungen"
   },
   "authError": {
     "generic": "Etwas hat nicht funktioniert — versuch es nochmal",

@@ -334,6 +334,11 @@ const en: Dictionary = {
       title: "Template or budget: which one should you edit?",
       text: "Pick the right place depending on whether your change affects a single month or your ordinary months.",
     },
+    assistantCard: {
+      eyebrow: "Tutorial",
+      title: "Connect Pulpe to an AI assistant",
+      text: "Connect ChatGPT, Claude or Claude Code to your budget, read only or with the right to write.",
+    },
     faqHeading: "The questions I get asked most.",
     faq: {
       purpose: {
@@ -457,6 +462,109 @@ const en: Dictionary = {
     contactHeading: "Still stuck?",
     contactText:
       "Write to me and say which screen you’re on. I’ll answer you directly.",
+  },
+
+  assistant: {
+    promo: {
+      status: "Connection in preparation",
+      heading: "Your budget, in the conversation.",
+      intro:
+        "With ChatGPT or Claude, ask about your month, find an expense or ask the assistant to record it in Pulpe.",
+      cta: "Explore the connection",
+      examplesTitle: "What you’ll be able to ask",
+      examples: [
+        "How much can I still spend this month?",
+        "Find my grocery expenses.",
+        "Record yesterday’s restaurant expense.",
+      ],
+      availability:
+        "Depends on your assistant’s features and your plan. The guide explains which platforms are available.",
+    },
+    dataSharing:
+      "You choose what the assistant can read or change. The data it uses is sent to it and processed by its provider. You can cut off access at any time.",
+    metaTitle: "Connect Pulpe to an AI assistant",
+    metaDescription:
+      "Connect Pulpe to ChatGPT, Claude or Claude Code: what the assistant can do, how to authorise it, and where to cut the access.",
+    backToSupport: "Help",
+    eyebrow: "AI assistants",
+    heading: "Talk about your budget from your assistant",
+    intro:
+      "The public connection is in preparation. It will let you retrieve your figures and record an expense from ChatGPT or Claude. Here is how it works and the planned setup.",
+    abilitiesHeading: "What your assistant can do.",
+    abilities: [
+      "Tell you what is left to spend this month, and where the figure comes from.",
+      "Read your planned items, your activity and your savings goals.",
+      "Record an expense, an income or a saving, then check it off.",
+      "Spread a large expense over several months.",
+      "Create the budget of a month from one of your templates.",
+    ],
+    sourceTitle: "The figures stay the ones from Pulpe",
+    sourceText:
+      "Pulpe supplies your budget figures to the assistant. Its explanations may contain mistakes: check Pulpe if in doubt.",
+    modeHeading: "Decide what it is allowed to do.",
+    modeIntro:
+      "You choose when you authorise the connection. You can change your mind later: cut it, then set it up again in the other mode.",
+    readMode: {
+      eyebrow: "Read only",
+      title: "It looks, it touches nothing",
+      text: "It answers your questions about the current month and about your year. Nothing moves in your budgets, even if you ask for it.",
+    },
+    writeMode: {
+      eyebrow: "Read and write",
+      title: "It records for you",
+      text: "It can add an expense, check it off or create next month’s budget. Review requested actions; confirmations also depend on your assistant’s settings.",
+    },
+    connectEyebrow: "The setup",
+    connectHeading: "Connect Pulpe, once.",
+    addressLabel: "The address to paste, the same everywhere",
+    availabilityNote:
+      "Claude supports remote connections on web, desktop and mobile. For ChatGPT, start setup on the web if developer mode is available for your account. Capabilities vary by assistant, account and app. Pulpe is not yet published in their directories.",
+    clients: [
+      {
+        name: "ChatGPT",
+        steps: [
+          "On ChatGPT web, open Settings > Security and login, then enable developer mode if available.",
+          "In Plugins, use the + button and paste the address above.",
+          "Authorise access in Pulpe, then select the connector in your conversation.",
+        ],
+      },
+      {
+        name: "Claude",
+        steps: [
+          "In Claude, open Customize > Connectors.",
+          "Add a custom connector using the address above.",
+          "Connect it to Pulpe, then enable it in your conversation.",
+        ],
+      },
+      {
+        name: "Claude Code",
+        steps: [
+          "Run the command below in your terminal.",
+          "In Claude Code, open /mcp and start connecting to Pulpe.",
+          "Authorise access in the browser, then return to the terminal.",
+        ],
+      },
+    ],
+    commandLabel: "In the terminal",
+    consentTitle: "What you see when you authorise",
+    consentSteps: [
+      "You sign in to your Pulpe account, as you would on the web.",
+      "You enter your code, the one that unlocks your amounts.",
+      "You pick read only or read and write, then you confirm.",
+    ],
+    revokeHeading: "Cut the access whenever you want.",
+    revokeText:
+      "Cutting off access blocks future reads and changes. An action already in progress may finish. Data already sent is not deleted.",
+    revokeSteps: [
+      "Open Pulpe, then the settings.",
+      "Go to the list of your connections.",
+      "Cut the one you no longer want.",
+    ],
+    revokeNote:
+      "Changing your code or recovering your vault also cuts every connection at once. That is deliberate: your assistants no longer have what it takes to open your amounts, and you connect them again whenever you want.",
+    contactHeading: "Stuck on the setup?",
+    contactText:
+      "Write to me and name the assistant and the screen where you are stuck. I build Pulpe on my own and I answer myself.",
   },
 
   changelog: {

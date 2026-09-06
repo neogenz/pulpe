@@ -76,6 +76,23 @@ test("public security and deletion claims describe the implemented model", () =>
     /tes montants et libellés financiers ne sont ni transmis\s+à des fins publicitaires ni revendus/i,
   );
 
+  for (const [locale, scope] of [
+    ["fr", /prochaines.*déjà en cours.*déjà envoyées/],
+    ["en", /future.*already in progress.*already sent/],
+    ["de", /künftige.*bereits laufende.*bereits gesendete/],
+    ["it", /future.*già in corso.*già inviati/],
+  ]) {
+    const copy = read(`landing/content/dictionaries/${locale}.ts`).match(
+      /revokeText:\s*"([^"]+)"/,
+    )?.[1];
+    assert.ok(copy, `${locale}: missing assistant revocation explanation`);
+    assert.match(
+      copy,
+      scope,
+      `${locale}: revocation must distinguish future access, in-flight actions and previously shared data`,
+    );
+  }
+
   const consent = read("docs/CONSENT.md");
   assert.match(consent, /Paramètres → Données de diagnostic/);
   assert.match(consent, /Préférences → Données et confidentialité/);
@@ -184,4 +201,97 @@ test("tracked project files preserve AIDD history and skill contracts", () => {
   );
   assert.match(storyFormat, /Template \(copier-coller exact\)/);
   assert.match(storyFormat, /Barème d'estimation \(Story Points\)/);
+});
+
+test("the plugin manifest lets Claude Code see every release", () => {
+  const manifest = JSON.parse(read("plugins/pulpe/.claude-plugin/plugin.json"));
+  const marketplace = JSON.parse(read(".claude-plugin/marketplace.json"));
+  const marketplaceEntry = marketplace.plugins.find(
+    ({ name }) => name === manifest.name,
+  );
+
+  // Declaring `version` in either place pins the plugin. On a git source,
+  // omitting both fields makes the resolved commit SHA the update signal.
+  assert.ok(marketplaceEntry, "the Pulpe marketplace entry must exist");
+  assert.equal(
+    manifest.version,
+    undefined,
+    "plugins/pulpe/.claude-plugin/plugin.json must not declare a version",
+  );
+  assert.equal(
+    marketplaceEntry.version,
+    undefined,
+    ".claude-plugin/marketplace.json Pulpe entry must not declare a version",
+  );
+});
+
+test("the historical OAuth probe logs observations, never response fields", () => {
+  const probe = new URL(
+    "../../aidd_docs/tasks/2026_08/2026_08_23_pulpe-mcp-agent-connector/oauth-isolation-probe.ts",
+    import.meta.url,
+  ).href;
+  for (const writesAllowed of [true, false]) {
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        `
+        import assert from 'node:assert/strict';
+        const writesAllowed = ${writesAllowed};
+        const sensitive = 'response-field-not-for-logs';
+        const claims = { client_id: 'client', sub: 'owner', role: sensitive };
+        const bearer = 'header.' + Buffer.from(JSON.stringify(claims)).toString('base64url') + '.signature';
+        const responses = [
+          { id: 'owner' }, { access_token: sensitive }, { client_id: 'client' },
+          null, {}, null, { access_token: bearer }, {}, {},
+          { user_metadata: { firstName: writesAllowed ? 'Changed by OAuth client' : sensitive } },
+          [{ id: 'template' }], [{ id: 'budget' }], [{ description: sensitive }],
+          {}, [{ description: sensitive }], {}, {},
+        ];
+        process.argv[2] = 'mock-workdir';
+        globalThis.Bun = { spawnSync: () => ({ exitCode: 0, stdout: Buffer.from(JSON.stringify({
+          API_URL: 'http://127.0.0.1:56421', SERVICE_ROLE_KEY: sensitive, ANON_KEY: sensitive,
+        })) }) };
+        let calls = 0;
+        let state;
+        globalThis.fetch = async (input) => {
+          const url = new URL(input);
+          assert.equal(url.origin, 'http://127.0.0.1:56421');
+          const index = calls++;
+          if (index === 3) {
+            state = url.searchParams.get('state');
+            return new Response(null, { status: 302, headers: { location: 'http://127.0.0.1:56421/consent?authorization_id=authorization' } });
+          }
+          if (index === 5) return Response.json({ redirect_url: 'http://127.0.0.1:46567/callback?code=code&state=' + state });
+          return Response.json(responses[index], { status: !writesAllowed && [8, 12, 14].includes(index) ? 403 : 200 });
+        };
+        await import(${JSON.stringify(probe)});
+        assert.equal(calls, responses.length, 'both disposable resources must be cleaned up');
+        `,
+      ],
+      { encoding: "utf8", timeout: 5000 },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(
+      result.stdout + result.stderr,
+      /response-field-not-for-logs/,
+    );
+    assert.equal(
+      result.stdout.trim(),
+      [
+        "Real OAuth token issued for the disposable owner.",
+        writesAllowed
+          ? "Auth metadata boundary: native OAuth write persisted."
+          : "Auth metadata boundary: native OAuth write did not persist.",
+        writesAllowed
+          ? "Data API without MCP grant: owner row updated."
+          : "Data API without MCP grant: owner row update not confirmed.",
+        writesAllowed
+          ? "Data API after OAuth revocation: owner row updated."
+          : "Data API after OAuth revocation: owner row update not confirmed.",
+        "Disposable user and client cleaned up.",
+      ].join("\n"),
+    );
+  }
 });

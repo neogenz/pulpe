@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { createInfoLoggerProvider } from '@common/logger';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
+import { McpRevocationModule } from '@modules/mcp/mcp-revocation.module';
 import { UserController } from './infrastructure/http/user.controller';
 import { USER_REPOSITORY } from './domain/ports/user-repository.port';
 import { SupabaseUserRepository } from './infrastructure/persistence/supabase-user.repository';
@@ -11,7 +12,7 @@ import { UpdateUserSettingsUseCase } from './application/update-user-settings.us
 import { ScheduleAccountDeletionUseCase } from './application/schedule-account-deletion.use-case';
 
 @Module({
-  imports: [SupabaseModule],
+  imports: [SupabaseModule, McpRevocationModule],
   controllers: [UserController],
   providers: [
     GetUserProfileUseCase,

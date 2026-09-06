@@ -240,6 +240,27 @@
       "accountBlocked": "Il tuo account è in corso di eliminazione.",
       "clientKeyMissing": "Manca la chiave della tua cassaforte — scrivila per continuare",
       "userNotConnected": "Utente non connesso"
+    },
+    "mcpConsent": {
+      "title": "Collegare Pulpe a {{client}}",
+      "subtitle": "{{client}} chiede l’accesso al tuo budget.",
+      "modeRead": "Sola lettura",
+      "modeReadDescription": "Consultare e analizzare, senza cambiare nulla.",
+      "modeReadWrite": "Lettura e scrittura",
+      "modeReadWriteDescription": "Aggiungere, modificare, eliminare e spuntare.",
+      "warningsTitle": "Prima di autorizzare",
+      "warningDataTitle": "I tuoi dati vengono inviati a {{client}}.",
+      "warningDataBody": "Per rispondere o agire, {{client}} può ricevere budget, descrizioni, importi, date e obiettivi. Il suo fornitore li tratta secondo le proprie regole sulla privacy.",
+      "warningKeyTitle": "L’accesso resta attivo.",
+      "warningKeyBody": "Pulpe conserva una chiave protetta per accedere ai tuoi importi, anche quando l’app è chiusa. Il tuo codice Pulpe non viene mai inviato a {{client}}.",
+      "warningRevokeTitle": "Mantieni il controllo.",
+      "warningRevokeBody": "Interrompi l’accesso in Impostazioni > Connessioni. Questo ferma gli scambi futuri, senza cancellare i dati già inviati.",
+      "pinLabel": "Il tuo codice Pulpe",
+      "pinHint": "Non lascia questa pagina e non viene mai trasmesso a {{client}}.",
+      "authorize": "Autorizza",
+      "privacyLink": "Cosa faccio dei tuoi dati",
+      "invalidRequest": "Questa richiesta non è più valida. Riavvia la connessione dal tuo assistente.",
+      "missingRequest": "Nessuna richiesta di connessione in corso. Riavvia la connessione dal tuo assistente."
     }
   },
   "welcome": {
@@ -445,6 +466,40 @@
       "genericError": "Qualcosa è andato storto — riprova più tardi",
       "changeFailed": "Il cambio del codice PIN non è riuscito — riprova più tardi",
       "rekeyFailed": "La ri-cifratura non è riuscita — il tuo vecchio codice PIN resta attivo, riprova più tardi"
+    },
+    "connections": {
+      "title": "Connessioni",
+      "description": "Gli assistenti IA autorizzati ad accedere al tuo budget.",
+      "subtitle": "Gli assistenti autorizzati ad accedere al tuo budget. Puoi togliere l'accesso in qualsiasi momento.",
+      "loading": "Caricamento delle tue connessioni...",
+      "errorTitle": "Impossibile caricare le connessioni",
+      "errorMessage": "Il caricamento si è bloccato. Riprova per vedere chi ha accesso al tuo budget.",
+      "emptyTitle": "Nessun assistente collegato",
+      "emptyMessage": "Puoi collegare Pulpe a ChatGPT o Claude per gestire il tuo budget parlando. Niente viene condiviso finché non lo autorizzi.",
+      "modeRead": "Sola lettura",
+      "modeReadWrite": "Lettura e scrittura",
+      "since": "dal {{ date }}",
+      "recentActions": "Ultime azioni",
+      "showActions": "Vedi cosa ha fatto l'assistente",
+      "noActivity": "Nessuna azione per ora.",
+      "seeAll": "Vedi tutto",
+      "failed": "fallita",
+      "tools": {
+        "add_movement": "Movimento aggiunto",
+        "add_forecast": "Previsione aggiunta",
+        "create_month_from_template": "Budget mensile creato",
+        "delete_movement": "Movimento eliminato",
+        "spread_expense": "Spesa ripartita",
+        "toggle_check": "Stato di verifica modificato",
+        "update_forecast": "Previsione aggiornata",
+        "update_movement": "Movimento aggiornato"
+      },
+      "unknownAction": "Azione dell’assistente",
+      "revoke": "Togli l'accesso",
+      "revokeTitle": "Togliere l'accesso a {{ client }}?",
+      "revokeMessage": "{{ client }} non potrà più leggere né modificare il tuo budget. Per ricollegarlo dovrai autorizzarlo di nuovo con il tuo codice.",
+      "revokeSuccess": "Accesso di {{ client }} tolto.",
+      "revokeError": "Impossibile togliere l'accesso. Riprova."
     }
   },
   "budget": {
@@ -1526,8 +1581,20 @@
         "title": "12. Modifiche",
         "body": "Questa informativa può essere aggiornata occasionalmente. Le modifiche sostanziali saranno comunicate via email."
       },
+      "aiAssistants": {
+        "title": "13. Connessioni ad assistenti IA",
+        "intro": "Se colleghi Pulpe a un assistente IA (ChatGPT, Claude, Codex o un altro client compatibile), si aggiungono le regole seguenti.",
+        "items": {
+          "data": "Dati coinvolti: gli elementi del budget necessari a ogni risposta (descrizioni, importi, date, obiettivi), mai la tua password né il tuo PIN.",
+          "purpose": "Finalità: rispondere alle tue richieste in linguaggio naturale e, se hai scelto la modalità lettura e scrittura, applicare le modifiche che chiedi.",
+          "recipients": "Destinatari: l’editore dell’assistente che hai collegato, secondo le sue condizioni d’uso. Pulpe non sceglie questo destinatario, lo fai tu.",
+          "key": "Chiave di cifratura: perché l’assistente risponda senza il tuo codice, conservo una copia protetta della tua chiave di decifratura, cifrata con una chiave server dedicata. Né l’assistente né il database possono leggerla.",
+          "retention": "Durata: la connessione e la copia protetta della tua chiave esistono finché non le revochi. Cambiare o recuperare il PIN revoca tutte le connessioni.",
+          "withdrawal": "Revoca del consenso: in qualsiasi momento, in Impostazioni poi Connessioni. L’effetto è immediato: l’accesso viene tolto e la copia della tua chiave distrutta."
+        }
+      },
       "contact": {
-        "title": "13. Contatti",
+        "title": "14. Contatti",
         "intro": "Per qualsiasi domanda sui tuoi dati personali:",
         "emailLabel": "Email:",
         "githubLabel": "GitHub:",
@@ -1572,12 +1639,23 @@
         "analyticsLabel": "Importante:",
         "analyticsBody": "Utilizzo PostHog per comprendere come viene usata l'applicazione. Ciò include pagine visitate, funzionalità utilizzate, errori riscontrati e registrazioni delle sessioni (riproduzione delle interazioni). I tuoi dati finanziari sono sempre mascherati in queste analisi e registrazioni."
       },
+      "aiAssistants": {
+        "title": "5. Connessioni ad assistenti IA",
+        "intro": "Puoi collegare Pulpe a un assistente IA. Questo canale è facoltativo e vi si aggiungono le regole seguenti.",
+        "items": {
+          "authority": "L’assistente agisce a tuo nome, nei limiti della modalità che hai scelto: sola lettura, oppure lettura e scrittura.",
+          "responsibility": "Resti responsabile di ciò che gli chiedi. Una scrittura fatta dall’assistente vale come una scrittura fatta da te.",
+          "editor": "L’editore dell’assistente è un terzo che scegli tu. Le sue condizioni si applicano a lui, non a me, e non rispondo di ciò che fa delle tue richieste.",
+          "figures": "Le cifre che l’assistente annuncia vengono da Pulpe. Il modo in cui le mette in parole appartiene a lui: in caso di scarto, fa fede l’applicazione.",
+          "revocation": "Interrompi l’accesso quando vuoi, in Impostazioni e poi Connessioni. L’effetto è immediato."
+        }
+      },
       "source": {
-        "title": "5. Codice sorgente e proprietà",
+        "title": "6. Codice sorgente e proprietà",
         "body": "Il codice sorgente di Pulpe può essere consultato pubblicamente su GitHub. I tuoi dati personali ti appartengono e restano privati."
       },
       "liability": {
-        "title": "6. Limitazione di responsabilità",
+        "title": "7. Limitazione di responsabilità",
         "intro": "Pulpe è un progetto personale che mantengo nel tempo libero. Il servizio è fornito «così com'è» e non posso garantire:",
         "warning": "Avvertenza importante:",
         "items": {
@@ -1591,19 +1669,19 @@
         }
       },
       "termination": {
-        "title": "7. Cessazione",
+        "title": "8. Cessazione",
         "body": "Puoi eliminare il tuo account in qualsiasi momento dalle impostazioni. Mi riservo il diritto di sospenderlo o eliminarlo in caso di violazione di queste condizioni o di uso improprio."
       },
       "changes": {
-        "title": "8. Modifiche alle condizioni",
+        "title": "9. Modifiche alle condizioni",
         "body": "Posso modificare queste condizioni quando necessario. Le modifiche sostanziali saranno comunicate via email. Continuare a utilizzare il servizio dopo una modifica equivale ad accettare le nuove condizioni."
       },
       "law": {
-        "title": "9. Legge applicabile",
+        "title": "10. Legge applicabile",
         "body": "Queste condizioni sono disciplinate dal diritto svizzero. Qualsiasi controversia sarà sottoposta ai tribunali competenti di Ginevra, Svizzera."
       },
       "contact": {
-        "title": "10. Contatti",
+        "title": "11. Contatti",
         "body": "Per qualsiasi domanda su queste condizioni, contattami all'indirizzo:"
       }
     }
@@ -1731,7 +1809,9 @@
     "settings": "Impostazioni",
     "settingsTags": "I miei tag",
     "designSystem": "Design System",
-    "maintenance": "Manutenzione"
+    "maintenance": "Manutenzione",
+    "mcpConsent": "Collegare un assistente IA",
+    "settingsConnections": "Connessioni"
   },
   "authError": {
     "generic": "Qualcosa non ha funzionato — riprova",

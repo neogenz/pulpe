@@ -55,6 +55,7 @@ const safeErrorType = (error: unknown): string =>
 @Injectable()
 export class AesGcmCryptoService {
   readonly #masterKey: Buffer;
+  readonly #wrappingKey: Buffer;
   readonly #dekCache = new Map<string, CachedDEK>();
   readonly #repository: SupabaseEncryptionKeyRepository;
 
@@ -75,7 +76,27 @@ export class AesGcmCryptoService {
         `ENCRYPTION_MASTER_KEY must be exactly ${KEY_LENGTH} bytes (${KEY_LENGTH * 2} hex chars), got ${this.#masterKey.length} bytes`,
       );
     }
+    // Validated by the environment schema at boot; tests build the service by hand.
+    this.#wrappingKey = Buffer.from(
+      configService.get<string>('MCP_WRAPPING_KEY') ?? '',
+      'hex',
+    );
     this.#repository = repository;
+  }
+
+  wrapSecret(secret: Buffer): string {
+    return this.wrapDEK(secret, this.#requireWrappingKey());
+  }
+
+  unwrapSecret(wrapped: string): Buffer {
+    return this.unwrapDEK(wrapped, this.#requireWrappingKey());
+  }
+
+  #requireWrappingKey(): Buffer {
+    if (this.#wrappingKey.length !== KEY_LENGTH) {
+      throw new Error('MCP_WRAPPING_KEY must be 32 bytes');
+    }
+    return this.#wrappingKey;
   }
 
   encryptAmount(amount: number, dek: Buffer): string {

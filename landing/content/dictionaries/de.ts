@@ -335,6 +335,11 @@ const de: Dictionary = {
       title: "Vorlage oder Budget: Was musst du ändern?",
       text: "Wähle die richtige Stelle, je nachdem ob deine Änderung einen einzelnen Monat oder deine gewöhnlichen Monate betrifft.",
     },
+    assistantCard: {
+      eyebrow: "Anleitung",
+      title: "Pulpe mit einem KI-Assistenten verbinden",
+      text: "Schliess ChatGPT, Claude oder Claude Code an dein Budget an, nur lesend oder mit dem Recht zu schreiben.",
+    },
     faqHeading: "Die Fragen, die mir am häufigsten gestellt werden.",
     faq: {
       purpose: {
@@ -462,6 +467,109 @@ const de: Dictionary = {
     contactHeading: "Immer noch blockiert?",
     contactText:
       "Schreib mir und nenne den Bildschirm, auf dem du bist. Ich antworte dir direkt.",
+  },
+
+  assistant: {
+    promo: {
+      status: "Verbindung in Vorbereitung",
+      heading: "Dein Budget im Gespräch.",
+      intro:
+        "Frage ChatGPT oder Claude nach deinem Monat, finde eine Ausgabe oder bitte den Assistenten, sie in Pulpe einzutragen.",
+      cta: "Verbindung entdecken",
+      examplesTitle: "Was du fragen kannst",
+      examples: [
+        "Wie viel kann ich diesen Monat noch ausgeben?",
+        "Finde meine Lebensmitteleinkäufe.",
+        "Trage meine gestrige Restaurantausgabe ein.",
+      ],
+      availability:
+        "Abhängig von den Funktionen deines Assistenten und deinem Abo. Die Anleitung nennt die verfügbaren Plattformen.",
+    },
+    dataSharing:
+      "Du entscheidest, was der Assistent lesen oder ändern darf. Die verwendeten Daten werden an ihn gesendet und von seinem Anbieter verarbeitet. Du kannst den Zugriff jederzeit beenden.",
+    metaTitle: "Pulpe mit einem KI-Assistenten verbinden",
+    metaDescription:
+      "Pulpe an ChatGPT, Claude oder Claude Code anschliessen: was der Assistent kann, wie du ihn freigibst und wo du den Zugang kappst.",
+    backToSupport: "Hilfe",
+    eyebrow: "KI-Assistenten",
+    heading: "Mit deinem Assistenten über dein Budget sprechen",
+    intro:
+      "Die öffentliche Verbindung ist in Vorbereitung. Damit kannst du deine Zahlen abrufen und eine Ausgabe über ChatGPT oder Claude erfassen. Hier findest du die Funktionsweise und die geplante Einrichtung.",
+    abilitiesHeading: "Was dein Assistent kann.",
+    abilities: [
+      "Dir sagen, was dir diesen Monat zum Ausgeben bleibt, und woher die Zahl kommt.",
+      "Deine Planposten, deine Bewegungen und deine Sparziele lesen.",
+      "Eine Ausgabe, eine Einnahme oder ein Sparen erfassen und danach abhaken.",
+      "Eine grosse Ausgabe über mehrere Monate verteilen.",
+      "Das Budget eines Monats aus einer deiner Vorlagen anlegen.",
+    ],
+    sourceTitle: "Die Zahlen bleiben die von Pulpe",
+    sourceText:
+      "Pulpe liefert deine Budgetzahlen an den Assistenten. Seine Erklärungen können Fehler enthalten: prüfe im Zweifel in Pulpe nach.",
+    modeHeading: "Entscheide, was er darf.",
+    modeIntro:
+      "Du wählst beim Freigeben der Verbindung. Du kannst es dir später anders überlegen: kappe die Verbindung und richte sie im anderen Modus neu ein.",
+    readMode: {
+      eyebrow: "Nur lesen",
+      title: "Er schaut, er fasst nichts an",
+      text: "Er beantwortet deine Fragen zum laufenden Monat und zu deinem Jahr. In deinen Budgets bewegt sich nichts, auch wenn du darum bittest.",
+    },
+    writeMode: {
+      eyebrow: "Lesen und schreiben",
+      title: "Er erfasst für dich",
+      text: "Er kann eine Ausgabe erfassen, abhaken oder das Budget des nächsten Monats anlegen. Prüfe die angefragten Aktionen; Bestätigungen hängen auch von den Einstellungen deines Assistenten ab.",
+    },
+    connectEyebrow: "Das Einrichten",
+    connectHeading: "Pulpe anschliessen, ein einziges Mal.",
+    addressLabel: "Die Adresse zum Einfügen, überall dieselbe",
+    availabilityNote:
+      "Claude unterstützt entfernte Verbindungen im Web, auf dem Computer und auf dem Handy. Beginne die Einrichtung für ChatGPT im Web, falls der Entwicklermodus für dein Konto verfügbar ist. Die Möglichkeiten hängen vom Assistenten, deinem Konto und der verwendeten App ab. Pulpe ist noch nicht in ihren Verzeichnissen veröffentlicht.",
+    clients: [
+      {
+        name: "ChatGPT",
+        steps: [
+          "Öffne in ChatGPT im Web Einstellungen > Sicherheit und Anmeldung und aktiviere den Entwicklermodus, falls verfügbar.",
+          "Verwende unter Plugins die Schaltfläche + und füge die Adresse von oben ein.",
+          "Erlaube den Zugriff in Pulpe und wähle den Connector im Gespräch.",
+        ],
+      },
+      {
+        name: "Claude",
+        steps: [
+          "Öffne in Claude Anpassen > Connectors.",
+          "Füge einen eigenen Connector mit der Adresse von oben hinzu.",
+          "Verbinde ihn mit Pulpe und aktiviere ihn im Gespräch.",
+        ],
+      },
+      {
+        name: "Claude Code",
+        steps: [
+          "Führe den Befehl unten im Terminal aus.",
+          "Öffne in Claude Code /mcp und starte die Verbindung zu Pulpe.",
+          "Erlaube den Zugriff im Browser und kehre zum Terminal zurück.",
+        ],
+      },
+    ],
+    commandLabel: "Im Terminal",
+    consentTitle: "Was du beim Freigeben siehst",
+    consentSteps: [
+      "Du meldest dich bei deinem Pulpe-Konto an, wie im Web.",
+      "Du gibst deinen Code ein, den, der deine Beträge aufschliesst.",
+      "Du wählst nur lesen oder lesen und schreiben und bestätigst.",
+    ],
+    revokeHeading: "Kappe den Zugang, wann du willst.",
+    revokeText:
+      "Das Trennen blockiert künftige Lesezugriffe und Änderungen. Eine bereits laufende Aktion kann noch abgeschlossen werden; bereits gesendete Daten werden nicht gelöscht.",
+    revokeSteps: [
+      "Öffne Pulpe, dann die Einstellungen.",
+      "Geh zur Liste deiner Verbindungen.",
+      "Kappe die, die du nicht mehr willst.",
+    ],
+    revokeNote:
+      "Deinen Code ändern oder deinen Tresor wiederherstellen kappt ebenfalls alle Verbindungen auf einmal. Das ist so gewollt: deine Assistenten haben dann nichts mehr, womit sie deine Beträge aufschliessen, und du schliesst sie neu an, wann du willst.",
+    contactHeading: "Hakt es beim Einrichten?",
+    contactText:
+      "Schreib mir und nenne den Assistenten und den Bildschirm, auf dem du hängst. Ich baue Pulpe allein und antworte selbst.",
   },
 
   changelog: {

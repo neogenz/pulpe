@@ -358,6 +358,11 @@ const fr = {
       title: "Modèle ou budget : que faut-il modifier ?",
       text: "Choisis le bon endroit selon que ton changement concerne un seul mois ou tes mois habituels.",
     },
+    assistantCard: {
+      eyebrow: "Tutoriel",
+      title: "Connecter Pulpe à un assistant IA",
+      text: "Branche ChatGPT, Claude ou Claude Code sur ton budget, en lecture seule ou avec le droit d’écrire.",
+    },
     faqHeading: "Les questions qu’on me pose le plus.",
     // `plainAnswer` n’est plus écrit à la main : il est dérivé du texte
     // ci-dessous pour le JSON-LD, donc les deux ne peuvent plus diverger.
@@ -486,6 +491,109 @@ const fr = {
     contactHeading: "Toujours bloqué ?",
     contactText:
       "Écris-moi en précisant l’écran où tu te trouves. Je te répondrai directement.",
+  },
+
+  assistant: {
+    promo: {
+      status: "Connexion en préparation",
+      heading: "Ton budget, dans la conversation.",
+      intro:
+        "Avec ChatGPT ou Claude, pose une question sur ton mois, retrouve une dépense ou demande à l’assistant de la noter dans Pulpe.",
+      cta: "Découvrir la connexion",
+      examplesTitle: "Ce que tu pourras lui demander",
+      examples: [
+        "Combien me reste-t-il à dépenser ce mois-ci ?",
+        "Retrouve mes dépenses de courses.",
+        "Note ma dépense de restaurant d’hier.",
+      ],
+      availability:
+        "Selon les fonctions proposées par ton assistant et ton abonnement. Le guide précise les supports disponibles.",
+    },
+    dataSharing:
+      "Tu choisis ce que l’assistant peut consulter ou modifier. Les données utilisées lui sont envoyées et sont traitées par son fournisseur. Tu peux couper l’accès à tout moment.",
+    metaTitle: "Connecter Pulpe à un assistant IA",
+    metaDescription:
+      "Brancher Pulpe sur ChatGPT, Claude ou Claude Code : ce que l’assistant sait faire, comment l’autoriser, et où couper l’accès.",
+    backToSupport: "Aide",
+    eyebrow: "Assistants IA",
+    heading: "Parler de ton budget à ton assistant",
+    intro:
+      "La connexion publique est en préparation. Elle permettra de retrouver tes chiffres et de noter une dépense depuis ChatGPT ou Claude. Voici le fonctionnement et les étapes prévues.",
+    abilitiesHeading: "Ce que ton assistant sait faire.",
+    abilities: [
+      "Te dire ce qu’il te reste à dépenser ce mois-ci, et d’où vient le chiffre.",
+      "Lire tes prévisions, tes mouvements et tes objectifs d’épargne.",
+      "Noter une dépense, un revenu ou une épargne, puis la pointer.",
+      "Étaler une grosse dépense sur plusieurs mois.",
+      "Créer le budget d’un mois à partir d’un de tes modèles.",
+    ],
+    sourceTitle: "Les chiffres restent ceux de Pulpe",
+    sourceText:
+      "Pulpe fournit les chiffres de ton budget à l’assistant. Ses explications peuvent contenir des erreurs : vérifie dans Pulpe en cas de doute.",
+    modeHeading: "Décide ce qu’il a le droit de faire.",
+    modeIntro:
+      "Tu choisis au moment d’autoriser la connexion. Tu peux changer d’avis ensuite : coupe-la, puis rebranche-la dans l’autre mode.",
+    readMode: {
+      eyebrow: "Lecture seule",
+      title: "Il regarde, il ne touche à rien",
+      text: "Il répond à tes questions sur le mois en cours et sur ton année. Rien ne bouge dans tes budgets, même si tu le lui demandes.",
+    },
+    writeMode: {
+      eyebrow: "Lecture et écriture",
+      title: "Il note à ta place",
+      text: "Il peut ajouter une dépense, la pointer ou créer le budget du mois prochain. Vérifie les actions demandées ; les confirmations dépendent aussi des réglages de ton assistant.",
+    },
+    connectEyebrow: "Le branchement",
+    connectHeading: "Brancher Pulpe, une seule fois.",
+    addressLabel: "L’adresse à coller, la même partout",
+    availabilityNote:
+      "Claude propose les connexions distantes sur le web, sur ordinateur et sur mobile. Pour ChatGPT, commence la configuration sur le web si le mode développeur est disponible pour ton compte. Les possibilités varient selon l’assistant, ton compte et l’application utilisée. Pulpe n’est pas encore publié dans leurs catalogues.",
+    clients: [
+      {
+        name: "ChatGPT",
+        steps: [
+          "Sur ChatGPT web, ouvre Paramètres > Sécurité et connexion, puis active le mode développeur s’il est disponible.",
+          "Dans Plugins, utilise le bouton + et colle l’adresse ci-dessus.",
+          "Autorise l’accès dans Pulpe, puis sélectionne le connecteur dans ta conversation.",
+        ],
+      },
+      {
+        name: "Claude",
+        steps: [
+          "Dans Claude, ouvre Personnaliser > Connecteurs.",
+          "Ajoute un connecteur personnalisé avec l’adresse ci-dessus.",
+          "Connecte-le à Pulpe, puis active-le dans ta conversation.",
+        ],
+      },
+      {
+        name: "Claude Code",
+        steps: [
+          "Lance la commande ci-dessous dans ton terminal.",
+          "Dans Claude Code, ouvre /mcp et lance la connexion à Pulpe.",
+          "Autorise l’accès dans le navigateur, puis reviens au terminal.",
+        ],
+      },
+    ],
+    commandLabel: "Dans le terminal",
+    consentTitle: "Ce que tu vois au moment d’autoriser",
+    consentSteps: [
+      "Tu te connectes à ton compte Pulpe, comme sur le web.",
+      "Tu saisis ton code, celui qui déverrouille tes montants.",
+      "Tu choisis lecture seule ou lecture et écriture, puis tu valides.",
+    ],
+    revokeHeading: "Couper l’accès quand tu veux.",
+    revokeText:
+      "Couper l’accès bloque les prochaines lectures et modifications. Une action déjà en cours peut se terminer. Les données déjà envoyées ne sont pas effacées.",
+    revokeSteps: [
+      "Ouvre Pulpe, puis les paramètres.",
+      "Va dans la liste de tes connexions.",
+      "Coupe celle dont tu ne veux plus.",
+    ],
+    revokeNote:
+      "Changer ton code ou récupérer ton coffre coupe aussi toutes les connexions d’un coup. C’est volontaire : tes assistants n’ont alors plus de quoi ouvrir tes montants, et tu les rebranches quand tu veux.",
+    contactHeading: "Ça coince au branchement ?",
+    contactText:
+      "Écris-moi en précisant l’assistant et l’écran où tu bloques. Je développe Pulpe seul et je réponds moi-même.",
   },
 
   changelog: {

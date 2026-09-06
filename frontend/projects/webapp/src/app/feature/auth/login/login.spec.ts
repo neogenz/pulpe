@@ -1,10 +1,12 @@
 import { LOCALE_ID, provideZonelessChangeDetection } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, type ComponentFixture } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { AuthCredentialsService } from '@core/auth';
+import { AuthCredentialsService, AuthOAuthService } from '@core/auth';
+import { OAuthProviderButton } from '@app/pattern/oauth-provider';
 import { Logger } from '@core/logging/logger';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
@@ -22,7 +24,9 @@ function createMockActivatedRoute(params: Record<string, string> = {}) {
 
 describe('Login', () => {
   let component: Login;
+  let fixture: ComponentFixture<Login>;
   let mockAuthCredentials: { signInWithEmail: ReturnType<typeof vi.fn> };
+  let mockAuthOAuth: { signInWithOAuth: ReturnType<typeof vi.fn> };
   let mockLogger: { error: ReturnType<typeof vi.fn> };
   let navigateSpy: ReturnType<typeof vi.fn>;
 
@@ -30,6 +34,9 @@ describe('Login', () => {
     queryParams: Record<string, string> = {},
   ): Promise<void> {
     mockAuthCredentials = { signInWithEmail: vi.fn() };
+    mockAuthOAuth = {
+      signInWithOAuth: vi.fn().mockResolvedValue({ success: true }),
+    };
     mockLogger = { error: vi.fn() };
 
     await TestBed.configureTestingModule({
@@ -41,6 +48,7 @@ describe('Login', () => {
         ...provideTranslocoForTest(),
         { provide: LOCALE_ID, useValue: 'fr-CH' },
         { provide: AuthCredentialsService, useValue: mockAuthCredentials },
+        { provide: AuthOAuthService, useValue: mockAuthOAuth },
         { provide: Logger, useValue: mockLogger },
         {
           provide: ActivatedRoute,
@@ -49,10 +57,11 @@ describe('Login', () => {
       ],
     }).compileComponents();
 
-    component = TestBed.createComponent(Login).componentInstance;
+    fixture = TestBed.createComponent(Login);
+    component = fixture.componentInstance;
 
     const router = TestBed.inject(Router);
-    navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    navigateSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
   }
 
   describe('Component Structure', () => {
@@ -127,7 +136,7 @@ describe('Login', () => {
 
       await component['signIn']();
 
-      expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+      expect(navigateSpy).toHaveBeenCalledWith('/dashboard');
     });
 
     it('should set error message on failed sign in', async () => {
@@ -155,6 +164,61 @@ describe('Login', () => {
         'Quelques champs à vérifier avant de continuer',
       );
       expect(mockAuthCredentials.signInWithEmail).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('returnUrl', () => {
+    it('should pass the pending consent URL through both provider buttons', async () => {
+      const returnUrl = '/mcp-consent?authorization_id=abc';
+      await setupComponent({ returnUrl });
+      fixture.detectChanges();
+      const buttons = fixture.debugElement.queryAll(
+        By.directive(OAuthProviderButton),
+      );
+      expect(buttons).toHaveLength(2);
+
+      for (const button of buttons) {
+        await (button.componentInstance as OAuthProviderButton)['signIn']();
+      }
+
+      expect(mockAuthOAuth.signInWithOAuth).toHaveBeenCalledWith(
+        'apple',
+        returnUrl,
+      );
+      expect(mockAuthOAuth.signInWithOAuth).toHaveBeenCalledWith(
+        'google',
+        returnUrl,
+      );
+    });
+
+    async function signInWith(queryParams: Record<string, string>) {
+      await setupComponent(queryParams);
+      mockAuthCredentials.signInWithEmail.mockResolvedValue({ success: true });
+      component['loginForm'].patchValue({
+        email: 'test@example.com',
+        password: 'password123',
+      });
+      await component['signIn']();
+    }
+
+    it('should return to the page the guard interrupted', async () => {
+      await signInWith({ returnUrl: '/mcp-consent?authorization_id=abc' });
+
+      expect(navigateSpy).toHaveBeenCalledWith(
+        '/mcp-consent?authorization_id=abc',
+      );
+    });
+
+    it('should ignore a protocol-relative returnUrl', async () => {
+      await signInWith({ returnUrl: '//evil.example.com' });
+
+      expect(navigateSpy).toHaveBeenCalledWith('/dashboard');
+    });
+
+    it('should ignore an absolute returnUrl', async () => {
+      await signInWith({ returnUrl: 'https://evil.example.com' });
+
+      expect(navigateSpy).toHaveBeenCalledWith('/dashboard');
     });
   });
 

@@ -93,6 +93,7 @@ export class OAuthProviderButton {
   readonly provider = input<OAuthProvider>('google');
   readonly buttonType = input<'filled' | 'outlined'>('outlined');
   readonly testId = input<string>('');
+  readonly returnUrl = input<string>();
   // Le parent gèle le bouton pendant qu'un autre submit est en vol (email,
   // demo/turnstile) : un redirect OAuth abandonnerait un compte peut-être
   // déjà créé côté serveur.
@@ -116,7 +117,10 @@ export class OAuthProviderButton {
     this.loadingChange.emit(true);
 
     try {
-      const result = await this.#authOAuth.signInWithOAuth(this.provider());
+      const result = await this.#authOAuth.signInWithOAuth(
+        this.provider(),
+        this.returnUrl(),
+      );
 
       if (!result.success) {
         this.authError.emit(

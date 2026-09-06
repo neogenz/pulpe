@@ -12,12 +12,14 @@ export const ROUTES = {
   SAVINGS_GOALS: 'savings-goals',
   SETTINGS: 'settings',
   SETTINGS_TAGS: 'tags',
+  SETTINGS_CONNECTIONS: 'connections',
   DESIGN_SYSTEM: 'design-system',
   LEGAL: 'legal',
   MAINTENANCE: 'maintenance',
   SETUP_VAULT_CODE: 'setup-vault-code',
   ENTER_VAULT_CODE: 'enter-vault-code',
   RECOVER_VAULT_CODE: 'recover-vault-code',
+  MCP_CONSENT: 'mcp-consent',
 
   // Legal paths
   LEGAL_TERMS: 'cgu',
@@ -33,6 +35,7 @@ export const PAGE_TITLES = {
   SETUP_VAULT_CODE: 'pageTitle.setupVaultCode',
   ENTER_VAULT_CODE: 'pageTitle.enterVaultCode',
   RECOVER_VAULT_CODE: 'pageTitle.recoverVaultCode',
+  MCP_CONSENT: 'pageTitle.mcpConsent',
   DASHBOARD: 'pageTitle.dashboard',
   COMPLETE_PROFILE: 'pageTitle.completeProfile',
   BUDGET: 'pageTitle.budget',
@@ -50,6 +53,7 @@ export const PAGE_TITLES = {
   LEGAL_PRIVACY: 'pageTitle.legalPrivacy',
   SETTINGS: 'pageTitle.settings',
   SETTINGS_TAGS: 'pageTitle.settingsTags',
+  SETTINGS_CONNECTIONS: 'pageTitle.settingsConnections',
   DESIGN_SYSTEM: 'pageTitle.designSystem',
   MAINTENANCE: 'pageTitle.maintenance',
 } as const;

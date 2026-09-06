@@ -79,7 +79,26 @@ describe('OAuthProviderButton', () => {
 
       await component['signIn']();
 
-      expect(mockAuthOAuth.signInWithOAuth).toHaveBeenCalledWith('google');
+      expect(mockAuthOAuth.signInWithOAuth).toHaveBeenCalledWith(
+        'google',
+        undefined,
+      );
+    });
+
+    it('should pass the supplied return URL to OAuth', async () => {
+      mockAuthOAuth.signInWithOAuth.mockResolvedValue({ success: true });
+      const fixture = TestBed.createComponent(OAuthProviderButton);
+      fixture.componentRef.setInput(
+        'returnUrl',
+        '/mcp-consent?authorization_id=abc',
+      );
+
+      await fixture.componentInstance['signIn']();
+
+      expect(mockAuthOAuth.signInWithOAuth).toHaveBeenCalledWith(
+        'google',
+        '/mcp-consent?authorization_id=abc',
+      );
     });
 
     it('should set isLoading to true when called', async () => {

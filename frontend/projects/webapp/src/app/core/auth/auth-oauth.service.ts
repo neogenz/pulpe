@@ -48,6 +48,7 @@ export class AuthOAuthService {
 
   async signInWithOAuth(
     provider: OAuthProvider,
+    returnUrl?: string,
   ): Promise<{ success: boolean; error?: string }> {
     if (isE2EMode()) {
       this.#logger.info(`🎭 Mode test E2E: Simulation du signin ${provider}`);
@@ -58,7 +59,7 @@ export class AuthOAuthService {
       const { error } = await this.#session.getClient().auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/${ROUTES.DASHBOARD}`,
+          redirectTo: this.#redirectTo(returnUrl),
         },
       });
 
@@ -80,5 +81,19 @@ export class AuthOAuthService {
         ),
       };
     }
+  }
+
+  #redirectTo(returnUrl?: string): string {
+    const origin = window.location.origin;
+    const fallback = `${origin}/${ROUTES.DASHBOARD}`;
+    if (
+      !returnUrl?.startsWith('/') ||
+      returnUrl.startsWith('//') ||
+      !URL.canParse(returnUrl, origin)
+    ) {
+      return fallback;
+    }
+    const destination = new URL(returnUrl, origin);
+    return destination.origin === origin ? destination.href : fallback;
   }
 }

@@ -8,6 +8,10 @@ import {
   type EncryptionPort,
 } from '@modules/encryption/domain/ports/encryption.port';
 import {
+  REVOKE_AGENT_CONNECTIONS_PORT,
+  type RevokeAgentConnectionsPort,
+} from '@modules/mcp/domain/ports/revoke-agent-connections.port';
+import {
   USER_REPOSITORY,
   type UserRepositoryPort,
 } from '../domain/ports/user-repository.port';
@@ -30,6 +34,8 @@ export class ScheduleAccountDeletionUseCase {
     private readonly repo: UserRepositoryPort,
     @Inject(ENCRYPTION_PORT)
     private readonly encryption: EncryptionPort,
+    @Inject(REVOKE_AGENT_CONNECTIONS_PORT)
+    private readonly agentConnections: RevokeAgentConnectionsPort,
     @InjectInfoLogger(ScheduleAccountDeletionUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -46,6 +52,8 @@ export class ScheduleAccountDeletionUseCase {
     }
 
     const result = await this.repo.scheduleDeletion(user.id);
+    // Before the global sign-out: the grant API needs a live user token.
+    await this.agentConnections.revokeAll(user.id, user.accessToken);
     await this.repo.signOutGlobally(user.accessToken);
 
     this.logger.info(

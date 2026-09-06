@@ -4,6 +4,7 @@ import { createMockAuthenticatedUser } from '@/test/test-mocks';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ENCRYPTION_PORT } from '@modules/encryption/domain/ports/encryption.port';
 import { USER_REPOSITORY } from '../domain/ports/user-repository.port';
+import { REVOKE_AGENT_CONNECTIONS_PORT } from '@modules/mcp/domain/ports/revoke-agent-connections.port';
 import { ScheduleAccountDeletionUseCase } from './schedule-account-deletion.use-case';
 
 describe('ScheduleAccountDeletionUseCase', () => {
@@ -19,6 +20,7 @@ describe('ScheduleAccountDeletionUseCase', () => {
   let mockEncryption: {
     verifyExistingKeyCheck: ReturnType<typeof mock>;
   };
+  let mockRevoke: { revokeAll: ReturnType<typeof mock> };
 
   beforeEach(async () => {
     mockRepo = {
@@ -32,12 +34,14 @@ describe('ScheduleAccountDeletionUseCase', () => {
     mockEncryption = {
       verifyExistingKeyCheck: mock(async () => true),
     };
+    mockRevoke = { revokeAll: mock(async () => undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ScheduleAccountDeletionUseCase,
         { provide: USER_REPOSITORY, useValue: mockRepo },
         { provide: ENCRYPTION_PORT, useValue: mockEncryption },
+        { provide: REVOKE_AGENT_CONNECTIONS_PORT, useValue: mockRevoke },
         {
           provide: `INFO_LOGGER:${ScheduleAccountDeletionUseCase.name}`,
           useValue: mockLogger,

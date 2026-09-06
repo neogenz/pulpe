@@ -88,6 +88,25 @@ export const ERROR_DEFINITIONS = {
     message: () => 'A recovery key already exists for this account',
     httpStatus: HttpStatus.CONFLICT,
   },
+  // MCP agent connector
+  MCP_AUTHORIZATION_UNPROCESSABLE: {
+    code: API_ERROR_CODES.MCP_AUTHORIZATION_UNPROCESSABLE,
+    // Expired, consumed or unknown authorization id: one message, nothing leaks.
+    message: () => 'Authorization request cannot be processed',
+    httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+  },
+  MCP_CONNECTION_OPERATION_FAILED: {
+    code: API_ERROR_CODES.MCP_CONNECTION_OPERATION_FAILED,
+    // Reads, writes and revocations share it: the exact operation travels
+    // in the log context, not in the code the caller sees.
+    message: () => 'Agent connection operation failed',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  MCP_CONNECTION_NOT_FOUND: {
+    code: API_ERROR_CODES.MCP_CONNECTION_NOT_FOUND,
+    message: () => 'Agent connection not found',
+    httpStatus: HttpStatus.NOT_FOUND,
+  },
   ENCRYPTION_KEY_CHECK_FAILED: {
     code: API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED,
     message: () => 'Client key verification failed',

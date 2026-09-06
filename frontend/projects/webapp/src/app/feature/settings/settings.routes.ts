@@ -18,6 +18,12 @@ const routes: Routes = [
         data: { breadcrumb: 'settings.tags.title', icon: 'sell' },
         loadComponent: () => import('./tags-settings-page'),
       },
+      {
+        path: ROUTES.SETTINGS_CONNECTIONS,
+        title: PAGE_TITLES.SETTINGS_CONNECTIONS,
+        data: { breadcrumb: 'settings.connections.title', icon: 'smart_toy' },
+        loadComponent: () => import('./connections/connections'),
+      },
     ],
   },
 ];

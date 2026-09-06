@@ -335,6 +335,11 @@ const it: Dictionary = {
       title: "Modello o budget: che cosa devi modificare?",
       text: "Scegli il posto giusto a seconda che il tuo cambiamento riguardi un solo mese o i tuoi mesi abituali.",
     },
+    assistantCard: {
+      eyebrow: "Tutorial",
+      title: "Collegare Pulpe a un assistente IA",
+      text: "Collega ChatGPT, Claude o Claude Code al tuo budget, in sola lettura oppure con il diritto di scrivere.",
+    },
     faqHeading: "Le domande che mi fanno più spesso.",
     faq: {
       purpose: {
@@ -461,6 +466,109 @@ const it: Dictionary = {
     contactHeading: "Ancora bloccato?",
     contactText:
       "Scrivimi indicando la schermata in cui ti trovi. Ti risponderò direttamente.",
+  },
+
+  assistant: {
+    promo: {
+      status: "Connessione in preparazione",
+      heading: "Il tuo budget, nella conversazione.",
+      intro:
+        "Con ChatGPT o Claude, fai una domanda sul tuo mese, ritrova una spesa o chiedi all’assistente di registrarla in Pulpe.",
+      cta: "Scopri la connessione",
+      examplesTitle: "Cosa potrai chiedere",
+      examples: [
+        "Quanto posso ancora spendere questo mese?",
+        "Trova le mie spese alimentari.",
+        "Registra la spesa al ristorante di ieri.",
+      ],
+      availability:
+        "Dipende dalle funzioni del tuo assistente e dal tuo abbonamento. La guida indica le piattaforme disponibili.",
+    },
+    dataSharing:
+      "Scegli cosa l’assistente può leggere o modificare. I dati utilizzati gli vengono inviati e trattati dal suo fornitore. Puoi interrompere l’accesso in qualsiasi momento.",
+    metaTitle: "Collegare Pulpe a un assistente IA",
+    metaDescription:
+      "Collegare Pulpe a ChatGPT, Claude o Claude Code: che cosa sa fare l’assistente, come autorizzarlo e dove tagliare l’accesso.",
+    backToSupport: "Aiuto",
+    eyebrow: "Assistenti IA",
+    heading: "Parlare del tuo budget dal tuo assistente",
+    intro:
+      "La connessione pubblica è in preparazione. Permetterà di ritrovare i tuoi importi e registrare una spesa da ChatGPT o Claude. Ecco come funziona e i passaggi previsti.",
+    abilitiesHeading: "Che cosa sa fare il tuo assistente.",
+    abilities: [
+      "Dirti quanto ti resta da spendere questo mese, e da dove viene la cifra.",
+      "Leggere le tue previsioni, i tuoi movimenti e i tuoi obiettivi di risparmio.",
+      "Registrare una spesa, un’entrata o un risparmio, poi spuntarlo.",
+      "Distribuire una spesa grossa su più mesi.",
+      "Creare il budget di un mese a partire da uno dei tuoi modelli.",
+    ],
+    sourceTitle: "Le cifre restano quelle di Pulpe",
+    sourceText:
+      "Pulpe fornisce i dati del tuo budget all’assistente. Le sue spiegazioni possono contenere errori: in caso di dubbio, verifica in Pulpe.",
+    modeHeading: "Decidi che cosa ha il diritto di fare.",
+    modeIntro:
+      "Scegli nel momento in cui autorizzi il collegamento. Puoi cambiare idea dopo: taglialo, poi rifallo nell’altra modalità.",
+    readMode: {
+      eyebrow: "Sola lettura",
+      title: "Guarda, non tocca niente",
+      text: "Risponde alle tue domande sul mese in corso e sul tuo anno. Nei tuoi budget non si muove nulla, anche se glielo chiedi.",
+    },
+    writeMode: {
+      eyebrow: "Lettura e scrittura",
+      title: "Registra al posto tuo",
+      text: "Può aggiungere una spesa, spuntarla o creare il budget del prossimo mese. Verifica le azioni richieste; le conferme dipendono anche dalle impostazioni del tuo assistente.",
+    },
+    connectEyebrow: "Il collegamento",
+    connectHeading: "Collega Pulpe, una volta sola.",
+    addressLabel: "L’indirizzo da incollare, lo stesso ovunque",
+    availabilityNote:
+      "Claude supporta le connessioni remote sul web, sul computer e sul telefono. Per ChatGPT, inizia la configurazione dal web se la modalità sviluppatore è disponibile per il tuo account. Le possibilità variano secondo l’assistente, il tuo account e l’app utilizzata. Pulpe non è ancora pubblicato nei loro cataloghi.",
+    clients: [
+      {
+        name: "ChatGPT",
+        steps: [
+          "Su ChatGPT web, apri Impostazioni > Sicurezza e accesso, poi attiva la modalità sviluppatore, se disponibile.",
+          "In Plugin, usa il pulsante + e incolla l’indirizzo qui sopra.",
+          "Autorizza l’accesso in Pulpe, poi seleziona il connettore nella conversazione.",
+        ],
+      },
+      {
+        name: "Claude",
+        steps: [
+          "In Claude, apri Personalizza > Connettori.",
+          "Aggiungi un connettore personalizzato con l’indirizzo qui sopra.",
+          "Collegalo a Pulpe e attivalo nella conversazione.",
+        ],
+      },
+      {
+        name: "Claude Code",
+        steps: [
+          "Esegui il comando qui sotto nel terminale.",
+          "In Claude Code, apri /mcp e avvia la connessione a Pulpe.",
+          "Autorizza l’accesso nel browser, poi torna al terminale.",
+        ],
+      },
+    ],
+    commandLabel: "Nel terminale",
+    consentTitle: "Che cosa vedi al momento di autorizzare",
+    consentSteps: [
+      "Accedi al tuo account Pulpe, come sul web.",
+      "Inserisci il tuo codice, quello che sblocca i tuoi importi.",
+      "Scegli sola lettura oppure lettura e scrittura, poi confermi.",
+    ],
+    revokeHeading: "Taglia l’accesso quando vuoi.",
+    revokeText:
+      "Interrompere l’accesso blocca le letture e le modifiche future. Un’azione già in corso può terminare. I dati già inviati non vengono cancellati.",
+    revokeSteps: [
+      "Apri Pulpe, poi le impostazioni.",
+      "Vai alla lista dei tuoi collegamenti.",
+      "Taglia quello che non vuoi più.",
+    ],
+    revokeNote:
+      "Cambiare il tuo codice o recuperare la tua cassaforte taglia anche tutti i collegamenti in un colpo solo. È voluto: i tuoi assistenti non hanno più con che cosa aprire i tuoi importi, e li ricolleghi quando vuoi.",
+    contactHeading: "Il collegamento si blocca?",
+    contactText:
+      "Scrivimi indicando l’assistente e la schermata in cui ti blocchi. Sviluppo Pulpe da solo e rispondo io stesso.",
   },
 
   changelog: {

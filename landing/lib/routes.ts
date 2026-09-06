@@ -2,7 +2,7 @@ import { DEFAULT_LOCALE, LOCALES, type Locale } from "./i18n";
 
 export const SITE_URL = "https://pulpe.app";
 
-// The four localized pages, in sitemap order. Deriving `alternates` and the
+// The localized pages, in sitemap order. Deriving `alternates` and the
 // sitemap from one table guarantees that each version lists itself and closes
 // the hreflang loop. Hand-written per-page maps eventually point at a 404,
 // causing Google to ignore the whole group.
@@ -11,14 +11,17 @@ export const ROUTES = [
   "/changelog",
   "/support",
   "/support/modeles-et-budgets",
+  "/support/connecter-un-assistant",
 ] as const;
 
 export type Route = (typeof ROUTES)[number];
 
-// The guide slug remains French in all four languages. It is referenced in
+// Guide slugs remain French in all four languages. They are referenced in
 // several places, and localized slugs would multiply that coupling for little
-// value on a single page.
+// value on these pages.
 export const GUIDE_ROUTE = "/support/modeles-et-budgets" satisfies Route;
+export const ASSISTANT_ROUTE =
+  "/support/connecter-un-assistant" satisfies Route;
 
 /**
  * Budget advice index and label.

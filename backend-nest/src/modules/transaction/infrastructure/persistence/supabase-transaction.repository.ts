@@ -921,7 +921,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     let query = supabase
       .from('transaction')
       .select(SEARCH_TRANSACTION_FIELDS)
-      .ilike('name', searchPattern);
+      .filter('name', 'imatch', searchPattern);
 
     if (budgetIds) {
       query = query.in('budget_id', budgetIds);
@@ -956,7 +956,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       .from('tag')
       .select('id')
       .eq('user_id', userId)
-      .ilike('name', searchPattern);
+      .filter('name', 'imatch', searchPattern);
 
     if (error) {
       throw new BusinessException(
@@ -999,7 +999,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       query = query.in('text_tags.tag_id', options.textTagIds);
     }
     if (options.searchPattern) {
-      query = query.ilike('name', options.searchPattern);
+      query = query.filter('name', 'imatch', options.searchPattern);
     }
     if (budgetIds) {
       query = query.in('budget_id', budgetIds);
@@ -1048,7 +1048,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
         )
       `,
       )
-      .ilike('name', searchPattern);
+      .filter('name', 'imatch', searchPattern);
 
     if (budgetIds) {
       query = query.in('budget_id', budgetIds);
@@ -1100,7 +1100,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       )
       .in('budget_line_tag.tag_id', tagIds);
     if (searchPattern) {
-      query = query.ilike('name', searchPattern);
+      query = query.filter('name', 'imatch', searchPattern);
     }
     if (budgetIds) {
       query = query.in('budget_id', budgetIds);
