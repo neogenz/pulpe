@@ -184,6 +184,31 @@ No production configuration, shared preview database migration, paid upgrade or
 directory submission was performed. Exact resource and fixture evidence is in
 the [plan checkpoint](../../2026_09/2026_09_05_mcp-credential-isolation/plan.md#execution-checkpoint--2026-09-06).
 
+### Response clarity correction — 2026-09-06
+
+The two presentation findings above are now corrected in source. The existing
+MCP response boundary reads the current authenticated owner's currency through
+`USER_REPOSITORY` and prefixes every successful tool result with it. Settings
+are resolved before execution so their failure cannot mask a completed write.
+This covers all 15 tools without changing their authorization or adding a new
+service. Monthly and multi-month totals now use `Dépenses et épargne` and
+`Dont épargne prévue`; formulas, amounts and native clients are unchanged.
+
+The updated unit check failed on the old aggregate label, and the HTTP suite
+failed on missing currency before the correction. Afterwards, all 19 isolated
+MCP HTTP scenarios passed (451 assertions), including all 15 tool responses,
+concurrent CHF/EUR owners and a name-only edit refused before mutation when
+settings fail. Focused MCP units: 20 passed; TypeScript and targeted ESLint passed.
+The full backend suite passed 1,629 tests with zero failures; its 19 skipped
+dedicated MCP cases ran separately above. The first sandboxed full run could
+not open Supertest sockets; the verified run used the same isolated local target
+with network permissions. Log: `/tmp/pulpe-mcp-currency-backend-verified-20260906.log`.
+Logs: `/tmp/pulpe-mcp-currency-red-20260906.log` and
+`/tmp/pulpe-mcp-currency-green-verified-20260906.log`.
+An intermediate test-double failure was fixed by creating the rejected promise
+only when called, avoiding Bun's eager unhandled rejection; this was not a
+production error. A deployed vendor round trip is still required for the new wording.
+
 Current vendor requirements and an acceptance script are in
 [submission-checklist.md](./submission-checklist.md). The landing retains its
 "in preparation" status and the concise four-language data-sharing disclosure.

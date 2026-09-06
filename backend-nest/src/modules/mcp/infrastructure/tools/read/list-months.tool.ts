@@ -54,7 +54,7 @@ export class ListMonthsTool implements McpTool<Args> {
         `Mois budgétés (${months.length})`,
         ...months.map(
           (m) =>
-            `- ${m.month}/${m.year} [${m.id}] · Revenus ${round(m.totalIncome)} · Dépenses ${round(m.totalExpenses)} · Épargne prévue ${round(m.totalSavings)} · Report ${round(m.rollover)} · Disponible à dépenser ${round(m.remaining)}`,
+            `- ${m.month}/${m.year} [${m.id}] · Revenus ${round(m.totalIncome)} · Dépenses et épargne ${round(m.totalExpenses)} · Dont épargne prévue ${round(m.totalSavings)} · Report ${round(m.rollover)} · Disponible à dépenser ${round(m.remaining)}`,
         ),
       ].join('\n'),
     };

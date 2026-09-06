@@ -34,7 +34,7 @@ export function renderMonth(details: BudgetWithDetails): string {
 
   return [
     `Budget ${budget.month}/${budget.year} (id ${budget.id})`,
-    `Revenus ${round(m.totalIncome)} · Dépenses ${round(m.totalExpenses)} · Épargne prévue ${round(m.totalSavings)} · Report ${round(m.rollover)} · Disponible à dépenser ${round(m.remaining)}`,
+    `Revenus ${round(m.totalIncome)} · Dépenses et épargne ${round(m.totalExpenses)} · Dont épargne prévue ${round(m.totalSavings)} · Report ${round(m.rollover)} · Disponible à dépenser ${round(m.remaining)}`,
     '',
     `Prévisions (${budgetLines.length})`,
     ...lines,

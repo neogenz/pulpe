@@ -33,6 +33,10 @@ import {
 } from 'pulpe-shared';
 import { CurrencyService } from '@modules/currency/currency.service';
 import {
+  USER_REPOSITORY,
+  type UserRepositoryPort,
+} from '@modules/user/domain/ports/user-repository.port';
+import {
   ensureSupabaseAvailable,
   IS_DEDICATED_INTEGRATION_RUN,
   type SupabaseEnv,
@@ -1075,7 +1079,9 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       const used = new Set<string>();
       const call = async (name: string, args: Record<string, unknown> = {}) => {
         used.add(name);
-        return callTool(token, name, args);
+        const text = await callTool(token, name, args);
+        expect(text).toStartWith('Devise des montants : CHF.\n');
+        return text;
       };
       const normal = async (path: string) =>
         (
@@ -1237,7 +1243,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         splitCurrent.transactions as Transaction[],
         splitCurrent.budget.rollover,
       );
-      const totals = `Revenus ${round(metrics.totalIncome)} · Dépenses ${round(metrics.totalExpenses)} · Épargne prévue ${round(metrics.totalSavings)} · Report ${round(metrics.rollover)} · Disponible à dépenser ${round(metrics.remaining)}`;
+      const totals = `Revenus ${round(metrics.totalIncome)} · Dépenses et épargne ${round(metrics.totalExpenses)} · Dont épargne prévue ${round(metrics.totalSavings)} · Report ${round(metrics.rollover)} · Disponible à dépenser ${round(metrics.remaining)}`;
       const month = await call('get_month', { ...period });
       expect(month).toContain(totals);
       expect(await call('get_current_month')).toBe(month);
@@ -1347,6 +1353,70 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
           years: [2025],
         }),
       ).toContain('Aucun résultat');
+    });
+
+    it('uses each owner’s current currency and refuses writes when settings cannot be read', async () => {
+      const tokens = await Promise.all(
+        owners.map(
+          async (owner) =>
+            (await exchange(client, await authorize(client, owner)).expect(200))
+              .body.access_token as string,
+        ),
+      );
+      expect(
+        (
+          await native('/user', owners[1].token, 'PUT', {
+            data: { currency: 'EUR' },
+          })
+        ).ok,
+      ).toBe(true);
+      const reports = await Promise.all(
+        tokens.map((token) =>
+          callTool(token, 'get_month', { month: 9, year: 2026 }),
+        ),
+      );
+      expect(reports[0]).toStartWith('Devise des montants : CHF.\n');
+      expect(reports[1]).toStartWith('Devise des montants : EUR.\n');
+      expect(reports[0]).not.toContain('Devise des montants : EUR.');
+      expect(reports[1]).not.toContain('Devise des montants : CHF.');
+
+      const name = 'Currency failure fixture';
+      const forecastId = resultId(
+        await callTool(tokens[0], 'add_forecast', {
+          budgetId: owners[0].budgetId,
+          name,
+          amount: 10,
+          kind: 'expense',
+          recurrence: 'one_off',
+        }),
+      );
+      const settings = spyOn(
+        app.get<UserRepositoryPort>(USER_REPOSITORY),
+        'findSettings',
+      ).mockImplementation(async () => {
+        throw new Error('Private settings failure');
+      });
+      try {
+        const failed = await mcp(tokens[0], 'tools/call', {
+          name: 'update_forecast',
+          arguments: { forecastId, name: 'Must not write without currency' },
+        }).expect(200);
+        expect(failed.body.result).toEqual({
+          isError: true,
+          content: [
+            { type: 'text', text: 'Pulpe n’a pas pu traiter cette demande.' },
+          ],
+        });
+      } finally {
+        settings.mockRestore();
+      }
+      const unchanged = await admin
+        .from('budget_line')
+        .select('name')
+        .eq('id', forecastId)
+        .single();
+      expect(unchanged.error === null).toBe(true);
+      expect(unchanged.data?.name).toBe(name);
     });
   },
 );

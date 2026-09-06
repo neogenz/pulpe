@@ -137,7 +137,7 @@ describe('read tools · number concordance', () => {
       MONTH.rollover,
     );
     expect(text).toContain(
-      `Revenus ${round(expected.totalIncome)} · Dépenses ${round(expected.totalExpenses)} · Épargne prévue ${round(expected.totalSavings)} · Report ${round(expected.rollover)} · Disponible à dépenser ${round(expected.remaining)}`,
+      `Revenus ${round(expected.totalIncome)} · Dépenses et épargne ${round(expected.totalExpenses)} · Dont épargne prévue ${round(expected.totalSavings)} · Report ${round(expected.rollover)} · Disponible à dépenser ${round(expected.remaining)}`,
     );
     // The spread slice is one prévision among the others, never a total of its own.
     expect(text).toContain(

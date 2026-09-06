@@ -2,6 +2,7 @@ import {
   All,
   Body,
   Controller,
+  Inject,
   Req,
   Res,
   UseGuards,
@@ -16,6 +17,10 @@ import {
 } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ZodRawShapeCompat } from '@modelcontextprotocol/sdk/server/zod-compat.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import {
+  USER_REPOSITORY,
+  type UserRepositoryPort,
+} from '@modules/user/domain/ports/user-repository.port';
 import { ListToolsUseCase } from '../../application/list-tools.use-case';
 import { CallToolUseCase } from '../../application/call-tool.use-case';
 import type { McpTool } from '../../domain/mcp-tool.entity';
@@ -35,6 +40,8 @@ export class McpController {
     private readonly listTools: ListToolsUseCase,
     private readonly callTool: CallToolUseCase,
     private readonly cls: ClsService,
+    @Inject(USER_REPOSITORY)
+    private readonly users: UserRepositoryPort,
   ) {}
 
   @All()
@@ -78,13 +85,22 @@ export class McpController {
   ): void {
     const callback: ToolCallback<ZodRawShapeCompat> = async (args) => {
       try {
+        // Resolve before execution: a settings failure must not hide a completed write.
+        const { currency } = await this.users.findSettings();
         const { text } = await this.callTool.execute(
           connection,
           userId,
           tool.name,
           args,
         );
-        return { content: [{ type: 'text', text }] };
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Devise des montants : ${currency}.\n${text}`,
+            },
+          ],
+        };
       } catch (error) {
         return {
           isError: true,

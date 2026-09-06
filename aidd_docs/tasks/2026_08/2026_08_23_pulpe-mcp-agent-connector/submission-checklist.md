@@ -56,7 +56,8 @@ account. Both replacements are done. Claude's synthetic read-only grant is activ
 its one-time approved `get_current_month` call returned the expected figures.
 No write was available, and a refreshed Pulpe dashboard remained unchanged.
 The missing explicit currency and the expense aggregate's inclusion of planned
-savings caused model uncertainty and remain presentation acceptance gaps.
+savings caused model uncertainty. Both are corrected in source and covered by
+19 isolated HTTP scenarios; the corrected wording still needs a vendor round trip.
 ChatGPT's app exists but sign-in stalled before consent. Automatic security
 review rejected disconnecting Claude before read/write testing; the cancelled
 dialog left its read-only grant intact. That exact access-change authorization
