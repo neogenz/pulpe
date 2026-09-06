@@ -530,3 +530,47 @@ After that verification, the owner-authorized teardown removed only MCP fixtures
 Versioned tests and sanitized verification logs are retained. No production
 configuration, financial data, unrelated preview project or directory listing was
 changed. PR checks, the protected production release and activation remain pending.
+
+## PR review remediation and Preview credential containment — 2026-09-06
+
+The owner authorized the CI/MCP review corrections and remediation of the sole
+affected Preview account in PR #725. Its password and vault PIN were renewed
+through the existing authenticated APIs, global refresh sessions revoked, and
+the two corresponding GitHub Preview secrets updated. The old password, PIN
+and refresh token were rejected; thirteen checked financial fields were unchanged.
+The new credentials and recovery key remain in an owner-only, gitignored local
+handoff file. No production identity, key or financial data was changed.
+
+Twelve credential-bearing CI artifacts were removed. The inventory of 132
+Android workflow runs led to removal of 91 logs exposing numeric PIN taps;
+workflow results were preserved. Ninety-two matching GitHub CLI cache archives
+and the private artifact copies were moved to Trash, recoverable until it is
+emptied. A stale queued run using the unsafe historical workflow was cancelled.
+Do not rerun historical workflow versions that publish Maestro diagnostics.
+
+Commit `a33f6c058` removes diagnostic publication without weakening either
+Maestro journey or its exit status. Android run `34057033102` succeeded using
+the renewed Preview credentials; it published zero artifacts and zero numeric
+tap labels. The CI security regression suite passes all 35 checks.
+
+The MCP review corrections use the existing Angular API/cache layers, clear
+connection metadata on logout, encode paths, validate activity limits, translate
+all eight write tools with an unknown-action fallback, default consent to read-only,
+and keep consent buttons disabled during navigation. Forty focused web tests
+pass. Canonical resource checks still reject other hosts and paths. Activity
+recording failures are logged without converting completed writes into errors.
+The full backend suite passed 1,641 tests (19 dedicated HTTP skips), followed
+by ten focused guard/activity checks after the final logging correction.
+
+All 21 SQL suites pass on a disposable local database, including the new
+thirty-day orphan registration purge. Supabase advisors report no findings;
+generated types add only the new RPC. The purge uses PostgreSQL
+[row locks](https://www.postgresql.org/docs/current/explicit-locking.html) and
+[fresh statement snapshots](https://www.postgresql.org/docs/current/xfunc-volatility.html)
+to preserve authorizations started concurrently. Associated clients, including
+revoked grants, remain available for reconnection. The temporary database and
+volumes were removed after verification.
+
+Root quality and normal commit hooks pass. The final optimized web build passes
+the CSP check, at 1.15 MB raw / 253.03 kB estimated initial transfer. This evidence
+does not replace the checks on the final PR SHA or authorize production activation.
