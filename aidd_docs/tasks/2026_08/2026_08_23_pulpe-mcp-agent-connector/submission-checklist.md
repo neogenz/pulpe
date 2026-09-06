@@ -27,7 +27,7 @@ associations. Neither client has completed read/write/revocation acceptance.
 
 | Client/surface            | Current documented path                                                                                                                                   | Pulpe acceptance |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| ChatGPT web               | Developer mode, subject to account/workspace policy; connect an MCP endpoint through Plugins.                                                             | Pro app `Pulpe Tests` created with correct discovery; OAuth popup handoff stalled before consent. No grant or tool call observed. |
+| ChatGPT web               | Developer mode, subject to account/workspace policy; connect an MCP endpoint through Plugins.                                                             | Pro app `Pulpe Tests` has correct discovery. The in-app-browser handoff stalled; Arc 1.162.0 reached Pulpe consent with the synthetic account. Read-only selected, final authorization pending; no grant or tool call yet. |
 | ChatGPT desktop/mobile    | Do not infer support from web developer mode or from publication alone; verify the actual account, app version and directory availability.                | Not run          |
 | Claude web/desktop/mobile | Remote connectors are brokered through Anthropic's infrastructure; the server must be reachable there. Free accounts are limited to one custom connector. | Pro web consent, seven read tools, budget read and unavailable-write check passed. A read also passed in macOS Cowork (Claude 1.40609.1 / macOS 26.5.1). Write/revocation, desktop Chat and mobile remain unverified. |
 | Claude Code               | Remote MCP plugin/connection; package installation alone does not test authorization.                                                                     | Not run          |
@@ -63,7 +63,10 @@ result and the model's summary, using the same read-only grant and one-time appr
 A separate macOS Cowork read returned the same figures and explicit currency;
 its existing auto-approval setting was unchanged. This does not establish all
 desktop modes or mobile acceptance.
-ChatGPT's app exists but sign-in stalled before consent. Automatic security
+ChatGPT's existing app now reaches the actual Pulpe consent in Arc, after the
+earlier in-app-browser handoff stalled. Read-only is selected; the PIN is empty
+and final authorization awaits confirmation. No ChatGPT grant was created.
+Automatic security
 review rejected disconnecting Claude before read/write testing; the cancelled
 dialog left its read-only grant intact. That exact access-change authorization
 is the current blocker, not the superseded request to replace old connectors.

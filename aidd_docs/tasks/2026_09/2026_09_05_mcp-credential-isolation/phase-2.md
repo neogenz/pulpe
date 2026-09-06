@@ -14,6 +14,8 @@ The synthetic account and encrypted budget are ready. Remote HTTP authorization,
 
 A separate macOS Cowork read also passed in Claude Desktop `1.40609.1` on macOS `26.5.1`, including the expanded tool result and model summary. Its existing auto-approval setting and read-only grant were unchanged. Desktop Chat and mobile remain untested; this partial desktop evidence does not unblock vendor write/revocation acceptance.
 
+ChatGPT's existing app subsequently reached the real Pulpe consent in Arc `1.162.0`; its transient blank page resolved. Read-only is selected, the synthetic account is authenticated and the sharing disclosure was verified. Final authorization was not submitted and awaits confirmation at the persistent-grant action. The earlier in-app-browser failure's root cause remains unproven; no backend change was needed to reach consent in Arc.
+
 ## Architecture projection
 
 ```txt

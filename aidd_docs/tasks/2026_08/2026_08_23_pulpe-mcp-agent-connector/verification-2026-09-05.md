@@ -231,6 +231,30 @@ read without a new approval dialog; no setting, grant or data was changed.
 This is evidence for a macOS Cowork read, not for desktop Chat mode, writes,
 revocation, other operating systems or mobile.
 
+### ChatGPT consent handoff in Arc — 2026-09-06
+
+The existing ChatGPT app was opened in a new Arc `1.162.0` tab through native UI,
+after the browser-extension tab inventory timed out. It was not recreated.
+The ordinary `Connection Connect` → `Sign in with Pulpe Tests` flow opened an
+`about:blank` page that subsequently reached the dedicated Pulpe login, unlike
+the inaccessible in-app-browser popup observed earlier. This identifies a usable
+alternative browser path, not the root cause of the earlier handoff failure.
+
+Login used only the existing synthetic account. The actual consent page was
+headed `Connect Pulpe to ChatGPT` and described the shared budget fields, provider
+processing, persistent protected key and revocation limits. Read-only was selected
+and visually verified. The PIN field remained empty and `Authorise` was not
+clicked: no ChatGPT grant or tool result is claimed. Completing this persistent
+access grant awaits confirmation at the action; the separate Claude disconnect/
+read-write/revocation authorization also remains outstanding. No browser approval
+policy or backend configuration was changed.
+
+The public OAuth and protected-resource documents were rechecked and returned
+the isolated issuer/resource, DCR endpoint, `S256`, `mcp` scope and supported token
+authentication methods. The [OpenAI troubleshooting guide](https://developers.openai.com/plugins/deploy/troubleshooting)
+and [connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt)
+were consulted to keep client handoff evidence separate from server verification.
+
 Current vendor requirements and an acceptance script are in
 [submission-checklist.md](./submission-checklist.md). The landing retains its
 "in preparation" status and the concise four-language data-sharing disclosure.

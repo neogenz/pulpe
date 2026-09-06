@@ -72,4 +72,6 @@ ChatGPT created app `asdk_app_6a9d07d361c881919fc2050407c38043` with correct DCR
 
 A separate read passed in native Claude Desktop `1.40609.1` on macOS `26.5.1`, in Cowork mode, with the same synthetic account and unchanged read-only grant. The expanded tool result and model summary both showed CHF and the corrected totals. This establishes that macOS Cowork read path only, not desktop Chat, other operating systems or mobile.
 
+The existing ChatGPT app subsequently reached the actual `Connect Pulpe to ChatGPT` consent in Arc `1.162.0`, using the synthetic account. Its temporary blank page resolved normally, unlike the earlier inaccessible in-app-browser popup; this does not establish that failure's root cause. Read-only and the data-sharing disclosure were verified visually. The PIN remains empty and final authorization was not submitted, pending confirmation for the persistent grant. No ChatGPT tool call or completed association is claimed. The earlier Claude access-change blocker remains unchanged.
+
 No production configuration, shared preview database or directory submission was changed, and no paid upgrade was selected.
