@@ -1,6 +1,6 @@
 ---
 objective: "One owner request can start an evidence-bound MCP production rollout through the existing protected release process, with explicit approvals, useful client checks and safe recovery."
-status: pending
+status: in-progress
 ---
 
 # Plan: MCP production readiness and launch

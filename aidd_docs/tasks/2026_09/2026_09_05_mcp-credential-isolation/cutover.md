@@ -82,10 +82,66 @@ than thirty days only when no authorization or connection references them.
 Previously associated clients, including revoked connections, remain available
 for reconnection. This backend-only cleanup does not delete financial data.
 
+### Readiness evidence refresh — 2026-09-06
+
+Read-only checks against candidate `7c99f2b0a7939261db4af6174e77f38508f17424`:
+
+- Supabase still has 98 applied migrations against 103 candidate files: the
+  four baseline files above plus `20260906201519_purge_orphan_mcp_clients.sql`
+  are pending. Railway still serves deployment
+  `4c1f5637-ab99-4d46-b3a4-8b1a200dac22`; public health is healthy and web version
+  is `0.48.0`. Browser configuration targets production Supabase and API origins.
+- Native backup listing reports eight completed physical backups. The latest,
+  `1589227592`, completed at `2026-09-06T01:35:33.588Z`; WAL-G is enabled and
+  point-in-time recovery is **disabled**. No backup was downloaded or restored.
+  This establishes backup availability, not a rehearsed restore or zero data-loss
+  window. Recheck freshness and agree recovery expectations before release.
+- Read-only counts in `auth.oauth_clients` (including soft-deleted rows),
+  `auth.oauth_authorizations`, `auth.oauth_consents` and OAuth-linked
+  `auth.sessions` are all zero. `public.mcp_connection` does not exist yet.
+  These counts cannot exclude hard-deleted clients or previously issued JWTs.
+  Legacy issuance history remains unverified; the retirement gate is not signed
+  off merely because today's tables are empty.
+- The production dashboard shows **Enable the Supabase OAuth Server off**.
+  Its Site URL is `https://app.pulpe.app`; the four existing redirect entries are
+  `https://pulpe.app/**`, `https://www.pulpe.app/**`,
+  `pulpe://reset-password` and `https://app.pulpe.app/**`. The app-origin entry
+  covers the planned consent path without adding another origin. The disabled
+  server does not expose its DCR/authorization-path controls in the dashboard;
+  verify those explicitly during approved upstream configuration. No switch,
+  allowlist or account was changed.
+- Railway variable-name inspection finds all five `MCP_*` variables in section 2
+  absent. Existing first-party encryption and Supabase credential names are
+  present; their values are not included in this record. Install the production
+  URLs and a fresh dedicated wrapping key **before** deploying the candidate:
+  startup requires that key even with MCP disabled. Keep both upstream variables
+  absent until the separate activation approval. No variable was changed.
+- `pnpm audit --prod --json`: zero high/critical, four moderate and one low
+  findings, exclusively on Android paths. The full audit **including development
+  dependencies** reports 31 high, 37 moderate and five low, zero critical.
+  These are different scopes; the runtime result is not a claim that the entire
+  dependency graph is vulnerability-free. Recheck and assess the release scope
+  before signing off the exact candidate.
+- CI run `34059890579` completed successfully at 21:23 UTC, including E2E and
+  iOS. Android run `34059890580` completed successfully at 21:28 UTC; both bind
+  to the exact candidate above. Claude review `34059890601` failed with an API
+  error whose detailed cause is not retained in the sanitized logs. This does
+  not establish a code defect, expired credential or successful review. The ten
+  previously investigated threads are resolved. Any later commit needs its own
+  applicable checks before merge; these successes do not transfer to another SHA.
+
+No production setting, key, identity or financial data was changed. Ordinary
+authenticated login/refresh/encrypted access still needs an approved account
+scope. The owner decision packet also still needs the exact release version and
+four-language notes, cutover window, synthetic staging/production account scope,
+public activation and recovery approval. Directory identity/legal approval is
+separate. Continue the readiness plan; do not treat these observations as launch
+authorization.
+
 Before any production write, record and check:
 
 - [ ] Maxime has accepted the [client evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md) and the exact supported surfaces. Both vendors passed web read/write and revocation; all 15 tools have Claude success evidence across sessions. The deployed presentation regression passed in Claude web. The owner waived mobile testing; it remains unverified, alongside ChatGPT's seven-tool read-only grant, Claude Code and desktop writes. Retain limitations instead of marking them passed.
-- [x] Resolve the [backend/web dependency audit](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#dependency-gate) with supported updates and regression/build checks. Candidate `158574cf3` has zero high/critical findings and no backend/web paths; four moderate and one low Android-only findings remain. Recheck the exact release candidate; the critical-only CI audit alone is insufficient.
+- [x] Resolve the production-dependency [backend/web audit](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/verification-2026-09-05.md#dependency-gate) with supported updates and regression/build checks. The `--prod` audit remains zero high/critical on `7c99f2b0a`, with four moderate and one low Android-only findings. Development dependencies have separate findings recorded above. Recheck the exact release candidate; the critical-only CI audit alone is insufficient.
 - [ ] Production Supabase ref, Railway project/environment/service IDs and Vercel team/project IDs have been resolved and approved. Existing service health and ordinary login, refresh and encrypted budget access have a baseline.
 - [ ] The candidate SHA/version, published rollback anchor, **all** pending migrations since that anchor, backup/restore availability, cutover window and owner are recorded. No migration reset, force-push or test seed against production.
 - [ ] The applicable legacy retirement evidence in section 1 is complete before activation. If an old issuer is already live, agree how to stop it before the migration; do not assume this document proves production was never exposed.
