@@ -12,6 +12,8 @@ The dedicated `pulpe-mcp-test` Supabase project in `Pulpe Tests` is healthy on F
 
 The synthetic account and encrypted budget are ready. Remote HTTP authorization, 15-tool discovery, read/write concordance, direct Supabase denial, refresh and revocation passed; the probe movement was removed. Following user approval, both legacy vendor connectors were replaced. Claude Pro web completed consent, seven-tool read-only discovery, a correct budget read and an unavailable-write check; the refreshed Pulpe dashboard remained unchanged. The currency and expense-label presentation gaps are corrected, with 19 isolated HTTP scenarios passing. After deployment, a fresh Claude web read verified explicit CHF and the corrected savings aggregate in both the actual tool result and model summary. ChatGPT's new app was created but OAuth stalled before consent. Automatic security review then rejected disconnecting the Claude test grant before read/write testing; no workaround was attempted and its read-only grant remains active. Phase 2 is blocked on that exact access-change authorization, with actual vendor write/revocation and desktop/mobile acceptance still incomplete.
 
+A separate macOS Cowork read also passed in Claude Desktop `1.40609.1` on macOS `26.5.1`, including the expanded tool result and model summary. Its existing auto-approval setting and read-only grant were unchanged. Desktop Chat and mobile remain untested; this partial desktop evidence does not unblock vendor write/revocation acceptance.
+
 ## Architecture projection
 
 ```txt

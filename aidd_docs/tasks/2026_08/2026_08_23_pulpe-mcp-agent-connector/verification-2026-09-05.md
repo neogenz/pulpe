@@ -221,6 +221,16 @@ The response still showed the four forecasts and zero movements. This verifies
 the corrected wording through the deployed client; it does not complete vendor
 write/revocation or desktop/mobile acceptance. No access rights were changed.
 
+An additional native-app read passed in Claude Desktop `1.40609.1` on macOS
+`26.5.1`, Pro / Opus 5 High, in its default Cowork mode. Session
+`cse_01Q4KmXaUXfNdmkEmWKqCfWg` received the same read-only prompt without expected
+figures. The expanded tool result visibly contained the CHF header, September
+budget ID and corrected totals; the model returned 2,400 CHF available with the
+expected breakdown. Cowork's existing `Automatically approve` setting ran this
+read without a new approval dialog; no setting, grant or data was changed.
+This is evidence for a macOS Cowork read, not for desktop Chat mode, writes,
+revocation, other operating systems or mobile.
+
 Current vendor requirements and an acceptance script are in
 [submission-checklist.md](./submission-checklist.md). The landing retains its
 "in preparation" status and the concise four-language data-sharing disclosure.

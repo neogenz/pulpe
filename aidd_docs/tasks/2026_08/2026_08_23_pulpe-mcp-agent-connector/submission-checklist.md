@@ -29,7 +29,7 @@ associations. Neither client has completed read/write/revocation acceptance.
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | ChatGPT web               | Developer mode, subject to account/workspace policy; connect an MCP endpoint through Plugins.                                                             | Pro app `Pulpe Tests` created with correct discovery; OAuth popup handoff stalled before consent. No grant or tool call observed. |
 | ChatGPT desktop/mobile    | Do not infer support from web developer mode or from publication alone; verify the actual account, app version and directory availability.                | Not run          |
-| Claude web/desktop/mobile | Remote connectors are brokered through Anthropic's infrastructure; the server must be reachable there. Free accounts are limited to one custom connector. | Pro web consent, seven read tools, budget read and unavailable-write check passed. Write/revocation and desktop/mobile remain unverified. |
+| Claude web/desktop/mobile | Remote connectors are brokered through Anthropic's infrastructure; the server must be reachable there. Free accounts are limited to one custom connector. | Pro web consent, seven read tools, budget read and unavailable-write check passed. A read also passed in macOS Cowork (Claude 1.40609.1 / macOS 26.5.1). Write/revocation, desktop Chat and mobile remain unverified. |
 | Claude Code               | Remote MCP plugin/connection; package installation alone does not test authorization.                                                                     | Not run          |
 
 The current [OpenAI connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt)
@@ -60,6 +60,9 @@ savings caused model uncertainty. Both are corrected and covered by 19 isolated
 HTTP scenarios. A fresh Claude web read after deploying `f778a6a9438` verified
 explicit CHF and the corrected spending/savings totals in both the expanded tool
 result and the model's summary, using the same read-only grant and one-time approval.
+A separate macOS Cowork read returned the same figures and explicit currency;
+its existing auto-approval setting was unchanged. This does not establish all
+desktop modes or mobile acceptance.
 ChatGPT's app exists but sign-in stalled before consent. Automatic security
 review rejected disconnecting Claude before read/write testing; the cancelled
 dialog left its read-only grant intact. That exact access-change authorization
