@@ -207,7 +207,19 @@ Logs: `/tmp/pulpe-mcp-currency-red-20260906.log` and
 `/tmp/pulpe-mcp-currency-green-verified-20260906.log`.
 An intermediate test-double failure was fixed by creating the rejected promise
 only when called, avoiding Bun's eager unhandled rejection; this was not a
-production error. A deployed vendor round trip is still required for the new wording.
+production error. The normal pre-commit quality gate passed in 93.05 seconds.
+
+Source commit `f778a6a9438c3ed97e9951ad8fb3b6fdd6696c66` was pushed and Railway
+deployment `8a470275-fb0a-4d9d-a619-c73a4cbe697b` reached `SUCCESS`. A fresh Claude
+Pro web chat, `74295730-53f8-460c-bc91-d9952008b555`, used the existing read-only
+grant and `Allow once`; its prompt supplied no expected amounts or currency.
+The expanded `get_current_month` result explicitly contained `Devise des montants : CHF.`,
+`Dépenses et épargne 2600` and `Dont épargne prévue 500`. Claude summarized
+September 2026 in CHF, income 5,000, outflow 2,600 including planned savings 500,
+and 2,400 available, without the earlier currency or aggregate uncertainty.
+The response still showed the four forecasts and zero movements. This verifies
+the corrected wording through the deployed client; it does not complete vendor
+write/revocation or desktop/mobile acceptance. No access rights were changed.
 
 Current vendor requirements and an acceptance script are in
 [submission-checklist.md](./submission-checklist.md). The landing retains its
