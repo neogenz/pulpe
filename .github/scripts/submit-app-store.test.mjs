@@ -56,7 +56,6 @@ function fixture(failSubmit = false) {
         ],
       };
     if (command === "release stage") return {};
-    if (command === "versions get") return { data: { id: "new" } };
     if (command === "review details-for-version")
       return {
         data: { id: "details", attributes: { notes: metadata.reviewNotes } },
@@ -67,8 +66,6 @@ function fixture(failSubmit = false) {
           { attributes: { locale: "fr-FR", whatsNew: metadata.whatsNew.frFR } },
         ],
       };
-    if (command === "versions view" && args.includes("--include-build"))
-      return { id: "new", versionString: "1.2.0", buildId: "build" };
     if (command === "versions view") {
       assert.deepEqual(args.slice(-2), ["--include", "build"]);
       return {
@@ -105,6 +102,27 @@ test("linear submission uses approved copy and reads back exact build and public
   assert.ok(calls.some((c) => c.includes("AFTER_APPROVAL")));
   assert.equal(calls.at(-1).slice(0, 2).join(" "), "versions view");
 });
+test("the --include-build summary shape cannot authorize review submission", async () => {
+  const { submitVersion } = await import("./submit-app-store.mjs");
+  const { api, calls } = fixture();
+  // --include-build returns a flat CLI summary, not the JSON:API resource
+  // returned by --include build. Keep this negative fixture intentional.
+  assert.throws(
+    () =>
+      submitVersion(metadata, "build", (...args) => {
+        const value = api(...args);
+        if (args[0] === "versions" && args[1] === "view")
+          return { id: "new", versionString: "1.2.0", buildId: "build" };
+        return value;
+      }),
+    TypeError,
+  );
+  assert.equal(
+    calls.some((c) => c[0] === "review" && c[1] === "submit"),
+    false,
+  );
+});
+
 test("ambiguous submission failure stops without retry", async () => {
   const { submitVersion } = await import("./submit-app-store.mjs");
   const { api, calls } = fixture(true);

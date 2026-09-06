@@ -23,6 +23,31 @@ test("accepts exact approved App Store metadata", () => {
   );
 });
 
+test("version components are canonical and bounded like the Ruby validator", () => {
+  for (const field of ["productVersion", "marketingVersion"]) {
+    for (const version of [
+      "01.2.3",
+      "1.02.3",
+      "1.2.03",
+      "1.2.3.4",
+      "1.2",
+      "1.2.3-beta",
+      "1000000000000000000.2.3",
+    ]) {
+      const metadata = { ...valid, [field]: version };
+      // Match the expected identity so rejection proves format validation.
+      assert.throws(
+        () => validateAppStoreRelease(metadata, metadata),
+        new RegExp(`${field} must use X.Y.Z`),
+      );
+    }
+    for (const version of ["0.0.0", "1.2.3", "999999999999999999.0.0"]) {
+      const metadata = { ...valid, [field]: version };
+      assert.equal(validateAppStoreRelease(metadata, metadata), metadata);
+    }
+  }
+});
+
 test("rejects stale identities and unsafe publication modes", () => {
   for (const patch of [
     { productVersion: "0.48.0" },

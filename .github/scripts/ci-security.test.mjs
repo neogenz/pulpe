@@ -337,8 +337,12 @@ test("CI is PR-only and production owns migration credentials", () => {
   assert.doesNotMatch(workflow, /^\s{2}push:/m);
   assert.doesNotMatch(workflow, /secrets\.|supabase db push/);
   assert.match(production, /environment: production/);
-  const dryRun = production.indexOf("run: supabase db push --dry-run --include-all\n");
-  const apply = production.indexOf("          supabase db push --include-all\n");
+  const dryRun = production.indexOf(
+    "run: supabase db push --dry-run --include-all\n",
+  );
+  const apply = production.indexOf(
+    "          supabase db push --include-all\n",
+  );
   assert.notEqual(dryRun, -1);
   assert.notEqual(apply, -1);
   assert.ok(
@@ -496,14 +500,133 @@ test("release lineage uses the shared content-integration check", () => {
   }
 });
 
+const jobBody = (source, name) => {
+  const body = source.match(
+    new RegExp(`^  ${name}:\\n([\\s\\S]*?)(?=^  [\\w-]+:|$(?![\\s\\S]))`, "m"),
+  )?.[1];
+  assert.ok(body, `missing job: ${name}`);
+  return body;
+};
+const assertOrdered = (source, ...markers) => {
+  let previous = -1;
+  for (const marker of markers) {
+    const index = source.indexOf(marker);
+    assert.notEqual(index, -1, `missing marker: ${marker}`);
+    assert.ok(index > previous, `out-of-order marker: ${marker}`);
+    previous = index;
+  }
+};
+
+test("release contract helpers reject missing jobs and ordering markers", () => {
+  assert.throws(() => jobBody("", "plan"), /missing job/);
+  assert.throws(
+    () => assertOrdered("second", "first", "second"),
+    /missing marker/,
+  );
+  assert.throws(
+    () => assertOrdered("first", "first", "second"),
+    /missing marker/,
+  );
+  assert.throws(
+    () => assertOrdered("second first", "first", "second"),
+    /out-of-order/,
+  );
+});
+
+test("release planning remains a read-only diagnostic", () => {
+  assert.match(releasePromotion, /^on:\n  workflow_dispatch:/m);
+  assert.deepEqual(
+    [...releasePromotion.matchAll(/^  (\w+):/gm)]
+      .map((m) => m[1])
+      .filter((name) =>
+        [
+          "push",
+          "pull_request",
+          "workflow_call",
+          "workflow_run",
+          "workflow_dispatch",
+        ].includes(name),
+      ),
+    ["workflow_dispatch"],
+  );
+  assert.match(
+    releasePromotion,
+    /^permissions:\n  actions: read\n  contents: read\n  deployments: read\n  pull-requests: read\n/m,
+  );
+  assert.match(releasePromotion, /options:\n\s+- plan\n\s+default: plan/);
+  assert.doesNotMatch(
+    releasePromotion,
+    /secrets\.|environment:|:\s*write\b|write-all|create-github-app-token/,
+  );
+  const plan = jobBody(releasePromotion, "plan");
+  assert.match(plan, /GH_TOKEN: \$\{\{ github.token \}\}/);
+  assert.match(plan, /ref: \$\{\{ github.event.repository.default_branch \}\}/);
+  assert.match(plan, /persist-credentials: false/);
+  assert.doesNotMatch(
+    plan,
+    /gh api[^\n]*(?:-X|--method)\s+(?:POST|PUT|PATCH|DELETE)|git push|gh workflow run/,
+  );
+});
+
+test("production authorization invokes the approved manifest validator", () => {
+  const authorize = jobBody(production, "authorize");
+  assert.match(
+    authorize,
+    /node \.github\/scripts\/release-approval\.mjs "\$RUNNER_TEMP\/preparation-full\.json" \.release\/manifest\.json "\$GITHUB_REPOSITORY"/,
+  );
+  assert.doesNotMatch(authorize, /secrets\.|environment:/);
+  assert.match(authorize, /GH_TOKEN: \$\{\{ github.token \}\}/);
+});
+
+test("the finalizer verifies exact providers before publication and iOS", () => {
+  assert.match(productionFinalize, /^on:\n  workflow_call:/m);
+  assert.doesNotMatch(
+    productionFinalize,
+    /^  (?:workflow_dispatch|workflow_run|push|pull_request|deployment_status):/m,
+  );
+  const verify = jobBody(productionFinalize, "verify");
+  const publish = jobBody(productionFinalize, "publish");
+  const ios = jobBody(productionFinalize, "ios");
+  assert.match(publish, /needs: verify\n/);
+  assert.match(ios, /needs: \[verify, publish\]/);
+  assert.match(ios, /uses: \.\/\.github\/workflows\/ios-distribute.yml/);
+  assert.match(ios, /channel: release/);
+  for (const marker of [
+    "Production – pulpe-frontend",
+    "Production – pulpe-landing",
+    ".sha == $sha and .ref == $sha",
+    '.creator.login == "vercel[bot]"',
+    'test "$frontend_state $landing_state" = "success success"',
+    "https://app.pulpe.app/",
+    "https://pulpe.app/",
+  ])
+    assert.ok(verify.includes(marker), `missing Vercel proof: ${marker}`);
+  assert.doesNotMatch(verify, /secrets\.|environment:/);
+  for (const marker of [
+    'railway deployment list --project "$RAILWAY_PROJECT" --environment production --service "$RAILWAY_SERVICE"',
+    '.[0].status == "SUCCESS" and .[0].meta.commitHash == $sha and .[0].meta.branch == "production"',
+    '.status == "healthy"',
+    ".data.web.latestVersion == $version",
+  ])
+    assert.ok(publish.includes(marker), `missing Railway proof: ${marker}`);
+  assertOrdered(
+    publish,
+    "sha256sum --check",
+    "tar --extract",
+    "Verify active Railway production deployment",
+    "Verify public backend after exact Railway deployment",
+    "Create short-lived GitHub App token",
+    "Publish exact tag and GitHub Release idempotently",
+    "Read back published tag and exact notes",
+  );
+});
+
 test("production retains essential mutation and credential boundaries", () => {
   assert.doesNotMatch(production, /:\s*write\b|--force/);
-  const authorize = production
-    .split("\n  authorize:")[1]
-    .split("\n  migrate:")[0];
+  const authorize = jobBody(production, "authorize");
   assert.doesNotMatch(authorize, /secrets\.|environment:/);
   for (const name of ["migrate", "advance"]) {
-    const job = production.split(`\n  ${name}:`)[1].split(/\n  [a-z]+:/)[0];
+    const job = jobBody(production, name);
     assert.match(job, /environment: production/);
     assert.match(job, /branches\/main.*--jq \.commit\.sha.*GITHUB_SHA/);
   }
@@ -513,9 +636,10 @@ test("production retains essential mutation and credential boundaries", () => {
     /needs\.migrate\.result == 'success' \|\| needs\.migrate\.result == 'skipped'/,
   );
   assert.match(production, /refs\/heads\/production.*-F force=false/);
-  assert.ok(
-    productionFinalize.indexOf("Verify active Railway production deployment") <
-      productionFinalize.indexOf("Create short-lived GitHub App token"),
+  assertOrdered(
+    productionFinalize,
+    "Verify active Railway production deployment",
+    "Create short-lived GitHub App token",
   );
   for (const source of [production, productionFinalize, iosDistribution]) {
     for (const match of source.matchAll(/^\s*uses:\s*([^\s#]+)/gm))

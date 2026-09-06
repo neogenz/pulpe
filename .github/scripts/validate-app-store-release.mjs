@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const semver = /^[0-9]+\.[0-9]+\.[0-9]+$/;
+const semver = /^(?:0|[1-9][0-9]{0,17})(?:\.(?:0|[1-9][0-9]{0,17})){2}$/;
 const buildNumber = /^[1-9][0-9]{0,17}$/;
 
 const requireText = (value, field) => {
