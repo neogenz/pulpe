@@ -133,14 +133,52 @@ state, and Settings → Connections showed no assistant connected. No provider
 grant was created. Railway also confirmed the documentation-only `8f9d4686c`
 deployment `0da76834-148b-4595-a06c-6a4c974b0950` reached `SUCCESS`.
 
-ChatGPT Pro and Claude Pro web sessions were inspected. ChatGPT's existing
-`Pulpe spike` advertises two old tools; Reconnect uses a deleted legacy Vercel
-deployment and returns `DEPLOYMENT_NOT_FOUND`. Refresh did not visibly update
-the catalog. Claude's `Pulpe (spike)` reports no tools and rejects another
-connector with the same URL. Neither was deleted or authorized against the new
-account. Specific permission to replace the legacy associations and grant access
-to only the synthetic fixture is pending. No vendor read/write/revoke proof or
-desktop/mobile claim follows from these observations.
+### Actual vendor session — 2026-09-06
+
+The user approved replacing the legacy associations and testing access to only
+the synthetic account. `Pulpe spike` in ChatGPT and `Pulpe (spike)` in Claude
+were removed and replaced by `Pulpe Tests`; previous Claude chats remain available.
+Railway deployment `7d5748d5-32ec-4e24-ad50-9c063209b4e6` of documentation commit
+`825cf9f29` was observed at `SUCCESS` before these sessions.
+
+Claude Pro web (Opus 5 High), through the Codex in-app browser, completed DCR
+and the actual Pulpe consent headed `Connect Pulpe to Claude`. Read-only was
+selected and the existing PIN entered only on Pulpe. The catalog contained
+seven read tools, each retaining the default `Needs approval` setting. In chat
+`aa240d32-b044-4af6-996b-bcfad86a707a`, the first call expired with
+`No approval received`; retrying and selecting `Allow once` succeeded.
+`get_current_month` returned September 2026, income 5,000, the four expected
+forecasts and 2,400 available. No expected figures had been supplied in the prompt.
+
+A request to add `Test lecture seule MCP` for 4.50 found no write tool and was
+not executed. A freshly reloaded Pulpe dashboard still showed 2,400 CHF and
+no movements. The model mentioned an unrelated Supabase connector; it did not
+call it, and that speculation is not evidence of shared data or permissions.
+Only Pulpe Tests was requested and exercised.
+
+The response identified two unresolved usability issues: the read report omits
+the explicit account currency, and its `Dépenses 2600` label includes the 500
+planned savings although expense lines total 2,100. The model hedged the currency
+and questioned the aggregate. The figures match the shared calculator, but this
+does not establish that their wording is sufficiently clear for ordinary users.
+
+ChatGPT Pro web created app `asdk_app_6a9d07d361c881919fc2050407c38043` with DCR,
+scope `mcp` and the correct isolated authorization/token/registration/resource
+URLs. Two `Sign in with Pulpe Tests` attempts stalled before Pulpe consent.
+Bounded browser network observation recorded HTTP 200 for its sign-in and OAuth
+link requests and a `Page.windowOpen` event for `about:blank`; no new accessible
+tab appeared. Console warnings/errors were empty. This narrows the observed
+failure to the browser/vendor handoff but does not establish its root cause.
+The stalled dialog was closed; the new app remains unconnected with no actions.
+No ChatGPT grant, read or write is claimed.
+
+Before Claude read/write testing, automatic security review rejected confirming
+`Disconnect Pulpe Tests?`, citing missing explicit authority for that exact
+persistent access change despite the earlier general confirmation. The dialog
+was cancelled and no alternate revocation path was attempted. Its synthetic
+read-only grant remains active. Vendor write/revocation and desktop/mobile
+acceptance remain incomplete; this is a new blocker, not pending permission
+to perform replacements that have already happened.
 
 No production configuration, shared preview database migration, paid upgrade or
 directory submission was performed. Exact resource and fixture evidence is in

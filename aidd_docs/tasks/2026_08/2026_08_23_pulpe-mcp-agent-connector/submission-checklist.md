@@ -5,8 +5,9 @@ status: blocked
 # Client acceptance and directory readiness
 
 Verified against official documentation on 2026-09-05. A working custom connector
-and a published directory listing are separate milestones. Neither has been
-proven for the new isolated Pulpe issuer. No submission or agreement was accepted.
+and a published directory listing are separate milestones. Claude web has partial
+read-only acceptance; complete vendor acceptance remains unproven for the new
+isolated issuer. No submission or agreement was accepted.
 
 ## Distribution assets in this repository
 
@@ -21,14 +22,14 @@ its provider. Public availability remains "in preparation".
 
 ## Client availability and observed acceptance
 
-Web settings were inspected on 2026-09-06. Neither legacy test association has
-completed acceptance against the isolated issuer.
+Web sessions were exercised on 2026-09-06 after replacing both legacy test
+associations. Neither client has completed read/write/revocation acceptance.
 
 | Client/surface            | Current documented path                                                                                                                                   | Pulpe acceptance |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| ChatGPT web               | Developer mode, subject to account/workspace policy; connect an MCP endpoint through Plugins.                                                             | Pro settings accessible; legacy OAuth redirects to a deleted deployment. New association pending. |
+| ChatGPT web               | Developer mode, subject to account/workspace policy; connect an MCP endpoint through Plugins.                                                             | Pro app `Pulpe Tests` created with correct discovery; OAuth popup handoff stalled before consent. No grant or tool call observed. |
 | ChatGPT desktop/mobile    | Do not infer support from web developer mode or from publication alone; verify the actual account, app version and directory availability.                | Not run          |
-| Claude web/desktop/mobile | Remote connectors are brokered through Anthropic's infrastructure; the server must be reachable there. Free accounts are limited to one custom connector. | Pro web settings accessible; legacy connector has no tools. New association and desktop/mobile testing pending. |
+| Claude web/desktop/mobile | Remote connectors are brokered through Anthropic's infrastructure; the server must be reachable there. Free accounts are limited to one custom connector. | Pro web consent, seven read tools, budget read and unavailable-write check passed. Write/revocation and desktop/mobile remain unverified. |
 | Claude Code               | Remote MCP plugin/connection; package installation alone does not test authorization.                                                                     | Not run          |
 
 The current [OpenAI connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt)
@@ -50,12 +51,16 @@ passed. Account `mcp-review-20260906@pulpe.test` contains only synthetic data:
 one September 2026 budget, four forecasts, 2,400 available to spend and no movements.
 See the [remote evidence](./verification-2026-09-05.md#remote-environment-and-client-readiness--updated-2026-09-06).
 
-The existing ChatGPT/Claude test connectors must be associated with this account,
-not an old shared preview user. Specific permission for replacing their legacy
-associations and sending the fictitious account's data to both providers is
-pending. ChatGPT's Refresh did not visibly replace its two-tool legacy catalog;
-Reconnect reached a deleted Vercel deployment. Claude rejects a duplicate URL
-and its existing connector has no tools. No replacement or new grant was made.
+The user approved replacing the legacy associations and testing only this
+account. Both replacements are done. Claude's synthetic read-only grant is active;
+its one-time approved `get_current_month` call returned the expected figures.
+No write was available, and a refreshed Pulpe dashboard remained unchanged.
+The missing explicit currency and the expense aggregate's inclusion of planned
+savings caused model uncertainty and remain presentation acceptance gaps.
+ChatGPT's app exists but sign-in stalled before consent. Automatic security
+review rejected disconnecting Claude before read/write testing; the cancelled
+dialog left its read-only grant intact. That exact access-change authorization
+is the current blocker, not the superseded request to replace old connectors.
 
 Follow [cutover.md](../../2026_09/2026_09_05_mcp-credential-isolation/cutover.md)
 for legacy retirement, exact issuer URLs, callback and variable names.
@@ -111,7 +116,9 @@ submission is authorized by this document.
 
 ## Evaluation prompts prepared for human/client acceptance
 
-These are planned vendor-client cases, not claims that a model executed them.
+These are acceptance cases; the current-month read and read-only unavailable-write
+case ran through Claude as recorded above. The remaining cases are not claims
+that a vendor model executed them.
 
 | Type     | Prompt                                                   | Expected observation                                                    |
 | -------- | -------------------------------------------------------- | ----------------------------------------------------------------------- |
