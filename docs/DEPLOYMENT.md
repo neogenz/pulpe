@@ -92,6 +92,10 @@ by the protected release workflow described below.
 - CI checks the PR range and includes the result in `ci-success`. Production replays
   the exact published-anchor/candidate range before the protected Supabase dry-run
   and apply.
+- Both commands use `--include-all` to include unapplied migrations from feature
+  branches whose timestamps precede the remote tip. Applied versions are skipped;
+  no seed, custom-role replay or history repair is enabled. Review ordering and
+  compatibility for the complete pending set, not just its newest timestamp.
 - Create locally with `supabase migration new [description]`. Never run `db push`
   against the linked production project outside the protected workflow.
 

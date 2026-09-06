@@ -31,6 +31,44 @@ below are the repository's intended production targets, not a fresh live audit.
 | Landing / support | Vercel `pulpe-landing`, `https://pulpe.app`           | Test availability copy or noindex configuration      |
 | Auth / database   | Existing production Supabase project; resolve its ref | Test ref `jsjfammxsqyglxlqzpsl`, fixtures or secrets |
 
+### Read-only production baseline — 2026-09-06
+
+The live providers match published release `v0.48.0` and the `production` pointer
+at `7a22f34c55d8dc9c217089670a4e093b8bde5bd7`:
+
+- Railway project `33ba829c-d4d6-4096-b0dc-57c89c367063`, environment
+  `a28b6826-ecbe-4c0f-9856-e0ba3ce14e93`, service
+  `b1f9b1c0-7eca-4c58-b203-cdbbed8ae0a4`; deployment
+  `4c1f5637-ab99-4d46-b3a4-8b1a200dac22` is `SUCCESS`, with `api.pulpe.app` active.
+- Vercel team `team_EVRD8cwYKDSFKQOdOoXcGsBU`; frontend project
+  `prj_CJuQUe0gr76Am8i57pnryCRXBRji`, production deployment
+  `dpl_92JDB3kmNiDpBz5gf9GNFG8J8uJr`; landing project
+  `prj_rXn9cDnVijGPrQdYItIi5o4subwX`, production deployment
+  `dpl_C8WBrRDByJUCW1D6rAhTXcrVZZ6o`. Both public aliases resolve to these `READY`
+  production deployments, not the projects' newer preview deployments.
+- Supabase `pulpe`, ref `qhhlloqisgzwcsrbdppn`, is `ACTIVE_HEALTHY` in Zurich,
+  PostgreSQL `17.6.1.063`. Its migration history has 98 versions, all present in
+  the candidate's 102 files. The four pending files also match the Git delta
+  from the published anchor: `20260823120000_create_mcp_connection.sql`,
+  `20260823150000_mcp_activity_log.sql`,
+  `20260901120000_generate_budgets_atomically.sql` and
+  `20260905170811_isolate_mcp_oauth_credentials.sql`.
+- The first three pending versions precede the remote tip `20260901130000`.
+  Supabase CLI `2.113.0` rejects that ordering without `--include-all`, including
+  during dry-run. The protected workflow now uses the same native selection for
+  dry-run and apply; its contract and environment gates remain unchanged.
+  [Official CLI behavior](https://supabase.com/docs/reference/cli/supabase-db-push).
+- All three release workflows are active. The six required secret names are
+  present across repository and production-environment scopes; values were not
+  read. The environment requires owner approval and disallows administrator bypass.
+- Public health, version, web app and landing return 200; web version is `0.48.0`.
+  `/mcp` and both MCP discovery routes return 404. This does not prove absence
+  of historical native OAuth credentials; section 1 remains an activation gate.
+
+No production setting, secret, account or financial data was changed. This
+baseline is not a release authorization or an authenticated first-party smoke
+test; recheck targets, backups and the exact pending set when releasing.
+
 Before any production write, record and check:
 
 - [ ] Maxime has accepted the [client evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md) and the exact supported surfaces. Both vendors passed web read/write and revocation; all 15 tools have Claude success evidence across sessions. The deployed presentation regression passed in Claude web. The owner waived mobile testing; it remains unverified, alongside ChatGPT's seven-tool read-only grant, Claude Code and desktop writes. Retain limitations instead of marking them passed.
