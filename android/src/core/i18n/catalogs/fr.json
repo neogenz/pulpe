@@ -1242,8 +1242,8 @@
       "saving": "Épargne"
     },
     "recurrence": {
-      "fixed": "Récurrent",
-      "one_off": "Prévu"
+      "fixed": "Mensuel",
+      "one_off": "Ponctuel"
     }
   }
 }

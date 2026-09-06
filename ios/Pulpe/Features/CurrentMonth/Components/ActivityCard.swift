@@ -25,6 +25,13 @@ struct ActivityCard: View {
         }
     }
 
+    /// The one word a movement adds when it consumed no forecast. This list is where the
+    /// two natures mix — allocated and free, in the same day group — so the row has to
+    /// say which it is. A list made only of free movements says it in its title instead.
+    static func outOfPlanMarker(for transaction: Transaction) -> String? {
+        transaction.isFree ? AppLocale.string("Hors prévision") : nil
+    }
+
     /// Per-window cap: the week is a chronological prefix of the month, so an equal cap
     /// made both windows render identical rows as soon as 5 operations fell in 7 days.
     private var maxRows: Int {
@@ -166,12 +173,23 @@ struct ActivityCard: View {
                         .foregroundStyle(Color.textPrimary)
                         .lineLimit(1)
 
-                    // No date under the name: the day is named once, above the card these
-                    // rows sit in. `followsText` goes with it — nothing precedes the chips
-                    // on this line for them to trail.
+                    // No date under the name: the day is named once, above the card
+                    // these rows sit in. What is left is the second line: whether the
+                    // movement consumed a forecast, then the tag count trailing it.
                     let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
-                    if !tagNames.isEmpty {
-                        TagChips(names: tagNames, presentation: .count)
+                    let marker = Self.outOfPlanMarker(for: transaction)
+                    if marker != nil || !tagNames.isEmpty {
+                        HStack(spacing: DesignTokens.Spacing.xs) {
+                            if let marker {
+                                Text(marker)
+                                    .font(PulpeTypography.labelMedium)
+                                    .foregroundStyle(Color.textTertiary)
+                                    .lineLimit(1)
+                            }
+                            if !tagNames.isEmpty {
+                                TagChips(names: tagNames, presentation: .count, followsText: marker != nil)
+                            }
+                        }
                     }
                 }
 

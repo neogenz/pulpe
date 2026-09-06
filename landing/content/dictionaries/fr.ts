@@ -189,7 +189,7 @@ const fr = {
         yearTitle: "Ton année",
         monthTitle: "Juillet, à venir",
         income: "Revenu",
-        recurring: "Récurrent",
+        recurring: "Mensuel",
         saving: "Épargne",
         tax: "Impôts",
         available: "Disponible",

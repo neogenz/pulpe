@@ -113,10 +113,17 @@ struct BudgetDetailsView: View {
         .toolbarColorScheme(screenState.content == .loaded ? .dark : nil, for: .navigationBar)
         .heroNavigationBar()
         .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                trailingToolbarButtons
+            ToolbarItem(placement: .topBarTrailing) {
+                // Reads the month back rather than adding to it, so it stays a glyph in the
+                // bar: the content zone spends its one filled shape on the action that
+                // changes something. Bare, so iOS 26 dresses it in its own Liquid Glass —
+                // the hero's tinted disc was our shape where the system already has one.
+                Button { router.present(.realizedBalance) } label: {
+                    Image(systemName: "chart.bar")
+                }
+                .accessibilityLabel(AppLocale.string("Suivi du budget"))
+                .accessibilityIdentifier("budgetTrackingButton")
             }
-            .heroToolbarGroup(screenState.content == .loaded)
         }
         // Scroll-independent month navigation (system title chevron). The sticky
         // pager only reveals once the hero has scrolled under the bar — a short
@@ -186,27 +193,6 @@ struct BudgetDetailsView: View {
         }
     }
 
-    @ViewBuilder
-    private var trailingToolbarButtons: some View {
-        let isLoaded = projector.screenState.content == .loaded
-        Button {
-            router.present(.realizedBalance)
-        } label: {
-            Image(systemName: "chart.bar.fill")
-        }
-        .heroToolbarButtonStyle(isLoaded)
-        .accessibilityLabel("Suivi du budget")
-        .accessibilityIdentifier("budgetTrackingButton")
-        if isLoaded {
-            Button { router.present(.addBudgetLine) } label: {
-                Image(systemName: "plus")
-            }
-            .heroToolbarButtonStyle(true)
-            .accessibilityLabel("Ajouter une prévision")
-            .accessibilityIdentifier("budgetAddLineButton")
-        }
-    }
-
     private var content: some View {
         let screenState = projector.screenState
         let sections = screenState.sections
@@ -231,9 +217,16 @@ struct BudgetDetailsView: View {
                 .heroZone()
 
                 VStack(spacing: 0) {
+                    // Above the tip and the rail: adding a forecast is what this screen is
+                    // for, and a reader who has to scroll past a filter to find it reads it
+                    // as belonging to the list rather than to the budget.
+                    BudgetDetailsAddLineButton { router.present(.addBudgetLine) }
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    .padding(.bottom, DesignTokens.Spacing.md)
+
                     TipView(ProductTips.pessimisticCheck)
                         .pulpeTipBackground()
-                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
                         .padding(.bottom, DesignTokens.Spacing.sm)
 
                     if let prefill = tightMonthCardPrefill {
@@ -309,7 +302,7 @@ struct BudgetDetailsView: View {
 
                     Color.clear.frame(height: DesignTokens.Spacing.lg)
                 }
-                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.top, DesignTokens.Spacing.xxl)
                 .contentZone()
             }
         }
@@ -339,11 +332,5 @@ struct BudgetDetailsView: View {
             prompt: "Rechercher..."
         )
         .searchPresentationToolbarBehavior(.avoidHidingContent)
-        // The only field lives in the top search drawer, so resetting the bottom
-        // keyboard inset hides nothing. It prevents a stale inset inherited from
-        // EditTransactionPage from creating phantom over-scroll after pop.
-        // Keep LAST so the sticky pager inherits it; if
-        // a bottom text field is ever added here, remove or scope this.
-        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 }

@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Template Line Row
 
 /// One ledger row of the template detail: nature disc, name, a words-only subtitle
-/// (« Récurrent » / « Prévu », the linked goal, the tag count) and the signed amount.
+/// (« Mensuel » / « Ponctuel », the linked goal, the tag count) and the signed amount.
 struct TemplateLineRow: View {
     let line: TemplateLine
     let tagNamesById: [String: String]

@@ -267,7 +267,7 @@ struct HomeHeroCardTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appending(path: "Pulpe/Features/CurrentMonth/Components/UncheckedOperationsCard.swift")
+            .appending(path: "Pulpe/Features/CurrentMonth/Components/UncheckedOperationsCard+Row.swift")
         let source = try String(contentsOf: sourceFile, encoding: .utf8)
 
         #expect(source.contains("Text(Self.subtitle(for: item))"))

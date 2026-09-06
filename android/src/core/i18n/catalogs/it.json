@@ -1242,8 +1242,8 @@
       "saving": "Risparmio"
     },
     "recurrence": {
-      "fixed": "Ricorrente",
-      "one_off": "Pianificato"
+      "fixed": "Mensile",
+      "one_off": "Una tantum"
     }
   }
 }

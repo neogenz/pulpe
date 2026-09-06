@@ -421,8 +421,8 @@ describe('ProductTourService', () => {
 
       const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
       const renderedSteps = JSON.stringify(steps);
-      expect(renderedSteps).toContain('Récurrent');
-      expect(renderedSteps).toContain('Prévu');
+      expect(renderedSteps).toContain('Mensuel');
+      expect(renderedSteps).toContain('Ponctuel');
       expect(renderedSteps).not.toMatch(/productTour\./);
     });
   });

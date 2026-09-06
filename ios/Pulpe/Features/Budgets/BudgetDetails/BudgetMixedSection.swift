@@ -94,9 +94,9 @@ struct BudgetMixedSection: View {
                 }
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
-            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
+            .pulpeRowCard()
         }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.xxl)
     }
 }

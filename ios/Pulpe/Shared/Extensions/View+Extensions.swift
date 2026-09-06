@@ -401,7 +401,6 @@ private struct ShimmerModifier: ViewModifier {
 /// background extends through the bottom safe area so scroll content cannot
 /// peek between the CTA and the keyboard / home indicator.
 private struct PulpeStickyBottomCTAModifier<CTA: View>: ViewModifier {
-    let avoidsKeyboard: Bool
     let cta: () -> CTA
 
     func body(content: Content) -> some View {
@@ -409,7 +408,6 @@ private struct PulpeStickyBottomCTAModifier<CTA: View>: ViewModifier {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 stickyBottomCTAChrome
             }
-            .ignoresSafeArea(avoidsKeyboard ? [] : .keyboard, edges: .bottom)
     }
 
     private var stickyBottomCTAChrome: some View {
@@ -429,12 +427,34 @@ private struct PulpeStickyBottomCTAModifier<CTA: View>: ViewModifier {
 
 extension View {
     /// Pin a primary CTA above the system safe area with project-standard chrome.
-    /// Keep `avoidsKeyboard` enabled for forms; disable it on non-input pages so
-    /// a keyboard dismissed during a pop cannot leave the CTA anchored mid-screen.
+    /// A page that owns no field opts out of the keyboard entirely through
+    /// `ignoresForeignKeyboardInset()` at its call site, so the CTA needs no say here.
     func pulpeStickyBottomCTA<CTA: View>(
-        avoidsKeyboard: Bool = true,
         @ViewBuilder _ cta: @escaping () -> CTA
     ) -> some View {
-        modifier(PulpeStickyBottomCTAModifier(avoidsKeyboard: avoidsKeyboard, cta: cta))
+        modifier(PulpeStickyBottomCTAModifier(cta: cta))
+    }
+
+    /// Refuses a keyboard inset that belongs to another screen.
+    ///
+    /// Two screens pushed on the same `NavigationStack` share its bottom safe-area
+    /// inset. When the keyboard closes during a pop, the deflated inset is delivered
+    /// to the screen that is leaving and never re-delivered to the one coming back:
+    /// the parent keeps a dead band exactly one keyboard tall, which scrolls but
+    /// holds nothing. Five bugs have been filed on that band under different names.
+    ///
+    /// Apply it to every navigation screen that raises **no keyboard of its own from the
+    /// bottom**. A screen that does (`EditTransactionPage`, `AddAllocatedTransactionPage`)
+    /// stays bare: it needs the inset it raises. A field in the top search drawer
+    /// (`BudgetDetailsView`) is not one — nothing of its own sits under the keyboard, so
+    /// refusing the bottom inset hides nothing. Sheets don't count either: they are their
+    /// own presentation hosts and never share the stack's inset.
+    ///
+    /// It goes on the screen at its **call site** — where the destination or the stack
+    /// root is declared — so it wraps that screen's whole modifier chain, overlays
+    /// included. Written inside a body it can land above an `.overlay` and silently
+    /// exempt it, which is exactly how PUL-284 shipped a fix that fixed nothing.
+    func ignoresForeignKeyboardInset() -> some View {
+        ignoresSafeArea(.keyboard, edges: .bottom)
     }
 }

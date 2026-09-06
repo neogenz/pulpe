@@ -97,7 +97,7 @@
       },
       "create": {
         "title": "Add a planned item",
-        "description": "<p>Choose <strong>Recurring</strong> for what comes back or <strong>One-off</strong> for a one-time need. A planned item added here belongs to this budget; the ones coming from the template are marked as such.</p>"
+        "description": "<p>Choose <strong>Monthly</strong> for what comes back every month or <strong>One-off</strong> for a single-month need. A planned item added here belongs to this budget; the ones coming from the template are marked as such.</p>"
       }
     },
     "templatesList": {
@@ -1850,10 +1850,10 @@
     "saving": "savings"
   },
   "recurrence": {
-    "fixed": "Recurring",
+    "fixed": "Monthly",
     "oneOff": "One-off",
-    "fixedHint": "A planned item that comes back regularly",
-    "oneOffHint": "A one-off planned item",
+    "fixedHint": "A planned item that comes back every month",
+    "oneOffHint": "A planned item for a single month",
     "fromTemplate": "From the template",
     "fromBudget": "Added to this budget"
   },

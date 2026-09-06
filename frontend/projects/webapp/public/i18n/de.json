@@ -97,7 +97,7 @@
       },
       "create": {
         "title": "Einen Planposten hinzufügen",
-        "description": "<p>Wähl <strong>Wiederkehrend</strong> für das, was jeden Monat kommt, oder <strong>Einmalig</strong> für einen einmaligen Bedarf. Ein hier hinzugefügter Planposten gehört zu diesem Budget; die aus der Vorlage sind als solche gekennzeichnet.</p>"
+        "description": "<p>Wähl <strong>Monatlich</strong> für das, was jeden Monat kommt, oder <strong>Einmalig</strong> für einen Bedarf in einem einzigen Monat. Ein hier hinzugefügter Planposten gehört zu diesem Budget; die aus der Vorlage sind als solche gekennzeichnet.</p>"
       }
     },
     "templatesList": {
@@ -1850,10 +1850,10 @@
     "saving": "Sparen"
   },
   "recurrence": {
-    "fixed": "Wiederkehrend",
+    "fixed": "Monatlich",
     "oneOff": "Einmalig",
-    "fixedHint": "Planposten, der regelmässig wiederkehrt",
-    "oneOffHint": "Einmaliger Planposten",
+    "fixedHint": "Planposten, der jeden Monat wiederkehrt",
+    "oneOffHint": "Planposten für einen einzigen Monat",
     "fromTemplate": "Aus der Vorlage",
     "fromBudget": "Zu diesem Budget hinzugefügt"
   },

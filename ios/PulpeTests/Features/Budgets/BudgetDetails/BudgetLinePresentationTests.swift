@@ -1,8 +1,64 @@
+import Foundation
 @testable import Pulpe
 import Testing
 
 @Suite("Budget line presentation")
 struct BudgetLinePresentationTests {
+    /// The recurrence shows as a bare glyph, so the spoken label is the only
+    /// place the word survives — these read that label back.
+    private func label(
+        recurrence: TransactionRecurrence = .fixed,
+        name: String = "Loyer",
+        metadata: String? = nil,
+        tagNames: [String] = []
+    ) -> String {
+        BudgetLineMixedRow.accessibilityLabel(
+            line: TestDataFactory.createBudgetLine(name: name, recurrence: recurrence),
+            status: "À pointer",
+            amount: Decimal(1000).asCurrency(.chf),
+            metadata: metadata,
+            tagNames: tagNames
+        )
+    }
+
+    @Test(
+        "the row speaks its recurrence between the kind and the name",
+        arguments: [
+            (TransactionRecurrence.fixed, "Mensuel"),
+            (TransactionRecurrence.oneOff, "Ponctuel"),
+        ]
+    )
+    func accessibilityLabel_whenRecurrence_speaksItAfterTheKind(
+        recurrence: TransactionRecurrence,
+        expected: String
+    ) {
+        #expect(label(recurrence: recurrence).hasPrefix("Dépense · \(expected) · Loyer"))
+    }
+
+    @Test("a line with nothing else to say still carries its recurrence")
+    func accessibilityLabel_whenNoMetadataNorTag_stillSpeaksTheRecurrence() {
+        // `metadataText` is nil here: before the glyph, the tertiary line of such
+        // a row rendered nothing at all.
+        #expect(
+            BudgetLineMixedRow.metadataText(
+                isSpread: false,
+                savingsGoalName: nil,
+                isSavingsWithdrawalIncome: false
+            ) == nil
+        )
+        #expect(label().contains("Mensuel"))
+    }
+
+    /// Only one rhythm has a glyph. The word is the whole of what a ponctuel line
+    /// says, so a change that put a symbol back would break this pair.
+    @Test("only the monthly rhythm carries a mark", arguments: [
+        (TransactionRecurrence.fixed, "repeat"),
+        (TransactionRecurrence.oneOff, String?.none),
+    ])
+    func icon_marksTheMonthlyRhythmOnly(recurrence: TransactionRecurrence, expected: String?) {
+        #expect(recurrence.icon == expected)
+    }
+
     @Test("spread and goal collapse into one metadata line")
     func metadataText_whenSpreadAndGoal_combinesIntoOneLine() {
         #expect(

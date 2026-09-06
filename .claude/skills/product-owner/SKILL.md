@@ -88,8 +88,8 @@ Use these terms consistently in issues and stories:
 | Code | French (UI/issues) |
 |------|-------------------|
 | `budget_lines` | Prévisions |
-| `fixed` | Récurrent |
-| `one_off` | Prévu |
+| `fixed` | Mensuel |
+| `one_off` | Ponctuel |
 | `transaction` | Réel |
 | `income` | Revenu |
 | `expense` | Dépense |

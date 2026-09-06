@@ -63,7 +63,7 @@ struct BudgetDetailsFreeTransactionsList: View {
                 }
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
-            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
+            .pulpeRowCard()
 
             if hasMoreItems {
                 Button {
@@ -81,10 +81,10 @@ struct BudgetDetailsFreeTransactionsList: View {
                     }
                 }
                 .textLinkButtonStyle()
-                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.horizontal, DesignTokens.Spacing.xxl)
             }
         }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.xxl)
     }
 }

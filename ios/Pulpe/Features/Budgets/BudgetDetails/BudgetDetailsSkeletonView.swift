@@ -71,7 +71,7 @@ struct BudgetDetailsSkeletonView: View {
         }
         // Placeholders on the hero surface: the canvas tint would vanish into it.
         .environment(\.skeletonTint, Color.heroTile)
-        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -91,7 +91,7 @@ struct BudgetDetailsSkeletonView: View {
                 }
             }
             .padding(.vertical, DesignTokens.Spacing.sm)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.horizontal, DesignTokens.Spacing.xxl)
         }
         .scrollDisabled(true)
         .scrollIndicators(.hidden)
@@ -142,9 +142,9 @@ struct BudgetDetailsSkeletonView: View {
                 }
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
-            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
+            .pulpeRowCard()
         }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.xxl)
     }
 

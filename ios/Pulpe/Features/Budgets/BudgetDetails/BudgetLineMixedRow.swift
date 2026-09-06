@@ -193,13 +193,32 @@ struct BudgetLineMixedRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Every secondary fact about the line — provenance, lissage, objectif, tag
-    /// count — on one tertiary line. Stacking one badge per fact pushed the row
-    /// to five lines and knocked the amount column out of vertical alignment.
+    /// A ponctuel line with nothing else to say has an empty tertiary line, and an
+    /// empty row still takes the `VStack` spacing on both sides — a hair taller than
+    /// its neighbours, for nothing.
+    private var hasMetadataRow: Bool {
+        line.recurrence.icon != nil
+            || line.isSavingsWithdrawalIncome
+            || metadata != nil
+            || !tagNames.isEmpty
+    }
+
+    /// Every secondary fact about the line — recurrence, provenance, lissage,
+    /// objectif, tag count — on one tertiary line. Stacking one badge per fact
+    /// pushed the row to five lines and knocked the amount column out of vertical
+    /// alignment.
     @ViewBuilder
     private var metadataRow: some View {
-        if metadata != nil || !tagNames.isEmpty {
+        if hasMetadataRow {
             HStack(spacing: DesignTokens.Spacing.xs) {
+                // Only a monthly line carries a mark, and the arrows are it: a ponctuel
+                // line is the absence of them, which is what the word says too.
+                // Decorative like its neighbour — the row's label speaks both.
+                if let icon = line.recurrence.icon {
+                    Image(systemName: icon)
+                        .accessibilityHidden(true)
+                }
+
                 if line.isSavingsWithdrawalIncome {
                     // Decorative: `metadata` already carries "Pris sur ton épargne",
                     // and the row is an accessibility container, so an unhidden symbol
@@ -308,8 +327,8 @@ struct BudgetLineMixedRow: View {
 
     // MARK: - Accessibility
 
+    /// The row's state, resolved here and spoken by `Self.accessibilityLabel`.
     private var accessibilityLabel: String {
-        let kindWord = line.kind.label
         // An announced withdrawal is realized, not pointed. Either way the row
         // speaks its state, never its action: realizing one happens on the line's
         // own screen, so naming the verb here would announce a button that the
@@ -317,11 +336,12 @@ struct BudgetLineMixedRow: View {
         let status = line.isPlannedSavingsWithdrawal
             ? (realizationLabel == nil ? AppLocale.string("Réalisé") : AppLocale.string("À réaliser"))
             : (isPointed ? AppLocale.string("Pointé") : AppLocale.string("À pointer"))
-        let amount = displayAmount.asCurrency(currency)
-        let tags = tagNames.isEmpty
-            ? ""
-            : " · " + AppLocale.string("Tags : \(tagNames.joined(separator: ", "))")
-        let context = metadata.map { " · \($0)" } ?? ""
-        return "\(kindWord) · \(line.name)\(context) · \(amount) · \(status)\(tags)"
+        return Self.accessibilityLabel(
+            line: line,
+            status: status,
+            amount: displayAmount.asCurrency(currency),
+            metadata: metadata,
+            tagNames: tagNames
+        )
     }
 }

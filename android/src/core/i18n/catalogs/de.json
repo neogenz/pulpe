@@ -1242,8 +1242,8 @@
       "saving": "Sparen"
     },
     "recurrence": {
-      "fixed": "Regelmässig",
-      "one_off": "Geplant"
+      "fixed": "Monatlich",
+      "one_off": "Einmalig"
     }
   }
 }

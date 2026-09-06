@@ -37,7 +37,7 @@ cd backend-nest && supabase start
 
 Product-facing copy is French. Code and docs are English.
 
-- `budget_line` (table; `budgetLines` on the wire) → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu"
+- `budget_line` (table; `budgetLines` on the wire) → "prévisions" | `fixed` → "Mensuel" | `one_off` → "Ponctuel"
 - `transaction` has no single word but three scopes: "Réel" for the aggregate facing "Prévu"; "Mouvements" for a collection; the nature ("dépense", "revenu", "épargne") or a verb for a single object. The word "transaction" itself never shows on screen — `pnpm test:lexicon` enforces it.
 - `income` → "Revenu" | `expense` → "Dépense" | `saving` → "Épargne"
 - `checked` → "Pointé" | `unchecked` → "À pointer"
