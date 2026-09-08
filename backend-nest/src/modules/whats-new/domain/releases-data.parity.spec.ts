@@ -298,18 +298,20 @@ function assertTranslationSubset(
         `missing ${locale} translation in landing or iOS projection`,
       );
     }
-    assertCategorySubset(
-      landing.version,
-      `${locale}.features`,
-      projected.features,
-      approved.features,
-    );
-    assertCategorySubset(
-      landing.version,
-      `${locale}.fixes`,
-      projected.fixes,
-      approved.fixes,
-    );
+    for (const category of ['features', 'fixes'] as const) {
+      const expected = projection.changes[category].map((item) => {
+        const index = landing.changes[category].findIndex(
+          (candidate) => itemKey(candidate) === itemKey(item),
+        );
+        return approved[category][index];
+      });
+      if (!isDeepStrictEqual(projected[category], expected)) {
+        fail(
+          landing.version,
+          `${locale}.${category} does not match the selected French notes`,
+        );
+      }
+    }
   }
 }
 
@@ -519,5 +521,42 @@ describe('embedded mobile release data parity', () => {
         { ...android, platforms: ['android', 'android'] },
       ]),
     ).toThrow(/duplicate android projection/);
+  });
+
+  it('rejects an approved translation belonging to another French note', () => {
+    const first = { title: 'Planning', description: 'Several months' };
+    const second = { title: 'iPhone budgets', description: 'Clearer budgets' };
+    const approved = { features: [first, second], fixes: [first, second] };
+    const selected = { features: [first], fixes: [first] };
+    const translations = { en: selected, de: selected, it: selected };
+    const landing: LandingRelease = {
+      version: '9.9.9',
+      date: '2026-09-08',
+      platforms: ['android'],
+      changes: { ...approved, technical: [] },
+      translations: { en: approved, de: approved, it: approved },
+    };
+    const projection: WhatsNewReleaseEntry = {
+      ...landing,
+      changes: { ...selected, technical: [] },
+      translations,
+    };
+    expect(() => assertTranslationSubset(projection, landing)).not.toThrow();
+    for (const locale of ['en', 'de', 'it'] as const) {
+      for (const category of ['features', 'fixes'] as const) {
+        expect(() =>
+          assertTranslationSubset(
+            {
+              ...projection,
+              translations: {
+                ...translations,
+                [locale]: { ...selected, [category]: [second] },
+              },
+            },
+            landing,
+          ),
+        ).toThrow(/does not match the selected French notes/);
+      }
+    }
   });
 });

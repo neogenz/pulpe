@@ -3,6 +3,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 
 type Locale = "fr" | "en" | "de" | "it";
 type TranslatedLocale = Exclude<Locale, "fr">;
@@ -201,21 +202,18 @@ function validateProjection(
     const projected = projection.translations[locale];
     const approved = landing.translations?.[locale];
     invariant(projected && approved, `Projection misses ${locale}`);
-    invariant(
-      projected.features.length === projection.changes.features.length &&
-        projected.fixes.length === projection.changes.fixes.length,
-      `Projection ${locale} category counts differ from French`,
-    );
-    validateSubset(
-      projected.features,
-      approved.changes.features,
-      `projection.${locale}.features`,
-    );
-    validateSubset(
-      projected.fixes,
-      approved.changes.fixes,
-      `projection.${locale}.fixes`,
-    );
+    for (const category of ["features", "fixes"] as const) {
+      const expected = projection.changes[category].map((item) => {
+        const index = landing.changes[category].findIndex(
+          (candidate) => itemKey(candidate) === itemKey(item),
+        );
+        return approved.changes[category][index];
+      });
+      invariant(
+        isDeepStrictEqual(projected[category], expected),
+        `Projection ${locale}.${category} does not match the selected French notes`,
+      );
+    }
   }
 }
 
