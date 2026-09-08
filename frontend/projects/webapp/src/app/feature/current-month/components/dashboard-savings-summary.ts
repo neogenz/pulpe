@@ -10,10 +10,17 @@ import { MatButtonModule } from '@angular/material/button';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { moneyDifference, type SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
+import { StateCard } from '@ui/state-card/state-card';
 
 @Component({
   selector: 'pulpe-dashboard-savings-summary',
-  imports: [AppCurrencyPipe, MatIconModule, MatButtonModule, TranslocoPipe],
+  imports: [
+    AppCurrencyPipe,
+    MatIconModule,
+    MatButtonModule,
+    TranslocoPipe,
+    StateCard,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
@@ -153,24 +160,20 @@ import { AppCurrencyPipe } from '@core/currency';
             </p>
           </div>
         } @else {
-          <div class="flex flex-col items-center justify-center py-6 gap-2">
-            <div
-              class="w-16 h-16 rounded-full bg-financial-savings/10 text-financial-savings flex items-center justify-center mb-2"
+          <pulpe-state-card
+            variant="empty"
+            [compact]="true"
+            [title]="'currentMonth.savingsEmptyTitle' | transloco"
+          >
+            <button
+              matButton="outlined"
+              class="mt-4"
+              (click)="viewSavingsGoals.emit()"
             >
-              <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
-                >savings</mat-icon
-              >
-            </div>
-            <h3
-              class="text-title-medium font-medium text-on-surface-variant text-center"
-            >
-              {{ 'currentMonth.savingsEmptyTitle' | transloco }}
-            </h3>
-            <button matButton="outlined" (click)="viewSavingsGoals.emit()">
               <mat-icon aria-hidden="true">flag</mat-icon>
               {{ 'currentMonth.savingsSetFirstGoal' | transloco }}
             </button>
-          </div>
+          </pulpe-state-card>
         }
       </div>
     </div>

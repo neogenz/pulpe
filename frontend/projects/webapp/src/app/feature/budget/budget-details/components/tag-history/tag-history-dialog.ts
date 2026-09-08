@@ -16,6 +16,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { AppCurrencyPipe } from '@core/currency';
 import { TagApi } from '@core/tag';
+import { StateCard } from '@ui/state-card/state-card';
 import type { SupportedCurrency, Tag, TagHistoryMonths } from 'pulpe-shared';
 import { TagHistoryChart } from './tag-history-chart';
 
@@ -40,6 +41,7 @@ export interface TagHistoryDialogData {
     MatSelectModule,
     TagHistoryChart,
     TranslocoPipe,
+    StateCard,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -137,22 +139,17 @@ export interface TagHistoryDialogData {
           </div>
         } @else if (history(); as history) {
           @if (isEmpty()) {
-            <div
-              class="flex min-h-64 flex-col items-center justify-center gap-2 px-4 text-center text-on-surface-variant"
+            <pulpe-state-card
+              variant="empty"
+              [compact]="true"
+              [title]="'tagHistory.emptyTitle' | transloco"
+              [message]="
+                'tagHistory.emptyMessage'
+                  | transloco: { tag: selectedTag()?.name }
+              "
               role="status"
-              data-testid="tag-history-empty"
-            >
-              <mat-icon class="text-5xl! w-12! h-12!">insights</mat-icon>
-              <h3 class="text-title-medium text-on-surface">
-                {{ 'tagHistory.emptyTitle' | transloco }}
-              </h3>
-              <p class="text-body-medium">
-                {{
-                  'tagHistory.emptyMessage'
-                    | transloco: { tag: selectedTag()?.name }
-                }}
-              </p>
-            </div>
+              testId="tag-history-empty"
+            />
           } @else {
             <div
               class="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-4"

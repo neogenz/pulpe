@@ -1468,15 +1468,56 @@ test("Android diagnostics identify failed flows without printing their output", 
   ].map((match) => match[1]);
   flows.push("vault-resume");
   assert.match(script, new RegExp(`for flow in ${flows.join(" ")}; do`));
-  for (const failedFlow of ["", ...flows]) {
+  const driverErrors = [
+    [
+      "MaestroDriverStartupException$AndroidDriverTimeoutException",
+      "DRIVER_STARTUP_TIMEOUT",
+    ],
+    ["StatusRuntimeException: DEADLINE_EXCEEDED", "GRPC_DEADLINE_EXCEEDED"],
+    ["StatusRuntimeException: UNAVAILABLE", "GRPC_UNAVAILABLE"],
+  ];
+  const errors = [
+    "private-test-marker",
+    {
+      message: "Assertion is false: private-test-marker",
+      debugMessage: "private-test-marker",
+    },
+    { message: "Element not found: private-test-marker" },
+    { message: "'launchApp' failed: private-test-marker" },
+    {
+      message:
+        "Maestro Android driver did not start up in time on emulator [ private-test-marker",
+    },
+    { message: 1234 },
+    { message: { secret: "private-test-marker" } },
+    null,
+  ];
+  const cases = [
+    ...["", ...flows].map((failedFlow) => ({ failedFlow, report: true })),
+    ...driverErrors.map(([driverError, category]) => ({
+      failedFlow: "login-vault",
+      report: false,
+      driverError,
+      category,
+    })),
+  ];
+  for (const { failedFlow, report, driverError = "", category } of cases) {
     const directory = mkdtempSync(join(tmpdir(), "pulpe-android-ci-"));
     try {
       const reportDirectory = join(directory, `maestro-${failedFlow}`);
       mkdirSync(reportDirectory);
-      writeFileSync(
-        join(reportDirectory, "commands.json"),
-        '[{}, {"command":{"inputText":"private-test-marker"},"metadata":{"status":"FAILED","error":"private-test-marker"}}]',
-      );
+      if (report) {
+        writeFileSync(
+          join(reportDirectory, "commands.json"),
+          JSON.stringify([
+            {},
+            ...errors.map((error) => ({
+              command: { inputText: "private-test-marker" },
+              metadata: { status: "FAILED", error },
+            })),
+          ]),
+        );
+      }
       writeFileSync(
         join(reportDirectory, "commands-invalid.json"),
         '{"private-test-marker":{"metadata":{"status":"FAILED"}}}',
@@ -1486,9 +1527,15 @@ test("Android diagnostics identify failed flows without printing their output", 
         [
           "-c",
           `
-        adb() { return 0; }
+        adb() {
+          case "$*" in
+            "shell pidof app.pulpe.android") echo private-test-marker; test "$FAIL_FLOW" != login-vault ;;
+            "shell dumpsys activity activities") echo "topResumedActivity=app.pulpe.android/.MainActivity private-test-marker" ;;
+          esac
+        }
         sleep() { return 0; }
         maestro() {
+          echo "$DRIVER_ERROR private-test-marker"
           echo private-test-marker
           echo private-test-marker >&2
           test "$2" != "android/maestro/$FAIL_FLOW.yaml"
@@ -1502,17 +1549,43 @@ test("Android diagnostics identify failed flows without printing their output", 
             ...process.env,
             RUNNER_TEMP: directory,
             FAIL_FLOW: failedFlow,
+            DRIVER_ERROR: driverError,
           },
         },
       );
       assert.equal(result.status, failedFlow ? 1 : 0);
-      assert.doesNotMatch(result.stdout + result.stderr, /private-test-marker/);
+      assert.doesNotMatch(
+        result.stdout + result.stderr,
+        /private-test-marker|1234/,
+      );
       if (failedFlow) {
         assert.match(
           result.stdout,
           new RegExp(`::error::Android flow failed: ${failedFlow}`),
         );
-        assert.match(result.stdout, /Android failed command index: 1/);
+        assert.ok(
+          result.stdout.includes(
+            `Android app process: ${failedFlow === "login-vault" ? "not detected" : "running"}`,
+          ),
+        );
+        assert.match(result.stdout, /Android app foreground: yes/);
+        if (report) {
+          assert.match(result.stdout, /Android failed command index: 1/);
+          for (const category of [
+            "ASSERTION_FAILED",
+            "NATIVE_LAUNCH_FAILED",
+            "DRIVER_STARTUP_TIMEOUT",
+            "UNKNOWN",
+          ]) {
+            assert.ok(
+              result.stdout.includes(`Android failure category: ${category}`),
+            );
+          }
+        } else {
+          assert.ok(
+            result.stdout.includes(`Android driver category: ${category}`),
+          );
+        }
       }
     } finally {
       rmSync(directory, { recursive: true, force: true });

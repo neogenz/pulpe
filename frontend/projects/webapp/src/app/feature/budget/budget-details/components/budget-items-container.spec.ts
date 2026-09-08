@@ -259,10 +259,7 @@ describe('BudgetItemsContainer — contextual empty states', () => {
     fixture.detectChanges();
 
     const nativeEl: HTMLElement = fixture.nativeElement;
-    const hasSearchOffIcon = Array.from(
-      nativeEl.querySelectorAll('mat-icon'),
-    ).some((el) => el.textContent?.trim() === 'search_off');
-    expect(hasSearchOffIcon).toBe(true);
+    expect(nativeEl.textContent).toContain('Aucune prévision trouvée');
     expect(nativeEl.textContent).not.toContain('Tout est pointé');
   });
 });

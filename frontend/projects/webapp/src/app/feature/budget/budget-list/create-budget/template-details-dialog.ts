@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -23,7 +22,6 @@ export interface TemplateDetailsDialogData {
     AppCurrencyPipe,
     MatDialogModule,
     MatButtonModule,
-    MatIconModule,
     MatListModule,
     MatDividerModule,
   ],
@@ -105,11 +103,8 @@ export interface TemplateDetailsDialogData {
         </div>
       } @else {
         <!-- Empty State -->
-        <div
-          class="flex flex-col items-center justify-center min-h-[200px] text-on-surface-variant"
-        >
-          <mat-icon class="text-display-small mb-2">inbox</mat-icon>
-          <p class="text-body-medium font-medium">
+        <div class="py-12 px-4 text-center text-on-surface-variant">
+          <p class="text-body-medium">
             {{ 'template.noForecastInTemplate' | transloco }}
           </p>
         </div>

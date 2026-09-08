@@ -251,8 +251,7 @@ import type {
             }
           </div>
         } @else {
-          <div class="text-center py-6 text-on-surface-variant">
-            <mat-icon class="mb-2!">receipt_long</mat-icon>
+          <div class="text-center py-8 px-4 text-on-surface-variant">
             <p class="text-body-medium">
               {{ 'budget.noTransaction' | transloco }}
             </p>

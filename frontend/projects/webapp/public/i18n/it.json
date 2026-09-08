@@ -468,6 +468,24 @@
       "rekeyFailed": "La ri-cifratura non è riuscita — il tuo vecchio codice PIN resta attivo, riprova più tardi"
     },
     "connections": {
+      "setup": {
+        "title": "Collega un assistente",
+        "sharing": "I dati del budget consultati dall’assistente gli vengono inviati. Scegli i suoi permessi in Pulpe prima di qualsiasi condivisione.",
+        "chatgptStep1": "Sul sito ChatGPT, apri Impostazioni → Sicurezza e accesso e attiva la modalità sviluppatore, se il tuo account lo consente.",
+        "chatgptStep2": "Apri i plugin con il pulsante qui sotto, poi fai clic su +. Chiama la connessione Pulpe e incolla l’indirizzo qui sotto.",
+        "chatgptStep3": "Scegli OAuth se richiesto, lascia vuoti ID e segreto client, poi crea la connessione.",
+        "claudeStep1": "Apri Claude con il pulsante qui sotto: il nome Pulpe e l’indirizzo sono già compilati.",
+        "claudeStep2": "Conferma l’aggiunta del connettore personalizzato. Lascia vuote le impostazioni avanzate.",
+        "claudeStep3": "Fai clic su Connetti per scegliere i permessi in Pulpe.",
+        "open": "Apri {{ client }}",
+        "newTab": "(nuova scheda)",
+        "address": "Indirizzo di connessione:",
+        "copy": "Copia l’indirizzo",
+        "copied": "Indirizzo copiato.",
+        "copyFailed": "Copia non riuscita. Seleziona l’indirizzo e copialo manualmente.",
+        "finish": "Accedi a Pulpe e scegli cosa può fare l’assistente. Poi attiva Pulpe nella conversazione. Puoi revocare il suo accesso qui in qualsiasi momento.",
+        "availability": "Pulpe non è ancora nei cataloghi. Le opzioni di connessione dipendono dal tuo account e dall’app utilizzata."
+      },
       "title": "Connessioni",
       "description": "Gli assistenti IA autorizzati ad accedere al tuo budget.",
       "subtitle": "Gli assistenti autorizzati ad accedere al tuo budget. Puoi togliere l'accesso in qualsiasi momento.",
@@ -475,7 +493,6 @@
       "errorTitle": "Impossibile caricare le connessioni",
       "errorMessage": "Il caricamento si è bloccato. Riprova per vedere chi ha accesso al tuo budget.",
       "emptyTitle": "Nessun assistente collegato",
-      "emptyMessage": "Puoi collegare Pulpe a ChatGPT o Claude per gestire il tuo budget parlando. Niente viene condiviso finché non lo autorizzi.",
       "modeRead": "Sola lettura",
       "modeReadWrite": "Lettura e scrittura",
       "since": "dal {{ date }}",

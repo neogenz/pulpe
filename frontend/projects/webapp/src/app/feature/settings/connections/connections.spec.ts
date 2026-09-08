@@ -1,4 +1,5 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { Clipboard } from '@angular/cdk/clipboard';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -7,6 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { of } from 'rxjs';
 import type { McpConnection } from 'pulpe-shared';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
 import Connections from './connections';
 import { ConnectionsStore } from './connections-store';
 
@@ -46,6 +48,10 @@ describe('Connections', () => {
         provideAnimationsAsync(),
         ...provideTranslocoForTest(),
         {
+          provide: ApplicationConfiguration,
+          useValue: { backendApiUrl: signal('https://api.pulpe.app/api/v1') },
+        },
+        {
           provide: MatDialog,
           useValue: {
             open: () => ({ afterClosed: () => of(dialogResult.value) }),
@@ -69,6 +75,62 @@ describe('Connections', () => {
     await setup([]);
     expect(query('connections-empty')).not.toBeNull();
     expect(query('connections-list')).toBeNull();
+  });
+
+  it('keeps setup available for empty, connected, loading and failed lists', async () => {
+    await setup([]);
+    expect(query('connection-setup')).not.toBeNull();
+    store.connections.set([chatgpt]);
+    for (const status of ['resolved', 'loading', 'error']) {
+      store.status.set(status);
+      await fixture.whenStable();
+      expect(query('connect-chatgpt')?.getAttribute('href')).toBe(
+        'https://chatgpt.com/plugins',
+      );
+      expect(query('connect-claude')?.getAttribute('rel')).toBe(
+        'noopener noreferrer',
+      );
+    }
+  });
+
+  it('prefills only the public name and the current environment MCP endpoint', async () => {
+    await setup([]);
+    const config = TestBed.inject(ApplicationConfiguration);
+    for (const origin of [
+      'https://api.pulpe.app',
+      'https://api.preview.example',
+    ]) {
+      config.backendApiUrl.set(origin + '/api/v1');
+      await fixture.whenStable();
+      const url = new URL(query('connect-claude')!.getAttribute('href')!);
+      expect(url.origin + url.pathname).toBe(
+        'https://claude.ai/customize/connectors',
+      );
+      expect(Object.fromEntries(url.searchParams)).toEqual({
+        modal: 'add-custom-connector',
+        connectorName: 'Pulpe',
+        connectorUrl: origin + '/mcp',
+      });
+      expect(query('mcp-address')?.textContent?.trim()).toBe(origin + '/mcp');
+    }
+  });
+
+  it('copies the public address and offers manual copying on failure', async () => {
+    await setup([]);
+    const copy = vi
+      .spyOn(TestBed.inject(Clipboard), 'copy')
+      .mockReturnValue(true);
+    query('copy-mcp-address')!.click();
+    await fixture.whenStable();
+    expect(copy).toHaveBeenCalledWith('https://api.pulpe.app/mcp');
+    expect(query('mcp-copy-status')?.textContent).toContain('Adresse copiée.');
+    copy.mockReturnValue(false);
+    query('copy-mcp-address')!.click();
+    await fixture.whenStable();
+    expect(query('mcp-copy-status')?.textContent).toContain(
+      'copie-la manuellement',
+    );
+    copy.mockRestore();
   });
 
   it('lists each connection with the mode actually granted', async () => {

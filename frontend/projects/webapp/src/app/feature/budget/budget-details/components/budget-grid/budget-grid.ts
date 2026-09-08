@@ -22,6 +22,7 @@ import { OriginalAmountLine } from '@ui/original-amount-line';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { CheckRewardDirective } from '@ui/check-reward';
 import { TransactionLabelPipe } from '@ui/transaction-display';
+import { StateCard } from '@ui/state-card/state-card';
 import type { BudgetLine, Transaction, SupportedCurrency } from 'pulpe-shared';
 import type { TransactionViewModel } from '../../view-models/transaction.view-model';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
@@ -126,6 +127,7 @@ export function budgetDetailPanelLayout(
     FormatConversionPipe,
     TransactionActionMenu,
     TransactionLabelPipe,
+    StateCard,
   ],
   template: `
     @if (isMobile()) {
@@ -231,30 +233,22 @@ export function budgetDetailPanelLayout(
 
     <!-- Empty State Template -->
     <ng-template #emptyState>
-      <div class="text-center py-12 px-4">
-        <div
-          class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-container/30 flex items-center justify-center"
-        >
-          <mat-icon class="text-primary shrink-0"
-            >account_balance_wallet</mat-icon
-          >
-        </div>
-        <p class="text-body-large text-on-surface mb-2">
-          {{ 'budget.noEnvelopesYet' | transloco }}
-        </p>
-        <p class="text-body-medium text-on-surface-variant mb-6">
-          {{ 'budget.createFirstEnvelope' | transloco }}
-        </p>
+      <pulpe-state-card
+        variant="empty"
+        [compact]="true"
+        [title]="'budget.noEnvelopesYet' | transloco"
+        [message]="'budget.createFirstEnvelope' | transloco"
+      >
         <button
           matButton="filled"
           (click)="add.emit()"
-          class="px-6"
+          class="mt-6"
           data-testid="add-first-line"
         >
           <mat-icon>add</mat-icon>
           {{ 'budget.createEnvelope' | transloco }}
         </button>
-      </div>
+      </pulpe-state-card>
     </ng-template>
 
     <!-- Mobile Transaction Card Template -->

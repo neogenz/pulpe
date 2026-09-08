@@ -77,7 +77,9 @@ describe('DashboardRecentTransactions', () => {
     setTestInput(component.transactions, []);
     fixture.detectChanges();
 
-    const emptyState = fixture.debugElement.query(By.css('.p-8.text-center'));
+    const emptyState = fixture.debugElement.query(
+      By.css('[data-testid="recent-transactions-empty"]'),
+    );
     expect(emptyState).toBeTruthy();
     expect(emptyState.nativeElement.textContent).toContain(
       'Rien de noté ce mois',

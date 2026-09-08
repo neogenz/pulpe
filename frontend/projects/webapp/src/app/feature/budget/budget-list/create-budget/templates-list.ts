@@ -74,11 +74,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
           </button>
         </div>
       } @else if (filteredTemplates().length === 0) {
-        <div
-          class="flex flex-col items-center justify-center h-[200px] text-on-surface-variant"
-        >
-          <mat-icon class="text-display-small mb-2">inbox</mat-icon>
-          <p class="text-label-large">
+        <div class="py-12 px-4 text-center text-on-surface-variant">
+          <p class="text-body-medium">
             @if (searchTerm()) {
               {{ 'template.noResultsFor' | transloco: { term: searchTerm() } }}
             } @else {

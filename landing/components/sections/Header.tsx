@@ -128,12 +128,12 @@ export function Header({
           aria-label={dict.mobileNavAriaLabel}
           aria-hidden="true"
           inert
-          className="pointer-events-none fixed inset-x-0 top-0 z-10 hidden h-screen overflow-y-auto bg-surface pt-24 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] opacity-0 transition-[opacity,display] transition-discrete duration-300 peer-open:pointer-events-auto peer-open:opacity-100 peer-open:starting:opacity-0 max-lg:peer-open:flex lg:hidden motion-reduce:transition-none"
+          className="pointer-events-none fixed inset-x-0 top-0 z-10 hidden h-dvh overflow-y-auto bg-surface pt-24 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] opacity-0 transition-[opacity,display] transition-discrete duration-300 peer-open:pointer-events-auto peer-open:opacity-100 peer-open:starting:opacity-0 max-lg:peer-open:flex lg:hidden motion-reduce:transition-none"
         >
           {/* Les liens s'ancrent sous la barre, le CTA au bas de l'écran, à
               portée de pouce. Centré, le bloc flottait au milieu d'un plein
               écran opaque avec ~300px de vide au-dessus et ~200px en dessous. */}
-          <div className="flex h-full w-full flex-col gap-2">
+          <div className="flex min-h-full w-full flex-col gap-2">
             {navLinks.map((link) => (
               <Link
                 key={link.href}

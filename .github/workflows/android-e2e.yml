@@ -136,8 +136,25 @@ jobs:
             echo "Android flow: $flow";
             if ! maestro test "android/maestro/$flow.yaml" --test-output-dir "$RUNNER_TEMP/maestro-$flow" > "$RUNNER_TEMP/maestro-$flow.log" 2>&1; then
             echo "::error::Android flow failed: $flow (sensitive logs withheld)";
+            if adb shell pidof app.pulpe.android > /dev/null 2>> "$RUNNER_TEMP/maestro-$flow.log"; then
+            echo 'Android app process: running'; else echo 'Android app process: not detected'; fi;
+            if adb shell dumpsys activity activities 2>> "$RUNNER_TEMP/maestro-$flow.log" | grep -q 'topResumedActivity=.*app\.pulpe\.android/'; then
+            echo 'Android app foreground: yes'; else echo 'Android app foreground: not detected'; fi;
+            if grep -qF 'MaestroDriverStartupException$AndroidDriverTimeoutException' "$RUNNER_TEMP/maestro-$flow.log"; then
+            echo 'Android driver category: DRIVER_STARTUP_TIMEOUT';
+            elif grep -qF 'StatusRuntimeException: DEADLINE_EXCEEDED' "$RUNNER_TEMP/maestro-$flow.log"; then
+            echo 'Android driver category: GRPC_DEADLINE_EXCEEDED';
+            elif grep -qF 'StatusRuntimeException: UNAVAILABLE' "$RUNNER_TEMP/maestro-$flow.log"; then
+            echo 'Android driver category: GRPC_UNAVAILABLE';
+            fi;
             if find "$RUNNER_TEMP/maestro-$flow" -type f -name 'commands*.json' -exec
-            jq -r 'if type == "array" then to_entries[] | select(.value.metadata.status == "FAILED") | "Android failed command index: \(.key)" else empty end' {} +
+            jq -r 'def category: (if type == "object" and (.message | type) == "string" then .message else "" end) |
+            if startswith("Assertion is false: ") or startswith("Element not found: ") then "ASSERTION_FAILED"
+            elif startswith("\u0027launchApp\u0027 failed: ") then "NATIVE_LAUNCH_FAILED"
+            elif startswith("Maestro Android driver did not start up in time on emulator [ ") then "DRIVER_STARTUP_TIMEOUT"
+            else "UNKNOWN" end;
+            if type == "array" then to_entries[] | select(.value.metadata.status == "FAILED") |
+            "Android failed command index: \(.key)", "Android failure category: \(.value.metadata.error | category)" else empty end' {} +
             2>> "$RUNNER_TEMP/maestro-$flow.log"; then :; fi;
             exit 1;
             fi;

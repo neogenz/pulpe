@@ -19,6 +19,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { StateCard } from '@ui/state-card/state-card';
 import {
   TransactionIconPipe,
   TransactionLabelPipe,
@@ -48,6 +49,7 @@ interface AnimatingForecast {
     TransactionIconPipe,
     TransactionLabelPipe,
     TranslocoPipe,
+    StateCard,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -330,7 +332,8 @@ interface AnimatingForecast {
           <div
             #emptyState
             tabindex="-1"
-            class="p-8 flex flex-col items-center justify-center text-center h-full outline-none"
+            class="flex flex-col items-center justify-center text-center h-full outline-none"
+            [class.p-8]="totalCount() > 0"
             data-testid="dashboard-forecasts-empty-state"
           >
             <!-- The subtitle above already refuses to say "0 sur 0 pointées";
@@ -356,19 +359,16 @@ interface AnimatingForecast {
                 }}
               </p>
             } @else {
-              <div
-                class="w-16 h-16 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center mb-4"
-              >
-                <mat-icon class="scale-150" aria-hidden="true"
-                  >event_note</mat-icon
-                >
-              </div>
-              <h3 class="text-title-medium font-medium text-on-surface-variant">
-                {{ 'currentMonth.uncheckedForecasts.noneTitle' | transloco }}
-              </h3>
-              <p class="text-body-medium text-on-surface-variant">
-                {{ 'currentMonth.uncheckedForecasts.noneMessage' | transloco }}
-              </p>
+              <pulpe-state-card
+                variant="empty"
+                [compact]="true"
+                [title]="
+                  'currentMonth.uncheckedForecasts.noneTitle' | transloco
+                "
+                [message]="
+                  'currentMonth.uncheckedForecasts.noneMessage' | transloco
+                "
+              />
             }
           </div>
         }

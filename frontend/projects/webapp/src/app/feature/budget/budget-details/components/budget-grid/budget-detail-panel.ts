@@ -454,12 +454,11 @@ const DETAIL_SEGMENT_COUNT = 12;
           </div>
 
           @if (allocatedTransactions().length === 0) {
-            <div class="text-center py-8 text-on-surface-variant">
-              <mat-icon class="mb-2 opacity-50">receipt_long</mat-icon>
-              <p class="text-body-medium">
+            <div class="text-center py-8 px-4 text-on-surface-variant">
+              <p class="text-title-medium text-on-surface">
                 {{ 'budget.noTransaction' | transloco }}
               </p>
-              <p class="text-body-small">
+              <p class="text-body-medium mt-2">
                 {{ 'budgetLine.noTransactionHint' | transloco }}
               </p>
             </div>

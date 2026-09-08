@@ -12,11 +12,18 @@ import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { ConnectionsStore } from './connections-store';
 import { ConnectionCard } from './ui/connection-card';
+import { ConnectionSetup } from './connection-setup';
 
 /** Settings > Connexions: the visible side of the promise made on the consent page. */
 @Component({
   selector: 'pulpe-connections',
-  imports: [TranslocoPipe, BaseLoading, StateCard, ConnectionCard],
+  imports: [
+    TranslocoPipe,
+    BaseLoading,
+    StateCard,
+    ConnectionCard,
+    ConnectionSetup,
+  ],
   providers: [ConnectionsStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -35,8 +42,23 @@ import { ConnectionCard } from './ui/connection-card';
           <p class="text-body-medium text-on-surface-variant mt-1">
             {{ 'settings.connections.subtitle' | transloco }}
           </p>
+          @if (
+            store.status() !== 'loading' &&
+            store.status() !== 'error' &&
+            store.connections().length === 0
+          ) {
+            <p
+              class="text-label-large text-on-surface-variant mt-4"
+              role="status"
+              data-testid="connections-empty"
+            >
+              {{ 'settings.connections.emptyTitle' | transloco }}
+            </p>
+          }
         </div>
       </header>
+
+      <pulpe-connection-setup />
 
       @switch (store.status()) {
         @case ('loading') {
@@ -57,14 +79,7 @@ import { ConnectionCard } from './ui/connection-card';
           />
         }
         @default {
-          @if (store.connections().length === 0) {
-            <pulpe-state-card
-              variant="empty"
-              [title]="'settings.connections.emptyTitle' | transloco"
-              [message]="'settings.connections.emptyMessage' | transloco"
-              testId="connections-empty"
-            />
-          } @else {
+          @if (store.connections().length > 0) {
             <div class="space-y-4" data-testid="connections-list">
               @for (connection of store.connections(); track connection.id) {
                 <pulpe-connection-card
