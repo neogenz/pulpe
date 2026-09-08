@@ -122,6 +122,13 @@ export const ANALYTICS_EVENTS = {
    * is visible.
    */
   LANGUAGE_CHANGED: 'language_changed',
+  /**
+   * Fires after a web MCP authorization is persisted, before the OAuth callback.
+   * Properties: `assistant` (`chatgpt` | `claude` | `other`), `access_mode`
+   * (`read` | `read_write`). Count unique identified users for adoption, not
+   * events. This records permission granted, not a completed tool call.
+   */
+  MCP_CONNECTION_AUTHORIZED: 'mcp_connection_authorized',
   /** Fires when the savings-goals first-run intro opens. Properties: none. */
   SAVINGS_GOALS_INTRO_VIEWED: 'savings_goals_intro_viewed',
   /** Fires when the savings-goals intro creates its first goal. Properties: none. */
