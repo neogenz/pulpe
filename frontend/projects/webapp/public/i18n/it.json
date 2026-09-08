@@ -493,7 +493,6 @@
       "errorTitle": "Impossibile caricare le connessioni",
       "errorMessage": "Il caricamento si è bloccato. Riprova per vedere chi ha accesso al tuo budget.",
       "emptyTitle": "Nessun assistente collegato",
-      "emptyMessage": "Puoi collegare Pulpe a ChatGPT o Claude per gestire il tuo budget parlando. Niente viene condiviso finché non lo autorizzi.",
       "modeRead": "Sola lettura",
       "modeReadWrite": "Lettura e scrittura",
       "since": "dal {{ date }}",

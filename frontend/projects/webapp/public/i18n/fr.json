@@ -493,7 +493,6 @@
       "errorTitle": "Impossible de charger tes connexions",
       "errorMessage": "Le chargement a bloqué. Réessaie pour voir qui a accès à ton budget.",
       "emptyTitle": "Aucun assistant branché",
-      "emptyMessage": "Tu peux brancher Pulpe dans ChatGPT ou Claude pour gérer ton budget en parlant. Rien n'est partagé tant que tu n'as rien autorisé.",
       "modeRead": "Lecture seule",
       "modeReadWrite": "Lecture et écriture",
       "since": "depuis le {{ date }}",
