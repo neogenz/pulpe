@@ -28,7 +28,7 @@ type Release = ReleaseCopy & {
 };
 type BackendProjection = {
   version: string;
-  iosVersion: string;
+  iosVersion?: string;
   date: string;
   platforms: string[];
   changes: Changes;
@@ -156,15 +156,18 @@ function validateSubset(
 function validateProjection(
   projection: BackendProjection,
   landing: Release,
-  iosVersion: string,
 ): void {
   invariant(
-    projection.iosVersion === iosVersion,
+    projection.iosVersion ===
+      (projection.platforms.includes("ios") ? landing.iosVersion : undefined),
     "Projection iOS version mismatch",
   );
   invariant(projection.date === landing.date, "Projection date mismatch");
   invariant(
-    sameValues(projection.platforms, landing.platforms),
+    projection.platforms.length > 0 &&
+      projection.platforms.every((platform) =>
+        landing.platforms.includes(platform),
+      ),
     "Projection platforms mismatch",
   );
   invariant(
@@ -235,7 +238,10 @@ function validateSilentRegistry(
       `Duplicate silent iOS release: ${release.version}`,
     );
     invariant(
-      !projections.some(({ version }) => version === release.version),
+      !projections.some(
+        ({ version, platforms }) =>
+          version === release.version && platforms.includes("ios"),
+      ),
       `iOS release ${release.version} is both projected and silent`,
     );
     versions.add(release.version);
@@ -350,6 +356,17 @@ async function main(): Promise<void> {
     ).href
   );
   const projections = backendModule.RELEASES as BackendProjection[];
+  const projectionScopes = new Set<string>();
+  for (const projection of projections) {
+    for (const platform of projection.platforms) {
+      const scope = `${projection.version}:${platform}`;
+      invariant(
+        !projectionScopes.has(scope),
+        `Duplicate projection scope: ${scope}`,
+      );
+      projectionScopes.add(scope);
+    }
+  }
   const silentIos = backendModule.SILENT_IOS_RELEASES as SilentRelease[];
   validateSilentRegistry(silentIos, projections);
 
@@ -392,6 +409,11 @@ async function main(): Promise<void> {
   const projectionMatches = projections.filter(
     ({ version }) => version === productVersion,
   );
+  for (const projection of projectionMatches)
+    validateProjection(projection, landingRelease);
+  const iosProjectionMatches = projectionMatches.filter(({ platforms }) =>
+    platforms.includes("ios"),
+  );
   const silentMatches = silentIos.filter(
     ({ version }) => version === productVersion,
   );
@@ -401,7 +423,7 @@ async function main(): Promise<void> {
       `${mode} release must not publish iosVersion`,
     );
     invariant(
-      projectionMatches.length === 0,
+      iosProjectionMatches.length === 0,
       `${mode} release leaked to iOS feed`,
     );
     invariant(
@@ -441,7 +463,7 @@ async function main(): Promise<void> {
 
     if (mode === "silent") {
       invariant(
-        projectionMatches.length === 0,
+        iosProjectionMatches.length === 0,
         "Silent release must have no iOS projection",
       );
       invariant(
@@ -449,12 +471,14 @@ async function main(): Promise<void> {
         "Silent release must have one motivated entry",
       );
     } else {
-      invariant(projectionMatches.length === 1, "Expected one iOS projection");
+      invariant(
+        iosProjectionMatches.length === 1,
+        "Expected one iOS projection",
+      );
       invariant(
         silentMatches.length === 0,
         "Projected release leaked to iOS silent registry",
       );
-      validateProjection(projectionMatches[0], landingRelease, iosVersion);
     }
   }
 

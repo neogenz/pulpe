@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, mkdtempSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 const require = createRequire(import.meta.url);
@@ -1437,13 +1440,65 @@ test("Android E2E never publishes credential-bearing debug artifacts", () => {
   );
   assert.match(
     androidE2eWorkflow,
-    /maestro test android\/maestro\/smoke\.yaml > "\$RUNNER_TEMP\/maestro-smoke\.log" 2>&1 &&/,
-  );
-  assert.match(
-    androidE2eWorkflow,
-    /maestro test android\/maestro\/vault-resume\.yaml > "\$RUNNER_TEMP\/maestro-vault-resume\.log" 2>&1/,
+    /maestro test "android\/maestro\/\$flow\.yaml" > "\$RUNNER_TEMP\/maestro-\$flow\.log" 2>&1/,
   );
   assert.doesNotMatch(androidE2eWorkflow, /continue-on-error|\|\| true/);
+});
+
+test("Android diagnostics identify failed flows without printing their output", () => {
+  const lines = androidE2eWorkflow
+    .split("          script: >-\n")[1]
+    ?.split("\n")
+    .filter((line) => line.trim());
+  assert.ok(lines?.length);
+  assert.ok(
+    lines.every((line) => /^ {12}\S/.test(line)),
+    "YAML must fold into one shell invocation",
+  );
+  const script = lines.map((line) => line.trim()).join(" ");
+  const flows = [
+    ...read("android/maestro/smoke.yaml").matchAll(/runFlow: ([\w-]+)\.yaml/g),
+  ].map((match) => match[1]);
+  flows.push("vault-resume");
+  assert.match(script, new RegExp(`for flow in ${flows.join(" ")}; do`));
+  for (const failedFlow of ["", ...flows]) {
+    const directory = mkdtempSync(join(tmpdir(), "pulpe-android-ci-"));
+    try {
+      const result = spawnSync(
+        "sh",
+        [
+          "-c",
+          `
+        adb() { return 0; }
+        sleep() { return 0; }
+        maestro() {
+          echo private-test-marker
+          echo private-test-marker >&2
+          test "$2" != "android/maestro/$FAIL_FLOW.yaml"
+        }
+        ${script}
+      `,
+        ],
+        {
+          encoding: "utf8",
+          env: {
+            ...process.env,
+            RUNNER_TEMP: directory,
+            FAIL_FLOW: failedFlow,
+          },
+        },
+      );
+      assert.equal(result.status, failedFlow ? 1 : 0);
+      assert.doesNotMatch(result.stdout + result.stderr, /private-test-marker/);
+      if (failedFlow)
+        assert.match(
+          result.stdout,
+          new RegExp(`::error::Android flow failed: ${failedFlow}`),
+        );
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  }
 });
 
 test("the Android production build follows the production pointer", () => {

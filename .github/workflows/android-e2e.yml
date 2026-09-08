@@ -3,6 +3,7 @@ name: Android E2E
 on:
   pull_request:
     paths:
+      - .github/workflows/android-e2e.yml
       - android/**
       - shared/**
       - package.json
@@ -120,12 +121,21 @@ jobs:
           disable-animations: true
           # Maestro output can contain evaluated credentials and PIN digits.
           # Keep it on the ephemeral runner; never publish debug artifacts.
+          # Fold into one line: this action starts a separate shell per line.
           script: >-
-            adb shell settings put system font_scale 1.3 &&
-            adb install -r android/android/app/build/outputs/apk/release/app-release.apk &&
-            adb shell pm clear app.pulpe.android &&
-            adb shell cmd locale set-app-locales app.pulpe.android --user current --locales fr-FR &&
-            maestro test android/maestro/smoke.yaml > "$RUNNER_TEMP/maestro-smoke.log" 2>&1 &&
-            adb shell input keyevent KEYCODE_HOME &&
-            sleep 12 &&
-            maestro test android/maestro/vault-resume.yaml > "$RUNNER_TEMP/maestro-vault-resume.log" 2>&1
+            set -eu;
+            adb shell settings put system font_scale 1.3;
+            adb install -r android/android/app/build/outputs/apk/release/app-release.apk;
+            adb shell pm clear app.pulpe.android;
+            adb shell cmd locale set-app-locales app.pulpe.android --user current --locales fr-FR;
+            for flow in login-vault i18n check-operation vault-resume; do
+            if [ "$flow" = vault-resume ]; then
+            adb shell input keyevent KEYCODE_HOME;
+            sleep 12;
+            fi;
+            echo "Android flow: $flow";
+            if ! maestro test "android/maestro/$flow.yaml" > "$RUNNER_TEMP/maestro-$flow.log" 2>&1; then
+            echo "::error::Android flow failed: $flow (sensitive logs withheld)";
+            exit 1;
+            fi;
+            done

@@ -288,6 +288,46 @@ describe('buildWhatsNewResponse', () => {
 });
 
 describe('buildWhatsNewResponse for android', () => {
+  it.each(['fr', 'en', 'de', 'it'] as const)(
+    'keeps separate projections of the same release isolated in %s',
+    (locale) => {
+      const entries: WhatsNewReleaseEntry[] = (['ios', 'android'] as const).map(
+        (platform) => {
+          const changes = (language: string) => ({
+            features: [
+              { title: `${platform} ${language}`, description: 'Feature' },
+            ],
+            fixes: [],
+          });
+          return {
+            version: '9.9.9',
+            iosVersion: platform === 'ios' ? '2.0.0' : undefined,
+            date: '2026-09-08',
+            platforms: [platform],
+            changes: { ...changes('fr'), technical: [] },
+            translations: {
+              en: changes('en'),
+              de: changes('de'),
+              it: changes('it'),
+            },
+          };
+        },
+      );
+      for (const platform of ['ios', 'android'] as const) {
+        const currentVersion = platform === 'ios' ? '2.0.0' : '9.9.9';
+        const response = buildWhatsNewResponse(
+          { currentVersion, lastSeenVersion: '0.0.0', locale },
+          platform,
+          entries,
+        );
+        expect(response.data.entries).toHaveLength(1);
+        expect(response.data.entries[0]?.body).toBe(
+          `- **${platform} ${locale}** — Feature`,
+        );
+      }
+    },
+  );
+
   const androidRelease: WhatsNewReleaseEntry = {
     version: '0.43.0',
     iosVersion: '1.4.0',

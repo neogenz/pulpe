@@ -43,13 +43,14 @@ export interface SilentIosReleaseEntry {
 }
 
 /**
- * Checked-in iOS projection of `landing/data/releases.json` (maintained by the
+ * Checked-in mobile projections of `landing/data/releases.json` (maintained by the
  * `/release` skill). The deployed backend artifact does not contain
  * the `landing/` package, so the data lives here as a TypeScript literal rather
  * than being read from disk at runtime. Keep release metadata in sync and this
- * list ordered newest-first, but include only releases mapped to an iOS
- * marketing version. `githubUrl`, technical changes, and unmapped releases are
- * dropped.
+ * list ordered newest-first. Each entry targets only the platforms its notes
+ * apply to; one product release may have disjoint iOS and Android projections.
+ * Only iOS projections carry an App Store marketing version. `githubUrl` and
+ * technical changes are dropped.
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {

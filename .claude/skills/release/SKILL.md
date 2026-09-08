@@ -239,7 +239,7 @@ Rules for writing notes:
 - Omit empty sections (if no corrections, skip "Corrections")
 - Footer with links to roadmap and issues
 - Release title is always `vX.Y.Z` — nothing else added
-- Keep an internal scope for every proposed feature/fix (`web`, `ios`, or both), derived from the actual diff and consumers. Do not publish these scope labels.
+- Keep an internal scope for every proposed feature/fix (`web`, `ios`, `android`, or a combination), derived from the actual diff and consumers. Do not publish these scope labels.
 - Never assume every note applies to every platform because the release-level `platforms` array contains both. Ask before approval when an item's scope is ambiguous.
 
 Then ask: "Approuves-tu cette proposition ?" → "Oui, appliquer" / "Non, ajuster" using the current agent's available user-input mechanism.
@@ -307,13 +307,13 @@ Each entry: `{ "title": "Bold title from Step 5", "description": "Description fr
 Deduplicate: if both frontend and backend contributed bumping commits, `"web"` appears once.
 Empty sections stay as `[]` (never omit the key).
 
-### Step 5b-bis: Sync iOS whats-new backend data
+### Step 5b-bis: Sync mobile whats-new backend data
 
 **Skip if `SKIP_WHATS_NEW=true`** (same rule as Step 5b — a technical-only release must stay invisible to the iOS "what's new" dialog too).
 
-**Auto-skip silently** if `"ios"` is not in the `platforms` array computed in Step 5b or `IOS_MARKETING_VERSION` is unset. A build-only release does not change the version observed by clients, so it cannot produce a new one-shot dialog.
+**Auto-skip the iOS projection** if `"ios"` is not in the `platforms` array computed in Step 5b or `IOS_MARKETING_VERSION` is unset. A build-only release does not change the version observed by iOS clients. Independently curate an Android projection when approved Android-relevant notes exist; Android compares the product version and never borrows an iOS version.
 
-The iOS app's "what's new" dialog (PUL-186) is served by `backend-nest/src/modules/whats-new/`, which reads a TypeScript literal — not `landing/data/releases.json` directly, because the deployed backend artifact (`pnpm --filter=backend-nest --prod deploy`) never includes the `landing/` package. `landing/data/releases.json` remains the source for release metadata and approved copy, but the backend entry is an **iOS-specific projection**, not a blind copy of every release item.
+The mobile "what's new" dialogs are served by `backend-nest/src/modules/whats-new/`, which reads a TypeScript literal — not `landing/data/releases.json` directly, because the deployed backend artifact (`pnpm --filter=backend-nest --prod deploy`) never includes the `landing/` package. `landing/data/releases.json` remains the source for release metadata and approved copy. Backend entries are **platform-specific projections**, not blind copies of every release item. Reuse the existing per-entry platform filter; never copy the public release's complete `platforms` array onto a platform-specific note set.
 
 **Procedure:**
 
@@ -321,8 +321,8 @@ The iOS app's "what's new" dialog (PUL-186) is served by `backend-nest/src/modul
 2. Filter the approved "Nouveautés" and "Corrections" using the internal scope from Step 5. Keep only items scoped to `ios` that meet the user-value threshold. Never copy web-only items or the complete mixed-platform release blindly.
 3. Keep at most 4 items total. Prioritize new capabilities, then fixes to frequent/core flows, then visible UX improvements. Ask if the cutoff is ambiguous.
 4. If ZERO items survive, append one unique `{ version, reason }` entry to `SILENT_IOS_RELEASES`. The reason must concretely identify why the approved notes did not meet the iOS dialog threshold; reject an empty reason. State: "Pas de What's New iOS pour cette version."
-5. Otherwise prepend an iOS projection with the same `version`/`iosVersion`/`date`/`platforms` metadata as Step 5b, omit `githubUrl`, set canonical French `changes.features` and `changes.fixes` to the curated iOS items, set `changes.technical` to `[]`, and add the exact EN/DE/IT equivalents under `translations`.
-6. Before writing either mode, require the current product version to be absent from both `RELEASES` and `SILENT_IOS_RELEASES`. A projection and a silence may never overlap.
+5. Otherwise prepend an iOS projection with the same `version`/`iosVersion`/`date` as Step 5b and `platforms: ['ios']`, omit `githubUrl`, set canonical French `changes.features` and `changes.fixes` to the curated iOS items, set `changes.technical` to `[]`, and add the exact EN/DE/IT equivalents under `translations`. For Android, independently select 1–4 relevant approved notes with their exact translations, keep `version`/`date`, use `platforms: ['android']` and omit `iosVersion`. Omit the Android entry if nothing qualifies. Do not remove meaningful iOS notes merely to create one common projection.
+6. Before writing, require the current version/platform pair to be absent from `RELEASES`. At most one projection may target each platform for a product version. An iOS projection and `SILENT_IOS_RELEASES` may never overlap; an Android projection may coexist with iOS silence. Preserve historical entries unchanged.
 7. Write back using the available file-editing tool, matching the existing TypeScript formatting.
 
 Never invent a generic stability or security item to fill the dialog. A marketing release with no meaningful user-facing note must produce no dialog; `SILENT_IOS_RELEASES` records that decision without adding anything to the feed.
