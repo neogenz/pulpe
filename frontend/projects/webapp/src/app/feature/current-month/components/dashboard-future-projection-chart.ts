@@ -12,6 +12,7 @@ import {
 import { DOCUMENT } from '@angular/common';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { UserSettingsStore } from '@core/user-settings';
+import { StateCard } from '@ui/state-card/state-card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -39,6 +40,7 @@ import {
     MatTooltipModule,
     BaseChartDirective,
     TranslocoPipe,
+    StateCard,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -170,23 +172,12 @@ import {
             </button>
           }
         } @else if (isEmpty()) {
-          <div
-            class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
-          >
-            <div
-              class="w-16 h-16 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center mb-2"
-            >
-              <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
-                >show_chart</mat-icon
-              >
-            </div>
-            <h3 class="text-title-medium font-medium text-on-surface-variant">
-              {{ 'currentMonth.projectionEmptyTitle' | transloco }}
-            </h3>
-            <p class="text-body-medium text-on-surface-variant">
-              {{ 'currentMonth.projectionEmptyMessage' | transloco }}
-            </p>
-          </div>
+          <pulpe-state-card
+            variant="empty"
+            [compact]="true"
+            [title]="'currentMonth.projectionEmptyTitle' | transloco"
+            [message]="'currentMonth.projectionEmptyMessage' | transloco"
+          />
         }
       </div>
     </div>

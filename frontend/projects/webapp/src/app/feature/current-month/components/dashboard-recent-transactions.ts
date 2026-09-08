@@ -13,6 +13,7 @@ import type { Transaction, TransactionKind } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { StateCard } from '@ui/state-card/state-card';
 import {
   TransactionIconPipe,
   TransactionLabelPipe,
@@ -28,6 +29,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
     MatButtonModule,
     MatIconModule,
     FinancialKindDirective,
+    StateCard,
     TransactionIconPipe,
     TransactionLabelPipe,
     SavingsGoalSourceLine,
@@ -184,23 +186,12 @@ import { TranslocoPipe } from '@jsverse/transloco';
             </p>
           }
         } @else {
-          <div
-            class="p-8 flex flex-col items-center justify-center text-center h-full"
+          <pulpe-state-card
+            variant="empty"
+            [compact]="true"
+            [title]="'currentMonth.noTransaction' | transloco"
+            testId="recent-transactions-empty"
           >
-            <div
-              class="w-16 h-16 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center mb-4"
-            >
-              <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
-                >receipt_long</mat-icon
-              >
-            </div>
-            <h3 class="text-title-medium font-medium text-on-surface-variant">
-              {{ 'currentMonth.noTransaction' | transloco }}
-            </h3>
-            <!-- The second line used to restate the heading word for word — the
-                 only empty state on
-                 the page whose subtitle restated its title rather than adding
-                 the next step. The button below is the next step. -->
             <button
               matButton="outlined"
               class="mt-4 !h-11"
@@ -210,7 +201,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
               <mat-icon>add</mat-icon>
               {{ 'currentMonth.addFirstTransaction' | transloco }}
             </button>
-          </div>
+          </pulpe-state-card>
         }
       </div>
     </div>

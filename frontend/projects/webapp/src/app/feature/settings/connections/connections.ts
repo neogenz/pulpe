@@ -42,6 +42,19 @@ import { ConnectionSetup } from './connection-setup';
           <p class="text-body-medium text-on-surface-variant mt-1">
             {{ 'settings.connections.subtitle' | transloco }}
           </p>
+          @if (
+            store.status() !== 'loading' &&
+            store.status() !== 'error' &&
+            store.connections().length === 0
+          ) {
+            <p
+              class="text-label-large text-on-surface-variant mt-4"
+              role="status"
+              data-testid="connections-empty"
+            >
+              {{ 'settings.connections.emptyTitle' | transloco }}
+            </p>
+          }
         </div>
       </header>
 
@@ -66,14 +79,7 @@ import { ConnectionSetup } from './connection-setup';
           />
         }
         @default {
-          @if (store.connections().length === 0) {
-            <pulpe-state-card
-              variant="empty"
-              [title]="'settings.connections.emptyTitle' | transloco"
-              [message]="'settings.connections.emptyMessage' | transloco"
-              testId="connections-empty"
-            />
-          } @else {
+          @if (store.connections().length > 0) {
             <div class="space-y-4" data-testid="connections-list">
               @for (connection of store.connections(); track connection.id) {
                 <pulpe-connection-card

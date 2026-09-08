@@ -24,6 +24,7 @@ import { AppCurrencyPipe } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { Logger } from '@core/logging/logger';
 import { TagStore } from '@core/tag';
+import { StateCard } from '@ui/state-card/state-card';
 
 @Component({
   selector: 'pulpe-search-transactions-dialog',
@@ -39,6 +40,7 @@ import { TagStore } from '@core/tag';
     FormField,
     AppCurrencyPipe,
     TranslocoPipe,
+    StateCard,
   ],
   template: `
     <h2 mat-dialog-title>{{ 'budget.searchTitle' | transloco }}</h2>
@@ -203,25 +205,19 @@ import { TagStore } from '@core/tag';
           </span>
         </div>
       } @else if (hasSearched()) {
-        <div class="text-center py-8 text-on-surface-variant">
-          <mat-icon class="text-5xl! w-auto! h-auto! mb-2">search_off</mat-icon>
-          <p class="text-body-medium">
-            {{ 'budget.searchNoResult' | transloco }}
-          </p>
-          <p class="text-body-small">
-            {{ 'budget.searchTryAnother' | transloco }}
-          </p>
-        </div>
+        <pulpe-state-card
+          variant="empty"
+          [compact]="true"
+          [title]="'budget.searchNoResult' | transloco"
+          [message]="'budget.searchTryAnother' | transloco"
+        />
       } @else {
-        <div class="text-center py-8 text-on-surface-variant">
-          <mat-icon class="text-5xl! w-auto! h-auto! mb-2">search</mat-icon>
-          <p class="text-body-medium">
-            {{ 'budget.searchPrompt' | transloco }}
-          </p>
-          <p class="text-body-small">
-            {{ 'budget.searchMinChars' | transloco }}
-          </p>
-        </div>
+        <pulpe-state-card
+          variant="empty"
+          [compact]="true"
+          [title]="'budget.searchPrompt' | transloco"
+          [message]="'budget.searchMinChars' | transloco"
+        />
       }
     </mat-dialog-content>
 

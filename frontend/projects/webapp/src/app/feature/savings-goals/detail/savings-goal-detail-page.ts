@@ -206,21 +206,12 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
             </div>
 
             @if (isEmpty()) {
-              <!-- Flat empty state — no nested card inside the outlined card. -->
-              <div
-                class="flex flex-col items-center gap-3 py-10 text-center"
-                data-testid="savings-goal-empty-lines"
-              >
-                <mat-icon class="text-5xl text-on-surface-variant"
-                  >savings</mat-icon
-                >
-                <h2 class="text-title-large font-semibold">
-                  {{ 'savingsGoals.detail.emptyTitle' | transloco }}
-                </h2>
-                <p class="text-body-large text-on-surface-variant max-w-md">
-                  {{ 'savingsGoals.detail.emptyMessage' | transloco }}
-                </p>
-              </div>
+              <pulpe-state-card
+                variant="empty"
+                [title]="'savingsGoals.detail.emptyTitle' | transloco"
+                [message]="'savingsGoals.detail.emptyMessage' | transloco"
+                testId="savings-goal-empty-lines"
+              />
             }
             @if (p.targetAmount !== null && p.achievementPercent !== null) {
               <!-- Two-layer progress bar (projection behind, reality in front) -->

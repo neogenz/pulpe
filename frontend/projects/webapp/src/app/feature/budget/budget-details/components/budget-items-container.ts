@@ -219,11 +219,8 @@ import {
       <div class="budget-items-view-transition">
         <!-- Content -->
         @if (budgetTableData().length === 0 && store.searchText()) {
-          <div
-            class="flex flex-col items-center gap-2 py-8 text-on-surface-variant"
-          >
-            <mat-icon class="!text-5xl !w-12 !h-12">search_off</mat-icon>
-            <p class="text-body-large">
+          <div class="py-8 px-4 text-center text-on-surface-variant">
+            <p class="text-body-medium">
               {{ 'budget.noForecastFound' | transloco }}
             </p>
           </div>

@@ -18,6 +18,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { type ChartConfiguration } from 'chart.js';
 import type { HistoryDataPoint } from '../services/dashboard-state';
 import { UserSettingsStore } from '@core/user-settings';
+import { StateCard } from '@ui/state-card/state-card';
 import {
   type ChartThemeColors,
   resolveChartThemeColors,
@@ -33,7 +34,13 @@ import {
 
 @Component({
   selector: 'pulpe-dashboard-history-chart',
-  imports: [BaseChartDirective, MatButtonModule, MatIconModule, TranslocoPipe],
+  imports: [
+    BaseChartDirective,
+    MatButtonModule,
+    MatIconModule,
+    TranslocoPipe,
+    StateCard,
+  ],
   template: `
     <div class="flex flex-col w-full h-full">
       <div class="mb-4 px-1 flex items-center gap-3">
@@ -116,23 +123,12 @@ import {
             ></canvas>
           </div>
         } @else if (isEmpty()) {
-          <div
-            class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
-          >
-            <div
-              class="w-16 h-16 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center mb-2"
-            >
-              <mat-icon class="scale-150" aria-hidden="true"
-                >bar_chart</mat-icon
-              >
-            </div>
-            <h3 class="text-title-medium font-medium text-on-surface-variant">
-              {{ 'currentMonth.historyEmptyTitle' | transloco }}
-            </h3>
-            <p class="text-body-medium text-on-surface-variant">
-              {{ 'currentMonth.historyEmptyMessage' | transloco }}
-            </p>
-          </div>
+          <pulpe-state-card
+            variant="empty"
+            [compact]="true"
+            [title]="'currentMonth.historyEmptyTitle' | transloco"
+            [message]="'currentMonth.historyEmptyMessage' | transloco"
+          />
         }
       </div>
     </div>

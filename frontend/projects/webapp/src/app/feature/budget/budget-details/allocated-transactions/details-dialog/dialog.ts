@@ -247,12 +247,11 @@ export interface AllocatedTransactionsDialogResult {
             <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
           </table>
         } @else {
-          <div class="text-center py-8 text-on-surface-variant">
-            <mat-icon class="!text-5xl mb-2">receipt_long</mat-icon>
-            <p class="text-body-medium">
+          <div class="text-center py-8 px-4 text-on-surface-variant">
+            <p class="text-title-medium text-on-surface">
               {{ 'budget.noTransaction' | transloco }}
             </p>
-            <p class="text-body-small">
+            <p class="text-body-medium mt-2">
               {{ 'budget.noTransactionHint' | transloco }}
             </p>
           </div>

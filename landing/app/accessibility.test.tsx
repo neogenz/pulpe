@@ -898,7 +898,10 @@ describe("landing accessibility contracts", () => {
     const panelHas = (token: string) =>
       panelClasses.split(/\s+/).includes(token);
 
-    assert.ok(panelHas("fixed") && panelHas("h-screen"));
+    // The CTA must stay above Safari's expanded toolbar, not at 100vh's
+    // larger, toolbar-collapsed edge where its green fills the scroll pocket.
+    assert.ok(panelHas("fixed") && panelHas("h-dvh"));
+    assert.ok(!panelHas("h-screen"));
     // Replié, le panneau vaut `display: none`. `opacity: 0` le laisserait dans
     // l'arbre de rendu, où Safari 26 lit le fond des éléments fixes pour teinter
     // sa barre du bas : le bouton vert du menu, ancré en bas d'un panneau plein
