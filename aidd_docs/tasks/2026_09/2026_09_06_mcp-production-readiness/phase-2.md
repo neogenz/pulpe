@@ -45,6 +45,7 @@ journey
 ### `1)` Prepare the release through the existing release skill
 
 1. Start only from a clean synchronized `main` worktree after phase 1. Preserve this feature worktree and any unrelated changes; do not detach or reset another worktree. Check published lineage, required workflows and credential names before release-file edits.
+   For the approved recovery of #727, first complete phase 1b and require successful Android E2E as well as mandatory CI on the corrective PR. Preserve commit `2e4aefb3883f4b9296230ef43fe7473bbafba94a`, close #727 without merging, then remove and recreate only `release/v0.49.0` from synchronized `main`. Never force-push or edit the old PR body. Reuse the approved copy, with separate mobile projections, and validate the replacement before publication.
 2. Follow `.agents/skills/release/SKILL.md`: derive version and native impact from the complete unpublished diff, present FR/EN/DE/IT notes, then obtain exact version/copy approval. Do not guess a future version from today's `0.48.0` baseline.
 3. Apply one lockstep bump and the approved native decision, then run the existing What's New parity/locale validator and quality checks. Native Pulpe distribution is not a prerequisite for deploying the MCP server; the complete release scope still governs versioning and native CI.
 4. Obtain the skill's separate approval to push the validated release branch/PR. Use one mechanical release commit and an immutable preparation-PR body. Merge with the owner merge commit only after checks pass; keep `main` at that exact candidate.

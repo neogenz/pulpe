@@ -176,7 +176,7 @@ function hasIosMarketingVersion(
 
 function fail(version: string, detail: string): never {
   throw new Error(
-    `Release ${version} is out of sync between landing and the iOS feed: ${detail}. Run /release Step 5b-bis.`,
+    `Release ${version} is out of sync between landing and the mobile feeds: ${detail}. Run /release Step 5b-bis.`,
   );
 }
 
@@ -187,10 +187,13 @@ function assertMetadataParity(
   projection: WhatsNewReleaseEntry,
   landing: LandingRelease,
 ): void {
-  if (projection.iosVersion !== landing.iosVersion) {
+  const expectedIosVersion = projection.platforms.includes('ios')
+    ? landing.iosVersion
+    : undefined;
+  if (projection.iosVersion !== expectedIosVersion) {
     fail(
       landing.version,
-      `iosVersion mismatch: projection="${projection.iosVersion ?? '(none)'}", landing="${landing.iosVersion ?? '(none)'}"`,
+      `iosVersion mismatch: projection="${projection.iosVersion ?? '(none)'}", expected="${expectedIosVersion ?? '(none)'}"`,
     );
   }
 
@@ -201,12 +204,15 @@ function assertMetadataParity(
     );
   }
 
-  const projectionPlatforms = [...projection.platforms].sort();
-  const landingPlatforms = [...landing.platforms].sort();
-  if (!isDeepStrictEqual(projectionPlatforms, landingPlatforms)) {
+  if (
+    projection.platforms.length === 0 ||
+    projection.platforms.some(
+      (platform) => !landing.platforms.includes(platform),
+    )
+  ) {
     fail(
       landing.version,
-      `platforms mismatch: projection=${JSON.stringify(projectionPlatforms)}, landing=${JSON.stringify(landingPlatforms)}`,
+      `platforms mismatch: projection=${JSON.stringify(projection.platforms)}, landing=${JSON.stringify(landing.platforms)}`,
     );
   }
 
@@ -215,6 +221,20 @@ function assertMetadataParity(
       landing.version,
       `technical notes mismatch: projection contains ${projection.changes.technical.length}; expected 0`,
     );
+  }
+}
+
+function assertUniquePlatforms(
+  projections: readonly WhatsNewReleaseEntry[],
+): void {
+  const scopes = new Set<string>();
+  for (const projection of projections) {
+    for (const platform of projection.platforms) {
+      const key = `${projection.version}:${platform}`;
+      if (scopes.has(key))
+        fail(projection.version, `duplicate ${platform} projection`);
+      scopes.add(key);
+    }
   }
 }
 
@@ -278,18 +298,20 @@ function assertTranslationSubset(
         `missing ${locale} translation in landing or iOS projection`,
       );
     }
-    assertCategorySubset(
-      landing.version,
-      `${locale}.features`,
-      projected.features,
-      approved.features,
-    );
-    assertCategorySubset(
-      landing.version,
-      `${locale}.fixes`,
-      projected.fixes,
-      approved.fixes,
-    );
+    for (const category of ['features', 'fixes'] as const) {
+      const expected = projection.changes[category].map((item) => {
+        const index = landing.changes[category].findIndex(
+          (candidate) => itemKey(candidate) === itemKey(item),
+        );
+        return approved[category][index];
+      });
+      if (!isDeepStrictEqual(projected[category], expected)) {
+        fail(
+          landing.version,
+          `${locale}.${category} does not match the selected French notes`,
+        );
+      }
+    }
   }
 }
 
@@ -311,7 +333,7 @@ function assertCategorySubset(
   );
 }
 
-describe('embedded iOS release data parity', () => {
+describe('embedded mobile release data parity', () => {
   const iosMarketingReleases = landingReleases.filter(hasIosMarketingVersion);
 
   it('records exactly one projection or explicit silence per iOS marketing release', () => {
@@ -321,7 +343,9 @@ describe('embedded iOS release data parity', () => {
       }
 
       const backendMatches = RELEASES.filter(
-        (release) => release.version === landingRelease.version,
+        (release) =>
+          release.version === landingRelease.version &&
+          release.platforms.includes('ios'),
       );
       const silentMatches = SILENT_IOS_RELEASES.filter(
         (release) => release.version === landingRelease.version,
@@ -353,7 +377,11 @@ describe('embedded iOS release data parity', () => {
       seenVersions.add(silentRelease.version);
 
       if (
-        RELEASES.some((release) => release.version === silentRelease.version)
+        RELEASES.some(
+          (release) =>
+            release.version === silentRelease.version &&
+            release.platforms.includes('ios'),
+        )
       ) {
         fail(silentRelease.version, 'release is both projected and silent');
       }
@@ -374,6 +402,7 @@ describe('embedded iOS release data parity', () => {
   // release that ships on Android alone has no iOS marketing version and is a
   // complete entry all the same.
   it('keeps every projection anchored to a landing release and in sync with it', () => {
+    assertUniquePlatforms(RELEASES);
     for (const backendRelease of RELEASES) {
       const landingMatches = landingReleases.filter(
         (release) => release.version === backendRelease.version,
@@ -451,5 +480,83 @@ describe('embedded iOS release data parity', () => {
         landing,
       ),
     ).toThrow(/iosVersion mismatch/);
+  });
+
+  it('accepts separate mobile projections of one mixed-platform release', () => {
+    const note = { title: 'Plan budgets', description: 'Several months' };
+    const landing: LandingRelease = {
+      version: '9.9.9',
+      iosVersion: '2.0.0',
+      date: '2026-09-08',
+      platforms: ['web', 'ios', 'android'],
+      changes: { features: [note], fixes: [], technical: [] },
+    };
+    for (const platform of ['ios', 'android'] as const) {
+      const projection: WhatsNewReleaseEntry = {
+        ...landing,
+        platforms: [platform],
+        iosVersion: platform === 'ios' ? landing.iosVersion : undefined,
+      };
+      expect(() => assertMetadataParity(projection, landing)).not.toThrow();
+      expect(() => assertCuratedSubset(projection, landing)).not.toThrow();
+      expect(() =>
+        assertMetadataParity(
+          { ...projection, iosVersion: undefined, platforms: ['web'] },
+          { ...landing, platforms: ['ios', 'android'] },
+        ),
+      ).toThrow(/platforms mismatch/);
+    }
+    const ios: WhatsNewReleaseEntry = { ...landing, platforms: ['ios'] };
+    const android: WhatsNewReleaseEntry = {
+      ...landing,
+      iosVersion: undefined,
+      platforms: ['android'],
+    };
+    expect(() => assertUniquePlatforms([ios, android])).not.toThrow();
+    expect(() => assertUniquePlatforms([ios, ios])).toThrow(
+      /duplicate ios projection/,
+    );
+    expect(() =>
+      assertUniquePlatforms([
+        { ...android, platforms: ['android', 'android'] },
+      ]),
+    ).toThrow(/duplicate android projection/);
+  });
+
+  it('rejects an approved translation belonging to another French note', () => {
+    const first = { title: 'Planning', description: 'Several months' };
+    const second = { title: 'iPhone budgets', description: 'Clearer budgets' };
+    const approved = { features: [first, second], fixes: [first, second] };
+    const selected = { features: [first], fixes: [first] };
+    const translations = { en: selected, de: selected, it: selected };
+    const landing: LandingRelease = {
+      version: '9.9.9',
+      date: '2026-09-08',
+      platforms: ['android'],
+      changes: { ...approved, technical: [] },
+      translations: { en: approved, de: approved, it: approved },
+    };
+    const projection: WhatsNewReleaseEntry = {
+      ...landing,
+      changes: { ...selected, technical: [] },
+      translations,
+    };
+    expect(() => assertTranslationSubset(projection, landing)).not.toThrow();
+    for (const locale of ['en', 'de', 'it'] as const) {
+      for (const category of ['features', 'fixes'] as const) {
+        expect(() =>
+          assertTranslationSubset(
+            {
+              ...projection,
+              translations: {
+                ...translations,
+                [locale]: { ...selected, [category]: [second] },
+              },
+            },
+            landing,
+          ),
+        ).toThrow(/does not match the selected French notes/);
+      }
+    }
   });
 });

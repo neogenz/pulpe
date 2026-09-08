@@ -18,6 +18,8 @@ Checkpoint (2026-09-08): PR #725 is merged as `16facba9da1c80478d861b25e9cf481fb
 
 On 2026-09-08, Maxime approved adjusting this plan so that he performs normal production-account and assistant functional checks himself, and approved transmitting dependency metadata to npm for the production audit. The agent must provide the checklist and wait for actual results, not access his account or substitute historical test evidence. Credential-boundary probes remain synthetic-only and separately scoped. The requested official Pulpe logo in both vendors and four-language landing presentation remain launch deliverables; unsupported custom-connector branding and untested clients must be explicit.
 
+After preparation PR #727 exposed mixed iOS/Android notes and Android E2E failed, Maxime approved correcting both points and replacing that preparation. Keep product `0.49.0`, iOS `1.6.0 (3)` and the approved four-language copy. Preserve the old release commit, close the unmerged preparation and recreate its branch without a force push only after the corrective PR reaches `main`. This approval does not authorize production publication or MCP activation.
+
 One request means **one coordinated operation**, not bypassing GitHub approval or obtaining vendor acceptance automatically. Suggested future instruction: “Lance la mise en production MCP selon le dossier validé ; arrête-toi si le candidat, les cibles ou les contrôles diffèrent.” This starts the sequence; it does not pre-approve an unknown version, manifest, account, public exposure or legal attestation. Complete phases 1 and 2 before describing the system as ready to launch.
 
 ## Phases
@@ -25,6 +27,7 @@ One request means **one coordinated operation**, not bypassing GitHub approval o
 | #   | Phase                                                              | File                       |
 | --- | ------------------------------------------------------------------ | -------------------------- |
 | 1   | Close readiness gaps and collect the owner decision packet         | [phase-1.md](./phase-1.md) |
+| 1b  | Repair mobile release contracts and diagnose Android verification  | [phase-1b.md](./phase-1b.md) |
 | 2   | Prepare the exact release and its read-only promotion manifest     | [phase-2.md](./phase-2.md) |
 | 3   | Publish disabled, activate, verify and prepare public distribution | [phase-3.md](./phase-3.md) |
 
