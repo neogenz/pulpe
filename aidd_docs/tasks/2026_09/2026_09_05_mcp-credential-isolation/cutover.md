@@ -2,7 +2,92 @@
 
 Do not activate the connector until the applicable retirement gate below has passed. Applying the SQL migration alone does **not** invalidate a Supabase JWT previously delivered to an assistant. No production operation is authorized by this document.
 
-## 0. Production handoff — prepared, not executed
+## Current production state — 2026-09-08
+
+The deployment was initially published with MCP disabled as
+[v0.49.0](https://github.com/neogenz/pulpe/releases/tag/v0.49.0).
+Production and the annotated tag resolve to
+`7952ffef7eb89e5866e79dcf45d66e632a02e65c`, tree
+`b2adbb9af75a9d06a0b2e7e13acb235abcaf77e9`.
+
+### Disabled deployment and publication
+
+- Preparation [PR #729](https://github.com/neogenz/pulpe/pull/729), staging proof
+  [34215746595](https://github.com/neogenz/pulpe/actions/runs/34215746595),
+  read-only plan [34216198372](https://github.com/neogenz/pulpe/actions/runs/34216198372)
+  and protected publish [34220940719](https://github.com/neogenz/pulpe/actions/runs/34220940719)
+  identify the same candidate. The published rollback anchor is `v0.48.0` at
+  `7a22f34c55d8dc9c217089670a4e093b8bde5bd7`; compatibility and issuer isolation
+  still constrain any rollback.
+- The protected workflow applied all five pending migrations listed below.
+  Production now records 103 versions. All five MCP tables have RLS enabled;
+  `anon` and `authenticated` have no direct SELECT/INSERT grants on them.
+- Railway deployment `e3aabfd0-107c-495d-92ed-1ccc88d29877` is successful on the
+  exact candidate; the previous deployment is removed. Vercel production
+  deployments are frontend `dpl_CK3GTGBvTrQiw7Fzhdq5TgYuecwD` and landing
+  `dpl_42Gah8CgpQbaYUEZ5xphPsVrPisR`, with their production aliases verified.
+- [Production Finalized 34222933986](https://github.com/neogenz/pulpe/actions/runs/34222933986)
+  attempt 2 succeeded after owner approval. Immutable artifact `10054996720`,
+  `production-proof-7952ffef7eb89e5866e79dcf45d66e632a02e65c-run-34222933986-attempt-2`,
+  binds the Railway deployment and GitHub frontend/landing deployment IDs
+  `6326921803` / `6326906608`. The release was published at 12:06:40 UTC.
+  Attempt 1 had raced the production-context artifact; retrying its failed
+  finalization jobs after that artifact existed did not rerun migrations.
+- The dedicated wrapping key and production MCP URLs are installed;
+  `DEBUG_HTTP_FULL=false`. Existing first-party variables were preserved.
+  Both upstream credentials remain absent. MCP returns 401 without a bearer;
+  both discovery routes return 404. This is the disabled contract for this
+  version, not a failed deployment. Public health is healthy and web version
+  is `0.49.0`.
+- The owner confirmed normal login, session continuity after reload and budget
+  access before activation. No personal credentials, amounts or screenshots
+  were collected. Anonymous HTTP responses do not establish rendered consent
+  or vendor association acceptance.
+- The pre-activation checks found Supabase OAuth and native DCR off,
+  the authorization path unset, the existing Site URL/redirect allowlist
+  unchanged, and zero native OAuth clients, grants, sessions or MCP connections.
+  The activation command was rejected before execution by the authorization
+  control, which requires explicit confirmation of the exact production scope.
+  No private OAuth client, upstream-secret file, upstream variables or activation
+  redeployment was created by that attempt.
+
+### Activation after explicit owner approval
+
+The owner subsequently approved the exact Supabase/Railway activation scope.
+MCP is now enabled on the same published source:
+
+- Supabase OAuth is enabled with authorization path `/mcp-consent`; native
+  dynamic registration remains disabled. The one confidential upstream client,
+  `67536106-ca5f-4805-b43d-b5e4cdb66074`, uses `client_secret_post` and only
+  `https://api.pulpe.app/mcp/oauth/upstream-callback` as its callback.
+- Both upstream variables were staged without deployment, read back together,
+  then applied by a same-source Railway redeployment. Deployment
+  `1314d856-bcd6-4d6b-bd8f-1ea919e929a1`, created at 12:51:57.934 UTC, is
+  `SUCCESS` on `7952ffef7eb89e5866e79dcf45d66e632a02e65c`; the preceding
+  `e3aabfd0-107c-495d-92ed-1ccc88d29877` instance is removed.
+- The redeployment triggered [finalizer 34228617118](https://github.com/neogenz/pulpe/actions/runs/34228617118):
+  exact-production verification and publication both succeeded after owner
+  approval, completing at 13:06:18 UTC. A later event, run `34228638251`,
+  passed verification and awaits owner approval for its publication job.
+  Neither was manually dispatched. The existing published release is unchanged.
+- Both OAuth discovery routes return 200 and advertise the Pulpe API issuer,
+  `/authorize`, `/register`, `/token`, `/revoke`, resource `/mcp` and PKCE S256.
+  Missing and invalid MCP bearers return 401 with the resource-metadata
+  challenge. Native registration rejects the empty request with 403 and
+  `oauth_dynamic_client_registration_disabled`. Health is healthy; the public
+  web version remains `0.49.0` and the consent route returns HTTP 200.
+- All existing Railway variables and unrelated Supabase Auth settings were
+  preserved. The existing protected `.mcp-production/.env.local` now contains
+  the wrapping key and private upstream pair; its mode is 600 inside a mode-700
+  directory, Git exclusion and equality with provider values were verified.
+  Dashlane backup confirmation is still required before removing this copy.
+  No secret value or personal account data appears in this evidence.
+
+Production ChatGPT/Claude consent, read/write, cleanup, revocation and synthetic
+credential-boundary acceptance remain pending. No directory publication or
+universal desktop/mobile availability is established by this release.
+
+## 0. Historical production preparation
 
 Updated 2026-09-06 against the checked-in configuration and release workflows.
 The owner requested a coordinated launch from one instruction. The
@@ -182,16 +267,16 @@ production fixture, public activation or directory attestation.
 
 #### Single owner decision packet
 
-| Decision | Exact scope and current state |
-| --- | --- |
-| Targets | Existing Supabase `qhhlloqisgzwcsrbdppn`, Railway project/environment/service and both Vercel IDs in the baseline above; no new project. |
-| Disabled configuration | Section 2's two production URLs and a dedicated wrapping key if absent; preserve all first-party keys and keep both upstream variables absent. Exact mutation approval pending. |
-| Activation delta | OAuth server off → on, authorization path unset → `/mcp-consent`, one confidential upstream client and API callback, both backend credentials installed together; native DCR remains off, existing redirect origins unchanged. Public exposure approval pending. |
-| Release | Complete unpublished scope includes MCP, bulk budget planning and native UX work. Phase 2 must obtain exact version and FR/EN/DE/IT approval before any bump, then a separate push/PR approval and protected publish approval. |
-| Recovery/window | Latest backup above is available, not a restore guarantee. Proposed observation window: 15 minutes; approve timing and MCP-only disable/revocation on incident. Any database restore needs separate approval. |
-| Legacy issuance | Not established by current API/table state. Owner history or section 1 retirement evidence is required before activation. |
-| Acceptance | Owner performs the checklist below on his account. Agent credential-boundary probes require a separately approved synthetic account; no personal credentials or broad production seeding. Neither acceptance is recorded as passed yet. |
-| Branding/distribution | Reuse `landing/public/icon.png` for Pulpe in both vendors; verify actual portal rendering. Four-language landing/guide already exists in source with preparation copy. Identity/legal submission and directory publication remain separate. Mobile waiver and other matrix limitations remain explicit. |
+| Decision               | Exact scope and current state                                                                                                                                                                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Targets                | Existing Supabase `qhhlloqisgzwcsrbdppn`, Railway project/environment/service and both Vercel IDs in the baseline above; no new project.                                                                                                                                                                |
+| Disabled configuration | Section 2's two production URLs and a dedicated wrapping key if absent; preserve all first-party keys and keep both upstream variables absent. Exact mutation approval pending.                                                                                                                         |
+| Activation delta       | OAuth server off → on, authorization path unset → `/mcp-consent`, one confidential upstream client and API callback, both backend credentials installed together; native DCR remains off, existing redirect origins unchanged. Public exposure approval pending.                                        |
+| Release                | Complete unpublished scope includes MCP, bulk budget planning and native UX work. Phase 2 must obtain exact version and FR/EN/DE/IT approval before any bump, then a separate push/PR approval and protected publish approval.                                                                          |
+| Recovery/window        | Latest backup above is available, not a restore guarantee. Proposed observation window: 15 minutes; approve timing and MCP-only disable/revocation on incident. Any database restore needs separate approval.                                                                                           |
+| Legacy issuance        | Not established by current API/table state. Owner history or section 1 retirement evidence is required before activation.                                                                                                                                                                               |
+| Acceptance             | Owner performs the checklist below on his account. Agent credential-boundary probes require a separately approved synthetic account; no personal credentials or broad production seeding. Neither acceptance is recorded as passed yet.                                                                 |
+| Branding/distribution  | Reuse `landing/public/icon.png` for Pulpe in both vendors; verify actual portal rendering. Four-language landing/guide already exists in source with preparation copy. Identity/legal submission and directory publication remain separate. Mobile waiver and other matrix limitations remain explicit. |
 
 #### Production checks for Maxime — pending
 

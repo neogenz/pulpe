@@ -519,6 +519,9 @@ const en: Dictionary = {
     addressLabel: "The address to paste, the same everywhere",
     availabilityNote:
       "Claude supports remote connections on web, desktop and mobile. For ChatGPT, start setup on the web if developer mode is available for your account. Capabilities vary by assistant, account and app. Pulpe is not yet published in their directories.",
+    claudeConnectLabel: "Connect to Claude",
+    claudeConnectionNote:
+      "Add Pulpe using this button, not Claude’s directory. Free accounts are limited to one custom connector.",
     clients: [
       {
         name: "ChatGPT",
@@ -531,9 +534,9 @@ const en: Dictionary = {
       {
         name: "Claude",
         steps: [
-          "In Claude, open Customize > Connectors.",
-          "Add a custom connector using the address above.",
-          "Connect it to Pulpe, then enable it in your conversation.",
+          "Click “Connect to Claude”: Pulpe’s name and address are already filled in.",
+          "Confirm the addition, then click “Connect”. Leave the advanced settings empty.",
+          "Sign in to Pulpe and choose the permissions, then enable Pulpe in your Claude conversation.",
         ],
       },
       {

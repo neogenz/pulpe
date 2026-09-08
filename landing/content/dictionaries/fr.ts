@@ -548,6 +548,9 @@ const fr = {
     addressLabel: "L’adresse à coller, la même partout",
     availabilityNote:
       "Claude propose les connexions distantes sur le web, sur ordinateur et sur mobile. Pour ChatGPT, commence la configuration sur le web si le mode développeur est disponible pour ton compte. Les possibilités varient selon l’assistant, ton compte et l’application utilisée. Pulpe n’est pas encore publié dans leurs catalogues.",
+    claudeConnectLabel: "Connecter à Claude",
+    claudeConnectionNote:
+      "Pulpe s’ajoute par ce bouton, pas depuis le catalogue Claude. Les comptes Free sont limités à un connecteur personnalisé.",
     clients: [
       {
         name: "ChatGPT",
@@ -560,9 +563,9 @@ const fr = {
       {
         name: "Claude",
         steps: [
-          "Dans Claude, ouvre Personnaliser > Connecteurs.",
-          "Ajoute un connecteur personnalisé avec l’adresse ci-dessus.",
-          "Connecte-le à Pulpe, puis active-le dans ta conversation.",
+          "Clique sur « Connecter à Claude » : le nom Pulpe et son adresse sont déjà remplis.",
+          "Confirme l’ajout, puis clique sur « Connecter ». Laisse les paramètres avancés vides.",
+          "Dans Pulpe, connecte-toi et choisis les autorisations, puis active Pulpe dans ta conversation Claude.",
         ],
       },
       {

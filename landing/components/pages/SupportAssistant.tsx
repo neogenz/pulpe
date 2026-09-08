@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
-import { Container, Section, Steps } from "@/components/ui";
+import { Button, Container, Section, Steps } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
 import type { Dictionary } from "@/content/dictionary";
 import { CONTACT_EMAIL, MCP_SERVER_URL } from "@/lib/config";
@@ -11,6 +11,13 @@ import { ASSISTANT_ROUTE, localizedPath } from "@/lib/routes";
 // caractère pour caractère. Elle vit donc ici, avec l'adresse du serveur, et pas
 // dans les quatre catalogues où elle serait recopiée à l'identique.
 const CLI_COMMAND = `claude mcp add --transport http pulpe ${MCP_SERVER_URL}`;
+const CLAUDE_CONNECT_URL = `https://claude.ai/customize/connectors?${new URLSearchParams(
+  {
+    modal: "add-custom-connector",
+    connectorName: "Pulpe",
+    connectorUrl: MCP_SERVER_URL,
+  },
+)}`;
 
 /**
  * Le bloc à recopier, défilable sur mobile. La graisse monospace n'est pas
@@ -178,7 +185,24 @@ export function SupportAssistant({
                   <h3 className="text-2xl font-semibold tracking-[-0.025em] text-text">
                     {client.name}
                   </h3>
+                  {client.name === "Claude" && (
+                    <Button
+                      href={CLAUDE_CONNECT_URL}
+                      aria-describedby="claude-connection-note"
+                      className="mt-6 w-full"
+                    >
+                      {assistant.claudeConnectLabel}
+                    </Button>
+                  )}
                   <Steps items={client.steps} />
+                  {client.name === "Claude" && (
+                    <p
+                      id="claude-connection-note"
+                      className="mt-5 text-sm leading-relaxed text-text-secondary"
+                    >
+                      {assistant.claudeConnectionNote}
+                    </p>
+                  )}
                 </article>
               ))}
             </div>

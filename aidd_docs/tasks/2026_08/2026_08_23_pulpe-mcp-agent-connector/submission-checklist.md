@@ -4,13 +4,20 @@ status: in-progress
 
 # Client acceptance and directory readiness
 
-Verified against official documentation on 2026-09-05. A working custom connector
+Verified against official documentation on 2026-09-08. A working custom connector
 and a published directory listing are separate milestones. Both vendors passed
 web read/write and revocation checks on the isolated test issuer. Additional
 surfaces remain unverified. The deployed timestamp/pointing regression passed
 in Claude web; mobile acceptance is waived by the owner, not marked passed.
 The disposable test environment and both test connectors are now retired.
 No submission or agreement was accepted.
+
+The owner authorized the public ChatGPT submission workflow on 2026-09-08.
+The OpenAI portal still requires developer identity verification before draft
+creation; the owner is handling that step. No public plugin draft exists yet.
+For Claude, the owner has no Team or Enterprise organization and chose guided
+custom installation instead. This distribution does not make Pulpe searchable
+in Claude's directory or establish vendor approval.
 
 ## Distribution assets in this repository
 
@@ -22,6 +29,14 @@ version: the Git source updates by commit. No local stdio server is distributed.
 The four-language guide is `/support/connecter-un-assistant`. Consent and legal
 copy explain that requested financial data is sent to the chosen assistant and
 its provider. Public availability remains "in preparation".
+
+The guide adds a native "Connect to Claude" link using only the documented
+`modal`, `connectorName` and `connectorUrl` parameters; it contains no credentials
+and grants no access. Local desktop visual and keyboard checks passed on
+2026-09-08, with no browser warnings or errors. Activating the link opened
+Claude's actual first-step dialog with `Pulpe` and `https://api.pulpe.app/mcp`
+prefilled. No connector was added during this check. This proves the onboarding
+entry point, not production OAuth/tool acceptance or deployment of the guide.
 
 The official production icon is `landing/public/icon.png` (519 × 519 PNG).
 Use it in both vendors' supported listing fields and verify the rendered result;
@@ -101,10 +116,12 @@ four moderate and one low Android-only findings are explicitly recorded.
 
 Follow [cutover.md](../../2026_09/2026_09_05_mcp-credential-isolation/cutover.md)
 for the production handoff: target separation, approval gates, secrets/Dashlane,
-legacy retirement, protected release order, branding and rollback. It is prepared
-but not executed. The owner now authorizes scoped test cleanup after validation,
-a PR to `main`, monitoring/merge when safe, and production setup through the
-protected release process. Exact release/version and publication gates remain.
+legacy retirement, protected release order, branding and rollback. The approved
+`v0.49.0` source is now deployed and MCP is enabled; the runbook records exact
+deployment evidence. Owner-led production acceptance and the remaining
+distribution gates are not yet complete. The owner authorized scoped test
+cleanup after validation, a PR to `main`, monitoring/merge when safe, and
+production setup through the protected release process.
 The former ignored `.mcp-test` secrets and local test directories are archived in
 the owner's private Trash, not active configuration. See the
 [retirement evidence](./verification-2026-09-05.md#test-resource-retirement--2026-09-06).
@@ -144,6 +161,16 @@ authorization flow, never tool inputs or responses.
 [Plugin guidelines](https://developers.openai.com/plugins/app-guidelines).
 
 ### Anthropic
+
+Remote directory submissions require a Team or Enterprise organization and
+directory-management access. This is a publisher requirement, not a requirement
+for individual users to connect through the custom-install link. The owner
+chose custom distribution on 2026-09-08; no organization purchase or remote
+directory submission is planned under the current scope.
+[Current submission access](https://claude.com/docs/connectors/building/submission).
+
+The following directory requirements apply only if that distribution choice
+changes with the owner's approval.
 
 Prepare server/authentication/transport details, the full annotated tool list,
 public documentation, support and privacy links, branding, a populated reviewer
