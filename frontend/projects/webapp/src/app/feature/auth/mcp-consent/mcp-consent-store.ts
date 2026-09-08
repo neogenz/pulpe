@@ -1,6 +1,7 @@
 import { Service, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { type McpAccessMode } from 'pulpe-shared';
+import { ANALYTICS_EVENTS, type McpAccessMode } from 'pulpe-shared';
+import { AnalyticsService } from '@core/analytics/analytics';
 import { McpApi } from '@core/mcp/mcp-api';
 import { DERIVE_CLIENT_KEY, EncryptionApi } from '@core/encryption';
 
@@ -15,6 +16,7 @@ export class McpConsentStore {
   readonly #api = inject(McpApi);
   readonly #encryptionApi = inject(EncryptionApi);
   readonly #deriveClientKey = inject(DERIVE_CLIENT_KEY);
+  readonly #analytics = inject(AnalyticsService);
 
   readonly authorizationId = signal<string | null>(null);
   readonly clientName = signal<string | null>(null);
@@ -38,8 +40,20 @@ export class McpConsentStore {
       salt,
       kdfIterations,
     );
+    const mode = this.mode();
     const { redirectUrl } = await firstValueFrom(
-      this.#api.approve$(this.#requestId(), this.mode(), clientKeyHex),
+      this.#api.approve$(this.#requestId(), mode, clientKeyHex),
+    );
+    // ponytail: declared client name; use verified client metadata if attribution needs proof.
+    // Only fixed categories leave the app, never the name or OAuth credentials.
+    const assistant =
+      this.clientName()
+        ?.match(/\b(chatgpt|claude)\b/i)?.[1]
+        .toLowerCase() ?? 'other';
+    this.#analytics.captureEvent(
+      ANALYTICS_EVENTS.MCP_CONNECTION_AUTHORIZED,
+      { assistant, access_mode: mode },
+      { transport: 'sendBeacon', send_instantly: true },
     );
     return redirectUrl;
   }
