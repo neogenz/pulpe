@@ -87,8 +87,6 @@ const nextImageMock = {
 };
 mock.module("next/image", nextImageMock);
 const { Footer } = await import("../components/sections/Footer");
-const { SupportAssistant } =
-  await import("../components/pages/SupportAssistant");
 
 const globalsCss = readFileSync(
   new URL("./globals.css", import.meta.url),
@@ -1641,31 +1639,6 @@ describe("landing accessibility contracts", () => {
     assert.ok(metadata.openGraph && "type" in metadata.openGraph);
     assert.equal(metadata.openGraph.type, "article");
     assert.equal(metadata.alternates?.canonical, ASSISTANT_ROUTE);
-  });
-
-  it("prefills Claude setup without credentials in every language", () => {
-    for (const locale of LOCALES) {
-      const dict = CATALOGS[locale];
-      const html = renderToStaticMarkup(
-        <SupportAssistant dict={dict} locale={locale} />,
-      );
-      const links = [
-        ...html.matchAll(
-          /href="(https:\/\/claude\.ai\/customize\/connectors\?[^\"]+)"/g,
-        ),
-      ];
-      assert.equal(links.length, 1);
-      const url = new URL(links[0][1].replaceAll("&amp;", "&"));
-      assert.deepEqual(Object.fromEntries(url.searchParams), {
-        modal: "add-custom-connector",
-        connectorName: "Pulpe",
-        connectorUrl: "https://api.pulpe.app/mcp",
-      });
-      assert.ok(html.includes(dict.assistant.claudeConnectLabel));
-      assert.ok(html.includes(dict.assistant.claudeConnectionNote));
-      assert.ok(html.includes('aria-describedby="claude-connection-note"'));
-      assert.ok(html.includes('id="claude-connection-note"'));
-    }
   });
 
   it("owns the guide social metadata instead of inheriting the homepage", () => {

@@ -468,6 +468,24 @@
       "rekeyFailed": "Re-encrypting failed — your old PIN stays active, try again later"
     },
     "connections": {
+      "setup": {
+        "title": "Connect an assistant",
+        "sharing": "Budget data accessed by the assistant is sent to it. You choose its permissions in Pulpe before any sharing.",
+        "chatgptStep1": "On the ChatGPT website, open Settings → Security and login and enable Developer mode, if your account allows it.",
+        "chatgptStep2": "Open plugins using the button below, then click +. Name the connection Pulpe and paste the address below.",
+        "chatgptStep3": "Choose OAuth if prompted, leaving the client ID and secret empty, then create the connection.",
+        "claudeStep1": "Open Claude using the button below: the Pulpe name and address are already filled in.",
+        "claudeStep2": "Confirm adding the custom connector. Leave advanced settings empty.",
+        "claudeStep3": "Click Connect to choose permissions in Pulpe.",
+        "open": "Open {{ client }}",
+        "newTab": "(new tab)",
+        "address": "Connection address:",
+        "copy": "Copy address",
+        "copied": "Address copied.",
+        "copyFailed": "Copying failed. Select the address and copy it manually.",
+        "finish": "Sign in to Pulpe and choose what the assistant can do. Then enable Pulpe in your conversation. You can revoke its access here at any time.",
+        "availability": "Pulpe is not in the directories yet. Connection options depend on your account and the app you use."
+      },
       "title": "Connections",
       "description": "The AI assistants allowed to access your budget.",
       "subtitle": "The assistants allowed to access your budget. You can cut their access at any time.",

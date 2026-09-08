@@ -468,6 +468,24 @@
       "rekeyFailed": "Die Neuverschlüsselung ist fehlgeschlagen — dein alter PIN bleibt aktiv, versuch es später nochmal"
     },
     "connections": {
+      "setup": {
+        "title": "Einen Assistenten verbinden",
+        "sharing": "Budgetdaten, die der Assistent abruft, werden an ihn gesendet. Du legst die Berechtigungen in Pulpe fest, bevor Daten geteilt werden.",
+        "chatgptStep1": "Öffne auf der ChatGPT-Website Einstellungen → Sicherheit und Anmeldung und aktiviere den Entwicklermodus, falls dein Konto dies erlaubt.",
+        "chatgptStep2": "Öffne die Plugins über die Schaltfläche unten und klicke auf +. Nenne die Verbindung Pulpe und füge die Adresse unten ein.",
+        "chatgptStep3": "Wähle bei Nachfrage OAuth, lasse Client-ID und Client-Secret leer und erstelle die Verbindung.",
+        "claudeStep1": "Öffne Claude über die Schaltfläche unten: Name und Adresse von Pulpe sind bereits ausgefüllt.",
+        "claudeStep2": "Bestätige das Hinzufügen des benutzerdefinierten Connectors. Lasse die erweiterten Einstellungen leer.",
+        "claudeStep3": "Klicke auf Verbinden, um die Berechtigungen in Pulpe festzulegen.",
+        "open": "{{ client }} öffnen",
+        "newTab": "(neuer Tab)",
+        "address": "Verbindungsadresse:",
+        "copy": "Adresse kopieren",
+        "copied": "Adresse kopiert.",
+        "copyFailed": "Kopieren fehlgeschlagen. Wähle die Adresse aus und kopiere sie manuell.",
+        "finish": "Melde dich bei Pulpe an und wähle, was der Assistent tun darf. Aktiviere danach Pulpe in deinem Gespräch. Du kannst den Zugriff hier jederzeit widerrufen.",
+        "availability": "Pulpe ist noch nicht in den Verzeichnissen. Die Verbindungsmöglichkeiten hängen von deinem Konto und der verwendeten App ab."
+      },
       "title": "Verbindungen",
       "description": "Die KI-Assistenten, die auf dein Budget zugreifen dürfen.",
       "subtitle": "Die Assistenten, die auf dein Budget zugreifen dürfen. Du kannst den Zugriff jederzeit beenden.",

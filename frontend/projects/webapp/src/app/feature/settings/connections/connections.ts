@@ -12,11 +12,18 @@ import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { ConnectionsStore } from './connections-store';
 import { ConnectionCard } from './ui/connection-card';
+import { ConnectionSetup } from './connection-setup';
 
 /** Settings > Connexions: the visible side of the promise made on the consent page. */
 @Component({
   selector: 'pulpe-connections',
-  imports: [TranslocoPipe, BaseLoading, StateCard, ConnectionCard],
+  imports: [
+    TranslocoPipe,
+    BaseLoading,
+    StateCard,
+    ConnectionCard,
+    ConnectionSetup,
+  ],
   providers: [ConnectionsStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -37,6 +44,8 @@ import { ConnectionCard } from './ui/connection-card';
           </p>
         </div>
       </header>
+
+      <pulpe-connection-setup />
 
       @switch (store.status()) {
         @case ('loading') {
