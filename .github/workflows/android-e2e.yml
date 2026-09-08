@@ -134,8 +134,11 @@ jobs:
             sleep 12;
             fi;
             echo "Android flow: $flow";
-            if ! maestro test "android/maestro/$flow.yaml" > "$RUNNER_TEMP/maestro-$flow.log" 2>&1; then
+            if ! maestro test "android/maestro/$flow.yaml" --test-output-dir "$RUNNER_TEMP/maestro-$flow" > "$RUNNER_TEMP/maestro-$flow.log" 2>&1; then
             echo "::error::Android flow failed: $flow (sensitive logs withheld)";
+            if find "$RUNNER_TEMP/maestro-$flow" -type f -name 'commands*.json' -exec
+            jq -r 'if type == "array" then to_entries[] | select(.value.metadata.status == "FAILED") | "Android failed command index: \(.key)" else empty end' {} +
+            2>> "$RUNNER_TEMP/maestro-$flow.log"; then :; fi;
             exit 1;
             fi;
             done

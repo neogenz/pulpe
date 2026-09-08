@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  readFileSync,
+  readdirSync,
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  rmSync,
+} from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -1440,7 +1447,7 @@ test("Android E2E never publishes credential-bearing debug artifacts", () => {
   );
   assert.match(
     androidE2eWorkflow,
-    /maestro test "android\/maestro\/\$flow\.yaml" > "\$RUNNER_TEMP\/maestro-\$flow\.log" 2>&1/,
+    /maestro test "android\/maestro\/\$flow\.yaml" --test-output-dir "\$RUNNER_TEMP\/maestro-\$flow" > "\$RUNNER_TEMP\/maestro-\$flow\.log" 2>&1/,
   );
   assert.doesNotMatch(androidE2eWorkflow, /continue-on-error|\|\| true/);
 });
@@ -1464,6 +1471,16 @@ test("Android diagnostics identify failed flows without printing their output", 
   for (const failedFlow of ["", ...flows]) {
     const directory = mkdtempSync(join(tmpdir(), "pulpe-android-ci-"));
     try {
+      const reportDirectory = join(directory, `maestro-${failedFlow}`);
+      mkdirSync(reportDirectory);
+      writeFileSync(
+        join(reportDirectory, "commands.json"),
+        '[{}, {"command":{"inputText":"private-test-marker"},"metadata":{"status":"FAILED","error":"private-test-marker"}}]',
+      );
+      writeFileSync(
+        join(reportDirectory, "commands-invalid.json"),
+        '{"private-test-marker":{"metadata":{"status":"FAILED"}}}',
+      );
       const result = spawnSync(
         "sh",
         [
@@ -1490,11 +1507,13 @@ test("Android diagnostics identify failed flows without printing their output", 
       );
       assert.equal(result.status, failedFlow ? 1 : 0);
       assert.doesNotMatch(result.stdout + result.stderr, /private-test-marker/);
-      if (failedFlow)
+      if (failedFlow) {
         assert.match(
           result.stdout,
           new RegExp(`::error::Android flow failed: ${failedFlow}`),
         );
+        assert.match(result.stdout, /Android failed command index: 1/);
+      }
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
