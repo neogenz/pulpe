@@ -524,6 +524,9 @@ const de: Dictionary = {
     addressLabel: "Die Adresse zum Einfügen, überall dieselbe",
     availabilityNote:
       "Claude unterstützt entfernte Verbindungen im Web, auf dem Computer und auf dem Handy. Beginne die Einrichtung für ChatGPT im Web, falls der Entwicklermodus für dein Konto verfügbar ist. Die Möglichkeiten hängen vom Assistenten, deinem Konto und der verwendeten App ab. Pulpe ist noch nicht in ihren Verzeichnissen veröffentlicht.",
+    claudeConnectLabel: "Mit Claude verbinden",
+    claudeConnectionNote:
+      "Du fügst Pulpe über diese Schaltfläche hinzu, nicht über das Claude-Verzeichnis. Free-Konten sind auf einen eigenen Connector beschränkt.",
     clients: [
       {
         name: "ChatGPT",
@@ -536,9 +539,9 @@ const de: Dictionary = {
       {
         name: "Claude",
         steps: [
-          "Öffne in Claude Anpassen > Connectors.",
-          "Füge einen eigenen Connector mit der Adresse von oben hinzu.",
-          "Verbinde ihn mit Pulpe und aktiviere ihn im Gespräch.",
+          "Klicke auf «Mit Claude verbinden»: Name und Adresse von Pulpe sind bereits ausgefüllt.",
+          "Bestätige das Hinzufügen und klicke auf «Verbinden». Lass die erweiterten Einstellungen leer.",
+          "Melde dich bei Pulpe an und wähle die Berechtigungen. Aktiviere Pulpe danach in deinem Claude-Gespräch.",
         ],
       },
       {
