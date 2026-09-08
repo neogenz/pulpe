@@ -53,7 +53,7 @@ journey
 
 1. Require the exact successful staging proof, not a provider's generic latest success. Use `resolve-release-state.mjs` before each dispatch; existing active/successful runs are resumed, never duplicated. A retry needs the diagnosed latest terminal intention and current workflow, not a blind rerun.
 2. Dispatch only `release-promotion.yml` mode `plan` from `main`. Inspect its version, candidate, rollback anchor, complete migration set and deployment IDs against phase 1. Keep the immutable artifact URL in the task until it can be recorded without moving the frozen candidate.
-3. Present the final launch packet for approval, including disabled deployment followed by explicitly approved public activation and scoped synthetic verification. Production environment approval remains a real GitHub gate, not an agent-managed bypass.
+3. Present the final launch packet for approval, including disabled deployment, owner-led account/assistant checks, explicitly approved public activation and separately scoped synthetic credential-boundary verification. Production environment approval remains a real GitHub gate, not an agent-managed bypass.
 
 ## Test acceptance criteria
 

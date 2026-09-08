@@ -138,6 +138,88 @@ public activation and recovery approval. Directory identity/legal approval is
 separate. Continue the readiness plan; do not treat these observations as launch
 authorization.
 
+### Owner handoff and evidence refresh — 2026-09-08
+
+Maxime approved owner-led production functional checks and the npm audit's
+dependency-metadata transmission. This does not approve an unknown release,
+production fixture, public activation or directory attestation.
+
+- [PR #725](https://github.com/neogenz/pulpe/pull/725) merged as
+  `16facba9da1c80478d861b25e9cf481fb1576b63`. Its tree matches final feature SHA
+  `352978f9b6930d01adf7b45aa6fcbd909773b808`.
+  [CI 34061854976](https://github.com/neogenz/pulpe/actions/runs/34061854976)
+  and [Android 34061854974](https://github.com/neogenz/pulpe/actions/runs/34061854974)
+  passed on that feature SHA. All 23 review threads are resolved; Claude review
+  `34061854969` failed during execution, not a successful review.
+- Fresh local checks: 74 promotion/security contract tests, 34 MCP tests,
+  six consent tests and one landing disclosure test passed (115 total).
+  The 19 local HTTP/database cases were skipped with integration disabled;
+  the exact feature CI above ran backend integration/E2E plus SQL/type checks,
+  alongside web build and E2E. Neither is a production-account acceptance run.
+- Authorized `pnpm audit --prod --json` on this tree inspected 1,151 production
+  dependencies: zero high/critical, four moderate and one low. All findings are
+  Android paths (`diff`, `uuid`, `decode-uri-component`, `@xmldom/xmldom`).
+  The development-inclusive audit was not rerun; its September 6 result above
+  is historical, not a fresh whole-graph clearance.
+- Railway still serves the baseline production deployment/SHA. Public health
+  is healthy, web version `0.48.0`, iOS version `1.5.0`; MCP/discovery return 404.
+  Vercel project/team IDs and domains above are reconfirmed; the API's newer
+  `latestDeployment` entries are previews, not production proof.
+- Production Supabase is healthy with 98 applied migrations and no
+  `public.mcp_connection` yet. All 103 candidate migration files were compared:
+  exactly the four baseline files plus `20260906201519_purge_orphan_mcp_clients.sql`
+  are pending. No SQL mutation was performed.
+- Management API: eight completed physical backups; latest ID `1609090239`,
+  timestamp `2026-09-08T01:34:11.175Z`. WAL-G is enabled, PITR disabled;
+  restoration was not rehearsed. OAuth server and native DCR are both disabled,
+  authorization path is unset, and current JWT lifetime is 3,600 seconds.
+  Site URL and the four redirect entries match the baseline. Current lifetime
+  and empty OAuth tables do not establish historical issuance or maximum lifetime.
+- Required GitHub secret names remain present; protected production approval
+  requires `neogenz` and administrators cannot bypass it. Railway MCP variable
+  absence was observed September 6, not re-read as secret values today;
+  recheck names immediately before approved configuration.
+
+#### Single owner decision packet
+
+| Decision | Exact scope and current state |
+| --- | --- |
+| Targets | Existing Supabase `qhhlloqisgzwcsrbdppn`, Railway project/environment/service and both Vercel IDs in the baseline above; no new project. |
+| Disabled configuration | Section 2's two production URLs and a dedicated wrapping key if absent; preserve all first-party keys and keep both upstream variables absent. Exact mutation approval pending. |
+| Activation delta | OAuth server off → on, authorization path unset → `/mcp-consent`, one confidential upstream client and API callback, both backend credentials installed together; native DCR remains off, existing redirect origins unchanged. Public exposure approval pending. |
+| Release | Complete unpublished scope includes MCP, bulk budget planning and native UX work. Phase 2 must obtain exact version and FR/EN/DE/IT approval before any bump, then a separate push/PR approval and protected publish approval. |
+| Recovery/window | Latest backup above is available, not a restore guarantee. Proposed observation window: 15 minutes; approve timing and MCP-only disable/revocation on incident. Any database restore needs separate approval. |
+| Legacy issuance | Not established by current API/table state. Owner history or section 1 retirement evidence is required before activation. |
+| Acceptance | Owner performs the checklist below on his account. Agent credential-boundary probes require a separately approved synthetic account; no personal credentials or broad production seeding. Neither acceptance is recorded as passed yet. |
+| Branding/distribution | Reuse `landing/public/icon.png` for Pulpe in both vendors; verify actual portal rendering. Four-language landing/guide already exists in source with preparation copy. Identity/legal submission and directory publication remain separate. Mobile waiver and other matrix limitations remain explicit. |
+
+#### Production checks for Maxime — pending
+
+Before activation, sign in normally to Pulpe, unlock the budget, reload it and
+confirm the usual amounts remain accessible. Report login, refresh/session
+continuity and budget access as pass/fail; never send a password, vault code,
+token or private budget screenshot to the agent.
+
+After the approved activation, repeat for ChatGPT web and Claude web:
+
+1. Connect `https://api.pulpe.app/mcp` through the vendor's custom-connector
+   settings. Use normal Pulpe browser login/PIN. Confirm the disclosure names
+   the assistant and says the requested data is sent to it; choose read-only.
+2. Ask: « Combien me reste-t-il à dépenser ce mois-ci ? » Compare with freshly
+   loaded Pulpe. Ask for a write and confirm read-only access cannot perform it.
+3. Revoke/reconnect with explicit read/write consent. Ask: « Ajoute une dépense
+   de 1 CHF intitulée Test MCP à supprimer dans mon mois actuel. » Verify exactly
+   one matching entry in Pulpe, then remove that exact entry and verify removal.
+4. Revoke the connection in Pulpe. In a fresh conversation request current data;
+   fresh tool access must require reconnection, not return a new financial result.
+   Previously transmitted chat content is not erased by revocation.
+5. Report vendor, surface/version, read-only/read/write/cleanup/revocation outcomes
+   and whether the official icon appears. No financial figures or transcripts are
+   needed. Unreported or unsupported steps remain pending, not passed.
+
+The agent checks the seven-/15-tool catalogs and synthetic credential boundaries
+separately. Owner functional checks do not authorize exporting personal tokens.
+
 Before any production write, record and check:
 
 - [ ] Maxime has accepted the [client evidence](../../2026_08/2026_08_23_pulpe-mcp-agent-connector/submission-checklist.md) and the exact supported surfaces. Both vendors passed web read/write and revocation; all 15 tools have Claude success evidence across sessions. The deployed presentation regression passed in Claude web. The owner waived mobile testing; it remains unverified, alongside ChatGPT's seven-tool read-only grant, Claude Code and desktop writes. Retain limitations instead of marking them passed.
@@ -193,7 +275,7 @@ The executable `legacy-retirement-probe.ts` exercises this sequence only on a de
 
 4. Deploy the backend and existing consent page with the feature still unavailable publicly until the retirement gate is complete. Do not restore the former public native issuer as a rollback.
 5. Verify discovery advertises the **Pulpe API origin**, not Supabase: `/.well-known/oauth-authorization-server` and `/.well-known/oauth-protected-resource/mcp`. External registration is `/register`, authorization `/authorize`, token exchange `/token`, revocation `/revoke`.
-6. Test association, a useful read, an encrypted write and revocation with a synthetic account in each intended assistant client. Only then update public availability copy. A protocol test does not prove ChatGPT/Claude plan or mobile availability.
+6. Have the owner verify association, a useful read, a marked write, cleanup and revocation in each intended assistant client using the checklist above. Keep agent credential-boundary tests synthetic-only. Only then update public availability copy. A protocol test does not prove ChatGPT/Claude plan or mobile availability.
 
 ## 3. Production execution order after approval
 
@@ -238,7 +320,8 @@ The executable `legacy-retirement-probe.ts` exercises this sequence only on a de
 
 1. Wait for exact backend, frontend and landing deployment evidence and
    `Production Finalized`; inspect `/health`, `/api/v1/app/version`, the public
-   consent page and ordinary encrypted account access. With upstream variables
+   consent page; obtain the owner's normal login/refresh/encrypted-access result
+   before activation. With upstream variables
    absent, discovery must not advertise an enabled issuer and MCP must reject
    access. A healthy backend alone is not proof of a working consent build.
 2. Only after section 1 and the owner activation gate, install both confidential
@@ -253,13 +336,11 @@ The executable `legacy-retirement-probe.ts` exercises this sequence only on a de
    `https://api.pulpe.app/mcp`, and scope must be `mcp`. External `/register`
    belongs to Pulpe; native Supabase DCR must still reject registration.
    Requests to `/mcp` without a bearer must return 401 with a metadata challenge.
-4. Create/use only the explicitly approved synthetic production account and
-   normal browser login/PIN flow. Verify seven read-only tools, then separately
-   consented read/write access (15 tools), a useful read, one approved expense
-   visible in ordinary Pulpe with matching amount/currency, and revocation.
-   Confirm revoked access is refused and reconnection needs new consent.
-   Compare encrypted storage and credential-boundary results without logging
-   amounts, secrets or user data; retain only sanitized evidence.
+4. Have the owner perform and report the checklist above on his own account;
+   keep results pending until reported. Separately verify seven-/15-tool catalogs,
+   encrypted storage and credential boundaries using only an explicitly approved
+   synthetic account. Never run fixture seeding on the personal account or export
+   its credentials. Retain sanitized outcomes, not amounts, secrets or user data.
 5. Recheck ordinary Pulpe login, refresh, budget access and service health.
    Observe authorization/token failure rates, MCP errors/latency and activity
    for the agreed validation window. On a boundary violation, unexpected
@@ -274,6 +355,10 @@ The executable `legacy-retirement-probe.ts` exercises this sequence only on a de
   listing and connection dialog. This is listing configuration, not a change to
   the Claude Code `plugin.json`. Recheck current upload constraints when entering
   the form. [Official OpenAI submission guide](https://developers.openai.com/plugins/deploy/submission).
+- Claude's directory card supports a logo; its custom install link pre-fills
+  name and URL, not a logo. Verify the actual supported portal surface and do
+  not promise that a repository asset controls every custom-connector icon.
+  [Directory versus custom connectors](https://claude.com/docs/connectors/building/directory-vs-custom).
 - Use the production MCP URL with OAuth discovery, not the private Supabase
   client secret. Prepare support at `https://pulpe.app/support`, the guide at
   `https://pulpe.app/support/connecter-un-assistant`, and the actual published

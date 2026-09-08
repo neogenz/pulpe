@@ -22,16 +22,16 @@ Reuse `landing/public/icon.png`; no icon redesign, UI layout change or custom de
 ```mermaid
 journey
   section Setup
-    Approve exact packet and isolated synthetic account => bounded production operation authorized: 5: system
+    Approve exact packet and synthetic security scope => bounded production operation authorized: 5: system
   section Happy path
-    Publish disabled candidate => ordinary Pulpe works and MCP is unavailable: 5: browser
-    Activate approved issuer and associate each vendor => disclosure and read-only default visible: 5: browser
-    Reconnect for writing and record approved expense => Pulpe shows matching CHF amount: 5: browser
-    Revoke access and ask again => new authentication required without financial output: 5: browser
+    Publish disabled candidate => owner confirms ordinary Pulpe and agent checks MCP unavailable: 5: browser
+    Activate approved issuer and owner associates each vendor => disclosure and read-only default visible: 5: browser
+    Owner reconnects for writing and records approved expense => Pulpe shows matching CHF amount: 5: browser
+    Owner revokes access and asks again => new authentication required without financial output: 5: browser
   section Edge case - Boundary or first-party regression
     Unexpected access or mutation => disable isolated issuer => ordinary Pulpe remains accessible: 1: browser
   section Teardown
-    Remove exact smoke data and revoke grants => no synthetic write or assistant access remains: 5: system
+    Owner removes test expense and revokes grants => test data and assistant access removed: 5: browser
 ```
 
 ## Tasks to do
@@ -40,12 +40,12 @@ journey
 
 1. Recheck phase 2's manifest and approvals immediately before writes. Follow cutover sections 1–3 on existing infrastructure. Preserve production first-party keys; create a distinct wrapping key only if absent, using the protected ignored Dashlane handoff. Stage settings without an unintended restart; keep both upstream credentials absent until activation.
 2. Resolve the `publish` intention, dispatch the existing protected workflow and wait for the owner's GitHub production approval. Let its dry-run/apply perform **all** pending migrations with native `--include-all`; no manual SQL apply, reset, forced branch advance, ad-hoc deploy or premature tag.
-3. Require exact provider deployments and `Production Finalized`, then check health/version, consent rendering, normal login/refresh/encrypted access and unavailable MCP. Production credentials must never appear in browser configuration, assistant results, logs or evidence.
+3. Require exact provider deployments and `Production Finalized`, then check health/version, consent rendering and unavailable MCP. Ask the owner to confirm normal login/refresh/encrypted access before activation; no agent access to the personal account. Production credentials must never appear in browser configuration, assistant results, logs or evidence.
 
 ### `2)` Activate and prove useful, revocable access
 
 1. After the legacy-retirement and public-exposure gates pass, configure the one confidential upstream client and both backend credentials together; native Supabase DCR stays disabled. Follow cutover section 3 for the same-source restart and verify every instance. This is public endpoint activation, not a tester allowlist.
-2. On only the approved synthetic production account, associate ChatGPT and Claude through normal browser login/PIN. Verify the concise provider/data-sharing notice and seven-tool read-only catalog, including an unavailable write; separately consent to 15-tool read/write access. Compare a useful read and the approved 1 CHF expense with freshly loaded Pulpe, then remove it and revoke both grants.
+2. Give the owner the production checklist from the cutover runbook. He associates ChatGPT and Claude through normal browser login/PIN, verifies the provider/data-sharing notice and read-only grant, then separately consents to read/write. He compares a useful read and one clearly marked 1 CHF expense with freshly loaded Pulpe, removes it and revokes both grants. Record his actual outcomes and surface/version, not private amounts, credentials or transcripts; leave unreported steps pending. Automated catalog/security evidence does not substitute for this deployed functional acceptance.
 3. Reuse credential-boundary checks with synthetic credentials only: external MCP bearer rejected by Supabase Auth/Data API, revoked bearer/refresh refused, unrelated first-party access preserved. Never run a broad fixture-seeding or destructive test script against production. Record sanitized outcomes, client versions and deployment IDs, not raw transcripts or tokens.
 4. Propose a 15-minute observation window for owner approval; watch existing health, OAuth/MCP failures, latency and activity without new monitoring infrastructure. Any boundary violation, unexplained write or first-party regression triggers cutover section 4: disable both upstream variables, verify denial, preserve keys and financial data. Revoke affected grants when permanent retirement is required; disabling alone is not revocation. No automatic database restore or legacy-issuer rollback.
 

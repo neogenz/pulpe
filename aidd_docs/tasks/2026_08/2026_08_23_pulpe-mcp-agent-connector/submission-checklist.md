@@ -23,6 +23,12 @@ The four-language guide is `/support/connecter-un-assistant`. Consent and legal
 copy explain that requested financial data is sent to the chosen assistant and
 its provider. Public availability remains "in preparation".
 
+The official production icon is `landing/public/icon.png` (519 × 519 PNG).
+Use it in both vendors' supported listing fields and verify the rendered result;
+repository/plugin metadata is not proof of the icon shown by ChatGPT or Claude.
+Claude's custom install link supplies name/URL, unlike the branded directory card:
+[directory versus custom connectors](https://claude.com/docs/connectors/building/directory-vs-custom).
+
 ## Client availability and observed acceptance
 
 Web sessions were exercised on 2026-09-06 after replacing both legacy test
@@ -103,6 +109,12 @@ The former ignored `.mcp-test` secrets and local test directories are archived i
 the owner's private Trash, not active configuration. See the
 [retirement evidence](./verification-2026-09-05.md#test-resource-retirement--2026-09-06).
 Do not reuse those keys in production or put values in documentation or prompts.
+
+On 2026-09-08, Maxime elected to perform production functional checks from his
+own account. Use the [owner checklist and decision packet](../../2026_09/2026_09_05_mcp-credential-isolation/cutover.md#production-checks-for-maxime--pending).
+No production client result or live branded listing is established yet. The
+agent must not access that personal account or export its credentials; synthetic
+security probes remain separately approved and do not replace owner acceptance.
 
 Record assistant, plan, client version, surface, timestamp, actual tool selection,
 confirmation behavior and the observed Pulpe result. For each intended client:
