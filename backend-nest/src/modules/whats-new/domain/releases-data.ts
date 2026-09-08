@@ -53,6 +53,99 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.49.0',
+    iosVersion: '1.6.0',
+    date: '2026-09-08',
+    platforms: ['web', 'ios', 'android'],
+    changes: {
+      features: [
+        {
+          title: 'Planifier plusieurs mois',
+          description:
+            'Crée jusqu’à 36 budgets depuis un modèle, sans modifier les budgets existants.',
+        },
+        {
+          title: 'Budgets plus lisibles',
+          description:
+            'Les prévisions portent les libellés « Mensuel » ou « Ponctuel », et le détail du budget s’allège sur iPhone.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Navigation sur iPhone',
+          description:
+            'Revenir depuis un écran avec le clavier ouvert ne laisse plus d’espace vide.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Plan several months',
+            description:
+              'Create up to 36 budgets from a template without changing existing budgets.',
+          },
+          {
+            title: 'Clearer budgets',
+            description:
+              'Forecasts are labelled “Monthly” or “One-off”, and budget details are simpler on iPhone.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Navigation on iPhone',
+            description:
+              'Returning from a screen with the keyboard open no longer leaves an empty space.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Mehrere Monate planen',
+            description:
+              'Erstelle bis zu 36 Budgets aus einer Vorlage, ohne bestehende Budgets zu verändern.',
+          },
+          {
+            title: 'Übersichtlichere Budgets',
+            description:
+              'Planungen heissen «Monatlich» oder «Einmalig», und die Budgetdetails sind auf dem iPhone übersichtlicher.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Navigation auf dem iPhone',
+            description:
+              'Beim Zurückkehren von einem Bildschirm mit geöffneter Tastatur bleibt kein leerer Bereich mehr.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Pianifica più mesi',
+            description:
+              'Crea fino a 36 budget da un modello senza modificare quelli già presenti.',
+          },
+          {
+            title: 'Budget più chiari',
+            description:
+              'Le previsioni sono indicate come «Mensile» o «Una tantum» e il dettaglio del budget è più semplice su iPhone.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Navigazione su iPhone',
+            description:
+              'Tornando da una schermata con la tastiera aperta non resta più uno spazio vuoto.',
+          },
+        ],
+      },
+    },
+  },
+  {
     version: '0.48.0',
     iosVersion: '1.5.0',
     date: '2026-09-03',

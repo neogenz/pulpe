@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.49.0
+
+### Minor Changes
+
+- Planifier plusieurs mois depuis un modèle et rendre les budgets plus lisibles.
+
+### Patch Changes
+
+- pulpe-shared@0.49.0
+
 ## 0.48.0
 
 ### Minor Changes
