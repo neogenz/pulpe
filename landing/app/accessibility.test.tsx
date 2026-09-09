@@ -815,6 +815,14 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.stickyCta, /use client/);
   });
 
+  it("animates the sticky CTA translation and respects reduced motion", () => {
+    assert.match(
+      componentSources.stickyCta,
+      /transition-\[opacity,translate,visibility\]/,
+    );
+    assert.match(componentSources.stickyCta, /motion-reduce:transition-none/);
+  });
+
   it("transitions only the properties that change", () => {
     for (const [component, source] of Object.entries(componentSources)) {
       assert.doesNotMatch(
