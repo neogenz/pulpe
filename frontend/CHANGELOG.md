@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.50.0
+
+### Minor Changes
+
+- Connexion guidée à ChatGPT ou Claude depuis les réglages, écrans sans données harmonisés et menu mobile adapté à la hauteur visible sur Safari.
+
+### Patch Changes
+
+- pulpe-shared@0.50.0
+
 ## 0.49.0
 
 ### Minor Changes
