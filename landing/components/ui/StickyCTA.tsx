@@ -55,7 +55,7 @@ export function StickyCTA({
       // de 640px elle se resserre en pastille centrée : sur une tablette, 736px
       // de capsule pour un libellé de 250px lisaient comme un chrome d'app
       // mobile posé sur une page qui a la place d'un bouton.
-      className={`fixed inset-x-4 z-40 transition-[opacity,transform,visibility] duration-300 motion-reduce:transition-none sm:mx-auto sm:max-w-sm lg:hidden ${
+      className={`fixed inset-x-4 z-40 transition-[opacity,translate,visibility] duration-300 motion-reduce:transition-none sm:mx-auto sm:max-w-sm lg:hidden ${
         visible
           ? "translate-y-0 opacity-100"
           : "invisible translate-y-4 opacity-0"
