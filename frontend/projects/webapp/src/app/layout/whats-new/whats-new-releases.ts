@@ -11,12 +11,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.49.0',
+  version: '0.50.0',
   features: {
-    fr: ['Planifier plusieurs mois', 'Budgets plus lisibles'],
-    en: ['Plan several months', 'Clearer budgets'],
-    de: ['Mehrere Monate planen', 'Übersichtlichere Budgets'],
-    it: ['Pianifica più mesi', 'Budget più chiari'],
+    fr: ['Connexion guidée aux assistants', 'Écrans sans données'],
+    en: ['Assistant connection guide', 'Empty screens'],
+    de: ['Assistenten verbinden', 'Ansichten ohne Daten'],
+    it: ['Connessione guidata agli assistenti', 'Schermate senza dati'],
   },
 };
 

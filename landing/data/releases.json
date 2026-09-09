@@ -1,5 +1,95 @@
 [
   {
+    "version": "0.50.0",
+    "date": "2026-09-09",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.50.0",
+    "platforms": ["web", "android"],
+    "changes": {
+      "features": [
+        {
+          "title": "Connexion guidée aux assistants",
+          "description": "Les réglages t’accompagnent pour connecter ChatGPT ou Claude à Pulpe, selon les possibilités de ton compte."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Écrans sans données",
+          "description": "Les messages et les actions sont présentés de façon plus cohérente dans l’application."
+        },
+        {
+          "title": "Menu mobile",
+          "description": "Sur Safari, le menu du site s’adapte à la hauteur visible de l’écran."
+        }
+      ],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Assistant connection guide",
+              "description": "Settings walk you through connecting ChatGPT or Claude to Pulpe, where supported by your account."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Empty screens",
+              "description": "Messages and actions are presented more consistently throughout the app."
+            },
+            {
+              "title": "Mobile menu",
+              "description": "On Safari, the website menu adapts to the visible screen height."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Assistenten verbinden",
+              "description": "Die Einstellungen führen dich durch die Verbindung von ChatGPT oder Claude mit Pulpe, sofern dein Konto dies unterstützt."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Ansichten ohne Daten",
+              "description": "Hinweise und Aktionen werden in der App einheitlicher dargestellt."
+            },
+            {
+              "title": "Mobiles Menü",
+              "description": "In Safari passt sich das Menü der Website an die sichtbare Bildschirmhöhe an."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Connessione guidata agli assistenti",
+              "description": "Le impostazioni ti guidano nel collegare ChatGPT o Claude a Pulpe, se il tuo account lo consente."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Schermate senza dati",
+              "description": "Messaggi e azioni sono presentati in modo più coerente nell’app."
+            },
+            {
+              "title": "Menu mobile",
+              "description": "Su Safari, il menu del sito si adatta all’altezza visibile dello schermo."
+            }
+          ],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
     "version": "0.49.0",
     "iosVersion": "1.6.0",
     "date": "2026-09-08",
