@@ -35,7 +35,10 @@ export function validateAppStoreRelease(metadata, expected) {
     throw new Error("productVersion must use X.Y.Z");
   if (!semver.test(metadata.marketingVersion))
     throw new Error("marketingVersion must use X.Y.Z");
-  if (!buildNumber.test(metadata.buildNumber))
+  if (
+    typeof metadata.buildNumber !== "string" ||
+    !buildNumber.test(metadata.buildNumber)
+  )
     throw new Error("buildNumber must be a positive integer");
   if (metadata.releaseType !== "AFTER_APPROVAL")
     throw new Error("releaseType must be AFTER_APPROVAL");

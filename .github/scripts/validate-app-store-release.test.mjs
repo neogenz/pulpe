@@ -48,6 +48,14 @@ test("version components are canonical and bounded like the Ruby validator", () 
   }
 });
 
+test("rejects a numeric buildNumber even when the approved identity matches", () => {
+  const metadata = { ...valid, buildNumber: 1 };
+  assert.throws(
+    () => validateAppStoreRelease(metadata, metadata),
+    /^Error: buildNumber must be a positive integer$/,
+  );
+});
+
 test("rejects stale identities and unsafe publication modes", () => {
   for (const patch of [
     { productVersion: "0.48.0" },

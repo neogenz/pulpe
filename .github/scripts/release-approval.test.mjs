@@ -30,7 +30,25 @@ test("native merge preserves approval of the exact commit and notes", async () =
   );
 });
 
+test("accepts the allowlisted release bot as PR author", async () => {
+  const { validateApproval } = await import("./release-approval.mjs");
+  assert.equal(
+    validateApproval(
+      { ...pr, user: { login: "pulpe-release[bot]" } },
+      { productVersion: "0.49.0", githubReleaseNotes: notes },
+      "neogenz/pulpe",
+    ),
+    "0.49.0",
+  );
+});
+
 for (const [name, change] of [
+  [
+    "unauthorized author",
+    (p) => {
+      p.user.login = "other-user";
+    },
+  ],
   [
     "changed commit",
     (p) => {
