@@ -139,7 +139,7 @@ describe('Sensitive Data Redaction Test', () => {
         method: 'GET',
         url: '/api/v1/test',
         headers: { 'x-real-ip': '198.51.100.42' },
-        socket: { remoteAddress: '127.0.0.1' },
+        remoteAddress: '127.0.0.1',
       } as any;
       const localIp = (
         buildConfig({
@@ -162,6 +162,7 @@ describe('Sensitive Data Redaction Test', () => {
       ).ip;
 
       expect(localIp === localIpWithoutHeader).toBe(true);
+      expect(typeof localIp).toBe('string');
       expect(railwayIp === localIp).toBe(false);
     });
 

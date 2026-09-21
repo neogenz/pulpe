@@ -41,6 +41,7 @@ const MCP_CORS_OPTIONS: CorsOptions = {
     REQUEST_ID_HEADER,
   ],
   exposedHeaders: ['WWW-Authenticate', 'mcp-session-id', REQUEST_ID_HEADER],
+  preflightContinue: true,
 };
 
 const isMcpPath = (path: string): boolean => /^\/mcp\/?$/i.test(path);
@@ -64,6 +65,7 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
     ],
     exposedHeaders: [REQUEST_ID_HEADER],
     credentials: true,
+    preflightContinue: true,
   };
   app.enableCors(
     (
@@ -107,6 +109,9 @@ function setupCorsOriginGuard(
     }
     return next();
   });
+  app.use((req: Request, res: Response, next: NextFunction) =>
+    req.method === 'OPTIONS' ? res.sendStatus(204) : next(),
+  );
 }
 
 const trustsRailwayProxy = (configService: ConfigService): boolean =>

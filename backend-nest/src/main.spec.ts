@@ -152,6 +152,23 @@ describe('HTTP perimeter', () => {
       .expect(200, { ok: true });
   });
 
+  it('rate limits allowed-origin preflights after applying CORS headers', async () => {
+    app = await createApp({ requestLimit: 1 });
+    const server = app.getHttpServer();
+    const preflight = () =>
+      request(server)
+        .options('/totally-missing')
+        .set('Origin', 'https://app.pulpe.app')
+        .set('Access-Control-Request-Method', 'GET');
+
+    await preflight()
+      .expect('access-control-allow-origin', 'https://app.pulpe.app')
+      .expect(204);
+    await preflight()
+      .expect('access-control-allow-origin', 'https://app.pulpe.app')
+      .expect(429);
+  });
+
   it('accepts only structurally valid Pulpe Vercel preview origins', async () => {
     app = await createApp();
     const server = app.getHttpServer();

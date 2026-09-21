@@ -143,10 +143,15 @@ function createProductionSerializers(trustRailwayProxy: boolean) {
         method?: string;
         url?: string;
         headers?: Record<string, string | string[] | undefined>;
+        remoteAddress?: string;
+        raw?: IncomingMessage;
         socket?: { remoteAddress?: string };
       },
     ) => {
-      const socketIp = req.socket?.remoteAddress;
+      const socketIp =
+        req.remoteAddress ??
+        req.raw?.socket?.remoteAddress ??
+        req.socket?.remoteAddress;
       const clientIp = trustRailwayProxy
         ? proxyClientIp({ headers: req.headers ?? {}, ip: socketIp })
         : socketIp;
