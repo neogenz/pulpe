@@ -10,7 +10,10 @@ import {
 } from '@nestjs/throttler';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { Request } from 'express';
-import { proxyClientIp } from '@common/utils/proxy-client-ip';
+import {
+  isRailwayProxyTrusted,
+  proxyClientIp,
+} from '@common/utils/proxy-client-ip';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import { isDemoPath, PUBLIC_THROTTLER_NAME } from '@config/throttler.config';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -244,7 +247,9 @@ export class UserThrottlerGuard extends ThrottlerGuard {
    * so per-IP caps could be rotated away one request at a time.
    */
   async #getClientIpTracker(req: RequestWithThrottlerCache): Promise<string> {
-    const clientIp = proxyClientIp(req);
+    const clientIp = isRailwayProxyTrusted(process.env.RAILWAY_ENVIRONMENT_NAME)
+      ? proxyClientIp(req)
+      : undefined;
     if (clientIp) {
       return clientIp;
     }

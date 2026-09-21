@@ -19,7 +19,10 @@ import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
 import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
 import { McpOAuthProvider } from '@modules/mcp/infrastructure/oauth/mcp-oauth.provider';
-import { proxyClientIp } from '@common/utils/proxy-client-ip';
+import {
+  isRailwayProxyTrusted,
+  proxyClientIp,
+} from '@common/utils/proxy-client-ip';
 import { protectedResourceMetadataUrl } from '@modules/mcp/infrastructure/auth/mcp-token.guard';
 import { createRequestIdGenerator } from '@common/utils/request-id';
 
@@ -49,8 +52,6 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
     configService.get<string>('RAILWAY_ENVIRONMENT_NAME'),
   );
 
-  setupEarlyRequestId(app);
-
   const restCors = {
     origin: createOriginValidator(configService, productionLike),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
@@ -64,7 +65,6 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
     exposedHeaders: [REQUEST_ID_HEADER],
     credentials: true,
   };
-  setupCorsOriginGuard(app, configService, productionLike);
   app.enableCors(
     (
       req: Request,
@@ -86,9 +86,12 @@ function setupEarlyRequestId(
 
 function setupCorsOriginGuard(
   app: import('@nestjs/common').INestApplication,
-  configService: ConfigService,
-  productionLike: boolean,
 ): void {
+  const configService = app.get(ConfigService);
+  const productionLike = isProductionLike(
+    configService.get<string>('NODE_ENV', 'development'),
+    configService.get<string>('RAILWAY_ENVIRONMENT_NAME'),
+  );
   app.use((req: Request, res: Response, next: NextFunction) => {
     const origin = req.headers.origin;
     if (
@@ -106,18 +109,18 @@ function setupCorsOriginGuard(
   });
 }
 
-const clientIpKey = (req: Request): string =>
-  ipKeyGenerator(proxyClientIp(req) ?? req.ip ?? 'unknown');
+const trustsRailwayProxy = (configService: ConfigService): boolean =>
+  isRailwayProxyTrusted(configService.get<string>('RAILWAY_ENVIRONMENT_NAME'));
+
+const createRateLimitIpKey =
+  (trustProxy: boolean) =>
+  (req: Request): string =>
+    ipKeyGenerator(
+      (trustProxy ? proxyClientIp(req) : undefined) ?? req.ip ?? 'unknown',
+    );
 
 const WORDPRESS_PROBE_PATH =
   /(?:^|\/)(?:wp-admin|wp-content|wp-includes|wp-json)(?:\/|$)|(?:^|\/)(?:wp-login\.php|wp-config\.php|xmlrpc\.php)(?:\/|$)/i;
-
-const requestProtectionIpKey =
-  (productionLike: boolean) =>
-  (req: Request): string =>
-    ipKeyGenerator(
-      (productionLike ? proxyClientIp(req) : undefined) ?? req.ip ?? 'unknown',
-    );
 
 function isWordPressProbe(req: Request): boolean {
   let path = req.path;
@@ -141,11 +144,7 @@ function isWordPressProbe(req: Request): boolean {
 }
 
 function isPerimeterExemptPath(path: string): boolean {
-  return (
-    path === '/' ||
-    /^\/(?:api\/v1|api\/openapi|health|mcp)(?:\/|$)/i.test(path) ||
-    /^\/\.well-known\/oauth-protected-resource(?:\/|$)/i.test(path)
-  );
+  return /^\/mcp(?:\/|$)/i.test(path);
 }
 
 function setupRequestProtection(
@@ -153,15 +152,11 @@ function setupRequestProtection(
   limit = 300,
 ): void {
   const configService = app.get(ConfigService);
-  const productionLike = isProductionLike(
-    configService.get<string>('NODE_ENV', 'development'),
-    configService.get<string>('RAILWAY_ENVIRONMENT_NAME'),
-  );
   app.use(
     rateLimit({
       windowMs: 60_000,
       limit,
-      keyGenerator: requestProtectionIpKey(productionLike),
+      keyGenerator: createRateLimitIpKey(trustsRailwayProxy(configService)),
       skip: (req) => isPerimeterExemptPath(req.path),
       standardHeaders: true,
       legacyHeaders: false,
@@ -189,7 +184,11 @@ function setupRequestProtection(
 function setupMcpOAuth(app: import('@nestjs/common').INestApplication): void {
   const provider = app.get(McpOAuthProvider);
   if (!provider.enabled) return;
-  const limit = { keyGenerator: clientIpKey };
+  const limit = {
+    keyGenerator: createRateLimitIpKey(
+      trustsRailwayProxy(app.get(ConfigService)),
+    ),
+  };
   app.use(
     mcpAuthRouter({
       provider,
@@ -210,12 +209,15 @@ function setupMcpOAuth(app: import('@nestjs/common').INestApplication): void {
 
 function setupMcpBearer(app: import('@nestjs/common').INestApplication): void {
   const provider = app.get(McpOAuthProvider);
+  const keyGenerator = createRateLimitIpKey(
+    trustsRailwayProxy(app.get(ConfigService)),
+  );
   app.use(
     '/mcp',
     rateLimit({
       windowMs: 60_000,
       limit: 1000,
-      keyGenerator: clientIpKey,
+      keyGenerator,
       standardHeaders: true,
       legacyHeaders: false,
     }),
@@ -536,6 +538,9 @@ async function bootstrap() {
   // Setup security middleware
   setupSecurity(app, productionLike);
 
+  // Correlate every response, including OAuth routes that terminate early.
+  setupEarlyRequestId(app);
+
   // OAuth endpoints own their SDK CORS policy; do not send them through REST CORS.
   setupMcpOAuth(app);
 
@@ -544,6 +549,7 @@ async function bootstrap() {
 
   // Protect REST requests before Nest routing so unknown-route probes are covered.
   setupRequestProtection(app);
+  setupCorsOriginGuard(app);
   setupMcpBearer(app);
 
   // Setup API versioning
@@ -567,7 +573,10 @@ async function bootstrap() {
 
 // Integration tests exercise the production middleware without starting a second server.
 export {
+  createRateLimitIpKey,
   setupCors,
+  setupEarlyRequestId,
+  setupCorsOriginGuard,
   setupRequestProtection,
   setupMcpOAuth,
   setupMcpBearer,

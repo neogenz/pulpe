@@ -134,6 +134,37 @@ describe('Sensitive Data Redaction Test', () => {
       ).toBe('info');
     });
 
+    it('trusts proxy IP headers in HTTP logs only on Railway', () => {
+      const request = {
+        method: 'GET',
+        url: '/api/v1/test',
+        headers: { 'x-real-ip': '198.51.100.42' },
+        socket: { remoteAddress: '127.0.0.1' },
+      } as any;
+      const localIp = (
+        buildConfig({
+          NODE_ENV: 'production',
+        }).pinoHttp.serializers.req(request) as { ip?: string }
+      ).ip;
+      const localIpWithoutHeader = (
+        buildConfig({
+          NODE_ENV: 'production',
+        }).pinoHttp.serializers.req({
+          ...request,
+          headers: {},
+        }) as { ip?: string }
+      ).ip;
+      const railwayIp = (
+        buildConfig({
+          NODE_ENV: 'production',
+          RAILWAY_ENVIRONMENT_NAME: 'production',
+        }).pinoHttp.serializers.req(request) as { ip?: string }
+      ).ip;
+
+      expect(localIp === localIpWithoutHeader).toBe(true);
+      expect(railwayIp === localIp).toBe(false);
+    });
+
     it('sanitizes detailed request data and never creates a cURL command', () => {
       const config = buildConfig({
         NODE_ENV: 'preview',

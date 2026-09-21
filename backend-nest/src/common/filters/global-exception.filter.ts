@@ -312,6 +312,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       delete loggingContext.rootCause;
       delete loggingContext.stackFrames;
     }
+    for (const key of [
+      'requestId',
+      'method',
+      'url',
+      'statusCode',
+      'errorCode',
+      'errorType',
+      'userAgent',
+      'ip',
+      'requestBody',
+      'requestQuery',
+      'stackFrames',
+      'alertEligible',
+    ]) {
+      delete loggingContext[key];
+    }
     const logContext = {
       requestId: context.requestId,
       userId: context.userId,

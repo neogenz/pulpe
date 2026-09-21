@@ -6,7 +6,13 @@ import { createConnection } from 'node:net';
 import request from 'supertest';
 import { REQUEST_ID_HEADER } from 'pulpe-shared';
 import { UUID_V4_PATTERN } from '@common/utils/request-id';
-import { setupCors, setupRequestProtection } from './main';
+import {
+  createRateLimitIpKey,
+  setupCors,
+  setupCorsOriginGuard,
+  setupEarlyRequestId,
+  setupRequestProtection,
+} from './main';
 
 @Controller('probe')
 class ProbeController {
@@ -34,13 +40,15 @@ class ProbeModule {}
 
 interface TestAppOptions {
   requestLimit?: number;
-  productionLike?: boolean;
+  nodeEnv?: string;
+  railwayEnvironmentName?: string | null;
   registerOAuthStub?: boolean;
 }
 
 const createApp = async ({
   requestLimit,
-  productionLike = true,
+  nodeEnv = 'production',
+  railwayEnvironmentName = 'production',
   registerOAuthStub = false,
 }: TestAppOptions = {}): Promise<INestApplication> => {
   const moduleRef = await Test.createTestingModule({
@@ -51,10 +59,8 @@ const createApp = async ({
         useValue: {
           get: (key: string, defaultValue?: unknown) =>
             ({
-              NODE_ENV: productionLike ? 'production' : 'test',
-              RAILWAY_ENVIRONMENT_NAME: productionLike
-                ? 'production'
-                : undefined,
+              NODE_ENV: nodeEnv,
+              RAILWAY_ENVIRONMENT_NAME: railwayEnvironmentName,
               CORS_ORIGIN: 'https://app.pulpe.app',
             })[key] ?? defaultValue,
         },
@@ -63,6 +69,7 @@ const createApp = async ({
   }).compile();
 
   const app = moduleRef.createNestApplication();
+  setupEarlyRequestId(app);
   if (registerOAuthStub) {
     app
       .getHttpAdapter()
@@ -74,6 +81,7 @@ const createApp = async ({
   if (requestLimit !== undefined) {
     setupRequestProtection(app, requestLimit);
   }
+  setupCorsOriginGuard(app);
   await app.init();
   return app;
 };
@@ -118,6 +126,20 @@ describe('HTTP perimeter', () => {
       code: 'CORS_ORIGIN_DENIED',
       message: 'Origin is not allowed.',
     });
+  });
+
+  it('rate limits rejected-origin probes before returning CORS denials', async () => {
+    app = await createApp({ requestLimit: 1 });
+    const server = app.getHttpServer();
+
+    await request(server)
+      .get('/totally-missing')
+      .set('Origin', 'https://attacker.example')
+      .expect(403);
+    await request(server)
+      .get('/totally-missing')
+      .set('Origin', 'https://attacker.example')
+      .expect(429);
   });
 
   it('keeps allowed origins functional', async () => {
@@ -222,20 +244,40 @@ describe('HTTP perimeter', () => {
       .expect(404);
   });
 
-  it('does not aggregate valid API traffic into the perimeter IP bucket', async () => {
+  it('rate limits unknown routes inside valid-looking namespaces', async () => {
     app = await createApp({ requestLimit: 1 });
     const server = app.getHttpServer();
+    const targets = [
+      '/api/v1/totally-missing',
+      '/API/v1/totally-missing',
+      '/api/openapi/totally-missing',
+      '/health/totally-missing',
+      '/.well-known/oauth-protected-resource/totally-missing',
+      '/api/v10/totally-missing',
+    ];
 
-    await request(server).get('/api/v1/totally-missing').expect(404);
-    await request(server).get('/api/v1/totally-missing').expect(404);
-    await request(server).get('/API/v1/totally-missing').expect(404);
-    await request(server).get('/API/v1/totally-missing').expect(404);
-    await request(server).get('/api/v10/totally-missing').expect(404);
-    await request(server).get('/api/v10/totally-missing').expect(429);
+    for (const [index, target] of targets.entries()) {
+      const clientIp = `203.0.113.${index + 10}`;
+      await request(server).get(target).set('X-Real-IP', clientIp).expect(404);
+      await request(server).get(target).set('X-Real-IP', clientIp).expect(429);
+    }
+
+    await request(server)
+      .post('/')
+      .set('X-Real-IP', '203.0.113.30')
+      .expect(404);
+    await request(server)
+      .post('/')
+      .set('X-Real-IP', '203.0.113.30')
+      .expect(429);
   });
 
   it('ignores spoofed proxy IP headers outside Railway', async () => {
-    app = await createApp({ requestLimit: 2, productionLike: false });
+    app = await createApp({
+      requestLimit: 2,
+      nodeEnv: 'production',
+      railwayEnvironmentName: null,
+    });
     const server = app.getHttpServer();
 
     await request(server)
@@ -250,6 +292,16 @@ describe('HTTP perimeter', () => {
       .get('/totally-missing')
       .set('X-Real-IP', '203.0.113.12')
       .expect(429);
+  });
+
+  it('builds shared REST and MCP rate-limit keys from Railway provenance only', () => {
+    const req = {
+      headers: { 'x-real-ip': '203.0.113.10' },
+      ip: '127.0.0.1',
+    } as unknown as Parameters<ReturnType<typeof createRateLimitIpKey>>[0];
+
+    expect(createRateLimitIpKey(false)(req)).toBe('127.0.0.1');
+    expect(createRateLimitIpKey(true)(req)).toBe('203.0.113.10');
   });
 
   it('preserves CORS headers on rate-limit responses', async () => {
@@ -273,8 +325,14 @@ describe('HTTP perimeter', () => {
     app = await createApp({ requestLimit: 1, registerOAuthStub: true });
     const server = app.getHttpServer();
 
-    await request(server).post('/token').expect(200, { ok: true });
-    await request(server).post('/token').expect(200, { ok: true });
+    await request(server)
+      .post('/token')
+      .expect(REQUEST_ID_HEADER, UUID_V4_PATTERN)
+      .expect(200, { ok: true });
+    await request(server)
+      .post('/token')
+      .expect(REQUEST_ID_HEADER, UUID_V4_PATTERN)
+      .expect(200, { ok: true });
   });
 
   it('preserves the separate MCP CORS and rate-limit policy', async () => {

@@ -751,7 +751,7 @@ describe('GlobalExceptionFilter', () => {
       });
     });
 
-    it('does not let logging context override alert eligibility', () => {
+    it('does not let logging context override reserved observability fields', () => {
       const info = spyOn(mockLogger, 'info');
       const error = spyOn(mockLogger, 'error');
 
@@ -760,10 +760,18 @@ describe('GlobalExceptionFilter', () => {
           status: HttpStatus.NOT_FOUND,
           code: 'ERR_NOT_FOUND',
           error: 'BusinessException',
-          loggingContext: { alertEligible: true },
+          loggingContext: {
+            alertEligible: true,
+            requestId: 'forged-request',
+            method: 'DELETE',
+            url: '/forged',
+            statusCode: 200,
+            errorCode: 'FORGED',
+            errorType: 'ForgedError',
+          },
         },
         createMockRequest({ url: '/api/v1/budgets/missing' }),
-        {},
+        { requestId: 'canonical-request' },
       );
       (filter as any).logException(
         {
@@ -778,6 +786,12 @@ describe('GlobalExceptionFilter', () => {
 
       expect((info.mock.calls[0] as unknown[])[0]).toMatchObject({
         alertEligible: false,
+        requestId: 'canonical-request',
+        method: 'POST',
+        url: '/api/v1/budgets/missing',
+        statusCode: HttpStatus.NOT_FOUND,
+        errorCode: 'ERR_NOT_FOUND',
+        errorType: 'BusinessException',
       });
       expect((error.mock.calls[0] as unknown[])[0]).toMatchObject({
         alertEligible: true,

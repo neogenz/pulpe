@@ -12,10 +12,17 @@ describe('IpBlacklistMiddleware', () => {
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
 
-  const createMiddleware = (blacklist: string) => {
+  const createMiddleware = (
+    blacklist: string,
+    railwayEnvironmentName: string | null = 'production',
+  ) => {
     const configService = {
       get: (key: string, defaultValue?: string) =>
-        key === 'IP_BLACKLIST' ? blacklist : defaultValue,
+        key === 'IP_BLACKLIST'
+          ? blacklist
+          : key === 'RAILWAY_ENVIRONMENT_NAME'
+            ? railwayEnvironmentName
+            : defaultValue,
     };
     const logger = {
       info: () => {},
@@ -59,6 +66,19 @@ describe('IpBlacklistMiddleware', () => {
     });
 
     middleware.use(request, mockResponse as Response, mockNext);
+
+    expect(statusCalls).toEqual([403]);
+    expect(nextCalls).toBe(0);
+  });
+
+  it('should ignore a spoofed X-Real-IP outside Railway', () => {
+    const localMiddleware = createMiddleware(BLACKLISTED_IP, null);
+    const request = createRequest({
+      headers: { 'x-real-ip': INNOCENT_IP },
+      ip: BLACKLISTED_IP,
+    });
+
+    localMiddleware.use(request, mockResponse as Response, mockNext);
 
     expect(statusCalls).toEqual([403]);
     expect(nextCalls).toBe(0);
