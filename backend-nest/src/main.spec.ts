@@ -1,0 +1,222 @@
+import { Controller, Get, INestApplication, Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Test } from '@nestjs/testing';
+import { afterEach, describe, expect, it } from 'bun:test';
+import request from 'supertest';
+import { setupCors, setupRequestProtection } from './main';
+
+@Controller('probe')
+class ProbeController {
+  @Get()
+  getProbe() {
+    return { ok: true };
+  }
+
+  @Get('blog')
+  getBlog() {
+    return { section: 'blog' };
+  }
+}
+
+@Controller('mcp')
+class McpController {
+  @Get()
+  getMcp() {
+    return { transport: 'mcp' };
+  }
+}
+
+@Module({ controllers: [ProbeController, McpController] })
+class ProbeModule {}
+
+interface TestAppOptions {
+  requestLimit?: number;
+  productionLike?: boolean;
+  registerOAuthStub?: boolean;
+}
+
+const createApp = async ({
+  requestLimit,
+  productionLike = true,
+  registerOAuthStub = false,
+}: TestAppOptions = {}): Promise<INestApplication> => {
+  const moduleRef = await Test.createTestingModule({
+    imports: [ProbeModule],
+    providers: [
+      {
+        provide: ConfigService,
+        useValue: {
+          get: (key: string, defaultValue?: unknown) =>
+            ({
+              NODE_ENV: productionLike ? 'production' : 'test',
+              RAILWAY_ENVIRONMENT_NAME: productionLike
+                ? 'production'
+                : undefined,
+              CORS_ORIGIN: 'https://app.pulpe.app',
+            })[key] ?? defaultValue,
+        },
+      },
+    ],
+  }).compile();
+
+  const app = moduleRef.createNestApplication();
+  if (registerOAuthStub) {
+    app
+      .getHttpAdapter()
+      .post('/token', (_req: unknown, res: any) =>
+        res.status(200).json({ ok: true }),
+      );
+  }
+  setupCors(app);
+  if (requestLimit !== undefined) {
+    setupRequestProtection(app, requestLimit);
+  }
+  await app.init();
+  return app;
+};
+
+describe('HTTP perimeter', () => {
+  let app: INestApplication | undefined;
+
+  afterEach(async () => {
+    await app?.close();
+    app = undefined;
+  });
+
+  it('returns 403 instead of 500 for a rejected REST origin', async () => {
+    app = await createApp();
+
+    const response = await request(app.getHttpServer())
+      .get('/probe')
+      .set('Origin', 'https://attacker.example')
+      .expect(403);
+
+    expect(response.body).toEqual({
+      statusCode: 403,
+      code: 'CORS_ORIGIN_DENIED',
+      message: 'Origin is not allowed.',
+    });
+  });
+
+  it('keeps allowed origins functional', async () => {
+    app = await createApp();
+
+    await request(app.getHttpServer())
+      .get('/probe')
+      .set('Origin', 'https://app.pulpe.app')
+      .expect('access-control-allow-origin', 'https://app.pulpe.app')
+      .expect(200, { ok: true });
+  });
+
+  it('rejects WordPress probes before application routing', async () => {
+    app = await createApp({ requestLimit: 100 });
+
+    const response = await request(app.getHttpServer())
+      .post('/wordpress/wp-json/batch/v1')
+      .expect(404);
+
+    expect(response.body).toEqual({
+      statusCode: 404,
+      code: 'NOT_FOUND',
+      message: 'Not found.',
+    });
+  });
+
+  it('rejects query-form WordPress probes without blocking legitimate blog routes', async () => {
+    app = await createApp({ requestLimit: 100 });
+    const server = app.getHttpServer();
+
+    await request(server)
+      .get('/probe?rest_route=%2Fwp%2Fv2%2Fusers')
+      .expect(404, {
+        statusCode: 404,
+        code: 'NOT_FOUND',
+        message: 'Not found.',
+      });
+    await request(server).get('/assets/%77p-json/users').expect(404, {
+      statusCode: 404,
+      code: 'NOT_FOUND',
+      message: 'Not found.',
+    });
+    await request(server).get('/probe/blog').expect(200, { section: 'blog' });
+  });
+
+  it('rate limits nonexistent-route traffic by validated client IP', async () => {
+    app = await createApp({ requestLimit: 2 });
+    const server = app.getHttpServer();
+
+    await request(server)
+      .get('/totally-missing')
+      .set('X-Real-IP', '203.0.113.10')
+      .expect(404);
+    await request(server)
+      .get('/totally-missing')
+      .set('X-Real-IP', '203.0.113.10')
+      .expect(404);
+    await request(server)
+      .get('/totally-missing')
+      .set('X-Real-IP', '203.0.113.10')
+      .expect(429);
+    await request(server)
+      .get('/totally-missing')
+      .set('X-Real-IP', '203.0.113.11')
+      .expect(404);
+  });
+
+  it('ignores spoofed proxy IP headers outside Railway', async () => {
+    app = await createApp({ requestLimit: 2, productionLike: false });
+    const server = app.getHttpServer();
+
+    await request(server)
+      .get('/totally-missing')
+      .set('X-Real-IP', '203.0.113.10')
+      .expect(404);
+    await request(server)
+      .get('/totally-missing')
+      .set('X-Real-IP', '203.0.113.11')
+      .expect(404);
+    await request(server)
+      .get('/totally-missing')
+      .set('X-Real-IP', '203.0.113.12')
+      .expect(429);
+  });
+
+  it('preserves CORS headers on rate-limit responses', async () => {
+    app = await createApp({ requestLimit: 1 });
+    const server = app.getHttpServer();
+
+    await request(server)
+      .get('/totally-missing')
+      .set('Origin', 'https://app.pulpe.app')
+      .expect(404);
+    await request(server)
+      .get('/totally-missing')
+      .set('Origin', 'https://app.pulpe.app')
+      .expect('access-control-allow-origin', 'https://app.pulpe.app')
+      .expect(429);
+  });
+
+  it('does not aggregate OAuth endpoints into the REST perimeter bucket', async () => {
+    app = await createApp({ requestLimit: 1, registerOAuthStub: true });
+    const server = app.getHttpServer();
+
+    await request(server).post('/token').expect(200, { ok: true });
+    await request(server).post('/token').expect(200, { ok: true });
+  });
+
+  it('preserves the separate MCP CORS and rate-limit policy', async () => {
+    app = await createApp({ requestLimit: 1 });
+    const server = app.getHttpServer();
+
+    await request(server)
+      .get('/mcp')
+      .set('Origin', 'https://agent.example')
+      .expect('access-control-allow-origin', '*')
+      .expect(200, { transport: 'mcp' });
+    await request(server)
+      .get('/mcp')
+      .set('Origin', 'https://agent.example')
+      .expect('access-control-allow-origin', '*')
+      .expect(200, { transport: 'mcp' });
+  });
+});

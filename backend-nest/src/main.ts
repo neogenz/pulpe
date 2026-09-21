@@ -13,7 +13,7 @@ import {
   type Environment,
 } from '@config/environment';
 import { REQUEST_ID_HEADER } from 'pulpe-shared';
-import type { Request } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
@@ -23,6 +23,21 @@ import { proxyClientIp } from '@common/utils/proxy-client-ip';
 import { protectedResourceMetadataUrl } from '@modules/mcp/infrastructure/auth/mcp-token.guard';
 
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
+
+const MCP_CORS_OPTIONS: CorsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'DELETE'],
+  credentials: false,
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'mcp-protocol-version',
+    'mcp-session-id',
+    'Last-Event-ID',
+    REQUEST_ID_HEADER,
+  ],
+  exposedHeaders: ['WWW-Authenticate', 'mcp-session-id', REQUEST_ID_HEADER],
+};
 
 function setupCors(app: import('@nestjs/common').INestApplication): void {
   const configService = app.get(ConfigService);
@@ -44,44 +59,109 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
     exposedHeaders: [REQUEST_ID_HEADER],
     credentials: true,
   };
+  setupCorsOriginGuard(app, configService, productionLike);
   app.enableCors(
     (
       req: Request,
       callback: (error: Error | null, options: CorsOptions) => void,
     ) =>
-      callback(
-        null,
-        /^\/mcp\/?$/.test(req.path)
-          ? {
-              origin: '*',
-              methods: ['GET', 'POST', 'DELETE'],
-              credentials: false,
-              allowedHeaders: [
-                'Content-Type',
-                'Authorization',
-                'mcp-protocol-version',
-                'mcp-session-id',
-                'Last-Event-ID',
-                REQUEST_ID_HEADER,
-              ],
-              exposedHeaders: [
-                'WWW-Authenticate',
-                'mcp-session-id',
-                REQUEST_ID_HEADER,
-              ],
-            }
-          : restCors,
-      ),
+      callback(null, /^\/mcp\/?$/.test(req.path) ? MCP_CORS_OPTIONS : restCors),
   );
 }
 
-const mcpIpKey = (req: Request): string =>
+function setupCorsOriginGuard(
+  app: import('@nestjs/common').INestApplication,
+  configService: ConfigService,
+  productionLike: boolean,
+): void {
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+    if (
+      !/^\/mcp\/?$/.test(req.path) &&
+      origin &&
+      !isRestOriginAllowed(origin, configService, productionLike)
+    ) {
+      return res.status(403).json({
+        statusCode: 403,
+        code: 'CORS_ORIGIN_DENIED',
+        message: 'Origin is not allowed.',
+      });
+    }
+    return next();
+  });
+}
+
+const clientIpKey = (req: Request): string =>
   ipKeyGenerator(proxyClientIp(req) ?? req.ip ?? 'unknown');
+
+const WORDPRESS_PROBE_PATH =
+  /(?:^|\/)(?:wp-admin|wp-content|wp-includes|wp-json)(?:\/|$)|(?:^|\/)(?:wp-login\.php|wp-config\.php|xmlrpc\.php)(?:\/|$)/i;
+
+const requestProtectionIpKey =
+  (productionLike: boolean) =>
+  (req: Request): string =>
+    ipKeyGenerator(
+      (productionLike ? proxyClientIp(req) : undefined) ?? req.ip ?? 'unknown',
+    );
+
+function isWordPressProbe(req: Request): boolean {
+  let path = req.path;
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    // Keep the raw path; malformed escapes cannot match an application route.
+  }
+  if (WORDPRESS_PROBE_PATH.test(path)) return true;
+
+  const query = new URL(req.originalUrl, 'http://localhost').searchParams;
+  return [...query.entries()].some(
+    ([key, value]) =>
+      key.toLowerCase() === 'rest_route' && /(?:^|\/)wp(?:\/|$)/i.test(value),
+  );
+}
+
+function setupRequestProtection(
+  app: import('@nestjs/common').INestApplication,
+  limit = 300,
+): void {
+  const configService = app.get(ConfigService);
+  const productionLike = isProductionLike(
+    configService.get<string>('NODE_ENV', 'development'),
+    configService.get<string>('RAILWAY_ENVIRONMENT_NAME'),
+  );
+  app.use(
+    rateLimit({
+      windowMs: 60_000,
+      limit,
+      keyGenerator: requestProtectionIpKey(productionLike),
+      skip: (req) => /^\/mcp(?:\/|$)/.test(req.path),
+      standardHeaders: true,
+      legacyHeaders: false,
+      handler: (_req, res) =>
+        res.status(429).json({
+          statusCode: 429,
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many requests.',
+        }),
+    }),
+  );
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (isWordPressProbe(req)) {
+      return res.status(404).json({
+        statusCode: 404,
+        code: 'NOT_FOUND',
+        message: 'Not found.',
+      });
+    }
+    return next();
+  });
+}
 
 function setupMcpOAuth(app: import('@nestjs/common').INestApplication): void {
   const provider = app.get(McpOAuthProvider);
   if (!provider.enabled) return;
-  const limit = { keyGenerator: mcpIpKey };
+  const limit = { keyGenerator: clientIpKey };
   app.use(
     mcpAuthRouter({
       provider,
@@ -107,7 +187,7 @@ function setupMcpBearer(app: import('@nestjs/common').INestApplication): void {
     rateLimit({
       windowMs: 60_000,
       limit: 1000,
-      keyGenerator: mcpIpKey,
+      keyGenerator: clientIpKey,
       standardHeaders: true,
       legacyHeaders: false,
     }),
@@ -131,18 +211,21 @@ function createOriginValidator(
       return callback(null, true);
     }
 
-    if (productionLike) {
-      if (isAllowedOriginProduction(origin, configService)) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'), false);
-    } else {
-      if (isAllowedOriginDevelopment(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'), false);
-    }
+    return callback(
+      null,
+      isRestOriginAllowed(origin, configService, productionLike),
+    );
   };
+}
+
+function isRestOriginAllowed(
+  origin: string,
+  configService: ConfigService,
+  productionLike: boolean,
+): boolean {
+  return productionLike
+    ? isAllowedOriginProduction(origin, configService)
+    : isAllowedOriginDevelopment(origin);
 }
 
 function isAllowedOriginProduction(
@@ -383,8 +466,11 @@ async function bootstrap() {
   // OAuth endpoints own their SDK CORS policy; do not send them through REST CORS.
   setupMcpOAuth(app);
 
-  // Setup CORS after security middleware
+  // Keep CORS semantics on REST rate-limit and probe responses.
   setupCors(app);
+
+  // Protect REST requests before Nest routing so unknown-route probes are covered.
+  setupRequestProtection(app);
   setupMcpBearer(app);
 
   // Setup API versioning
@@ -407,5 +493,11 @@ async function bootstrap() {
 }
 
 // Integration tests exercise the production middleware without starting a second server.
-export { setupCors, setupMcpOAuth, setupMcpBearer, setupApiVersioning };
+export {
+  setupCors,
+  setupRequestProtection,
+  setupMcpOAuth,
+  setupMcpBearer,
+  setupApiVersioning,
+};
 if (require.main === module) void bootstrap();

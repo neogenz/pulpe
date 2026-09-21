@@ -303,30 +303,45 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     context: ErrorContext,
   ): void {
     const detailedLogging = this.isDetailedHttpLogging();
+    const path = toLogPath(request.url);
+    const isServerError = errorData.status >= 500;
+    const loggingContext = { ...errorData.loggingContext };
+    if (errorData.status === 404) {
+      delete loggingContext.causeChain;
+      delete loggingContext.rootCause;
+      delete loggingContext.stackFrames;
+    }
     const logContext = {
       requestId: context.requestId,
       userId: context.userId,
       method: request.method,
-      url: toLogPath(request.url),
+      url: path,
       statusCode: errorData.status,
       errorCode: errorData.code,
       errorType: sanitizeLogTechnicalValue(errorData.error) ?? 'Error',
-      stackFrames: sanitizeStackFrames(errorData.originalError?.stack),
       userAgent: this.isDevelopment() ? context.userAgent : undefined,
       ip: this.isDevelopment() ? context.ip : undefined,
       requestBody: detailedLogging ? sanitizeLogValue(request.body) : undefined,
       requestQuery: detailedLogging
         ? sanitizeLogValue(request.query)
         : undefined,
-      ...errorData.loggingContext,
+      ...loggingContext,
+      stackFrames: isServerError
+        ? sanitizeStackFrames(errorData.originalError?.stack)
+        : undefined,
+      alertEligible:
+        isServerError &&
+        (path === '/api/v1' || path?.startsWith('/api/v1/') === true),
     };
     const sanitizedLogContext = sanitizeLogValue(logContext) as Record<
       string,
       unknown
     >;
 
-    if (errorData.status >= 500) {
+    if (isServerError) {
       this.logger.error(sanitizedLogContext, 'SERVER ERROR');
+    } else if (errorData.status === 404) {
+      this.logger.info(sanitizedLogContext, 'CLIENT ERROR');
     } else {
       this.logger.warn(sanitizedLogContext, 'CLIENT ERROR');
     }

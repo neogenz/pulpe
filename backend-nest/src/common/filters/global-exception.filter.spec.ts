@@ -638,6 +638,120 @@ describe('GlobalExceptionFilter', () => {
   });
 
   describe('Logging behavior', () => {
+    it('logs 404 noise at info without stack frames', () => {
+      process.env.NODE_ENV = 'production';
+      const info = spyOn(mockLogger, 'info');
+      const warn = spyOn(mockLogger, 'warn');
+      const error = spyOn(mockLogger, 'error');
+      const request = createMockRequest({
+        method: 'POST',
+        url: '/wordpress/wp-json/batch/v1',
+      });
+
+      filter.catch(
+        new HttpException('Not found', HttpStatus.NOT_FOUND),
+        createMockArgumentsHost(request, createMockResponse()),
+      );
+
+      expect(info).toHaveBeenCalledTimes(1);
+      expect(warn).not.toHaveBeenCalled();
+      expect(error).not.toHaveBeenCalled();
+      const [context, message] = info.mock.calls[0] as [
+        Record<string, unknown>,
+        string,
+      ];
+      expect(message).toBe('CLIENT ERROR');
+      expect(context.stackFrames).toBeUndefined();
+    });
+
+    it('removes cause-chain stack diagnostics from BusinessException 404 logs', () => {
+      process.env.NODE_ENV = 'production';
+      const info = spyOn(mockLogger, 'info');
+      const cause = new Error('Repository lookup failed');
+      cause.stack =
+        'Error: Repository lookup failed\n    at find (/srv/repo.ts:10:2)';
+      const exception = new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id: 'budget-1' },
+        { operation: 'findBudget' },
+        { cause },
+      );
+
+      filter.catch(
+        exception,
+        createMockArgumentsHost(
+          createMockRequest({ url: '/api/v1/budgets/budget-1' }),
+          createMockResponse(),
+        ),
+      );
+
+      const [context] = info.mock.calls[0] as [Record<string, unknown>];
+      expect(context.causeChain).toBeUndefined();
+      expect(context.rootCause).toBeUndefined();
+      expect(JSON.stringify(context)).not.toContain('stackFrames');
+      expect(context.operation).toBe('findBudget');
+    });
+
+    it('marks only API 5xx logs as alert eligible', () => {
+      const error = spyOn(mockLogger, 'error');
+
+      filter.catch(
+        new Error('Database unavailable'),
+        createMockArgumentsHost(
+          createMockRequest({ url: '/api/v1/budgets' }),
+          createMockResponse(),
+        ),
+      );
+      filter.catch(
+        new Error('Root route failed'),
+        createMockArgumentsHost(
+          createMockRequest({ url: '/' }),
+          createMockResponse(),
+        ),
+      );
+
+      expect(error).toHaveBeenCalledTimes(2);
+      expect((error.mock.calls[0] as unknown[])[0]).toMatchObject({
+        alertEligible: true,
+      });
+      expect((error.mock.calls[1] as unknown[])[0]).toMatchObject({
+        alertEligible: false,
+      });
+    });
+
+    it('does not let logging context override alert eligibility', () => {
+      const info = spyOn(mockLogger, 'info');
+      const error = spyOn(mockLogger, 'error');
+
+      (filter as any).logException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          code: 'ERR_NOT_FOUND',
+          error: 'BusinessException',
+          loggingContext: { alertEligible: true },
+        },
+        createMockRequest({ url: '/api/v1/budgets/missing' }),
+        {},
+      );
+      (filter as any).logException(
+        {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          code: 'ERR_INTERNAL_SERVER',
+          error: 'BusinessException',
+          loggingContext: { alertEligible: false },
+        },
+        createMockRequest({ url: '/api/v1/budgets' }),
+        {},
+      );
+
+      expect((info.mock.calls[0] as unknown[])[0]).toMatchObject({
+        alertEligible: false,
+      });
+      expect((error.mock.calls[0] as unknown[])[0]).toMatchObject({
+        alertEligible: true,
+      });
+    });
+
     it('should not log the request body outside development', async () => {
       // Arrange - a wrong-PIN /encryption/validate-key call carries vault key material
       process.env.NODE_ENV = 'production';
@@ -1351,7 +1465,7 @@ describe('GlobalExceptionFilter', () => {
       );
     });
 
-    it('should use warn for 4xx errors and error for 5xx', () => {
+    it('should use info for 404 noise and error for 5xx', () => {
       const spiedLogger = {
         error: () => {},
         warn: () => {},
@@ -1363,9 +1477,9 @@ describe('GlobalExceptionFilter', () => {
 
       const errorSpy = spyOn(spiedLogger, 'error');
       const warnSpy = spyOn(spiedLogger, 'warn');
+      const infoSpy = spyOn(spiedLogger, 'info');
       const spiedFilter = new GlobalExceptionFilter(spiedLogger);
 
-      // Test 4xx - should use warn
       const notFoundException = new BusinessException(
         ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
         { id: 'budget-123' },
@@ -1378,9 +1492,10 @@ describe('GlobalExceptionFilter', () => {
 
       spiedFilter.catch(notFoundException, host);
 
-      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(infoSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).not.toHaveBeenCalled();
       expect(errorSpy).not.toHaveBeenCalled();
-      expect((warnSpy.mock.calls[0] as unknown[])[1] as string).toContain(
+      expect((infoSpy.mock.calls[0] as unknown[])[1] as string).toContain(
         'CLIENT ERROR',
       );
     });
