@@ -21,6 +21,7 @@ import { AppModule } from '@/app.module';
 import {
   setupApiVersioning,
   setupCors,
+  setupCorsOriginGuard,
   setupMcpBearer,
   setupMcpOAuth,
 } from '@/main';
@@ -98,6 +99,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       app = moduleRef.createNestApplication({ logger: false });
       setupMcpOAuth(app);
       setupCors(app);
+      setupCorsOriginGuard(app);
       setupMcpBearer(app);
       setupApiVersioning(app);
       await app.init();
