@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { afterEach, describe, expect, it } from 'bun:test';
 import request from 'supertest';
+import { REQUEST_ID_HEADER } from 'pulpe-shared';
+import { UUID_V4_PATTERN } from '@common/utils/request-id';
 import { setupCors, setupRequestProtection } from './main';
 
 @Controller('probe')
@@ -89,6 +91,7 @@ describe('HTTP perimeter', () => {
     const response = await request(app.getHttpServer())
       .get('/probe')
       .set('Origin', 'https://attacker.example')
+      .expect(REQUEST_ID_HEADER, UUID_V4_PATTERN)
       .expect(403);
 
     expect(response.body).toEqual({
@@ -190,6 +193,16 @@ describe('HTTP perimeter', () => {
       .expect(404);
   });
 
+  it('does not aggregate valid API traffic into the perimeter IP bucket', async () => {
+    app = await createApp({ requestLimit: 1 });
+    const server = app.getHttpServer();
+
+    await request(server).get('/api/v1/totally-missing').expect(404);
+    await request(server).get('/api/v1/totally-missing').expect(404);
+    await request(server).get('/totally-missing').expect(404);
+    await request(server).get('/totally-missing').expect(429);
+  });
+
   it('ignores spoofed proxy IP headers outside Railway', async () => {
     app = await createApp({ requestLimit: 2, productionLike: false });
     const server = app.getHttpServer();
@@ -219,7 +232,9 @@ describe('HTTP perimeter', () => {
     await request(server)
       .get('/totally-missing')
       .set('Origin', 'https://app.pulpe.app')
+      .set(REQUEST_ID_HEADER, '123e4567-e89b-42d3-a456-426614174000')
       .expect('access-control-allow-origin', 'https://app.pulpe.app')
+      .expect(REQUEST_ID_HEADER, '123e4567-e89b-42d3-a456-426614174000')
       .expect(429);
   });
 

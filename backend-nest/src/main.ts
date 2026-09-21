@@ -21,6 +21,7 @@ import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middlew
 import { McpOAuthProvider } from '@modules/mcp/infrastructure/oauth/mcp-oauth.provider';
 import { proxyClientIp } from '@common/utils/proxy-client-ip';
 import { protectedResourceMetadataUrl } from '@modules/mcp/infrastructure/auth/mcp-token.guard';
+import { createRequestIdGenerator } from '@common/utils/request-id';
 
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
 
@@ -46,6 +47,8 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
     configService.get<string>('RAILWAY_ENVIRONMENT_NAME'),
   );
 
+  setupEarlyRequestId(app);
+
   const restCors = {
     origin: createOriginValidator(configService, productionLike),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
@@ -67,6 +70,17 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
     ) =>
       callback(null, /^\/mcp\/?$/.test(req.path) ? MCP_CORS_OPTIONS : restCors),
   );
+}
+
+function setupEarlyRequestId(
+  app: import('@nestjs/common').INestApplication,
+): void {
+  const generateRequestId = createRequestIdGenerator();
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const requestWithId = req as Request & { id?: string | number };
+    requestWithId.id = generateRequestId(requestWithId, res);
+    next();
+  });
 }
 
 function setupCorsOriginGuard(
@@ -120,6 +134,14 @@ function isWordPressProbe(req: Request): boolean {
   );
 }
 
+function isPerimeterExemptPath(path: string): boolean {
+  return (
+    path === '/' ||
+    /^\/(?:api\/v1|api\/openapi|health|mcp)(?:\/|$)/.test(path) ||
+    /^\/\.well-known\/oauth-protected-resource(?:\/|$)/.test(path)
+  );
+}
+
 function setupRequestProtection(
   app: import('@nestjs/common').INestApplication,
   limit = 300,
@@ -134,7 +156,7 @@ function setupRequestProtection(
       windowMs: 60_000,
       limit,
       keyGenerator: requestProtectionIpKey(productionLike),
-      skip: (req) => /^\/mcp(?:\/|$)/.test(req.path),
+      skip: (req) => isPerimeterExemptPath(req.path),
       standardHeaders: true,
       legacyHeaders: false,
       handler: (_req, res) =>
