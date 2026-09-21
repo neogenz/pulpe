@@ -239,10 +239,55 @@ function isAllowedOriginProduction(
     return true;
   }
 
-  // Pattern pour les URLs de preview Vercel de ton projet
-  return /^https:\/\/pulpe-frontend-.+-maximes-projects-.+\.vercel\.app$/.test(
-    origin,
+  return isPulpeVercelPreviewOrigin(origin);
+}
+
+function isDnsLabelPart(value: string): boolean {
+  return (
+    value.length > 0 &&
+    value[0] !== '-' &&
+    value.at(-1) !== '-' &&
+    [...value].every(
+      (character) =>
+        (character >= 'a' && character <= 'z') ||
+        (character >= '0' && character <= '9') ||
+        character === '-',
+    )
   );
+}
+
+function isPulpeVercelPreviewOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    if (
+      url.protocol !== 'https:' ||
+      url.username ||
+      url.password ||
+      url.port ||
+      url.pathname !== '/' ||
+      url.search ||
+      url.hash
+    ) {
+      return false;
+    }
+
+    const projectPrefix = 'pulpe-frontend-';
+    const pulpeScopeSuffix = '-maximes-projects-56d66b35.vercel.app';
+    if (
+      !url.hostname.startsWith(projectPrefix) ||
+      !url.hostname.endsWith(pulpeScopeSuffix)
+    ) {
+      return false;
+    }
+
+    const previewName = url.hostname.slice(
+      projectPrefix.length,
+      -pulpeScopeSuffix.length,
+    );
+    return isDnsLabelPart(previewName);
+  } catch {
+    return false;
+  }
 }
 
 function isAllowedOriginDevelopment(origin: string): boolean {

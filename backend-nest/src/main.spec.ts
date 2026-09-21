@@ -108,6 +108,33 @@ describe('HTTP perimeter', () => {
       .expect(200, { ok: true });
   });
 
+  it('accepts only structurally valid Pulpe Vercel preview origins', async () => {
+    app = await createApp();
+    const server = app.getHttpServer();
+
+    await request(server)
+      .get('/probe')
+      .set(
+        'Origin',
+        'https://pulpe-frontend-git-fix-abc-maximes-projects-56d66b35.vercel.app',
+      )
+      .expect(200, { ok: true });
+    await request(server)
+      .get('/probe')
+      .set(
+        'Origin',
+        'https://pulpe-frontend-branch/-maximes-projects-team.vercel.app',
+      )
+      .expect(403);
+    await request(server)
+      .get('/probe')
+      .set(
+        'Origin',
+        'https://pulpe-frontend-a-maximes-projects-random-attacker-scope.vercel.app',
+      )
+      .expect(403);
+  });
+
   it('rejects WordPress probes before application routing', async () => {
     app = await createApp({ requestLimit: 100 });
 
