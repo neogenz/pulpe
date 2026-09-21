@@ -128,7 +128,12 @@ function isWordPressProbe(req: Request): boolean {
   }
   if (WORDPRESS_PROBE_PATH.test(path)) return true;
 
-  const query = new URL(req.originalUrl, 'http://localhost').searchParams;
+  let query: URLSearchParams;
+  try {
+    query = new URL(req.originalUrl, 'http://localhost').searchParams;
+  } catch {
+    return false;
+  }
   return [...query.entries()].some(
     ([key, value]) =>
       key.toLowerCase() === 'rest_route' && /(?:^|\/)wp(?:\/|$)/i.test(value),

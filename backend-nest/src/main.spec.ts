@@ -2,6 +2,7 @@ import { Controller, Get, INestApplication, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { afterEach, describe, expect, it } from 'bun:test';
+import { createConnection } from 'node:net';
 import request from 'supertest';
 import { REQUEST_ID_HEADER } from 'pulpe-shared';
 import { UUID_V4_PATTERN } from '@common/utils/request-id';
@@ -76,6 +77,24 @@ const createApp = async ({
   await app.init();
   return app;
 };
+
+const sendRawHttpRequest = async (
+  port: number,
+  requestTarget: string,
+): Promise<string> =>
+  new Promise((resolve, reject) => {
+    let response = '';
+    const socket = createConnection({ host: '127.0.0.1', port }, () => {
+      socket.write(
+        `GET ${requestTarget} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n`,
+      );
+    });
+    socket.on('data', (chunk) => {
+      response += chunk.toString();
+    });
+    socket.on('end', () => resolve(response));
+    socket.on('error', reject);
+  });
 
 describe('HTTP perimeter', () => {
   let app: INestApplication | undefined;
@@ -169,6 +188,16 @@ describe('HTTP perimeter', () => {
       message: 'Not found.',
     });
     await request(server).get('/probe/blog').expect(200, { section: 'blog' });
+  });
+
+  it('treats malformed request targets as ordinary unknown routes', async () => {
+    app = await createApp({ requestLimit: 300 });
+    await app.listen(0, '127.0.0.1');
+    const port = Number(new URL(await app.getUrl()).port);
+
+    const response = await sendRawHttpRequest(port, '//%');
+
+    expect(response).toStartWith('HTTP/1.1 404');
   });
 
   it('rate limits nonexistent-route traffic by validated client IP', async () => {
