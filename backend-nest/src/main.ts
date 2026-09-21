@@ -40,6 +40,8 @@ const MCP_CORS_OPTIONS: CorsOptions = {
   exposedHeaders: ['WWW-Authenticate', 'mcp-session-id', REQUEST_ID_HEADER],
 };
 
+const isMcpPath = (path: string): boolean => /^\/mcp\/?$/i.test(path);
+
 function setupCors(app: import('@nestjs/common').INestApplication): void {
   const configService = app.get(ConfigService);
   const productionLike = isProductionLike(
@@ -67,8 +69,7 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
     (
       req: Request,
       callback: (error: Error | null, options: CorsOptions) => void,
-    ) =>
-      callback(null, /^\/mcp\/?$/.test(req.path) ? MCP_CORS_OPTIONS : restCors),
+    ) => callback(null, isMcpPath(req.path) ? MCP_CORS_OPTIONS : restCors),
   );
 }
 
@@ -91,7 +92,7 @@ function setupCorsOriginGuard(
   app.use((req: Request, res: Response, next: NextFunction) => {
     const origin = req.headers.origin;
     if (
-      !/^\/mcp\/?$/.test(req.path) &&
+      !isMcpPath(req.path) &&
       origin &&
       !isRestOriginAllowed(origin, configService, productionLike)
     ) {

@@ -258,7 +258,7 @@ describe('HTTP perimeter', () => {
       .expect('access-control-allow-origin', '*')
       .expect(200, { transport: 'mcp' });
     await request(server)
-      .get('/mcp')
+      .get('/MCP')
       .set('Origin', 'https://agent.example')
       .expect('access-control-allow-origin', '*')
       .expect(200, { transport: 'mcp' });
