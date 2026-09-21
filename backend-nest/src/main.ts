@@ -137,8 +137,8 @@ function isWordPressProbe(req: Request): boolean {
 function isPerimeterExemptPath(path: string): boolean {
   return (
     path === '/' ||
-    /^\/(?:api\/v1|api\/openapi|health|mcp)(?:\/|$)/.test(path) ||
-    /^\/\.well-known\/oauth-protected-resource(?:\/|$)/.test(path)
+    /^\/(?:api\/v1|api\/openapi|health|mcp)(?:\/|$)/i.test(path) ||
+    /^\/\.well-known\/oauth-protected-resource(?:\/|$)/i.test(path)
   );
 }
 

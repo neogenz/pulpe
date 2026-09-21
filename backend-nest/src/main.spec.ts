@@ -199,8 +199,10 @@ describe('HTTP perimeter', () => {
 
     await request(server).get('/api/v1/totally-missing').expect(404);
     await request(server).get('/api/v1/totally-missing').expect(404);
-    await request(server).get('/totally-missing').expect(404);
-    await request(server).get('/totally-missing').expect(429);
+    await request(server).get('/API/v1/totally-missing').expect(404);
+    await request(server).get('/API/v1/totally-missing').expect(404);
+    await request(server).get('/api/v10/totally-missing').expect(404);
+    await request(server).get('/api/v10/totally-missing').expect(429);
   });
 
   it('ignores spoofed proxy IP headers outside Railway', async () => {

@@ -725,6 +725,13 @@ describe('GlobalExceptionFilter', () => {
         ),
       );
       filter.catch(
+        new Error('Uppercase API route failed'),
+        createMockArgumentsHost(
+          createMockRequest({ url: '/API/v1/budgets' }),
+          createMockResponse(),
+        ),
+      );
+      filter.catch(
         new Error('Root route failed'),
         createMockArgumentsHost(
           createMockRequest({ url: '/' }),
@@ -732,11 +739,14 @@ describe('GlobalExceptionFilter', () => {
         ),
       );
 
-      expect(error).toHaveBeenCalledTimes(2);
+      expect(error).toHaveBeenCalledTimes(3);
       expect((error.mock.calls[0] as unknown[])[0]).toMatchObject({
         alertEligible: true,
       });
       expect((error.mock.calls[1] as unknown[])[0]).toMatchObject({
+        alertEligible: true,
+      });
+      expect((error.mock.calls[2] as unknown[])[0]).toMatchObject({
         alertEligible: false,
       });
     });

@@ -304,6 +304,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   ): void {
     const detailedLogging = this.isDetailedHttpLogging();
     const path = toLogPath(request.url);
+    const normalizedPath = path?.toLowerCase();
     const isServerError = errorData.status >= 500;
     const loggingContext = { ...errorData.loggingContext };
     if (errorData.status === 404) {
@@ -332,7 +333,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           : undefined,
       alertEligible:
         isServerError &&
-        (path === '/api/v1' || path?.startsWith('/api/v1/') === true),
+        (normalizedPath === '/api/v1' ||
+          normalizedPath?.startsWith('/api/v1/') === true),
     };
     const sanitizedLogContext = sanitizeLogValue(logContext) as Record<
       string,
