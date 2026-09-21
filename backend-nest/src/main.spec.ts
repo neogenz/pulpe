@@ -169,6 +169,14 @@ describe('HTTP perimeter', () => {
       .expect(429);
   });
 
+  it('does not retain successful routed requests in the perimeter bucket', async () => {
+    app = await createApp({ requestLimit: 1 });
+    const server = app.getHttpServer();
+
+    await request(server).get('/probe').expect(200, { ok: true });
+    await request(server).get('/probe').expect(200, { ok: true });
+  });
+
   it('accepts only structurally valid Pulpe Vercel preview origins', async () => {
     app = await createApp();
     const server = app.getHttpServer();

@@ -157,20 +157,38 @@ function setupRequestProtection(
   limit = 300,
 ): void {
   const configService = app.get(ConfigService);
+  const keyGenerator = createRateLimitIpKey(trustsRailwayProxy(configService));
+  const handler = (_req: Request, res: Response) =>
+    res.status(429).json({
+      statusCode: 429,
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'Too many requests.',
+    });
+
+  // CORS preflights return 204, but still need their own perimeter bucket.
   app.use(
     rateLimit({
       windowMs: 60_000,
       limit,
-      keyGenerator: createRateLimitIpKey(trustsRailwayProxy(configService)),
-      skip: (req) => isPerimeterExemptPath(req.path),
+      keyGenerator,
+      skip: (req) =>
+        isPerimeterExemptPath(req.path) || req.method !== 'OPTIONS',
       standardHeaders: true,
       legacyHeaders: false,
-      handler: (_req, res) =>
-        res.status(429).json({
-          statusCode: 429,
-          code: 'RATE_LIMIT_EXCEEDED',
-          message: 'Too many requests.',
-        }),
+      handler,
+    }),
+  );
+  app.use(
+    rateLimit({
+      windowMs: 60_000,
+      limit,
+      keyGenerator,
+      skip: (req) =>
+        isPerimeterExemptPath(req.path) || req.method === 'OPTIONS',
+      skipSuccessfulRequests: true,
+      standardHeaders: true,
+      legacyHeaders: false,
+      handler,
     }),
   );
 
