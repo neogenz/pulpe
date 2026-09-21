@@ -326,9 +326,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         ? sanitizeLogValue(request.query)
         : undefined,
       ...loggingContext,
-      stackFrames: isServerError
-        ? sanitizeStackFrames(errorData.originalError?.stack)
-        : undefined,
+      stackFrames:
+        errorData.status !== 404
+          ? sanitizeStackFrames(errorData.originalError?.stack)
+          : undefined,
       alertEligible:
         isServerError &&
         (path === '/api/v1' || path?.startsWith('/api/v1/') === true),

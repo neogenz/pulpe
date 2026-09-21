@@ -664,6 +664,28 @@ describe('GlobalExceptionFilter', () => {
       expect(context.stackFrames).toBeUndefined();
     });
 
+    it('preserves stack diagnostics for actionable non-404 client errors', () => {
+      process.env.NODE_ENV = 'production';
+      const warn = spyOn(mockLogger, 'warn');
+      const exception = new HttpException(
+        'Authentication failed',
+        HttpStatus.UNAUTHORIZED,
+      );
+      exception.stack =
+        'HttpException: Authentication failed\n    at authorize (/srv/auth.ts:10:2)';
+
+      filter.catch(
+        exception,
+        createMockArgumentsHost(
+          createMockRequest({ url: '/api/v1/budgets' }),
+          createMockResponse(),
+        ),
+      );
+
+      const [context] = warn.mock.calls[0] as [Record<string, unknown>];
+      expect(context.stackFrames).toEqual(['at authorize (/srv/auth.ts:10:2)']);
+    });
+
     it('removes cause-chain stack diagnostics from BusinessException 404 logs', () => {
       process.env.NODE_ENV = 'production';
       const info = spyOn(mockLogger, 'info');
