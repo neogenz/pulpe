@@ -78,6 +78,10 @@ import {
   toLogPath,
 } from '@common/utils/log-anonymization';
 import { createRequestIdGenerator } from '@common/utils/request-id';
+import {
+  isRailwayProxyTrusted,
+  proxyClientIp,
+} from '@common/utils/proxy-client-ip';
 
 function createLoggerTransport(isProdLike: boolean) {
   if (!isProdLike) {
@@ -132,24 +136,33 @@ function createDebugSerializers() {
   };
 }
 
-function createProductionSerializers() {
+function createProductionSerializers(trustRailwayProxy: boolean) {
   return {
     req: (
       req: IncomingMessage & {
         method?: string;
         url?: string;
         headers?: Record<string, string | string[] | undefined>;
+        remoteAddress?: string;
+        raw?: IncomingMessage;
+        socket?: { remoteAddress?: string };
       },
-    ) => ({
-      id: req.id,
-      method: req.method,
-      url: toLogPath(req.url),
-      deviceType: parseDeviceType(req.headers?.['user-agent'] as string),
-      ip: anonymizeIp(
-        (req.headers?.['x-forwarded-for'] ||
-          req.headers?.['x-real-ip']) as string,
-      ),
-    }),
+    ) => {
+      const socketIp =
+        req.remoteAddress ??
+        req.raw?.socket?.remoteAddress ??
+        req.socket?.remoteAddress;
+      const clientIp = trustRailwayProxy
+        ? proxyClientIp({ headers: req.headers ?? {}, ip: socketIp })
+        : socketIp;
+      return {
+        id: req.id,
+        method: req.method,
+        url: toLogPath(req.url),
+        deviceType: parseDeviceType(req.headers?.['user-agent'] as string),
+        ip: anonymizeIp(clientIp),
+      };
+    },
     res: (res: ServerResponse & { statusCode?: number }) => ({
       statusCode: res.statusCode,
     }),
@@ -234,7 +247,9 @@ export function createPinoLoggerConfig(configService: ConfigService) {
       serializers:
         loggingDecision.mode === 'detailed'
           ? createDebugSerializers()
-          : createProductionSerializers(),
+          : createProductionSerializers(
+              isRailwayProxyTrusted(railwayEnvironmentName),
+            ),
     },
     renameContext: 'module',
   };

@@ -2,10 +2,15 @@ import { Injectable, NestMiddleware } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { Request, Response, NextFunction } from 'express';
+import {
+  isRailwayProxyTrusted,
+  proxyClientIp,
+} from '@common/utils/proxy-client-ip';
 
 @Injectable()
 export class IpBlacklistMiddleware implements NestMiddleware {
   readonly #blacklistedIps: Set<string>;
+  readonly #trustRailwayProxy: boolean;
 
   constructor(
     private readonly configService: ConfigService,
@@ -13,6 +18,9 @@ export class IpBlacklistMiddleware implements NestMiddleware {
     private readonly logger: PinoLogger,
   ) {
     const raw = this.configService.get<string>('IP_BLACKLIST', '');
+    this.#trustRailwayProxy = isRailwayProxyTrusted(
+      this.configService.get<string>('RAILWAY_ENVIRONMENT_NAME'),
+    );
     this.#blacklistedIps = new Set(
       raw
         .split(',')
@@ -47,16 +55,9 @@ export class IpBlacklistMiddleware implements NestMiddleware {
     return next();
   }
 
-  // Same extraction as UserThrottlerGuard: X-Real-IP is set by Railway's edge
-  // and overwrites any client-supplied value; X-Forwarded-For entries can be
-  // client-forged, so reading it first let a blacklisted IP bypass the block
-  // with a spoofed header.
+  // Trust X-Real-IP only when Railway provenance is explicit. Outside Railway,
+  // a client can supply the header and must not be able to bypass the blacklist.
   #extractIp(req: Request): string | undefined {
-    const realIp = req.headers['x-real-ip'];
-    if (realIp) {
-      return Array.isArray(realIp) ? realIp[0] : realIp;
-    }
-
-    return req.ip;
+    return this.#trustRailwayProxy ? (proxyClientIp(req) ?? req.ip) : req.ip;
   }
 }

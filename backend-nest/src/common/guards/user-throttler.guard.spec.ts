@@ -14,8 +14,11 @@ describe('UserThrottlerGuard', () => {
   let mockSupabaseClient: ReturnType<
     typeof createMockSupabaseClient
   >['mockClient'];
+  let previousRailwayEnvironmentName: string | undefined;
 
   beforeEach(() => {
+    previousRailwayEnvironmentName = process.env.RAILWAY_ENVIRONMENT_NAME;
+    process.env.RAILWAY_ENVIRONMENT_NAME = 'production';
     // Mock Supabase client setup
     const { mockClient } = createMockSupabaseClient();
     mockSupabaseClient = mockClient;
@@ -49,6 +52,14 @@ describe('UserThrottlerGuard', () => {
       mockLogger,
       mockSupabaseService,
     );
+  });
+
+  afterEach(() => {
+    if (previousRailwayEnvironmentName === undefined) {
+      delete process.env.RAILWAY_ENVIRONMENT_NAME;
+    } else {
+      process.env.RAILWAY_ENVIRONMENT_NAME = previousRailwayEnvironmentName;
+    }
   });
 
   describe('getTracker - User-based tracking', () => {
@@ -477,6 +488,17 @@ describe('UserThrottlerGuard', () => {
   });
 
   describe('getTracker - real client IP behind proxy', () => {
+    it('should ignore X-Real-IP outside Railway', async () => {
+      delete process.env.RAILWAY_ENVIRONMENT_NAME;
+      const tracker = await (guard as any).getTracker({
+        headers: { 'x-real-ip': '198.51.100.42' },
+        ip: '127.0.0.1',
+        ips: [],
+      });
+
+      expect(tracker).toBe('127.0.0.1');
+    });
+
     it('should key on X-Real-IP for unauthenticated requests', async () => {
       // Arrange - Railway sets X-Real-IP to the real connecting client
       const mockRequest = {
