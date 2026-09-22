@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const semver = /^[0-9]+\.[0-9]+\.[0-9]+$/;
+const semver = /^(?:0|[1-9][0-9]{0,17})(?:\.(?:0|[1-9][0-9]{0,17})){2}$/;
 
 export function validateReleaseManifest(value, expectedProductVersion) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {

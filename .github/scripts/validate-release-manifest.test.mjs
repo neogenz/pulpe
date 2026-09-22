@@ -18,6 +18,20 @@ test("rejects stale or malformed release identity", () => {
     () => validateReleaseManifest(valid, "0.49.1"),
     /productVersion/,
   );
+  for (const productVersion of ["01.49.0", "0.049.0", "0.49.00"]) {
+    assert.throws(
+      () =>
+        validateReleaseManifest(
+          {
+            ...valid,
+            productVersion,
+            githubReleaseNotes: `## v${productVersion}\n`,
+          },
+          productVersion,
+        ),
+      /productVersion/,
+    );
+  }
   assert.throws(
     () =>
       validateReleaseManifest(
