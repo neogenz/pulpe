@@ -228,6 +228,8 @@ export { API_ERROR_CODES, type ApiErrorCode } from './src/error-codes.js';
 // Export HTTP header constants
 export { REQUEST_ID_HEADER } from './src/http-headers.js';
 
+export { checkingPriority } from './src/checking-order.js';
+
 // Export monetary comparison primitive
 export { moneyDifference } from './src/money.js';
 

@@ -6,6 +6,7 @@ import {
   type BudgetSparse,
   BudgetFormulas,
   calculateBalanceTrajectory,
+  checkingPriority,
   type Consumption,
   type EmotionState,
   getBudgetPeriodDates,
@@ -147,7 +148,7 @@ export function withRolloverLine(
 }
 
 export function buildCurrentMonthViewModel(
-  { budget, budgetLines, transactions }: BudgetDetails,
+  { budget, budgetLines, transactions, checkingDays }: BudgetDetails,
   { now, payDayOfMonth }: CurrentMonthContext,
 ): CurrentMonthViewModel {
   const metrics = BudgetFormulas.calculateAllMetrics(
@@ -157,6 +158,7 @@ export function buildCurrentMonthViewModel(
   );
   const driftLines = selectDriftLines(budgetLines, transactions);
   const daysRemaining = countDaysRemaining(budget, now, payDayOfMonth);
+  const periodProgress = measurePeriodProgress(budget, now, payDayOfMonth);
 
   return {
     metrics,
@@ -169,14 +171,19 @@ export function buildCurrentMonthViewModel(
       0,
     ),
     uncheckedCount: countUnchecked(budgetLines, transactions),
-    uncheckedItems: selectUncheckedItems(budgetLines, transactions),
+    uncheckedItems: selectUncheckedItems(
+      budgetLines,
+      transactions,
+      checkingDays,
+      periodProgress.day,
+    ),
     savings: summarizeSavings(budgetLines, transactions),
     realized: summarizeRealized(
       withRolloverLine(budget, budgetLines),
       transactions,
       budget.rollover ?? 0,
     ),
-    periodProgress: measurePeriodProgress(budget, now, payDayOfMonth),
+    periodProgress,
     trajectory: calculateBalanceTrajectory({
       budgetLines,
       transactions,
@@ -275,6 +282,8 @@ function countUnchecked(
 function selectUncheckedItems(
   budgetLines: BudgetLine[],
   transactions: Transaction[],
+  days: Record<string, number> = {},
+  today: number,
 ): CheckableItem[] {
   const unchecked = transactions.filter(isUnchecked);
   const linesById = new Map(budgetLines.map((line) => [line.id, line]));
@@ -302,7 +311,11 @@ function selectUncheckedItems(
         line.isRollover !== true &&
         line.sourceSavingsGoalId == null,
     )
-    .sort(byKindThenNewest)
+    .sort(
+      (a, b) =>
+        checkingPriority(days[a.id], today) -
+          checkingPriority(days[b.id], today) || byKindThenNewest(a, b),
+    )
     .map((line) => ({
       id: `bl-${line.id}`,
       source: "budgetLine" as const,

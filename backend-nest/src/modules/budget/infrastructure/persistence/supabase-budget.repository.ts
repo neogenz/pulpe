@@ -875,7 +875,9 @@ export class SupabaseBudgetRepository
         (ids, from, to) =>
           supabase
             .from('budget_line')
-            .select('id, budget_id, kind, amount, checked_at')
+            .select(
+              'id, budget_id, kind, amount, checked_at, template_line_id, name, recurrence',
+            )
             .in('budget_id', ids)
             .order('id', { ascending: true })
             .range(from, to),
@@ -922,6 +924,9 @@ export class SupabaseBudgetRepository
           kind: l.kind,
           amount: decrypt(l.amount),
           checkedAt: l.checked_at,
+          templateLineId: l.template_line_id,
+          name: l.name,
+          recurrence: l.recurrence,
         })),
       transactions: transactions
         .filter((t) => t.budget_id === id)

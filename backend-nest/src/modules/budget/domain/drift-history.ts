@@ -3,6 +3,7 @@ import {
   getBudgetPeriodDates,
   isOutflowKind,
   type TransactionKind,
+  type TransactionRecurrence,
 } from 'pulpe-shared';
 
 /**
@@ -25,6 +26,9 @@ export interface HistoryLine {
   kind: TransactionKind;
   amount: number;
   checkedAt: string | null;
+  templateLineId?: string | null;
+  name?: string;
+  recurrence?: TransactionRecurrence;
 }
 
 export interface HistoryTransaction {

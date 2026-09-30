@@ -79,6 +79,7 @@ final class CurrentMonthStore: StoreProtocol {
     private(set) var transactions: [Transaction] = []
     /// The server's reading of the user's closed months; `nil` until the details load.
     private(set) var history: DriftHistory?
+    private var checkingDays: [String: Int] = [:]
     /// A home mutation is in flight: the chart shimmers its projection, which is drawn from
     /// an optimistic store until the server has settled the entry.
     /// ponytail: one flag, so two overlapping mutations clear it on the first response;
@@ -247,6 +248,7 @@ final class CurrentMonthStore: StoreProtocol {
 
     /// Update the stored payDayOfMonth so subsequent forceRefresh() calls use the correct period
     func setPayDay(_ payDay: Int?) {
+        if payDayOfMonth != payDay { checkingDays = [:] }
         payDayOfMonth = payDay
         // The trajectory is cut along the period boundaries, so it is only as
         // fresh as this value. Callers do follow with a refresh, but the cache
@@ -279,6 +281,7 @@ final class CurrentMonthStore: StoreProtocol {
         budgetLines = []
         transactions = []
         history = nil
+        checkingDays = [:]
         payDayOfMonth = nil
         syncingTransactionIds = []
         syncingBudgetLineIds = []
@@ -390,6 +393,7 @@ final class CurrentMonthStore: StoreProtocol {
 
     /// Apply fetched details to local state, recompute metrics, and update cache.
     private func applyDetails(_ details: BudgetDetails) {
+        checkingDays = details.checkingDays ?? [:]
         apply(
             budget: details.budget,
             budgetLines: details.budgetLines,
@@ -480,12 +484,14 @@ extension CurrentMonthStore {
         budget: Budget? = nil,
         budgetLines: [BudgetLine] = [],
         transactions: [Transaction] = [],
-        history: DriftHistory? = nil
+        history: DriftHistory? = nil,
+        checkingDays: [String: Int] = [:]
     ) {
         self.budget = budget
         self.budgetLines = budgetLines
         self.transactions = transactions
         self.history = history
+        self.checkingDays = checkingDays
         contentState = budget != nil ? .loaded : .empty
         recomputeMetrics()
     }
@@ -634,10 +640,14 @@ extension CurrentMonthStore {
                 return .transaction(tx, consumption: consumption)
             }
 
-        // 3. Unchecked budget lines (income → expense → saving)
+        // 3. Learned due dates first; the existing kind/date order breaks ties.
+        let today = periodDayProgress()?.day ?? 1
         items += budgetLines
             .filter { !$0.isChecked && !($0.isRollover ?? false) }
             .sorted {
+                let left = CheckingOrder.rank(expectedDay: checkingDays[$0.id], today: today)
+                let right = CheckingOrder.rank(expectedDay: checkingDays[$1.id], today: today)
+                if left != right { return left < right }
                 let lhs = Self.kindSortOrder.firstIndex(of: $0.kind) ?? Int.max
                 let rhs = Self.kindSortOrder.firstIndex(of: $1.kind) ?? Int.max
                 if lhs != rhs { return lhs < rhs }

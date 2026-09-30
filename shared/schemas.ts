@@ -1950,6 +1950,10 @@ export const budgetDetailsResponseSchema = createSuccessResponse(
     transactions: z.array(transactionSchema),
     budgetLines: z.array(budgetLineSchema),
     history: driftHistorySchema.nullable(),
+    /** Learned 1-based budget-period checking day per current monthly forecast; absent on older servers. */
+    checkingDays: z
+      .record(z.string(), z.number().int().min(1).max(31))
+      .optional(),
   }),
 );
 export type BudgetDetailsResponse = z.infer<typeof budgetDetailsResponseSchema>;

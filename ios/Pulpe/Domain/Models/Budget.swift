@@ -96,6 +96,7 @@ struct BudgetDetails: Decodable {
     let budgetLines: [BudgetLine]
     /// Absent on older backends and `null` until one month has closed: both mean no prior.
     var history: DriftHistory?
+    var checkingDays: [String: Int]?
 }
 
 /// How this user's closed months usually drifted from their plan, computed server-side.
