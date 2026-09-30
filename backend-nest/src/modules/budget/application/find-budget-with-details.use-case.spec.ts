@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
+import { BudgetMapper } from '../infrastructure/mappers/budget.mapper';
 import { FindBudgetWithDetailsUseCase } from './find-budget-with-details.use-case';
 import type { Budget } from '../domain/budget.entity';
 import type { HistoryMonth } from '../domain/drift-history';
@@ -112,6 +113,43 @@ describe('FindBudgetWithDetailsUseCase — drift history', () => {
       expect.any(String),
     );
   });
+
+  it.each(['2026-08-15T12:00:00', '2026-08-31T23:00:00'])(
+    'learns checking days throughout the period: %s',
+    async (timestamp) => {
+      useCase.now = () => new Date(timestamp);
+      const rent = {
+        id: 'rent',
+        name: 'Loyer',
+        kind: 'expense',
+        recurrence: 'fixed',
+        templateLineId: 'rent-template',
+      };
+      repo.fetchBudgetData = mock(async () => ({
+        budget: current,
+        budgetLines: [rent],
+        transactions: [],
+      }));
+      repo.fetchHistoryData = mock(async () =>
+        [7, 6, 5].map((month) => ({
+          month,
+          year: 2026,
+          transactions: [],
+          budgetLines: [
+            { ...rent, amount: 1000, checkedAt: `2026-0${month}-05T12:00:00Z` },
+          ],
+        })),
+      );
+
+      const result = await useCase.execute('cur', USER, supabase);
+
+      expect(result.checkingDays).toEqual({ rent: 5 });
+      expect(
+        new BudgetMapper().toBudgetDetailsResponse(result).data.checkingDays,
+      ).toEqual({ rent: 5 });
+      expect(repo.fetchHistoryData).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('history is null when no closed month precedes the budget', async () => {
     repo.fetchHistoryData = mock(async () => []);

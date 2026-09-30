@@ -86,6 +86,7 @@ export interface BudgetWithDetails {
   rollover: number;
   previousBudgetId: string | null;
   history?: DriftHistory | null;
+  checkingDays?: Record<string, number>;
 }
 
 /**

@@ -14,8 +14,13 @@ import {
   type BudgetRepositoryPort,
 } from '../domain/ports/budget-repository.port';
 import { RecalculateBudgetBalancesUseCase } from './recalculate-budget-balances.use-case';
-import type { Budget, BudgetWithDetails } from '../domain/budget.entity';
-import { driftHistory, type DriftHistory } from '../domain/drift-history';
+import type {
+  Budget,
+  BudgetLineDecrypted,
+  BudgetWithDetails,
+} from '../domain/budget.entity';
+import { driftHistory } from '../domain/drift-history';
+import { checkingDays } from '../domain/checking-days';
 
 @Injectable()
 export class FindBudgetWithDetailsUseCase {
@@ -54,7 +59,11 @@ export class FindBudgetWithDetailsUseCase {
     let historyMs = 0;
     const timedHistory = async () => {
       const start = performance.now();
-      const result = await this.computeHistory(budget, payDayOfMonth);
+      const result = await this.computeHistory(
+        budget,
+        budgetLines,
+        payDayOfMonth,
+      );
       historyMs = performance.now() - start;
       return result;
     };
@@ -81,7 +90,7 @@ export class FindBudgetWithDetailsUseCase {
       transactions,
       rollover: rolloverData.rollover,
       previousBudgetId: rolloverData.previousBudgetId,
-      history,
+      ...history,
     };
   }
 
@@ -99,16 +108,20 @@ export class FindBudgetWithDetailsUseCase {
    */
   private async computeHistory(
     budget: Budget,
+    lines: BudgetLineDecrypted[],
     payDayOfMonth: number,
-  ): Promise<DriftHistory | null> {
+  ): Promise<Pick<BudgetWithDetails, 'history' | 'checkingDays'>> {
+    const empty = { history: null, checkingDays: {} };
     const { startDate, endDate } = getBudgetPeriodDates(
       budget.month,
       budget.year,
       payDayOfMonth,
     );
     const now = this.now();
-    if (now < startDate || now > endDate) return null;
-    if (budget.userId === null) return null;
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    if (today < startDate || today > endDate) return empty;
+    if (budget.userId === null) return empty;
 
     try {
       const previous = (
@@ -117,13 +130,16 @@ export class FindBudgetWithDetailsUseCase {
         .filter((b) => compareBudgetPeriods(b, budget) < 0)
         .sort((a, b) => compareBudgetPeriods(b, a));
       const months = await this.repo.fetchHistoryData(previous);
-      return driftHistory(months, payDayOfMonth, now);
+      return {
+        history: driftHistory(months, payDayOfMonth, now),
+        checkingDays: checkingDays(lines, months, budget, payDayOfMonth),
+      };
     } catch (error) {
       this.logger.warn(
         { budgetId: budget.id, err: error, operation: 'budget.history.failed' },
         'History fetch failed; details still return with history null',
       );
-      return null;
+      return empty;
     }
   }
 
