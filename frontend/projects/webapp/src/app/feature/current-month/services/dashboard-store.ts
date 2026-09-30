@@ -24,6 +24,7 @@ import {
   type TransactionCreate,
   API_ERROR_CODES,
   BudgetFormulas,
+  checkingPriority,
   getBudgetPeriodDates,
   getBudgetPeriodForDate,
   isOutflowKind,
@@ -432,17 +433,22 @@ export class DashboardStore {
 
   // Sorted, because the card shows five: the truncation has to swallow the
   // least consequential part of the list, which API order cannot promise.
-  // Outflow leads — the card sits under a hero that partitions spending — then
+  // Learned due/unknown/future priority leads. Without history or on ties,
+  // outflow leads — the card sits under a hero that partitions spending — then
   // the largest amounts. Sorted on what the row prints, never on what the line
   // planned: allocation makes those diverge, and the reader only sees the first.
   readonly uncheckedForecasts = computed<BudgetLine[]>(() => {
     const consumptions = this.consumptions();
+    const days = this.dashboardData()?.checkingDays ?? {};
+    const today = this.elapsedDayOfPeriod();
     const remainingOf = (line: BudgetLine): number =>
       Math.max(0, consumptions.get(line.id)?.remaining ?? line.amount);
     return this.#pointableForecasts()
       .filter((line) => line.checkedAt === null)
       .toSorted(
         (a, b) =>
+          checkingPriority(days[a.id], today) -
+            checkingPriority(days[b.id], today) ||
           Number(isOutflowKind(b.kind)) - Number(isOutflowKind(a.kind)) ||
           remainingOf(b) - remainingOf(a),
       );

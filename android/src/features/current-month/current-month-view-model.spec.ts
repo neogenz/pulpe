@@ -206,6 +206,38 @@ describe("drift", () => {
 });
 
 describe("unchecked", () => {
+  it.each([
+    [11, ["tx-tx-1", "bl-rent", "bl-unknown", "bl-salary"]],
+    [27, ["tx-tx-1", "bl-rent", "bl-salary", "bl-unknown"]],
+  ])("learns which forecasts to offer on period day %i", (day, expected) => {
+    const details = {
+      budget: budget(),
+      transactions: [transaction()],
+      history: null,
+      budgetLines: [
+        line({ id: "salary", kind: "income" }),
+        line({ id: "unknown", kind: "saving" }),
+        line({ id: "rent" }),
+      ],
+      checkingDays: { rent: 5, salary: 25 },
+    };
+    const context = { now: new Date(2026, 7, day) };
+    const model = buildCurrentMonthViewModel(details, context);
+    expect(model.uncheckedItems.map((i) => i.id)).toEqual(expected);
+    details.budgetLines[2].checkedAt = "2026-08-11T12:00:00Z";
+    expect(
+      buildCurrentMonthViewModel(details, context).uncheckedItems.map(
+        (i) => i.id,
+      ),
+    ).toEqual(expected.filter((id) => id !== "bl-rent"));
+    details.budgetLines[2].checkedAt = null;
+    expect(
+      buildCurrentMonthViewModel(details, context).uncheckedItems.map(
+        (i) => i.id,
+      ),
+    ).toEqual(expected);
+  });
+
   it("keeps subtitle data semantic until presentation", () => {
     const model = viewModelOf([line()], [transaction()]);
 

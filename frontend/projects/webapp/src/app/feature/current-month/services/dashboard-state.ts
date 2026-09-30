@@ -4,6 +4,7 @@ export interface DashboardData {
   budget: Budget | null;
   transactions: Transaction[];
   budgetLines: BudgetLine[];
+  checkingDays?: Record<string, number>;
 }
 
 export interface HistoryDataPoint {

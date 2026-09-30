@@ -1692,6 +1692,39 @@ async function setupWithHistory(
   return result;
 }
 
+describe('DashboardStore - Checking history', () => {
+  it.each([
+    [15, ['rent', 'unknown', 'salary']],
+    [27, ['rent', 'salary', 'unknown']],
+  ])(
+    'should prioritize learned checks on period day %i',
+    async (day, expected) => {
+      const mocks = createMocks();
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({
+          budget: createMockBudget(),
+          transactions: [],
+          budgetLines: [
+            createMockBudgetLine({ id: 'unknown', amount: 1000 }),
+            createMockBudgetLine({
+              id: 'salary',
+              kind: 'income',
+              amount: 5000,
+            }),
+            createMockBudgetLine({ id: 'rent', amount: 10 }),
+          ],
+          checkingDays: { rent: 5, salary: 25 },
+        }),
+      );
+      const { store } = setup(mocks, new Date(2025, 5, day));
+      TestBed.tick();
+      await vi.waitFor(() =>
+        expect(store.uncheckedForecasts().map((l) => l.id)).toEqual(expected),
+      );
+    },
+  );
+});
+
 describe('DashboardStore - History Data', () => {
   beforeEach(() => {
     vi.clearAllMocks();

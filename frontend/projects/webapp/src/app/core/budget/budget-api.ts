@@ -155,6 +155,7 @@ export class BudgetApi {
     budget: Budget | null;
     transactions: Transaction[];
     budgetLines: BudgetLine[];
+    checkingDays?: Record<string, number>;
   }> {
     return this.getBudgetForMonth$(month, year).pipe(
       switchMap((budget) => {
@@ -171,6 +172,7 @@ export class BudgetApi {
             budget: response.data.budget,
             transactions: response.data.transactions,
             budgetLines: response.data.budgetLines,
+            checkingDays: response.data.checkingDays,
           })),
         );
       }),
