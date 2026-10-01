@@ -44,7 +44,49 @@ Two Android-specific consequences:
   them from the export, keyed by color scheme.
 
 `FINANCIAL_COLORS.light.overBudget` is `#905800` rather than the root doc's `#A86800` seed —
-it is tuned to clear 4.5:1 on the hero's mint surface, the darkest background it lands on.
+it is tuned to clear 4.5:1 on the onboarding preview's mint surface, the darkest background it
+lands on.
+
+The canvas is the sage `#EFF3EE` (`#121611` dark), the value iOS already paints every screen
+with, rather than the root doc's neutral `#F7F6F3`: the two native apps read as one product, and
+cards sit on it in `surface` — white — so a list is paper on a calm ground. `Card` forces that fill
+on Paper's contained mode, whose `surfaceVariant` vanished into the sage.
+
+## Two zones
+
+The Two-Zone Rule is `core/ui/hero.tsx`. Home, the budget list, budget detail and a savings goal
+open on the constant forest (`HERO_COLORS`, iOS's `hero*` tokens): `HeroAppBar` is forest too and
+holds still while the `HeroZone` gradient scrolls under it — a Material top app bar holding its
+colour — and the `ContentZone` rises over the hero on the canvas, its upper corners at
+`RADIUS.zone` (28, Material's extra-large shape; iOS's 44 continuous corner reads as a bubble when
+drawn circular). Templates, the goal list and settings have no dominant state and stay on the
+canvas with `ScreenAppBar` / `TabHeader`.
+
+A hero is composed, never drawn: `HeroFigure` (eyebrow, Manrope figure, smaller currency on the
+same line), `HeroTile` (a translucent tile, never a chip), `HeroProgress`, `HeroVerdict` (one
+sentence, its accent the only place the state shows, optionally ending in a named link). The status
+bar turns light on exactly those routes, decided once from the path (`RouteStatusBar`,
+`hero-routes.ts`) because the tabs keep every visited screen mounted.
+
+## Ledger
+
+Every list is one `LedgerCard`: rows separated by hairlines that start under the text column, each
+row opening on a 36dp disc (`IconDisc`) in the colour of its nature. A virtualized list draws the
+same card in `LedgerSegment`s. A section names itself above its card with `SectionHeader` — Manrope
+title, a quiet count, an optional summary amount and a _named_ link (`Tout voir`, `Ajuster`).
+
+On a budget, the disc is the pointing control (`PointCircle`): to point, the row's own disc ringed
+in dashes of its colour; pointed, filled with a check, and the name struck through. The disc is 36,
+the target Material's 48.
+
+## Primary actions
+
+No floating action button (`primary-actions.spec.ts` keeps it that way). A screen's main action is
+a labelled `ActionButton` — a 52dp pill — in the content (`Ajouter une opération`, `Ajouter une
+prévision`), pinned to the bottom edge on a page (`Noter un montant`), or an icon in the app bar of
+a root list. A FAB covered the last row of every list and the snackbars that offered "Annuler".
+
+One notice slot per screen: the most pressing news wins, so a failure never hides under an undo.
 
 ## Type
 
@@ -73,7 +115,7 @@ components, not the card radius. Cards use `RADIUS.card` (18) explicitly.
 ## Dark mode
 
 Both themes are resolved, and `_layout.tsx` picks from `useColorScheme()`. Dark is not a
-tint of light: the canvas is `#141210`, warm-black rather than neutral, and the financial
+tint of light: the canvas is `#121611`, a forest-tinted black rather than a neutral one, and the financial
 accents lighten so they still clear contrast on it. Anything that reads a color must read it
 through the theme or through the scheme-keyed export — a hard-coded hex is a dark-mode bug
 that only shows up on someone else's phone.
@@ -81,8 +123,8 @@ that only shows up on someone else's phone.
 ## Form modals
 
 Android forms open in the native `Modal`-based `FormModal`: a full-width
-surface anchored to the bottom edge that slides up, rounds its top corners
-(`RADIUS.md`) and caps its height at 88 percent of the room the keyboard
+surface on the warm `SHEET_COLORS` background, anchored to the bottom edge, that
+slides up, rounds its top corners (`RADIUS.zone`) and caps its height at 88 percent of the room the keyboard
 leaves. The body scrolls, the footer stays pinned: above the keyboard while it
 is up, above the navigation bar inset (padded inside the surface, so its colour
 runs edge to edge) while it is down. Its header always exposes a translated
@@ -97,14 +139,22 @@ accessibility focus trap and the back action for free.
 
 ## Shell
 
-The navigation bar and the top app bar are Paper chrome, configured once in
+The navigation bar and the top app bars are Paper chrome, configured once in
 `core/ui`. `NavigationBar` wraps `BottomNavigation.Bar` for the router's
 `tabBar` prop: four labelled destinations, an active pill on
 `secondaryContainer`, a filled icon inside the pill and its outlined twin at
 rest, no elevation. `TabHeader` puts `Appbar.Content` in the same flat bar on
-`background` that every pushed screen wears (`ScreenAppBar`), with a trailing
-slot for the account action. Neither is styled per screen: a tab that needs a
-different bar is a tab that needs a different design, not a prop.
+`background` that every canvas screen wears (`ScreenAppBar`), with a trailing
+slot for the screen's action; hero screens wear `HeroAppBar` instead. None is
+styled per screen: a screen that needs a different bar is a screen that needs a
+different design, not a prop.
+
+The account is reachable from the home's bar in every state — loading, empty
+and failed included — since it is the only way to the settings.
+
+Hiding amounts remounts the screens (`AmountMaskBoundary`, each navigator's
+`screenLayout`): the React Compiler memoizes every formatted amount on its value
+and currency, and a re-render alone kept printing the cached figures.
 
 ## Icon and splash
 
@@ -126,7 +176,7 @@ on its own:
 The adaptive background is `#C6F0BA`, the pale green sampled from the iOS icon's gradient.
 Android takes a flat colour here and a gradient is invisible at 48dp.
 
-The splash background is the app's own canvas (`#F7F6F3` light, `#141210` dark), not the iOS
+The splash background is the app's own canvas (`#EFF3EE` light, `#121611` dark), not the iOS
 launch screen's `#F8FAF9` — the splash hands off to the first rendered frame, and matching the
 canvas is what makes that handoff invisible.
 

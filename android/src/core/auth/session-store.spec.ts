@@ -17,6 +17,8 @@ const mockResetVault = jest.fn();
 const mockForgetLanding = jest.fn();
 const mockClearKeys = jest.fn();
 const mockInvalidateLanguage = jest.fn();
+const mockCancelReminder = jest.fn();
+const mockWriteRemindersEnabled = jest.fn();
 let mockAuthListener:
   | ((event: string, session: Session | null) => void)
   | null = null;
@@ -52,6 +54,13 @@ jest.mock("@/core/navigation/landing-preference", () => ({
 jest.mock("@/core/crypto/client-key-manager", () => ({
   clearAllKeys: () => mockClearKeys(),
 }));
+jest.mock("@/core/notifications/scheduler", () => ({
+  cancelMonthlyReminder: () => mockCancelReminder(),
+}));
+jest.mock("@/core/notifications/reminder-flags", () => ({
+  writeRemindersEnabled: (isEnabled: boolean) =>
+    mockWriteRemindersEnabled(isEnabled),
+}));
 
 const session = (id: string) => ({ user: { id } }) as Session;
 
@@ -86,6 +95,12 @@ describe("session lifecycle", () => {
     mockClearLocale.mockImplementation(() => events.push("locale-reset"));
     mockResetVault.mockImplementation(() => events.push("vault-reset"));
     mockForgetLanding.mockImplementation(() => events.push("landing-reset"));
+    mockCancelReminder.mockImplementation(async () =>
+      events.push("reminder-cancelled"),
+    );
+    mockWriteRemindersEnabled.mockImplementation((isEnabled: boolean) =>
+      events.push(`reminders-enabled:${String(isEnabled)}`),
+    );
     mockClearKeys.mockImplementation(async () => events.push("keys-cleared"));
     useSessionStore.setState({
       status: "authenticated",
@@ -142,6 +157,8 @@ describe("session lifecycle", () => {
       "locale-reset",
       "vault-reset",
       "landing-reset",
+      "reminder-cancelled",
+      "reminders-enabled:false",
       "keys-cleared",
     ]);
     expect(mockSignOutThisDevice).toHaveBeenCalledTimes(1);
@@ -160,8 +177,25 @@ describe("session lifecycle", () => {
     expect(mockClearLocale).not.toHaveBeenCalled();
     expect(mockResetVault).not.toHaveBeenCalled();
     expect(mockForgetLanding).not.toHaveBeenCalled();
+    expect(mockCancelReminder).not.toHaveBeenCalled();
+    expect(mockWriteRemindersEnabled).not.toHaveBeenCalled();
     expect(mockClearKeys).not.toHaveBeenCalled();
     unsubscribe();
+  });
+
+  it("signs out cleanly when there was no reminder to cancel", async () => {
+    useSessionStore.setState({
+      status: "authenticated",
+      session: session("user-a"),
+      user: session("user-a").user,
+    });
+    mockCancelReminder.mockRejectedValueOnce(new Error("not scheduled"));
+
+    await expect(useSessionStore.getState().signOut()).resolves.toBeUndefined();
+
+    expect(mockWriteRemindersEnabled).toHaveBeenCalledWith(false);
+    expect(mockClearKeys).toHaveBeenCalled();
+    expect(useSessionStore.getState().status).toBe("unauthenticated");
   });
 
   it("waits for account A cleanup before applying session B", async () => {

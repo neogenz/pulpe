@@ -5,6 +5,7 @@ import { Button, Divider, Text, useTheme } from "react-native-paper";
 
 import { Card } from "@/core/ui/card";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { SectionHeader } from "@/core/ui/section-header";
 import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
@@ -42,21 +43,18 @@ export function GoalPlanTimeline({
 
   return (
     <View style={styles.section}>
-      <View style={styles.header}>
-        <Text variant="titleMedium" style={styles.headerTitle}>
-          {t("goals.plan.title")}
-        </Text>
-        {onAdjust !== undefined && (
-          <Button
-            mode="text"
-            icon="tune-variant"
-            onPress={onAdjust}
-            accessibilityLabel={t("goals.plan.adjustAccessibility")}
-          >
-            {t("goals.plan.adjust")}
-          </Button>
-        )}
-      </View>
+      <SectionHeader
+        title={t("goals.plan.title")}
+        link={
+          onAdjust === undefined
+            ? undefined
+            : {
+                label: t("goals.plan.adjust"),
+                onPress: onAdjust,
+                accessibilityLabel: t("goals.plan.adjustAccessibility"),
+              }
+        }
+      />
 
       <Card mode="contained">
         <Card.Content style={styles.card}>

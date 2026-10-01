@@ -1,7 +1,7 @@
 import type { SupportedCurrency, Transaction } from "pulpe-shared";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Button, Divider, List, useTheme } from "react-native-paper";
+import { SegmentedButtons, Text, useTheme } from "react-native-paper";
 
 import { useTags } from "@/features/tags/tag-queries";
 import { tagSummary } from "@/features/tags/tag-selection";
@@ -11,8 +11,9 @@ import {
 } from "@/core/ui/amount-format";
 import { IconDisc } from "@/core/ui/icon-disc";
 import { Amount } from "@/core/ui/amount";
+import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
+import { SectionHeader } from "@/core/ui/section-header";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
-import { FilterChip } from "@/core/ui/filter-chip";
 import { FINANCIAL_COLORS, SPACING } from "@/core/ui/theme";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatRelativeDay } from "@/core/ui/date-format";
@@ -45,8 +46,9 @@ interface ActivityCardProps {
 
 /**
  * What actually happened, newest first, under the one selector that maps to how
- * the month is read: the last week, or the whole of it. A Material list on the
- * page background — days as subheaders, one row per operation.
+ * the month is read: the last week, or the whole of it. Each day is named once,
+ * on the canvas, above the card that carries its operations — `ActivityCard`
+ * on iOS.
  */
 export function ActivityCard({
   transactions,
@@ -64,77 +66,69 @@ export function ActivityCard({
 
   return (
     <View style={styles.section}>
-      <View style={styles.heading}>
-        <List.Subheader style={styles.subheader}>
-          {t("home.activity.title")}
-        </List.Subheader>
-        <Amount size="meta">
-          {formatSignedCompactCurrency(net, currency)}
-        </Amount>
-      </View>
+      <SectionHeader
+        title={t("home.activity.title")}
+        subtitle={formatSignedCompactCurrency(net, currency)}
+        link={
+          onPressAll === undefined
+            ? undefined
+            : { label: t("home.activity.viewAll"), onPress: onPressAll }
+        }
+      />
 
-      <View style={styles.windows}>
-        {WINDOWS.map((option) => (
-          <FilterChip
-            key={option}
-            selected={window === option}
-            onPress={() => setWindow(option)}
-            accessibilityLabel={t("home.activity.windowAccessibility", {
-              window: t(`home.activity.window.${option}`),
-            })}
-          >
-            {t(`home.activity.window.${option}`)}
-          </FilterChip>
-        ))}
-        {onPressAll !== undefined && (
-          <Button mode="text" compact onPress={onPressAll}>
-            {t("home.activity.viewAll")}
-          </Button>
-        )}
-      </View>
+      <SegmentedButtons
+        value={window}
+        onValueChange={(value) => setWindow(value as ActivityWindow)}
+        buttons={WINDOWS.map((option) => ({
+          value: option,
+          label: t(`home.activity.window.${option}`),
+          accessibilityLabel: t("home.activity.windowAccessibility", {
+            window: t(`home.activity.window.${option}`),
+          }),
+        }))}
+      />
 
       {days.length === 0 ? (
-        <List.Item
-          title={t(`home.activity.empty.${window}`)}
-          description={t("home.activity.emptyHint")}
-          left={() => (
-            <IconDisc name="tray" tint={theme.colors.onSurfaceVariant} />
-          )}
-          style={styles.item}
-        />
+        <LedgerCard>
+          <LedgerRow
+            leading={
+              <IconDisc name="tray" tint={theme.colors.onSurfaceVariant} />
+            }
+            title={t(`home.activity.empty.${window}`)}
+            subtitle={t("home.activity.emptyHint")}
+          />
+        </LedgerCard>
       ) : (
         days.map((day) => (
-          <View key={day.date.toISOString()}>
-            <List.Subheader style={styles.subheader}>
+          <View key={day.date.toISOString()} style={styles.day}>
+            <Text
+              variant="labelLarge"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
               {formatRelativeDay(day.date, now, locale)}
-            </List.Subheader>
-            {day.transactions.map((transaction, index) => {
-              const accent = financial[KIND_ACCENTS[transaction.kind]];
-              const tagged = tagSummary(transaction.tagIds, tags.data ?? []);
-              return (
-                <View key={transaction.id}>
-                  {index > 0 && <Divider />}
-                  <List.Item
-                    title={transaction.name}
-                    titleNumberOfLines={1}
-                    description={tagged ?? undefined}
-                    descriptionNumberOfLines={1}
-                    left={() => (
-                      <IconDisc
-                        name={KIND_ICONS[transaction.kind]}
-                        tint={accent}
-                      />
-                    )}
-                    right={() => (
-                      <Amount size="row" numberOfLines={1}>
-                        {formatCompactCurrency(transaction.amount, currency)}
-                      </Amount>
-                    )}
-                    style={styles.item}
-                  />
-                </View>
-              );
-            })}
+            </Text>
+            <LedgerCard>
+              {day.transactions.map((transaction) => (
+                <LedgerRow
+                  key={transaction.id}
+                  leading={
+                    <IconDisc
+                      name={KIND_ICONS[transaction.kind]}
+                      tint={financial[KIND_ACCENTS[transaction.kind]]}
+                    />
+                  }
+                  title={transaction.name}
+                  subtitle={
+                    tagSummary(transaction.tagIds, tags.data ?? []) ?? undefined
+                  }
+                  trailing={
+                    <Amount size="row" numberOfLines={1}>
+                      {formatCompactCurrency(transaction.amount, currency)}
+                    </Amount>
+                  }
+                />
+              ))}
+            </LedgerCard>
           </View>
         ))
       )}
@@ -143,15 +137,6 @@ export function ActivityCard({
 }
 
 const styles = StyleSheet.create({
-  section: { gap: SPACING.xs },
-  heading: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: SPACING.sm,
-  },
-  // Paper pads its list chrome to its own gutter; the page already has one.
-  subheader: { paddingHorizontal: 0, paddingVertical: 0 },
-  item: { paddingHorizontal: 0 },
-  windows: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  section: { gap: SPACING.sm + SPACING.xs },
+  day: { gap: SPACING.sm },
 });

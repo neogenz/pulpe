@@ -1,10 +1,13 @@
 import {
+  MAX_SAVINGS_GOAL_PLAN_PERIODS,
   type SavingsGoal,
   type SavingsGoalCreate,
   type SavingsGoalStatus,
   type SavingsGoalUpdate,
   suggestedMonthlyContribution,
 } from "pulpe-shared";
+
+import { toIsoDate } from "@/core/ui/date-format";
 
 export interface SavingsGoalDraft {
   name: string;
@@ -96,36 +99,101 @@ export function usesManualMonthly(draft: SavingsGoalDraft): boolean {
   return draft.targetDate === null || draft.targetAmount === null;
 }
 
-export function isSavingsGoalDraftSubmittable(
-  draft: SavingsGoalDraft,
-): boolean {
-  if (draft.name.trim() === "") return false;
-  if (draft.targetAmount !== null && draft.targetAmount <= 0) return false;
-  if (draft.initialAmount !== null && draft.initialAmount < 0) return false;
-  if (draft.monthlyOverride !== null && draft.monthlyOverride <= 0)
-    return false;
-  if (draft.startDate !== null && draft.targetDate !== null) {
-    // ISO `YYYY-MM-DD` compares lexicographically the way it compares in time.
-    if (draft.startDate > draft.targetDate) return false;
-  }
-  return true;
+/** The deadlines the form may offer, as ISO `YYYY-MM-DD`, both included. */
+export interface TargetDateBounds {
+  earliest: string;
+  latest: string;
 }
 
-export type SavingsGoalDraftProblem = "name" | "target" | "dates";
+/**
+ * From today to the last day of the 120th month, the current one included —
+ * what `savingsGoalCreateSchema` accepts. Without these the calendar offered
+ * any day, the button stayed enabled, and the request was refused client-side
+ * with nothing but a generic save error.
+ *
+ * A goal that already carries a date outside that range keeps it reachable,
+ * as iOS bounds its picker (`SavingsGoalFormSheet.targetDateRange`): an edit
+ * must not be forced to move a deadline it never touched.
+ */
+export function targetDateBounds(
+  existingTarget: string | null,
+  now: Date = new Date(),
+): TargetDateBounds {
+  const today = toIsoDate(now);
+  // Day 0 of the month after the last one is that month's last day.
+  const horizon = toIsoDate(
+    new Date(
+      now.getFullYear(),
+      now.getMonth() + MAX_SAVINGS_GOAL_PLAN_PERIODS,
+      0,
+    ),
+  );
 
+  return {
+    earliest:
+      existingTarget !== null && existingTarget < today
+        ? existingTarget
+        : today,
+    latest:
+      existingTarget !== null && existingTarget > horizon
+        ? existingTarget
+        : horizon,
+  };
+}
+
+/**
+ * Whether the monthly amount the user typed is the one that will be sent. The
+ * field is hidden otherwise, and a value left behind in it must neither block
+ * the form nor be what its hint points at.
+ */
+function isMonthlyOverrideInUse(draft: SavingsGoalDraft): boolean {
+  return canDecompose(draft) ? draft.isDecomposed : usesManualMonthly(draft);
+}
+
+export function isSavingsGoalDraftSubmittable(
+  draft: SavingsGoalDraft,
+  bounds: TargetDateBounds = targetDateBounds(null),
+): boolean {
+  if (draft.initialAmount !== null && draft.initialAmount < 0) return false;
+  return savingsGoalDraftHint(draft, bounds) === null;
+}
+
+export type SavingsGoalDraftProblem =
+  | "name"
+  | "target"
+  | "dates"
+  | "pastDeadline"
+  | "monthly";
+
+/**
+ * Why the form cannot be sent, in the order the fields read. Every reason the
+ * button is disabled has one, so a greyed-out button is never left unexplained.
+ */
 export function savingsGoalDraftHint(
   draft: SavingsGoalDraft,
+  bounds: TargetDateBounds = targetDateBounds(null),
 ): SavingsGoalDraftProblem | null {
   if (draft.name.trim() === "") return "name";
   if (draft.targetAmount !== null && draft.targetAmount <= 0) {
     return "target";
   }
+  // ISO `YYYY-MM-DD` compares lexicographically the way it compares in time.
   if (
     draft.startDate !== null &&
     draft.targetDate !== null &&
     draft.startDate > draft.targetDate
   ) {
     return "dates";
+  }
+  if (draft.targetDate !== null && draft.targetDate < bounds.earliest) {
+    return "pastDeadline";
+  }
+  if (
+    isMonthlyOverrideInUse(draft) &&
+    draft.monthlyOverride !== null &&
+    draft.monthlyOverride <= 0
+  ) {
+    return "monthly";
   }
   return null;
 }

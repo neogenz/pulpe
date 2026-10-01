@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { useTheme } from "react-native-paper";
 
+import { AmountMaskBoundary } from "@/core/ui/amount-mask-boundary";
 import { RequiredSettingsGate } from "@/core/user-settings/required-settings-gate";
 
 /**
@@ -25,6 +26,15 @@ export default function MainLayout() {
           headerShown: false,
           contentStyle: { backgroundColor: theme.colors.background },
         }}
+        // The tabs remount their own screens, and the settings print no amount —
+        // remounting them would throw away the very screen the toggle is on.
+        screenLayout={({ route, children }) =>
+          route.name === "(tabs)" || route.name.startsWith("settings") ? (
+            children
+          ) : (
+            <AmountMaskBoundary>{children}</AmountMaskBoundary>
+          )
+        }
       />
     </RequiredSettingsGate>
   );

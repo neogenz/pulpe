@@ -3,8 +3,13 @@ import type { BudgetSparse } from "pulpe-shared";
 import {
   type BudgetYearSection,
   budgetsInPeriodOrder,
+  budgetsOfYear,
+  budgetYears,
   budgetYearSections,
   currentBudgetLocation,
+  initialBudgetYear,
+  nextMissingMonth,
+  yearRecap,
 } from "./budget-list-selectors";
 
 function budget(month: number, year: number): BudgetSparse {
@@ -145,5 +150,59 @@ describe("budgetsInPeriodOrder", () => {
         (row) => row.id,
       ),
     ).toEqual(["budget-2026-8"]);
+  });
+});
+
+describe("the year view", () => {
+  const current = { year: 2026, month: 10 };
+  const yearBudget = (
+    year: number,
+    month: number,
+    remaining = 0,
+  ): BudgetSparse => ({ id: `${year}-${month}`, year, month, remaining });
+
+  it("lists every budgeted year once, oldest first", () => {
+    expect(
+      budgetYears([
+        yearBudget(2027, 1),
+        yearBudget(2026, 10),
+        yearBudget(2026, 3),
+      ]),
+    ).toEqual([2026, 2027]);
+  });
+
+  it("opens on the year being lived in, or the latest one planned", () => {
+    expect(initialBudgetYear([2025, 2026, 2027], current)).toBe(2026);
+    expect(initialBudgetYear([2027, 2028], current)).toBe(2028);
+    expect(initialBudgetYear([], current)).toBe(2026);
+  });
+
+  it("reads a year January first and closes it on its last month", () => {
+    const year = budgetsOfYear(
+      [
+        yearBudget(2026, 11, 300),
+        yearBudget(2025, 12),
+        yearBudget(2026, 2, 100),
+      ],
+      2026,
+    );
+
+    expect(year.map((row) => row.month)).toEqual([2, 11]);
+    expect(yearRecap(year)).toEqual({ closingBalance: 300, budgetedMonths: 2 });
+  });
+
+  it("offers the first month still missing from today on", () => {
+    const year = [yearBudget(2026, 10), yearBudget(2026, 11)];
+
+    expect(nextMissingMonth(year, 2026, current)).toBe(12);
+    expect(nextMissingMonth([], 2027, current)).toBe(1);
+    expect(nextMissingMonth([], 2025, current)).toBeNull();
+    expect(
+      nextMissingMonth(
+        [10, 11, 12].map((month) => yearBudget(2026, month)),
+        2026,
+        current,
+      ),
+    ).toBeNull();
   });
 });

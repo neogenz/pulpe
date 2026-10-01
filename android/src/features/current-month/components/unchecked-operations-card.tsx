@@ -4,9 +4,9 @@ import { StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 
 import { IconDisc } from "@/core/ui/icon-disc";
-import { Eyebrow } from "@/core/ui/eyebrow";
 import { hapticCommit, hapticSelection } from "@/core/ui/haptics";
 import { Amount } from "@/core/ui/amount";
+import { SectionHeader } from "@/core/ui/section-header";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { EMPHASIS, RADIUS, SPACING } from "@/core/ui/theme";
@@ -34,6 +34,8 @@ interface UncheckedOperationsCardProps {
   currency: SupportedCurrency;
   isSyncing: boolean;
   onToggle: (item: CheckableItem) => void;
+  /** Opens the budget, where every operation of the month can be pointed. */
+  onViewAll?: () => void;
 }
 
 /**
@@ -41,14 +43,16 @@ interface UncheckedOperationsCardProps {
  * five checkboxes is a chore; one question with "C'est passé" and "Plus tard"
  * is a habit — which is the whole point of pointing.
  *
- * The one tinted container under the hero: everything else on the page sits
- * on the background as rows, so the eye lands here, on the one thing to do.
+ * A titled block like every other section of the page — the title on the
+ * canvas, the question on a card — with the operation's position in the queue
+ * so "Plus tard" is seen to move somewhere.
  */
 export function UncheckedOperationsCard({
   items,
   currency,
   isSyncing,
   onToggle,
+  onViewAll,
 }: UncheckedOperationsCardProps) {
   const theme = useTheme();
   const financial = useFinancialColors();
@@ -69,7 +73,7 @@ export function UncheckedOperationsCard({
   if (current === undefined) return null;
 
   const accent = financial[KIND_ACCENTS[current.kind]];
-  const ink = theme.colors.onSecondaryContainer;
+  const position = items.findIndex((item) => item.id === current.id) + 1;
 
   function handleConfirm() {
     // `commit`, not `success`: nothing has succeeded yet. The buzz that says
@@ -90,83 +94,100 @@ export function UncheckedOperationsCard({
   }
 
   return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: theme.colors.secondaryContainer },
-      ]}
-    >
-      <Eyebrow style={{ color: ink }}>
-        {`${t("home.checking.title")} · ${items.length}`}
-      </Eyebrow>
+    <View style={styles.section}>
+      <SectionHeader
+        title={t("home.checking.title")}
+        count={items.length}
+        link={
+          onViewAll === undefined
+            ? undefined
+            : { label: t("home.activity.viewAll"), onPress: onViewAll }
+        }
+      />
 
-      <View style={styles.operation}>
-        <IconDisc name={KIND_ICONS[current.kind]} tint={accent} />
+      <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+        <View style={styles.operation}>
+          <IconDisc name={KIND_ICONS[current.kind]} tint={accent} />
 
-        <View style={styles.labels}>
-          <Text variant="bodyLarge" numberOfLines={1} style={{ color: ink }}>
-            {current.name}
-          </Text>
-          <Text variant="labelMedium" style={{ color: ink }}>
-            {current.subtitle.kind === "date"
-              ? formatDayMonth(new Date(current.subtitle.value), locale)
-              : recurrenceLabel(t, current.subtitle.value)}
-          </Text>
+          <View style={styles.labels}>
+            <Text variant="titleMedium" numberOfLines={1}>
+              {current.name}
+            </Text>
+            <Text
+              variant="bodyMedium"
+              numberOfLines={1}
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {current.subtitle.kind === "date"
+                ? formatDayMonth(new Date(current.subtitle.value), locale)
+                : recurrenceLabel(t, current.subtitle.value)}
+            </Text>
+          </View>
+
+          <Amount size="row" numberOfLines={1}>
+            {formatCompactCurrency(current.amount, currency)}
+          </Amount>
         </View>
 
-        <Amount size="row" numberOfLines={1} style={{ color: ink }}>
-          {formatCompactCurrency(current.amount, currency)}
-        </Amount>
-      </View>
+        <View
+          style={[
+            styles.divider,
+            { backgroundColor: theme.colors.outlineVariant },
+          ]}
+        />
 
-      {/* The wait is worn by the controls, not by the card: dimming the whole
-          thing took the question — name, subtitle, amount — to 2.23:1, and
-          the operation someone is being asked about has to stay readable
-          while the answer is in flight. Both buttons are `disabled` anyway,
-          which is the state opacity is allowed to express. */}
-      {/* `contained`, not `contained-tonal`: a tonal button is painted in
-          `secondaryContainer`, the very colour of the card it sits on. */}
-      <View style={[styles.actions, isSyncing && styles.syncing]}>
-        <Button
-          mode="text"
-          textColor={ink}
-          disabled={isSyncing}
-          onPress={handleSkip}
-          accessibilityLabel={t("home.checking.laterAccessibility", {
-            name: current.name,
-          })}
-        >
-          {t("home.checking.later")}
-        </Button>
-        <Button
-          mode="contained"
-          icon="check"
-          disabled={isSyncing}
-          onPress={handleConfirm}
-          accessibilityLabel={t("home.checking.confirmAccessibility", {
-            name: current.name,
-          })}
-        >
-          {t("home.checking.confirm")}
-        </Button>
+        {/* The wait is worn by the controls, not by the card: dimming the whole
+            thing took the question — name, subtitle, amount — to 2.23:1, and
+            the operation someone is being asked about has to stay readable
+            while the answer is in flight. Both buttons are `disabled` anyway,
+            which is the state opacity is allowed to express. */}
+        <View style={[styles.actions, isSyncing && styles.syncing]}>
+          <Button
+            mode="contained"
+            icon="check"
+            disabled={isSyncing}
+            onPress={handleConfirm}
+            accessibilityLabel={t("home.checking.confirmAccessibility", {
+              name: current.name,
+            })}
+          >
+            {t("home.checking.confirm")}
+          </Button>
+          {items.length > 1 && (
+            <Button
+              mode="text"
+              disabled={isSyncing}
+              onPress={handleSkip}
+              accessibilityLabel={t("home.checking.laterAccessibility", {
+                name: current.name,
+              })}
+            >
+              {t("home.checking.later")}
+            </Button>
+          )}
+          <Text
+            variant="labelLarge"
+            style={[styles.position, { color: theme.colors.onSurfaceVariant }]}
+          >
+            {`${position} / ${items.length}`}
+          </Text>
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  section: { gap: SPACING.sm + SPACING.xs },
   card: {
     borderRadius: RADIUS.card,
     padding: SPACING.md,
-    gap: SPACING.md,
+    gap: SPACING.sm + SPACING.xs,
   },
   syncing: { opacity: EMPHASIS.pending },
   operation: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
   labels: { flex: 1, gap: SPACING.xxs },
-  actions: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: SPACING.sm,
-  },
+  divider: { height: StyleSheet.hairlineWidth },
+  actions: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  position: { marginLeft: "auto" },
 });

@@ -85,7 +85,7 @@ it("renders nothing with nothing to point", async () => {
   expect(view.toJSON()).toBeNull();
 });
 
-it("is the only tinted container under the hero", () => {
+it("carries the question on the same paper as every other section", () => {
   const sources = [
     "unchecked-operations-card",
     "drift-card",
@@ -95,6 +95,6 @@ it("is the only tinted container under the hero", () => {
     readFileSync(`src/features/current-month/components/${name}.tsx`, "utf8"),
   );
 
-  expect(sources[0]).toContain("theme.colors.secondaryContainer");
-  expect(sources.join("\n")).not.toContain("surfaceVariant }");
+  expect(sources[0]).toContain("theme.colors.surface }");
+  expect(sources.join("\n")).not.toContain("secondaryContainer");
 });

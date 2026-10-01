@@ -15,7 +15,9 @@ describe("the financial and hero palettes", () => {
         const source = readFileSync(path, "utf8");
         return (
           source.includes("FINANCIAL_COLORS[") ||
-          source.includes("HOME_HERO_COLORS[")
+          source.includes("HERO_COLORS[") ||
+          source.includes("PREVIEW_COLORS[") ||
+          source.includes("SHEET_COLORS[")
         );
       });
 

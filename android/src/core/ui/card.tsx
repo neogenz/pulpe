@@ -1,12 +1,12 @@
 import type { ComponentProps } from "react";
-import { Card as PaperCard } from "react-native-paper";
+import { Card as PaperCard, useTheme } from "react-native-paper";
 
 import { RADIUS } from "@/core/ui/theme";
 
 type PaperCardProps = ComponentProps<typeof PaperCard>;
 
 /**
- * Every card in the app, at one radius.
+ * Every card in the app, at one radius and one fill.
  *
  * Paper derives a card's corner from `3 × roundness`, and the app's roundness
  * is 8 — so a Paper card came out at 24 while every card written by hand used
@@ -14,11 +14,21 @@ type PaperCardProps = ComponentProps<typeof PaperCard>;
  * is the whole of the "two apps stuck together" feeling, and it is invisible
  * in any single screenshot.
  *
+ * A contained card is Paper's `surfaceVariant`, a grey that disappears into
+ * the sage canvas. It takes `surface` instead — iOS's `surfaceContainerLowest`
+ * — so every card reads as the same sheet of paper the ledger cards are.
+ *
  * `borderRadius` in `style` wins over Paper's own, and Paper hands it down to
  * the content and the outline overlay too, so one value settles all three.
  */
 export function Card({ style, ...rest }: PaperCardProps) {
-  return <PaperCard {...rest} style={[{ borderRadius: RADIUS.card }, style]} />;
+  const theme = useTheme();
+  const fill =
+    rest.mode === "contained" ? { backgroundColor: theme.colors.surface } : {};
+
+  return (
+    <PaperCard {...rest} style={[{ borderRadius: RADIUS.card }, fill, style]} />
+  );
 }
 
 Card.Content = PaperCard.Content;

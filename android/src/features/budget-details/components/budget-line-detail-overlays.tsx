@@ -102,20 +102,44 @@ export const BudgetLineDetailOverlays = forwardRef<
 
   return (
     <>
-      <Notice
-        visible={hasToggleFailed}
-        onDismiss={() => setToggleFailed(false)}
-        action={{
-          label: t("common.close"),
-          onPress: () => setToggleFailed(false),
-        }}
-      >
-        {t("budgets.mutations.toggleError")}
-      </Notice>
-
-      <Notice visible={failure !== null} onDismiss={() => setFailure(null)}>
-        {failure === null ? "" : t(`budgets.actions.line.failure.${failure}`)}
-      </Notice>
+      {/* One slot, the most pressing news first: four snackbars sharing the
+          spot drew over one another. Lifted over the page's pinned action. */}
+      {removal.failure !== null ? (
+        <Notice clearsFooter visible onDismiss={removal.dismissFailure}>
+          {t(`budgets.mutations.removal.${removal.failure}Error`)}
+        </Notice>
+      ) : failure !== null ? (
+        <Notice clearsFooter visible onDismiss={() => setFailure(null)}>
+          {t(`budgets.actions.line.failure.${failure}`)}
+        </Notice>
+      ) : hasToggleFailed ? (
+        <Notice
+          clearsFooter
+          visible
+          onDismiss={() => setToggleFailed(false)}
+          action={{
+            label: t("common.close"),
+            onPress: () => setToggleFailed(false),
+          }}
+        >
+          {t("budgets.mutations.toggleError")}
+        </Notice>
+      ) : (
+        <Notice
+          clearsFooter
+          visible={removal.last !== null}
+          onDismiss={removal.forget}
+          action={{ label: t("budgets.mutations.undo"), onPress: removal.undo }}
+        >
+          {removal.undoable.length === 1
+            ? t("budgets.mutations.removal.removedOne", {
+                name: removal.last?.name,
+              })
+            : t("budgets.mutations.removal.removedMany", {
+                count: removal.undoable.length,
+              })}
+        </Notice>
+      )}
 
       <BudgetLineSheet
         key={line.updatedAt}
@@ -127,29 +151,6 @@ export const BudgetLineDetailOverlays = forwardRef<
         line={line}
         onSaved={() => setEditVisible(false)}
       />
-
-      <Notice
-        visible={removal.last !== null}
-        onDismiss={removal.forget}
-        action={{ label: t("budgets.mutations.undo"), onPress: removal.undo }}
-      >
-        {removal.undoable.length === 1
-          ? t("budgets.mutations.removal.removedOne", {
-              name: removal.last?.name,
-            })
-          : t("budgets.mutations.removal.removedMany", {
-              count: removal.undoable.length,
-            })}
-      </Notice>
-
-      <Notice
-        visible={removal.failure !== null}
-        onDismiss={removal.dismissFailure}
-      >
-        {removal.failure === null
-          ? ""
-          : t(`budgets.mutations.removal.${removal.failure}Error`)}
-      </Notice>
 
       <TransactionSheet
         isVisible={isAddVisible}
@@ -170,6 +171,8 @@ export const BudgetLineDetailOverlays = forwardRef<
           transaction={edited}
           onSaved={() => setEdited(null)}
           onDelete={() => removal.remove(edited, () => setEdited(null))}
+          isDeleting={removal.isPending}
+          hasDeleteFailed={removal.failure === "delete"}
         />
       )}
 

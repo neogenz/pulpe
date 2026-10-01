@@ -26,7 +26,7 @@ const mockBackHandlers: Parameters<typeof BackHandler.addEventListener>[1][] =
 const removeBackHandler = jest.fn();
 
 jest.mock("expo-router", () => ({
-  router: { back: jest.fn(), replace: jest.fn() },
+  router: { back: jest.fn(), dismissTo: jest.fn(), replace: jest.fn() },
 }));
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: jest.requireActual("react-native").View,
@@ -243,10 +243,13 @@ it("starts on twelve pay-day-aware periods and submits the shared payload", asyn
       data: { budgets: [{}, {}], skippedMonths: [{}] },
     }),
   );
-  expect(router.replace).toHaveBeenCalledWith({
+  // Pops back to the tabs this screen was pushed over: `replace` would stack
+  // a second tabs navigator, and back would walk through both.
+  expect(router.dismissTo).toHaveBeenCalledWith({
     pathname: "/budgets",
     params: { createdCount: "2", skippedCount: "1" },
   });
+  expect(router.replace).not.toHaveBeenCalled();
 });
 
 it("uses the month and year menus and blocks a reversed range", async () => {
@@ -338,5 +341,6 @@ it("renders loading, retryable failure and missing-template states", async () =>
   mockTemplates.data = [];
   await view.rerender(<PlanBudgetsScreen />);
   await fireEvent.press(view.getByText("budgets.plan.viewTemplates"));
-  expect(router.replace).toHaveBeenCalledWith("/templates");
+  expect(router.dismissTo).toHaveBeenCalledWith("/templates");
+  expect(router.replace).not.toHaveBeenCalled();
 });

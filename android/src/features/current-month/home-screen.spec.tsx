@@ -7,7 +7,7 @@ const mockRefresh = jest.fn(async () => undefined);
 const mockCurrentMonth = { status: "loading" } as Record<string, unknown>;
 const mockBudgets = { data: [] as unknown[] };
 const mockDeepLink = { isAddExpenseRequested: false };
-const mockToggle = { mutate: jest.fn(), isPending: false };
+const mockToggle = { mutateAsync: jest.fn(), isPending: false };
 const mockReminders = {
   isVisible: false,
   offer: jest.fn(),
@@ -82,28 +82,67 @@ jest.mock("react-native-paper", () => {
     useTheme: () => ({
       colors: { background: "white", onSurfaceVariant: "gray" },
     }),
+    SegmentedButtons: () => null,
   };
 });
-jest.mock("@/core/ui/tab-header", () => {
-  const { Text, View } = jest.requireActual("react-native");
+jest.mock("@/core/ui/hero", () => {
+  const { Pressable, Text, View } = jest.requireActual("react-native");
+  const Children = ({ children }: { children: React.ReactNode }) => (
+    <View>{children}</View>
+  );
   return {
-    TabHeader: ({
+    HeroAppBar: ({
       title,
-      trailing,
+      children,
     }: {
       title: string;
-      trailing?: React.ReactNode;
+      children?: React.ReactNode;
     }) => (
       <View>
         <Text>{title}</Text>
-        {trailing}
+        {children}
       </View>
+    ),
+    HeroAppBarAction: ({
+      onPress,
+      accessibilityLabel,
+      testID,
+    }: {
+      onPress: () => void;
+      accessibilityLabel: string;
+      testID: string;
+    }) => (
+      <Pressable
+        onPress={onPress}
+        testID={testID}
+        accessibilityLabel={accessibilityLabel}
+      />
+    ),
+    HeroZone: Children,
+    ContentZone: Children,
+  };
+});
+jest.mock("@/core/ui/action-button", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    ActionButton: ({
+      children,
+      onPress,
+      testID,
+    }: {
+      children: React.ReactNode;
+      onPress: () => void;
+      testID?: string;
+    }) => (
+      <Pressable onPress={onPress} testID={testID}>
+        <Text>{children}</Text>
+      </Pressable>
     ),
   };
 });
-jest.mock("@/core/ui/theme", () => ({
-  SPACING: { md: 16 },
-  FAB_CLEARANCE: 80,
+jest.mock("@/core/ui/theme", () => ({ SPACING: { md: 16 } }));
+jest.mock("@/core/ui/scheme-colors", () => ({
+  useHeroColors: () => ({ surface: "green", ink: "white" }),
 }));
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({ locale: "fr", t: (key: string) => key }),
@@ -299,7 +338,28 @@ it("renders loading, retryable failure and empty creation states", async () => {
   expect(router.push).toHaveBeenCalledWith("/budget/create");
 });
 
-it("opens addition from the FAB and a pending deep link", async () => {
+/**
+ * The account was only ever reachable from the home's header, which the empty
+ * and failed states used to drop — leaving no way to sign out or to fix the
+ * pay day that emptied the month in the first place.
+ */
+it.each(["loading", "failed", "empty"])(
+  "keeps the way to the account in the %s state",
+  async (status) => {
+    Object.assign(mockCurrentMonth, {
+      status,
+      viewModel: null,
+      refresh: mockRefresh,
+    });
+    const view = await render(<HomeScreen />);
+
+    await fireEvent.press(view.getByTestId("home-account"));
+
+    expect(router.push).toHaveBeenCalledWith("/settings");
+  },
+);
+
+it("opens addition from its action and a pending deep link", async () => {
   Object.assign(mockCurrentMonth, readyMonth());
   const view = await render(<HomeScreen />);
   await fireEvent.press(view.getByTestId("home-add-entry"));
@@ -314,21 +374,45 @@ it("opens addition from the FAB and a pending deep link", async () => {
 
 it("surfaces pointing and undo failures without hiding the recovery action", async () => {
   Object.assign(mockCurrentMonth, readyMonth());
+  mockToggle.mutateAsync.mockRejectedValueOnce(new Error("offline"));
   const view = await render(<HomeScreen />);
-  await fireEvent.press(view.getByText("point:item-1"));
-  const first = mockToggle.mutate.mock.calls[0][1] as {
-    onError: () => void;
-    onSuccess: () => void;
-  };
-  await act(() => first.onError());
-  expect(view.getByText("home.checking.pointFailure")).toBeTruthy();
 
-  await act(() => first.onSuccess());
-  expect(mockReminders.offer).toHaveBeenCalledTimes(1);
+  await fireEvent.press(view.getByText("point:item-1"));
+  await waitFor(() =>
+    expect(view.getByText("home.checking.pointFailure")).toBeTruthy(),
+  );
+
+  mockToggle.mutateAsync.mockResolvedValueOnce(undefined);
+  await fireEvent.press(view.getByText("point:item-1"));
+  await waitFor(() => expect(mockReminders.offer).toHaveBeenCalledTimes(1));
+
+  mockToggle.mutateAsync.mockRejectedValueOnce(new Error("offline"));
   await fireEvent.press(view.getByText("common.cancel"));
-  const undo = mockToggle.mutate.mock.calls[1][1] as { onError: () => void };
-  await act(() => undo.onError());
   await waitFor(() =>
     expect(view.getByText("home.checking.undoFailure")).toBeTruthy(),
   );
+});
+
+/**
+ * `mutate(vars, callbacks)` keeps only the latest call's callbacks: pointing a
+ * second operation before the first answered dropped the first one's failure.
+ */
+it("says a pointing failed even when another was asked for meanwhile", async () => {
+  Object.assign(mockCurrentMonth, readyMonth());
+  let failFirst: (error: Error) => void = () => undefined;
+  mockToggle.mutateAsync
+    .mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          failFirst = reject;
+        }),
+    )
+    .mockImplementationOnce(() => new Promise(() => undefined));
+  const view = await render(<HomeScreen />);
+
+  await fireEvent.press(view.getByText("point:item-1"));
+  await fireEvent.press(view.getByText("point:item-1"));
+  await act(async () => failFirst(new Error("offline")));
+
+  expect(view.getByText("home.checking.pointFailure")).toBeTruthy();
 });

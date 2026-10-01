@@ -2,11 +2,12 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { ComponentProps } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Button, Text, useTheme } from "react-native-paper";
+import { Text, useTheme } from "react-native-paper";
 
-import { SCREEN_PADDING, SPACING } from "./theme";
+import { ActionButton } from "./action-button";
+import { BRAND_TYPE, SPACING } from "./theme";
 
-const PLACEHOLDER_ICON_SIZE = 56;
+const PLACEHOLDER_ICON_SIZE = 48;
 
 interface PlaceholderScreenProps {
   /**
@@ -41,24 +42,30 @@ export function PlaceholderScreen({
         size={PLACEHOLDER_ICON_SIZE}
         color={theme.colors.onSurfaceVariant}
       />
-      <Text variant="headlineSmall" style={styles.centered}>
+      <Text
+        style={[
+          BRAND_TYPE.stateTitle,
+          styles.centered,
+          { color: theme.colors.onBackground },
+        ]}
+      >
         {title}
       </Text>
       <Text
-        variant="bodyMedium"
+        variant="bodyLarge"
         style={[styles.centered, { color: theme.colors.onSurfaceVariant }]}
       >
         {hint}
       </Text>
       {action !== undefined && (
-        <Button
-          mode="contained"
+        <ActionButton
           loading={action.loading}
           disabled={action.loading}
           onPress={action.onPress}
+          style={styles.action}
         >
           {action.label}
-        </Button>
+        </ActionButton>
       )}
     </SafeAreaView>
   );
@@ -69,8 +76,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: SCREEN_PADDING,
-    gap: SPACING.sm,
+    padding: SPACING.xl,
+    gap: SPACING.md,
   },
   centered: { textAlign: "center" },
+  action: { marginTop: SPACING.sm },
 });

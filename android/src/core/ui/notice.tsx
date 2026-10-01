@@ -1,18 +1,17 @@
 import type { ComponentProps } from "react";
 import { Snackbar, useTheme } from "react-native-paper";
 
-import { FAB_CLEARANCE } from "@/core/ui/theme";
+import { FOOTER_CLEARANCE } from "@/core/ui/theme";
 
 type SnackbarProps = ComponentProps<typeof Snackbar>;
 
 interface NoticeProps extends SnackbarProps {
   /**
-   * The screen underneath has a FAB. Android stacks by elevation before it
-   * stacks by tree order, so a FAB drawn at level 6 comes out on top of a
-   * snackbar at level 3 however late the snackbar is written — the way out is
-   * not to overlap it at all.
+   * The screen underneath pins its action to the bottom edge. A snackbar drawn
+   * over it hides the very button the page is for — the way out is not to
+   * overlap it at all.
    */
-  clearsFab?: boolean;
+  clearsFooter?: boolean;
 }
 
 /**
@@ -29,7 +28,7 @@ interface NoticeProps extends SnackbarProps {
  * read by other Paper components, and it is not wrong — only its use here was.
  */
 export function Notice({
-  clearsFab = false,
+  clearsFooter = false,
   wrapperStyle,
   ...rest
 }: NoticeProps) {
@@ -47,7 +46,10 @@ export function Notice({
     <Snackbar
       {...rest}
       theme={colors === undefined ? undefined : { colors }}
-      wrapperStyle={[clearsFab && { bottom: FAB_CLEARANCE }, wrapperStyle]}
+      wrapperStyle={[
+        clearsFooter && { bottom: FOOTER_CLEARANCE },
+        wrapperStyle,
+      ]}
     />
   );
 }

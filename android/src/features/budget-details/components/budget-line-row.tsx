@@ -3,13 +3,20 @@ import type { SupportedCurrency } from "pulpe-shared";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
-import { recurrenceLabel } from "@/core/ui/vocabulary";
+import { KIND_ICONS, recurrenceLabel } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
-import { Amount } from "@/core/ui/amount";
+import { IconDisc } from "@/core/ui/icon-disc";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
-import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
+import {
+  BRAND_TYPE,
+  ICON_SIZE,
+  ROW,
+  SPACING,
+  TABULAR_DIGITS,
+  TOUCH_TARGET,
+} from "@/core/ui/theme";
 
 import type { AmountAccent, LineItem } from "../budget-details-selectors";
 
@@ -26,8 +33,10 @@ interface BudgetLineRowProps {
 
 /**
  * One envelope: what it plans, what it has absorbed, and whether it has been
- * pointed. The amount on the right is already resolved by the selector — the
- * row only decides which ink it wears.
+ * pointed — `BudgetLineMixedRow` on iOS. The disc says the nature and is the
+ * pointing control; the metadata line says how it recurs and what it is tied
+ * to; the amount on the right is already resolved by the selector, the row only
+ * decides which ink it wears.
  */
 export function BudgetLineRow({
   item,
@@ -41,18 +50,18 @@ export function BudgetLineRow({
   const { t } = useTranslation();
   const ripple = useRipple();
   const financial = useFinancialColors();
-  const accent = accentColor(
-    item.accent,
-    financial,
-    theme.colors.onSurfaceVariant,
-  );
-  const dotColor = accentColor(
-    item.line.kind === "expense" && !item.isOverBudget
-      ? "expense"
-      : item.accent,
-    financial,
-    theme.colors.onSurfaceVariant,
-  );
+  const muted = theme.colors.onSurfaceVariant;
+  const accent = accentColor(item.accent, financial, muted);
+  // The disc wears the nature, whatever the amount beside it says: an income
+  // is blue, a saving green, an expense amber — burnt once it has overrun.
+  const discColor =
+    item.line.kind === "income"
+      ? financial.income
+      : item.line.kind === "saving"
+        ? financial.savings
+        : item.isOverBudget
+          ? financial.overBudget
+          : financial.expense;
   const amountSuffix =
     item.amountSuffix === null
       ? null
@@ -71,89 +80,61 @@ export function BudgetLineRow({
               ? formatCurrency(item.statusLabel.amount, currency)
               : undefined,
         });
+  const metadata = [
+    recurrenceLabel(t, item.line.recurrence),
+    // A spread month is one of a window, not something that comes back.
+    item.line.spreadGroupId != null ? t("budgets.detail.spread") : null,
+    item.line.savingsGoalId != null ? t("budgets.detail.goalShort") : null,
+    tagSummary,
+  ].filter((part): part is string => part !== null);
 
   return (
     <Pressable
       onPress={onPress}
       android_ripple={ripple}
-      style={[styles.row, { backgroundColor: theme.colors.surface }]}
+      style={styles.row}
       accessibilityRole="button"
       accessibilityHint={t("budgets.detail.openForecast")}
     >
-      {item.line.sourceSavingsGoalId == null && (
+      {/* A withdrawal planned from a goal is pointed where the goal is, so its
+          disc is a plain one: there is nothing to tick here. */}
+      {item.line.sourceSavingsGoalId == null ? (
         <PointCircle
           isChecked={item.isChecked}
-          color={dotColor}
+          color={discColor}
+          icon={KIND_ICONS[item.line.kind]}
           isSyncing={isSyncing}
           label={item.line.name}
           onToggle={onToggle}
         />
+      ) : (
+        <View style={styles.plainDisc}>
+          <IconDisc name={KIND_ICONS[item.line.kind]} tint={discColor} />
+        </View>
       )}
 
       <View style={styles.labels}>
-        <View style={styles.eyebrow}>
-          <Text
-            variant="labelSmall"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {recurrenceLabel(t, item.line.recurrence)}
-          </Text>
-          {/* A calendar, never a repeat arrow: a spread month is one of a
-              window, not something that comes back forever. */}
-          {item.line.spreadGroupId != null && (
-            <>
-              <MaterialCommunityIcons
-                name="calendar-multiple"
-                size={ICON_SIZE.xs}
-                color={theme.colors.onSurfaceVariant}
-              />
-              <Text
-                variant="labelSmall"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                {t("budgets.detail.spread")}
-              </Text>
-            </>
-          )}
-          {item.line.savingsGoalId != null && (
-            <>
-              <MaterialCommunityIcons
-                name="target"
-                size={ICON_SIZE.xs}
-                color={theme.colors.onSurfaceVariant}
-              />
-              <Text
-                variant="labelSmall"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                {t("budgets.detail.goalShort")}
-              </Text>
-            </>
-          )}
-        </View>
         <Text
-          variant="bodyLarge"
+          variant="titleMedium"
           numberOfLines={1}
-          style={item.isChecked && styles.struck}
+          style={[
+            { color: item.isChecked ? muted : theme.colors.onSurface },
+            item.isChecked && styles.struck,
+          ]}
         >
           {item.line.name}
         </Text>
-        {tagSummary !== null && (
-          <Text
-            variant="labelSmall"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {tagSummary}
-          </Text>
-        )}
+        <Text variant="bodySmall" numberOfLines={1} style={{ color: muted }}>
+          {metadata.join(" · ")}
+        </Text>
         {statusLabel !== null && (
           <Text
             variant="labelMedium"
-            style={{
-              color: item.isOverBudget
-                ? financial.overBudget
-                : theme.colors.onSurfaceVariant,
-            }}
+            numberOfLines={1}
+            style={[
+              styles.status,
+              { color: item.isOverBudget ? financial.overBudget : muted },
+            ]}
           >
             {statusLabel}
           </Text>
@@ -161,20 +142,27 @@ export function BudgetLineRow({
       </View>
 
       <View style={styles.amounts}>
-        <Amount size="row" style={{ color: accent }} numberOfLines={1}>
+        <Text
+          numberOfLines={1}
+          style={[BRAND_TYPE.rowAmount, TABULAR_DIGITS, { color: accent }]}
+        >
           {formatCurrency(item.displayAmount, currency)}
-        </Amount>
+        </Text>
         {amountSuffix !== null && (
-          <Amount size="meta" tone="muted" numberOfLines={1}>
+          <Text
+            variant="bodySmall"
+            numberOfLines={1}
+            style={[TABULAR_DIGITS, { color: muted }]}
+          >
             {amountSuffix}
-          </Amount>
+          </Text>
         )}
       </View>
 
       <MaterialCommunityIcons
         name="chevron-right"
         size={ICON_SIZE.md}
-        color={theme.colors.onSurfaceVariant}
+        color={muted}
       />
     </Pressable>
   );
@@ -195,25 +183,31 @@ function accentColor(
     case "overBudget":
       return palette.overBudget;
     case "warning":
-      return palette.expense;
+      return palette.warning;
     default:
       return neutral;
   }
 }
 
+/** Lines the disc up with the 16dp rail a `LedgerRow` keeps: (48 − 36) / 2. */
+const TARGET_INSET = (TOUCH_TARGET - ROW.disc) / 2;
+
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.xs,
-    paddingRight: SPACING.sm,
-    borderRadius: RADIUS.card,
+    gap: SPACING.sm + SPACING.xs - TARGET_INSET,
+    minHeight: ROW.minHeight,
+    paddingLeft: SPACING.md - TARGET_INSET,
+    paddingRight: SPACING.sm + SPACING.xs,
+    paddingVertical: SPACING.xs,
   },
-  // A pointed row is struck through and nothing else. Dimming the whole row on
-  // top of that took its amounts to 2.25:1 — the half of a month someone
-  // re-reads to check what has already gone through is not decoration.
+  plainDisc: {
+    width: TOUCH_TARGET,
+    alignItems: "center",
+  },
   struck: { textDecorationLine: "line-through" },
   labels: { flex: 1, gap: SPACING.xxs, paddingVertical: SPACING.sm },
-  eyebrow: { flexDirection: "row", alignItems: "center", gap: SPACING.xxs },
-  amounts: { alignItems: "flex-end", gap: SPACING.xxs },
+  status: { fontWeight: "700" },
+  amounts: { alignItems: "flex-end", gap: SPACING.xxs, maxWidth: "45%" },
 });

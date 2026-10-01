@@ -82,5 +82,6 @@ env:
     timeout: 60000
 - tapOn: "Commencer"
 - extendedWaitUntil:
-    visible: "Ajouter"
+    visible:
+      id: "home-add-entry"
     timeout: 30000

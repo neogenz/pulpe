@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { useTheme } from "react-native-paper";
 
+import { AmountMaskBoundary } from "@/core/ui/amount-mask-boundary";
 import { NavigationBar } from "@/core/ui/navigation-bar";
 import { useTranslation } from "@/core/i18n/locale-store";
 
@@ -20,6 +21,9 @@ export default function TabsLayout() {
   return (
     <Tabs
       tabBar={(props) => <NavigationBar {...props} />}
+      screenLayout={({ children }) => (
+        <AmountMaskBoundary>{children}</AmountMaskBoundary>
+      )}
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: theme.colors.background },

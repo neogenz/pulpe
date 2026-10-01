@@ -96,16 +96,21 @@
       "goalShort": "Ziel",
       "hero": {
         "accessibility": "%{state} %{amount}, %{percent} % verwendet",
-        "available": "Verfügbar",
+        "available": "Verfügbar zum Ausgeben",
         "deficit": "Defizit",
         "distribution": "Monatsaufteilung",
         "expenses": "Ausgaben",
         "income": "Einnahmen",
         "previousMonth": "den Vormonat",
         "rollover": "Übertrag aus dem Vormonat enthalten",
-        "rolloverNamed": "Übertrag enthalten · %{month}",
+        "rolloverNamed": "Übertrag aus %{month} enthalten",
         "savings": "Sparen",
-        "viewMonth": "%{month} anzeigen"
+        "viewMonth": "%{month} anzeigen",
+        "verdict": {
+          "comfortable": "Du hast diesen Monat Spielraum.",
+          "tight": "Dieser Monat ist etwas knapp.",
+          "deficit": "Du gibst diesen Monat mehr aus, als du verdienst."
+        }
       },
       "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",
       "loadErrorTitle": "Dieses Budget konnte nicht geladen werden",
@@ -129,7 +134,10 @@
         "toTransfer": "%{amount} noch zu übertragen",
         "transferred": "Übertragen"
       },
-      "withdrawnFrom": "Entnommen aus: %{name}"
+      "withdrawnFrom": "Entnommen aus: %{name}",
+      "addForecast": "Prognose hinzufügen",
+      "addActivity": "Ungeplanten Vorgang erfassen",
+      "tracking": "Budgetverlauf"
     },
     "actions": {
       "line": {
@@ -159,7 +167,13 @@
         "plannedAmount": "von %{amount} geplant",
         "postpone": "Auf nächsten Monat verschieben",
         "remaining": "%{amount} übrig",
-        "viewSpread": "Verteilte Monate anzeigen"
+        "viewSpread": "Verteilte Monate anzeigen",
+        "leftEyebrow": "Übrig",
+        "overrunEyebrow": "Überschreitung",
+        "notedOf": "%{noted} erfasst von %{planned} geplant",
+        "movements": "Bewegungen",
+        "emptyTitle": "Noch nichts erfasst",
+        "note": "Betrag erfassen"
       },
       "spread": {
         "complete": "Ziel erreicht",
@@ -309,7 +323,20 @@
       "planAccessibility": "Mehrere Budgets planen",
       "potential": "Potenzial",
       "result": "Ergebnis",
-      "title": "Budgets"
+      "title": "Budgets",
+      "yearBalance": "Saldo zum Jahresende",
+      "yearReview": "Jahresbilanz",
+      "budgetedMonths": "budgetierte Monate",
+      "verdict": {
+        "none": "Noch kein Monat budgetiert. Fang jetzt an.",
+        "all": "Du hast das ganze Jahr budgetiert. Bravo!",
+        "some": "Du hast %{count} von 12 Monaten des Jahres budgetiert."
+      },
+      "months": "Monate",
+      "yearSelector": "Jahr wählen",
+      "ongoing": "laufend",
+      "notCreated": "Noch kein Budget",
+      "createMonth": "Budget erstellen"
     },
     "plan": {
       "default": "Standard",
@@ -414,7 +441,8 @@
       "emptyTitle": "Lege dein erstes Ziel fest",
       "loadErrorTitle": "Deine Ziele konnten nicht geladen werden",
       "since": "Seit %{date}",
-      "title": "Sparziele"
+      "title": "Sparziele",
+      "section": "Ziele"
     },
     "intro": {
       "create": "Mein Ziel erstellen",
@@ -456,7 +484,9 @@
       "target": "Zielbetrag (optional)",
       "validation": {
         "dates": "Der Beginn darf nicht nach dem Zieldatum liegen.",
+        "monthly": "Die monatliche Ersparnis muss grösser als null sein.",
         "name": "Gib deinem Ziel einen Namen.",
+        "pastDeadline": "Das Zieldatum darf nicht in der Vergangenheit liegen.",
         "target": "Der Zielbetrag muss grösser als null sein."
       }
     },
@@ -466,7 +496,8 @@
       "futureLinesError": "Die zukünftigen Prognosen dieses Ziels konnten nicht geprüft werden.",
       "loadErrorTitle": "Dieses Ziel konnte nicht geladen werden",
       "missingHint": "Es wurde vielleicht auf einem anderen Gerät gelöscht.",
-      "missingTitle": "Dieses Ziel existiert nicht mehr"
+      "missingTitle": "Dieses Ziel existiert nicht mehr",
+      "statusError": "Der Status konnte nicht geändert werden. Versuch es nochmal."
     },
     "progress": {
       "achievementAccessibility": "%{percent} % des Ziels gespart",
@@ -649,7 +680,7 @@
       },
       "windowAccessibility": "Aktivität für %{window}"
     },
-    "add": "Hinzufügen",
+    "add": "Vorgang hinzufügen",
     "addAccessibility": "Eintrag hinzufügen",
     "checking": {
       "confirm": "Ist erfolgt",
@@ -671,16 +702,18 @@
       "overBy": "+%{amount} zu viel",
       "summary": "%{amount} über dem Plan",
       "summaryAbsorbed": "%{amount} über dem Plan, diesen Monat an anderer Stelle ausgeglichen",
-      "title": "Vom Plan abgewichen"
+      "title": "Vom Plan abgewichen",
+      "catchUp": "Diese %{amount} zu viel ausgleichen",
+      "catchUpHint": "Öffne das Budget, um deine Umschläge anzupassen"
     },
     "hero": {
       "chartAccessibility": "Geschätzter Saldo im Monatsverlauf im Vergleich zum Plan",
-      "detail": "Details ansehen",
+      "detail": "Budget ansehen",
       "detailAccessibility": "Budgetdetails ansehen",
-      "estimate": "Geschätzt Ende %{month} · %{currency}",
+      "estimate": "Geschätzt Ende %{month}",
       "metricsAccessibility": "%{count} offen, %{variance} gegenüber dem Plan",
       "metricsHint": "Übersicht der Ist-Werte öffnen",
-      "toCheck": "offen",
+      "toCheck": "Offen",
       "verdict": {
         "gain": "Dir bleibt mehr als geplant.",
         "gainDated": "Seit %{date} über deinem Plan.",
@@ -688,7 +721,7 @@
         "overrun": "Dir bleibt weniger als geplant.",
         "overrunDated": "Seit %{date} unter deinem Plan."
       },
-      "vsPlanned": "ggü. Plan",
+      "vsPlanned": "Abweichung vom Plan",
       "chart": {
         "today": "heute"
       }
@@ -1132,7 +1165,8 @@
       "openWeb": "Im Web öffnen",
       "title": "Vorlagen",
       "webBody": "Noch sind nicht alle Vorlagenaktionen hier verfügbar. Die Web-App bietet bei Bedarf den vollständigen Umfang.",
-      "webTitle": "Vorlagen: Android ist noch reduziert"
+      "webTitle": "Vorlagen: Android ist noch reduziert",
+      "section": "Vorlagen"
     },
     "form": {
       "create": "Vorlage erstellen",
@@ -1168,7 +1202,8 @@
       },
       "propagationTitle": "Auf folgende Monate anwenden?",
       "save": "Speichern",
-      "templateOnly": "Nur Vorlage"
+      "templateOnly": "Nur Vorlage",
+      "longPressHint": "Lange drücken zum Löschen"
     },
     "detail": {
       "addLine": "Prognose hinzufügen",
@@ -1193,7 +1228,8 @@
         "other": "%{count} Budgets aus dieser Vorlage erstellt"
       },
       "usageError": "Die mit dieser Vorlage verknüpften Budgets konnten nicht geprüft werden.",
-      "usageHint": "Das Löschen der Vorlage wirkt sich nicht auf diese Budgets aus."
+      "usageHint": "Das Löschen der Vorlage wirkt sich nicht auf diese Budgets aus.",
+      "summary": "Übersicht"
     }
   },
   "vault": {

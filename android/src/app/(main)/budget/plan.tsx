@@ -94,8 +94,12 @@ export default function PlanBudgetsScreen() {
         count,
       },
       {
+        // Pops back to the tabs this screen was pushed over and hands the
+        // counts to the Budgets tab already there. `replace` targets the
+        // (main) stack, so it would mint a second tabs navigator on top of
+        // the first, and back would walk through both.
         onSuccess: (response) =>
-          router.replace({
+          router.dismissTo({
             pathname: "/budgets",
             params: {
               createdCount: String(response.data.budgets.length),
@@ -147,7 +151,10 @@ export default function PlanBudgetsScreen() {
           <Text style={{ color: theme.colors.onSurfaceVariant }}>
             {t("budgets.plan.noTemplatesHint")}
           </Text>
-          <Button mode="contained" onPress={() => router.replace("/templates")}>
+          <Button
+            mode="contained"
+            onPress={() => router.dismissTo("/templates")}
+          >
             {t("budgets.plan.viewTemplates")}
           </Button>
         </View>

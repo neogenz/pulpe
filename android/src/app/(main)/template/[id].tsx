@@ -19,8 +19,13 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Card } from "@/core/ui/card";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { ActionButton } from "@/core/ui/action-button";
+import { IconDisc } from "@/core/ui/icon-disc";
+import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
+import { SectionHeader } from "@/core/ui/section-header";
+import { StateChip } from "@/core/ui/state-chip";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useAmountMasking } from "@/core/ui/amount-visibility";
@@ -58,6 +63,7 @@ export default function TemplateDetailScreen() {
   useAmountMasking();
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const financial = useFinancialColors();
   const { locale, t } = useTranslation();
   const settings = useUserSettings();
   const template = useTemplate(id);
@@ -181,34 +187,56 @@ export default function TemplateDetailScreen() {
           />
         }
       >
-        {template.data.isDefault === true && (
-          <View style={styles.badgeRow}>
-            <Chip compact icon="star">
-              {t("templates.form.default")}
-            </Chip>
+        {(template.data.isDefault === true ||
+          (template.data.description !== undefined &&
+            template.data.description.length > 0)) && (
+          <View style={styles.identity}>
+            {template.data.description !== undefined &&
+              template.data.description.length > 0 && (
+                <Text
+                  variant="bodyLarge"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {template.data.description}
+                </Text>
+              )}
+            {template.data.isDefault === true && (
+              <StateChip tint={financial.savings} icon="check-circle">
+                {t("templates.form.default")}
+              </StateChip>
+            )}
           </View>
         )}
 
-        <Card mode="contained">
-          <Card.Content style={styles.totals}>
+        <View style={styles.section}>
+          <SectionHeader title={t("templates.detail.summary")} />
+          <LedgerCard>
             <TotalRow
+              icon="arrow-down"
+              tint={financial.income}
               label={t("templates.detail.income")}
               amount={totals.totalIncome}
               currency={currency}
             />
             <TotalRow
+              icon="arrow-up"
+              tint={financial.expense}
               label={t("templates.detail.outgoing")}
               amount={totals.totalExpenses}
               currency={currency}
             />
             <TotalRow
+              icon="scale-balance"
+              tint={
+                totals.balance < 0 ? financial.overBudget : financial.savings
+              }
               label={t("templates.detail.balance")}
               amount={totals.balance}
               currency={currency}
               isEmphasised
             />
-          </Card.Content>
-        </Card>
+          </LedgerCard>
+        </View>
 
         {list.length === 0 ? (
           <Text
@@ -218,7 +246,10 @@ export default function TemplateDetailScreen() {
             {t("templates.detail.empty")}
           </Text>
         ) : (
-          <View pointerEvents={isUsageReady ? "auto" : "none"}>
+          <View
+            pointerEvents={isUsageReady ? "auto" : "none"}
+            style={styles.sections}
+          >
             <TemplateLines
               lines={list}
               currency={currency}
@@ -229,14 +260,14 @@ export default function TemplateDetailScreen() {
           </View>
         )}
 
-        <Button
-          mode="outlined"
+        <ActionButton
+          variant="secondary"
           icon="plus"
           disabled={!isUsageReady}
           onPress={() => setAdding(true)}
         >
           {t("templates.detail.addLine")}
-        </Button>
+        </ActionButton>
 
         {usage.isError && (
           <InlineQueryError
@@ -247,11 +278,11 @@ export default function TemplateDetailScreen() {
 
         {usage.data !== undefined && usage.data.budgets.length > 0 && (
           <View style={styles.usage}>
-            <Text variant="titleSmall">
-              {t("templates.detail.usageCount", {
+            <SectionHeader
+              title={t("templates.detail.usageCount", {
                 count: usage.data.budgets.length,
               })}
-            </Text>
+            />
             {/* A scrolling row of destinations, not a column of read-only text:
                 twenty-five months printed one per line filled the screen with
                 something nothing could be done with. Each one opens now. */}
@@ -403,47 +434,43 @@ export default function TemplateDetailScreen() {
 }
 
 function TotalRow({
+  icon,
+  tint,
   label,
   amount,
   currency,
   isEmphasised = false,
 }: {
+  icon: "arrow-down" | "arrow-up" | "scale-balance";
+  tint: string;
   label: string;
   amount: number;
   currency: SupportedCurrency;
   isEmphasised?: boolean;
 }) {
-  const theme = useTheme();
-
   return (
-    <View style={styles.totalRow}>
-      <Text
-        variant={isEmphasised ? "titleSmall" : "bodyMedium"}
-        style={
-          isEmphasised ? undefined : { color: theme.colors.onSurfaceVariant }
-        }
-      >
-        {label}
-      </Text>
-      <Amount size={isEmphasised ? "row" : "meta"}>
-        {formatCompactCurrency(amount, currency)}
-      </Amount>
-    </View>
+    <LedgerRow
+      leading={<IconDisc name={icon} tint={tint} />}
+      title={label}
+      trailing={
+        <Amount
+          size={isEmphasised ? "row" : "meta"}
+          style={isEmphasised ? { color: tint } : undefined}
+        >
+          {formatCompactCurrency(amount, currency)}
+        </Amount>
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
-  badgeRow: { flexDirection: "row" },
-  totals: { gap: SPACING.xs },
-  totalRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-    gap: SPACING.md,
-  },
+  content: { padding: SPACING.md, gap: SPACING.lg, paddingBottom: SPACING.xxl },
+  identity: { gap: SPACING.sm },
+  sections: { gap: SPACING.lg },
+  section: { gap: SPACING.sm },
   usage: { gap: SPACING.sm },
   // The rail reaches the display edges from inside a gutter-padded scroll view,
   // then restores that gutter as its own content padding.

@@ -63,9 +63,12 @@ export function SettingsRow({
             icon={isExternal ? "open-in-new" : "chevron-right"}
           />
         ) : (
+          // One line, never shrunk to a word per line: "Le 1er" broke in two
+          // beside a description that took the room first.
           <Text
             {...props}
             variant="labelLarge"
+            numberOfLines={1}
             style={[props.style, styles.value]}
           >
             {value}
@@ -81,5 +84,5 @@ export function SettingsRow({
 const styles = StyleSheet.create({
   section: { gap: SPACING.sm },
   rows: { paddingVertical: SPACING.xxs },
-  value: { alignSelf: "center" },
+  value: { alignSelf: "center", flexShrink: 0, maxWidth: "40%" },
 });

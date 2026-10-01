@@ -5,6 +5,8 @@ import { clearAllKeys } from "@/core/crypto/client-key-manager";
 import { languageWriter } from "@/core/i18n/language-writer";
 import { clearLocaleSnapshot } from "@/core/i18n/locale-store";
 import { forgetLandingPreference } from "@/core/navigation/landing-preference";
+import { writeRemindersEnabled } from "@/core/notifications/reminder-flags";
+import { cancelMonthlyReminder } from "@/core/notifications/scheduler";
 import { queryClient } from "@/core/query/query-client";
 import { resetVault } from "@/core/vault/vault-store";
 
@@ -128,6 +130,10 @@ async function purgeLocalAccountData(): Promise<void> {
     () => clearLocaleSnapshot(),
     () => resetVault(),
     () => forgetLandingPreference(),
+    // The reminder is the departing account's opt-in: left armed, it kept
+    // firing after sign-out, and the next account on the device inherited it.
+    () => cancelReminder(),
+    () => writeRemindersEnabled(false),
     () => clearAllKeys(),
   ];
 
@@ -140,6 +146,18 @@ async function purgeLocalAccountData(): Promise<void> {
   }
 
   if (firstError !== null) throw firstError;
+}
+
+/**
+ * Nothing scheduled is not a failed purge: the cancel can reject when no
+ * reminder was ever armed, and that must not surface as a sign-out error.
+ */
+async function cancelReminder(): Promise<void> {
+  try {
+    await cancelMonthlyReminder();
+  } catch {
+    // Already gone, or never there — either way nothing is left to fire.
+  }
 }
 
 /** The only purge operation, shared by explicit and provider-driven sign-out. */

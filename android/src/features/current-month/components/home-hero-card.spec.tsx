@@ -60,7 +60,9 @@ function renderHero(props: Partial<React.ComponentProps<typeof HomeHeroCard>>) {
       period={period}
       monthName="août 2026"
       uncheckedCount={3}
+      daysRemaining={12}
       currency="CHF"
+      onPressUnchecked={jest.fn()}
       onPressMetrics={jest.fn()}
       {...props}
     />,
@@ -79,19 +81,36 @@ it("shows the estimate, the verdict and the three chart captions", async () => {
   expect(view.getByText("25 juillet")).toBeTruthy();
   expect(view.getByText("home.hero.chart.today")).toBeTruthy();
   expect(view.getByText("24 août")).toBeTruthy();
-  expect(view.queryByText("home.prepareNextMonth")).toBeNull();
 
   await fireEvent.press(view.getByHintText("home.hero.metricsHint"));
   expect(onPressMetrics).toHaveBeenCalledTimes(1);
 });
 
-it("offers the next month from its footer when one can be prepared", async () => {
-  const onPrepareNextMonth = jest.fn();
-  const view = await renderHero({ onPrepareNextMonth });
+it("brings the operations to point into view from the count tile", async () => {
+  const onPressUnchecked = jest.fn();
+  const view = await renderHero({ onPressUnchecked });
 
-  await fireEvent.press(view.getByText("home.prepareNextMonth"));
+  await fireEvent.press(view.getByLabelText("3 home.hero.toCheck"));
 
-  expect(onPrepareNextMonth).toHaveBeenCalledTimes(1);
+  expect(onPressUnchecked).toHaveBeenCalledTimes(1);
+});
+
+it("does not offer to scroll to operations when none is left to point", async () => {
+  const onPressUnchecked = jest.fn();
+  const view = await renderHero({ uncheckedCount: 0, onPressUnchecked });
+
+  expect(
+    view.getByLabelText("0 home.hero.toCheck").props.accessibilityRole,
+  ).toBeUndefined();
+});
+
+it("names the way into the budget at the end of its verdict", async () => {
+  const onPressDetail = jest.fn();
+  const view = await renderHero({ onPressDetail });
+
+  await fireEvent.press(view.getByLabelText("home.hero.detailAccessibility"));
+
+  expect(onPressDetail).toHaveBeenCalledTimes(1);
 });
 
 it("keeps the captions while the amounts are masked", async () => {

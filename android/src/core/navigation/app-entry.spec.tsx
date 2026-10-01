@@ -47,6 +47,9 @@ jest.mock("expo-router", () => {
     Redirect: ({ href }: { href: string }) => <Text>{`redirect:${href}`}</Text>,
   };
 });
+jest.mock("@/core/system/route-status-bar", () => ({
+  RouteStatusBar: () => null,
+}));
 jest.mock("@tanstack/react-query", () => ({
   QueryClientProvider: ({ children }: { children: React.ReactNode }) =>
     children,

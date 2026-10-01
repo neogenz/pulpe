@@ -72,6 +72,14 @@ interface TransactionSheetProps {
   envelope?: EnvelopeTarget;
   onSaved: () => void;
   onDelete?: () => void;
+  /**
+   * The deletion asked from this sheet is in flight. The sheet is a separate
+   * window above the screen, so it has to say so itself: the screen's own
+   * notices are drawn underneath it.
+   */
+  isDeleting?: boolean;
+  /** The deletion asked from this sheet failed and can be asked again. */
+  hasDeleteFailed?: boolean;
 }
 
 /**
@@ -93,6 +101,8 @@ export function TransactionSheet({
   envelope,
   onSaved,
   onDelete,
+  isDeleting = false,
+  hasDeleteFailed = false,
 }: TransactionSheetProps) {
   const theme = useTheme();
   const { locale, t } = useTranslation();
@@ -114,6 +124,17 @@ export function TransactionSheet({
   const [generation, setGeneration] = useState(0);
   const draft: TransactionDraft = { ...form, budgetId };
   const isEditing = transaction !== undefined;
+  // A sheet that stays mounted keeps the day it was mounted on: opened two
+  // days later, it booked the operation on the wrong day — possibly in the
+  // previous month — unless the user happened to look at the date. A new
+  // operation is dated the day the sheet opens.
+  const [wasVisible, setWasVisible] = useState(isVisible);
+  if (isVisible !== wasVisible) {
+    setWasVisible(isVisible);
+    if (isVisible && !isEditing) {
+      setForm((current) => ({ ...current, day: new Date() }));
+    }
+  }
   const mutation = isEditing ? update : create;
   // An allocated operation must keep its envelope's kind: the server refuses
   // the mismatch, and the envelope is the reason the user opened this form.
@@ -203,7 +224,7 @@ export function TransactionSheet({
       <FormModal
         isVisible={isVisible}
         onDismiss={dismiss}
-        isBusy={mutation.isPending}
+        isBusy={mutation.isPending || isDeleting}
         title={t(
           `budgets.mutations.activity.${isEditing ? "editTitle" : "createTitle"}`,
         )}
@@ -245,14 +266,25 @@ export function TransactionSheet({
             )}
 
             {onDelete !== undefined && isEditing && (
-              <Button
-                mode="text"
-                icon="trash-can-outline"
-                textColor={theme.colors.error}
-                onPress={onDelete}
-              >
-                {t("budgets.mutations.delete")}
-              </Button>
+              <>
+                {hasDeleteFailed && (
+                  <FieldError visible>
+                    {t("budgets.mutations.removal.deleteError")}
+                  </FieldError>
+                )}
+                <Button
+                  mode="text"
+                  icon="trash-can-outline"
+                  textColor={theme.colors.error}
+                  onPress={onDelete}
+                  // One request at a time: a second tap used to send a second
+                  // DELETE for a row the first one had already removed.
+                  disabled={isDeleting || mutation.isPending}
+                  loading={isDeleting}
+                >
+                  {t("budgets.mutations.delete")}
+                </Button>
+              </>
             )}
           </>
         }

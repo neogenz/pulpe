@@ -4,7 +4,7 @@ import type {
   Transaction,
 } from "pulpe-shared";
 import { forwardRef, useImperativeHandle, useState } from "react";
-import { FAB, Menu, useTheme } from "react-native-paper";
+import { Menu, useTheme } from "react-native-paper";
 
 import { Notice } from "@/core/ui/notice";
 import { useTranslation } from "@/core/i18n/locale-store";
@@ -17,6 +17,8 @@ import { SavingsWithdrawalSheet } from "../savings-withdrawal/components/savings
 import { BudgetLineSheet } from "./budget-line-sheet";
 
 export interface BudgetDetailOverlaysHandle {
+  addLine: () => void;
+  addTransaction: () => void;
   editTransaction: (transaction: Transaction) => void;
   showTransactionMenu: (
     transaction: Transaction,
@@ -45,7 +47,6 @@ export const BudgetDetailOverlays = forwardRef<
 ) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const [isFabOpen, setFabOpen] = useState(false);
   const [isLineSheetVisible, setLineSheetVisible] = useState(false);
   const [isTransactionSheetVisible, setTransactionSheetVisible] =
     useState(false);
@@ -67,6 +68,8 @@ export const BudgetDetailOverlays = forwardRef<
   const removal = useTransactionRemoval();
 
   useImperativeHandle(ref, () => ({
+    addLine: () => setLineSheetVisible(true),
+    addTransaction: () => setTransactionSheetVisible(true),
     editTransaction: setEdited,
     showTransactionMenu: (transaction, anchor) =>
       setContextual({ transaction, anchor }),
@@ -77,50 +80,48 @@ export const BudgetDetailOverlays = forwardRef<
 
   return (
     <>
-      {/* The owning route reserves FAB_CLEARANCE below its virtualized list. */}
-      <FAB.Group
-        open={isFabOpen}
-        visible={
-          !isLineSheetVisible && !isTransactionSheetVisible && edited === null
-        }
-        icon={isFabOpen ? "close" : "plus"}
-        onStateChange={({ open }) => setFabOpen(open)}
-        actions={[
-          {
-            icon: "calendar-check",
-            label: t("budgets.mutations.forecastAction"),
-            onPress: () => setLineSheetVisible(true),
-          },
-          {
-            icon: "cash",
-            label: t("budgets.mutations.activityAction"),
-            onPress: () => setTransactionSheetVisible(true),
-          },
-        ]}
-        accessibilityLabel={t("budgets.mutations.add")}
-      />
-
-      <Notice
-        clearsFab
-        visible={savedMessage !== null}
-        onDismiss={() => setSavedMessage(null)}
-      >
-        {savedMessage === null
-          ? ""
-          : t(`budgets.mutations.outcome.${savedMessage}`)}
-      </Notice>
-
-      <Notice
-        clearsFab
-        visible={hasToggleFailed}
-        onDismiss={() => setToggleFailed(false)}
-        action={{
-          label: t("common.close"),
-          onPress: () => setToggleFailed(false),
-        }}
-      >
-        {t("budgets.mutations.toggleError")}
-      </Notice>
+      {/* One slot, the most pressing news first. Four snackbars in the same
+          spot drew over one another — a failure could hide under the "Annuler"
+          of a deletion, or a confirmation over it. */}
+      {removal.failure !== null ? (
+        <Notice visible onDismiss={removal.dismissFailure}>
+          {t(`budgets.mutations.removal.${removal.failure}Error`)}
+        </Notice>
+      ) : hasToggleFailed ? (
+        <Notice
+          visible
+          onDismiss={() => setToggleFailed(false)}
+          action={{
+            label: t("common.close"),
+            onPress: () => setToggleFailed(false),
+          }}
+        >
+          {t("budgets.mutations.toggleError")}
+        </Notice>
+      ) : removal.last !== null ? (
+        <Notice
+          visible
+          onDismiss={removal.forget}
+          action={{ label: t("budgets.mutations.undo"), onPress: removal.undo }}
+        >
+          {removal.undoable.length === 1
+            ? t("budgets.mutations.removal.removedOne", {
+                name: removal.last?.name,
+              })
+            : t("budgets.mutations.removal.removedMany", {
+                count: removal.undoable.length,
+              })}
+        </Notice>
+      ) : (
+        <Notice
+          visible={savedMessage !== null}
+          onDismiss={() => setSavedMessage(null)}
+        >
+          {savedMessage === null
+            ? ""
+            : t(`budgets.mutations.outcome.${savedMessage}`)}
+        </Notice>
+      )}
 
       <BudgetLineSheet
         isVisible={isLineSheetVisible}
@@ -158,6 +159,8 @@ export const BudgetDetailOverlays = forwardRef<
             setSavedMessage("activityUpdated");
           }}
           onDelete={() => removal.remove(edited, () => setEdited(null))}
+          isDeleting={removal.isPending}
+          hasDeleteFailed={removal.failure === "delete"}
         />
       )}
 
@@ -184,31 +187,6 @@ export const BudgetDetailOverlays = forwardRef<
           }}
         />
       </Menu>
-
-      <Notice
-        clearsFab
-        visible={removal.last !== null}
-        onDismiss={removal.forget}
-        action={{ label: t("budgets.mutations.undo"), onPress: removal.undo }}
-      >
-        {removal.undoable.length === 1
-          ? t("budgets.mutations.removal.removedOne", {
-              name: removal.last?.name,
-            })
-          : t("budgets.mutations.removal.removedMany", {
-              count: removal.undoable.length,
-            })}
-      </Notice>
-
-      <Notice
-        clearsFab
-        visible={removal.failure !== null}
-        onDismiss={removal.dismissFailure}
-      >
-        {removal.failure === null
-          ? ""
-          : t(`budgets.mutations.removal.${removal.failure}Error`)}
-      </Notice>
 
       <SavingsWithdrawalSheet
         isVisible={isWithdrawalVisible}

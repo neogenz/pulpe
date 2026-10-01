@@ -13,31 +13,30 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import {
-  ActivityIndicator,
-  Appbar,
-  Searchbar,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Button, Searchbar, Text, useTheme } from "react-native-paper";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { ScreenAppBar } from "@/core/ui/screen-app-bar";
+import { usePushOnce } from "@/core/navigation/push-once";
+import { ActionButton } from "@/core/ui/action-button";
+import {
+  ContentZone,
+  HeroAppBar,
+  HeroAppBarAction,
+  HeroZone,
+} from "@/core/ui/hero";
+import { LedgerSegment } from "@/core/ui/ledger";
+import { SectionHeader } from "@/core/ui/section-header";
+import { useHeroColors } from "@/core/ui/scheme-colors";
 import { armTip, dismissTip, useIsTipArmed } from "@/core/tips/tips-store";
 import { Tooltip } from "@/core/tips/tooltip";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import {
-  DURATION,
-  FAB_CLEARANCE,
-  SCREEN_PADDING,
-  SPACING,
-} from "@/core/ui/theme";
+import { DURATION, SCREEN_PADDING, SPACING } from "@/core/ui/theme";
 import { tagSummary } from "@/features/tags/tag-selection";
 import { useTags } from "@/features/tags/tag-queries";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
@@ -56,7 +55,10 @@ import {
   kindCounts,
   type LineItem,
 } from "@/features/budget-details/budget-details-selectors";
-import { BudgetDetailHero } from "@/features/budget-details/components/budget-detail-hero";
+import {
+  BudgetDetailHero,
+  BudgetDetailSkeleton,
+} from "@/features/budget-details/components/budget-detail-hero";
 import {
   BudgetDetailOverlays,
   type BudgetDetailOverlaysHandle,
@@ -81,9 +83,23 @@ const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
  * both to show a screenful is what makes an old account open slowly.
  */
 type DetailRow =
-  | { key: string; kind: "header"; titleKey: string }
-  | { key: string; kind: "line"; item: LineItem }
-  | { key: string; kind: "transaction"; transaction: Transaction };
+  | { key: string; kind: "header"; titleKey: string; count: number }
+  | ({ key: string; kind: "line"; item: LineItem } & SegmentPosition)
+  | ({
+      key: string;
+      kind: "transaction";
+      transaction: Transaction;
+    } & SegmentPosition);
+
+/** Where a row falls in its section's card: which corners it carries. */
+interface SegmentPosition {
+  isFirst: boolean;
+  isLast: boolean;
+}
+
+function position(index: number, count: number): SegmentPosition {
+  return { isFirst: index === 0, isLast: index === count - 1 };
+}
 
 function detailRows(
   sections: ReturnType<typeof detailsSections>,
@@ -94,11 +110,13 @@ function detailRows(
       key: `header-${section.kind}`,
       kind: "header" as const,
       titleKey: `budgets.detail.filters.${section.kind}`,
+      count: section.items.length,
     },
-    ...section.items.map((item) => ({
+    ...section.items.map((item, index) => ({
       key: item.line.id,
       kind: "line" as const,
       item,
+      ...position(index, section.items.length),
     })),
   ]);
 
@@ -107,10 +125,16 @@ function detailRows(
       key: "header-free",
       kind: "header",
       titleKey: "budgets.detail.sections.free",
+      count: free.length,
     });
-    for (const transaction of free) {
-      rows.push({ key: transaction.id, kind: "transaction", transaction });
-    }
+    free.forEach((transaction, index) => {
+      rows.push({
+        key: transaction.id,
+        kind: "transaction",
+        transaction,
+        ...position(index, free.length),
+      });
+    });
   }
 
   return rows;
@@ -136,6 +160,8 @@ export default function BudgetDetailScreen() {
   useAmountMasking();
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const hero = useHeroColors();
+  const push = usePushOnce();
   const { locale, t } = useTranslation();
   // The search bar replaces the app bar, and unlike the app bar it does not
   // inset itself against the status bar.
@@ -226,40 +252,59 @@ export default function BudgetDetailScreen() {
     [details.data, payDayOfMonth],
   );
 
+  // The forest bar is there from the first frame, whatever the data says: the
+  // screen does not change colour under the user's thumb when it lands.
+  const pendingBar = <HeroAppBar title="" onBack={() => router.back()} />;
+
   if (details.isPending || settings.isPending) {
     return (
-      <SafeAreaView
-        edges={["bottom"]}
-        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator accessibilityLabel={t("common.loading")} />
-      </SafeAreaView>
+        {pendingBar}
+        <HeroZone>
+          <BudgetDetailSkeleton />
+        </HeroZone>
+        <ContentZone>
+          <View />
+        </ContentZone>
+      </View>
     );
   }
 
   if (details.isError || settings.isError) {
     return (
-      <PlaceholderScreen
-        icon="cloud-off-outline"
-        title={t("budgets.detail.loadErrorTitle")}
-        hint={t("budgets.detail.loadErrorHint")}
-        action={{
-          label: t("common.retry"),
-          onPress: () =>
-            void Promise.all([details.refetch(), settings.refetch()]),
-        }}
-      />
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        {pendingBar}
+        <PlaceholderScreen
+          icon="cloud-off-outline"
+          title={t("budgets.detail.loadErrorTitle")}
+          hint={t("budgets.detail.loadErrorHint")}
+          action={{
+            label: t("common.retry"),
+            onPress: () =>
+              void Promise.all([details.refetch(), settings.refetch()]),
+          }}
+        />
+      </View>
     );
   }
 
   if (details.data === undefined) {
     return (
-      <PlaceholderScreen
-        icon="calendar-remove-outline"
-        title={t("budgets.detail.missingTitle")}
-        hint={t("budgets.detail.missingHint")}
-        action={{ label: t("common.back"), onPress: () => router.back() }}
-      />
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        {pendingBar}
+        <PlaceholderScreen
+          icon="calendar-remove-outline"
+          title={t("budgets.detail.missingTitle")}
+          hint={t("budgets.detail.missingHint")}
+          action={{ label: t("common.back"), onPress: () => router.back() }}
+        />
+      </View>
     );
   }
 
@@ -285,6 +330,11 @@ export default function BudgetDetailScreen() {
     ...(budgetPeriods.data ?? []),
     ...(boundaryPeriods.data ?? []),
   ]);
+
+  // The month and its year, whatever the rail under the bar says: the rail
+  // scrolls, and the bar is what still names the page once it has.
+  const monthName = formatMonthName(budget.month, budget.year, locale);
+  const monthTitle = `${monthName.charAt(0).toLocaleUpperCase(locale)}${monthName.slice(1)} ${budget.year}`;
 
   // Leaving the search puts the whole list back: a term left behind would keep
   // filtering it from a field the user can no longer see.
@@ -317,37 +367,24 @@ export default function BudgetDetailScreen() {
           />
         </View>
       ) : (
-        <ScreenAppBar>
-          <Appbar.BackAction onPress={() => router.back()} />
-          {/* The year, whenever the tabs below name the month — otherwise the
-              same word is written twice, three centimetres apart. It is also
-              the hierarchy the budget list already uses: a year heads a group
-              of months. With a single budget there are no tabs, so the app bar
-              is the only thing left to say which month this is. */}
-          <Appbar.Content
-            title={
-              months.length > 1
-                ? `${budget.year}`
-                : formatMonthName(budget.month, budget.year, locale)
-            }
-            titleStyle={styles.title}
-          />
-          <Appbar.Action
+        <HeroAppBar title={monthTitle} onBack={() => router.back()}>
+          <HeroAppBarAction
             icon="magnify"
             accessibilityLabel={t("budgets.detail.search")}
             onPress={() => setSearchVisible(true)}
           />
-        </ScreenAppBar>
+          <HeroAppBarAction
+            icon="chart-donut"
+            accessibilityLabel={t("budgets.detail.tracking")}
+            onPress={() => overlays.current?.showRealizedBalance()}
+          />
+        </HeroAppBar>
       )}
 
       {months.length > 1 && (
         // Opaque and above the list, so the content passes under it rather than
-        // through it. The boundary is drawn by the tab row's own divider now,
-        // which is what Material puts under a set of tabs — the shadow this
-        // carried was standing in for that line.
-        <View
-          style={[styles.pager, { backgroundColor: theme.colors.background }]}
-        >
+        // through it: the forest of the bar, extended by one row of tabs.
+        <View style={styles.pager}>
           <MonthPager
             months={months}
             currentBudgetId={id}
@@ -361,19 +398,22 @@ export default function BudgetDetailScreen() {
       <FlatList
         data={rows}
         keyExtractor={(row) => row.key}
+        style={{ backgroundColor: theme.colors.background }}
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
             refreshing={details.isRefetching}
             onRefresh={() => void invalidateBudgetData()}
+            colors={[hero.surface]}
+            progressBackgroundColor={hero.ink}
           />
         }
         renderItem={({ item: row }) => {
           if (row.kind === "header") {
             return (
-              <Text variant="titleSmall" style={styles.sectionTitle}>
-                {t(row.titleKey)}
-              </Text>
+              <View style={styles.sectionHeader}>
+                <SectionHeader title={t(row.titleKey)} count={row.count} />
+              </View>
             );
           }
           if (row.kind === "transaction") {
@@ -383,69 +423,73 @@ export default function BudgetDetailScreen() {
               // row exists either way. An `entering` animation would also take
               // the row out of flow while it played, which in this app once
               // left a whole screen drawing over its own chrome.
-              <Animated.View
-                style={styles.row}
-                layout={LinearTransition.duration(DURATION.short)}
-              >
-                <TransactionRow
-                  transaction={row.transaction}
-                  currency={currency}
-                  isSyncing={
-                    toggle.isPending &&
-                    toggle.variables?.sourceId === row.transaction.id
-                  }
-                  tagSummary={tagSummary(
-                    row.transaction.tagIds ?? [],
-                    tags.data ?? [],
-                  )}
-                  onPress={() =>
-                    overlays.current?.editTransaction(row.transaction)
-                  }
-                  onLongPress={(anchor) =>
-                    overlays.current?.showTransactionMenu(
-                      row.transaction,
-                      anchor,
-                    )
-                  }
-                  onToggle={() =>
-                    toggle.mutate(
-                      { source: "transaction", sourceId: row.transaction.id },
-                      { onError: () => overlays.current?.showToggleFailure() },
-                    )
-                  }
-                />
+              <Animated.View layout={LinearTransition.duration(DURATION.short)}>
+                <LedgerSegment isFirst={row.isFirst} isLast={row.isLast}>
+                  <TransactionRow
+                    transaction={row.transaction}
+                    currency={currency}
+                    isSyncing={
+                      toggle.isPending &&
+                      toggle.variables?.sourceId === row.transaction.id
+                    }
+                    tagSummary={tagSummary(
+                      row.transaction.tagIds ?? [],
+                      tags.data ?? [],
+                    )}
+                    onPress={() =>
+                      overlays.current?.editTransaction(row.transaction)
+                    }
+                    onLongPress={(anchor) =>
+                      overlays.current?.showTransactionMenu(
+                        row.transaction,
+                        anchor,
+                      )
+                    }
+                    onToggle={() =>
+                      void toggle
+                        .mutateAsync({
+                          source: "transaction",
+                          sourceId: row.transaction.id,
+                        })
+                        .catch(() => overlays.current?.showToggleFailure())
+                    }
+                  />
+                </LedgerSegment>
               </Animated.View>
             );
           }
           return (
-            <Animated.View
-              style={styles.row}
-              layout={LinearTransition.duration(DURATION.short)}
-            >
-              <BudgetLineRow
-                item={row.item}
-                currency={currency}
-                isSyncing={
-                  toggle.isPending &&
-                  toggle.variables?.sourceId === row.item.line.id
-                }
-                tagSummary={tagSummary(
-                  row.item.line.tagIds ?? [],
-                  tags.data ?? [],
-                )}
-                onPress={() => {
-                  dismissTip("gestures");
-                  router.push(`/budget/${id}/line/${row.item.line.id}`);
-                }}
-                onToggle={() => {
-                  dismissTip("gestures");
-                  if (isPessimistic(row.item)) armTip("pessimistic-check");
-                  toggle.mutate(
-                    { source: "budgetLine", sourceId: row.item.line.id },
-                    { onError: () => overlays.current?.showToggleFailure() },
-                  );
-                }}
-              />
+            <Animated.View layout={LinearTransition.duration(DURATION.short)}>
+              <LedgerSegment isFirst={row.isFirst} isLast={row.isLast}>
+                <BudgetLineRow
+                  item={row.item}
+                  currency={currency}
+                  isSyncing={
+                    toggle.isPending &&
+                    toggle.variables?.sourceId === row.item.line.id
+                  }
+                  tagSummary={tagSummary(
+                    row.item.line.tagIds ?? [],
+                    tags.data ?? [],
+                  )}
+                  onPress={() => {
+                    dismissTip("gestures");
+                    push(`/budget/${id}/line/${row.item.line.id}`);
+                  }}
+                  onToggle={() => {
+                    dismissTip("gestures");
+                    if (isPessimistic(row.item)) armTip("pessimistic-check");
+                    void toggle
+                      .mutateAsync({
+                        source: "budgetLine",
+                        sourceId: row.item.line.id,
+                      })
+                      // Per call: `mutate`'s callbacks belong to the latest call alone,
+                      // so a failure on a row pointed just before another went unsaid.
+                      .catch(() => overlays.current?.showToggleFailure());
+                  }}
+                />
+              </LedgerSegment>
             </Animated.View>
           );
         }}
@@ -464,65 +508,87 @@ export default function BudgetDetailScreen() {
           </Text>
         }
         ListHeaderComponent={
-          <View style={styles.header}>
-            {/* No gutter here: the hero pays its own, so its pill rail can run
-                edge to edge. */}
-            <BudgetDetailHero
-              metrics={metrics}
-              currency={currency}
-              rollover={budget.rollover ?? 0}
-              previousMonthName={previousMonthName}
-              onPressMetrics={() => overlays.current?.showRealizedBalance()}
-              onPressRollover={
-                budget.previousBudgetId == null
-                  ? undefined
-                  : // Push, not replace: reading where the carry-over came from
-                    // is a step back in time the user expects to return from,
-                    // unlike the pager's sideways moves.
-                    () => router.push(`/budget/${budget.previousBudgetId}`)
-              }
-            />
+          <View>
+            <HeroZone>
+              <BudgetDetailHero
+                metrics={metrics}
+                currency={currency}
+                rollover={budget.rollover ?? 0}
+                previousMonthName={previousMonthName}
+                onPressMetrics={() => overlays.current?.showRealizedBalance()}
+                onPressRollover={
+                  budget.previousBudgetId == null
+                    ? undefined
+                    : // Push, not replace: reading where the carry-over came from
+                      // is a step back in time the user expects to return from,
+                      // unlike the pager's sideways moves.
+                      () => router.push(`/budget/${budget.previousBudgetId}`)
+                }
+              />
+            </HeroZone>
 
-            {/* Only after the user has actually pointed an envelope for less
+            <ContentZone style={styles.zone}>
+              {/* The one filled action on the page, in the place the home gives
+                its own: a forecast is what a budget is made of. A loose
+                operation is a quieter second path, under it. */}
+              <View style={styles.gutter}>
+                <ActionButton
+                  testID="budget-add-forecast"
+                  icon="plus"
+                  onPress={() => overlays.current?.addLine()}
+                >
+                  {t("budgets.detail.addForecast")}
+                </ActionButton>
+                <Button
+                  mode="text"
+                  icon="cash"
+                  onPress={() => overlays.current?.addTransaction()}
+                >
+                  {t("budgets.detail.addActivity")}
+                </Button>
+              </View>
+
+              {/* Only after the user has actually pointed an envelope for less
                 than it planned — before that it answers a question nobody
                 asked. */}
-            {isPessimisticTipArmed && (
+              {isPessimisticTipArmed && (
+                <View style={styles.gutter}>
+                  <Tooltip
+                    id="pessimistic-check"
+                    icon="shield-check-outline"
+                    title={t("budgets.detail.protectedTitle")}
+                    message={t("budgets.detail.protectedMessage")}
+                  />
+                </View>
+              )}
+
+              {isTight && (
+                <View style={styles.gutter}>
+                  <TightMonthCard
+                    onWithdraw={() => overlays.current?.showWithdrawal()}
+                    onDismiss={() => {
+                      dismissWithdrawal(id);
+                      setCardDismissed(true);
+                    }}
+                  />
+                </View>
+              )}
+
+              <DetailsFilterBar
+                filters={filters}
+                counts={counts}
+                onChange={setFilters}
+              />
+
               <View style={styles.gutter}>
                 <Tooltip
-                  id="pessimistic-check"
-                  icon="shield-check-outline"
-                  title={t("budgets.detail.protectedTitle")}
-                  message={t("budgets.detail.protectedMessage")}
+                  id="gestures"
+                  icon="gesture-tap"
+                  title={t("budgets.detail.gesturesTitle")}
+                  message={t("budgets.detail.gesturesMessage")}
                 />
               </View>
-            )}
-
-            {isTight && (
-              <View style={styles.gutter}>
-                <TightMonthCard
-                  onWithdraw={() => overlays.current?.showWithdrawal()}
-                  onDismiss={() => {
-                    dismissWithdrawal(id);
-                    setCardDismissed(true);
-                  }}
-                />
-              </View>
-            )}
-
-            <DetailsFilterBar
-              filters={filters}
-              counts={counts}
-              onChange={setFilters}
-            />
-
-            <View style={styles.gutter}>
-              <Tooltip
-                id="gestures"
-                icon="gesture-tap"
-                title={t("budgets.detail.gesturesTitle")}
-                message={t("budgets.detail.gesturesMessage")}
-              />
-            </View>
+            </ContentZone>
           </View>
         }
       />
@@ -556,20 +622,17 @@ function namePreviousMonth(
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  // No horizontal padding here: the gutter belongs to each block, so that the
-  // chip rails inside them can still run the full width of the display.
   // The rhythm is per row rather than a container `gap`, which a virtualised
   // list has no single container to hold.
-  content: { paddingVertical: SPACING.md, paddingBottom: FAB_CLEARANCE },
+  content: { flexGrow: 1, paddingBottom: SPACING.xl },
   pager: { zIndex: 1 },
-  header: { gap: SPACING.md, paddingBottom: SPACING.md },
+  // No horizontal padding on the zone: the gutter belongs to each block, so
+  // that the chip rail inside it can still run the full width of the display.
+  zone: { paddingHorizontal: 0, paddingBottom: 0, gap: SPACING.md },
   gutter: { paddingHorizontal: SCREEN_PADDING },
-  row: { paddingHorizontal: SCREEN_PADDING, paddingBottom: SPACING.sm },
-  title: { textTransform: "capitalize" },
-  sectionTitle: {
+  sectionHeader: {
     paddingHorizontal: SCREEN_PADDING,
-    paddingTop: SPACING.sm,
+    paddingTop: SPACING.lg,
     paddingBottom: SPACING.sm,
   },
   empty: { paddingVertical: SPACING.lg, textAlign: "center" },

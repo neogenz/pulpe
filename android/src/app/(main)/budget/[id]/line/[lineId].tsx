@@ -1,32 +1,37 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { BudgetFormulas, type SupportedCurrency } from "pulpe-shared";
+import {
+  BudgetFormulas,
+  CURRENCY_METADATA,
+  type SupportedCurrency,
+} from "pulpe-shared";
 import { useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Appbar,
-  Button,
   Menu,
-  ProgressBar,
   Text,
   useTheme,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { recurrenceLabel } from "@/core/ui/vocabulary";
+import { KIND_ICONS, recurrenceLabel } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
-import { Amount } from "@/core/ui/amount";
+import { ActionButton } from "@/core/ui/action-button";
+import { IconDisc } from "@/core/ui/icon-disc";
+import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
+import { SectionHeader } from "@/core/ui/section-header";
 
 import { useTags } from "@/features/tags/tag-queries";
 import { tagSummary } from "@/features/tags/tag-selection";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
-import { formatCurrency } from "@/core/ui/amount-format";
+import { formatAmount, formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
 import { InlineQueryError } from "@/core/ui/inline-query-error";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
-import { SPACING } from "@/core/ui/theme";
+import { BRAND_TYPE, RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import {
   useBudgetDetails,
@@ -46,6 +51,7 @@ import {
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 const PERCENT = 100;
+const PROGRESS_HEIGHT = 8;
 
 /**
  * One envelope and everything booked against it. The list here is the answer to
@@ -241,92 +247,164 @@ export default function BudgetLineDetailScreen() {
           />
         }
       >
-        <View style={styles.hero}>
-          <Text
-            variant="labelLarge"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {t(`vocabulary.kind.${line.kind}`)} ·{" "}
-            {recurrenceLabel(t, line.recurrence).toLocaleLowerCase(locale)}
-          </Text>
+        {/* What is left, in the size the screen exists for, then how much of
+            the plan is already gone — the same reading order as iOS's line
+            page, on the canvas: an envelope has no verdict of its own. */}
+        <View
+          style={[styles.summary, { backgroundColor: theme.colors.surface }]}
+        >
+          <View style={styles.kind}>
+            <IconDisc name={KIND_ICONS[line.kind]} tint={accent} />
+            <Text
+              variant="labelLarge"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {t(`vocabulary.kind.${line.kind}`)} ·{" "}
+              {recurrenceLabel(t, line.recurrence)}
+            </Text>
+          </View>
 
-          <Amount size="hero" style={{ color: accent }} numberOfLines={1}>
-            {formatCurrency(consumption.allocated, currency)}
-          </Amount>
+          <View style={styles.figure}>
+            <Text
+              variant="labelLarge"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {t(
+                consumption.available >= 0
+                  ? "budgets.actions.line.leftEyebrow"
+                  : "budgets.actions.line.overrunEyebrow",
+              )}
+            </Text>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+              style={[
+                BRAND_TYPE.heroFigure,
+                TABULAR_DIGITS,
+                {
+                  color:
+                    consumption.available >= 0
+                      ? theme.colors.onSurface
+                      : financial.overBudget,
+                },
+              ]}
+            >
+              {formatAmount(Math.abs(consumption.available), currency)}
+              <Text
+                style={[
+                  BRAND_TYPE.heroCurrency,
+                  { color: theme.colors.onSurfaceVariant },
+                ]}
+              >
+                {` ${CURRENCY_METADATA[currency].symbol}`}
+              </Text>
+            </Text>
+          </View>
+
+          <View style={styles.progressRow}>
+            <View
+              style={[
+                styles.track,
+                { backgroundColor: theme.colors.surfaceVariant },
+              ]}
+            >
+              <View
+                style={[
+                  styles.fill,
+                  {
+                    backgroundColor: accent,
+                    width: `${Math.min(Math.max(consumption.percentage, 0), PERCENT)}%`,
+                  },
+                ]}
+              />
+            </View>
+            <Text
+              variant="labelLarge"
+              style={[TABULAR_DIGITS, { color: accent }]}
+            >
+              {`${Math.round(consumption.percentage)} %`}
+            </Text>
+          </View>
 
           <Text
             variant="bodyMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
+            style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
           >
-            {t("budgets.actions.line.plannedAmount", {
-              amount: formatCurrency(line.amount, currency),
+            {t("budgets.actions.line.notedOf", {
+              noted: formatCurrency(consumption.allocated, currency),
+              planned: formatCurrency(line.amount, currency),
             })}
           </Text>
-
-          <ProgressBar
-            progress={Math.min(consumption.percentage / PERCENT, 1)}
-            color={accent}
-            style={styles.progress}
-          />
-
-          <Amount size="row">
-            {consumption.available >= 0
-              ? t("budgets.actions.line.remaining", {
-                  amount: formatCurrency(consumption.available, currency),
-                })
-              : t("budgets.actions.line.overrun", {
-                  amount: formatCurrency(-consumption.available, currency),
-                })}
-          </Amount>
         </View>
 
-        <Text variant="titleSmall">
-          {t(
-            `budgets.actions.line.${transactions.length === 0 ? "activityNone" : transactions.length === 1 ? "activityOne" : "activityMany"}`,
-            { count: transactions.length },
-          )}
-        </Text>
+        <SectionHeader
+          title={t("budgets.actions.line.movements")}
+          count={transactions.length}
+        />
 
         {transactions.length === 0 ? (
-          <Text
-            variant="bodyMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {t("budgets.actions.line.empty")}
-          </Text>
-        ) : (
-          transactions.map((transaction) => (
-            <TransactionRow
-              key={transaction.id}
-              transaction={transaction}
-              currency={currency}
-              isSyncing={
-                toggle.isPending &&
-                toggle.variables?.sourceId === transaction.id
+          <LedgerCard>
+            <LedgerRow
+              leading={
+                <IconDisc name="tray" tint={theme.colors.onSurfaceVariant} />
               }
-              tagSummary={tagSummary(transaction.tagIds ?? [], tags.data ?? [])}
-              onPress={() => overlays.current?.editTransaction(transaction)}
-              onToggle={() =>
-                toggle.mutate(
-                  { source: "transaction", sourceId: transaction.id },
-                  { onError: () => overlays.current?.showToggleFailure() },
-                )
-              }
+              title={t("budgets.actions.line.emptyTitle")}
+              subtitle={t("budgets.actions.line.empty")}
             />
-          ))
+          </LedgerCard>
+        ) : (
+          <LedgerCard>
+            {transactions.map((transaction) => (
+              <TransactionRow
+                key={transaction.id}
+                transaction={transaction}
+                currency={currency}
+                isSyncing={
+                  toggle.isPending &&
+                  toggle.variables?.sourceId === transaction.id
+                }
+                tagSummary={tagSummary(
+                  transaction.tagIds ?? [],
+                  tags.data ?? [],
+                )}
+                onPress={() => overlays.current?.editTransaction(transaction)}
+                onToggle={() =>
+                  void toggle
+                    .mutateAsync({
+                      source: "transaction",
+                      sourceId: transaction.id,
+                    })
+                    // Per call: `mutate`'s callbacks belong to the latest call alone,
+                    // so a failure on a row pointed just before another went unsaid.
+                    .catch(() => overlays.current?.showToggleFailure())
+                }
+              />
+            ))}
+          </LedgerCard>
         )}
-
-        {/* Allocating happens here and only here: the envelope being filled is
-            on screen, so nothing has to be picked from a list of them. */}
-        <Button
-          mode="outlined"
-          icon="plus"
-          onPress={() => overlays.current?.addTransaction()}
-          style={styles.add}
-        >
-          {t("budgets.mutations.activity.createTitle")}
-        </Button>
       </ScrollView>
+
+      {/* Allocating happens here and only here: the envelope being filled is
+          on screen, so nothing has to be picked from a list of them. Pinned,
+          as iOS pins it, so it never scrolls away under a long list. */}
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: theme.colors.background,
+            borderTopColor: theme.colors.outlineVariant,
+          },
+        ]}
+      >
+        <ActionButton
+          icon="plus"
+          testID="line-add-activity"
+          onPress={() => overlays.current?.addTransaction()}
+        >
+          {t("budgets.actions.line.note")}
+        </ActionButton>
+      </View>
 
       <BudgetLineDetailOverlays
         ref={overlays}
@@ -345,8 +423,25 @@ export default function BudgetLineDetailScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xxl },
-  hero: { gap: SPACING.xs },
-  progress: { height: SPACING.sm, borderRadius: SPACING.xs },
-  add: { marginTop: SPACING.sm },
+  content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.lg },
+  summary: {
+    borderRadius: RADIUS.card,
+    padding: SPACING.md,
+    gap: SPACING.sm + SPACING.xs,
+  },
+  kind: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  figure: { gap: SPACING.xxs },
+  progressRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  track: {
+    flex: 1,
+    height: PROGRESS_HEIGHT,
+    borderRadius: RADIUS.full,
+    overflow: "hidden",
+  },
+  fill: { height: "100%", borderRadius: RADIUS.full },
+  footer: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm + SPACING.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
 });

@@ -43,6 +43,11 @@ jest.mock("@/core/i18n/language-writer", () => ({
 jest.mock("@/core/navigation/landing-preference", () => ({
   forgetLandingPreference: jest.fn(),
 }));
+// Sign-out cancels the monthly reminder; expo-notifications refuses to load
+// outside a development build.
+jest.mock("@/core/notifications/scheduler", () => ({
+  cancelMonthlyReminder: jest.fn(async () => undefined),
+}));
 
 const currentRoute = () =>
   landingRoute({

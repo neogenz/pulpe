@@ -130,3 +130,68 @@ export function budgetsInPeriodOrder(budgets: BudgetSparse[]): BudgetSparse[] {
         (a.year ?? 0) - (b.year ?? 0) || (a.month ?? 0) - (b.month ?? 0),
     );
 }
+
+const MONTHS_PER_YEAR = 12;
+
+/** Every year with at least one budget, oldest first — the year picker's chips. */
+export function budgetYears(budgets: BudgetSparse[]): number[] {
+  const years = new Set<number>();
+  for (const budget of budgets) {
+    if (budget.year !== undefined && budget.month !== undefined) {
+      years.add(budget.year);
+    }
+  }
+  return [...years].sort((left, right) => left - right);
+}
+
+/**
+ * The year a list opens on: the one being lived in when it has a budget, the
+ * latest one otherwise — `BudgetListView.swift` makes the same choice, so a
+ * user who planned only next year does not land on an empty one.
+ */
+export function initialBudgetYear(years: number[], current: Period): number {
+  if (years.includes(current.year)) return current.year;
+  return years.at(-1) ?? current.year;
+}
+
+/** One year's months, January first, like a calendar. */
+export function budgetsOfYear(
+  budgets: BudgetSparse[],
+  year: number,
+): BudgetSparse[] {
+  return budgets
+    .filter((budget) => budget.year === year && budget.month !== undefined)
+    .sort((left, right) => (left.month ?? 0) - (right.month ?? 0));
+}
+
+export interface YearRecap {
+  /** What the year closes on: its last month's remaining, carry-overs included. */
+  closingBalance: number;
+  budgetedMonths: number;
+}
+
+export function yearRecap(yearBudgets: BudgetSparse[]): YearRecap {
+  return {
+    closingBalance: yearBudgets.at(-1)?.remaining ?? 0,
+    budgetedMonths: yearBudgets.length,
+  };
+}
+
+/**
+ * The first month still missing a budget from today on, in the year being
+ * read — the one placeholder iOS draws so the next step is in the list rather
+ * than behind a toolbar icon. Nothing for a year already behind us.
+ */
+export function nextMissingMonth(
+  yearBudgets: BudgetSparse[],
+  year: number,
+  current: Period,
+): number | null {
+  if (year < current.year) return null;
+  const taken = new Set(yearBudgets.map((budget) => budget.month));
+  const first = year === current.year ? current.month : 1;
+  for (let month = first; month <= MONTHS_PER_YEAR; month += 1) {
+    if (!taken.has(month)) return month;
+  }
+  return null;
+}

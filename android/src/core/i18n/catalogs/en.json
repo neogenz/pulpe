@@ -96,16 +96,21 @@
       "goalShort": "Goal",
       "hero": {
         "accessibility": "%{state} %{amount}, %{percent}% used",
-        "available": "Available",
+        "available": "Available to spend",
         "deficit": "Deficit",
         "distribution": "Monthly breakdown",
         "expenses": "expenses",
         "income": "income",
         "previousMonth": "the previous month",
         "rollover": "Previous month's rollover included",
-        "rolloverNamed": "Rollover included · %{month}",
+        "rolloverNamed": "Rollover from %{month} included",
         "savings": "savings",
-        "viewMonth": "View %{month}"
+        "viewMonth": "View %{month}",
+        "verdict": {
+          "comfortable": "You have room this month.",
+          "tight": "This month is a little tight.",
+          "deficit": "You're spending more than you earn this month."
+        }
       },
       "loadErrorHint": "Check your connection, then try again.",
       "loadErrorTitle": "We couldn't load this budget",
@@ -129,7 +134,10 @@
         "toTransfer": "%{amount} to transfer",
         "transferred": "Transferred"
       },
-      "withdrawnFrom": "Withdrawn from: %{name}"
+      "withdrawnFrom": "Withdrawn from: %{name}",
+      "addForecast": "Add a forecast",
+      "addActivity": "Note an unplanned operation",
+      "tracking": "Budget tracking"
     },
     "actions": {
       "line": {
@@ -159,7 +167,13 @@
         "plannedAmount": "of %{amount} planned",
         "postpone": "Postpone to next month",
         "remaining": "%{amount} remaining",
-        "viewSpread": "View spread months"
+        "viewSpread": "View spread months",
+        "leftEyebrow": "Left",
+        "overrunEyebrow": "Overrun",
+        "notedOf": "%{noted} noted of %{planned} planned",
+        "movements": "Movements",
+        "emptyTitle": "Nothing noted here",
+        "note": "Note an amount"
       },
       "spread": {
         "complete": "Target reached",
@@ -309,7 +323,20 @@
       "planAccessibility": "Plan multiple budgets",
       "potential": "Potential",
       "result": "Result",
-      "title": "Budgets"
+      "title": "Budgets",
+      "yearBalance": "Year-end balance",
+      "yearReview": "Year in review",
+      "budgetedMonths": "months budgeted",
+      "verdict": {
+        "none": "No month budgeted yet. Start now.",
+        "all": "You've budgeted the whole year. Well done!",
+        "some": "You've budgeted %{count} of 12 months this year."
+      },
+      "months": "Months",
+      "yearSelector": "Choose the year",
+      "ongoing": "ongoing",
+      "notCreated": "No budget yet",
+      "createMonth": "Create the budget"
     },
     "plan": {
       "default": "default",
@@ -414,7 +441,8 @@
       "emptyTitle": "Set your first goal",
       "loadErrorTitle": "We couldn't load your goals",
       "since": "Since %{date}",
-      "title": "Savings goals"
+      "title": "Savings goals",
+      "section": "Goals"
     },
     "intro": {
       "create": "Create my goal",
@@ -456,7 +484,9 @@
       "target": "Target (optional)",
       "validation": {
         "dates": "The start can't come after the deadline.",
+        "monthly": "The monthly saving must be greater than zero.",
         "name": "Give your goal a name.",
+        "pastDeadline": "The deadline can't be in the past.",
         "target": "The target must be greater than zero."
       }
     },
@@ -466,7 +496,8 @@
       "futureLinesError": "Couldn't check this goal's future forecasts.",
       "loadErrorTitle": "We couldn't load this goal",
       "missingHint": "It may have been deleted from another device.",
-      "missingTitle": "This goal no longer exists"
+      "missingTitle": "This goal no longer exists",
+      "statusError": "The status couldn't be changed. Try again."
     },
     "progress": {
       "achievementAccessibility": "%{percent}% of the target saved",
@@ -649,7 +680,7 @@
       },
       "windowAccessibility": "Activity for %{window}"
     },
-    "add": "Add",
+    "add": "Add an operation",
     "addAccessibility": "Add an entry",
     "checking": {
       "confirm": "It happened",
@@ -671,16 +702,18 @@
       "overBy": "+%{amount} over",
       "summary": "%{amount} over plan",
       "summaryAbsorbed": "%{amount} over plan, covered elsewhere this month",
-      "title": "Off track"
+      "title": "Off track",
+      "catchUp": "Catch up on these %{amount} over",
+      "catchUpHint": "Open the budget to adjust your envelopes"
     },
     "hero": {
       "chartAccessibility": "Estimated balance over the month compared with the plan",
-      "detail": "View details",
+      "detail": "See the budget",
       "detailAccessibility": "View budget details",
-      "estimate": "Estimated at end of %{month} · %{currency}",
+      "estimate": "Estimated at end of %{month}",
       "metricsAccessibility": "%{count} to check off, %{variance} versus planned",
       "metricsHint": "Open actual balance details",
-      "toCheck": "to check off",
+      "toCheck": "To check off",
       "verdict": {
         "gain": "You have more left than planned.",
         "gainDated": "Above your plan since %{date}.",
@@ -688,7 +721,7 @@
         "overrun": "You have less left than planned.",
         "overrunDated": "Below your plan since %{date}."
       },
-      "vsPlanned": "vs planned",
+      "vsPlanned": "Versus plan",
       "chart": {
         "today": "today"
       }
@@ -1132,7 +1165,8 @@
       "openWeb": "Open on the web",
       "title": "Templates",
       "webBody": "Not every template action is available here yet. The web app has the complete experience if you need it.",
-      "webTitle": "Templates: Android is still streamlined"
+      "webTitle": "Templates: Android is still streamlined",
+      "section": "Templates"
     },
     "form": {
       "create": "Create template",
@@ -1168,7 +1202,8 @@
       },
       "propagationTitle": "Apply to following months?",
       "save": "Save",
-      "templateOnly": "Template only"
+      "templateOnly": "Template only",
+      "longPressHint": "Long press to delete"
     },
     "detail": {
       "addLine": "Add a forecast",
@@ -1193,7 +1228,8 @@
         "other": "%{count} budgets created from this template"
       },
       "usageError": "Couldn't check the budgets linked to this template.",
-      "usageHint": "Deleting the template doesn't affect these budgets."
+      "usageHint": "Deleting the template doesn't affect these budgets.",
+      "summary": "Summary"
     }
   },
   "vault": {

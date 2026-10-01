@@ -1,5 +1,6 @@
 import { getBudgetPeriodForDate, type SupportedCurrency } from "pulpe-shared";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AppState } from "react-native";
 
 import {
   invalidateUserSettings,
@@ -55,14 +56,38 @@ export async function refreshCurrentMonth(): Promise<void> {
   await Promise.all([invalidateBudgetData(), invalidateUserSettings()]);
 }
 
+/**
+ * The moment the current period is read from, held as state so that it can
+ * move. A `new Date()` taken inside the memo was taken once: the refetched
+ * settings come back structurally identical, no dependency changed, and Home
+ * stayed on last month's budget after the pay day — through pull-to-refresh
+ * and Retry alike. Coming back to the foreground and refreshing both read the
+ * clock again.
+ */
+export function useNow(): [Date, () => void] {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") setNow(new Date());
+    });
+    return () => subscription.remove();
+  }, []);
+
+  return [now, () => setNow(new Date())];
+}
+
 export function useCurrentMonth(): CurrentMonthQuery {
   const settings = useUserSettings();
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
+  const [now, readClock] = useNow();
 
   const currentPeriod = useMemo(
     () =>
-      settings.data === undefined ? null : currentBudgetPeriod(payDayOfMonth),
-    [payDayOfMonth, settings.data],
+      settings.data === undefined
+        ? null
+        : currentBudgetPeriod(payDayOfMonth, now),
+    [payDayOfMonth, settings.data, now],
   );
   const periods = useBudgetPeriods(currentPeriod?.year ?? null);
   const budgetId = useMemo(
@@ -78,12 +103,9 @@ export function useCurrentMonth(): CurrentMonthQuery {
   const viewModel = useMemo(
     () =>
       details.data
-        ? buildCurrentMonthViewModel(details.data, {
-            now: new Date(),
-            payDayOfMonth,
-          })
+        ? buildCurrentMonthViewModel(details.data, { now, payDayOfMonth })
         : null,
-    [details.data, payDayOfMonth],
+    [details.data, payDayOfMonth, now],
   );
 
   return {
@@ -95,7 +117,10 @@ export function useCurrentMonth(): CurrentMonthQuery {
     payDayOfMonth,
     isRefreshing:
       periods.isRefetching || details.isRefetching || settings.isRefetching,
-    refresh: refreshCurrentMonth,
+    refresh: () => {
+      readClock();
+      return refreshCurrentMonth();
+    },
   };
 }
 

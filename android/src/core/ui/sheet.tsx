@@ -7,13 +7,20 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { Divider, IconButton, Text, useTheme } from "react-native-paper";
+import {
+  Divider,
+  IconButton,
+  Text,
+  ThemeProvider,
+  useTheme,
+} from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 
 import { sheetBox, useKeyboardHeight } from "./keyboard-inset";
 import { useRipple } from "./ripple";
+import { useSheetColors } from "./scheme-colors";
 import { RADIUS, SPACING } from "./theme";
 
 interface FormModalProps {
@@ -58,6 +65,7 @@ export function FormModal({
   const { height } = useWindowDimensions();
   const keyboardHeight = useKeyboardHeight();
   const ripple = useRipple();
+  const sheet = useSheetColors();
   const { bottom } = useSafeAreaInsets();
   const box = sheetBox({
     windowHeight: height,
@@ -89,11 +97,11 @@ export function FormModal({
         />
         <View
           accessibilityViewIsModal
-          style={[styles.sheet, { backgroundColor: theme.colors.surface }, box]}
+          style={[styles.sheet, { backgroundColor: sheet.background }, box]}
         >
           <View style={styles.header}>
             <View style={styles.heading}>
-              <Text variant="titleMedium">{title}</Text>
+              <Text variant="titleLarge">{title}</Text>
               {subtitle !== undefined && (
                 <Text
                   variant="labelMedium"
@@ -112,12 +120,22 @@ export function FormModal({
             />
           </View>
 
-          <ScrollView
-            contentContainerStyle={styles.body}
-            keyboardShouldPersistTaps="handled"
+          {/* Paper paints an outlined field's notch in `background`; inside the
+              sheet that has to be the sheet's own surface, or every label cuts a
+              sage slot out of the warm one. */}
+          <ThemeProvider
+            theme={{
+              ...theme,
+              colors: { ...theme.colors, background: sheet.background },
+            }}
           >
-            {children}
-          </ScrollView>
+            <ScrollView
+              contentContainerStyle={styles.body}
+              keyboardShouldPersistTaps="handled"
+            >
+              {children}
+            </ScrollView>
+          </ThemeProvider>
 
           {footer !== undefined && (
             <>
@@ -134,8 +152,8 @@ export function FormModal({
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "flex-end" },
   sheet: {
-    borderTopLeftRadius: RADIUS.md,
-    borderTopRightRadius: RADIUS.md,
+    borderTopLeftRadius: RADIUS.zone,
+    borderTopRightRadius: RADIUS.zone,
     overflow: "hidden",
   },
   header: {

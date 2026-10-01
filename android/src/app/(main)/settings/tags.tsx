@@ -180,11 +180,16 @@ export default function TagsSettingsScreen() {
       </ScrollView>
 
       <Portal>
+        {/* Paper's Dialog stays centred in the whole window, which does not
+            shrink for the keyboard the autofocused field opens: the rename
+            action sat under the keys. Half the keyboard's height recentres it
+            in the room the keys leave. */}
         <Dialog
           visible={renamedTag !== null}
           onDismiss={() => {
             if (!rename.isPending) setRenamedTag(null);
           }}
+          style={{ transform: [{ translateY: -keyboardHeight / 2 }] }}
         >
           <Dialog.Title>{t("settings.tags.renameTitle")}</Dialog.Title>
           <Dialog.Content>
