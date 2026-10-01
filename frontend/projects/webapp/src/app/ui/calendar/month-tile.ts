@@ -7,8 +7,11 @@ import {
 } from '@angular/core';
 import { MatRipple } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
-import { isBefore } from 'date-fns';
-import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
+import {
+  compareBudgetPeriods,
+  CURRENCY_METADATA,
+  type SupportedCurrency,
+} from 'pulpe-shared';
 import { type CalendarMonth, type MonthTileLabels } from './calendar-types';
 
 const AMOUNT_FORMATTERS = new Map<string, Intl.NumberFormat>();
@@ -159,6 +162,7 @@ export class MonthTile {
   readonly labels = input.required<MonthTileLabels>();
   readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
+  readonly currentDate = input<{ month: number; year: number }>();
   readonly isCurrentMonth = input<boolean>(false);
   readonly tileClick = output<CalendarMonth>();
 
@@ -169,11 +173,15 @@ export class MonthTile {
   protected readonly vm = computed<MonthTileViewModel>(() => {
     const month = this.month();
     const isCurrent = this.isCurrentMonth();
+    const currentDate = this.currentDate();
     const status = month.status ?? 'neutral';
     const formattedAmount = this.#formatAmount(month.value);
 
     return {
-      isPast: isBefore(new Date(month.year, month.month, 1), new Date()),
+      isPast:
+        !isCurrent &&
+        currentDate !== undefined &&
+        compareBudgetPeriods(month, currentDate) < 0,
       isCurrent,
       hasContent: month.hasContent,
       monthName: month.displayName.split(' ')[0],
