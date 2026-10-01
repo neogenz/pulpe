@@ -75,31 +75,63 @@ jobs:
           head_ref=$(jq -r .head_ref "$RUNNER_TEMP/merged-pr.json")
           head_sha=$(jq -r .head_sha "$RUNNER_TEMP/merged-pr.json")
           pr_number=$(jq -r .pr_number "$RUNNER_TEMP/merged-pr.json")
-          gh api --paginate -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" -f event=pull_request -f branch="$head_ref" -f per_page=100 --jq '.workflow_runs[]' > "$RUNNER_TEMP/ci-runs.jsonl"
+          # A missing search result is not a failed CI run. Re-query briefly,
+          # without relaxing identity checks or retrying API/parser errors.
+          rm -f "$RUNNER_TEMP/canonical-ci-run-id"
+          gh --version
+          for lookup_attempt in {1..3}; do
+            gh api --paginate -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" -f event=pull_request -f branch="$head_ref" -f per_page=100 --jq '.workflow_runs[]' > "$RUNNER_TEMP/ci-runs.jsonl"
 
-          python3 - "$RUNNER_TEMP/ci-runs.jsonl" "$pr_number" "$head_ref" "$head_sha" "$GITHUB_REPOSITORY" "$RUNNER_TEMP/canonical-ci-run-id" <<'PY'
+            python3 - "$RUNNER_TEMP/ci-runs.jsonl" "$pr_number" "$head_ref" "$head_sha" "$GITHUB_REPOSITORY" "$RUNNER_TEMP/canonical-ci-run-id" "$lookup_attempt" <<'PY'
           import json
           import sys
 
-          path, pr_number, head_ref, head_sha, repository, run_id_path = sys.argv[1:]
+          path, pr_number, head_ref, head_sha, repository, run_id_path, attempt = sys.argv[1:]
           pr_number = int(pr_number)
           with open(path, encoding="utf-8") as handle:
               runs = [json.loads(line) for line in handle if line.strip()]
+          expected = {
+              "path": ".github/workflows/ci.yml",
+              "event": "pull_request",
+              "head_branch": head_ref,
+              "head_sha": head_sha,
+              "repository": repository,
+          }
           canonical = [
               run
               for run in runs
-              if run.get("path") == ".github/workflows/ci.yml"
-              and run.get("event") == "pull_request"
+              if run.get("path") == expected["path"]
+              and run.get("event") == expected["event"]
               and run.get("head_branch") == head_ref
               and run.get("head_sha") == head_sha
               and run.get("repository", {}).get("full_name") == repository
           ]
-          if not canonical:
-              raise SystemExit(f"canonical CI run missing for PR #{pr_number}")
-          latest = max(canonical, key=lambda run: int(run["id"]))
-          with open(run_id_path, "w", encoding="utf-8") as handle:
-              handle.write(str(latest["id"]))
+          print(json.dumps({"canonical_ci_lookup": {
+              "attempt": int(attempt), "pr_number": pr_number,
+              "expected": expected, "received": len(runs), "matched": len(canonical),
+          }}))
+          if canonical:
+              latest = max(canonical, key=lambda run: int(run["id"]))
+              with open(run_id_path, "w", encoding="utf-8") as handle:
+                  handle.write(str(latest["id"]))
+          else:
+              # Only public identity fields, never a raw API response or token.
+              for run in runs[:10]:
+                  observed = {key: run.get(key) for key in expected if key != "repository"}
+                  observed["repository"] = run.get("repository", {}).get("full_name")
+                  print(json.dumps({"rejected_run": run.get("id"), "observed": observed,
+                      "mismatched_fields": [key for key in expected if observed[key] != expected[key]]}))
           PY
+
+            if [ -s "$RUNNER_TEMP/canonical-ci-run-id" ]; then
+              break
+            fi
+            if [ "$lookup_attempt" -eq 3 ]; then
+              echo "::error::canonical CI run missing for PR #$pr_number after 3 lookups"
+              exit 1
+            fi
+            sleep 10
+          done
 
           ci_run_id=$(cat "$RUNNER_TEMP/canonical-ci-run-id")
           canonical_ci="$RUNNER_TEMP/canonical-ci-run.json"
