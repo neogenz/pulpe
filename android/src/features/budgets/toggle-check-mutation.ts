@@ -87,16 +87,26 @@ export function usePendingCheck(
 ): (target: CheckTarget) => boolean {
   const pending = useMutationState({
     filters: { mutationKey: toggleCheckKey(budgetId), status: "pending" },
-    select: (mutation) => mutation.state.variables as CheckTarget | undefined,
+    select: (mutation) => mutation.state.variables,
   });
 
   return (target) =>
     pending.some(
       (inFlight) =>
-        inFlight !== undefined &&
+        isCheckTarget(inFlight) &&
         inFlight.source === target.source &&
         inFlight.sourceId === target.sourceId,
     );
+}
+
+/** The mutation cache types its variables as `unknown`, whatever the key. */
+function isCheckTarget(value: unknown): value is CheckTarget {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "source" in value &&
+    "sourceId" in value
+  );
 }
 
 /** What one tap did to one row, so a failure can undo exactly that. */

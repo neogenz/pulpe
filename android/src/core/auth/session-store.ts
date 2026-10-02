@@ -220,7 +220,9 @@ async function waitForAccountTeardown(): Promise<void> {
  * How long the splash waits on a restore. supabase-js retries a refresh with
  * backoff for about half a minute offline; past this, the retry screen is a
  * better answer than a frozen splash. A refresh that lands later still signs
- * the user in through `TOKEN_REFRESHED`.
+ * the user in through `TOKEN_REFRESHED`. The timed-out read is left running:
+ * a retry started meanwhile reads again alongside it, which is harmless, as
+ * supabase-js serialises both behind its own lock.
  */
 const RESTORE_TIMEOUT_MS = 10_000;
 

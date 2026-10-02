@@ -103,6 +103,28 @@ jobs:
           unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/maestro/bin" >> "$GITHUB_PATH"
 
+      # Play refuses native libraries whose ELF segments are not aligned for
+      # 16 KB pages. React Native and Hermes arrive prebuilt from Maven, where
+      # no source check reaches; the built APK holds every library as shipped.
+      - name: Check 16 KB page alignment
+        working-directory: android/android
+        run: |
+          set -eu
+          dir="$RUNNER_TEMP/apk-libs"
+          unzip -q -o app/build/outputs/apk/release/app-release.apk 'lib/*' -d "$dir"
+          misaligned=0
+          for so in "$dir"/lib/*/*.so; do
+            mapfile -t alignments < <(readelf -lW "$so" | awk '$1 == "LOAD" { print $NF }')
+            for alignment in "${alignments[@]}"; do
+              if (( alignment < 16384 )); then
+                echo "::error::${so#"$dir"/} has a segment aligned on ${alignment}, below 16 KB"
+                misaligned=1
+              fi
+            done
+          done
+          test "$misaligned" -eq 0
+          echo "Every native library is aligned for 16 KB pages."
+
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
