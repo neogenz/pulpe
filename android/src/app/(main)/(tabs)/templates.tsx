@@ -17,6 +17,7 @@ import { APP_URLS } from "@/core/ui/app-urls";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { TabHeader } from "@/core/ui/tab-header";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { TemplateFormSheet } from "@/features/templates/components/template-form-sheet";
 import { useTemplates } from "@/features/templates/template-queries";
 import {
@@ -36,6 +37,7 @@ export default function TemplatesScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const templates = useTemplates();
+  const pull = usePullToRefresh(() => templates.refetch());
   const [isCreating, setCreating] = useState(false);
 
   if (templates.isPending) {
@@ -90,12 +92,7 @@ export default function TemplatesScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
-          refreshControl={
-            <RefreshControl
-              refreshing={templates.isRefetching}
-              onRefresh={() => void templates.refetch()}
-            />
-          }
+          refreshControl={<RefreshControl {...pull} />}
         >
           <Tooltip
             id="templates-web-parity"

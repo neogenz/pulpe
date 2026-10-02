@@ -23,6 +23,7 @@ const mockBudgets = {
   isRefetching: false,
   hasNextPage: false,
   isFetchingNextPage: false,
+  isFetchNextPageError: false,
   fetchNextPage: jest.fn(async () => undefined),
 };
 const mockSettings = {
@@ -98,6 +99,7 @@ beforeEach(() => {
     isError: false,
     hasNextPage: false,
     isFetchingNextPage: false,
+    isFetchNextPageError: false,
   });
   Object.assign(mockSettings, {
     data: { currency: "CHF", payDayOfMonth: 1 },
@@ -243,6 +245,18 @@ it("reads every page, since a year cut at a page boundary closes wrong", async (
   await renderScreen();
 
   await waitFor(() => expect(mockBudgets.fetchNextPage).toHaveBeenCalled());
+});
+
+it("stops reading at a failed page and offers the retry instead", async () => {
+  Object.assign(mockBudgets, {
+    data: [budget(2026, 10)],
+    hasNextPage: true,
+    isFetchNextPageError: true,
+  });
+  const view = await renderScreen();
+
+  expect(view.getByText("budgets.list.loadErrorTitle")).toBeTruthy();
+  expect(mockBudgets.fetchNextPage).not.toHaveBeenCalled();
 });
 
 it("announces zero creations and clears both navigation counters", async () => {

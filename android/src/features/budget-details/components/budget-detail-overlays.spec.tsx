@@ -1,6 +1,7 @@
 import type { Transaction } from "pulpe-shared";
 import { createRef } from "react";
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+import { BackHandler } from "react-native";
 import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -100,4 +101,32 @@ it("offers the loose operation as the menu's second action", async () => {
     view.getByTestId("budget-add-activity", { includeHiddenElements: true }),
   );
   await waitFor(() => expect(view.getByText("add-activity")).toBeTruthy());
+});
+
+it("folds the open speed dial on Back instead of leaving the budget", async () => {
+  const handlers: Parameters<typeof BackHandler.addEventListener>[1][] = [];
+  const addListener = jest
+    .spyOn(BackHandler, "addEventListener")
+    .mockImplementation((_event, listener) => {
+      handlers.push(listener);
+      return { remove: () => handlers.splice(handlers.indexOf(listener), 1) };
+    });
+  try {
+    const { view } = await renderOverlays();
+    expect(handlers).toHaveLength(0);
+
+    await fireEvent.press(view.getByLabelText("budgets.mutations.add"));
+    expect(handlers).toHaveLength(1);
+
+    let isHandled: boolean | null | undefined;
+    await act(async () => {
+      isHandled = handlers[0]!({} as never);
+    });
+
+    expect(isHandled).toBe(true);
+    // Closed: the handler is gone, so the next Back leaves the screen.
+    expect(handlers).toHaveLength(0);
+  } finally {
+    addListener.mockRestore();
+  }
 });

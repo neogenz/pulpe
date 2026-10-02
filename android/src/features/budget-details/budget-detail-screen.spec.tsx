@@ -61,7 +61,13 @@ jest.mock("react-native-reanimated", () => {
   const { View } = jest.requireActual("react-native");
   return {
     __esModule: true,
-    default: { View },
+    default: {
+      View,
+      get FlatList() {
+        return jest.requireMock<typeof import("react-native")>("react-native")
+          .FlatList;
+      },
+    },
     LinearTransition: { duration: () => undefined },
   };
 });

@@ -296,11 +296,16 @@ export class ApiClient {
 
     if (hasBody) headers["Content-Type"] = "application/json";
 
-    const accessToken = await this.#getAccessToken();
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-
+    // Read before the token wait, so a request leaves with the key it was
+    // started under. Read after it, a lock landing in between — the auto-lock
+    // on a return to the foreground, right as that return refetches every
+    // stale query — sent each refetch keyless, and each came back as an error
+    // reported to PostHog.
     const clientKey = this.#getClientKey();
     if (clientKey) headers[CLIENT_KEY_HEADER] = clientKey;
+
+    const accessToken = await this.#getAccessToken();
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
     return headers;
   }

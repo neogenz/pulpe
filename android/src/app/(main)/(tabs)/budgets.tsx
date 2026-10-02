@@ -52,6 +52,7 @@ import {
   TOUCH_TARGET,
 } from "@/core/ui/theme";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import {
   type BudgetTiming,
   type Period,
@@ -96,6 +97,10 @@ export default function BudgetsScreen() {
   // Read again on every return to the foreground: a period frozen at mount
   // kept "en cours" on last month after the pay day.
   const [now, readClock] = useNow();
+  const pull = usePullToRefresh(() => {
+    readClock();
+    return invalidateBudgetData();
+  });
 
   // A write inside a month only marks this list stale (`invalidateBudget`);
   // coming to the tab is when its totals are looked at, so it asks once here.
@@ -108,10 +113,20 @@ export default function BudgetsScreen() {
   // A year is read whole, so every page is wanted: a year cut at a page
   // boundary would close on the wrong month. A page holds three years. Keyed on
   // the paging state alone: the query result is a new object on every render.
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = budgets;
+  // A failed page stops the reading: with it, every failure re-armed the next
+  // attempt, and offline the screen asked again in a loop for as long as it
+  // stayed open. The failure is the screen's to show, retry included.
+  const {
+    hasNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    fetchNextPage,
+  } = budgets;
   useEffect(() => {
-    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+    if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage]);
 
   const currentPeriod = useMemo<Period | null>(
     () =>
@@ -154,6 +169,7 @@ export default function BudgetsScreen() {
 
   if (
     budgets.isError ||
+    isFetchNextPageError ||
     settings.isError ||
     settings.data === undefined ||
     settings.data.currency === undefined ||
@@ -212,15 +228,7 @@ export default function BudgetsScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={styles.scroll}
-          refreshControl={
-            <RefreshControl
-              refreshing={budgets.isRefetching}
-              onRefresh={() => {
-                readClock();
-                void invalidateBudgetData();
-              }}
-            />
-          }
+          refreshControl={<RefreshControl {...pull} />}
         >
           <HeroZone>
             {years.length > 1 && (

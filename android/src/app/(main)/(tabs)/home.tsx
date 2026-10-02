@@ -26,6 +26,7 @@ import { useHeroColors } from "@/core/ui/scheme-colors";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { Notice } from "@/core/ui/notice";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { useBudgetList } from "@/features/budgets/budget-queries";
 import { hasAvailableMonth } from "@/features/budgets/available-months";
 import { ActivityCard } from "@/features/current-month/components/activity-card";
@@ -52,6 +53,7 @@ export default function HomeScreen() {
   const theme = useTheme();
   const { locale, t } = useTranslation();
   const currentMonth = useCurrentMonth();
+  const pull = usePullToRefresh(() => currentMonth.refresh());
   const [isRealizedVisible, setRealizedVisible] = useState(false);
   const [isAddOpen, setAddOpen] = useState(false);
   // `pulpe://add-expense` lands here rather than on a route of its own: the
@@ -221,8 +223,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scroll}
         refreshControl={
           <RefreshControl
-            refreshing={currentMonth.isRefreshing}
-            onRefresh={() => void currentMonth.refresh()}
+            {...pull}
             colors={[hero.surface]}
             progressBackgroundColor={hero.ink}
           />

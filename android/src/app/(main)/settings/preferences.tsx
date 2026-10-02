@@ -42,6 +42,7 @@ import {
 import { SPACING } from "@/core/ui/theme";
 import { Notice } from "@/core/ui/notice";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { useUpdateUserSettings } from "@/features/account/account-queries";
 import { useCurrencyRate } from "@/features/account/currency-queries";
 import {
@@ -60,6 +61,7 @@ const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 export default function PreferencesScreen() {
   const theme = useTheme();
   const settings = useUserSettings();
+  const pull = usePullToRefresh(() => settings.refetch());
   const update = useUpdateUserSettings();
   const { locale, t } = useTranslation();
   const [pendingCurrency, setPendingCurrency] =
@@ -125,12 +127,7 @@ export default function PreferencesScreen() {
 
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={settings.isRefetching}
-            onRefresh={() => void settings.refetch()}
-          />
-        }
+        refreshControl={<RefreshControl {...pull} />}
       >
         <SettingsSection title={t("settings.language.title")}>
           <SettingsRow

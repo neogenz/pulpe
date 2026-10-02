@@ -38,6 +38,7 @@ import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { Amount } from "@/core/ui/amount";
 import { SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { TemplateFormSheet } from "@/features/templates/components/template-form-sheet";
 import { TemplateLines } from "@/features/templates/components/template-lines";
 import { TemplateLineSheet } from "@/features/templates/components/template-line-sheet";
@@ -68,6 +69,7 @@ export default function TemplateDetailScreen() {
   const settings = useUserSettings();
   const template = useTemplate(id);
   const lines = useTemplateLines(id);
+  const pull = usePullToRefresh(() => lines.refetch());
   const usage = useTemplateUsage(id);
   const removeLine = useDeleteTemplateLine();
   const removeTemplate = useDeleteTemplate();
@@ -180,12 +182,7 @@ export default function TemplateDetailScreen() {
 
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={lines.isRefetching}
-            onRefresh={() => void lines.refetch()}
-          />
-        }
+        refreshControl={<RefreshControl {...pull} />}
       >
         {(template.data.isDefault === true ||
           (template.data.description !== undefined &&

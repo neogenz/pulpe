@@ -23,6 +23,7 @@ import { InlineQueryError } from "@/core/ui/inline-query-error";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { GoalContributions } from "@/features/savings-goals/components/goal-contributions";
 import { GoalDeletionSheet } from "@/features/savings-goals/components/goal-deletion-sheet";
 import { GoalFormSheet } from "@/features/savings-goals/components/goal-form-sheet";
@@ -75,7 +76,12 @@ export default function GoalDetailScreen() {
   // A status change that did not happen has to say so: the button only
   // re-enabled, and nothing on the screen moved.
   const [hasStatusFailed, setStatusFailed] = useState(false);
-  const [isRefreshing, setRefreshing] = useState(false);
+  // Everything on the page, not the progress alone: a pull that left the
+  // contributions and withdrawals as they were looked like a refresh and was
+  // not one.
+  const pull = usePullToRefresh(() =>
+    queryClient.invalidateQueries({ queryKey: goalKeys.all }),
+  );
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
@@ -201,20 +207,7 @@ export default function GoalDetailScreen() {
 
       <ScrollView
         contentContainerStyle={styles.scroll}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            // Everything on the page, not the progress alone: a pull that
-            // left the contributions and withdrawals as they were looked
-            // like a refresh and was not one.
-            onRefresh={() => {
-              setRefreshing(true);
-              void queryClient
-                .invalidateQueries({ queryKey: goalKeys.all })
-                .finally(() => setRefreshing(false));
-            }}
-          />
-        }
+        refreshControl={<RefreshControl {...pull} />}
       >
         <HeroZone>
           {progress.data !== undefined && (

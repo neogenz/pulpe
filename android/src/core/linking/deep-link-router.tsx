@@ -20,12 +20,16 @@ export function DeepLinkRouter() {
   const sessionStatus = useSessionStore((state) => state.status);
   const vaultStatus = useVaultStore((state) => state.status);
   const pendingRef = useRef<DeepLink | null>(null);
+  // `useLinkingURL` keeps answering the last URL it saw. Read again on the
+  // next unlock, that link was followed once more after every auto-lock.
+  const lastReadUrl = useRef<string | null>(null);
 
   const isReady =
     sessionStatus === "authenticated" && vaultStatus === "unlocked";
 
   useEffect(() => {
-    if (url !== null) {
+    if (url !== null && url !== lastReadUrl.current) {
+      lastReadUrl.current = url;
       const link = parseDeepLink(url);
       // A URL this router does not own leaves any pending link untouched:
       // the reset-password link arriving mid-wait must not drop it.

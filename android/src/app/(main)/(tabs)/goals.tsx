@@ -19,6 +19,7 @@ import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { TabHeader } from "@/core/ui/tab-header";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { GoalFormSheet } from "@/features/savings-goals/components/goal-form-sheet";
 import { GoalsIntro } from "@/features/savings-goals/components/goals-intro";
 import {
@@ -37,6 +38,7 @@ export default function GoalsScreen() {
   const { t } = useTranslation();
   const settings = useUserSettings();
   const goals = useSavingsGoals();
+  const pull = usePullToRefresh(() => goals.refetch());
   // Read once, at mount: the flag is written the moment the intro is answered,
   // and re-reading it mid-render would make the intro vanish under the user.
   const [isIntroVisible, setIntroVisible] = useState(
@@ -113,12 +115,7 @@ export default function GoalsScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
-          refreshControl={
-            <RefreshControl
-              refreshing={goals.isRefetching}
-              onRefresh={() => void goals.refetch()}
-            />
-          }
+          refreshControl={<RefreshControl {...pull} />}
         >
           <SectionHeader title={t("goals.list.section")} count={list.length} />
           <LedgerCard>

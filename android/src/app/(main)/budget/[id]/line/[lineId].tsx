@@ -39,6 +39,7 @@ import {
   TABULAR_DIGITS,
 } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import {
   useBudgetDetails,
   useBudgetPeriods,
@@ -85,6 +86,7 @@ export default function BudgetLineDetailScreen() {
   const tags = useTags();
   const toggle = useToggleCheck(id);
   const isPendingCheck = usePendingCheck(id);
+  const pull = usePullToRefresh(() => details.refetch());
   const overlays = useRef<BudgetLineDetailOverlaysHandle>(null);
   const [isMenuOpen, setMenuOpen] = useState(false);
 
@@ -250,12 +252,7 @@ export default function BudgetLineDetailScreen() {
 
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={details.isRefetching}
-            onRefresh={() => void details.refetch()}
-          />
-        }
+        refreshControl={<RefreshControl {...pull} />}
       >
         {/* What is left, in the size the screen exists for, then how much of
             the plan is already gone — the same reading order as iOS's line

@@ -6,13 +6,7 @@ import {
   type Transaction,
 } from "pulpe-shared";
 import { useCallback, useMemo, useRef, useState } from "react";
-import {
-  BackHandler,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View,
-} from "react-native";
+import { BackHandler, RefreshControl, StyleSheet, View } from "react-native";
 import { Searchbar, Text, useTheme } from "react-native-paper";
 import {
   SafeAreaView,
@@ -44,6 +38,7 @@ import {
 import { tagSummary } from "@/features/tags/tag-selection";
 import { useTags } from "@/features/tags/tag-queries";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { budgetsInPeriodOrder } from "@/features/budgets/budget-list-selectors";
 import {
   invalidateBudgetData,
@@ -189,6 +184,7 @@ export default function BudgetDetailScreen() {
   const tags = useTags();
   const toggle = useToggleCheck(id);
   const isPendingCheck = usePendingCheck(id);
+  const pull = usePullToRefresh(invalidateBudgetData);
   const overlays = useRef<BudgetDetailOverlaysHandle>(null);
   const [filters, setFilters] = useState<DetailsFilters>(DEFAULT_FILTERS);
   const [isSearchVisible, setSearchVisible] = useState(false);
@@ -403,15 +399,22 @@ export default function BudgetDetailScreen() {
         </View>
       )}
 
-      <FlatList
+      <Animated.FlatList
         data={rows}
         keyExtractor={(row) => row.key}
+        // On the cells, where the list places them: pointing a line moves it
+        // from "À pointer" to "Pointé", and that move is what animates. A
+        // `layout` on a view inside a row never fired — within its own cell
+        // the row does not move. `layout`, never `entering`: the row exists
+        // either way, and an `entering` animation takes it out of flow while it
+        // plays, which in this app once left a whole screen drawing over its
+        // own chrome.
+        itemLayoutAnimation={LinearTransition.duration(DURATION.short)}
         style={{ backgroundColor: theme.colors.background }}
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
-            refreshing={details.isRefetching}
-            onRefresh={() => void invalidateBudgetData()}
+            {...pull}
             colors={[hero.surface]}
             progressBackgroundColor={hero.ink}
           />
@@ -426,79 +429,70 @@ export default function BudgetDetailScreen() {
           }
           if (row.kind === "transaction") {
             return (
-              // `layout`, never `entering`: pointing a line moves it from "À
-              // pointer" to "Pointé", and that is a move, not an arrival — the
-              // row exists either way. An `entering` animation would also take
-              // the row out of flow while it played, which in this app once
-              // left a whole screen drawing over its own chrome.
-              <Animated.View layout={LinearTransition.duration(DURATION.short)}>
-                <LedgerSegment isFirst={row.isFirst} isLast={row.isLast}>
-                  <TransactionRow
-                    transaction={row.transaction}
-                    currency={currency}
-                    isSyncing={isPendingCheck({
-                      source: "transaction",
-                      sourceId: row.transaction.id,
-                    })}
-                    tagSummary={tagSummary(
-                      row.transaction.tagIds ?? [],
-                      tags.data ?? [],
-                    )}
-                    onPress={() =>
-                      overlays.current?.editTransaction(row.transaction)
-                    }
-                    onLongPress={(anchor) =>
-                      overlays.current?.showTransactionMenu(
-                        row.transaction,
-                        anchor,
-                      )
-                    }
-                    onToggle={() =>
-                      void toggle
-                        .mutateAsync({
-                          source: "transaction",
-                          sourceId: row.transaction.id,
-                        })
-                        .catch(() => overlays.current?.showToggleFailure())
-                    }
-                  />
-                </LedgerSegment>
-              </Animated.View>
+              <LedgerSegment isFirst={row.isFirst} isLast={row.isLast}>
+                <TransactionRow
+                  transaction={row.transaction}
+                  currency={currency}
+                  isSyncing={isPendingCheck({
+                    source: "transaction",
+                    sourceId: row.transaction.id,
+                  })}
+                  tagSummary={tagSummary(
+                    row.transaction.tagIds ?? [],
+                    tags.data ?? [],
+                  )}
+                  onPress={() =>
+                    overlays.current?.editTransaction(row.transaction)
+                  }
+                  onLongPress={(anchor) =>
+                    overlays.current?.showTransactionMenu(
+                      row.transaction,
+                      anchor,
+                    )
+                  }
+                  onToggle={() =>
+                    void toggle
+                      .mutateAsync({
+                        source: "transaction",
+                        sourceId: row.transaction.id,
+                      })
+                      .catch(() => overlays.current?.showToggleFailure())
+                  }
+                />
+              </LedgerSegment>
             );
           }
           return (
-            <Animated.View layout={LinearTransition.duration(DURATION.short)}>
-              <LedgerSegment isFirst={row.isFirst} isLast={row.isLast}>
-                <BudgetLineRow
-                  item={row.item}
-                  currency={currency}
-                  isSyncing={isPendingCheck({
-                    source: "budgetLine",
-                    sourceId: row.item.line.id,
-                  })}
-                  tagSummary={tagSummary(
-                    row.item.line.tagIds ?? [],
-                    tags.data ?? [],
-                  )}
-                  onPress={() => {
-                    dismissTip("gestures");
-                    push(`/budget/${id}/line/${row.item.line.id}`);
-                  }}
-                  onToggle={() => {
-                    dismissTip("gestures");
-                    if (isPessimistic(row.item)) armTip("pessimistic-check");
-                    void toggle
-                      .mutateAsync({
-                        source: "budgetLine",
-                        sourceId: row.item.line.id,
-                      })
-                      // Per call: `mutate`'s callbacks belong to the latest call alone,
-                      // so a failure on a row pointed just before another went unsaid.
-                      .catch(() => overlays.current?.showToggleFailure());
-                  }}
-                />
-              </LedgerSegment>
-            </Animated.View>
+            <LedgerSegment isFirst={row.isFirst} isLast={row.isLast}>
+              <BudgetLineRow
+                item={row.item}
+                currency={currency}
+                isSyncing={isPendingCheck({
+                  source: "budgetLine",
+                  sourceId: row.item.line.id,
+                })}
+                tagSummary={tagSummary(
+                  row.item.line.tagIds ?? [],
+                  tags.data ?? [],
+                )}
+                onPress={() => {
+                  dismissTip("gestures");
+                  push(`/budget/${id}/line/${row.item.line.id}`);
+                }}
+                onToggle={() => {
+                  dismissTip("gestures");
+                  if (isPessimistic(row.item)) armTip("pessimistic-check");
+                  void toggle
+                    .mutateAsync({
+                      source: "budgetLine",
+                      sourceId: row.item.line.id,
+                    })
+                    // Per call: `mutate`'s callbacks belong to the latest call alone,
+                    // so a failure on a row pointed just before another went unsaid.
+                    .catch(() => overlays.current?.showToggleFailure());
+                }}
+              />
+            </LedgerSegment>
           );
         }}
         ListEmptyComponent={

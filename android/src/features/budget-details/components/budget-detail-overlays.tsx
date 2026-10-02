@@ -3,8 +3,8 @@ import type {
   SupportedCurrency,
   Transaction,
 } from "pulpe-shared";
-import { forwardRef, useImperativeHandle, useState } from "react";
-import { StyleSheet } from "react-native";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { BackHandler, StyleSheet } from "react-native";
 import { FAB, Menu, useTheme } from "react-native-paper";
 
 import { Notice } from "@/core/ui/notice";
@@ -66,6 +66,20 @@ export const BudgetDetailOverlays = forwardRef<
   const [hasToggleFailed, setToggleFailed] = useState(false);
   const [isFabOpen, setFabOpen] = useState(false);
   const removal = useTransactionRemoval();
+
+  // Back folds an open speed dial first, as Android's own menus do; without
+  // this it left the budget with the dial still open over it.
+  useEffect(() => {
+    if (!isFabOpen) return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        setFabOpen(false);
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [isFabOpen]);
 
   useImperativeHandle(ref, () => ({
     editTransaction: setEdited,

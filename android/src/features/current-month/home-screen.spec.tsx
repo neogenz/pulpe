@@ -297,7 +297,6 @@ function readyMonth() {
     details: { budget: { month: 8, year: 2026 }, transactions: [] },
     currency: "CHF",
     payDayOfMonth: null,
-    isRefreshing: false,
     refresh: mockRefresh,
     viewModel: {
       metrics: { remaining: 100, endingBalance: 100 },
