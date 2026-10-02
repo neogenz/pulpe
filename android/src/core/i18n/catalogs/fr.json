@@ -31,7 +31,7 @@
       "verifying": "Vérification du lien en cours"
     },
     "restore": {
-      "hint": "Tes données sont restées sur cet appareil. Réessaie pour ouvrir Pulpe.",
+      "hint": "Vérifie ta connexion, puis réessaie. Tes données sont restées sur cet appareil.",
       "title": "Impossible d'ouvrir ta session"
     },
     "signIn": {
@@ -428,7 +428,11 @@
     "password": "Mot de passe",
     "retry": "Réessayer",
     "signOut": "Se déconnecter",
-    "quickAmountAccessibility": "Définir le montant à %{amount}"
+    "quickAmountAccessibility": "Définir le montant à %{amount}",
+    "screenError": {
+      "title": "Cet écran a eu un problème",
+      "hint": "Tes données ne sont pas touchées. Réessaie ; si ça recommence, ferme et rouvre Pulpe."
+    }
   },
   "goals": {
     "status": {

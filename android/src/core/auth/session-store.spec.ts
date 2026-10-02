@@ -1,4 +1,4 @@
-import type { Session } from "@supabase/supabase-js";
+import { AuthRetryableFetchError, type Session } from "@supabase/supabase-js";
 
 import {
   endRecoverySession,
@@ -132,6 +132,55 @@ describe("session lifecycle", () => {
     });
     unsubscribe();
     expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Offline with an expired access token, supabase-js keeps the session on
+   * disk and answers `null` with a retryable error, then emits
+   * `INITIAL_SESSION` with `null`. Both read as "signed out" put a signed-in
+   * user on the sign-in screens until the network came back.
+   */
+  it("offers a retry instead of signing out when the restore is offline", async () => {
+    mockGetSession.mockResolvedValueOnce({
+      data: { session: null },
+      error: new AuthRetryableFetchError("Failed to fetch", 0),
+    });
+
+    const unsubscribe = observeSession();
+    mockAuthListener?.("INITIAL_SESSION", null);
+    await settle();
+
+    expect(useSessionStore.getState().status).toBe("error");
+    expect(mockClearKeys).not.toHaveBeenCalled();
+    unsubscribe();
+  });
+
+  it("stops holding the splash when a restore hangs, and still signs in later", async () => {
+    jest.useFakeTimers();
+    try {
+      const restored = session("late-user");
+      mockGetSession.mockReturnValueOnce(new Promise(() => undefined));
+      useSessionStore.setState({
+        status: "loading",
+        session: null,
+        user: null,
+      });
+
+      const unsubscribe = observeSession();
+      await jest.advanceTimersByTimeAsync(10_000);
+      expect(useSessionStore.getState().status).toBe("error");
+
+      // The refresh supabase-js kept retrying lands after all.
+      mockAuthListener?.("TOKEN_REFRESHED", restored);
+      await jest.advanceTimersByTimeAsync(0);
+      expect(useSessionStore.getState()).toMatchObject({
+        status: "authenticated",
+        session: restored,
+      });
+      unsubscribe();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("shares one purge between explicit sign-out and SIGNED_OUT", async () => {

@@ -31,7 +31,7 @@
       "verifying": "Link wird überprüft"
     },
     "restore": {
-      "hint": "Deine Daten sind weiterhin auf diesem Gerät. Versuche erneut, Pulpe zu öffnen.",
+      "hint": "Prüfe deine Verbindung und versuch es erneut. Deine Daten sind auf diesem Gerät geblieben.",
       "title": "Deine Sitzung konnte nicht geöffnet werden"
     },
     "signIn": {
@@ -428,7 +428,11 @@
     "password": "Passwort",
     "retry": "Erneut versuchen",
     "signOut": "Abmelden",
-    "quickAmountAccessibility": "Betrag auf %{amount} setzen"
+    "quickAmountAccessibility": "Betrag auf %{amount} setzen",
+    "screenError": {
+      "title": "Dieser Bildschirm hatte ein Problem",
+      "hint": "Deine Daten sind unverändert. Versuch es erneut; passiert es wieder, schliesse Pulpe und öffne es neu."
+    }
   },
   "goals": {
     "status": {

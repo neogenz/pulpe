@@ -1,3 +1,5 @@
+import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js";
+
 import { ApiError } from "@/core/api/api-error";
 import { queryClient } from "@/core/query/query-client";
 
@@ -113,8 +115,16 @@ it("signs this device out when the refresh yields no session", async () => {
   expect(mockSignOut).toHaveBeenCalledTimes(1);
 });
 
+function refreshRefused(error: unknown) {
+  return { data: { session: null, user: null }, error } as never;
+}
+
 it("refreshes once and signs out at most once for a burst of 401s", async () => {
-  mockedRefresh.mockRejectedValue(new Error("revoked"));
+  mockedRefresh.mockResolvedValue(
+    refreshRefused(
+      new AuthApiError("Invalid Refresh Token", 400, "refresh_token_not_found"),
+    ),
+  );
 
   await Promise.all([
     failQuery(apiError(HTTP_UNAUTHORIZED)),
@@ -125,6 +135,41 @@ it("refreshes once and signs out at most once for a burst of 401s", async () => 
 
   expect(mockedRefresh).toHaveBeenCalledTimes(1);
   expect(mockSignOut).toHaveBeenCalledTimes(1);
+});
+
+/**
+ * A refresh that could not reach the auth server says nothing about the
+ * session. Signing out on it wiped the keys — biometric unlock included — of
+ * every user on a data screen during a Supabase incident or in a tunnel.
+ */
+it.each([
+  [
+    "a network failure",
+    refreshRefused(new AuthRetryableFetchError("Failed to fetch", 0)),
+  ],
+  [
+    "an auth server error",
+    refreshRefused(
+      new AuthApiError("Internal error", 500, "unexpected_failure"),
+    ),
+  ],
+])("keeps the session when the refresh meets %s", async (_label, answer) => {
+  mockedRefresh.mockResolvedValue(answer);
+
+  await failQuery(apiError(HTTP_UNAUTHORIZED));
+  await settle();
+
+  expect(mockedRefresh).toHaveBeenCalledTimes(1);
+  expect(mockSignOut).not.toHaveBeenCalled();
+});
+
+it("keeps the session when the refresh itself throws", async () => {
+  mockedRefresh.mockRejectedValue(new Error("unexpected"));
+
+  await failQuery(apiError(HTTP_UNAUTHORIZED));
+  await settle();
+
+  expect(mockSignOut).not.toHaveBeenCalled();
 });
 
 it("leaves 403 and key rejections to their own observers", async () => {

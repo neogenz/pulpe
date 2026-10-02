@@ -31,7 +31,7 @@
       "verifying": "Verifying link"
     },
     "restore": {
-      "hint": "Your data is still on this device. Try again to open Pulpe.",
+      "hint": "Check your connection, then try again. Your data stayed on this device.",
       "title": "Unable to open your session"
     },
     "signIn": {
@@ -428,7 +428,11 @@
     "password": "Password",
     "retry": "Try again",
     "signOut": "Sign out",
-    "quickAmountAccessibility": "Set the amount to %{amount}"
+    "quickAmountAccessibility": "Set the amount to %{amount}",
+    "screenError": {
+      "title": "This screen ran into a problem",
+      "hint": "Your data is untouched. Try again; if it happens again, close and reopen Pulpe."
+    }
   },
   "goals": {
     "status": {

@@ -1,3 +1,5 @@
+import * as SecureStore from "expo-secure-store";
+
 import {
   clearAllKeys,
   clearLegacyClientKey,
@@ -24,6 +26,7 @@ jest.mock("expo-secure-store", () => ({
 
 const STANDARD_SLOT = "pulpe.clientKey";
 const BIOMETRIC_SLOT = "pulpe.clientKey.biometric";
+const BIOMETRIC_MARKER = "pulpe.clientKey.biometric.armed";
 
 const CLIENT_KEY =
   "04b547b25c6ad69f720443670ab3f4c60a33072bda08599d2ce0d1518264a679";
@@ -104,5 +107,54 @@ describe("clientKeyManager", () => {
 
     expect(await hasBiometricKey()).toBe(false);
     expect(getCachedClientKey()).toBe(CLIENT_KEY);
+  });
+
+  /**
+   * On Android, reading an item stored behind authentication prompts whatever
+   * the read asks for: expo-secure-store takes the flag from the stored item.
+   * Asking whether the slot existed opened a blank biometric prompt at every
+   * cold start and every lock.
+   */
+  it("should answer whether biometrics are armed without touching the gated slot", async () => {
+    await storeClientKey(CLIENT_KEY, { enableBiometric: true });
+    jest.mocked(SecureStore.getItemAsync).mockClear();
+
+    expect(await hasBiometricKey()).toBe(true);
+
+    expect(SecureStore.getItemAsync).not.toHaveBeenCalledWith(BIOMETRIC_SLOT);
+    expect(SecureStore.getItemAsync).toHaveBeenCalledWith(BIOMETRIC_MARKER);
+  });
+
+  it("should fall back to the PIN when the biometric prompt is dismissed", async () => {
+    await storeClientKey(CLIENT_KEY, { enableBiometric: true });
+    await clearSessionKey();
+    jest
+      .mocked(SecureStore.getItemAsync)
+      .mockRejectedValueOnce(new Error("User canceled the authentication"));
+
+    await expect(resolveViaBiometric()).resolves.toBeNull();
+    // Still offered: a dismissal is not a broken slot.
+    expect(await hasBiometricKey()).toBe(true);
+  });
+
+  it("should stop offering biometrics once the key has been invalidated", async () => {
+    await storeClientKey(CLIENT_KEY, { enableBiometric: true });
+    await clearSessionKey();
+    // What Android leaves after a new fingerprint is enrolled.
+    mockStore.delete(BIOMETRIC_SLOT);
+
+    expect(await resolveViaBiometric()).toBeNull();
+    expect(await hasBiometricKey()).toBe(false);
+  });
+
+  it("should drop the marker with the slot", async () => {
+    await storeClientKey(CLIENT_KEY, { enableBiometric: true });
+
+    await disableBiometricUnlock();
+    expect(await hasBiometricKey()).toBe(false);
+
+    await storeClientKey(CLIENT_KEY, { enableBiometric: true });
+    await clearAllKeys();
+    expect(mockStore.has(BIOMETRIC_MARKER)).toBe(false);
   });
 });

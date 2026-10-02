@@ -185,3 +185,6 @@ function RootLayout() {
 }
 
 export default RootLayout;
+
+// The last resort: a render error anywhere below would otherwise close the app.
+export { RouteErrorBoundary as ErrorBoundary } from "@/core/ui/route-error-boundary";

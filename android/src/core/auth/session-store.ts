@@ -1,4 +1,8 @@
-import type { Session, User } from "@supabase/supabase-js";
+import {
+  isAuthRetryableFetchError,
+  type Session,
+  type User,
+} from "@supabase/supabase-js";
 import { create } from "zustand";
 
 import { clearAllKeys } from "@/core/crypto/client-key-manager";
@@ -192,6 +196,33 @@ async function waitForAccountTeardown(): Promise<void> {
   }
 }
 
+/**
+ * How long the splash waits on a restore. supabase-js retries a refresh with
+ * backoff for about half a minute offline; past this, the retry screen is a
+ * better answer than a frozen splash. A refresh that lands later still signs
+ * the user in through `TOKEN_REFRESHED`.
+ */
+const RESTORE_TIMEOUT_MS = 10_000;
+
+function withinRestoreTimeout<T>(operation: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error("Session restore timed out")),
+      RESTORE_TIMEOUT_MS,
+    );
+    operation.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 function restorePersistedSession(showLoading: boolean): Promise<void> {
   if (sessionRestore !== null) return sessionRestore;
   if (showLoading) {
@@ -201,7 +232,14 @@ function restorePersistedSession(showLoading: boolean): Promise<void> {
   const revision = authEventRevision;
   const operation = (async () => {
     try {
-      const { data } = await supabase.auth.getSession();
+      const { data, error } = await withinRestoreTimeout(
+        supabase.auth.getSession(),
+      );
+      // Offline with an expired access token, supabase-js keeps the session
+      // on disk but answers `null` with a retryable error. Read as "signed
+      // out", that put a signed-in user on the sign-in screens until the
+      // network came back.
+      if (error !== null && isAuthRetryableFetchError(error)) throw error;
       await waitForAccountTeardown();
       if (authEventRevision === revision) {
         useSessionStore.setState(applySession(data.session));
@@ -260,6 +298,10 @@ async function applyAuthEvent(
  */
 export function observeSession(): () => void {
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    // The restore below reads the same session and knows what a failure to
+    // refresh it means; `INITIAL_SESSION` only carries `null` for both "signed
+    // out" and "offline", and would overrule it.
+    if (event === "INITIAL_SESSION") return;
     authEventRevision += 1;
     authEventQueue = authEventQueue
       .catch(() => undefined)
