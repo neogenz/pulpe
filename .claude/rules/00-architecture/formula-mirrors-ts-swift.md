@@ -4,6 +4,8 @@ paths:
   - "shared/src/calculators/**/*.ts"
   - "ios/Pulpe/Domain/Formulas/**/*.swift"
   - "ios/PulpeTests/Domain/Formulas/**/*.swift"
+  - "ios/Pulpe/Features/CurrentMonth/Reconciliation/AccountReconciliation.swift"
+  - "ios/PulpeTests/Features/CurrentMonth/AccountReconciliationTests.swift"
 ---
 
 # Formula Mirrors (TypeScript ↔ Swift)
@@ -12,19 +14,21 @@ paths:
 
 `shared/src/calculators/` is the source of truth for every business formula.
 Six of its files have a hand-written Swift twin in `ios/Pulpe/Domain/Formulas/`.
+The account reconciliation calculator has a feature-local twin beside its flow.
 
 **Changing a formula on one side is a change on BOTH sides, plus both test suites, in the same commit.** A silent divergence does not fail any build: web and iOS simply display two different amounts for the same account, and nobody finds out until a user does.
 
 ## The mirrored pairs
 
-| TypeScript (source of truth)                  | Swift twin                                               |
-| --------------------------------------------- | -------------------------------------------------------- |
-| `shared/src/calculators/budget-formulas.ts`   | `ios/Pulpe/Domain/Formulas/BudgetFormulas.swift`         |
-| `shared/src/calculators/budget-period.ts`     | `ios/Pulpe/Domain/Formulas/BudgetPeriodCalculator.swift` |
-| `shared/src/calculators/spread-split.ts`      | `ios/Pulpe/Domain/Formulas/SpreadSplit.swift`            |
-| `shared/src/calculators/savings-goal-plan.ts` | `ios/Pulpe/Domain/Formulas/SavingsPlanCalculator.swift`  |
-| `shared/src/calculators/balance-trajectory.ts` | `ios/Pulpe/Domain/Formulas/BalanceTrajectory.swift`     |
-| `shared/src/calculators/spread-progress.ts`   | `ios/Pulpe/Domain/Formulas/SpreadProgress.swift`         |
+| TypeScript (source of truth)                       | Swift twin                                                                   |
+| -------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `shared/src/calculators/budget-formulas.ts`        | `ios/Pulpe/Domain/Formulas/BudgetFormulas.swift`                             |
+| `shared/src/calculators/budget-period.ts`          | `ios/Pulpe/Domain/Formulas/BudgetPeriodCalculator.swift`                     |
+| `shared/src/calculators/spread-split.ts`           | `ios/Pulpe/Domain/Formulas/SpreadSplit.swift`                                |
+| `shared/src/calculators/savings-goal-plan.ts`      | `ios/Pulpe/Domain/Formulas/SavingsPlanCalculator.swift`                      |
+| `shared/src/calculators/balance-trajectory.ts`     | `ios/Pulpe/Domain/Formulas/BalanceTrajectory.swift`                          |
+| `shared/src/calculators/spread-progress.ts`        | `ios/Pulpe/Domain/Formulas/SpreadProgress.swift`                             |
+| `shared/src/calculators/account-reconciliation.ts` | `ios/Pulpe/Features/CurrentMonth/Reconciliation/AccountReconciliation.swift` |
 
 The mapping is **per function, not strictly per file**: `suggestedMonthlyContribution` lives in `savings-goal-progress.ts` on the TS side and in `SavingsPlanCalculator.swift` on the Swift side. Grep the function name across both trees before assuming it has no twin.
 
@@ -43,7 +47,7 @@ Do not extend the doctrine. A **new** formula belongs server-side unless it must
 ## Checklist for any formula change
 
 1. Edit the TypeScript calculator + its `*.spec.ts`.
-2. Edit the Swift twin + its suite in `ios/PulpeTests/Domain/Formulas/`.
+2. Edit the Swift twin + its suite in `ios/PulpeTests/Domain/Formulas/`, or `ios/PulpeTests/Features/CurrentMonth/AccountReconciliationTests.swift` for reconciliation.
 3. Give both suites the **same numeric fixture**, so a divergence shows up as a failing assertion and not as a reading exercise.
 4. Run both: `cd shared && pnpm test` and the iOS `PulpeTests` target.
 5. If the change alters the shape of a payload the server sends, update `ios/Pulpe/Domain/Models/SavingsGoalPlan.swift` too — it decodes what the timeline produces.
@@ -61,4 +65,4 @@ Do not extend the doctrine. A **new** formula belongs server-side unless it must
 
 - Business source of truth: `docs/SAVINGS.md`, `docs/SPREAD.md`
 - Decision rationale: `docs/adr/0016-mirror-interactive-formulas-typescript-swift.md`
-- Header comments naming each pair: the four Swift files above
+- Header comments naming each pair: the Swift files above

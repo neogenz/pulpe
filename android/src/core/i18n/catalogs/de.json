@@ -752,6 +752,49 @@
       "tip": "Vergleiche diesen Saldo mit deinem Bankkonto. Bei einer Abweichung prüfe, ob alle Ausgaben abgeglichen sind.",
       "title": "Budgetverlauf"
     },
+    "reconcile": {
+      "accounts": {
+        "accountName": "Kontoname (optional)",
+        "addAccount": "Konto hinzufügen",
+        "amount": "Saldo",
+        "firstAmount": "Saldo deines Kontos",
+        "heading": "Wie viel ist auf deinen Konten?",
+        "hint": "Gib den Saldo ein, den deine Bank heute anzeigt. Eine Überziehung gibst du negativ ein.",
+        "invalidAmount": "Gib einen Betrag wie 1250.40 oder -80 ein",
+        "negative": "Negativer Saldo (Überziehung)",
+        "removeNamed": "Konto „%{name}“ entfernen",
+        "removeNumbered": "Konto %{index} entfernen",
+        "total": "Summe deiner Konten"
+      },
+      "back": "Zurück",
+      "continue": "Weiter",
+      "realized": {
+        "balance": "Abgehakter Saldo",
+        "checkedIncome": "Abgehakte Einnahmen",
+        "checkedOutflows": "Abgehakte Ausgaben und Sparen",
+        "heading": "Dein abgehakter Saldo",
+        "hint": "Nur Abgehaktes zählt. Fehlt etwas? Hake es zuerst ab und komm dann zurück.",
+        "period": "Vom %{start} bis %{end}",
+        "rollover": "Übertrag aus dem Vormonat",
+        "viewItemsToCheck": "Offene Posten ansehen"
+      },
+      "recorded": "Ausgleich erfasst",
+      "stepOf": "Schritt %{step} von 3",
+      "title": "Konten abgleichen",
+      "verdict": {
+        "defaultLabel": "Ausgleich",
+        "finish": "Fertig",
+        "label": "Bezeichnung",
+        "labelRequired": "Gib diesem Ausgleich eine Bezeichnung",
+        "lessMessage": "Wir erfassen eine Ausgleichsausgabe von %{amount}, bereits abgehakt: Dein abgehakter Saldo entspricht dann der Summe deiner Konten.",
+        "lessTitle": "Auf deinen Konten fehlen %{amount}",
+        "moreMessage": "Wir erfassen eine Ausgleichseinnahme von %{amount}, bereits abgehakt: Dein abgehakter Saldo entspricht dann der Summe deiner Konten.",
+        "moreTitle": "Auf deinen Konten sind %{amount} mehr",
+        "record": "Ausgleich erfassen",
+        "upToDateMessage": "Deine Konten stimmen mit deinem abgehakten Saldo überein.",
+        "upToDateTitle": "Alles ist aktuell"
+      }
+    },
     "reminderPrime": {
       "body": "Eine Erinnerung pro Monat, um deine Ausgaben abzugleichen und deinen verfügbaren Betrag zu sehen. Mehr nicht — kein Spam, und du kannst sie jederzeit ausschalten.",
       "enable": "Erinnerungen aktivieren",

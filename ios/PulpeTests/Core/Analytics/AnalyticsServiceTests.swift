@@ -45,6 +45,7 @@ struct AnalyticsServiceTests {
             "budget_created",
             "first_budget_created",
             "transaction_created",
+            "account_reconciliation_completed",
             "tab_switched",
             "notification_prime_shown",
             "notification_permission_granted",
@@ -93,6 +94,17 @@ struct AnalyticsServiceTests {
     }
 
     // MARK: - Sanitization
+
+    /// PUL-351: the reconciliation completion keeps its only dimension through the
+    /// sanitizer, and that dimension never carries an amount or a label.
+    @Test func sanitizeProperties_reconciliationCompletion_keepsAdjustmentKindOnly() {
+        for completion in AccountReconciliation.Completion.allCases {
+            let sanitized = AnalyticsService.sanitizeProperties(completion.analyticsProperties)
+
+            #expect(sanitized.count == 1)
+            #expect(sanitized["adjustment_kind"] as? String == completion.rawValue)
+        }
+    }
 
     @Test func sanitizeProperties_removesFinancialData() {
         let properties: [String: Any] = [

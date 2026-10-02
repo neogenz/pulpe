@@ -752,6 +752,49 @@
       "tip": "Compare ce solde avec ton compte bancaire. S'il y a un écart, vérifie que toutes tes dépenses sont bien pointées.",
       "title": "Suivi du budget"
     },
+    "reconcile": {
+      "accounts": {
+        "accountName": "Nom du compte (facultatif)",
+        "addAccount": "Ajouter un compte",
+        "amount": "Solde",
+        "firstAmount": "Solde de ton compte",
+        "heading": "Combien as-tu sur tes comptes ?",
+        "hint": "Saisis le solde que ta banque affiche aujourd'hui. Un découvert se saisit en négatif.",
+        "invalidAmount": "Saisis un montant comme 1250.40 ou -80",
+        "negative": "Solde négatif (découvert)",
+        "removeNamed": "Retirer le compte « %{name} »",
+        "removeNumbered": "Retirer le compte %{index}",
+        "total": "Total de tes comptes"
+      },
+      "back": "Retour",
+      "continue": "Continuer",
+      "realized": {
+        "balance": "Solde pointé",
+        "checkedIncome": "Revenus pointés",
+        "checkedOutflows": "Dépenses et épargne pointées",
+        "heading": "Ton solde pointé",
+        "hint": "Seul ce que tu as pointé compte. Il manque quelque chose ? Pointe-le d'abord, puis reviens.",
+        "period": "Du %{start} au %{end}",
+        "rollover": "Report du mois précédent",
+        "viewItemsToCheck": "Voir ce qu'il reste à pointer"
+      },
+      "recorded": "Ajustement enregistré",
+      "stepOf": "Étape %{step} sur 3",
+      "title": "Rapprocher mes comptes",
+      "verdict": {
+        "defaultLabel": "Ajustement",
+        "finish": "Terminer",
+        "label": "Libellé",
+        "labelRequired": "Donne un libellé à cet ajustement",
+        "lessMessage": "On note une dépense d'ajustement de %{amount}, déjà pointée : ton solde pointé rejoindra le total de tes comptes.",
+        "lessTitle": "Il manque %{amount} sur tes comptes",
+        "moreMessage": "On note un revenu d'ajustement de %{amount}, déjà pointé : ton solde pointé rejoindra le total de tes comptes.",
+        "moreTitle": "Tes comptes ont %{amount} de plus",
+        "record": "Enregistrer l'ajustement",
+        "upToDateMessage": "Tes comptes correspondent à ton solde pointé.",
+        "upToDateTitle": "Tout est à jour"
+      }
+    },
     "reminderPrime": {
       "body": "Un rappel par mois pour pointer tes dépenses et voir ton disponible. C'est tout — jamais de spam, et tu coupes quand tu veux.",
       "enable": "Activer les rappels",

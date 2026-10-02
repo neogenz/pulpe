@@ -1083,7 +1083,64 @@
     "addTransactionDiscardMessage": "The amount, description and tags you just typed won't be saved.",
     "addTransactionDiscardConfirm": "Drop it",
     "addTransactionDiscardCancel": "Keep typing",
-    "addTransactionNoBudget": "What you typed couldn't be saved: the month's budget was just reloaded. Try again in a second."
+    "addTransactionNoBudget": "What you typed couldn't be saved: the month's budget was just reloaded. Try again in a second.",
+    "reconcile": {
+      "title": "Match my accounts",
+      "stepOf": "Step {{ step }} of 3",
+      "close": "Close account matching",
+      "back": "Back",
+      "continue": "Continue",
+      "accounts": {
+        "heading": "How much is in your accounts?",
+        "hint": "Enter the balance your bank shows today, for each account.",
+        "accountName": "Account name (optional)",
+        "amount": "Balance",
+        "invalidAmount": "Enter an amount like 1250.40 or -80",
+        "negative": "Negative balance (overdraft)",
+        "addAccount": "Add an account",
+        "removeNumbered": "Remove account {{ index }}",
+        "total": "Total of your accounts",
+        "numbered": "Account {{ index }}",
+        "overdraft": "Overdraft",
+        "privateHint": "The accounts you enter are not saved."
+      },
+      "realized": {
+        "heading": "Your checked balance",
+        "period": "From {{ start }} to {{ end }}",
+        "checkedIncome": "Checked income",
+        "checkedOutflows": "Checked expenses and savings",
+        "rollover": "Carried over from last month",
+        "balance": "Checked balance",
+        "hint": "Something missing? Check it before comparing.",
+        "viewItemsToCheck": "See what's left to check",
+        "intro": "Here is what Pulpe calculates from the items you have checked."
+      },
+      "verdict": {
+        "upToDateTitle": "Everything is up to date",
+        "upToDateMessage": "Your accounts match your checked balance.",
+        "moreMessage": "We'll record an adjustment income of {{ amount }}, already checked.",
+        "lessMessage": "We'll record an adjustment expense of {{ amount }}, already checked.",
+        "label": "Label",
+        "labelRequired": "Give this adjustment a label",
+        "defaultLabel": "Adjustment",
+        "record": "Confirm the adjustment",
+        "finish": "Done",
+        "morePrefix": "Your accounts hold",
+        "moreSuffix": "more",
+        "lessPrefix": "Your accounts are",
+        "lessSuffix": "short",
+        "adjustmentTitle": "Suggested adjustment",
+        "income": "Income",
+        "expense": "Expense"
+      },
+      "cancel": "Cancel",
+      "compare": "See the difference",
+      "steps": {
+        "accounts": "Accounts",
+        "realized": "Checked",
+        "verdict": "Difference"
+      }
+    }
   },
   "currency": {
     "swissFranc": "Swiss franc",
@@ -1734,7 +1791,8 @@
     "allUpToDate": "Everything's up to date!",
     "savingsSummary": "{{ count }} of {{ total }} set aside",
     "savingsSummarySingular": "{{ count }} of 1 set aside",
-    "monthBudgetHeadingSuffix": "budget for the month"
+    "monthBudgetHeadingSuffix": "budget for the month",
+    "reconcileAccounts": "Match my accounts"
   },
   "form": {
     "emailRequired": "Your email is needed to carry on",

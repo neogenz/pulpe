@@ -752,6 +752,49 @@
       "tip": "Confronta questo saldo con il tuo conto bancario. Se c'è una differenza, verifica di aver spuntato tutte le spese.",
       "title": "Andamento del budget"
     },
+    "reconcile": {
+      "accounts": {
+        "accountName": "Nome del conto (facoltativo)",
+        "addAccount": "Aggiungi un conto",
+        "amount": "Saldo",
+        "firstAmount": "Saldo del tuo conto",
+        "heading": "Quanto hai sui tuoi conti?",
+        "hint": "Inserisci il saldo che la tua banca mostra oggi. Uno scoperto si inserisce in negativo.",
+        "invalidAmount": "Inserisci un importo come 1250.40 o -80",
+        "negative": "Saldo negativo (scoperto)",
+        "removeNamed": "Rimuovi il conto «%{name}»",
+        "removeNumbered": "Rimuovi il conto %{index}",
+        "total": "Totale dei tuoi conti"
+      },
+      "back": "Indietro",
+      "continue": "Continua",
+      "realized": {
+        "balance": "Saldo spuntato",
+        "checkedIncome": "Entrate spuntate",
+        "checkedOutflows": "Spese e risparmio spuntati",
+        "heading": "Il tuo saldo spuntato",
+        "hint": "Conta solo ciò che hai spuntato. Manca qualcosa? Spuntalo prima, poi torna qui.",
+        "period": "Dal %{start} al %{end}",
+        "rollover": "Riporto dal mese precedente",
+        "viewItemsToCheck": "Vedi cosa resta da spuntare"
+      },
+      "recorded": "Allineamento registrato",
+      "stepOf": "Passo %{step} di 3",
+      "title": "Allinea i miei conti",
+      "verdict": {
+        "defaultLabel": "Allineamento",
+        "finish": "Fatto",
+        "label": "Descrizione",
+        "labelRequired": "Dai una descrizione a questo allineamento",
+        "lessMessage": "Registriamo una spesa di allineamento di %{amount}, già spuntata: il tuo saldo spuntato corrisponderà al totale dei tuoi conti.",
+        "lessTitle": "Sui tuoi conti mancano %{amount}",
+        "moreMessage": "Registriamo un'entrata di allineamento di %{amount}, già spuntata: il tuo saldo spuntato corrisponderà al totale dei tuoi conti.",
+        "moreTitle": "Sui tuoi conti ci sono %{amount} in più",
+        "record": "Registra l'allineamento",
+        "upToDateMessage": "I tuoi conti corrispondono al tuo saldo spuntato.",
+        "upToDateTitle": "Tutto è aggiornato"
+      }
+    },
     "reminderPrime": {
       "body": "Un promemoria al mese per spuntare le spese e vedere quanto hai a disposizione. Nient'altro — niente spam e puoi disattivarlo quando vuoi.",
       "enable": "Attiva i promemoria",

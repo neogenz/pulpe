@@ -32,6 +32,14 @@ export {
 } from './balance-trajectory.js';
 export { splitTotalPreserving } from './spread-split.js';
 export {
+  parseAccountAmount,
+  reconciliationVerdict,
+  summarizeAccounts,
+  type AccountAmount,
+  type AccountsSummary,
+  type ReconciliationVerdict,
+} from './account-reconciliation.js';
+export {
   PACE_TOLERANCE_PERCENT,
   MAX_ESTIMATED_HORIZON_MONTHS,
   calculatePaceStatus,

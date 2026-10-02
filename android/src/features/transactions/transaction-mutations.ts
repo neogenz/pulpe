@@ -1,7 +1,15 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  type QueryClient,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { Transaction, TransactionCreate } from "pulpe-shared";
 
-import { invalidateAfterBudgetWrite } from "@/features/budgets/budget-queries";
+import type { BudgetDetails } from "@/features/budgets/budget-api";
+import {
+  budgetKeys,
+  invalidateAfterBudgetWrite,
+} from "@/features/budgets/budget-queries";
 import { goalKeys } from "@/features/savings-goals/goals-queries";
 
 import {
@@ -20,10 +28,18 @@ import {
  */
 function useTransactionMutation<TInput, TResult>(
   mutationFn: (input: TInput) => Promise<TResult>,
+  applyResult?: (queryClient: QueryClient, result: TResult) => void,
 ) {
+  const queryClient = useQueryClient();
   const refresh = useRefreshAfterTransactionWrite();
 
-  return useMutation({ mutationFn, onSuccess: refresh });
+  return useMutation({
+    mutationFn,
+    onSuccess: (result) => {
+      applyResult?.(queryClient, result);
+      refresh();
+    },
+  });
 }
 
 /**
@@ -45,14 +61,14 @@ export function useRefreshAfterTransactionWrite(): () => void {
  * does not prove that a changed retry was saved, and a goal withdrawal can
  * fail its balance check before the server even reaches the duplicate id.
  */
-async function createOnce(payload: TransactionCreate): Promise<void> {
+async function createOnce(payload: TransactionCreate): Promise<Transaction> {
   try {
-    await createTransaction(payload);
+    return await createTransaction(payload);
   } catch (error) {
     if (payload.id !== undefined) {
       try {
         const written = await fetchTransaction(payload.id);
-        if (matchesSubmittedCreate(written, payload)) return;
+        if (matchesSubmittedCreate(written, payload)) return written;
       } catch {
         // A read that also failed cannot confirm the write. Preserve the
         // original failure so the unchanged request remains retryable.
@@ -107,8 +123,25 @@ function matchesSubmittedCreate(
   );
 }
 
+/**
+ * The row the server answered with goes into its month at once, ahead of the
+ * refetch: the home screen's realized balance and activity read that cache,
+ * and a refetch that lags or fails would otherwise leave a write that happened
+ * looking as if it had not — the surest way to have it written twice.
+ */
+function addToBudgetDetails(queryClient: QueryClient, created: Transaction) {
+  queryClient.setQueryData<BudgetDetails>(
+    budgetKeys.detail(created.budgetId),
+    (details) =>
+      details === undefined ||
+      details.transactions.some((row) => row.id === created.id)
+        ? details
+        : { ...details, transactions: [...details.transactions, created] },
+  );
+}
+
 export function useCreateTransaction() {
-  return useTransactionMutation(createOnce);
+  return useTransactionMutation(createOnce, addToBudgetDetails);
 }
 
 export function useUpdateTransaction() {

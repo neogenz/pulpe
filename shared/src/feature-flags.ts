@@ -95,6 +95,13 @@ export const ANALYTICS_EVENTS = {
   BUDGET_CREATED: 'budget_created',
   /** Fires after a transaction is created. Properties: `type`. */
   TRANSACTION_CREATED: 'transaction_created',
+  /**
+   * Fires once when the "Rapprocher mes comptes" flow completes: after its
+   * adjustment is recorded, or when the user confirms the accounts already
+   * match. Properties: `adjustment_kind` (`'income' | 'expense' | 'none'`).
+   * Never carries an amount, an account name or a label.
+   */
+  ACCOUNT_RECONCILIATION_COMPLETED: 'account_reconciliation_completed',
   /** Fires when the active tab changes. Properties: `tab`. */
   TAB_SWITCHED: 'tab_switched',
   /** Fires when the notification pre-permission prompt appears. Properties: none. */

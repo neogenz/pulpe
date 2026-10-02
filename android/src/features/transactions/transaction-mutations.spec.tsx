@@ -6,12 +6,16 @@ import {
 import { act, renderHook } from "@testing-library/react-native";
 import {
   API_ERROR_CODES,
+  BudgetFormulas,
+  type BudgetLine,
   type Transaction,
   type TransactionCreate,
 } from "pulpe-shared";
 import type React from "react";
 
 import { ApiError, CLIENT_ERROR_CODES } from "@/core/api/api-error";
+import type { BudgetDetails } from "@/features/budgets/budget-api";
+import { budgetKeys } from "@/features/budgets/budget-queries";
 
 import { createTransaction, fetchTransaction } from "./transaction-api";
 import { useCreateTransaction } from "./transaction-mutations";
@@ -301,3 +305,130 @@ it.each([
     expect(client.invalidateQueries).not.toHaveBeenCalled();
   },
 );
+
+describe("the created entry in its month's cache", () => {
+  const STAMP = "2026-10-02T09:30:00.000Z";
+
+  const salary = {
+    id: "salary",
+    budgetId: "budget-1",
+    kind: "income",
+    amount: 4200,
+    checkedAt: STAMP,
+    recurrence: "fixed",
+  } as BudgetLine;
+
+  const adjustment = {
+    id: "adjustment-1",
+    budgetId: "budget-1",
+    budgetLineId: null,
+    name: "Ajustement",
+    amount: 49.65,
+    kind: "expense",
+    transactionDate: STAMP,
+    checkedAt: STAMP,
+    createdAt: STAMP,
+    updatedAt: STAMP,
+  } as Transaction;
+
+  const clients: QueryClient[] = [];
+
+  afterEach(() => {
+    for (const client of clients.splice(0)) client.clear();
+  });
+
+  async function renderSeededCreate() {
+    const client = new QueryClient({
+      defaultOptions: {
+        mutations: { retry: false, gcTime: 0 },
+        queries: { retry: false, gcTime: Infinity },
+      },
+    });
+    clients.push(client);
+    jest.spyOn(client, "invalidateQueries").mockResolvedValue(undefined);
+    client.setQueryData<BudgetDetails>(budgetKeys.detail("budget-1"), {
+      budget: { id: "budget-1", rollover: 0 },
+      budgetLines: [salary],
+      transactions: [],
+    } as unknown as BudgetDetails);
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const hook = await renderHook(() => useCreateTransaction(), { wrapper });
+    return { hook, client };
+  }
+
+  it("puts the created entry in its budget's cached details before any refetch", async () => {
+    mockedCreate.mockResolvedValue(adjustment);
+    const { hook, client } = await renderSeededCreate();
+
+    await act(() =>
+      hook.result.current.mutateAsync({
+        budgetId: "budget-1",
+        name: "Ajustement",
+        amount: 49.65,
+        kind: "expense",
+        transactionDate: STAMP,
+        checkedAt: STAMP,
+      }),
+    );
+
+    const cached = client.getQueryData<BudgetDetails>(
+      budgetKeys.detail("budget-1"),
+    );
+    expect(cached?.transactions).toEqual([adjustment]);
+    expect(
+      BudgetFormulas.calculateRealizedBalance(
+        cached?.budgetLines ?? [],
+        cached?.transactions ?? [],
+        0,
+      ),
+    ).toBeCloseTo(4150.35, 10);
+    await hook.unmount();
+  });
+
+  it("never lists the same created entry twice", async () => {
+    mockedCreate.mockResolvedValue(adjustment);
+    const { hook, client } = await renderSeededCreate();
+    const payload = {
+      budgetId: "budget-1",
+      name: "Ajustement",
+      amount: 49.65,
+      kind: "expense" as const,
+    };
+
+    await act(() => hook.result.current.mutateAsync(payload));
+    await act(() => hook.result.current.mutateAsync(payload));
+
+    expect(
+      client.getQueryData<BudgetDetails>(budgetKeys.detail("budget-1"))
+        ?.transactions,
+    ).toEqual([adjustment]);
+    await hook.unmount();
+  });
+
+  it("caches the row read back after a lost answer, once", async () => {
+    const written = { ...adjustment, id: PAYLOAD.id!, budgetId: "budget-1" };
+    mockedCreate.mockRejectedValueOnce(alreadyWritten);
+    mockedFetch.mockResolvedValueOnce(written);
+    const { hook, client } = await renderSeededCreate();
+
+    await act(() =>
+      hook.result.current.mutateAsync({
+        id: PAYLOAD.id,
+        budgetId: "budget-1",
+        name: "Ajustement",
+        amount: 49.65,
+        kind: "expense",
+        transactionDate: STAMP,
+        checkedAt: STAMP,
+      }),
+    );
+
+    expect(
+      client.getQueryData<BudgetDetails>(budgetKeys.detail("budget-1"))
+        ?.transactions,
+    ).toEqual([written]);
+    await hook.unmount();
+  });
+});

@@ -274,6 +274,142 @@ describe('DashboardStore - Business Scenarios', () => {
     });
   });
 
+  describe('User can reconcile their accounts', () => {
+    const CHECKED_AT = '2025-06-02T08:00:00Z';
+
+    it('should expose the realized position of the loaded month', async () => {
+      const budget = createMockBudget({ rollover: -120.5 });
+      const lines = [
+        createMockBudgetLine({
+          id: 'salary',
+          kind: 'income',
+          amount: 5000,
+          checkedAt: CHECKED_AT,
+        }),
+        createMockBudgetLine({
+          id: 'rent',
+          kind: 'expense',
+          amount: 1500,
+          checkedAt: CHECKED_AT,
+        }),
+        createMockBudgetLine({
+          id: 'pillar',
+          kind: 'saving',
+          amount: 300,
+          checkedAt: CHECKED_AT,
+        }),
+        createMockBudgetLine({ id: 'groceries', kind: 'expense', amount: 600 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'gift',
+          kind: 'income',
+          amount: 0.1,
+          checkedAt: CHECKED_AT,
+        }),
+        createMockTransaction({
+          id: 'coffee',
+          kind: 'expense',
+          amount: 0.2,
+          checkedAt: CHECKED_AT,
+        }),
+        createMockTransaction({ id: 'pending', kind: 'expense', amount: 999 }),
+      ];
+
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.realizedIncome()).toBeCloseTo(5000.1, 10);
+      expect(store.realizedExpenses()).toBeCloseTo(1800.2, 10);
+      expect(store.realizedBalance()).toBeCloseTo(3079.4, 10);
+    });
+
+    it('should move the realized balance to the typed total once the adjustment is recorded', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({
+          id: 'salary',
+          kind: 'income',
+          amount: 4200,
+          checkedAt: CHECKED_AT,
+        }),
+      ];
+      const adjustment = createMockTransaction({
+        id: 'adjustment',
+        name: 'Ajustement',
+        kind: 'expense',
+        amount: 49.65,
+        checkedAt: '2025-06-15T10:00:00.000Z',
+      });
+      const { store, budgetApi } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        [],
+      );
+      budgetApi.createTransaction$.mockReturnValue(
+        of({ success: true, data: adjustment }),
+      );
+      // The refresh that follows the write fails: the write still happened.
+      budgetApi.getDashboardData$.mockReturnValue(
+        throwError(() => new Error('offline')),
+      );
+
+      const outcome = await store.addTransaction({
+        budgetId: 'budget-1',
+        name: 'Ajustement',
+        amount: 49.65,
+        kind: 'expense',
+        checkedAt: '2025-06-15T10:00:00.000Z',
+      });
+
+      expect(outcome).toEqual({ transactionId: 'adjustment' });
+      expect(budgetApi.createTransaction$).toHaveBeenCalledTimes(1);
+      expect(store.realizedBalance()).toBeCloseTo(4150.35, 10);
+      expect(store.recentTransactions().map((tx) => tx.id)).toContain(
+        'adjustment',
+      );
+    });
+
+    it('should keep an entry written to another month out of the loaded one', async () => {
+      const { store, budgetApi } = await setupWithBudgetAndWait(
+        createMockBudget({ rollover: 0 }),
+        [],
+        [],
+      );
+      budgetApi.createTransaction$.mockReturnValue(
+        of({
+          success: true,
+          data: createMockTransaction({
+            id: 'previous-month-adjustment',
+            budgetId: 'budget-previous',
+            kind: 'income',
+            amount: 12.5,
+            checkedAt: CHECKED_AT,
+          }),
+        }),
+      );
+      // Only the store's own patch can then reach the loaded month.
+      budgetApi.getDashboardData$.mockReturnValue(
+        throwError(() => new Error('offline')),
+      );
+
+      const outcome = await store.addTransaction({
+        budgetId: 'budget-previous',
+        name: 'Ajustement',
+        amount: 12.5,
+        kind: 'income',
+        checkedAt: CHECKED_AT,
+      });
+
+      expect(outcome).toEqual({ transactionId: 'previous-month-adjustment' });
+      expect(store.transactions()).toEqual([]);
+      expect(store.realizedBalance()).toBe(0);
+    });
+  });
+
   describe('User can manage transactions', () => {
     it('should add a transaction and update data', async () => {
       const budget = createMockBudget();
