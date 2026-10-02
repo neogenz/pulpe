@@ -19,6 +19,7 @@ describe('BudgetListStore', () => {
   let budgetApiMock: Partial<BudgetApi>;
 
   beforeEach(() => {
+    mockUserSettingsStore.payDayOfMonth.set(25);
     mockCache.get.mockReturnValue(null);
 
     budgetApiMock = {
@@ -37,6 +38,19 @@ describe('BudgetListStore', () => {
     });
 
     store = TestBed.inject(BudgetListStore);
+  });
+
+  describe('currentDate', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('should react to payday changes using the canonical budget period', () => {
+      vi.setSystemTime(new Date(2026, 7, 4, 12));
+      mockUserSettingsStore.payDayOfMonth.set(5);
+      expect(store.currentDate()).toEqual({ month: 7, year: 2026 });
+
+      mockUserSettingsStore.payDayOfMonth.set(1);
+      expect(store.currentDate()).toEqual({ month: 8, year: 2026 });
+    });
   });
 
   describe('nextAvailableMonth', () => {
