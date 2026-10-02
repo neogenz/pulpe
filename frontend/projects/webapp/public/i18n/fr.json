@@ -1083,7 +1083,49 @@
     "addTransactionDiscardMessage": "Le montant, la description et les tags que tu viens de saisir ne seront pas enregistrés.",
     "addTransactionDiscardConfirm": "Abandonner",
     "addTransactionDiscardCancel": "Continuer la saisie",
-    "addTransactionNoBudget": "Ta saisie n'a pas pu être enregistrée : le budget du mois vient d'être rechargé. Réessaie dans un instant."
+    "addTransactionNoBudget": "Ta saisie n'a pas pu être enregistrée : le budget du mois vient d'être rechargé. Réessaie dans un instant.",
+    "reconcile": {
+      "title": "Rapprocher mes comptes",
+      "stepOf": "Étape {{ step }} sur 3",
+      "close": "Fermer le rapprochement",
+      "back": "Retour",
+      "continue": "Continuer",
+      "accounts": {
+        "heading": "Combien as-tu sur tes comptes ?",
+        "hint": "Saisis le solde que ta banque affiche aujourd'hui. Un découvert se saisit en négatif.",
+        "firstAmount": "Solde de ton compte",
+        "accountName": "Nom du compte (facultatif)",
+        "amount": "Solde",
+        "invalidAmount": "Saisis un montant comme 1250.40 ou -80",
+        "negative": "Solde négatif (découvert)",
+        "addAccount": "Ajouter un compte",
+        "removeNumbered": "Retirer le compte {{ index }}",
+        "total": "Total de tes comptes"
+      },
+      "realized": {
+        "heading": "Ton solde pointé",
+        "period": "Du {{ start }} au {{ end }}",
+        "checkedIncome": "Revenus pointés",
+        "checkedOutflows": "Dépenses et épargne pointées",
+        "rollover": "Report du mois précédent",
+        "balance": "Solde pointé",
+        "hint": "Seul ce que tu as pointé compte. Il manque quelque chose ? Pointe-le d'abord, puis reviens.",
+        "viewItemsToCheck": "Voir ce qu'il reste à pointer"
+      },
+      "verdict": {
+        "upToDateTitle": "Tout est à jour",
+        "upToDateMessage": "Tes comptes correspondent à ton solde pointé.",
+        "moreTitle": "Tes comptes ont {{ amount }} de plus",
+        "lessTitle": "Il manque {{ amount }} sur tes comptes",
+        "moreMessage": "On note un revenu d'ajustement de {{ amount }}, déjà pointé : ton solde pointé rejoindra le total de tes comptes.",
+        "lessMessage": "On note une dépense d'ajustement de {{ amount }}, déjà pointée : ton solde pointé rejoindra le total de tes comptes.",
+        "label": "Libellé",
+        "labelRequired": "Donne un libellé à cet ajustement",
+        "defaultLabel": "Ajustement",
+        "record": "Enregistrer l'ajustement",
+        "finish": "Terminer"
+      }
+    }
   },
   "currency": {
     "swissFranc": "Franc suisse",
@@ -1734,7 +1776,8 @@
     "allUpToDate": "Tout est à jour !",
     "savingsSummary": "{{ count }} sur {{ total }} mises de côté",
     "savingsSummarySingular": "{{ count }} sur 1 mise de côté",
-    "monthBudgetHeadingSuffix": "budget du mois"
+    "monthBudgetHeadingSuffix": "budget du mois",
+    "reconcileAccounts": "Rapprocher mes comptes"
   },
   "form": {
     "emailRequired": "Ton email est nécessaire pour continuer",

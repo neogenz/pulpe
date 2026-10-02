@@ -29,6 +29,12 @@ interface FormModalProps {
    * off the bottom of the screen, which is exactly where it must never be.
    */
   footer?: ReactNode;
+  /**
+   * Where the Android back action goes in a form of several steps: one step
+   * back, not out. The scrim and the close button still dismiss — a tap
+   * outside must never quietly change the step under the user's eyes.
+   */
+  onBack?: () => void;
   children?: ReactNode;
 }
 
@@ -51,6 +57,7 @@ export function FormModal({
   title,
   subtitle,
   footer,
+  onBack,
   children,
 }: FormModalProps) {
   const { t } = useTranslation();
@@ -73,7 +80,7 @@ export function FormModal({
       animationType="slide"
       presentationStyle="overFullScreen"
       statusBarTranslucent
-      onRequestClose={isBusy ? () => undefined : onDismiss}
+      onRequestClose={isBusy ? () => undefined : (onBack ?? onDismiss)}
     >
       <View
         style={[styles.backdrop, { backgroundColor: theme.colors.backdrop }]}

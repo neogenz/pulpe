@@ -710,6 +710,49 @@
       "tip": "Compare this balance with your bank account. If there is a difference, check that all your expenses are checked off.",
       "title": "Budget tracking"
     },
+    "reconcile": {
+      "accounts": {
+        "accountName": "Account name (optional)",
+        "addAccount": "Add an account",
+        "amount": "Balance",
+        "firstAmount": "Your account balance",
+        "heading": "How much is in your accounts?",
+        "hint": "Enter the balance your bank shows today. An overdraft goes in as a negative amount.",
+        "invalidAmount": "Enter an amount like 1250.40 or -80",
+        "negative": "Negative balance (overdraft)",
+        "removeNamed": "Remove the account “%{name}”",
+        "removeNumbered": "Remove account %{index}",
+        "total": "Total of your accounts"
+      },
+      "back": "Back",
+      "continue": "Continue",
+      "realized": {
+        "balance": "Checked balance",
+        "checkedIncome": "Checked income",
+        "checkedOutflows": "Checked expenses and savings",
+        "heading": "Your checked balance",
+        "hint": "Only what you've checked counts. Something missing? Check it first, then come back.",
+        "period": "From %{start} to %{end}",
+        "rollover": "Carried over from last month",
+        "viewItemsToCheck": "See what's left to check"
+      },
+      "recorded": "Adjustment recorded",
+      "stepOf": "Step %{step} of 3",
+      "title": "Match my accounts",
+      "verdict": {
+        "defaultLabel": "Adjustment",
+        "finish": "Done",
+        "label": "Label",
+        "labelRequired": "Give this adjustment a label",
+        "lessMessage": "We'll record an adjustment expense of %{amount}, already checked: your checked balance will match the total of your accounts.",
+        "lessTitle": "Your accounts are %{amount} short",
+        "moreMessage": "We'll record an adjustment income of %{amount}, already checked: your checked balance will match the total of your accounts.",
+        "moreTitle": "Your accounts hold %{amount} more",
+        "record": "Record the adjustment",
+        "upToDateMessage": "Your accounts match your checked balance.",
+        "upToDateTitle": "Everything is up to date"
+      }
+    },
     "reminderPrime": {
       "body": "One reminder a month to check off your expenses and see what is available. That's all — no spam, and you can turn it off whenever you like.",
       "enable": "Enable reminders",

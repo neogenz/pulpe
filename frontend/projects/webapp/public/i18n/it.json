@@ -1083,7 +1083,49 @@
     "addTransactionDiscardMessage": "L'importo, la descrizione e i tag che hai appena scritto non verranno salvati.",
     "addTransactionDiscardConfirm": "Abbandona",
     "addTransactionDiscardCancel": "Continua a scrivere",
-    "addTransactionNoBudget": "Quello che hai scritto non è stato salvato: il budget del mese è appena stato ricaricato. Riprova tra un attimo."
+    "addTransactionNoBudget": "Quello che hai scritto non è stato salvato: il budget del mese è appena stato ricaricato. Riprova tra un attimo.",
+    "reconcile": {
+      "title": "Allinea i miei conti",
+      "stepOf": "Passo {{ step }} di 3",
+      "close": "Chiudi l'allineamento dei conti",
+      "back": "Indietro",
+      "continue": "Continua",
+      "accounts": {
+        "heading": "Quanto hai sui tuoi conti?",
+        "hint": "Inserisci il saldo che la tua banca mostra oggi. Uno scoperto si inserisce in negativo.",
+        "firstAmount": "Saldo del tuo conto",
+        "accountName": "Nome del conto (facoltativo)",
+        "amount": "Saldo",
+        "invalidAmount": "Inserisci un importo come 1250.40 o -80",
+        "negative": "Saldo negativo (scoperto)",
+        "addAccount": "Aggiungi un conto",
+        "removeNumbered": "Rimuovi il conto {{ index }}",
+        "total": "Totale dei tuoi conti"
+      },
+      "realized": {
+        "heading": "Il tuo saldo spuntato",
+        "period": "Dal {{ start }} al {{ end }}",
+        "checkedIncome": "Entrate spuntate",
+        "checkedOutflows": "Spese e risparmio spuntati",
+        "rollover": "Riporto dal mese precedente",
+        "balance": "Saldo spuntato",
+        "hint": "Conta solo ciò che hai spuntato. Manca qualcosa? Spuntalo prima, poi torna qui.",
+        "viewItemsToCheck": "Vedi cosa resta da spuntare"
+      },
+      "verdict": {
+        "upToDateTitle": "Tutto è aggiornato",
+        "upToDateMessage": "I tuoi conti corrispondono al tuo saldo spuntato.",
+        "moreTitle": "Sui tuoi conti ci sono {{ amount }} in più",
+        "lessTitle": "Sui tuoi conti mancano {{ amount }}",
+        "moreMessage": "Registriamo un'entrata di allineamento di {{ amount }}, già spuntata: il tuo saldo spuntato corrisponderà al totale dei tuoi conti.",
+        "lessMessage": "Registriamo una spesa di allineamento di {{ amount }}, già spuntata: il tuo saldo spuntato corrisponderà al totale dei tuoi conti.",
+        "label": "Descrizione",
+        "labelRequired": "Dai una descrizione a questo allineamento",
+        "defaultLabel": "Allineamento",
+        "record": "Registra l'allineamento",
+        "finish": "Fatto"
+      }
+    }
   },
   "currency": {
     "swissFranc": "Franco svizzero",
@@ -1734,7 +1776,8 @@
     "allUpToDate": "È tutto aggiornato!",
     "savingsSummary": "{{ count }} su {{ total }} messe da parte",
     "savingsSummarySingular": "{{ count }} su 1 messa da parte",
-    "monthBudgetHeadingSuffix": "budget del mese"
+    "monthBudgetHeadingSuffix": "budget del mese",
+    "reconcileAccounts": "Allinea i miei conti"
   },
   "form": {
     "emailRequired": "La tua email serve per continuare",

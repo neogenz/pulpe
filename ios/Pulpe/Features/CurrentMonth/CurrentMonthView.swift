@@ -109,10 +109,7 @@ struct CurrentMonthView: View {
             Group {
                 switch sheet {
                 case .realizedBalance:
-                    RealizedBalanceSheet(
-                        metrics: store.metrics,
-                        realizedMetrics: store.realizedMetrics
-                    )
+                    CurrentMonthRealizedBalanceSheet { navigateToBudget = true }
                 case .account:
                     AccountView()
                 case .notificationPrime:

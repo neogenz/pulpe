@@ -28,6 +28,7 @@ import { HomeHeroCard } from "@/features/current-month/components/home-hero-card
 import { HomeHeroSkeleton } from "@/features/current-month/components/home-hero-skeleton";
 import { NotificationPrimeSheet } from "@/features/current-month/components/notification-prime-sheet";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
+import { ReconcileAccountsSheet } from "@/features/current-month/components/reconcile-accounts-sheet";
 import { SavingsDoneCard } from "@/features/current-month/components/savings-done-card";
 import { UncheckedOperationsCard } from "@/features/current-month/components/unchecked-operations-card";
 import { useCurrentMonth } from "@/features/current-month/current-month-queries";
@@ -43,6 +44,8 @@ export default function HomeScreen() {
   const { locale, t } = useTranslation();
   const currentMonth = useCurrentMonth();
   const [isRealizedVisible, setRealizedVisible] = useState(false);
+  const [isReconcileVisible, setReconcileVisible] = useState(false);
+  const [hasAdjustmentRecorded, setAdjustmentRecorded] = useState(false);
   const [isAddOpen, setAddOpen] = useState(false);
   // `pulpe://add-expense` lands here rather than on a route of its own: the
   // sheet is the add-expense surface, and it belongs to this screen.
@@ -247,16 +250,19 @@ export default function HomeScreen() {
 
       {/* Hidden while a sheet is up: the FAB floats above the Portal's scrim
           and would otherwise sit on top of the form it just opened. */}
-      {!isAddVisible && !isRealizedVisible && !reminders.isVisible && (
-        <FAB
-          testID="home-add-entry"
-          icon="plus"
-          label={t("home.add")}
-          style={styles.fab}
-          onPress={() => setAddOpen(true)}
-          accessibilityLabel={t("home.addAccessibility")}
-        />
-      )}
+      {!isAddVisible &&
+        !isRealizedVisible &&
+        !isReconcileVisible &&
+        !reminders.isVisible && (
+          <FAB
+            testID="home-add-entry"
+            icon="plus"
+            label={t("home.add")}
+            style={styles.fab}
+            onPress={() => setAddOpen(true)}
+            accessibilityLabel={t("home.addAccessibility")}
+          />
+        )}
 
       {/* The server flips whatever state it holds, so taking the pointing back
           is the very same call a second time. */}
@@ -303,13 +309,51 @@ export default function HomeScreen() {
         {t("home.activity.added")}
       </Notice>
 
+      <Notice
+        clearsFab
+        visible={hasAdjustmentRecorded}
+        onDismiss={() => setAdjustmentRecorded(false)}
+      >
+        {t("home.reconcile.recorded")}
+      </Notice>
+
+      {/* The realized balance hands over to the reconciliation rather than
+          stacking a second modal on itself: one sheet at a time. */}
       <RealizedBalanceSheet
         isVisible={isRealizedVisible}
         onDismiss={() => setRealizedVisible(false)}
         metrics={viewModel.metrics}
         realized={viewModel.realized}
         currency={currency}
+        onReconcile={
+          currentMonth.budgetId === null
+            ? undefined
+            : () => {
+                setRealizedVisible(false);
+                setReconcileVisible(true);
+              }
+        }
       />
+
+      {currentMonth.budgetId !== null && (
+        <ReconcileAccountsSheet
+          isVisible={isReconcileVisible}
+          onDismiss={() => setReconcileVisible(false)}
+          onRecorded={() => {
+            setReconcileVisible(false);
+            setAdjustmentRecorded(true);
+          }}
+          onViewItemsToCheck={() => {
+            setReconcileVisible(false);
+            router.push(`/budget/${currentMonth.budgetId}`);
+          }}
+          budgetId={currentMonth.budgetId}
+          realized={viewModel.realized}
+          rollover={currentMonth.details?.budget.rollover ?? 0}
+          period={period}
+          currency={currency}
+        />
+      )}
 
       <NotificationPrimeSheet
         isVisible={reminders.isVisible}

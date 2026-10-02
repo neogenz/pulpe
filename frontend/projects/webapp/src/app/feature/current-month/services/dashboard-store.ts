@@ -403,6 +403,23 @@ export class DashboardStore {
     return budget?.rollover ?? 0;
   });
 
+  // The pointed side of the month, which is what a bank account can be held
+  // against: what came in, what went out (savings included), and the report.
+  readonly realizedIncome = computed<number>(() =>
+    BudgetFormulas.calculateRealizedIncome(
+      this.budgetLines(),
+      this.transactions(),
+    ),
+  );
+
+  readonly realizedBalance = computed<number>(() =>
+    BudgetFormulas.calculateRealizedBalance(
+      this.budgetLines(),
+      this.transactions(),
+      this.rolloverAmount(),
+    ),
+  );
+
   readonly #metrics = computed(() =>
     BudgetFormulas.calculateAllMetrics(
       this.budgetLines(),

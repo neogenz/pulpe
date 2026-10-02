@@ -5,14 +5,25 @@ import {
   computed,
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { MatDialog, type MatDialogConfig } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
-import { type BudgetLine, type Transaction, type Budget } from 'pulpe-shared';
-import { Subject } from 'rxjs';
+import {
+  getBudgetPeriodDates,
+  type BudgetLine,
+  type Transaction,
+  type Budget,
+} from 'pulpe-shared';
+import { of, Subject } from 'rxjs';
 import Dashboard, { UNDO_WINDOW_MS } from './current-month';
 import { type TransactionFormData } from './components/add-transaction-form.schema';
+import {
+  ReconcileAccountsDialog,
+  type ReconcileAccountsDialogData,
+} from './components/reconcile-accounts/reconcile-accounts-dialog';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
@@ -499,6 +510,11 @@ describe('Dashboard (TestBed)', () => {
       remaining: signal(3491),
       historyError: signal<unknown>(undefined),
       loadErrorMessage: signal('On n’arrive pas à charger ton tableau de bord'),
+      realizedBalance: signal(1499.99),
+      realizedIncome: signal(5000),
+      realizedExpenses: signal(3380.01),
+      rolloverAmount: signal(-120),
+      periodDates: signal(getBudgetPeriodDates(4, 2026, 27)),
     };
   }
 
@@ -574,6 +590,13 @@ describe('Dashboard (TestBed)', () => {
       }),
     };
     const undoAction = { next: () => latestAction.next() };
+    const mockDialog = {
+      open: vi.fn().mockReturnValue({ afterClosed: () => of(undefined) }),
+    };
+    const mockBreakpoints = {
+      isMatched: vi.fn().mockReturnValue(false),
+      observe: vi.fn().mockReturnValue(of({ matches: false, breakpoints: {} })),
+    };
 
     await TestBed.resetTestingModule()
       .configureTestingModule({
@@ -589,6 +612,8 @@ describe('Dashboard (TestBed)', () => {
           },
           { provide: Router, useValue: mockRouter },
           { provide: MatSnackBar, useValue: mockSnackBar },
+          { provide: MatDialog, useValue: mockDialog },
+          { provide: BreakpointObserver, useValue: mockBreakpoints },
         ],
       })
       .compileComponents();
@@ -600,10 +625,136 @@ describe('Dashboard (TestBed)', () => {
       mockStore,
       mockDialogService,
       mockSnackBar,
+      mockDialog,
+      mockBreakpoints,
+      mockRouter,
       undoAction,
       readPersistRefusal: () => persistRefusal,
     };
   }
+
+  describe('reconciling the accounts', () => {
+    function openedWith(mockDialog: { open: Mock }) {
+      const [component, config] = mockDialog.open.mock.calls[0] as [
+        unknown,
+        MatDialogConfig<ReconcileAccountsDialogData>,
+      ];
+      if (!config.data) throw new Error('dialog opened without data');
+      return { component, config, data: config.data };
+    }
+
+    it('should open a centred dialog on desktop that reads the realized position live', async () => {
+      const { component, mockDialog, mockStore } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      component['openReconcileAccounts']();
+
+      const { component: opened, config, data } = openedWith(mockDialog);
+      expect(opened).toBe(ReconcileAccountsDialog);
+      expect(config.panelClass).toBeUndefined();
+      expect(config.width).toBe('560px');
+      expect(config.disableClose).toBe(true);
+      expect(data.realized()).toEqual({
+        balance: 1499.99,
+        checkedIncome: 5000,
+        checkedOutflows: 3380.01,
+        rollover: -120,
+      });
+      expect(data.periodDates()).toBe(mockStore.periodDates());
+
+      mockStore.realizedBalance.set(1500);
+      expect(data.realized().balance).toBe(1500);
+    });
+
+    it('should open full-height on a phone', async () => {
+      const { component, mockDialog, mockBreakpoints } = await setup(
+        budgetId,
+        undefined,
+      );
+      mockBreakpoints.isMatched.mockReturnValue(true);
+
+      component['openReconcileAccounts']();
+
+      const { config } = openedWith(mockDialog);
+      expect(config.panelClass).toBe('full-screen-dialog');
+      expect(config.height).toBe('100dvh');
+      expect(config.maxWidth).toBe('100dvw');
+    });
+
+    it('should record the adjustment as one checked entry of the active budget', async () => {
+      const { component, mockDialog, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+      component['openReconcileAccounts']();
+      const { data } = openedWith(mockDialog);
+
+      const isRecorded = await data.recordAdjustment({
+        name: 'Ajustement',
+        kind: 'income',
+        amount: 12.34,
+      });
+
+      expect(isRecorded).toBe(true);
+      expect(mockStore.addTransaction).toHaveBeenCalledTimes(1);
+      const payload = mockStore.addTransaction.mock.calls[0][0];
+      expect(payload).toEqual({
+        budgetId,
+        name: 'Ajustement',
+        amount: 12.34,
+        kind: 'income',
+        transactionDate: expect.any(String),
+        checkedAt: expect.any(String),
+      });
+      expect(Number.isNaN(Date.parse(payload.checkedAt))).toBe(false);
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Enregistré : Ajustement',
+        expect.any(String),
+        expect.objectContaining({ duration: UNDO_WINDOW_MS }),
+      );
+    });
+
+    it('should toast a refusal and report it to the dialog, which keeps the entry', async () => {
+      const { component, mockDialog, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+      mockStore.addTransaction.mockResolvedValue({
+        reason: 'Le serveur a refusé',
+      });
+      component['openReconcileAccounts']();
+      const { data } = openedWith(mockDialog);
+
+      const isRecorded = await data.recordAdjustment({
+        name: 'Ajustement',
+        kind: 'expense',
+        amount: 5,
+      });
+
+      expect(isRecorded).toBe(false);
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Le serveur a refusé',
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+      expect(mockStore.error()).toBeNull();
+    });
+
+    it('should open the active budget to show what is left to check', async () => {
+      const { component, mockDialog, mockRouter } = await setup(
+        budgetId,
+        undefined,
+      );
+      component['openReconcileAccounts']();
+      const { data } = openedWith(mockDialog);
+
+      data.viewItemsToCheck();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/budget', budgetId]);
+    });
+  });
 
   describe('failure branch', () => {
     // The settings request is the one this page cannot start without, so the

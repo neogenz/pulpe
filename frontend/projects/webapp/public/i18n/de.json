@@ -1083,7 +1083,49 @@
     "addTransactionDiscardMessage": "Betrag, Beschreibung und Tags, die du gerade eingegeben hast, werden nicht gespeichert.",
     "addTransactionDiscardConfirm": "Verwerfen",
     "addTransactionDiscardCancel": "Weiter eingeben",
-    "addTransactionNoBudget": "Deine Eingabe konnte nicht gespeichert werden: das Monatsbudget wurde gerade neu geladen. Versuch es gleich nochmal."
+    "addTransactionNoBudget": "Deine Eingabe konnte nicht gespeichert werden: das Monatsbudget wurde gerade neu geladen. Versuch es gleich nochmal.",
+    "reconcile": {
+      "title": "Konten abgleichen",
+      "stepOf": "Schritt {{ step }} von 3",
+      "close": "Kontenabgleich schliessen",
+      "back": "Zurück",
+      "continue": "Weiter",
+      "accounts": {
+        "heading": "Wie viel ist auf deinen Konten?",
+        "hint": "Gib den Saldo ein, den deine Bank heute anzeigt. Eine Überziehung gibst du negativ ein.",
+        "firstAmount": "Saldo deines Kontos",
+        "accountName": "Kontoname (optional)",
+        "amount": "Saldo",
+        "invalidAmount": "Gib einen Betrag wie 1250.40 oder -80 ein",
+        "negative": "Negativer Saldo (Überziehung)",
+        "addAccount": "Konto hinzufügen",
+        "removeNumbered": "Konto {{ index }} entfernen",
+        "total": "Summe deiner Konten"
+      },
+      "realized": {
+        "heading": "Dein abgehakter Saldo",
+        "period": "Vom {{ start }} bis {{ end }}",
+        "checkedIncome": "Abgehakte Einnahmen",
+        "checkedOutflows": "Abgehakte Ausgaben und Sparen",
+        "rollover": "Übertrag aus dem Vormonat",
+        "balance": "Abgehakter Saldo",
+        "hint": "Nur Abgehaktes zählt. Fehlt etwas? Hake es zuerst ab und komm dann zurück.",
+        "viewItemsToCheck": "Offene Posten ansehen"
+      },
+      "verdict": {
+        "upToDateTitle": "Alles ist aktuell",
+        "upToDateMessage": "Deine Konten stimmen mit deinem abgehakten Saldo überein.",
+        "moreTitle": "Auf deinen Konten sind {{ amount }} mehr",
+        "lessTitle": "Auf deinen Konten fehlen {{ amount }}",
+        "moreMessage": "Wir erfassen eine Ausgleichseinnahme von {{ amount }}, bereits abgehakt: Dein abgehakter Saldo entspricht dann der Summe deiner Konten.",
+        "lessMessage": "Wir erfassen eine Ausgleichsausgabe von {{ amount }}, bereits abgehakt: Dein abgehakter Saldo entspricht dann der Summe deiner Konten.",
+        "label": "Bezeichnung",
+        "labelRequired": "Gib diesem Ausgleich eine Bezeichnung",
+        "defaultLabel": "Ausgleich",
+        "record": "Ausgleich erfassen",
+        "finish": "Fertig"
+      }
+    }
   },
   "currency": {
     "swissFranc": "Schweizer Franken",
@@ -1734,7 +1776,8 @@
     "allUpToDate": "Alles ist auf dem neusten Stand!",
     "savingsSummary": "{{ count }} von {{ total }} zurückgelegt",
     "savingsSummarySingular": "{{ count }} von 1 zurückgelegt",
-    "monthBudgetHeadingSuffix": "Budget des Monats"
+    "monthBudgetHeadingSuffix": "Budget des Monats",
+    "reconcileAccounts": "Konten abgleichen"
   },
   "form": {
     "emailRequired": "Deine E-Mail wird gebraucht, um weiterzumachen",

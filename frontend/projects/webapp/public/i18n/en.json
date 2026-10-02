@@ -1083,7 +1083,49 @@
     "addTransactionDiscardMessage": "The amount, description and tags you just typed won't be saved.",
     "addTransactionDiscardConfirm": "Drop it",
     "addTransactionDiscardCancel": "Keep typing",
-    "addTransactionNoBudget": "What you typed couldn't be saved: the month's budget was just reloaded. Try again in a second."
+    "addTransactionNoBudget": "What you typed couldn't be saved: the month's budget was just reloaded. Try again in a second.",
+    "reconcile": {
+      "title": "Match my accounts",
+      "stepOf": "Step {{ step }} of 3",
+      "close": "Close account matching",
+      "back": "Back",
+      "continue": "Continue",
+      "accounts": {
+        "heading": "How much is in your accounts?",
+        "hint": "Enter the balance your bank shows today. An overdraft goes in as a negative amount.",
+        "firstAmount": "Your account balance",
+        "accountName": "Account name (optional)",
+        "amount": "Balance",
+        "invalidAmount": "Enter an amount like 1250.40 or -80",
+        "negative": "Negative balance (overdraft)",
+        "addAccount": "Add an account",
+        "removeNumbered": "Remove account {{ index }}",
+        "total": "Total of your accounts"
+      },
+      "realized": {
+        "heading": "Your checked balance",
+        "period": "From {{ start }} to {{ end }}",
+        "checkedIncome": "Checked income",
+        "checkedOutflows": "Checked expenses and savings",
+        "rollover": "Carried over from last month",
+        "balance": "Checked balance",
+        "hint": "Only what you've checked counts. Something missing? Check it first, then come back.",
+        "viewItemsToCheck": "See what's left to check"
+      },
+      "verdict": {
+        "upToDateTitle": "Everything is up to date",
+        "upToDateMessage": "Your accounts match your checked balance.",
+        "moreTitle": "Your accounts hold {{ amount }} more",
+        "lessTitle": "Your accounts are {{ amount }} short",
+        "moreMessage": "We'll record an adjustment income of {{ amount }}, already checked: your checked balance will match the total of your accounts.",
+        "lessMessage": "We'll record an adjustment expense of {{ amount }}, already checked: your checked balance will match the total of your accounts.",
+        "label": "Label",
+        "labelRequired": "Give this adjustment a label",
+        "defaultLabel": "Adjustment",
+        "record": "Record the adjustment",
+        "finish": "Done"
+      }
+    }
   },
   "currency": {
     "swissFranc": "Swiss franc",
@@ -1734,7 +1776,8 @@
     "allUpToDate": "Everything's up to date!",
     "savingsSummary": "{{ count }} of {{ total }} set aside",
     "savingsSummarySingular": "{{ count }} of 1 set aside",
-    "monthBudgetHeadingSuffix": "budget for the month"
+    "monthBudgetHeadingSuffix": "budget for the month",
+    "reconcileAccounts": "Match my accounts"
   },
   "form": {
     "emailRequired": "Your email is needed to carry on",

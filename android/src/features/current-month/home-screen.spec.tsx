@@ -152,9 +152,16 @@ jest.mock("@/features/budgets/toggle-check-mutation", () => ({
 jest.mock("@/features/current-month/home-hero-presentation", () => ({
   heroPresentation: () => ({ absorbsEnvelopeOverrun: false }),
 }));
-jest.mock("@/features/current-month/components/home-hero-card", () => ({
-  HomeHeroCard: () => null,
-}));
+jest.mock("@/features/current-month/components/home-hero-card", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    HomeHeroCard: ({ onPressMetrics }: { onPressMetrics: () => void }) => (
+      <Pressable onPress={onPressMetrics}>
+        <Text>open-realized</Text>
+      </Pressable>
+    ),
+  };
+});
 jest.mock("@/features/current-month/components/home-hero-skeleton", () => {
   const { View } = jest.requireActual("react-native");
   return {
@@ -172,9 +179,55 @@ jest.mock("@/features/current-month/components/savings-done-card", () => ({
 jest.mock("@/features/current-month/components/activity-card", () => ({
   ActivityCard: () => null,
 }));
-jest.mock("@/features/current-month/components/realized-balance-sheet", () => ({
-  RealizedBalanceSheet: () => null,
-}));
+jest.mock("@/features/current-month/components/realized-balance-sheet", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    RealizedBalanceSheet: ({
+      isVisible,
+      onReconcile,
+    }: {
+      isVisible: boolean;
+      onReconcile?: () => void;
+    }) =>
+      isVisible && onReconcile ? (
+        <Pressable onPress={onReconcile}>
+          <Text>reconcile-from-realized</Text>
+        </Pressable>
+      ) : null,
+  };
+});
+jest.mock(
+  "@/features/current-month/components/reconcile-accounts-sheet",
+  () => {
+    const { Pressable, Text, View } = jest.requireActual("react-native");
+    return {
+      ReconcileAccountsSheet: ({
+        isVisible,
+        budgetId,
+        rollover,
+        onRecorded,
+        onViewItemsToCheck,
+      }: {
+        isVisible: boolean;
+        budgetId: string;
+        rollover: number;
+        onRecorded: () => void;
+        onViewItemsToCheck: () => void;
+      }) =>
+        isVisible ? (
+          <View>
+            <Text>{`reconcile-sheet:${budgetId}:${rollover}`}</Text>
+            <Pressable onPress={onRecorded}>
+              <Text>record-adjustment</Text>
+            </Pressable>
+            <Pressable onPress={onViewItemsToCheck}>
+              <Text>view-items</Text>
+            </Pressable>
+          </View>
+        ) : null,
+    };
+  },
+);
 jest.mock(
   "@/features/current-month/components/notification-prime-sheet",
   () => ({ NotificationPrimeSheet: () => null }),
@@ -310,6 +363,40 @@ it("opens addition from the FAB and a pending deep link", async () => {
   mockDeepLink.isAddExpenseRequested = true;
   await view.rerender(<HomeScreen />);
   expect(view.getByText("add-sheet")).toBeTruthy();
+});
+
+it("hands the realized balance over to the reconciliation of the loaded budget", async () => {
+  Object.assign(mockCurrentMonth, readyMonth(), {
+    details: {
+      budget: { month: 8, year: 2026, rollover: -120 },
+      transactions: [],
+    },
+  });
+  const view = await render(<HomeScreen />);
+
+  await fireEvent.press(view.getByText("open-realized"));
+  await fireEvent.press(view.getByText("reconcile-from-realized"));
+
+  expect(view.queryByText("reconcile-from-realized")).toBeNull();
+  expect(view.getByText("reconcile-sheet:budget-1:-120")).toBeTruthy();
+  expect(view.queryByTestId("home-add-entry")).toBeNull();
+
+  await fireEvent.press(view.getByText("record-adjustment"));
+
+  expect(view.queryByText("reconcile-sheet:budget-1:-120")).toBeNull();
+  expect(view.getByText("home.reconcile.recorded")).toBeTruthy();
+});
+
+it("opens the loaded budget from the reconciliation to show what is left to check", async () => {
+  Object.assign(mockCurrentMonth, readyMonth());
+  const view = await render(<HomeScreen />);
+  await fireEvent.press(view.getByText("open-realized"));
+  await fireEvent.press(view.getByText("reconcile-from-realized"));
+
+  await fireEvent.press(view.getByText("view-items"));
+
+  expect(router.push).toHaveBeenCalledWith("/budget/budget-1");
+  expect(view.queryByText("reconcile-sheet:budget-1:0")).toBeNull();
 });
 
 it("surfaces pointing and undo failures without hiding the recovery action", async () => {
