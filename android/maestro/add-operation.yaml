@@ -1,0 +1,63 @@
+# Journey 4 — note an operation, then take it back out.
+#
+# Noting what was spent is the act the app is opened for, and the one write
+# no other flow makes: it crosses the FAB menu, the form sheet with its quick
+# amounts, the save, the row it lands on and the delete. The flow removes what
+# it adds, so the shared preview account ends the run as it started.
+#
+# Runs where `check-operation.yaml` ends: the budget detail, on "Tout", so the
+# new operation shows whether or not it is pointed.
+appId: app.pulpe.android
+env:
+  NAME: Maestro E2E
+---
+- extendedWaitUntil:
+    visible:
+      id: "budget-add"
+    timeout: 30000
+- tapOn:
+    id: "budget-add"
+# The menu's actions are announced by their label: Paper hides each small FAB
+# from accessibility, and with it from Maestro.
+- tapOn: "Une opération"
+
+- extendedWaitUntil:
+    visible:
+      id: "transaction-description"
+    timeout: 15000
+# A quick amount, so the flow never depends on the keyboard's decimal key or
+# on the account's currency.
+- tapOn:
+    id: "quick-amount-15"
+- tapOn:
+    id: "transaction-description"
+- inputText: ${NAME}
+- hideKeyboard
+- tapOn:
+    id: "transaction-submit"
+- extendedWaitUntil:
+    notVisible:
+      id: "transaction-description"
+    timeout: 30000
+# The confirmation sits over the bottom of the list, where the new operation
+# lands; Maestro taps by position, so it waits for the snackbar to go.
+- extendedWaitUntil:
+    notVisible: "Opération ajoutée"
+    timeout: 20000
+
+- scrollUntilVisible:
+    element: ${NAME}
+    direction: DOWN
+    timeout: 30000
+    centerElement: true
+- tapOn: ${NAME}
+
+- extendedWaitUntil:
+    visible:
+      id: "transaction-delete"
+    timeout: 15000
+- tapOn:
+    id: "transaction-delete"
+- extendedWaitUntil:
+    notVisible: ${NAME}
+    timeout: 30000

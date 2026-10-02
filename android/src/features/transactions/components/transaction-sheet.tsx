@@ -245,6 +245,7 @@ export function TransactionSheet({
             )}
 
             <Button
+              testID="transaction-submit"
               mode="contained"
               onPress={submit}
               disabled={
@@ -274,6 +275,7 @@ export function TransactionSheet({
                   </FieldError>
                 )}
                 <Button
+                  testID="transaction-delete"
                   mode="text"
                   icon="trash-can-outline"
                   textColor={theme.colors.error}
@@ -320,6 +322,7 @@ export function TransactionSheet({
         />
 
         <TextInput
+          testID="transaction-description"
           mode="outlined"
           label={t("budgets.mutations.description")}
           placeholder={t(

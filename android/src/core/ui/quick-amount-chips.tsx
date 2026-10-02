@@ -37,6 +37,7 @@ export function QuickAmountChips({
       {QUICK_AMOUNTS.map((quick) => (
         <FilterChip
           key={quick}
+          testID={`quick-amount-${quick}`}
           selected={amount === quick}
           onPress={() => {
             hapticSelection();

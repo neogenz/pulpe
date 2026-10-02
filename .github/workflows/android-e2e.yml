@@ -128,7 +128,7 @@ jobs:
             adb install -r android/android/app/build/outputs/apk/release/app-release.apk;
             adb shell pm clear app.pulpe.android;
             adb shell cmd locale set-app-locales app.pulpe.android --user current --locales fr-FR;
-            for flow in login-vault i18n check-operation vault-resume; do
+            for flow in login-vault i18n check-operation add-operation vault-resume; do
             if [ "$flow" = vault-resume ]; then
             adb shell input keyevent KEYCODE_HOME;
             sleep 12;
