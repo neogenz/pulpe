@@ -16,6 +16,7 @@ const mockClearLocale = jest.fn();
 const mockResetVault = jest.fn();
 const mockForgetLanding = jest.fn();
 const mockClearKeys = jest.fn();
+const mockRetireLegacyBiometric = jest.fn();
 const mockInvalidateLanguage = jest.fn();
 const mockCancelReminder = jest.fn();
 const mockWriteRemindersEnabled = jest.fn();
@@ -67,6 +68,7 @@ jest.mock("@/core/navigation/landing-preference", () => ({
 }));
 jest.mock("@/core/crypto/client-key-manager", () => ({
   clearAllKeys: () => mockClearKeys(),
+  retireLegacyBiometricCandidate: () => mockRetireLegacyBiometric(),
 }));
 jest.mock("@/core/notifications/scheduler", () => ({
   cancelMonthlyReminder: () => mockCancelReminder(),
@@ -116,6 +118,9 @@ describe("session lifecycle", () => {
       events.push(`reminders-enabled:${String(isEnabled)}`),
     );
     mockClearKeys.mockImplementation(async () => events.push("keys-cleared"));
+    mockRetireLegacyBiometric.mockImplementation(async () =>
+      events.push("legacy-biometric-retired"),
+    );
     mockForgetGoogle.mockImplementation(async () =>
       events.push("google-forgotten"),
     );
@@ -171,6 +176,44 @@ describe("session lifecycle", () => {
 
     expect(useSessionStore.getState().status).toBe("error");
     expect(mockClearKeys).not.toHaveBeenCalled();
+    expect(mockRetireLegacyBiometric).not.toHaveBeenCalled();
+    unsubscribe();
+  });
+
+  /**
+   * A fresh install has no biometric marker, which also describes an older
+   * release that only wrote the authenticated slot. Only the second can be
+   * launched signed in; the first offered an unlock that read nothing.
+   */
+  it("retires the legacy fingerprint offer before a signed-out launch shows", async () => {
+    const unsubscribe = observeSession();
+    await settle();
+
+    expect(useSessionStore.getState().status).toBe("unauthenticated");
+    expect(events).toEqual(["legacy-biometric-retired"]);
+    unsubscribe();
+  });
+
+  it("keeps the legacy offer for a launch that restores a session", async () => {
+    mockGetSession.mockResolvedValueOnce({
+      data: { session: session("upgraded-user") },
+    });
+
+    const unsubscribe = observeSession();
+    await settle();
+
+    expect(useSessionStore.getState().status).toBe("authenticated");
+    expect(mockRetireLegacyBiometric).not.toHaveBeenCalled();
+    unsubscribe();
+  });
+
+  it("still reaches the sign-in screens when the marker cannot be written", async () => {
+    mockRetireLegacyBiometric.mockRejectedValueOnce(new Error("store failed"));
+
+    const unsubscribe = observeSession();
+    await settle();
+
+    expect(useSessionStore.getState().status).toBe("unauthenticated");
     unsubscribe();
   });
 
@@ -241,6 +284,7 @@ describe("session lifecycle", () => {
   it("shares one purge between explicit sign-out and SIGNED_OUT", async () => {
     const unsubscribe = observeSession();
     await settle();
+    events.length = 0;
     useSessionStore.setState({
       status: "authenticated",
       session: session("user-a"),

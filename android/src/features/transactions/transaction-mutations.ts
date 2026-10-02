@@ -21,15 +21,22 @@ import {
 function useTransactionMutation<TInput, TResult>(
   mutationFn: (input: TInput) => Promise<TResult>,
 ) {
+  const refresh = useRefreshAfterTransactionWrite();
+
+  return useMutation({ mutationFn, onSuccess: refresh });
+}
+
+/**
+ * Also for a create abandoned after a failure: its write may have landed, and
+ * a budget still showing the old rows invites the user to enter it again.
+ */
+export function useRefreshAfterTransactionWrite(): () => void {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn,
-    onSuccess: () => {
-      void invalidateAfterBudgetWrite(queryClient);
-      void queryClient.invalidateQueries({ queryKey: goalKeys.all });
-    },
-  });
+  return () => {
+    void invalidateAfterBudgetWrite(queryClient);
+    void queryClient.invalidateQueries({ queryKey: goalKeys.all });
+  };
 }
 
 /**

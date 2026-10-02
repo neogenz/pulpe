@@ -5,7 +5,10 @@ import {
 } from "@supabase/supabase-js";
 import { create } from "zustand";
 
-import { clearAllKeys } from "@/core/crypto/client-key-manager";
+import {
+  clearAllKeys,
+  retireLegacyBiometricCandidate,
+} from "@/core/crypto/client-key-manager";
 import { languageWriter } from "@/core/i18n/language-writer";
 import { clearLocaleSnapshot } from "@/core/i18n/locale-store";
 import { forgetLandingPreference } from "@/core/navigation/landing-preference";
@@ -270,6 +273,15 @@ function restorePersistedSession(showLoading: boolean): Promise<void> {
         return;
       }
       await waitForAccountTeardown();
+      if (data.session === null) {
+        // Settled before the sign-in screens show, so the unlock that follows
+        // a sign-in never offers a fingerprint this install never armed.
+        try {
+          await retireLegacyBiometricCandidate();
+        } catch {
+          // Unsettled, the offer stays manual: one tap on an empty slot.
+        }
+      }
       if (authEventRevision === revision) {
         useSessionStore.setState(applySession(data.session));
       }

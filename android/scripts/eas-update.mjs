@@ -36,4 +36,7 @@ const result = spawnSync(
   ],
   { stdio: "inherit", env: { ...process.env, ...profile.env } },
 );
+if (result.error !== undefined) {
+  console.error(`Failed to start eas-cli: ${result.error.message}`);
+}
 process.exit(result.status ?? 1);

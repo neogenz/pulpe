@@ -45,6 +45,7 @@ import {
 } from "../transaction-draft";
 import {
   useCreateTransaction,
+  useRefreshAfterTransactionWrite,
   useUpdateTransaction,
 } from "../transaction-mutations";
 
@@ -119,6 +120,7 @@ export function TransactionSheet({
   const { locale, t } = useTranslation();
   const create = useCreateTransaction();
   const update = useUpdateTransaction();
+  const refreshAfterWrite = useRefreshAfterTransactionWrite();
   // The budget is not part of the draft: it belongs to the screen, and holding
   // a copy in form state is how a sheet ends up posting to last month's budget
   // after a period rolls over while it is open.
@@ -207,6 +209,9 @@ export function TransactionSheet({
 
   /** Dismissing means abandoning: a half-filled form must not greet the next open. */
   function dismiss() {
+    // The retry copy says this one may already be saved; closing instead of
+    // retrying must not leave the budget hiding it.
+    if (submittedCreate !== null && create.isError) refreshAfterWrite();
     reset();
     create.reset();
     update.reset();

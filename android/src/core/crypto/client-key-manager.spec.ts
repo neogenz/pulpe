@@ -10,6 +10,7 @@ import {
   hasBiometricKey,
   hasLegacyBiometricKeyCandidate,
   resolveViaBiometric,
+  retireLegacyBiometricCandidate,
   storeClientKey,
 } from "./client-key-manager";
 
@@ -214,6 +215,29 @@ describe("clientKeyManager", () => {
     expect(mockStore.get(BIOMETRIC_MARKER)).toBe("0");
     expect(await hasBiometricKey()).toBe(false);
     expect(await hasLegacyBiometricKeyCandidate()).toBe(false);
+  });
+
+  it("should stop offering a legacy key to an install that launched signed out", async () => {
+    expect(await hasLegacyBiometricKeyCandidate()).toBe(true);
+    jest.mocked(SecureStore.getItemAsync).mockClear();
+
+    await retireLegacyBiometricCandidate();
+
+    expect(mockStore.get(BIOMETRIC_MARKER)).toBe("0");
+    expect(await hasLegacyBiometricKeyCandidate()).toBe(false);
+    expect(SecureStore.getItemAsync).not.toHaveBeenCalledWith(
+      BIOMETRIC_SLOT,
+      expect.anything(),
+    );
+  });
+
+  it("should leave an answered marker alone when retiring the legacy offer", async () => {
+    await storeClientKey(CLIENT_KEY, { enableBiometric: true });
+
+    await retireLegacyBiometricCandidate();
+
+    expect(mockStore.get(BIOMETRIC_MARKER)).toBe("1");
+    expect(mockStore.get(BIOMETRIC_SLOT)).toBe(CLIENT_KEY);
   });
 
   it("should fall back to the PIN when the biometric prompt is dismissed", async () => {

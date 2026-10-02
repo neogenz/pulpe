@@ -88,6 +88,18 @@ export async function hasLegacyBiometricKeyCandidate(): Promise<boolean> {
 }
 
 /**
+ * Every release's sign-out removed the authenticated slot, so a launch that
+ * finds nobody signed in holds no legacy key. A fresh install is the common
+ * case: left unanswered, its first unlock offered a fingerprint that read an
+ * empty slot and vanished without a prompt.
+ */
+export async function retireLegacyBiometricCandidate(): Promise<void> {
+  const marker = await SecureStore.getItemAsync(BIOMETRIC_MARKER_SLOT);
+  if (marker !== null) return;
+  await disableBiometricUnlock();
+}
+
+/**
  * Prompts for biometric authentication and keeps the key in memory for the
  * rest of the process.
  */

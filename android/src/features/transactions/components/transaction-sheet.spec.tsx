@@ -26,9 +26,11 @@ let mockUuidCount = 0;
 jest.mock("react-native-quick-crypto", () => ({
   randomUUID: () => `operation-${(mockUuidCount += 1)}`,
 }));
+const mockRefreshAfterWrite = jest.fn();
 jest.mock("../transaction-mutations", () => ({
   useCreateTransaction: () => mockCreate,
   useUpdateTransaction: () => mockUpdate,
+  useRefreshAfterTransactionWrite: () => mockRefreshAfterWrite,
 }));
 jest.mock("@/features/savings-goals/goals-queries", () => ({
   useSavingsGoalWithdrawalOptions: () => mockWithdrawalOptions,
@@ -365,6 +367,29 @@ it("locks every creation field at submission and explains the unchanged retry", 
   } finally {
     jest.useRealTimers();
   }
+});
+
+it("refreshes the budget when an unconfirmed operation is abandoned", async () => {
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fill(view, 120, "Maybe saved");
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+  mockCreate.isError = true;
+  await view.rerender(<TransactionSheet {...baseProps} />);
+  await fireEvent.press(view.getByLabelText("dismiss-form"));
+
+  expect(mockRefreshAfterWrite).toHaveBeenCalledTimes(1);
+  expect(baseProps.onDismiss).toHaveBeenCalled();
+});
+
+it("leaves the budget alone when a form that sent nothing is dismissed", async () => {
+  mockCreate.isError = true;
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fill(view, 120, "Never sent");
+  await fireEvent.press(view.getByLabelText("dismiss-form"));
+
+  expect(mockRefreshAfterWrite).not.toHaveBeenCalled();
+  expect(baseProps.onDismiss).toHaveBeenCalled();
 });
 
 it("retries submitted withdrawals even if refreshed options now show a smaller balance", async () => {
