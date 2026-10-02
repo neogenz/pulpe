@@ -1,4 +1,4 @@
-import { parseAmount, seedAmountText } from "./money";
+import { exceedsCents, parseAmount, seedAmountText } from "./money";
 
 describe("parseAmount", () => {
   it.each([
@@ -16,6 +16,19 @@ describe("parseAmount", () => {
 
   it.each(["", "   ", "abc"])("reads %s as no amount", (input) => {
     expect(parseAmount(input)).toBeNull();
+  });
+});
+
+describe("exceedsCents", () => {
+  it.each(["12", "12.", "12,5", "12.50", "1'500,05"])(
+    "lets %s through",
+    (input) => {
+      expect(exceedsCents(input)).toBe(false);
+    },
+  );
+
+  it.each(["12.345", "12,505", "0.001"])("refuses %s", (input) => {
+    expect(exceedsCents(input)).toBe(true);
   });
 });
 

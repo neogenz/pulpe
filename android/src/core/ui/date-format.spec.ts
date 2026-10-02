@@ -1,5 +1,7 @@
 import {
   formatDayMonth,
+  formatInstantDay,
+  formatIsoDate,
   formatMonthLabel,
   formatMonthName,
   formatMonthYearShort,
@@ -90,5 +92,17 @@ describe("ofMonth", () => {
   it("reads the first letter whatever its case", () => {
     expect(ofMonth(formatMonthLabel(8, 2026))).toBe("d'Août 2026");
     expect(ofMonth(formatMonthLabel(12, 2026))).toBe("de Décembre 2026");
+  });
+});
+
+describe("formatInstantDay", () => {
+  it("names the day the instant fell on here, not its UTC day", () => {
+    // Half past midnight, local: the UTC day is the one before anywhere east
+    // of Greenwich.
+    const instant = new Date(2026, 9, 2, 0, 30).toISOString();
+
+    expect(formatInstantDay(instant, "fr-CH")).toBe(
+      formatIsoDate("2026-10-02", "fr-CH"),
+    );
   });
 });

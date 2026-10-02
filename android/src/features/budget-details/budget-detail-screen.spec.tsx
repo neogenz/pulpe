@@ -280,10 +280,13 @@ jest.mock("@/features/budgets/budget-queries", () => ({
     all: ["budgets"],
     detail: (id: string) => ["budgets", "detail", id],
   },
-  invalidateBudget: jest.fn(async () => undefined),
+  invalidateAfterBudgetWrite: jest.fn(async () => undefined),
   invalidateBudgetData: jest.fn(async () => undefined),
   useBudgetDetails: () => mockDetails,
   useBudgetPeriods: (year: number | null) => mockUseBudgetPeriods(year),
+}));
+jest.mock("@/features/savings-goals/goals-queries", () => ({
+  goalKeys: { all: ["savings-goals"] },
 }));
 jest.mock("@/features/budgets/toggle-check-api", () => ({
   toggleCheck: (target: unknown) => mockToggleRequest(target),

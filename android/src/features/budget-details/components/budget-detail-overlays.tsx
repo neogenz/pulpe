@@ -1,7 +1,8 @@
-import type {
-  BudgetPeriod,
-  SupportedCurrency,
-  Transaction,
+import {
+  type BudgetPeriod,
+  getBudgetPeriodDates,
+  type SupportedCurrency,
+  type Transaction,
 } from "pulpe-shared";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { BackHandler, StyleSheet } from "react-native";
@@ -32,6 +33,7 @@ interface BudgetDetailOverlaysProps {
   budgetId: string;
   period: BudgetPeriod;
   currency: SupportedCurrency;
+  payDayOfMonth: number | null;
   missingAmount: number;
   viewModel: CurrentMonthViewModel | null;
 }
@@ -41,7 +43,7 @@ export const BudgetDetailOverlays = forwardRef<
   BudgetDetailOverlaysHandle,
   BudgetDetailOverlaysProps
 >(function BudgetDetailOverlays(
-  { budgetId, period, currency, missingAmount, viewModel },
+  { budgetId, period, currency, payDayOfMonth, missingAmount, viewModel },
   ref,
 ) {
   const theme = useTheme();
@@ -65,6 +67,11 @@ export const BudgetDetailOverlays = forwardRef<
   >(null);
   const [hasToggleFailed, setToggleFailed] = useState(false);
   const [isFabOpen, setFabOpen] = useState(false);
+  const periodDates = getBudgetPeriodDates(
+    period.month,
+    period.year,
+    payDayOfMonth,
+  );
   const removal = useTransactionRemoval();
 
   // Back folds an open speed dial first, as Android's own menus do; without
@@ -186,6 +193,7 @@ export const BudgetDetailOverlays = forwardRef<
         onDismiss={() => setTransactionSheetVisible(false)}
         budgetId={budgetId}
         currency={currency}
+        period={periodDates}
         onSaved={() => {
           setTransactionSheetVisible(false);
           setSavedMessage("activityAdded");
@@ -199,6 +207,7 @@ export const BudgetDetailOverlays = forwardRef<
           onDismiss={() => setEdited(null)}
           budgetId={budgetId}
           currency={currency}
+          period={periodDates}
           transaction={edited}
           onSaved={() => {
             setEdited(null);

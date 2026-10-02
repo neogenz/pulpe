@@ -22,6 +22,10 @@ const mockWithdrawalOptions = {
   isPending: false,
 };
 
+let mockUuidCount = 0;
+jest.mock("react-native-quick-crypto", () => ({
+  randomUUID: () => `operation-${(mockUuidCount += 1)}`,
+}));
 jest.mock("../transaction-mutations", () => ({
   useCreateTransaction: () => mockCreate,
   useUpdateTransaction: () => mockUpdate,
@@ -218,8 +222,12 @@ jest.mock("@react-native-community/datetimepicker", () => {
   const { Pressable, Text } = jest.requireActual("react-native");
   return function DateTimePickerMock({
     onChange,
+    minimumDate,
+    maximumDate,
   }: {
     onChange: (event: { type: string }, date: Date) => void;
+    minimumDate?: Date;
+    maximumDate?: Date;
   }) {
     return (
       <Pressable
@@ -228,6 +236,7 @@ jest.mock("@react-native-community/datetimepicker", () => {
         }
       >
         <Text>select-date</Text>
+        <Text>{`bounds:${minimumDate?.getDate() ?? "-"}-${maximumDate?.getDate() ?? "-"}`}</Text>
       </Pressable>
     );
   };
@@ -292,6 +301,61 @@ it("creates the visible operation with its date and tags", async () => {
   };
   await act(() => callbacks.onSuccess());
   await waitFor(() => expect(baseProps.onSaved).toHaveBeenCalledTimes(1));
+});
+
+it("replays the same id on a retry, and a new one for the next operation", async () => {
+  // A request whose answer is lost on the way back is retried by the user;
+  // the same id lets the server tell it from a second operation.
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fill(view);
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+  const ids = mockCreate.mutate.mock.calls.map(
+    ([payload]) => (payload as { id: string }).id,
+  );
+  expect(ids[0]).toEqual(expect.any(String));
+  expect(ids[1]).toBe(ids[0]);
+
+  const callbacks = mockCreate.mutate.mock.calls[1][1] as {
+    onSuccess: () => void;
+  };
+  await act(() => callbacks.onSuccess());
+  await fill(view);
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+  const next = mockCreate.mutate.mock.calls[2][0] as { id: string };
+  expect(next.id).not.toBe(ids[0]);
+});
+
+it("dates a new operation inside its budget, and offers no other day", async () => {
+  // September's budget, paid on the 25th, opened after it ended.
+  const period = {
+    startDate: new Date(2026, 7, 25),
+    endDate: new Date(2026, 8, 24),
+  };
+  jest.useFakeTimers({ now: new Date(2026, 9, 2, 9, 0), advanceTimers: true });
+  try {
+    const view = await render(
+      <TransactionSheet {...baseProps} period={period} />,
+    );
+    await fill(view);
+    await fireEvent.press(
+      view.getByLabelText("budgets.mutations.activity.date"),
+    );
+    expect(view.getByText("bounds:25-24")).toBeTruthy();
+    await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+    const { transactionDate } = mockCreate.mutate.mock.calls[0][0] as {
+      transactionDate: string;
+    };
+    const day = new Date(transactionDate);
+    expect([day.getFullYear(), day.getMonth(), day.getDate()]).toEqual([
+      2026, 8, 24,
+    ]);
+  } finally {
+    jest.useRealTimers();
+  }
 });
 
 it("takes a quick amount in one tap", async () => {

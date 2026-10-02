@@ -1,9 +1,11 @@
 import type {
+  BudgetPeriodDates,
   SupportedCurrency,
   Transaction,
   TransactionKind,
 } from "pulpe-shared";
 import { useState } from "react";
+import { randomUUID } from "react-native-quick-crypto";
 import { StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
@@ -34,6 +36,7 @@ import { useSavingsGoalWithdrawalOptions } from "@/features/savings-goals/goals-
 import {
   buildTransactionPayload,
   buildTransactionUpdate,
+  defaultOperationDay,
   draftHint,
   isDraftSubmittable,
   transactionDraftFrom,
@@ -71,6 +74,11 @@ interface TransactionSheetProps {
   transaction?: Transaction;
   /** Present when the operation fills an envelope, whose kind it then takes. */
   envelope?: EnvelopeTarget;
+  /**
+   * The days the budget covers: a new operation starts inside them, and the
+   * calendar offers no other.
+   */
+  period?: BudgetPeriodDates;
   onSaved: () => void;
   onDelete?: () => void;
   /**
@@ -100,6 +108,7 @@ export function TransactionSheet({
   currency,
   transaction,
   envelope,
+  period,
   onSaved,
   onDelete,
   isDeleting = false,
@@ -113,7 +122,7 @@ export function TransactionSheet({
   // a copy in form state is how a sheet ends up posting to last month's budget
   // after a period rolls over while it is open.
   const [form, setForm] = useState<FormState>(() =>
-    initialForm(transaction, envelope),
+    initialForm(transaction, envelope, period),
   );
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   // Held apart from the chosen goal: "yes, from a goal" and "which one" are two
@@ -123,6 +132,9 @@ export function TransactionSheet({
   // separator survives typing, which means clearing the number behind it is not
   // enough to clear what is on screen — only a remount is.
   const [generation, setGeneration] = useState(0);
+  // One id per operation being written, replayed unchanged on a retry, so a
+  // request whose answer was lost cannot write it twice.
+  const [createId, setCreateId] = useState(() => randomUUID());
   const draft: TransactionDraft = { ...form, budgetId };
   const isEditing = transaction !== undefined;
   // A sheet that stays mounted keeps the day it was mounted on: opened two
@@ -133,7 +145,10 @@ export function TransactionSheet({
   if (isVisible !== wasVisible) {
     setWasVisible(isVisible);
     if (isVisible && !isEditing) {
-      setForm((current) => ({ ...current, day: new Date() }));
+      setForm((current) => ({
+        ...current,
+        day: defaultOperationDay(new Date(), period),
+      }));
     }
   }
   const mutation = isEditing ? update : create;
@@ -176,9 +191,10 @@ export function TransactionSheet({
   }
 
   function reset() {
-    setForm(initialForm(transaction, envelope));
+    setForm(initialForm(transaction, envelope, period));
     setFromSavingsGoal(false);
     setGeneration((current) => current + 1);
+    setCreateId(randomUUID());
   }
 
   /** Dismissing means abandoning: a half-filled form must not greet the next open. */
@@ -199,7 +215,10 @@ export function TransactionSheet({
     };
 
     if (transaction === undefined) {
-      const payload = buildTransactionPayload(draft, new Date());
+      const payload = {
+        ...buildTransactionPayload(draft, new Date()),
+        id: createId,
+      };
       create.mutate(
         envelope === undefined
           ? payload
@@ -468,6 +487,8 @@ export function TransactionSheet({
         <DateTimePicker
           value={draft.day}
           mode="date"
+          minimumDate={period?.startDate}
+          maximumDate={period?.endDate}
           onChange={(event, date) => {
             setDatePickerVisible(false);
             if (event.type !== "set" || date === undefined) return;
@@ -505,6 +526,7 @@ function originProblemOf(input: {
 function initialForm(
   transaction: Transaction | undefined,
   envelope: EnvelopeTarget | undefined,
+  period: BudgetPeriodDates | undefined,
 ): FormState {
   if (transaction !== undefined) {
     const { budgetId: _budgetId, ...form } = transactionDraftFrom(transaction);
@@ -515,7 +537,7 @@ function initialForm(
     name: "",
     amount: null,
     kind: envelope?.kind ?? "expense",
-    day: new Date(),
+    day: defaultOperationDay(new Date(), period),
     // An operation entered by hand is one the user has just seen happen, so it
     // arrives pointed; the toggle is there for the one they are anticipating.
     isChecked: true,

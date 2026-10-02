@@ -102,7 +102,8 @@ export default function BudgetsScreen() {
     return invalidateBudgetData();
   });
 
-  // A write inside a month only marks this list stale (`invalidateBudget`);
+  // A write inside a month only marks this list stale
+  // (`invalidateAfterBudgetWrite`);
   // coming to the tab is when its totals are looked at, so it asks once here.
   useFocusEffect(
     useCallback(() => {

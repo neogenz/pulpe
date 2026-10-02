@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { updateUserSettings } from "@/core/user-settings/user-settings-api";
-import { cacheUserSettings } from "@/core/user-settings/user-settings-queries";
+import {
+  cacheUserSettings,
+  userSettingsKeys,
+} from "@/core/user-settings/user-settings-queries";
 import { useVaultStore } from "@/core/vault/vault-store";
 
 import {
@@ -44,9 +47,19 @@ export function useUpdateUserProfile() {
  * cache rather than the settings alone.
  */
 export function useUpdateUserSettings() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: updateUserSettings,
-    onSuccess: cacheUserSettings,
+    onSuccess: (settings) => {
+      cacheUserSettings(settings);
+      // Everything else was answered under the old setting: the server reads
+      // the pay day to cut periods, list totals and goal projections. Only the
+      // settings were replaced, and the current month stayed on the old one.
+      void queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] !== userSettingsKeys.all[0],
+      });
+    },
   });
 }
 

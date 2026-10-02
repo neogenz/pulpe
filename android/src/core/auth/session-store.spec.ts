@@ -195,6 +195,21 @@ describe("session lifecycle", () => {
     unsubscribe();
   });
 
+  it("does not resume a dead reset even when its session cannot be removed", async () => {
+    mockGetSession.mockResolvedValueOnce({
+      data: { session: session("recovering-user") },
+    });
+    mockIsRecoveryPending.mockReturnValue(true);
+    mockHasPersistedSession.mockResolvedValue(true);
+    useSessionStore.setState({ status: "loading", session: null, user: null });
+
+    const unsubscribe = observeSession();
+    await settle();
+
+    expect(useSessionStore.getState().status).toBe("unauthenticated");
+    unsubscribe();
+  });
+
   it("stops holding the splash when a restore hangs, and still signs in later", async () => {
     jest.useFakeTimers();
     try {

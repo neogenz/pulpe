@@ -33,7 +33,7 @@ jest.mock("./transaction-api", () => ({
   },
 }));
 jest.mock("@/features/budgets/budget-queries", () => ({
-  invalidateBudget: jest.fn(async () => undefined),
+  invalidateAfterBudgetWrite: jest.fn(async () => undefined),
 }));
 jest.mock("@/features/savings-goals/goals-queries", () => ({
   goalKeys: { all: ["savings-goals"] },

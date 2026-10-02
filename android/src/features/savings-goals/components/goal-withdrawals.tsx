@@ -13,7 +13,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { SectionHeader } from "@/core/ui/section-header";
 import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
-import { formatIsoDate, formatMonthLabel } from "@/core/ui/date-format";
+import { formatInstantDay, formatMonthLabel } from "@/core/ui/date-format";
 import { SPACING } from "@/core/ui/theme";
 
 interface GoalWithdrawalsProps {
@@ -142,7 +142,7 @@ function RealizedRow({
 }) {
   const isChecked = (withdrawal.checkedAt ?? null) !== null;
   const { locale, t } = useTranslation();
-  const day = formatIsoDate(withdrawal.transactionDate.slice(0, 10), locale);
+  const day = formatInstantDay(withdrawal.transactionDate, locale);
 
   return (
     <WithdrawalRow

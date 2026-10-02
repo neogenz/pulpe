@@ -5,7 +5,7 @@ import { queryClient } from "@/core/query/query-client";
 import { BUDGET_PAGE_SIZE } from "./budget-api";
 import {
   budgetKeys,
-  invalidateBudget,
+  invalidateAfterBudgetWrite,
   nextBudgetPageOffset,
   refetchStaleBudgetList,
 } from "./budget-queries";
@@ -28,17 +28,19 @@ describe("nextBudgetPageOffset", () => {
   });
 });
 
-describe("invalidateBudget", () => {
-  it("refetches the detail now and only marks the list stale", async () => {
+describe("invalidateAfterBudgetWrite", () => {
+  it("makes every month's detail stale and only marks the list stale", async () => {
+    // A month's carry-over sums the months before it: a write in one moves
+    // the available of every later one.
     const client = new QueryClient();
     const invalidate = jest
       .spyOn(client, "invalidateQueries")
       .mockResolvedValue(undefined);
 
-    await invalidateBudget(client, "budget-1");
+    await invalidateAfterBudgetWrite(client);
 
     expect(invalidate.mock.calls.map(([options]) => options)).toEqual([
-      { queryKey: budgetKeys.detail("budget-1") },
+      { queryKey: budgetKeys.details() },
       { queryKey: budgetKeys.list(), refetchType: "none" },
     ]);
     expect(invalidate).not.toHaveBeenCalledWith(

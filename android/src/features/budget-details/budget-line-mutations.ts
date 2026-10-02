@@ -4,7 +4,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import { invalidateBudget } from "@/features/budgets/budget-queries";
+import { invalidateAfterBudgetWrite } from "@/features/budgets/budget-queries";
 import { goalKeys } from "@/features/savings-goals/goals-queries";
 
 import {
@@ -15,15 +15,14 @@ import {
 } from "./budget-line-api";
 
 /**
- * A forecast write moves its month's totals and, when the line belongs to a
- * goal, the goal's progress: the budgets it names refetch, the goals sweep.
+ * A forecast write moves its month's totals, the carry-over of the months
+ * after it and, when the line belongs to a goal, the goal's progress.
  */
 export async function invalidateBudgetLines(
   queryClient: QueryClient,
-  budgetIds: readonly string[],
 ): Promise<void> {
   await Promise.all([
-    ...budgetIds.map((budgetId) => invalidateBudget(queryClient, budgetId)),
+    invalidateAfterBudgetWrite(queryClient),
     queryClient.invalidateQueries({ queryKey: goalKeys.all }),
   ]);
 }
@@ -35,33 +34,27 @@ export async function invalidateBudgetLines(
  */
 function useBudgetDataMutation<TInput, TResult>(
   mutationFn: (input: TInput) => Promise<TResult>,
-  budgetIdsOf: (input: TInput, result: TResult) => readonly string[],
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn,
-    onSuccess: (result, input) =>
-      invalidateBudgetLines(queryClient, budgetIdsOf(input, result)),
+    onSuccess: () => invalidateBudgetLines(queryClient),
   });
 }
 
 export function useCreateBudgetLine() {
-  return useBudgetDataMutation(createBudgetLine, (_, line) => [line.budgetId]);
+  return useBudgetDataMutation(createBudgetLine);
 }
 
 export function useUpdateBudgetLine() {
-  return useBudgetDataMutation(updateBudgetLine, (_, line) => [line.budgetId]);
+  return useBudgetDataMutation(updateBudgetLine);
 }
 
-/** The budget is the hook's, not the call's: a deletion answers with nothing. */
-export function useDeleteBudgetLine(budgetId: string) {
-  return useBudgetDataMutation(deleteBudgetLine, () => [budgetId]);
+export function useDeleteBudgetLine() {
+  return useBudgetDataMutation(deleteBudgetLine);
 }
 
 export function usePostponeBudgetLine() {
-  return useBudgetDataMutation(postponeBudgetLine, (_, moved) => [
-    moved.sourceBudgetId,
-    moved.targetBudgetId,
-  ]);
+  return useBudgetDataMutation(postponeBudgetLine);
 }

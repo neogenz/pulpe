@@ -1,4 +1,5 @@
 import type {
+  BudgetPeriodDates,
   Transaction,
   TransactionCreate,
   TransactionKind,
@@ -72,19 +73,48 @@ function atTimeOfDay(day: Date, now: Date): Date {
   );
 }
 
-export function isDraftSubmittable(draft: TransactionDraft): boolean {
-  return (
-    draft.name.trim().length > 0 && draft.amount !== null && draft.amount > 0
+/**
+ * The most the server takes for one operation (`TransactionInvariants`). Said
+ * here, before the request: past it, the form only learnt of it as a failure.
+ */
+export const TRANSACTION_MAX_AMOUNT = 1_000_000;
+
+/**
+ * The day a new operation starts on: today, unless the budget it is written
+ * into covers other days — a past or a coming month — and then the nearest of
+ * those. Dated today, an operation added to August's budget in October landed
+ * outside the month it belongs to, in its list and on its curve.
+ */
+export function defaultOperationDay(
+  now: Date,
+  period: BudgetPeriodDates | undefined,
+): Date {
+  if (period === undefined) return now;
+  if (now < period.startDate) return period.startDate;
+  const lastDay = period.endDate;
+  const endOfPeriod = new Date(
+    lastDay.getFullYear(),
+    lastDay.getMonth(),
+    lastDay.getDate() + 1,
   );
+  return now < endOfPeriod ? now : lastDay;
+}
+
+export function isDraftSubmittable(draft: TransactionDraft): boolean {
+  return draftHint(draft) === null;
 }
 
 /** What the form is still missing, in the order the user would fix it. */
-export type TransactionDraftProblem = "amount" | "description";
+export type TransactionDraftProblem =
+  | "amount"
+  | "amountTooLarge"
+  | "description";
 
 export function draftHint(
   draft: TransactionDraft,
 ): TransactionDraftProblem | null {
   if (draft.amount === null || draft.amount <= 0) return "amount";
+  if (draft.amount > TRANSACTION_MAX_AMOUNT) return "amountTooLarge";
   if (draft.name.trim().length === 0) return "description";
   return null;
 }

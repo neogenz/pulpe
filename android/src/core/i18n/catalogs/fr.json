@@ -307,6 +307,7 @@
       "undo": "Annuler",
       "validation": {
         "amount": "Ajoute un montant",
+        "amountTooLarge": "Une opération ne peut pas dépasser 1 000 000.",
         "description": "Ajoute une description",
         "exceedsGoal": "Ce montant dépasse ce que contient l'objectif.",
         "goal": "Choisis l'objectif utilisé",

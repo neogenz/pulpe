@@ -2,6 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type React from "react";
 
+import { goalKeys } from "@/features/savings-goals/goals-queries";
+
 import type { BudgetDetails } from "./budget-api";
 import { budgetKeys } from "./budget-queries";
 import { toggleCheck, type CheckTarget } from "./toggle-check-api";
@@ -9,12 +11,17 @@ import { useToggleCheck } from "./toggle-check-mutation";
 
 jest.mock("@/core/vault/vault-store", () => ({ useVaultStore: () => true }));
 jest.mock("./budget-api", () => ({}));
+jest.mock("@/features/savings-goals/goals-api", () => ({}));
 jest.mock("./toggle-check-api", () => ({
   toggleCheck: jest.fn(async () => undefined),
 }));
 
-/** A pointing tap refreshes the month it happened in, and nothing else now. */
-it("settles on the budget it pointed in, not on the whole prefix", async () => {
+/**
+ * A pointing tap refreshes the months on screen — the carry-over of every
+ * later month moved with it — and the goals, whose saved amount is their
+ * pointed lines. The list and the periods stay where they are.
+ */
+it("settles on the budget details and the goals, not on the whole prefix", async () => {
   const client = new QueryClient({
     defaultOptions: {
       mutations: { retry: false, gcTime: Infinity },
@@ -35,8 +42,9 @@ it("settles on the budget it pointed in, not on the whole prefix", async () => {
 
   await waitFor(() => expect(hook.result.current.isSuccess).toBe(true));
   expect(invalidate.mock.calls.map(([options]) => options)).toEqual([
-    { queryKey: budgetKeys.detail("budget-1") },
+    { queryKey: budgetKeys.details() },
     { queryKey: budgetKeys.list(), refetchType: "none" },
+    { queryKey: goalKeys.all },
   ]);
   await hook.unmount();
   client.clear();

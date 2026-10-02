@@ -307,6 +307,7 @@
       "undo": "Annulla",
       "validation": {
         "amount": "Aggiungi un importo",
+        "amountTooLarge": "Un movimento non può superare 1'000'000.",
         "description": "Aggiungi una descrizione",
         "exceedsGoal": "L'importo supera ciò che contiene l'obiettivo.",
         "goal": "Scegli l'obiettivo usato",

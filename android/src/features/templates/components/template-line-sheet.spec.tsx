@@ -322,6 +322,33 @@ it("propagates exact edited values only after explicit confirmation", async () =
   expect(baseProps.onSaved).toHaveBeenCalledTimes(1);
 });
 
+it("says so when applying to the budgets fails, with the values kept", async () => {
+  const view = await render(
+    <TemplateLineSheet
+      {...baseProps}
+      line={existingLine}
+      propagationCount={3}
+    />,
+  );
+  await editFields(view);
+  await fireEvent.press(view.getByText("templates.lines.save"));
+  await fireEvent.press(view.getByText("templates.lines.apply"));
+  expect(mockUpdate.reset).toHaveBeenCalled();
+
+  mockBulk.isError = true;
+  const callbacks = mockBulk.mutate.mock.calls[0][1] as {
+    onError: () => void;
+  };
+  await act(() => callbacks.onError());
+
+  expect(view.queryByText("templates.lines.propagationTitle")).toBeNull();
+  expect(view.getByText("templates.lines.error")).toBeTruthy();
+  expect(view.getByLabelText("templates.form.name").props.value).toBe(
+    "Voyage mensuel",
+  );
+  expect(baseProps.onSaved).not.toHaveBeenCalled();
+});
+
 it("keeps rejected values editable and blocks dismissal while pending", async () => {
   Object.assign(mockUpdate, { isError: true, isPending: true });
   const view = await render(

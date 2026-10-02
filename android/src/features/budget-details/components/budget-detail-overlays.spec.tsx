@@ -69,6 +69,7 @@ async function renderOverlays() {
           budgetId="budget-1"
           period={{ year: 2026, month: 10 }}
           currency="CHF"
+          payDayOfMonth={null}
           missingAmount={0}
           viewModel={null}
         />

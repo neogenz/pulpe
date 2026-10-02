@@ -580,6 +580,7 @@ export default function BudgetDetailScreen() {
         budgetId={id}
         period={{ year: budget.year, month: budget.month }}
         currency={currency}
+        payDayOfMonth={payDayOfMonth}
         missingAmount={Math.max(0, -metrics.remaining)}
         viewModel={viewModel}
       />

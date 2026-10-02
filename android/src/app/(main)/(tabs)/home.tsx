@@ -388,6 +388,7 @@ export default function HomeScreen() {
           onDismiss={closeAdd}
           budgetId={currentMonth.budgetId}
           currency={currency}
+          period={period}
           onSaved={() => {
             closeAdd();
             setNotice({ kind: "added" });

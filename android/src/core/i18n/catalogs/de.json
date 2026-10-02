@@ -307,6 +307,7 @@
       "undo": "Rückgängig",
       "validation": {
         "amount": "Füge einen Betrag hinzu",
+        "amountTooLarge": "Ein Vorgang darf 1'000'000 nicht übersteigen.",
         "description": "Füge eine Beschreibung hinzu",
         "exceedsGoal": "Dieser Betrag übersteigt den Inhalt des Ziels.",
         "goal": "Wähle das verwendete Ziel",

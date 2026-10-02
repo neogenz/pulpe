@@ -5,7 +5,9 @@ import {
 } from "@tanstack/react-query";
 
 import type { BudgetDetails } from "./budget-api";
-import { budgetKeys, invalidateBudget } from "./budget-queries";
+import { goalKeys } from "@/features/savings-goals/goals-queries";
+
+import { budgetKeys, invalidateAfterBudgetWrite } from "./budget-queries";
 import { type CheckTarget, toggleCheck } from "./toggle-check-api";
 
 /**
@@ -58,11 +60,15 @@ export function useToggleCheck(budgetId: string | null) {
       );
     },
     // Whether it succeeded or failed, the aggregates the toggle moved are only
-    // right again once the server has been asked.
+    // right again once the server has been asked — the goals' included: what
+    // a goal counts as saved is its pointed lines.
     onSettled: () =>
-      budgetId === null
-        ? queryClient.invalidateQueries({ queryKey: budgetKeys.all })
-        : invalidateBudget(queryClient, budgetId),
+      Promise.all([
+        budgetId === null
+          ? queryClient.invalidateQueries({ queryKey: budgetKeys.all })
+          : invalidateAfterBudgetWrite(queryClient),
+        queryClient.invalidateQueries({ queryKey: goalKeys.all }),
+      ]),
   });
 }
 

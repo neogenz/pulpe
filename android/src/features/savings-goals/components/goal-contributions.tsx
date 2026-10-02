@@ -11,7 +11,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { SectionHeader } from "@/core/ui/section-header";
 import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
-import { formatIsoDate, formatMonthLabel } from "@/core/ui/date-format";
+import { formatInstantDay, formatMonthLabel } from "@/core/ui/date-format";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { useRipple } from "@/core/ui/ripple";
 import { RADIUS, SPACING } from "@/core/ui/theme";
@@ -146,7 +146,7 @@ function TransactionLine({
       <View style={styles.rowLabels}>
         <Text variant="bodyMedium">{transaction.name}</Text>
         <StatusLine
-          base={formatIsoDate(transaction.transactionDate.slice(0, 10), locale)}
+          base={formatInstantDay(transaction.transactionDate, locale)}
           isChecked={transaction.checkedAt !== null}
         />
       </View>

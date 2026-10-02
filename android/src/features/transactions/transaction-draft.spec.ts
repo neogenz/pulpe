@@ -8,6 +8,7 @@ import {
   buildTransactionPayload,
   buildTransactionRestore,
   buildTransactionUpdate,
+  defaultOperationDay,
   draftHint,
   isDraftSubmittable,
   transactionDraftFrom,
@@ -133,6 +134,12 @@ describe("draftHint", () => {
 
   it("says nothing about a complete draft", () => {
     expect(draftHint(draft())).toBeNull();
+  });
+
+  it("stops an amount the server would refuse before it is sent", () => {
+    expect(draftHint(draft({ amount: 1_000_000 }))).toBeNull();
+    expect(draftHint(draft({ amount: 1_000_000.01 }))).toBe("amountTooLarge");
+    expect(isDraftSubmittable(draft({ amount: 1_000_000.01 }))).toBe(false);
   });
 });
 
@@ -272,5 +279,37 @@ describe("buildTransactionRestore", () => {
     expect("budgetLineId" in payload).toBe(false);
     expect("sourceSavingsGoalId" in payload).toBe(false);
     expect("originalAmount" in payload).toBe(false);
+  });
+});
+
+describe("defaultOperationDay", () => {
+  // A budget paid on the 25th: 25 August to 24 September.
+  const period = {
+    startDate: new Date(2026, 7, 25),
+    endDate: new Date(2026, 8, 24),
+  };
+
+  it("keeps today when the budget covers it", () => {
+    const now = new Date(2026, 8, 24, 21, 15);
+    expect(defaultOperationDay(now, period)).toBe(now);
+  });
+
+  it("moves to the budget's last day when today is past it", () => {
+    // Added to September's budget in October: dated today, it fell outside
+    // the month it was written into.
+    expect(defaultOperationDay(new Date(2026, 9, 2), period)).toBe(
+      period.endDate,
+    );
+  });
+
+  it("moves to the budget's first day when it has not begun", () => {
+    expect(defaultOperationDay(new Date(2026, 7, 10), period)).toBe(
+      period.startDate,
+    );
+  });
+
+  it("keeps today with no period to hold it to", () => {
+    const now = new Date(2026, 9, 2);
+    expect(defaultOperationDay(now, undefined)).toBe(now);
   });
 });

@@ -1,8 +1,9 @@
-import type {
-  BudgetLine,
-  BudgetPeriod,
-  SupportedCurrency,
-  Transaction,
+import {
+  type BudgetLine,
+  type BudgetPeriod,
+  getBudgetPeriodDates,
+  type SupportedCurrency,
+  type Transaction,
 } from "pulpe-shared";
 import { forwardRef, useImperativeHandle, useState } from "react";
 import { StyleSheet } from "react-native";
@@ -55,7 +56,12 @@ export const BudgetLineDetailOverlays = forwardRef<
   ref,
 ) {
   const { locale, t } = useTranslation();
-  const remove = useDeleteBudgetLine(budgetId);
+  const periodDates = getBudgetPeriodDates(
+    period.month,
+    period.year,
+    payDayOfMonth,
+  );
+  const remove = useDeleteBudgetLine();
   const removePair = useDeleteSavingsWithdrawal();
   const postpone = usePostponeBudgetLine();
   const removal = useTransactionRemoval();
@@ -157,6 +163,7 @@ export const BudgetLineDetailOverlays = forwardRef<
         onDismiss={() => setAddVisible(false)}
         budgetId={budgetId}
         currency={currency}
+        period={periodDates}
         envelope={{ id: line.id, name: line.name, kind: line.kind }}
         onSaved={() => setAddVisible(false)}
       />
@@ -168,6 +175,7 @@ export const BudgetLineDetailOverlays = forwardRef<
           onDismiss={() => setEdited(null)}
           budgetId={budgetId}
           currency={currency}
+          period={periodDates}
           transaction={edited}
           onSaved={() => setEdited(null)}
           onDelete={() => removal.remove(edited, () => setEdited(null))}
