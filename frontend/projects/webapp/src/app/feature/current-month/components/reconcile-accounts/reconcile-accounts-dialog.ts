@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   Injector,
   LOCALE_ID,
@@ -30,6 +31,9 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   ANALYTICS_EVENTS,
   CURRENCY_METADATA,
+  parseAccountAmount,
+  reconciliationVerdict,
+  summarizeAccounts,
   type BudgetPeriodDates,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -37,11 +41,6 @@ import { filter, merge } from 'rxjs';
 
 import { PostHogService } from '@core/analytics/posthog';
 import { AppCurrencyPipe } from '@core/currency';
-import {
-  parseAccountAmount,
-  reconciliationVerdict,
-  summarizeAccounts,
-} from './reconcile-accounts';
 
 /** The pointed side of the active month, as the page already computes it. */
 export interface RealizedPosition {
@@ -59,8 +58,11 @@ export interface ReconciliationAdjustment {
 }
 
 export interface ReconcileAccountsDialogData {
-  /** Read live, so a refresh landing mid-flow moves the comparison with it. */
-  readonly realized: Signal<RealizedPosition>;
+  /**
+   * Read live, so a refresh landing mid-flow moves the comparison with it.
+   * `null` once the page no longer holds the month the dialog opened on.
+   */
+  readonly realized: Signal<RealizedPosition | null>;
   readonly currency: Signal<SupportedCurrency>;
   readonly periodDates: Signal<BudgetPeriodDates>;
   /** `true` once the adjustment is written; on refusal the page says why. */
@@ -147,9 +149,10 @@ export class ReconcileAccountsDialog {
   // Against the live balance: what step 3 shows is what gets recorded.
   protected readonly verdict = computed(() => {
     const totalCents = this.summary().totalCents;
-    return totalCents === null
+    const realized = this.data.realized();
+    return totalCents === null || realized === null
       ? null
-      : reconciliationVerdict(totalCents, this.data.realized().balance);
+      : reconciliationVerdict(totalCents, realized.balance);
   });
 
   protected readonly adjustment = computed(() => {
@@ -192,6 +195,13 @@ export class ReconcileAccountsDialog {
     )
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.close());
+
+    // The page no longer holds the month this dialog opened on: nothing is left
+    // to hold the accounts against, so it closes — once a write already out
+    // has settled, on the month it was aimed at.
+    effect(() => {
+      if (this.data.realized() === null && !this.#isCompleted) this.close();
+    });
   }
 
   protected readonly currencySymbol = computed(

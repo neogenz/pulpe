@@ -1092,15 +1092,17 @@
       "continue": "Weiter",
       "accounts": {
         "heading": "Wie viel ist auf deinen Konten?",
-        "hint": "Gib den Saldo ein, den deine Bank heute anzeigt. Eine Überziehung gibst du negativ ein.",
-        "firstAmount": "Saldo deines Kontos",
+        "hint": "Übertrage für jedes Konto den Saldo, den deine Bank heute anzeigt.",
         "accountName": "Kontoname (optional)",
         "amount": "Saldo",
         "invalidAmount": "Gib einen Betrag wie 1250.40 oder -80 ein",
         "negative": "Negativer Saldo (Überziehung)",
         "addAccount": "Konto hinzufügen",
         "removeNumbered": "Konto {{ index }} entfernen",
-        "total": "Summe deiner Konten"
+        "total": "Summe deiner Konten",
+        "numbered": "Konto {{ index }}",
+        "overdraft": "Überziehung",
+        "privateHint": "Die eingegebenen Konten werden nicht gespeichert."
       },
       "realized": {
         "heading": "Dein abgehakter Saldo",
@@ -1109,21 +1111,34 @@
         "checkedOutflows": "Abgehakte Ausgaben und Sparen",
         "rollover": "Übertrag aus dem Vormonat",
         "balance": "Abgehakter Saldo",
-        "hint": "Nur Abgehaktes zählt. Fehlt etwas? Hake es zuerst ab und komm dann zurück.",
-        "viewItemsToCheck": "Offene Posten ansehen"
+        "hint": "Fehlt etwas? Hake es vor dem Vergleich ab.",
+        "viewItemsToCheck": "Offene Posten ansehen",
+        "intro": "Das berechnet Pulpe aus deinen abgehakten Posten."
       },
       "verdict": {
         "upToDateTitle": "Alles ist aktuell",
         "upToDateMessage": "Deine Konten stimmen mit deinem abgehakten Saldo überein.",
-        "moreTitle": "Auf deinen Konten sind {{ amount }} mehr",
-        "lessTitle": "Auf deinen Konten fehlen {{ amount }}",
-        "moreMessage": "Wir erfassen eine Ausgleichseinnahme von {{ amount }}, bereits abgehakt: Dein abgehakter Saldo entspricht dann der Summe deiner Konten.",
-        "lessMessage": "Wir erfassen eine Ausgleichsausgabe von {{ amount }}, bereits abgehakt: Dein abgehakter Saldo entspricht dann der Summe deiner Konten.",
+        "moreMessage": "Wir erfassen eine Ausgleichseinnahme von {{ amount }}, bereits abgehakt.",
+        "lessMessage": "Wir erfassen eine Ausgleichsausgabe von {{ amount }}, bereits abgehakt.",
         "label": "Bezeichnung",
         "labelRequired": "Gib diesem Ausgleich eine Bezeichnung",
         "defaultLabel": "Ausgleich",
-        "record": "Ausgleich erfassen",
-        "finish": "Fertig"
+        "record": "Ausgleich bestätigen",
+        "finish": "Fertig",
+        "morePrefix": "Auf deinen Konten sind",
+        "moreSuffix": "mehr",
+        "lessPrefix": "Es fehlen",
+        "lessSuffix": "auf deinen Konten",
+        "adjustmentTitle": "Vorgeschlagener Ausgleich",
+        "income": "Einnahme",
+        "expense": "Ausgabe"
+      },
+      "cancel": "Abbrechen",
+      "compare": "Differenz ansehen",
+      "steps": {
+        "accounts": "Konten",
+        "realized": "Abgehakt",
+        "verdict": "Differenz"
       }
     }
   },

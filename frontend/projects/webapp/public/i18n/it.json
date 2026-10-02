@@ -1092,15 +1092,17 @@
       "continue": "Continua",
       "accounts": {
         "heading": "Quanto hai sui tuoi conti?",
-        "hint": "Inserisci il saldo che la tua banca mostra oggi. Uno scoperto si inserisce in negativo.",
-        "firstAmount": "Saldo del tuo conto",
+        "hint": "Riporta il saldo che la tua banca mostra oggi, per ogni conto.",
         "accountName": "Nome del conto (facoltativo)",
         "amount": "Saldo",
         "invalidAmount": "Inserisci un importo come 1250.40 o -80",
         "negative": "Saldo negativo (scoperto)",
         "addAccount": "Aggiungi un conto",
         "removeNumbered": "Rimuovi il conto {{ index }}",
-        "total": "Totale dei tuoi conti"
+        "total": "Totale dei tuoi conti",
+        "numbered": "Conto {{ index }}",
+        "overdraft": "Scoperto",
+        "privateHint": "I conti inseriti non vengono salvati."
       },
       "realized": {
         "heading": "Il tuo saldo spuntato",
@@ -1109,21 +1111,34 @@
         "checkedOutflows": "Spese e risparmio spuntati",
         "rollover": "Riporto dal mese precedente",
         "balance": "Saldo spuntato",
-        "hint": "Conta solo ciò che hai spuntato. Manca qualcosa? Spuntalo prima, poi torna qui.",
-        "viewItemsToCheck": "Vedi cosa resta da spuntare"
+        "hint": "Manca qualcosa? Spuntalo prima di confrontare.",
+        "viewItemsToCheck": "Vedi cosa resta da spuntare",
+        "intro": "Ecco cosa calcola Pulpe con gli elementi che hai spuntato."
       },
       "verdict": {
         "upToDateTitle": "Tutto è aggiornato",
         "upToDateMessage": "I tuoi conti corrispondono al tuo saldo spuntato.",
-        "moreTitle": "Sui tuoi conti ci sono {{ amount }} in più",
-        "lessTitle": "Sui tuoi conti mancano {{ amount }}",
-        "moreMessage": "Registriamo un'entrata di allineamento di {{ amount }}, già spuntata: il tuo saldo spuntato corrisponderà al totale dei tuoi conti.",
-        "lessMessage": "Registriamo una spesa di allineamento di {{ amount }}, già spuntata: il tuo saldo spuntato corrisponderà al totale dei tuoi conti.",
+        "moreMessage": "Registriamo un'entrata di allineamento di {{ amount }}, già spuntata.",
+        "lessMessage": "Registriamo una spesa di allineamento di {{ amount }}, già spuntata.",
         "label": "Descrizione",
         "labelRequired": "Dai una descrizione a questo allineamento",
         "defaultLabel": "Allineamento",
-        "record": "Registra l'allineamento",
-        "finish": "Fatto"
+        "record": "Conferma l'allineamento",
+        "finish": "Fatto",
+        "morePrefix": "Sui tuoi conti ci sono",
+        "moreSuffix": "in più",
+        "lessPrefix": "Mancano",
+        "lessSuffix": "sui tuoi conti",
+        "adjustmentTitle": "Allineamento proposto",
+        "income": "Entrata",
+        "expense": "Spesa"
+      },
+      "cancel": "Annulla",
+      "compare": "Vedi la differenza",
+      "steps": {
+        "accounts": "Conti",
+        "realized": "Spuntato",
+        "verdict": "Differenza"
       }
     }
   },

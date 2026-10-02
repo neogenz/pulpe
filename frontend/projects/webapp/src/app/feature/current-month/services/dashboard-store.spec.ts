@@ -372,6 +372,42 @@ describe('DashboardStore - Business Scenarios', () => {
         'adjustment',
       );
     });
+
+    it('should keep an entry written to another month out of the loaded one', async () => {
+      const { store, budgetApi } = await setupWithBudgetAndWait(
+        createMockBudget({ rollover: 0 }),
+        [],
+        [],
+      );
+      budgetApi.createTransaction$.mockReturnValue(
+        of({
+          success: true,
+          data: createMockTransaction({
+            id: 'previous-month-adjustment',
+            budgetId: 'budget-previous',
+            kind: 'income',
+            amount: 12.5,
+            checkedAt: CHECKED_AT,
+          }),
+        }),
+      );
+      // Only the store's own patch can then reach the loaded month.
+      budgetApi.getDashboardData$.mockReturnValue(
+        throwError(() => new Error('offline')),
+      );
+
+      const outcome = await store.addTransaction({
+        budgetId: 'budget-previous',
+        name: 'Ajustement',
+        amount: 12.5,
+        kind: 'income',
+        checkedAt: CHECKED_AT,
+      });
+
+      expect(outcome).toEqual({ transactionId: 'previous-month-adjustment' });
+      expect(store.transactions()).toEqual([]);
+      expect(store.realizedBalance()).toBe(0);
+    });
   });
 
   describe('User can manage transactions', () => {

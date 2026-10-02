@@ -665,7 +665,7 @@ describe('Dashboard (TestBed)', () => {
       expect(data.periodDates()).toBe(mockStore.periodDates());
 
       mockStore.realizedBalance.set(1500);
-      expect(data.realized().balance).toBe(1500);
+      expect(data.realized()?.balance).toBe(1500);
     });
 
     it('should open full-height on a phone', async () => {
@@ -740,6 +740,47 @@ describe('Dashboard (TestBed)', () => {
         expect.objectContaining({ duration: 5000, verticalPosition: 'top' }),
       );
       expect(mockStore.error()).toBeNull();
+    });
+
+    it('should hold the dialog to the month it opened on, and never write to another', async () => {
+      const { component, mockDialog, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+      component['openReconcileAccounts']();
+      const { data } = openedWith(mockDialog);
+
+      // A refresh of the same month only moves the figures.
+      mockStore.realizedBalance.set(1500);
+      expect(data.realized()?.balance).toBe(1500);
+
+      mockStore.dashboardData.set({ budget: { id: 'next-month-budget' } });
+      expect(data.realized()).toBeNull();
+      const isRecorded = await data.recordAdjustment({
+        name: 'Ajustement',
+        kind: 'income',
+        amount: 0.01,
+      });
+
+      expect(isRecorded).toBe(false);
+      expect(mockStore.addTransaction).not.toHaveBeenCalled();
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('le budget du mois vient d'),
+        expect.any(String),
+        expect.objectContaining({ verticalPosition: 'top' }),
+      );
+
+      // A month that failed to load, or is still loading, holds nothing either.
+      mockStore.dashboardData.set(null);
+      expect(data.realized()).toBeNull();
+      expect(
+        await data.recordAdjustment({
+          name: 'Ajustement',
+          kind: 'income',
+          amount: 0.01,
+        }),
+      ).toBe(false);
+      expect(mockStore.addTransaction).not.toHaveBeenCalled();
     });
 
     it('should open the active budget to show what is left to check', async () => {

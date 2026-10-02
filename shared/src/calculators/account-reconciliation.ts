@@ -1,4 +1,17 @@
-import { moneyDifference } from 'pulpe-shared';
+/**
+ * @fileoverview "Rapprocher mes comptes" (PUL-351): the bank balances a user
+ * types, held against the checked balance of the loaded month. Runs under the
+ * finger — the total and the verdict follow every keystroke — so the web and
+ * Android clients import it from here.
+ *
+ * SWIFT TWIN: `parseAmount`, `totalCents(of:)` and `verdict` in
+ * `ios/Pulpe/Features/CurrentMonth/Reconciliation/AccountReconciliation.swift`.
+ * A change here is a change there, tests and fixtures included, same commit —
+ * nothing fails the build when the two diverge (see
+ * `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`).
+ */
+
+import { moneyDifference } from '../money.js';
 
 // A bank balance as typed: an optional minus (an overdraft), at most nine
 // digits of units and two of cents. Anything else is refused rather than read

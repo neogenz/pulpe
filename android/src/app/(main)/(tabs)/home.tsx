@@ -44,8 +44,13 @@ export default function HomeScreen() {
   const { locale, t } = useTranslation();
   const currentMonth = useCurrentMonth();
   const [isRealizedVisible, setRealizedVisible] = useState(false);
-  const [isReconcileVisible, setReconcileVisible] = useState(false);
+  // Captured when the reconciliation opens, so each opening holds the budget
+  // loaded at that moment — never one loaded later under the open sheet.
+  const [reconcileBudgetId, setReconcileBudgetId] = useState<string | null>(
+    null,
+  );
   const [hasAdjustmentRecorded, setAdjustmentRecorded] = useState(false);
+  const [hasAdjustmentFailed, setAdjustmentFailed] = useState(false);
   const [isAddOpen, setAddOpen] = useState(false);
   // `pulpe://add-expense` lands here rather than on a route of its own: the
   // sheet is the add-expense surface, and it belongs to this screen.
@@ -92,44 +97,111 @@ export default function HomeScreen() {
     />
   );
 
+  // Ready, and the details of the budget the screen names: anything less is
+  // no balance to hold an account against.
+  const details = currentMonth.details;
+  const loadedMonth =
+    currentMonth.status === "ready" &&
+    currentMonth.viewModel !== null &&
+    details?.budget.id === currentMonth.budgetId
+      ? { details, realized: currentMonth.viewModel.realized }
+      : null;
+  const reconcileMonth =
+    loadedMonth !== null && loadedMonth.details.budget.id === reconcileBudgetId
+      ? {
+          realized: loadedMonth.realized,
+          rollover: loadedMonth.details.budget.rollover ?? 0,
+          period,
+        }
+      : null;
+
+  // The second child of every branch below, so the same sheet instance — and a
+  // write it still holds — lives through a load, a failure or an empty month,
+  // with the two notices that report its outcome.
+  const reconciliation = (
+    <>
+      <ReconcileAccountsSheet
+        key="reconcile-accounts"
+        isVisible={reconcileBudgetId !== null}
+        onDismiss={() => setReconcileBudgetId(null)}
+        onRecorded={() => {
+          setReconcileBudgetId(null);
+          setAdjustmentRecorded(true);
+        }}
+        onRecordFailed={() => setAdjustmentFailed(true)}
+        onViewItemsToCheck={() => {
+          setReconcileBudgetId(null);
+          router.push(`/budget/${currentMonth.budgetId}`);
+        }}
+        // Only read while open, which takes a captured budget.
+        budgetId={reconcileBudgetId ?? ""}
+        month={reconcileMonth}
+        currency={currentMonth.currency}
+      />
+      <Notice
+        clearsFab
+        visible={hasAdjustmentRecorded}
+        onDismiss={() => setAdjustmentRecorded(false)}
+      >
+        {t("home.reconcile.recorded")}
+      </Notice>
+      <Notice
+        clearsFab
+        visible={hasAdjustmentFailed}
+        onDismiss={() => setAdjustmentFailed(false)}
+      >
+        {t("budgets.mutations.activity.error")}
+      </Notice>
+    </>
+  );
+
   if (currentMonth.status === "loading") {
     return (
-      <View
-        style={[styles.screen, { backgroundColor: theme.colors.background }]}
-      >
-        {header}
-        <View style={styles.content}>
-          <HomeHeroSkeleton />
+      <>
+        <View
+          style={[styles.screen, { backgroundColor: theme.colors.background }]}
+        >
+          {header}
+          <View style={styles.content}>
+            <HomeHeroSkeleton />
+          </View>
         </View>
-      </View>
+        {reconciliation}
+      </>
     );
   }
 
   if (currentMonth.status === "failed") {
     return (
-      <PlaceholderScreen
-        icon="cloud-off-outline"
-        title={t("home.states.loadErrorTitle")}
-        hint={t("home.states.loadErrorHint")}
-        action={{
-          label: t("common.retry"),
-          onPress: () => void currentMonth.refresh(),
-        }}
-      />
+      <>
+        <PlaceholderScreen
+          icon="cloud-off-outline"
+          title={t("home.states.loadErrorTitle")}
+          hint={t("home.states.loadErrorHint")}
+          action={{
+            label: t("common.retry"),
+            onPress: () => void currentMonth.refresh(),
+          }}
+        />
+        {reconciliation}
+      </>
     );
   }
 
   if (currentMonth.status === "empty" || currentMonth.viewModel === null) {
     return (
-      <PlaceholderScreen
-        icon="calendar-blank-outline"
-        title={t("home.states.emptyTitle")}
-        hint={t("home.states.emptyHint")}
-        action={{
-          label: t("home.states.createBudget"),
-          onPress: () => router.push("/budget/create"),
-        }}
-      />
+      <>
+        <PlaceholderScreen
+          icon="calendar-blank-outline"
+          title={t("home.states.emptyTitle")}
+          hint={t("home.states.emptyHint")}
+          action={{
+            label: t("home.states.createBudget"),
+            onPress: () => router.push("/budget/create"),
+          }}
+        />
+        {reconciliation}
+      </>
     );
   }
 
@@ -148,232 +220,211 @@ export default function HomeScreen() {
   }
 
   return (
-    // The app bar carries the status bar inset; asking the safe area for the
-    // top edge too would double it.
-    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      {header}
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={currentMonth.isRefreshing}
-            onRefresh={() => void currentMonth.refresh()}
-          />
-        }
+    <>
+      {/* The app bar carries the status bar inset; asking the safe area for
+          the top edge too would double it. */}
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
-        <HomeHeroCard
-          presentation={presentation}
-          trajectory={viewModel.trajectory}
-          period={period}
-          monthName={monthName}
-          uncheckedCount={viewModel.uncheckedCount}
-          currency={currency}
-          onPressMetrics={() => setRealizedVisible(true)}
-          onPressDetail={
-            currentMonth.budgetId === null
-              ? undefined
-              : () => router.push(`/budget/${currentMonth.budgetId}`)
+        {header}
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={currentMonth.isRefreshing}
+              onRefresh={() => void currentMonth.refresh()}
+            />
           }
-          onPrepareNextMonth={
-            hasMonthToPrepare ? () => router.push("/budget/create") : undefined
-          }
-        />
-
-        <Text
-          variant="bodyMedium"
-          style={{ color: theme.colors.onSurfaceVariant }}
         >
-          {t("home.periodRemaining", { count: viewModel.daysRemaining })}
-        </Text>
-
-        {viewModel.uncheckedItems.length > 0 && (
-          <>
-            <Tooltip
-              id="checking"
-              icon="check-circle-outline"
-              title={t("home.checking.tooltipTitle")}
-              message={t("home.checking.tooltipMessage")}
-            />
-            <UncheckedOperationsCard
-              items={viewModel.uncheckedItems}
-              currency={currency}
-              isSyncing={toggle.isPending}
-              onToggle={(item) => {
-                // Doing it explains it better than the card ever could.
-                dismissTip("checking");
-                toggle.mutate(item, {
-                  onError: () => {
-                    hapticFailure();
-                    setToggleFailure("point");
-                  },
-                  // Offered here and nowhere else: a reminder to point is worth
-                  // something only to someone who has just found out what
-                  // pointing does.
-                  onSuccess: () => {
-                    hapticSuccess();
-                    setPointed(item);
-                    reminders.offer();
-                  },
-                });
-              }}
-            />
-          </>
-        )}
-
-        {viewModel.driftLines.length > 0 ? (
-          <DriftCard
-            drifts={viewModel.driftLines}
-            totalOver={viewModel.driftTotal}
-            absorbsOverrun={presentation.absorbsEnvelopeOverrun}
+          <HomeHeroCard
+            presentation={presentation}
+            trajectory={viewModel.trajectory}
+            period={period}
+            monthName={monthName}
+            uncheckedCount={viewModel.uncheckedCount}
             currency={currency}
+            onPressMetrics={() => setRealizedVisible(true)}
+            onPressDetail={
+              currentMonth.budgetId === null
+                ? undefined
+                : () => router.push(`/budget/${currentMonth.budgetId}`)
+            }
+            onPrepareNextMonth={
+              hasMonthToPrepare
+                ? () => router.push("/budget/create")
+                : undefined
+            }
           />
-        ) : (
-          viewModel.savings.isComplete && (
-            <SavingsDoneCard
-              amount={viewModel.savings.totalRealized}
-              currency={currency}
-              onPress={() => router.push("/goals")}
-            />
-          )
-        )}
 
-        <ActivityCard
-          transactions={currentMonth.details?.transactions ?? []}
+          <Text
+            variant="bodyMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {t("home.periodRemaining", { count: viewModel.daysRemaining })}
+          </Text>
+
+          {viewModel.uncheckedItems.length > 0 && (
+            <>
+              <Tooltip
+                id="checking"
+                icon="check-circle-outline"
+                title={t("home.checking.tooltipTitle")}
+                message={t("home.checking.tooltipMessage")}
+              />
+              <UncheckedOperationsCard
+                items={viewModel.uncheckedItems}
+                currency={currency}
+                isSyncing={toggle.isPending}
+                onToggle={(item) => {
+                  // Doing it explains it better than the card ever could.
+                  dismissTip("checking");
+                  toggle.mutate(item, {
+                    onError: () => {
+                      hapticFailure();
+                      setToggleFailure("point");
+                    },
+                    // Offered here and nowhere else: a reminder to point is worth
+                    // something only to someone who has just found out what
+                    // pointing does.
+                    onSuccess: () => {
+                      hapticSuccess();
+                      setPointed(item);
+                      reminders.offer();
+                    },
+                  });
+                }}
+              />
+            </>
+          )}
+
+          {viewModel.driftLines.length > 0 ? (
+            <DriftCard
+              drifts={viewModel.driftLines}
+              totalOver={viewModel.driftTotal}
+              absorbsOverrun={presentation.absorbsEnvelopeOverrun}
+              currency={currency}
+            />
+          ) : (
+            viewModel.savings.isComplete && (
+              <SavingsDoneCard
+                amount={viewModel.savings.totalRealized}
+                currency={currency}
+                onPress={() => router.push("/goals")}
+              />
+            )
+          )}
+
+          <ActivityCard
+            transactions={currentMonth.details?.transactions ?? []}
+            currency={currency}
+            onPressAll={
+              currentMonth.budgetId === null
+                ? undefined
+                : () => router.push(`/budget/${currentMonth.budgetId}`)
+            }
+          />
+        </ScrollView>
+
+        {/* Hidden while a sheet is up: the FAB floats above the Portal's scrim
+          and would otherwise sit on top of the form it just opened. */}
+        {!isAddVisible &&
+          !isRealizedVisible &&
+          reconcileBudgetId === null &&
+          !reminders.isVisible && (
+            <FAB
+              testID="home-add-entry"
+              icon="plus"
+              label={t("home.add")}
+              style={styles.fab}
+              onPress={() => setAddOpen(true)}
+              accessibilityLabel={t("home.addAccessibility")}
+            />
+          )}
+
+        {/* The server flips whatever state it holds, so taking the pointing back
+          is the very same call a second time. */}
+        <Notice
+          clearsFab
+          visible={pointed !== null}
+          onDismiss={() => setPointed(null)}
+          action={{
+            label: t("common.cancel"),
+            onPress: () => {
+              const item = pointed;
+              setPointed(null);
+              if (item === null) return;
+              toggle.mutate(item, {
+                onError: () => setToggleFailure("undo"),
+              });
+            },
+          }}
+        >
+          {pointed === null
+            ? ""
+            : t("home.checking.pointed", { name: pointed.name })}
+        </Notice>
+
+        <Notice
+          clearsFab
+          visible={toggleFailure !== null}
+          onDismiss={() => setToggleFailure(null)}
+          action={{
+            label: t("common.close"),
+            onPress: () => setToggleFailure(null),
+          }}
+        >
+          {toggleFailure === null
+            ? ""
+            : t(`home.checking.${toggleFailure}Failure`)}
+        </Notice>
+
+        <Notice
+          clearsFab
+          visible={hasTransactionAdded}
+          onDismiss={() => setTransactionAdded(false)}
+        >
+          {t("home.activity.added")}
+        </Notice>
+
+        {/* The realized balance hands over to the reconciliation rather than
+          stacking a second modal on itself: one sheet at a time. */}
+        <RealizedBalanceSheet
+          isVisible={isRealizedVisible}
+          onDismiss={() => setRealizedVisible(false)}
+          metrics={viewModel.metrics}
+          realized={viewModel.realized}
           currency={currency}
-          onPressAll={
-            currentMonth.budgetId === null
+          onReconcile={
+            loadedMonth === null
               ? undefined
-              : () => router.push(`/budget/${currentMonth.budgetId}`)
+              : () => {
+                  setRealizedVisible(false);
+                  setReconcileBudgetId(loadedMonth.details.budget.id);
+                }
           }
         />
-      </ScrollView>
 
-      {/* Hidden while a sheet is up: the FAB floats above the Portal's scrim
-          and would otherwise sit on top of the form it just opened. */}
-      {!isAddVisible &&
-        !isRealizedVisible &&
-        !isReconcileVisible &&
-        !reminders.isVisible && (
-          <FAB
-            testID="home-add-entry"
-            icon="plus"
-            label={t("home.add")}
-            style={styles.fab}
-            onPress={() => setAddOpen(true)}
-            accessibilityLabel={t("home.addAccessibility")}
+        <NotificationPrimeSheet
+          isVisible={reminders.isVisible}
+          onDismiss={reminders.dismiss}
+          onEnable={reminders.enable}
+        />
+
+        {currentMonth.budgetId !== null && (
+          <TransactionSheet
+            isVisible={isAddVisible}
+            onDismiss={closeAdd}
+            budgetId={currentMonth.budgetId}
+            currency={currency}
+            onSaved={() => {
+              closeAdd();
+              setTransactionAdded(true);
+            }}
           />
         )}
-
-      {/* The server flips whatever state it holds, so taking the pointing back
-          is the very same call a second time. */}
-      <Notice
-        clearsFab
-        visible={pointed !== null}
-        onDismiss={() => setPointed(null)}
-        action={{
-          label: t("common.cancel"),
-          onPress: () => {
-            const item = pointed;
-            setPointed(null);
-            if (item === null) return;
-            toggle.mutate(item, {
-              onError: () => setToggleFailure("undo"),
-            });
-          },
-        }}
-      >
-        {pointed === null
-          ? ""
-          : t("home.checking.pointed", { name: pointed.name })}
-      </Notice>
-
-      <Notice
-        clearsFab
-        visible={toggleFailure !== null}
-        onDismiss={() => setToggleFailure(null)}
-        action={{
-          label: t("common.close"),
-          onPress: () => setToggleFailure(null),
-        }}
-      >
-        {toggleFailure === null
-          ? ""
-          : t(`home.checking.${toggleFailure}Failure`)}
-      </Notice>
-
-      <Notice
-        clearsFab
-        visible={hasTransactionAdded}
-        onDismiss={() => setTransactionAdded(false)}
-      >
-        {t("home.activity.added")}
-      </Notice>
-
-      <Notice
-        clearsFab
-        visible={hasAdjustmentRecorded}
-        onDismiss={() => setAdjustmentRecorded(false)}
-      >
-        {t("home.reconcile.recorded")}
-      </Notice>
-
-      {/* The realized balance hands over to the reconciliation rather than
-          stacking a second modal on itself: one sheet at a time. */}
-      <RealizedBalanceSheet
-        isVisible={isRealizedVisible}
-        onDismiss={() => setRealizedVisible(false)}
-        metrics={viewModel.metrics}
-        realized={viewModel.realized}
-        currency={currency}
-        onReconcile={
-          currentMonth.budgetId === null
-            ? undefined
-            : () => {
-                setRealizedVisible(false);
-                setReconcileVisible(true);
-              }
-        }
-      />
-
-      {currentMonth.budgetId !== null && (
-        <ReconcileAccountsSheet
-          isVisible={isReconcileVisible}
-          onDismiss={() => setReconcileVisible(false)}
-          onRecorded={() => {
-            setReconcileVisible(false);
-            setAdjustmentRecorded(true);
-          }}
-          onViewItemsToCheck={() => {
-            setReconcileVisible(false);
-            router.push(`/budget/${currentMonth.budgetId}`);
-          }}
-          budgetId={currentMonth.budgetId}
-          realized={viewModel.realized}
-          rollover={currentMonth.details?.budget.rollover ?? 0}
-          period={period}
-          currency={currency}
-        />
-      )}
-
-      <NotificationPrimeSheet
-        isVisible={reminders.isVisible}
-        onDismiss={reminders.dismiss}
-        onEnable={reminders.enable}
-      />
-
-      {currentMonth.budgetId !== null && (
-        <TransactionSheet
-          isVisible={isAddVisible}
-          onDismiss={closeAdd}
-          budgetId={currentMonth.budgetId}
-          currency={currency}
-          onSaved={() => {
-            closeAdd();
-            setTransactionAdded(true);
-          }}
-        />
-      )}
-    </View>
+      </View>
+      {reconciliation}
+    </>
   );
 }
 

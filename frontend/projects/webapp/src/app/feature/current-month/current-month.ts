@@ -945,21 +945,32 @@ export default class Dashboard {
   // The same dialog at every width — only its frame changes, so it is opened
   // here rather than through a dialog service. On a phone it takes the whole
   // height: three steps of fields would not fit a centred card above a keyboard.
+  //
+  // The month is the one loaded when it opens. A refresh of that month moves
+  // the figures; another month loaded under it, or none, leaves the dialog
+  // nothing to hold the accounts against and nothing to write to.
   protected openReconcileAccounts(): void {
+    const budgetId = this.store.dashboardData()?.budget?.id;
+    if (!budgetId) return;
     const isHandset = this.#breakpointObserver.isMatched(Breakpoints.Handset);
     this.#dialog.open<ReconcileAccountsDialog, ReconcileAccountsDialogData>(
       ReconcileAccountsDialog,
       {
         data: {
-          realized: computed(() => ({
-            balance: this.store.realizedBalance(),
-            checkedIncome: this.store.realizedIncome(),
-            checkedOutflows: this.store.realizedExpenses(),
-            rollover: this.store.rolloverAmount(),
-          })),
+          realized: computed(() =>
+            this.store.dashboardData()?.budget?.id === budgetId
+              ? {
+                  balance: this.store.realizedBalance(),
+                  checkedIncome: this.store.realizedIncome(),
+                  checkedOutflows: this.store.realizedExpenses(),
+                  rollover: this.store.rolloverAmount(),
+                }
+              : null,
+          ),
           currency: this.currency,
           periodDates: this.store.periodDates,
-          recordAdjustment: (adjustment) => this.#recordAdjustment(adjustment),
+          recordAdjustment: (adjustment) =>
+            this.#recordAdjustment(budgetId, adjustment),
           viewItemsToCheck: () => this.navigateToBudgetDetails(),
         },
         autoFocus: '[inputmode="decimal"]',
@@ -979,14 +990,16 @@ export default class Dashboard {
     );
   }
 
-  // One checked, free entry on the month the page has loaded — the same write,
-  // toast and undo as any entry recorded here. `false` keeps the dialog on its
-  // verdict with the label as typed; the toast already said why.
+  // One checked, free entry on the month the dialog opened on — the same write,
+  // toast and undo as any entry recorded here — and only while the page still
+  // holds that month: the amount was computed against its balance. `false`
+  // keeps the dialog on its verdict with the label as typed; the toast already
+  // said why.
   async #recordAdjustment(
+    budgetId: string,
     adjustment: ReconciliationAdjustment,
   ): Promise<boolean> {
-    const budgetId = this.store.dashboardData()?.budget?.id;
-    if (!budgetId) {
+    if (this.store.dashboardData()?.budget?.id !== budgetId) {
       this.#notify(
         this.#transloco.translate('currentMonth.addTransactionNoBudget'),
         'top',

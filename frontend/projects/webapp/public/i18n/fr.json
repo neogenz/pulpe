@@ -1093,7 +1093,6 @@
       "accounts": {
         "heading": "Combien as-tu sur tes comptes ?",
         "hint": "Reporte le solde affiché par ta banque aujourd'hui, pour chaque compte.",
-        "firstAmount": "Solde de ton compte",
         "accountName": "Nom du compte (facultatif)",
         "amount": "Solde",
         "invalidAmount": "Saisis un montant comme 1250.40 ou -80",
@@ -1119,8 +1118,6 @@
       "verdict": {
         "upToDateTitle": "Tout est à jour",
         "upToDateMessage": "Tes comptes correspondent à ton solde pointé.",
-        "moreTitle": "Tes comptes ont {{ amount }} de plus",
-        "lessTitle": "Il manque {{ amount }} sur tes comptes",
         "moreMessage": "On note un revenu d'ajustement de {{ amount }}, déjà pointé.",
         "lessMessage": "On note une dépense d'ajustement de {{ amount }}, déjà pointée.",
         "label": "Libellé",

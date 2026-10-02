@@ -2,9 +2,12 @@ import {
   ANALYTICS_EVENTS,
   type BudgetPeriodDates,
   CURRENCY_METADATA,
+  parseAccountAmount,
+  reconciliationVerdict,
+  summarizeAccounts,
   type SupportedCurrency,
 } from "pulpe-shared";
-import { useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
   Button,
@@ -27,12 +30,7 @@ import { RADIUS, SPACING } from "@/core/ui/theme";
 import { useCreateTransaction } from "@/features/transactions/transaction-mutations";
 
 import type { RealizedMetrics } from "../current-month-view-model";
-import {
-  buildAdjustmentPayload,
-  parseAccountAmount,
-  reconciliationVerdict,
-  summarizeAccounts,
-} from "../reconciliation";
+import { buildAdjustmentPayload } from "../reconciliation";
 
 const LABEL_MAX_LENGTH = 100;
 const ACCOUNT_NAME_MAX_LENGTH = 60;
@@ -49,16 +47,28 @@ interface AccountRow {
 
 const FIRST_ROW: AccountRow = { id: 0, label: "", amountText: "" };
 
+/** What the loaded month has pointed, and the period it covers. */
+export interface ReconcileMonth {
+  realized: RealizedMetrics;
+  rollover: number;
+  period: BudgetPeriodDates;
+}
+
 interface ReconcileAccountsSheetProps {
   isVisible: boolean;
   onDismiss: () => void;
   /** The adjustment is written and the flow is over; the screen says so. */
   onRecorded: () => void;
+  /**
+   * A write refused after the screen left its month: the sheet closes, and
+   * its own notice with it, so the screen says so instead.
+   */
+  onRecordFailed: () => void;
   onViewItemsToCheck: () => void;
+  /** The month this opening was made on: the only one it ever writes to. */
   budgetId: string;
-  realized: RealizedMetrics;
-  rollover: number;
-  period: BudgetPeriodDates;
+  /** `null` once the screen no longer holds that month, or holds none. */
+  month: ReconcileMonth | null;
   currency: SupportedCurrency;
 }
 
@@ -74,11 +84,10 @@ export function ReconcileAccountsSheet({
   isVisible,
   onDismiss,
   onRecorded,
+  onRecordFailed,
   onViewItemsToCheck,
   budgetId,
-  realized,
-  rollover,
-  period,
+  month,
   currency,
 }: ReconcileAccountsSheetProps) {
   const theme = useTheme();
@@ -99,9 +108,12 @@ export function ReconcileAccountsSheet({
   const adjustmentLabel = label ?? t("home.reconcile.verdict.defaultLabel");
   const summary = summarizeAccounts(rows.map((row) => row.amountText));
   const verdict =
-    summary.totalCents === null
+    summary.totalCents === null || month === null
       ? null
-      : reconciliationVerdict(summary.totalCents, realized.realizedBalance);
+      : reconciliationVerdict(
+          summary.totalCents,
+          month.realized.realizedBalance,
+        );
   const adjustment =
     verdict === null || verdict.kind === "upToDate" ? null : verdict;
   const isBusy = create.isPending;
@@ -116,14 +128,30 @@ export function ReconcileAccountsSheet({
     create.reset();
   }
 
-  function dismiss() {
-    if (isBusy) return;
+  // `isPending` lands a render after `mutate`: until then only the ref knows a
+  // write is out, so every exit asks both.
+  function dismiss(): boolean {
+    if (isBusy || isSubmitting.current) return false;
     reset();
     onDismiss();
+    return true;
   }
 
+  // The screen no longer holds the month this opening was made on, or holds
+  // none: nothing is left to hold the accounts against, so the sheet closes —
+  // once a write already out has settled, on the month it was aimed at. A
+  // refusal of that write is handed to the screen, since its notice is here.
+  const isOffMonth = isVisible && month === null;
+  const closeOffMonth = useEffectEvent(() => {
+    const hasFailed = create.isError;
+    if (dismiss() && hasFailed) onRecordFailed();
+  });
+  useEffect(() => {
+    if (isOffMonth && !isBusy) closeOffMonth();
+  }, [isOffMonth, isBusy]);
+
   function back() {
-    if (isBusy) return;
+    if (isBusy || isSubmitting.current) return;
     if (step === 1) {
       dismiss();
       return;
@@ -187,7 +215,10 @@ export function ReconcileAccountsSheet({
     );
   }
 
+  // A write already out ends the flow itself, even once a refresh brings the
+  // balance level: Finish waits rather than completing a second time.
   function finish() {
+    if (isBusy || isSubmitting.current || verdict?.kind !== "upToDate") return;
     complete("none");
     reset();
     onDismiss();
@@ -226,19 +257,26 @@ export function ReconcileAccountsSheet({
           >
             {t("home.reconcile.continue")}
           </Button>
-        ) : adjustment !== null ? (
+        ) : verdict?.kind === "upToDate" ? (
+          <Button
+            mode="contained"
+            onPress={finish}
+            disabled={isBusy}
+            style={styles.action}
+          >
+            {t("home.reconcile.verdict.finish")}
+          </Button>
+        ) : (
           <Button
             mode="contained"
             onPress={record}
-            disabled={isBusy || adjustmentLabel.trim() === ""}
+            disabled={
+              adjustment === null || isBusy || adjustmentLabel.trim() === ""
+            }
             loading={isBusy}
             style={styles.action}
           >
             {t("home.reconcile.verdict.record")}
-          </Button>
-        ) : (
-          <Button mode="contained" onPress={finish} style={styles.action}>
-            {t("home.reconcile.verdict.finish")}
           </Button>
         )}
       </View>
@@ -368,17 +406,17 @@ export function ReconcileAccountsSheet({
         </>
       )}
 
-      {step === 2 && (
+      {step === 2 && month !== null && (
         <>
           <Text variant="titleMedium">
             {t("home.reconcile.realized.heading")}
           </Text>
           {/* A period on the calendar month is named by the month alone. */}
-          {period.startDate.getDate() !== 1 && (
+          {month.period.startDate.getDate() !== 1 && (
             <Text variant="bodyMedium" style={muted}>
               {t("home.reconcile.realized.period", {
-                start: formatDayMonth(period.startDate, locale),
-                end: formatDayMonth(period.endDate, locale),
+                start: formatDayMonth(month.period.startDate, locale),
+                end: formatDayMonth(month.period.endDate, locale),
               })}
             </Text>
           )}
@@ -390,21 +428,24 @@ export function ReconcileAccountsSheet({
           >
             <BreakdownRow
               label={t("home.reconcile.realized.checkedIncome")}
-              amount={formatCurrency(realized.realizedIncome, currency)}
+              amount={formatCurrency(month.realized.realizedIncome, currency)}
             />
             <BreakdownRow
               label={t("home.reconcile.realized.checkedOutflows")}
-              amount={formatCurrency(0 - realized.realizedExpenses, currency)}
+              amount={formatCurrency(
+                0 - month.realized.realizedExpenses,
+                currency,
+              )}
             />
             <BreakdownRow
               testID="reconcile-rollover"
               label={t("home.reconcile.realized.rollover")}
-              amount={formatCurrency(rollover, currency)}
+              amount={formatCurrency(month.rollover, currency)}
             />
             <BreakdownRow
               testID="reconcile-realized-balance"
               label={t("home.reconcile.realized.balance")}
-              amount={formatCurrency(realized.realizedBalance, currency)}
+              amount={formatCurrency(month.realized.realizedBalance, currency)}
               isTotal
             />
           </View>
@@ -418,7 +459,8 @@ export function ReconcileAccountsSheet({
       )}
 
       {step === 3 &&
-        (adjustment === null ? (
+        verdict !== null &&
+        (verdict.kind === "upToDate" ? (
           <>
             <Text variant="titleMedium">
               {t("home.reconcile.verdict.upToDateTitle")}
@@ -431,18 +473,18 @@ export function ReconcileAccountsSheet({
           <>
             <Text variant="titleMedium">
               {t(
-                adjustment.kind === "income"
+                verdict.kind === "income"
                   ? "home.reconcile.verdict.moreTitle"
                   : "home.reconcile.verdict.lessTitle",
-                { amount: formatCurrency(adjustment.amount, currency) },
+                { amount: formatCurrency(verdict.amount, currency) },
               )}
             </Text>
             <Text variant="bodyMedium" style={muted}>
               {t(
-                adjustment.kind === "income"
+                verdict.kind === "income"
                   ? "home.reconcile.verdict.moreMessage"
                   : "home.reconcile.verdict.lessMessage",
-                { amount: formatCurrency(adjustment.amount, currency) },
+                { amount: formatCurrency(verdict.amount, currency) },
               )}
             </Text>
             <TextInput

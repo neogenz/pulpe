@@ -4,7 +4,10 @@ import { getBudgetPeriodDates } from "pulpe-shared";
 import { captureEvent } from "@/core/observability/analytics";
 
 import type { RealizedMetrics } from "../current-month-view-model";
-import { ReconcileAccountsSheet } from "./reconcile-accounts-sheet";
+import {
+  type ReconcileMonth,
+  ReconcileAccountsSheet,
+} from "./reconcile-accounts-sheet";
 
 const mockCreate = {
   mutate: jest.fn(),
@@ -180,20 +183,34 @@ const REALIZED: RealizedMetrics = {
   checkedItemsCount: 4,
   totalItemsCount: 6,
 };
+const REALIZED_LEVEL: RealizedMetrics = { ...REALIZED, realizedBalance: 1500 };
 
 function renderSheet(realized: Partial<RealizedMetrics> = {}) {
+  const month: ReconcileMonth = {
+    realized: { ...REALIZED, ...realized },
+    rollover: -120,
+    period: getBudgetPeriodDates(6, 2025, 27),
+  };
   const props = {
     isVisible: true,
     onDismiss: jest.fn(),
     onRecorded: jest.fn(),
     onViewItemsToCheck: jest.fn(),
+    onRecordFailed: jest.fn(),
     budgetId: "budget-1",
-    realized: { ...REALIZED, ...realized },
-    rollover: -120,
-    period: getBudgetPeriodDates(6, 2025, 27),
+    month,
     currency: "CHF" as const,
   };
   return { props, view: render(<ReconcileAccountsSheet {...props} />) };
+}
+
+async function reachVerdict(
+  view: Awaited<ReturnType<typeof renderSheet>["view"]>,
+  amount: string,
+) {
+  await fireEvent.changeText(view.getByLabelText(AMOUNT), amount);
+  await fireEvent.press(view.getByText("home.reconcile.continue"));
+  await fireEvent.press(view.getByText("home.reconcile.continue"));
 }
 
 const AMOUNT = "home.reconcile.accounts.firstAmount";
@@ -384,6 +401,8 @@ it("holds every exit while the write is pending and keeps the step after a failu
     expect.objectContaining({ kind: "expense", amount: 100 }),
   );
   expect(captureEvent).not.toHaveBeenCalled();
+  // Still on screen with its own notice: nothing for the screen to say.
+  expect(props.onRecordFailed).not.toHaveBeenCalled();
 });
 
 it("calls the accounts up to date at the exact cent and records nothing", async () => {
@@ -405,4 +424,97 @@ it("calls the accounts up to date at the exact cent and records nothing", async 
     { adjustment_kind: "none" },
   );
   expect(props.onDismiss).toHaveBeenCalledTimes(1);
+});
+
+it("holds Finish while the write is out, even once the month's balance turns level", async () => {
+  const { props, view: pending } = renderSheet({ realizedBalance: 1600 });
+  const view = await pending;
+  await reachVerdict(view, "1500");
+  await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
+
+  Object.assign(mockCreate, { isPending: true });
+  await view.rerender(
+    <ReconcileAccountsSheet
+      {...props}
+      month={{ ...props.month, realized: REALIZED_LEVEL }}
+    />,
+  );
+  await fireEvent.press(view.getByText("home.reconcile.verdict.finish"));
+
+  expect(captureEvent).not.toHaveBeenCalled();
+  expect(props.onDismiss).not.toHaveBeenCalled();
+  expect(mockCreate.reset).not.toHaveBeenCalled();
+});
+
+it("closes, writing nothing, once the screen no longer holds the month it opened on", async () => {
+  const { props, view: pending } = renderSheet();
+  const view = await pending;
+  await reachVerdict(view, "1500");
+
+  await view.rerender(<ReconcileAccountsSheet {...props} month={null} />);
+
+  expect(props.onDismiss).toHaveBeenCalledTimes(1);
+  expect(mockCreate.mutate).not.toHaveBeenCalled();
+  expect(captureEvent).not.toHaveBeenCalled();
+  expect(view.getByLabelText(AMOUNT).props.value).toBe("");
+});
+
+it("lets a write already out settle on its own month, claiming nothing meanwhile, then closes", async () => {
+  const { props, view: pending } = renderSheet({ realizedBalance: 1600 });
+  const view = await pending;
+  await reachVerdict(view, "1500");
+  await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
+  const [payload, callbacks] = mockCreate.mutate.mock.calls[0] as [
+    Record<string, unknown>,
+    { onSettled: () => void },
+  ];
+  expect(payload).toEqual(
+    expect.objectContaining({ budgetId: "budget-1", amount: 100 }),
+  );
+
+  Object.assign(mockCreate, { isPending: true });
+  await view.rerender(<ReconcileAccountsSheet {...props} month={null} />);
+
+  expect(props.onDismiss).not.toHaveBeenCalled();
+  expect(view.queryByText("home.reconcile.verdict.upToDateTitle")).toBeNull();
+  expect(view.queryByText("home.reconcile.verdict.finish")).toBeNull();
+
+  Object.assign(mockCreate, { isPending: false, isError: true });
+  await act(() => callbacks.onSettled());
+  await view.rerender(<ReconcileAccountsSheet {...props} month={null} />);
+
+  expect(props.onDismiss).toHaveBeenCalledTimes(1);
+  // The sheet's own notice closes with it: the screen has to say it.
+  expect(props.onRecordFailed).toHaveBeenCalledTimes(1);
+  expect(mockCreate.mutate).toHaveBeenCalledTimes(1);
+  expect(captureEvent).not.toHaveBeenCalled();
+  expect(props.onRecorded).not.toHaveBeenCalled();
+});
+
+it("completes once when a write already out succeeds after the month went away", async () => {
+  const { props, view: pending } = renderSheet({ realizedBalance: 1600 });
+  const view = await pending;
+  await reachVerdict(view, "1500");
+  await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
+  const [, callbacks] = mockCreate.mutate.mock.calls[0] as [
+    unknown,
+    { onSuccess: () => void; onSettled: () => void },
+  ];
+
+  Object.assign(mockCreate, { isPending: true });
+  await view.rerender(<ReconcileAccountsSheet {...props} month={null} />);
+  Object.assign(mockCreate, { isPending: false });
+  await act(() => {
+    callbacks.onSuccess();
+    callbacks.onSettled();
+  });
+  await view.rerender(<ReconcileAccountsSheet {...props} month={null} />);
+
+  expect(captureEvent).toHaveBeenCalledTimes(1);
+  expect(captureEvent).toHaveBeenCalledWith(
+    "account_reconciliation_completed",
+    { adjustment_kind: "expense" },
+  );
+  expect(props.onRecorded).toHaveBeenCalledTimes(1);
+  expect(props.onRecordFailed).not.toHaveBeenCalled();
 });

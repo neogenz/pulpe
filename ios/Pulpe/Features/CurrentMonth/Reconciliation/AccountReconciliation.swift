@@ -2,8 +2,9 @@ import Foundation
 
 /// "Rapprocher mes comptes" (PUL-351): the user's bank balances held against the
 /// checked balance of the loaded month. Pure and Foundation-only — the flow model
-/// and the sheet read every rule from here. Mirrors the parsing of
-/// `android/src/features/current-month/reconciliation.ts`.
+/// and the sheet read every rule from here. `parseAmount`, `totalCents(of:)` and
+/// `verdict` are the Swift twin of `shared/src/calculators/account-reconciliation.ts`,
+/// fixtures included (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`).
 enum AccountReconciliation {
     /// A balance as typed. `blank` is a row nobody filled; `invalid` is never read as zero.
     enum Amount: Equatable, Sendable {

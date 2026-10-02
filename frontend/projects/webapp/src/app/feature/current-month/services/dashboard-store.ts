@@ -618,10 +618,14 @@ export class DashboardStore {
       invalidateKeys: () => DASHBOARD_INVALIDATION_KEYS,
       mutationFn: (data) => this.#budgetApi.createTransaction$(data),
       onSuccess: (response) => {
-        this.#updateDashboard((current) => ({
-          ...current,
-          transactions: [...current.transactions, response.data],
-        }));
+        // Only into the month it was written to: the page can load another one
+        // while the request is out, and the patch lands in its cache entry too.
+        if (this.dashboardData()?.budget?.id === response.data.budgetId) {
+          this.#updateDashboard((current) => ({
+            ...current,
+            transactions: [...current.transactions, response.data],
+          }));
+        }
         succeed(response.data.id);
         this.#postHogService.captureEvent(
           ANALYTICS_EVENTS.TRANSACTION_CREATED,

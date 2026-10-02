@@ -1092,15 +1092,17 @@
       "continue": "Continue",
       "accounts": {
         "heading": "How much is in your accounts?",
-        "hint": "Enter the balance your bank shows today. An overdraft goes in as a negative amount.",
-        "firstAmount": "Your account balance",
+        "hint": "Enter the balance your bank shows today, for each account.",
         "accountName": "Account name (optional)",
         "amount": "Balance",
         "invalidAmount": "Enter an amount like 1250.40 or -80",
         "negative": "Negative balance (overdraft)",
         "addAccount": "Add an account",
         "removeNumbered": "Remove account {{ index }}",
-        "total": "Total of your accounts"
+        "total": "Total of your accounts",
+        "numbered": "Account {{ index }}",
+        "overdraft": "Overdraft",
+        "privateHint": "The accounts you enter are not saved."
       },
       "realized": {
         "heading": "Your checked balance",
@@ -1109,21 +1111,34 @@
         "checkedOutflows": "Checked expenses and savings",
         "rollover": "Carried over from last month",
         "balance": "Checked balance",
-        "hint": "Only what you've checked counts. Something missing? Check it first, then come back.",
-        "viewItemsToCheck": "See what's left to check"
+        "hint": "Something missing? Check it before comparing.",
+        "viewItemsToCheck": "See what's left to check",
+        "intro": "Here is what Pulpe calculates from the items you have checked."
       },
       "verdict": {
         "upToDateTitle": "Everything is up to date",
         "upToDateMessage": "Your accounts match your checked balance.",
-        "moreTitle": "Your accounts hold {{ amount }} more",
-        "lessTitle": "Your accounts are {{ amount }} short",
-        "moreMessage": "We'll record an adjustment income of {{ amount }}, already checked: your checked balance will match the total of your accounts.",
-        "lessMessage": "We'll record an adjustment expense of {{ amount }}, already checked: your checked balance will match the total of your accounts.",
+        "moreMessage": "We'll record an adjustment income of {{ amount }}, already checked.",
+        "lessMessage": "We'll record an adjustment expense of {{ amount }}, already checked.",
         "label": "Label",
         "labelRequired": "Give this adjustment a label",
         "defaultLabel": "Adjustment",
-        "record": "Record the adjustment",
-        "finish": "Done"
+        "record": "Confirm the adjustment",
+        "finish": "Done",
+        "morePrefix": "Your accounts hold",
+        "moreSuffix": "more",
+        "lessPrefix": "Your accounts are",
+        "lessSuffix": "short",
+        "adjustmentTitle": "Suggested adjustment",
+        "income": "Income",
+        "expense": "Expense"
+      },
+      "cancel": "Cancel",
+      "compare": "See the difference",
+      "steps": {
+        "accounts": "Accounts",
+        "realized": "Checked",
+        "verdict": "Difference"
       }
     }
   },

@@ -40,7 +40,9 @@ async function setup(
     keydownEvents: () => keydownEvents,
   };
   const postHog = { captureEvent: vi.fn() };
-  const realized = signal(options.realized ?? REALIZED);
+  const realized = signal<RealizedPosition | null>(
+    options.realized ?? REALIZED,
+  );
   const data: ReconcileAccountsDialogData = {
     realized,
     currency: signal('CHF'),
@@ -598,6 +600,46 @@ describe('ReconcileAccountsDialog', () => {
 
       expect(view.dialogRef.close).toHaveBeenCalledTimes(2);
       expect(view.data.recordAdjustment).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when the page no longer holds the month it opened on', () => {
+    it('should close without writing or claiming anything', async () => {
+      const view = await setup();
+      await reachVerdict(view, '1500');
+
+      view.realized.set(null);
+      await view.render();
+
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
+      expect(view.postHog.captureEvent).not.toHaveBeenCalled();
+    });
+
+    it('should let a write already out settle on its own month, then close', async () => {
+      const write = deferred<boolean>();
+      const recordAdjustment = vi.fn(() => write.promise);
+      const view = await setup({ recordAdjustment });
+      await reachVerdict(view, '1500');
+      await view.click(view.byTestId('reconcile-record-button'));
+
+      view.realized.set(null);
+      await view.render();
+
+      expect(view.dialogRef.close).not.toHaveBeenCalled();
+      expect(view.host.textContent).not.toContain('Tout est à jour');
+      const finish = view.byTestId<HTMLButtonElement>(
+        'reconcile-finish-button',
+      );
+      expect(finish?.disabled).toBe(true);
+      await view.click(finish);
+      expect(view.postHog.captureEvent).not.toHaveBeenCalled();
+
+      write.resolve(false);
+      await view.render();
+
+      expect(recordAdjustment).toHaveBeenCalledTimes(1);
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
     });
   });
 });

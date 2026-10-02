@@ -163,7 +163,7 @@
       {{ 'currentMonth.reconcile.accounts.privateHint' | transloco }}
     </p>
   </section>
-  } @case (2) { @let realized = data.realized();
+  } @case (2) { @let realized = data.realized(); @if (realized) {
   <section data-testid="reconcile-realized-step">
     <h3
       #stepHeading
@@ -251,9 +251,9 @@
       </button>
     </div>
   </section>
-  } @case (3) { @let currentVerdict = verdict();
+  } } @case (3) { @let currentVerdict = verdict(); @if (currentVerdict) {
   <section data-testid="reconcile-verdict-step">
-    @if (currentVerdict === null || currentVerdict.kind === 'upToDate') {
+    @if (currentVerdict.kind === 'upToDate') {
     <div class="verdict-hero is-balanced pt-3 pb-6 text-center">
       <mat-icon
         class="balanced-icon size-12! mb-4 text-5xl! text-primary"
@@ -314,12 +314,13 @@
           {{ 'currentMonth.reconcile.realized.balance' | transloco }}
         </dt>
         <dd class="m-0 text-[17px] font-semibold [overflow-wrap:anywhere]">
-          {{ data.realized().balance | appCurrency: data.currency() : '1.2-2' }}
+          {{ data.realized()?.balance | appCurrency: data.currency() : '1.2-2'
+          }}
         </dd>
       </div>
     </dl>
-    @if (currentVerdict !== null && currentVerdict.kind !== 'upToDate') { @let
-    gap = currentVerdict.amount | appCurrency: data.currency() : '1.2-2';
+    @if (currentVerdict.kind !== 'upToDate') { @let gap = currentVerdict.amount
+    | appCurrency: data.currency() : '1.2-2';
     <div class="adjustment-card p-5 rounded-2xl bg-surface-container-low">
       <div
         class="adjustment-header flex flex-wrap items-center justify-between gap-2 mb-3"
@@ -372,7 +373,7 @@
     </div>
     }
   </section>
-  } }
+  } } }
 </mat-dialog-content>
 
 <footer class="reconcile-footer">
