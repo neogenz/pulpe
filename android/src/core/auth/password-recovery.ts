@@ -1,6 +1,6 @@
 import { createMMKV } from "react-native-mmkv";
 
-import { supabase } from "./supabase";
+import { getPersistedSessionSnapshot, supabase } from "./supabase";
 
 const storage = createMMKV({ id: "pulpe-auth" });
 
@@ -53,12 +53,33 @@ export function parseRecoveryTokens(url: string): RecoveryTokens | null {
 export async function beginPasswordRecovery(
   tokens: RecoveryTokens,
 ): Promise<void> {
+  const previousSession = await getPersistedSessionSnapshot();
+  const wasRecoveryPending = isRecoveryPending();
   storage.set(RECOVERY_PENDING_KEY, true);
-  const { error } = await supabase.auth.setSession({
-    access_token: tokens.accessToken,
-    refresh_token: tokens.refreshToken,
-  });
-  if (error) throw error;
+  const { error } = await supabase.auth
+    .setSession({
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+    })
+    .catch(async (failure: unknown) => {
+      try {
+        // A storage or listener failure can happen after the session is saved.
+        // Keep its guard if storage changed or cannot be read; otherwise a
+        // failed attempt must not mark an older or future ordinary sign-in.
+        const currentSession = await getPersistedSessionSnapshot();
+        if (currentSession === previousSession && !wasRecoveryPending) {
+          clearRecoveryPending();
+        }
+      } catch {
+        // An unreadable session may still exist; leave its guard armed.
+      }
+      throw failure;
+    });
+  if (error) {
+    // Supabase's returned auth rejection did not persist a recovery session.
+    if (!wasRecoveryPending) clearRecoveryPending();
+    throw error;
+  }
 }
 
 export async function updatePassword(newPassword: string): Promise<void> {

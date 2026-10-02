@@ -22,7 +22,10 @@ import {
   invalidateUserSettings,
   useUserSettings,
 } from "@/core/user-settings/user-settings-queries";
-import { useAmountMasking } from "@/core/ui/amount-visibility";
+import {
+  areAmountsHidden,
+  useAmountMasking,
+} from "@/core/ui/amount-visibility";
 import {
   formatCompactAmount,
   formatSignedCompactCurrency,
@@ -466,6 +469,7 @@ function navigationCount(value: unknown): number | null {
 }
 
 function signedCompact(value: number, currency: SupportedCurrency): string {
+  if (areAmountsHidden()) return formatCompactAmount(value, currency);
   const sign = value > 0 ? "+" : value < 0 ? "-" : "";
   return `${sign}${formatCompactAmount(Math.abs(value), currency)}`;
 }

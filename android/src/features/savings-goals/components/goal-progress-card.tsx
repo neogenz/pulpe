@@ -56,12 +56,7 @@ export function GoalProgressCard({
   const currentPlanned = currentMonthPlannedAmount(progress.months);
   const confirmed = confirmedFraction(progress) ?? 0;
   const planned = plannedFraction(progress) ?? 0;
-  const paceTint =
-    progress.paceStatus === "behind"
-      ? hero.caution
-      : progress.paceStatus === "ahead"
-        ? hero.positive
-        : hero.ink;
+  const paceTint = progress.paceStatus === "ahead" ? hero.positive : hero.ink;
   const verdict =
     progress.paceStatus !== null && isJudgeable
       ? t(`goals.progress.pace.${progress.paceStatus}`)

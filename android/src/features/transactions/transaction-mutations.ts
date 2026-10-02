@@ -1,11 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  API_ERROR_CODES,
-  type Transaction,
-  type TransactionCreate,
-} from "pulpe-shared";
-
-import { isApiError } from "@/core/api/api-error";
+import type { Transaction, TransactionCreate } from "pulpe-shared";
 
 import { invalidateAfterBudgetWrite } from "@/features/budgets/budget-queries";
 import { goalKeys } from "@/features/savings-goals/goals-queries";
@@ -13,6 +7,7 @@ import { goalKeys } from "@/features/savings-goals/goals-queries";
 import {
   createTransaction,
   deleteTransaction,
+  fetchTransaction,
   updateTransaction,
 } from "./transaction-api";
 
@@ -38,21 +33,71 @@ function useTransactionMutation<TInput, TResult>(
 }
 
 /**
- * The same id twice is the same operation. A retry after an answer lost on
- * the way back — a timeout, the network dropping — finds the first attempt
- * already written, and that is the success it was asking for; without the id,
- * it wrote the operation a second time.
+ * A failed response may still have committed the write. Read back the chosen
+ * id and confirm the submitted values before calling it a success. A 409 alone
+ * does not prove that a changed retry was saved, and a goal withdrawal can
+ * fail its balance check before the server even reaches the duplicate id.
  */
 async function createOnce(payload: TransactionCreate): Promise<void> {
   try {
     await createTransaction(payload);
   } catch (error) {
-    const isAlreadyWritten =
-      payload.id !== undefined &&
-      isApiError(error) &&
-      error.code === API_ERROR_CODES.TRANSACTION_ALREADY_EXISTS;
-    if (!isAlreadyWritten) throw error;
+    if (payload.id !== undefined) {
+      try {
+        const written = await fetchTransaction(payload.id);
+        if (matchesSubmittedCreate(written, payload)) return;
+      } catch {
+        // A read that also failed cannot confirm the write. Preserve the
+        // original failure so the unchanged request remains retryable.
+      }
+    }
+    throw error;
   }
+}
+
+function matchesSubmittedCreate(
+  written: Transaction,
+  payload: TransactionCreate,
+): boolean {
+  const allocated = payload.budgetLineId != null;
+  const inheritedWithdrawal =
+    allocated &&
+    (written.sourceSavingsGoalId != null ||
+      written.sourceSavingsGoalName != null);
+  const writtenTags = (written.tagIds ?? []).slice().sort();
+  const submittedTags = (payload.tagIds ?? []).slice().sort();
+  // The server owns the rate and clears incomplete/same-currency source FX
+  // metadata. Compare the intent it persists, not an untrusted client rate.
+  const hasFxPair =
+    payload.originalCurrency !== undefined &&
+    payload.targetCurrency !== undefined &&
+    payload.originalCurrency !== payload.targetCurrency;
+
+  return (
+    written.id === payload.id &&
+    written.budgetId === payload.budgetId &&
+    written.budgetLineId === (payload.budgetLineId ?? null) &&
+    written.name === payload.name.trim() &&
+    written.amount === payload.amount &&
+    written.kind === payload.kind &&
+    (payload.transactionDate === undefined ||
+      Date.parse(written.transactionDate) ===
+        Date.parse(payload.transactionDate)) &&
+    (written.checkedAt !== null) ===
+      (inheritedWithdrawal || payload.checkedAt != null) &&
+    (allocated ||
+      ((written.sourceSavingsGoalId ?? null) ===
+        (payload.sourceSavingsGoalId ?? null) &&
+        (payload.sourceSavingsGoalId !== undefined ||
+          written.sourceSavingsGoalName == null))) &&
+    writtenTags.length === submittedTags.length &&
+    submittedTags.every((id, index) => writtenTags[index] === id) &&
+    (written.originalAmount ?? null) ===
+      (hasFxPair ? (payload.originalAmount ?? null) : null) &&
+    (written.originalCurrency ?? null) ===
+      (hasFxPair ? payload.originalCurrency : null) &&
+    (written.targetCurrency ?? null) === (payload.targetCurrency ?? null)
+  );
 }
 
 export function useCreateTransaction() {

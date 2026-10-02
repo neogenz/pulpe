@@ -16,6 +16,7 @@ function vaultState(status: VaultStatus) {
   return {
     status,
     isBiometricAvailable: false,
+    isLegacyBiometricAvailable: false,
     bootstrapFailure: null,
     pendingRecoveryNotice: null,
   };

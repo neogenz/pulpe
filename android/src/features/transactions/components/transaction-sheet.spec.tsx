@@ -254,6 +254,9 @@ beforeEach(() => {
   jest.clearAllMocks();
   Object.assign(mockCreate, { isPending: false, isError: false });
   Object.assign(mockUpdate, { isPending: false, isError: false });
+  mockWithdrawalOptions.data = [
+    { goalId: "goal-1", name: "Voyage", availableAmount: 300, currency: "CHF" },
+  ];
 });
 
 async function fill(
@@ -316,6 +319,9 @@ it("replays the same id on a retry, and a new one for the next operation", async
   );
   expect(ids[0]).toEqual(expect.any(String));
   expect(ids[1]).toBe(ids[0]);
+  expect(mockCreate.mutate.mock.calls[1][0]).toEqual(
+    mockCreate.mutate.mock.calls[0][0],
+  );
 
   const callbacks = mockCreate.mutate.mock.calls[1][1] as {
     onSuccess: () => void;
@@ -326,6 +332,61 @@ it("replays the same id on a retry, and a new one for the next operation", async
 
   const next = mockCreate.mutate.mock.calls[2][0] as { id: string };
   expect(next.id).not.toBe(ids[0]);
+});
+
+it("locks every creation field at submission and explains the unchanged retry", async () => {
+  jest.useFakeTimers({ now: new Date(2026, 9, 2, 9), advanceTimers: true });
+  try {
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fill(view, 120, "First values");
+    await fireEvent.press(view.getByText("budgets.mutations.add"));
+    const firstPayload = mockCreate.mutate.mock.calls[0][0];
+
+    // Before the request settles, neither the active keyboard nor a chip,
+    // tag, kind or calendar can change the operation it is already writing.
+    expect(view.queryByLabelText("budgets.mutations.description")).toBeNull();
+    expect(view.queryByLabelText("set-amount-500")).toBeNull();
+    expect(view.queryByLabelText("quick-15")).toBeNull();
+    expect(view.queryByLabelText("select-tag")).toBeNull();
+    expect(view.queryByLabelText("budgets.mutations.activity.date")).toBeNull();
+    expect(view.queryByText("vocabulary.kind.income")).toBeNull();
+    expect(view.getByText("First values")).toBeTruthy();
+
+    mockCreate.isError = true;
+    jest.setSystemTime(new Date(2026, 9, 3, 14));
+    await view.rerender(<TransactionSheet {...baseProps} />);
+    expect(
+      view.getByText("budgets.mutations.activity.retryUnchanged"),
+    ).toBeTruthy();
+    await fireEvent.press(view.getByText("common.retry"));
+
+    // Even the time of day and pointing timestamp replay as originally sent.
+    expect(mockCreate.mutate.mock.calls[1][0]).toEqual(firstPayload);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+it("retries submitted withdrawals even if refreshed options now show a smaller balance", async () => {
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fireEvent.press(view.getByText("vocabulary.kind.income"));
+  await fill(view, 120, "Withdrawal");
+  await fireEvent.press(
+    view.getByLabelText("budgets.mutations.activity.originAccessibility"),
+  );
+  await fireEvent.press(view.getByText(/Voyage/));
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  const firstPayload = mockCreate.mutate.mock.calls[0][0];
+
+  mockCreate.isError = true;
+  mockWithdrawalOptions.data[0].availableAmount = 20;
+  await view.rerender(<TransactionSheet {...baseProps} />);
+  expect(
+    view.queryByText("budgets.mutations.validation.exceedsGoal"),
+  ).toBeNull();
+  await fireEvent.press(view.getByText("common.retry"));
+
+  expect(mockCreate.mutate.mock.calls[1][0]).toEqual(firstPayload);
 });
 
 it("dates a new operation inside its budget, and offers no other day", async () => {

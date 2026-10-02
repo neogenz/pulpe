@@ -262,7 +262,8 @@
           "expense": "Ristorante, benzina…",
           "income": "Bonus, rimborso…",
           "saving": "Trasferimento risparmio…"
-        }
+        },
+        "retryUnchanged": "Questo movimento potrebbe essere già stato salvato. Riprova con i valori qui sotto per confermarlo. Potrai poi modificarlo dal budget."
       },
       "activityAction": "Un movimento",
       "add": "Aggiungi",

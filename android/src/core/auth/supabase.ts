@@ -114,6 +114,11 @@ export async function forgetPersistedSession(): Promise<void> {
   await chunkedSecureStore.removeItem(SESSION_STORAGE_KEY);
 }
 
+/** Compares storage around recovery setup without refreshing an older session. */
+export async function getPersistedSessionSnapshot(): Promise<string | null> {
+  return chunkedSecureStore.getItem(SESSION_STORAGE_KEY);
+}
+
 export async function hasPersistedSession(): Promise<boolean> {
-  return (await chunkedSecureStore.getItem(SESSION_STORAGE_KEY)) !== null;
+  return (await getPersistedSessionSnapshot()) !== null;
 }

@@ -24,6 +24,9 @@ export default function VaultUnlockScreen() {
   const isBiometricAvailable = useVaultStore(
     (state) => state.isBiometricAvailable,
   );
+  const isLegacyBiometricAvailable = useVaultStore(
+    (state) => state.isLegacyBiometricAvailable,
+  );
   const signOut = useSessionStore((state) => state.signOut);
   const [biometricError, setBiometricError] = useState<string | null>(null);
 
@@ -34,7 +37,9 @@ export default function VaultUnlockScreen() {
     },
   );
 
+  const hasPrompted = useRef(false);
   const promptBiometric = useCallback(async () => {
+    hasPrompted.current = true;
     setBiometricError(null);
     try {
       await unlockVaultWithBiometrics();
@@ -45,10 +50,8 @@ export default function VaultUnlockScreen() {
 
   // Once per mount: a returning user should meet the sensor, not the keypad.
   // Dismissing it falls through to the PIN, which is always available.
-  const hasPrompted = useRef(false);
   useEffect(() => {
     if (!isBiometricAvailable || hasPrompted.current) return;
-    hasPrompted.current = true;
     void promptBiometric();
   }, [isBiometricAvailable, promptBiometric]);
 
@@ -72,7 +75,7 @@ export default function VaultUnlockScreen() {
         errorMessage={errorMessage ?? biometricError}
         isDisabled={isBusy}
         accessory={
-          isBiometricAvailable ? (
+          isBiometricAvailable || isLegacyBiometricAvailable ? (
             <Pressable
               onPress={() => void promptBiometric()}
               android_ripple={ripple}

@@ -26,6 +26,13 @@ export function createTransaction(
     .then((response) => response.data);
 }
 
+/** Confirms the row behind a client-chosen id after an uncertain write. */
+export function fetchTransaction(transactionId: string): Promise<Transaction> {
+  return api
+    .get(ENDPOINTS.transaction(transactionId), transactionResponseSchema)
+    .then((response) => response.data);
+}
+
 export function updateTransaction(input: {
   id: string;
   changes: TransactionUpdate;

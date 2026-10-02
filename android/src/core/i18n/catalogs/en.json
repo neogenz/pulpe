@@ -262,7 +262,8 @@
           "expense": "Restaurant, fuel…",
           "income": "Bonus, refund…",
           "saving": "Savings transfer…"
-        }
+        },
+        "retryUnchanged": "This entry may already have been saved. Retry with the values below to confirm it. You can then edit it from the budget."
       },
       "activityAction": "An entry",
       "add": "Add",

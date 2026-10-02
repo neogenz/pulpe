@@ -262,7 +262,8 @@
           "expense": "Restaurant, essence…",
           "income": "Prime, remboursement…",
           "saving": "Virement épargne…"
-        }
+        },
+        "retryUnchanged": "Cet ajout a peut-être déjà été enregistré. Réessaie avec les valeurs ci-dessous pour le confirmer. Tu pourras ensuite le modifier depuis le budget."
       },
       "activityAction": "Une opération",
       "add": "Ajouter",

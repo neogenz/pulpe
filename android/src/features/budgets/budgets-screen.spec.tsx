@@ -5,6 +5,7 @@ import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import BudgetsScreen from "@/app/(main)/(tabs)/budgets";
+import { useAmountVisibility } from "@/core/ui/amount-visibility";
 import { pulpeLightTheme } from "@/core/ui/theme";
 
 import { uniqueBudgets } from "./budget-list-selectors";
@@ -92,6 +93,7 @@ function renderScreen() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  useAmountVisibility.setState({ areAmountsHidden: false });
   jest.useFakeTimers({ now: NOW, advanceTimers: true });
   Object.assign(mockBudgets, {
     data: [],
@@ -111,6 +113,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  useAmountVisibility.setState({ areAmountsHidden: false });
   jest.useRealTimers();
 });
 
@@ -211,6 +214,20 @@ it("reads the year being lived in, January first, and opens a month", async () =
   await fireEvent.press(view.getByTestId("budget-row-budget-2026-10"));
   expect(router.push).toHaveBeenCalledWith("/budget/budget-2026-10");
 });
+
+it.each([300, -300, 0])(
+  "masks the yearly balance and its sign for a balance of %s",
+  async (remaining) => {
+    mockBudgets.data = [budget(2026, 10, remaining)];
+    useAmountVisibility.setState({ areAmountsHidden: true });
+    const view = await renderScreen();
+
+    expect(
+      view.getByLabelText("budgets.list.yearBalance ••• CHF"),
+    ).toBeTruthy();
+    expect(view.queryByText(/[+-]•••/)).toBeNull();
+  },
+);
 
 it("offers to create the next month still missing, with that month", async () => {
   mockBudgets.data = [budget(2026, 10), budget(2026, 11)];

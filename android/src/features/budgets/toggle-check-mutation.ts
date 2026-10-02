@@ -1,4 +1,5 @@
 import {
+  type QueryClient,
   useMutation,
   useMutationState,
   useQueryClient,
@@ -9,6 +10,9 @@ import { goalKeys } from "@/features/savings-goals/goals-queries";
 
 import { budgetKeys, invalidateAfterBudgetWrite } from "./budget-queries";
 import { type CheckTarget, toggleCheck } from "./toggle-check-api";
+
+const toggleCheckKeys = ["toggle-check"] as const;
+const deferredReconciliations = new WeakMap<QueryClient, () => void>();
 
 /**
  * Pointing is a one-tap habit, so the row has to answer at tap speed rather
@@ -28,52 +32,80 @@ export function useToggleCheck(budgetId: string | null) {
   return useMutation({
     mutationKey: toggleCheckKey(budgetId),
     mutationFn: toggleCheck,
-    onMutate: async (target: CheckTarget) => {
+    onMutate: async (target: CheckTarget): Promise<RowFlip | undefined> => {
       // In flight refetches would land after the edit and undo it.
       await queryClient.cancelQueries({ queryKey: detailKey });
       const details = queryClient.getQueryData<BudgetDetails>(detailKey);
       const row = details === undefined ? undefined : findRow(details, target);
       if (row === undefined) return undefined;
 
-      const flip: RowFlip = {
-        from: row.checkedAt,
-        to: row.checkedAt === null ? nowIso() : null,
-      };
-      queryClient.setQueryData<BudgetDetails>(detailKey, (current) =>
-        current === undefined
-          ? current
-          : withCheckedAt(current, target, () => flip.to),
+      const from = row.checkedAt;
+      const to = from === null ? nowIso() : null;
+      const updated = queryClient.setQueryData<BudgetDetails>(
+        detailKey,
+        (current) =>
+          current === undefined
+            ? current
+            : withCheckedAt(current, target, () => to),
       );
+      const rowAfter =
+        updated === undefined ? undefined : findRow(updated, target);
 
-      return flip;
+      return rowAfter === undefined ? undefined : { from, rowAfter };
     },
     onError: (_error, target, flip) => {
       if (flip === undefined) return;
-      // Put back only what this tap wrote. A row that no longer holds it was
-      // since replaced by a refetch, which already speaks for the server.
+      // Match the written row, not only its timestamp: several later taps can
+      // all write null. An older failure must leave their latest intent alone.
       queryClient.setQueryData<BudgetDetails>(detailKey, (current) =>
-        current === undefined
+        current === undefined || findRow(current, target) !== flip.rowAfter
           ? current
-          : withCheckedAt(current, target, (checkedAt) =>
-              checkedAt === flip.to ? flip.from : checkedAt,
-            ),
+          : withCheckedAt(current, target, () => flip.from),
       );
     },
-    // Whether it succeeded or failed, the aggregates the toggle moved are only
-    // right again once the server has been asked — the goals' included: what
-    // a goal counts as saved is its pointed lines.
-    onSettled: () =>
-      Promise.all([
-        budgetId === null
-          ? queryClient.invalidateQueries({ queryKey: budgetKeys.all })
-          : invalidateAfterBudgetWrite(queryClient),
-        queryClient.invalidateQueries({ queryKey: goalKeys.all }),
-      ]),
+    onSettled: () => {
+      // The settling mutation is still pending here. Refetching before the
+      // other taps finish would replace their optimistic state with an older
+      // server answer. Check every budget: reconciliation sweeps all details.
+      if (queryClient.isMutating({ mutationKey: toggleCheckKeys }) > 1) {
+        reconcileAfterPendingChecks(queryClient, budgetId);
+        return;
+      }
+
+      deferredReconciliations.get(queryClient)?.();
+      deferredReconciliations.delete(queryClient);
+      return reconcileChecks(queryClient, budgetId);
+    },
   });
 }
 
 function toggleCheckKey(budgetId: string | null) {
-  return ["toggle-check", budgetId] as const;
+  return [...toggleCheckKeys, budgetId] as const;
+}
+
+/** Two callbacks can settle together and both still see the other pending. */
+function reconcileAfterPendingChecks(
+  queryClient: QueryClient,
+  budgetId: string | null,
+): void {
+  if (deferredReconciliations.has(queryClient)) return;
+
+  const unsubscribe = queryClient.getMutationCache().subscribe(() => {
+    if (queryClient.isMutating({ mutationKey: toggleCheckKeys }) !== 0) return;
+    unsubscribe();
+    deferredReconciliations.delete(queryClient);
+    void reconcileChecks(queryClient, budgetId);
+  });
+  deferredReconciliations.set(queryClient, unsubscribe);
+}
+
+function reconcileChecks(queryClient: QueryClient, budgetId: string | null) {
+  return Promise.all([
+    budgetId === null
+      ? queryClient.invalidateQueries({ queryKey: budgetKeys.all })
+      : invalidateAfterBudgetWrite(queryClient),
+    queryClient.invalidateQueries({ queryKey: goalKeys.all }),
+  ]);
 }
 
 /**
@@ -112,7 +144,7 @@ function isCheckTarget(value: unknown): value is CheckTarget {
 /** What one tap did to one row, so a failure can undo exactly that. */
 interface RowFlip {
   from: string | null;
-  to: string | null;
+  rowAfter: CheckableRow;
 }
 
 interface CheckableRow {

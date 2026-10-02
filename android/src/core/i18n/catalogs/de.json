@@ -262,7 +262,8 @@
           "expense": "Restaurant, Benzin…",
           "income": "Bonus, Erstattung…",
           "saving": "Überweisung zum Sparen…"
-        }
+        },
+        "retryUnchanged": "Dieser Eintrag wurde möglicherweise bereits gespeichert. Versuche es mit den unten stehenden Werten erneut, um ihn zu bestätigen. Danach kannst du ihn im Budget bearbeiten."
       },
       "activityAction": "Ein Vorgang",
       "add": "Hinzufügen",

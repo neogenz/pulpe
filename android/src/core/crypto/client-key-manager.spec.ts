@@ -8,6 +8,7 @@ import {
   enableBiometricUnlock,
   getCachedClientKey,
   hasBiometricKey,
+  hasLegacyBiometricKeyCandidate,
   resolveViaBiometric,
   storeClientKey,
 } from "./client-key-manager";
@@ -15,6 +16,7 @@ import {
 const mockStore = new Map<string, string>();
 
 jest.mock("expo-secure-store", () => ({
+  canUseBiometricAuthentication: jest.fn(() => true),
   getItemAsync: jest.fn(async (key: string) => mockStore.get(key) ?? null),
   setItemAsync: jest.fn(async (key: string, value: string) => {
     mockStore.set(key, value);
@@ -34,6 +36,9 @@ const CLIENT_KEY =
 describe("clientKeyManager", () => {
   beforeEach(async () => {
     mockStore.clear();
+    jest
+      .mocked(SecureStore.canUseBiometricAuthentication)
+      .mockReturnValue(true);
     await clearAllKeys();
     mockStore.clear();
   });
@@ -86,13 +91,16 @@ describe("clientKeyManager", () => {
     expect(mockStore.has(STANDARD_SLOT)).toBe(false);
   });
 
-  it("should remove every slot on sign-out", async () => {
+  it("should remove account secrets and keep biometrics off on sign-out", async () => {
     await storeClientKey(CLIENT_KEY, { enableBiometric: true });
 
     await clearAllKeys();
 
     expect(getCachedClientKey()).toBeNull();
-    expect(mockStore.size).toBe(0);
+    expect(mockStore.has(STANDARD_SLOT)).toBe(false);
+    expect(mockStore.has(BIOMETRIC_SLOT)).toBe(false);
+    expect(mockStore.get(BIOMETRIC_MARKER)).toBe("0");
+    expect(await hasLegacyBiometricKeyCandidate()).toBe(false);
   });
 
   it("should refuse to enable biometric unlock with no key in hand", async () => {
@@ -125,6 +133,89 @@ describe("clientKeyManager", () => {
     expect(SecureStore.getItemAsync).toHaveBeenCalledWith(BIOMETRIC_MARKER);
   });
 
+  it("should offer a legacy key only for a manual attempt without reading it", async () => {
+    mockStore.set(BIOMETRIC_SLOT, CLIENT_KEY);
+    jest.mocked(SecureStore.getItemAsync).mockClear();
+
+    expect(await hasBiometricKey()).toBe(false);
+    expect(await hasLegacyBiometricKeyCandidate()).toBe(true);
+    expect(SecureStore.getItemAsync).not.toHaveBeenCalledWith(BIOMETRIC_SLOT);
+    expect(getCachedClientKey()).toBeNull();
+  });
+
+  it("should migrate a legacy key after a successful authenticated read", async () => {
+    mockStore.set(BIOMETRIC_SLOT, CLIENT_KEY);
+
+    await expect(resolveViaBiometric()).resolves.toBe(CLIENT_KEY);
+
+    expect(SecureStore.getItemAsync).toHaveBeenCalledWith(
+      BIOMETRIC_SLOT,
+      expect.objectContaining({ requireAuthentication: true }),
+    );
+    expect(mockStore.get(BIOMETRIC_MARKER)).toBe("1");
+    expect(await hasBiometricKey()).toBe(true);
+    expect(await hasLegacyBiometricKeyCandidate()).toBe(false);
+  });
+
+  it("should keep a legacy key out of memory if migration cannot be recorded", async () => {
+    mockStore.set(BIOMETRIC_SLOT, CLIENT_KEY);
+    const failure = new Error("SecureStore write failed");
+    jest.mocked(SecureStore.setItemAsync).mockRejectedValueOnce(failure);
+
+    await expect(resolveViaBiometric()).rejects.toBe(failure);
+
+    expect(getCachedClientKey()).toBeNull();
+    expect(await hasBiometricKey()).toBe(false);
+    expect(await hasLegacyBiometricKeyCandidate()).toBe(true);
+  });
+
+  it("should preserve a legacy retry when authentication is canceled", async () => {
+    mockStore.set(BIOMETRIC_SLOT, CLIENT_KEY);
+    jest
+      .mocked(SecureStore.getItemAsync)
+      .mockRejectedValueOnce(new Error("User canceled the authentication"));
+
+    await expect(resolveViaBiometric()).resolves.toBeNull();
+
+    expect(mockStore.has(BIOMETRIC_MARKER)).toBe(false);
+    expect(await hasLegacyBiometricKeyCandidate()).toBe(true);
+    expect(getCachedClientKey()).toBeNull();
+  });
+
+  it.each([null, "invalid-client-key"])(
+    "should stop offering a legacy attempt for an absent or invalid key (%s)",
+    async (stored) => {
+      if (stored !== null) mockStore.set(BIOMETRIC_SLOT, stored);
+
+      await expect(resolveViaBiometric()).resolves.toBeNull();
+
+      expect(mockStore.get(BIOMETRIC_MARKER)).toBe("0");
+      expect(await hasBiometricKey()).toBe(false);
+      expect(await hasLegacyBiometricKeyCandidate()).toBe(false);
+      expect(mockStore.has(BIOMETRIC_SLOT)).toBe(false);
+      expect(getCachedClientKey()).toBeNull();
+    },
+  );
+
+  it("should hide legacy attempts when device authentication is unavailable", async () => {
+    jest
+      .mocked(SecureStore.canUseBiometricAuthentication)
+      .mockReturnValue(false);
+
+    expect(await hasLegacyBiometricKeyCandidate()).toBe(false);
+  });
+
+  it("should keep an explicit opt-out from becoming a legacy candidate", async () => {
+    mockStore.set(BIOMETRIC_SLOT, CLIENT_KEY);
+
+    await disableBiometricUnlock();
+    await clearSessionKey();
+
+    expect(mockStore.get(BIOMETRIC_MARKER)).toBe("0");
+    expect(await hasBiometricKey()).toBe(false);
+    expect(await hasLegacyBiometricKeyCandidate()).toBe(false);
+  });
+
   it("should fall back to the PIN when the biometric prompt is dismissed", async () => {
     await storeClientKey(CLIENT_KEY, { enableBiometric: true });
     await clearSessionKey();
@@ -147,7 +238,7 @@ describe("clientKeyManager", () => {
     expect(await hasBiometricKey()).toBe(false);
   });
 
-  it("should drop the marker with the slot", async () => {
+  it("should record the opt-out when dropping the slot", async () => {
     await storeClientKey(CLIENT_KEY, { enableBiometric: true });
 
     await disableBiometricUnlock();
@@ -155,6 +246,56 @@ describe("clientKeyManager", () => {
 
     await storeClientKey(CLIENT_KEY, { enableBiometric: true });
     await clearAllKeys();
-    expect(mockStore.has(BIOMETRIC_MARKER)).toBe(false);
+    expect(mockStore.get(BIOMETRIC_MARKER)).toBe("0");
+  });
+
+  it("should remove the biometric secret even when recording opt-out fails", async () => {
+    await storeClientKey(CLIENT_KEY, { enableBiometric: true });
+    const failure = new Error("SecureStore write failed");
+    jest.mocked(SecureStore.setItemAsync).mockRejectedValueOnce(failure);
+
+    await expect(disableBiometricUnlock()).rejects.toBe(failure);
+
+    expect(mockStore.has(BIOMETRIC_SLOT)).toBe(false);
+    expect(getCachedClientKey()).toBe(CLIENT_KEY);
+  });
+
+  it("should attempt all secret deletions when sign-out opt-out fails", async () => {
+    await storeClientKey(CLIENT_KEY, { enableBiometric: true });
+    mockStore.set(STANDARD_SLOT, CLIENT_KEY);
+    const failure = new Error("SecureStore write failed");
+    jest.mocked(SecureStore.setItemAsync).mockRejectedValueOnce(failure);
+
+    await expect(clearAllKeys()).rejects.toBe(failure);
+
+    expect(mockStore.has(STANDARD_SLOT)).toBe(false);
+    expect(mockStore.has(BIOMETRIC_SLOT)).toBe(false);
+    expect(getCachedClientKey()).toBeNull();
+  });
+
+  it("should attempt biometric deletion even when legacy key deletion fails", async () => {
+    await storeClientKey(CLIENT_KEY, { enableBiometric: true });
+    const failure = new Error("SecureStore delete failed");
+    jest.mocked(SecureStore.deleteItemAsync).mockRejectedValueOnce(failure);
+
+    await expect(clearAllKeys()).rejects.toBe(failure);
+
+    expect(mockStore.has(BIOMETRIC_SLOT)).toBe(false);
+    expect(mockStore.get(BIOMETRIC_MARKER)).toBe("0");
+    expect(getCachedClientKey()).toBeNull();
+  });
+
+  it("should preserve the marker failure when secret deletion also fails", async () => {
+    const failure = new Error("SecureStore write failed");
+    jest.mocked(SecureStore.deleteItemAsync).mockClear();
+    jest.mocked(SecureStore.setItemAsync).mockRejectedValueOnce(failure);
+    jest
+      .mocked(SecureStore.deleteItemAsync)
+      .mockRejectedValueOnce(new Error("SecureStore delete failed"));
+
+    await expect(disableBiometricUnlock()).rejects.toBe(failure);
+
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledTimes(1);
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(BIOMETRIC_SLOT);
   });
 });
