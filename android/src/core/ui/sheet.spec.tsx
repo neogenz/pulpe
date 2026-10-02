@@ -29,6 +29,7 @@ const MUTATING = [
   "src/features/budget-details/components/budget-line-sheet.tsx",
   "src/features/budget-details/savings-withdrawal/components/savings-withdrawal-sheet.tsx",
   "src/features/budget-details/spread/components/spread-existing-sheet.tsx",
+  "src/features/current-month/components/reconcile-accounts-sheet.tsx",
   "src/features/savings-goals/components/goal-deletion-sheet.tsx",
   "src/features/savings-goals/components/goal-form-sheet.tsx",
   "src/features/savings-goals/components/goal-generation-stop-sheet.tsx",
@@ -111,6 +112,55 @@ describe("sheets", () => {
     await act(() => fireEvent(view.getByTestId("form-modal"), "requestClose"));
 
     expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("hands the Android back action to a multi-step form's own back", async () => {
+    const onDismiss = jest.fn();
+    const onBack = jest.fn();
+    const view = await render(
+      <PaperProvider>
+        <FormModal
+          isVisible
+          title="Steps"
+          onDismiss={onDismiss}
+          onBack={onBack}
+        >
+          <Text>Step body</Text>
+        </FormModal>
+      </PaperProvider>,
+    );
+
+    await act(() => fireEvent(view.getByTestId("form-modal"), "requestClose"));
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(onDismiss).not.toHaveBeenCalled();
+
+    await fireEvent.press(view.getByLabelText("common.close"));
+    await fireEvent.press(
+      view.getByTestId("form-modal-backdrop", { includeHiddenElements: true }),
+    );
+    expect(onDismiss).toHaveBeenCalledTimes(2);
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses the form's own back too while a write is pending", async () => {
+    const onBack = jest.fn();
+    const view = await render(
+      <PaperProvider>
+        <FormModal
+          isVisible
+          isBusy
+          title="Steps"
+          onDismiss={jest.fn()}
+          onBack={onBack}
+        >
+          <Text>Step body</Text>
+        </FormModal>
+      </PaperProvider>,
+    );
+
+    await act(() => fireEvent(view.getByTestId("form-modal"), "requestClose"));
+
+    expect(onBack).not.toHaveBeenCalled();
   });
 
   it("uses the native accessible modal through the honest shared export", () => {

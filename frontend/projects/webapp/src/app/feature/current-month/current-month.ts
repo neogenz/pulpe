@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -11,6 +12,7 @@ import {
   untracked,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -29,7 +31,13 @@ import {
   transactionCreateFromQuickFormSchema,
   type TransactionFormData,
 } from './components/add-transaction-form.schema';
+import { transactionCreateSchema } from 'pulpe-shared';
 import { DashboardError } from './components/dashboard-error';
+import {
+  ReconcileAccountsDialog,
+  type ReconcileAccountsDialogData,
+  type ReconciliationAdjustment,
+} from './components/reconcile-accounts/reconcile-accounts-dialog';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
 
@@ -159,6 +167,7 @@ type UndoableAction =
             [currency]="currency()"
             [locale]="currencyLocale()"
             (heroClick)="navigateToBudgetDetails()"
+            (reconcileClick)="openReconcileAccounts()"
             data-testid="dashboard-block-hero"
             data-tour="dashboard-hero"
           />
@@ -552,6 +561,8 @@ export default class Dashboard {
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
   readonly #storage = inject(StorageService);
+  readonly #dialog = inject(MatDialog);
+  readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #refreshPhase = signal<'idle' | 'requested' | 'running'>('idle');
 
   // Folded by default: the daily visit is the one this page is for, and it ends
@@ -922,13 +933,101 @@ export default class Dashboard {
   // have the server refuse the next, and the first was silently unreversible.
   // Settling rather than merely closing is what retires the glossaries, because
   // at that point the check really is a fact.
-  #notify(message: string): void {
+  #notify(message: string, verticalPosition?: 'top' | 'bottom'): void {
     this.#settleUndoWindow();
     this.#snackBar.open(
       message,
       this.#transloco.translate('currentMonth.close'),
-      { duration: 5000 },
+      { duration: 5000, ...(verticalPosition ? { verticalPosition } : {}) },
     );
+  }
+
+  // The same dialog at every width — only its frame changes, so it is opened
+  // here rather than through a dialog service. On a phone it takes the whole
+  // height: three steps of fields would not fit a centred card above a keyboard.
+  //
+  // The month is the one loaded when it opens. A refresh of that month moves
+  // the figures; another month loaded under it, or none, leaves the dialog
+  // nothing to hold the accounts against and nothing to write to.
+  protected openReconcileAccounts(): void {
+    const budgetId = this.store.dashboardData()?.budget?.id;
+    if (!budgetId) return;
+    const isHandset = this.#breakpointObserver.isMatched(Breakpoints.Handset);
+    this.#dialog.open<ReconcileAccountsDialog, ReconcileAccountsDialogData>(
+      ReconcileAccountsDialog,
+      {
+        data: {
+          realized: computed(() =>
+            this.store.dashboardData()?.budget?.id === budgetId
+              ? {
+                  balance: this.store.realizedBalance(),
+                  checkedIncome: this.store.realizedIncome(),
+                  checkedOutflows: this.store.realizedExpenses(),
+                  rollover: this.store.rolloverAmount(),
+                }
+              : null,
+          ),
+          currency: this.currency,
+          periodDates: this.store.periodDates,
+          recordAdjustment: (adjustment) =>
+            this.#recordAdjustment(budgetId, adjustment),
+          viewItemsToCheck: () => this.navigateToBudgetDetails(),
+        },
+        autoFocus: '[inputmode="decimal"]',
+        // The dialog routes Escape and the backdrop through its own close,
+        // which waits for a write in flight.
+        disableClose: true,
+        ...(isHandset
+          ? {
+              panelClass: 'full-screen-dialog',
+              width: '100dvw',
+              maxWidth: '100dvw',
+              height: '100dvh',
+              maxHeight: '100dvh',
+            }
+          : { width: '560px', maxWidth: 'calc(100vw - 48px)' }),
+      },
+    );
+  }
+
+  // One checked, free entry on the month the dialog opened on — the same write,
+  // toast and undo as any entry recorded here — and only while the page still
+  // holds that month: the amount was computed against its balance. `false`
+  // keeps the dialog on its verdict with the label as typed; the toast already
+  // said why.
+  async #recordAdjustment(
+    budgetId: string,
+    adjustment: ReconciliationAdjustment,
+  ): Promise<boolean> {
+    if (this.store.dashboardData()?.budget?.id !== budgetId) {
+      this.#notify(
+        this.#transloco.translate('currentMonth.addTransactionNoBudget'),
+        'top',
+      );
+      return false;
+    }
+    const now = new Date();
+    const outcome = await this.store.addTransaction(
+      transactionCreateSchema.parse({
+        budgetId,
+        name: adjustment.name,
+        amount: adjustment.amount,
+        kind: adjustment.kind,
+        transactionDate: formatLocalDate(now),
+        checkedAt: now.toISOString(),
+      }),
+    );
+    if ('reason' in outcome) {
+      // Keep the retry and Back actions reachable inside the full-height dialog.
+      this.#notify(outcome.reason, 'top');
+      return false;
+    }
+    this.#confirmWithUndo({
+      kind: 'transaction',
+      id: outcome.transactionId,
+      name: adjustment.name,
+    });
+    return true;
   }
 
   protected async openAddTransaction(): Promise<void> {

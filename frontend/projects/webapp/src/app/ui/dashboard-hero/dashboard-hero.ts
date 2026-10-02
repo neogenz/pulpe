@@ -330,6 +330,20 @@ let heroInstanceCount = 0;
           </p>
         }
       </div>
+
+      <!-- Beside "Pointé", which is what a bank account is held against. A
+           direct child of the card for the same reason as the open-month
+           control above: inside a z-10 row it would paint under that control,
+           and every tap would open the month instead. -->
+      <button
+        type="button"
+        class="hero-reconcile"
+        data-testid="hero-reconcile-button"
+        (click)="reconcileClick.emit()"
+      >
+        <mat-icon aria-hidden="true">account_balance</mat-icon>
+        {{ 'dashboard.reconcileAccounts' | transloco }}
+      </button>
     </section>
   `,
   styles: [
@@ -420,6 +434,35 @@ let heroInstanceCount = 0;
 
       .hero-action:focus-visible {
         outline: none;
+      }
+
+      /* Above the stretched control (z-20), outside every z-10 row. Outlined in
+         the card's own ink rather than filled: the hero keeps one saturated
+         surface, and the action reads as part of it. */
+      .hero-reconcile {
+        position: relative;
+        z-index: 30;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 44px;
+        margin-top: 1rem;
+        padding: 0 1rem;
+        border: 1.5px solid currentColor;
+        border-radius: var(--mat-sys-corner-full);
+        background: color-mix(in srgb, currentColor 8%, transparent);
+        color: inherit;
+        font: var(--mat-sys-label-large);
+        cursor: pointer;
+      }
+
+      .hero-reconcile:hover {
+        background: color-mix(in srgb, currentColor 16%, transparent);
+      }
+
+      .hero-reconcile:focus-visible {
+        outline: 3px solid currentColor;
+        outline-offset: 2px;
       }
 
       .hero-container.budget-warning {
@@ -622,6 +665,7 @@ export class DashboardHero {
   );
 
   readonly heroClick = output<void>();
+  readonly reconcileClick = output<void>();
 
   readonly absExpenses = computed(() => Math.abs(this.expenses()));
 
