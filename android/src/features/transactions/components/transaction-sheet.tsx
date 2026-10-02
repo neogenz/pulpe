@@ -20,6 +20,7 @@ import { hapticSuccess } from "@/core/ui/haptics";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { kindOptions } from "@/core/ui/vocabulary";
 import { TagPicker } from "@/features/tags/tag-picker";
+import { QuickAmountChips } from "@/core/ui/quick-amount-chips";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatRelativeDay } from "@/core/ui/date-format";
@@ -302,10 +303,20 @@ export function TransactionSheet({
 
         <AmountField
           key={generation}
+          isProminent
           label={t("budgets.mutations.amount")}
           amount={draft.amount}
           currency={currency}
           onChange={(amount) => change({ amount })}
+        />
+        <QuickAmountChips
+          amount={draft.amount}
+          currency={currency}
+          onSelect={(amount) => {
+            change({ amount });
+            // The field holds its own text; only a remount shows the new one.
+            setGeneration((current) => current + 1);
+          }}
         />
 
         <TextInput

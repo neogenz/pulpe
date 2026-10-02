@@ -157,17 +157,36 @@ it("renders loading, retryable failure and empty creation states", async () => {
   expect(router.push).toHaveBeenCalledWith("/budget/create");
 });
 
-it("keeps the way to create and plan budgets in its bar, in every state", async () => {
+it("keeps planning in its bar, even when the list failed", async () => {
   mockBudgets.isError = true;
   const view = await renderScreen();
 
-  await fireEvent.press(
-    view.getByLabelText("budgets.list.createAccessibility"),
-  );
   await fireEvent.press(view.getByLabelText("budgets.list.planAccessibility"));
 
-  expect(router.push).toHaveBeenCalledWith("/budget/create");
   expect(router.push).toHaveBeenCalledWith("/budget/plan");
+});
+
+it("creates a budget from its FAB, over the list as over the empty state", async () => {
+  mockBudgets.data = [budget(2026, 10)];
+  const view = await renderScreen();
+
+  await fireEvent.press(view.getByTestId("budgets-create"));
+  expect(router.push).toHaveBeenCalledWith("/budget/create");
+
+  mockBudgets.data = [];
+  await view.rerender(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 400, height: 800 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }}
+    >
+      <PaperProvider theme={pulpeLightTheme}>
+        <BudgetsScreen />
+      </PaperProvider>
+    </SafeAreaProvider>,
+  );
+  expect(view.getByTestId("budgets-create")).toBeTruthy();
 });
 
 it("reads the year being lived in, January first, and opens a month", async () => {

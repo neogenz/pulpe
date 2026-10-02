@@ -187,6 +187,7 @@ jest.mock("@/features/budgets/budget-queries", () => ({
 }));
 jest.mock("@/features/budgets/toggle-check-mutation", () => ({
   useToggleCheck: () => mockToggle,
+  usePendingCheck: () => () => false,
 }));
 jest.mock("@/features/current-month/home-hero-presentation", () => ({
   heroPresentation: () => ({ absorbsEnvelopeOverrun: false }),

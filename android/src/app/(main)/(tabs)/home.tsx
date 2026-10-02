@@ -2,7 +2,7 @@ import { router } from "expo-router";
 import { getBudgetPeriodDates } from "pulpe-shared";
 import { useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import { Button, useTheme } from "react-native-paper";
+import { Button, FAB, useTheme } from "react-native-paper";
 
 import { usePushOnce } from "@/core/navigation/push-once";
 import {
@@ -15,7 +15,6 @@ import { Tooltip } from "@/core/tips/tooltip";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatMonthName } from "@/core/ui/date-format";
 import { hapticFailure, hapticSuccess } from "@/core/ui/haptics";
-import { ActionButton } from "@/core/ui/action-button";
 import {
   ContentZone,
   HeroAppBar,
@@ -24,7 +23,7 @@ import {
 } from "@/core/ui/hero";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { useHeroColors } from "@/core/ui/scheme-colors";
-import { SPACING } from "@/core/ui/theme";
+import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { Notice } from "@/core/ui/notice";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { useBudgetList } from "@/features/budgets/budget-queries";
@@ -41,7 +40,10 @@ import { UncheckedOperationsCard } from "@/features/current-month/components/unc
 import { useCurrentMonth } from "@/features/current-month/current-month-queries";
 import type { CheckableItem } from "@/features/current-month/current-month-view-model";
 import { heroPresentation } from "@/features/current-month/home-hero-presentation";
-import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
+import {
+  usePendingCheck,
+  useToggleCheck,
+} from "@/features/budgets/toggle-check-mutation";
 
 export default function HomeScreen() {
   // Repaints this screen when amounts are hidden or shown; the masking
@@ -72,6 +74,7 @@ export default function HomeScreen() {
   // out loud — and so is the success, because the row leaves the card either
   // way and the way back has to be offered while it is still obvious.
   const toggle = useToggleCheck(currentMonth.budgetId);
+  const isPendingCheck = usePendingCheck(currentMonth.budgetId);
   const reminders = useReminderPriming();
   // Same cached query the current month resolves against, so this costs nothing
   // extra — it only asks a different question of it.
@@ -246,6 +249,7 @@ export default function HomeScreen() {
         </HeroZone>
 
         <ContentZone
+          style={styles.content}
           onLayout={(event) => {
             const zone = event.nativeEvent.layout.y;
             setCheckingY((current) =>
@@ -253,18 +257,6 @@ export default function HomeScreen() {
             );
           }}
         >
-          {/* The one filled action under the hero. Recording an operation is
-              what the app is opened for, so it is a labelled action the eye
-              reads in place, not a floating button covering the last row. */}
-          <ActionButton
-            testID="home-add-entry"
-            icon="plus"
-            onPress={() => setAddOpen(true)}
-            accessibilityLabel={t("home.addAccessibility")}
-          >
-            {t("home.add")}
-          </ActionButton>
-
           {viewModel.uncheckedItems.length > 0 && (
             <View
               style={styles.checking}
@@ -286,7 +278,7 @@ export default function HomeScreen() {
               <UncheckedOperationsCard
                 items={viewModel.uncheckedItems}
                 currency={currency}
-                isSyncing={toggle.isPending}
+                isPending={isPendingCheck}
                 onViewAll={openBudget}
                 onToggle={(item) => {
                   // Doing it explains it better than the card ever could.
@@ -340,9 +332,8 @@ export default function HomeScreen() {
           {hasMonthToPrepare && (
             <Button
               mode="text"
-              icon="chevron-right"
+              icon="calendar-plus"
               onPress={() => router.push("/budget/create")}
-              contentStyle={styles.prepareContent}
               style={styles.prepare}
             >
               {t("home.prepareNextMonth")}
@@ -351,9 +342,24 @@ export default function HomeScreen() {
         </ContentZone>
       </ScrollView>
 
+      {/* Recording an operation is what the app is opened for, so it is the
+          one FAB that names itself. Hidden while a sheet is up, where it would
+          sit over the form it just opened. */}
+      {!isAddVisible && !isRealizedVisible && !reminders.isVisible && (
+        <FAB
+          testID="home-add-entry"
+          icon="plus"
+          label={t("home.add")}
+          style={styles.fab}
+          onPress={() => setAddOpen(true)}
+          accessibilityLabel={t("home.addAccessibility")}
+        />
+      )}
+
       {/* The server flips whatever state it holds, so taking the pointing back
           is the very same call a second time. */}
       <Notice
+        clearsFab
         visible={notice !== null}
         onDismiss={() => setNotice(null)}
         action={noticeAction(notice)}
@@ -399,8 +405,8 @@ type HomeNotice =
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { flexGrow: 1 },
+  content: { paddingBottom: FAB_CLEARANCE },
   checking: { gap: SPACING.md },
   prepare: { alignSelf: "center" },
-  // The chevron follows the label: it points at the screen the tap opens.
-  prepareContent: { flexDirection: "row-reverse" },
+  fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

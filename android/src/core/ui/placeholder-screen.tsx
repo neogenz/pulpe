@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, useTheme } from "react-native-paper";
 
 import { ActionButton } from "./action-button";
-import { BRAND_TYPE, SPACING } from "./theme";
+import { SPACING } from "./theme";
 
 const PLACEHOLDER_ICON_SIZE = 48;
 
@@ -43,11 +43,8 @@ export function PlaceholderScreen({
         color={theme.colors.onSurfaceVariant}
       />
       <Text
-        style={[
-          BRAND_TYPE.stateTitle,
-          styles.centered,
-          { color: theme.colors.onBackground },
-        ]}
+        variant="titleLarge"
+        style={[styles.centered, { color: theme.colors.onBackground }]}
       >
         {title}
       </Text>

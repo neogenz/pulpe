@@ -90,7 +90,7 @@
         "saving": "Épargne",
         "unchecked": "À pointer"
       },
-      "gesturesMessage": "Touche le rond pour pointer · Touche la ligne pour la modifier",
+      "gesturesMessage": "Touche le rond ou glisse la ligne vers la droite pour pointer · Touche la ligne pour la modifier",
       "gesturesTitle": "Deux gestes par ligne",
       "goal": "Objectif : %{name}",
       "goalShort": "Objectif",
@@ -135,9 +135,11 @@
         "transferred": "Transféré"
       },
       "withdrawnFrom": "Puisé dans : %{name}",
-      "addForecast": "Ajouter une prévision",
-      "addActivity": "Noter une opération hors prévision",
-      "tracking": "Suivi du budget"
+      "tracking": "Suivi du budget",
+      "swipe": {
+        "point": "Pointer",
+        "unpoint": "Dépointer"
+      }
     },
     "actions": {
       "line": {
@@ -425,7 +427,8 @@
     "or": "ou",
     "password": "Mot de passe",
     "retry": "Réessayer",
-    "signOut": "Se déconnecter"
+    "signOut": "Se déconnecter",
+    "quickAmountAccessibility": "Définir le montant à %{amount}"
   },
   "goals": {
     "status": {
@@ -680,7 +683,7 @@
       },
       "windowAccessibility": "Activité sur %{window}"
     },
-    "add": "Ajouter une opération",
+    "add": "Ajouter",
     "addAccessibility": "Ajouter une opération",
     "checking": {
       "confirm": "C'est passé",

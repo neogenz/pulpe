@@ -9,6 +9,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Appbar,
+  FAB,
   Menu,
   Text,
   useTheme,
@@ -17,7 +18,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { KIND_ICONS, recurrenceLabel } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
-import { ActionButton } from "@/core/ui/action-button";
 import { IconDisc } from "@/core/ui/icon-disc";
 import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
@@ -31,13 +31,22 @@ import { formatMonthName } from "@/core/ui/date-format";
 import { InlineQueryError } from "@/core/ui/inline-query-error";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
-import { BRAND_TYPE, RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import {
+  BRAND_TYPE,
+  FAB_CLEARANCE,
+  RADIUS,
+  SPACING,
+  TABULAR_DIGITS,
+} from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import {
   useBudgetDetails,
   useBudgetPeriods,
 } from "@/features/budgets/budget-queries";
-import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
+import {
+  usePendingCheck,
+  useToggleCheck,
+} from "@/features/budgets/toggle-check-mutation";
 import {
   hasBudgetForPeriod,
   isPostponeEligible,
@@ -75,6 +84,7 @@ export default function BudgetLineDetailScreen() {
   );
   const tags = useTags();
   const toggle = useToggleCheck(id);
+  const isPendingCheck = usePendingCheck(id);
   const overlays = useRef<BudgetLineDetailOverlaysHandle>(null);
   const [isMenuOpen, setMenuOpen] = useState(false);
 
@@ -360,10 +370,10 @@ export default function BudgetLineDetailScreen() {
                 key={transaction.id}
                 transaction={transaction}
                 currency={currency}
-                isSyncing={
-                  toggle.isPending &&
-                  toggle.variables?.sourceId === transaction.id
-                }
+                isSyncing={isPendingCheck({
+                  source: "transaction",
+                  sourceId: transaction.id,
+                })}
                 tagSummary={tagSummary(
                   transaction.tagIds ?? [],
                   tags.data ?? [],
@@ -386,25 +396,15 @@ export default function BudgetLineDetailScreen() {
       </ScrollView>
 
       {/* Allocating happens here and only here: the envelope being filled is
-          on screen, so nothing has to be picked from a list of them. Pinned,
-          as iOS pins it, so it never scrolls away under a long list. */}
-      <View
-        style={[
-          styles.footer,
-          {
-            backgroundColor: theme.colors.background,
-            borderTopColor: theme.colors.outlineVariant,
-          },
-        ]}
-      >
-        <ActionButton
-          icon="plus"
-          testID="line-add-activity"
-          onPress={() => overlays.current?.addTransaction()}
-        >
-          {t("budgets.actions.line.note")}
-        </ActionButton>
-      </View>
+          on screen, so nothing has to be picked from a list of them. It is the
+          act this page is for, so its FAB names itself. */}
+      <FAB
+        icon="plus"
+        testID="line-add-activity"
+        label={t("budgets.actions.line.note")}
+        style={styles.fab}
+        onPress={() => overlays.current?.addTransaction()}
+      />
 
       <BudgetLineDetailOverlays
         ref={overlays}
@@ -423,7 +423,11 @@ export default function BudgetLineDetailScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.lg },
+  content: {
+    padding: SPACING.md,
+    gap: SPACING.md,
+    paddingBottom: FAB_CLEARANCE,
+  },
   summary: {
     borderRadius: RADIUS.card,
     padding: SPACING.md,
@@ -439,9 +443,5 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   fill: { height: "100%", borderRadius: RADIUS.full },
-  footer: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm + SPACING.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
+  fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

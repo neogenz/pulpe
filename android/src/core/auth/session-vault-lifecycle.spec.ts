@@ -48,6 +48,11 @@ jest.mock("@/core/navigation/landing-preference", () => ({
 jest.mock("@/core/notifications/scheduler", () => ({
   cancelMonthlyReminder: jest.fn(async () => undefined),
 }));
+// Purging the account also turns the reminder flag off; named here rather than
+// left to the global MMKV stand-in, as the other session specs do.
+jest.mock("@/core/notifications/reminder-flags", () => ({
+  writeRemindersEnabled: jest.fn(),
+}));
 
 const currentRoute = () =>
   landingRoute({

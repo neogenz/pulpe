@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Children, Fragment, isValidElement, type ReactNode } from "react";
 import {
   Pressable,
@@ -10,7 +9,7 @@ import {
 import { Text, useTheme } from "react-native-paper";
 
 import { useRipple } from "@/core/ui/ripple";
-import { EMPHASIS, ICON_SIZE, RADIUS, ROW, SPACING } from "@/core/ui/theme";
+import { EMPHASIS, RADIUS, ROW, SPACING } from "@/core/ui/theme";
 
 /** Between the disc, the text and the amount. */
 const ROW_GAP = SPACING.sm + SPACING.xs;
@@ -81,8 +80,6 @@ interface LedgerRowProps {
   trailing?: ReactNode;
   onPress?: () => void;
   onLongPress?: () => void;
-  /** Whether the row leads to a screen of its own. */
-  hasChevron?: boolean;
   /** Pointed: the title struck through, the row receding without fading. */
   isStruck?: boolean;
   /** Mid-request: the row steps back until the server answers. */
@@ -92,6 +89,11 @@ interface LedgerRowProps {
   testID?: string;
 }
 
+/**
+ * A row that opens something says so the Android way: the whole row ripples
+ * under the finger. No trailing chevron — that disclosure mark is UIKit's
+ * table-view idiom, and a Material list leaves it out.
+ */
 export function LedgerRow({
   leading,
   title,
@@ -99,7 +101,6 @@ export function LedgerRow({
   trailing,
   onPress,
   onLongPress,
-  hasChevron = onPress !== undefined,
   isStruck = false,
   isPending = false,
   accessibilityLabel,
@@ -141,13 +142,6 @@ export function LedgerRow({
       </View>
       {trailing !== undefined && (
         <View style={styles.trailing}>{trailing}</View>
-      )}
-      {hasChevron && (
-        <MaterialCommunityIcons
-          name="chevron-right"
-          size={ICON_SIZE.md}
-          color={theme.colors.onSurfaceVariant}
-        />
       )}
     </>
   );
@@ -199,7 +193,7 @@ const styles = StyleSheet.create({
     minHeight: ROW.minHeight,
     paddingVertical: ROW_GAP,
     paddingLeft: SPACING.md,
-    paddingRight: ROW_GAP,
+    paddingRight: SPACING.md,
   },
   leading: { width: ROW.disc, alignItems: "center" },
   text: { flex: 1, gap: SPACING.xxs },

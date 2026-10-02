@@ -90,7 +90,7 @@
         "saving": "Savings",
         "unchecked": "To check off"
       },
-      "gesturesMessage": "Tap the circle to check off · Tap the row to edit",
+      "gesturesMessage": "Tap the circle or swipe the row right to check off · Tap the row to edit",
       "gesturesTitle": "Two gestures per row",
       "goal": "Goal: %{name}",
       "goalShort": "Goal",
@@ -135,9 +135,11 @@
         "transferred": "Transferred"
       },
       "withdrawnFrom": "Withdrawn from: %{name}",
-      "addForecast": "Add a forecast",
-      "addActivity": "Note an unplanned operation",
-      "tracking": "Budget tracking"
+      "tracking": "Budget tracking",
+      "swipe": {
+        "point": "Check off",
+        "unpoint": "Uncheck"
+      }
     },
     "actions": {
       "line": {
@@ -425,7 +427,8 @@
     "or": "or",
     "password": "Password",
     "retry": "Try again",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "quickAmountAccessibility": "Set the amount to %{amount}"
   },
   "goals": {
     "status": {
@@ -680,7 +683,7 @@
       },
       "windowAccessibility": "Activity for %{window}"
     },
-    "add": "Add an operation",
+    "add": "Add",
     "addAccessibility": "Add an entry",
     "checking": {
       "confirm": "It happened",

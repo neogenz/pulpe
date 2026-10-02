@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { SupportedCurrency } from "pulpe-shared";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
@@ -9,7 +8,7 @@ import {
 } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
 import { SectionHeader } from "@/core/ui/section-header";
-import { ICON_SIZE, RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { RADIUS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 import type { DriftLine } from "../current-month-view-model";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
@@ -157,11 +156,6 @@ export function DriftCard({
                 {t("home.drift.catchUpHint")}
               </Text>
             </View>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={ICON_SIZE.md}
-              color={theme.colors.primary}
-            />
           </Pressable>
         )}
       </View>

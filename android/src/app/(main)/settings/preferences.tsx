@@ -19,7 +19,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/core/ui/card";
-import { Eyebrow } from "@/core/ui/eyebrow";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { useTranslation } from "@/core/i18n/locale-store";
 
@@ -48,6 +47,7 @@ import { useCurrencyRate } from "@/features/account/currency-queries";
 import {
   SettingsRow,
   SettingsSection,
+  SettingsSectionTitle,
 } from "@/features/account/components/settings-section";
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
@@ -144,7 +144,9 @@ export default function PreferencesScreen() {
         </SettingsSection>
 
         <View style={styles.section}>
-          <Eyebrow>{t("settings.preferences.currencyTitle")}</Eyebrow>
+          <SettingsSectionTitle>
+            {t("settings.preferences.currencyTitle")}
+          </SettingsSectionTitle>
           <Card mode="contained">
             <Card.Content style={styles.card}>
               <Text
@@ -196,7 +198,9 @@ export default function PreferencesScreen() {
         </SettingsSection>
 
         <View style={styles.section}>
-          <Eyebrow>{t("settings.preferences.privacySection")}</Eyebrow>
+          <SettingsSectionTitle>
+            {t("settings.preferences.privacySection")}
+          </SettingsSectionTitle>
           <Card mode="contained">
             <Card.Content style={styles.switchRow}>
               <View style={styles.switchLabels}>
@@ -220,7 +224,9 @@ export default function PreferencesScreen() {
         </View>
 
         <View style={styles.section}>
-          <Eyebrow>{t("settings.preferences.remindersSection")}</Eyebrow>
+          <SettingsSectionTitle>
+            {t("settings.preferences.remindersSection")}
+          </SettingsSectionTitle>
           <Card mode="contained">
             <Card.Content style={styles.switchRow}>
               <View style={styles.switchLabels}>
@@ -246,7 +252,9 @@ export default function PreferencesScreen() {
         {/* Last, and worded exactly as on iOS and the webapp: the same promise
             has to read the same on all three. */}
         <View style={styles.section}>
-          <Eyebrow>{t("settings.preferences.dataPrivacySection")}</Eyebrow>
+          <SettingsSectionTitle>
+            {t("settings.preferences.dataPrivacySection")}
+          </SettingsSectionTitle>
           <Card mode="contained">
             <Card.Content style={styles.switchRow}>
               <View style={styles.switchLabels}>

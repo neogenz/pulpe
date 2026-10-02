@@ -127,13 +127,6 @@ export function BudgetDetailHero({
           >
             {formatSignedCurrency(rollover, currency)}
           </Text>
-          {onPressRollover !== undefined && (
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={ICON_SIZE.sm}
-              color={hero.support}
-            />
-          )}
         </Pressable>
       )}
 

@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import type { ComponentProps } from "react";
+import { type ComponentProps, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
 
@@ -16,6 +16,12 @@ import {
 } from "@/core/ui/theme";
 
 const RING_WIDTH = 1.5;
+
+/**
+ * Two taps closer than this are one finger bouncing, not two decisions: the
+ * second is dropped rather than undoing the first.
+ */
+const DOUBLE_TAP_MS = 300;
 
 interface PointCircleProps {
   isChecked: boolean;
@@ -49,8 +55,16 @@ export function PointCircle({
   const theme = useTheme();
   const { t } = useTranslation();
   const ripple = useRipple({ radius: TOUCH_TARGET / 2 });
+  const lastTapAt = useRef(0);
 
+  // Never disabled while a pointing is in flight: the server flips whatever it
+  // holds, so a second deliberate tap — taking back a pointing made by
+  // mistake — always lands where it means to. It used to be swallowed for the
+  // whole round trip and refetch, and the row stayed pointed.
   function handlePress() {
+    const now = Date.now();
+    if (now - lastTapAt.current < DOUBLE_TAP_MS) return;
+    lastTapAt.current = now;
     hapticSelection();
     onToggle();
   }
@@ -58,7 +72,6 @@ export function PointCircle({
   return (
     <Pressable
       onPress={handlePress}
-      disabled={isSyncing}
       android_ripple={ripple}
       style={[styles.target, isSyncing && styles.syncing]}
       accessibilityRole="checkbox"

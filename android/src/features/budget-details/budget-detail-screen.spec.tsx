@@ -284,6 +284,7 @@ jest.mock("@/features/budgets/toggle-check-api", () => ({
 }));
 jest.mock("@/features/budgets/toggle-check-mutation", () => ({
   useToggleCheck: () => mockToggle,
+  usePendingCheck: () => () => false,
 }));
 jest.mock("@/features/current-month/current-month-view-model", () => ({
   buildCurrentMonthViewModel: () => ({ ready: true }),
@@ -405,8 +406,6 @@ jest.mock("./components/budget-detail-overlays", () => {
     ) {
       const [message, setMessage] = React.useState("");
       React.useImperativeHandle(ref, () => ({
-        addLine: () => setMessage("add-line"),
-        addTransaction: () => setMessage("add-transaction"),
         editTransaction: (transaction: Transaction) =>
           setMessage(`edit:${transaction.id}`),
         showTransactionMenu: () => setMessage("transaction-menu"),
@@ -579,16 +578,6 @@ it("uses overlay handles for editing, metrics and rejected pointing", async () =
   mockToggle.mutateAsync.mockRejectedValueOnce(new Error("offline"));
   await fireEvent.press(view.getByText("toggle:rent"));
   await waitFor(() => expect(view.getByText("toggle-failure")).toBeTruthy());
-});
-
-it("adds a forecast or a loose operation from the content, not a floating button", async () => {
-  mockDetails.data = readyDetails();
-  const view = await render(<BudgetDetailScreen />);
-
-  await fireEvent.press(view.getByText("budgets.detail.addForecast"));
-  expect(view.getByText("add-line")).toBeTruthy();
-  await fireEvent.press(view.getByText("budgets.detail.addActivity"));
-  expect(view.getByText("add-transaction")).toBeTruthy();
 });
 
 it("restores cached detail when the optimistic point request is rejected", async () => {

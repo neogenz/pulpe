@@ -13,14 +13,13 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Button, Searchbar, Text, useTheme } from "react-native-paper";
+import { Searchbar, Text, useTheme } from "react-native-paper";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 import { usePushOnce } from "@/core/navigation/push-once";
-import { ActionButton } from "@/core/ui/action-button";
 import {
   ContentZone,
   HeroAppBar,
@@ -36,7 +35,12 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import { DURATION, SCREEN_PADDING, SPACING } from "@/core/ui/theme";
+import {
+  DURATION,
+  FAB_CLEARANCE,
+  SCREEN_PADDING,
+  SPACING,
+} from "@/core/ui/theme";
 import { tagSummary } from "@/features/tags/tag-selection";
 import { useTags } from "@/features/tags/tag-queries";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
@@ -46,7 +50,10 @@ import {
   useBudgetDetails,
   useBudgetPeriods,
 } from "@/features/budgets/budget-queries";
-import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
+import {
+  usePendingCheck,
+  useToggleCheck,
+} from "@/features/budgets/toggle-check-mutation";
 import {
   DEFAULT_FILTERS,
   type DetailsFilters,
@@ -181,6 +188,7 @@ export default function BudgetDetailScreen() {
   );
   const tags = useTags();
   const toggle = useToggleCheck(id);
+  const isPendingCheck = usePendingCheck(id);
   const overlays = useRef<BudgetDetailOverlaysHandle>(null);
   const [filters, setFilters] = useState<DetailsFilters>(DEFAULT_FILTERS);
   const [isSearchVisible, setSearchVisible] = useState(false);
@@ -428,10 +436,10 @@ export default function BudgetDetailScreen() {
                   <TransactionRow
                     transaction={row.transaction}
                     currency={currency}
-                    isSyncing={
-                      toggle.isPending &&
-                      toggle.variables?.sourceId === row.transaction.id
-                    }
+                    isSyncing={isPendingCheck({
+                      source: "transaction",
+                      sourceId: row.transaction.id,
+                    })}
                     tagSummary={tagSummary(
                       row.transaction.tagIds ?? [],
                       tags.data ?? [],
@@ -464,10 +472,10 @@ export default function BudgetDetailScreen() {
                 <BudgetLineRow
                   item={row.item}
                   currency={currency}
-                  isSyncing={
-                    toggle.isPending &&
-                    toggle.variables?.sourceId === row.item.line.id
-                  }
+                  isSyncing={isPendingCheck({
+                    source: "budgetLine",
+                    sourceId: row.item.line.id,
+                  })}
                   tagSummary={tagSummary(
                     row.item.line.tagIds ?? [],
                     tags.data ?? [],
@@ -528,26 +536,6 @@ export default function BudgetDetailScreen() {
             </HeroZone>
 
             <ContentZone style={styles.zone}>
-              {/* The one filled action on the page, in the place the home gives
-                its own: a forecast is what a budget is made of. A loose
-                operation is a quieter second path, under it. */}
-              <View style={styles.gutter}>
-                <ActionButton
-                  testID="budget-add-forecast"
-                  icon="plus"
-                  onPress={() => overlays.current?.addLine()}
-                >
-                  {t("budgets.detail.addForecast")}
-                </ActionButton>
-                <Button
-                  mode="text"
-                  icon="cash"
-                  onPress={() => overlays.current?.addTransaction()}
-                >
-                  {t("budgets.detail.addActivity")}
-                </Button>
-              </View>
-
               {/* Only after the user has actually pointed an envelope for less
                 than it planned — before that it answers a question nobody
                 asked. */}
@@ -624,7 +612,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   // The rhythm is per row rather than a container `gap`, which a virtualised
   // list has no single container to hold.
-  content: { flexGrow: 1, paddingBottom: SPACING.xl },
+  content: { flexGrow: 1, paddingBottom: FAB_CLEARANCE },
   pager: { zIndex: 1 },
   // No horizontal padding on the zone: the gutter belongs to each block, so
   // that the chip rail inside it can still run the full width of the display.

@@ -7,8 +7,6 @@ import {
   suggestedMonthlyContribution,
 } from "pulpe-shared";
 
-import { toIsoDate } from "@/core/ui/date-format";
-
 export interface SavingsGoalDraft {
   name: string;
   targetAmount: number | null;
@@ -111,6 +109,13 @@ export interface TargetDateBounds {
  * any day, the button stayed enabled, and the request was refused client-side
  * with nothing but a generic save error.
  *
+ * "Today" and "this month" are the server's as much as the phone's: the schema
+ * reads its own clock, UTC for the past check. Ahead of UTC — Switzerland, just
+ * after midnight on the 1st — the phone is already in a month the server has
+ * not reached, and a horizon counted from it ran one month past what the
+ * server would take. Behind UTC, in the evening, the phone's today is the
+ * server's yesterday. The range offered is the one both sides agree on.
+ *
  * A goal that already carries a date outside that range keeps it reachable,
  * as iOS bounds its picker (`SavingsGoalFormSheet.targetDateRange`): an edit
  * must not be forced to move a deadline it never touched.
@@ -119,15 +124,40 @@ export function targetDateBounds(
   existingTarget: string | null,
   now: Date = new Date(),
 ): TargetDateBounds {
-  const today = toIsoDate(now);
-  // Day 0 of the month after the last one is that month's last day.
-  const horizon = toIsoDate(
-    new Date(
-      now.getFullYear(),
-      now.getMonth() + MAX_SAVINGS_GOAL_PLAN_PERIODS,
-      0,
-    ),
+  return boundsBetween(
+    existingTarget,
+    { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() },
+    {
+      year: now.getUTCFullYear(),
+      month: now.getUTCMonth() + 1,
+      day: now.getUTCDate(),
+    },
   );
+}
+
+/** A date on a calendar, with no time and no zone; `month` is 1-12. */
+export interface CalendarDay {
+  year: number;
+  month: number;
+  day: number;
+}
+
+/**
+ * The range for a phone whose calendar reads `local` while the server's reads
+ * `server`: from the later of the two todays to the earlier of the two
+ * horizons.
+ */
+export function boundsBetween(
+  existingTarget: string | null,
+  local: CalendarDay,
+  server: CalendarDay,
+): TargetDateBounds {
+  const localToday = isoDay(local);
+  const serverToday = isoDay(server);
+  const today = localToday > serverToday ? localToday : serverToday;
+  const localHorizon = horizonFrom(local);
+  const serverHorizon = horizonFrom(server);
+  const horizon = localHorizon < serverHorizon ? localHorizon : serverHorizon;
 
   return {
     earliest:
@@ -139,6 +169,24 @@ export function targetDateBounds(
         ? existingTarget
         : horizon,
   };
+}
+
+function isoDay({ year, month, day }: CalendarDay): string {
+  return `${year}-${`${month}`.padStart(2, "0")}-${`${day}`.padStart(2, "0")}`;
+}
+
+/** The last day of the 120th month counted from `from`'s, that one included. */
+function horizonFrom({ year, month }: CalendarDay): string {
+  // Day 0 of the month after the last one is that month's last day; UTC so the
+  // arithmetic cannot be moved by the zone the code happens to run in.
+  const last = new Date(
+    Date.UTC(year, month - 1 + MAX_SAVINGS_GOAL_PLAN_PERIODS, 0),
+  );
+  return isoDay({
+    year: last.getUTCFullYear(),
+    month: last.getUTCMonth() + 1,
+    day: last.getUTCDate(),
+  });
 }
 
 /**

@@ -18,6 +18,7 @@ import {
 import { KIND_ICONS } from "@/core/ui/vocabulary";
 
 import { PointCircle } from "./point-circle";
+import { SwipeToPoint } from "./swipe-to-point";
 
 const KIND_ACCENTS = {
   income: "income",
@@ -64,71 +65,84 @@ export function TransactionRow({
   const day = formatDayMonth(new Date(transaction.transactionDate), locale);
 
   return (
-    <Pressable
-      style={styles.row}
-      onPress={onPress}
-      onLongPress={
-        onLongPress === undefined
-          ? undefined
-          : (event) => {
-              hapticCommit();
-              onLongPress({
-                x: event.nativeEvent.pageX,
-                y: event.nativeEvent.pageY,
-              });
-            }
-      }
-      android_ripple={ripple}
-      disabled={onPress === undefined}
-      accessibilityRole={onPress === undefined ? undefined : "button"}
-      accessibilityLabel={
-        onPress === undefined
-          ? undefined
-          : t("budgets.detail.editActivity", { name: transaction.name })
-      }
-      accessibilityHint={
-        onLongPress === undefined
-          ? undefined
-          : t("budgets.detail.activityLongPressHint")
-      }
+    <SwipeToPoint
+      isChecked={isChecked}
+      tint={accent}
+      isEnabled
+      onPoint={onToggle}
     >
-      <PointCircle
-        isChecked={isChecked}
-        color={accent}
-        icon={KIND_ICONS[transaction.kind]}
-        isSyncing={isSyncing}
-        label={transaction.name}
-        onToggle={onToggle}
-      />
-
-      <View style={styles.labels}>
-        <Text
-          variant="titleMedium"
-          numberOfLines={1}
-          style={[
-            { color: isChecked ? muted : theme.colors.onSurface },
-            isChecked && styles.struck,
-          ]}
+      {(guard) => (
+        <Pressable
+          style={styles.row}
+          onPress={guard(onPress)}
+          onLongPress={
+            onLongPress === undefined
+              ? undefined
+              : (event) => {
+                  hapticCommit();
+                  onLongPress({
+                    x: event.nativeEvent.pageX,
+                    y: event.nativeEvent.pageY,
+                  });
+                }
+          }
+          android_ripple={ripple}
+          disabled={onPress === undefined}
+          accessibilityRole={onPress === undefined ? undefined : "button"}
+          accessibilityLabel={
+            onPress === undefined
+              ? undefined
+              : t("budgets.detail.editActivity", { name: transaction.name })
+          }
+          accessibilityHint={
+            onLongPress === undefined
+              ? undefined
+              : t("budgets.detail.activityLongPressHint")
+          }
         >
-          {transaction.name}
-        </Text>
-        <Text variant="bodySmall" numberOfLines={1} style={{ color: muted }}>
-          {tagSummary === null ? day : `${day} · ${tagSummary}`}
-        </Text>
-      </View>
+          <PointCircle
+            isChecked={isChecked}
+            color={accent}
+            icon={KIND_ICONS[transaction.kind]}
+            isSyncing={isSyncing}
+            label={transaction.name}
+            onToggle={guard(onToggle) ?? onToggle}
+          />
 
-      <Text
-        numberOfLines={1}
-        style={[
-          BRAND_TYPE.rowAmount,
-          TABULAR_DIGITS,
-          styles.amount,
-          { color: transaction.kind === "expense" ? muted : accent },
-        ]}
-      >
-        {formatCurrency(transaction.amount, currency)}
-      </Text>
-    </Pressable>
+          <View style={styles.labels}>
+            <Text
+              variant="titleMedium"
+              numberOfLines={1}
+              style={[
+                { color: isChecked ? muted : theme.colors.onSurface },
+                isChecked && styles.struck,
+              ]}
+            >
+              {transaction.name}
+            </Text>
+            <Text
+              variant="bodySmall"
+              numberOfLines={1}
+              style={{ color: muted }}
+            >
+              {tagSummary === null ? day : `${day} · ${tagSummary}`}
+            </Text>
+          </View>
+
+          <Text
+            numberOfLines={1}
+            style={[
+              BRAND_TYPE.rowAmount,
+              TABULAR_DIGITS,
+              styles.amount,
+              { color: transaction.kind === "expense" ? muted : accent },
+            ]}
+          >
+            {formatCurrency(transaction.amount, currency)}
+          </Text>
+        </Pressable>
+      )}
+    </SwipeToPoint>
   );
 }
 

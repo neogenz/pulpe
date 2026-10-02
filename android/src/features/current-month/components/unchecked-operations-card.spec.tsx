@@ -1,4 +1,5 @@
 import { fireEvent, render } from "@testing-library/react-native";
+import { FlatList } from "react-native";
 
 import type { CheckableItem } from "../current-month-view-model";
 import { UncheckedOperationsCard } from "./unchecked-operations-card";
@@ -34,42 +35,107 @@ function item(id: string, name: string): CheckableItem {
 
 const items = [item("rent", "Loyer"), item("phone", "Téléphone")];
 
-it("asks about the first operation and points it on confirm", async () => {
+const notPending = () => false;
+
+/** The pager lays its pages out once its frame has a width. */
+async function layOut(view: Awaited<ReturnType<typeof render>>) {
+  await fireEvent(view.getByTestId("unchecked-pager-frame"), "layout", {
+    nativeEvent: { layout: { width: 360, height: 160, x: 0, y: 0 } },
+  });
+}
+
+it("asks about each operation on its own page and points the one confirmed", async () => {
   const onToggle = jest.fn();
   const view = await render(
     <UncheckedOperationsCard
       items={items}
       currency="CHF"
-      isSyncing={false}
+      isPending={notPending}
       onToggle={onToggle}
     />,
   );
+  // Before its frame is measured, the first page stands alone.
+  expect(view.getByText("1 / 2")).toBeTruthy();
+  expect(view.queryByText("2 / 2")).toBeNull();
+  await layOut(view);
 
-  expect(view.getByText("home.checking.title · 2")).toBeTruthy();
+  expect(view.getByText("home.checking.title  ·  2")).toBeTruthy();
   expect(view.getByText("Loyer")).toBeTruthy();
-  expect(view.getByText(/1.?450/)).toBeTruthy();
+  expect(view.getByText("1 / 2")).toBeTruthy();
+  expect(view.getByText("2 / 2")).toBeTruthy();
 
-  await fireEvent.press(view.getByText("home.checking.confirm"));
+  await fireEvent.press(
+    view.getByLabelText(
+      'home.checking.confirmAccessibility:{"name":"Téléphone"}',
+    ),
+  );
 
-  expect(onToggle).toHaveBeenCalledWith(items[0]);
+  expect(onToggle).toHaveBeenCalledWith(items[1]);
 });
 
-it("rotates to the next operation on later and wraps at the end", async () => {
+it("slides to the next page on later, and back to the first from the last", async () => {
   const view = await render(
     <UncheckedOperationsCard
       items={items}
       currency="CHF"
-      isSyncing={false}
+      isPending={notPending}
+      onToggle={jest.fn()}
+    />,
+  );
+  await layOut(view);
+  // The test renderer has no native scroll view to move; the pager's own
+  // method is what "Plus tard" is expected to drive.
+  const scrollToOffset = jest
+    .spyOn(FlatList.prototype, "scrollToOffset")
+    .mockImplementation(() => undefined);
+
+  await fireEvent.press(
+    view.getByLabelText('home.checking.laterAccessibility:{"name":"Loyer"}'),
+  );
+  await fireEvent.press(
+    view.getByLabelText(
+      'home.checking.laterAccessibility:{"name":"Téléphone"}',
+    ),
+  );
+
+  const offsets = scrollToOffset.mock.calls.map(([call]) => call.offset);
+  // One page and the gap after it.
+  expect(offsets[0]).toBe(360 + 8);
+  expect(offsets[1]).toBe(0);
+  scrollToOffset.mockRestore();
+});
+
+it("holds only the operation in flight, not the whole queue", async () => {
+  const view = await render(
+    <UncheckedOperationsCard
+      items={items}
+      currency="CHF"
+      isPending={(item) => item.id === "rent"}
+      onToggle={jest.fn()}
+    />,
+  );
+  await layOut(view);
+
+  const confirmFor = (name: string) =>
+    view.getByLabelText(
+      `home.checking.confirmAccessibility:${JSON.stringify({ name })}`,
+    );
+  expect(confirmFor("Loyer")).toBeDisabled();
+  expect(confirmFor("Téléphone")).not.toBeDisabled();
+});
+
+it("offers no later when there is only one operation left", async () => {
+  const view = await render(
+    <UncheckedOperationsCard
+      items={[items[0]!]}
+      currency="CHF"
+      isPending={notPending}
       onToggle={jest.fn()}
     />,
   );
 
-  await fireEvent.press(view.getByText("home.checking.later"));
-  expect(view.getByText("Téléphone")).toBeTruthy();
-  expect(view.queryByText("Loyer")).toBeNull();
-
-  await fireEvent.press(view.getByText("home.checking.later"));
-  expect(view.getByText("Loyer")).toBeTruthy();
+  expect(view.queryByText("home.checking.later")).toBeNull();
+  expect(view.getByText("1 / 1")).toBeTruthy();
 });
 
 it("renders nothing with nothing to point", async () => {
@@ -77,7 +143,7 @@ it("renders nothing with nothing to point", async () => {
     <UncheckedOperationsCard
       items={[]}
       currency="CHF"
-      isSyncing={false}
+      isPending={notPending}
       onToggle={jest.fn()}
     />,
   );

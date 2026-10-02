@@ -1,15 +1,13 @@
 import type { ComponentProps } from "react";
-import { StyleSheet } from "react-native";
 import { Button, useTheme } from "react-native-paper";
 
 import { useFinancialColors } from "@/core/ui/scheme-colors";
-import { BUTTON_HEIGHT } from "@/core/ui/theme";
 
 type PaperButtonProps = ComponentProps<typeof Button>;
 
 interface ActionButtonProps extends Omit<
   PaperButtonProps,
-  "mode" | "contentStyle" | "buttonColor"
+  "mode" | "buttonColor"
 > {
   /**
    * `primary` is the one filled action a screen has. `secondary` sits beside or
@@ -20,15 +18,13 @@ interface ActionButtonProps extends Omit<
 }
 
 /**
- * A full-width pill at the height iOS gives its `PrimaryButtonStyle`: the act a
- * screen exists for (`Ajouter une opération`, `Ajouter une prévision`) sits in
- * the content as a labelled action, where it can be read, rather than as a
- * floating button that covers the last row of every list.
+ * Paper's own M3 button, named by intent: `contained` for the primary action,
+ * `outlined` for the one beside it, and the destructive red as the only colour
+ * a caller cannot pick by accident. Its height, shape and label are Material's —
+ * the screen's main act is the FAB, so this is never dressed up to replace it.
  */
 export function ActionButton({
   variant = "primary",
-  style,
-  labelStyle,
   ...rest
 }: ActionButtonProps) {
   const theme = useTheme();
@@ -46,15 +42,6 @@ export function ActionButton({
       mode={mode}
       buttonColor={buttonColor}
       textColor={textColor}
-      style={[styles.button, style]}
-      contentStyle={styles.content}
-      labelStyle={[styles.label, labelStyle]}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  button: { alignSelf: "stretch" },
-  content: { height: BUTTON_HEIGHT },
-  label: { fontSize: 16, lineHeight: 22, fontWeight: "600" },
-});

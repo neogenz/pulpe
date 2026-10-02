@@ -1,4 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useMutationState,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import type { BudgetDetails } from "./budget-api";
 import { budgetKeys, invalidateBudget } from "./budget-queries";
@@ -20,6 +24,7 @@ export function useToggleCheck(budgetId: string | null) {
   const detailKey = budgetKeys.detail(budgetId ?? "");
 
   return useMutation({
+    mutationKey: toggleCheckKey(budgetId),
     mutationFn: toggleCheck,
     onMutate: async (target: CheckTarget) => {
       // In flight refetches would land after the edit and undo it.
@@ -59,6 +64,33 @@ export function useToggleCheck(budgetId: string | null) {
         ? queryClient.invalidateQueries({ queryKey: budgetKeys.all })
         : invalidateBudget(queryClient, budgetId),
   });
+}
+
+function toggleCheckKey(budgetId: string | null) {
+  return ["toggle-check", budgetId] as const;
+}
+
+/**
+ * Whether a row's pointing is still on its way to the server — every row in
+ * flight, not only the last one tapped. `useMutation`'s own state follows the
+ * latest call alone, so pointing a second row while the first was pending
+ * showed the first one as settled while it was not.
+ */
+export function usePendingCheck(
+  budgetId: string | null,
+): (target: CheckTarget) => boolean {
+  const pending = useMutationState({
+    filters: { mutationKey: toggleCheckKey(budgetId), status: "pending" },
+    select: (mutation) => mutation.state.variables as CheckTarget | undefined,
+  });
+
+  return (target) =>
+    pending.some(
+      (inFlight) =>
+        inFlight !== undefined &&
+        inFlight.source === target.source &&
+        inFlight.sourceId === target.sourceId,
+    );
 }
 
 /** What one tap did to one row, so a failure can undo exactly that. */

@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
   BudgetFormulas,
@@ -16,7 +15,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Text, useTheme } from "react-native-paper";
+import { FAB, Text, useTheme } from "react-native-paper";
 
 import { usePushOnce } from "@/core/navigation/push-once";
 import {
@@ -46,7 +45,7 @@ import { SectionHeader } from "@/core/ui/section-header";
 import { useFinancialColors, useHeroColors } from "@/core/ui/scheme-colors";
 import {
   BRAND_TYPE,
-  ICON_SIZE,
+  FAB_CLEARANCE,
   RADIUS,
   SPACING,
   TABULAR_DIGITS,
@@ -107,12 +106,12 @@ export default function BudgetsScreen() {
   );
 
   // A year is read whole, so every page is wanted: a year cut at a page
-  // boundary would close on the wrong month. A page holds three years.
+  // boundary would close on the wrong month. A page holds three years. Keyed on
+  // the paging state alone: the query result is a new object on every render.
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = budgets;
   useEffect(() => {
-    if (budgets.hasNextPage && !budgets.isFetchingNextPage) {
-      void budgets.fetchNextPage();
-    }
-  }, [budgets]);
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const currentPeriod = useMemo<Period | null>(
     () =>
@@ -133,12 +132,6 @@ export default function BudgetsScreen() {
         icon="calendar-multiple"
         onPress={() => router.push("/budget/plan")}
         accessibilityLabel={t("budgets.list.planAccessibility")}
-      />
-      <HeroAppBarAction
-        testID="budgets-create"
-        icon="plus"
-        onPress={() => router.push("/budget/create")}
-        accessibilityLabel={t("budgets.list.createAccessibility")}
       />
     </HeroAppBar>
   );
@@ -266,7 +259,7 @@ export default function BudgetsScreen() {
             />
           </HeroZone>
 
-          <ContentZone>
+          <ContentZone style={styles.content}>
             <View style={styles.section}>
               <SectionHeader
                 title={t("budgets.list.months")}
@@ -316,7 +309,19 @@ export default function BudgetsScreen() {
         </ScrollView>
       )}
 
+      {/* Writing a budget happens once a month at most, so the FAB keeps to
+          its plus sign: the empty state already names the action, where a
+          newcomer actually is. */}
+      <FAB
+        testID="budgets-create"
+        icon="plus"
+        style={styles.fab}
+        onPress={() => router.push("/budget/create")}
+        accessibilityLabel={t("budgets.list.createAccessibility")}
+      />
+
       <Notice
+        clearsFab
         visible={showsGenerationResult}
         onDismiss={() =>
           router.setParams({
@@ -368,6 +373,10 @@ function buildRows(
   return rows;
 }
 
+/**
+ * The years as Material tabs on the forest — the label over a moving indicator,
+ * as the month pager draws its months — rather than a row of pills.
+ */
 function YearPicker({
   years,
   selected,
@@ -384,7 +393,7 @@ function YearPicker({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.years}
+      style={styles.years}
       accessibilityRole="tablist"
       accessibilityLabel={t("budgets.list.yearSelector")}
     >
@@ -397,10 +406,7 @@ function YearPicker({
             android_ripple={{ color: hero.tile }}
             accessibilityRole="tab"
             accessibilityState={{ selected: isSelected }}
-            style={[
-              styles.year,
-              { backgroundColor: isSelected ? hero.tile : "transparent" },
-            ]}
+            style={styles.year}
           >
             <Text
               variant="titleSmall"
@@ -411,6 +417,12 @@ function YearPicker({
             >
               {year}
             </Text>
+            <View
+              style={[
+                styles.yearIndicator,
+                { backgroundColor: isSelected ? hero.ink : "transparent" },
+              ]}
+            />
           </Pressable>
         );
       })}
@@ -550,12 +562,6 @@ function BudgetRow({
               : t("budgets.list.adjustment")}
         </Text>
       </View>
-
-      <MaterialCommunityIcons
-        name="chevron-right"
-        size={ICON_SIZE.md}
-        color={theme.colors.onSurfaceVariant}
-      />
     </Pressable>
   );
 }
@@ -582,14 +588,26 @@ function periodLabel(
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { flexGrow: 1 },
+  content: { paddingBottom: FAB_CLEARANCE },
   section: { gap: SPACING.sm },
   tile: { flexDirection: "row" },
-  years: { gap: SPACING.xs },
+  // The hero's gutter moves onto each tab, so the first label lines up with the
+  // figure below while its target still reaches the display edge.
+  years: { marginHorizontal: -SPACING.md, flexGrow: 0 },
   year: {
     minHeight: TOUCH_TARGET,
-    justifyContent: "center",
+    justifyContent: "flex-end",
+    alignItems: "center",
     paddingHorizontal: SPACING.md,
-    borderRadius: RADIUS.button,
+    paddingTop: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  /** M3's primary tab indicator. */
+  yearIndicator: {
+    alignSelf: "stretch",
+    height: 3,
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
   },
   row: {
     flexDirection: "row",
@@ -597,8 +615,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     minHeight: 64,
     paddingVertical: SPACING.sm + SPACING.xs,
-    paddingLeft: SPACING.md,
-    paddingRight: SPACING.sm + SPACING.xs,
+    paddingHorizontal: SPACING.md,
   },
   rowText: { flex: 1, gap: SPACING.xxs },
   amount: { alignItems: "flex-end", gap: SPACING.xxs },
@@ -607,4 +624,5 @@ const styles = StyleSheet.create({
   boneEyebrow: { width: 140, height: 14 },
   boneFigure: { width: 180, height: 48 },
   boneTile: { width: 180, height: 56, borderRadius: RADIUS.card },
+  fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

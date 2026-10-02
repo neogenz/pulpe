@@ -3,7 +3,7 @@ import { StyleSheet } from "react-native";
 import { MD3DarkTheme, MD3LightTheme, PaperProvider } from "react-native-paper";
 
 import { Notice } from "./notice";
-import { FOOTER_CLEARANCE } from "./theme";
+import { FAB_CLEARANCE } from "./theme";
 
 function wrapperOf(view: Awaited<ReturnType<typeof render>>) {
   // The Snackbar's own node is the surface; its parent is the wrapper Paper
@@ -31,10 +31,10 @@ it("shows the message and hands the action to its handler", async () => {
   expect(onPress).toHaveBeenCalledTimes(1);
 });
 
-it("clears a pinned footer when asked and sits on the edge otherwise", async () => {
+it("clears the FAB when asked and sits on the edge otherwise", async () => {
   const cleared = await render(
     <PaperProvider theme={MD3LightTheme}>
-      <Notice visible onDismiss={jest.fn()} clearsFooter testID="notice">
+      <Notice visible onDismiss={jest.fn()} clearsFab testID="notice">
         Prévision ajoutée
       </Notice>
     </PaperProvider>,
@@ -48,7 +48,7 @@ it("clears a pinned footer when asked and sits on the edge otherwise", async () 
   );
 
   expect(StyleSheet.flatten(wrapperOf(cleared).props.style).bottom).toBe(
-    FOOTER_CLEARANCE,
+    FAB_CLEARANCE,
   );
   expect(StyleSheet.flatten(wrapperOf(flush).props.style).bottom).toBe(0);
 });

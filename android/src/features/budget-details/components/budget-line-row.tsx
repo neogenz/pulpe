@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { SupportedCurrency } from "pulpe-shared";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
@@ -11,7 +10,6 @@ import { formatCurrency } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
 import {
   BRAND_TYPE,
-  ICON_SIZE,
   ROW,
   SPACING,
   TABULAR_DIGITS,
@@ -21,6 +19,7 @@ import {
 import type { AmountAccent, LineItem } from "../budget-details-selectors";
 
 import { PointCircle } from "./point-circle";
+import { SwipeToPoint } from "./swipe-to-point";
 
 interface BudgetLineRowProps {
   item: LineItem;
@@ -88,83 +87,92 @@ export function BudgetLineRow({
     tagSummary,
   ].filter((part): part is string => part !== null);
 
+  const isPointable = item.line.sourceSavingsGoalId == null;
+
   return (
-    <Pressable
-      onPress={onPress}
-      android_ripple={ripple}
-      style={styles.row}
-      accessibilityRole="button"
-      accessibilityHint={t("budgets.detail.openForecast")}
+    <SwipeToPoint
+      isChecked={item.isChecked}
+      tint={discColor}
+      isEnabled={isPointable}
+      onPoint={onToggle}
     >
-      {/* A withdrawal planned from a goal is pointed where the goal is, so its
+      {(guard) => (
+        <Pressable
+          onPress={guard(onPress)}
+          android_ripple={ripple}
+          style={styles.row}
+          accessibilityRole="button"
+          accessibilityHint={t("budgets.detail.openForecast")}
+        >
+          {/* A withdrawal planned from a goal is pointed where the goal is, so its
           disc is a plain one: there is nothing to tick here. */}
-      {item.line.sourceSavingsGoalId == null ? (
-        <PointCircle
-          isChecked={item.isChecked}
-          color={discColor}
-          icon={KIND_ICONS[item.line.kind]}
-          isSyncing={isSyncing}
-          label={item.line.name}
-          onToggle={onToggle}
-        />
-      ) : (
-        <View style={styles.plainDisc}>
-          <IconDisc name={KIND_ICONS[item.line.kind]} tint={discColor} />
-        </View>
+          {isPointable ? (
+            <PointCircle
+              isChecked={item.isChecked}
+              color={discColor}
+              icon={KIND_ICONS[item.line.kind]}
+              isSyncing={isSyncing}
+              label={item.line.name}
+              onToggle={guard(onToggle) ?? onToggle}
+            />
+          ) : (
+            <View style={styles.plainDisc}>
+              <IconDisc name={KIND_ICONS[item.line.kind]} tint={discColor} />
+            </View>
+          )}
+
+          <View style={styles.labels}>
+            <Text
+              variant="titleMedium"
+              numberOfLines={1}
+              style={[
+                { color: item.isChecked ? muted : theme.colors.onSurface },
+                item.isChecked && styles.struck,
+              ]}
+            >
+              {item.line.name}
+            </Text>
+            <Text
+              variant="bodySmall"
+              numberOfLines={1}
+              style={{ color: muted }}
+            >
+              {metadata.join(" · ")}
+            </Text>
+            {statusLabel !== null && (
+              <Text
+                variant="labelMedium"
+                numberOfLines={1}
+                style={[
+                  styles.status,
+                  { color: item.isOverBudget ? financial.overBudget : muted },
+                ]}
+              >
+                {statusLabel}
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.amounts}>
+            <Text
+              numberOfLines={1}
+              style={[BRAND_TYPE.rowAmount, TABULAR_DIGITS, { color: accent }]}
+            >
+              {formatCurrency(item.displayAmount, currency)}
+            </Text>
+            {amountSuffix !== null && (
+              <Text
+                variant="bodySmall"
+                numberOfLines={1}
+                style={[TABULAR_DIGITS, { color: muted }]}
+              >
+                {amountSuffix}
+              </Text>
+            )}
+          </View>
+        </Pressable>
       )}
-
-      <View style={styles.labels}>
-        <Text
-          variant="titleMedium"
-          numberOfLines={1}
-          style={[
-            { color: item.isChecked ? muted : theme.colors.onSurface },
-            item.isChecked && styles.struck,
-          ]}
-        >
-          {item.line.name}
-        </Text>
-        <Text variant="bodySmall" numberOfLines={1} style={{ color: muted }}>
-          {metadata.join(" · ")}
-        </Text>
-        {statusLabel !== null && (
-          <Text
-            variant="labelMedium"
-            numberOfLines={1}
-            style={[
-              styles.status,
-              { color: item.isOverBudget ? financial.overBudget : muted },
-            ]}
-          >
-            {statusLabel}
-          </Text>
-        )}
-      </View>
-
-      <View style={styles.amounts}>
-        <Text
-          numberOfLines={1}
-          style={[BRAND_TYPE.rowAmount, TABULAR_DIGITS, { color: accent }]}
-        >
-          {formatCurrency(item.displayAmount, currency)}
-        </Text>
-        {amountSuffix !== null && (
-          <Text
-            variant="bodySmall"
-            numberOfLines={1}
-            style={[TABULAR_DIGITS, { color: muted }]}
-          >
-            {amountSuffix}
-          </Text>
-        )}
-      </View>
-
-      <MaterialCommunityIcons
-        name="chevron-right"
-        size={ICON_SIZE.md}
-        color={muted}
-      />
-    </Pressable>
+    </SwipeToPoint>
   );
 }
 
@@ -199,7 +207,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm + SPACING.xs - TARGET_INSET,
     minHeight: ROW.minHeight,
     paddingLeft: SPACING.md - TARGET_INSET,
-    paddingRight: SPACING.sm + SPACING.xs,
+    paddingRight: SPACING.md,
     paddingVertical: SPACING.xs,
   },
   plainDisc: {

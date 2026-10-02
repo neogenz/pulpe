@@ -90,7 +90,7 @@
         "saving": "Sparen",
         "unchecked": "Abzuhaken"
       },
-      "gesturesMessage": "Tippe zum Abhaken auf den Kreis · Tippe zum Bearbeiten auf die Zeile",
+      "gesturesMessage": "Tippe auf den Kreis oder wische die Zeile nach rechts zum Abhaken · Tippe zum Bearbeiten auf die Zeile",
       "gesturesTitle": "Zwei Gesten pro Zeile",
       "goal": "Ziel: %{name}",
       "goalShort": "Ziel",
@@ -135,9 +135,11 @@
         "transferred": "Übertragen"
       },
       "withdrawnFrom": "Entnommen aus: %{name}",
-      "addForecast": "Prognose hinzufügen",
-      "addActivity": "Ungeplanten Vorgang erfassen",
-      "tracking": "Budgetverlauf"
+      "tracking": "Budgetverlauf",
+      "swipe": {
+        "point": "Abhaken",
+        "unpoint": "Nicht mehr abhaken"
+      }
     },
     "actions": {
       "line": {
@@ -425,7 +427,8 @@
     "or": "oder",
     "password": "Passwort",
     "retry": "Erneut versuchen",
-    "signOut": "Abmelden"
+    "signOut": "Abmelden",
+    "quickAmountAccessibility": "Betrag auf %{amount} setzen"
   },
   "goals": {
     "status": {
@@ -680,7 +683,7 @@
       },
       "windowAccessibility": "Aktivität für %{window}"
     },
-    "add": "Vorgang hinzufügen",
+    "add": "Hinzufügen",
     "addAccessibility": "Eintrag hinzufügen",
     "checking": {
       "confirm": "Ist erfolgt",

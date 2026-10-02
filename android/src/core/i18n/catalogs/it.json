@@ -90,7 +90,7 @@
         "saving": "Risparmio",
         "unchecked": "Da spuntare"
       },
-      "gesturesMessage": "Tocca il cerchio per spuntare · Tocca la riga per modificare",
+      "gesturesMessage": "Tocca il cerchio o scorri la riga verso destra per spuntare · Tocca la riga per modificare",
       "gesturesTitle": "Due gesti per riga",
       "goal": "Obiettivo: %{name}",
       "goalShort": "Obiettivo",
@@ -135,9 +135,11 @@
         "transferred": "Trasferito"
       },
       "withdrawnFrom": "Prelevato da: %{name}",
-      "addForecast": "Aggiungi una previsione",
-      "addActivity": "Registra un'operazione non prevista",
-      "tracking": "Andamento del budget"
+      "tracking": "Andamento del budget",
+      "swipe": {
+        "point": "Spunta",
+        "unpoint": "Togli la spunta"
+      }
     },
     "actions": {
       "line": {
@@ -425,7 +427,8 @@
     "or": "o",
     "password": "Password",
     "retry": "Riprova",
-    "signOut": "Esci"
+    "signOut": "Esci",
+    "quickAmountAccessibility": "Imposta l'importo a %{amount}"
   },
   "goals": {
     "status": {
@@ -680,7 +683,7 @@
       },
       "windowAccessibility": "Attività per %{window}"
     },
-    "add": "Aggiungi un'operazione",
+    "add": "Aggiungi",
     "addAccessibility": "Aggiungi un movimento",
     "checking": {
       "confirm": "È avvenuto",

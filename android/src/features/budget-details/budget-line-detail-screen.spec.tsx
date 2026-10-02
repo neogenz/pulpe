@@ -40,6 +40,7 @@ jest.mock("@/features/tags/tag-queries", () => ({
 }));
 jest.mock("@/features/budgets/toggle-check-mutation", () => ({
   useToggleCheck: () => ({ mutate: jest.fn(), isPending: false }),
+  usePendingCheck: () => () => false,
 }));
 jest.mock("./components/budget-line-detail-overlays", () => ({
   BudgetLineDetailOverlays: () => null,

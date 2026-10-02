@@ -27,6 +27,25 @@ The failure mode to avoid is the inverse of the usual one: not "we reinvented a 
 corner radius is a hero written the hard way. Signatures are their own components, composing
 Paper's primitives where useful.
 
+## Pulpe's grammar, Android's idioms
+
+Parity with iOS stops where the platform starts. What the root doc and `ios/DESIGN.md` call
+Pulpe — the palette, the two zones, the hero's figure, tiles and verdict, the ledger card and
+its discs, the pointing circle, Manrope on figures, the voice — is drawn the same here. How a
+screen is _operated_ is Android's, never a copy of UIKit:
+
+| iOS does                                                         | Android does                                                                                 |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| The main act as a button in the content, `+` in a navigation bar | A FAB: extended where the act is the screen's purpose, a plus otherwise                      |
+| A chevron at the end of a row that opens something               | Nothing — the row ripples under the finger                                                   |
+| Section titles and settings headers in small capitals            | Sentence case: `titleLarge` over a section, `titleSmall` in the primary colour over settings |
+| `UIImpactFeedbackGenerator` palette                              | `View.performHapticFeedback` with Android's own constants (`haptics.ts`)                     |
+| A leading swipe that reveals a button                            | A swipe that commits past its threshold, as Gmail archives                                   |
+| A paginated, looping card deck                                   | A horizontal pager, one page per operation, with its position                                |
+
+When a question is "how does iOS do it", the answer is a reference for _what_ the screen says,
+never for _how_ the hand gets there.
+
 ## Color
 
 `theme.ts` resolves every MD3 role for light and dark. Seeds named in the root doc win; roles
@@ -79,14 +98,26 @@ On a budget, the disc is the pointing control (`PointCircle`): to point, the row
 in dashes of its colour; pointed, filled with a check, and the name struck through. The disc is 36,
 the target Material's 48.
 
+Dragging a row to the right is the second path to the same toggle (`SwipeToPoint`): past its
+threshold, letting go points the row — or takes the pointing back — and it springs home, nothing
+left uncovered to tap. The circle is never disabled while a pointing is in flight, since the server
+flips whatever it holds; only a bounce under 300 ms is dropped.
+
+A row that opens something carries no chevron: the disclosure mark is UIKit's table-view idiom,
+and a Material list says "tap me" with its ripple. A section's link is a Material text button.
+
 ## Primary actions
 
-No floating action button (`primary-actions.spec.ts` keeps it that way). A screen's main action is
-a labelled `ActionButton` — a 52dp pill — in the content (`Ajouter une opération`, `Ajouter une
-prévision`), pinned to the bottom edge on a page (`Noter un montant`), or an icon in the app bar of
-a root list. A FAB covered the last row of every list and the snackbars that offered "Annuler".
+A screen's main act is a floating action button, where an Android hand looks for it. The
+extended form — icon and label — is spent only where the act is what the screen is for:
+`Ajouter` on the home, `Noter un montant` on a line's page. Writing a budget, a goal or a
+model happens rarely and each empty state already names it, so those lists carry a plain
+plus. A budget's two ways to grow — a forecast or a loose operation — sit behind one
+`FAB.Group`. `fab-clearance.spec.ts` holds both rules: a screen with a FAB leaves
+`FAB_CLEARANCE` under its content, and only those two screens label theirs.
 
 One notice slot per screen: the most pressing news wins, so a failure never hides under an undo.
+On a screen with a FAB the notice rises above it (`clearsFab`), where M3 puts a snackbar.
 
 ## Type
 
@@ -94,7 +125,8 @@ Two families, per the Two-Family Rule:
 
 - **Manrope 800** on `display*` and `headline*` only — hero amounts, brand titles, headline
   numbers. Shipped as the variable TTF in `assets/fonts/`, loaded by `useFonts`.
-- **The Android system font (Roboto)** on everything else: titles, body, labels, buttons.
+- **The Android system font (Roboto)** on everything else: titles, body, labels, buttons —
+  section titles included, which are chrome (`SectionHeader` sets them in `titleLarge`).
   It is what SF Pro is to iOS — the platform speaking, not a font choice — and it brings the
   user's own font-scale setting with it for free.
 
@@ -131,6 +163,11 @@ runs edge to edge) while it is down. Its header always exposes a translated
 close button. While a write is pending, that button, the scrim and the Android
 back action all refuse dismissal so partially applied changes cannot disappear.
 
+A form that adds an operation or a forecast leads with what it asks for: the amount, in the same
+outlined Material field with its figure set large in Manrope (`AmountField isProminent`), then
+four suggestion chips (`QuickAmountChips`, the same 10 / 15 / 20 / 30 iOS offers) through the
+chip atom. The order below it is the platform-neutral one — what it is, then the details.
+
 It looks like a bottom sheet and is deliberately not one: no drag handle, no
 swipe dismissal, no `@gorhom/bottom-sheet`. A form with a pinned submit button
 must not be flicked away mid-entry, the gesture would compete with the body's
@@ -148,6 +185,15 @@ rest, no elevation. `TabHeader` puts `Appbar.Content` in the same flat bar on
 slot for the screen's action; hero screens wear `HeroAppBar` instead. None is
 styled per screen: a screen that needs a different bar is a screen that needs a
 different design, not a prop.
+
+Settings read like Android's own Settings app: each group titled in sentence case in the
+primary colour (`SettingsSectionTitle`), rows that open a screen marked by nothing but their
+ripple, and only a link that leaves the app carrying `open-in-new`.
+
+Haptics go through `View.performHapticFeedback` with Android's constants — `SEGMENT_TICK` for a
+choice, `VIRTUAL_KEY` for a commit, `CONFIRM` and `REJECT` for an outcome — never through the
+`Vibrator` waveforms Expo plays for its iOS-named styles. They are the feel of the rest of the
+phone, and they stay silent when the user turned touch feedback off.
 
 The account is reachable from the home's bar in every state — loading, empty
 and failed included — since it is the only way to the settings.

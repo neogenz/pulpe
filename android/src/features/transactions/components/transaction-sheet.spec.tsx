@@ -118,6 +118,20 @@ jest.mock("react-native-paper", () => {
     }),
   };
 });
+jest.mock("@/core/ui/quick-amount-chips", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    QuickAmountChips: ({
+      onSelect,
+    }: {
+      onSelect: (amount: number) => void;
+    }) => (
+      <Pressable accessibilityLabel="quick-15" onPress={() => onSelect(15)}>
+        <Text>15</Text>
+      </Pressable>
+    ),
+  };
+});
 jest.mock("@/core/ui/amount-field", () => {
   const { Pressable, Text, View } = jest.requireActual("react-native");
   return {
@@ -278,6 +292,21 @@ it("creates the visible operation with its date and tags", async () => {
   };
   await act(() => callbacks.onSuccess());
   await waitFor(() => expect(baseProps.onSaved).toHaveBeenCalledTimes(1));
+});
+
+it("takes a quick amount in one tap", async () => {
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fireEvent.press(view.getByLabelText("quick-15"));
+  await fireEvent.changeText(
+    view.getByLabelText("budgets.mutations.description"),
+    "Café",
+  );
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+  expect(mockCreate.mutate).toHaveBeenCalledWith(
+    expect.objectContaining({ name: "Café", amount: 15 }),
+    expect.any(Object),
+  );
 });
 
 it("requires a savings origin and refuses an excessive withdrawal", async () => {

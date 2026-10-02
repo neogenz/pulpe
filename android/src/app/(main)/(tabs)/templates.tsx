@@ -3,7 +3,7 @@ import * as Linking from "expo-linking";
 import type { BudgetTemplate } from "pulpe-shared";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Appbar, Text, useTheme } from "react-native-paper";
+import { ActivityIndicator, FAB, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { usePushOnce } from "@/core/navigation/push-once";
@@ -16,7 +16,7 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { TabHeader } from "@/core/ui/tab-header";
-import { SPACING } from "@/core/ui/theme";
+import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { TemplateFormSheet } from "@/features/templates/components/template-form-sheet";
 import { useTemplates } from "@/features/templates/template-queries";
 import {
@@ -51,23 +51,7 @@ export default function TemplatesScreen() {
 
   const list = templates.data ?? [];
   const canAdd = canCreateTemplate(list.length);
-  // The way to a new model lives in the bar, where Android looks for a
-  // screen's own action — no floating button over the last model of the list.
-  const header = (
-    <TabHeader
-      title={t("templates.list.title")}
-      trailing={
-        canAdd && list.length > 0 ? (
-          <Appbar.Action
-            testID="templates-create"
-            icon="plus"
-            onPress={() => setCreating(true)}
-            accessibilityLabel={t("templates.list.addAccessibility")}
-          />
-        ) : undefined
-      }
-    />
-  );
+  const header = <TabHeader title={t("templates.list.title")} />;
 
   if (templates.isError) {
     return (
@@ -152,6 +136,18 @@ export default function TemplatesScreen() {
         </ScrollView>
       )}
 
+      {/* Gone at the limit, where the footer says why; the empty state names
+          the action itself, so the plus sign only carries it over a list. */}
+      {canAdd && list.length > 0 && (
+        <FAB
+          testID="templates-create"
+          icon="plus"
+          style={styles.fab}
+          onPress={() => setCreating(true)}
+          accessibilityLabel={t("templates.list.addAccessibility")}
+        />
+      )}
+
       {/* Mounted only while open: the form seeds its fields once, so a sheet
           kept alive would reopen on the last thing that was typed into it. */}
       {isCreating && (
@@ -195,7 +191,12 @@ function TemplateRow({ template }: { template: BudgetTemplate }) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: SPACING.md, gap: SPACING.lg, paddingBottom: SPACING.xl },
+  content: {
+    padding: SPACING.md,
+    gap: SPACING.lg,
+    paddingBottom: FAB_CLEARANCE,
+  },
   section: { gap: SPACING.sm },
   footer: { paddingHorizontal: SPACING.md },
+  fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

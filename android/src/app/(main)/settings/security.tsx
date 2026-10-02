@@ -14,7 +14,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/core/ui/card";
-import { Eyebrow } from "@/core/ui/eyebrow";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useSessionStore } from "@/core/auth/session-store";
@@ -40,6 +39,7 @@ import { ConfirmPasswordSheet } from "@/features/account/components/confirm-pass
 import {
   SettingsRow,
   SettingsSection,
+  SettingsSectionTitle,
 } from "@/features/account/components/settings-section";
 import { VerifyRecoveryKeySheet } from "@/features/account/components/verify-recovery-key-sheet";
 
@@ -197,9 +197,9 @@ export default function SecuritySettingsScreen() {
         )}
 
         <View style={styles.danger}>
-          <Eyebrow style={{ color: danger.destructive }}>
+          <SettingsSectionTitle color={danger.destructive}>
             {t("settings.security.dangerSection")}
-          </Eyebrow>
+          </SettingsSectionTitle>
           <Card
             mode="contained"
             style={{ backgroundColor: danger.destructiveContainer }}

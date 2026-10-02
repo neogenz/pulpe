@@ -15,6 +15,14 @@ import { useAmountVisibility } from "./amount-visibility";
  *
  * Applied once per navigator, through `screenLayout`, rather than asked of each
  * screen: a screen that forgot would be the one leaking amounts.
+ *
+ * A remount resets whatever the screen held only in its own state — a scroll
+ * position, a chosen year, a filter. That is affordable because the mask is
+ * switched in one place, Préférences, whose routes sit outside the boundary:
+ * the screens it remounts are covered at that moment, and no form can be open
+ * over them, since a form is a modal sheet. A mutation already sent keeps its
+ * rollback either way: `useMutation`'s callbacks live on the mutation, not on
+ * the component that started it.
  */
 export function AmountMaskBoundary({ children }: { children: ReactElement }) {
   const areAmountsHidden = useAmountVisibility(

@@ -9,7 +9,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import { Appbar, Text, useTheme } from "react-native-paper";
+import { Appbar, Button, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { useHeroColors } from "@/core/ui/scheme-colors";
@@ -33,8 +33,6 @@ import {
  * way a Material top app bar holds its colour: the month and the account live
  * in the bar, not in a header rebuilt inside the scroll.
  */
-
-const HERO_ICON_SLOP = 8;
 
 interface HeroAppBarProps {
   title: string;
@@ -191,8 +189,8 @@ interface HeroTileProps {
 
 /**
  * A metric on the forest: a translucent tile, never a chip — a chip on a hero
- * reads as something to filter by. A tile that opens something says so with a
- * chevron.
+ * reads as something to filter by. A tile that opens something ripples like any
+ * Material surface that can be pressed, without a chevron.
  */
 export function HeroTile({
   value,
@@ -234,13 +232,6 @@ export function HeroTile({
           {label}
         </Text>
       </View>
-      {isPressable && (
-        <MaterialCommunityIcons
-          name="chevron-right"
-          size={ICON_SIZE.md}
-          color={hero.support}
-        />
-      )}
     </>
   );
 
@@ -281,44 +272,37 @@ interface HeroVerdictProps {
   sentence: string;
   /** The accent the sentence is read in; the forest ink when on plan. */
   tint?: string;
-  /** A named way into the detail — `Voir le budget` — never a bare chevron. */
+  /** A named way into the detail — `Voir le budget`. */
   link?: { label: string; onPress: () => void; accessibilityLabel?: string };
 }
 
-/** One plain-language sentence about the state, optionally ending in a link. */
+/**
+ * One plain-language sentence about the state, then, when there is somewhere to
+ * go, a Material text button in the hero's ink — its own target and ripple
+ * rather than a link run into the sentence.
+ */
 export function HeroVerdict({ sentence, tint, link }: HeroVerdictProps) {
   const hero = useHeroColors();
-  const text = (
-    <Text variant="bodyLarge" style={{ color: tint ?? hero.ink }}>
-      {sentence}
-      {link !== undefined && (
-        <Text variant="titleMedium" style={{ color: hero.ink }}>
-          {`  ${link.label} `}
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={ICON_SIZE.sm}
-            color={hero.ink}
-          />
-        </Text>
-      )}
-    </Text>
-  );
-
-  if (link === undefined) return <View style={styles.verdict}>{text}</View>;
 
   return (
-    <Pressable
-      onPress={link.onPress}
-      accessibilityRole="button"
-      accessibilityLabel={
-        link.accessibilityLabel ?? `${sentence} ${link.label}`
-      }
-      hitSlop={HERO_ICON_SLOP}
-      android_ripple={{ color: hero.tile }}
-      style={styles.verdict}
-    >
-      {text}
-    </Pressable>
+    <View style={styles.verdict}>
+      <Text variant="bodyLarge" style={{ color: tint ?? hero.ink }}>
+        {sentence}
+      </Text>
+      {link !== undefined && (
+        <Button
+          mode="text"
+          compact
+          textColor={hero.ink}
+          rippleColor={hero.tile}
+          onPress={link.onPress}
+          accessibilityLabel={link.accessibilityLabel ?? link.label}
+          style={styles.verdictLink}
+        >
+          {link.label}
+        </Button>
+      )}
+    </View>
   );
 }
 
@@ -397,7 +381,15 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   tileText: { flex: 1, gap: SPACING.xxs },
-  verdict: { minHeight: TOUCH_TARGET, justifyContent: "center" },
+  verdict: {
+    minHeight: TOUCH_TARGET,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    columnGap: SPACING.xs,
+  },
+  // Lines the label up with the sentence rather than with the button's padding.
+  verdictLink: { marginLeft: -SPACING.sm },
   progressRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
   progressTrack: {
     flex: 1,

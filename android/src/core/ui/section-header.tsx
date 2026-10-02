@@ -1,15 +1,7 @@
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Pressable, StyleSheet, View } from "react-native";
-import { Text, useTheme } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { Button, Text, useTheme } from "react-native-paper";
 
-import { useRipple } from "@/core/ui/ripple";
-
-import {
-  BRAND_TYPE,
-  ICON_SIZE,
-  SPACING,
-  TABULAR_DIGITS,
-} from "@/core/ui/theme";
+import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 interface SectionHeaderProps {
   title: string;
@@ -17,14 +9,18 @@ interface SectionHeaderProps {
   count?: number;
   /** One amount under the title that sums the section up. */
   subtitle?: string;
-  /** Where the section leads, named — `Tout voir` — never a bare chevron. */
+  /** Where the section leads, named — `Tout voir`. */
   link?: { label: string; onPress: () => void; accessibilityLabel?: string };
 }
 
 /**
  * The Home Ledger Rule: a section names itself on the canvas, outside the card
  * that carries its rows, so the card's edge marks where its content starts.
- * Mirrors `SectionHeader.swift`.
+ *
+ * The rule is Pulpe's; the pieces are Android's. The title is chrome, so it is
+ * MD3's `titleLarge` on the system face rather than Manrope, and the link is a
+ * Material text button — its own ripple, its own 48dp target, no chevron
+ * borrowed from UIKit.
  */
 export function SectionHeader({
   title,
@@ -33,16 +29,13 @@ export function SectionHeader({
   link,
 }: SectionHeaderProps) {
   const theme = useTheme();
-  const ripple = useRipple();
 
   return (
     <View style={styles.header}>
       <View style={styles.titleBlock} accessibilityRole="header">
         <Text
-          style={[
-            BRAND_TYPE.sectionTitle,
-            { color: theme.colors.onBackground },
-          ]}
+          variant="titleLarge"
+          style={[styles.title, { color: theme.colors.onBackground }]}
         >
           {title}
           {count !== undefined && (
@@ -64,30 +57,19 @@ export function SectionHeader({
         )}
       </View>
       {link !== undefined && (
-        <Pressable
+        <Button
+          mode="text"
+          compact
           onPress={link.onPress}
-          accessibilityRole="button"
           accessibilityLabel={link.accessibilityLabel ?? link.label}
-          hitSlop={LINK_SLOP}
-          android_ripple={ripple}
           style={styles.link}
         >
-          <Text variant="labelLarge" style={{ color: theme.colors.primary }}>
-            {link.label}
-          </Text>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={ICON_SIZE.sm}
-            color={theme.colors.primary}
-          />
-        </Pressable>
+          {link.label}
+        </Button>
       )}
     </View>
   );
 }
-
-/** Lifts the link to a 48dp target without moving it off the title's line. */
-const LINK_SLOP = { top: 12, bottom: 12, left: 8, right: 8 };
 
 const styles = StyleSheet.create({
   header: {
@@ -97,9 +79,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   titleBlock: { flexShrink: 1, gap: SPACING.xxs },
-  link: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingBottom: SPACING.xxs,
-  },
+  title: { fontWeight: "500" },
+  // The button's own padding would push its label off the content's right edge.
+  link: { marginRight: -SPACING.sm },
 });

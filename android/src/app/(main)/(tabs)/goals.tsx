@@ -1,7 +1,7 @@
 import type { SavingsGoal, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Appbar, useTheme } from "react-native-paper";
+import { ActivityIndicator, FAB, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { usePushOnce } from "@/core/navigation/push-once";
@@ -17,7 +17,7 @@ import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { TabHeader } from "@/core/ui/tab-header";
-import { SPACING } from "@/core/ui/theme";
+import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { GoalFormSheet } from "@/features/savings-goals/components/goal-form-sheet";
 import { GoalsIntro } from "@/features/savings-goals/components/goals-intro";
@@ -58,19 +58,7 @@ export default function GoalsScreen() {
     );
   }
 
-  const header = (
-    <TabHeader
-      title={t("goals.list.title")}
-      trailing={
-        <Appbar.Action
-          testID="goals-create"
-          icon="plus"
-          onPress={() => setCreating(true)}
-          accessibilityLabel={t("goals.list.addAccessibility")}
-        />
-      }
-    />
-  );
+  const header = <TabHeader title={t("goals.list.title")} />;
 
   if (goals.isError || settings.isError) {
     return (
@@ -139,6 +127,18 @@ export default function GoalsScreen() {
             ))}
           </LedgerCard>
         </ScrollView>
+      )}
+
+      {/* The empty state names the action itself; once there is a list, the
+          plus sign carries it. */}
+      {list.length > 0 && (
+        <FAB
+          testID="goals-create"
+          icon="plus"
+          style={styles.fab}
+          onPress={() => setCreating(true)}
+          accessibilityLabel={t("goals.list.addAccessibility")}
+        />
       )}
 
       <GoalFormSheet
@@ -222,5 +222,10 @@ function periodLabel(
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: SPACING.md, gap: SPACING.sm, paddingBottom: SPACING.xl },
+  content: {
+    padding: SPACING.md,
+    gap: SPACING.sm,
+    paddingBottom: FAB_CLEARANCE,
+  },
+  fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

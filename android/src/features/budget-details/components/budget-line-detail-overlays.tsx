@@ -103,18 +103,18 @@ export const BudgetLineDetailOverlays = forwardRef<
   return (
     <>
       {/* One slot, the most pressing news first: four snackbars sharing the
-          spot drew over one another. Lifted over the page's pinned action. */}
+          spot drew over one another. Lifted over the page's FAB. */}
       {removal.failure !== null ? (
-        <Notice clearsFooter visible onDismiss={removal.dismissFailure}>
+        <Notice clearsFab visible onDismiss={removal.dismissFailure}>
           {t(`budgets.mutations.removal.${removal.failure}Error`)}
         </Notice>
       ) : failure !== null ? (
-        <Notice clearsFooter visible onDismiss={() => setFailure(null)}>
+        <Notice clearsFab visible onDismiss={() => setFailure(null)}>
           {t(`budgets.actions.line.failure.${failure}`)}
         </Notice>
       ) : hasToggleFailed ? (
         <Notice
-          clearsFooter
+          clearsFab
           visible
           onDismiss={() => setToggleFailed(false)}
           action={{
@@ -126,7 +126,7 @@ export const BudgetLineDetailOverlays = forwardRef<
         </Notice>
       ) : (
         <Notice
-          clearsFooter
+          clearsFab
           visible={removal.last !== null}
           onDismiss={removal.forget}
           action={{ label: t("budgets.mutations.undo"), onPress: removal.undo }}

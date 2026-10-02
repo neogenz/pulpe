@@ -300,8 +300,6 @@ export const ROW_ACTION_ICON_SIZE = ICON_SIZE.md;
 export const RADIUS = {
   xs: 4,
   sm: 8,
-  /** A rounded-rect control that is not a pill: a year chip, a period button. */
-  button: 14,
   card: 18,
   md: 24,
   /**
@@ -313,16 +311,13 @@ export const RADIUS = {
   full: 999,
 } as const;
 
-/** The full-width pill every primary action wears — 54 on iOS, 52 on the 4dp grid. */
-export const BUTTON_HEIGHT = 52;
-
 /**
- * What a notice leaves under it on a screen that pins its action to the bottom
- * edge: the 52 of the button, the 12 above and below it, and 8 to breathe —
- * otherwise "Annuler" lands on top of "Noter un montant".
+ * What a list must leave under its last row so a floating action button does
+ * not sit on top of it: 56 for the button, 16 for its margin, 24 to read past.
+ * A notice on a screen with a FAB rises by the same amount, above it, as M3
+ * places a snackbar.
  */
-export const FOOTER_CLEARANCE =
-  BUTTON_HEIGHT + 2 * (SPACING.sm + SPACING.xs) + SPACING.sm;
+export const FAB_CLEARANCE = 96;
 
 /** A ledger row: its disc column and its floor. */
 export const ROW = {
@@ -334,8 +329,9 @@ const DISPLAY_FAMILY = "Manrope";
 
 /**
  * The few brand roles MD3's scale has no slot for — `Typography.swift` on iOS.
- * Manrope carries a figure or a heading; every label, button and body line
- * stays on the system face.
+ * Manrope carries the figures; every title, label, button and body line stays
+ * on the system face, section titles included — they are chrome, and on iOS
+ * they are SF Pro for the same reason.
  */
 export const BRAND_TYPE = {
   /** The one number a hero exists to show. */
@@ -348,20 +344,6 @@ export const BRAND_TYPE = {
   },
   /** The currency set beside a hero figure, on the same baseline. */
   heroCurrency: {
-    fontFamily: DISPLAY_FAMILY,
-    fontWeight: "700",
-    fontSize: 22,
-    lineHeight: 28,
-  },
-  /** A section's title, on the canvas above the card it introduces. */
-  sectionTitle: {
-    fontFamily: DISPLAY_FAMILY,
-    fontWeight: "700",
-    fontSize: 20,
-    lineHeight: 26,
-  },
-  /** An empty state's title. */
-  stateTitle: {
     fontFamily: DISPLAY_FAMILY,
     fontWeight: "700",
     fontSize: 22,

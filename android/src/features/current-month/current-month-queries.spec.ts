@@ -7,6 +7,7 @@ import { queryClient } from "@/core/query/query-client";
 
 import {
   currentBudgetPeriod,
+  msUntilNextDay,
   refreshCurrentMonth,
   resolveStatus,
   useCurrentMonth,
@@ -94,6 +95,15 @@ describe("resolveStatus", () => {
   });
 });
 
+describe("msUntilNextDay", () => {
+  it("waits for the local midnight, a second past it", () => {
+    expect(msUntilNextDay(new Date(2026, 7, 31, 21))).toBe(
+      3 * 60 * 60 * 1000 + 1000,
+    );
+    expect(msUntilNextDay(new Date(2026, 11, 31, 23, 59, 59))).toBe(2000);
+  });
+});
+
 describe("currentBudgetPeriod", () => {
   it("uses the calendar month when no custom pay day is configured", () => {
     expect(currentBudgetPeriod(null, new Date("2026-08-22T12:00:00Z"))).toEqual(
@@ -151,6 +161,23 @@ describe("useCurrentMonth across the start of a period", () => {
 
     jest.setSystemTime(new Date(2026, 8, 1, 9));
     await act(() => hook.result.current.refresh());
+
+    await waitFor(() =>
+      expect(hook.result.current.budgetId).toBe("budget-september"),
+    );
+    await hook.unmount();
+  });
+
+  it("moves to the new budget at midnight, with the app left open", async () => {
+    const hook = await renderHook(() => useCurrentMonth(), { wrapper });
+    await waitFor(() => expect(hook.result.current.status).toBe("ready"));
+    expect(hook.result.current.budgetId).toBe("budget-august");
+
+    // 21:00 on the 31st: three hours to the first of the month, nothing else
+    // happening — no refresh, no trip to the background.
+    await act(async () => {
+      jest.advanceTimersByTime(3 * 60 * 60 * 1000 + 1000);
+    });
 
     await waitFor(() =>
       expect(hook.result.current.budgetId).toBe("budget-september"),

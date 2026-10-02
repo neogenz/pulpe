@@ -57,12 +57,27 @@ export async function refreshCurrentMonth(): Promise<void> {
 }
 
 /**
+ * How long until the next local midnight, plus a second so a timer that fires
+ * a hair early does not land on the day it was meant to leave.
+ */
+export function msUntilNextDay(now: Date): number {
+  const nextDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+  );
+  return nextDay.getTime() - now.getTime() + 1000;
+}
+
+/**
  * The moment the current period is read from, held as state so that it can
  * move. A `new Date()` taken inside the memo was taken once: the refetched
  * settings come back structurally identical, no dependency changed, and Home
  * stayed on last month's budget after the pay day — through pull-to-refresh
- * and Retry alike. Coming back to the foreground and refreshing both read the
- * clock again.
+ * and Retry alike. Coming back to the foreground, refreshing, and midnight
+ * passing with the app open all read the clock again: a period starts at a
+ * day's boundary, so a screen left open overnight would otherwise keep showing
+ * the period that just ended.
  */
 export function useNow(): [Date, () => void] {
   const [now, setNow] = useState(() => new Date());
@@ -73,6 +88,14 @@ export function useNow(): [Date, () => void] {
     });
     return () => subscription.remove();
   }, []);
+
+  // Re-armed from each new reading. JS timers stop with the app in the
+  // background; the foreground listener above covers the night it slept
+  // through.
+  useEffect(() => {
+    const timer = setTimeout(() => setNow(new Date()), msUntilNextDay(now));
+    return () => clearTimeout(timer);
+  }, [now]);
 
   return [now, () => setNow(new Date())];
 }

@@ -16,3 +16,23 @@ jest.mock("react-native-mmkv", () => ({
     };
   },
 }));
+
+/**
+ * The swipeable runs on Reanimated's worklets, whose native module no JS test
+ * environment can load. No spec can drag a finger anyway, so every row renders
+ * its content as is; `swipe-to-point.spec.tsx` replaces this to drive the
+ * swipeable's callbacks directly.
+ */
+jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {
+  const { forwardRef, useImperativeHandle } = jest.requireActual("react");
+  const Swipeable = forwardRef(({ children }, ref) => {
+    useImperativeHandle(ref, () => ({
+      close: () => undefined,
+      openLeft: () => undefined,
+      openRight: () => undefined,
+      reset: () => undefined,
+    }));
+    return children;
+  });
+  return { __esModule: true, default: Swipeable };
+});

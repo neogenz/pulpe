@@ -118,6 +118,20 @@ jest.mock("react-native-paper", () => {
     useTheme: () => ({ colors: { onSurfaceVariant: "gray" } }),
   };
 });
+jest.mock("@/core/ui/quick-amount-chips", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    QuickAmountChips: ({
+      onSelect,
+    }: {
+      onSelect: (amount: number) => void;
+    }) => (
+      <Pressable accessibilityLabel="quick-15" onPress={() => onSelect(15)}>
+        <Text>15</Text>
+      </Pressable>
+    ),
+  };
+});
 jest.mock("@/core/ui/amount-field", () => {
   const { Pressable, Text, View } = jest.requireActual("react-native");
   return {
