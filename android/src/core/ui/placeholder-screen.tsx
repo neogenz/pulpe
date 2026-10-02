@@ -2,7 +2,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { ComponentProps } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Text, useTheme } from "react-native-paper";
+import { Button, Text, useTheme } from "react-native-paper";
 
 import { ActionButton } from "./action-button";
 import { SPACING } from "./theme";
@@ -23,6 +23,8 @@ interface PlaceholderScreenProps {
   hint: string;
   /** A way out of the state, when there is one to offer. */
   action?: { label: string; loading?: boolean; onPress: () => void };
+  /** The other way out, when retrying may never get past the state. */
+  secondaryAction?: { label: string; onPress: () => void };
 }
 
 export function PlaceholderScreen({
@@ -30,6 +32,7 @@ export function PlaceholderScreen({
   title,
   hint,
   action,
+  secondaryAction,
 }: PlaceholderScreenProps) {
   const theme = useTheme();
 
@@ -63,6 +66,11 @@ export function PlaceholderScreen({
         >
           {action.label}
         </ActionButton>
+      )}
+      {secondaryAction !== undefined && (
+        <Button onPress={secondaryAction.onPress}>
+          {secondaryAction.label}
+        </Button>
       )}
     </SafeAreaView>
   );

@@ -1158,6 +1158,10 @@
     }
   },
   "startup": {
+    "accountBlocked": {
+      "hint": "Il ne peut plus être ouvert. Si tu n'as rien demandé, contacte le support.",
+      "title": "Ton compte est en cours de suppression"
+    },
     "vaultError": "Impossible de préparer tes données sécurisées."
   },
   "templates": {
@@ -1276,7 +1280,10 @@
       "forgot": "Code oublié ?",
       "subtitle": "Il déverrouille tes montants",
       "title": "Ton code"
-    }
+    },
+    "offline": "Erreur de connexion, réessaie",
+    "tooManyAttempts": "Trop de tentatives, patiente un moment",
+    "wrongPin": "Ce code ne semble pas correct"
   },
   "vocabulary": {
     "kind": {

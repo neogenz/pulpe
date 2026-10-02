@@ -47,6 +47,7 @@ function RootLayout() {
   const retrySessionRestore = useSessionStore(
     (state) => state.retrySessionRestore,
   );
+  const signOut = useSessionStore((state) => state.signOut);
   const [isRetryingSession, setIsRetryingSession] = useState(false);
   const vaultStatus = useVaultStore((state) => state.status);
   const isOnboarding = useOnboardingStore((state) => state.isFlowActive);
@@ -138,6 +139,12 @@ function RootLayout() {
                     setIsRetryingSession(false),
                   );
                 },
+              }}
+              // A session storage that keeps failing to read would otherwise
+              // hold the user on this screen for good.
+              secondaryAction={{
+                label: t("common.signOut"),
+                onPress: () => void signOut().catch(() => undefined),
               }}
             />
           ) : (

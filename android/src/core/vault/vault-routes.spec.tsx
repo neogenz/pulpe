@@ -28,6 +28,7 @@ jest.mock("@/core/auth/session-store", () => ({
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
+jest.mock("@/core/i18n/i18n", () => ({ translate: (key: string) => key }));
 jest.mock("@/core/ui/haptics", () => ({
   hapticCommit: jest.fn(),
   hapticFailure: jest.fn(),
@@ -35,6 +36,7 @@ jest.mock("@/core/ui/haptics", () => ({
 }));
 jest.mock("@/core/ui/ripple", () => ({ useRipple: () => undefined }));
 jest.mock("@/core/api/api-error", () => ({
+  ...jest.requireActual("@/core/api/api-error"),
   normalizeApiError: jest.fn(),
 }));
 jest.mock("@/core/vault/vault-store", () => ({

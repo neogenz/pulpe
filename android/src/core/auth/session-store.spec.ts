@@ -19,11 +19,25 @@ const mockClearKeys = jest.fn();
 const mockInvalidateLanguage = jest.fn();
 const mockCancelReminder = jest.fn();
 const mockWriteRemindersEnabled = jest.fn();
+const mockForgetGoogle = jest.fn();
+const mockForgetPersistedSession = jest.fn();
+const mockHasPersistedSession = jest.fn();
+const mockIsRecoveryPending = jest.fn();
+const mockClearRecoveryPending = jest.fn();
 let mockAuthListener:
   | ((event: string, session: Session | null) => void)
   | null = null;
 
+jest.mock("./password-recovery", () => ({
+  clearRecoveryPending: () => mockClearRecoveryPending(),
+  isRecoveryPending: () => mockIsRecoveryPending(),
+}));
+jest.mock("./google-sign-in", () => ({
+  forgetGoogleAccount: () => mockForgetGoogle(),
+}));
 jest.mock("./supabase", () => ({
+  forgetPersistedSession: () => mockForgetPersistedSession(),
+  hasPersistedSession: () => mockHasPersistedSession(),
   signOutThisDevice: () => mockSignOutThisDevice(),
   signOutEverywhere: () => mockSignOutEverywhere(),
   supabase: {
@@ -65,7 +79,7 @@ jest.mock("@/core/notifications/reminder-flags", () => ({
 const session = (id: string) => ({ user: { id } }) as Session;
 
 async function settle(): Promise<void> {
-  for (let index = 0; index < 8; index += 1) await Promise.resolve();
+  for (let index = 0; index < 16; index += 1) await Promise.resolve();
 }
 
 function deferred() {
@@ -102,6 +116,11 @@ describe("session lifecycle", () => {
       events.push(`reminders-enabled:${String(isEnabled)}`),
     );
     mockClearKeys.mockImplementation(async () => events.push("keys-cleared"));
+    mockForgetGoogle.mockImplementation(async () =>
+      events.push("google-forgotten"),
+    );
+    mockHasPersistedSession.mockResolvedValue(false);
+    mockIsRecoveryPending.mockReturnValue(false);
     useSessionStore.setState({
       status: "authenticated",
       session: session("user-a"),
@@ -152,6 +171,27 @@ describe("session lifecycle", () => {
 
     expect(useSessionStore.getState().status).toBe("error");
     expect(mockClearKeys).not.toHaveBeenCalled();
+    unsubscribe();
+  });
+
+  it("ends a password reset the last run died in instead of resuming it", async () => {
+    // Supabase persists a recovery session like any other; restored as is,
+    // it signed the user in past the password the reset was there to replace.
+    mockGetSession.mockResolvedValueOnce({
+      data: { session: session("recovering-user") },
+    });
+    mockIsRecoveryPending.mockReturnValue(true);
+    useSessionStore.setState({ status: "loading", session: null, user: null });
+
+    const unsubscribe = observeSession();
+    await settle();
+
+    expect(mockSignOutEverywhere).toHaveBeenCalledTimes(1);
+    expect(mockClearRecoveryPending).toHaveBeenCalled();
+    expect(useSessionStore.getState()).toMatchObject({
+      status: "unauthenticated",
+      session: null,
+    });
     unsubscribe();
   });
 
@@ -209,6 +249,7 @@ describe("session lifecycle", () => {
       "reminder-cancelled",
       "reminders-enabled:false",
       "keys-cleared",
+      "google-forgotten",
     ]);
     expect(mockSignOutThisDevice).toHaveBeenCalledTimes(1);
     expect(mockQueryClear).toHaveBeenCalledTimes(1);
@@ -278,7 +319,7 @@ describe("session lifecycle", () => {
       user: nextSession.user,
     });
     expect(mockQueryClear).toHaveBeenCalledTimes(1);
-    expect(events.at(-1)).toBe("keys-cleared");
+    expect(events.at(-1)).toBe("google-forgotten");
     unsubscribe();
   });
 
@@ -292,6 +333,36 @@ describe("session lifecycle", () => {
 
     expect(mockSignOutThisDevice).toHaveBeenCalledTimes(1);
     expect(mockQueryClear).toHaveBeenCalledTimes(1);
+    expect(useSessionStore.getState().status).toBe("unauthenticated");
+  });
+
+  it("drops the session supabase-js kept when signing out offline", async () => {
+    // With an expired access token and no network, supabase-js cannot load
+    // the session to drop and leaves it on disk: the next launch online
+    // signed the user straight back in.
+    let isPersisted = true;
+    const offline = new AuthRetryableFetchError("Failed to fetch", 0);
+    mockSignOutThisDevice.mockRejectedValue(offline);
+    mockHasPersistedSession.mockImplementation(async () => isPersisted);
+    mockForgetPersistedSession.mockImplementation(async () => {
+      isPersisted = false;
+    });
+
+    await expect(useSessionStore.getState().signOut()).rejects.toBe(offline);
+
+    expect(isPersisted).toBe(false);
+    expect(mockClearKeys).toHaveBeenCalled();
+    expect(useSessionStore.getState().status).toBe("unauthenticated");
+  });
+
+  it("reports a persisted session it could not remove", async () => {
+    mockHasPersistedSession.mockResolvedValue(true);
+
+    await expect(useSessionStore.getState().signOut()).rejects.toThrow(
+      "could not be removed",
+    );
+
+    expect(mockForgetPersistedSession).not.toHaveBeenCalled();
     expect(useSessionStore.getState().status).toBe("unauthenticated");
   });
 

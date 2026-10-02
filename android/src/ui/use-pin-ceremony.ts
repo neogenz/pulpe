@@ -4,7 +4,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticCommit, hapticSuccess } from "@/core/ui/haptics";
 import { setupVaultPin } from "@/core/vault/vault-store";
 
-import { usePinEntry } from "./use-pin-entry";
+import { describePinFailure, usePinEntry } from "./use-pin-entry";
 
 interface PinCeremony extends ReturnType<typeof usePinEntry> {
   /** The first PIN is held and the user is typing it a second time. */
@@ -45,9 +45,9 @@ export function usePinCeremony(onConfirmed: () => void): PinCeremony {
 
     try {
       await setupVaultPin(candidate);
-    } catch {
+    } catch (error) {
       restart();
-      return t("vault.error");
+      return describePinFailure(error);
     }
 
     hapticSuccess();

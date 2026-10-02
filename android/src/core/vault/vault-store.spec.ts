@@ -90,7 +90,7 @@ beforeEach(() => {
   useVaultStore.setState({
     status: "unknown",
     isBiometricAvailable: false,
-    hasBootstrapError: false,
+    bootstrapFailure: null,
     pendingRecoveryNotice: null,
   });
 
@@ -143,8 +143,40 @@ describe("bootstrapVault", () => {
 
     expect(useVaultStore.getState()).toMatchObject({
       status: "unknown",
-      hasBootstrapError: true,
+      bootstrapFailure: "unavailable",
     });
+  });
+
+  it.each([
+    ["a network failure", new Error("offline"), "unavailable"],
+    [
+      "a server error",
+      new ApiError("boom", undefined, 500, undefined),
+      "unavailable",
+    ],
+    [
+      "a session revoked elsewhere",
+      new ApiError("expired", "ERR_AUTH_TOKEN_INVALID", 401, undefined),
+      "sessionRejected",
+    ],
+    [
+      "an account scheduled for deletion",
+      new ApiError(
+        "blocked",
+        API_ERROR_CODES.USER_ACCOUNT_BLOCKED,
+        403,
+        undefined,
+      ),
+      "accountBlocked",
+    ],
+  ])("should tell %s apart from the others", async (_case, error, failure) => {
+    // A retry cannot get past the last two; the bootstrap screen offers each
+    // its own way out.
+    mocked.fetchVaultStatus.mockRejectedValue(error);
+
+    await bootstrapVault();
+
+    expect(useVaultStore.getState().bootstrapFailure).toBe(failure);
   });
 });
 

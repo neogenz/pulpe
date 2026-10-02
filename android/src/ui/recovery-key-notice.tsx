@@ -14,6 +14,23 @@ import {
 } from "@/core/vault/vault-store";
 
 const COPIED_RESET_MS = 2000;
+/** As long as iOS leaves it on the pasteboard. */
+const CLIPBOARD_LIFETIME_MS = 120_000;
+
+/**
+ * Takes the key back off the clipboard, unless something else was copied
+ * since. Android has no expiry to set; left there, the key stayed in plain
+ * text for any later paste, into any app.
+ */
+async function withdrawFromClipboard(recoveryKey: string): Promise<void> {
+  try {
+    if ((await Clipboard.getStringAsync()) === recoveryKey) {
+      await Clipboard.setStringAsync("");
+    }
+  } catch {
+    // No clipboard to read: nothing of ours to take back.
+  }
+}
 
 /**
  * The recovery key, shown once and never retrievable again — hence no dismiss
@@ -40,12 +57,17 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
   const { t } = useTranslation();
   const [isCopied, setIsCopied] = useState(false);
   const resetTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const withdrawTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Acknowledging the notice unmounts it: the key has been noted by then.
   useEffect(
     () => () => {
       if (resetTimeout.current) clearTimeout(resetTimeout.current);
+      if (withdrawTimeout.current === null) return;
+      clearTimeout(withdrawTimeout.current);
+      void withdrawFromClipboard(recoveryKey);
     },
-    [],
+    [recoveryKey],
   );
 
   async function copy() {
@@ -58,6 +80,11 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
       () => setIsCopied(false),
       COPIED_RESET_MS,
     );
+    if (withdrawTimeout.current) clearTimeout(withdrawTimeout.current);
+    withdrawTimeout.current = setTimeout(() => {
+      withdrawTimeout.current = null;
+      void withdrawFromClipboard(recoveryKey);
+    }, CLIPBOARD_LIFETIME_MS);
   }
 
   return (

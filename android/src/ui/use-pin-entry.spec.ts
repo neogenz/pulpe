@@ -1,5 +1,9 @@
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 
+import { API_ERROR_CODES } from "pulpe-shared";
+
+import { ApiError, NO_HTTP_RESPONSE_STATUS } from "@/core/api/api-error";
+
 import { usePinEntry } from "./use-pin-entry";
 
 jest.mock("@/core/i18n/i18n", () => ({ translate: (key: string) => key }));
@@ -70,4 +74,41 @@ it("turns a rejected request into a recoverable translated error", async () => {
 
   await waitFor(() => expect(result.current.errorMessage).toBe("vault.error"));
   expect(result.current).toMatchObject({ pin: "", isBusy: false });
+});
+
+it.each([
+  [
+    "a wrong PIN",
+    new ApiError(
+      "refusé",
+      API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED,
+      400,
+      undefined,
+    ),
+    "vault.wrongPin",
+  ],
+  [
+    "too many attempts",
+    new ApiError("throttled", undefined, 429, undefined),
+    "vault.tooManyAttempts",
+  ],
+  [
+    "no network",
+    new ApiError(
+      "offline",
+      "NETWORK_ERROR",
+      NO_HTTP_RESPONSE_STATUS,
+      undefined,
+    ),
+    "vault.offline",
+  ],
+  ["anything else", new Error("boom"), "vault.error"],
+])("tells %s apart from the other failures", async (_case, error, message) => {
+  const { result } = await renderHook(() =>
+    usePinEntry(() => Promise.reject(error)),
+  );
+
+  await act(() => result.current.setPin("1234"));
+
+  await waitFor(() => expect(result.current.errorMessage).toBe(message));
 });

@@ -1,4 +1,24 @@
+import { createMMKV } from "react-native-mmkv";
+
 import { supabase } from "./supabase";
+
+const storage = createMMKV({ id: "pulpe-auth" });
+
+/**
+ * Set from just before the recovery session exists until the account is torn
+ * down. Supabase persists that session like any other, so a process killed
+ * mid-flow relaunched into it as an ordinary sign-in — past the very password
+ * the flow was there to replace.
+ */
+const RECOVERY_PENDING_KEY = "pulpe-recovery-pending";
+
+export function isRecoveryPending(): boolean {
+  return storage.getBoolean(RECOVERY_PENDING_KEY) === true;
+}
+
+export function clearRecoveryPending(): void {
+  storage.remove(RECOVERY_PENDING_KEY);
+}
 
 /**
  * The tokens Supabase hands back on a recovery link. The client runs the
@@ -33,6 +53,7 @@ export function parseRecoveryTokens(url: string): RecoveryTokens | null {
 export async function beginPasswordRecovery(
   tokens: RecoveryTokens,
 ): Promise<void> {
+  storage.set(RECOVERY_PENDING_KEY, true);
   const { error } = await supabase.auth.setSession({
     access_token: tokens.accessToken,
     refresh_token: tokens.refreshToken,

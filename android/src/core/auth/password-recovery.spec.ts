@@ -1,7 +1,18 @@
-import { parseRecoveryTokens } from "./password-recovery";
+import {
+  beginPasswordRecovery,
+  clearRecoveryPending,
+  isRecoveryPending,
+  parseRecoveryTokens,
+} from "./password-recovery";
 import { isAcceptablePassword } from "./password-rules";
 
-jest.mock("./supabase", () => ({ supabase: { auth: {} } }));
+const mockSetSession = jest.fn();
+
+jest.mock("./supabase", () => ({
+  supabase: {
+    auth: { setSession: (...args: unknown[]) => mockSetSession(...args) },
+  },
+}));
 
 const RECOVERY_LINK =
   "https://app.pulpe.app/reset-password#access_token=access-1&refresh_token=refresh-1&expires_in=3600&token_type=bearer&type=recovery";
@@ -51,5 +62,22 @@ describe("isAcceptablePassword", () => {
     ["12345678", false],
   ])("scores %s as %s", (password, expected) => {
     expect(isAcceptablePassword(password)).toBe(expected);
+  });
+});
+
+describe("a recovery in progress", () => {
+  it("is marked before its session exists, so a killed process cannot resume it", async () => {
+    clearRecoveryPending();
+    mockSetSession.mockImplementationOnce(async () => {
+      expect(isRecoveryPending()).toBe(true);
+      return { error: null };
+    });
+
+    await beginPasswordRecovery({ accessToken: "a", refreshToken: "r" });
+
+    expect(mockSetSession).toHaveBeenCalledTimes(1);
+    expect(isRecoveryPending()).toBe(true);
+    clearRecoveryPending();
+    expect(isRecoveryPending()).toBe(false);
   });
 });

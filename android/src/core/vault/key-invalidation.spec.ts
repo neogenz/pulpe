@@ -16,7 +16,7 @@ function vaultState(status: VaultStatus) {
   return {
     status,
     isBiometricAvailable: false,
-    hasBootstrapError: false,
+    bootstrapFailure: null,
     pendingRecoveryNotice: null,
   };
 }

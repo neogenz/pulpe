@@ -37,7 +37,7 @@ describe("final pre-main localization", () => {
     expect(notice).toMatch(
       /selectable\s+style=\{styles\.key\}\s*>\s*\{formatRecoveryKey\(recoveryKey\)\}/,
     );
-    expect(vault).toContain("hasBootstrapError: true");
+    expect(vault).toContain("bootstrapFailure: bootstrapFailureOf(error)");
     expect(vault).not.toContain("normalizeApiError");
   });
 });

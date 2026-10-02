@@ -1158,6 +1158,10 @@
     }
   },
   "startup": {
+    "accountBlocked": {
+      "hint": "It can no longer be opened. If you didn't ask for this, contact support.",
+      "title": "Your account is being deleted"
+    },
     "vaultError": "Unable to prepare your secure data."
   },
   "templates": {
@@ -1276,7 +1280,10 @@
       "forgot": "Forgot your code?",
       "subtitle": "It unlocks your amounts",
       "title": "Your code"
-    }
+    },
+    "offline": "Connection error, try again",
+    "tooManyAttempts": "Too many attempts, wait a moment",
+    "wrongPin": "That code doesn't look right"
   },
   "vocabulary": {
     "kind": {

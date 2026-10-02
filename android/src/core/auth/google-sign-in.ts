@@ -30,6 +30,23 @@ function configureOnce(webClientId: string): void {
 }
 
 /**
+ * Lets the next Google sign-in offer the account chooser again. Android hands
+ * back the account picked last without asking, so after signing out there was
+ * no way to sign in with another Google account. Best effort: with no Google
+ * account picked, or no Play services, there is nothing to forget.
+ */
+export async function forgetGoogleAccount(): Promise<void> {
+  const webClientId = ENV.googleWebClientId;
+  if (webClientId === null) return;
+  try {
+    configureOnce(webClientId);
+    await GoogleSignin.signOut();
+  } catch {
+    // Nothing remembered, or nothing to remember it with.
+  }
+}
+
+/**
  * What Google told us about the person, for the one use onboarding has for it:
  * skipping a question it can already answer. `firstName` is null when the
  * provider sent no usable name, and the flow then asks for it.

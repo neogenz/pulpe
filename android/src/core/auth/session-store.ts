@@ -14,7 +14,15 @@ import { cancelMonthlyReminder } from "@/core/notifications/scheduler";
 import { queryClient } from "@/core/query/query-client";
 import { resetVault } from "@/core/vault/vault-store";
 
-import { signOutEverywhere, signOutThisDevice, supabase } from "./supabase";
+import { forgetGoogleAccount } from "./google-sign-in";
+import { clearRecoveryPending, isRecoveryPending } from "./password-recovery";
+import {
+  forgetPersistedSession,
+  hasPersistedSession,
+  signOutEverywhere,
+  signOutThisDevice,
+  supabase,
+} from "./supabase";
 
 /**
  * A signed-in session says nothing about the vault, so `locked` is deliberately
@@ -103,13 +111,23 @@ async function teardownAccount(
     }
   }
 
+  // Offline with an expired access token, supabase-js cannot load the session
+  // it was asked to drop, and keeps it. Read through `getSession`, which
+  // answers `null` in that case, the check below passed anyway.
+  if (providerError !== null) {
+    try {
+      await forgetPersistedSession();
+    } catch (error) {
+      localError = error;
+    }
+  }
+
   try {
-    const { data } = await supabase.auth.getSession();
-    if (data.session !== null) {
+    if (await hasPersistedSession()) {
       throw new Error("The persisted Supabase session could not be removed");
     }
   } catch (error) {
-    localError = error;
+    localError ??= error;
   }
 
   try {
@@ -139,6 +157,8 @@ async function purgeLocalAccountData(): Promise<void> {
     () => cancelReminder(),
     () => writeRemindersEnabled(false),
     () => clearAllKeys(),
+    () => forgetGoogleAccount(),
+    () => clearRecoveryPending(),
   ];
 
   for (const cleanup of cleanupSteps) {
@@ -240,6 +260,13 @@ function restorePersistedSession(showLoading: boolean): Promise<void> {
       // out", that put a signed-in user on the sign-in screens until the
       // network came back.
       if (error !== null && isAuthRetryableFetchError(error)) throw error;
+      if (data.session !== null && isRecoveryPending()) {
+        // The last run died in the middle of a password reset. The session
+        // its link opened is good for that reset alone, so it is ended — the
+        // teardown publishes the signed-out state — rather than resumed.
+        await endRecoverySession().catch(() => undefined);
+        return;
+      }
       await waitForAccountTeardown();
       if (authEventRevision === revision) {
         useSessionStore.setState(applySession(data.session));

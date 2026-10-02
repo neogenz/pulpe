@@ -35,6 +35,17 @@ import {
 export type VaultStatus = "unknown" | "setupRequired" | "locked" | "unlocked";
 
 /**
+ * Why the vault could not be asked. Each has its own way out: a retry for a
+ * network or server failure, a fresh session for a token revoked elsewhere, and
+ * nothing the app can do for an account scheduled for deletion. Retrying the
+ * last two asked the same refused question forever.
+ */
+export type VaultBootstrapFailure =
+  | "unavailable"
+  | "sessionRejected"
+  | "accountBlocked";
+
+/**
  * A recovery key is shown once and never again, and minting one is the last
  * step of both setup and recovery — the two moments where the vault flips to
  * `unlocked` and the router drops the screen that did the minting. So the
@@ -48,18 +59,20 @@ interface VaultState {
   status: VaultStatus;
   isBiometricAvailable: boolean;
   /** Non-null only while `status` is `unknown`: the reason it is still unknown. */
-  hasBootstrapError: boolean;
+  bootstrapFailure: VaultBootstrapFailure | null;
   pendingRecoveryNotice: RecoveryKeyNotice | null;
 }
 
 export const useVaultStore = create<VaultState>(() => ({
   status: "unknown",
   isBiometricAvailable: false,
-  hasBootstrapError: false,
+  bootstrapFailure: null,
   pendingRecoveryNotice: null,
 }));
 
 const setState = useVaultStore.setState;
+
+const HTTP_UNAUTHORIZED = 401;
 
 /** Derives the key and leaves it in the API client's hands. */
 async function deriveAndHold(pin: string): Promise<string> {
@@ -82,7 +95,7 @@ async function deriveAndHold(pin: string): Promise<string> {
  * A failure becomes a stable flag, which the retry screen translates.
  */
 export async function bootstrapVault(): Promise<VaultStatus> {
-  setState({ hasBootstrapError: false });
+  setState({ bootstrapFailure: null });
 
   try {
     await clearLegacyClientKey();
@@ -98,13 +111,24 @@ export async function bootstrapVault(): Promise<VaultStatus> {
       isBiometricAvailable: await hasBiometricKey(),
     });
     return "locked";
-  } catch {
+  } catch (error) {
     setState({
       status: "unknown",
-      hasBootstrapError: true,
+      bootstrapFailure: bootstrapFailureOf(error),
     });
     return "unknown";
   }
+}
+
+function bootstrapFailureOf(error: unknown): VaultBootstrapFailure {
+  if (!isApiError(error)) return "unavailable";
+  if (error.code === API_ERROR_CODES.USER_ACCOUNT_BLOCKED) {
+    return "accountBlocked";
+  }
+  if (error.status === HTTP_UNAUTHORIZED && !isVaultKeyRejected(error)) {
+    return "sessionRejected";
+  }
+  return "unavailable";
 }
 
 /**
@@ -287,7 +311,7 @@ export function resetVault(): void {
   setState({
     status: "unknown",
     isBiometricAvailable: false,
-    hasBootstrapError: false,
+    bootstrapFailure: null,
     pendingRecoveryNotice: null,
   });
 }

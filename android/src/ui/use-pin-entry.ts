@@ -1,11 +1,14 @@
+import { API_ERROR_CODES } from "pulpe-shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { isApiError, NO_HTTP_RESPONSE_STATUS } from "@/core/api/api-error";
 import { hapticFailure } from "@/core/ui/haptics";
 import { translate } from "@/core/i18n/i18n";
 
 import { PIN_LENGTH } from "./pin-pad";
 
 const ERROR_DISPLAY_MS = 3000;
+const HTTP_TOO_MANY_REQUESTS = 429;
 
 /**
  * Runs once the last digit lands. Returns the message to show, or null when
@@ -71,8 +74,8 @@ export function usePinEntry(handle: PinStepHandler): PinEntry {
       let message: string | null;
       try {
         message = await handleRef.current(pin);
-      } catch {
-        message = translate("vault.error");
+      } catch (error) {
+        message = describePinFailure(error);
       }
 
       isRunning.current = false;
@@ -88,4 +91,25 @@ export function usePinEntry(handle: PinStepHandler): PinEntry {
   }, []);
 
   return { pin, setPin: updatePin, errorMessage, isBusy };
+}
+
+/**
+ * What went wrong, in words the user can act on. The same message for all of
+ * these sent someone who had mistyped to check their network, and someone
+ * throttled after five tries to keep typing PINs into a server that refused
+ * them all for a minute.
+ */
+export function describePinFailure(error: unknown): string {
+  if (isApiError(error)) {
+    if (error.code === API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED) {
+      return translate("vault.wrongPin");
+    }
+    if (error.status === HTTP_TOO_MANY_REQUESTS) {
+      return translate("vault.tooManyAttempts");
+    }
+    if (error.status === NO_HTTP_RESPONSE_STATUS) {
+      return translate("vault.offline");
+    }
+  }
+  return translate("vault.error");
 }

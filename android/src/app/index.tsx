@@ -1,13 +1,18 @@
 import { Redirect } from "expo-router";
-import { StyleSheet, View } from "react-native";
-import { ActivityIndicator, Button, Text, useTheme } from "react-native-paper";
+import { Linking, StyleSheet, View } from "react-native";
+import { ActivityIndicator, useTheme } from "react-native-paper";
 
 import { useSessionStore } from "@/core/auth/session-store";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { useLandingPreference } from "@/core/navigation/landing-preference";
 import { landingRoute } from "@/core/navigation/route-gates";
-import { SPACING } from "@/core/ui/theme";
-import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
+import { APP_URLS } from "@/core/ui/app-urls";
+import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
+import {
+  bootstrapVault,
+  useVaultStore,
+  type VaultBootstrapFailure,
+} from "@/core/vault/vault-store";
 import { useOnboardingStore } from "@/features/onboarding/onboarding-store";
 
 /**
@@ -23,7 +28,7 @@ import { useOnboardingStore } from "@/features/onboarding/onboarding-store";
 export default function IndexRoute() {
   const status = useSessionStore((state) => state.status);
   const vaultStatus = useVaultStore((state) => state.status);
-  const hasBootstrapError = useVaultStore((state) => state.hasBootstrapError);
+  const bootstrapFailure = useVaultStore((state) => state.bootstrapFailure);
   const isOnboarding = useOnboardingStore((state) => state.isFlowActive);
   const hasCompletedOnboarding = useOnboardingStore(
     (state) => state.hasCompletedOnboarding,
@@ -45,28 +50,64 @@ export default function IndexRoute() {
   // is signed in and the vault has not answered. Everything past this point
   // reads encrypted amounts, so a spinner is all there is to show.
   if (status === "loading") return null;
-  return <VaultBootstrapScreen hasError={hasBootstrapError} />;
+  return <VaultBootstrapScreen failure={bootstrapFailure} />;
 }
 
-function VaultBootstrapScreen({ hasError }: { hasError: boolean }) {
+/**
+ * Signing out is always offered: a vault that keeps refusing — a session
+ * revoked elsewhere and not refreshable, an account on its way out — left the
+ * user on a retry that could never get past it.
+ */
+function VaultBootstrapScreen({
+  failure,
+}: {
+  failure: VaultBootstrapFailure | null;
+}) {
   const theme = useTheme();
   const { t } = useTranslation();
+  const signOut = useSessionStore((state) => state.signOut);
+
+  if (failure === null) {
+    return (
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        <ActivityIndicator accessibilityLabel={t("common.loading")} />
+      </View>
+    );
+  }
+
+  const signOutAction = {
+    label: t("common.signOut"),
+    onPress: () => void signOut().catch(() => undefined),
+  };
+
+  if (failure === "accountBlocked") {
+    return (
+      <PlaceholderScreen
+        icon="account-cancel-outline"
+        title={t("startup.accountBlocked.title")}
+        hint={t("startup.accountBlocked.hint")}
+        action={{
+          label: t("common.contactSupport"),
+          onPress: () => void Linking.openURL(APP_URLS.support),
+        }}
+        secondaryAction={signOutAction}
+      />
+    );
+  }
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      {!hasError ? (
-        <ActivityIndicator accessibilityLabel={t("common.loading")} />
-      ) : (
-        <>
-          <Text variant="bodyMedium" style={styles.message}>
-            {t("startup.vaultError")}
-          </Text>
-          <Button mode="contained" onPress={() => void bootstrapVault()}>
-            {t("common.retry")}
-          </Button>
-        </>
-      )}
-    </View>
+    <PlaceholderScreen
+      icon="cloud-off-outline"
+      title={t("startup.vaultError")}
+      hint={t("common.loadErrorHint")}
+      action={{
+        label: t("common.retry"),
+        onPress: () => void bootstrapVault(),
+      }}
+      secondaryAction={signOutAction}
+    />
   );
 }
 
@@ -75,8 +116,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: SPACING.lg,
-    gap: SPACING.md,
   },
-  message: { textAlign: "center" },
 });

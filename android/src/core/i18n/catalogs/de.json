@@ -1158,6 +1158,10 @@
     }
   },
   "startup": {
+    "accountBlocked": {
+      "hint": "Es kann nicht mehr geöffnet werden. Wenn du das nicht veranlasst hast, kontaktiere den Support.",
+      "title": "Dein Konto wird gelöscht"
+    },
     "vaultError": "Deine geschützten Daten konnten nicht vorbereitet werden."
   },
   "templates": {
@@ -1276,7 +1280,10 @@
       "forgot": "Code vergessen?",
       "subtitle": "Er entsperrt deine Beträge",
       "title": "Dein Code"
-    }
+    },
+    "offline": "Verbindungsfehler, versuch es nochmal",
+    "tooManyAttempts": "Zu viele Versuche, warte einen Moment",
+    "wrongPin": "Dieser Code scheint nicht zu stimmen"
   },
   "vocabulary": {
     "kind": {

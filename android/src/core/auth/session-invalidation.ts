@@ -7,6 +7,7 @@ import { hashKey, type QueryKey } from "@tanstack/react-query";
 import { isApiError } from "@/core/api/api-error";
 import { queryClient } from "@/core/query/query-client";
 import { isVaultKeyRejected } from "@/core/vault/key-rejection";
+import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
 
 import { useSessionStore } from "./session-store";
 import { supabase } from "./supabase";
@@ -116,8 +117,34 @@ export function observeSessionRejection(): () => void {
       }
     });
 
+  // The vault is asked before any query runs, so a session revoked elsewhere
+  // reaches it first, where its retry screen asked the same refused question
+  // forever. Same rule as a query: one refresh, then one more try.
+  let hasRetriedBootstrap = false;
+  const unsubscribeVault = useVaultStore.subscribe((vault, previous) => {
+    if (vault.status !== "unknown") hasRetriedBootstrap = false;
+    if (
+      vault.bootstrapFailure !== "sessionRejected" ||
+      previous.bootstrapFailure === "sessionRejected" ||
+      hasRetriedBootstrap ||
+      useSessionStore.getState().status !== "authenticated"
+    ) {
+      return;
+    }
+    void recoverSession().then((isRefreshed) => {
+      if (!isRefreshed) return;
+      hasRetriedBootstrap = true;
+      void bootstrapVault();
+    });
+  });
+  const unsubscribeSession = useSessionStore.subscribe((session) => {
+    if (session.status !== "authenticated") hasRetriedBootstrap = false;
+  });
+
   return () => {
     unsubscribeQueries();
     unsubscribeMutations();
+    unsubscribeVault();
+    unsubscribeSession();
   };
 }

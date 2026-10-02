@@ -146,7 +146,7 @@ beforeEach(() => {
   useVaultStore.setState({
     status: "unknown",
     isBiometricAvailable: false,
-    hasBootstrapError: false,
+    bootstrapFailure: null,
     pendingRecoveryNotice: null,
   });
 });

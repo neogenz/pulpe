@@ -11,7 +11,9 @@ const mockGetSession = jest
   .mockResolvedValueOnce({ data: { session: restoredSession } })
   .mockResolvedValue({ data: { session: null } });
 
+jest.mock("./google-sign-in", () => ({ forgetGoogleAccount: jest.fn() }));
 jest.mock("./supabase", () => ({
+  hasPersistedSession: jest.fn(async () => false),
   signOutThisDevice: jest.fn(),
   supabase: {
     auth: {

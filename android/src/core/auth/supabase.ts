@@ -14,9 +14,16 @@ import { chunkedSecureStore } from "./chunked-secure-store";
 export const PASSWORD_RESET_REDIRECT_URL =
   "https://app.pulpe.app/reset-password";
 
+/**
+ * supabase-js's own default, spelled out so the session it persists can be
+ * reached without it. Changing it would sign every installed app out.
+ */
+const SESSION_STORAGE_KEY = `sb-${new URL(ENV.supabaseUrl).hostname.split(".")[0]}-auth-token`;
+
 export const supabase = createClient(ENV.supabaseUrl, ENV.supabaseAnonKey, {
   auth: {
     storage: chunkedSecureStore,
+    storageKey: SESSION_STORAGE_KEY,
     persistSession: true,
     autoRefreshToken: true,
     // There is no URL bar to read a session out of; deep links are handled by
@@ -96,4 +103,17 @@ export async function signOutThisDevice(): Promise<void> {
 export async function signOutEverywhere(): Promise<void> {
   const { error } = await supabase.auth.signOut({ scope: "global" });
   if (error) throw error;
+}
+
+/**
+ * Removes the persisted session without the server. supabase-js keeps it when
+ * a sign-out cannot first refresh an expired access token — offline, a user
+ * who had signed out came back signed in on the next launch.
+ */
+export async function forgetPersistedSession(): Promise<void> {
+  await chunkedSecureStore.removeItem(SESSION_STORAGE_KEY);
+}
+
+export async function hasPersistedSession(): Promise<boolean> {
+  return (await chunkedSecureStore.getItem(SESSION_STORAGE_KEY)) !== null;
 }

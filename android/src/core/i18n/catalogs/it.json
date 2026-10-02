@@ -1158,6 +1158,10 @@
     }
   },
   "startup": {
+    "accountBlocked": {
+      "hint": "Non può più essere aperto. Se non l'hai chiesto tu, contatta il supporto.",
+      "title": "Il tuo account è in fase di eliminazione"
+    },
     "vaultError": "Non è stato possibile preparare i tuoi dati protetti."
   },
   "templates": {
@@ -1276,7 +1280,10 @@
       "forgot": "Codice dimenticato?",
       "subtitle": "Sblocca i tuoi importi",
       "title": "Il tuo codice"
-    }
+    },
+    "offline": "Errore di connessione, riprova",
+    "tooManyAttempts": "Troppi tentativi, aspetta un momento",
+    "wrongPin": "Questo codice non sembra corretto"
   },
   "vocabulary": {
     "kind": {
