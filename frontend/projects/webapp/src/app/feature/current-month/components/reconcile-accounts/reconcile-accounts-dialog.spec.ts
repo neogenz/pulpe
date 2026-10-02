@@ -146,6 +146,17 @@ describe('ReconcileAccountsDialog', () => {
   });
 
   describe('step 1 — the accounts', () => {
+    it('should name the first exit Cancel instead of implying a previous step', async () => {
+      const view = await setup();
+
+      expect(view.byTestId('reconcile-back-button')?.textContent?.trim()).toBe(
+        'Annuler',
+      );
+      await view.click(view.byTestId('reconcile-back-button'));
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
+    });
+
     it('should start with a single empty amount and keep Continue disabled until it reads', async () => {
       const view = await setup();
 
@@ -334,6 +345,21 @@ describe('ReconcileAccountsDialog', () => {
 
       expect(document.activeElement?.textContent).toContain(
         'Combien as-tu sur tes comptes ?',
+      );
+    });
+
+    it('should reset the content scroll when moving to another step', async () => {
+      const view = await setup();
+      const content = view.host.querySelector(
+        'mat-dialog-content',
+      ) as HTMLElement;
+      const scrollTo = vi.fn();
+      content.scrollTo = scrollTo;
+      await reachStep2(view);
+
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
+      expect(document.activeElement).toBe(
+        view.byTestId('reconcile-step-heading'),
       );
     });
 

@@ -737,7 +737,7 @@ describe('Dashboard (TestBed)', () => {
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         'Le serveur a refusé',
         expect.any(String),
-        expect.objectContaining({ duration: 5000 }),
+        expect.objectContaining({ duration: 5000, verticalPosition: 'top' }),
       );
       expect(mockStore.error()).toBeNull();
     });

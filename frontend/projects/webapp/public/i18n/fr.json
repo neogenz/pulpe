@@ -1092,7 +1092,7 @@
       "continue": "Continuer",
       "accounts": {
         "heading": "Combien as-tu sur tes comptes ?",
-        "hint": "Saisis le solde que ta banque affiche aujourd'hui. Un découvert se saisit en négatif.",
+        "hint": "Reporte le solde affiché par ta banque aujourd'hui, pour chaque compte.",
         "firstAmount": "Solde de ton compte",
         "accountName": "Nom du compte (facultatif)",
         "amount": "Solde",
@@ -1100,7 +1100,10 @@
         "negative": "Solde négatif (découvert)",
         "addAccount": "Ajouter un compte",
         "removeNumbered": "Retirer le compte {{ index }}",
-        "total": "Total de tes comptes"
+        "total": "Total de tes comptes",
+        "numbered": "Compte {{ index }}",
+        "overdraft": "Découvert",
+        "privateHint": "Les comptes saisis ne sont pas enregistrés."
       },
       "realized": {
         "heading": "Ton solde pointé",
@@ -1109,21 +1112,36 @@
         "checkedOutflows": "Dépenses et épargne pointées",
         "rollover": "Report du mois précédent",
         "balance": "Solde pointé",
-        "hint": "Seul ce que tu as pointé compte. Il manque quelque chose ? Pointe-le d'abord, puis reviens.",
-        "viewItemsToCheck": "Voir ce qu'il reste à pointer"
+        "hint": "Il manque un élément ? Pointe-le avant de comparer.",
+        "viewItemsToCheck": "Voir ce qu'il reste à pointer",
+        "intro": "Voici ce que Pulpe calcule avec tes éléments pointés."
       },
       "verdict": {
         "upToDateTitle": "Tout est à jour",
         "upToDateMessage": "Tes comptes correspondent à ton solde pointé.",
         "moreTitle": "Tes comptes ont {{ amount }} de plus",
         "lessTitle": "Il manque {{ amount }} sur tes comptes",
-        "moreMessage": "On note un revenu d'ajustement de {{ amount }}, déjà pointé : ton solde pointé rejoindra le total de tes comptes.",
-        "lessMessage": "On note une dépense d'ajustement de {{ amount }}, déjà pointée : ton solde pointé rejoindra le total de tes comptes.",
+        "moreMessage": "On note un revenu d'ajustement de {{ amount }}, déjà pointé.",
+        "lessMessage": "On note une dépense d'ajustement de {{ amount }}, déjà pointée.",
         "label": "Libellé",
         "labelRequired": "Donne un libellé à cet ajustement",
         "defaultLabel": "Ajustement",
-        "record": "Enregistrer l'ajustement",
-        "finish": "Terminer"
+        "record": "Confirmer l'ajustement",
+        "finish": "Terminer",
+        "morePrefix": "Tes comptes ont",
+        "moreSuffix": "de plus",
+        "lessPrefix": "Il manque",
+        "lessSuffix": "sur tes comptes",
+        "adjustmentTitle": "Ajustement proposé",
+        "income": "Revenu",
+        "expense": "Dépense"
+      },
+      "cancel": "Annuler",
+      "compare": "Voir l'écart",
+      "steps": {
+        "accounts": "Comptes",
+        "realized": "Pointé",
+        "verdict": "Écart"
       }
     }
   },

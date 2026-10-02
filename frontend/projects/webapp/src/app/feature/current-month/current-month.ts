@@ -933,12 +933,12 @@ export default class Dashboard {
   // have the server refuse the next, and the first was silently unreversible.
   // Settling rather than merely closing is what retires the glossaries, because
   // at that point the check really is a fact.
-  #notify(message: string): void {
+  #notify(message: string, verticalPosition?: 'top' | 'bottom'): void {
     this.#settleUndoWindow();
     this.#snackBar.open(
       message,
       this.#transloco.translate('currentMonth.close'),
-      { duration: 5000 },
+      { duration: 5000, ...(verticalPosition ? { verticalPosition } : {}) },
     );
   }
 
@@ -989,6 +989,7 @@ export default class Dashboard {
     if (!budgetId) {
       this.#notify(
         this.#transloco.translate('currentMonth.addTransactionNoBudget'),
+        'top',
       );
       return false;
     }
@@ -1004,7 +1005,8 @@ export default class Dashboard {
       }),
     );
     if ('reason' in outcome) {
-      this.#notify(outcome.reason);
+      // Keep the retry and Back actions reachable inside the full-height dialog.
+      this.#notify(outcome.reason, 'top');
       return false;
     }
     this.#confirmWithUndo({
