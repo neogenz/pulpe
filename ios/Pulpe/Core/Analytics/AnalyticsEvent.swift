@@ -50,6 +50,11 @@ enum AnalyticsEvent: String, CaseIterable {
 
     // MARK: - Transaction
     case transactionCreated = "transaction_created"
+    /// Fires once when "Rapprocher mes comptes" completes: after its adjustment is
+    /// recorded, or when the user confirms the accounts already match (PUL-351).
+    /// Property: `adjustment_kind` (`AccountReconciliation.Completion`). Never an
+    /// amount, an account name or a label.
+    case accountReconciliationCompleted = "account_reconciliation_completed"
 
     // MARK: - Navigation
     case tabSwitched = "tab_switched"

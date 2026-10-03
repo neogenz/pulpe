@@ -784,6 +784,47 @@ describe('DashboardHero', () => {
     });
   });
 
+  describe('reconcileClick output', () => {
+    it('should open the reconciliation from its own control, never the month', () => {
+      setTestInput(component.available, 1000);
+      setTestInput(component.expenses, 400);
+      fixture.detectChanges();
+      const reconcile = vi.fn();
+      const openMonth = vi.fn();
+      component.reconcileClick.subscribe(reconcile);
+      component.heroClick.subscribe(openMonth);
+
+      const button = fixture.nativeElement.querySelector(
+        '[data-testid="hero-reconcile-button"]',
+      ) as HTMLButtonElement;
+      expect(button.textContent).toContain('Rapprocher mes comptes');
+      button.click();
+
+      expect(reconcile).toHaveBeenCalledTimes(1);
+      expect(openMonth).not.toHaveBeenCalled();
+    });
+
+    // The open-month control is stretched over the whole card at z-20, and
+    // every content row is a z-10 stacking context beneath it. A button inside
+    // one of those rows would be painted under the stretched control and every
+    // tap on it would open the month instead.
+    it('should stack above the control stretched over the card', () => {
+      setTestInput(component.available, 1000);
+      setTestInput(component.expenses, 400);
+      fixture.detectChanges();
+
+      const container = fixture.nativeElement.querySelector('.hero-container');
+      const button = fixture.nativeElement.querySelector(
+        '[data-testid="hero-reconcile-button"]',
+      ) as HTMLButtonElement;
+      const style = getComputedStyle(button);
+
+      expect(button.parentElement).toBe(container);
+      expect(style.position).toBe('relative');
+      expect(Number(style.zIndex)).toBeGreaterThan(20);
+    });
+  });
+
   describe('accessibility tree', () => {
     it('should keep the month heading and the engaged hint readable', () => {
       setTestInput(component.available, 1000);

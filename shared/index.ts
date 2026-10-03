@@ -270,6 +270,14 @@ export {
 } from './src/calculators/index.js';
 export { splitTotalPreserving } from './src/calculators/index.js';
 export {
+  parseAccountAmount,
+  reconciliationVerdict,
+  summarizeAccounts,
+  type AccountAmount,
+  type AccountsSummary,
+  type ReconciliationVerdict,
+} from './src/calculators/index.js';
+export {
   PACE_TOLERANCE_PERCENT,
   MAX_ESTIMATED_HORIZON_MONTHS,
   calculatePaceStatus,

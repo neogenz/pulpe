@@ -1,6 +1,6 @@
 import type { SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
-import { Divider, Text, useTheme } from "react-native-paper";
+import { Button, Divider, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import {
@@ -29,6 +29,11 @@ interface RealizedBalanceSheetProps {
   metrics: CurrentMonthViewModel["metrics"];
   realized: RealizedMetrics;
   currency: SupportedCurrency;
+  /**
+   * Offered only where the month is the one being lived: a past balance has no
+   * bank account left to be held against.
+   */
+  onReconcile?: () => void;
 }
 
 /**
@@ -42,6 +47,7 @@ export function RealizedBalanceSheet({
   metrics,
   realized,
   currency,
+  onReconcile,
 }: RealizedBalanceSheetProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -54,6 +60,13 @@ export function RealizedBalanceSheet({
       isVisible={isVisible}
       onDismiss={onDismiss}
       title={t("home.realized.title")}
+      footer={
+        onReconcile === undefined ? undefined : (
+          <Button mode="contained" icon="bank-outline" onPress={onReconcile}>
+            {t("home.reconcile.title")}
+          </Button>
+        )
+      }
     >
       <View style={styles.balanceBlock}>
         <Text
