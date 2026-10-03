@@ -839,8 +839,8 @@ jobs:
 
       - name: 🧾 Record tested tree
         env:
+          GH_TOKEN: ${{ github.token }}
           BASE_REF: ${{ github.base_ref }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_REF: ${{ github.head_ref }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           MERGE_SHA: ${{ github.sha }}
@@ -850,6 +850,15 @@ jobs:
           ROUTING: ${{ needs.classify.outputs.decision }}
         run: |
           set -euo pipefail
+          # Do not publish a green proof after another PR advances main.
+          tested_base=$(git rev-parse "${GITHUB_SHA}^1")
+          current_main=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)
+          if [ "$current_main" != "$tested_base" ]; then
+            echo "::error::main advanced from tested base $tested_base to $current_main; update the PR branch and rerun CI"
+            exit 1
+          fi
+          # Bind evidence to the tested merge, not potentially stale PR metadata.
+          export BASE_SHA="$tested_base"
           # Une branche release ne porte que la PR de préparation : son unique
           # commit de version est posé directement sur la base. Le merge de
           # cette PR est le candidat que production.yml/authorize re-vérifie.
