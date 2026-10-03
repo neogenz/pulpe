@@ -393,6 +393,116 @@ test("successful PRs to main emit one immutable tested-tree proof", () => {
   );
 });
 
+const runTestedTreeRecord = ({ mainMoved = false, apiFails = false } = {}) => {
+  const directory = mkdtempSync(join(tmpdir(), "ci-tested-tree-"));
+  // Never let Git fixtures inherit the invoking checkout or hook context.
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([key]) => !key.startsWith("GIT_") && !key.startsWith("LEFTHOOK"),
+    ),
+  );
+  const git = (...args) => {
+    const result = spawnSync(
+      "git",
+      ["-c", "core.hooksPath=/dev/null", ...args],
+      {
+        cwd: directory,
+        env,
+        encoding: "utf8",
+      },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  try {
+    git("init", "--initial-branch=main");
+    git("config", "user.name", "CI fixture");
+    git("config", "user.email", "ci-fixture@example.invalid");
+    git("commit", "--allow-empty", "-m", "base");
+    const base = git("rev-parse", "HEAD");
+    git("checkout", "-b", "fix/fixture");
+    git("commit", "--allow-empty", "-m", "candidate");
+    const head = git("rev-parse", "HEAD");
+    git("checkout", "--detach", base);
+    git("merge", "--no-ff", "-m", "tested merge", head);
+    const merge = git("rev-parse", "HEAD");
+    const tree = git("rev-parse", "HEAD^{tree}");
+    git("checkout", "main");
+    if (mainMoved) git("commit", "--allow-empty", "-m", "main advanced");
+    const currentMain = git("rev-parse", "HEAD");
+    git("checkout", "--detach", merge);
+    const bin = join(directory, "bin");
+    mkdirSync(bin);
+    writeFileSync(
+      join(bin, "gh"),
+      '#!/bin/sh\n[ "$*" = "api repos/fixture/repo/branches/main --jq .commit.sha" ] || exit 90\n[ "$FIXTURE_API_FAILS" = "false" ] || exit 1\nprintf "%s\\n" "$FIXTURE_MAIN_SHA"\n',
+      { mode: 0o755 },
+    );
+    const step = workflow.match(
+      /- name: 🧾 Record tested tree[\s\S]*?\n        run: \|\n([\s\S]*?)(?=\n      - name:)/,
+    );
+    assert.ok(step, "missing real tested-tree record step");
+    const result = spawnSync("bash", ["-c", step[1].replace(/^ {10}/gm, "")], {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...env,
+        PATH: `${bin}:${env.PATH}`,
+        GH_TOKEN: "fixture-only",
+        GITHUB_REPOSITORY: "fixture/repo",
+        GITHUB_SHA: merge,
+        BASE_REF: "main",
+        // PR metadata can lag the actual merge parent; it is not evidence.
+        BASE_SHA: "0".repeat(40),
+        HEAD_REF: "fix/fixture",
+        HEAD_SHA: head,
+        MERGE_SHA: merge,
+        PR_NUMBER: "1",
+        RUN_ID: "2",
+        RUN_ATTEMPT: "1",
+        ROUTING: '{"decision":"full"}',
+        FIXTURE_MAIN_SHA: currentMain,
+        FIXTURE_API_FAILS: String(apiFails),
+      },
+    });
+    let evidence = null;
+    try {
+      evidence = JSON.parse(readFileSync(join(directory, "ci-evidence.json")));
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+    return { ...result, evidence, base, head, merge, tree };
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+};
+
+test("CI refuses tested-tree proof when main advanced during its gates", () => {
+  const result = runTestedTreeRecord({ mainMoved: true });
+  assert.notEqual(
+    result.status,
+    0,
+    "stale CI must fail before publishing proof",
+  );
+  assert.equal(result.evidence, null);
+  assert.match(result.stdout, /main advanced/);
+});
+
+test("tested-tree proof records the actual merge parent, not stale PR metadata", () => {
+  const result = runTestedTreeRecord();
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.evidence.base_sha, result.base);
+  assert.equal(result.evidence.head_sha, result.head);
+  assert.equal(result.evidence.merge_sha, result.merge);
+  assert.equal(result.evidence.tree_sha, result.tree);
+});
+
+test("CI refuses tested-tree proof when the main lookup fails", () => {
+  const result = runTestedTreeRecord({ apiFails: true });
+  assert.notEqual(result.status, 0, "API failure must not authorize proof");
+  assert.equal(result.evidence, null);
+});
+
 test("the shadow staging proof fails closed on identity or deployment drift", () => {
   assert.match(stagingProof, /on:\n  push:\n    branches: \[main\]/);
   assert.doesNotMatch(stagingProof, /deployment_status/);
