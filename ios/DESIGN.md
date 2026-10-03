@@ -253,17 +253,17 @@ The seeds in `../DESIGN.md` are abstract. The values below are the **iOS canonic
 
 The hero surface is the brand forest, never tinted by financial state. Ratios measured by `HeroContrastTests` (WCAG 2.1, text 4.5:1, non-text 3:1):
 
-| Token | Light | Dark | Ratio on `heroSurface` |
-| --- | --- | --- | --- |
-| `Color.heroSurface` | `#0E3A1C` | `#0B2E16` | 11.4:1 vs `appBackground` |
-| `Color.heroSurfaceTop` | `#14512A` | `#0E3A1C` | top gradient stop |
-| `Color.heroInk` | `#FFFFFF` | `#F3F9F5` | 12.8:1 |
-| `Color.heroInkSecondary` | `#CFE8D6` | `#CFE8D6` | 9.9:1 |
-| `Color.heroTile` | `heroInk` @ `Opacity.heroTile` (0.12) | same | surface, not a signal |
-| `Color.heroAccentPositive` | `#7EDB83` | same | 7.5:1 |
-| `Color.heroAccentCaution` | `#E5A33A` | same | 5.9:1 |
-| `Color.heroAccentDeficit` | `#F08A6A` | same | 5.2:1 |
-| `Color.heroAccentInfo` | `#5AA8E0` | same | 4.9:1 |
+| Token                      | Light                                 | Dark      | Ratio on `heroSurface`    |
+| -------------------------- | ------------------------------------- | --------- | ------------------------- |
+| `Color.heroSurface`        | `#0E3A1C`                             | `#0B2E16` | 11.4:1 vs `appBackground` |
+| `Color.heroSurfaceTop`     | `#14512A`                             | `#0E3A1C` | top gradient stop         |
+| `Color.heroInk`            | `#FFFFFF`                             | `#F3F9F5` | 12.8:1                    |
+| `Color.heroInkSecondary`   | `#CFE8D6`                             | `#CFE8D6` | 9.9:1                     |
+| `Color.heroTile`           | `heroInk` @ `Opacity.heroTile` (0.12) | same      | surface, not a signal     |
+| `Color.heroAccentPositive` | `#7EDB83`                             | same      | 7.5:1                     |
+| `Color.heroAccentCaution`  | `#E5A33A`                             | same      | 5.9:1                     |
+| `Color.heroAccentDeficit`  | `#F08A6A`                             | same      | 5.2:1                     |
+| `Color.heroAccentInfo`     | `#5AA8E0`                             | same      | 4.9:1                     |
 
 The previous state-tinted heroes (`#14AD45`, `#D88010` under white ink) measured 2.96:1 and 2.99:1 — refused.
 
@@ -324,6 +324,8 @@ Live tokens: `ios/Pulpe/Shared/Styles/Typography.swift`.
 ### iOS-Specific Named Rules
 
 **The Two-Decimals Rule (Budget Detail page).** On the iOS Budget Detail page, all currency amounts render with two decimals (`1'234.56 CHF`). `asCompactCurrency` (the rounded compact format) is **prohibited** in this context. Other surfaces apply the dual aggregation/ligne policy from the project's currency-formatting rule.
+
+**Account reconciliation.** Its pointed-balance breakdown keeps spending and savings on separate rows, matching the existing iOS realized-balance sheet. Web and Android combine those rows as checked outflows; this is an intentional presentation difference, not a different formula. Both savings and spending are subtracted, and the total and verdict remain identical across platforms. Every reconciliation amount, including a one-cent gap, uses the user's currency with two decimals.
 
 **The Hero Flat Rule.** The Budget Detail hero amount is `Manrope ExtraBold` rendered in `Color.textPrimary` (black on neutral). The hero is **flat** on the warm canvas — no surface, no border, no shadow. Color comes from the financial-state pill row beneath it, never from the hero number itself. The savings-goal detail hero obeys the same rule: the confirmed amount is `amountHero` in `Color.textPrimary`, and the only colour on it comes from the progress bar underneath.
 

@@ -179,9 +179,11 @@ struct TemplateUsageData: Decodable {
     let budgetCount: Int
     let budgets: [TemplateUsageBudget]
 
-    var propagationBudgetCount: Int {
-        let current = MonthYear()
-        return budgets.filter { MonthYear(month: $0.month, year: $0.year) >= current }.count
+    func propagationBudgetCount(payDayOfMonth: Int?, now: Date = Date()) -> Int {
+        let current = BudgetPeriodCalculator.periodForDate(now, payDayOfMonth: payDayOfMonth)
+        return budgets.filter {
+            BudgetPeriodCalculator.comparePeriods(BudgetPeriod(month: $0.month, year: $0.year), current) >= 0
+        }.count
     }
 }
 

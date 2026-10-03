@@ -52,6 +52,7 @@ import {
             [labels]="labels()"
             [currency]="currency()"
             [locale]="locale()"
+            [currentDate]="currentDate()"
             [isCurrentMonth]="isCurrentMonth(month)"
             (tileClick)="handleMonthClick($event)"
           />

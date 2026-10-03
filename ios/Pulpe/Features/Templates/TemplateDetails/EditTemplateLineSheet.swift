@@ -72,6 +72,10 @@ struct EditTemplateLineSheet: View {
         return !name.trimmingCharacters(in: .whitespaces).isEmpty && !isLoading
     }
 
+    private var propagationBudgetCount: Int {
+        usageData?.propagationBudgetCount(payDayOfMonth: userSettingsStore.payDayOfMonth) ?? 0
+    }
+
     var body: some View {
         SheetFormContainer(
             title: AppLocale.string("Modifier la ligne"),
@@ -144,7 +148,7 @@ struct EditTemplateLineSheet: View {
                 pendingUpdate = nil
             }
         } message: {
-            let count = usageData?.propagationBudgetCount ?? 0
+            let count = propagationBudgetCount
             let intro = usageFetchFailed
                 ? AppLocale.string("Ce modèle est peut-être utilisé par d'autres budgets.")
                 : AppLocale.string("Ce modèle est utilisé par \(count) budgets.")
@@ -229,7 +233,7 @@ struct EditTemplateLineSheet: View {
             update.savingsGoalId = .some(kind.savingsGoalLink(savingsGoalId))
             pendingUpdate = update
 
-            let hasBudgets = usageFetchFailed || (usageData?.propagationBudgetCount ?? 0) > 0
+            let hasBudgets = usageFetchFailed || propagationBudgetCount > 0
             if hasBudgets {
                 showPropagationAlert = true
             } else {
