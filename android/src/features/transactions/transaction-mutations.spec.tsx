@@ -18,7 +18,7 @@ import type { BudgetDetails } from "@/features/budgets/budget-api";
 import { budgetKeys } from "@/features/budgets/budget-queries";
 
 import { createTransaction, fetchTransaction } from "./transaction-api";
-import { useCreateTransaction } from "./transaction-mutations";
+import { isUnsavedCreate, useCreateTransaction } from "./transaction-mutations";
 
 jest.mock("@/core/vault/vault-store", () => ({ useVaultStore: () => true }));
 jest.mock("@/features/budgets/budget-api", () => ({}));
@@ -305,6 +305,60 @@ it.each([
     expect(client.invalidateQueries).not.toHaveBeenCalled();
   },
 );
+
+describe("a create known to have written nothing", () => {
+  const notFound = () =>
+    new ApiError("absent", "TRANSACTION_NOT_FOUND", 404, undefined);
+
+  it("marks a refusal whose id the server does not hold", async () => {
+    const refusal = new ApiError("refused", "VALIDATION_ERROR", 400, undefined);
+    mockedCreate.mockRejectedValueOnce(refusal);
+    mockedFetch.mockRejectedValueOnce(notFound());
+    const { hook, client } = await renderCreate();
+
+    await act(async () => {
+      await expect(hook.result.current.mutateAsync(PAYLOAD)).rejects.toBe(
+        refusal,
+      );
+    });
+
+    expect(isUnsavedCreate(refusal)).toBe(true);
+    expect(client.invalidateQueries).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      "a lost answer",
+      () =>
+        new ApiError("lost", CLIENT_ERROR_CODES.NETWORK_ERROR, 0, undefined),
+      notFound,
+    ],
+    [
+      "a server failure",
+      () => new ApiError("down", "INTERNAL", 503, undefined),
+      notFound,
+    ],
+    [
+      "a refusal the read-back cannot confirm",
+      () => new ApiError("refused", "VALIDATION_ERROR", 400, undefined),
+      () =>
+        new ApiError("lost", CLIENT_ERROR_CODES.NETWORK_ERROR, 0, undefined),
+    ],
+  ])("leaves %s possibly saved", async (_case, failure, readBack) => {
+    const error = failure();
+    mockedCreate.mockRejectedValueOnce(error);
+    mockedFetch.mockRejectedValueOnce(readBack());
+    const { hook } = await renderCreate();
+
+    await act(async () => {
+      await expect(hook.result.current.mutateAsync(PAYLOAD)).rejects.toBe(
+        error,
+      );
+    });
+
+    expect(isUnsavedCreate(error)).toBe(false);
+  });
+});
 
 describe("the created entry in its month's cache", () => {
   const STAMP = "2026-10-02T09:30:00.000Z";

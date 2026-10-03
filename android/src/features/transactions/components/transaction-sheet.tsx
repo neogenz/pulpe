@@ -44,6 +44,7 @@ import {
   type TransactionDraft,
 } from "../transaction-draft";
 import {
+  isUnsavedCreate,
   useCreateTransaction,
   useRefreshAfterTransactionWrite,
   useUpdateTransaction,
@@ -143,6 +144,9 @@ export function TransactionSheet({
   // The ref captures even two presses in one render; the state shows the
   // exact submitted values while the request is pending or being retried.
   const createAttempt = useRef<TransactionCreate | null>(null);
+  // An attempt whose answer never came may still land, possibly after a later
+  // one is refused: from then on the submitted values stay as they are.
+  const hasUncertainAttempt = useRef(false);
   const draft: TransactionDraft = { ...form, budgetId };
   const isEditing = transaction !== undefined;
   // A sheet that stays mounted keeps the day it was mounted on: opened two
@@ -205,6 +209,7 @@ export function TransactionSheet({
     setCreateId(randomUUID());
     setSubmittedCreate(null);
     createAttempt.current = null;
+    hasUncertainAttempt.current = false;
   }
 
   /** Dismissing means abandoning: a half-filled form must not greet the next open. */
@@ -242,7 +247,19 @@ export function TransactionSheet({
       setSubmittedCreate(payload);
       setDatePickerVisible(false);
       Keyboard.dismiss();
-      create.mutate(payload, { onSuccess });
+      create.mutate(payload, {
+        onSuccess,
+        onError: (error) => {
+          // Refused, and nothing stored under its id: the form opens again
+          // on the same values, so a wrong amount or goal can be corrected.
+          if (isUnsavedCreate(error) && !hasUncertainAttempt.current) {
+            createAttempt.current = null;
+            setSubmittedCreate(null);
+          } else {
+            hasUncertainAttempt.current = true;
+          }
+        },
+      });
       return;
     }
 

@@ -5,6 +5,11 @@ import {
 } from "@tanstack/react-query";
 import type { Transaction, TransactionCreate } from "pulpe-shared";
 
+import {
+  type ApiError,
+  isApiError,
+  isTransientError,
+} from "@/core/api/api-error";
 import type { BudgetDetails } from "@/features/budgets/budget-api";
 import {
   budgetKeys,
@@ -56,6 +61,12 @@ export function useRefreshAfterTransactionWrite(): () => void {
 }
 
 /**
+ * Failures marked rather than wrapped: the session and vault watchers read
+ * the original error off the mutation cache.
+ */
+const unsavedCreates = new WeakSet<object>();
+
+/**
  * A failed response may still have committed the write. Read back the chosen
  * id and confirm the submitted values before calling it a success. A 409 alone
  * does not prove that a changed retry was saved, and a goal withdrawal can
@@ -69,13 +80,43 @@ async function createOnce(payload: TransactionCreate): Promise<Transaction> {
       try {
         const written = await fetchTransaction(payload.id);
         if (matchesSubmittedCreate(written, payload)) return written;
-      } catch {
+      } catch (readError) {
         // A read that also failed cannot confirm the write. Preserve the
-        // original failure so the unchanged request remains retryable.
+        // original failure so the unchanged request remains retryable —
+        // unless the server refused it and holds nothing under its id.
+        if (
+          isRefusal(error) &&
+          isApiError(readError) &&
+          readError.status === 404
+        ) {
+          unsavedCreates.add(error);
+        }
       }
     }
     throw error;
   }
+}
+
+/**
+ * Whether a failed create is known to have written nothing: the server
+ * answered it with a refusal, and confirmed it holds no row under its id.
+ * Anything else — a lost answer, a 5xx, a read-back that could not answer —
+ * may still have landed.
+ */
+export function isUnsavedCreate(error: unknown): boolean {
+  return (
+    typeof error === "object" && error !== null && unsavedCreates.has(error)
+  );
+}
+
+/** An answer from the server that turns the request down, not a breakdown. */
+function isRefusal(error: unknown): error is ApiError {
+  return (
+    isApiError(error) &&
+    error.status >= 400 &&
+    error.status < 500 &&
+    !isTransientError(error)
+  );
 }
 
 function matchesSubmittedCreate(

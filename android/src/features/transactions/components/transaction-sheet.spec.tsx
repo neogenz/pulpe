@@ -27,10 +27,12 @@ jest.mock("react-native-quick-crypto", () => ({
   randomUUID: () => `operation-${(mockUuidCount += 1)}`,
 }));
 const mockRefreshAfterWrite = jest.fn();
+const mockUnsaved = new WeakSet<object>();
 jest.mock("../transaction-mutations", () => ({
   useCreateTransaction: () => mockCreate,
   useUpdateTransaction: () => mockUpdate,
   useRefreshAfterTransactionWrite: () => mockRefreshAfterWrite,
+  isUnsavedCreate: (error: object) => mockUnsaved.has(error),
 }));
 jest.mock("@/features/savings-goals/goals-queries", () => ({
   useSavingsGoalWithdrawalOptions: () => mockWithdrawalOptions,
@@ -390,6 +392,64 @@ it("leaves the budget alone when a form that sent nothing is dismissed", async (
 
   expect(mockRefreshAfterWrite).not.toHaveBeenCalled();
   expect(baseProps.onDismiss).toHaveBeenCalled();
+});
+
+/** Answers attempt `index` the way `useMutation` would, through its callbacks. */
+async function failAttempt(index: number, error: Error) {
+  const options = mockCreate.mutate.mock.calls[index][1] as {
+    onError: (error: Error) => void;
+  };
+  await act(async () => options.onError(error));
+  mockCreate.isError = true;
+}
+
+it("reopens the form, same id, when a refusal is known to have saved nothing", async () => {
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fill(view, 120, "Too much");
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  const first = mockCreate.mutate.mock.calls[0][0];
+
+  const refusal = new Error("refused");
+  mockUnsaved.add(refusal);
+  await failAttempt(0, refusal);
+  await view.rerender(<TransactionSheet {...baseProps} />);
+
+  expect(
+    view.queryByText("budgets.mutations.activity.retryUnchanged"),
+  ).toBeNull();
+  expect(view.getByText("budgets.mutations.activity.error")).toBeTruthy();
+  expect(view.getByLabelText("budgets.mutations.description").props.value).toBe(
+    "Too much",
+  );
+
+  await fireEvent.press(view.getByLabelText("set-amount-500"));
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+  expect(mockCreate.mutate.mock.calls[1][0]).toEqual(
+    expect.objectContaining({ id: first.id, amount: 500, name: "Too much" }),
+  );
+});
+
+it("keeps the submitted values once an attempt's answer was lost", async () => {
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fill(view, 120, "Maybe landed");
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+  await failAttempt(0, new Error("network"));
+  await view.rerender(<TransactionSheet {...baseProps} />);
+  await fireEvent.press(view.getByText("common.retry"));
+
+  const refusal = new Error("refused");
+  mockUnsaved.add(refusal);
+  await failAttempt(1, refusal);
+  await view.rerender(<TransactionSheet {...baseProps} />);
+
+  // The first request may still be written after this refusal: editing now
+  // could leave the stored row and the screen disagreeing.
+  expect(
+    view.getByText("budgets.mutations.activity.retryUnchanged"),
+  ).toBeTruthy();
+  expect(view.queryByLabelText("budgets.mutations.description")).toBeNull();
 });
 
 it("retries submitted withdrawals even if refreshed options now show a smaller balance", async () => {
